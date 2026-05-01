@@ -35,12 +35,24 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	 */
 	private $promoter;
 
+	/**
+	 * Redactor used to scrub client-supplied event payloads before they
+	 * land in the trace store. Without this, the un-trusted `data` blob
+	 * a shopper's browser POSTs would flow into trace files that the
+	 * merchant copies into support tickets.
+	 *
+	 * @var WC_Stripe_Diagnostics_Redactor
+	 */
+	private $redactor;
+
 	public function __construct(
 		?WC_Stripe_Diagnostics_Trace_Store $store = null,
-		?WC_Stripe_Diagnostics_Outcome_Promoter $promoter = null
+		?WC_Stripe_Diagnostics_Outcome_Promoter $promoter = null,
+		?WC_Stripe_Diagnostics_Redactor $redactor = null
 	) {
 		$this->store    = $store ?? new WC_Stripe_Diagnostics_Trace_Store();
 		$this->promoter = $promoter ?? new WC_Stripe_Diagnostics_Outcome_Promoter( $this->store );
+		$this->redactor = $redactor ?? new WC_Stripe_Diagnostics_Redactor();
 	}
 
 	/**
@@ -217,9 +229,18 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 			if ( ! is_array( $raw ) ) {
 				continue;
 			}
-			if ( $this->store->append_event( $session_id, $raw ) ) {
+			// Scrub PII patterns (PAN/CVV/email/IP) from string values
+			// before storing. We use scrub_value() rather than the full
+			// redact() allow-list because the client SDK event shape
+			// uses nested `data.*` fields the current allow-list doesn't
+			// describe — full allow-list compliance is a follow-up.
+			$scrubbed = $this->redactor->scrub_value( $raw );
+			if ( ! is_array( $scrubbed ) ) {
+				continue;
+			}
+			if ( $this->store->append_event( $session_id, $scrubbed ) ) {
 				++$written;
-				$this->promoter->maybe_promote( $session_id, $raw );
+				$this->promoter->maybe_promote( $session_id, $scrubbed );
 			}
 		}
 
