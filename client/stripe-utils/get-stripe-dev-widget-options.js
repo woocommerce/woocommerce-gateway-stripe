@@ -1,4 +1,4 @@
-import { getStripeServerData } from 'wcstripe/stripe-utils';
+import { getStripeServerData } from './utils';
 import { STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT } from 'wcstripe/stripe-utils/constants';
 
 /**
