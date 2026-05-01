@@ -122,10 +122,10 @@ class WC_Stripe_Diagnostics_Trace_Store {
 	}
 
 	/**
-	 * Promote a trace to a terminal status (completed | abandoned).
+	 * Promote a trace to a terminal status (completed | abandoned | failed).
 	 *
 	 * @param string $session_id Session identifier.
-	 * @param string $status     One of STATUS_COMPLETED, STATUS_ABANDONED.
+	 * @param string $status     One of STATUS_COMPLETED, STATUS_ABANDONED, STATUS_FAILED.
 	 * @return bool True if status was updated.
 	 */
 	public function set_status( $session_id, $status ) {
