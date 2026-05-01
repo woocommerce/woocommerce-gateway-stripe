@@ -195,11 +195,13 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	 * Action Scheduler marks the job as failed rather than silently complete.
 	 */
 	public function test_process_checkout_session_completed_handles_mapper_throwable() {
+		$sku     = 'WEBHOOK-THROWABLE-' . uniqid();
 		$product = WC_Helper_Product::create_simple_product(
 			true,
 			[
 				'regular_price' => '20.00',
 				'price'         => '20.00',
+				'sku'           => $sku,
 			]
 		);
 
@@ -226,7 +228,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		try {
 			$session_id   = 'cs_test_throwable';
 			$notification = $this->build_notification( $session_id );
-			$mock_session = $this->build_checkout_session_response( $session_id, true, (string) $product->get_id() );
+			$mock_session = $this->build_checkout_session_response( $session_id, true, $sku );
 			$this->mock_stripe_checkout_sessions_response( $mock_session );
 
 			// Immediate phase: defers the webhook.
@@ -269,6 +271,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			[
 				'regular_price' => '20.00',
 				'price'         => '20.00',
+				'sku'           => 'WEBHOOK-HAPPY-' . uniqid(),
 			]
 		);
 
@@ -284,7 +287,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		$session_id   = 'cs_test_happy';
 		$notification = $this->build_notification( $session_id );
-		$mock_session = $this->build_checkout_session_response( $session_id, true, (string) $product->get_id() );
+		$mock_session = $this->build_checkout_session_response( $session_id, true, (string) $product->get_sku() );
 		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
 		// Immediate phase: defers the webhook.
@@ -515,10 +518,10 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	 *
 	 * @param string      $session_id The checkout session ID.
 	 * @param bool        $agentic    Whether to include agentic line items.
-	 * @param string|null $product_id Optional real WC product ID for the external_reference.
+	 * @param string|null $sku        Optional real WC product SKU for the external_reference.
 	 * @return object
 	 */
-	private function build_checkout_session_response( $session_id, $agentic, $product_id = null ) {
+	private function build_checkout_session_response( $session_id, $agentic, $sku = null ) {
 		$line_items_data = [];
 
 		if ( $agentic ) {
@@ -531,7 +534,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 				'amount_tax'      => 0,
 				'price'           => (object) [
 					'unit_amount'        => 2000,
-					'external_reference' => $product_id ?? '99999999',
+					'external_reference' => $sku ?? 'SKU-UNRESOLVABLE-' . uniqid(),
 					'currency'           => 'usd',
 				],
 			];
