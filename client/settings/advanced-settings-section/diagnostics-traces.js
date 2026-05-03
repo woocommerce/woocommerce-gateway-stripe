@@ -147,7 +147,7 @@ const DiagnosticsTraces = () => {
 			recordEvent( 'wcstripe_diagnostics_copy_traces', {
 				scope,
 				result: 'error',
-				count: 0,
+				count: null,
 			} );
 			setFeedback( {
 				status: 'error',
