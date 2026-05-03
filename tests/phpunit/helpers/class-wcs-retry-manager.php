@@ -4,6 +4,10 @@
  * in WC_Stripe_Subscriptions_Trait::process_subscription_payment().
  *
  * This helper should ONLY be used for unit tests.
+ *
+ * Properties prefixed with `mock_` and methods prefixed with `mock_` are
+ * test-only seams. The remaining static methods (is_retry_enabled(), store())
+ * mirror the real WCS_Retry_Manager API that production code calls.
  */
 
 /**
@@ -11,19 +15,19 @@
  */
 class WCS_Retry_Manager {
 	/**
-	 * Whether retries are enabled (toggle this in tests).
+	 * Test-only toggle for whether retries are enabled. Not part of the real API.
 	 *
 	 * @var bool
 	 */
-	public static $retry_enabled = true;
+	public static $mock_retry_enabled = true;
 
 	/**
-	 * Retry returned by store()->get_last_retry_for_order(). Set to null to simulate
-	 * "no pending retry exists".
+	 * Test-only seed for the retry returned by store()->get_last_retry_for_order().
+	 * Set to null to simulate "no pending retry exists". Not part of the real API.
 	 *
 	 * @var WCS_Retry|null
 	 */
-	public static $last_retry = null;
+	public static $mock_last_retry = null;
 
 	/**
 	 * Singleton store instance.
@@ -36,7 +40,7 @@ class WCS_Retry_Manager {
 	 * @return bool
 	 */
 	public static function is_retry_enabled() {
-		return self::$retry_enabled;
+		return self::$mock_retry_enabled;
 	}
 
 	/**
@@ -50,12 +54,12 @@ class WCS_Retry_Manager {
 	}
 
 	/**
-	 * Reset state between tests.
+	 * Test-only helper to reset state between tests. Not part of the real API.
 	 *
 	 * @return void
 	 */
-	public static function reset() {
-		self::$retry_enabled = true;
-		self::$last_retry    = null;
+	public static function mock_reset() {
+		self::$mock_retry_enabled = true;
+		self::$mock_last_retry    = null;
 	}
 }

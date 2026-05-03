@@ -3709,12 +3709,6 @@ parameters:
 			path: includes/compat/class-wc-stripe-email-customer-failed-refund.php
 
 		-
-			message: '#^Call to function method_exists\(\) with WCS_Retry and ''get_time'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-authentication-retry.php
-
-		-
 			message: '#^Cannot call method get_order_number\(\) on WC_Order\|null\.$#'
 			identifier: method.nonObject
 			count: 1

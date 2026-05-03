@@ -565,16 +565,23 @@ trait WC_Stripe_Subscriptions_Trait {
 			// that would create another charge for Radar to block, inflating
 			// the block rate.
 			if ( false !== $radar_reason ) {
+				$radar_cause = '';
 				switch ( $radar_reason ) {
 					case 'rule':
-						$radar_cause = __( 'Stripe Radar blocked this payment due to a custom Radar rule.', 'woocommerce-gateway-stripe' );
+						$radar_cause = __( 'Stripe Radar blocked payment for the saved payment method due to a custom Radar rule.', 'woocommerce-gateway-stripe' );
 						break;
 					case 'low_probability_of_authorization':
-						$radar_cause = __( 'Stripe blocked this payment due to low probability of authorization.', 'woocommerce-gateway-stripe' );
+						$radar_cause = __( 'Stripe blocked payment for the saved payment method due to low probability of authorization.', 'woocommerce-gateway-stripe' );
 						break;
 					case 'highest_risk_level':
+						$radar_cause = __( 'Stripe Radar blocked payment for the saved payment method as high risk.', 'woocommerce-gateway-stripe' );
+						break;
 					default:
-						$radar_cause = __( 'Stripe Radar blocked this payment as high risk.', 'woocommerce-gateway-stripe' );
+						$radar_cause = sprintf(
+							/* translators: %s is the Stripe Radar reason code returned by the API. */
+							__( 'Stripe Radar blocked payment for the saved payment method (reason: %s).', 'woocommerce-gateway-stripe' ),
+							$radar_reason
+						);
 						break;
 				}
 				$retry_cancelled_suffix = __( 'The automatic retry has been cancelled to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' );
@@ -587,7 +594,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					$retry_cancelled = false;
 					if ( class_exists( 'WCS_Retry_Manager' ) && method_exists( 'WCS_Retry_Manager', 'is_retry_enabled' ) && WCS_Retry_Manager::is_retry_enabled() && method_exists( 'WCS_Retry_Manager', 'store' ) ) {
 						$retry_store = WCS_Retry_Manager::store();
-						$last_retry = method_exists( $retry_store, 'get_last_retry_for_order' ) ? $retry_store->get_last_retry_for_order( $renewal_order->get_id() ) : null;
+						$last_retry  = method_exists( $retry_store, 'get_last_retry_for_order' ) ? $retry_store->get_last_retry_for_order( $renewal_order->get_id() ) : null;
 						if ( $last_retry && 'pending' === $last_retry->get_status() ) {
 							$last_retry->update_status( 'cancelled' );
 							$retry_cancelled = true;

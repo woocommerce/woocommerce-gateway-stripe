@@ -413,12 +413,12 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		// core's payment_failed() call leaves behind by the time the trait runs).
 		$mock_subscription = new WC_Subscription();
 		$mock_subscription->update_status( OrderStatus::ON_HOLD );
-		$mock_subscription->set_date( 'payment_retry', time() + HOUR_IN_SECONDS );
+		$mock_subscription->set_mock_date( 'payment_retry', time() + HOUR_IN_SECONDS );
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = [ $mock_subscription ];
 
 		// Mock retry store: a pending retry is registered against the renewal order.
-		$pending_retry                 = new WCS_Retry( 'pending' );
-		WCS_Retry_Manager::$last_retry = $pending_retry;
+		$pending_retry                      = new WCS_Retry( 'pending' );
+		WCS_Retry_Manager::$mock_last_retry = $pending_retry;
 
 		// Mock HTTP: PI confirm returns a Radar-blocked card_declined error; the
 		// subsequent charge fetch returns a charge with outcome.type === 'blocked'.
@@ -477,12 +477,12 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		// Assert: a Radar note was attached to the subscription.
 		$subscription_notes = $mock_subscription->get_captured_notes();
 		$this->assertNotEmpty( $subscription_notes );
-		$this->assertStringContainsString( 'Stripe Radar blocked this payment', $subscription_notes[0] );
+		$this->assertStringContainsString( 'Stripe Radar blocked payment for the saved payment method', $subscription_notes[0] );
 
 		// Clean up.
 		remove_filter( 'pre_http_request', $pre_http_request_callback );
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = null;
-		WCS_Retry_Manager::reset();
+		WCS_Retry_Manager::mock_reset();
 	}
 
 	public function test_missing_customer() {

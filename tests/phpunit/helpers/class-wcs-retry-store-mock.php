@@ -7,7 +7,7 @@
 
 /**
  * Minimal stand-in for the retry store. Returns whatever WCS_Retry the test
- * seeded via WCS_Retry_Manager::$last_retry.
+ * seeded via WCS_Retry_Manager::$mock_last_retry.
  */
 class WCS_Retry_Store_Mock {
 	/**
@@ -15,6 +15,6 @@ class WCS_Retry_Store_Mock {
 	 * @return WCS_Retry|null
 	 */
 	public function get_last_retry_for_order( $order_id ) {
-		return WCS_Retry_Manager::$last_retry;
+		return WCS_Retry_Manager::$mock_last_retry;
 	}
 }

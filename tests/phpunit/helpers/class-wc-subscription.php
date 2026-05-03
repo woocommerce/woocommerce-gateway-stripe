@@ -186,13 +186,17 @@ class WC_Subscription extends WC_Order {
 	}
 
 	/**
-	 * Test helper to seed a date that get_date() will return.
+	 * Test-only helper to seed a date that get_date() will return.
+	 *
+	 * Not part of the real WC_Subscription interface — production code uses
+	 * update_dates() to mutate dates. Prefixed with `mock_` to make the
+	 * distinction explicit at call sites.
 	 *
 	 * @param string $date_type Date type.
 	 * @param int    $timestamp Timestamp.
 	 * @return void
 	 */
-	public function set_date( $date_type, $timestamp ) {
+	public function set_mock_date( $date_type, $timestamp ) {
 		$this->dates[ $date_type ] = (int) $timestamp;
 	}
 
