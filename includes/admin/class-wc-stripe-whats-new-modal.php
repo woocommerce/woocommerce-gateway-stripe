@@ -131,7 +131,6 @@ class WC_Stripe_Whats_New_Modal {
 			[
 				'version'           => WC_STRIPE_VERSION,
 				'changes'           => $changes,
-				'isTestMode'        => class_exists( 'WC_Stripe_Mode' ) && WC_Stripe_Mode::is_test(),
 				'fullChangelogUrl'  => 'https://wordpress.org/plugins/woocommerce-gateway-stripe/#developers',
 				'dismissAjaxUrl'    => admin_url( 'admin-ajax.php' ),
 				'dismissAjaxAction' => self::DISMISS_AJAX_ACTION,
@@ -139,13 +138,23 @@ class WC_Stripe_Whats_New_Modal {
 			]
 		);
 
+		// `wcstripe/tracking` reads these globals to auto-tag every event. The
+		// modal can fire on any admin page, not just Stripe-specific ones, so
+		// localize them here too — `wp_localize_script` scopes to this script
+		// handle, so this doesn't conflict with the Stripe settings pages.
+		wp_localize_script(
+			'wc-stripe-whats-new-modal',
+			'wc_stripe_settings_params',
+			[
+				'plugin_version' => WC_STRIPE_VERSION,
+				'is_test_mode'   => class_exists( 'WC_Stripe_Mode' ) && WC_Stripe_Mode::is_test(),
+			]
+		);
+
 		wp_enqueue_script( 'wc-stripe-whats-new-modal' );
 		wp_enqueue_style( 'wc-stripe-whats-new-modal' );
 
-		$this->record_whats_new_modal_event(
-			'wcstripe_whats_new_modal_enqueued',
-			[ 'entry_count' => count( $changes ) ]
-		);
+		$this->record_whats_new_modal_event( 'wcstripe_whats_new_modal_enqueued' );
 	}
 
 	/**

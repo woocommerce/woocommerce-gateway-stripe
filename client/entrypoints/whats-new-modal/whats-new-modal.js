@@ -1,23 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Modal, Button, ExternalLink } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
-
-const recordEvent = ( name, props = {} ) => {
-	if ( ! window.wcTracks || ! window.wcTracks.isEnabled ) {
-		return;
-	}
-	const fn =
-		( window.wc && window.wc.tracks && window.wc.tracks.recordEvent ) ||
-		window.wcTracks.recordEvent;
-	if ( typeof fn !== 'function' ) {
-		return;
-	}
-	try {
-		fn( name, props );
-	} catch ( e ) {
-		// Tracks is best-effort; never let it break the modal.
-	}
-};
+import { recordEvent } from 'wcstripe/tracking';
 
 const WhatsNewModal = ( { params } ) => {
 	const [ isOpen, setIsOpen ] = useState( true );
@@ -27,23 +11,14 @@ const WhatsNewModal = ( { params } ) => {
 	const {
 		version,
 		changes = [],
-		isTestMode = false,
 		fullChangelogUrl,
 		dismissAjaxUrl,
 		dismissAjaxAction,
 		dismissNonce,
 	} = params;
 
-	const baseProps = {
-		stripe_version: version,
-		is_test_mode: isTestMode ? 'yes' : 'no',
-		entry_count: changes.length,
-	};
-
 	useEffect( () => {
-		recordEvent( 'wcstripe_whats_new_modal_impression', baseProps );
-		// Run once on mount.
-		// eslint-disable-next-line react-hooks/exhaustive-deps
+		recordEvent( 'wcstripe_whats_new_modal_impression', {} );
 	}, [] );
 
 	const dismiss = useCallback(
@@ -78,8 +53,7 @@ const WhatsNewModal = ( { params } ) => {
 	);
 
 	const handleChangelogClick = useCallback( () => {
-		recordEvent( 'wcstripe_whats_new_modal_changelog_click', baseProps );
-		// eslint-disable-next-line react-hooks/exhaustive-deps
+		recordEvent( 'wcstripe_whats_new_modal_changelog_click', {} );
 	}, [] );
 
 	if ( ! isOpen ) {
