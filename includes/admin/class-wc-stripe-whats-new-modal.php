@@ -47,9 +47,22 @@ class WC_Stripe_Whats_New_Modal {
 	 * Hooked to `woocommerce_stripe_updated`, which fires once per version
 	 * bump on the first admin request after an update.
 	 *
+	 * Skips fresh installs: `woocommerce_stripe_updated` also fires the very
+	 * first time the plugin runs (when `wc_stripe_version` doesn't yet exist),
+	 * but there's nothing "new" to surface on a brand-new install — and the
+	 * modal would otherwise pop on first admin load and block automated
+	 * setups (e.g. Playwright e2e flows).
+	 *
 	 * @return void
 	 */
 	public function flag_pending_modal() {
+		// `wc_stripe_version` is read by `WC_Stripe::install()` BEFORE this
+		// action fires and updated AFTER, so a `false` here unambiguously
+		// means a first-ever install rather than an upgrade.
+		if ( false === get_option( 'wc_stripe_version' ) ) {
+			return;
+		}
+
 		set_transient( self::PENDING_TRANSIENT, '1', DAY_IN_SECONDS );
 	}
 

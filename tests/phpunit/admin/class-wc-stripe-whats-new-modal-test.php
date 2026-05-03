@@ -25,6 +25,7 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 	 */
 	public function tear_down() {
 		delete_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT );
+		delete_option( 'wc_stripe_version' );
 		$current_user = get_current_user_id();
 		if ( $current_user ) {
 			delete_user_meta( $current_user, WC_Stripe_Whats_New_Modal::DISMISSED_USER_META );
@@ -143,10 +144,13 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 
 	/**
 	 * `flag_pending_modal` is the `woocommerce_stripe_updated` listener. When
-	 * fired it must set the pending transient so the next admin page load
-	 * surfaces the modal.
+	 * fired on an actual upgrade (i.e. `wc_stripe_version` already exists) it
+	 * must set the pending transient so the next admin page load surfaces
+	 * the modal.
 	 */
 	public function test_flag_pending_modal_sets_transient(): void {
+		// Simulate an upgrade: the version option exists from a prior install.
+		update_option( 'wc_stripe_version', '10.6.0' );
 		$this->assertFalse( get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT ) );
 
 		$this->modal->flag_pending_modal();
@@ -156,12 +160,30 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 
 	/**
 	 * Wiring smoke test: triggering the action the constructor subscribes to
-	 * must result in the pending transient being set.
+	 * must result in the pending transient being set on an upgrade.
 	 */
 	public function test_woocommerce_stripe_updated_action_sets_transient(): void {
+		update_option( 'wc_stripe_version', '10.6.0' );
+
 		do_action( 'woocommerce_stripe_updated' );
 
 		$this->assertSame( '1', get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT ) );
+	}
+
+	/**
+	 * On a fresh install — when `wc_stripe_version` doesn't yet exist —
+	 * `woocommerce_stripe_updated` still fires (it always fires on the
+	 * first run), but there's nothing "new" to surface. The modal must
+	 * stay hidden, otherwise it pops on first admin load and blocks
+	 * automated setups (e.g. Playwright e2e flows).
+	 */
+	public function test_flag_pending_modal_skips_on_fresh_install(): void {
+		// Sanity: option must not exist for this test to be meaningful.
+		delete_option( 'wc_stripe_version' );
+
+		$this->modal->flag_pending_modal();
+
+		$this->assertFalse( get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT ) );
 	}
 
 	/**
