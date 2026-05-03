@@ -585,8 +585,9 @@ trait WC_Stripe_Subscriptions_Trait {
 						: [];
 
 					$retry_cancelled = false;
-					if ( class_exists( 'WCS_Retry_Manager' ) && WCS_Retry_Manager::is_retry_enabled() ) {
-						$last_retry = WCS_Retry_Manager::store()->get_last_retry_for_order( $renewal_order->get_id() );
+					if ( class_exists( 'WCS_Retry_Manager' ) && method_exists( 'WCS_Retry_Manager', 'is_retry_enabled' ) && WCS_Retry_Manager::is_retry_enabled() && method_exists( 'WCS_Retry_Manager', 'store' ) ) {
+						$retry_store = WCS_Retry_Manager::store();
+						$last_retry = method_exists( $retry_store, 'get_last_retry_for_order' ) ? $retry_store->get_last_retry_for_order( $renewal_order->get_id() ) : null;
 						if ( $last_retry && 'pending' === $last_retry->get_status() ) {
 							$last_retry->update_status( 'cancelled' );
 							$retry_cancelled = true;
