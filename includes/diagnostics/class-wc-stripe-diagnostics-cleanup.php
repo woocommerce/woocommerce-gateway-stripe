@@ -3,16 +3,15 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Action Scheduler jobs that keep the diagnostics trace store tidy.
+ * Action Scheduler job that keeps the diagnostics trace store tidy.
  *
- * Two jobs run in the background:
+ * Runs once a day to delete traces older than seven days. Enforces the
+ * "store never grows without bound" guarantee regardless of traffic.
  *
- * - **Daily 7-day sweep:** deletes traces older than seven days. Enforces the
- *   "store never grows without bound" guarantee regardless of traffic.
- * - **5-minute pending sweep:** promotes traces that have been stuck in
- *   `pending` for more than 90 seconds to `abandoned`. These are checkouts
- *   where the shopper bailed between opening the payment form and sending
- *   a session-end signal.
+ * Stale `pending` traces (checkouts the shopper bailed on without sending a
+ * session-end signal) are intentionally left alone — they age out via the
+ * daily sweep, and the dashboard reads "pending" as "still in flight," which
+ * is acceptable for the short while before deletion.
  */
 class WC_Stripe_Diagnostics_Cleanup {
 
@@ -22,13 +21,6 @@ class WC_Stripe_Diagnostics_Cleanup {
 	 * @var string
 	 */
 	const DAILY_ACTION = 'wc_stripe_diagnostics_daily_cleanup';
-
-	/**
-	 * Action Scheduler hook for the recurring stale-pending sweep.
-	 *
-	 * @var string
-	 */
-	const PENDING_ACTION = 'wc_stripe_diagnostics_promote_abandoned';
 
 	/**
 	 * Action Scheduler group. Shared with the rest of the plugin's jobs so
@@ -46,24 +38,6 @@ class WC_Stripe_Diagnostics_Cleanup {
 	 * @var int
 	 */
 	const TRACE_TTL_SECONDS = 7 * DAY_IN_SECONDS;
-
-	/**
-	 * Idle window (in seconds) after which a `pending` trace is treated as
-	 * abandoned by the pending sweep. Tuned to be longer than a reasonable
-	 * checkout interaction but short enough that abandoned shoppers don't
-	 * sit in `pending` indefinitely.
-	 *
-	 * @var int
-	 */
-	const PENDING_ABANDON_THRESHOLD_S = 90;
-
-	/**
-	 * Cadence of the pending sweep. Five minutes keeps abandoned traces
-	 * from lingering long without piling on Action Scheduler.
-	 *
-	 * @var int
-	 */
-	const PENDING_SWEEP_INTERVAL_S = 5 * MINUTE_IN_SECONDS;
 
 	/**
 	 * Trace store dependency.
@@ -84,30 +58,24 @@ class WC_Stripe_Diagnostics_Cleanup {
 	}
 
 	/**
-	 * Wire up the jobs. Idempotent: safe to call on every request.
+	 * Wire up the job. Idempotent: safe to call on every request.
 	 *
 	 * @return void
 	 */
 	public function init(): void {
-		// The run_* methods return counts so tests can assert on them;
-		// discard the return values when invoked as action callbacks.
+		// run_daily_cleanup returns a count so tests can assert on it;
+		// discard the return value when invoked as an action callback.
 		add_action(
 			self::DAILY_ACTION,
 			function () {
 				$this->run_daily_cleanup();
 			}
 		);
-		add_action(
-			self::PENDING_ACTION,
-			function () {
-				$this->run_pending_sweep();
-			}
-		);
 		add_action( 'init', [ $this, 'ensure_scheduled' ], 20 );
 	}
 
 	/**
-	 * Make sure both jobs are scheduled. Called late enough that
+	 * Make sure the daily job is scheduled. Called late enough that
 	 * Action Scheduler is available.
 	 *
 	 * @return void
@@ -122,9 +90,6 @@ class WC_Stripe_Diagnostics_Cleanup {
 
 		if ( ! as_has_scheduled_action( self::DAILY_ACTION, [], self::GROUP ) ) {
 			as_schedule_recurring_action( time() + HOUR_IN_SECONDS, DAY_IN_SECONDS, self::DAILY_ACTION, [], self::GROUP );
-		}
-		if ( ! as_has_scheduled_action( self::PENDING_ACTION, [], self::GROUP ) ) {
-			as_schedule_recurring_action( time() + MINUTE_IN_SECONDS, self::PENDING_SWEEP_INTERVAL_S, self::PENDING_ACTION, [], self::GROUP );
 		}
 	}
 
@@ -148,29 +113,5 @@ class WC_Stripe_Diagnostics_Cleanup {
 			}
 		}
 		return $deleted;
-	}
-
-	/**
-	 * Promote any `pending` trace that hasn't been updated in
-	 * {@see self::PENDING_ABANDON_THRESHOLD_S} to `abandoned`.
-	 *
-	 * @return int Number of traces promoted.
-	 */
-	public function run_pending_sweep(): int {
-		$cutoff   = time() - self::PENDING_ABANDON_THRESHOLD_S;
-		$promoted = 0;
-		foreach ( $this->store->get_all_ids() as $id ) {
-			$trace = $this->store->get( $id );
-			if ( null === $trace ) {
-				continue;
-			}
-			$status     = $trace['status'] ?? '';
-			$updated_at = isset( $trace['updated_at'] ) ? (int) $trace['updated_at'] : 0;
-			if ( WC_Stripe_Diagnostics_Trace_Store::STATUS_PENDING === $status && $updated_at > 0 && $updated_at < $cutoff ) {
-				$this->store->set_status( $id, WC_Stripe_Diagnostics_Trace_Store::STATUS_ABANDONED );
-				++$promoted;
-			}
-		}
-		return $promoted;
 	}
 }
