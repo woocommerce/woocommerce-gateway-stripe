@@ -158,7 +158,6 @@ class WC_Stripe_Settings_Controller {
 		// TODO: refactor this to a regex approach, we will need to touch `should_enqueue_in_current_tab_section` to support it
 		if ( ! ( WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe' )
 			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_sepa' )
-			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_giropay' )
 			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_ideal' )
 			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_bancontact' )
 			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_eps' )
