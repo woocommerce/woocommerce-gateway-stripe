@@ -32,10 +32,10 @@ class WC_Stripe_Plugins_Page_Controller {
 	/**
 	 * Enqueue the plugins page script and styles.
 	 *
-	 * @param string $hook_suffix The current admin page hook suffix.
+	 * @param string|null $hook_suffix The current admin page hook suffix.
 	 * @return void
 	 */
-	public function enqueue_scripts( string $hook_suffix ) {
+	public function enqueue_scripts( $hook_suffix = null ) {
 		if ( 'plugins.php' !== $hook_suffix ) {
 			return;
 		}
