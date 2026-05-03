@@ -522,7 +522,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			? WC_Stripe_Helper::convert_from_stripe_amount( $stripe_amount, $currency )
 			: 0;
 
-		WC_Stripe_Logger::warning(
+		WC_Stripe_Logger::error(
 			'Agentic order mapper: chosen shipping rate did not match any WC rate; using Stripe rate as free-form shipping line.',
 			[
 				'session_id'          => $session->get_id(),
