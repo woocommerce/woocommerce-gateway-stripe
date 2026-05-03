@@ -2,8 +2,10 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AdvancedSettings from '..';
+import apiFetch from '@wordpress/api-fetch';
 import {
 	useDebugLog,
+	useDiagnosticsMode,
 	useGetSavingError,
 	useSettings,
 	useIsOCEnabled,
@@ -13,6 +15,7 @@ import {
 
 jest.mock( 'wcstripe/data', () => ( {
 	useDebugLog: jest.fn(),
+	useDiagnosticsMode: jest.fn(),
 	useIsOCEnabled: jest.fn(),
 	useIsAdaptivePricingEnabled: jest.fn(),
 	useOCLayout: jest.fn(),
@@ -24,6 +27,12 @@ jest.mock( '@woocommerce/navigation', () => ( {
 	getQuery: jest.fn().mockReturnValue( {} ),
 } ) );
 
+// DiagnosticsTraces (rendered by DiagnosticsMode) fires a /summary fetch on
+// mount. Stub it out at this layer so the existing AdvancedSettings tests
+// don't trigger an unwrapped state update warning. The component's own
+// behavior is covered by diagnostics-traces.test.js.
+jest.mock( '@wordpress/api-fetch', () => jest.fn() );
+
 describe( 'AdvancedSettings', () => {
 	beforeEach( () => {
 		global.wc_stripe_settings_params = {
@@ -31,7 +40,11 @@ describe( 'AdvancedSettings', () => {
 			is_oc_available: false,
 		};
 
+		// Default: no traces stored, so DiagnosticsTraces collapses to null.
+		apiFetch.mockResolvedValue( { counts: {}, total: 0 } );
+
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
+		useDiagnosticsMode.mockReturnValue( [ false, jest.fn() ] );
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useIsAdaptivePricingEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );
@@ -63,6 +76,29 @@ describe( 'AdvancedSettings', () => {
 		await userEvent.click( debugModeCheckbox );
 
 		expect( setIsLoggingCheckedMock ).toHaveBeenCalledWith( true );
+	} );
+
+	it( 'should enable diagnostics mode when checkbox is clicked', async () => {
+		const setIsDiagnosticsCheckedMock = jest.fn();
+		useDiagnosticsMode.mockReturnValue( [
+			false,
+			setIsDiagnosticsCheckedMock,
+		] );
+
+		render( <AdvancedSettings /> );
+
+		const diagnosticsCheckbox = screen.getByLabelText(
+			'Capture checkout diagnostics'
+		);
+
+		expect(
+			screen.getByText( 'Checkout diagnostics' )
+		).toBeInTheDocument();
+		expect( diagnosticsCheckbox ).not.toBeChecked();
+
+		await userEvent.click( diagnosticsCheckbox );
+
+		expect( setIsDiagnosticsCheckedMock ).toHaveBeenCalledWith( true );
 	} );
 
 	it( 'should not display optimized checkout element setting if the feature flag is disabled', () => {

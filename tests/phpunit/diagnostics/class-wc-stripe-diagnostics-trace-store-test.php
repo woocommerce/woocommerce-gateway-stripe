@@ -74,6 +74,79 @@ class WC_Stripe_Diagnostics_Trace_Store_Test extends WP_UnitTestCase {
 		$this->assertFalse( $this->store->set_status( 'promote', 'nonsense' ) );
 	}
 
+	/**
+	 * STATUS_FAILED was added alongside the outcome promoter; covered here
+	 * to lock in that set_status accepts it (the existing
+	 * test_set_status_promotes_and_rejects_unknown_status only exercises
+	 * COMPLETED).
+	 */
+	public function test_set_status_accepts_failed() {
+		$this->store->create( 'failable' );
+		$this->assertTrue( $this->store->set_status( 'failable', WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED ) );
+		$this->assertSame(
+			WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED,
+			$this->store->get( 'failable' )['status']
+		);
+	}
+
+	/**
+	 * Powers the merchant-facing breakdown row. Single fixture covers both
+	 * "groups by status" and "zero-counts surface as keys" — UI relies on
+	 * the keys always being present so it can omit empty buckets cleanly.
+	 */
+	public function test_count_by_status_groups_traces_and_includes_zero_buckets() {
+		$this->store->create( 'p1' );
+		$this->store->create( 'p2' );
+		$this->store->create( 'f1' );
+		$this->store->set_status( 'f1', WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED );
+		$this->store->create( 'c1' );
+		$this->store->set_status( 'c1', WC_Stripe_Diagnostics_Trace_Store::STATUS_COMPLETED );
+		// Note: no abandoned trace created — must still show as 0, not missing.
+
+		$counts = $this->store->count_by_status();
+
+		$this->assertSame( 2, $counts[ WC_Stripe_Diagnostics_Trace_Store::STATUS_PENDING ] );
+		$this->assertSame( 1, $counts[ WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED ] );
+		$this->assertSame( 1, $counts[ WC_Stripe_Diagnostics_Trace_Store::STATUS_COMPLETED ] );
+		$this->assertSame( 0, $counts[ WC_Stripe_Diagnostics_Trace_Store::STATUS_ABANDONED ] );
+	}
+
+	/**
+	 * Filter behavior of get_by_status: single status, multi-status, empty
+	 * result, and silent drop of unknown values. Each row's key documents
+	 * the case under test so failures point at the specific scenario.
+	 *
+	 * @dataProvider get_by_status_filter_matrix
+	 */
+	public function test_get_by_status_filter_behavior( array $statuses, array $expected_ids ) {
+		// Shared fixture: one of each terminal status.
+		$this->store->create( 'p' );
+		$this->store->create( 'f1' );
+		$this->store->set_status( 'f1', WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED );
+		$this->store->create( 'f2' );
+		$this->store->set_status( 'f2', WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED );
+		$this->store->create( 'a' );
+		$this->store->set_status( 'a', WC_Stripe_Diagnostics_Trace_Store::STATUS_ABANDONED );
+
+		$ids = array_column( $this->store->get_by_status( $statuses ), 'id' );
+		sort( $ids );
+		$this->assertSame( $expected_ids, $ids );
+	}
+
+	public function get_by_status_filter_matrix(): array {
+		$failed    = WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED;
+		$abandoned = WC_Stripe_Diagnostics_Trace_Store::STATUS_ABANDONED;
+		$completed = WC_Stripe_Diagnostics_Trace_Store::STATUS_COMPLETED;
+
+		return [
+			'single status returns only matching traces' => [ [ $failed ], [ 'f1', 'f2' ] ],
+			'multiple statuses union-match'              => [ [ $failed, $abandoned ], [ 'a', 'f1', 'f2' ] ],
+			'no matches returns empty list'              => [ [ $completed ], [] ],
+			'unknown status values are dropped'          => [ [ 'nonsense', $failed ], [ 'f1', 'f2' ] ],
+			'all-unknown status drops to empty filter'   => [ [ 'nonsense' ], [] ],
+		];
+	}
+
 	public function test_fifo_eviction_at_trace_cap() {
 		$cap      = WC_Stripe_Diagnostics_Trace_Store::MAX_TRACES;
 		$overflow = 3;
