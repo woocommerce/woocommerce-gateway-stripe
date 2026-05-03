@@ -575,7 +575,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			wc_admin_record_tracks_event(
 				'wcstripe_diagnostics_mode_toggled',
 				[
-					'enabled'   => $next ? 'yes' : 'no',
+					'enabled'   => $next ? 1 : 0,
 					'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
 				]
 			);
