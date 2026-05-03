@@ -513,9 +513,10 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			return;
 		}
 
-		// No WC rate matched (Stripe/agent supplied a rate from outside our
-		// customize_checkout response). Fall back to a free-form shipping line
-		// so the order still lands and downstream totals balance.
+		// No WC rate matched. This can happen when Stripe/the agent supplies a
+		// shipping rate that does not include matching wc_rate_id metadata and the display name
+		// does not match any configured WC shipping method.
+		// When this occurs, we create the order and use `stripe_agentic` as the shipping method.
 		$stripe_amount = $session->get_shipping_amount();
 		$currency      = $session->get_currency() ?? '';
 		$total         = null !== $stripe_amount
@@ -547,6 +548,15 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$shipping_item->set_method_id( 'stripe_agentic' );
 		$shipping_item->set_total( (string) $total );
 		$order->add_item( $shipping_item );
+
+		$order->add_order_note(
+			sprintf(
+				/* translators: 1: shipping rate label from Stripe, 2: formatted shipping amount */
+				__( 'Agentic Commerce: chosen shipping rate "%1$s" (%2$s) did not match any configured WooCommerce shipping method. Recorded as a free-form shipping line.', 'woocommerce-gateway-stripe' ),
+				$display_name,
+				wc_price( $total, [ 'currency' => $currency ] )
+			)
+		);
 	}
 
 	/**

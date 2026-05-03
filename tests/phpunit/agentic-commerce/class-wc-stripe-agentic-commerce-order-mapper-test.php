@@ -1447,6 +1447,21 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			$this->assertEquals( 'stripe_agentic', $shipping_item->get_method_id() );
 			$this->assertEqualsWithDelta( 9.99, (float) $shipping_item->get_total(), 0.001 );
 
+			// The fallback should also leave a contextual note on the order so
+			// support can spot why this order has a free-form shipping line.
+			$notes      = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+			$note_texts = array_column( $notes, 'content' );
+			$this->assertNotEmpty(
+				array_filter(
+					$note_texts,
+					static function ( $content ) {
+						return false !== strpos( $content, 'Nonexistent Method' )
+							&& false !== strpos( $content, 'did not match any configured WooCommerce shipping method' );
+					}
+				),
+				'Expected fallback order note mentioning the unmatched shipping rate.'
+			);
+
 			$order->delete( true );
 		} finally {
 			update_option( 'woocommerce_ship_to_countries', $original );
