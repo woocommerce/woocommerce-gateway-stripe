@@ -693,7 +693,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		 * Filters whether Express Checkout buttons should appear on the
 		 * WooCommerce Subscriptions "Change payment method" page.
 		 *
-		 * @since 10.6.0
+		 * @since 10.7.0
 		 * @param bool $should_show Whether the buttons should be shown.
 		 */
 		return apply_filters(
