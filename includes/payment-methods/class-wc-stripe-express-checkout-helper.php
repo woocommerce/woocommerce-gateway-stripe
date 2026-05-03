@@ -683,7 +683,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Returns true if any express checkout buttons are enabled for the subscription
 	 * change payment method location, false otherwise.
 	 *
-	 * @since 10.6.0
+	 * @since 10.7.0
 	 * @return boolean
 	 */
 	public function should_show_ece_on_change_payment_method_location() {
