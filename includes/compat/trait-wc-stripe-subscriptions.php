@@ -610,7 +610,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					$renewal_order->add_order_note( $radar_note );
 				} catch ( Exception $radar_e ) {
 					WC_Stripe_Logger::error(
-						'Failed to cancel scheduled retry after Stripe Radar block: ' . $radar_e->getMessage(),
+						'Failed to cancel scheduled retry after Stripe Radar blocked subscription renewal: ' . $radar_e->getMessage(),
 						[ 'order_id' => $renewal_order->get_id() ]
 					);
 				}
