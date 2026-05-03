@@ -35,6 +35,7 @@ class WC_Stripe_Diagnostics_Trace_Store {
 	const STATUS_PENDING   = 'pending';
 	const STATUS_COMPLETED = 'completed';
 	const STATUS_ABANDONED = 'abandoned';
+	const STATUS_FAILED    = 'failed';
 
 	/**
 	 * Cached absolute path (with trailing slash) to the trace storage dir.
@@ -121,10 +122,10 @@ class WC_Stripe_Diagnostics_Trace_Store {
 	}
 
 	/**
-	 * Promote a trace to a terminal status (completed | abandoned).
+	 * Promote a trace to a terminal status (completed | abandoned | failed).
 	 *
 	 * @param string $session_id Session identifier.
-	 * @param string $status     One of STATUS_COMPLETED, STATUS_ABANDONED.
+	 * @param string $status     One of STATUS_COMPLETED, STATUS_ABANDONED, STATUS_FAILED.
 	 * @return bool True if status was updated.
 	 */
 	public function set_status( $session_id, $status ) {
@@ -132,7 +133,7 @@ class WC_Stripe_Diagnostics_Trace_Store {
 		if ( '' === $session_id ) {
 			return false;
 		}
-		if ( ! in_array( $status, [ self::STATUS_COMPLETED, self::STATUS_ABANDONED ], true ) ) {
+		if ( ! in_array( $status, [ self::STATUS_COMPLETED, self::STATUS_ABANDONED, self::STATUS_FAILED ], true ) ) {
 			return false;
 		}
 		if ( ! $this->ensure_storage_dir() ) {
@@ -235,6 +236,71 @@ class WC_Stripe_Diagnostics_Trace_Store {
 	 */
 	public function is_full() {
 		return $this->count() >= self::MAX_TRACES;
+	}
+
+	/**
+	 * Group stored traces by status. Always returns every defined status as
+	 * a key (zero-counted when no traces match), so the merchant-facing
+	 * breakdown UI can render every bucket without conditional plumbing.
+	 *
+	 * @return array<string, int>
+	 */
+	public function count_by_status(): array {
+		$counts = [
+			self::STATUS_PENDING   => 0,
+			self::STATUS_FAILED    => 0,
+			self::STATUS_COMPLETED => 0,
+			self::STATUS_ABANDONED => 0,
+		];
+		foreach ( $this->read_index() as $id ) {
+			$trace = $this->read_trace( (string) $id );
+			if ( null === $trace ) {
+				continue;
+			}
+			$status = isset( $trace['status'] ) ? (string) $trace['status'] : self::STATUS_PENDING;
+			if ( isset( $counts[ $status ] ) ) {
+				++$counts[ $status ];
+			}
+		}
+		return $counts;
+	}
+
+	/**
+	 * Return decoded traces whose stored status matches one of the given
+	 * statuses. Unknown status values are silently dropped from the filter
+	 * so a careless caller can't widen it accidentally.
+	 *
+	 * @param string[] $statuses Statuses to include.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function get_by_status( array $statuses ): array {
+		$statuses = array_values(
+			array_intersect(
+				$statuses,
+				[
+					self::STATUS_PENDING,
+					self::STATUS_FAILED,
+					self::STATUS_COMPLETED,
+					self::STATUS_ABANDONED,
+				]
+			)
+		);
+		if ( empty( $statuses ) ) {
+			return [];
+		}
+
+		$matches = [];
+		foreach ( $this->read_index() as $id ) {
+			$trace = $this->read_trace( (string) $id );
+			if ( null === $trace ) {
+				continue;
+			}
+			$status = isset( $trace['status'] ) ? (string) $trace['status'] : self::STATUS_PENDING;
+			if ( in_array( $status, $statuses, true ) ) {
+				$matches[] = $trace;
+			}
+		}
+		return $matches;
 	}
 
 	/**

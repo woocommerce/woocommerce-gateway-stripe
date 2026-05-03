@@ -148,6 +148,101 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 		$this->assertSame( 200, count( $this->store->get( 'big' )['events'] ) );
 	}
 
+	/**
+	 * Admin endpoints require `manage_woocommerce` regardless of whether
+	 * the diagnostics toggle is on or off (a merchant who disabled capture
+	 * must still be able to copy traces from when it was on).
+	 *
+	 * @dataProvider admin_permission_matrix
+	 */
+	public function test_admin_permissions_check( bool $is_admin, bool $toggle_on, bool $expect_allowed ) {
+		$this->set_diagnostics_enabled( $toggle_on );
+		if ( $is_admin ) {
+			wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		} else {
+			wp_set_current_user( 0 );
+		}
+
+		$result = $this->controller->admin_permissions_check();
+
+		if ( $expect_allowed ) {
+			$this->assertTrue( $result );
+		} else {
+			$this->assertInstanceOf( WP_Error::class, $result );
+			$this->assertSame( 'wc_stripe_diagnostics_forbidden', $result->get_error_code() );
+		}
+	}
+
+	public function admin_permission_matrix(): array {
+		return [
+			'anon user, toggle on  → denied' => [ false, true, false ],
+			'anon user, toggle off → denied' => [ false, false, false ],
+			'admin user, toggle on  → allow' => [ true, true, true ],
+			'admin user, toggle off → allow' => [ true, false, true ],
+		];
+	}
+
+	/**
+	 * Summary always returns every status bucket as a key (zero-counted
+	 * included) plus a total — the frontend renders the breakdown row from
+	 * this shape directly.
+	 */
+	public function test_get_summary_returns_per_status_counts_and_total() {
+		$this->store->create( 'p1' );
+		$this->store->create( 'f1' );
+		$this->store->set_status( 'f1', WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED );
+		$this->store->create( 'c1' );
+		$this->store->set_status( 'c1', WC_Stripe_Diagnostics_Trace_Store::STATUS_COMPLETED );
+
+		$data = $this->controller->get_summary()->get_data();
+
+		$this->assertSame( 1, $data['counts'][ WC_Stripe_Diagnostics_Trace_Store::STATUS_PENDING ] );
+		$this->assertSame( 1, $data['counts'][ WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED ] );
+		$this->assertSame( 1, $data['counts'][ WC_Stripe_Diagnostics_Trace_Store::STATUS_COMPLETED ] );
+		$this->assertSame( 0, $data['counts'][ WC_Stripe_Diagnostics_Trace_Store::STATUS_ABANDONED ] );
+		$this->assertSame( 3, $data['total'] );
+	}
+
+	/**
+	 * Filter behavior of GET /traces. Single fixture (one trace per
+	 * terminal status) exercised from each call site:
+	 *   - "Copy failed traces" (status=failed,abandoned)
+	 *   - "Copy all instead"   (no status param)
+	 *   - empty filter result  (status=completed when no completed exists)
+	 *
+	 * @dataProvider get_traces_filter_matrix
+	 */
+	public function test_get_traces_filter_behavior( ?array $statuses, array $expected_ids, int $expected_count ) {
+		$this->store->create( 'p' );
+		$this->store->create( 'f' );
+		$this->store->set_status( 'f', WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED );
+		$this->store->create( 'a' );
+		$this->store->set_status( 'a', WC_Stripe_Diagnostics_Trace_Store::STATUS_ABANDONED );
+
+		$request = new WP_REST_Request( 'GET', '/wc/v3/wc_stripe/diagnostics/traces' );
+		if ( null !== $statuses ) {
+			$request->set_query_params( [ 'status' => $statuses ] );
+		}
+		$data = $this->controller->get_traces( $request )->get_data();
+		$ids  = array_column( $data['traces'], 'id' );
+		sort( $ids );
+
+		$this->assertSame( $expected_ids, $ids );
+		$this->assertSame( $expected_count, $data['count'] );
+	}
+
+	public function get_traces_filter_matrix(): array {
+		$failed    = WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED;
+		$abandoned = WC_Stripe_Diagnostics_Trace_Store::STATUS_ABANDONED;
+		$completed = WC_Stripe_Diagnostics_Trace_Store::STATUS_COMPLETED;
+
+		return [
+			'Copy failed (failed+abandoned filter)' => [ [ $failed, $abandoned ], [ 'a', 'f' ], 2 ],
+			'Copy all (no filter → all 3 traces)'   => [ null, [ 'a', 'f', 'p' ], 3 ],
+			'no matches → empty list'               => [ [ $completed ], [], 0 ],
+		];
+	}
+
 	public function test_ingest_evicts_oldest_trace_when_store_is_full() {
 		for ( $i = 0; $i < WC_Stripe_Diagnostics_Trace_Store::MAX_TRACES; $i++ ) {
 			$this->store->create( 'full' . $i );

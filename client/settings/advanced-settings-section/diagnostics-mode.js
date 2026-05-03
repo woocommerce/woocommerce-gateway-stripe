@@ -1,4 +1,5 @@
 import React from 'react';
+import DiagnosticsTraces from './diagnostics-traces';
 import { __ } from '@wordpress/i18n';
 import { CheckboxControl } from '@wordpress/components';
 import { useDiagnosticsMode } from 'wcstripe/data';
@@ -25,6 +26,7 @@ const DiagnosticsMode = () => {
 				checked={ isDiagnosticsChecked }
 				onChange={ setIsDiagnosticsChecked }
 			/>
+			<DiagnosticsTraces />
 		</>
 	);
 };
