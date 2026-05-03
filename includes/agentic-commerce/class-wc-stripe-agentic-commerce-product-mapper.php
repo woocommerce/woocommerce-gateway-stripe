@@ -159,13 +159,22 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	}
 
 	/**
-	 * Get product ID.
+	 * Get the catalog row id Stripe will surface back as `price.external_reference`.
+	 *
+	 * Returns the WooCommerce SKU when present so the merchant's identifier shows
+	 * up in Stripe's UI and downstream lookups can resolve via `wc_get_product_id_by_sku()`.
+	 * Falls back to the product ID for SKU-less products so the legacy contract — which
+	 * keyed catalogs by product ID — keeps working.
 	 *
 	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
-	 * @return string Product ID as string.
+	 * @return string SKU when present, otherwise the product ID as a string.
 	 */
 	protected function get_id( \WC_Product $product ): string {
+		$sku = $product->get_sku();
+		if ( '' !== $sku ) {
+			return $sku;
+		}
 		return (string) $product->get_id();
 	}
 
