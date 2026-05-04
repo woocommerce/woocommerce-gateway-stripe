@@ -1,3 +1,5 @@
+@use '../../styles/abstracts/styles';
+
 .wc-stripe-whats-new-modal {
 	max-width: 560px;
 
@@ -12,7 +14,7 @@
 		align-items: baseline;
 		gap: 8px;
 		padding: 10px 0;
-		border-bottom: 1px solid #f0f0f1;
+		border-bottom: 1px solid styles.$wp-gray-2;
 
 		&:last-child {
 			border-bottom: 0;
@@ -25,8 +27,8 @@
 		min-width: 56px;
 		padding: 2px 8px;
 		border-radius: 2px;
-		background: #f0f0f1;
-		color: #1e1e1e;
+		background: styles.$wp-gray-2;
+		color: styles.$gray-900;
 		font-size: 11px;
 		font-weight: 600;
 		text-align: center;
@@ -36,7 +38,7 @@
 
 	&__text {
 		flex: 1 1 auto;
-		color: #1e1e1e;
+		color: styles.$gray-900;
 		line-height: 1.5;
 	}
 
