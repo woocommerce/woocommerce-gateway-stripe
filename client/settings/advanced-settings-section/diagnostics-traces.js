@@ -1,8 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { Button, Notice } from '@wordpress/components';
+import { Button } from '@wordpress/components';
+import { useDispatch } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
 import { NAMESPACE } from 'wcstripe/data/constants';
+
+// Stable id so repeated clicks replace the previous notice rather than stack.
+const NOTICE_ID = 'wc-stripe/diagnostics-copy-traces';
 
 // Clipboard writes silently truncate or fail above a few MB on most
 // browsers, and ticket forms strip large pastes long before that. Falling
@@ -42,7 +46,8 @@ const downloadAsFile = ( contents ) => {
 const DiagnosticsTraces = () => {
 	const [ summary, setSummary ] = useState( null );
 	const [ isCopying, setIsCopying ] = useState( false );
-	const [ feedback, setFeedback ] = useState( null );
+	const { createSuccessNotice, createErrorNotice } =
+		useDispatch( 'core/notices' );
 
 	const refreshSummary = useCallback( () => {
 		apiFetch( { path: `${ NAMESPACE }/diagnostics/summary` } )
@@ -96,7 +101,6 @@ const DiagnosticsTraces = () => {
 
 	const handleCopy = async ( statuses ) => {
 		setIsCopying( true );
-		setFeedback( null );
 		try {
 			const response = await apiFetch( {
 				path: buildTracesPath( statuses ),
@@ -106,18 +110,17 @@ const DiagnosticsTraces = () => {
 
 			if ( bytes > CLIPBOARD_BYTE_THRESHOLD ) {
 				downloadAsFile( json );
-				setFeedback( {
-					status: 'success',
-					message: __(
+				createSuccessNotice(
+					__(
 						'Trace bundle was too large to copy — downloaded as a file instead.',
 						'woocommerce-gateway-stripe'
 					),
-				} );
+					{ id: NOTICE_ID }
+				);
 			} else {
 				await navigator.clipboard.writeText( json );
-				setFeedback( {
-					status: 'success',
-					message: sprintf(
+				createSuccessNotice(
+					sprintf(
 						/* translators: %d: number of traces */
 						_n(
 							'Copied %d trace to clipboard.',
@@ -127,17 +130,18 @@ const DiagnosticsTraces = () => {
 						),
 						response.count
 					),
-				} );
+					{ id: NOTICE_ID }
+				);
 			}
 			refreshSummary();
 		} catch ( err ) {
-			setFeedback( {
-				status: 'error',
-				message: __(
+			createErrorNotice(
+				__(
 					'Could not copy traces. Try again.',
 					'woocommerce-gateway-stripe'
 				),
-			} );
+				{ id: NOTICE_ID }
+			);
 		} finally {
 			setIsCopying( false );
 		}
@@ -180,15 +184,6 @@ const DiagnosticsTraces = () => {
 			>
 				{ __( 'Copy all instead', 'woocommerce-gateway-stripe' ) }
 			</Button>
-			{ feedback && (
-				<Notice
-					status={ feedback.status }
-					isDismissible
-					onRemove={ () => setFeedback( null ) }
-				>
-					{ feedback.message }
-				</Notice>
-			) }
 		</div>
 	);
 };

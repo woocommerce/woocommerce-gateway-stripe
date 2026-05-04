@@ -2,24 +2,30 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DiagnosticsTraces from '../diagnostics-traces';
+import { useDispatch } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
+
+const NOTICE_ID = 'wc-stripe/diagnostics-copy-traces';
 
 jest.mock( '@wordpress/api-fetch', () => jest.fn() );
 
+jest.mock( '@wordpress/data', () => ( {
+	useDispatch: jest.fn(),
+} ) );
+
 // Stub @wordpress/components: the component only relies on label text, the
-// disabled flag, the click handler, and the dismissible notice surface.
-// Pulling in the real components inflates test boot time without adding
-// coverage.
+// disabled flag, and the click handler. Pulling in the real components
+// inflates test boot time without adding coverage.
 jest.mock( '@wordpress/components', () => ( {
 	Button: ( { children, disabled, onClick } ) => (
 		<button type="button" disabled={ disabled } onClick={ onClick }>
 			{ children }
 		</button>
 	),
-	Notice: ( { children, status } ) => (
-		<div data-status={ status }>{ children }</div>
-	),
 } ) );
+
+let createSuccessNotice;
+let createErrorNotice;
 
 const summaryFixture = ( overrides = {} ) => ( {
 	counts: {
@@ -46,6 +52,12 @@ describe( 'DiagnosticsTraces', () => {
 		jest.clearAllMocks();
 		Object.assign( navigator, {
 			clipboard: { writeText: jest.fn().mockResolvedValue() },
+		} );
+		createSuccessNotice = jest.fn();
+		createErrorNotice = jest.fn();
+		useDispatch.mockReturnValue( {
+			createSuccessNotice,
+			createErrorNotice,
 		} );
 	} );
 
@@ -142,7 +154,12 @@ describe( 'DiagnosticsTraces', () => {
 			expect( pathMatches( apiFetch.mock.calls[ 1 ][ 0 ].path ) ).toBe(
 				true
 			);
-			await screen.findByText( expectedNotice );
+			await waitFor( () =>
+				expect( createSuccessNotice ).toHaveBeenCalledWith(
+					expectedNotice,
+					{ id: NOTICE_ID }
+				)
+			);
 		}
 	);
 
@@ -156,8 +173,13 @@ describe( 'DiagnosticsTraces', () => {
 			await screen.findByText( 'Copy failed traces for support (3)' )
 		);
 
-		const notice = await screen.findByText( /Could not copy traces/ );
-		expect( notice.dataset.status ).toBe( 'error' );
+		await waitFor( () =>
+			expect( createErrorNotice ).toHaveBeenCalledWith(
+				'Could not copy traces. Try again.',
+				{ id: NOTICE_ID }
+			)
+		);
+		expect( createSuccessNotice ).not.toHaveBeenCalled();
 	} );
 
 	it( 'falls back to a file download when the trace bundle exceeds the clipboard threshold', async () => {
@@ -190,7 +212,12 @@ describe( 'DiagnosticsTraces', () => {
 			await screen.findByText( 'Copy failed traces for support (3)' )
 		);
 
-		await screen.findByText( /downloaded as a file instead/ );
+		await waitFor( () =>
+			expect( createSuccessNotice ).toHaveBeenCalledWith(
+				'Trace bundle was too large to copy — downloaded as a file instead.',
+				{ id: NOTICE_ID }
+			)
+		);
 		expect( createObjectURL ).toHaveBeenCalled();
 		expect( navigator.clipboard.writeText ).not.toHaveBeenCalled();
 	} );
