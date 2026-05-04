@@ -566,7 +566,20 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		$this->gateway->update_option( 'diagnostics', $is_diagnostics_enabled ? 'yes' : 'no' );
+		$previous = 'yes' === $this->gateway->get_option( 'diagnostics' );
+		$next     = (bool) $is_diagnostics_enabled;
+
+		$this->gateway->update_option( 'diagnostics', $next ? 'yes' : 'no' );
+
+		if ( $previous !== $next && function_exists( 'wc_admin_record_tracks_event' ) ) {
+			wc_admin_record_tracks_event(
+				'wcstripe_diagnostics_mode_toggled',
+				[
+					'enabled'   => $next ? 1 : 0,
+					'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
+				]
+			);
+		}
 	}
 
 	/**

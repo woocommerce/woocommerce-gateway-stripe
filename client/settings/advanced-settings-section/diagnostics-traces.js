@@ -3,6 +3,7 @@ import { __, _n, sprintf } from '@wordpress/i18n';
 import { Button, Notice } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 import { NAMESPACE } from 'wcstripe/data/constants';
+import { recordEvent } from 'wcstripe/tracking';
 
 // Clipboard writes silently truncate or fail above a few MB on most
 // browsers, and ticket forms strip large pastes long before that. Falling
@@ -95,6 +96,8 @@ const DiagnosticsTraces = () => {
 	].filter( Boolean );
 
 	const handleCopy = async ( statuses ) => {
+		// 'support' when filtering to SUPPORT_STATUSES (failed + abandoned), 'all' otherwise.
+		const scope = statuses ? 'support' : 'all';
 		setIsCopying( true );
 		setFeedback( null );
 		try {
@@ -106,6 +109,11 @@ const DiagnosticsTraces = () => {
 
 			if ( bytes > CLIPBOARD_BYTE_THRESHOLD ) {
 				downloadAsFile( json );
+				recordEvent( 'wcstripe_diagnostics_copy_traces', {
+					scope,
+					result: 'download',
+					count: response.count,
+				} );
 				setFeedback( {
 					status: 'success',
 					message: __(
@@ -115,6 +123,11 @@ const DiagnosticsTraces = () => {
 				} );
 			} else {
 				await navigator.clipboard.writeText( json );
+				recordEvent( 'wcstripe_diagnostics_copy_traces', {
+					scope,
+					result: 'clipboard',
+					count: response.count,
+				} );
 				setFeedback( {
 					status: 'success',
 					message: sprintf(
@@ -131,6 +144,11 @@ const DiagnosticsTraces = () => {
 			}
 			refreshSummary();
 		} catch ( err ) {
+			recordEvent( 'wcstripe_diagnostics_copy_traces', {
+				scope,
+				result: 'error',
+				count: null,
+			} );
 			setFeedback( {
 				status: 'error',
 				message: __(
