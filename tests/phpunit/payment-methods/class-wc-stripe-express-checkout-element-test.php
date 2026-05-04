@@ -259,7 +259,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		$this->assertSame( '', $subscription->get_meta( '_wc_stripe_express_checkout_type' ) );
 		$this->assertSame( '', $subscription->get_meta( '_wc_stripe_express_checkout_payment_method_id' ) );
 		// The token persisted alongside the title meta must be linked to the subscription.
-		$attached_ids = wp_list_pluck( $subscription->get_payment_tokens(), 'token_id' );
+		$attached_ids = array_values( $subscription->get_payment_tokens() );
 		$this->assertSame( [ $token->get_id() ], $attached_ids );
 		// And the corrective note should also be appended on this path.
 		$this->assertContains( "Payment method updated to {$expected}.", $subscription->get_captured_notes() );

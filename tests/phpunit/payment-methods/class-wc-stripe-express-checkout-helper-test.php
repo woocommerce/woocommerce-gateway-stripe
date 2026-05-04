@@ -1947,7 +1947,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_new_card_123' );
 
 		$this->assertTrue( $result );
-		$attached_ids = wp_list_pluck( $subscription->get_payment_tokens(), 'token_id' );
+		$attached_ids = array_values( $subscription->get_payment_tokens() );
 		$this->assertSame( [ $token->get_id() ], $attached_ids );
 	}
 
@@ -1971,7 +1971,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_new_card_456' );
 
 		$this->assertTrue( $result );
-		$attached_ids = wp_list_pluck( $subscription->get_payment_tokens(), 'token_id' );
+		$attached_ids = array_values( $subscription->get_payment_tokens() );
 		$this->assertSame( [ $new_token->get_id() ], $attached_ids );
 	}
 
@@ -1994,7 +1994,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_unknown' );
 
 		$this->assertFalse( $result );
-		$attached_ids = wp_list_pluck( $subscription->get_payment_tokens(), 'token_id' );
+		$attached_ids = array_values( $subscription->get_payment_tokens() );
 		$this->assertSame( [ $old_token->get_id() ], $attached_ids );
 	}
 

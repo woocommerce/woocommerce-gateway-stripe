@@ -90,9 +90,11 @@ class WC_Stripe_Express_Checkout_Helper {
 		$tokens = WC_Payment_Tokens::get_customer_tokens( $user_id, 'stripe' );
 		foreach ( $tokens as $token ) {
 			if ( $token->get_token() === $payment_method_id ) {
-				$subscription->delete_meta_data( '_payment_tokens' );
-				$subscription->add_payment_token( $token );
+				// Flush the cleared meta first; `add_payment_token` writes through
+				// the data store, so a trailing save() would otherwise erase it.
+				$subscription->update_meta_data( '_payment_tokens', [] );
 				$subscription->save();
+				$subscription->add_payment_token( $token );
 				return true;
 			}
 		}
