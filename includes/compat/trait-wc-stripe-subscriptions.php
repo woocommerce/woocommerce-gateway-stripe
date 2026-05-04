@@ -286,18 +286,13 @@ trait WC_Stripe_Subscriptions_Trait {
 			];
 		}
 
-		// Capture the express checkout submission state up front so the cascade
-		// guard and token-attach logic below can react to it consistently.
 		$express_checkout_type          = isset( $_POST['express_checkout_type'] ) && is_string( $_POST['express_checkout_type'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			? wc_clean( wp_unslash( $_POST['express_checkout_type'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			: '';
 		$is_express_checkout_submission = '' !== $express_checkout_type;
 
-		// Express checkout buttons confirm before the shopper has a chance to interact
-		// with the "Use this payment method for all of my current subscriptions" checkbox,
-		// so we cannot infer consent from its (default-checked) state. Suppress the
-		// cascade for both the immediate path (WCS reads $_POST inside its own
-		// update_payment_method) and the post-3DS path (the meta-stored flag below).
+		// ECE confirms before the shopper sees the "update all subscriptions"
+		// checkbox, so its default-checked state can't be treated as consent.
 		if ( $is_express_checkout_submission ) {
 			unset( $_POST['update_all_subscriptions_payment_method'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
@@ -328,10 +323,8 @@ trait WC_Stripe_Subscriptions_Trait {
 					$selected_payment_type
 				);
 
-				// For express checkout, link the freshly-created token to the subscription
-				// so My Account renders the new card instead of the previously saved one.
-				// Scoped to ECE for now; the underlying gap likely affects other
-				// change-payment paths but warrants its own fix and regression coverage.
+				// Link the new token to the subscription so My Account renders it.
+				// Scoped to ECE here; tracked for the broader paths in #5382.
 				if ( $is_express_checkout_submission ) {
 					WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $payment_method_id );
 				}
