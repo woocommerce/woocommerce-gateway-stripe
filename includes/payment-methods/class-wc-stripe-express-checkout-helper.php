@@ -68,6 +68,45 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Replaces the subscription's saved payment tokens with the WC token that
+	 * matches the given Stripe payment method ID.
+	 *
+	 * The change-payment flow updates `_stripe_source_id` and `_payment_method`
+	 * on the subscription, but never associates the new payment token with it.
+	 * Without this, My Account → Subscriptions keeps rendering the previously
+	 * saved token (e.g. the original Visa) even after the shopper successfully
+	 * switches to a new card via Apple Pay / Google Pay / Link.
+	 *
+	 * @param WC_Order $subscription      The subscription being updated.
+	 * @param string   $payment_method_id The Stripe payment method ID just attached to the subscription.
+	 * @return bool                       Whether a matching token was attached.
+	 */
+	public static function replace_subscription_payment_token( $subscription, $payment_method_id ) {
+		if ( ! $subscription instanceof WC_Order || empty( $payment_method_id ) ) {
+			return false;
+		}
+
+		$user_id = $subscription->get_user_id();
+		if ( ! $user_id ) {
+			return false;
+		}
+
+		$tokens = WC_Payment_Tokens::get_customer_tokens( $user_id, 'stripe' );
+		foreach ( $tokens as $token ) {
+			if ( $token->get_token() === $payment_method_id ) {
+				// Drop any tokens that the change-payment flow left attached so the
+				// shopper-facing list reflects only the new payment method.
+				$subscription->delete_meta_data( '_payment_tokens' );
+				$subscription->add_payment_token( $token );
+				$subscription->save();
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Checks whether authentication is required for checkout.
 	 *
 	 * @return bool

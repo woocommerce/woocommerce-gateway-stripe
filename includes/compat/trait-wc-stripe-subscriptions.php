@@ -286,6 +286,22 @@ trait WC_Stripe_Subscriptions_Trait {
 			];
 		}
 
+		// Capture the express checkout submission state up front so the cascade
+		// guard and token-attach logic below can react to it consistently.
+		$express_checkout_type          = isset( $_POST['express_checkout_type'] ) && is_string( $_POST['express_checkout_type'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			? wc_clean( wp_unslash( $_POST['express_checkout_type'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			: '';
+		$is_express_checkout_submission = '' !== $express_checkout_type;
+
+		// Express checkout buttons confirm before the shopper has a chance to interact
+		// with the "Use this payment method for all of my current subscriptions" checkbox,
+		// so we cannot infer consent from its (default-checked) state. Suppress the
+		// cascade for both the immediate path (WCS reads $_POST inside its own
+		// update_payment_method) and the post-3DS path (the meta-stored flag below).
+		if ( $is_express_checkout_submission ) {
+			unset( $_POST['update_all_subscriptions_payment_method'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		}
+
 		try {
 			$payment_information = $this->prepare_payment_information_from_request( $subscription );
 
@@ -311,6 +327,14 @@ trait WC_Stripe_Subscriptions_Trait {
 					$payment_information['payment_method_details'],
 					$selected_payment_type
 				);
+
+				// For express checkout, link the freshly-created token to the subscription
+				// so My Account renders the new card instead of the previously saved one.
+				// Scoped to ECE for now; the underlying gap likely affects other
+				// change-payment paths but warrants its own fix and regression coverage.
+				if ( $is_express_checkout_submission ) {
+					WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $payment_method_id );
+				}
 			}
 
 			$redirect           = $this->get_return_url( $subscription );
@@ -324,16 +348,15 @@ trait WC_Stripe_Subscriptions_Trait {
 					$subscription->save();
 				}
 
-				// Persist the express type for the post-confirmation title override,
-				// or clear any stale marker when this submission isn't express.
-				$express_checkout_type = isset( $_POST['express_checkout_type'] ) && is_string( $_POST['express_checkout_type'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
-					? wc_clean( wp_unslash( $_POST['express_checkout_type'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
-					: '';
-
-				if ( '' !== $express_checkout_type ) {
+				// Persist the express type and the new payment method ID for the
+				// post-confirmation hooks (title override + token replacement),
+				// or clear any stale markers when this submission isn't express.
+				if ( $is_express_checkout_submission ) {
 					$subscription->update_meta_data( '_wc_stripe_express_checkout_type', $express_checkout_type );
+					$subscription->update_meta_data( '_wc_stripe_express_checkout_payment_method_id', $payment_method_id );
 				} else {
 					$subscription->delete_meta_data( '_wc_stripe_express_checkout_type' );
+					$subscription->delete_meta_data( '_wc_stripe_express_checkout_payment_method_id' );
 				}
 				$subscription->save();
 

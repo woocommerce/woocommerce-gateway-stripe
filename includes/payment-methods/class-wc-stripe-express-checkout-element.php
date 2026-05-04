@@ -552,10 +552,19 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
-		// One-shot: clear the marker even if the override didn't apply, so a
-		// stale value can't leak into a later confirmation.
 		$this->apply_express_checkout_title_to_order( $order, $express_checkout_type );
+
+		// Mirror the no-3DS path: associate the new WC payment token with the
+		// subscription so the shopper-facing My Account list reflects it.
+		$payment_method_id = $order->get_meta( '_wc_stripe_express_checkout_payment_method_id' );
+		if ( ! empty( $payment_method_id ) ) {
+			WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $order, $payment_method_id );
+		}
+
+		// One-shot: clear the markers even if the override didn't apply, so
+		// stale values can't leak into a later confirmation.
 		$order->delete_meta_data( '_wc_stripe_express_checkout_type' );
+		$order->delete_meta_data( '_wc_stripe_express_checkout_payment_method_id' );
 		$order->save();
 	}
 
