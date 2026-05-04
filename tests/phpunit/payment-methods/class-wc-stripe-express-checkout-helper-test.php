@@ -1965,8 +1965,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$subscription = new WC_Subscription();
 		$subscription->set_customer_id( $user_id );
 		$subscription->set_payment_method( 'stripe' );
-		$subscription->add_payment_token( $old_token );
 		$subscription->save();
+		// Attach the stale token after save() so the data store has a valid
+		// post ID to write `_payment_tokens` against.
+		$subscription->add_payment_token( $old_token );
 
 		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_new_card_456' );
 
@@ -1988,8 +1990,8 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$subscription = new WC_Subscription();
 		$subscription->set_customer_id( $user_id );
 		$subscription->set_payment_method( 'stripe' );
-		$subscription->add_payment_token( $old_token );
 		$subscription->save();
+		$subscription->add_payment_token( $old_token );
 
 		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_unknown' );
 

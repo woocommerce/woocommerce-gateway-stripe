@@ -90,11 +90,10 @@ class WC_Stripe_Express_Checkout_Helper {
 		$tokens = WC_Payment_Tokens::get_customer_tokens( $user_id, 'stripe' );
 		foreach ( $tokens as $token ) {
 			if ( $token->get_token() === $payment_method_id ) {
-				// Flush the cleared meta first; `add_payment_token` writes through
-				// the data store, so a trailing save() would otherwise erase it.
-				$subscription->update_meta_data( '_payment_tokens', [] );
-				$subscription->save();
-				$subscription->add_payment_token( $token );
+				// Replace via the data store so we go through the official
+				// setter for `_payment_tokens` (WC warns against generic
+				// update_meta_data / update_post_meta on internal keys).
+				$subscription->get_data_store()->update_payment_token_ids( $subscription, [ $token->get_id() ] ); // @phpstan-ignore-line (resolved via WC_Data_Store __call to the order data store)
 				return true;
 			}
 		}
