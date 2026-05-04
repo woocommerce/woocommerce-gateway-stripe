@@ -588,7 +588,20 @@ class WC_Stripe_Express_Checkout_Element {
 			return false;
 		}
 
-		$order->set_payment_method_title( $payment_method_title . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix() );
+		$full_title = $payment_method_title . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
+		$order->set_payment_method_title( $full_title );
+
+		// WC Subscriptions writes a "from X to Credit Card" note before our title
+		// override runs (its label comes from the gateway, not the wallet). Add a
+		// clarifying note so the truth is visible alongside.
+		$order->add_order_note(
+			sprintf(
+				/* translators: %s: Express checkout payment method title, e.g. "Apple Pay (Stripe)". */
+				__( 'Payment method updated to %s.', 'woocommerce-gateway-stripe' ),
+				$full_title
+			)
+		);
+
 		$order->save();
 		return true;
 	}

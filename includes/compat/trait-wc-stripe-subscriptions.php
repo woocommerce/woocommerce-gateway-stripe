@@ -324,10 +324,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				);
 
 				// Link the new token to the subscription so My Account renders it.
-				// Scoped to ECE here; tracked for the broader paths in #5382.
-				if ( $is_express_checkout_submission ) {
-					WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $payment_method_id );
-				}
+				WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $payment_method_id );
 			}
 
 			$redirect           = $this->get_return_url( $subscription );
