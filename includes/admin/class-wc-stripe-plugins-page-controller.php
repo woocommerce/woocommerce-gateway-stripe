@@ -11,6 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Plugins_Page_Controller {
 
 	/**
+	 * Slug used to identify this plugin in WordPress update events
+	 * and in plugin information modal URLs.
+	 */
+	const PLUGIN_SLUG = 'woocommerce-gateway-stripe';
+
+	/**
 	 * The Stripe account instance.
 	 *
 	 * @var WC_Stripe_Account
@@ -51,7 +57,7 @@ class WC_Stripe_Plugins_Page_Controller {
 		wp_register_script(
 			'wc-stripe-plugins-page',
 			plugins_url( 'build/plugins-page.js', WC_STRIPE_MAIN_FILE ),
-			$script_asset['dependencies'],
+			array_merge( $script_asset['dependencies'], [ 'jquery', 'plugin-install' ] ),
 			$script_asset['version'],
 			true
 		);
@@ -70,11 +76,34 @@ class WC_Stripe_Plugins_Page_Controller {
 		wp_localize_script(
 			'wc-stripe-plugins-page',
 			'wcStripePluginsPageParams',
-			WC_Stripe_Helper::get_exit_survey_params( $this->account )
+			array_merge(
+				WC_Stripe_Helper::get_exit_survey_params( $this->account ),
+				$this->get_changelog_link_params()
+			)
 		);
+
+		// Required for the plugin information modal that the changelog link opens.
+		add_thickbox();
 
 		wp_enqueue_script( 'wc-stripe-plugins-page' );
 		wp_enqueue_style( 'wc-stripe-plugins-page' );
+	}
+
+	/**
+	 * Localized params used by the post-update changelog link.
+	 *
+	 * @return array{plugin_slug: string, view_changelog_url: string}
+	 */
+	private function get_changelog_link_params(): array {
+		$view_changelog_url = self_admin_url(
+			'plugin-install.php?tab=plugin-information&plugin=' . self::PLUGIN_SLUG
+			. '&section=changelog&TB_iframe=true&width=600&height=550'
+		);
+
+		return [
+			'plugin_slug'        => self::PLUGIN_SLUG,
+			'view_changelog_url' => $view_changelog_url,
+		];
 	}
 
 	/**
