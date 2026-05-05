@@ -29,53 +29,6 @@ class WC_Stripe_Logger {
 	 */
 	public static $logger;
 
-	/**
-	 * Utilize WC logger class
-	 *
-	 * @deprecated 9.7.0 Use the shortcut methods for each log severity level: info(), error(), etc. instead.
-	 *
-	 * @since 4.0.0
-	 *
-	 * @param string   $message    The message to log.
-	 * @param int|null $start_time Optional start time timestamp.
-	 * @param int|null $end_time   Optional end time timestamp.
-	 *
-	 * @return void
-	 */
-	public static function log( $message, $start_time = null, $end_time = null ) {
-		wc_deprecated_function( __METHOD__, '9.7.0', 'Use the shortcut methods for each log severity level: info(), error(), etc. instead.' );
-
-		if ( ! self::can_log() ) {
-			return;
-		}
-
-		if ( ! apply_filters( 'wc_stripe_logging', true, $message ) ) {
-			return;
-		}
-
-		if ( empty( self::$logger ) ) {
-			self::$logger = wc_get_logger();
-		}
-
-		$log_entry  = "\n" . '====Stripe Version: ' . WC_STRIPE_VERSION . '====' . "\n";
-		$log_entry .= '====Stripe Plugin API Version: ' . WC_Stripe_API::STRIPE_API_VERSION . '====' . "\n";
-
-		if ( ! is_null( $start_time ) ) {
-			$formatted_start_time = date_i18n( get_option( 'date_format' ) . ' g:ia', $start_time );
-			$end_time             = is_null( $end_time ) ? current_time( 'timestamp' ) : $end_time;
-			$formatted_end_time   = date_i18n( get_option( 'date_format' ) . ' g:ia', $end_time );
-			$elapsed_time         = round( abs( $end_time - $start_time ) / 60, 2 );
-
-			$log_entry .= '====Start Log ' . $formatted_start_time . '====' . "\n" . $message . "\n";
-			$log_entry .= '====End Log ' . $formatted_end_time . ' (' . $elapsed_time . ')====' . "\n\n";
-
-		} else {
-			$log_entry .= '====Start Log====' . "\n" . $message . "\n" . '====End Log====' . "\n\n";
-		}
-
-		self::$logger->debug( $log_entry, [ 'source' => self::WC_LOG_FILENAME ] );
-	}
-
 	// Logs have eight different severity levels:
 	// - emergency
 	// - alert
