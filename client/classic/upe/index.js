@@ -320,7 +320,8 @@ jQuery( function ( $ ) {
 				$( 'input#payment_method_stripe' ).is( ':checked' )
 			) {
 				$( 'label[for=payment_method_stripe]' ).text(
-					'Payment options'
+					stripeServerData?.optimizedCheckoutClassicSelectedTitle ||
+						'Payment options'
 				);
 			}
 
