@@ -33,6 +33,13 @@ export function* refreshAccount() {
 
 		yield updateAccount( data );
 
+		// The account refresh may flip pmc_enabled (and therefore the enabled / available
+		// payment-method lists) on the server. Invalidate the settings resolver so the next
+		// read fetches the reconciled state instead of returning stale cached values.
+		yield dispatch( STORE_NAME ).invalidateResolutionForStoreSelector(
+			'getSettings'
+		);
+
 		const activeCapabilitiesAfterRefresh =
 			select( STORE_NAME ).getAccountCapabilitiesByStatus( 'active' );
 

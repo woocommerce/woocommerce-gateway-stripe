@@ -558,6 +558,85 @@ class WC_Stripe_Payment_Method_Configurations {
 	}
 
 	/**
+	 * Re-evaluates whether the merchant has a usable Payment Method Configuration in Stripe and
+	 * updates the `pmc_enabled` setting accordingly.
+	 *
+	 * Bypasses the configuration cache and the fetch cooldown so that an explicit caller (e.g. the
+	 * "Refresh account details" admin action) forces a reconciliation against Stripe. On transport
+	 * or Stripe API errors `pmc_enabled` is left untouched so a transient failure can't flip the
+	 * merchant into the DB-only fallback path.
+	 *
+	 * Outcomes:
+	 *   - No usable PMC found: delegates to {@see self::disable_payment_method_configuration_sync()} ('no').
+	 *   - Usable PMC + `pmc_enabled` already 'yes': no-op.
+	 *   - Usable PMC + `pmc_enabled` empty or 'no': runs the DB-to-PMC migration to reconcile any
+	 *     payment methods edited while the flag was 'no', and the migration sets 'yes' on success.
+	 *
+	 * Note: when recovering from 'no', the union behavior of the migration may re-enable methods the
+	 * merchant disabled during the 'no' window. Disables made during that window are not preserved.
+	 *
+	 * @return void
+	 */
+	public static function refresh_pmc_availability() {
+		self::clear_payment_method_configuration_cache();
+		delete_option( self::FETCH_COOLDOWN_OPTION_KEY );
+
+		$api_response = WC_Stripe_API::get_instance()->get_payment_method_configurations();
+
+		// `WC_Stripe_API::retrieve()` returns null on invalid keys, WP_Error on transport failures,
+		// and an object with `->error` set on Stripe API errors. Bail without mutating pmc_enabled
+		// so a transient failure can't flip the merchant into the DB-only fallback path.
+		if ( ! is_object( $api_response ) || is_wp_error( $api_response ) || ! empty( $api_response->error ) ) {
+			WC_Stripe_Logger::warning(
+				'Skipping PMC availability refresh because the Stripe API call failed',
+				[ 'response' => $api_response ]
+			);
+			return;
+		}
+
+		$configurations   = is_array( $api_response->data ?? null ) ? $api_response->data : [];
+		$is_test_mode     = WC_Stripe_Mode::is_test();
+		$fallback_pmc_key = $is_test_mode ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
+		$usable_pmc       = null;
+
+		foreach ( $configurations as $configuration ) {
+			$parent_id = $configuration->parent ?? null;
+			if ( $parent_id && ( self::LIVE_MODE_CONFIGURATION_PARENT_ID === $parent_id || self::TEST_MODE_CONFIGURATION_PARENT_ID === $parent_id ) ) {
+				$usable_pmc = $configuration;
+				delete_option( $fallback_pmc_key );
+				break;
+			}
+		}
+
+		if ( null === $usable_pmc ) {
+			[ 'pmc' => $usable_pmc ] = self::get_fallback_payment_method_configuration( $configurations );
+		}
+
+		if ( ! $usable_pmc ) {
+			self::disable_payment_method_configuration_sync();
+			return;
+		}
+
+		self::set_payment_method_configuration_cache( $usable_pmc );
+
+		$stripe_settings    = WC_Stripe_Helper::get_stripe_settings();
+		$previous_pmc_state = $stripe_settings['pmc_enabled'] ?? '';
+
+		if ( 'yes' === $previous_pmc_state ) {
+			return;
+		}
+
+		if ( 'no' === $previous_pmc_state ) {
+			// Reset the flag so the migration's is_enabled() short-circuit doesn't block it.
+			// The migration will set 'yes' once it finishes.
+			unset( $stripe_settings['pmc_enabled'] );
+			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		}
+
+		self::maybe_migrate_payment_methods_from_db_to_pmc();
+	}
+
+	/**
 	 * Migrates the payment methods from the DB option to PMC if needed.
 	 *
 	 * @param bool $force_migration Whether to force the migration.

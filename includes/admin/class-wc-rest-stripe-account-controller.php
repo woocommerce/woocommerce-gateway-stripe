@@ -163,6 +163,11 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 	 * a transient API failure leaves the previously cached account data intact
 	 * for concurrent readers instead of forcing every caller to re-hit Stripe.
 	 *
+	 * Also re-evaluates Payment Method Configuration availability so the `pmc_enabled`
+	 * flag reflects the current Stripe-side state — a merchant who was previously
+	 * flipped to 'no' (e.g. via a transient PMC fetch failure) gets back to 'yes'
+	 * automatically once a usable PMC is detected again.
+	 *
 	 * @return WP_REST_Response
 	 */
 	public function refresh_account() {
@@ -173,6 +178,9 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 
 		// Force a fresh fetch from Stripe; cache is updated only on success.
 		$this->account->get_cached_account_data( null, true );
+
+		// Re-evaluate PMC availability against Stripe and reconcile the pmc_enabled flag.
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
 
 		// calling the same "get" method, so that the data format is the same.
 		return $this->get_account();
