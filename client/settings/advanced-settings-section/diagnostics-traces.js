@@ -4,6 +4,7 @@ import { Button } from '@wordpress/components';
 import { useDispatch } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
 import { NAMESPACE } from 'wcstripe/data/constants';
+import { recordEvent } from 'wcstripe/tracking';
 
 // Stable id so repeated clicks replace the previous notice rather than stack.
 const NOTICE_ID = 'wc-stripe/diagnostics-copy-traces';
@@ -100,6 +101,8 @@ const DiagnosticsTraces = () => {
 	].filter( Boolean );
 
 	const handleCopy = async ( statuses ) => {
+		// 'support' when filtering to SUPPORT_STATUSES (failed + abandoned), 'all' otherwise.
+		const scope = statuses ? 'support' : 'all';
 		setIsCopying( true );
 		removeNotice( NOTICE_ID );
 		try {
@@ -111,6 +114,11 @@ const DiagnosticsTraces = () => {
 
 			if ( bytes > CLIPBOARD_BYTE_THRESHOLD ) {
 				downloadAsFile( json );
+				recordEvent( 'wcstripe_diagnostics_copy_traces', {
+					scope,
+					result: 'download',
+					count: response.count,
+				} );
 				createSuccessNotice(
 					__(
 						'Trace bundle was too large to copy — downloaded as a file instead.',
@@ -120,6 +128,11 @@ const DiagnosticsTraces = () => {
 				);
 			} else {
 				await navigator.clipboard.writeText( json );
+				recordEvent( 'wcstripe_diagnostics_copy_traces', {
+					scope,
+					result: 'clipboard',
+					count: response.count,
+				} );
 				createSuccessNotice(
 					sprintf(
 						/* translators: %d: number of traces */
@@ -136,6 +149,11 @@ const DiagnosticsTraces = () => {
 			}
 			refreshSummary();
 		} catch ( err ) {
+			recordEvent( 'wcstripe_diagnostics_copy_traces', {
+				scope,
+				result: 'error',
+				count: null,
+			} );
 			createErrorNotice(
 				__(
 					'Could not copy traces. Try again.',
