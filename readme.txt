@@ -167,5 +167,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Reduce PR PHP test matrix from 30 to 12 jobs (PHP 7.4, 8.2, 8.5; WC/WP at L and L-2) for faster CI feedback
 * Dev - Bump transitive minimatch dev dependency to resolve ReDoS CVE-2026-27903 (GHSA-7r86-cg39-jmmj)
 * Fix - Prevent fatal error in wp-admin from overly narrow argument type
+* Add - Show Stripe's account sync status in the Account details card
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
