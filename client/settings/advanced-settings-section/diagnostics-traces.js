@@ -46,7 +46,7 @@ const downloadAsFile = ( contents ) => {
 const DiagnosticsTraces = () => {
 	const [ summary, setSummary ] = useState( null );
 	const [ isCopying, setIsCopying ] = useState( false );
-	const { createSuccessNotice, createErrorNotice } =
+	const { createSuccessNotice, createErrorNotice, removeNotice } =
 		useDispatch( 'core/notices' );
 
 	const refreshSummary = useCallback( () => {
@@ -101,6 +101,7 @@ const DiagnosticsTraces = () => {
 
 	const handleCopy = async ( statuses ) => {
 		setIsCopying( true );
+		removeNotice( NOTICE_ID );
 		try {
 			const response = await apiFetch( {
 				path: buildTracesPath( statuses ),
