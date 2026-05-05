@@ -5,16 +5,6 @@
  * @package WooCommerce\Stripe
  */
 
-// Mask E_DEPRECATED under PHP 8.5+ so PHP 8.5's new "non-canonical cast"
-// deprecations in WP core's wp-includes/IXR/class-IXR-message.php
-// (`(double)` / `(boolean)` casts at lines 180/199) don't fail tests via
-// paratest's stderr capture. phpunit*.xml.dist already sets
-// convertDeprecationsToExceptions="false" — this aligns the runtime mask
-// with that intent. Remove once the matrix's WP=L ships the upstream fix.
-if ( PHP_VERSION_ID >= 80500 ) {
-	error_reporting( error_reporting() & ~E_DEPRECATED & ~E_USER_DEPRECATED ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_error_reporting,WordPress.PHP.DevelopmentFunctions.prevent_path_disclosure_error_reporting
-}
-
 require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/class-wc-stripe-test-suite-loader.php';
 
@@ -93,13 +83,6 @@ if ( $_test_token && ctype_digit( (string) $_test_token ) ) {
 unset( $_test_token );
 
 require $_tests_dir . '/includes/bootstrap.php';
-
-// Re-apply the PHP 8.5 deprecation mask: the WP test bootstrap resets
-// error_reporting to E_ALL, which would re-expose the IXR cast deprecations
-// suppressed at the top of this file.
-if ( PHP_VERSION_ID >= 80500 ) {
-	error_reporting( error_reporting() & ~E_DEPRECATED & ~E_USER_DEPRECATED ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_error_reporting,WordPress.PHP.DevelopmentFunctions.prevent_path_disclosure_error_reporting
-}
 
 # Load test helpers manually. The helpers/ directory is excluded from the Composer classmap
 # (to prevent stub classes like WC_Subscriptions from being autoloaded in E2E environments
