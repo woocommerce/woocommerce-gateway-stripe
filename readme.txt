@@ -151,6 +151,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.7.0 - xxxx-xx-xx =
+* Fix - Refresh account details re-evaluates Payment Method Configuration availability so a disabled pmc_enabled flag recovers automatically
 * Update - Enable Optimized Checkout Suite by default for new installs
 * Update - Enable Adaptive Pricing by default for new installs
 * Fix - Use SKU as the Agentic Commerce catalog identifier so checkout.session.completed line items resolve correctly; keep the product-ID fallback for SKU-less products and catalogs synced under the legacy contract
