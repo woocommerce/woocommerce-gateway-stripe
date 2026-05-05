@@ -26,6 +26,7 @@ jest.mock( '@wordpress/components', () => ( {
 
 let createSuccessNotice;
 let createErrorNotice;
+let removeNotice;
 
 const summaryFixture = ( overrides = {} ) => ( {
 	counts: {
@@ -55,10 +56,12 @@ describe( 'DiagnosticsTraces', () => {
 		} );
 		createSuccessNotice = jest.fn();
 		createErrorNotice = jest.fn();
-		useDispatch.mockReturnValue( {
-			createSuccessNotice,
-			createErrorNotice,
-		} );
+		removeNotice = jest.fn();
+		useDispatch.mockImplementation( ( storeName ) =>
+			storeName === 'core/notices'
+				? { createSuccessNotice, createErrorNotice, removeNotice }
+				: {}
+		);
 	} );
 
 	it( 'renders nothing when there are no captured traces', async () => {
@@ -147,6 +150,11 @@ describe( 'DiagnosticsTraces', () => {
 
 			render( <DiagnosticsTraces /> );
 			await userEvent.click( await screen.findByText( buttonText ) );
+
+			// Stale notice from a prior click is cleared up front so the
+			// previous "Copied N traces" toast doesn't linger during the
+			// next round-trip.
+			expect( removeNotice ).toHaveBeenCalledWith( NOTICE_ID );
 
 			await waitFor( () =>
 				expect( navigator.clipboard.writeText ).toHaveBeenCalled()
