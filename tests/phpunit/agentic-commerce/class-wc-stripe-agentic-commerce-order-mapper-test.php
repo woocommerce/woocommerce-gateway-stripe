@@ -106,6 +106,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		$this->assertGreaterThan( 0, $order->get_id() );
 		$this->assertEquals( '25.00', $order->get_total() );
 		$this->assertEquals( 'processing', $order->get_status() );
+		$this->assertEquals( WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA, $order->get_created_via() );
 
 		$order->delete( true );
 		$product->delete( true );
