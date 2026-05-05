@@ -327,8 +327,14 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			|| $current_account_keys['test_publishable_key'] !== $settings['test_publishable_key']
 			|| $current_account_keys['test_secret_key'] !== $settings['test_secret_key'] ) {
 
-			$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
-			$upe_gateway->update_enabled_payment_methods( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
+			$upe_gateway  = new WC_Stripe_UPE_Payment_Gateway();
+			$reset_result = $upe_gateway->update_enabled_payment_methods( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
+			if ( is_wp_error( $reset_result ) ) {
+				WC_Stripe_Logger::error(
+					'Failed to reset payment methods after API key change',
+					[ 'error' => $reset_result->get_error_message() ]
+				);
+			}
 
 			WC_Stripe::get_instance()->connect->clear_caches_after_key_update();
 		}

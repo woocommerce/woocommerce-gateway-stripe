@@ -1021,9 +1021,15 @@ class WC_Stripe {
 			return;
 		}
 
-		$gateway->update_enabled_payment_methods(
+		$result = $gateway->update_enabled_payment_methods(
 			array_diff( $enabled_payment_methods, $payment_method_ids_to_disable )
 		);
+		if ( is_wp_error( $result ) ) {
+			WC_Stripe_Logger::error(
+				'Failed to update payment methods after deactivating incompatible plugins',
+				[ 'error' => $result->get_error_message() ]
+			);
+		}
 	}
 
 	/**
