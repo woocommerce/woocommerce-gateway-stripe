@@ -100,7 +100,7 @@ describe( 'AccountDetails', () => {
 		[ true, 'Enabled' ],
 		[ false, 'Disabled' ],
 	] )(
-		'renders the Sync section as %s when useIsPMCEnabled returns %s',
+		'when useIsPMCEnabled returns %s, renders the Sync section as %s',
 		( isPMCEnabled, expectedLabel ) => {
 			useIsPMCEnabled.mockReturnValue( isPMCEnabled );
 			useAccount.mockReturnValue( {
