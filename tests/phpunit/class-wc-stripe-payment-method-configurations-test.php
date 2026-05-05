@@ -1012,4 +1012,162 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 			],
 		];
 	}
+
+	/**
+	 * Sets up the API instance mock and returns the reflection property used to reset it.
+	 *
+	 * @param mixed $configurations_response Value to return from get_payment_method_configurations().
+	 * @return ReflectionProperty The instance property so the caller can reset it after assertions.
+	 */
+	private function mock_get_payment_method_configurations_response( $configurations_response ): ReflectionProperty {
+		$mock_api = $this->getMockBuilder( WC_Stripe_API::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$mock_api->expects( $this->once() )
+			->method( 'get_payment_method_configurations' )
+			->willReturn( $configurations_response );
+
+		$reflection        = new ReflectionClass( WC_Stripe_API::class );
+		$instance_property = $reflection->getProperty( 'instance' );
+		$instance_property->setAccessible( true );
+		$instance_property->setValue( null, $mock_api );
+
+		return $instance_property;
+	}
+
+	/**
+	 * Builds a settings array that satisfies WC_Stripe_Helper::is_connected() in test mode.
+	 */
+	private function build_connected_test_mode_settings( $pmc_enabled = null ): array {
+		$settings = array_merge(
+			WC_Stripe_Helper::get_stripe_settings(),
+			[
+				'testmode'             => 'yes',
+				'test_publishable_key' => 'pk_test_1234567890',
+				'test_secret_key'      => 'sk_test_1234567890',
+				'test_connection_type' => 'connect',
+			]
+		);
+
+		if ( null === $pmc_enabled ) {
+			unset( $settings['pmc_enabled'] );
+		} else {
+			$settings['pmc_enabled'] = $pmc_enabled;
+		}
+
+		return $settings;
+	}
+
+	/**
+	 * Provider for {@see test_refresh_pmc_availability_leaves_pmc_enabled_untouched_on_api_failure()}.
+	 */
+	public function provide_refresh_pmc_availability_api_failures(): array {
+		return [
+			'wp_error_response' => [ new WP_Error( 'stripe_error', 'boom' ) ],
+			'null_response'     => [ null ],
+			'stripe_error_body' => [ (object) [ 'error' => (object) [ 'message' => 'something failed' ] ] ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_refresh_pmc_availability_api_failures
+	 */
+	public function test_refresh_pmc_availability_leaves_pmc_enabled_untouched_on_api_failure( $api_response ) {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'yes' ) );
+
+		$instance_property = $this->mock_get_payment_method_configurations_response( $api_response );
+
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$instance_property->setValue( null, null );
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
+
+	/**
+	 * No usable PMC returned: pmc_enabled is set to 'no'.
+	 */
+	public function test_refresh_pmc_availability_disables_when_no_usable_pmc() {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'yes' ) );
+
+		$instance_property = $this->mock_get_payment_method_configurations_response( (object) [ 'data' => [] ] );
+
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$instance_property->setValue( null, null );
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+
+		$this->assertEquals( 'no', $updated_settings['pmc_enabled'] );
+	}
+
+	/**
+	 * Usable PMC returned with pmc_enabled empty: migration runs and ends 'yes'.
+	 */
+	public function test_refresh_pmc_availability_runs_migration_when_flag_empty() {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( null ) );
+
+		$instance_property = $this->mock_get_payment_method_configurations_response(
+			(object) [ 'data' => [ (object) self::MOCK_CHILD_TEST_PMC ] ]
+		);
+
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$instance_property->setValue( null, null );
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
+
+	/**
+	 * Usable PMC returned with pmc_enabled='no': flag flips back to 'yes' (recovery path).
+	 */
+	public function test_refresh_pmc_availability_recovers_from_no_state() {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'no' ) );
+
+		$instance_property = $this->mock_get_payment_method_configurations_response(
+			(object) [ 'data' => [ (object) self::MOCK_CHILD_TEST_PMC ] ]
+		);
+
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$instance_property->setValue( null, null );
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
+
+	/**
+	 * Usable PMC returned with pmc_enabled='yes': no-op (still 'yes').
+	 */
+	public function test_refresh_pmc_availability_noop_when_already_yes() {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'yes' ) );
+
+		$instance_property = $this->mock_get_payment_method_configurations_response(
+			(object) [ 'data' => [ (object) self::MOCK_CHILD_TEST_PMC ] ]
+		);
+
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$instance_property->setValue( null, null );
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
 }
