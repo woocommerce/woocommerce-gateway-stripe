@@ -27,6 +27,13 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	private $default_product;
 
 	/**
+	 * Filter callback that allowlists the agentic `created_via` value for `payment_complete()`.
+	 *
+	 * @var callable|null
+	 */
+	private $payment_complete_filter;
+
+	/**
 	 * Setup test environment before each test.
 	 *
 	 * @return void
@@ -47,6 +54,17 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 				'sku'           => 'MAPPER-DEFAULT-' . uniqid(),
 			]
 		);
+
+		// WC 10.8+ blocks payment_complete() unless `created_via` is allowlisted.
+		// In production the integration's register_hooks() wires this up; mirror it here.
+		$this->payment_complete_filter = function ( $allowed ) {
+			if ( ! is_array( $allowed ) ) {
+				$allowed = [];
+			}
+			$allowed[] = WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA;
+			return $allowed;
+		};
+		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', $this->payment_complete_filter );
 	}
 
 	/**
@@ -55,6 +73,10 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function tearDown(): void {
+		if ( $this->payment_complete_filter ) {
+			remove_filter( 'woocommerce_payment_complete_allowed_created_via_values', $this->payment_complete_filter );
+			$this->payment_complete_filter = null;
+		}
 		if ( $this->default_product ) {
 			$this->default_product->delete( true );
 		}
