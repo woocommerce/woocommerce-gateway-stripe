@@ -32,7 +32,12 @@ const buildChangelogLink = ( href, pluginSlug ) => {
  */
 export const initAppendChangelogLink = ( params ) => {
 	const { jQuery } = window;
-	if ( ! jQuery || ! params || ! params.plugin_slug ) {
+	if (
+		! jQuery ||
+		! params ||
+		! params.plugin_slug ||
+		! params.view_changelog_url
+	) {
 		return () => {};
 	}
 

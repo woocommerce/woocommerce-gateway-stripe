@@ -105,6 +105,17 @@ describe( 'initAppendChangelogLink', () => {
 		).toBeNull();
 	} );
 
+	it( 'is a no-op when view_changelog_url is missing so the link is never rendered with href="undefined"', () => {
+		renderUpdateRow();
+		cleanup = initAppendChangelogLink( { plugin_slug: PLUGIN_SLUG } );
+
+		triggerSuccess( { slug: PLUGIN_SLUG } );
+
+		expect(
+			document.querySelector( '.wc-stripe-view-changelog-link' )
+		).toBeNull();
+	} );
+
 	it( 'cleanup detaches the listener', () => {
 		const row = renderUpdateRow();
 		const detach = initAppendChangelogLink( {
