@@ -144,7 +144,8 @@ jobs:
           _Note: the build is updated when a new commit is pushed to this PR._"
 
           # Find existing build comment to update in place rather than spam the thread.
-          COMMENT_ID=$( gh pr view ${PR_NUMBER} --json comments --jq '.comments[]? | select(.body | contains("### Test the build")) | .url' 2>/dev/null | head -1 | grep -o '[0-9]*$' || echo "" )
+          # Scope to github-actions[bot] — PATCH on a human's comment 403s.
+          COMMENT_ID=$( gh pr view ${PR_NUMBER} --json comments --jq '.comments[]? | select(.author.login == "github-actions" and (.body | contains("### Test the build"))) | .url' 2>/dev/null | head -1 | grep -o '[0-9]*$' || echo "" )
 
           if [ -n "$COMMENT_ID" ]; then
             gh api repos/${GITHUB_REPOSITORY}/issues/comments/${COMMENT_ID} -X PATCH -f body="${BODY}"
