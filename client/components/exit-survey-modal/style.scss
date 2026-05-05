@@ -1,0 +1,39 @@
+@use '../../styles/abstracts/styles';
+
+.wc-stripe-exit-survey-modal {
+	&#{&} {
+		max-width: 720px;
+		width: 90vw;
+	}
+
+	.components-modal__content {
+		padding: 0;
+	}
+
+	&__title {
+		display: flex;
+		align-items: center;
+		gap: styles.$grid-unit-15;
+		font-size: 20px;
+		font-weight: 600;
+	}
+
+	&__content {
+		position: relative;
+		min-height: 400px;
+	}
+
+	&__spinner {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate( -50%, -50% );
+	}
+
+	&__iframe {
+		display: block;
+		width: 100%;
+		border: none;
+		transition: opacity 0.3s ease;
+	}
+}

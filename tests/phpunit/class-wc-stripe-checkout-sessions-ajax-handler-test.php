@@ -504,8 +504,8 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 		$checkout_session_missing_secret = (object) [];
 
 		$checkout_session_success = (object) [
-			'client_secret' => $mocked_secret,
 			'id'            => $mocked_session_id,
+			'client_secret' => $mocked_secret,
 		];
 
 		return [
@@ -558,6 +558,21 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					'success' => false,
 					'data'    => (object) [
 						'message' => $mocked_error_message,
+					],
+				],
+			],
+			'session id is missing'       => [
+				'user is logged-in'         => true,
+				'is valid nonce'            => true,
+				'customer data'             => $customer_data,
+				'is cart empty'             => false,
+				'checkout session response' => (object) [
+					'client_secret' => $mocked_secret,
+				],
+				'expected response'         => (object) [
+					'success' => false,
+					'data'    => (object) [
+						'message' => 'Unable to create Stripe Checkout Session.',
 					],
 				],
 			],

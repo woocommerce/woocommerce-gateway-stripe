@@ -205,6 +205,8 @@ class WC_Stripe {
 		new WC_Stripe_Order_Handler();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
+		new WC_Stripe_Payment_Tokens();
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-intent-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-inbox-notes.php';
@@ -250,7 +252,9 @@ class WC_Stripe {
 			}
 
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-payment-gateways-controller.php';
-			new WC_Stripe_Payment_Gateways_Controller();
+			new WC_Stripe_Payment_Gateways_Controller( $this->account );
+
+			new WC_Stripe_Plugins_Page_Controller( $this->account );
 
 			if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-subscription-detached-bulk-action.php';
@@ -363,18 +367,9 @@ class WC_Stripe {
 
 		$is_new_install = false === $previous_version;
 
-		/*
-		 * Pause defaulting on Optimized Checkout for the time being, as we want to make UX improvements.
-		 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4979
-		 *
-		 * // Mark optimized checkout as default on for new installs.
-		 * if ( false === get_option( 'wc_stripe_version' ) && false === get_option( 'wc_stripe_optimized_checkout_default_on' ) ) {
-		 *   update_option( 'wc_stripe_optimized_checkout_default_on', true );
-		 * }
-		 */
-
 		if ( $is_new_install ) {
 			update_option( 'wc_stripe_amazon_pay_default_on', 'yes' );
+			update_option( 'wc_stripe_optimized_checkout_default_on', 'yes' );
 		}
 
 		add_woocommerce_inbox_variant();
@@ -423,7 +418,6 @@ class WC_Stripe {
 	 * @return void
 	 */
 	public function set_stripe_gateways_in_list( $ordering ) {
-		wc_get_logger()->debug( 'set_stripe_gateways_in_list was called' );
 		// Prevent unnecessary recursion, 'add_stripe_methods_in_woocommerce_gateway_order' saves the same option that triggers this callback.
 		remove_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
 
@@ -855,6 +849,14 @@ class WC_Stripe {
 
 		$oc_setting_toggle_controller = new WC_Stripe_REST_OC_Setting_Toggle_Controller( $this->get_main_stripe_gateway() );
 		$oc_setting_toggle_controller->register_routes();
+
+		$exit_survey_controller = new WC_REST_Stripe_Exit_Survey_Controller();
+		$exit_survey_controller->register_routes();
+
+		if ( WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
+			$agentic_commerce_controller = new WC_REST_Stripe_Agentic_Commerce_Controller();
+			$agentic_commerce_controller->register_routes();
+		}
 	}
 
 	/**
