@@ -1,5 +1,5 @@
 import { getStripeDevWidgetOptions } from '../get-stripe-dev-widget-options';
-const { getStripeServerData } = require( 'wcstripe/stripe-utils' );
+import { getStripeServerData } from '../utils';
 
 jest.mock( '../utils', () => ( {
 	getStripeServerData: jest.fn(),
