@@ -127,6 +127,14 @@ This repository supports:
 - WooCommerce: current and the previous two major versions (L, L-1, L-2).
 - WordPress: current and the previous major version (L, L-1) — transitively constrained by WC's [support policy](https://woocommerce.com/support-policy/).
 
+## Tooling: Agent Package Manager (APM)
+
+Shared agent skills sourced from external packages are declared in `apm.yml` at the repo root, managed by [Microsoft APM](https://github.com/microsoft/apm). Repo-curated skills under `.claude/skills/` are committed directly and are unrelated to APM.
+
+- Materialize locally: `apm install -t agent-skills`. The `agent-skills` target deploys to `.agents/skills/` only and intentionally skips `.claude/` so repo-curated skills there are not clobbered.
+- Add a dep: `apm install -t agent-skills <org>/<repo>/<path>#<ref>`, then commit the updated `apm.yml` and `apm.lock.yaml`.
+- `.agents/` and `apm_modules/` are gitignored; they are regenerated from the lockfile on each install.
+
 ## Documentation and Context Sources
 
 - Root project docs: `README.md`

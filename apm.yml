@@ -1,0 +1,18 @@
+# Agent Package Manager manifest. https://github.com/microsoft/apm
+#
+# Declares shared agent skills for AI coding tools on this repo.
+# Install via: `apm install -t agent-skills`
+# Deploys to `.agents/skills/` only — does not write to `.claude/`, so
+# repo-curated skills under `.claude/skills/` (see #5394) are left untouched.
+
+name: woocommerce-gateway-stripe
+version: 1.0.0
+
+dependencies:
+  apm:
+    # E2E/UI testing guidance — this repo ships Playwright suites under tests/e2e/.
+    - anthropics/skills/skills/webapp-testing
+    # General context-engineering plugin (canonical APM starter dependency).
+    - github/awesome-copilot/plugins/context-engineering
+    # Frontend conventions for the React/Blocks code under client/.
+    - github/awesome-copilot/plugins/frontend-web-dev

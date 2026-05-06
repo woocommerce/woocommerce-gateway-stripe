@@ -1,0 +1,34 @@
+lockfile_version: '1'
+generated_at: '2026-05-06T14:15:38.862231+00:00'
+apm_version: 0.12.2
+dependencies:
+- repo_url: anthropics/skills
+  host: github.com
+  resolved_commit: d230a6dd6eb1a0dbee9fec55e2f00a96e28dff81
+  virtual_path: skills/webapp-testing
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/webapp-testing
+  content_hash: sha256:8320d78c856340fa2f09a3ffb79b91de9427945abc18d36b6d7e9204120dad0a
+- repo_url: github/awesome-copilot
+  host: github.com
+  resolved_commit: 9ca2b128f5a2d5288d1afe4a99356a0ecc264333
+  virtual_path: plugins/context-engineering
+  is_virtual: true
+  package_type: marketplace_plugin
+  deployed_files:
+  - .agents/skills/context-map
+  - .agents/skills/refactor-plan
+  - .agents/skills/what-context-needed
+  content_hash: sha256:505817dc69216431bbb51e2771494d3f0c3435193180c940a75a874c95ae91c8
+- repo_url: github/awesome-copilot
+  host: github.com
+  resolved_commit: 9ca2b128f5a2d5288d1afe4a99356a0ecc264333
+  virtual_path: plugins/frontend-web-dev
+  is_virtual: true
+  package_type: marketplace_plugin
+  deployed_files:
+  - .agents/skills/playwright-explore-website
+  - .agents/skills/playwright-generate-test
+  content_hash: sha256:1875e815f6054706640e6748a7e10933f3d98ace4d3d5e2efb8db393f83cdefe
