@@ -58,6 +58,7 @@ class WC_Helper_Order {
 			'customer_id'   => $customer_id,
 			'customer_note' => '',
 			'total'         => '',
+			'created_via'   => 'checkout', // WC 10.8+ blocks payment_complete() without checkout evidence.
 		];
 
 		$_SERVER['REMOTE_ADDR'] = '127.0.0.1'; // Required, else wc_create_order throws an exception.
