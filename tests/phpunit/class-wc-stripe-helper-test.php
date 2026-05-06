@@ -599,17 +599,22 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Test for `update_main_stripe_settings`, `get_stripe_settings` and `delete_main_stripe_settings`.
+	 * Guards the deprecation chain for the `WC_Stripe_Helper` settings shims:
+	 * the methods still work but emit a `_deprecated_function` notice and
+	 * delegate to `WC_Stripe`.
 	 *
 	 * @return void
 	 */
 	public function test_handle_main_stripe_settings() {
+		$this->setExpectedDeprecated( 'WC_Stripe_Helper::update_main_stripe_settings' );
+		$this->setExpectedDeprecated( 'WC_Stripe_Helper::get_stripe_settings' );
+
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'test' => 'abc' ] );
 		$current_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( $current_settings['test'], 'abc' );
 
 		WC_Stripe_Helper::delete_main_stripe_settings();
-		$current_settings = WC_Stripe_Helper::get_stripe_settings();
+		$current_settings = WC_Stripe::get_settings();
 		$this->assertSame( [], $current_settings );
 	}
 
@@ -1502,13 +1507,13 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @dataProvider provide_is_adaptive_pricing_supported
 	 */
 	public function test_is_adaptive_pricing_supported( bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected, string $account_country = 'US' ): void {
-		$original_stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
+		$original_stripe_settings                          = WC_Stripe::get_settings();
 		$new_stripe_settings                               = $original_stripe_settings;
 		$new_stripe_settings['adaptive_pricing']           = $adaptive_pricing;
 		$new_stripe_settings['optimized_checkout_element'] = 'yes';
 		$new_stripe_settings['capture']                    = 'yes';
 		$new_stripe_settings['pmc_enabled']                = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
+		WC_Stripe::update_settings( $new_stripe_settings );
 
 		$is_checkout_filter = function () use ( $is_checkout ) {
 			return $is_checkout;
@@ -1566,7 +1571,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC()->shipping()->shipping_methods = $saved_shipping_methods;
 
 		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
-		WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
+		WC_Stripe::update_settings( $original_stripe_settings );
 		\WC_Subscriptions_Product::set_is_subscription( false );
 		\WC_Subscriptions_Product::set_subscription_product_ids( [] );
 		\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );

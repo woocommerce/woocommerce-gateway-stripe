@@ -16,11 +16,11 @@ class WC_Stripe_UPE_Payment_Method_Link_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_should_show_save_option
 	 */
 	public function test_should_show_save_option( $saved_cards ) {
-		$settings             = WC_Stripe_Helper::get_stripe_settings();
+		$settings             = WC_Stripe::get_settings();
 		$original_saved_cards = $settings['saved_cards'] ?? '';
 		try {
 			$settings['saved_cards'] = $saved_cards;
-			WC_Stripe_Helper::update_main_stripe_settings( $settings );
+			WC_Stripe::update_settings( $settings );
 
 			$payment_method = new WC_Stripe_UPE_Payment_Method_Link();
 
@@ -30,7 +30,7 @@ class WC_Stripe_UPE_Payment_Method_Link_Test extends WP_UnitTestCase {
 			);
 		} finally {
 			$settings['saved_cards'] = $original_saved_cards;
-			WC_Stripe_Helper::update_main_stripe_settings( $settings );
+			WC_Stripe::update_settings( $settings );
 		}
 	}
 

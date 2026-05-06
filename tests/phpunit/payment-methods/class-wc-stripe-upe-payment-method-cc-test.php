@@ -86,7 +86,7 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_should_show_save_option
 	 */
 	public function test_should_show_save_option( $link_enabled, $saved_cards, $expected ) {
-		$settings                = WC_Stripe_Helper::get_stripe_settings();
+		$settings                = WC_Stripe::get_settings();
 		$original_saved_cards    = $settings['saved_cards'] ?? '';
 		$original_accepted       = $settings['upe_checkout_experience_accepted_payments'] ?? [];
 		$settings['saved_cards'] = $saved_cards;
@@ -97,7 +97,7 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 		}
 		$settings['upe_checkout_experience_accepted_payments'] = $enabled_methods;
 
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe::update_settings( $settings );
 
 		// Ensure the WC_Stripe singleton has a gateway whose
 		// get_upe_enabled_payment_method_ids reads from settings.
@@ -116,7 +116,7 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 			$this->set_stripe_gateway( $wc_stripe, $original_gateway );
 			$settings['saved_cards']                               = $original_saved_cards;
 			$settings['upe_checkout_experience_accepted_payments'] = $original_accepted;
-			WC_Stripe_Helper::update_main_stripe_settings( $settings );
+			WC_Stripe::update_settings( $settings );
 		}
 	}
 

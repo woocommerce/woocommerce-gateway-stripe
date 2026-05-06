@@ -27,7 +27,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->connect = new WC_Stripe_Connect( $api_mock );
 
 		delete_option( 'wc_stripe_optimized_checkout_default_on' );
-		WC_Stripe_Helper::update_main_stripe_settings( [] );
+		WC_Stripe::update_settings( [] );
 	}
 
 	/**
@@ -35,7 +35,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function tear_down() {
 		delete_option( 'wc_stripe_optimized_checkout_default_on' );
-		WC_Stripe_Helper::update_main_stripe_settings( [] );
+		WC_Stripe::update_settings( [] );
 
 		parent::tear_down();
 	}
@@ -70,7 +70,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$method->setAccessible( true );
 		$method->invoke( $this->connect, $result, $type, 'test' );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe::get_settings();
 
 		$this->assertSame( $expected_oc, $settings['optimized_checkout_element'] ?? '' );
 		$this->assertSame( $expected_ap, $settings['adaptive_pricing'] ?? '' );
