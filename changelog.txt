@@ -2,6 +2,7 @@
 
 xxxx-xx-xx - version 10.7.0
 * Fix - Refresh account details re-evaluates Payment Method Configuration availability so a disabled pmc_enabled flag recovers automatically
+* Add - Filter wc_stripe_optimized_checkout_title to override the Optimized Checkout payment method title at checkout
 * Fix - Fix compatibility with WooCommerce 10.8 payment handling, where created-via is required for orders
 * Update - Enable Optimized Checkout Suite by default for new installs
 * Update - Enable Adaptive Pricing by default for new installs
