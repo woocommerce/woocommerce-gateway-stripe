@@ -1313,11 +1313,16 @@ class WC_Stripe_Helper {
 			return 'account-country';
 		}
 
+		// If we are in test mode, payout details are often missing and currency-based rules
+		// are not enforced.
+		if ( WC_Stripe_Mode::is_test() ) {
+			return null;
+		}
+
 		// Require that the store currency is supported for settlements.
 		$stripe_settlement_currencies = $stripe_account->get_supported_store_currencies();
 		if ( [] === $stripe_settlement_currencies ) {
-			// TODO: Investigate how we should handle no explicit settlement currencies.
-			return null;
+			return 'no-settlement-currencies';
 		}
 
 		$store_currency = get_woocommerce_currency();
