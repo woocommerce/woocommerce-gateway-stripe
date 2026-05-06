@@ -11,12 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Plugins_Page_Controller {
 
 	/**
-	 * Slug used to identify this plugin in WordPress update events
-	 * and in plugin information modal URLs.
-	 */
-	const PLUGIN_SLUG = 'woocommerce-gateway-stripe';
-
-	/**
 	 * The Stripe account instance.
 	 *
 	 * @var WC_Stripe_Account
@@ -95,13 +89,14 @@ class WC_Stripe_Plugins_Page_Controller {
 	 * @return array{plugin_slug: string, view_changelog_url: string}
 	 */
 	private function get_changelog_link_params(): array {
+		$plugin_slug        = basename( WC_STRIPE_PLUGIN_PATH );
 		$view_changelog_url = self_admin_url(
-			'plugin-install.php?tab=plugin-information&plugin=' . self::PLUGIN_SLUG
+			'plugin-install.php?tab=plugin-information&plugin=' . $plugin_slug
 			. '&section=changelog&TB_iframe=true&width=600&height=550'
 		);
 
 		return [
-			'plugin_slug'        => self::PLUGIN_SLUG,
+			'plugin_slug'        => $plugin_slug,
 			'view_changelog_url' => $view_changelog_url,
 		];
 	}
