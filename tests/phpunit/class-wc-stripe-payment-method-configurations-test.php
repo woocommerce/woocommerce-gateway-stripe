@@ -1170,4 +1170,55 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 
 		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
 	}
+
+	/**
+	 * When `wc_stripe_preselect_payment_method_configuration` resolves to a usable PMC,
+	 * `refresh_pmc_availability()` uses it directly: it bypasses the bulk
+	 * `get_payment_method_configurations()` call and ends with `pmc_enabled` set to 'yes'.
+	 */
+	public function test_refresh_pmc_availability_honors_preselect_filter() {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( null ) );
+
+		// Assert the bulk listing is never queried when the preselect filter resolves a usable PMC.
+		$mock_api = $this->getMockBuilder( WC_Stripe_API::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$mock_api->expects( $this->never() )->method( 'get_payment_method_configurations' );
+
+		$reflection        = new ReflectionClass( WC_Stripe_API::class );
+		$instance_property = $reflection->getProperty( 'instance' );
+		$instance_property->setAccessible( true );
+		$instance_property->setValue( null, $mock_api );
+
+		$preselected_pmc_id = 'pmc_preselected_for_test';
+		$preselected_pmc    = (object) array_merge( self::MOCK_CHILD_TEST_PMC, [ 'id' => $preselected_pmc_id ] );
+
+		$preselect_filter = function () use ( $preselected_pmc_id ) {
+			return $preselected_pmc_id;
+		};
+		add_filter( 'wc_stripe_preselect_payment_method_configuration', $preselect_filter );
+
+		$http_filter = function ( $preempt, $args, $url ) use ( $preselected_pmc_id, $preselected_pmc ) {
+			if ( false !== strpos( $url, 'payment_method_configurations/' . $preselected_pmc_id ) ) {
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode( $preselected_pmc ),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_filter, 10, 3 );
+
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		remove_filter( 'wc_stripe_preselect_payment_method_configuration', $preselect_filter );
+		remove_filter( 'pre_http_request', $http_filter );
+		$instance_property->setValue( null, null );
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
 }

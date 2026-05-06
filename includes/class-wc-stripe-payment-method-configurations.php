@@ -566,6 +566,10 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * or Stripe API errors `pmc_enabled` is left untouched so a transient failure can't flip the
 	 * merchant into the DB-only fallback path.
 	 *
+	 * Selection follows the same precedence as the normal fetch path: the
+	 * `wc_stripe_preselect_payment_method_configuration` filter takes priority, then the
+	 * platform-child PMC, then the fallback PMC.
+	 *
 	 * Outcomes:
 	 *   - No usable PMC found: delegates to {@see self::disable_payment_method_configuration_sync()} ('no').
 	 *   - Usable PMC + `pmc_enabled` already 'yes': no-op.
@@ -581,35 +585,51 @@ class WC_Stripe_Payment_Method_Configurations {
 		self::clear_payment_method_configuration_cache();
 		delete_option( self::FETCH_COOLDOWN_OPTION_KEY );
 
-		$api_response = WC_Stripe_API::get_instance()->get_payment_method_configurations();
+		$usable_pmc   = null;
+		$is_test_mode = WC_Stripe_Mode::is_test();
 
-		// `WC_Stripe_API::retrieve()` returns null on invalid keys, WP_Error on transport failures,
-		// and an object with `->error` set on Stripe API errors. Bail without mutating pmc_enabled
-		// so a transient failure can't flip the merchant into the DB-only fallback path.
-		if ( ! is_object( $api_response ) || is_wp_error( $api_response ) || ! empty( $api_response->error ) ) {
-			WC_Stripe_Logger::warning(
-				'Skipping PMC availability refresh because the Stripe API call failed',
-				[ 'response' => $api_response ]
-			);
-			return;
-		}
-
-		$configurations   = is_array( $api_response->data ?? null ) ? $api_response->data : [];
-		$is_test_mode     = WC_Stripe_Mode::is_test();
-		$fallback_pmc_key = $is_test_mode ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
-		$usable_pmc       = null;
-
-		foreach ( $configurations as $configuration ) {
-			$parent_id = $configuration->parent ?? null;
-			if ( $parent_id && ( self::LIVE_MODE_CONFIGURATION_PARENT_ID === $parent_id || self::TEST_MODE_CONFIGURATION_PARENT_ID === $parent_id ) ) {
-				$usable_pmc = $configuration;
-				delete_option( $fallback_pmc_key );
-				break;
+		// Honor the `wc_stripe_preselect_payment_method_configuration` filter the same way
+		// `get_payment_method_configuration_from_stripe()` does: when set, the preselected PMC
+		// takes priority over platform-child / fallback selection. On any failure we silently
+		// fall through to the default selection below.
+		$preselected_pmc_id = apply_filters( 'wc_stripe_preselect_payment_method_configuration', null, $is_test_mode );
+		if ( is_string( $preselected_pmc_id ) && str_starts_with( $preselected_pmc_id, 'pmc_' ) ) {
+			$preselected_configuration = WC_Stripe_API::retrieve( 'payment_method_configurations/' . $preselected_pmc_id );
+			if ( is_object( $preselected_configuration ) && ! is_wp_error( $preselected_configuration ) && empty( $preselected_configuration->error ) ) {
+				$usable_pmc = $preselected_configuration;
 			}
 		}
 
 		if ( null === $usable_pmc ) {
-			[ 'pmc' => $usable_pmc ] = self::get_fallback_payment_method_configuration( $configurations );
+			$api_response = WC_Stripe_API::get_instance()->get_payment_method_configurations();
+
+			// `WC_Stripe_API::get_payment_method_configurations()` returns null on invalid keys,
+			// WP_Error on transport failures, and an object with `->error` set on Stripe API errors.
+			// Bail without mutating pmc_enabled so a transient failure can't flip the merchant into
+			// the DB-only fallback path.
+			if ( ! is_object( $api_response ) || is_wp_error( $api_response ) || ! empty( $api_response->error ) ) {
+				WC_Stripe_Logger::warning(
+					'Skipping PMC availability refresh because the Stripe API call failed',
+					[ 'response' => $api_response ]
+				);
+				return;
+			}
+
+			$configurations   = is_array( $api_response->data ?? null ) ? $api_response->data : [];
+			$fallback_pmc_key = $is_test_mode ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
+
+			foreach ( $configurations as $configuration ) {
+				$parent_id = $configuration->parent ?? null;
+				if ( $parent_id && ( self::LIVE_MODE_CONFIGURATION_PARENT_ID === $parent_id || self::TEST_MODE_CONFIGURATION_PARENT_ID === $parent_id ) ) {
+					$usable_pmc = $configuration;
+					delete_option( $fallback_pmc_key );
+					break;
+				}
+			}
+
+			if ( null === $usable_pmc ) {
+				[ 'pmc' => $usable_pmc ] = self::get_fallback_payment_method_configuration( $configurations );
+			}
 		}
 
 		if ( ! $usable_pmc ) {
