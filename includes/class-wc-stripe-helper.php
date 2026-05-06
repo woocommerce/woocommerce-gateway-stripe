@@ -1319,7 +1319,7 @@ class WC_Stripe_Helper {
 			return null;
 		}
 
-		// Require that the store currency is supported for settlements.
+		// Check that the store currency can be used for settlement.
 		$stripe_settlement_currencies = $stripe_account->get_supported_store_currencies();
 		if ( [] === $stripe_settlement_currencies ) {
 			return 'no-settlement-currencies';
