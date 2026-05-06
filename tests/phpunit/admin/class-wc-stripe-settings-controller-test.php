@@ -31,7 +31,10 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 									->getMock();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-settings-controller.php';
-		$this->gateway    = new WC_Stripe_UPE_Payment_Gateway();
+		$this->gateway = new WC_Stripe_UPE_Payment_Gateway();
+
+		// The controller is now a deprecation shim; instantiating it triggers a deprecation notice.
+		$this->setExpectedDeprecated( 'WC_Stripe_Settings_Controller' );
 		$this->controller = new WC_Stripe_Settings_Controller( $this->account, $this->gateway );
 	}
 
@@ -52,6 +55,8 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
+		$this->setExpectedDeprecated( 'WC_Stripe_Settings_Controller::admin_options' );
+
 		ob_start();
 		$this->controller->admin_options( $this->gateway );
 		$output = ob_get_clean();
@@ -70,6 +75,8 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$stripe_settings['publishable_key']      = '';
 		$stripe_settings['secret_key']           = '';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$this->setExpectedDeprecated( 'WC_Stripe_Settings_Controller::admin_options' );
 
 		ob_start();
 		$this->controller->admin_options( $this->gateway );
@@ -103,12 +110,26 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			->with( $order )
 			->willReturn( $intent );
 
-		$controller = new WC_Stripe_Settings_Controller( $this->account, $gateway );
+		$this->setExpectedDeprecated( 'WC_Stripe_Settings_Controller' );
+		$this->setExpectedDeprecated( 'WC_Stripe_Settings_Controller::hide_refund_button_for_uncaptured_orders' );
 
-		ob_start();
-		$controller->hide_refund_button_for_uncaptured_orders( $order );
-		$output = ob_get_clean();
-		$this->assertStringMatchesFormat( '%aclass="button button-disabled"%a', $output );
+		// Inject the mock gateway into the singleton so the inlined method picks it up.
+		$singleton  = WC_Stripe::get_instance();
+		$reflection = new ReflectionProperty( $singleton, 'stripe_gateway' );
+		$reflection->setAccessible( true );
+		$original_gateway = $reflection->getValue( $singleton );
+		$reflection->setValue( $singleton, $gateway );
+
+		try {
+			$controller = new WC_Stripe_Settings_Controller( $this->account, $gateway );
+
+			ob_start();
+			$controller->hide_refund_button_for_uncaptured_orders( $order );
+			$output = ob_get_clean();
+			$this->assertStringMatchesFormat( '%aclass="button button-disabled"%a', $output );
+		} finally {
+			$reflection->setValue( $singleton, $original_gateway );
+		}
 	}
 
 	/**
@@ -167,6 +188,16 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			$gateway->method( 'get_validated_option' )->with( 'optimized_checkout_layout' )->willReturn( 'accordion' );
 			$gateway->method( 'get_option' )->willReturn( 'no' );
 
+			// Inject the mock gateway into the singleton so the inlined method picks it up.
+			$singleton          = WC_Stripe::get_instance();
+			$gateway_reflection = new ReflectionProperty( $singleton, 'stripe_gateway' );
+			$gateway_reflection->setAccessible( true );
+			$original_main_gateway = $gateway_reflection->getValue( $singleton );
+			$gateway_reflection->setValue( $singleton, $gateway );
+
+			$this->setExpectedDeprecated( 'WC_Stripe_Settings_Controller' );
+			$this->setExpectedDeprecated( 'WC_Stripe_Settings_Controller::admin_scripts' );
+
 			$controller = new WC_Stripe_Settings_Controller( $account, $gateway );
 
 			add_filter( 'wc_stripe_is_checkout_sessions_available', $feature_filter );
@@ -189,6 +220,9 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		} finally {
 			if ( isset( $stripe_singleton_account_backup ) ) {
 				WC_Stripe::get_instance()->account = $stripe_singleton_account_backup;
+			}
+			if ( isset( $gateway_reflection, $original_main_gateway ) ) {
+				$gateway_reflection->setValue( WC_Stripe::get_instance(), $original_main_gateway );
 			}
 			$GLOBALS['wp_scripts'] = $wp_scripts_backup;
 			remove_filter( 'wc_stripe_is_checkout_sessions_available', $feature_filter );

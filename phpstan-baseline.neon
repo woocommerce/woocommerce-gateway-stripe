@@ -1189,12 +1189,6 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Agentic_Commerce_Controller\:\:update_agentic_settings\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
-			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:test_account_keys\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
@@ -1229,6 +1223,12 @@ parameters:
 			identifier: missingType.generics
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
+
+		-
+			message: '#^Method WC_REST_Stripe_Agentic_Commerce_Controller\:\:update_agentic_settings\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			identifier: missingType.generics
+			count: 1
+			path: includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php
 
 		-
 			message: '#^Method WC_REST_Stripe_Connection_Tokens_Controller\:\:create_token\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
@@ -1621,15 +1621,15 @@ parameters:
 			path: includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php
 
 		-
-			message: '#^Access to an undefined property WooCommerce\:\:\$payment_gateways\.$#'
-			identifier: property.notFound
+			message: '#^Constructor of class WC_Stripe_Settings_Controller has an unused parameter \$account\.$#'
+			identifier: constructor.unusedParameter
 			count: 1
 			path: includes/admin/class-wc-stripe-settings-controller.php
 
 		-
-			message: '#^Cannot call method get_option\(\) on WC_Stripe_Payment_Gateway\|null\.$#'
-			identifier: method.nonObject
-			count: 2
+			message: '#^Constructor of class WC_Stripe_Settings_Controller has an unused parameter \$gateway\.$#'
+			identifier: constructor.unusedParameter
+			count: 1
 			path: includes/admin/class-wc-stripe-settings-controller.php
 
 		-
@@ -1657,12 +1657,6 @@ parameters:
 			path: includes/admin/class-wc-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_Stripe_Settings_Controller\:\:get_gateway\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-settings-controller.php
-
-		-
 			message: '#^Method WC_Stripe_Settings_Controller\:\:hide_gateways_on_settings_page\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -1675,9 +1669,9 @@ parameters:
 			path: includes/admin/class-wc-stripe-settings-controller.php
 
 		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 2
+			message: '#^Method WC_Stripe_Settings_Controller\:\:hide_refund_button_for_uncaptured_orders\(\) has parameter \$order with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
 			path: includes/admin/class-wc-stripe-settings-controller.php
 
 		-
@@ -3463,6 +3457,18 @@ parameters:
 			path: includes/class-wc-stripe-webhook-state.php
 
 		-
+			message: '#^Access to an undefined property WooCommerce\:\:\$payment_gateways\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe.php
+
+		-
 			message: '#^Call to an undefined method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:init\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -3477,6 +3483,12 @@ parameters:
 		-
 			message: '#^Method WC_Stripe\:\:add_gateways\(\) has parameter \$methods with no type specified\.$#'
 			identifier: missingType.parameter
+			count: 1
+			path: includes/class-wc-stripe.php
+
+		-
+			message: '#^Method WC_Stripe\:\:ajax_get_oauth_url\(\) has no return type specified\.$#'
+			identifier: missingType.return
 			count: 1
 			path: includes/class-wc-stripe.php
 
@@ -3505,6 +3517,18 @@ parameters:
 			path: includes/class-wc-stripe.php
 
 		-
+			message: '#^Method WC_Stripe\:\:enqueue_settings_admin_scripts\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: includes/class-wc-stripe.php
+
+		-
+			message: '#^Method WC_Stripe\:\:enqueue_settings_admin_scripts\(\) has parameter \$hook_suffix with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: includes/class-wc-stripe.php
+
+		-
 			message: '#^Method WC_Stripe\:\:filter_gateway_order_admin\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -3519,6 +3543,18 @@ parameters:
 		-
 			message: '#^Method WC_Stripe\:\:get_main_stripe_gateway\(\) should return WC_Stripe_UPE_Payment_Gateway but returns WC_Stripe_Payment_Gateway\.$#'
 			identifier: return.type
+			count: 1
+			path: includes/class-wc-stripe.php
+
+		-
+			message: '#^Method WC_Stripe\:\:hide_payment_gateways_on_settings_page\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: includes/class-wc-stripe.php
+
+		-
+			message: '#^Method WC_Stripe\:\:hide_refund_button_for_uncaptured_orders\(\) has no return type specified\.$#'
+			identifier: missingType.return
 			count: 1
 			path: includes/class-wc-stripe.php
 
@@ -3583,6 +3619,18 @@ parameters:
 			path: includes/class-wc-stripe.php
 
 		-
+			message: '#^Method WC_Stripe\:\:register_settings_admin_hooks\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: includes/class-wc-stripe.php
+
+		-
+			message: '#^Method WC_Stripe\:\:render_settings_admin_options\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: includes/class-wc-stripe.php
+
+		-
 			message: '#^Method WC_Stripe\:\:update_plugin_version\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -3598,6 +3646,12 @@ parameters:
 			message: '#^Parameter \#2 \$old_settings of method WC_Stripe\:\:maybe_reset_stripe_in_memory_key\(\) expects array, array\|true given\.$#'
 			identifier: argument.type
 			count: 1
+			path: includes/class-wc-stripe.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 2
 			path: includes/class-wc-stripe.php
 
 		-
