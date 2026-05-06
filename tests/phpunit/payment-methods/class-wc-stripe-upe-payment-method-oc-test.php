@@ -101,12 +101,12 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * `get_classic_selected_title` returns the default and respects the filter with classic context.
+	 * `get_classic_title` returns the default and respects the filter with classic context.
 	 *
 	 * @return void
 	 */
-	public function test_get_classic_selected_title() {
-		$this->assertSame( 'Payment options', WC_Stripe_UPE_Payment_Method_OC::get_classic_selected_title() );
+	public function test_get_classic_title() {
+		$this->assertSame( 'Payment options', WC_Stripe_UPE_Payment_Method_OC::get_classic_title() );
 
 		$captured_context = null;
 		$callback         = function ( $title, $context ) use ( &$captured_context ) {
@@ -116,7 +116,7 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 		add_filter( 'wc_stripe_optimized_checkout_title', $callback, 10, 2 );
 
 		try {
-			$this->assertSame( 'Pay with Stripe', WC_Stripe_UPE_Payment_Method_OC::get_classic_selected_title() );
+			$this->assertSame( 'Pay with Stripe', WC_Stripe_UPE_Payment_Method_OC::get_classic_title() );
 			$this->assertSame( 'classic', $captured_context );
 		} finally {
 			remove_filter( 'wc_stripe_optimized_checkout_title', $callback, 10 );

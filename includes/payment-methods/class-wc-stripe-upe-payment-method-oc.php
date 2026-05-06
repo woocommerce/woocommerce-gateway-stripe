@@ -91,12 +91,12 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Returns the title shown in classic shortcode checkout when the
-	 * Stripe gateway is selected and Optimized Checkout is enabled.
+	 * Returns the title shown in classic shortcode checkout when
+	 * Optimized Checkout is enabled.
 	 *
 	 * @return string
 	 */
-	public static function get_classic_selected_title(): string {
+	public static function get_classic_title(): string {
 		$title = __( 'Payment options', 'woocommerce-gateway-stripe' );
 
 		/** This filter is documented in includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php */
