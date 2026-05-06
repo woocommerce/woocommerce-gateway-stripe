@@ -153,6 +153,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.7.0 - xxxx-xx-xx =
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
+* Fix - Fix compatibility with WooCommerce 10.8 checkout-evidence guard (required created-via in orders)
 * Update - Enable Optimized Checkout Suite by default for new installs
 * Update - Enable Adaptive Pricing by default for new installs
 * Fix - Use SKU as the Agentic Commerce catalog identifier so checkout.session.completed line items resolve correctly; keep the product-ID fallback for SKU-less products and catalogs synced under the legacy contract
@@ -170,5 +171,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Bump transitive minimatch dev dependency to resolve ReDoS CVE-2026-27903 (GHSA-7r86-cg39-jmmj)
 * Fix - Prevent fatal error in wp-admin from overly narrow argument type
 * Dev - Remove deprecated backend methods that called wc_deprecated_function
+* Add - Allow Stripe developer widget to be enabled in test mode via wc_stripe_show_stripe_developer_widget filter
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
