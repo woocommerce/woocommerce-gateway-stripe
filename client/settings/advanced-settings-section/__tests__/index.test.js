@@ -106,7 +106,7 @@ describe( 'AdvancedSettings', () => {
 
 		expect(
 			screen.queryByText(
-				'Let customers pay in their local currency with Adaptive Pricing.'
+				'Let customers pay in their local currency with Adaptive Pricing'
 			)
 		).toBeInTheDocument();
 	} );

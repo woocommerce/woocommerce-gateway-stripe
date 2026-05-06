@@ -74,7 +74,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		// Adaptive pricing settings.
 		expect(
 			screen.getByText(
-				'Let customers pay in their local currency with Adaptive Pricing.'
+				'Let customers pay in their local currency with Adaptive Pricing'
 			)
 		).toBeInTheDocument();
 	} );
@@ -113,7 +113,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 
 		await userEvent.click(
 			screen.getByLabelText(
-				'Let customers pay in their local currency with Adaptive Pricing.'
+				'Let customers pay in their local currency with Adaptive Pricing'
 			)
 		);
 
