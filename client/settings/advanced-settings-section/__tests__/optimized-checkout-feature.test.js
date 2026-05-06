@@ -43,7 +43,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		const setIsOCEnabledMock = jest.fn();
 		useIsOCEnabled.mockReturnValue( [ true, setIsOCEnabledMock ] );
 
-		render( <OptimizedCheckoutFeature /> );
+		render( <OptimizedCheckoutFeature isOCAvailable={ true } /> );
 
 		const OCCheckbox = screen.getByTestId(
 			'optimized-checkout-element-checkbox'
@@ -107,7 +107,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 			setAdaptivePricingEnabledMock,
 		] );
 
-		render( <OptimizedCheckoutFeature /> );
+		render( <OptimizedCheckoutFeature isOCAvailable={ true } /> );
 
 		expect( setAdaptivePricingEnabledMock ).not.toHaveBeenCalled();
 

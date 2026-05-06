@@ -65,14 +65,19 @@ describe( 'AdvancedSettings', () => {
 		expect( setIsLoggingCheckedMock ).toHaveBeenCalledWith( true );
 	} );
 
-	it( 'should not display optimized checkout element setting if the feature flag is disabled', () => {
+	it( 'should display the Optimized Checkout setting with a warning when the feature is unavailable', () => {
 		render( <AdvancedSettings /> );
 
 		expect(
 			screen.queryByText(
 				'Enable Optimized Checkout Suite (recommended)'
 			)
-		).not.toBeInTheDocument();
+		).toBeInTheDocument();
+		expect(
+			screen.queryAllByText(
+				/Optimized Checkout Suite is not currently available/
+			)
+		).not.toHaveLength( 0 );
 	} );
 
 	it( 'should display optimized checkout element setting if the feature flag is enabled', () => {
