@@ -62,7 +62,7 @@ const getAdaptivePricingUnavailableText = (
 			);
 		case 'store-currency-not-settlement-currency':
 			return __(
-				'Adaptive Pricing is unavailable as your account does not support settlements in your store currency.',
+				'Adaptive Pricing is unavailable as your account does not support settlement in your store currency.',
 				'woocommerce-gateway-stripe'
 			);
 		default:
