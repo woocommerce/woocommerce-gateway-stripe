@@ -1725,6 +1725,162 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `get_adaptive_pricing_account_availability_reason`.
+	 *
+	 * @param array   $account_data    Stripe account data to mock.
+	 * @param bool    $test_mode       Whether Stripe test mode is enabled.
+	 * @param string  $store_currency  WooCommerce store currency code.
+	 * @param ?string $expected        Expected return value.
+	 * @return void
+	 * @dataProvider provide_test_get_adaptive_pricing_account_availability_reason
+	 */
+	public function test_get_adaptive_pricing_account_availability_reason(
+		array $account_data,
+		bool $test_mode,
+		string $store_currency,
+		?string $expected
+	): void {
+		$original_settings    = WC_Stripe_Helper::get_stripe_settings();
+		$settings             = $original_settings;
+		$settings['testmode'] = $test_mode ? 'yes' : 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$this->set_stripe_account_data( $account_data );
+
+		$original_currency = get_option( 'woocommerce_currency' );
+		update_option( 'woocommerce_currency', $store_currency );
+
+		$actual = WC_Stripe_Helper::get_adaptive_pricing_account_availability_reason();
+
+		// Cleanup.
+		update_option( 'woocommerce_currency', $original_currency );
+		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Data provider for `test_get_adaptive_pricing_account_availability_reason`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_adaptive_pricing_account_availability_reason(): array {
+		return [
+			'India account (uppercase) → account-country'                             => [
+				'account_data'   => [
+					'country'           => 'IN',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'inr' ],
+						],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'USD',
+				'expected'       => 'account-country',
+			],
+			'India account (lowercase) → account-country'                             => [
+				'account_data'   => [
+					'country'           => 'in',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'inr' ],
+						],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'USD',
+				'expected'       => 'account-country',
+			],
+			'India account + test mode → account-country (India checked before mode)' => [
+				'account_data'   => [
+					'country'           => 'IN',
+					'external_accounts' => [
+						'data' => [],
+					],
+				],
+				'test_mode'      => true,
+				'store_currency' => 'USD',
+				'expected'       => 'account-country',
+			],
+			'Test mode, no settlement currencies → null (currency check bypassed)'    => [
+				'account_data'   => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [],
+					],
+				],
+				'test_mode'      => true,
+				'store_currency' => 'USD',
+				'expected'       => null,
+			],
+			'Test mode, currency mismatch → null (currency check bypassed)'           => [
+				'account_data'   => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'eur' ],
+						],
+					],
+				],
+				'test_mode'      => true,
+				'store_currency' => 'USD',
+				'expected'       => null,
+			],
+			'Live mode, no settlement currencies → no-settlement-currencies'          => [
+				'account_data'   => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'USD',
+				'expected'       => 'no-settlement-currencies',
+			],
+			'Live mode, store currency not in settlement → store-currency-not-settlement-currency' => [
+				'account_data'   => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'eur' ],
+						],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'USD',
+				'expected'       => 'store-currency-not-settlement-currency',
+			],
+			'Live mode, store currency in settlement → null'                          => [
+				'account_data'   => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'usd' ],
+						],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'USD',
+				'expected'       => null,
+			],
+			'Live mode, non-US account, matching currency → null'                     => [
+				'account_data'   => [
+					'country'           => 'GB',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'gbp' ],
+						],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'GBP',
+				'expected'       => null,
+			],
+		];
+	}
+
+	/**
 	 * Data provider for `test_build_line_items`.
 	 *
 	 * @return array
