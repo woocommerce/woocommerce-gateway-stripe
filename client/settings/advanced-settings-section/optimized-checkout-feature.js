@@ -2,7 +2,11 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { getQuery } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
-import { useIsAdaptivePricingEnabled, useOCLayout } from '../../data';
+import {
+	useIsAdaptivePricingEnabled,
+	useIsOCEnabled,
+	useOCLayout,
+} from '../../data';
 import OptimizedCheckoutFirstMethodNotice from './optimized-checkout-first-method-notice';
 import {
 	CheckboxControl,
@@ -74,20 +78,10 @@ const getAdaptivePricingUnavailableText = (
 };
 
 /**
- * Callback to update the IsEnabled setting for Optimized Checkout Suite.
- *
- * @callback SetIsOCEnabled
- * @param {boolean} value The new value for the IsEnabled setting.
- * @return {void}
- */
-
-/**
  * Props for the OptimizedCheckoutFeature component.
  *
  * @typedef {Object} OptimizedCheckoutFeatureProps
- * @property {boolean}        isOCAvailable  Whether Optimized Checkout Suite is available.
- * @property {boolean}        isOCEnabled    Whether Optimized Checkout Suite is enabled.
- * @property {SetIsOCEnabled} setIsOCEnabled Callback to set the value of the Optimized Checkout Suite setting.
+ * @property {boolean} isOCAvailable Whether Optimized Checkout Suite is available.
  */
 
 /**
@@ -96,14 +90,12 @@ const getAdaptivePricingUnavailableText = (
  * @param {OptimizedCheckoutFeatureProps} props The props for the OptimizedCheckoutFeature component.
  * @return {React.ReactNode} The rendered OptimizedCheckoutFeature component.
  */
-const OptimizedCheckoutFeature = ( {
-	isOCAvailable,
-	isOCEnabled,
-	setIsOCEnabled,
-} ) => {
+const OptimizedCheckoutFeature = ( { isOCAvailable } ) => {
+	const [ isOCEnabled, setIsOCEnabled ] = useIsOCEnabled();
 	const [ isAdaptivePricingEnabled, setIsAdaptivePricingEnabled ] =
 		useIsAdaptivePricingEnabled();
 	const [ OCLayout, setOCLayout ] = useOCLayout();
+
 	const headingRef = useRef( null );
 	const adaptivePricingUnavailableReason =
 		wc_stripe_settings_params.adaptive_pricing_unavailable_reason; // eslint-disable-line camelcase
