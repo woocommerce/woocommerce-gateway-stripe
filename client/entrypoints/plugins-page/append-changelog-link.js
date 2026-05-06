@@ -3,11 +3,24 @@ import { __ } from '@wordpress/i18n';
 
 const LINK_CLASS = 'wc-stripe-view-changelog-link';
 
+/**
+ * Returns the paragraph element holding the post-update success message for the given plugin.
+ *
+ * @param {string} pluginSlug
+ * @return {HTMLElement|null} The paragraph element, or null if no update message is rendered.
+ */
 const getMessageParagraph = ( pluginSlug ) =>
 	document.querySelector(
 		`tr.plugin-update-tr[data-slug="${ pluginSlug }"] .update-message p`
 	);
 
+/**
+ * Builds the anchor that opens the plugin info modal on the changelog tab.
+ *
+ * @param {string} href
+ * @param {string} pluginSlug
+ * @return {HTMLAnchorElement} The anchor element, ready to append.
+ */
 const buildChangelogLink = ( href, pluginSlug ) => {
 	const link = document.createElement( 'a' );
 	link.className = `thickbox open-plugin-details-modal ${ LINK_CLASS }`;
@@ -67,6 +80,11 @@ export const initAppendChangelogLink = ( params ) => {
 	};
 };
 
+/**
+ * Initializes the changelog link using params from the `wcStripePluginsPageParams` global.
+ *
+ * @return {() => void} Cleanup function that detaches the listener.
+ */
 export const initAppendChangelogLinkFromGlobals = () => {
 	if ( typeof wcStripePluginsPageParams === 'undefined' ) {
 		return () => {};
