@@ -227,7 +227,7 @@ const OptimizedCheckoutFeature = ( { isOCAvailable } ) => {
 				disabled={
 					! isOCAvailable ||
 					! isOCEnabled ||
-					adaptivePricingUnavailableReason
+					adaptivePricingUnavailableReason !== null
 				}
 				label={ __(
 					'Let customers pay in their local currency with Adaptive Pricing',
