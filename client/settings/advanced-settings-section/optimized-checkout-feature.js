@@ -127,6 +127,17 @@ const OptimizedCheckoutFeature = ( {
 	};
 
 	const adaptivePricingHelp = useMemo( () => {
+		const baseAdaptivePricingText = __(
+			"With Adaptive Pricing, Stripe detects the customer's currency and allows them to pay using their local currency and enabled local payment methods. <learnMoreLink>Learn more</learnMoreLink>.",
+			'woocommerce-gateway-stripe'
+		);
+		const interpolateElements = {
+			learnMoreLink: (
+				<ExternalLink href="https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing" />
+			),
+		};
+		let fullAdaptivePricingText = baseAdaptivePricingText;
+
 		if (
 			! isOCAvailable ||
 			! isOCEnabled ||
@@ -139,35 +150,19 @@ const OptimizedCheckoutFeature = ( {
 					isOCEnabled
 				);
 
-			return createInterpolateElement(
+			fullAdaptivePricingText =
 				'<emphasize>' +
-					adaptivePricingUnavailableText +
-					'</emphasize>' +
-					__(
-						"With Adaptive Pricing, Stripe detects the customer's currency via IP and automatically applies localized pricing and conversion. <learnMoreLink>Learn more</learnMoreLink>.",
-						'woocommerce-gateway-stripe'
-					),
-				{
-					emphasize: (
-						<span className="wc-stripe-adaptive-pricing-unavailable-reason" />
-					),
-					learnMoreLink: (
-						<ExternalLink href="https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing" />
-					),
-				}
+				adaptivePricingUnavailableText +
+				'</emphasize>' +
+				baseAdaptivePricingText;
+			interpolateElements.emphasize = (
+				<span className="wc-stripe-adaptive-pricing-unavailable-reason" />
 			);
 		}
 
 		return createInterpolateElement(
-			__(
-				"With Adaptive Pricing, Stripe detects the customer's currency via IP and automatically applies localized pricing and conversion. <learnMoreLink>Learn more</learnMoreLink>.",
-				'woocommerce-gateway-stripe'
-			),
-			{
-				learnMoreLink: (
-					<ExternalLink href="https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing" />
-				),
-			}
+			fullAdaptivePricingText,
+			interpolateElements
 		);
 	}, [ adaptivePricingUnavailableReason, isOCAvailable, isOCEnabled ] );
 
