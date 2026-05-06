@@ -97,7 +97,10 @@ describe( 'Optimized Checkout Element feature setting', () => {
 	} );
 
 	it( 'triggers the hook when changing the Adaptive Pricing setting', async () => {
-		global.wc_stripe_settings_params = { is_cs_available: true };
+		global.wc_stripe_settings_params = {
+			is_cs_available: true,
+			adaptive_pricing_unavailable_reason: null,
+		};
 
 		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
 
