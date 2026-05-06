@@ -645,30 +645,39 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Checks whether Stripe is the first gateway in WooCommerce gateway order.
+	 * Checks whether Stripe is the first gateway shown at checkout.
+	 *
+	 * WC_Payment_Gateways::init() already sorts $payment_gateways by the
+	 * woocommerce_gateway_order option, so iterating it directly gives us
+	 * the effective checkout order. Disabled non-Stripe gateways are skipped
+	 * because they don't render at checkout; Stripe itself counts as "reached"
+	 * regardless of its own enabled state.
 	 *
 	 * @return bool
 	 */
 	public static function is_stripe_in_position_one_in_woocommerce_gateway_order(): bool {
-		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+		$loaded_gateways = WC()->payment_gateways->payment_gateways ?? [];
 
-		// If the gateway order is empty, assume Stripe is in the first position.
-		if ( empty( $gateway_order ) || ! is_array( $gateway_order ) ) {
-			return true;
-		}
+		foreach ( $loaded_gateways as $gateway ) {
+			/**
+			 * Loaded payment gateway instance.
+			 *
+			 * @var WC_Payment_Gateway $gateway
+			 */
+			if ( WC_Stripe_UPE_Payment_Gateway::ID === $gateway->id || 0 === strpos( $gateway->id, 'stripe_' ) ) {
+				return true;
+			}
 
-		asort( $gateway_order );
-		foreach ( array_keys( $gateway_order ) as $gateway_id ) {
-			// Skip internal WooCommerce Payments entries.
-			if ( 0 === strpos( $gateway_id, '_wc_' ) ) {
+			// Disabled non-Stripe gateways don't appear at checkout — skip.
+			if ( 'yes' !== $gateway->enabled ) {
 				continue;
 			}
 
-			// The first non-internal gateway decides position one.
-			return WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id || 0 === strpos( $gateway_id, 'stripe_' );
+			return false;
 		}
 
-		return false;
+		// No loaded gateways or only Stripe gateways — notice should not show.
+		return true;
 	}
 
 	/**
