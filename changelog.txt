@@ -21,6 +21,7 @@ xxxx-xx-xx - version 10.7.0
 * Dev - Remove deprecated backend methods that called wc_deprecated_function
 * Add - Allow Stripe developer widget to be enabled in test mode via wc_stripe_show_stripe_developer_widget filter
 * Dev - Add Claude Code skills and review rules under .claude/ to capture repo-specific contributor guidance
+* Dev - Add apm.yml manifest for shared agent skills managed by Microsoft APM
 
 2026-04-23 - version 10.6.1
 * Fix - Fix Optimized Checkout Suite bugs that could result in duplicate subscription charges and generic payment methods names
