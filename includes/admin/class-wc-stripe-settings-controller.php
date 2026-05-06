@@ -216,11 +216,11 @@ class WC_Stripe_Settings_Controller {
 			// Show the Stripe Tax banner only if OC is enabled
 			&& $is_oc_enabled;
 
-		$is_checkout_sessions_available       = false;
-		$adaptive_pricing_availability_reason = 'disabled';
+		$is_checkout_sessions_available      = false;
+		$adaptive_pricing_unavailable_reason = 'disabled';
 		if ( WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
-			$adaptive_pricing_availability_reason = WC_Stripe_Helper::get_adaptive_pricing_account_availability_reason();
-			if ( null === $adaptive_pricing_availability_reason ) {
+			$adaptive_pricing_unavailable_reason = WC_Stripe_Helper::get_adaptive_pricing_account_availability_reason();
+			if ( null === $adaptive_pricing_unavailable_reason ) {
 				$is_checkout_sessions_available = true;
 			}
 		}
@@ -242,7 +242,7 @@ class WC_Stripe_Settings_Controller {
 			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
 			'is_oc_enabled'                         => $is_oc_enabled,
 			'is_cs_available'                       => $is_checkout_sessions_available,
-			'adaptive_pricing_unavailable_reason'   => $adaptive_pricing_availability_reason,
+			'adaptive_pricing_unavailable_reason'   => $adaptive_pricing_unavailable_reason,
 			'oc_layout'                             => $this->get_gateway()->get_validated_option( 'optimized_checkout_layout' ),
 			'oauth_nonce'                           => wp_create_nonce( 'wc_stripe_get_oauth_url' ),
 			'is_sepa_tokens_for_ideal_enabled'      => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_ideal', 'no' ),
