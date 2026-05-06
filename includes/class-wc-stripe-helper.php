@@ -646,12 +646,7 @@ class WC_Stripe_Helper {
 
 	/**
 	 * Checks whether Stripe is the first gateway shown at checkout.
-	 *
-	 * WC_Payment_Gateways::init() already sorts $payment_gateways by the
-	 * woocommerce_gateway_order option, so iterating it directly gives us
-	 * the effective checkout order. Disabled non-Stripe gateways are skipped
-	 * because they don't render at checkout; Stripe itself counts as "reached"
-	 * regardless of its own enabled state.
+	 * Disabled non-Stripe gateways are skipped because they don't render at checkout.
 	 *
 	 * @return bool
 	 */
