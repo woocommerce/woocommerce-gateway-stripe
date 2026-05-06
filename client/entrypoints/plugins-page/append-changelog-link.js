@@ -13,15 +13,12 @@ const buildChangelogLink = ( href, pluginSlug ) => {
 	link.className = `thickbox open-plugin-details-modal ${ LINK_CLASS }`;
 	link.href = href;
 	link.dataset.slug = pluginSlug;
-	link.textContent = __(
-		'Click here to see what’s new in the extension.',
-		'woocommerce-gateway-stripe'
-	);
+	link.textContent = __( 'See what’s new', 'woocommerce-gateway-stripe' );
 	return link;
 };
 
 /**
- * Appends a "Click here to see what's new" changelog link to the
+ * Appends a "See what's new" changelog link to the
  * "Updated!" message rendered after a manual plugin update.
  *
  * The new link reuses WordPress' built-in plugin information modal,

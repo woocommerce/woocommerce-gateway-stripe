@@ -51,7 +51,7 @@ describe( 'initAppendChangelogLink', () => {
 		expect( link.classList.contains( 'open-plugin-details-modal' ) ).toBe(
 			true
 		);
-		expect( link.textContent ).toMatch( /what.*new in the extension/i );
+		expect( link.textContent ).toMatch( /see what.*new/i );
 	} );
 
 	it( 'ignores update events for other plugins', () => {
