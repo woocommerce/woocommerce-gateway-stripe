@@ -73,6 +73,9 @@ describe( 'AdvancedSettings', () => {
 				'Enable Optimized Checkout Suite (recommended)'
 			)
 		).toBeInTheDocument();
+
+		// Use `queryAllByText()` and a non-zero length check to handle the
+		// notice component including the text in two nodes.
 		expect(
 			screen.queryAllByText(
 				/Optimized Checkout Suite is not currently available/
