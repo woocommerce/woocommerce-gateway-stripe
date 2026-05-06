@@ -1149,8 +1149,10 @@ class WC_Stripe_Helper {
 			return 'no-settlement-currencies';
 		}
 
-		$store_currency = get_woocommerce_currency();
-		if ( ! in_array( strtolower( $store_currency ), $stripe_settlement_currencies, true ) ) {
+		// Ensure we have lowercase currency codes.
+		$stripe_settlement_currencies = array_map( 'strtolower', $stripe_settlement_currencies );
+		$store_currency_lower         = strtolower( get_woocommerce_currency() );
+		if ( ! in_array( $store_currency_lower, $stripe_settlement_currencies, true ) ) {
 			return 'store-currency-not-settlement-currency';
 		}
 
