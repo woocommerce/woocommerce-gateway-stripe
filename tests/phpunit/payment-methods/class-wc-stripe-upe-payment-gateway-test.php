@@ -5791,6 +5791,72 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Tests that `javascript_params()` includes `showStripeDeveloperWidget` only in test mode
+	 * when the `wc_stripe_show_stripe_developer_widget` filter returns true.
+	 *
+	 * @dataProvider provide_test_javascript_params_stripe_developer_widget
+	 *
+	 * @param bool       $testmode           Whether the gateway is in test mode.
+	 * @param mixed|null $filter_return       Value returned by the filter, or null to skip adding the filter.
+	 * @param bool       $expected_in_params  Whether `showStripeDeveloperWidget` should be present in the params.
+	 */
+	public function test_javascript_params_stripe_developer_widget( bool $testmode, $filter_return, bool $expected_in_params ): void {
+		$gateway           = $this->create_gateway_mock_for_javascript_params();
+		$gateway->testmode = $testmode;
+
+		$filter_callback = null;
+		if ( null !== $filter_return ) {
+			$filter_callback = function () use ( $filter_return ) {
+				return $filter_return;
+			};
+			add_filter( 'wc_stripe_show_stripe_developer_widget', $filter_callback );
+		}
+
+		$params = $gateway->javascript_params();
+
+		if ( null !== $filter_callback ) {
+			remove_filter( 'wc_stripe_show_stripe_developer_widget', $filter_callback );
+		}
+
+		if ( $expected_in_params ) {
+			$this->assertArrayHasKey( 'showStripeDeveloperWidget', $params );
+			$this->assertTrue( $params['showStripeDeveloperWidget'] );
+		} else {
+			$this->assertArrayNotHasKey( 'showStripeDeveloperWidget', $params );
+		}
+	}
+
+	/**
+	 * Data provider for `test_javascript_params_stripe_developer_widget`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_javascript_params_stripe_developer_widget(): array {
+		return [
+			'test mode, no filter hooked — key is omitted'     => [
+				'testmode'           => true,
+				'filter_return'      => null,
+				'expected_in_params' => false,
+			],
+			'test mode, filter returns false — key is omitted' => [
+				'testmode'           => true,
+				'filter_return'      => false,
+				'expected_in_params' => false,
+			],
+			'test mode, filter returns true — key is present'  => [
+				'testmode'           => true,
+				'filter_return'      => true,
+				'expected_in_params' => true,
+			],
+			'live mode, filter returns true — key is omitted'  => [
+				'testmode'           => false,
+				'filter_return'      => true,
+				'expected_in_params' => false,
+			],
+		];
+	}
+
+	/**
 	 * @dataProvider provide_add_email_currency_conversion_notice_ecb_matrix
 	 *
 	 * @param array{billing_country: string, sent_to_admin: bool, plain_text: bool, expect_ecb_sentence: bool} $case Row from the matrix.

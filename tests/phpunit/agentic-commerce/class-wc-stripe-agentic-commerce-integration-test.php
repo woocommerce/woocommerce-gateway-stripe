@@ -150,6 +150,14 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$this->assertNotFalse(
 			has_action( 'wc_stripe_agentic_commerce_sync_feed', [ $integration, 'sync_feed' ] )
 		);
+		$this->assertNotFalse(
+			has_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $integration, 'allow_agentic_payment_complete' ] )
+		);
+
+		$allowed = apply_filters( 'woocommerce_payment_complete_allowed_created_via_values', [], null );
+		$this->assertContains( \WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA, $allowed );
+
+		remove_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $integration, 'allow_agentic_payment_complete' ] );
 	}
 
 	/**
