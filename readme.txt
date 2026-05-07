@@ -153,6 +153,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.7.0 - xxxx-xx-xx =
 * Fix - Restore "Refund via Gateway" button and Stripe dashboard transaction link for Amazon Pay orders by keeping Amazon Pay registered in the gateway list on order edit and refund pages
+* Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
 * Add - Filter wc_stripe_optimized_checkout_title to override the Optimized Checkout payment method title at checkout
 * Fix - Fix compatibility with WooCommerce 10.8 checkout-evidence guard (required created-via in orders)
 * Update - Enable Optimized Checkout Suite by default for new installs
