@@ -313,7 +313,10 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 					'headers'  => [ 'Content-Type' => 'application/json' ],
 					'body'     => json_encode(
 						[
-							'data' => [],
+							'object'   => 'search_result',
+							'url'      => '/v1/customers/search',
+							'has_more' => false,
+							'data'     => [],
 						]
 					),
 				];
@@ -528,7 +531,14 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				return [
 					'response' => 200,
 					'headers'  => [ 'Content-Type' => 'application/json' ],
-					'body'     => json_encode( [ 'data' => [] ] ),
+					'body'     => json_encode(
+						[
+							'object'   => 'search_result',
+							'url'      => '/v1/customers/search',
+							'has_more' => false,
+							'data'     => [],
+						]
+					),
 				];
 			}
 			return $return_value;

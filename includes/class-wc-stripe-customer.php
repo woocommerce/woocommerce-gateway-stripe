@@ -456,13 +456,14 @@ class WC_Stripe_Customer {
 	 *
 	 * @param string $email Customer email.
 	 * @param string $name  Customer name.
-	 * @return array
+	 * @return array|\Stripe\Customer The first matched customer, or `[]` if none / on error.
 	 */
 	public function get_existing_customer( $email, $name ) {
-		$search_query    = [ 'query' => 'name:\'' . $name . '\' AND email:\'' . $email . '\'' ];
-		$search_response = WC_Stripe_API::request( $search_query, 'customers/search', 'GET' );
-
-		if ( ! empty( $search_response->error ) ) {
+		try {
+			$search_response = WC_Stripe_Client::get()->customers->search(
+				[ 'query' => 'name:\'' . $name . '\' AND email:\'' . $email . '\'' ]
+			);
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
 			return [];
 		}
 
@@ -491,29 +492,27 @@ class WC_Stripe_Customer {
 		// $current_context was initially introduced as a boolean flag, so check for old callers.
 		$current_context = $this->normalize_current_context( $current_context );
 
-		if ( empty( $response ) ) {
-			/**
-			 * Filters the arguments used to create a customer.
-			 *
-			 * @since 4.0.0
-			 *
-			 * @param array $args The arguments used to create a customer.
-			 */
-			$create_customer_args = apply_filters( 'wc_stripe_create_customer_args', $args );
+		try {
+			if ( empty( $response ) ) {
+				/**
+				 * Filters the arguments used to create a customer.
+				 *
+				 * @since 4.0.0
+				 *
+				 * @param array $args The arguments used to create a customer.
+				 */
+				$create_customer_args = apply_filters( 'wc_stripe_create_customer_args', $args );
 
-			$this->validate_create_customer_request( $create_customer_args, $current_context );
+				$this->validate_create_customer_request( $create_customer_args, $current_context );
 
-			$response = WC_Stripe_API::request( $create_customer_args, 'customers' );
-		} else {
-			/**
-			 * This filter is documented in includes/class-wc-stripe-customer.php.
-			 */
-			$update_customer_args = apply_filters( 'wc_stripe_update_customer_args', $args );
-			$response             = WC_Stripe_API::request( $update_customer_args, 'customers/' . $response->id );
-		}
-
-		if ( ! empty( $response->error ) ) {
-			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+				$response = WC_Stripe_Client::get()->customers->create( $create_customer_args );
+			} else {
+				/** This filter is documented in includes/class-wc-stripe-customer.php. */
+				$update_customer_args = apply_filters( 'wc_stripe_update_customer_args', $args );
+				$response             = WC_Stripe_Client::get()->customers->update( $response->id, $update_customer_args );
+			}
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
 		}
 
 		$this->set_id( $response->id );
@@ -554,18 +553,21 @@ class WC_Stripe_Customer {
 		 *
 		 * @param array $args The arguments used to update a customer.
 		 */
-		$args     = apply_filters( 'wc_stripe_update_customer_args', $args );
-		$response = WC_Stripe_API::request( $args, 'customers/' . $this->get_id() );
+		$args = apply_filters( 'wc_stripe_update_customer_args', $args );
 
-		if ( ! empty( $response->error ) ) {
-			if ( $this->is_no_such_customer_error( $response->error ) && ! $is_retry ) {
+		try {
+			$response = WC_Stripe_Client::get()->customers->update( $this->get_id(), $args );
+		} catch ( \Stripe\Exception\InvalidRequestException $e ) {
+			if ( 'resource_missing' === $e->getStripeCode() && ! $is_retry ) {
 				// This can happen when switching the main Stripe account or importing users from another site.
 				// If not already retrying, recreate the customer and then try updating it again.
 				$this->recreate_customer();
 				return $this->update_customer( $args, true );
 			}
 
-			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
 		}
 
 		$this->clear_cache();
@@ -761,15 +763,12 @@ class WC_Stripe_Customer {
 		$sources = get_transient( 'stripe_sources_' . $this->get_id() );
 
 		if ( false === $sources ) {
-			$response = WC_Stripe_API::request(
-				[
-					'limit' => 100,
-				],
-				'customers/' . $this->get_id() . '/payment_methods',
-				'GET'
-			);
-
-			if ( ! empty( $response->error ) ) {
+			try {
+				$response = WC_Stripe_Client::get()->customers->allPaymentMethods(
+					$this->get_id(),
+					[ 'limit' => 100 ]
+				);
+			} catch ( \Stripe\Exception\ApiErrorException $e ) {
 				return [];
 			}
 
@@ -798,27 +797,27 @@ class WC_Stripe_Customer {
 		$payment_methods = get_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $payment_method_type . $this->get_id() );
 
 		if ( false === $payment_methods ) {
-			$params   = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $payment_method_type ? '?expand[]=data.sepa_debit.generated_from.charge&expand[]=data.sepa_debit.generated_from.setup_attempt' : '';
-			$response = WC_Stripe_API::request(
-				[
-					'customer' => $this->get_id(),
-					'type'     => $payment_method_type,
-					'limit'    => self::PAYMENT_METHODS_API_LIMIT,
-				],
-				'payment_methods' . $params,
-				'GET'
-			);
+			$params = [
+				'customer' => $this->get_id(),
+				'type'     => $payment_method_type,
+				'limit'    => self::PAYMENT_METHODS_API_LIMIT,
+			];
+			if ( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $payment_method_type ) {
+				$params['expand'] = [
+					'data.sepa_debit.generated_from.charge',
+					'data.sepa_debit.generated_from.setup_attempt',
+				];
+			}
 
-			if ( ! empty( $response->error ) ) {
-				if (
-					isset( $response->error->code, $response->error->param, $response->error->type )
-					&& 'customer' === $response->error->param
-					&& 'resource_missing' === $response->error->code
-					&& 'invalid_request_error' === $response->error->type
-				) {
+			try {
+				$response = WC_Stripe_Client::get()->paymentMethods->all( $params );
+			} catch ( \Stripe\Exception\InvalidRequestException $e ) {
+				if ( 'resource_missing' === $e->getStripeCode() && 'customer' === $e->getStripeParam() ) {
 					// If the customer doesn't exist, cache an empty array as a result.
 					set_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $payment_method_type . $this->get_id(), [], DAY_IN_SECONDS );
 				}
+				return [];
+			} catch ( \Stripe\Exception\ApiErrorException $e ) {
 				return [];
 			}
 
@@ -855,23 +854,25 @@ class WC_Stripe_Customer {
 				$request_params = [
 					'customer' => $this->get_id(),
 					'limit'    => self::PAYMENT_METHODS_API_LIMIT,
+					'expand'   => [
+						'data.sepa_debit.generated_from.charge',
+						'data.sepa_debit.generated_from.setup_attempt',
+					],
 				];
 
 				if ( $last_payment_method_id ) {
 					$request_params['starting_after'] = $last_payment_method_id;
 				}
 
-				$response = WC_Stripe_API::request( $request_params, 'payment_methods?expand[]=data.sepa_debit.generated_from.charge&expand[]=data.sepa_debit.generated_from.setup_attempt', 'GET' );
-
-				if ( ! empty( $response->error ) ) {
-					if (
-						isset( $response->error->param, $response->error->code )
-						&& 'customer' === $response->error->param
-						&& 'resource_missing' === $response->error->code
-					) {
+				try {
+					$response = WC_Stripe_Client::get()->paymentMethods->all( $request_params );
+				} catch ( \Stripe\Exception\InvalidRequestException $e ) {
+					if ( 'resource_missing' === $e->getStripeCode() && 'customer' === $e->getStripeParam() ) {
 						// If the customer doesn't exist, cache an empty array.
 						set_transient( $cache_key, [], DAY_IN_SECONDS );
 					}
+					return [];
+				} catch ( \Stripe\Exception\ApiErrorException $e ) {
 					return [];
 				}
 
@@ -971,24 +972,25 @@ class WC_Stripe_Customer {
 	 * @throws WC_Stripe_Exception
 	 */
 	public function set_default_source( $source_id ): bool {
-		$response = WC_Stripe_API::request(
-			[
-				'default_source' => sanitize_text_field( $source_id ),
-			],
-			'customers/' . $this->get_id(),
-			'POST'
-		);
-
-		if ( empty( $response->error ) ) {
-			// Clear cache so that the payment methods list from Stripe is refreshed to have the correct default payment method.
-			$this->clear_cache();
-
-			do_action( 'wc_stripe_set_default_source', $this->get_id(), $response );
-
-			return true;
+		if ( ! $this->get_id() ) {
+			return false;
 		}
 
-		return false;
+		try {
+			$response = WC_Stripe_Client::get()->customers->update(
+				$this->get_id(),
+				[ 'default_source' => sanitize_text_field( $source_id ) ]
+			);
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			return false;
+		}
+
+		// Clear cache so that the payment methods list from Stripe is refreshed to have the correct default payment method.
+		$this->clear_cache();
+
+		do_action( 'wc_stripe_set_default_source', $this->get_id(), $response );
+
+		return true;
 	}
 
 	/**
@@ -999,26 +1001,29 @@ class WC_Stripe_Customer {
 	 * @throws WC_Stripe_Exception
 	 */
 	public function set_default_payment_method( $payment_method_id ): bool {
-		$response = WC_Stripe_API::request(
-			[
-				'invoice_settings' => [
-					'default_payment_method' => sanitize_text_field( $payment_method_id ),
-				],
-			],
-			'customers/' . $this->get_id(),
-			'POST'
-		);
-
-		if ( empty( $response->error ) ) {
-			// Clear cache so that the payment methods list from Stripe is refreshed to have the correct default payment method.
-			$this->clear_cache();
-
-			do_action( 'wc_stripe_set_default_payment_method', $this->get_id(), $response );
-
-			return true;
+		if ( ! $this->get_id() ) {
+			return false;
 		}
 
-		return false;
+		try {
+			$response = WC_Stripe_Client::get()->customers->update(
+				$this->get_id(),
+				[
+					'invoice_settings' => [
+						'default_payment_method' => sanitize_text_field( $payment_method_id ),
+					],
+				]
+			);
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			return false;
+		}
+
+		// Clear cache so that the payment methods list from Stripe is refreshed to have the correct default payment method.
+		$this->clear_cache();
+
+		do_action( 'wc_stripe_set_default_payment_method', $this->get_id(), $response );
+
+		return true;
 	}
 
 	/**

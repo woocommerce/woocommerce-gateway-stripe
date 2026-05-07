@@ -663,9 +663,12 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		// Mock the Stripe API to return the CashApp payment method (prevents the token being
 		// treated as orphaned and deleted during the sync step).
 		$stripe_api_response = [
+			'object'   => 'list',
+			'url'      => '/v1/payment_methods',
 			'data'     => [
 				[
 					'id'      => $cashapp_pm_id,
+					'object'  => 'payment_method',
 					'type'    => WC_Stripe_Payment_Methods::CASHAPP_PAY,
 					'cashapp' => [ 'cashtag' => '$testcashtag' ],
 				],
