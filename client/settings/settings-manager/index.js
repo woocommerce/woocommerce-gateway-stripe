@@ -1,5 +1,5 @@
 /* global wc_stripe_settings_params */
-import React, { useContext, useState } from 'react';
+import React, { useContext, useRef, useState } from 'react';
 import { getQuery, updateQueryString } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
 import { isEmpty } from 'lodash';
@@ -30,7 +30,7 @@ const StyledTabPanel = styled( TabPanel )`
 	}
 `;
 
-const TABS_CONTENT = [
+const TABS = [
 	{
 		name: 'methods',
 		title: __( 'Payment Methods', 'woocommerce-gateway-stripe' ),
@@ -42,6 +42,11 @@ const TABS_CONTENT = [
 ];
 
 const SettingsManager = () => {
+	const isAgenticCommerceEnabled =
+		wc_stripe_settings_params?.is_agentic_commerce_enabled; // eslint-disable-line camelcase
+
+	const agenticSaveRef = useRef( null );
+
 	const { settings, isLoading } = useSettings();
 	const [ initialSettings, setInitialSettings ] = useState( settings );
 	const { data } = useAccount();
@@ -117,6 +122,14 @@ const SettingsManager = () => {
 		updateQueryString( { panel: tabName }, '/', getQuery() );
 	};
 
+	const getInitialTab = () => {
+		if ( panel === 'settings' ) {
+			return 'settings';
+		}
+
+		return 'methods';
+	};
+
 	return (
 		<SettingsLayout>
 			{ showExitSurvey && (
@@ -131,13 +144,13 @@ const SettingsManager = () => {
 			) }
 			<StyledTabPanel
 				className="wc-stripe-account-settings-panel"
-				initialTabName={ panel === 'settings' ? 'settings' : 'methods' }
-				tabs={ TABS_CONTENT }
+				initialTabName={ getInitialTab() }
+				tabs={ TABS }
 				onSelect={ updatePanelUri }
 			>
 				{ ( tab ) => (
 					<div data-testid={ `${ tab.name }-tab` }>
-						{ tab.name === 'settings' ? (
+						{ tab.name === 'settings' && (
 							<PaymentSettingsPanel
 								showPromotionalBanner={ showPromotionalBanner }
 								setShowPromotionalBanner={
@@ -146,8 +159,13 @@ const SettingsManager = () => {
 								promotionalBannerType={ promotionalBannerType }
 								isOCEnabled={ isOCEnabled }
 								setIsOCEnabled={ setIsOCEnabled }
+								isAgenticCommerceEnabled={
+									isAgenticCommerceEnabled
+								}
+								agenticSaveRef={ agenticSaveRef }
 							/>
-						) : (
+						) }
+						{ tab.name === 'methods' && (
 							<PaymentMethodsPanel
 								onSaveChanges={ onSaveChanges }
 								showPromotionalBanner={ showPromotionalBanner }
@@ -161,6 +179,11 @@ const SettingsManager = () => {
 						) }
 						<SaveSettingsSection
 							onSettingsSave={ onSettingsSave }
+							agenticSaveRef={
+								tab.name === 'settings'
+									? agenticSaveRef
+									: undefined
+							}
 						/>
 					</div>
 				) }

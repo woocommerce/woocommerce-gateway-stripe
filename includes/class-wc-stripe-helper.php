@@ -21,13 +21,6 @@ class WC_Stripe_Helper {
 	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
-	 * First gateway ID from the woocommerce_available_payment_gateways.
-	 *
-	 * @var string|null
-	 */
-	private static $first_gateway_id_from_available_list = null;
-
-	/**
 	 * The identifier for the official Affirm gateway plugin.
 	 *
 	 * @var string
@@ -82,182 +75,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Gets the Stripe currency for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 * @return string $currency
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_currency()` instead.
-	 */
-	public static function get_stripe_currency( $order = null ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_currency()' );
-
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_NAME_STRIPE_CURRENCY, true );
-	}
-
-	/**
-	 * Updates the Stripe currency for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 * @param string $currency
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_currency()` instead.
-	 */
-	public static function update_stripe_currency( $order, $currency ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_currency()' );
-
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_NAME_STRIPE_CURRENCY, $currency );
-	}
-
-	/**
-	 * Gets the Stripe fee for order. With legacy check.
-	 *
-	 * @since 4.1.0
-	 * @param WC_Order $order
-	 * @return string $amount
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_fee()` instead.
-	 */
-	public static function get_stripe_fee( $order = null ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_fee()' );
-
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$amount = $order->get_meta( self::META_NAME_FEE, true );
-
-		// If not found let's check for legacy name.
-		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( self::LEGACY_META_NAME_FEE, true );
-
-			// If found update to new name.
-			if ( $amount ) {
-				WC_Stripe_Order_Helper::get_instance()->update_stripe_fee( $order, $amount );
-			}
-		}
-
-		return $amount;
-	}
-
-	/**
-	 * Updates the Stripe fee for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 * @param float  $amount
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_fee()` instead.
-	 */
-	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_fee()' );
-
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_NAME_FEE, $amount );
-	}
-
-	/**
-	 * Deletes the Stripe fee for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_fee()` instead.
-	 */
-	public static function delete_stripe_fee( $order = null ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_fee()' );
-
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->delete_meta_data( self::META_NAME_FEE );
-		$order->delete_meta_data( self::LEGACY_META_NAME_FEE );
-	}
-
-	/**
-	 * Gets the Stripe net for order. With legacy check.
-	 *
-	 * @since 4.1.0
-	 * @param WC_Order $order
-	 * @return string $amount
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_net()` instead.
-	 */
-	public static function get_stripe_net( $order = null ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_net()' );
-
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$amount = $order->get_meta( self::META_NAME_NET, true );
-
-		// If not found let's check for legacy name.
-		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( self::LEGACY_META_NAME_NET, true );
-
-			// If found update to new name.
-			if ( $amount ) {
-				WC_Stripe_Order_Helper::get_instance()->update_stripe_net( $order, $amount );
-			}
-		}
-
-		return $amount;
-	}
-
-	/**
-	 * Updates the Stripe net for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 * @param float  $amount
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_net()` instead.
-	 */
-	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_net()' );
-
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_NAME_NET, $amount );
-	}
-
-	/**
-	 * Deletes the Stripe net for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_net()` instead.
-	 */
-	public static function delete_stripe_net( $order = null ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_net()' );
-
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->delete_meta_data( self::META_NAME_NET );
-		$order->delete_meta_data( self::LEGACY_META_NAME_NET );
-	}
-
-	/**
 	 * Get Stripe amount to pay
 	 *
 	 * @param float  $total Amount due.
@@ -270,11 +87,11 @@ class WC_Stripe_Helper {
 			$currency = get_woocommerce_currency();
 		}
 
-		$currency = strtolower( $currency );
+		$currency = strtoupper( $currency );
 
-		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
+		if ( in_array( $currency, WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 			return absint( $total );
-		} elseif ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+		} elseif ( in_array( $currency, WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES, true ) ) {
 			$price_decimals = wc_get_price_decimals();
 			$amount         = absint( wc_format_decimal( ( (float) $total * 1000 ), $price_decimals ) ); // For tree decimal currencies.
 			return $amount - ( $amount % 10 ); // Round the last digit down. See https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
@@ -295,13 +112,13 @@ class WC_Stripe_Helper {
 	 * @return float The decimal amount for WooCommerce.
 	 */
 	public static function convert_from_stripe_amount( int $amount, string $currency ): float {
-		$currency = strtolower( $currency );
+		$currency = strtoupper( $currency );
 
-		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
+		if ( in_array( $currency, WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 			return (float) absint( $amount );
 		}
 
-		if ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+		if ( in_array( $currency, WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES, true ) ) {
 			return round( $amount / 1000, 3 );
 		}
 
@@ -320,16 +137,10 @@ class WC_Stripe_Helper {
 			$currency = get_woocommerce_currency();
 		}
 
-		$currency = strtolower( $currency );
+		$currency = strtoupper( $currency );
 
 		$amount   = self::convert_from_stripe_amount( $stripe_amount, $currency );
-		$decimals = 2;
-
-		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
-			$decimals = 0;
-		} elseif ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
-			$decimals = 3;
-		}
+		$decimals = self::get_currency_decimals( $currency );
 
 		return wc_format_decimal( $amount, $decimals );
 	}
@@ -425,9 +236,13 @@ class WC_Stripe_Helper {
 	 * https://docs.stripe.com/currencies#zero-decimal from https://docs.stripe.com/currencies#presentment-currencies
 	 * ugx is an exception and not in this list for being a special cases in Stripe https://docs.stripe.com/currencies#special-cases
 	 *
+	 * @deprecated 10.7.0 Use WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES instead.
+	 *
 	 * @return array $currencies
 	 */
 	public static function no_decimal_currencies() {
+		wc_deprecated_function( __METHOD__, '10.7.0', 'WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES' );
+
 		return [
 			'bif', // Burundian Franc
 			'clp', // Chilean Peso
@@ -451,9 +266,13 @@ class WC_Stripe_Helper {
 	 * List of currencies supported by Stripe that has three decimals
 	 * https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
 	 *
+	 * @deprecated 10.7.0 Use WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES instead.
+	 *
 	 * @return array $currencies
 	 */
 	public static function three_decimal_currencies() {
+		wc_deprecated_function( __METHOD__, '10.7.0', 'WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES' );
+
 		return [
 			'bhd', // Bahraini Dinar
 			'jod', // Jordanian Dinar
@@ -477,7 +296,7 @@ class WC_Stripe_Helper {
 			return;
 		}
 
-		if ( in_array( strtolower( $balance_transaction->currency ), self::no_decimal_currencies() ) ) {
+		if ( in_array( strtoupper( $balance_transaction->currency ), WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 			if ( 'fee' === $type ) {
 				return $balance_transaction->fee;
 			}
@@ -748,55 +567,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Resets the memoized first gateway ID from the available gateways list.
-	 *
-	 * @return void
-	 */
-	public static function clear_first_available_payment_gateway_record() {
-		self::$first_gateway_id_from_available_list = null;
-	}
-
-	/**
-	 * Memoizes the first gateway ID that is available for checkout, in WooCommerce gateway order.
-	 *
-	 * Uses each gateway's {@see WC_Payment_Gateway::is_available()} so disabled or internal recommended methods are skipped.
-	 *
-	 * @param WC_Payment_Gateways $gateways The WooCommerce Payment Gateways instance.
-	 * @return void
-	 */
-	public static function record_first_gateway_id_from_available_list( WC_Payment_Gateways $gateways ) {
-		if ( null !== self::$first_gateway_id_from_available_list ) {
-			return;
-		}
-
-		$gateways = $gateways->payment_gateways();
-
-		if ( ! is_array( $gateways ) || [] === $gateways ) {
-			return;
-		}
-
-		foreach ( $gateways as $gateway_id => $gateway ) {
-			if ( $gateway instanceof WC_Payment_Gateway && $gateway->is_available() ) {
-				self::$first_gateway_id_from_available_list = $gateway_id;
-				return;
-			}
-		}
-	}
-
-	/**
-	 * Whether the Stripe UPE gateway is first among WooCommerce's currently available payment gateways.
-	 *
-	 * @return bool
-	 */
-	public static function is_stripe_gateway_first_in_available_list(): bool {
-		if ( null === self::$first_gateway_id_from_available_list ) {
-			return false;
-		}
-
-		return WC_Stripe_UPE_Payment_Gateway::ID === self::$first_gateway_id_from_available_list || 0 === strpos( self::$first_gateway_id_from_available_list, 'stripe_' );
-	}
-
-	/**
 	 * Reorders the list of available payment gateways in 'woocommerce_gateway_order' option to include the Stripe methods
 	 * in the order merchants have chosen in the settings.
 	 *
@@ -936,7 +706,6 @@ class WC_Stripe_Helper {
 			$updated_gateway_order[ $gateway_id ] = (string) $index++;
 		}
 
-		self::clear_first_available_payment_gateway_record();
 		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
 	}
 
@@ -1497,35 +1266,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Adds payment intent id and order note to order if payment intent is not already saved
-	 *
-	 * @param $payment_intent_id
-	 * @param $order
-	 *
-	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::add_payment_intent_to_order() instead.
-	 */
-	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::add_payment_intent_to_order()' );
-
-		$order_helper  = WC_Stripe_Order_Helper::get_instance();
-		$old_intent_id = $order_helper->get_stripe_intent_id( $order );
-		if ( $old_intent_id === $payment_intent_id ) {
-			return;
-		}
-
-		$order->add_order_note(
-			sprintf(
-			/* translators: $1%s payment intent ID */
-				__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
-				$payment_intent_id
-			)
-		);
-
-		$order_helper->update_stripe_intent_id( $order, $payment_intent_id );
-		$order->save();
-	}
-
-	/**
 	 * Adds a source or payment method argument to the request array depending on what sort of
 	 * payment method ID is provided. If ID is neither a source or a payment method ID then nothing
 	 * is added.
@@ -1614,27 +1354,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Returns the payment intent or setup intent ID from a given order object.
-	 *
-	 * @param WC_Order $order The order to fetch the Stripe intent from.
-	 *
-	 * @return string|bool  The intent ID if found, false otherwise.
-	 *
-	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::get_intent_id_from_order() instead.
-	 */
-	public static function get_intent_id_from_order( $order ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_intent_id_from_order()' );
-
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$intent_id    = $order_helper->get_stripe_intent_id( $order );
-		if ( ! $intent_id ) {
-			$intent_id = $order_helper->get_stripe_setup_intent_id( $order );
-		}
-
-		return $intent_id ?? false;
-	}
-
-	/**
 	 * Fetches a list of all Stripe gateway IDs.
 	 *
 	 * @return array An array of all Stripe gateway IDs.
@@ -1650,48 +1369,6 @@ class WC_Stripe_Helper {
 		}
 
 		return array_merge( $gateway_ids, wp_list_pluck( $gateways, 'id', 'id' ) );
-	}
-
-	/**
-	 * Adds metadata to the order to indicate that the payment is awaiting action.
-	 *
-	 * This meta is primarily used to prevent orders from being cancelled by WooCommerce's hold stock settings.
-	 *
-	 * @param WC_Order $order The order to add the metadata to.
-	 * @param bool     $save  Whether to save the order after adding the metadata.
-	 *
-	 * @return void
-	 *
-	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::set_payment_awaiting_action() instead.
-	 */
-	public static function set_payment_awaiting_action( $order, $save = true ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::set_payment_awaiting_action()' );
-
-		$order->update_meta_data( self::PAYMENT_AWAITING_ACTION_META, wc_bool_to_string( true ) );
-
-		if ( $save ) {
-			$order->save();
-		}
-	}
-
-	/**
-	 * Removes the metadata from the order that was used to indicate that the payment was awaiting action.
-	 *
-	 * @param WC_Order $order The order to remove the metadata from.
-	 * @param bool     $save  Whether to save the order after removing the metadata.
-	 *
-	 * @return void
-	 *
-	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::remove_payment_awaiting_action() instead.
-	 */
-	public static function remove_payment_awaiting_action( $order, $save = true ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::remove_payment_awaiting_action()' );
-
-		$order->delete_meta_data( self::PAYMENT_AWAITING_ACTION_META );
-
-		if ( $save ) {
-			$order->save();
-		}
 	}
 
 	/**
@@ -2186,7 +1863,7 @@ class WC_Stripe_Helper {
 		$is_valid_payment_type = empty( $selected_payment_type ) || ( ! empty( $intent->payment_method_types ) && in_array( $selected_payment_type, $intent->payment_method_types, true ) );
 		$order_currency        = strtolower( $order->get_currency() );
 		$order_amount          = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-		$order_intent_id       = self::get_intent_id_from_order( $order );
+		$order_intent_id       = WC_Stripe_Order_Helper::get_instance()->get_intent_id_from_order( $order );
 		$intent_currency       = isset( $intent->currency ) ? strtolower( $intent->currency ) : null;
 		$intent_amount         = isset( $intent->amount ) ? (int) $intent->amount : null;
 
@@ -2375,10 +2052,10 @@ class WC_Stripe_Helper {
 	 * @return int The number of decimals to use for the currency.
 	 */
 	public static function get_currency_decimals( string $currency_code ): int {
-		$currency_code = strtolower( $currency_code );
-		if ( in_array( $currency_code, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+		$currency_code = strtoupper( $currency_code );
+		if ( in_array( $currency_code, WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 			return 0;
-		} elseif ( in_array( $currency_code, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
+		} elseif ( in_array( $currency_code, WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES, true ) ) {
 			return 3;
 		}
 
