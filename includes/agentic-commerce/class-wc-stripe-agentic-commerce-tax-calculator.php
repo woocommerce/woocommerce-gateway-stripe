@@ -27,7 +27,8 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	 *
 	 * @since 10.6.0
 	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event The customization hook event.
-	 * @return array<string,string> The line items hash. Line item ID => SKU ID.
+	 * @return array<string,int> The line items hash. Line item ID => Product ID.
+	 * @throws Exception When a SKU cannot be resolved to a product.
 	 */
 	public function extract_line_items_from_customization_hook(
 		WC_Stripe_Agentic_Customize_Checkout_Event $event
@@ -35,7 +36,28 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 		$line_items = [];
 
 		foreach ( $event->get_line_items() as $line_item ) {
-			$line_items[ $line_item->get_id() ] = $line_item->get_sku_id();
+			$sku = $line_item->get_sku_id();
+			if ( '' === $sku ) {
+				throw new Exception(
+					sprintf(
+						'Line item %s has no sku_id.',
+						$line_item->get_id()
+					)
+				);
+			}
+
+			$product_id = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product_id_by_external_reference( $sku );
+			if ( ! $product_id ) {
+				throw new Exception(
+					sprintf(
+						'Product not found for line item %s with sku_id "%s" (no SKU or legacy product-ID match).',
+						$line_item->get_id(),
+						$sku
+					)
+				);
+			}
+
+			$line_items[ $line_item->get_id() ] = $product_id;
 		}
 
 		return $line_items;
@@ -50,7 +72,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	 *
 	 * @since 10.6.0
 	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event      The customization hook event.
-	 * @param array<string,string>                       $line_items The line items hash. Line item ID => Product ID.
+	 * @param array<string,int>                          $line_items The line items hash. Line item ID => Product ID.
 	 * @return array The response array in Stripe's expected format.
 	 */
 	public function calculate(
@@ -96,25 +118,16 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	 *
 	 * @since 10.6.0
 	 * @param string                 $line_item_id The line item ID.
-	 * @param string                 $product_id   The product ID.
+	 * @param int                    $product_id   The product ID.
 	 * @param WC_Stripe_API_Address  $address      The tax address.
 	 * @return array The line item tax response.
 	 */
 	private function calculate_line_item_taxes(
 		string $line_item_id,
-		string $product_id,
+		int $product_id,
 		WC_Stripe_API_Address $address
 	): array {
-		if ( '' === $product_id ) {
-			throw new Exception(
-				sprintf(
-					'Line item %s has no sku_id.',
-					$line_item_id
-				)
-			);
-		}
-
-		$product = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product( (int) $product_id );
+		$product = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product( $product_id );
 
 		$tax_rates = WC_Tax::find_rates(
 			[

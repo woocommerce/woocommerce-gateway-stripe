@@ -65,6 +65,7 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 			[
 				'regular_price' => '20.00',
 				'price'         => '20.00',
+				'sku'           => 'HOOK-TEST-MAIN',
 			]
 		);
 
@@ -242,7 +243,7 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 				'line_item_details' => [
 					(object) [
 						'id'     => 'li_test_0',
-						'sku_id' => (string) $this->product->get_id(),
+						'sku_id' => (string) $this->product->get_sku(),
 					],
 				],
 			],
@@ -269,7 +270,7 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 		foreach ( $products as $index => $product ) {
 			$items[] = (object) [
 				'id'     => 'li_test_' . $index,
-				'sku_id' => (string) $product->get_id(),
+				'sku_id' => (string) $product->get_sku(),
 			];
 		}
 

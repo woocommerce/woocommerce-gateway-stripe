@@ -757,7 +757,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Check if Amazon Pay is the only enabled method, but not available due to the tax configuration.
 		if ( $this->is_amazon_pay_enabled() &&
-			! ( $this->is_payment_request_enabled() || $this->is_link_enabled() ) &&
+			! ( $this->is_apple_google_pay_enabled() || $this->is_link_enabled() ) &&
 			( wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ) )
 		) {
 			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
@@ -1550,8 +1550,15 @@ class WC_Stripe_Express_Checkout_Helper {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
-		$display_items = ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items;
-		$order_total   = WC()->cart->get_total( false );
+		$hide_itemization = apply_filters_deprecated(
+			'wc_stripe_payment_request_hide_itemization',
+			[ true ],
+			'10.6.0',
+			'wc_stripe_express_checkout_hide_itemization'
+		);
+		$hide_itemization = apply_filters( 'wc_stripe_express_checkout_hide_itemization', $hide_itemization );
+		$display_items    = ! $hide_itemization || $itemized_display_items;
+		$order_total      = WC()->cart->get_total( false );
 
 		$calculated_total = WC_Stripe_Helper::get_stripe_amount( $order_total );
 		$calculated_total = apply_filters_deprecated(
@@ -1662,7 +1669,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	public function is_express_checkout_enabled() {
-		return $this->is_payment_request_enabled() ||
+		return $this->is_apple_google_pay_enabled() ||
 				$this->is_amazon_pay_enabled() ||
 				$this->is_link_enabled();
 	}
@@ -1696,12 +1703,24 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Checks if Apple Pay and Google Pay buttons are enabled.
 	 *
+	 * @deprecated 10.6.0 Use is_apple_google_pay_enabled() instead.
 	 * @return boolean
 	 */
 	public function is_payment_request_enabled() {
-		$is_enabled = $this->gateway->is_payment_request_enabled();
+		wc_deprecated_function( __METHOD__, '10.6.0', 'WC_Stripe_Express_Checkout_Helper::is_apple_google_pay_enabled' );
+		return $this->is_apple_google_pay_enabled();
+	}
 
-		return $is_enabled && $this->is_enabled_for_current_context( 'payment_request' );
+	/**
+	 * Checks if Apple Pay and Google Pay buttons are enabled.
+	 *
+	 * @since 10.6.0
+	 * @return boolean
+	 */
+	public function is_apple_google_pay_enabled() {
+		$is_enabled = $this->gateway->is_express_checkout_enabled();
+
+		return $is_enabled && $this->is_enabled_for_current_context( 'express_checkout' );
 	}
 
 	/**
