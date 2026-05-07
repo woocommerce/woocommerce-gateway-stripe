@@ -259,7 +259,26 @@ class WC_Stripe_API {
 
 		$response_headers = wp_remote_retrieve_headers( $response );
 
-		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
+		if ( WC_Stripe_API_Outage_Status::is_outage_response( $response ) ) {
+			WC_Stripe_API_Outage_Status::record_outage();
+
+			$error_data = [
+				'stripe_api_key'  => $masked_secret_key,
+				'request'         => $request,
+				'idempotency_key' => $idempotency_key,
+			];
+			self::log_error_response( $response, $api, $method, $error_data );
+
+			throw new WC_Stripe_Exception(
+				print_r( $response, true ),
+				__( 'The Stripe API is temporarily unavailable. Please try again in a few minutes.', 'woocommerce-gateway-stripe' )
+			);
+		}
+
+		WC_Stripe_API_Outage_Status::record_success();
+
+		$response_body_raw = wp_remote_retrieve_body( $response );
+		if ( empty( $response_body_raw ) ) {
 			$error_data = [
 				'stripe_api_key'  => $masked_secret_key,
 				'request'         => $request,
@@ -270,7 +289,7 @@ class WC_Stripe_API {
 			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem sending a request to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		$response_body = json_decode( $response['body'] );
+		$response_body = json_decode( $response_body_raw );
 
 		WC_Stripe_Logger::debug(
 			"Stripe API response: {$method} {$api}",
@@ -331,6 +350,22 @@ class WC_Stripe_API {
 			]
 		);
 
+		if ( WC_Stripe_API_Outage_Status::is_outage_response( $response ) ) {
+			WC_Stripe_API_Outage_Status::record_outage();
+
+			$error_data = [
+				'stripe_api_key' => $masked_secret_key,
+			];
+			self::log_error_response( $response, $api, 'GET', $error_data );
+
+			return new WP_Error(
+				'stripe_api_outage',
+				__( 'The Stripe API is temporarily unavailable. Please try again in a few minutes.', 'woocommerce-gateway-stripe' )
+			);
+		}
+
+		WC_Stripe_API_Outage_Status::record_success();
+
 		// If we get a 401 error, we know the secret key is not valid.
 		if ( is_array( $response ) && isset( $response['response'] ) && is_array( $response['response'] ) && isset( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
 			// Stripe redacts API keys in the response.
@@ -369,7 +404,8 @@ class WC_Stripe_API {
 			WC_Stripe_Database_Cache::delete( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 		}
 
-		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
+		$response_body_raw = wp_remote_retrieve_body( $response );
+		if ( empty( $response_body_raw ) ) {
 			$error_data = [
 				'stripe_api_key' => $masked_secret_key,
 			];
@@ -378,7 +414,7 @@ class WC_Stripe_API {
 			return new WP_Error( 'stripe_error', __( 'There was a problem retrieving data from the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		$response_body = json_decode( $response['body'] );
+		$response_body = json_decode( $response_body_raw );
 
 		WC_Stripe_Logger::debug(
 			"Stripe API response: GET {$api}",
