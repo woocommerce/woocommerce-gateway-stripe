@@ -3603,6 +3603,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
 		}
 
+		// All save paths funnel through this method (deferred-intent, confirmation token, redirect-return,
+		// and the Adaptive Pricing checkout-session webhook). Enforcing the resolved method's
+		// `is_reusable()` here keeps per-method save toggles authoritative even if a future caller
+		// forgets to filter upstream.
+		if ( ! $payment_method_instance || ! $payment_method_instance->is_reusable() ) {
+			return;
+		}
+
 		// Searches for an existing duplicate token to update.
 		$found_token = WC_Stripe_Payment_Tokens::get_duplicate_token( $payment_method_object, $customer->get_user_id(), $this->id );
 

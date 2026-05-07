@@ -1521,6 +1521,72 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * `handle_saving_payment_method()` is the single choke point all save paths funnel through
+	 * (deferred-intent, confirmation token, redirect-return, and the Adaptive Pricing
+	 * checkout-session webhook). Even though the upstream OC fix in `prepare_payment_information_from_request()`
+	 * already drops the save flag for non-reusable methods, this gate guarantees the per-method
+	 * toggle is honored if a future caller forgets to filter or arrives via the webhook path
+	 * (which doesn't go through `prepare_payment_information_from_request()`).
+	 *
+	 * @dataProvider provider_handle_saving_payment_method_respects_per_method_toggle
+	 */
+	public function test_handle_saving_payment_method_respects_per_method_toggle( string $sepa_tokens_for_ideal, bool $expected_save ) {
+		// Reproduce the OC scenario: the upstream save signal was computed against the OC pseudo-method
+		// (always reusable), but the actual payment is iDEAL, whose reusability is gated by
+		// `sepa_tokens_for_ideal`. handle_saving_payment_method() must enforce the per-method toggle.
+		$stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['sepa_tokens_for_ideal'] = $sepa_tokens_for_ideal;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		$this->mock_gateway->oc_enabled = true;
+
+		$user_id = $this->factory()->user->create();
+		$order   = WC_Helper_Order::create_order( $user_id );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		// iDEAL payment methods are tokenized as SEPA debits, so the saved-method path expects the
+		// Stripe payment method object to expose the generated SEPA debit fields.
+		$payment_method_object = (object) [
+			'id'         => 'pm_ideal_mock',
+			'object'     => 'payment_method',
+			'type'       => WC_Stripe_Payment_Methods::IDEAL,
+			'customer'   => 'cus_mock',
+			'sepa_debit' => (object) [
+				'last4'       => '1234',
+				'fingerprint' => 'fp_mock',
+			],
+		];
+
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		$action_calls = 0;
+		$listener     = function () use ( &$action_calls ) {
+			++$action_calls;
+		};
+		add_action( 'woocommerce_stripe_add_payment_method', $listener );
+
+		try {
+			$this->mock_gateway->handle_saving_payment_method( $order, $payment_method_object, WC_Stripe_Payment_Methods::IDEAL );
+		} finally {
+			remove_action( 'woocommerce_stripe_add_payment_method', $listener );
+		}
+
+		$this->assertSame( $expected_save ? 1 : 0, $action_calls );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: bool}>
+	 */
+	public function provider_handle_saving_payment_method_respects_per_method_toggle(): array {
+		return [
+			'iDEAL save toggle disabled — no token persisted' => [ 'no', false ],
+			'iDEAL save toggle enabled — token persisted'     => [ 'yes', true ],
+		];
+	}
+
+	/**
 	 * Test checkout flow while saving payment method with SEPA generated payment method AND setup intents.
 	 */
 	public function test_setup_intent_checkout_saves_sepa_generated_payment_method_to_order() {
@@ -3972,11 +4038,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_test_prepare_payment_information_oc_drops_save_flag_when_resolved_method_not_reusable(): array {
 		return [
-			'iDEAL with per-method toggle disabled (bug)'      => [ WC_Stripe_Payment_Methods::IDEAL, false, false ],
-			'iDEAL with per-method toggle enabled (regression)' => [ WC_Stripe_Payment_Methods::IDEAL, true, true ],
-			'Bancontact with per-method toggle disabled (bug)' => [ WC_Stripe_Payment_Methods::BANCONTACT, false, false ],
+			'iDEAL with per-method toggle disabled (bug)'            => [ WC_Stripe_Payment_Methods::IDEAL, false, false ],
+			'iDEAL with per-method toggle enabled (regression)'      => [ WC_Stripe_Payment_Methods::IDEAL, true, true ],
+			'Bancontact with per-method toggle disabled (bug)'       => [ WC_Stripe_Payment_Methods::BANCONTACT, false, false ],
 			'Bancontact with per-method toggle enabled (regression)' => [ WC_Stripe_Payment_Methods::BANCONTACT, true, true ],
-			'Card via OCS (regression)'                         => [ WC_Stripe_Payment_Methods::CARD, true, true ],
+			'Card via OCS (regression)'                              => [ WC_Stripe_Payment_Methods::CARD, true, true ],
 		];
 	}
 
