@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_SDK_WP_Http_Client implements \Stripe\HttpClient\ClientInterface {
 
 	/**
-	 * Default request timeout (seconds). Matches `WC_Stripe_API::request()`.
+	 * Default request timeout (seconds). Matches `WC_Stripe_Client::request()`.
 	 */
 	private const REQUEST_TIMEOUT = 70;
 
@@ -33,7 +33,7 @@ class WC_Stripe_SDK_WP_Http_Client implements \Stripe\HttpClient\ClientInterface
 	 * @param array<string,mixed>   $params  Request parameters.
 	 * @param bool                  $hasFile Whether `$params` references a file upload.
 	 * @param 'v1'|'v2'             $apiMode Stripe API mode — affects POST body encoding.
-	 * @param null|int              $maxNetworkRetries Honored by the SDK at a higher layer; we don't retry here (matches `WC_Stripe_API::request()`).
+	 * @param null|int              $maxNetworkRetries Honored by the SDK at a higher layer; we don't retry here (matches `WC_Stripe_Client::request()`).
 	 *
 	 * @return array{0:string,1:int,2:array<string,string>} `[ body, status, headers ]`.
 	 *
@@ -50,9 +50,22 @@ class WC_Stripe_SDK_WP_Http_Client implements \Stripe\HttpClient\ClientInterface
 
 		[ $url, $body, $extra_headers ] = $this->build_url_and_body( $method, $absUrl, $params, $apiMode );
 
+		$assoc_headers = array_merge( $this->normalize_headers( $headers ), $extra_headers );
+
+		$assoc_headers = apply_filters_deprecated(
+			'woocommerce_stripe_request_headers',
+			[ $assoc_headers ],
+			'9.7.0',
+			'wc_stripe_request_headers',
+			'The woocommerce_stripe_request_headers filter is deprecated since WooCommerce Stripe Gateway 9.7.0, and will be removed in a future version. Use wc_stripe_request_headers instead.'
+		);
+
+		/** This filter is documented in includes/class-wc-stripe-api.php */
+		$assoc_headers = apply_filters( 'wc_stripe_request_headers', $assoc_headers );
+
 		$args = [
 			'method'    => strtoupper( $method ),
-			'headers'   => array_merge( $this->normalize_headers( $headers ), $extra_headers ),
+			'headers'   => $assoc_headers,
 			'timeout'   => self::REQUEST_TIMEOUT,
 			'sslverify' => true,
 		];
@@ -69,10 +82,32 @@ class WC_Stripe_SDK_WP_Http_Client implements \Stripe\HttpClient\ClientInterface
 			);
 		}
 
-		$status   = (int) wp_remote_retrieve_response_code( $response );
+		$status   = $this->extract_status_code( $response );
 		$body_str = (string) wp_remote_retrieve_body( $response );
 
 		return [ $body_str, $status, $this->collapse_headers( $response ) ];
+	}
+
+	/**
+	 * Pulls the HTTP status code from the response array.
+	 *
+	 * `wp_remote_retrieve_response_code()` only handles the canonical shape
+	 * (`'response' => ['code' => 200, 'message' => 'OK']`). Some `pre_http_request`
+	 * mocks in this codebase return `'response' => 200` directly, which the
+	 * canonical helper turns into `0`. Tolerate both so SDK calls behave the
+	 * same as `WC_Stripe_API::request()` did under those mocks.
+	 *
+	 * @param array|\WP_Error $response
+	 */
+	private function extract_status_code( $response ): int {
+		if ( ! is_array( $response ) || ! isset( $response['response'] ) ) {
+			return 0;
+		}
+		$code = $response['response'];
+		if ( is_array( $code ) ) {
+			$code = $code['code'] ?? 0;
+		}
+		return (int) $code;
 	}
 	// phpcs:enable WordPress.NamingConventions.ValidVariableName
 
