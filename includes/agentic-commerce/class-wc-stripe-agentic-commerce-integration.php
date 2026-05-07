@@ -134,8 +134,26 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public function register_hooks(): void {
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 
+		// WC 10.8+ requires `created_via` to be in an allowlist for `payment_complete()` to run.
+		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $this, 'allow_agentic_payment_complete' ] );
+
 		$inventory_tracker = new WC_Stripe_Agentic_Commerce_Inventory_Tracker();
 		$inventory_tracker->register_hooks();
+	}
+
+	/**
+	 * Adds the agentic `created_via` value to the WooCommerce allowlist so that
+	 * `WC_Order::payment_complete()` (WC 10.8+) does not block agentic orders.
+	 *
+	 * @param array $allowed Existing allowlist passed by the filter.
+	 * @return array
+	 */
+	public function allow_agentic_payment_complete( $allowed ): array {
+		if ( ! is_array( $allowed ) ) {
+			$allowed = [];
+		}
+		$allowed[] = WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA;
+		return $allowed;
 	}
 
 	/**
