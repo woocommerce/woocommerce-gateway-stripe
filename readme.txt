@@ -158,6 +158,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Enable Adaptive Pricing by default for new installs
 * Fix - Use SKU as the Agentic Commerce catalog identifier so checkout.session.completed line items resolve correctly; keep the product-ID fallback for SKU-less products and catalogs synced under the legacy contract
 * Add - Display a bank authorization notice for Pre-Authorized Debit (ACSS) payments on checkout
+* Fix - Stop Agentic Commerce checkout.session.completed orders from failing on null WC sessions or shipping rates that don't match any configured WC method
 * Fix - Detect Agentic Commerce sessions via payment_intent.agent_details so their checkout.session.completed webhooks aren't skipped
 * Add - Add Agentic Commerce settings UI with feature introduction, onboarding guide, enable/disable toggle, and webhook secret management
 * Fix - Surface PHP Throwables from the Agentic Commerce checkout.session.completed flow so fatals are logged, the order rollback runs, and Action Scheduler marks the job failed
