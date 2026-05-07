@@ -299,9 +299,6 @@ class WC_Stripe {
 		// cards when the Optimized Checkout is enabled, etc.
 		add_action( 'wc_payment_gateways_initialized', [ $this, 'maybe_toggle_payment_methods' ] );
 
-		// Record the first registered gateway ID once gateways are initialized.
-		add_action( 'wc_payment_gateways_initialized', [ 'WC_Stripe_Helper', 'record_first_gateway_id_from_available_list' ] );
-
 		// Reconfigure webhooks when Adaptive Pricing is enabled in the settings.
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
 
@@ -370,18 +367,9 @@ class WC_Stripe {
 
 		$is_new_install = false === $previous_version;
 
-		/*
-		 * Pause defaulting on Optimized Checkout for the time being, as we want to make UX improvements.
-		 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4979
-		 *
-		 * // Mark optimized checkout as default on for new installs.
-		 * if ( false === get_option( 'wc_stripe_version' ) && false === get_option( 'wc_stripe_optimized_checkout_default_on' ) ) {
-		 *   update_option( 'wc_stripe_optimized_checkout_default_on', true );
-		 * }
-		 */
-
 		if ( $is_new_install ) {
 			update_option( 'wc_stripe_amazon_pay_default_on', 'yes' );
+			update_option( 'wc_stripe_optimized_checkout_default_on', 'yes' );
 		}
 
 		add_woocommerce_inbox_variant();

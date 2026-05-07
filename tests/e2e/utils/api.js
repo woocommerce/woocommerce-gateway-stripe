@@ -125,16 +125,6 @@ const update = {
 
 		return response.data.id;
 	},
-	paymentGatewayOrder: async ( gatewayId, order ) => {
-		await api
-			.put( `payment_gateways/${ gatewayId }`, { order } )
-			.catch( ( error ) => {
-				throwCustomError(
-					error,
-					`Failed to update payment gateway order for ${ gatewayId }. See details below.`
-				);
-			} );
-	},
 };
 
 const deletePost = {

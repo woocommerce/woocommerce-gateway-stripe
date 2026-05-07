@@ -481,7 +481,7 @@ describe( 'AgenticCommerceSection', () => {
 	it( 'shows onboarding steps when feature is enabled even with webhook secret saved', async () => {
 		mockFetchByPath( EMPTY_RESPONSE, {
 			is_enabled: true,
-			webhook_secret: '****',
+			webhook_secret: 'whsec_********************************',
 		} );
 
 		render( <AgenticCommerceSection /> );
@@ -591,14 +591,14 @@ describe( 'AgenticCommerceSection', () => {
 	it( 'prefills webhook secret field with masked placeholder when a secret is stored', async () => {
 		mockFetchByPath( EMPTY_RESPONSE, {
 			is_enabled: true,
-			webhook_secret: '****',
+			webhook_secret: 'whsec_********************************',
 		} );
 
 		render( <AgenticCommerceSection /> );
 
 		await waitFor( () => {
 			const input = screen.getByLabelText( /Webhook secret/i );
-			expect( input.value ).toBe( '****' );
+			expect( input.value ).toBe( 'whsec_********************************' );
 		} );
 	} );
 
@@ -645,5 +645,73 @@ describe( 'AgenticCommerceSection', () => {
 				method: 'POST',
 			} )
 		);
+	} );
+
+	it( 'renders an error notice when save via ref fails', async () => {
+		const ref = { current: null };
+
+		apiFetch.mockImplementation( ( { path, method } ) => {
+			if (
+				method === 'POST' &&
+				path === '/wc/v3/wc_stripe/agentic-commerce/settings'
+			) {
+				return Promise.reject( { message: 'Server exploded' } );
+			}
+			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
+				return Promise.resolve( {
+					is_enabled: true,
+					webhook_secret: '',
+				} );
+			}
+			return Promise.resolve( EMPTY_RESPONSE );
+		} );
+
+		render( <AgenticCommerceSection ref={ ref } /> );
+
+		await waitFor( () => {
+			expect( ref.current ).not.toBeNull();
+		} );
+
+		await ref.current.save();
+
+		await waitFor( () => {
+			expect(
+				screen.getAllByText( /Server exploded/i ).length
+			).toBeGreaterThanOrEqual( 1 );
+		} );
+	} );
+
+	it( 'falls back to a generic error message when save via ref rejects without a message', async () => {
+		const ref = { current: null };
+
+		apiFetch.mockImplementation( ( { path, method } ) => {
+			if (
+				method === 'POST' &&
+				path === '/wc/v3/wc_stripe/agentic-commerce/settings'
+			) {
+				return Promise.reject( {} );
+			}
+			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
+				return Promise.resolve( {
+					is_enabled: true,
+					webhook_secret: '',
+				} );
+			}
+			return Promise.resolve( EMPTY_RESPONSE );
+		} );
+
+		render( <AgenticCommerceSection ref={ ref } /> );
+
+		await waitFor( () => {
+			expect( ref.current ).not.toBeNull();
+		} );
+
+		await ref.current.save();
+
+		await waitFor( () => {
+			expect(
+				screen.getAllByText( /Failed to save settings/i ).length
+			).toBeGreaterThanOrEqual( 1 );
+		} );
 	} );
 } );
