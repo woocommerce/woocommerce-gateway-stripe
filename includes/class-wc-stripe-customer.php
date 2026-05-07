@@ -434,19 +434,21 @@ class WC_Stripe_Customer {
 			return $customer_id;
 		}
 
-		$response = WC_Stripe_API::retrieve( 'customers/' . $this->get_id() );
-
-		if ( ! empty( $response->error ) ) {
-			if ( $this->is_no_such_customer_error( $response->error ) ) {
-				// This can happen when switching the main Stripe account or importing users from another site.
-				// Recreate the customer in this case.
+		try {
+			$customer = WC_Stripe_Client::get()->customers->retrieve( $this->get_id() );
+		} catch ( \Stripe\Exception\InvalidRequestException $e ) {
+			// `resource_missing` means the customer no longer exists in this Stripe account
+			// (mode swap, account swap, or imported users from another site). Recreate it.
+			if ( 'resource_missing' === $e->getStripeCode() ) {
 				return $this->recreate_customer();
 			}
 
-			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
 		}
 
-		return $response->id;
+		return $customer->id;
 	}
 
 	/**

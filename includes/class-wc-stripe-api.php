@@ -201,6 +201,8 @@ class WC_Stripe_API {
 	/**
 	 * Send the request to Stripe's API
 	 *
+	 * @deprecated 10.7.0 Use the Stripe PHP SDK via `WC_Stripe_Client::get()` instead.
+	 *
 	 * @since 3.1.0
 	 * @version 4.0.6
 	 * @param array  $request
@@ -293,6 +295,8 @@ class WC_Stripe_API {
 
 	/**
 	 * Retrieve API endpoint.
+	 *
+	 * @deprecated 10.7.0 Use the Stripe PHP SDK via `WC_Stripe_Client::get()` instead.
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0

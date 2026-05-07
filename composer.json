@@ -12,6 +12,9 @@
             "composer/installers": true
         }
     },
+    "require": {
+        "stripe/stripe-php": "^17.6"
+    },
     "require-dev": {
         "composer/installers": "1.9.0",
         "php-stubs/woocommerce-stubs": "^10.4",
