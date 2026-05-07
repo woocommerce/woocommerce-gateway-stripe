@@ -409,9 +409,13 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_normalize_delivery_status( array $result, int $skipped_count, string $expected ): void {
+		$method = ( new \ReflectionClass( \WC_Stripe_Agentic_Commerce_Integration::class ) )
+			->getMethod( 'normalize_delivery_status' );
+		$method->setAccessible( true );
+
 		$this->assertSame(
 			$expected,
-			\WC_Stripe_Agentic_Commerce_Integration::normalize_delivery_status( $result, $skipped_count )
+			$method->invoke( null, $result, $skipped_count )
 		);
 	}
 
@@ -478,7 +482,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * update_pending_statuses rewrites entries whose stored status is non-terminal.
 	 *
 	 * The non-terminal set must match the controller's REFRESHABLE_STATUSES
-	 * (`queued`, `validating`, `pending`, `creating_records`, `unknown`);
+	 * (`queued`, `validating_records`, `pending`, `creating_records`, `unknown`);
 	 * entries in terminal statuses must not be mutated.
 	 *
 	 * @dataProvider provider_update_pending_statuses_rewrites_non_terminal_entries
@@ -521,7 +525,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	public function provider_update_pending_statuses_rewrites_non_terminal_entries(): array {
 		return [
 			'queued is refreshable'           => [ 'queued', 'succeeded' ],
-			'validating is refreshable'       => [ 'validating', 'succeeded' ],
+			'validating_records is refreshable' => [ 'validating_records', 'succeeded' ],
 			'pending is refreshable'          => [ 'pending', 'succeeded' ],
 			'creating_records is refreshable' => [ 'creating_records', 'succeeded' ],
 			'unknown is refreshable'          => [ 'unknown', 'succeeded' ],

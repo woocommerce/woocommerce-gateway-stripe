@@ -141,11 +141,6 @@ const STATUS_CONFIG = {
 		className: 'info',
 		icon: '⏳',
 	},
-	validating: {
-		label: __( 'Validating', 'woocommerce-gateway-stripe' ),
-		className: 'info',
-		icon: '⏳',
-	},
 	validating_records: {
 		label: __( 'Validating', 'woocommerce-gateway-stripe' ),
 		className: 'info',
@@ -171,7 +166,7 @@ const STATUS_CONFIG = {
  */
 const NON_TERMINAL_STATUSES = [
 	'queued',
-	'validating',
+	'validating_records',
 	'pending',
 	'creating_records',
 	'unknown',

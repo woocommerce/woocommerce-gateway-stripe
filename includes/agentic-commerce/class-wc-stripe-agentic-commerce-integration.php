@@ -583,7 +583,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @param int   $skipped_count Count of products dropped by the local validator.
 	 * @return string Normalized status string.
 	 */
-	public static function normalize_delivery_status( array $result, int $skipped_count = 0 ): string {
+	private static function normalize_delivery_status( array $result, int $skipped_count = 0 ): string {
 		$status        = $result['status'] ?? '';
 		$import_set_id = $result['import_set_id'] ?? '';
 
@@ -623,7 +623,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 *
 	 * Re-reads the current history at write time and applies the updates to
 	 * matching entries whose stored status is non-terminal (`queued`,
-	 * `validating`, `pending`, `creating_records`, or `unknown`), matching
+	 * `validating_records`, `pending`, `creating_records`, or `unknown`), matching
 	 * the controller's
 	 * {@see WC_REST_Stripe_Agentic_Commerce_Controller::REFRESHABLE_STATUSES}.
 	 * This preserves any entries appended concurrently by
@@ -639,7 +639,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		$non_terminal_statuses = [ 'queued', 'validating', 'pending', 'creating_records', 'unknown' ];
+		$non_terminal_statuses = [ 'queued', 'validating_records', 'pending', 'creating_records', 'unknown' ];
 
 		$history = self::get_sync_history();
 		$changed = false;
