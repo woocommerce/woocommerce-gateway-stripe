@@ -486,7 +486,7 @@ class WC_Stripe_Payment_Method_Configurations {
 					'response'      => $response,
 				]
 			);
-			return new WP_Error( 'pmc_update_failed', $response->error->message ?? __( 'Unable to update payment method configuration.', 'woocommerce-gateway-stripe' ) );
+			return new WP_Error( 'pmc_update_failed', __( 'Unable to update payment method configuration.', 'woocommerce-gateway-stripe' ) );
 		}
 
 		self::clear_payment_method_configuration_cache();

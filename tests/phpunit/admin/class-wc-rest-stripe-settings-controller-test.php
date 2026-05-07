@@ -170,8 +170,16 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 		$response = $this->controller->update_settings( $request );
 		$this->assertEquals( 500, $response->get_status() );
+		$this->assertEquals( 'Unable to update payment method configuration.', $response->get_data()['message'] );
 	}
 
+	/**
+	 * Test that the PMC update is skipped when enabled_payment_method_ids is absent.
+	 *
+	 * When the request does not include enabled_payment_method_ids, the settings
+	 * endpoint must not call the Stripe PMC API — the param is optional and its
+	 * absence means payment method selection was not part of this save.
+	 */
 	public function test_update_settings_skips_pmc_update_when_payment_method_ids_absent() {
 		// No enabled_payment_method_ids param — PMC update must be skipped entirely.
 		$this->stripe_api->expects( $this->never() )
