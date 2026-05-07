@@ -3591,6 +3591,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
 		}
 
+		// When OC is enabled, upstream save signals are computed against the OC pseudo-method, which is
+		// always reusable. Honor the resolved method's per-method save toggle (e.g. `sepa_tokens_for_ideal`)
+		// here so non-reusable methods like iDEAL/Wero are never tokenized regardless of which call path
+		// reached this function. STRIPE-1139.
+		if ( ! $payment_method_instance || ! $payment_method_instance->is_reusable() ) {
+			return;
+		}
+
 		// Searches for an existing duplicate token to update.
 		$found_token = WC_Stripe_Payment_Tokens::get_duplicate_token( $payment_method_object, $customer->get_user_id(), $this->id );
 

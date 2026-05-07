@@ -1521,6 +1521,75 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Regression test for STRIPE-1139.
+	 *
+	 * `handle_saving_payment_method()` is the single choke point through which all save paths
+	 * (deferred intent, confirmation token, redirect-return, and Adaptive Pricing webhook) reach
+	 * `create_payment_token_for_user()`. When OC is enabled, upstream save signals are computed
+	 * against the OC pseudo-method, which is always reusable — so this function must enforce the
+	 * actual underlying method's `is_reusable()` toggle (e.g. `sepa_tokens_for_ideal`) before
+	 * persisting a token. Without the gate, iDEAL/Wero is tokenized as a SEPA debit despite the
+	 * merchant disabling the per-method save toggle.
+	 *
+	 * @dataProvider provider_handle_saving_payment_method_respects_per_method_toggle
+	 */
+	public function test_handle_saving_payment_method_respects_per_method_toggle( string $sepa_tokens_for_ideal, bool $expected_save ) {
+		// Reproduce the OC scenario: the upstream save signal was computed against the OC pseudo-method
+		// (always reusable), but the actual payment is iDEAL, whose reusability is gated by
+		// `sepa_tokens_for_ideal`. handle_saving_payment_method() must enforce the per-method toggle.
+		$stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['sepa_tokens_for_ideal'] = $sepa_tokens_for_ideal;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		$this->mock_gateway->oc_enabled = true;
+
+		$user_id = $this->factory()->user->create();
+		$order   = WC_Helper_Order::create_order( $user_id );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		// iDEAL payment methods are tokenized as SEPA debits, so the saved-method path expects the
+		// Stripe payment method object to expose the generated SEPA debit fields.
+		$payment_method_object = (object) [
+			'id'         => 'pm_ideal_mock',
+			'object'     => 'payment_method',
+			'type'       => WC_Stripe_Payment_Methods::IDEAL,
+			'customer'   => 'cus_mock',
+			'sepa_debit' => (object) [
+				'last4'       => '1234',
+				'fingerprint' => 'fp_mock',
+			],
+		];
+
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		$action_calls = 0;
+		$listener     = function () use ( &$action_calls ) {
+			++$action_calls;
+		};
+		add_action( 'woocommerce_stripe_add_payment_method', $listener );
+
+		try {
+			$this->mock_gateway->handle_saving_payment_method( $order, $payment_method_object, WC_Stripe_Payment_Methods::IDEAL );
+		} finally {
+			remove_action( 'woocommerce_stripe_add_payment_method', $listener );
+		}
+
+		$this->assertSame( $expected_save ? 1 : 0, $action_calls );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: bool}>
+	 */
+	public function provider_handle_saving_payment_method_respects_per_method_toggle(): array {
+		return [
+			'iDEAL save toggle disabled — no token persisted' => [ 'no', false ],
+			'iDEAL save toggle enabled — token persisted'     => [ 'yes', true ],
+		];
+	}
+
+	/**
 	 * Test checkout flow while saving payment method with SEPA generated payment method AND setup intents.
 	 */
 	public function test_setup_intent_checkout_saves_sepa_generated_payment_method_to_order() {

@@ -1137,8 +1137,13 @@ class WC_Stripe_Intent_Controller {
 		// Only exceptions are when using a confirmation token or manual renewal is required.
 		// For confirmations tokens, the setup_future_usage is set within the payment method.
 		$payment_method                 = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $selected_payment_type );
-		$has_auto_renewing_subscription = ! empty( $payment_information['has_subscription'] ) && ! $this->is_manual_renewal_required( $payment_method->is_reusable() );
-		if ( ! $is_using_confirmation_token && ( $payment_information['save_payment_method_to_store'] || $has_auto_renewing_subscription ) ) {
+		$is_reusable                    = $payment_method && $payment_method->is_reusable();
+		$has_auto_renewing_subscription = ! empty( $payment_information['has_subscription'] ) && ! $this->is_manual_renewal_required( $is_reusable );
+		// When OC is enabled, $payment_information['save_payment_method_to_store'] reflects the OC pseudo-method's
+		// reusability rather than the actual method the customer selected (e.g. iDEAL/Bancontact). Re-gate the
+		// `setup_future_usage` flag on the resolved method's `is_reusable()` so per-method save toggles such as
+		// `sepa_tokens_for_ideal` are honored end-to-end.
+		if ( ! $is_using_confirmation_token && $is_reusable && ( $payment_information['save_payment_method_to_store'] || $has_auto_renewing_subscription ) ) {
 			$request['setup_future_usage'] = 'off_session';
 		}
 

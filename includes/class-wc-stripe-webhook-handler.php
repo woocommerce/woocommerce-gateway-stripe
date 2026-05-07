@@ -1654,6 +1654,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			// Save payment method to store if the customer requested it during checkout.
+			// The reusability of the actual payment method (e.g. iDEAL/Bancontact when OC is enabled)
+			// is enforced inside handle_saving_payment_method().
 			if ( $order_helper->get_should_save_stripe_payment_method( $order ) && ! empty( $payment_method_id ) ) {
 				$upe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
