@@ -23,6 +23,16 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	private const ADDRESS_TYPE_SHIPPING = 'shipping';
 
 	/**
+	 * `created_via` value stamped on orders produced by the agentic checkout flow.
+	 *
+	 * WooCommerce 10.8+ blocks `payment_complete()` on orders that lack
+	 * checkout evidence. The integration registers this value with the
+	 * `woocommerce_payment_complete_allowed_created_via_values` filter so
+	 * agentic orders can complete payment.
+	 */
+	public const CREATED_VIA = 'stripe-agentic-commerce';
+
+	/**
 	 * Creates a WooCommerce order from a Stripe checkout session.
 	 *
 	 * @since 10.6.0
@@ -149,6 +159,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$order->set_currency( $session->get_currency() ?? '' );
 		$order->set_payment_method( 'stripe' );
 		$order->set_payment_method_title( __( 'Stripe (Agentic Checkout)', 'woocommerce-gateway-stripe' ) );
+		$order->set_created_via( self::CREATED_VIA );
 		$order->add_order_note(
 			__( 'Order created from Stripe agentic commerce checkout session.', 'woocommerce-gateway-stripe' )
 		);

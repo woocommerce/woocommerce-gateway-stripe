@@ -152,6 +152,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.7.0 - xxxx-xx-xx =
+* Add - Filter wc_stripe_optimized_checkout_title to override the Optimized Checkout payment method title at checkout
+* Fix - Fix compatibility with WooCommerce 10.8 checkout-evidence guard (required created-via in orders)
 * Update - Enable Optimized Checkout Suite by default for new installs
 * Update - Enable Adaptive Pricing by default for new installs
 * Fix - Use SKU as the Agentic Commerce catalog identifier so checkout.session.completed line items resolve correctly; keep the product-ID fallback for SKU-less products and catalogs synced under the legacy contract
