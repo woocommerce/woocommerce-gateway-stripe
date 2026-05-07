@@ -563,7 +563,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$order->add_order_note(
 			sprintf(
 				/* translators: 1: shipping rate label from Stripe, 2: formatted shipping amount */
-				__( 'Agentic Commerce: chosen shipping rate "%1$s" (%2$s) did not match any configured WooCommerce shipping method. Recorded as a free-form shipping line.', 'woocommerce-gateway-stripe' ),
+				__( 'Stripe Agentic Commerce: chosen shipping rate "%1$s" (%2$s) did not match any configured WooCommerce shipping method. Recorded as a free-form shipping line.', 'woocommerce-gateway-stripe' ),
 				$display_name,
 				wc_price( $total, [ 'currency' => $currency ] )
 			)
