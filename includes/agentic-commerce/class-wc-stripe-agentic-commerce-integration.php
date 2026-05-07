@@ -70,7 +70,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * previously uploaded one.
 	 *
 	 * @var string
-	 * @since 10.6.0
+	 * @since 10.8.0
 	 */
 	const LAST_UPLOAD_OPTION = 'wc_stripe_agentic_commerce_last_feed_upload';
 
@@ -82,7 +82,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Override via the `wc_stripe_agentic_commerce_feed_cache_ttl` filter.
 	 *
 	 * @var int
-	 * @since 10.6.0
+	 * @since 10.8.0
 	 */
 	const FEED_CACHE_TTL = WEEK_IN_SECONDS;
 
@@ -600,7 +600,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Uses `hash_file` so PHP streams the file in chunks — the full catalog
 	 * is never buffered in memory, preserving the streaming feed contract.
 	 *
-	 * @since 10.6.0
+	 * @since 10.8.0
 	 * @param string $file_path Absolute path to the generated feed file.
 	 * @return string SHA-256 hex digest, or an empty string if the file cannot be hashed.
 	 */
@@ -620,7 +620,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Returns false when dedup is disabled via filter, when the cached record is
 	 * missing/malformed, or when the cached upload has exceeded the cache TTL.
 	 *
-	 * @since 10.6.0
+	 * @since 10.8.0
 	 * @param string $current_hash Hash of the feed that was just generated.
 	 * @return bool True if the upload should be skipped.
 	 */
@@ -635,7 +635,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		 * Set to false to force every sync cycle to upload to the Stripe Files API,
 		 * regardless of whether the feed content has changed.
 		 *
-		 * @since 10.6.0
+		 * @since 10.8.0
 		 * @param bool $enabled Default true.
 		 */
 		if ( ! apply_filters( 'wc_stripe_agentic_commerce_dedup_enabled', true ) ) {
@@ -653,7 +653,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		 * Defaults to one week. Applied as a safety valve so a stale or lost Stripe
 		 * file id still gets refreshed on a predictable cadence.
 		 *
-		 * @since 10.6.0
+		 * @since 10.8.0
 		 * @param int $ttl_seconds Default self::FEED_CACHE_TTL.
 		 */
 		$max_age     = (int) apply_filters( 'wc_stripe_agentic_commerce_feed_cache_ttl', self::FEED_CACHE_TTL );
@@ -668,7 +668,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Record the hash, timestamp, and Stripe file id of a successful upload.
 	 *
-	 * @since 10.6.0
+	 * @since 10.8.0
 	 * @param string $hash   SHA-256 hex digest of the uploaded feed content.
 	 * @param array  $result Delivery result array returned by the Files API delivery method.
 	 * @return void
