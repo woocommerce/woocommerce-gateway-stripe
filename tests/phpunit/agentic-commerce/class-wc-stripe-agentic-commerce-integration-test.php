@@ -524,13 +524,13 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 */
 	public function provider_update_pending_statuses_rewrites_non_terminal_entries(): array {
 		return [
-			'queued is refreshable'           => [ 'queued', 'succeeded' ],
+			'queued is refreshable'             => [ 'queued', 'succeeded' ],
 			'validating_records is refreshable' => [ 'validating_records', 'succeeded' ],
-			'pending is refreshable'          => [ 'pending', 'succeeded' ],
-			'creating_records is refreshable' => [ 'creating_records', 'succeeded' ],
-			'unknown is refreshable'          => [ 'unknown', 'succeeded' ],
-			'succeeded is terminal'           => [ 'succeeded', 'succeeded' ],
-			'failed is terminal'              => [ 'failed', 'failed' ],
+			'pending is refreshable'            => [ 'pending', 'succeeded' ],
+			'creating_records is refreshable'   => [ 'creating_records', 'succeeded' ],
+			'unknown is refreshable'            => [ 'unknown', 'succeeded' ],
+			'succeeded is terminal'             => [ 'succeeded', 'succeeded' ],
+			'failed is terminal'                => [ 'failed', 'failed' ],
 		];
 	}
 
