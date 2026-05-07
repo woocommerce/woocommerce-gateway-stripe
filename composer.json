@@ -35,7 +35,8 @@
         "includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php",
         "includes/admin/class-wc-rest-stripe-exit-survey-controller.php",
         "includes/admin/class-wc-stripe-plugins-page-controller.php",
-        "includes/class-wc-stripe-client.php"
+        "includes/class-wc-stripe-client.php",
+        "includes/class-wc-stripe-sdk-wp-http-client.php"
       ]
     },
     "autoload-dev": {

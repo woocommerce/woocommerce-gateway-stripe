@@ -50,6 +50,11 @@ class WC_Stripe_Client {
 				self::PARTNER_ID
 			);
 
+			// Route SDK traffic through `wp_safe_remote_request` so existing
+			// `pre_http_request` mocks, third-party WP HTTP filters, and the
+			// `wp_safe_remote_*` allowlist all continue to apply.
+			\Stripe\ApiRequestor::setHttpClient( new WC_Stripe_SDK_WP_Http_Client() );
+
 			self::$client = new \Stripe\StripeClient(
 				[
 					'api_key'        => $secret_key,
