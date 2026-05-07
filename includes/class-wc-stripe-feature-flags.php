@@ -238,6 +238,17 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool True if enabled, false otherwise.
 	 */
 	public static function is_agentic_commerce_enabled(): bool {
-		return true;
+		$is_agentic_commerce_enabled = 'yes' === self::get_option_with_default( self::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+
+		/**
+		 * Filter to control the availability of the Agentic Commerce feature.
+		 *
+		 * @since 10.5.0
+		 * @param bool $enabled Whether Agentic Commerce is enabled. Default false.
+		 */
+		return (bool) apply_filters(
+			'wc_stripe_is_agentic_commerce_enabled',
+			$is_agentic_commerce_enabled
+		);
 	}
 }

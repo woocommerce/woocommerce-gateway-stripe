@@ -598,7 +598,9 @@ describe( 'AgenticCommerceSection', () => {
 
 		await waitFor( () => {
 			const input = screen.getByLabelText( /Webhook secret/i );
-			expect( input.value ).toBe( 'whsec_********************************' );
+			expect( input.value ).toBe(
+				'whsec_********************************'
+			);
 		} );
 	} );
 
