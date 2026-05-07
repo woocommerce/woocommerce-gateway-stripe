@@ -27,6 +27,7 @@ class WC_Stripe_Plugins_Page_Controller {
 
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
 		add_action( 'admin_footer', [ $this, 'render_container' ] );
+		add_filter( 'plugin_row_meta', [ $this, 'add_release_notes_link' ], 10, 2 );
 	}
 
 	/**
@@ -51,7 +52,7 @@ class WC_Stripe_Plugins_Page_Controller {
 		wp_register_script(
 			'wc-stripe-plugins-page',
 			plugins_url( 'build/plugins-page.js', WC_STRIPE_MAIN_FILE ),
-			$script_asset['dependencies'],
+			array_merge( $script_asset['dependencies'], [ 'jquery', 'plugin-install' ] ),
 			$script_asset['version'],
 			true
 		);
@@ -73,8 +74,61 @@ class WC_Stripe_Plugins_Page_Controller {
 			WC_Stripe_Helper::get_exit_survey_params( $this->account )
 		);
 
+		// Required for the plugin information modal that the "Release notes" link opens.
+		add_thickbox();
+
 		wp_enqueue_script( 'wc-stripe-plugins-page' );
 		wp_enqueue_style( 'wc-stripe-plugins-page' );
+	}
+
+	/**
+	 * Returns the plugin slug derived from the plugin path.
+	 *
+	 * @return string The plugin slug.
+	 */
+	private function get_plugin_slug(): string {
+		return basename( WC_STRIPE_PLUGIN_PATH );
+	}
+
+	/**
+	 * Builds the URL for the WordPress plugin information modal, opened on the changelog tab.
+	 *
+	 * @return string The thickbox-iframe URL.
+	 */
+	private function get_changelog_url(): string {
+		return self_admin_url(
+			'plugin-install.php?tab=plugin-information&plugin=' . $this->get_plugin_slug()
+			. '&section=changelog&TB_iframe=true&width=600&height=550'
+		);
+	}
+
+	/**
+	 * Appends a "Release Notes" link to the plugin row meta on the plugins admin page.
+	 *
+	 * The link reuses WordPress' built-in plugin information modal, opened on the
+	 * changelog tab via thickbox (already enqueued by `enqueue_scripts`).
+	 *
+	 * @param array  $links Existing plugin row meta links.
+	 * @param string $file  Plugin file the row belongs to.
+	 * @return array Updated row meta links.
+	 */
+	public function add_release_notes_link( $links, $file ): array {
+		if ( plugin_basename( WC_STRIPE_MAIN_FILE ) !== $file ) {
+			return (array) $links;
+		}
+
+		$plugin_slug = $this->get_plugin_slug();
+		$label       = __( 'Release notes', 'woocommerce-gateway-stripe' );
+
+		$links['wc_stripe_release_notes'] = sprintf(
+			'<a href="%1$s" class="thickbox open-plugin-details-modal" data-slug="%2$s" aria-label="%3$s">%4$s</a>',
+			esc_url( $this->get_changelog_url() ),
+			esc_attr( $plugin_slug ),
+			esc_attr__( 'View the WooCommerce Stripe release notes', 'woocommerce-gateway-stripe' ),
+			esc_html( $label )
+		);
+
+		return $links;
 	}
 
 	/**

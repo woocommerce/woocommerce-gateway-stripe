@@ -20,6 +20,9 @@ class WC_Stripe_Plugins_Page_Controller_Test extends WP_UnitTestCase {
 		wp_deregister_script( 'wc-stripe-plugins-page' );
 		wp_deregister_style( 'wc-stripe-plugins-page' );
 
+		wp_dequeue_script( 'thickbox' );
+		wp_dequeue_style( 'thickbox' );
+
 		parent::tearDown();
 	}
 
@@ -64,5 +67,46 @@ class WC_Stripe_Plugins_Page_Controller_Test extends WP_UnitTestCase {
 			'unrelated admin page does not enqueue assets' => [ 'admin.php', false ],
 			'plugins.php registers and enqueues assets'    => [ 'plugins.php', true ],
 		];
+	}
+
+	/**
+	 * Tests that the "Updated!" changelog link relies on thickbox being enqueued
+	 * so the plugin information modal can open from the plugins.php page.
+	 *
+	 * @return void
+	 */
+	public function test_enqueue_scripts_loads_thickbox_on_plugins_php(): void {
+		$controller = $this->get_mock_controller();
+
+		$controller->enqueue_scripts( 'plugins.php' );
+
+		$this->assertTrue( wp_script_is( 'thickbox', 'enqueued' ) );
+		$this->assertTrue( wp_style_is( 'thickbox', 'enqueued' ) );
+	}
+
+	/**
+	 * Tests that the "Release Notes" plugin row meta link is appended only for
+	 * the WooCommerce Stripe plugin file, and points at the changelog tab of
+	 * the WordPress plugin information modal.
+	 *
+	 * @return void
+	 */
+	public function test_add_release_notes_link_appends_link_for_stripe_plugin_only(): void {
+		$controller = $this->get_mock_controller();
+
+		$other_plugin_links = $controller->add_release_notes_link( [ 'docs' => '<a>Docs</a>' ], 'some-other/some-other.php' );
+		$this->assertSame( [ 'docs' => '<a>Docs</a>' ], $other_plugin_links );
+
+		$stripe_links = $controller->add_release_notes_link( [], plugin_basename( WC_STRIPE_MAIN_FILE ) );
+		$this->assertArrayHasKey( 'wc_stripe_release_notes', $stripe_links );
+
+		$link_html = $stripe_links['wc_stripe_release_notes'];
+		$this->assertStringContainsString( '>Release notes<', $link_html );
+		$this->assertStringContainsString( 'thickbox', $link_html );
+		$this->assertStringContainsString( 'open-plugin-details-modal', $link_html );
+		$this->assertStringContainsString( 'tab=plugin-information', $link_html );
+		$this->assertStringContainsString( 'plugin=woocommerce-gateway-stripe', $link_html );
+		$this->assertStringContainsString( 'section=changelog', $link_html );
+		$this->assertStringContainsString( 'TB_iframe=true', $link_html );
 	}
 }

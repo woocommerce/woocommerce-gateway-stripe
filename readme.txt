@@ -174,5 +174,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent fatal error in wp-admin from overly narrow argument type
 * Dev - Remove deprecated backend methods that called wc_deprecated_function
 * Add - Allow Stripe developer widget to be enabled in test mode via wc_stripe_show_stripe_developer_widget filter
+* Add - Add a "Release notes" link to the WooCommerce Stripe row on the Plugins page that opens the changelog modal
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
