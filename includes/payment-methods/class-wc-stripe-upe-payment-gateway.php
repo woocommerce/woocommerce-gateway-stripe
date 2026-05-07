@@ -3283,6 +3283,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$selected_payment_type = $payment_method_details->type;
 			}
 			$payment_method_types = [ $selected_payment_type ];
+
+			// `should_save_payment_method_from_request()` ran earlier against the OC pseudo-method
+			// (which is always reusable). For methods gated by a per-method save toggle (iDEAL/Wero,
+			// Bancontact), the resolved method may not be reusable even though the OCS save checkbox
+			// was checked — drop the save flag so we don't add `setup_future_usage` to the intent.
+			if (
+				$save_payment_method_to_store &&
+				isset( $this->payment_methods[ $selected_payment_type ] ) &&
+				! $this->payment_methods[ $selected_payment_type ]->is_reusable()
+			) {
+				$save_payment_method_to_store = false;
+			}
 		} else {
 			$payment_method_types = $this->get_payment_method_types_for_intent_creation(
 				$selected_payment_type,

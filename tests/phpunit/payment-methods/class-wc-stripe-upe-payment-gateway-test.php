@@ -3890,6 +3890,97 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * When OCS is enabled, the payment method type submitted on the checkout
+	 * form is the OC pseudo-method (`stripe`/`card`, always reusable). Only
+	 * after we look up the PaymentMethod from Stripe do we know the actual
+	 * type — and for iDEAL/Wero and Bancontact, that type's reusability is
+	 * gated by a per-method admin toggle. The save flag must be re-evaluated
+	 * against the resolved type so a checked OCS save checkbox doesn't add
+	 * `setup_future_usage` to the intent against the merchant's preference.
+	 *
+	 * @dataProvider provide_test_prepare_payment_information_oc_drops_save_flag_when_resolved_method_not_reusable
+	 *
+	 * @param string $resolved_type      The Stripe payment method type returned by the API after OCS resolution.
+	 * @param bool   $is_reusable        Whether the resolved payment method is reusable (mirrors the per-method toggle).
+	 * @param bool   $expected_save_flag Expected `save_payment_method_to_store` value after OCS resolution.
+	 */
+	public function test_prepare_payment_information_oc_drops_save_flag_when_resolved_method_not_reusable( string $resolved_type, bool $is_reusable, bool $expected_save_flag ): void {
+		$order             = WC_Helper_Order::create_order();
+		$payment_method_id = 'pm_test_' . $resolved_type;
+
+		$this->mock_gateway->oc_enabled = true;
+
+		// Stub the resolved payment method to mimic the per-method save toggle
+		// (sepa_tokens_for_ideal/sepa_tokens_for_bancontact) without relying on
+		// re-constructing the gateway with new settings.
+		$resolved_method_stub = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'is_reusable' ] )
+			->getMockForAbstractClass();
+		$resolved_method_stub->method( 'is_reusable' )->willReturn( $is_reusable );
+		$this->mock_gateway->payment_methods[ $resolved_type ] = $resolved_method_stub;
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => $payment_method_id,
+			'wc-stripe-new-payment-method' => 'true',
+		];
+
+		$payment_method_pre_http_filter = function ( $result, $args, $url ) use ( $payment_method_id, $resolved_type ) {
+			if ( false !== strpos( $url, 'payment_methods/' . $payment_method_id ) ) {
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'body'     => wp_json_encode(
+						[
+							'id'     => $payment_method_id,
+							'object' => 'payment_method',
+							'type'   => $resolved_type,
+						]
+					),
+				];
+			}
+			return $result;
+		};
+		add_filter( 'pre_http_request', $payment_method_pre_http_filter, 10, 3 );
+
+		$this->mock_gateway
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		$reflection = new \ReflectionClass( WC_Stripe_UPE_Payment_Gateway::class );
+		$method     = $reflection->getMethod( 'prepare_payment_information_from_request' );
+		$method->setAccessible( true );
+
+		try {
+			$payment_information = $method->invoke( $this->mock_gateway, $order );
+		} finally {
+			remove_filter( 'pre_http_request', $payment_method_pre_http_filter, 10 );
+			$_POST = [];
+		}
+
+		$this->assertSame( $resolved_type, $payment_information['selected_payment_type'] );
+		$this->assertSame( $expected_save_flag, $payment_information['save_payment_method_to_store'] );
+	}
+
+	/**
+	 * Provider for `test_prepare_payment_information_oc_drops_save_flag_when_resolved_method_not_reusable`.
+	 *
+	 * @return array<string, array{string, bool, bool}>
+	 */
+	public function provide_test_prepare_payment_information_oc_drops_save_flag_when_resolved_method_not_reusable(): array {
+		return [
+			'iDEAL with per-method toggle disabled (bug)'      => [ WC_Stripe_Payment_Methods::IDEAL, false, false ],
+			'iDEAL with per-method toggle enabled (regression)' => [ WC_Stripe_Payment_Methods::IDEAL, true, true ],
+			'Bancontact with per-method toggle disabled (bug)' => [ WC_Stripe_Payment_Methods::BANCONTACT, false, false ],
+			'Bancontact with per-method toggle enabled (regression)' => [ WC_Stripe_Payment_Methods::BANCONTACT, true, true ],
+			'Card via OCS (regression)'                         => [ WC_Stripe_Payment_Methods::CARD, true, true ],
+		];
+	}
+
+	/**
 	 * Test for `filter_saved_payment_methods_list`
 	 *
 	 * @param bool $saved_cards Whether saved cards are enabled.

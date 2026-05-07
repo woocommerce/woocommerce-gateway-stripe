@@ -152,6 +152,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.7.0 - xxxx-xx-xx =
+* Fix - Respect the per-method save toggle for iDEAL/Wero and Bancontact when Optimized Checkout is enabled, so a checked OCS save checkbox no longer marks the iDEAL/Bancontact intent for reuse
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
 * Add - Filter wc_stripe_optimized_checkout_title to override the Optimized Checkout payment method title at checkout
 * Fix - Fix compatibility with WooCommerce 10.8 checkout-evidence guard (required created-via in orders)
