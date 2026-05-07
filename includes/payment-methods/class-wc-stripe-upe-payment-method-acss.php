@@ -40,6 +40,63 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Renders the UPE payment fields.
+	 *
+	 * Overrides the base class to add an informational message since the Stripe Payment Element
+	 * renders empty for ACSS Debit — the bank account authorization happens via a Stripe-hosted
+	 * mandate modal during payment confirmation.
+	 *
+	 * @return void
+	 */
+	public function payment_fields() {
+		try {
+			$display_tokenization = $this->is_reusable() && is_checkout();
+
+			if ( $this->testmode && ! empty( $this->get_testing_instructions() ) ) : ?>
+				<p class="testmode-info"><?php echo wp_kses_post( $this->get_testing_instructions() ); ?></p>
+			<?php endif; ?>
+			<?php if ( ! empty( $this->get_description() ) ) : ?>
+				<p><?php echo wp_kses_post( $this->get_description() ); ?></p>
+			<?php endif; ?>
+
+			<?php
+			if ( $display_tokenization ) {
+				$this->tokenization_script();
+				$this->saved_payment_methods();
+			}
+			?>
+			<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-upe-form" class="wc-upe-form wc-payment-form">
+				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( $this->stripe_id ); ?>"></div>
+				<div id="wc-<?php echo esc_attr( $this->id ); ?>-upe-errors" role="alert"></div>
+			</fieldset>
+			<fieldset class="wc-stripe-redirect-notice">
+				<svg class="wc-stripe-redirect-notice__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 40" fill="currentColor" role="presentation">
+					<use href="<?php echo esc_url( WC_STRIPE_PLUGIN_URL . '/assets/images/payment-redirect.svg#icon' ); ?>" />
+				</svg>
+				<span class="wc-stripe-redirect-notice__text">
+					<?php echo esc_html__( 'After submission, you will need to authorize the payment with your bank.', 'woocommerce-gateway-stripe' ); ?>
+				</span>
+			</fieldset>
+			<?php
+			if ( $this->should_show_save_option() ) {
+				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page() || WC_Stripe_Helper::should_force_save_payment_method();
+				if ( is_user_logged_in() ) {
+					$this->save_payment_method_checkbox( $force_save_payment );
+				}
+			}
+
+			do_action( 'wc_stripe_payment_fields_' . $this->id, $this->id );
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error( 'Error in ACSS payment fields', [ 'error_message' => $e->getMessage() ] );
+			?>
+			<div>
+				<?php echo esc_html__( 'An error was encountered when preparing the payment form. Please try again later.', 'woocommerce-gateway-stripe' ); ?>
+			</div>
+			<?php
+		}
+	}
+
+	/**
 	 * Returns string representing payment method type
 	 * to query to retrieve saved payment methods from Stripe.
 	 */

@@ -215,7 +215,7 @@ jQuery( function ( $ ) {
 
 			const isExpressCheckoutEnabled =
 				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
-					?.is_payment_request_enabled;
+					?.is_express_checkout_enabled;
 			const isAmazonPayEnabled =
 				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
 					?.is_amazon_pay_enabled;

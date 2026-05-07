@@ -1,8 +1,34 @@
 *** Changelog ***
 
-xxxx-xx-xx - version 10.6.0
-* Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Amazon Pay)
+xxxx-xx-xx - version 10.7.0
+* Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Link)
+* Update - Enable Optimized Checkout Suite by default for new installs
+* Update - Enable Adaptive Pricing by default for new installs
+* Fix - Use SKU as the Agentic Commerce catalog identifier so checkout.session.completed line items resolve correctly; keep the product-ID fallback for SKU-less products and catalogs synced under the legacy contract
+* Add - Display a bank authorization notice for Pre-Authorized Debit (ACSS) payments on checkout
+* Fix - Detect Agentic Commerce sessions via payment_intent.agent_details so their checkout.session.completed webhooks aren't skipped
+* Add - Add Agentic Commerce settings UI with feature introduction, onboarding guide, enable/disable toggle, and webhook secret management
+* Fix - Surface PHP Throwables from the Agentic Commerce checkout.session.completed flow so fatals are logged, the order rollback runs, and Action Scheduler marks the job failed
+* Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
+* Dev - Rename payment request references to express checkout
+* Add - Add Agentic Commerce admin dashboard for monitoring product feed sync status, history, errors, and triggering manual syncs
+* Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
+* Fix - Cancel pending WC Subscriptions retry when Stripe Radar blocks a renewal payment so further automatic retries do not re-trigger the same Radar block
+* Fix - Stale saved-card metadata after updating a card's expiry or CVC
+* Dev - Reduce PR PHP test matrix from 30 to 12 jobs (PHP 7.4, 8.2, 8.5; WC/WP at L and L-2) for faster CI feedback
+* Dev - Bump transitive minimatch dev dependency to resolve ReDoS CVE-2026-27903 (GHSA-7r86-cg39-jmmj)
+* Fix - Prevent fatal error in wp-admin from overly narrow argument type
 * Dev - Add Jest tests for ECE payment flow functions (handleChangePaymentMethodFlow, handleManualPaymentMethodFlow, handleConfirmationTokenFlow)
+
+2026-04-23 - version 10.6.1
+* Fix - Fix Optimized Checkout Suite bugs that could result in duplicate subscription charges and generic payment methods names
+
+2026-04-20 - version 10.6.0
+* Remove - Remove EU adaptive pricing disclosure component from classic and Blocks checkout as it is shown natively within the Stripe currency selector element
+* Dev - Add paratest for parallel PHP unit test execution
+* Dev - Use paratest in CI workflow for faster PHP test execution
+* Fix - Accept regional language names for Spanish provinces (e.g., Basque "Gipuzkoa") in Apple Pay and express checkout address validation
+* Fix - Restore missing saved payment tokens when Optimized Checkout Suite is enabled
 * Add - Add exit survey to capture merchant feedback on plugin deactivation and gateway disablement
 * Update - Defer checkout sessions webhook processing via Action Scheduler to prevent race conditions when webhook events arrive before order metadata is stored
 * Fix - Hide duplicate store-level save checkbox when Stripe Link is enabled on checkout
@@ -47,6 +73,8 @@ xxxx-xx-xx - version 10.6.0
 * Fix - Wrap express checkout add-to-cart in try/catch to prevent errors
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
 * Dev - Add incremental inventory sync for Agentic Commerce: tracks stock changes via WooCommerce hooks and uploads a minimal inventory_feed CSV to Stripe one minute after the first change
+* Dev - Add Agentic Commerce admin dashboard for monitoring product feed sync status, history, errors, and triggering manual syncs
+* Update - Move Agentic Commerce settings from a separate tab to an inline section in the Settings tab, use sentence case, and integrate save into the global Save changes button
 * Dev - Add product deletion tracking to Agentic Commerce inventory sync: product deletes and trash events are batched and uploaded to Stripe as a product_catalog_feed with delete:true
 * Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
 * Fix - Fix UPE style transition keys for font smoothing properties
@@ -57,7 +85,6 @@ xxxx-xx-xx - version 10.6.0
 * Dev - Hide Stripe's testing assistant on checkout page
 * Dev - Treat misaligned statements as errors in PHPCS ruleset
 * Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts
-* Fix - Fall back to split Stripe payment methods when Optimized Checkout is enabled but Stripe is not the first available gateway
 * Dev - Remove checkout sessions feature flag and make the feature available by default
 * Fix - Treat customer-initiated Klarna (and other redirect BNPL) cancellations as recoverable so the order stays retryable and shoppers can complete checkout with another payment method
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
@@ -71,12 +98,14 @@ xxxx-xx-xx - version 10.6.0
 * Add - Allow customers to save payment methods during checkout with adaptive pricing
 * Fix - Restrict Checkout Session saved payment method options to logged-in customers so guest checkout session creation succeeds
 * Add - Add an admin notice and one-click action to move Stripe payment methods to the top of WooCommerce payment gateway order for Optimized Checkout
-* Update - Allow Adaptive Pricing for merchant accounts based in EEA countries                                                                                                                               
+* Update - Allow Adaptive Pricing for merchant accounts based in EEA countries
 * Add - Show ECB interbank rate conversion fee notice to EEA-based shoppers on the order received page and in customer order confirmation emails
 * Fix - Confirm checkout session with user data in classic checkout for guest user
 * Add - Handle redirect payment flow in classic checkout for Checkout Sessions
 * Dev - Add automatic changelog entry suggestions to bin/changelog.js
-* Fix: Improve UX for the "Stripe first method" notice for Optimized Checkout
+* Fix - Improve UX for the "Stripe first method" notice for Optimized Checkout
+* Fix - Change Checkout Sessions (Adaptive Pricing) redirect-based flow to match the existing PaymentIntent flow (redirect to checkout page)
+* Fix - Ensure currency selector appears after saved payment methods in classic checkout
 
 2026-03-19 - version 10.5.3
 * Fix - Restore default layout when Optimized Checkout is disabled

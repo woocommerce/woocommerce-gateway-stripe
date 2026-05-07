@@ -205,6 +205,16 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_LOCK_REFUND = '_stripe_lock_refund';
 
 	/**
+	 * Meta key for the In-Person Payments channel.
+	 *
+	 * Stores the ipp_channel value from Stripe PaymentIntent metadata.
+	 * Used to identify POS terminal payments (e.g. 'mobile_pos', 'mobile_store_management').
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_IPP_CHANNEL = '_stripe_ipp_channel';
+
+	/**
 	 * Singleton instance of the class.
 	 *
 	 * @var null|WC_Stripe_Order_Helper
@@ -924,6 +934,31 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function update_stripe_upe_redirect_processed( ?WC_Order $order = null, bool $redirect_processed = false ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_UPE_REDIRECT_PROCESSED, $redirect_processed );
+	}
+
+	/**
+	 * Gets the In-Person Payments channel for the order.
+	 *
+	 * @since 10.6.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_ipp_channel( ?WC_Order $order = null ) {
+		return $this->get_order_meta( $order, self::META_STRIPE_IPP_CHANNEL );
+	}
+
+	/**
+	 * Updates the In-Person Payments channel for the order.
+	 *
+	 * @since 10.6.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $channel The IPP channel value (e.g. 'mobile_pos', 'mobile_store_management').
+	 * @return false|void
+	 */
+	public function update_stripe_ipp_channel( ?WC_Order $order = null, string $channel = '' ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_IPP_CHANNEL, $channel );
 	}
 
 	/**

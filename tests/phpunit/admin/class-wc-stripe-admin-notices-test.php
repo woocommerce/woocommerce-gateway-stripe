@@ -698,7 +698,13 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		}
 
 		if ( $hpos_enabled ) {
+			// Bypass the WooCommerce "orders out of sync" guard that prevents
+			// toggling HPOS in test environments with leftover order data.
+			// The guard is a `pre_update_option` filter at priority 999.
+			$cot_ctrl = wc_get_container()->get( \Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController::class );
+			remove_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999 );
 			update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+			add_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999, 3 );
 		} else {
 			update_option( 'woocommerce_custom_orders_table_enabled', 'no' );
 		}
