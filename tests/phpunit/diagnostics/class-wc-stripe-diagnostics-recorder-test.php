@@ -262,6 +262,10 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 			remove_action( 'wc_stripe_api_response_received', [ $this->recorder, 'on_request_response' ], 10 );
 			remove_filter( 'wc_stripe_request_body', [ $this->recorder, 'on_request_body' ], 10 );
 			remove_action( 'wc_stripe_webhook_received', [ $this->recorder, 'on_webhook_received' ], 10 );
+			// init() also registers the snapshotter on trace_finalized.
+			// remove_all_actions clears it without needing a handle to the
+			// snapshotter instance (which is private to the recorder).
+			remove_all_actions( 'wc_stripe_diagnostics_trace_finalized' );
 			delete_option( WC_REST_Stripe_Diagnostics_Controller::SETTINGS_OPTION );
 		}
 	}

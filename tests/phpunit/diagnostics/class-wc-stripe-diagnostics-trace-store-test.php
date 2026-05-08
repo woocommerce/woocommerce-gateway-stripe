@@ -195,4 +195,30 @@ class WC_Stripe_Diagnostics_Trace_Store_Test extends WP_UnitTestCase {
 		}
 		$this->assertTrue( $this->store->is_full() );
 	}
+
+	/**
+	 * `set_order_id` is first-writer-wins so a webhook arriving after the
+	 * checkout flow can't clobber the order id captured during the API
+	 * request flow. Both writes return true (the second is a no-op success).
+	 */
+	public function test_set_order_id_is_first_writer_wins() {
+		$this->store->create( 'sess' );
+
+		$this->assertTrue( $this->store->set_order_id( 'sess', 100 ) );
+		$this->assertSame( 100, $this->store->get( 'sess' )['meta']['order_id'] );
+
+		$this->assertTrue( $this->store->set_order_id( 'sess', 200 ) );
+		$this->assertSame( 100, $this->store->get( 'sess' )['meta']['order_id'] );
+	}
+
+	public function test_set_order_id_rejects_invalid_inputs() {
+		$this->store->create( 'sess' );
+
+		$this->assertFalse( $this->store->set_order_id( 'sess', 0 ) );
+		$this->assertFalse( $this->store->set_order_id( 'sess', -5 ) );
+		$this->assertFalse( $this->store->set_order_id( '@@@', 100 ) );
+
+		$trace = $this->store->get( 'sess' );
+		$this->assertArrayNotHasKey( 'order_id', $trace['meta'] ?? [] );
+	}
 }
