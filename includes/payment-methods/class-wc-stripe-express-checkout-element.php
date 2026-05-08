@@ -55,6 +55,9 @@ class WC_Stripe_Express_Checkout_Element {
 		$this->express_checkout_helper       = $express_checkout_helper;
 		$this->express_checkout_ajax_handler = $express_checkout_ajax_handler;
 		$this->express_checkout_ajax_handler->init();
+
+		$currency_guard = new WC_Stripe_Express_Checkout_Currency_Guard( $this->express_checkout_helper );
+		$currency_guard->init();
 	}
 
 	/**

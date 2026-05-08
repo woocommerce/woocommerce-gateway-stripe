@@ -7,6 +7,7 @@ import {
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
 } from 'wcstripe/express-checkout/utils';
+import { getElementCurrency } from 'wcstripe/express-checkout/utils/element-currency-cache';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
@@ -618,6 +619,9 @@ export default class WCStripeAPI {
 				'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE':
 					getExpressCheckoutData( 'nonce' )
 						?.wc_store_api_express_checkout,
+				...( getElementCurrency() && {
+					'X-WCSTRIPE-PAYMENT-CURRENCY': getElementCurrency(),
+				} ),
 			}
 		);
 	}
@@ -636,7 +640,15 @@ export default class WCStripeAPI {
 		const billingEmail = orderDetails.billingEmail ?? '';
 		const key = orderDetails.orderKey ?? '';
 		const url = `/wc/store/v1/checkout/${ order }?key=${ key }&billing_email=${ billingEmail }`;
-		return this.postToBlocksAPI( url, paymentData );
+		return this.postToBlocksAPI( url, paymentData, {
+			'X-WCSTRIPE-EXPRESS-CHECKOUT': true,
+			'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE':
+				getExpressCheckoutData( 'nonce' )
+					?.wc_store_api_express_checkout,
+			...( getElementCurrency() && {
+				'X-WCSTRIPE-PAYMENT-CURRENCY': getElementCurrency(),
+			} ),
+		} );
 	}
 
 	/**

@@ -32,6 +32,7 @@ import 'wcstripe/express-checkout/compatibility/wc-product-page';
 import 'wcstripe/express-checkout/compatibility/wcpbc-currency';
 import { resolveExpressCheckoutCurrency } from 'wcstripe/express-checkout/utils/resolve-currency';
 import { getResolvedCurrency } from 'wcstripe/express-checkout/utils/resolved-currency-cache';
+import { setElementCurrency } from 'wcstripe/express-checkout/utils/element-currency-cache';
 import { computeProductPageStartArgs } from 'wcstripe/express-checkout/utils/compute-product-page-start-args';
 import './styles.scss';
 import {
@@ -373,6 +374,7 @@ jQuery( function ( $ ) {
 				paymentMethodTypes:
 					getPaymentMethodTypesForExpressMethod( expressPaymentType ),
 			} );
+			setElementCurrency( options.currency );
 
 			const eceButton = wcStripeECE.createButton( elements, {
 				...getExpressCheckoutButtonStyleSettings(),
