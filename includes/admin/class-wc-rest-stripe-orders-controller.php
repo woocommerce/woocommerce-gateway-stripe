@@ -179,11 +179,10 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 			}
 
 			// Retrieve intent from Stripe.
-			$intent = WC_Stripe_API::retrieve( "payment_intents/$intent_id" );
-
-			// Check that intent exists.
-			if ( ! empty( $intent->error ) ) {
-				return new WP_Error( 'stripe_error', $intent->error->message );
+			try {
+				$intent = WC_Stripe_Client::get()->paymentIntents->retrieve( $intent_id );
+			} catch ( \Stripe\Exception\ApiErrorException $e ) {
+				return new WP_Error( 'stripe_error', $e->getMessage() );
 			}
 
 			// Ensure that intent can be captured.

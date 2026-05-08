@@ -362,24 +362,29 @@ class WC_Stripe_Client {
 	/**
 	 * Converts a Stripe SDK exception into a `stdClass` with the same `->error`
 	 * shape `WC_Stripe_API::request()` used to return, so existing callsites
-	 * that check `$response->error` keep working without try/catch.
+	 * that check `$response->error` keep working without try/catch. Nested
+	 * objects (`error.payment_intent.charges.data[0]`, …) are decoded as
+	 * `stdClass` to match the `json_decode($body)` shape the legacy helper
+	 * produced.
 	 */
 	private static function convert_exception_to_response( \Stripe\Exception\ApiErrorException $e ): \stdClass {
-		$response = new \stdClass();
-		$error    = new \stdClass();
-
 		$json_body = $e->getJsonBody();
-		if ( isset( $json_body['error'] ) && is_array( $json_body['error'] ) ) {
-			foreach ( $json_body['error'] as $key => $value ) {
-				$error->{$key} = is_array( $value ) ? (object) $value : $value;
+
+		// Re-decode without `assoc` so nested structures are stdClass — matches
+		// what `json_decode( $response['body'] )` returned in the legacy path.
+		if ( is_array( $json_body ) ) {
+			$decoded = json_decode( (string) wp_json_encode( $json_body ) );
+			if ( is_object( $decoded ) && isset( $decoded->error ) ) {
+				return $decoded;
 			}
-		} else {
-			$error->message = $e->getMessage();
-			$error->code    = $e->getStripeCode();
-			$error->type    = '';
 		}
 
-		$response->error = $error;
+		$response        = new \stdClass();
+		$response->error = (object) [
+			'message' => $e->getMessage(),
+			'code'    => $e->getStripeCode(),
+			'type'    => '',
+		];
 
 		return $response;
 	}

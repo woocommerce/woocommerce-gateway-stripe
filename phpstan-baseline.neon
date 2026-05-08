@@ -61,12 +61,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway_Voucher\:\:create_or_update_payment_intent\(\) should return object but returns array\|stdClass\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway_Voucher\:\:init_form_fields\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -391,21 +385,15 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Cannot access property \$client_secret on array\|stdClass\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Cannot access property \$error on array\|object\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Cannot access property \$id on array\|stdClass\.$#'
+			message: '#^Cannot access property \$id on array\|stdClass\|Stripe\\StripeObject\.$#'
 			identifier: property.nonObject
-			count: 3
+			count: 2
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -427,9 +415,9 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Cannot access property \$status on array\|stdClass\.$#'
+			message: '#^Cannot access property \$status on array\|stdClass\|Stripe\\StripeObject\.$#'
 			identifier: property.nonObject
-			count: 3
+			count: 2
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -595,19 +583,19 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:confirm_intent\(\) should return object but returns array\|stdClass\.$#'
+			message: '#^Method WC_Stripe_Payment_Gateway\:\:confirm_intent\(\) should return object but returns array\|stdClass\|Stripe\\StripeObject\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:create_and_confirm_intent_for_off_session\(\) should return object but returns array\|stdClass\.$#'
+			message: '#^Method WC_Stripe_Payment_Gateway\:\:create_and_confirm_intent_for_off_session\(\) should return object but returns array\|stdClass\|Stripe\\StripeObject\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:create_intent\(\) should return object but returns array\|stdClass\.$#'
+			message: '#^Method WC_Stripe_Payment_Gateway\:\:create_intent\(\) should return object but returns array\|stdClass\|Stripe\\StripeObject\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -632,12 +620,6 @@ parameters:
 
 		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_charge_object\(\) should return object\|string but returns array\|stdClass\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_intent\(\) should return object\|false but returns array\|stdClass\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -813,13 +795,13 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:setup_intent\(\) should return string\|null but empty return statement found\.$#'
 			identifier: return.empty
-			count: 1
+			count: 2
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:setup_intent\(\) should return string\|null but return statement is missing\.$#'
 			identifier: return.missing
-			count: 2
+			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -829,7 +811,7 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:update_existing_intent\(\) should return object but returns array\|stdClass\.$#'
+			message: '#^Method WC_Stripe_Payment_Gateway\:\:update_existing_intent\(\) should return object but returns array\|stdClass\|Stripe\\StripeObject\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -1009,6 +991,12 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
+			message: '#^Parameter \#1 \$params of method Stripe\\Service\\SetupIntentService\:\:create\(\) expects array\{attach_to_self\?\: bool, automatic_payment_methods\?\: array\{allow_redirects\?\: string, enabled\: bool\}, confirm\?\: bool, confirmation_token\?\: string, customer\?\: string, description\?\: string, expand\?\: array\<string\>, flow_directions\?\: array\<string\>, \.\.\.\}\|null, array\{payment_method\: mixed, return_url\: mixed, customer\: mixed, confirm\: ''true''\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
 			message: '#^Parameter \#1 \$payment_intent of method WC_Stripe_Payment_Gateway\:\:is_charge_attempt_delayed\(\) expects stdClass, array\|object given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1033,7 +1021,7 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:is_authentication_required_for_payment\(\) expects object, array\|stdClass given\.$#'
+			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:is_authentication_required_for_payment\(\) expects object, array\|stdClass\|Stripe\\StripeObject given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -1105,7 +1093,7 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#2 \$intent of method WC_Stripe_Payment_Gateway\:\:save_intent_to_order\(\) expects stdClass, array\|stdClass given\.$#'
+			message: '#^Parameter \#2 \$intent of method WC_Stripe_Payment_Gateway\:\:save_intent_to_order\(\) expects stdClass, array\|stdClass\|Stripe\\StripeObject given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -1352,6 +1340,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects object, object\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/admin/class-wc-rest-stripe-orders-controller.php
+
+		-
+			message: '#^Parameter \#2 \$intent of method WC_Stripe_Payment_Gateway\:\:save_intent_to_order\(\) expects stdClass, Stripe\\PaymentIntent given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
@@ -1939,6 +1933,12 @@ parameters:
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
+			message: '#^Method WC_Stripe_Client\:\:convert_exception_to_response\(\) should return stdClass but returns object\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/class-wc-stripe-client.php
+
+		-
 			message: '#^Strict comparison using \!\=\= between ''beta'' and ''0\.0\.0'' will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 1
@@ -2362,12 +2362,6 @@ parameters:
 			message: '#^Cannot call method get_id\(\) on WC_Order\|true\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Cannot call method is_reusable\(\) on WC_Stripe_UPE_Payment_Method\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
@@ -4801,9 +4795,15 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:stripe_request\(\) should return object but returns array\|stdClass\.$#'
+			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:stripe_request\(\) should return object but returns array\|stdClass\|Stripe\\StripeObject\.$#'
 			identifier: return.type
 			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:stripe_request\(\) should return object but returns stdClass\|Stripe\\StripeObject\|null\.$#'
+			identifier: return.type
+			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-

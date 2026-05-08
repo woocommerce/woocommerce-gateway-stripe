@@ -3050,13 +3050,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	protected function stripe_request( $path, $params = null, $order = null, $method = 'POST' ) {
 		if ( is_null( $params ) ) {
-			return WC_Stripe_API::retrieve( $path );
+			return WC_Stripe_Client::retrieve( $path );
 		}
 		if ( ! is_null( $order ) ) {
 			$level3_data = $this->get_level3_data_from_order( $order );
-			return WC_Stripe_API::request_with_level3_data( $params, $path, $level3_data, $order );
+			return WC_Stripe_Client::request_with_level3_data( $params, $path, $level3_data, $order );
 		}
-		return WC_Stripe_API::request( $params, $path, $method );
+		return WC_Stripe_Client::request( $params, $path, $method );
 	}
 
 	/**

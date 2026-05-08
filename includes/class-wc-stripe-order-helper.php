@@ -1115,10 +1115,19 @@ class WC_Stripe_Order_Helper {
 		if ( is_string( $intent ) ) {
 			$intent_id       = $intent;
 			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
-			if ( $is_setup_intent ) {
-				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
-			} else {
-				$intent = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
+			try {
+				$intent = $is_setup_intent
+					? WC_Stripe_Client::get()->setupIntents->retrieve( $intent_id, [ 'expand' => [ 'payment_method' ] ] )
+					: WC_Stripe_Client::get()->paymentIntents->retrieve( $intent_id, [ 'expand' => [ 'payment_method' ] ] );
+			} catch ( \Stripe\Exception\ApiErrorException $e ) {
+				WC_Stripe_Logger::error(
+					'Error: failed to fetch requested Stripe intent',
+					[
+						'intent_id' => $intent_id,
+						'error'     => $e->getMessage(),
+					]
+				);
+				throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 		}
 
@@ -1128,18 +1137,6 @@ class WC_Stripe_Order_Helper {
 
 		if ( null === $intent_id ) {
 			$intent_id = $intent->id ?? null;
-		}
-
-		// Make sure we actually fetched the intent.
-		if ( ! empty( $intent->error ) ) {
-			WC_Stripe_Logger::error(
-				'Error: failed to fetch requested Stripe intent',
-				[
-					'intent_id' => $intent_id,
-					'error'     => $intent->error,
-				]
-			);
-			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
 		}
 
 		if ( null === $selected_payment_type ) {

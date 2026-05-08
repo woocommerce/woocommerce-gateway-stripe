@@ -1603,7 +1603,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$request = $this->generate_create_intent_request( $order, $prepared_source );
 
 		// Create an intent that awaits an action.
-		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
+		$intent = WC_Stripe_Client::request( $request, 'payment_intents' );
 		if ( ! empty( $intent->error ) ) {
 			return $intent;
 		}
@@ -1665,7 +1665,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$request = apply_filters( 'wc_stripe_update_existing_intent_request', $request, $order, $prepared_source );
 
 		$level3_data = $this->get_level3_data_from_order( $order );
-		return WC_Stripe_API::request_with_level3_data(
+		return WC_Stripe_Client::request_with_level3_data(
 			$request,
 			"payment_intents/$intent->id",
 			$level3_data,
@@ -1691,7 +1691,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$confirm_request = WC_Stripe_Helper::add_payment_method_to_request_array( $prepared_source->source, [] );
 
 		$level3_data      = $this->get_level3_data_from_order( $order );
-		$confirmed_intent = WC_Stripe_API::request_with_level3_data(
+		$confirmed_intent = WC_Stripe_Client::request_with_level3_data(
 			$confirm_request,
 			"payment_intents/$intent->id/confirm",
 			$level3_data,
@@ -1790,10 +1790,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			throw new Exception( "Failed to get intent of type $intent_type. Type is not allowed" );
 		}
 
-		$response = WC_Stripe_API::request( [], "$intent_type/$intent_id?expand[]=payment_method", 'GET' );
-
-		if ( $response && isset( $response->{ 'error' } ) ) {
-			WC_Stripe_Logger::error( "Failed to get Stripe intent $intent_type/$intent_id.", [ 'response' => $response ] );
+		try {
+			$response = 'setup_intents' === $intent_type
+				? WC_Stripe_Client::get()->setupIntents->retrieve( $intent_id, [ 'expand' => [ 'payment_method' ] ] )
+				: WC_Stripe_Client::get()->paymentIntents->retrieve( $intent_id, [ 'expand' => [ 'payment_method' ] ] );
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			WC_Stripe_Logger::error( "Failed to get Stripe intent $intent_type/$intent_id.", [ 'error' => $e->getMessage() ] );
 			return false;
 		}
 
@@ -1958,20 +1960,22 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		$order_id     = $order->get_id();
-		$setup_intent = WC_Stripe_API::request(
-			[
-				'payment_method' => $prepared_source->source,
-				'return_url'     => $this->get_stripe_return_url( $order ),
-				'customer'       => $prepared_source->customer,
-				'confirm'        => 'true',
-			],
-			'setup_intents'
-		);
+		$order_id = $order->get_id();
+		try {
+			$setup_intent = WC_Stripe_Client::get()->setupIntents->create(
+				[
+					'payment_method' => $prepared_source->source,
+					'return_url'     => $this->get_stripe_return_url( $order ),
+					'customer'       => $prepared_source->customer,
+					'confirm'        => 'true',
+				]
+			);
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			WC_Stripe_Logger::error( "Unable to create SetupIntent for Order #$order_id", [ 'error' => $e->getMessage() ] );
+			return;
+		}
 
-		if ( is_wp_error( $setup_intent ) ) {
-			WC_Stripe_Logger::error( "Unable to create SetupIntent for Order #$order_id", [ 'response' => $setup_intent ] );
-		} elseif ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $setup_intent->status ) {
+		if ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $setup_intent->status ) {
 			WC_Stripe_Order_Helper::get_instance()->update_stripe_setup_intent_id( $order, $setup_intent->id );
 			$order->save();
 
@@ -2042,7 +2046,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		$level3_data                = $this->get_level3_data_from_order( $order );
-		$intent                     = WC_Stripe_API::request_with_level3_data(
+		$intent                     = WC_Stripe_Client::request_with_level3_data(
 			$request,
 			'payment_intents',
 			$level3_data,

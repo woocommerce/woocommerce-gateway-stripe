@@ -307,6 +307,73 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Regression test for STRIPE-1139.
+	 *
+	 * When the per-method save toggle is disabled (e.g. `sepa_tokens_for_ideal=no`), a payment
+	 * intent for that method must NOT include `setup_future_usage`, even if the upstream
+	 * `save_payment_method_to_store` flag was set. Otherwise Stripe will store the payment
+	 * method (e.g. as a SEPA debit), which then surfaces as a saved/reusable method on the
+	 * customer's next checkout.
+	 *
+	 * @dataProvider provide_setup_future_usage_respects_per_method_toggle
+	 */
+	public function test_setup_future_usage_respects_per_method_toggle( string $sepa_tokens_for_ideal, bool $expected_setup_future_usage ) {
+		$stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['sepa_tokens_for_ideal'] = $sepa_tokens_for_ideal;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$payment_information = [
+			'amount'                        => 100,
+			'capture_method'                => 'automatic',
+			'currency'                      => WC_Stripe_Currency_Code::EURO,
+			'customer'                      => 'cus_mock',
+			'level3'                        => [ 'line_items' => [] ],
+			'metadata'                      => [ '_stripe_metadata' => '123' ],
+			'order'                         => $this->order,
+			'payment_method'                => 'pm_mock',
+			'shipping'                      => [],
+			'selected_payment_type'         => WC_Stripe_Payment_Methods::IDEAL,
+			'payment_method_types'          => [ WC_Stripe_Payment_Methods::IDEAL ],
+			'is_using_saved_payment_method' => false,
+			'save_payment_method_to_store'  => true,
+			'has_subscription'              => false,
+			'return_url'                    => 'https://example.com/return',
+		];
+
+		$captured_body = null;
+		$test_request  = function ( $preempt, $parsed_args, $url ) use ( &$captured_body ) {
+			$captured_body = $parsed_args['body'];
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( [] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
+
+		if ( $expected_setup_future_usage ) {
+			$this->assertArrayHasKey( 'setup_future_usage', $captured_body );
+			$this->assertSame( 'off_session', $captured_body['setup_future_usage'] );
+		} else {
+			$this->assertArrayNotHasKey( 'setup_future_usage', $captured_body );
+		}
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_setup_future_usage_respects_per_method_toggle(): array {
+		return [
+			'iDEAL save toggle disabled — intent must not opt into setup_future_usage' => [ 'no', false ],
+			'iDEAL save toggle enabled — intent opts into setup_future_usage'          => [ 'yes', true ],
+		];
+	}
+
+	/**
 	 * Test presence of idempotency key when sending the payment intent request.
 	 */
 	public function test_idempotency_key_for_create_and_confirm_payment_intent() {

@@ -60,7 +60,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			];
 
 			$this->assertEquals( 'GET', $request_args['method'] );
-			$this->assertStringEndsWith( 'payment_intents/pi_123?expand[]=payment_method', $url );
+			$this->assertStringEndsWith( 'payment_intents/pi_123?expand[0]=payment_method', $url );
 
 			return $response;
 		};
@@ -68,7 +68,9 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		add_filter( 'pre_http_request', $callback, 10, 3 );
 
 		$intent = $this->gateway->get_intent_from_order( $order );
-		$this->assertEquals( $expected_intent, $intent );
+		// Compare the public surface; SDK responses are typed objects rather
+		// than the stdClass `json_decode` used to return.
+		$this->assertSame( $expected_intent->id, $intent->id );
 
 		remove_filter( 'pre_http_request', $callback );
 	}
@@ -98,7 +100,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			];
 
 			$this->assertEquals( 'GET', $request_args['method'] );
-			$this->assertStringEndsWith( 'payment_intents/pi_123?expand[]=payment_method', $url );
+			$this->assertStringEndsWith( 'payment_intents/pi_123?expand[0]=payment_method', $url );
 
 			return $response;
 		};
