@@ -420,13 +420,16 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 *   1. By WC rate ID from the Stripe shipping rate metadata (wc_rate_id).
 	 *   2. If exactly one rate is available, accept it unconditionally.
 	 *   3. By display name match as a last resort.
+	 *   4. If no WC rate matches (or WC shipping calculation fails), fall back
+	 *      to a free-form WC_Order_Item_Shipping built from
+	 *      shipping_rate.display_name and total_details.amount_shipping.
 	 *
 	 * Does nothing when no shipping rate was chosen (digital goods or not applicable).
 	 *
 	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
-	 * @throws Exception When no matching WC rate can be found.
+	 * @throws Exception When WooCommerce shipping is unavailable (WC()->shipping() is not a WC_Shipping).
 	 */
 	private function map_shipping( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
 		$display_name = $session->get_chosen_shipping_rate_display_name();
@@ -462,9 +465,31 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			);
 		}
 
-		$wc_shipping->calculate_shipping( [ $package ] );
-		$packages = $wc_shipping->get_packages();
-		$rates    = $packages[0]['rates'] ?? [];
+		// Catch Throwable: the outer handler only catches Exception, so a broken
+		// shipping method or null-session Error here would bypass the fallback.
+		$rates = [];
+		try {
+			// Action Scheduler / WP Cron has no HTTP request to bootstrap
+			// WC()->session, which calculate_shipping_for_package reads from.
+			if ( null === WC()->session ) {
+				WC()->initialize_session();
+			}
+
+			$wc_shipping->calculate_shipping( [ $package ] );
+			$packages = $wc_shipping->get_packages();
+			$rates    = $packages[0]['rates'] ?? [];
+		} catch ( Throwable $e ) {
+			WC_Stripe_Logger::warning(
+				'Agentic order mapper: WC shipping calculation failed; will use free-form shipping line.',
+				[
+					'session_id' => $session->get_id(),
+					'error'      => $e->getMessage(),
+					'exception'  => get_class( $e ),
+					'file'       => $e->getFile(),
+					'line'       => $e->getLine(),
+				]
+			);
+		}
 
 		// 1. Match by WC rate ID stored in Stripe shipping rate metadata.
 		$wc_rate_id   = $session->get_chosen_shipping_rate_wc_id();
@@ -489,22 +514,60 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			}
 		}
 
-		if ( null === $matched_rate ) {
-			throw new Exception(
-				sprintf(
-					'Shipping rate "%s" not available for session %s.',
-					$display_name,
-					$session->get_id()
-				)
-			);
+		if ( null !== $matched_rate ) {
+			$shipping_item = new WC_Order_Item_Shipping();
+			$shipping_item->set_method_title( $matched_rate->get_label() );
+			$shipping_item->set_method_id( $matched_rate->get_method_id() );
+			$shipping_item->set_instance_id( $matched_rate->get_instance_id() );
+			$shipping_item->set_total( $matched_rate->get_cost() );
+			$order->add_item( $shipping_item );
+			return;
 		}
 
+		// No WC rate matched. This can happen when Stripe/the agent supplies a
+		// shipping rate that does not include matching wc_rate_id metadata and the display name
+		// does not match any configured WC shipping method.
+		// When this occurs, we create the order and use `stripe_agentic` as the shipping method.
+		$stripe_amount = $session->get_shipping_amount();
+		$currency      = $session->get_currency() ?? '';
+		$total         = null !== $stripe_amount
+			? WC_Stripe_Helper::convert_from_stripe_amount( $stripe_amount, $currency )
+			: 0;
+
+		WC_Stripe_Logger::error(
+			'Agentic order mapper: chosen shipping rate did not match any WC rate; using Stripe rate as free-form shipping line.',
+			[
+				'session_id'          => $session->get_id(),
+				'stripe_display_name' => $display_name,
+				'stripe_wc_rate_hint' => $session->get_chosen_shipping_rate_wc_id(),
+				'stripe_amount'       => $total,
+				'available_wc_rates'  => array_map(
+					static function ( $rate ) {
+						return [
+							'id'    => $rate->get_id(),
+							'label' => $rate->get_label(),
+							'cost'  => $rate->get_cost(),
+						];
+					},
+					$rates
+				),
+			]
+		);
+
 		$shipping_item = new WC_Order_Item_Shipping();
-		$shipping_item->set_method_title( $matched_rate->get_label() );
-		$shipping_item->set_method_id( $matched_rate->get_method_id() );
-		$shipping_item->set_instance_id( $matched_rate->get_instance_id() );
-		$shipping_item->set_total( $matched_rate->get_cost() );
+		$shipping_item->set_method_title( $display_name );
+		$shipping_item->set_method_id( 'stripe_agentic' );
+		$shipping_item->set_total( (string) $total );
 		$order->add_item( $shipping_item );
+
+		$order->add_order_note(
+			sprintf(
+				/* translators: 1: shipping rate label from Stripe, 2: formatted shipping amount */
+				__( 'Stripe Agentic Commerce: chosen shipping rate "%1$s" (%2$s) did not match any configured WooCommerce shipping method. Recorded as a free-form shipping line.', 'woocommerce-gateway-stripe' ),
+				$display_name,
+				wc_price( $total, [ 'currency' => $currency ] )
+			)
+		);
 	}
 
 	/**
