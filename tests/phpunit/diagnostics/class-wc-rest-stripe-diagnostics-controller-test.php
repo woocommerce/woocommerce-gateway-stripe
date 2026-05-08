@@ -243,6 +243,36 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 		];
 	}
 
+	public function test_delete_traces_clears_store() {
+		$this->store->create( 'a' );
+		$this->store->create( 'b' );
+		$this->store->create( 'c' );
+
+		$response = $this->controller->delete_traces();
+		$data     = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 3, $data['deleted'] );
+		$this->assertSame( 0, $data['total'] );
+		$this->assertSame( 0, $this->store->count() );
+	}
+
+	/**
+	 * Mirrors {@see test_admin_permissions_check}: clearing a captured bundle
+	 * must work after the merchant has switched recording off.
+	 */
+	public function test_delete_traces_works_when_toggle_off() {
+		$this->set_diagnostics_enabled( false );
+		$this->store->create( 'kept-from-prior-session' );
+
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		$this->assertTrue( $this->controller->admin_permissions_check() );
+
+		$response = $this->controller->delete_traces();
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 0, $this->store->count() );
+	}
+
 	public function test_ingest_evicts_oldest_trace_when_store_is_full() {
 		for ( $i = 0; $i < WC_Stripe_Diagnostics_Trace_Store::MAX_TRACES; $i++ ) {
 			$this->store->create( 'full' . $i );
