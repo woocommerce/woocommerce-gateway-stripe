@@ -121,7 +121,7 @@ class WC_Stripe_Plugins_Page_Controller {
 		$label       = __( 'Release notes', 'woocommerce-gateway-stripe' );
 
 		$links['wc_stripe_release_notes'] = sprintf(
-			'<a href="%1$s" class="thickbox open-plugin-details-modal" data-slug="%2$s" aria-label="%3$s">%4$s</a>',
+			'<a id="wc-stripe-release-notes-link" href="%1$s" class="thickbox open-plugin-details-modal" data-slug="%2$s" aria-label="%3$s">%4$s</a>',
 			esc_url( $this->get_changelog_url() ),
 			esc_attr( $plugin_slug ),
 			esc_attr__( 'View the WooCommerce Stripe release notes', 'woocommerce-gateway-stripe' ),
