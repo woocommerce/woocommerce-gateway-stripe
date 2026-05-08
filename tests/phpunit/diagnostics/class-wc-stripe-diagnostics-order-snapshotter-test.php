@@ -66,16 +66,17 @@ class WC_Stripe_Diagnostics_Order_Snapshotter_Test extends WP_UnitTestCase {
 		}
 		$order->save();
 
-		// 25 admin (system) notes, newest-last in insertion order. The
-		// `is_customer_note = 0` argument keeps them admin-only.
-		// One note exceeds 500 chars and one contains scrubbable PII.
+		// 23 admin (system) notes plus one 2000-char note to exercise the
+		// 500-char truncation cap. The `is_customer_note = 0` flag keeps
+		// them admin-only.
 		for ( $i = 0; $i < 23; $i++ ) {
 			$order->add_order_note( "system note {$i}", 0 );
 		}
 		$order->add_order_note( str_repeat( 'A', 2000 ), 0 );
-		// Email is scrubbed by the redactor's `scrub_string` patterns;
-		// phone-number scrubbing is not in the redactor's pattern set
-		// today, so this fixture exercises email-only.
+
+		$order->set_status( 'failed' );
+		$order->save();
+
 		$order->add_order_note( 'Contact me at foo@bar.com', 0 );
 
 		// One customer note, which must NOT appear in the snapshot.
@@ -112,19 +113,46 @@ class WC_Stripe_Diagnostics_Order_Snapshotter_Test extends WP_UnitTestCase {
 		$this->assertCount( 20, $snapshot['line_items'] );
 		$this->assertCount( 20, $snapshot['order_notes'] );
 
-		// Note bodies are newest-first, so the PII note is at index 0
-		// and the long note is at index 1. Long note is truncated.
-		$this->assertLessThanOrEqual( 500, strlen( $snapshot['order_notes'][1]['content'] ) );
-
-		// PII scrubbing — email replaced by the redactor's [email]
-		// placeholder.
-		$pii_content = $snapshot['order_notes'][0]['content'];
-		$this->assertStringNotContainsString( 'foo@bar.com', $pii_content );
-		$this->assertStringContainsString( '[email]', $pii_content );
-
-		// Customer note excluded.
+		// Truncation: every note's content is at or below the cap, so
+		// the long 2000-char note in the fixture is necessarily clipped.
+		// No raw PII survives anywhere in the bundle.
+		$saw_scrubbed_email = false;
 		foreach ( $snapshot['order_notes'] as $note ) {
+			$this->assertLessThanOrEqual( 500, strlen( $note['content'] ) );
+			$this->assertStringNotContainsString( 'foo@bar.com', $note['content'] );
 			$this->assertNotSame( 'leave at front door', $note['content'] );
+			if ( false !== strpos( $note['content'], '[email]' ) ) {
+				$saw_scrubbed_email = true;
+			}
 		}
+		$this->assertTrue(
+			$saw_scrubbed_email,
+			'Expected at least one note to contain the redactor\'s [email] placeholder.'
+		);
+	}
+
+	/**
+	 * No order_snapshot is appended when the trace has no order id pinned
+	 * to its meta — the common production case for traces that finalize
+	 * without ever observing an order (abandoned express, console-only
+	 * traces). Status still transitions normally.
+	 */
+	public function test_skips_when_order_unresolvable() {
+		$this->store->create( 'sess-unresolvable' );
+
+		$this->store->set_status( 'sess-unresolvable', WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED );
+
+		$trace = $this->store->get( 'sess-unresolvable' );
+		foreach ( $trace['events'] as $event ) {
+			$this->assertNotSame(
+				'order_snapshot',
+				$event['kind'] ?? null,
+				'Expected no order_snapshot event for an unresolvable order.'
+			);
+		}
+		$this->assertSame(
+			WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED,
+			$trace['status']
+		);
 	}
 }
