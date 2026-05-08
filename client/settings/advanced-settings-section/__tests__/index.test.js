@@ -27,7 +27,7 @@ jest.mock( '@woocommerce/navigation', () => ( {
 	getQuery: jest.fn().mockReturnValue( {} ),
 } ) );
 
-// DiagnosticsTraces (rendered by DiagnosticsMode) fires a /summary fetch on
+// DiagnosticsTraces (rendered by DiagnosticsMode) fires a /traces fetch on
 // mount. Stub it out at this layer so the existing AdvancedSettings tests
 // don't trigger an unwrapped state update warning. The component's own
 // behavior is covered by diagnostics-traces.test.js.
@@ -40,8 +40,9 @@ describe( 'AdvancedSettings', () => {
 			is_oc_available: false,
 		};
 
-		// Default: no traces stored, so DiagnosticsTraces collapses to null.
-		apiFetch.mockResolvedValue( { counts: {}, total: 0 } );
+		// Default: no traces stored, so DiagnosticsTraces renders just the
+		// empty state.
+		apiFetch.mockResolvedValue( { traces: [], count: 0 } );
 
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
 		useDiagnosticsMode.mockReturnValue( [ false, jest.fn() ] );
@@ -78,7 +79,7 @@ describe( 'AdvancedSettings', () => {
 		expect( setIsLoggingCheckedMock ).toHaveBeenCalledWith( true );
 	} );
 
-	it( 'should enable diagnostics mode when checkbox is clicked', async () => {
+	it( 'should enable diagnostics mode when toggle is clicked', async () => {
 		const setIsDiagnosticsCheckedMock = jest.fn();
 		useDiagnosticsMode.mockReturnValue( [
 			false,
@@ -87,16 +88,16 @@ describe( 'AdvancedSettings', () => {
 
 		render( <AdvancedSettings /> );
 
-		const diagnosticsCheckbox = screen.getByLabelText(
+		const diagnosticsToggle = screen.getByLabelText(
 			'Capture checkout diagnostics'
 		);
 
 		expect(
 			screen.getByText( 'Checkout diagnostics' )
 		).toBeInTheDocument();
-		expect( diagnosticsCheckbox ).not.toBeChecked();
+		expect( diagnosticsToggle ).not.toBeChecked();
 
-		await userEvent.click( diagnosticsCheckbox );
+		await userEvent.click( diagnosticsToggle );
 
 		expect( setIsDiagnosticsCheckedMock ).toHaveBeenCalledWith( true );
 	} );

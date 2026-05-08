@@ -1,6 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import DiagnosticsTraceToolbar, {
+	FILTER_ALL,
+	FILTER_FAILED,
+} from './diagnostics-trace-toolbar';
+import DiagnosticsTraceRow from './diagnostics-trace-row';
+import DiagnosticsTraceViewModal from './diagnostics-trace-view-modal';
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { Button } from '@wordpress/components';
 import { useDispatch } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
 import { NAMESPACE } from 'wcstripe/data/constants';
@@ -14,20 +19,7 @@ const NOTICE_ID = 'wc-stripe/diagnostics-copy-traces';
 // back to a file download above this size is cheap insurance.
 const CLIPBOARD_BYTE_THRESHOLD = 1024 * 1024;
 
-// Status filter used by the primary "Copy failed traces for support"
-// button. Mirrors the spec's "what support actually needs" — failures plus
-// the shopper-walked-away signal that finalizes via `express.cancel`.
-const SUPPORT_STATUSES = [ 'failed', 'abandoned' ];
-
-const buildTracesPath = ( statuses ) => {
-	if ( ! statuses ) {
-		return `${ NAMESPACE }/diagnostics/traces`;
-	}
-	const query = statuses
-		.map( ( s ) => `status[]=${ encodeURIComponent( s ) }` )
-		.join( '&' );
-	return `${ NAMESPACE }/diagnostics/traces?${ query }`;
-};
+const TRACES_PATH = `${ NAMESPACE }/diagnostics/traces`;
 
 const downloadAsFile = ( contents ) => {
 	const blob = new Blob( [ contents ], { type: 'application/json' } );
@@ -44,165 +36,231 @@ const downloadAsFile = ( contents ) => {
 	setTimeout( () => URL.revokeObjectURL( url ), 0 );
 };
 
-const DiagnosticsTraces = () => {
-	const [ summary, setSummary ] = useState( null );
+const copyOrDownload = async ( payload ) => {
+	const json = JSON.stringify( payload, null, 2 );
+	const bytes = new Blob( [ json ] ).size;
+	if ( bytes > CLIPBOARD_BYTE_THRESHOLD ) {
+		downloadAsFile( json );
+		return 'download';
+	}
+	await navigator.clipboard.writeText( json );
+	return 'clipboard';
+};
+
+const DiagnosticsTraces = ( { isRecording = false } ) => {
+	const [ traces, setTraces ] = useState( null );
+	const [ filter, setFilter ] = useState( FILTER_ALL );
+	const [ viewing, setViewing ] = useState( null );
 	const [ isCopying, setIsCopying ] = useState( false );
+	const [ isClearing, setIsClearing ] = useState( false );
 	const { createSuccessNotice, createErrorNotice, removeNotice } =
 		useDispatch( 'core/notices' );
 
-	const refreshSummary = useCallback( () => {
-		apiFetch( { path: `${ NAMESPACE }/diagnostics/summary` } )
-			.then( setSummary )
-			.catch( () => setSummary( { counts: {}, total: 0 } ) );
+	const refreshTraces = useCallback( () => {
+		apiFetch( { path: TRACES_PATH } )
+			.then( ( response ) => setTraces( response.traces || [] ) )
+			.catch( () => setTraces( [] ) );
 	}, [] );
 
 	useEffect( () => {
-		refreshSummary();
-	}, [ refreshSummary ] );
+		refreshTraces();
+	}, [ refreshTraces ] );
 
-	if ( ! summary || ! summary.total ) {
+	const sorted = useMemo( () => {
+		if ( ! Array.isArray( traces ) ) {
+			return [];
+		}
+		// Newest first matches what the merchant just produced — they
+		// usually want the trace they just triggered at the top.
+		return [ ...traces ].sort(
+			( a, b ) => ( b.created_at || 0 ) - ( a.created_at || 0 )
+		);
+	}, [ traces ] );
+
+	const failedCount = useMemo(
+		() => sorted.filter( ( t ) => t.status === 'failed' ).length,
+		[ sorted ]
+	);
+
+	const visible = useMemo(
+		() =>
+			filter === FILTER_FAILED
+				? sorted.filter( ( t ) => t.status === 'failed' )
+				: sorted,
+		[ sorted, filter ]
+	);
+
+	// Until the first fetch returns, render nothing — keeps the card
+	// quiet during the half-second of admin page boot.
+	if ( traces === null ) {
 		return null;
 	}
 
-	const counts = summary.counts || {};
-	const failed = counts.failed || 0;
-	const abandoned = counts.abandoned || 0;
-	const completed = counts.completed || 0;
-	const pending = counts.pending || 0;
-	const supportCount = failed + abandoned;
+	const totalCount = sorted.length;
 
-	// Build the breakdown list dynamically so empty buckets disappear
-	// rather than showing a noisy "0 abandoned" segment.
-	const breakdownSegments = [
-		failed > 0 &&
-			sprintf(
-				/* translators: %d: number of failed traces */
-				__( '%d failed', 'woocommerce-gateway-stripe' ),
-				failed
-			),
-		abandoned > 0 &&
-			sprintf(
-				/* translators: %d: number of abandoned traces */
-				__( '%d abandoned', 'woocommerce-gateway-stripe' ),
-				abandoned
-			),
-		completed > 0 &&
-			sprintf(
-				/* translators: %d: number of succeeded traces */
-				__( '%d succeeded', 'woocommerce-gateway-stripe' ),
-				completed
-			),
-		pending > 0 &&
-			sprintf(
-				/* translators: %d: number of pending traces */
-				__( '%d pending', 'woocommerce-gateway-stripe' ),
-				pending
-			),
-	].filter( Boolean );
+	if ( totalCount === 0 ) {
+		return (
+			<div className="wc-stripe-diagnostics-traces wc-stripe-diagnostics-traces--empty">
+				<p>
+					{ isRecording
+						? __(
+								'No traces stored yet. Traces will appear here as customers reach checkout.',
+								'woocommerce-gateway-stripe'
+						  )
+						: __(
+								'No traces stored. Turn on diagnostics to start capturing.',
+								'woocommerce-gateway-stripe'
+						  ) }
+				</p>
+			</div>
+		);
+	}
 
-	const handleCopy = async ( statuses ) => {
-		// 'support' when filtering to SUPPORT_STATUSES (failed + abandoned), 'all' otherwise.
-		const scope = statuses ? 'support' : 'all';
+	const reportError = ( message ) => {
+		createErrorNotice( message, { id: NOTICE_ID } );
+	};
+
+	const reportSuccess = ( message ) => {
+		createSuccessNotice( message, { id: NOTICE_ID } );
+	};
+
+	const handleCopy = async ( payload, scope ) => {
 		setIsCopying( true );
 		removeNotice( NOTICE_ID );
 		try {
-			const response = await apiFetch( {
-				path: buildTracesPath( statuses ),
+			const result = await copyOrDownload( payload );
+			const count = Array.isArray( payload ) ? payload.length : 1;
+			recordEvent( 'wcstripe_diagnostics_copy_traces', {
+				scope,
+				result,
+				count,
 			} );
-			const json = JSON.stringify( response.traces, null, 2 );
-			const bytes = new Blob( [ json ] ).size;
-
-			if ( bytes > CLIPBOARD_BYTE_THRESHOLD ) {
-				downloadAsFile( json );
-				recordEvent( 'wcstripe_diagnostics_copy_traces', {
-					scope,
-					result: 'download',
-					count: response.count,
-				} );
-				createSuccessNotice(
+			if ( result === 'download' ) {
+				reportSuccess(
 					__(
 						'Trace bundle was too large to copy — downloaded as a file instead.',
 						'woocommerce-gateway-stripe'
-					),
-					{ id: NOTICE_ID }
+					)
 				);
 			} else {
-				await navigator.clipboard.writeText( json );
-				recordEvent( 'wcstripe_diagnostics_copy_traces', {
-					scope,
-					result: 'clipboard',
-					count: response.count,
-				} );
-				createSuccessNotice(
+				reportSuccess(
 					sprintf(
-						/* translators: %d: number of traces */
+						/* translators: %d: number of traces copied */
 						_n(
 							'Copied %d trace to clipboard.',
 							'Copied %d traces to clipboard.',
-							response.count,
+							count,
 							'woocommerce-gateway-stripe'
 						),
-						response.count
-					),
-					{ id: NOTICE_ID }
+						count
+					)
 				);
 			}
-			refreshSummary();
 		} catch ( err ) {
 			recordEvent( 'wcstripe_diagnostics_copy_traces', {
 				scope,
 				result: 'error',
 				count: null,
 			} );
-			createErrorNotice(
+			reportError(
 				__(
 					'Could not copy traces. Try again.',
 					'woocommerce-gateway-stripe'
-				),
-				{ id: NOTICE_ID }
+				)
 			);
 		} finally {
 			setIsCopying( false );
 		}
 	};
 
+	const handleBulkCopy = () => {
+		const payload =
+			filter === FILTER_FAILED
+				? sorted.filter( ( t ) => t.status === 'failed' )
+				: sorted;
+		handleCopy( payload, filter === FILTER_FAILED ? 'failed' : 'all' );
+	};
+
+	const handleRowCopy = ( trace ) => {
+		handleCopy( trace, 'single' );
+	};
+
+	const handleRowView = ( trace ) => {
+		recordEvent( 'wcstripe_diagnostics_view_trace', { id: trace.id } );
+		setViewing( trace );
+	};
+
+	const handleClear = async () => {
+		setIsClearing( true );
+		removeNotice( NOTICE_ID );
+		try {
+			const response = await apiFetch( {
+				path: TRACES_PATH,
+				method: 'DELETE',
+			} );
+			recordEvent( 'wcstripe_diagnostics_clear_traces', {
+				deleted: response?.deleted ?? null,
+			} );
+			reportSuccess(
+				__( 'Cleared all stored traces.', 'woocommerce-gateway-stripe' )
+			);
+			refreshTraces();
+		} catch ( err ) {
+			recordEvent( 'wcstripe_diagnostics_clear_traces', {
+				deleted: null,
+				result: 'error',
+			} );
+			reportError(
+				__(
+					'Could not clear traces. Try again.',
+					'woocommerce-gateway-stripe'
+				)
+			);
+		} finally {
+			setIsClearing( false );
+		}
+	};
+
+	const nowSeconds = Math.floor( Date.now() / 1000 );
+
 	return (
 		<div className="wc-stripe-diagnostics-traces">
-			<p>
-				{ sprintf(
-					/* translators: 1: total trace count, 2: comma-separated breakdown of non-zero status counts */
-					_n(
-						'%1$d trace captured (%2$s)',
-						'%1$d traces captured (%2$s)',
-						summary.total,
-						'woocommerce-gateway-stripe'
-					),
-					summary.total,
-					breakdownSegments.join( ', ' )
+			<DiagnosticsTraceToolbar
+				totalCount={ totalCount }
+				failedCount={ failedCount }
+				filter={ filter }
+				onFilterChange={ setFilter }
+				isRecording={ isRecording }
+				onCopy={ handleBulkCopy }
+				onClear={ handleClear }
+				isCopying={ isCopying }
+				isClearing={ isClearing }
+			/>
+			<div className="wc-stripe-diagnostics-trace-list" role="list">
+				{ visible.length === 0 ? (
+					<div className="wc-stripe-diagnostics-trace-list__empty">
+						{ __(
+							'No traces match this filter.',
+							'woocommerce-gateway-stripe'
+						) }
+					</div>
+				) : (
+					visible.map( ( trace ) => (
+						<DiagnosticsTraceRow
+							key={ trace.id }
+							trace={ trace }
+							nowSeconds={ nowSeconds }
+							onCopy={ handleRowCopy }
+							onView={ handleRowView }
+						/>
+					) )
 				) }
-			</p>
-			<Button
-				variant="primary"
-				isBusy={ isCopying }
-				disabled={ isCopying || supportCount === 0 }
-				onClick={ () => handleCopy( SUPPORT_STATUSES ) }
-			>
-				{ sprintf(
-					/* translators: %d: count of failed + abandoned traces */
-					__(
-						'Copy failed traces for support (%d)',
-						'woocommerce-gateway-stripe'
-					),
-					supportCount
-				) }
-			</Button>{ ' ' }
-			<Button
-				variant="link"
-				disabled={ isCopying }
-				onClick={ () => handleCopy( null ) }
-			>
-				{ __( 'Copy all instead', 'woocommerce-gateway-stripe' ) }
-			</Button>
+			</div>
+			<DiagnosticsTraceViewModal
+				trace={ viewing }
+				onClose={ () => setViewing( null ) }
+				onCopy={ ( trace ) => handleCopy( trace, 'single' ) }
+			/>
 		</div>
 	);
 };
