@@ -40,20 +40,22 @@ class WC_Stripe_Admin_Notices {
 	 * @since 1.0.0
 	 * @version 4.0.0
 	 *
-	 * @param string $slug        The notice slug.
-	 * @param string $class       The notice CSS class.
-	 * @param string $message     The notice message.
-	 * @param bool   $dismissible Whether the notice is dismissible.
-	 * @param array  $actions     Optional action buttons.
+	 * @param string $slug                The notice slug.
+	 * @param string $class               The notice CSS class.
+	 * @param string $message             The notice message.
+	 * @param bool   $dismissible         Whether the notice is dismissible.
+	 * @param array  $actions             Optional action buttons.
+	 * @param array  $dismiss_extra_args  Optional extra query args added to the dismiss URL.
 	 *
 	 * @return void
 	 */
-	public function add_admin_notice( $slug, $class, $message, $dismissible = false, $actions = [] ) {
+	public function add_admin_notice( $slug, $class, $message, $dismissible = false, $actions = [], $dismiss_extra_args = [] ) {
 		$this->notices[ $slug ] = [
-			'class'       => $class,
-			'message'     => $message,
-			'dismissible' => $dismissible,
-			'actions'     => $actions,
+			'class'              => $class,
+			'message'            => $message,
+			'dismissible'        => $dismissible,
+			'actions'            => $actions,
+			'dismiss_extra_args' => $dismiss_extra_args,
 		];
 	}
 
@@ -98,8 +100,12 @@ class WC_Stripe_Admin_Notices {
 			echo '<div class="' . esc_attr( $notice['class'] ) . '" style="' . esc_attr( $div_style ) . '">';
 
 			if ( $notice['dismissible'] ) {
+				$dismiss_url = add_query_arg( 'wc-stripe-hide-notice', $notice_key );
+				if ( ! empty( $notice['dismiss_extra_args'] ) && is_array( $notice['dismiss_extra_args'] ) ) {
+					$dismiss_url = add_query_arg( $notice['dismiss_extra_args'], $dismiss_url );
+				}
 				?>
-				<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'wc-stripe-hide-notice', $notice_key ), 'wc_stripe_hide_notices_nonce', '_wc_stripe_notice_nonce' ) ); ?>" class="woocommerce-message-close notice-dismiss" style="position:relative;float:right;padding:9px 0 9px 9px;text-decoration:none;"></a>
+				<a href="<?php echo esc_url( wp_nonce_url( $dismiss_url, 'wc_stripe_hide_notices_nonce', '_wc_stripe_notice_nonce' ) ); ?>" class="woocommerce-message-close notice-dismiss" style="position:relative;float:right;padding:9px 0 9px 9px;text-decoration:none;"></a>
 				<?php
 			}
 
@@ -453,10 +459,6 @@ class WC_Stripe_Admin_Notices {
 	 * @return void
 	 */
 	public function subscription_check_detachment() {
-		if ( 'no' === get_option( 'wc_stripe_show_subscription_detached_notice' ) ) {
-			return;
-		}
-
 		if ( ! WC_Stripe_Subscriptions_Helper::is_subscription_edit_page() ) {
 			return;
 		}
@@ -476,7 +478,12 @@ class WC_Stripe_Admin_Notices {
 		}
 
 		if ( ! $subscription->has_status( [ 'active' ] ) ) {
-			// Only show the notice for active subscriptions.
+			return;
+		}
+
+		$dismissed_subscriptions = get_option( 'wc_stripe_show_subscription_detached_notice', [] );
+
+		if ( in_array( $subscription->get_id(), $dismissed_subscriptions, true ) ) {
 			return;
 		}
 
@@ -510,7 +517,7 @@ class WC_Stripe_Admin_Notices {
 				'</a>',
 				__( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
 			);
-			$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message, true );
+			$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message, true, [], [ 'subscription_id' => $subscription->get_id() ] );
 		}
 	}
 
@@ -651,7 +658,12 @@ class WC_Stripe_Admin_Notices {
 					}
 					break;
 				case 'subscription_detached':
-					update_option( 'wc_stripe_show_subscription_detached_notice', 'no' );
+					$subscription_id = isset( $_GET['subscription_id'] ) ? absint( $_GET['subscription_id'] ) : 0;
+					$dismissed       = get_option( 'wc_stripe_show_subscription_detached_notice', [] );
+					if ( $subscription_id && ! in_array( $subscription_id, $dismissed, true ) ) {
+						$dismissed[] = $subscription_id;
+						update_option( 'wc_stripe_show_subscription_detached_notice', $dismissed );
+					}
 					break;
 				case 'ece_location':
 					update_option( 'wc_stripe_show_ece_location_notice', 'no' );

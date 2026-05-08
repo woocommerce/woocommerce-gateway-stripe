@@ -750,6 +750,9 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertCount( 1, $actual );
 		$this->assertArrayHasKey( 'subscription_detached', $actual );
 		$this->assertStringContainsString( 'The payment method for this subscription has been detached', $actual['subscription_detached']['message'] );
+		$this->assertArrayHasKey( 'dismiss_extra_args', $actual['subscription_detached'] );
+		$this->assertArrayHasKey( 'subscription_id', $actual['subscription_detached']['dismiss_extra_args'] );
+		$this->assertGreaterThan( 0, $actual['subscription_detached']['dismiss_extra_args']['subscription_id'] );
 	}
 
 	/**
@@ -795,6 +798,79 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 			],
 		];
+	}
+
+	/**
+	 * Test that a subscription whose ID is in the dismissed array does not show the detachment notice.
+	 *
+	 * @return void
+	 */
+	public function test_subscription_detached_notice_hidden_for_dismissed_subscription() {
+		global $theorder;
+		$original_order = $theorder;
+
+		update_option( 'wc_stripe_show_subscription_detached_notice', [ 123 ] );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_id( 123 );
+		$subscription->set_status( 'active' );
+		$subscription->set_payment_method( 'stripe_klarna' );
+		$subscription->save();
+
+		$theorder = $subscription;
+		$_REQUEST = [ 'page' => 'wc-orders--shop_subscription', 'id' => 123 ];
+
+		$cot_ctrl = wc_get_container()->get( \Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController::class );
+		remove_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999 );
+		update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+		add_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999, 3 );
+
+		$test_request = function () {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode( [ 'customer' => null ] ),
+			];
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->subscription_check_detachment();
+
+		remove_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->assertArrayNotHasKey( 'subscription_detached', $notices->notices );
+
+		unset( $_REQUEST );
+		$theorder = $original_order;
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_src_123' );
+		delete_option( 'wc_stripe_show_subscription_detached_notice' );
+	}
+
+	/**
+	 * Test that dismissing the subscription_detached notice stores the subscription ID in an array.
+	 *
+	 * @return void
+	 */
+	public function test_hide_notices_dismisses_subscription_detached_per_subscription() {
+		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_user );
+
+		delete_option( 'wc_stripe_show_subscription_detached_notice' );
+
+		$_GET['wc-stripe-hide-notice']   = 'subscription_detached';
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+		$_GET['subscription_id']         = 456;
+
+		$notices = $this->create_admin_notices_instance();
+		$notices->hide_notices();
+
+		$dismissed = get_option( 'wc_stripe_show_subscription_detached_notice' );
+		$this->assertIsArray( $dismissed );
+		$this->assertContains( 456, $dismissed );
+
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_GET['subscription_id'] );
+		delete_option( 'wc_stripe_show_subscription_detached_notice' );
 	}
 
 	/**
