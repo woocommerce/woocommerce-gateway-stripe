@@ -40,22 +40,20 @@ class WC_Stripe_Admin_Notices {
 	 * @since 1.0.0
 	 * @version 4.0.0
 	 *
-	 * @param string $slug                The notice slug.
-	 * @param string $class               The notice CSS class.
-	 * @param string $message             The notice message.
-	 * @param bool   $dismissible         Whether the notice is dismissible.
-	 * @param array  $actions             Optional action buttons.
-	 * @param array  $dismiss_extra_args  Optional extra query args added to the dismiss URL.
+	 * @param string $slug        The notice slug.
+	 * @param string $class       The notice CSS class.
+	 * @param string $message     The notice message.
+	 * @param bool   $dismissible Whether the notice is dismissible.
+	 * @param array  $actions     Optional action buttons.
 	 *
 	 * @return void
 	 */
-	public function add_admin_notice( $slug, $class, $message, $dismissible = false, $actions = [], $dismiss_extra_args = [] ) {
+	public function add_admin_notice( $slug, $class, $message, $dismissible = false, $actions = [] ) {
 		$this->notices[ $slug ] = [
-			'class'              => $class,
-			'message'            => $message,
-			'dismissible'        => $dismissible,
-			'actions'            => $actions,
-			'dismiss_extra_args' => $dismiss_extra_args,
+			'class'       => $class,
+			'message'     => $message,
+			'dismissible' => $dismissible,
+			'actions'     => $actions,
 		];
 	}
 
@@ -100,12 +98,8 @@ class WC_Stripe_Admin_Notices {
 			echo '<div class="' . esc_attr( $notice['class'] ) . '" style="' . esc_attr( $div_style ) . '">';
 
 			if ( $notice['dismissible'] ) {
-				$dismiss_url = add_query_arg( 'wc-stripe-hide-notice', $notice_key );
-				if ( ! empty( $notice['dismiss_extra_args'] ) && is_array( $notice['dismiss_extra_args'] ) ) {
-					$dismiss_url = add_query_arg( $notice['dismiss_extra_args'], $dismiss_url );
-				}
 				?>
-				<a href="<?php echo esc_url( wp_nonce_url( $dismiss_url, 'wc_stripe_hide_notices_nonce', '_wc_stripe_notice_nonce' ) ); ?>" class="woocommerce-message-close notice-dismiss" style="position:relative;float:right;padding:9px 0 9px 9px;text-decoration:none;"></a>
+				<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'wc-stripe-hide-notice', $notice_key ), 'wc_stripe_hide_notices_nonce', '_wc_stripe_notice_nonce' ) ); ?>" class="woocommerce-message-close notice-dismiss" style="position:relative;float:right;padding:9px 0 9px 9px;text-decoration:none;"></a>
 				<?php
 			}
 
@@ -517,7 +511,7 @@ class WC_Stripe_Admin_Notices {
 				'</a>',
 				__( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
 			);
-			$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message, true, [], [ 'subscription_id' => $subscription->get_id() ] );
+			$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message, true );
 		}
 	}
 
@@ -658,8 +652,14 @@ class WC_Stripe_Admin_Notices {
 					}
 					break;
 				case 'subscription_detached':
-					$subscription_id = isset( $_GET['subscription_id'] ) ? absint( $_GET['subscription_id'] ) : 0;
-					$dismissed       = get_option( 'wc_stripe_show_subscription_detached_notice', [] );
+					$query_params  = wp_unslash( $_REQUEST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+					$subscription_id = 0;
+					if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
+						$subscription_id = absint( $query_params['id'] ?? 0 );
+					} elseif ( isset( $query_params['post'] ) ) {
+						$subscription_id = absint( $query_params['post'] );
+					}
+					$dismissed = get_option( 'wc_stripe_show_subscription_detached_notice', [] );
 					if ( $subscription_id && ! in_array( $subscription_id, $dismissed, true ) ) {
 						$dismissed[] = $subscription_id;
 						update_option( 'wc_stripe_show_subscription_detached_notice', $dismissed );
