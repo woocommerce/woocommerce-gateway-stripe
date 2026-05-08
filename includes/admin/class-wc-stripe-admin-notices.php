@@ -453,6 +453,10 @@ class WC_Stripe_Admin_Notices {
 	 * @return void
 	 */
 	public function subscription_check_detachment() {
+		if ( 'no' === get_option( 'wc_stripe_show_subscription_detached_notice' ) ) {
+			return;
+		}
+
 		if ( ! WC_Stripe_Subscriptions_Helper::is_subscription_edit_page() ) {
 			return;
 		}
@@ -506,7 +510,7 @@ class WC_Stripe_Admin_Notices {
 				'</a>',
 				__( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
 			);
-			$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message );
+			$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message, true );
 		}
 	}
 
@@ -645,6 +649,9 @@ class WC_Stripe_Admin_Notices {
 					if ( isset( $_SERVER['REQUEST_URI'] ) ) {
 						wp_safe_redirect( remove_query_arg( [ 'wc-stripe-hide-notice', '_wc_stripe_notice_nonce' ], esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) );
 					}
+					break;
+				case 'subscription_detached':
+					update_option( 'wc_stripe_show_subscription_detached_notice', 'no' );
 					break;
 				case 'ece_location':
 					update_option( 'wc_stripe_show_ece_location_notice', 'no' );
