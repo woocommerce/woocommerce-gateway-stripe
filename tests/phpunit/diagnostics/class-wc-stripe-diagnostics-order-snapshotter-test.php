@@ -90,17 +90,15 @@ class WC_Stripe_Diagnostics_Order_Snapshotter_Test extends WP_UnitTestCase {
 
 		$this->store->set_status( 'sess-happy', WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED );
 
-		$trace    = $this->store->get( 'sess-happy' );
-		$events   = $trace['events'];
-		$snapshot = null;
-		foreach ( $events as $event ) {
-			if ( isset( $event['kind'] ) && 'order_snapshot' === $event['kind'] ) {
-				$snapshot = $event;
-				break;
-			}
-		}
+		// Snapshot is deferred to `shutdown` so order-side operations on
+		// the same request can settle first; tests drive shutdown
+		// explicitly to flush the queue.
+		do_action( 'shutdown' );
 
-		$this->assertNotNull( $snapshot, 'Expected an order_snapshot event after finalization.' );
+		$trace    = $this->store->get( 'sess-happy' );
+		$snapshot = $trace['order_snapshot'] ?? null;
+
+		$this->assertNotNull( $snapshot, 'Expected a top-level order_snapshot after finalization.' );
 		$this->assertSame( $order->get_id(), $snapshot['order_id'] );
 		$this->assertSame( 'failed', $snapshot['status'] );
 		$this->assertSame( 'stripe', $snapshot['payment_method'] );
@@ -141,15 +139,14 @@ class WC_Stripe_Diagnostics_Order_Snapshotter_Test extends WP_UnitTestCase {
 		$this->store->create( 'sess-unresolvable' );
 
 		$this->store->set_status( 'sess-unresolvable', WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED );
+		do_action( 'shutdown' );
 
 		$trace = $this->store->get( 'sess-unresolvable' );
-		foreach ( $trace['events'] as $event ) {
-			$this->assertNotSame(
-				'order_snapshot',
-				$event['kind'] ?? null,
-				'Expected no order_snapshot event for an unresolvable order.'
-			);
-		}
+		$this->assertArrayNotHasKey(
+			'order_snapshot',
+			$trace,
+			'Expected no order_snapshot for an unresolvable order.'
+		);
 		$this->assertSame(
 			WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED,
 			$trace['status']

@@ -213,6 +213,38 @@ class WC_Stripe_Diagnostics_Trace_Store {
 	}
 
 	/**
+	 * Persist a curated order snapshot at the trace's top level. The
+	 * snapshot is metadata about the trace (the order's state at the
+	 * moment the trace ended), not a chronological event, so it lives
+	 * outside the events array.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @param array  $snapshot   Already-redacted snapshot payload.
+	 * @return bool True when the snapshot was written.
+	 */
+	public function set_order_snapshot( $session_id, array $snapshot ) {
+		$session_id = self::sanitize_id( $session_id );
+		if ( '' === $session_id ) {
+			return false;
+		}
+		if ( ! $this->ensure_storage_dir() ) {
+			return false;
+		}
+
+		return (bool) $this->with_lock(
+			function () use ( $session_id, $snapshot ) {
+				$trace = $this->read_trace( $session_id );
+				if ( null === $trace ) {
+					return false;
+				}
+				$trace['order_snapshot'] = $snapshot;
+				$trace['updated_at']     = time();
+				return $this->write_trace( $session_id, $trace );
+			}
+		);
+	}
+
+	/**
 	 * Read a single trace. Returns null when the trace does not exist.
 	 *
 	 * @param string $session_id Session identifier.

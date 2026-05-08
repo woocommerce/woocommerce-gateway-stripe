@@ -3,8 +3,8 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Listens for the trace_finalized action and appends an `order_snapshot`
- * event to the trace.
+ * Listens for the trace_finalized action and writes an order snapshot to
+ * the trace's top-level `order_snapshot` field.
  *
  * Hookup:
  *
@@ -19,6 +19,15 @@ defined( 'ABSPATH' ) || exit;
  * time it observes one in a request, response, or webhook. If no order
  * was ever observed during the trace (e.g. an abandoned express checkout
  * where no order got created), the listener no-ops.
+ *
+ * The actual snapshot is deferred to the WordPress `shutdown` hook so
+ * that order-side operations performed later in the same request — order
+ * notes added by the gateway after the API response, status transitions
+ * driven by the failure handler — settle into the database before we
+ * read the order. Capturing synchronously inside `trace_finalized` would
+ * miss those follow-on writes because the recorder's response hook fires
+ * inside `WC_Stripe_API::request()`, several frames before the caller
+ * processes the response.
  */
 class WC_Stripe_Diagnostics_Order_Snapshotter {
 
@@ -28,6 +37,14 @@ class WC_Stripe_Diagnostics_Order_Snapshotter {
 	const NOTE_BODY_MAX    = 500;
 	const PRODUCT_NAME_MAX = 80;
 	const MAX_COUPONS      = 10;
+
+	/**
+	 * Session ids that finalized during this request and are pending
+	 * a snapshot at shutdown. Keyed by session id (de-duplicates).
+	 *
+	 * @var array<string, true>
+	 */
+	private $pending_session_ids = [];
 
 	/**
 	 * Trace store the snapshotter reads existing events from and appends
@@ -68,18 +85,59 @@ class WC_Stripe_Diagnostics_Order_Snapshotter {
 	 */
 	public function unregister(): void {
 		remove_action( self::ACTION, [ $this, 'on_trace_finalized' ], 10 );
+		remove_action( 'shutdown', [ $this, 'flush_pending_snapshots' ], 100 );
+		$this->pending_session_ids = [];
 	}
 
 	/**
-	 * Action listener.
+	 * Action listener for `wc_stripe_diagnostics_trace_finalized`. Queues
+	 * the session for end-of-request snapshotting; the actual order read
+	 * happens in {@see self::flush_pending_snapshots()} during shutdown.
 	 *
 	 * @param string $session_id Trace session identifier.
 	 * @param string $status     New terminal status (unused, but part of the action contract).
 	 */
 	public function on_trace_finalized( $session_id, $status ): void {
 		unset( $status );
+		if ( empty( $this->pending_session_ids ) ) {
+			add_action( 'shutdown', [ $this, 'flush_pending_snapshots' ], 100 );
+		}
+		$this->pending_session_ids[ (string) $session_id ] = true;
+	}
+
+	/**
+	 * Drain the queue and snapshot each pending session. Intended for the
+	 * WordPress `shutdown` hook; tests drive it via `do_action( 'shutdown' )`
+	 * after they call `set_status()`.
+	 */
+	public function flush_pending_snapshots(): void {
+		// Self-remove so a follow-up `set_status` in tests (or in any
+		// long-lived process) doesn't pile up duplicate listeners. The
+		// queue add in `on_trace_finalized` re-registers as needed.
+		remove_action( 'shutdown', [ $this, 'flush_pending_snapshots' ], 100 );
+
+		$session_ids               = array_keys( $this->pending_session_ids );
+		$this->pending_session_ids = [];
+		foreach ( $session_ids as $session_id ) {
+			$this->take_snapshot( (string) $session_id );
+		}
+	}
+
+	/**
+	 * Build and persist the snapshot for a single session. Idempotent:
+	 * if the trace already has an `order_snapshot`, skip — support reads
+	 * the order's state at the moment the trace first ended, not at every
+	 * later mutation.
+	 *
+	 * @param string $session_id Trace session identifier.
+	 */
+	private function take_snapshot( string $session_id ): void {
 		$trace = $this->store->get( $session_id );
 		if ( null === $trace ) {
+			return;
+		}
+
+		if ( ! empty( $trace['order_snapshot'] ) ) {
 			return;
 		}
 
@@ -94,7 +152,7 @@ class WC_Stripe_Diagnostics_Order_Snapshotter {
 		}
 
 		$snapshot = $this->build_snapshot( $order );
-		$this->store->append_event(
+		$this->store->set_order_snapshot(
 			$session_id,
 			$this->redactor->redact( $snapshot )
 		);
@@ -171,8 +229,6 @@ class WC_Stripe_Diagnostics_Order_Snapshotter {
 
 	/**
 	 * Pull the most recent admin (non-customer) notes for the order.
-	 * `wc_get_order_notes()` accepts `type => 'internal'` to exclude
-	 * customer-facing notes server-side.
 	 *
 	 * @param WC_Order $order The order whose notes to retrieve.
 	 * @return array
@@ -182,10 +238,8 @@ class WC_Stripe_Diagnostics_Order_Snapshotter {
 			$raw_notes = wc_get_order_notes(
 				[
 					'order_id' => $order->get_id(),
-					'limit'    => self::MAX_NOTES,
 					'order_by' => 'date_created',
 					'order'    => 'DESC',
-					'type'     => 'internal',
 				]
 			);
 		} catch ( \Throwable $e ) {
@@ -194,16 +248,17 @@ class WC_Stripe_Diagnostics_Order_Snapshotter {
 
 		$notes = [];
 		foreach ( $raw_notes as $note ) {
+			if ( ! empty( $note->customer_note ) ) {
+				continue;
+			}
+			if ( count( $notes ) >= self::MAX_NOTES ) {
+				break;
+			}
 			$content = (string) ( $note->content ?? '' );
 			$notes[] = [
-				'date'          => $note->date_created instanceof WC_DateTime ? (int) $note->date_created->getTimestamp() : null,
-				'content'       => substr( $content, 0, self::NOTE_BODY_MAX ),
-				'added_by'      => (string) ( $note->added_by ?? '' ),
-				// Sourced from the note object rather than hardcoded false:
-				// the `type => internal` query already excludes customer
-				// notes, but reading from the object keeps this field
-				// honest if the filter is ever relaxed.
-				'customer_note' => (bool) ( $note->customer_note ?? false ),
+				'date'     => $note->date_created instanceof WC_DateTime ? (int) $note->date_created->getTimestamp() : null,
+				'content'  => substr( $content, 0, self::NOTE_BODY_MAX ),
+				'added_by' => (string) ( $note->added_by ?? '' ),
 			];
 		}
 		return $notes;
