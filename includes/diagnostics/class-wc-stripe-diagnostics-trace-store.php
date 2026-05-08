@@ -140,7 +140,7 @@ class WC_Stripe_Diagnostics_Trace_Store {
 			return false;
 		}
 
-		return (bool) $this->with_lock(
+		$result = (bool) $this->with_lock(
 			function () use ( $session_id, $status ) {
 				$trace = $this->read_trace( $session_id );
 				if ( null === $trace ) {
@@ -151,6 +151,23 @@ class WC_Stripe_Diagnostics_Trace_Store {
 				return $this->write_trace( $session_id, $trace );
 			}
 		);
+
+		if ( $result ) {
+			/**
+			 * Fires after a diagnostics trace transitions to a terminal status
+			 * (completed | failed | abandoned). Listeners can use this to enrich
+			 * the trace with end-of-life context — for example, appending an
+			 * order_snapshot event. Listeners should call $store->get() and
+			 * $store->append_event() rather than expecting the trace payload as
+			 * an argument.
+			 *
+			 * @param string $session_id Trace session identifier.
+			 * @param string $status     New terminal status.
+			 */
+			do_action( 'wc_stripe_diagnostics_trace_finalized', $session_id, $status );
+		}
+
+		return $result;
 	}
 
 	/**
