@@ -46,7 +46,7 @@ class WC_Stripe_Express_Checkout_Currency_Guard_Test extends WP_UnitTestCase {
 
 		$guard->assert_currency_matches_element( $order, $req );
 
-		$this->assertTrue( true ); // reached only when no exception was thrown
+		$this->assertTrue( true );
 	}
 
 	public function provider_no_throw_scenarios(): array {
@@ -90,7 +90,7 @@ class WC_Stripe_Express_Checkout_Currency_Guard_Test extends WP_UnitTestCase {
 			$guard->assert_currency_matches_element( $order, $req );
 			$this->fail( 'Expected RouteException, none thrown.' );
 		} catch ( RouteException $e ) {
-			$this->assertSame( WC_Stripe_Express_Checkout_Currency_Guard::MISMATCH_ERROR_CODE, $e->getErrorCode() );
+			$this->assertSame( 'wc_stripe_express_checkout_currency_mismatch', $e->getErrorCode() );
 			$this->assertSame( 400, $e->getCode() );
 			$this->assertStringContainsString( 'USD', $e->getMessage() );
 			$this->assertStringContainsString( 'EUR', $e->getMessage() );
