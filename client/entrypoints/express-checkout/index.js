@@ -29,6 +29,10 @@ import { getAddToCartVariationParams } from 'wcstripe/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import 'wcstripe/express-checkout/compatibility/classic-checkout-custom-fields';
 import 'wcstripe/express-checkout/compatibility/wc-product-page';
+import 'wcstripe/express-checkout/compatibility/wcpbc-currency';
+import { resolveExpressCheckoutCurrency } from 'wcstripe/express-checkout/utils/resolve-currency';
+import { getResolvedCurrency } from 'wcstripe/express-checkout/utils/resolved-currency-cache';
+import { resolveProductPageBootArgs } from 'wcstripe/express-checkout/utils/resolve-product-page-boot-args';
 import './styles.scss';
 import {
 	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
@@ -225,6 +229,19 @@ jQuery( function ( $ ) {
 				'taxes_based_on_billing'
 			);
 
+			const localizedCurrency = (
+				getExpressCheckoutData( 'product' )?.currency ||
+				getExpressCheckoutData( 'checkout' )?.currency_code ||
+				''
+			).toLowerCase();
+
+			// is_amazon_pay_enabled() is currency-aware server-side, but on product
+			// pages it reflects the rendered base currency, not the resolved one.
+			// dropping amazon_pay client-side avoids the all-or-nothing rejection
+			// from Stripe when the resolved currency isn't in the supported set.
+			const currencyResolvedAway =
+				getResolvedCurrency( localizedCurrency ) !== localizedCurrency;
+
 			// For each supported express payment type, create their own
 			// express checkout element. This is necessary as some express payment types
 			// may require different options or configurations, e.g. Amazon Pay
@@ -235,6 +252,7 @@ jQuery( function ( $ ) {
 				isExpressCheckoutEnabled &&
 					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 				isAmazonPayEnabled &&
+					! currencyResolvedAway &&
 					! areTaxesBasedOnBillingAddress &&
 					EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
@@ -497,14 +515,17 @@ jQuery( function ( $ ) {
 			} );
 
 			if ( getExpressCheckoutData( 'is_product_page' ) ) {
-				wcStripeECE.attachProductPageEventListeners( elements );
+				wcStripeECE.attachProductPageEventListeners(
+					elements,
+					options.currency
+				);
 			}
 		},
 
 		/**
 		 * Initialize event handlers and UI state
 		 */
-		init: () => {
+		init: async () => {
 			if ( getExpressCheckoutData( 'is_pay_for_order' ) ) {
 				if (
 					typeof wcStripeExpressCheckoutPayForOrderParams ===
@@ -543,27 +564,20 @@ jQuery( function ( $ ) {
 					orderDetails,
 				} );
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
-				const isProductSupported =
-					getExpressCheckoutData( 'product' )
-						?.validVariationSelected ?? true;
-				if ( isProductSupported ) {
-					const displayItems =
-						getExpressCheckoutData( 'product' ).displayItems ?? [];
-					wcStripeECE.startExpressCheckout( {
-						total: getExpressCheckoutData( 'product' )?.total
-							.amount,
-						currency: getExpressCheckoutData( 'product' )?.currency,
-						requestShipping:
-							getExpressCheckoutData( 'product' )
-								?.requestShipping ?? false,
-						requestPhone:
-							getExpressCheckoutData( 'checkout' )
-								?.needs_payer_phone ?? false,
-						displayItems: useLegacyCartEndpoints
-							? displayItems
-							: transformLabeledDisplayItems( displayItems ),
-					} );
+				const args = await resolveProductPageBootArgs( {
+					getExpressCheckoutData,
+					resolveExpressCheckoutCurrency,
+					getResolvedCurrency,
+					getSelectedProductData: () =>
+						wcStripeECE.getSelectedProductData(),
+					transformLabeledDisplayItems,
+					useLegacyCartEndpoints,
+				} );
+				if ( ! args ) {
+					return;
 				}
+
+				wcStripeECE.startExpressCheckout( args );
 			} else {
 				// Cart and Checkout page specific initialization.
 				api.expressCheckoutGetCartDetails().then( ( cart ) => {
@@ -767,7 +781,18 @@ jQuery( function ( $ ) {
 			displayExpressCheckoutNotice( message, 'error' );
 		},
 
-		attachProductPageEventListeners: ( elements ) => {
+		attachProductPageEventListeners: ( elements, currentCurrency ) => {
+			// elements.update can change amount but not currency. so any
+			// variation/quantity switch that lands on a different currency
+			// has to rebuild the element instead of updating it.
+			const normalizedCurrent = ( currentCurrency || '' ).toLowerCase();
+			const hasCurrencyChanged = ( response ) => {
+				const responseCurrency = (
+					response.currency || normalizedCurrent
+				).toLowerCase();
+				return responseCurrency !== normalizedCurrent;
+			};
+
 			// WooCommerce Deposits support.
 			// Trigger the "woocommerce_variation_has_changed" event when the deposit option is changed.
 			// Needs to be defined before the `woocommerce_variation_has_changed` event handler is set.
@@ -794,7 +819,7 @@ jQuery( function ( $ ) {
 					wcStripeECE.blockExpressCheckoutButton();
 
 					$.when( wcStripeECE.getSelectedProductData() )
-						.then( ( response ) => {
+						.then( async ( response ) => {
 							if ( response.error ) {
 								wcStripeECE.hide();
 							} else {
@@ -812,13 +837,19 @@ jQuery( function ( $ ) {
 									getExpressCheckoutData( 'product' )
 										.requestShipping ===
 										response.requestShipping;
+								const currencyChanged =
+									hasCurrencyChanged( response );
 
-								if ( ! isDeposits && needsShipping ) {
+								if (
+									! isDeposits &&
+									needsShipping &&
+									! currencyChanged
+								) {
 									elements.update( {
 										amount: response.total.amount,
 									} );
 								} else {
-									wcStripeECE.reInitExpressCheckoutElement(
+									await wcStripeECE.reInitExpressCheckoutElement(
 										response
 									);
 								}
@@ -853,23 +884,27 @@ jQuery( function ( $ ) {
 
 						$.when( wcStripeECE.getSelectedProductData() )
 							.then(
-								( response ) => {
+								async ( response ) => {
 									// In case the server returns an unexpected response
 									if ( typeof response !== 'object' ) {
 										wcStripeECEError = defaultErrorMessage;
 									}
 
+									const currencyChanged =
+										hasCurrencyChanged( response );
+
 									if (
 										! wcStripeECE.paymentAborted &&
 										getExpressCheckoutData( 'product' )
 											.requestShipping ===
-											response.requestShipping
+											response.requestShipping &&
+										! currencyChanged
 									) {
 										elements.update( {
 											amount: response.total.amount,
 										} );
 									} else {
-										wcStripeECE.reInitExpressCheckoutElement(
+										await wcStripeECE.reInitExpressCheckoutElement(
 											response
 										);
 									}
@@ -890,13 +925,19 @@ jQuery( function ( $ ) {
 				);
 		},
 
-		reInitExpressCheckoutElement: ( response ) => {
+		reInitExpressCheckoutElement: async ( response ) => {
 			getExpressCheckoutData( 'product' ).requestShipping =
 				response.requestShipping;
 			getExpressCheckoutData( 'product' ).total = response.total;
 			getExpressCheckoutData( 'product' ).displayItems =
 				response.displayItems;
-			wcStripeECE.init();
+			// carry the new currency forward so the next init() reads it
+			// and the resolver settles on it (cache short-circuits).
+			if ( response.currency ) {
+				getExpressCheckoutData( 'product' ).currency =
+					response.currency;
+			}
+			await wcStripeECE.init();
 		},
 
 		blockExpressCheckoutButton: () => {
