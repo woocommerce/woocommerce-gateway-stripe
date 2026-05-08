@@ -1,10 +1,10 @@
 /**
  * Builds the args object passed to `startExpressCheckout` on a shortcode
- * product page. Extracted from the entrypoint so the resolver-aware boot path
+ * product page. Extracted from the entrypoint so the resolver-aware start path
  * is testable without standing up the entire jQuery/Stripe.js shell.
  *
  * Returns `null` when the current variation isn't supported and ECE should
- * skip booting entirely.
+ * skip starting entirely.
  *
  * @param {Object}   deps
  * @param {Function} deps.getExpressCheckoutData         Reads the localized ECE params (`'product'`, `'checkout'`).
@@ -15,7 +15,7 @@
  * @param {boolean}  deps.useLegacyCartEndpoints         True for variations/bookings; skips the transform.
  * @return {Promise<Object|null>} Args for `startExpressCheckout`, or `null` to skip.
  */
-export async function resolveProductPageBootArgs( {
+export async function computeProductPageStartArgs( {
 	getExpressCheckoutData,
 	resolveExpressCheckoutCurrency,
 	getResolvedCurrency,
@@ -40,7 +40,7 @@ export async function resolveProductPageBootArgs( {
 	} );
 
 	const resolvedCurrency = getResolvedCurrency( localizedCurrency );
-	const currencyResolvedAway = resolvedCurrency !== localizedCurrency;
+	const hasCurrencyChanged = resolvedCurrency !== localizedCurrency;
 
 	let total = getExpressCheckoutData( 'product' )?.total.amount;
 	let displayItems = getExpressCheckoutData( 'product' ).displayItems ?? [];
@@ -50,7 +50,7 @@ export async function resolveProductPageBootArgs( {
 	// if the resolver settled on a different currency, the localized product
 	// data was rendered against the wrong one. the AJAX call below will now see
 	// WCPBC's cookie and return converted values.
-	if ( currencyResolvedAway ) {
+	if ( hasCurrencyChanged ) {
 		try {
 			const fresh = await getSelectedProductData();
 			if ( fresh && ! fresh.error ) {

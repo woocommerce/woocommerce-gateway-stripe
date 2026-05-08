@@ -1,4 +1,4 @@
-import { resolveProductPageBootArgs } from '../resolve-product-page-boot-args';
+import { computeProductPageStartArgs } from '../compute-product-page-start-args';
 
 const makeData =
 	( {
@@ -20,7 +20,7 @@ const makeData =
 const passthroughTransform = ( items ) =>
 	items.map( ( i ) => ( { ...i, t: 1 } ) );
 
-describe( 'resolveProductPageBootArgs', () => {
+describe( 'computeProductPageStartArgs', () => {
 	test( 'returns null when the selected variation is unsupported', async () => {
 		const deps = {
 			getExpressCheckoutData: makeData( {
@@ -33,7 +33,7 @@ describe( 'resolveProductPageBootArgs', () => {
 			useLegacyCartEndpoints: false,
 		};
 
-		const result = await resolveProductPageBootArgs( deps );
+		const result = await computeProductPageStartArgs( deps );
 
 		expect( result ).toBeNull();
 		expect( deps.resolveExpressCheckoutCurrency ).not.toHaveBeenCalled();
@@ -53,7 +53,7 @@ describe( 'resolveProductPageBootArgs', () => {
 			useLegacyCartEndpoints: false,
 		};
 
-		const result = await resolveProductPageBootArgs( deps );
+		const result = await computeProductPageStartArgs( deps );
 
 		expect( getSelectedProductData ).not.toHaveBeenCalled();
 		expect( result ).toEqual( {
@@ -65,7 +65,7 @@ describe( 'resolveProductPageBootArgs', () => {
 		} );
 	} );
 
-	test( 'currency resolved away: re-fetches product data and uses fresh values', async () => {
+	test( 'currency changed: re-fetches product data and uses fresh values', async () => {
 		const fresh = {
 			total: { amount: 1300 },
 			displayItems: [ { label: 'Widget (EUR)', amount: 1300 } ],
@@ -82,7 +82,7 @@ describe( 'resolveProductPageBootArgs', () => {
 			useLegacyCartEndpoints: false,
 		};
 
-		const result = await resolveProductPageBootArgs( deps );
+		const result = await computeProductPageStartArgs( deps );
 
 		expect( deps.getSelectedProductData ).toHaveBeenCalledTimes( 1 );
 		expect( result ).toEqual( {
@@ -106,7 +106,7 @@ describe( 'resolveProductPageBootArgs', () => {
 			useLegacyCartEndpoints: true,
 		};
 
-		const result = await resolveProductPageBootArgs( deps );
+		const result = await computeProductPageStartArgs( deps );
 
 		expect( result.displayItems ).toEqual( [
 			{ label: 'Widget', amount: 1500 },
@@ -127,7 +127,7 @@ describe( 'resolveProductPageBootArgs', () => {
 			useLegacyCartEndpoints: false,
 		};
 
-		const result = await resolveProductPageBootArgs( deps );
+		const result = await computeProductPageStartArgs( deps );
 
 		expect( result.currency ).toBe( 'eur' );
 		expect( result.total ).toBe( 1500 );
@@ -148,7 +148,7 @@ describe( 'resolveProductPageBootArgs', () => {
 			useLegacyCartEndpoints: false,
 		};
 
-		const result = await resolveProductPageBootArgs( deps );
+		const result = await computeProductPageStartArgs( deps );
 
 		expect( result.total ).toBe( 1500 );
 	} );
@@ -167,7 +167,7 @@ describe( 'resolveProductPageBootArgs', () => {
 			useLegacyCartEndpoints: false,
 		};
 
-		const result = await resolveProductPageBootArgs( deps );
+		const result = await computeProductPageStartArgs( deps );
 
 		expect( result.requestPhone ).toBe( true );
 	} );

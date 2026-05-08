@@ -32,7 +32,7 @@ import 'wcstripe/express-checkout/compatibility/wc-product-page';
 import 'wcstripe/express-checkout/compatibility/wcpbc-currency';
 import { resolveExpressCheckoutCurrency } from 'wcstripe/express-checkout/utils/resolve-currency';
 import { getResolvedCurrency } from 'wcstripe/express-checkout/utils/resolved-currency-cache';
-import { resolveProductPageBootArgs } from 'wcstripe/express-checkout/utils/resolve-product-page-boot-args';
+import { computeProductPageStartArgs } from 'wcstripe/express-checkout/utils/compute-product-page-start-args';
 import './styles.scss';
 import {
 	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
@@ -236,10 +236,10 @@ jQuery( function ( $ ) {
 			).toLowerCase();
 
 			// is_amazon_pay_enabled() is currency-aware server-side, but on product
-			// pages it reflects the rendered base currency, not the resolved one.
+			// pages it reflects the rendered base currency, not the changed one.
 			// dropping amazon_pay client-side avoids the all-or-nothing rejection
-			// from Stripe when the resolved currency isn't in the supported set.
-			const currencyResolvedAway =
+			// from Stripe when the changed currency isn't in the supported set.
+			const hasCurrencyChanged =
 				getResolvedCurrency( localizedCurrency ) !== localizedCurrency;
 
 			// For each supported express payment type, create their own
@@ -252,7 +252,7 @@ jQuery( function ( $ ) {
 				isExpressCheckoutEnabled &&
 					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 				isAmazonPayEnabled &&
-					! currencyResolvedAway &&
+					! hasCurrencyChanged &&
 					! areTaxesBasedOnBillingAddress &&
 					EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
@@ -564,7 +564,7 @@ jQuery( function ( $ ) {
 					orderDetails,
 				} );
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
-				const args = await resolveProductPageBootArgs( {
+				const args = await computeProductPageStartArgs( {
 					getExpressCheckoutData,
 					resolveExpressCheckoutCurrency,
 					getResolvedCurrency,
