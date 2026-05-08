@@ -472,10 +472,11 @@ class WC_Stripe_Admin_Notices {
 		}
 
 		if ( ! $subscription->has_status( [ 'active' ] ) ) {
+			// Only show the notice for active subscriptions.
 			return;
 		}
 
-		$dismissed_subscriptions = get_option( 'wc_stripe_show_subscription_detached_notice', [] );
+		$dismissed_subscriptions = (array) get_option( 'wc_stripe_show_subscription_detached_notice', [] );
 
 		if ( in_array( $subscription->get_id(), $dismissed_subscriptions, true ) ) {
 			return;
@@ -659,7 +660,7 @@ class WC_Stripe_Admin_Notices {
 					} elseif ( isset( $query_params['post'] ) ) {
 						$subscription_id = absint( $query_params['post'] );
 					}
-					$dismissed = get_option( 'wc_stripe_show_subscription_detached_notice', [] );
+					$dismissed = (array) get_option( 'wc_stripe_show_subscription_detached_notice', [] );
 					if ( $subscription_id && ! in_array( $subscription_id, $dismissed, true ) ) {
 						$dismissed[] = $subscription_id;
 						update_option( 'wc_stripe_show_subscription_detached_notice', $dismissed );
