@@ -66,6 +66,13 @@ $diagnostics-bg-toolbar: styles.$wp-gray-0;
 		margin-bottom: 0;
 		flex-shrink: 0;
 	}
+
+	// `<ToggleControl>` in this `@wordpress/components` version does not honour
+	// `hideLabelFromVision`, so we visually hide the label here while keeping it
+	// in the DOM as the toggle's accessible name.
+	.components-toggle-control__label {
+		display: none;
+	}
 }
 
 .wc-stripe-diagnostics-traces {
