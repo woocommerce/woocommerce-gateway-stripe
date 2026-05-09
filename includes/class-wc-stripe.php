@@ -144,6 +144,13 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-action-scheduler-service.php';
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/remote-config/class-wc-stripe-remote-config-flags.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/remote-config/class-wc-stripe-remote-config-client.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/remote-config/class-wc-stripe-remote-config.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/remote-config/class-wc-stripe-remote-config-scheduler.php';
+		( new WC_Stripe_Remote_Config_Scheduler() )->init_hooks();
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-state.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-handler.php';
 		new WC_Stripe_Webhook_Handler();
