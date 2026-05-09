@@ -197,10 +197,11 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		$this->assertSame( 'wc_stripe_remote_config_payload_too_large', $result->get_error_code() );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_fetch_short_circuits_when_disabled_by_constant(): void {
-		if ( defined( 'WC_STRIPE_DISABLE_REMOTE_CONFIG' ) ) {
-			$this->markTestSkipped( 'Constant already defined; cannot redefine in this run.' );
-		}
 		define( 'WC_STRIPE_DISABLE_REMOTE_CONFIG', true );
 
 		$result = $this->client->fetch( 'live' );
