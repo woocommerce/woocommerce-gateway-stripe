@@ -1,0 +1,66 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Schema for flags the remote-config channel may influence.
+ *
+ * Adding a new remotely-controllable flag = add a row to FLAGS and route the
+ * call site through WC_Stripe_Remote_Config::resolve().
+ *
+ * The `reader` field is informational only (greppable pointer to which code
+ * reads the flag); the resolver does not invoke it.
+ *
+ * The `setting` field is `[ option_name, key|null ]`. `null` means the option
+ * itself is the value (not a sub-key). The remote-config channel never writes
+ * to these options in v1 — they are listed for audit/grep.
+ */
+class WC_Stripe_Remote_Config_Flags {
+
+	/**
+	 * Maximum decoded payload size accepted from the server, in bytes.
+	 */
+	const MAX_PAYLOAD_BYTES = 65536;
+
+	/**
+	 * Schema of remotely-controllable flags.
+	 *
+	 * @var array<string, array{reader: string, setting: array{0: string, 1: ?string}, type: string}>
+	 */
+	const FLAGS = [
+		'optimized_checkout' => [
+			'reader'  => 'WC_Stripe_Feature_Flags::is_oc_available',
+			'setting' => [ '_wcstripe_feature_oc', null ],
+			'type'    => 'bool',
+		],
+	];
+
+	/**
+	 * Whether the given flag name is declared in FLAGS.
+	 */
+	public static function is_known_flag( string $name ): bool {
+		return isset( self::FLAGS[ $name ] );
+	}
+
+	/**
+	 * Whether the given value matches the declared type for the named flag.
+	 *
+	 * Returns false for unknown flags.
+	 *
+	 * @param mixed $value
+	 */
+	public static function validate_value( string $name, $value ): bool {
+		if ( ! self::is_known_flag( $name ) ) {
+			return false;
+		}
+
+		$type = self::FLAGS[ $name ]['type'];
+		switch ( $type ) {
+			case 'bool':
+				return is_bool( $value );
+			default:
+				return false;
+		}
+	}
+}
