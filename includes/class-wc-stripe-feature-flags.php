@@ -210,25 +210,32 @@ class WC_Stripe_Feature_Flags {
 	public static function is_oc_available() {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$pmc_enabled     = $stripe_settings['pmc_enabled'] ?? 'no';
+
 		if ( 'yes' !== $pmc_enabled ) {
-			return false;
+			$local = false;
+		} else {
+			/**
+			 * Filter to control the availability of the Optimized Checkout feature.
+			 *
+			 * @since 9.6.0
+			 * @deprecated This filter will be removed in version 9.9.0. No replacement will be provided as the Optimized Checkout feature will be permanently enabled.
+			 * @param bool   $default_value  The default value for the feature flag.
+			 * @param string $default_pmc    The default value of the 'pmc_enabled' setting passed to the filter.
+			 * @param string $pmc_enabled    The actual value of the 'pmc_enabled' setting.
+			 */
+			$local = (bool) apply_filters(
+				'wc_stripe_is_optimized_checkout_available',
+				true,
+				'yes',
+				$pmc_enabled
+			);
 		}
 
-		/**
-		 * Filter to control the availability of the Optimized Checkout feature.
-		 *
-		 * @since 9.6.0
-		 * @deprecated This filter will be removed in version 9.9.0. No replacement will be provided as the Optimized Checkout feature will be permanently enabled.
-		 * @param bool   $default_value  The default value for the feature flag.
-		 * @param string $default_pmc    The default value of the 'pmc_enabled' setting passed to the filter.
-		 * @param string $pmc_enabled    The actual value of the 'pmc_enabled' setting.
-		 */
-		return (bool) apply_filters(
-			'wc_stripe_is_optimized_checkout_available',
-			true,
-			'yes',
-			$pmc_enabled
-		);
+		if ( ! class_exists( 'WC_Stripe_Remote_Config' ) ) {
+			return $local;
+		}
+
+		return (bool) ( new WC_Stripe_Remote_Config() )->resolve( 'optimized_checkout', $local );
 	}
 
 	/**

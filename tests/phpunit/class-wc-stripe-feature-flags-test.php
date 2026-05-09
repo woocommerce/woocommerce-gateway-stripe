@@ -91,6 +91,79 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test that is_oc_available routes its result through the remote-config resolver.
+	 *
+	 * @dataProvider provide_test_is_oc_available_with_remote_config
+	 */
+	public function test_is_oc_available_routes_through_remote_config(
+		bool $pmc_enabled,
+		?bool $remote_value,
+		bool $expected
+	): void {
+		PMC_Test_Helper::cache_mocked_configuration();
+		if ( $pmc_enabled ) {
+			PMC_Test_Helper::enable_pmc();
+		} else {
+			PMC_Test_Helper::disable_pmc();
+		}
+
+		WC_Stripe_Remote_Config::reset_in_memory_cache();
+		delete_option( '_wcstripe_remote_config_live' );
+
+		// Force live mode so we hit the live cache.
+		$settings             = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode'] = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		if ( null !== $remote_value ) {
+			( new WC_Stripe_Remote_Config() )->apply(
+				'live',
+				[
+					'flags'        => [ 'optimized_checkout' => [ 'value' => $remote_value ] ],
+					'generated_at' => '2026-05-09T12:00:00Z',
+					'ttl'          => 86400,
+				]
+			);
+		}
+
+		$actual = WC_Stripe_Feature_Flags::is_oc_available();
+
+		// Cleanup
+		PMC_Test_Helper::disable_pmc();
+		PMC_Test_Helper::delete_cached_configuration();
+		WC_Stripe_Remote_Config::reset_in_memory_cache();
+		delete_option( '_wcstripe_remote_config_live' );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	public function provide_test_is_oc_available_with_remote_config(): array {
+		return [
+			'no remote, PMC enabled -> local true'               => [
+				'PMC enabled'  => true,
+				'remote value' => null,
+				'expected'     => true,
+			],
+			'no remote, PMC disabled -> local false'             => [
+				'PMC enabled'  => false,
+				'remote value' => null,
+				'expected'     => false,
+			],
+			'remote false overrides local true'                  => [
+				'PMC enabled'  => true,
+				'remote value' => false,
+				'expected'     => false,
+			],
+			'remote true wins even when local PMC gate disables' => [
+				'PMC enabled'  => false,
+				'remote value' => true,
+				// `override` policy: remote wins unconditionally.
+				'expected'     => true,
+			],
+		];
+	}
+
+	/**
 	 * Test for `is_checkout_sessions_available`.
 	 *
 	 * @param bool   $pmc_enabled           Whether the Payment Method Configuration API is enabled.
