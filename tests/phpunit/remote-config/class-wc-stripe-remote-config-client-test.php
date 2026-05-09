@@ -50,37 +50,26 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
-	public function test_fetch_hits_pinned_wpcom_url_with_query_params(): void {
+	public function test_fetch_request_shape_and_decoded_body(): void {
 		$result = $this->client->fetch( 'live' );
 
 		$this->assertIsArray( $result );
-		$this->assertCount( 1, $this->captured_requests );
+		$this->assertSame( false, $result['flags']['optimized_checkout']['value'] );
 
-		$url = $this->captured_requests[0]['url'];
+		$this->assertCount( 1, $this->captured_requests );
+		$url  = $this->captured_requests[0]['url'];
+		$args = $this->captured_requests[0]['args'];
+
 		$this->assertStringStartsWith( 'https://public-api.wordpress.com/wpcom/v2/woocommerce/stripe/remote-config', $url );
 		$this->assertStringContainsString( 'mode=live', $url );
 		$this->assertStringContainsString( 'plugin_version=' . WC_STRIPE_VERSION, $url );
-	}
-
-	public function test_fetch_uses_sslverify_true_and_get_method(): void {
-		$this->client->fetch( 'live' );
-
-		$args = $this->captured_requests[0]['args'];
 		$this->assertTrue( $args['sslverify'] );
 		$this->assertSame( 'GET', $args['method'] );
 		$this->assertSame( 10, $args['timeout'] );
 	}
 
-	public function test_fetch_returns_decoded_body(): void {
-		$result = $this->client->fetch( 'live' );
-
-		$this->assertIsArray( $result );
-		$this->assertArrayHasKey( 'flags', $result );
-		$this->assertSame( false, $result['flags']['optimized_checkout']['value'] );
-	}
-
 	public function test_fetch_does_not_route_through_connect_api_filters(): void {
-		// The deprecated Connect API filters must not affect this client.
+		// Deprecated Connect API filters must not run for remote-config requests.
 		$tampered = false;
 		add_filter(
 			'wc_connect_server_url',
@@ -117,84 +106,68 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		remove_filter( 'wc_stripe_remote_config_enabled', '__return_false' );
 	}
 
-	public function test_fetch_returns_wp_error_on_http_error(): void {
+	/**
+	 * @dataProvider provide_failure_responses
+	 */
+	public function test_fetch_returns_wp_error_on_failure( $stub, ?string $expected_code ): void {
 		remove_all_filters( 'pre_http_request' );
 		add_filter(
 			'pre_http_request',
-			static function () {
-				return new WP_Error( 'http_request_failed', 'Could not connect' );
+			static function () use ( $stub ) {
+				return is_callable( $stub ) ? $stub() : $stub;
 			}
 		);
 
 		$result = $this->client->fetch( 'live' );
 
 		$this->assertWPError( $result );
+		if ( null !== $expected_code ) {
+			$this->assertSame( $expected_code, $result->get_error_code() );
+		}
 	}
 
-	public function test_fetch_returns_wp_error_on_non_200_response(): void {
-		remove_all_filters( 'pre_http_request' );
-		add_filter(
-			'pre_http_request',
-			static function () {
-				return [
+	public function provide_failure_responses(): array {
+		return [
+			'wp http transport error' => [
+				new WP_Error( 'http_request_failed', 'Could not connect' ),
+				null, // Error code is whatever WP returns; only assert it's a WP_Error.
+			],
+			'non-200 response'        => [
+				[
 					'response' => [
 						'code'    => 503,
 						'message' => 'Service Unavailable',
 					],
 					'body'     => '',
 					'headers'  => [],
-				];
-			}
-		);
-
-		$result = $this->client->fetch( 'live' );
-
-		$this->assertWPError( $result );
-		$this->assertSame( 'wc_stripe_remote_config_http_error', $result->get_error_code() );
-	}
-
-	public function test_fetch_returns_wp_error_on_invalid_json(): void {
-		remove_all_filters( 'pre_http_request' );
-		add_filter(
-			'pre_http_request',
-			static function () {
-				return [
+				],
+				'wc_stripe_remote_config_http_error',
+			],
+			'invalid json'            => [
+				[
 					'response' => [
 						'code'    => 200,
 						'message' => 'OK',
 					],
 					'body'     => 'not-json',
 					'headers'  => [],
-				];
-			}
-		);
-
-		$result = $this->client->fetch( 'live' );
-
-		$this->assertWPError( $result );
-		$this->assertSame( 'wc_stripe_remote_config_invalid_json', $result->get_error_code() );
-	}
-
-	public function test_fetch_rejects_oversized_payload(): void {
-		remove_all_filters( 'pre_http_request' );
-		add_filter(
-			'pre_http_request',
-			static function () {
-				return [
-					'response' => [
-						'code'    => 200,
-						'message' => 'OK',
-					],
-					'body'     => str_repeat( 'a', WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES + 1 ),
-					'headers'  => [],
-				];
-			}
-		);
-
-		$result = $this->client->fetch( 'live' );
-
-		$this->assertWPError( $result );
-		$this->assertSame( 'wc_stripe_remote_config_payload_too_large', $result->get_error_code() );
+				],
+				'wc_stripe_remote_config_invalid_json',
+			],
+			'oversized payload'       => [
+				static function () {
+					return [
+						'response' => [
+							'code'    => 200,
+							'message' => 'OK',
+						],
+						'body'     => str_repeat( 'a', WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES + 1 ),
+						'headers'  => [],
+					];
+				},
+				'wc_stripe_remote_config_payload_too_large',
+			],
+		];
 	}
 
 	/**

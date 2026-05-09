@@ -30,47 +30,52 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 		];
 	}
 
-	public function test_apply_writes_to_per_mode_option(): void {
+	public function test_apply_writes_to_per_mode_option_and_returns_true(): void {
 		$rc = new WC_Stripe_Remote_Config();
-		$rc->apply( 'live', $this->valid_payload( false ) );
+		$this->assertTrue( $rc->apply( 'live', $this->valid_payload( false ) ) );
 
 		$stored = get_option( '_wcstripe_remote_config_live' );
 		$this->assertIsArray( $stored );
 		$this->assertSame( 1, $stored['schema_version'] );
 		$this->assertSame( false, $stored['flags']['optimized_checkout']['value'] );
-
 		$this->assertFalse( get_option( '_wcstripe_remote_config_test' ) );
 	}
 
-	public function test_apply_returns_true_on_success(): void {
-		$rc = new WC_Stripe_Remote_Config();
-		$this->assertTrue( $rc->apply( 'live', $this->valid_payload() ) );
-	}
-
-	public function test_apply_rejects_payload_missing_generated_at(): void {
+	/**
+	 * @dataProvider provide_invalid_payloads
+	 */
+	public function test_apply_rejects_invalid_payload( callable $mutate ): void {
 		$rc      = new WC_Stripe_Remote_Config();
 		$payload = $this->valid_payload();
-		unset( $payload['generated_at'] );
+		$mutate( $payload );
 
 		$this->assertFalse( $rc->apply( 'live', $payload ) );
 		$this->assertFalse( get_option( '_wcstripe_remote_config_live' ) );
 	}
 
-	public function test_apply_rejects_payload_with_non_iso_generated_at(): void {
-		$rc                      = new WC_Stripe_Remote_Config();
-		$payload                 = $this->valid_payload();
-		$payload['generated_at'] = 'not-a-date';
-
-		$this->assertFalse( $rc->apply( 'live', $payload ) );
-	}
-
-	public function test_apply_rejects_payload_with_wrong_flag_type(): void {
-		$rc      = new WC_Stripe_Remote_Config();
-		$payload = $this->valid_payload();
-		$payload['flags']['optimized_checkout']['value'] = 'true';   // string, not bool
-
-		$this->assertFalse( $rc->apply( 'live', $payload ) );
-		$this->assertFalse( get_option( '_wcstripe_remote_config_live' ) );
+	public function provide_invalid_payloads(): array {
+		return [
+			'missing generated_at' => [
+				static function ( array &$p ): void {
+					unset( $p['generated_at'] );
+				},
+			],
+			'non-iso generated_at' => [
+				static function ( array &$p ): void {
+					$p['generated_at'] = 'not-a-date';
+				},
+			],
+			'wrong flag type'      => [
+				static function ( array &$p ): void {
+					$p['flags']['optimized_checkout']['value'] = 'true';
+				},
+			],
+			'oversized payload'    => [
+				static function ( array &$p ): void {
+					$p['_padding'] = str_repeat( 'a', WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES + 1 );
+				},
+			],
+		];
 	}
 
 	public function test_apply_drops_unknown_flag_names_silently(): void {
@@ -97,35 +102,16 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 		$this->assertSame( false, $stored['flags']['optimized_checkout']['value'] );
 	}
 
-	public function test_apply_rejects_oversized_payload(): void {
-		$rc      = new WC_Stripe_Remote_Config();
-		$payload = $this->valid_payload();
-		// Stuff something large into a known-good top-level field.
-		$payload['_padding'] = str_repeat( 'a', WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES + 1 );
-
-		$this->assertFalse( $rc->apply( 'live', $payload ) );
-		$this->assertFalse( get_option( '_wcstripe_remote_config_live' ) );
-	}
-
-	public function test_resolve_returns_remote_value_when_present(): void {
-		$rc = new WC_Stripe_Remote_Config();
-		$rc->apply( 'live', $this->valid_payload( false ) );
-
-		$this->assertFalse( $rc->resolve( 'optimized_checkout', true, 'live' ) );
-	}
-
-	public function test_resolve_returns_local_value_when_remote_absent(): void {
+	public function test_resolve_remote_wins_when_present_else_local(): void {
 		$rc = new WC_Stripe_Remote_Config();
 
+		// No remote yet: local fallback.
 		$this->assertTrue( $rc->resolve( 'optimized_checkout', true, 'live' ) );
-		$this->assertFalse( $rc->resolve( 'optimized_checkout', false, 'live' ) );
-	}
-
-	public function test_resolve_returns_local_value_for_unknown_flag(): void {
-		$rc = new WC_Stripe_Remote_Config();
-		$rc->apply( 'live', $this->valid_payload() );
-
 		$this->assertSame( 'local', $rc->resolve( 'no_such_flag', 'local', 'live' ) );
+
+		// Remote present: remote wins.
+		$rc->apply( 'live', $this->valid_payload( false ) );
+		$this->assertFalse( $rc->resolve( 'optimized_checkout', true, 'live' ) );
 	}
 
 	public function test_resolve_modes_are_isolated(): void {
@@ -137,42 +123,62 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 		$this->assertTrue( $rc->resolve( 'optimized_checkout', false, 'test' ) );
 	}
 
-	public function test_get_flag_returns_null_when_no_cache(): void {
+	/**
+	 * @dataProvider provide_get_flag_null_cases
+	 */
+	public function test_get_flag_returns_null( callable $arrange, string $flag_name ): void {
+		$arrange();
+
 		$rc = new WC_Stripe_Remote_Config();
-		$this->assertNull( $rc->get_flag( 'optimized_checkout', 'live' ) );
+		$this->assertNull( $rc->get_flag( $flag_name, 'live' ) );
 	}
 
-	public function test_get_flag_returns_null_for_unknown_flag(): void {
-		$rc = new WC_Stripe_Remote_Config();
-		$rc->apply( 'live', $this->valid_payload() );
-		$this->assertNull( $rc->get_flag( 'no_such_flag', 'live' ) );
+	public function provide_get_flag_null_cases(): array {
+		$valid_payload = [
+			'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
+			'generated_at' => '2026-05-09T12:00:00Z',
+			'ttl'          => 86400,
+		];
+
+		return [
+			'no cache at all'                 => [
+				static function (): void {
+					// nothing arranged
+				},
+				'optimized_checkout',
+			],
+			'unknown flag with cache present' => [
+				static function () use ( $valid_payload ): void {
+					( new WC_Stripe_Remote_Config() )->apply( 'live', $valid_payload );
+				},
+				'no_such_flag',
+			],
+			'corrupt cache option'            => [
+				static function (): void {
+					update_option( '_wcstripe_remote_config_live', 'corrupt-string-not-array' );
+				},
+				'optimized_checkout',
+			],
+			'wrong schema_version'            => [
+				static function (): void {
+					update_option(
+						'_wcstripe_remote_config_live',
+						[
+							'schema_version' => 999,
+							'fetched_at'     => time(),
+							'ttl'            => 86400,
+							'flags'          => [ 'optimized_checkout' => [ 'value' => false ] ],
+						]
+					);
+				},
+				'optimized_checkout',
+			],
+		];
 	}
 
 	public function test_get_flag_returns_value_from_cache(): void {
 		$rc = new WC_Stripe_Remote_Config();
 		$rc->apply( 'live', $this->valid_payload( false ) );
 		$this->assertSame( false, $rc->get_flag( 'optimized_checkout', 'live' ) );
-	}
-
-	public function test_get_flag_treats_corrupt_cache_option_as_no_cache(): void {
-		update_option( '_wcstripe_remote_config_live', 'corrupt-string-not-array' );
-
-		$rc = new WC_Stripe_Remote_Config();
-		$this->assertNull( $rc->get_flag( 'optimized_checkout', 'live' ) );
-	}
-
-	public function test_get_flag_treats_wrong_schema_version_as_no_cache(): void {
-		update_option(
-			'_wcstripe_remote_config_live',
-			[
-				'schema_version' => 999,
-				'fetched_at'     => time(),
-				'ttl'            => 86400,
-				'flags'          => [ 'optimized_checkout' => [ 'value' => false ] ],
-			]
-		);
-
-		$rc = new WC_Stripe_Remote_Config();
-		$this->assertNull( $rc->get_flag( 'optimized_checkout', 'live' ) );
 	}
 }
