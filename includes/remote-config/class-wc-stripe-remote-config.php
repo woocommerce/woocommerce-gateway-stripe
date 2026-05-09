@@ -118,6 +118,9 @@ class WC_Stripe_Remote_Config {
 	}
 
 	private function validate_payload( array $payload ): bool {
+		// Defense in depth: the Client also caps wire-body size, but apply() may be
+		// called outside the Client (e.g. from tests, or from a future caller that
+		// builds the payload in memory).
 		$encoded = wp_json_encode( $payload );
 		if ( false === $encoded || strlen( $encoded ) > WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES ) {
 			return false;

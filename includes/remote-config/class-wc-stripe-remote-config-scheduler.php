@@ -49,6 +49,9 @@ class WC_Stripe_Remote_Config_Scheduler {
 		add_action( self::SYNC_ACTION, [ $this, 'run' ] );
 		add_action( 'upgrader_process_complete', [ $this, 'on_plugin_upgrade' ], 10, 2 );
 		add_action( 'init', [ $this, 'maybe_schedule_daily_sync' ] );
+		// Re-arm the recurring action if Action Scheduler purges its store between
+		// requests; mirrors the pattern WC_Stripe_Database_Cache uses.
+		add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ $this, 'maybe_schedule_daily_sync' ] );
 	}
 
 	/**
