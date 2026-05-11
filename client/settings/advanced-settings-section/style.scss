@@ -300,3 +300,10 @@ $diagnostics-bg-toolbar: styles.$wp-gray-0;
 		margin: 0;
 	}
 }
+
+.wc-stripe-adaptive-pricing-unavailable-reason {
+    display: block;
+    font-weight: bold;
+    font-style: italic;
+    margin-bottom: 0.5em;
+}

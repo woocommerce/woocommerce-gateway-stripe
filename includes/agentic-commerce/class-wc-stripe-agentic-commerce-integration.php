@@ -64,11 +64,56 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	const ENABLED_OPTION = 'wc_stripe_agentic_commerce_enabled';
 
 	/**
+	 * Option key for the Agentic Commerce webhook secret.
+	 *
+	 * Lives on the integration class (not the REST controller) because this
+	 * value is read on every webhook delivery via the
+	 * `woocommerce_api_wc_stripe` hook, which does not trigger
+	 * `rest_api_init`. Keeping the const here ensures it is always reachable
+	 * — the integration class is in the Composer autoload classmap — even
+	 * when the REST controller has not been instantiated.
+	 *
+	 * @var string
+	 * @since 10.7.0
+	 */
+	const WEBHOOK_SECRET_OPTION = 'wc_stripe_agentic_commerce_webhook_secret';
+
+	/**
 	 * Sync interval in seconds.
 	 *
 	 * @var int
 	 */
 	const SYNC_INTERVAL = 15 * MINUTE_IN_SECONDS;
+
+	/**
+	 * Option key for the last sync result.
+	 *
+	 * @internal Not part of the public API. Use {@see self::get_last_sync()}
+	 *           rather than reading the underlying option directly.
+	 * @var string
+	 * @since 10.7.0
+	 */
+	public const LAST_SYNC_OPTION = 'wc_stripe_agentic_last_sync';
+
+	/**
+	 * Option key for the sync history.
+	 *
+	 * @internal Not part of the public API. Use {@see self::get_sync_history()}
+	 *           rather than reading the underlying option directly.
+	 * @var string
+	 * @since 10.7.0
+	 */
+	public const SYNC_HISTORY_OPTION = 'wc_stripe_agentic_sync_history';
+
+	/**
+	 * Default maximum number of sync history entries to retain.
+	 *
+	 * Filterable via `wc_stripe_agentic_commerce_sync_history_limit`.
+	 *
+	 * @var int
+	 * @since 10.7.0
+	 */
+	public const SYNC_HISTORY_LIMIT = 50;
 
 	/**
 	 * Get integration ID.
@@ -87,10 +132,28 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return void
 	 */
 	public function register_hooks(): void {
-		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] );
+		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
+
+		// WC 10.8+ requires `created_via` to be in an allowlist for `payment_complete()` to run.
+		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $this, 'allow_agentic_payment_complete' ] );
 
 		$inventory_tracker = new WC_Stripe_Agentic_Commerce_Inventory_Tracker();
 		$inventory_tracker->register_hooks();
+	}
+
+	/**
+	 * Adds the agentic `created_via` value to the WooCommerce allowlist so that
+	 * `WC_Order::payment_complete()` (WC 10.8+) does not block agentic orders.
+	 *
+	 * @param array $allowed Existing allowlist passed by the filter.
+	 * @return array
+	 */
+	public function allow_agentic_payment_complete( $allowed ): array {
+		if ( ! is_array( $allowed ) ) {
+			$allowed = [];
+		}
+		$allowed[] = WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA;
+		return $allowed;
 	}
 
 	/**
@@ -231,12 +294,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Generates product feed using ProductWalker.
 	 *
 	 * @since 10.5.0
-	 * @return void
+	 * @return bool True on successful delivery, false on early returns or failure.
 	 */
-	public function sync_feed(): void {
+	public function sync_feed(): bool {
 		if ( ! $this->is_enabled() ) {
 			WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - feature not enabled' );
-			return;
+			return false;
 		}
 
 		// Check delivery setup before generating the feed.
@@ -244,7 +307,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 		if ( ! $delivery->check_setup() ) {
 			WC_Stripe_Logger::error( 'Agentic Commerce: Sync skipped - Stripe API key not configured' );
-			return;
+			return false;
 		}
 
 		WC_Stripe_Logger::info( 'Agentic Commerce: Starting feed sync' );
@@ -277,7 +340,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
 					wp_delete_file( $file_path );
 				}
-				return;
+				return false;
 			}
 
 			$generation_time = microtime( true ) - $start_time;
@@ -317,6 +380,19 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
 				wp_delete_file( $file_path );
 			}
+
+			// Persist sync result for dashboard display.
+			$this->store_sync_result(
+				[
+					'products'      => $total_products,
+					'status'        => $result['status'] ?? 'unknown',
+					'file_id'       => $result['file_id'] ?? '',
+					'import_set_id' => $result['import_set_id'] ?? '',
+					'error'         => '',
+				]
+			);
+
+			return true;
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error(
 				'Agentic Commerce: Feed generation failed',
@@ -327,6 +403,151 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					'line'  => $e->getLine(),
 				]
 			);
+
+			// Persist failure for dashboard display.
+			$this->store_sync_result(
+				[
+					'products'      => 0,
+					'status'        => 'failed',
+					'file_id'       => '',
+					'import_set_id' => '',
+					'error'         => $e->getMessage(),
+				]
+			);
+
+			return false;
+		}
+	}
+
+	/**
+	 * Persist a sync result to the history option and update the last-sync snapshot.
+	 *
+	 * @since 10.7.0
+	 * @param array $result {
+	 *     Sync result data.
+	 *
+	 *     @type int    $products      Number of products synced.
+	 *     @type string $status        Sync status (e.g. "succeeded", "failed").
+	 *     @type string $file_id       Stripe file ID.
+	 *     @type string $import_set_id Stripe ImportSet ID.
+	 *     @type string $error         Error message, if any.
+	 * }
+	 * @return void
+	 */
+	public function store_sync_result( array $result ): void {
+		$history = get_option( self::SYNC_HISTORY_OPTION, [] );
+
+		if ( ! is_array( $history ) ) {
+			$history = [];
+		}
+
+		$entry = [
+			'timestamp'     => time(),
+			'products'      => $result['products'] ?? 0,
+			'status'        => $result['status'] ?? 'unknown',
+			'file_id'       => $result['file_id'] ?? '',
+			'import_set_id' => $result['import_set_id'] ?? '',
+			'error'         => $result['error'] ?? '',
+		];
+
+		$history[] = $entry;
+
+		/**
+		 * Filter the maximum number of sync history entries to retain.
+		 *
+		 * @since 10.7.0
+		 * @param int $limit Default history limit.
+		 */
+		$limit   = (int) apply_filters( 'wc_stripe_agentic_commerce_sync_history_limit', self::SYNC_HISTORY_LIMIT );
+		$limit   = max( 10, min( 50, $limit ) );
+		$history = array_slice( $history, -$limit );
+
+		update_option( self::SYNC_HISTORY_OPTION, $history, false );
+		update_option( self::LAST_SYNC_OPTION, end( $history ), false );
+	}
+
+	/**
+	 * Get the last sync result as stored by {@see self::store_sync_result()}.
+	 *
+	 * Supported API for reading the last sync snapshot. External callers should
+	 * use this getter rather than reading the underlying option directly.
+	 *
+	 * @since 10.7.0
+	 * @return array Normalized sync entry, or an empty array when no sync has run.
+	 */
+	public static function get_last_sync(): array {
+		$last_sync = get_option( self::LAST_SYNC_OPTION, [] );
+		return is_array( $last_sync ) ? $last_sync : [];
+	}
+
+	/**
+	 * Get the sync history.
+	 *
+	 * Supported API for reading the sync history. Returned entries are in
+	 * insertion order (oldest first). Non-array entries from corrupted data are
+	 * filtered out.
+	 *
+	 * @since 10.7.0
+	 * @return array<int, array> List of sync entries.
+	 */
+	public static function get_sync_history(): array {
+		$history = get_option( self::SYNC_HISTORY_OPTION, [] );
+		if ( ! is_array( $history ) ) {
+			return [];
+		}
+		return array_values( array_filter( $history, 'is_array' ) );
+	}
+
+	/**
+	 * Apply status updates to non-terminal history entries by import_set_id.
+	 *
+	 * Re-reads the current history at write time and applies the updates to
+	 * matching entries whose stored status is non-terminal (`queued`,
+	 * `validating`, `pending`, `creating_records`, or `unknown`), matching
+	 * the controller's
+	 * {@see WC_REST_Stripe_Agentic_Commerce_Controller::REFRESHABLE_STATUSES}.
+	 * This preserves any entries appended concurrently by
+	 * {@see self::store_sync_result()} between read and write (for example
+	 * during a Stripe API round-trip in the dashboard refresh flow).
+	 *
+	 * @since 10.7.0
+	 * @param array<string, string> $status_updates Map of import_set_id to new status.
+	 * @return void
+	 */
+	public static function update_pending_statuses( array $status_updates ): void {
+		if ( empty( $status_updates ) ) {
+			return;
+		}
+
+		$non_terminal_statuses = [ 'queued', 'validating', 'pending', 'creating_records', 'unknown' ];
+
+		$history = self::get_sync_history();
+		$changed = false;
+
+		foreach ( $history as &$entry ) {
+			if ( ! in_array( $entry['status'] ?? '', $non_terminal_statuses, true ) ) {
+				continue;
+			}
+
+			$import_set_id = $entry['import_set_id'] ?? '';
+			if ( '' === $import_set_id || ! isset( $status_updates[ $import_set_id ] ) ) {
+				continue;
+			}
+
+			$entry['status'] = $status_updates[ $import_set_id ];
+			$changed         = true;
+		}
+		unset( $entry );
+
+		if ( ! $changed ) {
+			return;
+		}
+
+		update_option( self::SYNC_HISTORY_OPTION, $history, false );
+
+		$last = end( $history );
+		if ( is_array( $last ) ) {
+			update_option( self::LAST_SYNC_OPTION, $last, false );
 		}
 	}
 

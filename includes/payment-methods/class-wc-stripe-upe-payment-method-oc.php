@@ -69,10 +69,38 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 	public static function get_alternative_title(): string {
 		// Block checkout and pay for order (checkout) page.
 		if ( ( has_block( 'woocommerce/checkout' ) || ! empty( $_GET['pay_for_order'] ) ) && ! is_wc_endpoint_url( 'order-received' ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			return __( 'Payment methods', 'woocommerce-gateway-stripe' );
+			$title = __( 'Payment methods', 'woocommerce-gateway-stripe' );
+
+			/**
+			 * Filters the Optimized Checkout payment method title.
+			 *
+			 * Allows merchants to override the generic title shown when Optimized Checkout
+			 * is enabled. The $context argument distinguishes the surface that requested
+			 * the title ('blocks' for the Blocks/pay-for-order checkout, 'classic' for
+			 * the classic shortcode checkout label after the gateway is selected).
+			 *
+			 * @since 10.7.0
+			 *
+			 * @param string $title   Default title.
+			 * @param string $context One of 'blocks' or 'classic'.
+			 */
+			return (string) apply_filters( 'wc_stripe_optimized_checkout_title', $title, 'blocks' );
 		}
 
 		return self::DEFAULT_TITLE;
+	}
+
+	/**
+	 * Returns the title shown in classic shortcode checkout when
+	 * Optimized Checkout is enabled.
+	 *
+	 * @return string
+	 */
+	public static function get_classic_title(): string {
+		$title = __( 'Payment options', 'woocommerce-gateway-stripe' );
+
+		/** This filter is documented in includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php */
+		return (string) apply_filters( 'wc_stripe_optimized_checkout_title', $title, 'classic' );
 	}
 
 	/**
