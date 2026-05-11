@@ -14,16 +14,16 @@
     "vscode": {
       "extensions": [
 				"anthropic.claude-code",
-        "openai.chatgpt",
+				"openai.chatgpt",
 				"editorconfig.editorconfig",
-        "xdebug.php-debug"
+				"xdebug.php-debug"
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "bash"
       }
     }
   },
-  "remoteEnv": {
+    "remoteEnv": {
   },
   "initializeCommand": "bash .devcontainer/initialize.sh",
   "postCreateCommand": "bash .devcontainer/post-create.sh",
