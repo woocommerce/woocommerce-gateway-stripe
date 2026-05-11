@@ -1768,16 +1768,16 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Test for `get_adaptive_pricing_account_availability_reason`.
+	 * Test for {@see WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason()}.
 	 *
 	 * @param array   $account_data    Stripe account data to mock.
 	 * @param bool    $test_mode       Whether Stripe test mode is enabled.
 	 * @param string  $store_currency  WooCommerce store currency code.
 	 * @param ?string $expected        Expected return value.
 	 * @return void
-	 * @dataProvider provide_test_get_adaptive_pricing_account_availability_reason
+	 * @dataProvider provide_test_get_adaptive_pricing_account_unavailable_reason
 	 */
-	public function test_get_adaptive_pricing_account_availability_reason(
+	public function test_get_adaptive_pricing_account_unavailable_reason(
 		array $account_data,
 		bool $test_mode,
 		string $store_currency,
@@ -1793,7 +1793,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$original_currency = get_option( 'woocommerce_currency' );
 		update_option( 'woocommerce_currency', $store_currency );
 
-		$actual = WC_Stripe_Helper::get_adaptive_pricing_account_availability_reason();
+		$actual = WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason();
 
 		// Cleanup.
 		update_option( 'woocommerce_currency', $original_currency );
@@ -1803,11 +1803,11 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Data provider for `test_get_adaptive_pricing_account_availability_reason`.
+	 * Data provider for {@see test_get_adaptive_pricing_account_unavailable_reason()}.
 	 *
 	 * @return array
 	 */
-	public function provide_test_get_adaptive_pricing_account_availability_reason(): array {
+	public function provide_test_get_adaptive_pricing_account_unavailable_reason(): array {
 		return [
 			'India account (uppercase) → account-country'                             => [
 				'account_data'   => [

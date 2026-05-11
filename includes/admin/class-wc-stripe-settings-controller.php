@@ -219,7 +219,7 @@ class WC_Stripe_Settings_Controller {
 		$is_checkout_sessions_available      = false;
 		$adaptive_pricing_unavailable_reason = 'disabled';
 		if ( WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
-			$adaptive_pricing_unavailable_reason = WC_Stripe_Helper::get_adaptive_pricing_account_availability_reason();
+			$adaptive_pricing_unavailable_reason = WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason();
 			if ( null === $adaptive_pricing_unavailable_reason ) {
 				$is_checkout_sessions_available = true;
 			}

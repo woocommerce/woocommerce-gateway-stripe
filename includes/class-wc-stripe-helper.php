@@ -1120,7 +1120,7 @@ class WC_Stripe_Helper {
 	 * @return bool True if the account is not in supported countries.
 	 */
 	public static function is_adaptive_pricing_available_for_account(): bool {
-		$reason = self::get_adaptive_pricing_account_availability_reason();
+		$reason = self::get_adaptive_pricing_account_unavailable_reason();
 		if ( null === $reason ) {
 			return true;
 		}
@@ -1133,7 +1133,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @return string|null The reason why adaptive pricing is not available for the current Stripe account, or null if it is available.
 	 */
-	public static function get_adaptive_pricing_account_availability_reason(): ?string {
+	public static function get_adaptive_pricing_account_unavailable_reason(): ?string {
 		$stripe_account  = WC_Stripe::get_instance()->account;
 		$account_country = $stripe_account->get_account_country();
 
