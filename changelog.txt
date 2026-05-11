@@ -23,6 +23,7 @@ xxxx-xx-xx - version 10.7.0
 * Fix - Prevent fatal error in wp-admin from overly narrow argument type
 * Update - Remove deprecated backend methods that called wc_deprecated_function
 * Add - Allow Stripe developer widget to be enabled in test mode via wc_stripe_show_stripe_developer_widget filter
+* Add - Show Stripe's account sync status in the Account details card
 
 2026-04-23 - version 10.6.1
 * Fix - Fix Optimized Checkout Suite bugs that could result in duplicate subscription charges and generic payment methods names
