@@ -1114,10 +1114,9 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Checks if Adaptive Pricing is available for the current Stripe account based on country.
-	 * Adaptive Pricing is not supported by Stripe for accounts based in India (see https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?payment-ui=stripe-hosted#restrictions).
+	 * Checks if Adaptive Pricing is available for the current Stripe account.
 	 *
-	 * @return bool True if the account is not in supported countries.
+	 * @return bool True if Adaptive Pricing is available for the current Stripe account, false otherwise.
 	 */
 	public static function is_adaptive_pricing_available_for_account(): bool {
 		$reason = self::get_adaptive_pricing_account_unavailable_reason();
@@ -1130,6 +1129,9 @@ class WC_Stripe_Helper {
 
 	/**
 	 * Returns the reason why adaptive pricing is not available for the current Stripe account.
+	 * Adaptive Pricing is not supported for accounts based in India, as well as for other situations.
+	 *
+	 * @link https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?payment-ui=embedded-components#restrictions
 	 *
 	 * @return string|null The reason why adaptive pricing is not available for the current Stripe account, or null if it is available.
 	 */
