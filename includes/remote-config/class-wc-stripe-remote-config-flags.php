@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * The `setting` field is `[ option_name, key|null ]`. `null` means the option
  * itself is the value (not a sub-key). The remote-config channel never writes
- * to these options in v1 — they are listed for audit/grep.
+ * to these options - they are listed for audit/grep.
  */
 class WC_Stripe_Remote_Config_Flags {
 

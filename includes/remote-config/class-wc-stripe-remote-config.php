@@ -44,7 +44,7 @@ class WC_Stripe_Remote_Config {
 	 * Validate and persist a freshly-fetched remote-config payload for the given mode.
 	 *
 	 * Returns true on success, false on validation failure (in which case the
-	 * existing cache is preserved — circuit breaker).
+	 * existing cache is preserved).
 	 */
 	public function apply( string $mode, array $payload ): bool {
 		if ( ! $this->validate_payload( $payload ) ) {
@@ -118,7 +118,7 @@ class WC_Stripe_Remote_Config {
 	}
 
 	private function validate_payload( array $payload ): bool {
-		// Defense in depth: the Client also caps wire-body size, but apply() may be
+		// Client also caps wire-body size, but apply() may be
 		// called outside the Client (e.g. from tests, or from a future caller that
 		// builds the payload in memory).
 		$encoded = wp_json_encode( $payload );

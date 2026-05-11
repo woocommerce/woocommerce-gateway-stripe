@@ -10,17 +10,15 @@ require_once __DIR__ . '/class-wc-stripe-remote-config-flags.php';
  *
  * Built directly on `wp_remote_get` to avoid entering any plugin-specific
  * request-mutation filter chain. In particular, this client does NOT reuse
- * `WC_Stripe_Connect_API`, whose deprecated `wc_connect_server_url`,
+ * `WC_Stripe_Connect_API`, whose `wc_connect_server_url`,
  * `wc_connect_request_args`, and `wc_connect_api_client_body` filters could
  * otherwise be hooked by third parties to re-target the URL or disable TLS
  * verification.
- *
- * Trust posture: TLS + pinned WPCOM URL + last-known-good fallback.
  */
 class WC_Stripe_Remote_Config_Client {
 
 	/**
-	 * Hard-pinned base URL. Not run through any plugin-side URL filter.
+	 * WPCOM endpoint.
 	 */
 	private const BASE_URL = 'https://public-api.wordpress.com';
 
@@ -116,7 +114,7 @@ class WC_Stripe_Remote_Config_Client {
 		/**
 		 * Filters whether the Stripe remote-config channel is enabled.
 		 *
-		 * @since 10.7.0
+		 * @since 10.8.0
 		 *
 		 * @param bool $enabled Default true.
 		 */

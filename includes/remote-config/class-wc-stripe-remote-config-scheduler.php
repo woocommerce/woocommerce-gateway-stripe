@@ -11,8 +11,6 @@ require_once __DIR__ . '/class-wc-stripe-remote-config.php';
  *
  * - Daily Action Scheduler job (`wc_stripe_remote_config_sync`).
  * - Immediate single-action enqueue on plugin upgrade
- *   (`upgrader_process_complete`), to catch "we just shipped a release we want
- *   to flip a flag on" without waiting for the daily run.
  *
  * On each run, iterates over connected Stripe modes (live/test) and calls
  * Client::fetch -> Remote_Config::apply for each.
@@ -49,8 +47,7 @@ class WC_Stripe_Remote_Config_Scheduler {
 		add_action( self::SYNC_ACTION, [ $this, 'run' ] );
 		add_action( 'upgrader_process_complete', [ $this, 'on_plugin_upgrade' ], 10, 2 );
 		add_action( 'init', [ $this, 'maybe_schedule_daily_sync' ] );
-		// Re-arm the recurring action if Action Scheduler purges its store between
-		// requests; mirrors the pattern WC_Stripe_Database_Cache uses.
+		// Re-arm the recurring action if the schedule is purged.
 		add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ $this, 'maybe_schedule_daily_sync' ] );
 	}
 
