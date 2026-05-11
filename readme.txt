@@ -161,8 +161,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 **Important Fixes and Updates**
 * Update - Remove deprecated backend methods that called wc_deprecated_function
 * Add - Display a bank authorization notice for Pre-Authorized Debit (ACSS) payments on checkout
-* Add - Allow Stripe developer widget to be enabled in test mode via wc_stripe_show_stripe_developer_widget filter
-* Add - Show Stripe's account sync status in the Account details card
 * Fix - Fix compatibility with WooCommerce 10.8 checkout-evidence guard (required created-via in orders)
 * Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
 * Fix - Cancel pending WC Subscriptions retry when Stripe Radar blocks a renewal payment so further automatic retries do not re-trigger the same Radar block
@@ -172,6 +170,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **Other Fixes and Updates**
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
+* Add - Allow Stripe developer widget to be enabled in test mode via wc_stripe_show_stripe_developer_widget filter
+* Add - Show Stripe's account sync status in the Account details card
 
 **Internal Changes and Upcoming Features**
 * Add - Add Agentic Commerce settings UI with feature introduction, onboarding guide, enable/disable toggle, and webhook secret management
