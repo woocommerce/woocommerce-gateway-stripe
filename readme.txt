@@ -38,7 +38,7 @@ The following items note specific versions that include important changes, featu
 * 10.7.0
    - Optimized Checkout Suite re-enabled by default for new installs
    - Adaptive Pricing enabled by default for new installs
-   - Removed deprecated backend methods that called wc_deprecated_function - https://github.com/woocommerce/woocommerce-gateway-stripe/pull/5066
+   - Removed deprecated backend methods that called wc_deprecated_function - [PR #5066](https://github.com/woocommerce/woocommerce-gateway-stripe/pull/5066)
 * 10.6.0
    - Adaptive Pricing available
 * 10.4.0
