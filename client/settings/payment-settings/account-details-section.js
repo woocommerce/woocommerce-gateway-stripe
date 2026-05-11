@@ -19,16 +19,29 @@ const HeaderDetails = styled.div`
 	display: flex;
 	margin: 0;
 	font-size: 16px;
-
 	h4 {
+		align-content: center;
 		margin: 0 4px 0 0;
 	}
+`;
+
+const AccountIdentity = styled.div`
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	margin-left: auto;
+	line-height: 1.2;
+`;
+
+const StripeAccountName = styled.span`
+	font-size: 15px;
+	color: #1e1e1e;
+	font-weight: 600;
 `;
 
 const StripeAccountId = styled.span`
 	font-size: 12px;
 	color: #757575;
-	margin-left: auto;
 `;
 
 // @todo - remove setModalType as prop
@@ -148,7 +161,17 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 					) }
 				</HeaderDetails>
 				{ data.account?.id && (
-					<StripeAccountId>{ data.account.id }</StripeAccountId>
+					<AccountIdentity>
+						{ ( data.account?.settings?.dashboard?.display_name ||
+							data.account?.business_profile?.name ) && (
+							<StripeAccountName>
+								{ data.account.settings?.dashboard
+									?.display_name ||
+									data.account.business_profile.name }
+							</StripeAccountName>
+						) }
+						<StripeAccountId>{ data.account.id }</StripeAccountId>
+					</AccountIdentity>
 				) }
 				<AccountSettingsDropdownMenu
 					setModalType={ setModalType }

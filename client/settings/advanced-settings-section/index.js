@@ -22,7 +22,7 @@ const AdvancedSettingsDescription = () => (
 );
 
 const AdvancedSettings = ( { isOCEnabled, setIsOCEnabled } ) => {
-	const isOcAvailable = wc_stripe_settings_params.is_oc_available; // eslint-disable-line camelcase
+	const isOCAvailable = wc_stripe_settings_params.is_oc_available; // eslint-disable-line camelcase
 	return (
 		<SettingsSection Description={ AdvancedSettingsDescription }>
 			<LoadableSettingsSection numLines={ 10 }>
@@ -30,12 +30,11 @@ const AdvancedSettings = ( { isOCEnabled, setIsOCEnabled } ) => {
 					<CardBody>
 						<DebugMode />
 						<DiagnosticsMode />
-						{ isOcAvailable && (
-							<OptimizedCheckoutFeature
-								isOCEnabled={ isOCEnabled }
-								setIsOCEnabled={ setIsOCEnabled }
-							/>
-						) }
+						<OptimizedCheckoutFeature
+							isOCEnabled={ isOCEnabled }
+							isOCAvailable={ isOCAvailable }
+							setIsOCEnabled={ setIsOCEnabled }
+						/>
 					</CardBody>
 				</Card>
 			</LoadableSettingsSection>

@@ -18,6 +18,11 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	private $http_filter;
 
 	/**
+	 * @var callable|null Filter callback that allowlists the agentic `created_via` value for `payment_complete()`.
+	 */
+	private $payment_complete_filter;
+
+	/**
 	 * Set up the test.
 	 */
 	public function set_up() {
@@ -30,6 +35,17 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+
+		// WC 10.8+ blocks payment_complete() unless `created_via` is allowlisted.
+		// In production the integration's register_hooks() wires this up; mirror it here.
+		$this->payment_complete_filter = function ( $allowed ) {
+			if ( ! is_array( $allowed ) ) {
+				$allowed = [];
+			}
+			$allowed[] = WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA;
+			return $allowed;
+		};
+		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', $this->payment_complete_filter );
 	}
 
 	/**
@@ -40,6 +56,10 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			remove_filter( 'pre_http_request', $this->http_filter );
 		}
 		remove_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+		if ( null !== $this->payment_complete_filter ) {
+			remove_filter( 'woocommerce_payment_complete_allowed_created_via_values', $this->payment_complete_filter );
+			$this->payment_complete_filter = null;
+		}
 
 		parent::tear_down();
 	}
@@ -195,11 +215,13 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	 * Action Scheduler marks the job as failed rather than silently complete.
 	 */
 	public function test_process_checkout_session_completed_handles_mapper_throwable() {
+		$sku     = 'WEBHOOK-THROWABLE-' . uniqid();
 		$product = WC_Helper_Product::create_simple_product(
 			true,
 			[
 				'regular_price' => '20.00',
 				'price'         => '20.00',
+				'sku'           => $sku,
 			]
 		);
 
@@ -226,7 +248,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		try {
 			$session_id   = 'cs_test_throwable';
 			$notification = $this->build_notification( $session_id );
-			$mock_session = $this->build_checkout_session_response( $session_id, true, (string) $product->get_id() );
+			$mock_session = $this->build_checkout_session_response( $session_id, true, $sku );
 			$this->mock_stripe_checkout_sessions_response( $mock_session );
 
 			// Immediate phase: defers the webhook.
@@ -269,6 +291,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			[
 				'regular_price' => '20.00',
 				'price'         => '20.00',
+				'sku'           => 'WEBHOOK-HAPPY-' . uniqid(),
 			]
 		);
 
@@ -284,7 +307,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		$session_id   = 'cs_test_happy';
 		$notification = $this->build_notification( $session_id );
-		$mock_session = $this->build_checkout_session_response( $session_id, true, (string) $product->get_id() );
+		$mock_session = $this->build_checkout_session_response( $session_id, true, (string) $product->get_sku() );
 		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
 		// Immediate phase: defers the webhook.
@@ -515,10 +538,10 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	 *
 	 * @param string      $session_id The checkout session ID.
 	 * @param bool        $agentic    Whether to include agentic line items.
-	 * @param string|null $product_id Optional real WC product ID for the external_reference.
+	 * @param string|null $sku        Optional real WC product SKU for the external_reference.
 	 * @return object
 	 */
-	private function build_checkout_session_response( $session_id, $agentic, $product_id = null ) {
+	private function build_checkout_session_response( $session_id, $agentic, $sku = null ) {
 		$line_items_data = [];
 
 		if ( $agentic ) {
@@ -531,7 +554,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 				'amount_tax'      => 0,
 				'price'           => (object) [
 					'unit_amount'        => 2000,
-					'external_reference' => $product_id ?? '99999999',
+					'external_reference' => $sku ?? 'SKU-UNRESOLVABLE-' . uniqid(),
 					'currency'           => 'usd',
 				],
 			];
@@ -563,9 +586,9 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			'id'               => $session_id,
 			'payment_intent'   => (object) [
 				'id'            => 'pi_test_' . $session_id,
-				'agent_details' => (object) [
-					'network_business_profile' => 'nbp_test_123',
-				],
+				'agent_details' => $agentic
+					? (object) [ 'network_business_profile' => 'nbp_test_123' ]
+					: null,
 			],
 			'customer'         => 'cus_test_789',
 			'customer_email'   => 'test@example.com',
