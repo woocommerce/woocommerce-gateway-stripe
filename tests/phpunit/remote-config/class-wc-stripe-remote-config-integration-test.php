@@ -51,7 +51,6 @@ class WC_Stripe_Remote_Config_Integration_Test extends WP_UnitTestCase {
 						[
 							'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
 							'generated_at' => '2026-05-09T12:00:00Z',
-							'ttl'          => 86400,
 						]
 					),
 					'headers'  => [],

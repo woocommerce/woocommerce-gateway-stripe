@@ -59,7 +59,6 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 		return [
 			'flags'        => [ 'optimized_checkout' => [ 'value' => $value ] ],
 			'generated_at' => '2026-05-09T12:00:00Z',
-			'ttl'          => 86400,
 		];
 	}
 

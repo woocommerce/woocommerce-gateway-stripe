@@ -14,7 +14,6 @@ require_once __DIR__ . '/class-wc-stripe-remote-config-flags.php';
  *   {
  *       schema_version: int,            // cache-layout version, plugin-owned
  *       fetched_at:     int,            // unix timestamp of last successful fetch
- *       ttl:            int,            // server-supplied advisory TTL (informational only)
  *       flags:          { name: { value: <typed> } }
  *   }
  *
@@ -66,7 +65,6 @@ class WC_Stripe_Remote_Config {
 		$cache_entry = [
 			'schema_version' => self::SCHEMA_VERSION,
 			'fetched_at'     => time(),
-			'ttl'            => isset( $payload['ttl'] ) && is_int( $payload['ttl'] ) ? $payload['ttl'] : 0,
 			'flags'          => $known_flags,
 		];
 
