@@ -1,0 +1,66 @@
+services:
+  wordpress:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      # Docker auto-assigns a free host port → no collisions across worktrees
+      - "80"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DEBUG: 1
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_DEBUG', true);
+        define('WP_DEBUG_LOG', true);
+        define('WP_DEBUG_DISPLAY', false);
+        define('WP_ENVIRONMENT_TYPE', 'development');
+        define('SCRIPT_DEBUG', true);
+        // Disable WP's background auto-updater. Without this, `wp core install`
+        // spawns a cron-driven auto-update that grabs auto_updater.lock and
+        // exits before releasing it, blocking subsequent `wp core update` calls.
+        define('AUTOMATIC_UPDATER_DISABLED', true);
+        // Make site URL track whatever host:port the container is currently on.
+        // This is what lets random port assignment work without breaking WP redirects.
+        // $$ escapes the $$ so docker-compose doesn't try to interpolate $$_SERVER.
+        if (isset($$_SERVER['HTTP_HOST'])) {
+            define('WP_HOME', 'http://' . $$_SERVER['HTTP_HOST']);
+            define('WP_SITEURL', 'http://' . $$_SERVER['HTTP_HOST']);
+        }
+    volumes:
+      - wp_data:/var/www/html
+      # Mount the plugin source (parent of .devcontainer) into wp-content/plugins
+      - ..:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe:cached
+      # Persist agent CLI auth + config across rebuilds
+      - devcontainer_claude_shared:/root/.claude
+      - devcontainer_codex_shared:/root/.codex
+      - devcontainer_shell_history:/shell_history
+    depends_on:
+      - db
+    extra_hosts:
+      # Lets Xdebug reach the host on Linux
+      - "host.docker.internal:host-gateway"
+
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  wp_data:
+  db_data:
+  devcontainer_claude_shared:
+    external: true
+  devcontainer_codex_shared:
+    external: true
+  devcontainer_shell_history:
+    external: true
