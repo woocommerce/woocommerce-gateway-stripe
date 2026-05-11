@@ -1115,6 +1115,7 @@ class WC_Stripe_Helper {
 
 	/**
 	 * Checks if Adaptive Pricing is available for the current Stripe account.
+	 * Refer to {@see get_adaptive_pricing_account_unavailable_reason()} for more details.
 	 *
 	 * @return bool True if Adaptive Pricing is available for the current Stripe account, false otherwise.
 	 */
