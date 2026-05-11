@@ -156,10 +156,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 **New Features**
 * Update - Enable Optimized Checkout Suite by default for new installs
 * Update - Enable Adaptive Pricing by default for new installs
-* Update - Remove deprecated backend methods that called wc_deprecated_function
 * Add - Filter wc_stripe_optimized_checkout_title to override the Optimized Checkout payment method title at checkout
 
 **Important Fixes and Updates**
+* Update - Remove deprecated backend methods that called wc_deprecated_function
 * Add - Display a bank authorization notice for Pre-Authorized Debit (ACSS) payments on checkout
 * Add - Allow Stripe developer widget to be enabled in test mode via wc_stripe_show_stripe_developer_widget filter
 * Add - Show Stripe's account sync status in the Account details card
