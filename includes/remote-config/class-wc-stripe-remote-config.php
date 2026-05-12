@@ -101,6 +101,10 @@ class WC_Stripe_Remote_Config {
 	 * @return mixed|null
 	 */
 	public function get_flag( string $flag, ?string $mode = null ) {
+		if ( ! WC_Stripe_Remote_Config_Flags::is_remote_config_enabled() ) {
+			return null;
+		}
+
 		if ( ! WC_Stripe_Remote_Config_Flags::is_known_flag( $flag ) ) {
 			return null;
 		}
