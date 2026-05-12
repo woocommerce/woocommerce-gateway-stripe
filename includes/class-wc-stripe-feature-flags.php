@@ -244,12 +244,7 @@ class WC_Stripe_Feature_Flags {
 			return $local;
 		}
 
-		static $resolver = null;
-		if ( null === $resolver ) {
-			$resolver = new WC_Stripe_Remote_Config();
-		}
-
-		return (bool) $resolver->resolve( 'optimized_checkout', $local );
+		return (bool) ( new WC_Stripe_Remote_Config() )->resolve( 'optimized_checkout', $local );
 	}
 
 	/**
