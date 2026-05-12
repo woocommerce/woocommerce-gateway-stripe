@@ -661,7 +661,6 @@ class WC_Stripe {
 		unset( $sections['stripe'] );
 		unset( $sections['stripe_bancontact'] );
 		unset( $sections['stripe_sofort'] );
-		unset( $sections['stripe_giropay'] );
 		unset( $sections['stripe_eps'] );
 		unset( $sections['stripe_ideal'] );
 		unset( $sections['stripe_p24'] );
@@ -674,7 +673,6 @@ class WC_Stripe {
 
 		$sections['stripe_bancontact'] = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
 		$sections['stripe_sofort']     = __( 'Stripe Sofort', 'woocommerce-gateway-stripe' );
-		$sections['stripe_giropay']    = __( 'Stripe giropay', 'woocommerce-gateway-stripe' );
 		$sections['stripe_eps']        = __( 'Stripe EPS', 'woocommerce-gateway-stripe' );
 		$sections['stripe_ideal']      = __( 'Stripe iDEAL', 'woocommerce-gateway-stripe' );
 		$sections['stripe_p24']        = __( 'Stripe P24', 'woocommerce-gateway-stripe' );
