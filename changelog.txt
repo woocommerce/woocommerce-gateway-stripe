@@ -21,8 +21,10 @@ xxxx-xx-xx - version 10.7.0
 * Dev - Reduce PR PHP test matrix from 30 to 12 jobs (PHP 7.4, 8.2, 8.5; WC/WP at L and L-2) for faster CI feedback
 * Dev - Bump transitive minimatch dev dependency to resolve ReDoS CVE-2026-27903 (GHSA-7r86-cg39-jmmj)
 * Fix - Prevent fatal error in wp-admin from overly narrow argument type
-* Dev - Remove deprecated backend methods that called wc_deprecated_function
+* Update - Remove deprecated backend methods that called wc_deprecated_function
 * Add - Allow Stripe developer widget to be enabled in test mode via wc_stripe_show_stripe_developer_widget filter
+* Add - Show Stripe's account sync status in the Account details card
+* Update - Improve the behaviour for the Optimized Checkout Suite and Adaptive Pricing settings
 * Remove - Remove giropay from new checkouts (deprecated by Stripe on 2024-06-30); legacy refund and past-order rendering preserved
 
 2026-04-23 - version 10.6.1
