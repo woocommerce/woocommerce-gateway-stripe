@@ -808,7 +808,8 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function test_checkout_update_email_field_priority_filter_registered_only_for_first_instance_in_frontend(): void {
 		$initial_screen = $GLOBALS['current_screen'] ?? null;
-		$current_screen = \WP_Screen::get( 'post.php' );
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$GLOBALS['current_screen'] = \WP_Screen::get( 'post.php' );
 
 		try {
 			$first = WC_Stripe::get_instance();
