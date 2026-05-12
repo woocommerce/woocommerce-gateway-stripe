@@ -167,6 +167,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stale saved-card metadata after updating a card's expiry or CVC
 * Fix - Prevent fatal error in wp-admin from overly narrow argument type
 * Update - Improve the behaviour for the Optimized Checkout Suite and Adaptive Pricing settings
+* Fix - Guard against multiple WC_Stripe instances before plugin is fully initialized
 
 **Other Fixes and Updates**
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
