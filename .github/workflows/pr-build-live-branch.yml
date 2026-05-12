@@ -130,9 +130,19 @@ jobs:
         run: |
           BODY="### Test the build
 
-          :rocket: [Launch a Jurassic Ninja site with this branch](https://jurassic.ninja/create/?jetpack-beta&shortlived&nojetpack&woocommerce&woocommerce-gateway-stripe-dev-tools&branches.woocommerce-gateway-stripe=${PR_HEAD_REF}) :rocket:
+          **This auto-creation flow is only available to logged-in Automattic staff members.**
 
-          _Available for logged-in A12s._
+          :rocket: [Launch a Jurassic Ninja site with this branch](https://jurassic.ninja/create/?jetpack-beta&shortlived&nojetpack&woocommerce&woocommerce-gateway-stripe-dev-tools&branches.woocommerce-gateway-stripe=${PR_HEAD_REF}) :rocket:
+          
+          For everyone else, use the following manual flow:
+
+          :turtle: Navigate to [jurassic.ninja](https://jurassic.ninja/) :turtle:
+          * Click on "See more options"
+          * Check "Jetpack Beta"
+          * Enter `${PR_HEAD_REF}` for the WooCommerce Stripe Gateway line
+          * Check "WooCommerce"
+          * Enter your email address
+          * Click on "Launch single site"
 
           ---
 
