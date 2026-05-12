@@ -142,7 +142,7 @@ The checkout flow (classic, Blocks, OCS, ECE) is the critical path. Code added t
 
 ## Release Hygiene
 
-- [ ] Version-impacting changes update `changelog.txt`, `readme.txt` stable tag and changelog, and the plugin file header *together*
+- [ ] Version-impacting changes update `changelog.txt`, the `readme.txt` changelog section, and the plugin file header *together* (the `readme.txt` stable tag is bumped by woorelease at release time, not in feature PRs)
 - [ ] `changelog.txt` uses `YYYY-MM-DD - version X.Y.Z`; `readme.txt` uses `= X.Y.Z - YYYY-MM-DD =` — different formats, do not convert
 - [ ] Public-surface removals classified as `Update`, not `Dev`
 - [ ] Major behavior changes (default flips, removed classes, version bumps) appear under `== Compatibility Notes ==` in `readme.txt`

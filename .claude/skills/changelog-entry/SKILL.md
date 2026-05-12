@@ -1,7 +1,6 @@
 ---
 name: changelog-entry
 description: Use when adding or editing changelog entries for this plugin. Triggers include "add changelog", "changelog entry", "release notes", "update changelog.txt", "update readme.txt", or any PR that introduces user-visible behavior changes. Critical: changelog.txt and readme.txt use different version-header formats and must both be updated.
-version: 1.0.0
 ---
 
 # Changelog Entry — WC Stripe Gateway

@@ -1,7 +1,6 @@
 ---
 name: phpstan-baseline-triage
 description: Use when PHPStan reports new errors and you're considering whether to fix them or baseline them. Triggers include "PHPStan errors", "phpstan baseline", "level 8 errors", "fix phpstan", "phpstan-baseline.neon". Project policy is fix-first, baseline-last; this skill enforces that triage order.
-version: 1.0.0
 ---
 
 # PHPStan Baseline Triage

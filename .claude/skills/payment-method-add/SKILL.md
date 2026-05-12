@@ -1,7 +1,6 @@
 ---
 name: payment-method-add
 description: Use when adding a new payment method to the Stripe gateway. Triggers include "add payment method", "new UPE method", "support <method-name> on checkout", "register a payment method", or any work that introduces a new `WC_Stripe_UPE_Payment_Method` subclass. A new method spans PHP and frontend plus constants and registration; this skill walks the full sequence so nothing is silently missing on checkout.
-version: 1.0.0
 ---
 
 # Add a Stripe Payment Method
