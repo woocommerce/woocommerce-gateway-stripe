@@ -70,8 +70,10 @@ const DiagnosticsTraceToolbar = ( {
 							<span className="wc-stripe-diagnostics-toolbar__failed-count">
 								{ sprintf(
 									/* translators: %d: number of failed traces */
-									__(
+									_n(
 										'%d failed',
+										'%d failed',
+										failedCount,
 										'woocommerce-gateway-stripe'
 									),
 									failedCount
