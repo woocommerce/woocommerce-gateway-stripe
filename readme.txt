@@ -151,6 +151,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
+xxxx-xx-xx - version 10.8.0
+* Fix - Make subscription detached messages hideable
+
 = 10.7.0 - xxxx-xx-xx =
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
 * Add - Filter wc_stripe_optimized_checkout_title to override the Optimized Checkout payment method title at checkout
