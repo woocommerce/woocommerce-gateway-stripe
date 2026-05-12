@@ -120,7 +120,7 @@
     }
   },
   "scripts": {
-    "postinstall": "composer install --classmap-authoritative && npx playwright install",
+    "postinstall": "composer install --classmap-authoritative && npx playwright install chromium",
     "prebuild": "npm install && composer install --classmap-authoritative",
     "prepare": "is-ci || husky install",
     "build": "npm run uglify && npm run sass && rimraf build/* && npm run build:webpack && npm run build:i18n && npm run build:release",
