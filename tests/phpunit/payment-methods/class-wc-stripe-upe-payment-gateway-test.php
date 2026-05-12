@@ -1521,19 +1521,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * `handle_saving_payment_method()` is the single choke point all save paths funnel through
-	 * (deferred-intent, confirmation token, redirect-return, and the Adaptive Pricing
-	 * checkout-session webhook). Even though the upstream OC fix in `prepare_payment_information_from_request()`
-	 * already drops the save flag for non-reusable methods, this gate guarantees the per-method
-	 * toggle is honored if a future caller forgets to filter or arrives via the webhook path
-	 * (which doesn't go through `prepare_payment_information_from_request()`).
+	 * handle_saving_payment_method() must enforce the per-method toggle when the resolved type is non-reusable.
 	 *
 	 * @dataProvider provider_handle_saving_payment_method_respects_per_method_toggle
 	 */
 	public function test_handle_saving_payment_method_respects_per_method_toggle( string $sepa_tokens_for_ideal, bool $expected_save ) {
-		// Reproduce the OC scenario: the upstream save signal was computed against the OC pseudo-method
-		// (always reusable), but the actual payment is iDEAL, whose reusability is gated by
-		// `sepa_tokens_for_ideal`. handle_saving_payment_method() must enforce the per-method toggle.
 		$stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['sepa_tokens_for_ideal'] = $sepa_tokens_for_ideal;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
@@ -1544,8 +1536,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
 
-		// iDEAL payment methods are tokenized as SEPA debits, so the saved-method path expects the
-		// Stripe payment method object to expose the generated SEPA debit fields.
 		$payment_method_object = (object) [
 			'id'         => 'pm_ideal_mock',
 			'object'     => 'payment_method',
@@ -3956,19 +3946,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * When OCS is enabled, the payment method type submitted on the checkout
-	 * form is the OC pseudo-method (`stripe`/`card`, always reusable). Only
-	 * after we look up the PaymentMethod from Stripe do we know the actual
-	 * type — and for iDEAL/Wero and Bancontact, that type's reusability is
-	 * gated by a per-method admin toggle. The save flag must be re-evaluated
-	 * against the resolved type so a checked OCS save checkbox doesn't add
-	 * `setup_future_usage` to the intent against the merchant's preference.
+	 * Under OCS, save_payment_method_to_store must be re-evaluated against the resolved method type, not the OC pseudo-method.
 	 *
 	 * @dataProvider provide_test_prepare_payment_information_oc_drops_save_flag_when_resolved_method_not_reusable
-	 *
-	 * @param string $resolved_type      The Stripe payment method type returned by the API after OCS resolution.
-	 * @param bool   $is_reusable        Whether the resolved payment method is reusable (mirrors the per-method toggle).
-	 * @param bool   $expected_save_flag Expected `save_payment_method_to_store` value after OCS resolution.
 	 */
 	public function test_prepare_payment_information_oc_drops_save_flag_when_resolved_method_not_reusable( string $resolved_type, bool $is_reusable, bool $expected_save_flag ): void {
 		$order             = WC_Helper_Order::create_order();
@@ -3976,9 +3956,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway->oc_enabled = true;
 
-		// Stub the resolved payment method to mimic the per-method save toggle
-		// (sepa_tokens_for_ideal/sepa_tokens_for_bancontact) without relying on
-		// re-constructing the gateway with new settings.
 		$resolved_method_stub = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method::class )
 			->disableOriginalConstructor()
 			->onlyMethods( [ 'is_reusable' ] )
