@@ -329,6 +329,7 @@ class WC_Stripe {
 	public function initialize_diagnostics(): void {
 		( new WC_Stripe_Diagnostics_Frontend_Loader() )->init();
 		WC_Stripe_Diagnostics_Recorder::get_instance()->init();
+		( new WC_Stripe_Diagnostics_Cleanup() )->init();
 	}
 
 	/**
