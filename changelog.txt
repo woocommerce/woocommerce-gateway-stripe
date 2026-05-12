@@ -2,7 +2,7 @@
 
 xxxx-xx-xx - version 10.8.0
 * Add - Remote configuration system for managing feature flags
-
+* Dev - Add Jurassic Ninja preview link for PRs to enable one-click browser testing
 
 2026-05-12 - version 10.7.0
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
