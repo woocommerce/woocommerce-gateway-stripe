@@ -46,10 +46,14 @@ class WC_Stripe_Remote_Config {
 	 * existing cache is preserved).
 	 */
 	public function apply( string $mode, array $payload ): bool {
-		if ( ! $this->validate_payload( $payload ) ) {
+		$rejection_reason = $this->validate_payload( $payload );
+		if ( null !== $rejection_reason ) {
 			WC_Stripe_Logger::warning(
 				'Stripe remote-config: payload rejected; keeping previous cache.',
-				[ 'mode' => $mode ]
+				[
+					'mode'   => $mode,
+					'reason' => $rejection_reason,
+				]
 			);
 			return false;
 		}
@@ -115,25 +119,34 @@ class WC_Stripe_Remote_Config {
 		return $cache['flags'][ $flag ]['value'];
 	}
 
-	private function validate_payload( array $payload ): bool {
+	/**
+	 * Validate a remote-config payload.
+	 *
+	 * @return string|null Null on success, or a short reason describing the
+	 *                     first failure (intended for the rejection log).
+	 */
+	private function validate_payload( array $payload ): ?string {
 		// Client also caps wire-body size, but apply() may be
 		// called outside the Client (e.g. from tests, or from a future caller that
 		// builds the payload in memory).
 		$encoded = wp_json_encode( $payload );
-		if ( false === $encoded || strlen( $encoded ) > WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES ) {
-			return false;
+		if ( false === $encoded ) {
+			return 'payload not JSON-encodable';
+		}
+		if ( strlen( $encoded ) > WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES ) {
+			return 'payload exceeds MAX_PAYLOAD_BYTES';
 		}
 
 		if ( ! isset( $payload['generated_at'] ) || ! is_string( $payload['generated_at'] ) ) {
-			return false;
+			return 'missing or non-string generated_at';
 		}
 		// ISO-8601 sanity check (e.g. "2026-05-09T12:00:00Z" or with timezone offset).
 		if ( false === strtotime( $payload['generated_at'] ) ) {
-			return false;
+			return 'unparseable generated_at';
 		}
 
 		if ( ! isset( $payload['flags'] ) || ! is_array( $payload['flags'] ) ) {
-			return false;
+			return 'missing or non-array flags';
 		}
 
 		foreach ( $payload['flags'] as $name => $entry ) {
@@ -141,14 +154,14 @@ class WC_Stripe_Remote_Config {
 				continue; // Unknown flags are dropped silently, not a validation failure.
 			}
 			if ( ! is_array( $entry ) || ! array_key_exists( 'value', $entry ) ) {
-				return false;
+				return sprintf( 'flag %s: missing value field', $name );
 			}
 			if ( ! WC_Stripe_Remote_Config_Flags::validate_value( $name, $entry['value'] ) ) {
-				return false;
+				return sprintf( 'flag %s: value type does not match schema', $name );
 			}
 		}
 
-		return true;
+		return null;
 	}
 
 	/**
