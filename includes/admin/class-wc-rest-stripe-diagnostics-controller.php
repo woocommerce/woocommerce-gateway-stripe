@@ -6,9 +6,10 @@ defined( 'ABSPATH' ) || exit;
  * REST controller for the diagnostics endpoints.
  *
  * Routes:
- * - POST /wc/v3/wc_stripe/diagnostics/events  (shopper-facing event ingest)
- * - GET  /wc/v3/wc_stripe/diagnostics/summary (admin: per-status counts)
- * - GET  /wc/v3/wc_stripe/diagnostics/traces  (admin: full trace JSON, filtered)
+ * - POST   /wc/v3/wc_stripe/diagnostics/events  (shopper-facing event ingest)
+ * - GET    /wc/v3/wc_stripe/diagnostics/summary (admin: per-status counts)
+ * - GET    /wc/v3/wc_stripe/diagnostics/traces  (admin: full trace JSON, filtered)
+ * - DELETE /wc/v3/wc_stripe/diagnostics/traces  (admin: wipe stored traces)
  */
 class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 
@@ -93,15 +94,22 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 			$this->namespace,
 			'/' . $this->rest_base . '/traces',
 			[
-				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => [ $this, 'get_traces' ],
-				'permission_callback' => [ $this, 'admin_permissions_check' ],
-				'args'                => [
-					'status' => [
-						'required' => false,
-						'type'     => 'array',
-						'items'    => [ 'type' => 'string' ],
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ $this, 'get_traces' ],
+					'permission_callback' => [ $this, 'admin_permissions_check' ],
+					'args'                => [
+						'status' => [
+							'required' => false,
+							'type'     => 'array',
+							'items'    => [ 'type' => 'string' ],
+						],
 					],
+				],
+				[
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => [ $this, 'delete_traces' ],
+					'permission_callback' => [ $this, 'admin_permissions_check' ],
 				],
 			]
 		);
@@ -172,6 +180,25 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 			[
 				'traces' => $traces,
 				'count'  => count( $traces ),
+			],
+			200
+		);
+	}
+
+	/**
+	 * Wipe every stored trace. Powers the "Clear" action in the admin trace
+	 * list. Does not gate on the diagnostics-enabled toggle: a merchant who
+	 * disabled capture must still be able to clear out the bundle they
+	 * captured while it was on.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function delete_traces() {
+		$deleted = $this->store->delete_all();
+		return new WP_REST_Response(
+			[
+				'deleted' => $deleted,
+				'total'   => 0,
 			],
 			200
 		);

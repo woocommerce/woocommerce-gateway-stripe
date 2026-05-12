@@ -167,6 +167,19 @@ class WC_Stripe_Diagnostics_Trace_Store_Test extends WP_UnitTestCase {
 		$this->assertNotContains( 'gone', $this->store->get_all_ids() );
 	}
 
+	public function test_delete_all_returns_removed_count_and_empties_store() {
+		$this->store->create( 'a' );
+		$this->store->create( 'b' );
+		$this->store->create( 'c' );
+
+		$this->assertSame( 3, $this->store->delete_all() );
+		$this->assertSame( 0, $this->store->count() );
+		$this->assertSame( [], $this->store->get_all_ids() );
+
+		// Empty store: nothing to delete, count is zero.
+		$this->assertSame( 0, $this->store->delete_all() );
+	}
+
 	public function test_sanitize_id_strips_unsafe_chars() {
 		$this->assertSame( 'abc_123-XYZ', WC_Stripe_Diagnostics_Trace_Store::sanitize_id( 'abc_123-XYZ' ) );
 		$this->assertSame( 'abc', WC_Stripe_Diagnostics_Trace_Store::sanitize_id( 'a/b;c' ) );

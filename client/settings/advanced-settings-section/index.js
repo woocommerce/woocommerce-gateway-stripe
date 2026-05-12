@@ -1,5 +1,6 @@
 /* global wc_stripe_settings_params */
 import React from 'react';
+import styled from '@emotion/styled';
 import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import DebugMode from './debug-mode';
@@ -8,6 +9,7 @@ import { Card } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import OptimizedCheckoutFeature from 'wcstripe/settings/advanced-settings-section/optimized-checkout-feature';
+import './style.scss';
 
 const AdvancedSettingsDescription = () => (
 	<>
@@ -21,22 +23,40 @@ const AdvancedSettingsDescription = () => (
 	</>
 );
 
+// Vertical stack of cards within the right-hand column. Mirrors the spacing
+// other settings sections use between sibling cards.
+const CardStack = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+`;
+
 const AdvancedSettings = ( { isOCEnabled, setIsOCEnabled } ) => {
 	const isOCAvailable = wc_stripe_settings_params.is_oc_available; // eslint-disable-line camelcase
 	return (
 		<SettingsSection Description={ AdvancedSettingsDescription }>
 			<LoadableSettingsSection numLines={ 10 }>
-				<Card>
-					<CardBody>
-						<DebugMode />
-						<DiagnosticsMode />
-						<OptimizedCheckoutFeature
-							isOCEnabled={ isOCEnabled }
-							isOCAvailable={ isOCAvailable }
-							setIsOCEnabled={ setIsOCEnabled }
-						/>
-					</CardBody>
-				</Card>
+				<CardStack>
+					<Card>
+						<CardBody>
+							<DebugMode />
+						</CardBody>
+					</Card>
+					<Card>
+						<CardBody>
+							<DiagnosticsMode />
+						</CardBody>
+					</Card>
+					<Card>
+						<CardBody>
+							<OptimizedCheckoutFeature
+								isOCEnabled={ isOCEnabled }
+								isOCAvailable={ isOCAvailable }
+								setIsOCEnabled={ setIsOCEnabled }
+							/>
+						</CardBody>
+					</Card>
+				</CardStack>
 			</LoadableSettingsSection>
 		</SettingsSection>
 	);
