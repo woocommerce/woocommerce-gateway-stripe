@@ -11,6 +11,9 @@ const STATUS_LABELS = {
 };
 
 const formatRelative = ( unixSeconds, nowSeconds ) => {
+	if ( ! unixSeconds ) {
+		return '—';
+	}
 	const diff = Math.max( 0, nowSeconds - unixSeconds );
 	if ( diff < 60 ) {
 		return __( 'just now', 'woocommerce-gateway-stripe' );
@@ -119,7 +122,7 @@ const DiagnosticsTraceRow = ( { trace, nowSeconds, onCopy, onView } ) => {
 					<span className="wc-stripe-diagnostics-trace-row__when">
 						{ '· ' }
 						{ formatRelative(
-							trace.created_at || trace.updated_at || nowSeconds,
+							trace.created_at || trace.updated_at,
 							nowSeconds
 						) }
 					</span>
