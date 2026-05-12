@@ -151,7 +151,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-
 = 10.8.0 - xxxx-xx-xx =
 * Add - Remote configuration system for managing feature flags
 
