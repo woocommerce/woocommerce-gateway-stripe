@@ -681,7 +681,9 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$original_order = $theorder;
 
 		if ( count( $request_params ) > 0 ) {
-			$_REQUEST = $request_params;
+			foreach ( $request_params as $key => $value ) {
+				$_REQUEST[ $key ] = $value;
+			}
 		}
 
 		if ( count( $post_globals ) > 0 ) {
@@ -736,7 +738,11 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		// Clean up.
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 
-		unset( $_REQUEST );
+		if ( count( $request_params ) > 0 ) {
+			foreach ( $request_params as $key => $value ) {
+				unset( $_REQUEST[ $key ] );
+			}
+		}
 		if ( count( $post_globals ) > 0 ) {
 			foreach ( $post_globals as $key => $value ) {
 				unset( $GLOBALS[ $key ] );
@@ -806,7 +812,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		global $theorder;
 		$original_order = $theorder;
 
-		update_option( 'wc_stripe_show_subscription_detached_notice', [ 123 ] );
+		update_option( 'wc_stripe_dismissed_subscription_detached_notice', [ 123 ] );
 
 		$subscription = new WC_Subscription();
 		$subscription->set_id( 123 );
@@ -815,7 +821,8 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$subscription->save();
 
 		$theorder = $subscription;
-		$_REQUEST = [ 'page' => 'wc-orders--shop_subscription', 'id' => 123 ];
+		$_REQUEST['page'] = 'wc-orders--shop_subscription';
+		$_REQUEST['id']   = 123;
 
 		$cot_ctrl = wc_get_container()->get( \Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController::class );
 		remove_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999 );
@@ -838,10 +845,10 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->assertArrayNotHasKey( 'subscription_detached', $notices->notices );
 
-		unset( $_REQUEST );
+		unset( $_REQUEST['page'], $_REQUEST['id'] );
 		$theorder = $original_order;
 		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_src_123' );
-		delete_option( 'wc_stripe_show_subscription_detached_notice' );
+		delete_option( 'wc_stripe_dismissed_subscription_detached_notice' );
 	}
 
 	/**
@@ -858,7 +865,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
 		add_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999, 3 );
 
-		delete_option( 'wc_stripe_show_subscription_detached_notice' );
+		delete_option( 'wc_stripe_dismissed_subscription_detached_notice' );
 
 		$_GET['wc-stripe-hide-notice']   = 'subscription_detached';
 		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
@@ -868,13 +875,13 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$notices = $this->create_admin_notices_instance();
 		$notices->hide_notices();
 
-		$dismissed = get_option( 'wc_stripe_show_subscription_detached_notice' );
+		$dismissed = get_option( 'wc_stripe_dismissed_subscription_detached_notice' );
 		$this->assertIsArray( $dismissed );
 		$this->assertContains( 456, $dismissed );
 
 		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
 		unset( $_REQUEST['page'], $_REQUEST['id'] );
-		delete_option( 'wc_stripe_show_subscription_detached_notice' );
+		delete_option( 'wc_stripe_dismissed_subscription_detached_notice' );
 	}
 
 	/**
@@ -889,7 +896,9 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function test_subscription_check_detachment_bulk_action( $request_params, $subscriptions, $expected_count, $expected_content ) {
 		if ( $request_params ) {
-			$_REQUEST = $request_params;
+			foreach ( $request_params as $key => $value ) {
+				$_REQUEST[ $key ] = $value;
+			}
 		}
 
 		if ( count( $subscriptions ) > 0 ) {
@@ -906,7 +915,11 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$actual = $notices->notices;
 
 		// Clean up.
-		unset( $_REQUEST );
+		if ( $request_params ) {
+			foreach ( $request_params as $key => $value ) {
+				unset( $_REQUEST[ $key ] );
+			}
+		}
 		WC_Subscriptions::$wcs_get_subscription = null;
 
 		$this->assertCount( $expected_count, $actual );

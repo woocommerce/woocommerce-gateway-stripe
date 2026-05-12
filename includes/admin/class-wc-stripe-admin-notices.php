@@ -457,17 +457,10 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
-		global $theorder;
+		$subscription_id = $this->get_current_subscription_id();
+		$subscription     = $subscription_id ? wcs_get_subscription( $subscription_id ) : null;
 
-		$subscription = null;
-
-		if ( isset( $theorder ) ) {
-			$subscription = $theorder;
-		} elseif ( ! empty( $GLOBALS['post']->ID ) ) { // If $theorder is empty (i.e. non-HPOS), fallback to using the global post object.
-			$subscription = wcs_get_subscription( $GLOBALS['post']->ID );
-		}
-
-		if ( ! isset( $subscription ) || ! $subscription instanceof WC_Subscription ) {
+		if ( ! $subscription instanceof WC_Subscription ) {
 			return;
 		}
 
@@ -476,7 +469,7 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
-		$dismissed_subscriptions = (array) get_option( 'wc_stripe_show_subscription_detached_notice', [] );
+		$dismissed_subscriptions = (array) get_option( 'wc_stripe_dismissed_subscription_detached_notice', [] );
 
 		if ( in_array( $subscription->get_id(), $dismissed_subscriptions, true ) ) {
 			return;
@@ -653,17 +646,11 @@ class WC_Stripe_Admin_Notices {
 					}
 					break;
 				case 'subscription_detached':
-					$query_params  = wp_unslash( $_REQUEST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-					$subscription_id = 0;
-					if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-						$subscription_id = absint( $query_params['id'] ?? 0 );
-					} elseif ( isset( $query_params['post'] ) ) {
-						$subscription_id = absint( $query_params['post'] );
-					}
-					$dismissed = (array) get_option( 'wc_stripe_show_subscription_detached_notice', [] );
+					$subscription_id = $this->get_current_subscription_id();
+					$dismissed       = (array) get_option( 'wc_stripe_dismissed_subscription_detached_notice', [] );
 					if ( $subscription_id && ! in_array( $subscription_id, $dismissed, true ) ) {
 						$dismissed[] = $subscription_id;
-						update_option( 'wc_stripe_show_subscription_detached_notice', $dismissed );
+						update_option( 'wc_stripe_dismissed_subscription_detached_notice', $dismissed, false );
 					}
 					break;
 				case 'ece_location':
@@ -713,5 +700,38 @@ class WC_Stripe_Admin_Notices {
 		if ( $was_affected_version && 'no' !== get_option( 'wc_stripe_show_ece_location_notice' ) ) {
 			update_option( 'wc_stripe_show_ece_location_notice', 'yes' );
 		}
+
+	/**
+	 * Resolve the current subscription ID from request/globals context.
+	 *
+	 * In HPOS mode the ID comes from $_REQUEST['id']; in legacy mode
+	 * it comes from $_REQUEST['post']. Falls back to $theorder or
+	 * $GLOBALS['post'] when request params are absent (e.g. during
+	 * admin_notices rendering).
+	 *
+	 * @return int Subscription ID, or 0 if none found.
+	 */
+	private function get_current_subscription_id(): int {
+		$query_params = wp_unslash( $_REQUEST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
+			return absint( $query_params['id'] ?? 0 );
+		}
+
+		if ( isset( $query_params['post'] ) ) {
+			return absint( $query_params['post'] );
+		}
+
+		// Fallback: resolve from $theorder or $GLOBALS['post'],
+		// available during admin_notices rendering.
+		if ( isset( $GLOBALS['theorder'] ) && $GLOBALS['theorder'] instanceof WC_Subscription ) {
+			return $GLOBALS['theorder']->get_id();
+		}
+
+		if ( ! empty( $GLOBALS['post']->ID ) ) {
+			return (int) $GLOBALS['post']->ID;
+		}
+
+		return 0;
 	}
 }
