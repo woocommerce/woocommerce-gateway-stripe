@@ -38,7 +38,7 @@ The following items note specific versions that include important changes, featu
 * 10.7.0
    - Optimized Checkout Suite re-enabled by default for new installs
    - Adaptive Pricing enabled by default for new installs
-   - Removed deprecated backend methods that called wc_deprecated_function
+   - Removed deprecated backend methods that called wc_deprecated_function - [PR #5066](https://github.com/woocommerce/woocommerce-gateway-stripe/pull/5066)
 * 10.6.0
    - Adaptive Pricing available
 * 10.4.0
@@ -151,24 +151,39 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 10.7.0 - xxxx-xx-xx =
-* Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
-* Add - Filter wc_stripe_optimized_checkout_title to override the Optimized Checkout payment method title at checkout
-* Fix - Fix compatibility with WooCommerce 10.8 checkout-evidence guard (required created-via in orders)
+= 10.7.0 - 2026-05-12 =
+* Add - Remote configuration system for managing feature flags
+
+**New Features**
 * Update - Enable Optimized Checkout Suite by default for new installs
 * Update - Enable Adaptive Pricing by default for new installs
-* Fix - Use SKU as the Agentic Commerce catalog identifier so checkout.session.completed line items resolve correctly; keep the product-ID fallback for SKU-less products and catalogs synced under the legacy contract
+* Add - Filter wc_stripe_optimized_checkout_title to override the Optimized Checkout payment method title at checkout
+
+**Important Fixes and Updates**
+* Update - Remove deprecated backend methods that called wc_deprecated_function
 * Add - Display a bank authorization notice for Pre-Authorized Debit (ACSS) payments on checkout
-* Fix - Stop Agentic Commerce checkout.session.completed orders from failing on null WC sessions or shipping rates that don't match any configured WC method
-* Fix - Detect Agentic Commerce sessions via payment_intent.agent_details so their checkout.session.completed webhooks aren't skipped
-* Add - Add Agentic Commerce settings UI with feature introduction, onboarding guide, enable/disable toggle, and webhook secret management
-* Fix - Surface PHP Throwables from the Agentic Commerce checkout.session.completed flow so fatals are logged, the order rollback runs, and Action Scheduler marks the job failed
-* Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
-* Dev - Rename payment request references to express checkout
-* Add - Add Agentic Commerce admin dashboard for monitoring product feed sync status, history, errors, and triggering manual syncs
+* Fix - Fix compatibility with WooCommerce 10.8 checkout-evidence guard (required created-via in orders)
 * Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
 * Fix - Cancel pending WC Subscriptions retry when Stripe Radar blocks a renewal payment so further automatic retries do not re-trigger the same Radar block
 * Fix - Stale saved-card metadata after updating a card's expiry or CVC
+* Fix - Prevent fatal error in wp-admin from overly narrow argument type
+* Update - Improve the behaviour for the Optimized Checkout Suite and Adaptive Pricing settings
+* Fix - Guard against multiple WC_Stripe instances before plugin is fully initialized
+
+**Other Fixes and Updates**
+* Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
+* Add - Allow Stripe developer widget to be enabled in test mode via wc_stripe_show_stripe_developer_widget filter
+* Add - Show Stripe's account sync status in the Account details card
+
+**Internal Changes and Upcoming Features**
+* Add - Add Agentic Commerce settings UI with feature introduction, onboarding guide, enable/disable toggle, and webhook secret management
+* Add - Add Agentic Commerce admin dashboard for monitoring product feed sync status, history, errors, and triggering manual syncs
+* Fix - Use SKU as the Agentic Commerce catalog identifier so checkout.session.completed line items resolve correctly; keep the product-ID fallback for SKU-less products and catalogs synced under the legacy contract
+* Fix - Stop Agentic Commerce checkout.session.completed orders from failing on null WC sessions or shipping rates that don't match any configured WC method
+* Fix - Detect Agentic Commerce sessions via payment_intent.agent_details so their checkout.session.completed webhooks aren't skipped
+* Fix - Surface PHP Throwables from the Agentic Commerce checkout.session.completed flow so fatals are logged, the order rollback runs, and Action Scheduler marks the job failed
+* Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
+* Dev - Rename payment request references to express checkout
 * Dev - Reduce PR PHP test matrix from 30 to 12 jobs (PHP 7.4, 8.2, 8.5; WC/WP at L and L-2) for faster CI feedback
 * Dev - Bump transitive minimatch dev dependency to resolve ReDoS CVE-2026-27903 (GHSA-7r86-cg39-jmmj)
 * Fix - Prevent fatal error in wp-admin from overly narrow argument type
@@ -176,6 +191,5 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Allow Stripe developer widget to be enabled in test mode via wc_stripe_show_stripe_developer_widget filter
 * Add - Show Stripe's account sync status in the Account details card
 * Update - Improve the behaviour for the Optimized Checkout Suite and Adaptive Pricing settings
-* Add - Remote configuration system for managing feature flags
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

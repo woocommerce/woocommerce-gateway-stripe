@@ -1,6 +1,6 @@
 *** Changelog ***
 
-xxxx-xx-xx - version 10.7.0
+2026-05-12 - version 10.7.0
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
 * Add - Filter wc_stripe_optimized_checkout_title to override the Optimized Checkout payment method title at checkout
 * Fix - Fix compatibility with WooCommerce 10.8 payment handling, where created-via is required for orders
@@ -26,6 +26,7 @@ xxxx-xx-xx - version 10.7.0
 * Add - Show Stripe's account sync status in the Account details card
 * Update - Improve the behaviour for the Optimized Checkout Suite and Adaptive Pricing settings
 * Add - Remote configuration system for managing feature flags
+* Fix - Guard against multiple WC_Stripe instances before plugin is fully initialized
 
 2026-04-23 - version 10.6.1
 * Fix - Fix Optimized Checkout Suite bugs that could result in duplicate subscription charges and generic payment methods names
