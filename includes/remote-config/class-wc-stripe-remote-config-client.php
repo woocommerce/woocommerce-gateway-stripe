@@ -41,7 +41,7 @@ class WC_Stripe_Remote_Config_Client {
 	 *                        (including opt-out short-circuit).
 	 */
 	public function fetch( string $mode ) {
-		if ( ! $this->is_enabled() ) {
+		if ( ! WC_Stripe_Remote_Config_Flags::is_remote_config_enabled() ) {
 			return new WP_Error(
 				'wc_stripe_remote_config_disabled',
 				'Remote config is disabled via constant or filter.'
@@ -98,26 +98,5 @@ class WC_Stripe_Remote_Config_Client {
 		}
 
 		return $decoded;
-	}
-
-	/**
-	 * Whether the remote-config feature is enabled on this site.
-	 *
-	 * Constant takes precedence; if not defined, the filter is consulted with
-	 * a default of `true`.
-	 */
-	private function is_enabled(): bool {
-		if ( defined( 'WC_STRIPE_DISABLE_REMOTE_CONFIG' ) && WC_STRIPE_DISABLE_REMOTE_CONFIG ) {
-			return false;
-		}
-
-		/**
-		 * Filters whether the Stripe remote-config channel is enabled.
-		 *
-		 * @since 10.8.0
-		 *
-		 * @param bool $enabled Default true.
-		 */
-		return (bool) apply_filters( 'wc_stripe_remote_config_enabled', true );
 	}
 }

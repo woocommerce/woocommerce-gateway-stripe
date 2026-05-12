@@ -44,6 +44,28 @@ class WC_Stripe_Remote_Config_Flags {
 	}
 
 	/**
+	 * Whether the remote-config feature is enabled on this site.
+	 *
+	 * The `WC_STRIPE_DISABLE_REMOTE_CONFIG` constant takes precedence; if not
+	 * defined, the `wc_stripe_remote_config_enabled` filter is consulted with a
+	 * default of true.
+	 */
+	public static function is_remote_config_enabled(): bool {
+		if ( defined( 'WC_STRIPE_DISABLE_REMOTE_CONFIG' ) && WC_STRIPE_DISABLE_REMOTE_CONFIG ) {
+			return false;
+		}
+
+		/**
+		 * Filters whether the Stripe remote-config channel is enabled.
+		 *
+		 * @since 10.8.0
+		 *
+		 * @param bool $enabled Default true.
+		 */
+		return (bool) apply_filters( 'wc_stripe_remote_config_enabled', true );
+	}
+
+	/**
 	 * Whether the given value matches the declared type for the named flag.
 	 *
 	 * Returns false for unknown flags.

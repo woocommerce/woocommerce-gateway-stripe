@@ -71,7 +71,7 @@ class WC_Stripe_Remote_Config_Scheduler {
 	 * Runs the sync for every connected mode. Safe to call directly.
 	 */
 	public function run(): void {
-		if ( ! $this->is_enabled() ) {
+		if ( ! WC_Stripe_Remote_Config_Flags::is_remote_config_enabled() ) {
 			return;
 		}
 
@@ -113,14 +113,6 @@ class WC_Stripe_Remote_Config_Scheduler {
 		}
 
 		as_enqueue_async_action( self::SYNC_ACTION, [], self::SCHEDULER_GROUP );
-	}
-
-	private function is_enabled(): bool {
-		if ( defined( 'WC_STRIPE_DISABLE_REMOTE_CONFIG' ) && WC_STRIPE_DISABLE_REMOTE_CONFIG ) {
-			return false;
-		}
-
-		return (bool) apply_filters( 'wc_stripe_remote_config_enabled', true );
 	}
 
 	/**
