@@ -400,7 +400,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$request->set_param( 'enabled_payment_method_ids', [ WC_Stripe_Payment_Methods::CARD ] );
 		$request->set_param( 'is_upe_enabled', true );
 		// Enable Apple Pay and Google Pay.
-		$request->set_param( 'is_payment_request_enabled', true );
+		$request->set_param( 'is_express_checkout_enabled', true );
 
 		$response = $this->controller->update_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
@@ -428,7 +428,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$request->set_param( 'enabled_payment_method_ids', [ WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
 		$request->set_param( 'is_upe_enabled', true );
 		// Enable Apple Pay and Google Pay -- this will be ignored because card is disabled
-		$request->set_param( 'is_payment_request_enabled', true );
+		$request->set_param( 'is_express_checkout_enabled', true );
 
 		$response = $this->controller->update_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
@@ -549,9 +549,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
-	 * @dataProvider is_payment_request_enabled_provider
+	 * @dataProvider is_express_checkout_enabled_provider
 	 */
-	public function test_is_payment_request_enabled( $is_enabled, $enabled_payment_method_ids, $disabled_payment_method_ids ) {
+	public function test_is_express_checkout_enabled( $is_enabled, $enabled_payment_method_ids, $disabled_payment_method_ids ) {
 		$this->mock_payment_method_configurations(
 			$enabled_payment_method_ids,
 			$disabled_payment_method_ids
@@ -559,10 +559,10 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$request  = new WP_REST_Request( 'GET', self::SETTINGS_ROUTE );
 		$response = $this->controller->get_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( $is_enabled, $response->get_data()['is_payment_request_enabled'] );
+		$this->assertEquals( $is_enabled, $response->get_data()['is_express_checkout_enabled'] );
 	}
 
-	public function is_payment_request_enabled_provider() {
+	public function is_express_checkout_enabled_provider() {
 		return [
 			[ true, [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::GOOGLE_PAY ], [] ],
 			[ false, [], [ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::AMAZON_PAY ] ],
@@ -605,35 +605,35 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 */
 	public function enum_field_provider() {
 		return [
-			'payment_request_button_theme'     => [
-				'payment_request_button_theme',
+			'express_checkout_button_theme'     => [
+				'express_checkout_button_theme',
 				'express_checkout_button_theme',
 				'dark',
 				'light',
 				'foo',
 			],
-			'payment_request_button_size'      => [
-				'payment_request_button_size',
+			'express_checkout_button_size'      => [
+				'express_checkout_button_size',
 				'express_checkout_button_size',
 				'default',
 				'large',
 				'foo',
 			],
-			'payment_request_button_type'      => [
-				'payment_request_button_type',
+			'express_checkout_button_type'      => [
+				'express_checkout_button_type',
 				'express_checkout_button_type',
 				'buy',
 				'book',
 				'foo',
 			],
-			'payment_request_button_locations' => [
-				'payment_request_button_locations',
+			'express_checkout_button_locations' => [
+				'express_checkout_button_locations',
 				'express_checkout_button_locations',
 				[ 'cart' ],
 				[ 'cart', 'checkout', 'product' ],
 				[ 'foo' ],
 			],
-			'optimized_checkout_layout'        => [
+			'optimized_checkout_layout'         => [
 				'oc_layout',
 				'optimized_checkout_layout',
 				'accordion',

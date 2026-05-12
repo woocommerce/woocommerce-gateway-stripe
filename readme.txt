@@ -35,6 +35,10 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 10.7.0
+   - Optimized Checkout Suite re-enabled by default for new installs
+   - Adaptive Pricing enabled by default for new installs
+   - Removed deprecated backend methods that called wc_deprecated_function - [PR #5066](https://github.com/woocommerce/woocommerce-gateway-stripe/pull/5066)
 * 10.6.0
    - Adaptive Pricing available
 * 10.4.0
@@ -147,100 +151,39 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 10.6.1 - 2026-04-23 =
-
-* Fix - Fix Optimized Checkout Suite bugs that could result in duplicate subscription charges and generic payment methods names
-
-= 10.6.0 - 2026-04-20 =
+= 10.7.0 - 2026-05-12 =
 
 **New Features**
-* Add - Support for Adaptive Pricing
-* Add - Allow payment methods for other currencies to be enabled when Adaptive Pricing is enabled
-* Add - Add exit survey to capture merchant feedback on plugin deactivation and gateway disablement
-* Add - New promotional banner to highlight the Stripe Tax extension for OCS-enabled merchants
-* Add - Add an admin notice and one-click action to move Stripe payment methods to the top of WooCommerce payment gateway order for Optimized Checkout
+* Update - Enable Optimized Checkout Suite by default for new installs
+* Update - Enable Adaptive Pricing by default for new installs
+* Add - Filter wc_stripe_optimized_checkout_title to override the Optimized Checkout payment method title at checkout
 
 **Important Fixes and Updates**
-* Add - Support express checkout for free trial subscription products that require shipping
-* Add - Allow additional font domains to be included in Stripe fonts
-* Fix - Accept regional language names for Spanish provinces (e.g., Basque "Gipuzkoa") in Apple Pay and express checkout address validation
-* Fix - Restore missing saved payment tokens when Optimized Checkout Suite is enabled
-* Fix - Hide duplicate store-level save checkbox when Stripe Link is enabled on checkout
-* Update - Show "Payment Options" as the Optimized Checkout title on classic checkout and "Payment Methods" on Blocks checkout instead of "Stripe"
-* Fix - Update Stripe Fee and Stripe Payout values correctly after partial capture by replacing authorization-phase values instead of adding to them
-* Fix - Add defensive checks before running renewal meta cleanup when renewal/subscription objects are missing or invalid
-* Fix - Use the order currency instead of the global store currency when creating a payment intent, resolving incorrect charges in multicurrency setups
-* Fix - Resolve intermittent "Missing required customer field: address->line1" error during checkout with auto-account creation
-* Update - Add deprecation notices to methods and properties that were deprecated without them in older versions
-* Update - Disable the Optimized Checkout Suite in the "Add Payment Method" and "Change Subscription Payment Method" screens
-* Fix - Add order and payment method validation to prevent errors
-* Fix - Ensure that we enqueue all needed scripts on payment pages
-* Fix - Wrap express checkout add-to-cart in try/catch to prevent errors
-* Fix - Treat customer-initiated Klarna (and other redirect BNPL) cancellations as recoverable so the order stays retryable and shoppers can complete checkout with another payment method
-* Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts
-* Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
-* Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
-* Fix - Keep adaptive pricing amount in sync on checkout after order total changes
-* Fix - Better background color detection for block themes and allow fonts from fonts.bunny.net
-* Fix - Re-block UI during express checkout post-modal processing so shoppers see a loading state while the checkout API call completes
-* Fix - Use floating labels and correct field spacing on Blocks checkout
-* Fix - Hide Stripe's testing assistant on checkout page
+* Update - Remove deprecated backend methods that called wc_deprecated_function
+* Add - Display a bank authorization notice for Pre-Authorized Debit (ACSS) payments on checkout
+* Fix - Fix compatibility with WooCommerce 10.8 checkout-evidence guard (required created-via in orders)
+* Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
+* Fix - Cancel pending WC Subscriptions retry when Stripe Radar blocks a renewal payment so further automatic retries do not re-trigger the same Radar block
+* Fix - Stale saved-card metadata after updating a card's expiry or CVC
+* Fix - Prevent fatal error in wp-admin from overly narrow argument type
+* Update - Improve the behaviour for the Optimized Checkout Suite and Adaptive Pricing settings
+* Fix - Guard against multiple WC_Stripe instances before plugin is fully initialized
 
 **Other Fixes and Updates**
-* Fix - Re-compute Stripe PE appearance after web fonts load to prevent fallback font rendering
-* Fix - Prevent brief display of wrong title on classic checkout when Optimized Checkout is enabled
-* Fix - Normalize express checkout button spacing on the block cart page in Safari
-* Update - Express Checkout button logging will only occur when verbose debug mode is enabled
-* Fix - Improve default layout when Optimized Checkout is disabled
-* Fix - Improve performance of CSS style lookups
-* Fix - Fix UPE style transition keys for font smoothing properties
-* Update - Shorten test mode messaging, add Test Mode badge on Blocks checkout, and add copy-to-clipboard for test card numbers
-* Fix - Use a single Checkout Session line item priced at the full payable cart total so adaptive pricing sessions match checkout totals
-* Fix - Improve UX for the "Stripe first method" notice for Optimized Checkout
+* Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
+* Add - Allow Stripe developer widget to be enabled in test mode via wc_stripe_show_stripe_developer_widget filter
+* Add - Show Stripe's account sync status in the Account details card
 
 **Internal Changes and Upcoming Features**
-* Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
-* Add - Process payment with adaptive pricing in the classic checkout
-* Add - Process payment with adaptive pricing in the blocks checkout
-* Add - Allow customers to save payment methods during checkout with adaptive pricing
-* Add - Include specific information on converted currency for adaptive pricing in order confirmation emails
-* Add - Include specific information on converted currency for adaptive pricing in the order received page and order details page
-* Add - Show ECB interbank rate conversion fee notice to EEA-based shoppers on the order received page and in customer order confirmation emails
-* Add - Handle redirect payment flow in classic checkout for Checkout Sessions
-* Add - Handle Checkout Session failure webhook events for expired and async failed payments
-* Add - Process Checkout Session async payment success webhooks
-* Add - Add Ajax endpoint to update line items in a checkout session
-* Remove - Remove EU adaptive pricing disclosure component from classic and Blocks checkout as it is shown natively within the Stripe currency selector element
-* Update - Defer checkout sessions webhook processing via Action Scheduler to prevent race conditions when webhook events arrive before order metadata is stored
-* Update - Show Express Checkout on block checkout when Adaptive Pricing is enabled
-* Fix - Fix checkout session creation for guest users
-* Update - Hide Adaptive Pricing option for Stripe accounts based in India and European Economic Area countries
-* Fix - Restrict Checkout Session saved payment method options to logged-in customers so guest checkout session creation succeeds
-* Update - Allow Adaptive Pricing for merchant accounts based in EEA countries
-* Fix - Confirm checkout session with user data in classic checkout for guest user
-* Fix - Move test mode instructions above the Adaptive Pricing currency selector in classic checkout
-* Fix - Render the Adaptive Pricing currency selector immediately above the payment element in classic checkout
-* Tweak - Hide pay and cancel actions for pending orders processed via Checkout Session in order received page and My Account orders list
-* Tweak - Hide the Adaptive Pricing currency selector from classic checkout when a saved payment method is selected
-* Fix - Only collect and send payer phone in Checkout Sessions when the WooCommerce phone field is required
-* Fix - Change Checkout Sessions (Adaptive Pricing) redirect-based flow to match the existing PaymentIntent flow (redirect to checkout page)
-* Fix - Ensure currency selector appears after saved payment methods in classic checkout
-* Dev - Add paratest for parallel PHP unit test execution
-* Dev - Autoload all Agentic Commerce classes via Composer classmap, removing manual require_once calls
-* Dev - Separate Agentic Commerce merchant-controlled is_enabled setting from the developer feature flag
-* Dev - Add metadata accessor methods for subscription objects to WC_Stripe_Order_Helper, centralizing subscription-specific metadata handling
-* Dev - Rename and move the new Checkout Sessions ajax handler class to be autoloaded
-* Dev - Add WC_Stripe_Country_Code constants class and replace hardcoded country code strings
-* Dev - Update WC_Stripe_Currency_Code constants class with zero-decimal and three-decimal currency lists and replace legacy no_decimal_currencies() usage
-* Dev - Add product deletion tracking to Agentic Commerce inventory sync: product deletes and trash events are batched and uploaded to Stripe as a product_catalog_feed with delete:true
-* Dev - Rename PHPUnit test files and directories to match the WordPress kebab-case naming convention used in includes/
-* Dev - Remove unused frontend code: legacy blocks payment request API helpers, related normalize utilities, and unused Stripe icon component
-* Dev - Add incremental inventory sync for Agentic Commerce: tracks stock changes via WooCommerce hooks and uploads a minimal inventory_feed CSV to Stripe one minute after the first change
-* Dev - Skip registering Stripe email classes when WooCommerce email class is not loaded
-* Dev - Remove @woocommerce/currency dev dependency to resolve locutus CVE-2026-32304 (GHSA-vh9h-29pq-r5m8)
-* Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
-* Dev - Treat misaligned statements as errors in PHPCS ruleset
-* Dev - Remove checkout sessions feature flag and make the feature available by default
-* Dev - Add automatic changelog entry suggestions to bin/changelog.js
+* Add - Add Agentic Commerce settings UI with feature introduction, onboarding guide, enable/disable toggle, and webhook secret management
+* Add - Add Agentic Commerce admin dashboard for monitoring product feed sync status, history, errors, and triggering manual syncs
+* Fix - Use SKU as the Agentic Commerce catalog identifier so checkout.session.completed line items resolve correctly; keep the product-ID fallback for SKU-less products and catalogs synced under the legacy contract
+* Fix - Stop Agentic Commerce checkout.session.completed orders from failing on null WC sessions or shipping rates that don't match any configured WC method
+* Fix - Detect Agentic Commerce sessions via payment_intent.agent_details so their checkout.session.completed webhooks aren't skipped
+* Fix - Surface PHP Throwables from the Agentic Commerce checkout.session.completed flow so fatals are logged, the order rollback runs, and Action Scheduler marks the job failed
+* Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
+* Dev - Rename payment request references to express checkout
+* Dev - Reduce PR PHP test matrix from 30 to 12 jobs (PHP 7.4, 8.2, 8.5; WC/WP at L and L-2) for faster CI feedback
+* Dev - Bump transitive minimatch dev dependency to resolve ReDoS CVE-2026-27903 (GHSA-7r86-cg39-jmmj)
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

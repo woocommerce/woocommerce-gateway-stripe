@@ -326,6 +326,64 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * When a new card is saved whose fingerprint matches an existing saved card,
+	 * `add_token_to_user` must refresh the mutable card metadata (expiry, brand,
+	 * last4) on the reused token. Otherwise the UI keeps showing the old expiry
+	 * even though the Stripe PaymentMethod id was replaced.
+	 *
+	 * Reproduces STRIPE-1082.
+	 *
+	 * @return void
+	 */
+	public function test_add_token_to_user_refreshes_cc_metadata_on_fingerprint_match() {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_test_stripe_1082', false );
+
+		$seed_token = new WC_Stripe_Payment_Token_CC();
+		$seed_token->set_token( 'pm_old' );
+		$seed_token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$seed_token->set_user_id( $user_id );
+		$seed_token->set_expiry_month( '01' );
+		$seed_token->set_expiry_year( '2027' );
+		$seed_token->set_card_type( 'visa' );
+		$seed_token->set_last4( '4242' );
+		$seed_token->set_fingerprint( 'F_abc' );
+		$seed_token->save();
+		$seed_token_id = $seed_token->get_id();
+
+		$incoming_pm = (object) [
+			'id'                            => 'pm_new',
+			'type'                          => WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::CARD => (object) [
+				'brand'         => 'visa',
+				'display_brand' => 'visa',
+				'exp_month'     => 2,
+				'exp_year'      => 2028,
+				'last4'         => '4242',
+				'fingerprint'   => 'F_abc',
+			],
+		];
+
+		$customer = new WC_Stripe_Customer( $user_id );
+
+		$reflection = new ReflectionMethod( WC_Stripe_Payment_Tokens::class, 'add_token_to_user' );
+		$reflection->setAccessible( true );
+		$result = $reflection->invoke( $this->stripe_payment_tokens, $incoming_pm, $customer, [] );
+
+		$this->assertSame( $seed_token_id, $result->get_id(), 'Duplicate-matched token should be reused, not recreated.' );
+		$this->assertSame( 'pm_new', $result->get_token() );
+		$this->assertEquals( '02', $result->get_expiry_month() );
+		$this->assertEquals( '2028', $result->get_expiry_year() );
+		$this->assertSame( 'visa', $result->get_card_type() );
+		$this->assertSame( '4242', $result->get_last4() );
+
+		$reloaded = WC_Payment_Tokens::get( $seed_token_id );
+		$this->assertSame( 'pm_new', $reloaded->get_token(), 'Refreshed PM id must be persisted.' );
+		$this->assertEquals( '02', $reloaded->get_expiry_month(), 'Refreshed expiry_month must be persisted.' );
+		$this->assertEquals( '2028', $reloaded->get_expiry_year(), 'Refreshed expiry_year must be persisted.' );
+	}
+
+	/**
 	 * Test for `woocommerce_payment_token_class`.
 	 *
 	 * @return void
