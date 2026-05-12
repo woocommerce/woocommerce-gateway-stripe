@@ -101,6 +101,7 @@ const DiagnosticsTraceToolbar = ( {
 				>
 					<button
 						type="button"
+						aria-pressed={ filter === FILTER_ALL }
 						className={ classNames(
 							'wc-stripe-diagnostics-segmented__option',
 							{
@@ -113,6 +114,7 @@ const DiagnosticsTraceToolbar = ( {
 					</button>
 					<button
 						type="button"
+						aria-pressed={ filter === FILTER_FAILED }
 						className={ classNames(
 							'wc-stripe-diagnostics-segmented__option',
 							{
