@@ -11,10 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * The `reader` field is informational only (greppable pointer to which code
  * reads the flag); the resolver does not invoke it.
- *
- * The `setting` field is `[ option_name, key|null ]`. `null` means the option
- * itself is the value (not a sub-key). The remote-config channel never writes
- * to these options - they are listed for audit/grep.
  */
 class WC_Stripe_Remote_Config_Flags {
 
@@ -26,13 +22,12 @@ class WC_Stripe_Remote_Config_Flags {
 	/**
 	 * Schema of remotely-controllable flags.
 	 *
-	 * @var array<string, array{reader: string, setting: array{0: string, 1: ?string}, type: string}>
+	 * @var array<string, array{reader: string, type: string}>
 	 */
 	const FLAGS = [
 		'optimized_checkout' => [
-			'reader'  => 'WC_Stripe_Feature_Flags::is_oc_available',
-			'setting' => [ '_wcstripe_feature_oc', null ],
-			'type'    => 'bool',
+			'reader' => 'WC_Stripe_Feature_Flags::is_oc_available',
+			'type'   => 'bool',
 		],
 	];
 
