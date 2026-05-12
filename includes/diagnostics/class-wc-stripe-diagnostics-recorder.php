@@ -289,11 +289,9 @@ class WC_Stripe_Diagnostics_Recorder {
 		}
 		$this->store->create( $session_id, [ 'source' => 'webhook' ] );
 
-		// Pin the order id to the trace's meta. First-writer-wins, so a
-		// webhook arriving after the original API request flow doesn't
-		// clobber the order id captured there.
-		if ( is_object( $resolved_order ) && method_exists( $resolved_order, 'get_id' ) ) {
-			$this->store->set_order_id( $session_id, (int) $resolved_order->get_id() );
+		$order_id = $resolved_order instanceof WC_Order ? (int) $resolved_order->get_id() : null;
+		if ( null !== $order_id ) {
+			$this->store->set_order_id( $session_id, $order_id );
 		}
 
 		$object = self::webhook_object( $notification );
@@ -306,7 +304,7 @@ class WC_Stripe_Diagnostics_Recorder {
 				'status'     => is_object( $object ) && isset( $object->status ) ? (string) $object->status : null,
 				'intent_id'  => is_object( $object ) && isset( $object->object, $object->id ) && 'payment_intent' === $object->object ? (string) $object->id : null,
 				'charge_id'  => is_object( $object ) && isset( $object->object, $object->id ) && 'charge' === $object->object ? (string) $object->id : null,
-				'order_id'   => is_object( $resolved_order ) && method_exists( $resolved_order, 'get_id' ) ? (int) $resolved_order->get_id() : null,
+				'order_id'   => $order_id,
 				'session_id' => $session_id,
 			]
 		);
