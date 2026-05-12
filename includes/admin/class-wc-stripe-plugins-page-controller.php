@@ -82,12 +82,15 @@ class WC_Stripe_Plugins_Page_Controller {
 	}
 
 	/**
-	 * Returns the plugin slug derived from the plugin path.
+	 * Returns the WordPress.org plugin slug.
+	 *
+	 * Hard-coded so the plugin information modal still resolves when the plugin
+	 * is installed in a non-standard directory.
 	 *
 	 * @return string The plugin slug.
 	 */
 	private function get_plugin_slug(): string {
-		return basename( WC_STRIPE_PLUGIN_PATH );
+		return 'woocommerce-gateway-stripe';
 	}
 
 	/**

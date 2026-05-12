@@ -70,8 +70,8 @@ class WC_Stripe_Plugins_Page_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests that the "Updated!" changelog link relies on thickbox being enqueued
-	 * so the plugin information modal can open from the plugins.php page.
+	 * Tests that thickbox is enqueued on plugins.php so the plugin information
+	 * modal opened by the "Release notes" link can render.
 	 *
 	 * @return void
 	 */
