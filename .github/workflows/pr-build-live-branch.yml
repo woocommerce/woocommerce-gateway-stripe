@@ -137,12 +137,12 @@ jobs:
           For everyone else, use the following manual flow:
 
           :turtle: Navigate to [jurassic.ninja](https://jurassic.ninja/) :turtle:
-          * Click on "See more options"
-          * Check "Jetpack Beta"
+          * Click on \"See more options\"
+          * Check \"Jetpack Beta\"
           * Enter `${PR_HEAD_REF}` for the WooCommerce Stripe Gateway line
-          * Check "WooCommerce"
+          * Check \"WooCommerce\"
           * Enter your email address
-          * Click on "Launch single site"
+          * Click on \"Launch single site\"
 
           ---
 
