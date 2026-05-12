@@ -120,6 +120,14 @@ class WC_Stripe_Plugins_Page_Controller {
 			return (array) $links;
 		}
 
+		// When an update is available, WordPress core already injects its own
+		// "View details" link into the plugin row pointing at the same modal.
+		// Skip ours to avoid redundancy and to avoid surfacing release notes
+		// for a version the user has not installed yet.
+		if ( $this->has_pending_update( $file ) ) {
+			return $links;
+		}
+
 		$plugin_slug = $this->get_plugin_slug();
 		$label       = __( 'Release notes', 'woocommerce-gateway-stripe' );
 
@@ -132,6 +140,17 @@ class WC_Stripe_Plugins_Page_Controller {
 		);
 
 		return $links;
+	}
+
+	/**
+	 * Whether WordPress has staged an available update for the given plugin file.
+	 *
+	 * @param string $file Plugin file relative path.
+	 * @return bool
+	 */
+	private function has_pending_update( string $file ): bool {
+		$updates = get_site_transient( 'update_plugins' );
+		return isset( $updates->response[ $file ] );
 	}
 
 	/**

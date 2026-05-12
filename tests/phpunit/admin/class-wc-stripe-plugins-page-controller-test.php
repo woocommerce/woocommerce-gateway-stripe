@@ -23,6 +23,8 @@ class WC_Stripe_Plugins_Page_Controller_Test extends WP_UnitTestCase {
 		wp_dequeue_script( 'thickbox' );
 		wp_dequeue_style( 'thickbox' );
 
+		delete_site_transient( 'update_plugins' );
+
 		parent::tearDown();
 	}
 
@@ -108,5 +110,30 @@ class WC_Stripe_Plugins_Page_Controller_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'plugin=woocommerce-gateway-stripe', $link_html );
 		$this->assertStringContainsString( 'section=changelog', $link_html );
 		$this->assertStringContainsString( 'TB_iframe=true', $link_html );
+	}
+
+	/**
+	 * Tests that the "Release notes" link is omitted when WordPress has staged
+	 * an available update for the Stripe plugin, so it does not duplicate the
+	 * core "View details" link and does not surface notes for a not-yet-installed version.
+	 *
+	 * @return void
+	 */
+	public function test_add_release_notes_link_skipped_when_update_is_pending(): void {
+		$basename = plugin_basename( WC_STRIPE_MAIN_FILE );
+
+		set_site_transient(
+			'update_plugins',
+			(object) [
+				'response' => [
+					$basename => (object) [ 'new_version' => '999.0.0' ],
+				],
+			]
+		);
+
+		$controller = $this->get_mock_controller();
+		$result     = $controller->add_release_notes_link( [], $basename );
+
+		$this->assertArrayNotHasKey( 'wc_stripe_release_notes', $result );
 	}
 }
