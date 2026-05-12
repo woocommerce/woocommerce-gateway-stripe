@@ -379,12 +379,14 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * When Stripe Radar blocks a subscription renewal payment, the renewal order
-	 * should be marked as failed AND the parent subscription should be put on hold
-	 * to prevent WC Subscriptions from scheduling further retries that would also
-	 * be blocked (inflating the Radar block rate).
+	 * On a Radar-blocked renewal we cancel the pending retry and clear the
+	 * subscription's payment_retry date so WC Subscriptions doesn't fire another
+	 * charge for Radar to block. The subscription's own on-hold transition is
+	 * left to core's payment_failed() — the trait used to do it here too, but it
+	 * was a same-status no-op and on-hold is the one transition that does NOT
+	 * cancel the scheduled retry (see STRIPE-1110).
 	 */
-	public function test_renewal_radar_blocked_puts_subscription_on_hold() {
+	public function test_renewal_radar_blocked_cancels_pending_retry() {
 		// Arrange.
 		$renewal_order                 = WC_Helper_Order::create_order();
 		$customer                      = 'cus_123abc';
@@ -407,10 +409,16 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				]
 			);
 
-		// Set up a mock subscription so we can assert its status changes.
+		// Mock subscription with a payment_retry already scheduled (mimics what
+		// core's payment_failed() call leaves behind by the time the trait runs).
 		$mock_subscription = new WC_Subscription();
-		$mock_subscription->update_status( 'active' );
+		$mock_subscription->update_status( OrderStatus::ON_HOLD );
+		$mock_subscription->set_mock_date( 'payment_retry', time() + HOUR_IN_SECONDS );
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = [ $mock_subscription ];
+
+		// Mock retry store: a pending retry is registered against the renewal order.
+		$pending_retry                      = new WCS_Retry( 'pending' );
+		WCS_Retry_Manager::$mock_last_retry = $pending_retry;
 
 		// Mock HTTP: PI confirm returns a Radar-blocked card_declined error; the
 		// subsequent charge fetch returns a charge with outcome.type === 'blocked'.
@@ -460,12 +468,21 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$order = wc_get_order( $renewal_order->get_id() );
 		$this->assertSame( OrderStatus::FAILED, $order->get_status() );
 
-		// Assert: the parent subscription was put on hold to stop WC Subscriptions retries.
-		$this->assertSame( OrderStatus::ON_HOLD, $mock_subscription->get_status() );
+		// Assert: the pending retry was transitioned to cancelled.
+		$this->assertSame( 'cancelled', $pending_retry->get_status() );
+
+		// Assert: the subscription's payment_retry date was cleared.
+		$this->assertSame( 0, $mock_subscription->get_date( 'payment_retry' ) );
+
+		// Assert: a Radar note was attached to the subscription.
+		$subscription_notes = $mock_subscription->get_captured_notes();
+		$this->assertNotEmpty( $subscription_notes );
+		$this->assertStringContainsString( 'Stripe Radar blocked payment for the saved payment method', $subscription_notes[0] );
 
 		// Clean up.
 		remove_filter( 'pre_http_request', $pre_http_request_callback );
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = null;
+		WCS_Retry_Manager::mock_reset();
 	}
 
 	public function test_missing_customer() {

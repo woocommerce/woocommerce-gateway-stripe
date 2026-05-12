@@ -100,12 +100,18 @@ class WC_Stripe {
 	 * *Singleton* via the `new` operator from outside of this class.
 	 */
 	public function __construct() {
-		add_action( 'admin_init', [ $this, 'install' ] );
-		add_action( 'admin_init', [ $this, 'maybe_redirect_to_stripe_settings' ], 15 );
+		if ( ! self::$instance ) {
+			self::$instance = $this;
+
+			add_action( 'admin_init', [ $this, 'install' ] );
+			add_action( 'admin_init', [ $this, 'maybe_redirect_to_stripe_settings' ], 15 );
+		}
 
 		$this->init();
 
-		add_action( 'rest_api_init', [ $this, 'register_routes' ] );
+		if ( self::$instance === $this ) {
+			add_action( 'rest_api_init', [ $this, 'register_routes' ] );
+		}
 	}
 
 	/**
@@ -115,7 +121,8 @@ class WC_Stripe {
 	 * @version 5.0.0
 	 */
 	public function init() {
-		if ( is_admin() ) {
+
+		if ( is_admin() && self::$instance === $this ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-privacy.php';
 			new WC_Stripe_Privacy();
 		}
@@ -146,7 +153,10 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-action-scheduler-service.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-state.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-handler.php';
-		new WC_Stripe_Webhook_Handler();
+
+		if ( self::$instance === $this ) {
+			new WC_Stripe_Webhook_Handler();
+		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/trait-wc-stripe-fingerprint.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/interface-wc-stripe-payment-method-comparison.php';
@@ -202,15 +212,22 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-api.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-handler.php';
-		new WC_Stripe_Order_Handler();
+
+		if ( self::$instance === $this ) {
+			new WC_Stripe_Order_Handler();
+		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
-		new WC_Stripe_Payment_Tokens();
+		if ( self::$instance === $this ) {
+			new WC_Stripe_Payment_Tokens();
+		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-intent-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-inbox-notes.php';
-		new WC_Stripe_Inbox_Notes();
+		if ( self::$instance === $this ) {
+			new WC_Stripe_Inbox_Notes();
+		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-upe-compatibility-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-allowed-payment-request-button-types-update.php';
@@ -218,95 +235,123 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
 
-		new Allowed_Payment_Request_Button_Types_Update();
-		new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
-		new Sepa_Tokens_For_Other_Methods_Settings_Update();
+		if ( self::$instance === $this ) {
+			new Allowed_Payment_Request_Button_Types_Update();
+			new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
+			new Sepa_Tokens_For_Other_Methods_Settings_Update();
+		}
 
 		$this->api     = new WC_Stripe_Connect_API();
 		$this->connect = new WC_Stripe_Connect( $this->api );
 		$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
-		// Initialize Express Checkout after translations are loaded
-		add_action( 'init', [ $this, 'init_express_checkout' ], 11 );
+		if ( self::$instance === $this ) {
+			// Initialize Express Checkout after translations are loaded
+			add_action( 'init', [ $this, 'init_express_checkout' ], 11 );
+		}
 
-		$intent_controller = new WC_Stripe_Intent_Controller();
-		$intent_controller->init_hooks();
+		if ( self::$instance === $this ) {
+			$intent_controller = new WC_Stripe_Intent_Controller();
+			$intent_controller->init_hooks();
 
-		$checkout_sessions_ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
-		$checkout_sessions_ajax_handler->init_hooks();
+			$checkout_sessions_ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
+			$checkout_sessions_ajax_handler->init_hooks();
+		}
 
 		if ( is_admin() ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
-			new WC_Stripe_Admin_Notices();
+			if ( self::$instance === $this ) {
+				new WC_Stripe_Admin_Notices();
+			}
 
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-settings-controller.php';
 
 			if ( isset( $_GET['area'] ) && in_array( $_GET['area'], [ 'express_checkout', 'payment_requests' ], true ) ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-express-checkout-controller.php';
-				new WC_Stripe_Express_Checkout_Controller();
+
+				if ( self::$instance === $this ) {
+					new WC_Stripe_Express_Checkout_Controller();
+				}
 			} elseif ( isset( $_GET['area'] ) && 'amazon_pay' === $_GET['area'] && WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-amazon-pay-controller.php';
-				new WC_Stripe_Amazon_Pay_Controller();
-			} else {
+				if ( self::$instance === $this ) {
+					new WC_Stripe_Amazon_Pay_Controller();
+				}
+			} elseif ( self::$instance === $this ) {
 				new WC_Stripe_Settings_Controller( $this->account );
 			}
 
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-payment-gateways-controller.php';
-			new WC_Stripe_Payment_Gateways_Controller( $this->account );
+			if ( self::$instance === $this ) {
+				new WC_Stripe_Payment_Gateways_Controller( $this->account );
+			}
 
-			new WC_Stripe_Plugins_Page_Controller( $this->account );
+			if ( self::$instance === $this ) {
+				new WC_Stripe_Plugins_Page_Controller( $this->account );
+			}
 
 			if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-subscription-detached-bulk-action.php';
-				new WC_Stripe_Subscription_Detached_Bulk_Action();
+
+				if ( self::$instance === $this ) {
+					new WC_Stripe_Subscription_Detached_Bulk_Action();
+				}
 			}
 		}
 
-		add_filter( 'woocommerce_payment_gateways', [ $this, 'add_gateways' ] );
-		add_filter( 'pre_update_option_woocommerce_stripe_settings', [ $this, 'gateway_settings_update' ], 10, 2 );
-		add_filter( 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), [ $this, 'plugin_action_links' ] );
-		add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
-		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
+		if ( self::$instance === $this ) {
+			add_filter( 'woocommerce_payment_gateways', [ $this, 'add_gateways' ] );
+			add_filter( 'pre_update_option_woocommerce_stripe_settings', [ $this, 'gateway_settings_update' ], 10, 2 );
+			add_filter( 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), [ $this, 'plugin_action_links' ] );
+			add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
+			add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
+		}
 
 		// Update the email field position.
-		if ( ! is_admin() ) {
+		if ( ! is_admin() && self::$instance === $this ) {
 			add_filter( 'woocommerce_billing_fields', [ $this, 'checkout_update_email_field_priority' ], 50 );
 		}
 
 		// Modify emails emails.
-		add_filter( 'woocommerce_email_classes', [ $this, 'add_emails' ], 20 );
+		if ( self::$instance === $this ) {
+			add_filter( 'woocommerce_email_classes', [ $this, 'add_emails' ], 20 );
+		}
 
-		if ( version_compare( WC_VERSION, '3.4', '<' ) ) {
+		if ( version_compare( WC_VERSION, '3.4', '<' ) && self::$instance === $this ) {
 			add_filter( 'woocommerce_get_sections_checkout', [ $this, 'filter_gateway_order_admin' ] );
 		}
 
-		new WC_Stripe_UPE_Compatibility_Controller();
+		if ( self::$instance === $this ) {
+			new WC_Stripe_UPE_Compatibility_Controller();
+		}
 
-		// Initialize the class for updating subscriptions' Legacy SEPA payment methods.
-		add_action( 'init', [ $this, 'initialize_subscriptions_updater' ] );
-		add_action( 'init', [ $this, 'load_plugin_textdomain' ] );
+		if ( self::$instance === $this ) {
+			// Initialize the class for updating subscriptions' Legacy SEPA payment methods.
+			add_action( 'init', [ $this, 'initialize_subscriptions_updater' ] );
+			add_action( 'init', [ $this, 'load_plugin_textdomain' ] );
 
-		// Initialize the class for handling the status page.
-		add_action( 'init', [ $this, 'initialize_status_page' ], 15 );
+			// Initialize the class for handling the status page.
+			add_action( 'init', [ $this, 'initialize_status_page' ], 15 );
 
-		add_action( 'init', [ $this, 'initialize_apple_pay_registration' ] );
+			add_action( 'init', [ $this, 'initialize_apple_pay_registration' ] );
 
-		// Initialize Agentic Commerce integration.
-		add_action( 'woocommerce_init', [ $this, 'initialize_agentic_commerce' ] );
+			// Initialize Agentic Commerce integration.
+			add_action( 'woocommerce_init', [ $this, 'initialize_agentic_commerce' ] );
 
-		// Check for payment methods that should be toggled, e.g. unreleased,
-		// BNPLs when official plugins are active,
-		// cards when the Optimized Checkout is enabled, etc.
-		add_action( 'wc_payment_gateways_initialized', [ $this, 'maybe_toggle_payment_methods' ] );
+			// Check for payment methods that should be toggled, e.g. unreleased,
+			// BNPLs when official plugins are active,
+			// cards when the Optimized Checkout is enabled, etc.
+			add_action( 'wc_payment_gateways_initialized', [ $this, 'maybe_toggle_payment_methods' ] );
 
-		// Reconfigure webhooks when Adaptive Pricing is enabled in the settings.
-		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
+			// Reconfigure webhooks when Adaptive Pricing is enabled in the settings.
+			add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
 
-		add_action( WC_Stripe_Database_Cache::ASYNC_CLEANUP_ACTION, [ WC_Stripe_Database_Cache::class, 'delete_all_stale_entries_async' ], 10, 2 );
-		add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ], 10, 0 );
+			add_action( WC_Stripe_Database_Cache::ASYNC_CLEANUP_ACTION, [ WC_Stripe_Database_Cache::class, 'delete_all_stale_entries_async' ], 10, 2 );
+			add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ], 10, 0 );
 
-		// Handle the async cache prefetch action.
-		add_action( WC_Stripe_Database_Cache_Prefetch::ASYNC_PREFETCH_ACTION, [ WC_Stripe_Database_Cache_Prefetch::get_instance(), 'handle_prefetch_action' ], 10, 1 );
+			// Handle the async cache prefetch action.
+			add_action( WC_Stripe_Database_Cache_Prefetch::ASYNC_PREFETCH_ACTION, [ WC_Stripe_Database_Cache_Prefetch::get_instance(), 'handle_prefetch_action' ], 10, 1 );
+		}
 	}
 
 	/**
@@ -367,18 +412,9 @@ class WC_Stripe {
 
 		$is_new_install = false === $previous_version;
 
-		/*
-		 * Pause defaulting on Optimized Checkout for the time being, as we want to make UX improvements.
-		 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4979
-		 *
-		 * // Mark optimized checkout as default on for new installs.
-		 * if ( false === get_option( 'wc_stripe_version' ) && false === get_option( 'wc_stripe_optimized_checkout_default_on' ) ) {
-		 *   update_option( 'wc_stripe_optimized_checkout_default_on', true );
-		 * }
-		 */
-
 		if ( $is_new_install ) {
 			update_option( 'wc_stripe_amazon_pay_default_on', 'yes' );
+			update_option( 'wc_stripe_optimized_checkout_default_on', 'yes' );
 		}
 
 		add_woocommerce_inbox_variant();
@@ -861,6 +897,11 @@ class WC_Stripe {
 
 		$exit_survey_controller = new WC_REST_Stripe_Exit_Survey_Controller();
 		$exit_survey_controller->register_routes();
+
+		if ( WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
+			$agentic_commerce_controller = new WC_REST_Stripe_Agentic_Commerce_Controller();
+			$agentic_commerce_controller->register_routes();
+		}
 	}
 
 	/**
