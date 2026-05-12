@@ -36,6 +36,15 @@
 		text-align: center;
 		text-wrap: balance;
 
+		a {
+			color: styles.$white;
+			text-decoration: underline;
+
+			&:hover {
+				opacity: 0.85;
+			}
+		}
+
 		&::after {
 			content: ' ';
 			position: absolute;
