@@ -231,6 +231,13 @@ class WC_Stripe_Feature_Flags {
 			);
 		}
 
+		// Remote can disable OC, but cannot force-enable it when the
+		// local PMC gate says no. Recovery via remote (reverse the flag or drop it)
+		// still works because the merchant's local state is unchanged.
+		if ( ! $local ) {
+			return false;
+		}
+
 		// woocommerce-gateway-stripe.php loads this file standalone before WC_Stripe::init()
 		// runs, so Remote_Config may not be loaded yet on early calls.
 		if ( ! class_exists( 'WC_Stripe_Remote_Config' ) ) {

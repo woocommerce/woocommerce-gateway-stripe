@@ -138,26 +138,25 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	public function provide_test_is_oc_available_with_remote_config(): array {
 		return [
-			'no remote, PMC enabled -> local true'               => [
+			'no remote, PMC enabled -> local true'                   => [
 				'PMC enabled'  => true,
 				'remote value' => null,
 				'expected'     => true,
 			],
-			'no remote, PMC disabled -> local false'             => [
+			'no remote, PMC disabled -> local false'                 => [
 				'PMC enabled'  => false,
 				'remote value' => null,
 				'expected'     => false,
 			],
-			'remote false overrides local true'                  => [
+			'remote false disables when locally enabled'             => [
 				'PMC enabled'  => true,
 				'remote value' => false,
 				'expected'     => false,
 			],
-			'remote true wins even when local PMC gate disables' => [
+			'remote true cannot force-enable when PMC gate disables' => [
 				'PMC enabled'  => false,
 				'remote value' => true,
-				// `override` policy: remote wins unconditionally.
-				'expected'     => true,
+				'expected'     => false,
 			],
 		];
 	}
