@@ -56,7 +56,9 @@ const PluginsPageApp = () => {
 	}, [] );
 
 	useEffect( () => {
-		const link = document.querySelector( '#wc-stripe-release-notes-link' );
+		const link = document.querySelector(
+			'[data-wc-stripe-tracking="release-notes-link"]'
+		);
 
 		if ( ! link ) {
 			return;
