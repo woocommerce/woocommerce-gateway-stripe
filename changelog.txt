@@ -1,7 +1,12 @@
 *** Changelog ***
 
-xxxx-xx-xx - version 10.7.0
+xxxx-xx-xx - version 10.8.0
+* Dev - Add Jurassic Ninja preview link for PRs to enable one-click browser testing
+* Remove - Remove giropay from new checkouts (deprecated by Stripe on 2024-06-30); legacy refund and past-order rendering preserved
+* Dev - Exclude AGENTS.md and CLAUDE.md contributor-instruction files from the built plugin zip
 * Add - Append a "what's new" changelog link to the Updated! message after manually updating the plugin from the Plugins page
+
+2026-05-12 - version 10.7.0
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
 * Add - Filter wc_stripe_optimized_checkout_title to override the Optimized Checkout payment method title at checkout
 * Fix - Fix compatibility with WooCommerce 10.8 payment handling, where created-via is required for orders
@@ -26,6 +31,7 @@ xxxx-xx-xx - version 10.7.0
 * Add - Allow Stripe developer widget to be enabled in test mode via wc_stripe_show_stripe_developer_widget filter
 * Add - Show Stripe's account sync status in the Account details card
 * Update - Improve the behaviour for the Optimized Checkout Suite and Adaptive Pricing settings
+* Fix - Guard against multiple WC_Stripe instances before plugin is fully initialized
 
 2026-04-23 - version 10.6.1
 * Fix - Fix Optimized Checkout Suite bugs that could result in duplicate subscription charges and generic payment methods names
