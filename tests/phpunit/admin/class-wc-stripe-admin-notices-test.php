@@ -896,9 +896,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function test_subscription_check_detachment_bulk_action( $request_params, $subscriptions, $expected_count, $expected_content ) {
 		if ( $request_params ) {
-			foreach ( $request_params as $key => $value ) {
-				$_REQUEST[ $key ] = $value;
-			}
+			$_REQUEST = $request_params;
 		}
 
 		if ( count( $subscriptions ) > 0 ) {
@@ -915,11 +913,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$actual = $notices->notices;
 
 		// Clean up.
-		if ( $request_params ) {
-			foreach ( $request_params as $key => $value ) {
-				unset( $_REQUEST[ $key ] );
-			}
-		}
+		unset( $_REQUEST );
 		WC_Subscriptions::$wcs_get_subscription = null;
 
 		$this->assertCount( $expected_count, $actual );
