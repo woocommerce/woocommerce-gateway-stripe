@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from '@emotion/styled';
-import { check, close, help, pending, warning } from '@wordpress/icons';
+import { check, close, help, info, pending, warning } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
 import {
@@ -12,6 +12,7 @@ import {
 	Flex,
 	Icon,
 	Notice,
+	Tooltip,
 } from '@wordpress/components';
 import { dispatch } from '@wordpress/data';
 import Pill from 'wcstripe/components/pill';
@@ -138,6 +139,29 @@ const StatusPill = styled( Pill )`
 		background: #f0f0f0;
 		border-color: #f0f0f0;
 		color: #50575e;
+	}
+
+	svg {
+		fill: currentColor;
+	}
+`;
+
+const ErrorInfoButton = styled.button`
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: 4px;
+	padding: 0;
+	background: transparent;
+	border: 0;
+	color: inherit;
+	cursor: help;
+	vertical-align: middle;
+
+	&:focus-visible {
+		outline: 2px solid #2271b1;
+		outline-offset: 1px;
+		border-radius: 2px;
 	}
 
 	svg {
@@ -565,10 +589,22 @@ const AgenticCommerceSyncStatus = () => {
 													status={ entry.status }
 												/>
 												{ entry.error && (
-													<span title={ entry.error }>
-														{ ' ' }
-														ℹ
-													</span>
+													<Tooltip
+														text={ entry.error }
+													>
+														<ErrorInfoButton
+															type="button"
+															aria-label={ __(
+																'Show sync error details',
+																'woocommerce-gateway-stripe'
+															) }
+														>
+															<Icon
+																icon={ info }
+																size={ 16 }
+															/>
+														</ErrorInfoButton>
+													</Tooltip>
 												) }
 											</td>
 											<td className="col-import-id">
