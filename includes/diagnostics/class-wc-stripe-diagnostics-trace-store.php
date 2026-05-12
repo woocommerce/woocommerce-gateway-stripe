@@ -281,16 +281,24 @@ class WC_Stripe_Diagnostics_Trace_Store {
 	}
 
 	/**
-	 * Wipe every trace plus the index. Intended for tests and future uninstall.
+	 * Wipe every trace plus the index. Intended for the admin "Clear"
+	 * action.
+	 *
+	 * @return int Number of trace files that were removed. The read-and-delete
+	 *             pair runs inside the writer lock so callers can report this
+	 *             count without racing with a concurrent clear.
 	 */
-	public function delete_all(): void {
+	public function delete_all(): int {
 		if ( null === $this->base_dir && ! is_dir( $this->base_dir() ) ) {
-			return;
+			return 0;
 		}
 
+		$deleted = 0;
 		$this->with_lock(
-			function () {
-				foreach ( $this->read_index() as $id ) {
+			function () use ( &$deleted ) {
+				$index   = $this->read_index();
+				$deleted = count( $index );
+				foreach ( $index as $id ) {
 					$this->delete_trace_file( (string) $id );
 				}
 				$index_path = $this->index_path();
@@ -300,6 +308,7 @@ class WC_Stripe_Diagnostics_Trace_Store {
 				return true;
 			}
 		);
+		return $deleted;
 	}
 
 	/**

@@ -94,11 +94,11 @@ class WC_Stripe_Agentic_Commerce_Manual_Approval {
 			);
 		}
 
-		$product_id = wc_get_product_id_by_sku( $sku );
+		$product_id = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product_id_by_external_reference( $sku );
 		if ( ! $product_id ) {
 			throw new Exception(
 				sprintf(
-					'Product not found for line item %s with SKU "%s".',
+					'Product not found for line item %s with sku_id "%s" (no SKU or legacy product-ID match).',
 					$line_item->get_id(),
 					$sku
 				)

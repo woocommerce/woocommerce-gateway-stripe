@@ -194,8 +194,7 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response
 	 */
 	public function delete_traces() {
-		$deleted = $this->store->count();
-		$this->store->delete_all();
+		$deleted = $this->store->delete_all();
 		return new WP_REST_Response(
 			[
 				'deleted' => $deleted,

@@ -26,12 +26,10 @@ const DiagnosticsMode = () => {
 					</p>
 				</div>
 				<ToggleControl
-					data-testid="diagnostics-toggle"
 					label={ __(
 						'Capture checkout diagnostics',
 						'woocommerce-gateway-stripe'
 					) }
-					hideLabelFromVision
 					checked={ isDiagnosticsChecked }
 					onChange={ setIsDiagnosticsChecked }
 				/>

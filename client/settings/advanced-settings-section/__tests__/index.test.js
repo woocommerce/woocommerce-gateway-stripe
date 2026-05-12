@@ -102,14 +102,22 @@ describe( 'AdvancedSettings', () => {
 		expect( setIsDiagnosticsCheckedMock ).toHaveBeenCalledWith( true );
 	} );
 
-	it( 'should not display optimized checkout element setting if the feature flag is disabled', () => {
+	it( 'should display the Optimized Checkout setting with a warning when the feature is unavailable', () => {
 		render( <AdvancedSettings /> );
 
 		expect(
 			screen.queryByText(
 				'Enable Optimized Checkout Suite (recommended)'
 			)
-		).not.toBeInTheDocument();
+		).toBeInTheDocument();
+
+		// Use `queryAllByText()` and a non-zero length check to handle the
+		// notice component including the text in two nodes.
+		expect(
+			screen.queryAllByText(
+				/Optimized Checkout Suite is not currently available/
+			)
+		).not.toHaveLength( 0 );
 	} );
 
 	it( 'should display optimized checkout element setting if the feature flag is enabled', () => {
@@ -143,7 +151,7 @@ describe( 'AdvancedSettings', () => {
 
 		expect(
 			screen.queryByText(
-				'Let customers pay in their local currency with Adaptive Pricing.'
+				'Let customers pay in their local currency with Adaptive Pricing'
 			)
 		).toBeInTheDocument();
 	} );

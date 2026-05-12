@@ -193,7 +193,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 		);
 
 		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'Product not found for line item li_missing with SKU "DOES-NOT-EXIST"' );
+		$this->expectExceptionMessage( 'Product not found for line item li_missing with sku_id "DOES-NOT-EXIST" (no SKU or legacy product-ID match).' );
 
 		$this->calculator->extract_line_items_from_customization_hook( $event );
 	}

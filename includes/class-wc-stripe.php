@@ -329,6 +329,7 @@ class WC_Stripe {
 	public function initialize_diagnostics(): void {
 		( new WC_Stripe_Diagnostics_Frontend_Loader() )->init();
 		WC_Stripe_Diagnostics_Recorder::get_instance()->init();
+		( new WC_Stripe_Diagnostics_Cleanup() )->init();
 	}
 
 	/**
@@ -382,18 +383,9 @@ class WC_Stripe {
 
 		$is_new_install = false === $previous_version;
 
-		/*
-		 * Pause defaulting on Optimized Checkout for the time being, as we want to make UX improvements.
-		 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4979
-		 *
-		 * // Mark optimized checkout as default on for new installs.
-		 * if ( false === get_option( 'wc_stripe_version' ) && false === get_option( 'wc_stripe_optimized_checkout_default_on' ) ) {
-		 *   update_option( 'wc_stripe_optimized_checkout_default_on', true );
-		 * }
-		 */
-
 		if ( $is_new_install ) {
 			update_option( 'wc_stripe_amazon_pay_default_on', 'yes' );
+			update_option( 'wc_stripe_optimized_checkout_default_on', 'yes' );
 		}
 
 		add_woocommerce_inbox_variant();
@@ -879,6 +871,11 @@ class WC_Stripe {
 
 		$diagnostics_controller = new WC_REST_Stripe_Diagnostics_Controller();
 		$diagnostics_controller->register_routes();
+
+		if ( WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
+			$agentic_commerce_controller = new WC_REST_Stripe_Agentic_Commerce_Controller();
+			$agentic_commerce_controller->register_routes();
+		}
 	}
 
 	/**

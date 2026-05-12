@@ -13,6 +13,7 @@ import { useEffect, useState, useRef } from 'react';
  * Internal dependencies
  */
 import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
+import RedirectMessageElement from './redirect-message-element';
 import BlikCodeElement from './blik-code-element';
 import { __ } from '@wordpress/i18n';
 import { select } from '@wordpress/data';
@@ -33,6 +34,7 @@ import {
 } from 'wcstripe/stripe-utils';
 import { sampleFontFamily } from 'wcstripe/styles/upe';
 import {
+	PAYMENT_METHOD_ACSS,
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
@@ -424,18 +426,28 @@ const PaymentProcessor = ( {
 			{ isBlikSelected ? (
 				<BlikCodeElement />
 			) : (
-				<PaymentElement
-					options={ getStripeElementOptions() }
-					onChange={ onSelectedPaymentMethodChange }
-					onLoadError={ setHasLoadError }
-					onReady={ () => {
-						const el = elements?.getElement( 'payment' );
-						if ( el ) {
-							diagnostics.attachAfterReady( el, 'payment' );
-						}
-					} }
-					className="wcstripe-payment-element"
-				/>
+				<>
+					<PaymentElement
+						options={ getStripeElementOptions() }
+						onChange={ onSelectedPaymentMethodChange }
+						onLoadError={ setHasLoadError }
+						onReady={ () => {
+							const el = elements?.getElement( 'payment' );
+							if ( el ) {
+								diagnostics.attachAfterReady( el, 'payment' );
+							}
+						} }
+						className="wcstripe-payment-element"
+					/>
+					{ paymentMethodId === PAYMENT_METHOD_ACSS && (
+						<RedirectMessageElement
+							text={ __(
+								'After submission, you will need to authorize the payment with your bank.',
+								'woocommerce-gateway-stripe'
+							) }
+						/>
+					) }
+				</>
 			) }
 		</>
 	);
