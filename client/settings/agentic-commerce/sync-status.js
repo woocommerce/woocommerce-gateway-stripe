@@ -16,6 +16,8 @@ import {
 import { dispatch } from '@wordpress/data';
 import Pill from 'wcstripe/components/pill';
 
+const HISTORY_ROW_LIMIT = 5;
+
 const DetailsTable = styled.table`
 	border-collapse: collapse;
 	margin: 16px 0 12px;
@@ -146,6 +148,8 @@ const StatusPill = styled( Pill )`
 const getStatusConfig = ( status ) => {
 	switch ( status ) {
 		case 'succeeded':
+		case 'pending_archive':
+		case 'archived':
 			return {
 				label: __( 'Success', 'woocommerce-gateway-stripe' ),
 				tone: 'is-success',
@@ -170,6 +174,7 @@ const getStatusConfig = ( status ) => {
 				icon: pending,
 			};
 		case 'validating':
+		case 'validating_records':
 			return {
 				label: __( 'Validating', 'woocommerce-gateway-stripe' ),
 				tone: 'is-info',
@@ -189,7 +194,10 @@ const getStatusConfig = ( status ) => {
 			};
 		default:
 			return {
-				label: __( 'Unknown', 'woocommerce-gateway-stripe' ),
+				label:
+					typeof status === 'string' && status
+						? status
+						: __( 'Unknown', 'woocommerce-gateway-stripe' ),
 				tone: 'is-neutral',
 				icon: help,
 			};
@@ -327,7 +335,7 @@ const AgenticCommerceSyncStatus = () => {
 				) }{ ' ' }
 				<ExternalLink href="https://dashboard.stripe.com/data-management/import-sets">
 					{ __(
-						'View import results on the Stripe Dashboard',
+						'View results on the Stripe Dashboard',
 						'woocommerce-gateway-stripe'
 					) }
 				</ExternalLink>
@@ -529,62 +537,65 @@ const AgenticCommerceSyncStatus = () => {
 								</tr>
 							</thead>
 							<tbody>
-								{ history.map( ( entry, i ) => (
-									<tr key={ i }>
-										<td className="col-timestamp">
-											{ entry.timestamp
-												? new Date(
-														entry.timestamp * 1000
-												  ).toLocaleString( [], {
-														year: 'numeric',
-														month: '2-digit',
-														day: '2-digit',
-														hour: '2-digit',
-														minute: '2-digit',
-												  } )
-												: '—' }
-										</td>
-										<td className="col-products">
-											{ entry.products !== null
-												? entry.products.toLocaleString()
-												: '—' }
-										</td>
-										<td className="col-status">
-											<SyncStatusBadge
-												status={ entry.status }
-											/>
-											{ entry.error && (
-												<span title={ entry.error }>
-													{ ' ' }
-													ℹ
-												</span>
-											) }
-										</td>
-										<td className="col-import-id">
-											{ entry.import_set_id ? (
-												<code
-													title={
-														entry.import_set_id
-													}
-												>
-													<span className="id-start">
-														{ entry.import_set_id.slice(
-															0,
-															-6
-														) }
+								{ history
+									.slice( 0, HISTORY_ROW_LIMIT )
+									.map( ( entry, i ) => (
+										<tr key={ i }>
+											<td className="col-timestamp">
+												{ entry.timestamp
+													? new Date(
+															entry.timestamp *
+																1000
+													  ).toLocaleString( [], {
+															year: 'numeric',
+															month: '2-digit',
+															day: '2-digit',
+															hour: '2-digit',
+															minute: '2-digit',
+													  } )
+													: '—' }
+											</td>
+											<td className="col-products">
+												{ entry.products !== null
+													? entry.products.toLocaleString()
+													: '—' }
+											</td>
+											<td className="col-status">
+												<SyncStatusBadge
+													status={ entry.status }
+												/>
+												{ entry.error && (
+													<span title={ entry.error }>
+														{ ' ' }
+														ℹ
 													</span>
-													<span className="id-end">
-														{ entry.import_set_id.slice(
-															-6
-														) }
-													</span>
-												</code>
-											) : (
-												'—'
-											) }
-										</td>
-									</tr>
-								) ) }
+												) }
+											</td>
+											<td className="col-import-id">
+												{ entry.import_set_id ? (
+													<code
+														title={
+															entry.import_set_id
+														}
+													>
+														<span className="id-start">
+															{ entry.import_set_id.slice(
+																0,
+																-6
+															) }
+														</span>
+														<span className="id-end">
+															{ entry.import_set_id.slice(
+																-6
+															) }
+														</span>
+													</code>
+												) : (
+													'—'
+												) }
+											</td>
+										</tr>
+									) ) }
 							</tbody>
 						</HistoryTable>
 					) }

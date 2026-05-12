@@ -51,7 +51,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 * @since 10.7.0
 	 * @var string[]
 	 */
-	private const REFRESHABLE_STATUSES = [ 'queued', 'validating', 'pending', 'creating_records', 'unknown' ];
+	private const REFRESHABLE_STATUSES = [ 'queued', 'validating', 'validating_records', 'pending', 'creating_records', 'unknown' ];
 
 	/**
 	 * Endpoint path.

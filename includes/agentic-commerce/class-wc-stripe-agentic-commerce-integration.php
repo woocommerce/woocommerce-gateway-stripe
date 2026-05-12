@@ -519,7 +519,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		$non_terminal_statuses = [ 'queued', 'validating', 'pending', 'creating_records', 'unknown' ];
+		$non_terminal_statuses = [ 'queued', 'validating', 'validating_records', 'pending', 'creating_records', 'unknown' ];
 
 		$history = self::get_sync_history();
 		$changed = false;
