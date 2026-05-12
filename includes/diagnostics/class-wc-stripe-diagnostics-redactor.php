@@ -194,7 +194,7 @@ class WC_Stripe_Diagnostics_Redactor {
 				'order_key',
 				'billing_country',
 				'shipping_country',
-				'currency_locale',
+				'site_locale',
 				'item_count',
 				'line_items',
 				'coupons',

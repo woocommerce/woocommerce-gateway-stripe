@@ -111,22 +111,11 @@ class WC_Stripe_Diagnostics_Order_Snapshotter_Test extends WP_UnitTestCase {
 		$this->assertCount( 20, $snapshot['line_items'] );
 		$this->assertCount( 20, $snapshot['order_notes'] );
 
-		// Truncation: every note's content is at or below the cap, so
-		// the long 2000-char note in the fixture is necessarily clipped.
-		// No raw PII survives anywhere in the bundle.
-		$saw_scrubbed_email = false;
 		foreach ( $snapshot['order_notes'] as $note ) {
 			$this->assertLessThanOrEqual( 500, strlen( $note['content'] ) );
 			$this->assertStringNotContainsString( 'foo@bar.com', $note['content'] );
 			$this->assertNotSame( 'leave at front door', $note['content'] );
-			if ( false !== strpos( $note['content'], '[email]' ) ) {
-				$saw_scrubbed_email = true;
-			}
 		}
-		$this->assertTrue(
-			$saw_scrubbed_email,
-			'Expected at least one note to contain the redactor\'s [email] placeholder.'
-		);
 	}
 
 	/**

@@ -212,9 +212,8 @@ class WC_Stripe_Diagnostics_Recorder {
 			$request['metadata'][ self::SESSION_ID_META_KEY ] = $session_id;
 		}
 
-		// Pin the order id to the trace's meta so the order_snapshotter
-		// can read it deterministically when the trace finalizes.
-		// First-writer-wins, safe to call from any hook that observes one.
+		// Pin order id for the snapshotter. Skipped silently if the call
+		// site doesn't set metadata.order_id
 		if ( isset( $request['metadata']['order_id'] ) ) {
 			$this->store->set_order_id( $session_id, (int) $request['metadata']['order_id'] );
 		}

@@ -98,7 +98,6 @@ class WC_Stripe_Diagnostics_Order_Snapshotter {
 	 * @param string $status     New terminal status (unused, but part of the action contract).
 	 */
 	public function on_trace_finalized( $session_id, $status ): void {
-		unset( $status );
 		if ( empty( $this->pending_session_ids ) ) {
 			add_action( 'shutdown', [ $this, 'flush_pending_snapshots' ], 100 );
 		}
@@ -217,7 +216,7 @@ class WC_Stripe_Diagnostics_Order_Snapshotter {
 			'order_key'            => (string) $order->get_order_key(),
 			'billing_country'      => (string) $order->get_billing_country(),
 			'shipping_country'     => (string) $order->get_shipping_country(),
-			'currency_locale'      => (string) get_locale(),
+			'site_locale'          => (string) get_locale(),
 			'item_count'           => count( $all_items ),
 			'line_items'           => $line_items,
 			'coupons'              => array_values( $coupons ),
