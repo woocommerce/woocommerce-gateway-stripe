@@ -2,11 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from '@emotion/styled';
 import { check, close, help, info, pending, warning } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
-import { __, sprintf } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import {
 	Button,
 	Card,
-	CardBody,
 	CardHeader,
 	ExternalLink,
 	Flex,
@@ -15,9 +14,9 @@ import {
 	Tooltip,
 } from '@wordpress/components';
 import { dispatch } from '@wordpress/data';
+import CardBody from 'wcstripe/settings/card-body';
 import Pill from 'wcstripe/components/pill';
-
-const HISTORY_ROW_LIMIT = 5;
+import { useTestMode } from 'wcstripe/data';
 
 const DetailsTable = styled.table`
 	border-collapse: collapse;
@@ -63,33 +62,33 @@ const HistoryTable = styled.table`
 		font-size: 11px;
 	}
 
-	.col-timestamp {
+	.wc-stripe-agentic-sync-col-timestamp {
 		width: 170px;
 		white-space: nowrap;
 	}
 
-	.col-products {
+	.wc-stripe-agentic-sync-col-products {
 		width: 90px;
 		text-align: center;
 		white-space: nowrap;
 	}
 
-	.col-status {
+	.wc-stripe-agentic-sync-col-status {
 		width: 200px;
 		white-space: nowrap;
 	}
 
-	.col-import-id {
+	.wc-stripe-agentic-sync-col-import-id {
 		width: auto;
 	}
 
-	.col-import-id code {
+	.wc-stripe-agentic-sync-col-import-id code {
 		display: flex;
 		align-items: center;
 		min-width: 0;
 	}
 
-	.col-import-id .id-start {
+	.wc-stripe-agentic-sync-col-import-id .id-start {
 		flex: 0 1 auto;
 		min-width: 0;
 		overflow: hidden;
@@ -97,7 +96,7 @@ const HistoryTable = styled.table`
 		white-space: nowrap;
 	}
 
-	.col-import-id .id-end {
+	.wc-stripe-agentic-sync-col-import-id .id-end {
 		flex: 0 0 auto;
 		white-space: nowrap;
 	}
@@ -146,14 +145,14 @@ const StatusPill = styled( Pill )`
 	}
 `;
 
-const ErrorInfoButton = styled.button`
+// Focusable, non-interactive container for the inline error tooltip in the
+// recent-syncs table. Stays a <span> (not a <button>) because the only action
+// is revealing the wrapping Tooltip on hover/focus — there is nothing to click.
+const ErrorInfoTarget = styled.span`
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	margin-left: 4px;
-	padding: 0;
-	background: transparent;
-	border: 0;
 	color: inherit;
 	cursor: help;
 	vertical-align: middle;
@@ -169,6 +168,35 @@ const ErrorInfoButton = styled.button`
 	}
 `;
 
+const IntroDescription = styled.p`
+	margin-top: 16px;
+`;
+
+const SectionCard = styled( Card )`
+	margin-bottom: 20px;
+`;
+
+const SectionHeading = styled.h2`
+	margin: 0;
+	font-size: 14px;
+`;
+
+const NextSyncNote = styled.p`
+	color: #646970;
+	font-style: italic;
+`;
+
+const ActionRow = styled( Flex )`
+	margin-top: 16px;
+`;
+
+/**
+ * Map a Stripe ImportSet status into the bits the badge needs to render.
+ *
+ * @param {string} status ImportSet status as returned by the server.
+ * @return {{ label: string, tone: string, icon: object }} Translated label,
+ *   StatusPill modifier class, and a @wordpress/icons icon descriptor.
+ */
 const getStatusConfig = ( status ) => {
 	switch ( status ) {
 		case 'succeeded':
@@ -236,6 +264,7 @@ const getStatusConfig = ( status ) => {
  */
 const NON_TERMINAL_STATUSES = [
 	'queued',
+	'validating',
 	'validating_records',
 	'pending',
 	'creating_records',
@@ -265,19 +294,21 @@ const humanTimeDiff = ( timestamp ) => {
 	if ( diffSec < 60 ) return __( 'just now', 'woocommerce-gateway-stripe' );
 	if ( diffSec < 3600 ) {
 		const m = Math.floor( diffSec / 60 );
-		if ( m === 1 )
-			return __( '1 minute ago', 'woocommerce-gateway-stripe' );
 		return sprintf(
 			/* translators: %d: number of minutes */
-			__( '%d minutes ago', 'woocommerce-gateway-stripe' ),
+			_n(
+				'%d minute ago',
+				'%d minutes ago',
+				m,
+				'woocommerce-gateway-stripe'
+			),
 			m
 		);
 	}
 	const h = Math.floor( diffSec / 3600 );
-	if ( h === 1 ) return __( '1 hour ago', 'woocommerce-gateway-stripe' );
 	return sprintf(
 		/* translators: %d: number of hours */
-		__( '%d hours ago', 'woocommerce-gateway-stripe' ),
+		_n( '%d hour ago', '%d hours ago', h, 'woocommerce-gateway-stripe' ),
 		h
 	);
 };
@@ -353,7 +384,12 @@ const AgenticCommerceSyncStatus = () => {
 
 	const { last_sync: lastSync, history, next_sync: nextSync } = data ?? {};
 
-	const nextSyncLabel = () => {
+	const [ isTestMode ] = useTestMode();
+	const importSetsUrl = isTestMode
+		? 'https://dashboard.stripe.com/test/data-management/import-sets'
+		: 'https://dashboard.stripe.com/data-management/import-sets';
+
+	const computeNextSyncLabel = () => {
 		if ( ! nextSync ) return null;
 		const secondsUntil = nextSync - Math.floor( Date.now() / 1000 );
 		if ( secondsUntil <= 0 )
@@ -362,45 +398,42 @@ const AgenticCommerceSyncStatus = () => {
 				'woocommerce-gateway-stripe'
 			);
 		const minutes = Math.ceil( secondsUntil / 60 );
-		if ( minutes === 1 ) {
-			return __(
-				'Next automatic sync: in 1 minute.',
-				'woocommerce-gateway-stripe'
-			);
-		}
 		return sprintf(
 			/* translators: %d: number of minutes until next sync */
-			__(
+			_n(
+				'Next automatic sync: in %d minute.',
 				'Next automatic sync: in %d minutes.',
+				minutes,
 				'woocommerce-gateway-stripe'
 			),
 			minutes
 		);
 	};
+	const nextSyncLabel = computeNextSyncLabel();
 
 	return (
 		<>
-			<p className="description" style={ { marginTop: '16px' } }>
+			<IntroDescription>
 				{ __(
 					'Monitors the product feed sync status for the agentic commerce integration.',
 					'woocommerce-gateway-stripe'
 				) }{ ' ' }
-				<ExternalLink href="https://dashboard.stripe.com/data-management/import-sets">
+				<ExternalLink href={ importSetsUrl }>
 					{ __(
 						'View results on the Stripe Dashboard',
 						'woocommerce-gateway-stripe'
 					) }
 				</ExternalLink>
-			</p>
+			</IntroDescription>
 
-			<Card style={ { marginBottom: '20px' } }>
+			<SectionCard>
 				<CardHeader>
-					<h2 style={ { margin: 0, fontSize: '14px' } }>
+					<SectionHeading>
 						{ __(
 							'Product feed status',
 							'woocommerce-gateway-stripe'
 						) }
-					</h2>
+					</SectionHeading>
 				</CardHeader>
 				<CardBody>
 					{ isLoading && (
@@ -444,7 +477,7 @@ const AgenticCommerceSyncStatus = () => {
 											</td>
 										</tr>
 									) }
-									{ lastSync.products !== null && (
+									{ typeof lastSync.products === 'number' && (
 										<tr>
 											<th>
 												{ __(
@@ -490,10 +523,8 @@ const AgenticCommerceSyncStatus = () => {
 								</tbody>
 							</DetailsTable>
 
-							{ nextSyncLabel() && (
-								<p className="description">
-									{ nextSyncLabel() }
-								</p>
+							{ nextSyncLabel && (
+								<NextSyncNote>{ nextSyncLabel }</NextSyncNote>
 							) }
 
 							{ lastSync.error && (
@@ -510,11 +541,7 @@ const AgenticCommerceSyncStatus = () => {
 						</>
 					) }
 
-					<Flex
-						justify="flex-start"
-						gap={ 2 }
-						style={ { marginTop: '16px' } }
-					>
+					<ActionRow justify="flex-start" gap={ 2 }>
 						<Button
 							variant="primary"
 							isBusy={ isSyncing }
@@ -534,15 +561,15 @@ const AgenticCommerceSyncStatus = () => {
 						>
 							{ __( 'View logs', 'woocommerce-gateway-stripe' ) }
 						</Button>
-					</Flex>
+					</ActionRow>
 				</CardBody>
-			</Card>
+			</SectionCard>
 
-			<Card style={ { marginBottom: '20px' } }>
+			<SectionCard>
 				<CardHeader>
-					<h2 style={ { margin: 0, fontSize: '14px' } }>
+					<SectionHeading>
 						{ __( 'Recent syncs', 'woocommerce-gateway-stripe' ) }
-					</h2>
+					</SectionHeading>
 				</CardHeader>
 				<CardBody>
 					{ isLoading && (
@@ -562,25 +589,25 @@ const AgenticCommerceSyncStatus = () => {
 						<HistoryTable>
 							<thead>
 								<tr>
-									<th className="col-timestamp">
+									<th className="wc-stripe-agentic-sync-col-timestamp">
 										{ __(
 											'Timestamp',
 											'woocommerce-gateway-stripe'
 										) }
 									</th>
-									<th className="col-products">
+									<th className="wc-stripe-agentic-sync-col-products">
 										{ __(
 											'Products',
 											'woocommerce-gateway-stripe'
 										) }
 									</th>
-									<th className="col-status">
+									<th className="wc-stripe-agentic-sync-col-status">
 										{ __(
 											'Status',
 											'woocommerce-gateway-stripe'
 										) }
 									</th>
-									<th className="col-import-id">
+									<th className="wc-stripe-agentic-sync-col-import-id">
 										{ __(
 											'Import ID',
 											'woocommerce-gateway-stripe'
@@ -589,82 +616,82 @@ const AgenticCommerceSyncStatus = () => {
 								</tr>
 							</thead>
 							<tbody>
-								{ history
-									.slice( 0, HISTORY_ROW_LIMIT )
-									.map( ( entry, i ) => (
-										<tr key={ i }>
-											<td className="col-timestamp">
-												{ entry.timestamp
-													? new Date(
-															entry.timestamp *
-																1000
-													  ).toLocaleString( [], {
-															year: 'numeric',
-															month: '2-digit',
-															day: '2-digit',
-															hour: '2-digit',
-															minute: '2-digit',
-													  } )
-													: '—' }
-											</td>
-											<td className="col-products">
-												{ entry.products !== null
-													? entry.products.toLocaleString()
-													: '—' }
-											</td>
-											<td className="col-status">
-												<SyncStatusBadge
-													status={ entry.status }
-												/>
-												{ entry.error && (
-													<Tooltip
-														text={ entry.error }
-													>
-														<ErrorInfoButton
-															type="button"
-															aria-label={ __(
-																'Show sync error details',
+								{ history.map( ( entry, i ) => (
+									<tr key={ i }>
+										<td className="wc-stripe-agentic-sync-col-timestamp">
+											{ entry.timestamp
+												? new Date(
+														entry.timestamp * 1000
+												  ).toLocaleString( [], {
+														year: 'numeric',
+														month: '2-digit',
+														day: '2-digit',
+														hour: '2-digit',
+														minute: '2-digit',
+												  } )
+												: '—' }
+										</td>
+										<td className="wc-stripe-agentic-sync-col-products">
+											{ typeof entry.products === 'number'
+												? entry.products.toLocaleString()
+												: '—' }
+										</td>
+										<td className="wc-stripe-agentic-sync-col-status">
+											<SyncStatusBadge
+												status={ entry.status }
+											/>
+											{ entry.error && (
+												<Tooltip text={ entry.error }>
+													<ErrorInfoTarget
+														tabIndex={ 0 }
+														role="img"
+														aria-label={ sprintf(
+															/* translators: %s: sync error message */
+															__(
+																'Sync error: %s',
 																'woocommerce-gateway-stripe'
-															) }
-														>
-															<Icon
-																icon={ info }
-																size={ 16 }
-															/>
-														</ErrorInfoButton>
-													</Tooltip>
-												) }
-											</td>
-											<td className="col-import-id">
-												{ entry.import_set_id ? (
-													<code
-														title={
-															entry.import_set_id
-														}
+															),
+															entry.error
+														) }
 													>
-														<span className="id-start">
-															{ entry.import_set_id.slice(
-																0,
-																-6
-															) }
-														</span>
-														<span className="id-end">
-															{ entry.import_set_id.slice(
-																-6
-															) }
-														</span>
-													</code>
-												) : (
-													'—'
-												) }
-											</td>
-										</tr>
-									) ) }
+														<Icon
+															icon={ info }
+															size={ 16 }
+														/>
+													</ErrorInfoTarget>
+												</Tooltip>
+											) }
+										</td>
+										<td className="wc-stripe-agentic-sync-col-import-id">
+											{ entry.import_set_id ? (
+												<code
+													title={
+														entry.import_set_id
+													}
+												>
+													<span className="id-start">
+														{ entry.import_set_id.slice(
+															0,
+															-6
+														) }
+													</span>
+													<span className="id-end">
+														{ entry.import_set_id.slice(
+															-6
+														) }
+													</span>
+												</code>
+											) : (
+												'—'
+											) }
+										</td>
+									</tr>
+								) ) }
 							</tbody>
 						</HistoryTable>
 					) }
 				</CardBody>
-			</Card>
+			</SectionCard>
 		</>
 	);
 };

@@ -214,10 +214,12 @@ describe( 'AgenticCommerceSection', () => {
 		render( <AgenticCommerceSection /> );
 
 		await waitFor( () => {
-			const infoIcons = document.querySelectorAll(
-				'[title="Network error"]'
-			);
-			expect( infoIcons.length ).toBeGreaterThanOrEqual( 1 );
+			// The error message is exposed via aria-label on the icon's
+			// focusable wrapper (so screen readers and keyboard users can
+			// reach it), not as a `title` attribute.
+			expect(
+				screen.getByLabelText( /Sync error: Network error/ )
+			).toBeInTheDocument();
 		} );
 	} );
 
