@@ -123,9 +123,27 @@ describe( 'CheckoutSessions hook tests', () => {
 						payment_method: 'stripe',
 						save_payment_method: 'no',
 						wc_stripe_checkout_session_id: checkoutSessionId,
+						wc_stripe_selected_upe_payment_type: '',
 					},
 				},
 			} );
+		} );
+
+		it( 'forwards the actual selected payment method type so the server can set the order title', async () => {
+			const hasLoadErrorRef = { current: false };
+			usePaymentSetupHandler(
+				onPaymentSetup,
+				checkoutSessionId,
+				null,
+				hasLoadErrorRef,
+				true,
+				'ideal'
+			);
+			const result = await onPaymentSetupResultPromise;
+			expect(
+				result.meta.paymentMethodData
+					.wc_stripe_selected_upe_payment_type
+			).toBe( 'ideal' );
 		} );
 
 		it( 'returns save_payment_method yes when the Blocks save checkbox is checked', async () => {

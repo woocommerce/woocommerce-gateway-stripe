@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!--
+	Paratest-specific PHPUnit configuration.
+
+	Identical to phpunit.xml.dist but WITHOUT the <report> section — paratest
+	handles coverage output via its own CLI flags (e.g. - -coverage-cobertura).
+	Keeping the <report> section causes workers to write to the same output
+	files concurrently, which corrupts coverage data and crashes workers.
+-->
+<phpunit
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd"
+	bootstrap="tests/phpunit/bootstrap.php"
+	testSuiteLoaderClass="WC_Stripe_Test_Suite_Loader"
+	testSuiteLoaderFile="tests/phpunit/class-wc-stripe-test-suite-loader.php"
+	backupGlobals="false"
+	colors="true"
+	convertErrorsToExceptions="true"
+	convertNoticesToExceptions="true"
+	convertWarningsToExceptions="true"
+	convertDeprecationsToExceptions="false"
+	>
+	<testsuites>
+		<testsuite name="WCStripe">
+			<directory suffix="-test.php">./tests/phpunit</directory>
+		</testsuite>
+	</testsuites>
+	<coverage cacheDirectory=".phpunit.cache/code-coverage">
+		<include>
+			<file>./woocommerce-gateway-stripe.php</file>
+			<directory>./includes</directory>
+		</include>
+	</coverage>
+</phpunit>

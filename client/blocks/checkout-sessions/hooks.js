@@ -15,13 +15,15 @@ import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
  * @param {string}  errorMessage             An error message to display if there was an error loading the checkout session, used to provide feedback to the user.
  * @param {Object}  hasLoadErrorRef          A ref object that indicates whether there was an error loading the checkout session, used to prevent further processing if the session failed to load.
  * @param {boolean} isPaymentElementComplete A boolean that indicates whether the Stripe Payment Element is complete, used to validate that the user has entered all required payment information before allowing them to proceed with the payment.
+ * @param {string}  selectedPaymentType      The Stripe payment method type the customer picked inside the Payment Element (e.g. 'ideal'), used so the server can set the order's payment method title to the actual method instead of the OC pseudo-method default.
  */
 export const usePaymentSetupHandler = (
 	onPaymentSetup,
 	checkoutSessionId,
 	errorMessage,
 	hasLoadErrorRef,
-	isPaymentElementComplete
+	isPaymentElementComplete,
+	selectedPaymentType
 ) => {
 	useEffect(
 		() =>
@@ -86,6 +88,8 @@ export const usePaymentSetupHandler = (
 										: 'no',
 								wc_stripe_checkout_session_id:
 									checkoutSessionId,
+								wc_stripe_selected_upe_payment_type:
+									selectedPaymentType ?? '',
 							},
 						},
 					};
@@ -98,6 +102,7 @@ export const usePaymentSetupHandler = (
 			hasLoadErrorRef,
 			isPaymentElementComplete,
 			onPaymentSetup,
+			selectedPaymentType,
 		]
 	);
 };
@@ -156,8 +161,12 @@ export const useCheckoutSuccessHandler = (
 						},
 						returnUrl: redirect,
 						redirect: 'if_required',
-						savePaymentMethod: isSavePaymentMethodCheckboxChecked(),
 					};
+
+					if ( isLoggedIn ) {
+						confirmArgs.savePaymentMethod =
+							isSavePaymentMethodCheckboxChecked();
+					}
 
 					// Only include shipping information if the min. requirement is met.
 					if (
@@ -214,7 +223,7 @@ export const useCheckoutSuccessHandler = (
 						}
 					}
 
-					if ( isLoggedIn && isPayerPhoneRequired ) {
+					if ( isPayerPhoneRequired ) {
 						const userPhone =
 							document.getElementById( 'billing-phone' )?.value ||
 							document.getElementById( 'shipping-phone' )?.value;
