@@ -345,6 +345,7 @@ describe( 'DiagnosticsTraces', () => {
 				<DiagnosticsTraces
 					isRecording={ true }
 					captureLimit={ 10 }
+					captureLimitPresets={ [ 5, 10, 25, 50 ] }
 					onChangeCaptureLimit={ onChangeCaptureLimit }
 				/>
 			);

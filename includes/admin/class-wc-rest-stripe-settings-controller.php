@@ -280,6 +280,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'is_debug_log_enabled'                  => 'yes' === $this->gateway->get_option( 'logging' ),
 				'is_diagnostics_enabled'                => 'yes' === $this->gateway->get_option( 'diagnostics' ),
 				'diagnostics_capture_limit'             => WC_REST_Stripe_Diagnostics_Controller::capture_limit(),
+				'diagnostics_capture_limit_presets'     => WC_REST_Stripe_Diagnostics_Controller::CAPTURE_LIMIT_PRESETS,
 				'is_upe_enabled'                        => true,
 				'is_oc_enabled'                         => 'yes' === $this->gateway->get_option( 'optimized_checkout_element' ),
 				'is_ap_enabled'                         => 'yes' === $this->gateway->get_option( 'adaptive_pricing' ),

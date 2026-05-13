@@ -172,6 +172,11 @@ export const useDiagnosticsCaptureLimit = makeSettingsHook(
 	'diagnostics_capture_limit',
 	10
 );
+// Fallback only - real values come from the settings REST payload.
+export const useDiagnosticsCaptureLimitPresets = makeReadOnlySettingsHook(
+	'diagnostics_capture_limit_presets',
+	[ 5, 10, 25, 50 ]
+);
 export const useIsOCEnabled = makeSettingsHook( 'is_oc_enabled' );
 export const useIsAdaptivePricingEnabled = makeSettingsHook( 'is_ap_enabled' );
 export const useOCLayout = makeSettingsHook( 'oc_layout' );

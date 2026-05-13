@@ -147,6 +147,10 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			WC_REST_Stripe_Diagnostics_Controller::DEFAULT_CAPTURE_LIMIT,
 			$response->get_data()['diagnostics_capture_limit']
 		);
+		$this->assertSame(
+			WC_REST_Stripe_Diagnostics_Controller::CAPTURE_LIMIT_PRESETS,
+			$response->get_data()['diagnostics_capture_limit_presets']
+		);
 
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
 		$request->set_param( 'diagnostics_capture_limit', 25 );

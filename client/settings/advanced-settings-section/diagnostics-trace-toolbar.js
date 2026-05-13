@@ -8,8 +8,6 @@ import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 const FILTER_ALL = 'all';
 const FILTER_FAILED = 'failed';
 
-// Mirrors PHP CAPTURE_LIMIT_PRESETS / DEFAULT_CAPTURE_LIMIT — keep in sync.
-const LIMIT_PRESETS = [ 5, 10, 25, 50 ];
 const DEFAULT_LIMIT = 10;
 
 const DiagnosticsTraceToolbar = ( {
@@ -19,6 +17,7 @@ const DiagnosticsTraceToolbar = ( {
 	onFilterChange,
 	isRecording,
 	captureLimit = DEFAULT_LIMIT,
+	captureLimitPresets = [],
 	onChangeCaptureLimit,
 	onCopy,
 	onClear,
@@ -119,14 +118,16 @@ const DiagnosticsTraceToolbar = ( {
 											'woocommerce-gateway-stripe'
 										) }
 									>
-										{ LIMIT_PRESETS.map( ( preset ) => (
-											<option
-												key={ preset }
-												value={ String( preset ) }
-											>
-												{ preset }
-											</option>
-										) ) }
+										{ captureLimitPresets.map(
+											( preset ) => (
+												<option
+													key={ preset }
+													value={ String( preset ) }
+												>
+													{ preset }
+												</option>
+											)
+										) }
 									</select>
 								),
 							}
@@ -262,4 +263,4 @@ const DiagnosticsTraceToolbar = ( {
 };
 
 export default DiagnosticsTraceToolbar;
-export { FILTER_ALL, FILTER_FAILED, LIMIT_PRESETS };
+export { FILTER_ALL, FILTER_FAILED };

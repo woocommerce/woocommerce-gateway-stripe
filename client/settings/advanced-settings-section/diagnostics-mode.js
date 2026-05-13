@@ -2,12 +2,17 @@ import React from 'react';
 import DiagnosticsTraces from './diagnostics-traces';
 import { __ } from '@wordpress/i18n';
 import { ToggleControl } from '@wordpress/components';
-import { useDiagnosticsMode, useDiagnosticsCaptureLimit } from 'wcstripe/data';
+import {
+	useDiagnosticsMode,
+	useDiagnosticsCaptureLimit,
+	useDiagnosticsCaptureLimitPresets,
+} from 'wcstripe/data';
 
 const DiagnosticsMode = () => {
 	const [ isDiagnosticsChecked, setIsDiagnosticsChecked ] =
 		useDiagnosticsMode();
 	const [ captureLimit, setCaptureLimit ] = useDiagnosticsCaptureLimit();
+	const captureLimitPresets = useDiagnosticsCaptureLimitPresets();
 
 	return (
 		<>
@@ -38,6 +43,7 @@ const DiagnosticsMode = () => {
 			<DiagnosticsTraces
 				isRecording={ isDiagnosticsChecked }
 				captureLimit={ Number( captureLimit ) }
+				captureLimitPresets={ captureLimitPresets }
 				onChangeCaptureLimit={ setCaptureLimit }
 			/>
 		</>

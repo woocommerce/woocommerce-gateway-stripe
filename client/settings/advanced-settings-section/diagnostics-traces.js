@@ -50,6 +50,7 @@ const copyOrDownload = async ( payload ) => {
 const DiagnosticsTraces = ( {
 	isRecording = false,
 	captureLimit = 10,
+	captureLimitPresets,
 	onChangeCaptureLimit,
 } ) => {
 	const [ traces, setTraces ] = useState( null );
@@ -236,6 +237,7 @@ const DiagnosticsTraces = ( {
 				onFilterChange={ setFilter }
 				isRecording={ isRecording }
 				captureLimit={ captureLimit }
+				captureLimitPresets={ captureLimitPresets }
 				onChangeCaptureLimit={ onChangeCaptureLimit }
 				onCopy={ handleBulkCopy }
 				onClear={ handleClear }
