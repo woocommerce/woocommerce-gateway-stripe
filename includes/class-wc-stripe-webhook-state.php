@@ -80,7 +80,7 @@ class WC_Stripe_Webhook_State {
 	 */
 	public static function get_monitoring_began_at() {
 		$option              = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_MONITORING_BEGAN_AT : self::OPTION_LIVE_MONITORING_BEGAN_AT;
-		$monitoring_began_at = get_option( $option, 0 );
+		$monitoring_began_at = self::get_int_option( $option );
 		if ( 0 == $monitoring_began_at ) {
 			$monitoring_began_at = time();
 			update_option( $option, $monitoring_began_at );
