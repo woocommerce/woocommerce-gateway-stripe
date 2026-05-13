@@ -2,11 +2,12 @@ import React from 'react';
 import DiagnosticsTraces from './diagnostics-traces';
 import { __ } from '@wordpress/i18n';
 import { ToggleControl } from '@wordpress/components';
-import { useDiagnosticsMode } from 'wcstripe/data';
+import { useDiagnosticsMode, useDiagnosticsCaptureLimit } from 'wcstripe/data';
 
 const DiagnosticsMode = () => {
 	const [ isDiagnosticsChecked, setIsDiagnosticsChecked ] =
 		useDiagnosticsMode();
+	const [ captureLimit, setCaptureLimit ] = useDiagnosticsCaptureLimit();
 
 	return (
 		<>
@@ -20,7 +21,7 @@ const DiagnosticsMode = () => {
 					</h4>
 					<p>
 						{ __(
-							'Records structured traces of checkout sessions so support can diagnose issues. Keep this off unless actively troubleshooting.',
+							'Records structured traces of checkout sessions so support can diagnose issues. Turns off automatically once the capture limit is reached.',
 							'woocommerce-gateway-stripe'
 						) }
 					</p>
@@ -34,7 +35,11 @@ const DiagnosticsMode = () => {
 					onChange={ setIsDiagnosticsChecked }
 				/>
 			</div>
-			<DiagnosticsTraces isRecording={ isDiagnosticsChecked } />
+			<DiagnosticsTraces
+				isRecording={ isDiagnosticsChecked }
+				captureLimit={ Number( captureLimit ) }
+				onChangeCaptureLimit={ setCaptureLimit }
+			/>
 		</>
 	);
 };

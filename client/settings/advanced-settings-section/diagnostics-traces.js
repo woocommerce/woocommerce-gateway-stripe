@@ -47,7 +47,11 @@ const copyOrDownload = async ( payload ) => {
 	return 'clipboard';
 };
 
-const DiagnosticsTraces = ( { isRecording = false } ) => {
+const DiagnosticsTraces = ( {
+	isRecording = false,
+	captureLimit = 10,
+	onChangeCaptureLimit,
+} ) => {
 	const [ traces, setTraces ] = useState( null );
 	const [ filter, setFilter ] = useState( FILTER_ALL );
 	const [ viewing, setViewing ] = useState( null );
@@ -231,6 +235,8 @@ const DiagnosticsTraces = ( { isRecording = false } ) => {
 				filter={ filter }
 				onFilterChange={ setFilter }
 				isRecording={ isRecording }
+				captureLimit={ captureLimit }
+				onChangeCaptureLimit={ onChangeCaptureLimit }
 				onCopy={ handleBulkCopy }
 				onClear={ handleClear }
 				isCopying={ isCopying }

@@ -132,7 +132,7 @@ describe( 'DiagnosticsTraces', () => {
 		render( <DiagnosticsTraces isRecording={ true } /> );
 
 		expect( await screen.findByText( 'Recording' ) ).toBeInTheDocument();
-		expect( screen.getByText( /2 stored traces/ ) ).toBeInTheDocument();
+		expect( screen.getByText( /2 of 10 captured/ ) ).toBeInTheDocument();
 		expect( screen.getByText( '1 failed' ) ).toBeInTheDocument();
 		expect( screen.getByTestId( 'trace-row-tr_a' ) ).toBeInTheDocument();
 		expect( screen.getByTestId( 'trace-row-tr_b' ) ).toBeInTheDocument();
@@ -314,5 +314,94 @@ describe( 'DiagnosticsTraces', () => {
 				{ id: NOTICE_ID }
 			)
 		);
+	} );
+
+	describe( 'auto-off capture limit', () => {
+		it( 'renders the "X of N captured" counter against the active limit', async () => {
+			apiFetch.mockResolvedValueOnce(
+				tracesResponse( [
+					traceFixture( { id: 'tr_a', status: 'failed' } ),
+					traceFixture( { id: 'tr_b', status: 'completed' } ),
+				] )
+			);
+			render(
+				<DiagnosticsTraces
+					isRecording={ true }
+					captureLimit={ 10 }
+					onChangeCaptureLimit={ jest.fn() }
+				/>
+			);
+			expect(
+				await screen.findByText( /2 of 10 captured/ )
+			).toBeInTheDocument();
+		} );
+
+		it( 'shows the inline limit selector while recording and writes preset changes back', async () => {
+			const onChangeCaptureLimit = jest.fn();
+			apiFetch.mockResolvedValueOnce(
+				tracesResponse( [ traceFixture( { id: 'tr_a' } ) ] )
+			);
+			render(
+				<DiagnosticsTraces
+					isRecording={ true }
+					captureLimit={ 10 }
+					onChangeCaptureLimit={ onChangeCaptureLimit }
+				/>
+			);
+			const select = await screen.findByLabelText(
+				'Auto-off capture limit'
+			);
+			expect( select ).toHaveValue( '10' );
+			// Auto-off is mandatory — no opt-out option.
+			expect(
+				screen.queryByRole( 'option', { name: /unlimited/i } )
+			).not.toBeInTheDocument();
+			await userEvent.selectOptions( select, '25' );
+			expect( onChangeCaptureLimit ).toHaveBeenCalledWith( 25 );
+		} );
+
+		it( 'hides the limit selector and progress bar when recording is off', async () => {
+			apiFetch.mockResolvedValueOnce(
+				tracesResponse( [ traceFixture( { id: 'tr_a' } ) ] )
+			);
+			render(
+				<DiagnosticsTraces
+					isRecording={ false }
+					captureLimit={ 10 }
+					onChangeCaptureLimit={ jest.fn() }
+				/>
+			);
+			await screen.findByTestId( 'trace-row-tr_a' );
+			expect(
+				screen.queryByLabelText( 'Auto-off capture limit' )
+			).not.toBeInTheDocument();
+			expect(
+				screen.queryByRole( 'progressbar', {
+					name: /Capture progress/i,
+				} )
+			).not.toBeInTheDocument();
+		} );
+
+		it( 'renders a progress bar that reflects captured/limit when recording with a limit set', async () => {
+			apiFetch.mockResolvedValueOnce(
+				tracesResponse( [
+					traceFixture( { id: 'tr_a' } ),
+					traceFixture( { id: 'tr_b' } ),
+					traceFixture( { id: 'tr_c' } ),
+				] )
+			);
+			render(
+				<DiagnosticsTraces
+					isRecording={ true }
+					captureLimit={ 10 }
+					onChangeCaptureLimit={ jest.fn() }
+				/>
+			);
+			const bar = await screen.findByRole( 'progressbar', {
+				name: /Capture progress/i,
+			} );
+			expect( bar ).toHaveAttribute( 'aria-valuemax', '10' );
+			expect( bar ).toHaveAttribute( 'aria-valuenow', '3' );
+		} );
 	} );
 } );
