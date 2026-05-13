@@ -71,7 +71,10 @@ class WC_Stripe_Plugins_Page_Controller {
 		wp_localize_script(
 			'wc-stripe-plugins-page',
 			'wcStripePluginsPageParams',
-			WC_Stripe_Helper::get_exit_survey_params( $this->account )
+			array_merge(
+				WC_Stripe_Helper::get_exit_survey_params( $this->account ),
+				$this->get_changelog_link_params()
+			)
 		);
 
 		// Required for the plugin information modal that the "Release notes" link opens.
@@ -151,6 +154,18 @@ class WC_Stripe_Plugins_Page_Controller {
 	private function has_pending_update( string $file ): bool {
 		$updates = get_site_transient( 'update_plugins' );
 		return isset( $updates->response[ $file ] );
+  }
+
+	/**
+	 * Localized params used by the post-update changelog link.
+	 *
+	 * @return array{plugin_slug: string, view_changelog_url: string}
+	 */
+	private function get_changelog_link_params(): array {
+		return [
+			'plugin_slug'        => $this->get_plugin_slug(),
+			'view_changelog_url' => $this->get_changelog_url(),
+		];
 	}
 
 	/**

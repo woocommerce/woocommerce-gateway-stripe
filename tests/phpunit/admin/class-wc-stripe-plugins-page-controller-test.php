@@ -136,4 +136,26 @@ class WC_Stripe_Plugins_Page_Controller_Test extends WP_UnitTestCase {
 
 		$this->assertArrayNotHasKey( 'wc_stripe_release_notes', $result );
 	}
+
+	/**
+	 * Tests that the changelog link parameters are localized for the JS
+	 * post-update enhancement. Guards the contract between the controller
+	 * and `initAppendChangelogLink` so renaming or dropping a key surfaces here.
+	 *
+	 * @return void
+	 */
+	public function test_enqueue_scripts_localizes_changelog_link_params(): void {
+		$controller = $this->get_mock_controller();
+
+		$controller->enqueue_scripts( 'plugins.php' );
+
+		$inline_data = wp_scripts()->get_data( 'wc-stripe-plugins-page', 'data' );
+		$this->assertIsString( $inline_data );
+
+		$this->assertStringContainsString( '"plugin_slug":"woocommerce-gateway-stripe"', $inline_data );
+		$this->assertStringContainsString( 'tab=plugin-information', $inline_data );
+		$this->assertStringContainsString( 'plugin=woocommerce-gateway-stripe', $inline_data );
+		$this->assertStringContainsString( 'section=changelog', $inline_data );
+		$this->assertStringContainsString( 'TB_iframe=true', $inline_data );
+	}
 }
