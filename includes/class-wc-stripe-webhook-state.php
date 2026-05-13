@@ -111,18 +111,18 @@ class WC_Stripe_Webhook_State {
 	 * or returns 0 if no webhook has ever been successfully processed.
 	 *
 	 * @since 5.0.0
-	 * @return integer UTC seconds since 1970 | 0.
+	 * @return int UTC seconds since 1970 | 0.
 	 */
 	public static function get_last_webhook_success_at() {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_SUCCESS_AT;
-		return get_option( $option, 0 );
+		return self::get_int_option( $option );
 	}
 
 	/**
 	 * Sets the timestamp of the last failed webhook.
 	 *
 	 * @since 5.0.0
-	 * @param integer UTC seconds since 1970.
+	 * @param int UTC seconds since 1970.
 	 */
 	public static function set_last_webhook_failure_at( $timestamp ) {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
@@ -138,7 +138,7 @@ class WC_Stripe_Webhook_State {
 	 */
 	public static function get_last_webhook_failure_at() {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
-		return get_option( $option, 0 );
+		return self::get_int_option( $option );
 	}
 
 	/**
@@ -252,7 +252,7 @@ class WC_Stripe_Webhook_State {
 	 */
 	public static function get_pending_webhooks_count() {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_PENDING_WEBHOOKS : self::OPTION_LIVE_PENDING_WEBHOOKS;
-		return get_option( $option, 0 );
+		return self::get_int_option( $option );
 	}
 
 	/**
@@ -363,5 +363,22 @@ class WC_Stripe_Webhook_State {
 			'live' => empty( $live_webhook['url'] ) ? null : rawurlencode( $live_webhook['url'] ),
 			'test' => empty( $test_webhook['url'] ) ? null : rawurlencode( $test_webhook['url'] ),
 		];
+	}
+
+	/**
+	 * Gets an option value that must be an integer. Stringified integers will be cast to int,
+	 * but other non-integer values will be returned as 0.
+	 *
+	 * @since 10.8.0
+	 * @param string $option_name The name of the option to get.
+	 * @return int The integer value of the option, or 0 if the option is not an integer.
+	 */
+	protected static function get_int_option( string $option_name ): int {
+		$option_value = get_option( $option_name, 0 );
+		if ( ! ctype_digit( (string) $option_value ) ) {
+			return 0;
+		}
+
+		return (int) $option_value;
 	}
 }
