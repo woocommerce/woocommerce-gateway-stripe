@@ -20,6 +20,9 @@ class WC_Stripe_Plugins_Page_Controller_Test extends WP_UnitTestCase {
 		wp_deregister_script( 'wc-stripe-plugins-page' );
 		wp_deregister_style( 'wc-stripe-plugins-page' );
 
+		wp_dequeue_script( 'thickbox' );
+		wp_dequeue_style( 'thickbox' );
+
 		parent::tearDown();
 	}
 
@@ -64,5 +67,42 @@ class WC_Stripe_Plugins_Page_Controller_Test extends WP_UnitTestCase {
 			'unrelated admin page does not enqueue assets' => [ 'admin.php', false ],
 			'plugins.php registers and enqueues assets'    => [ 'plugins.php', true ],
 		];
+	}
+
+	/**
+	 * Tests that the "Updated!" changelog link relies on thickbox being enqueued
+	 * so the plugin information modal can open from the plugins.php page.
+	 *
+	 * @return void
+	 */
+	public function test_enqueue_scripts_loads_thickbox_on_plugins_php(): void {
+		$controller = $this->get_mock_controller();
+
+		$controller->enqueue_scripts( 'plugins.php' );
+
+		$this->assertTrue( wp_script_is( 'thickbox', 'enqueued' ) );
+		$this->assertTrue( wp_style_is( 'thickbox', 'enqueued' ) );
+	}
+
+	/**
+	 * Tests that the changelog link parameters are localized for the JS
+	 * post-update enhancement. Guards the contract between the controller
+	 * and `initAppendChangelogLink` so renaming or dropping a key surfaces here.
+	 *
+	 * @return void
+	 */
+	public function test_enqueue_scripts_localizes_changelog_link_params(): void {
+		$controller = $this->get_mock_controller();
+
+		$controller->enqueue_scripts( 'plugins.php' );
+
+		$inline_data = wp_scripts()->get_data( 'wc-stripe-plugins-page', 'data' );
+		$this->assertIsString( $inline_data );
+
+		$this->assertStringContainsString( '"plugin_slug":"woocommerce-gateway-stripe"', $inline_data );
+		$this->assertStringContainsString( 'tab=plugin-information', $inline_data );
+		$this->assertStringContainsString( 'plugin=woocommerce-gateway-stripe', $inline_data );
+		$this->assertStringContainsString( 'section=changelog', $inline_data );
+		$this->assertStringContainsString( 'TB_iframe=true', $inline_data );
 	}
 }
