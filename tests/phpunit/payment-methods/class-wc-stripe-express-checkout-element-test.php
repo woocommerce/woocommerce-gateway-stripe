@@ -225,6 +225,10 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 				'checkout type' => 'google_pay',
 				'expected'      => 'Google Pay (Stripe)',
 			],
+			'link'       => [
+				'checkout type' => 'link',
+				'expected'      => 'Link',
+			],
 		];
 	}
 

@@ -573,22 +573,31 @@ class WC_Stripe_Express_Checkout_Element {
 	 * subscription. Returns true when the title was applied.
 	 *
 	 * @param WC_Order $order                 Order or subscription to update.
-	 * @param string   $express_checkout_type The express checkout type (apple_pay, google_pay).
+	 * @param string   $express_checkout_type The express checkout type (apple_pay, google_pay, link).
 	 * @return bool    Whether the title was applied.
 	 */
 	private function apply_express_checkout_title_to_order( $order, $express_checkout_type ) {
 		$payment_method_title = '';
+		$append_suffix        = true;
 		if ( WC_Stripe_Payment_Methods::APPLE_PAY === $express_checkout_type ) {
 			$payment_method_title = WC_Stripe_Payment_Methods::APPLE_PAY_LABEL;
 		} elseif ( WC_Stripe_Payment_Methods::GOOGLE_PAY === $express_checkout_type ) {
 			$payment_method_title = WC_Stripe_Payment_Methods::GOOGLE_PAY_LABEL;
+		} elseif ( WC_Stripe_Payment_Methods::LINK === $express_checkout_type ) {
+			// Match the title produced by the standard Link path (set_payment_method_title_for_order)
+			// and expected by WC_Stripe_UPE_Payment_Method_Link::filter_gateway_title — bare "Link", no suffix.
+			$payment_method_title = WC_Stripe_Payment_Methods::LINK_LABEL;
+			$append_suffix        = false;
 		}
 
 		if ( ! $payment_method_title ) {
 			return false;
 		}
 
-		$order->set_payment_method_title( $payment_method_title . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix() );
+		if ( $append_suffix ) {
+			$payment_method_title .= WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
+		}
+		$order->set_payment_method_title( $payment_method_title );
 		$order->save();
 		return true;
 	}
