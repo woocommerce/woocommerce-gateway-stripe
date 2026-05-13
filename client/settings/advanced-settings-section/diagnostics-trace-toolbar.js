@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import classNames from 'classnames';
 import { Button } from '@wordpress/components';
+import { createInterpolateElement } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 
@@ -97,37 +98,39 @@ const DiagnosticsTraceToolbar = ( {
 				</div>
 				{ isRecording && onChangeCaptureLimit && (
 					<span className="wc-stripe-diagnostics-toolbar__limit">
-						<span>
-							{ __(
-								'Auto-off after',
+						{ createInterpolateElement(
+							/* translators: <select /> is a dropdown for the number of orders before auto-off triggers. */
+							__(
+								'Auto-off after <select /> orders',
 								'woocommerce-gateway-stripe'
-							) }
-						</span>
-						<select
-							className="wc-stripe-diagnostics-toolbar__limit-select"
-							value={ String( captureLimit ) }
-							onChange={ ( event ) =>
-								onChangeCaptureLimit(
-									Number( event.target.value )
-								)
+							),
+							{
+								select: (
+									<select
+										className="wc-stripe-diagnostics-toolbar__limit-select"
+										value={ String( captureLimit ) }
+										onChange={ ( event ) =>
+											onChangeCaptureLimit(
+												Number( event.target.value )
+											)
+										}
+										aria-label={ __(
+											'Auto-off capture limit',
+											'woocommerce-gateway-stripe'
+										) }
+									>
+										{ LIMIT_PRESETS.map( ( preset ) => (
+											<option
+												key={ preset }
+												value={ String( preset ) }
+											>
+												{ preset }
+											</option>
+										) ) }
+									</select>
+								),
 							}
-							aria-label={ __(
-								'Auto-off capture limit',
-								'woocommerce-gateway-stripe'
-							) }
-						>
-							{ LIMIT_PRESETS.map( ( preset ) => (
-								<option
-									key={ preset }
-									value={ String( preset ) }
-								>
-									{ preset }
-								</option>
-							) ) }
-						</select>
-						<span>
-							{ __( 'orders', 'woocommerce-gateway-stripe' ) }
-						</span>
+						) }
 					</span>
 				) }
 			</div>
