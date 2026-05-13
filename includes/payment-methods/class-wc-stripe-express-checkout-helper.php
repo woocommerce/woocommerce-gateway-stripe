@@ -73,6 +73,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * updates `_stripe_source_id` / `_payment_method` but not `_payment_tokens`,
 	 * so without this My Account keeps rendering the previously saved card.
 	 *
+	 * `_payment_tokens` is in WC_Order's `internal_meta_keys`, so it bypasses
+	 * the order's meta_data cache — `delete_meta_data()` is a no-op for it.
+	 * Clear via the data store before appending, otherwise the prior token
+	 * stays attached alongside the new one.
+	 *
 	 * @param WC_Order $subscription      The subscription being updated.
 	 * @param string   $payment_method_id The Stripe payment method ID just attached to the subscription.
 	 * @return bool                       Whether a matching token was attached.
@@ -90,7 +95,8 @@ class WC_Stripe_Express_Checkout_Helper {
 		$tokens = WC_Payment_Tokens::get_customer_tokens( $user_id, 'stripe' );
 		foreach ( $tokens as $token ) {
 			if ( $token->get_token() === $payment_method_id ) {
-				$subscription->delete_meta_data( '_payment_tokens' );
+				// @phpstan-ignore-next-line — get_data_store() returns object; update_payment_token_ids is on WC_Abstract_Order_Data_Store_Interface.
+				$subscription->get_data_store()->update_payment_token_ids( $subscription, [] );
 				$subscription->add_payment_token( $token );
 				$subscription->save();
 				return true;

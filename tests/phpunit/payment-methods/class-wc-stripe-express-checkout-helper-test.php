@@ -1928,4 +1928,88 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * The replacement must drop any prior token attached to the order before
+	 * adding the matched one — regression coverage for ECE change-payment
+	 * leaving the old wallet token alongside the new one (e.g. Google Pay → Link).
+	 *
+	 * @return void
+	 */
+	public function test_replace_subscription_payment_token_clears_existing_tokens(): void {
+		$user_id = self::factory()->user->create();
+
+		$old_token = new WC_Stripe_Payment_Token_CC();
+		$old_token->set_expiry_month( '12' );
+		$old_token->set_expiry_year( '2030' );
+		$old_token->set_card_type( 'visa' );
+		$old_token->set_last4( '4242' );
+		$old_token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$old_token->set_token( 'pm_old_gpay' );
+		$old_token->set_user_id( $user_id );
+		$old_token->save();
+
+		$new_token = new WC_Payment_Token_Link();
+		$new_token->set_email( 'shopper@example.com' );
+		$new_token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$new_token->set_token( 'pm_new_link' );
+		$new_token->set_user_id( $user_id );
+		$new_token->save();
+
+		$order = new WC_Order();
+		$order->set_customer_id( $user_id );
+		$order->save();
+		$order->add_payment_token( $old_token );
+
+		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $order, 'pm_new_link' );
+
+		$this->assertTrue( $result );
+		$this->assertSame( [ $new_token->get_id() ], array_values( $order->get_payment_tokens() ) );
+	}
+
+	/**
+	 * When no saved token matches the Stripe PM ID, the order's token list
+	 * must be left untouched and the helper must report false.
+	 *
+	 * @return void
+	 */
+	public function test_replace_subscription_payment_token_no_match_leaves_tokens_intact(): void {
+		$user_id = self::factory()->user->create();
+
+		$existing_token = new WC_Stripe_Payment_Token_CC();
+		$existing_token->set_expiry_month( '12' );
+		$existing_token->set_expiry_year( '2030' );
+		$existing_token->set_card_type( 'visa' );
+		$existing_token->set_last4( '4242' );
+		$existing_token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$existing_token->set_token( 'pm_existing' );
+		$existing_token->set_user_id( $user_id );
+		$existing_token->save();
+
+		$order = new WC_Order();
+		$order->set_customer_id( $user_id );
+		$order->save();
+		$order->add_payment_token( $existing_token );
+
+		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $order, 'pm_unknown' );
+
+		$this->assertFalse( $result );
+		$this->assertSame( [ $existing_token->get_id() ], array_values( $order->get_payment_tokens() ) );
+	}
+
+	/**
+	 * The helper must short-circuit when arguments are invalid (non-order,
+	 * empty PM id, or order with no user). Guards an accidental destructive
+	 * write to an unrelated order's token list.
+	 *
+	 * @return void
+	 */
+	public function test_replace_subscription_payment_token_short_circuits_on_invalid_args(): void {
+		$this->assertFalse( WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( null, 'pm_x' ) );
+		$this->assertFalse( WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( new WC_Order(), '' ) );
+
+		$guest_order = new WC_Order();
+		$guest_order->save();
+		$this->assertFalse( WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $guest_order, 'pm_x' ) );
+	}
 }
