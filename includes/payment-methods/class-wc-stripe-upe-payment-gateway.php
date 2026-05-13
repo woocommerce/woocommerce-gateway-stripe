@@ -582,6 +582,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isAmazonPayEnabled']                = $express_checkout_helper->is_amazon_pay_enabled();
 		$stripe_params['isLinkEnabled']                     = $express_checkout_helper->is_link_enabled();
 
+		if ( $this->testmode ) {
+			/**
+			 * Filters whether the Stripe Developer Widget should be shown in the UI.
+			 * Only available in test mode.
+			 *
+			 * @since 10.7.0
+			 * @param bool $show_stripe_developer_widget Whether the Stripe Developer Widget should be shown in the UI.
+			 */
+			$show_stripe_developer_widget = (bool) apply_filters( 'wc_stripe_show_stripe_developer_widget', false );
+			if ( $show_stripe_developer_widget ) {
+				$stripe_params['showStripeDeveloperWidget'] = true;
+			}
+		}
+
 		// Amazon Pay feature flag.
 		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
 
@@ -637,9 +651,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isAdaptivePricingEnabled'] = $should_show_optimized_checkout && $this->is_adaptive_pricing_supported();
 
 		if ( $should_show_optimized_checkout ) {
-			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
-			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
-			$stripe_params['excludedPaymentMethodTypes']   = $this->get_excluded_payment_method_types();
+			$stripe_params['OCLayout']                      = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
+			$stripe_params['paymentMethodConfigurationId']  = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+			$stripe_params['excludedPaymentMethodTypes']    = $this->get_excluded_payment_method_types();
+			$stripe_params['optimizedCheckoutClassicTitle'] = WC_Stripe_UPE_Payment_Method_OC::get_classic_title();
 		}
 
 		// Checking for other BNPL extensions.
