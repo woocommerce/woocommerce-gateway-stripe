@@ -10,7 +10,7 @@ describe( 'RemoveMethodConfirmationModal', () => {
 	it( 'should render the information', () => {
 		render(
 			<RemoveMethodConfirmationModal
-				method="giropay"
+				method="bancontact"
 				onClose={ handleCloseMock }
 				onConfirm={ handleRemoveMock }
 			/>
@@ -18,7 +18,7 @@ describe( 'RemoveMethodConfirmationModal', () => {
 
 		expect(
 			screen.queryByRole( 'heading', {
-				name: 'Remove giropay from checkout',
+				name: 'Remove Bancontact from checkout',
 			} )
 		).toBeInTheDocument();
 	} );
@@ -26,7 +26,7 @@ describe( 'RemoveMethodConfirmationModal', () => {
 	it( 'should call onClose when the action is cancelled', async () => {
 		render(
 			<RemoveMethodConfirmationModal
-				method="giropay"
+				method="bancontact"
 				onClose={ handleCloseMock }
 				onConfirm={ handleRemoveMock }
 			/>
@@ -44,7 +44,7 @@ describe( 'RemoveMethodConfirmationModal', () => {
 	it( 'should call onConfirm when the action is confirmed', async () => {
 		render(
 			<RemoveMethodConfirmationModal
-				method="giropay"
+				method="bancontact"
 				onClose={ handleCloseMock }
 				onConfirm={ handleRemoveMock }
 			/>
