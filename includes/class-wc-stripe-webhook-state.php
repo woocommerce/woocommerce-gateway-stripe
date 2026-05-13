@@ -53,7 +53,7 @@ class WC_Stripe_Webhook_State {
 	 *
 	 * @param string $mode Optional. The mode to clear the webhook state for. Can be 'all', 'live', or 'test'. Default is 'all'.
 	 */
-	public static function clear_state( $mode = 'all' ) {
+	public static function clear_state( $mode = 'all' ): void {
 		if ( 'all' === $mode || 'live' === $mode ) {
 			delete_option( self::OPTION_LIVE_MONITORING_BEGAN_AT );
 			delete_option( self::OPTION_LIVE_LAST_SUCCESS_AT );
@@ -101,7 +101,7 @@ class WC_Stripe_Webhook_State {
 	 * @since 5.0.0
 	 * @param int $timestamp UTC seconds since 1970.
 	 */
-	public static function set_last_webhook_success_at( $timestamp ) {
+	public static function set_last_webhook_success_at( $timestamp ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_SUCCESS_AT;
 		update_option( $option, $timestamp );
 	}
@@ -124,7 +124,7 @@ class WC_Stripe_Webhook_State {
 	 * @since 5.0.0
 	 * @param int $timestamp UTC seconds since 1970.
 	 */
-	public static function set_last_webhook_failure_at( $timestamp ) {
+	public static function set_last_webhook_failure_at( $timestamp ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
 		update_option( $option, $timestamp );
 	}
@@ -147,7 +147,7 @@ class WC_Stripe_Webhook_State {
 	 * @since 5.0.0
 	 * @param string $reason Reason code.
 	 */
-	public static function set_last_error_reason( $reason ) {
+	public static function set_last_error_reason( $reason ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
 		update_option( $option, $reason );
 	}
@@ -238,7 +238,7 @@ class WC_Stripe_Webhook_State {
 	 *
 	 * @param int $pending_webhooks The number of pending webhooks.
 	 */
-	public static function set_pending_webhooks_count( $pending_webhooks ) {
+	public static function set_pending_webhooks_count( $pending_webhooks ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_PENDING_WEBHOOKS : self::OPTION_LIVE_PENDING_WEBHOOKS;
 		update_option( $option, $pending_webhooks );
 	}
