@@ -476,6 +476,10 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
+		if ( 'yes' === $subscription->get_meta( '_wc_stripe_subscription_detached_notice_dismissed' ) ) {
+			return;
+		}
+
 		if ( WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription ) ) {
 			$customer_payment_method_link = sprintf(
 				'<a href="%s">%s</a>',
@@ -506,7 +510,24 @@ class WC_Stripe_Admin_Notices {
 				'</a>',
 				__( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
 			);
-			$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message );
+
+			$dismiss_url = wp_nonce_url(
+				add_query_arg(
+					[
+						'wc-stripe-hide-notice'     => 'subscription_detached',
+						'wc-stripe-subscription-id' => $subscription->get_id(),
+					]
+				),
+				'wc_stripe_hide_notices_nonce',
+				'_wc_stripe_notice_nonce'
+			);
+
+			$dismiss_link = sprintf(
+				'<a href="' . esc_url( $dismiss_url ) . '">%s</a>',
+				__( 'Dismiss', 'woocommerce-gateway-stripe' )
+			);
+
+			$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message, true, [ $dismiss_link ] );
 		}
 	}
 
@@ -637,6 +658,28 @@ class WC_Stripe_Admin_Notices {
 					break;
 				case 'subscriptions':
 					update_option( 'wc_stripe_show_subscriptions_notice', 'no' );
+					break;
+				case 'subscription_detached':
+					if ( isset( $_GET['wc-stripe-subscription-id'] ) ) {
+						$subscription_id = esc_url_raw( wp_unslash( $_GET['wc-stripe-subscription-id'] ) );
+						$subscription    = wcs_get_subscription( $subscription_id );
+
+						if ( ! $subscription instanceof WC_Subscription ) {
+							return;
+						}
+
+						$subscription->update_meta_data( '_wc_stripe_subscription_detached_notice_dismissed', 'yes' );
+						$subscription->save_meta_data();
+					}
+
+					if ( isset( $_SERVER['REQUEST_URI'] ) ) {
+						wp_safe_redirect(
+							remove_query_arg(
+								[ 'wc-stripe-hide-notice', '_wc_stripe_notice_nonce', 'wc-stripe-subscription-id' ],
+								esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) )
+							)
+						);
+					}
 					break;
 				case 'subscription_detached_bulk_action':
 					update_option( 'wc_stripe_show_subscription_detached_bulk_action_notice', 'no' );

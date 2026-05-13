@@ -1023,4 +1023,133 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
 	}
+
+	/**
+	 * Test that subscription_detached notice is not shown when dismissed via post meta.
+	 *
+	 * @return void
+	 */
+	public function test_subscription_check_detachment_not_shown_when_dismissed() {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_id( 456 );
+		$subscription->set_status( 'active' );
+		$subscription->set_payment_method( 'stripe_klarna' );
+		$subscription->save();
+
+		$subscription->update_meta_data( '_stripe_source_id', 'src_456' );
+		$subscription->update_meta_data( '_wc_stripe_subscription_detached_notice_dismissed', 'yes' );
+		$subscription->save_meta_data();
+
+		global $theorder;
+		$original_order = $theorder;
+		$theorder       = $subscription;
+
+		$_GET['page'] = 'wc-orders--shop_subscription';
+		$_GET['id']   = $subscription->get_id();
+
+		$test_request = function () {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'customer' => null,
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->subscription_check_detachment();
+
+		remove_filter( 'pre_http_request', $test_request );
+
+		$theorder = $original_order;
+		unset( $_GET['page'], $_GET['id'] );
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_src_456' );
+
+		$this->assertCount( 0, $notices->notices );
+	}
+
+	/**
+	 * Test that subscription_detached notice is shown when not dismissed.
+	 *
+	 * @return void
+	 */
+	public function test_subscription_check_detachment_shown_when_not_dismissed() {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_id( 789 );
+		$subscription->set_status( 'active' );
+		$subscription->set_payment_method( 'stripe_klarna' );
+		$subscription->save();
+
+		$subscription->update_meta_data( '_stripe_source_id', 'src_789' );
+		$subscription->save_meta_data();
+
+		global $theorder;
+		$original_order = $theorder;
+		$theorder       = $subscription;
+
+		$_GET['page'] = 'wc-orders--shop_subscription';
+		$_GET['id']   = $subscription->get_id();
+
+		$test_request = function () {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'customer' => null,
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->subscription_check_detachment();
+
+		remove_filter( 'pre_http_request', $test_request );
+
+		$theorder = $original_order;
+		unset( $_GET['page'], $_GET['id'] );
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_src_789' );
+
+		$this->assertCount( 1, $notices->notices );
+		$this->assertArrayHasKey( 'subscription_detached', $notices->notices );
+		$this->assertTrue( $notices->notices['subscription_detached']['dismissible'] );
+		$this->assertStringContainsString( 'Dismiss', $notices->notices['subscription_detached']['actions'][0] );
+	}
+
+	/**
+	 * Test that dismissing the subscription_detached notice sets the post meta.
+	 *
+	 * @return void
+	 */
+	public function test_hide_notices_dismisses_subscription_detached_notice() {
+		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_user );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_status( 'active' );
+		$subscription->save();
+
+		$_GET['wc-stripe-hide-notice']     = 'subscription_detached';
+		$_GET['wc-stripe-subscription-id'] = $subscription->get_id();
+		$_GET['_wc_stripe_notice_nonce']   = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		$notices = $this->create_admin_notices_instance();
+		$notices->hide_notices();
+
+		$this->assertEquals( 'yes', $subscription->get_meta( '_wc_stripe_subscription_detached_notice_dismissed' ) );
+
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_GET['wc-stripe-subscription-id'] );
+	}
 }
