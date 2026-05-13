@@ -141,7 +141,7 @@ const STATUS_CONFIG = {
 		className: 'info',
 		icon: '⏳',
 	},
-	validating: {
+	validating_records: {
 		label: __( 'Validating', 'woocommerce-gateway-stripe' ),
 		className: 'info',
 		icon: '⏳',
@@ -157,6 +157,22 @@ const STATUS_CONFIG = {
 		icon: '⚠',
 	},
 };
+
+/**
+ * Statuses that indicate Stripe is still processing the ImportSet. While the
+ * latest entry is in any of these states, the dashboard polls so the badge
+ * flips to a terminal status without requiring a manual reload. Mirrors the
+ * server-side REFRESHABLE_STATUSES list in the REST controller.
+ */
+const NON_TERMINAL_STATUSES = [
+	'queued',
+	'validating_records',
+	'pending',
+	'creating_records',
+	'unknown',
+];
+
+const POLL_INTERVAL_MS = 5000;
 
 const SyncStatusBadge = ( { status } ) => {
 	const config = STATUS_CONFIG[ status ] ?? {
@@ -236,6 +252,18 @@ const AgenticCommerceSyncStatus = () => {
 	useEffect( () => {
 		fetchStatus();
 	}, [ fetchStatus ] );
+
+	// Auto-refresh while the latest sync is still being processed by Stripe.
+	// Each fetch re-runs the server-side lazy refresh of pending entries, so
+	// history rows also stay current without polling them individually.
+	const latestStatus = data?.last_sync?.status;
+	useEffect( () => {
+		if ( ! NON_TERMINAL_STATUSES.includes( latestStatus ) ) {
+			return undefined;
+		}
+		const intervalId = setInterval( fetchStatus, POLL_INTERVAL_MS );
+		return () => clearInterval( intervalId );
+	}, [ latestStatus, fetchStatus ] );
 
 	const handleSync = async () => {
 		setIsSyncing( true );
