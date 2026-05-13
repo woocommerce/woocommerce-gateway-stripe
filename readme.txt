@@ -153,7 +153,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.8.0 - xxxx-xx-xx =
 * Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Link)
-* Add - Add a "Change payment method (subscriptions)" visibility toggle to the Express Checkout and Amazon Pay settings so merchants can opt in or out of showing the buttons on the subscription change-payment screen independently of the checkout-page toggle
+* Add - Add a setting to control whether Express Checkout is shown on the WooCommerce Subscriptions change payment method page
 * Fix - Make the "Update now" link in the account status tooltip clickable and improve its contrast against the tooltip background
 * Dev - Add Jurassic Ninja preview link for PRs to enable one-click browser testing
 * Remove - Remove giropay from new checkouts (deprecated by Stripe on 2024-06-30); legacy refund and past-order rendering preserved

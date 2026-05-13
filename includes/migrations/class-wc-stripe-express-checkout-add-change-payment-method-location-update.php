@@ -1,12 +1,12 @@
 <?php
 /**
- * Class Express_Checkout_Add_Change_Payment_Method_Location_Update
+ * Class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update
  */
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Class Express_Checkout_Add_Change_Payment_Method_Location_Update
+ * Class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update
  *
  * Opt merchants who already had every previous express-checkout button
  * location enabled into the new `change_payment_method` location, so the
@@ -18,13 +18,13 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 10.7.0
  */
-class Express_Checkout_Add_Change_Payment_Method_Location_Update {
+class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update {
 	/**
 	 * Option flag used to ensure the migration only runs once. Reading and
 	 * writing a top-level option (rather than a gateway sub-option) keeps the
 	 * gate independent of the settings array we mutate.
 	 */
-	const MIGRATION_FLAG_OPTION = 'wc_stripe_express_checkout_cpm_location_migrated';
+	private const MIGRATION_FLAG_OPTION = 'wc_stripe_express_checkout_cpm_location_migrated';
 
 	/**
 	 * The legacy location set this migration assumes the merchant had fully
@@ -62,6 +62,13 @@ class Express_Checkout_Add_Change_Payment_Method_Location_Update {
 			return;
 		}
 
+		// The new location only matters for Subscriptions. Leave the flag
+		// unset so the migration runs on the next plugin update if the
+		// merchant installs Subscriptions later.
+		if ( ! $this->is_subscriptions_enabled() ) {
+			return;
+		}
+
 		$gateway   = $this->get_gateway();
 		$locations = $gateway->get_option( 'express_checkout_button_locations' );
 
@@ -79,11 +86,23 @@ class Express_Checkout_Add_Change_Payment_Method_Location_Update {
 	}
 
 	/**
-	 * Returns the main Stripe payment gateway.
+	 * Returns the main Stripe payment gateway. Kept as a protected seam so
+	 * tests can override gateway resolution via a partial mock.
 	 *
 	 * @return WC_Stripe_Payment_Gateway
 	 */
-	public function get_gateway() {
+	protected function get_gateway() {
 		return woocommerce_gateway_stripe()->get_main_stripe_gateway();
+	}
+
+	/**
+	 * Whether WooCommerce Subscriptions is installed and active. Protected so
+	 * tests can swap the result without loading or unloading the Subscriptions
+	 * plugin at runtime.
+	 *
+	 * @return bool
+	 */
+	protected function is_subscriptions_enabled() {
+		return WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled();
 	}
 }

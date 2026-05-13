@@ -239,7 +239,7 @@ class WC_Stripe {
 			new Allowed_Payment_Request_Button_Types_Update();
 			new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
 			new Sepa_Tokens_For_Other_Methods_Settings_Update();
-			new Express_Checkout_Add_Change_Payment_Method_Location_Update();
+			new WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update();
 		}
 
 		$this->api     = new WC_Stripe_Connect_API();

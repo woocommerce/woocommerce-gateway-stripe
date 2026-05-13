@@ -174,24 +174,6 @@ const AmazonPaySettingsSection = () => {
 							label={ __( 'Cart', 'woocommerce-gateway-stripe' ) }
 						/>
 					</li>
-					<li>
-						<CheckboxControl
-							disabled={ ! isAmazonPayEnabled }
-							checked={
-								isAmazonPayEnabled &&
-								amazonPayLocations.includes(
-									'change_payment_method'
-								)
-							}
-							onChange={ makeLocationChangeHandler(
-								'change_payment_method'
-							) }
-							label={ __(
-								'Change payment method (subscriptions)',
-								'woocommerce-gateway-stripe'
-							) }
-						/>
-					</li>
 				</ul>
 				<h4>{ __( 'Appearance', 'woocommerce-gateway-stripe' ) }</h4>
 				<RadioControl

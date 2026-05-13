@@ -3,11 +3,13 @@
 use PHPUnit\Framework\MockObject\MockObject;
 
 /**
- * Class Express_Checkout_Add_Change_Payment_Method_Location_Update_Test
+ * Class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update_Test
  *
  * Unit tests for the change-payment-method location migration.
  */
-class Express_Checkout_Add_Change_Payment_Method_Location_Update_Test extends WP_UnitTestCase {
+class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update_Test extends WP_UnitTestCase {
+
+	private const MIGRATION_FLAG_OPTION = 'wc_stripe_express_checkout_cpm_location_migrated';
 
 	/**
 	 * Stripe gateway mock.
@@ -16,30 +18,38 @@ class Express_Checkout_Add_Change_Payment_Method_Location_Update_Test extends WP
 	 */
 	private $gateway_mock;
 
-	/**
-	 * @var Express_Checkout_Add_Change_Payment_Method_Location_Update
-	 */
-	private $migration;
-
 	public function set_up() {
 		parent::set_up();
 
-		delete_option( Express_Checkout_Add_Change_Payment_Method_Location_Update::MIGRATION_FLAG_OPTION );
+		delete_option( self::MIGRATION_FLAG_OPTION );
 
 		$this->gateway_mock = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 									->disableOriginalConstructor()
 									->getMock();
-
-		$this->migration = $this->getMockBuilder( Express_Checkout_Add_Change_Payment_Method_Location_Update::class )
-								->disableOriginalConstructor()
-								->setMethods( [ 'get_gateway' ] )
-								->getMock();
-		$this->migration->method( 'get_gateway' )->willReturn( $this->gateway_mock );
 	}
 
 	public function tear_down() {
-		delete_option( Express_Checkout_Add_Change_Payment_Method_Location_Update::MIGRATION_FLAG_OPTION );
+		delete_option( self::MIGRATION_FLAG_OPTION );
 		parent::tear_down();
+	}
+
+	/**
+	 * Build a partial mock of the migration. `get_gateway()` returns the
+	 * shared gateway mock; `is_subscriptions_enabled()` is stubbed so we
+	 * don't depend on Subscriptions plugin state.
+	 *
+	 * @param bool $subscriptions_enabled Value `is_subscriptions_enabled()` should return.
+	 *
+	 * @return MockObject|WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update
+	 */
+	private function build_migration( bool $subscriptions_enabled = true ) {
+		$migration = $this->getMockBuilder( WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update::class )
+							->disableOriginalConstructor()
+							->onlyMethods( [ 'get_gateway', 'is_subscriptions_enabled' ] )
+							->getMock();
+		$migration->method( 'get_gateway' )->willReturn( $this->gateway_mock );
+		$migration->method( 'is_subscriptions_enabled' )->willReturn( $subscriptions_enabled );
+		return $migration;
 	}
 
 	/**
@@ -59,12 +69,9 @@ class Express_Checkout_Add_Change_Payment_Method_Location_Update_Test extends WP
 								[ 'product', 'cart', 'checkout', 'change_payment_method' ]
 							);
 
-		$this->migration->maybe_migrate();
+		$this->build_migration()->maybe_migrate();
 
-		$this->assertSame(
-			'yes',
-			get_option( Express_Checkout_Add_Change_Payment_Method_Location_Update::MIGRATION_FLAG_OPTION )
-		);
+		$this->assertSame( 'yes', get_option( self::MIGRATION_FLAG_OPTION ) );
 	}
 
 	/**
@@ -78,12 +85,9 @@ class Express_Checkout_Add_Change_Payment_Method_Location_Update_Test extends WP
 
 		$this->gateway_mock->expects( $this->never() )->method( 'update_option' );
 
-		$this->migration->maybe_migrate();
+		$this->build_migration()->maybe_migrate();
 
-		$this->assertSame(
-			'yes',
-			get_option( Express_Checkout_Add_Change_Payment_Method_Location_Update::MIGRATION_FLAG_OPTION )
-		);
+		$this->assertSame( 'yes', get_option( self::MIGRATION_FLAG_OPTION ) );
 	}
 
 	/**
@@ -98,12 +102,9 @@ class Express_Checkout_Add_Change_Payment_Method_Location_Update_Test extends WP
 
 		$this->gateway_mock->expects( $this->never() )->method( 'update_option' );
 
-		$this->migration->maybe_migrate();
+		$this->build_migration()->maybe_migrate();
 
-		$this->assertSame(
-			'yes',
-			get_option( Express_Checkout_Add_Change_Payment_Method_Location_Update::MIGRATION_FLAG_OPTION )
-		);
+		$this->assertSame( 'yes', get_option( self::MIGRATION_FLAG_OPTION ) );
 	}
 
 	/**
@@ -112,12 +113,12 @@ class Express_Checkout_Add_Change_Payment_Method_Location_Update_Test extends WP
 	 * silently re-added on the next version bump.
 	 */
 	public function test_does_not_run_when_flag_already_set() {
-		update_option( Express_Checkout_Add_Change_Payment_Method_Location_Update::MIGRATION_FLAG_OPTION, 'yes' );
+		update_option( self::MIGRATION_FLAG_OPTION, 'yes' );
 
 		$this->gateway_mock->expects( $this->never() )->method( 'get_option' );
 		$this->gateway_mock->expects( $this->never() )->method( 'update_option' );
 
-		$this->migration->maybe_migrate();
+		$this->build_migration()->maybe_migrate();
 	}
 
 	/**
@@ -131,11 +132,22 @@ class Express_Checkout_Add_Change_Payment_Method_Location_Update_Test extends WP
 
 		$this->gateway_mock->expects( $this->never() )->method( 'update_option' );
 
-		$this->migration->maybe_migrate();
+		$this->build_migration()->maybe_migrate();
 
-		$this->assertSame(
-			'yes',
-			get_option( Express_Checkout_Add_Change_Payment_Method_Location_Update::MIGRATION_FLAG_OPTION )
-		);
+		$this->assertSame( 'yes', get_option( self::MIGRATION_FLAG_OPTION ) );
+	}
+
+	/**
+	 * Subscriptions isn't installed: skip without touching gateway state
+	 * and leave the flag unset so a later plugin update can run the
+	 * migration if the merchant installs Subscriptions.
+	 */
+	public function test_skips_and_does_not_set_flag_when_subscriptions_not_enabled() {
+		$this->gateway_mock->expects( $this->never() )->method( 'get_option' );
+		$this->gateway_mock->expects( $this->never() )->method( 'update_option' );
+
+		$this->build_migration( false )->maybe_migrate();
+
+		$this->assertFalse( get_option( self::MIGRATION_FLAG_OPTION ) );
 	}
 }
