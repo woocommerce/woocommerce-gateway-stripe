@@ -72,7 +72,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @var string
 	 * @since 10.8.0
 	 */
-	const LAST_UPLOAD_OPTION = 'wc_stripe_agentic_commerce_last_feed_upload';
+	private const LAST_UPLOAD_OPTION = 'wc_stripe_agentic_commerce_last_feed_upload';
 
 	/**
 	 * Maximum age (in seconds) before a cached feed upload is considered stale
@@ -84,7 +84,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @var int
 	 * @since 10.8.0
 	 */
-	const FEED_CACHE_TTL = WEEK_IN_SECONDS;
+	private const FEED_CACHE_TTL = WEEK_IN_SECONDS;
 
 	/**
 	 * Option key for the Agentic Commerce webhook secret.
