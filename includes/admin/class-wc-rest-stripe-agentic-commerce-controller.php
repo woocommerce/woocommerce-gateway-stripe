@@ -41,7 +41,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	/**
 	 * ImportSet statuses that are non-terminal and should be re-polled.
 	 *
-	 * Stripe advances an ImportSet through `queued` → `validating` →
+	 * Stripe advances an ImportSet through `queued` → `validating_records` →
 	 * `pending` → `creating_records` → one of the terminal states
 	 * (`succeeded`, `succeeded_with_errors`, or `failed`). Entries in any
 	 * non-terminal state get refreshed on dashboard load. `unknown` is also
