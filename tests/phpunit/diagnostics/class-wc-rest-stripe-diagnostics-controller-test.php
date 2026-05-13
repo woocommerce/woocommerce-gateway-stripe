@@ -30,11 +30,30 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 	public function tear_down() {
 		$this->clear_state();
 		$this->set_diagnostics_enabled( false );
+		$this->set_capture_limit( null );
 		parent::tear_down();
 	}
 
 	private function clear_state() {
 		$this->store->delete_all();
+	}
+
+	/**
+	 * Writes the capture limit into the shared settings option; null removes it.
+	 *
+	 * @param int|null $limit Preset value, any int for negative-path tests, or null to unset.
+	 */
+	private function set_capture_limit( ?int $limit ): void {
+		$settings = get_option( WC_REST_Stripe_Diagnostics_Controller::SETTINGS_OPTION, [] );
+		if ( ! is_array( $settings ) ) {
+			$settings = [];
+		}
+		if ( null === $limit ) {
+			unset( $settings[ WC_REST_Stripe_Diagnostics_Controller::CAPTURE_LIMIT_KEY ] );
+		} else {
+			$settings[ WC_REST_Stripe_Diagnostics_Controller::CAPTURE_LIMIT_KEY ] = $limit;
+		}
+		update_option( WC_REST_Stripe_Diagnostics_Controller::SETTINGS_OPTION, $settings );
 	}
 
 	/**
@@ -271,6 +290,71 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 		$response = $this->controller->delete_traces();
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame( 0, $this->store->count() );
+	}
+
+	/**
+	 * @dataProvider capture_limit_value_matrix
+	 */
+	public function test_capture_limit_falls_back_to_default_when_value_is_invalid( $stored, int $expected ) {
+		$this->set_capture_limit( $stored );
+		$this->assertSame( $expected, WC_REST_Stripe_Diagnostics_Controller::capture_limit() );
+	}
+
+	public function capture_limit_value_matrix(): array {
+		return [
+			'unset → DEFAULT'       => [ null, WC_REST_Stripe_Diagnostics_Controller::DEFAULT_CAPTURE_LIMIT ],
+			'preset 5 → 5'          => [ 5, 5 ],
+			'preset 25 → 25'        => [ 25, 25 ],
+			'legacy 0 → DEFAULT'    => [ 0, WC_REST_Stripe_Diagnostics_Controller::DEFAULT_CAPTURE_LIMIT ],
+			'off-menu 7 → DEFAULT'  => [ 7, WC_REST_Stripe_Diagnostics_Controller::DEFAULT_CAPTURE_LIMIT ],
+			'negative -1 → DEFAULT' => [ -1, WC_REST_Stripe_Diagnostics_Controller::DEFAULT_CAPTURE_LIMIT ],
+		];
+	}
+
+	public function test_enforce_capture_limit_flips_toggle_when_store_reaches_limit() {
+		$this->set_capture_limit( 5 );
+		for ( $i = 0; $i < 5; $i++ ) {
+			$this->store->create( 'trace_' . $i );
+		}
+
+		$this->assertTrue( WC_REST_Stripe_Diagnostics_Controller::is_enabled() );
+		$flipped = WC_REST_Stripe_Diagnostics_Controller::enforce_capture_limit( $this->store );
+		$this->assertTrue( $flipped );
+		$this->assertFalse( WC_REST_Stripe_Diagnostics_Controller::is_enabled() );
+	}
+
+	public function test_enforce_capture_limit_is_a_noop_below_the_limit() {
+		$this->set_capture_limit( 5 );
+		$this->store->create( 'trace_0' );
+
+		$flipped = WC_REST_Stripe_Diagnostics_Controller::enforce_capture_limit( $this->store );
+		$this->assertFalse( $flipped );
+		$this->assertTrue( WC_REST_Stripe_Diagnostics_Controller::is_enabled() );
+	}
+
+	public function test_ingest_events_flips_toggle_when_new_trace_hits_limit() {
+		$this->set_capture_limit( 5 );
+		for ( $i = 0; $i < 4; $i++ ) {
+			$this->store->create( 'seed_' . $i );
+		}
+
+		$request  = $this->make_request(
+			[
+				'diag_session_id' => 'fifth',
+				'events'          => [
+					[
+						'kind'              => 'consoleMessage',
+						'level'             => 'warn',
+						'message_truncated' => 'hello',
+					],
+				],
+			]
+		);
+		$response = $this->controller->ingest_events( $request );
+		$this->assertInstanceOf( WP_REST_Response::class, $response );
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 5, $this->store->count() );
+		$this->assertFalse( WC_REST_Stripe_Diagnostics_Controller::is_enabled() );
 	}
 
 	public function test_ingest_evicts_oldest_trace_when_store_is_full() {

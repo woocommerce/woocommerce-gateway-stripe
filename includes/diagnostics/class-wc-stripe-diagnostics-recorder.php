@@ -310,6 +310,11 @@ class WC_Stripe_Diagnostics_Recorder {
 		);
 		$this->store->append_event( $session_id, $redacted );
 		$this->promoter->maybe_promote( $session_id, $redacted );
+
+		// Webhook-only traces also spend a slot from the capture budget.
+		if ( class_exists( 'WC_REST_Stripe_Diagnostics_Controller' ) ) {
+			WC_REST_Stripe_Diagnostics_Controller::enforce_capture_limit( $this->store );
+		}
 	}
 
 	/**

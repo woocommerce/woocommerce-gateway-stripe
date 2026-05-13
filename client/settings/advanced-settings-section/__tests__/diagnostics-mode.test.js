@@ -2,11 +2,17 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DiagnosticsMode from '../diagnostics-mode';
-import { useDiagnosticsMode } from 'wcstripe/data';
+import {
+	useDiagnosticsMode,
+	useDiagnosticsCaptureLimit,
+	useDiagnosticsCaptureLimitPresets,
+} from 'wcstripe/data';
 import apiFetch from '@wordpress/api-fetch';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useDiagnosticsMode: jest.fn(),
+	useDiagnosticsCaptureLimit: jest.fn(),
+	useDiagnosticsCaptureLimitPresets: jest.fn(),
 } ) );
 
 jest.mock( '@wordpress/api-fetch', () => jest.fn() );
@@ -26,6 +32,8 @@ jest.mock( '../diagnostics-traces', () => ( {
 describe( 'DiagnosticsMode', () => {
 	beforeEach( () => {
 		jest.clearAllMocks();
+		useDiagnosticsCaptureLimit.mockReturnValue( [ 10, jest.fn() ] );
+		useDiagnosticsCaptureLimitPresets.mockReturnValue( [ 5, 10, 25, 50 ] );
 		apiFetch.mockResolvedValue( { traces: [], count: 0 } );
 	} );
 

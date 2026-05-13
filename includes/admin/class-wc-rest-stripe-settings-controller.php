@@ -181,6 +181,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
+					'diagnostics_capture_limit'             => [
+						'description'       => __( 'Number of captured checkouts after which diagnostics turns off automatically.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'integer',
+						'enum'              => WC_REST_Stripe_Diagnostics_Controller::CAPTURE_LIMIT_PRESETS,
+						'validate_callback' => 'rest_validate_request_arg',
+					],
 				],
 			]
 		);
@@ -273,6 +279,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > Advanced settings */
 				'is_debug_log_enabled'                  => 'yes' === $this->gateway->get_option( 'logging' ),
 				'is_diagnostics_enabled'                => 'yes' === $this->gateway->get_option( 'diagnostics' ),
+				'diagnostics_capture_limit'             => WC_REST_Stripe_Diagnostics_Controller::capture_limit(),
+				'diagnostics_capture_limit_presets'     => WC_REST_Stripe_Diagnostics_Controller::CAPTURE_LIMIT_PRESETS,
 				'is_upe_enabled'                        => true,
 				'is_oc_enabled'                         => 'yes' === $this->gateway->get_option( 'optimized_checkout_element' ),
 				'is_ap_enabled'                         => 'yes' === $this->gateway->get_option( 'adaptive_pricing' ),
@@ -316,6 +324,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		/* Settings > Advanced settings */
 		$this->update_is_debug_log_enabled( $request );
 		$this->update_is_diagnostics_enabled( $request );
+		$this->update_diagnostics_capture_limit( $request );
 		$this->update_oc_settings( $request );
 
 		return new WP_REST_Response( [], 200 );
@@ -580,6 +589,26 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				]
 			);
 		}
+	}
+
+	/**
+	 * Updates the diagnostics capture limit. The REST enum already restricts
+	 * input to CAPTURE_LIMIT_PRESETS.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 * @return void
+	 */
+	private function update_diagnostics_capture_limit( WP_REST_Request $request ) {
+		$capture_limit = $request->get_param( 'diagnostics_capture_limit' );
+
+		if ( null === $capture_limit ) {
+			return;
+		}
+
+		$this->gateway->update_option(
+			WC_REST_Stripe_Diagnostics_Controller::CAPTURE_LIMIT_KEY,
+			(string) (int) $capture_limit
+		);
 	}
 
 	/**

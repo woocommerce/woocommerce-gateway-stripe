@@ -6,6 +6,8 @@ import apiFetch from '@wordpress/api-fetch';
 import {
 	useDebugLog,
 	useDiagnosticsMode,
+	useDiagnosticsCaptureLimit,
+	useDiagnosticsCaptureLimitPresets,
 	useGetSavingError,
 	useSettings,
 	useIsOCEnabled,
@@ -16,6 +18,8 @@ import {
 jest.mock( 'wcstripe/data', () => ( {
 	useDebugLog: jest.fn(),
 	useDiagnosticsMode: jest.fn(),
+	useDiagnosticsCaptureLimit: jest.fn(),
+	useDiagnosticsCaptureLimitPresets: jest.fn(),
 	useIsOCEnabled: jest.fn(),
 	useIsAdaptivePricingEnabled: jest.fn(),
 	useOCLayout: jest.fn(),
@@ -46,6 +50,8 @@ describe( 'AdvancedSettings', () => {
 
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
 		useDiagnosticsMode.mockReturnValue( [ false, jest.fn() ] );
+		useDiagnosticsCaptureLimit.mockReturnValue( [ 10, jest.fn() ] );
+		useDiagnosticsCaptureLimitPresets.mockReturnValue( [ 5, 10, 25, 50 ] );
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useIsAdaptivePricingEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );

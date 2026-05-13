@@ -16,6 +16,12 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	const SETTINGS_OPTION = 'woocommerce_stripe_settings';
 	const SETTINGS_KEY    = 'diagnostics';
 
+	const CAPTURE_LIMIT_KEY     = 'diagnostics_capture_limit';
+	const DEFAULT_CAPTURE_LIMIT = 10;
+	// Auto-off is mandatory; the REST enum and `capture_limit()` both rely on
+	// this list being a finite set of positive integers.
+	const CAPTURE_LIMIT_PRESETS = [ 5, 10, 25, 50 ];
+
 	protected $namespace = 'wc/v3';
 	protected $rest_base = 'wc_stripe/diagnostics';
 
@@ -271,6 +277,8 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 			}
 		}
 
+		self::enforce_capture_limit( $this->store );
+
 		return new WP_REST_Response( [ 'written' => $written ], 200 );
 	}
 
@@ -284,5 +292,56 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	public static function is_enabled(): bool {
 		$settings = get_option( self::SETTINGS_OPTION, [] );
 		return is_array( $settings ) && isset( $settings[ self::SETTINGS_KEY ] ) && 'yes' === $settings[ self::SETTINGS_KEY ];
+	}
+
+	/**
+	 * Resolves to a preset; any drifted/legacy value (including 0) falls back
+	 * to DEFAULT_CAPTURE_LIMIT so the auto-off can't be silently disabled.
+	 */
+	public static function capture_limit(): int {
+		$settings = get_option( self::SETTINGS_OPTION, [] );
+		if ( ! is_array( $settings ) || ! array_key_exists( self::CAPTURE_LIMIT_KEY, $settings ) ) {
+			return self::DEFAULT_CAPTURE_LIMIT;
+		}
+		$raw = $settings[ self::CAPTURE_LIMIT_KEY ];
+		if ( ! is_numeric( $raw ) ) {
+			return self::DEFAULT_CAPTURE_LIMIT;
+		}
+		$value = (int) $raw;
+		if ( ! in_array( $value, self::CAPTURE_LIMIT_PRESETS, true ) ) {
+			return self::DEFAULT_CAPTURE_LIMIT;
+		}
+		return $value;
+	}
+
+	/**
+	 * Silently flips the diagnostics toggle to 'no' when the stored trace
+	 * count reaches the capture limit. Returns true when this call flipped.
+	 */
+	public static function enforce_capture_limit( ?WC_Stripe_Diagnostics_Trace_Store $store = null ): bool {
+		if ( ! self::is_enabled() ) {
+			return false;
+		}
+		$limit = self::capture_limit();
+		$store = $store ?? new WC_Stripe_Diagnostics_Trace_Store();
+		// Note: parallel ingests can each pass this check and land a trace
+		// before any of them flips the toggle, this is meant to be a soft limit
+		if ( $store->count() < $limit ) {
+			return false;
+		}
+
+		WC_Stripe::get_instance()->get_main_stripe_gateway()->update_option( self::SETTINGS_KEY, 'no' );
+
+		if ( function_exists( 'wc_admin_record_tracks_event' ) ) {
+			wc_admin_record_tracks_event(
+				'wcstripe_diagnostics_auto_off',
+				[
+					'limit'     => $limit,
+					'test_mode' => class_exists( 'WC_Stripe_Mode' ) && WC_Stripe_Mode::is_test() ? 1 : 0,
+				]
+			);
+		}
+
+		return true;
 	}
 }

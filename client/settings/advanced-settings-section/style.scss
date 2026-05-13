@@ -95,20 +95,28 @@ $diagnostics-bg-toolbar: styles.$wp-gray-0;
 }
 
 .wc-stripe-diagnostics-toolbar {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	padding: 8px 12px;
 	background: $diagnostics-bg-toolbar;
 	border-bottom: 1px solid $diagnostics-border;
 	font-size: 13px;
-	flex-wrap: wrap;
+
+	&__row {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		flex-wrap: wrap;
+		padding: 8px 12px;
+
+		&--actions {
+			border-top: 1px solid $diagnostics-border;
+		}
+	}
 
 	&__status {
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
 		color: $diagnostics-strong-fg;
+		flex-wrap: wrap;
 	}
 
 	&__status-label {
@@ -134,6 +142,38 @@ $diagnostics-bg-toolbar: styles.$wp-gray-0;
 		align-items: center;
 		gap: 8px;
 		margin-left: auto;
+	}
+
+	&__limit {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		margin-left: auto;
+		color: $diagnostics-muted-fg;
+		white-space: nowrap;
+	}
+
+	&__limit-select {
+		padding: 3px 6px;
+		font-size: 12px;
+		border: 1px solid $diagnostics-border-strong;
+		border-radius: 2px;
+		background: #fff;
+		color: $diagnostics-strong-fg;
+		font-family: inherit; // some browsers ignore inherited font on <select>.
+		cursor: pointer;
+	}
+
+	&__progress {
+		height: 3px;
+		background: $diagnostics-border;
+		overflow: hidden;
+	}
+
+	&__progress-bar {
+		height: 100%;
+		background: styles.$wp-blue-50;
+		transition: width 0.2s ease-out;
 	}
 }
 
