@@ -179,7 +179,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Express Checkout button logging will only occur when verbose debug mode is enabled
 * Update - Disable the Optimized Checkout Suite in the "Add Payment Method" and "Change Subscription Payment Method" screens
 * Dev - Remove unused frontend code: legacy blocks payment request API helpers, related normalize utilities, and unused Stripe icon component
-* Dev - Deprecate duplicate `get_retrievable_type` and `is_available_for_account_country` overrides in UPE payment method subclasses; logic consolidated into base class
+* Dev - Consolidate duplicate `get_retrievable_type` and `is_available_for_account_country` implementations into `WC_Stripe_UPE_Payment_Method`; non-default implementations (Bancontact, iDEAL, OC, Sofort, Amazon Pay, Link) are retained
+* Fix - Hide Boleto, OXXO, and ACSS at checkout when the merchant's Stripe account country does not support them
 * Add - Allow additional font domains to be included in Stripe fonts
 * Dev - Add incremental inventory sync for Agentic Commerce: tracks stock changes via WooCommerce hooks and uploads a minimal inventory_feed CSV to Stripe one minute after the first change
 * Dev - Skip registering Stripe email classes when WooCommerce email class is not loaded

@@ -55,17 +55,6 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Returns string representing payment method type
-	 * to query to retrieve saved payment methods from Stripe.
-	 *
-	 * @deprecated 10.7.0 Use the base class implementation instead.
-	 * @return string
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
-	}
-
-	/**
 	 * Create new WC payment token and add to user.
 	 *
 	 * @param int $user_id        WP_User ID

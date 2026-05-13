@@ -42,27 +42,6 @@ class WC_Stripe_UPE_Payment_Method_Becs_Debit extends WC_Stripe_UPE_Payment_Meth
 	}
 
 	/**
-	 * Returns string representing payment method type
-	 * to query to retrieve saved payment methods from Stripe.
-	 *
-	 * @deprecated 10.7.0 Use the base class implementation instead.
-	 * @return string
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
-	}
-
-	/**
-	 * Returns whether the payment method is available for the Stripe account's country.
-	 *
-	 * @deprecated 10.7.0 Use the base class implementation instead.
-	 * @return bool True if the payment method is available for the account's country, false otherwise.
-	 */
-	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
-	}
-
-	/**
 	 * Creates a BECS Debit payment token for the customer.
 	 *
 	 * @param int      $user_id        The customer ID the payment token is associated with.

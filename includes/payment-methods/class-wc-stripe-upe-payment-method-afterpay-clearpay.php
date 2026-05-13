@@ -127,14 +127,4 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 		$account_country     = $cached_account_data['country'] ?? null;
 		return WC_Stripe_Country_Code::UNITED_KINGDOM === $account_country;
 	}
-
-	/**
-	 * Returns whether the payment method is available for the Stripe account's country.
-	 *
-	 * @deprecated 10.7.0 Use the base class implementation instead.
-	 * @return bool True if the payment method is available for the account's country, false otherwise.
-	 */
-	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
-	}
 }

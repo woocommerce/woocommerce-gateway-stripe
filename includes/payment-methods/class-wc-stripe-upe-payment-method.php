@@ -417,7 +417,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_retrievable_type() {
-		return $this->is_reusable() ? WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID : static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
+		return $this->get_id();
 	}
 
 	/**
@@ -602,10 +602,14 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Determines if the Stripe Account country supports this UPE method.
 	 *
+	 * Defaults to checking whether the merchant's Stripe account country is in
+	 * `$supported_countries`. Subclasses with non-list-based availability rules
+	 * (e.g. Amazon Pay, Link) override this.
+	 *
 	 * @return bool
 	 */
 	public function is_available_for_account_country() {
-		return true;
+		return $this->is_allowed_on_country( WC_Stripe::get_instance()->account->get_account_country() );
 	}
 
 	/**
