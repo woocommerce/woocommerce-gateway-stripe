@@ -168,6 +168,40 @@ class WC_Stripe_Diagnostics_Redactor {
 				'order_id',
 				'session_id',
 			],
+
+			// Order snapshot appended on trace finalization. Top-level paths only;
+			// the snapshotter caps and shapes nested arrays (line_items, coupons,
+			// order_notes) so wildcard paths aren't needed. The recursive string
+			// scrubber inside scrub_value() still passes over every string within
+			// those arrays, so PII scrubbing is preserved end-to-end.
+			'order_snapshot'                => [
+				'kind',
+				'order_id',
+				'status',
+				'currency',
+				'total',
+				'subtotal',
+				'tax_total',
+				'shipping_total',
+				'discount_total',
+				'payment_method',
+				'payment_method_title',
+				'transaction_id',
+				'customer_id',
+				'created_at',
+				'date_paid',
+				'date_completed',
+				'order_key',
+				'billing_country',
+				'shipping_country',
+				'site_locale',
+				'item_count',
+				'line_items',
+				'coupons',
+				'has_subscriptions',
+				'has_pre_orders',
+				'order_notes',
+			],
 		];
 
 		// Stripe SDK call brackets emitted by the frontend recorder via

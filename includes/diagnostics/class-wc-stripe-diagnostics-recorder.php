@@ -76,6 +76,14 @@ class WC_Stripe_Diagnostics_Recorder {
 	private $request_start_times = [];
 
 	/**
+	 * Listens for trace_finalized actions to append an order_snapshot event
+	 * with the order's state at the moment the trace ended.
+	 *
+	 * @var WC_Stripe_Diagnostics_Order_Snapshotter
+	 */
+	private $snapshotter;
+
+	/**
 	 * Return the shared recorder instance, lazily constructing it (and the
 	 * trace store + redactor it depends on) on first access.
 	 *
@@ -107,11 +115,13 @@ class WC_Stripe_Diagnostics_Recorder {
 	public function __construct(
 		WC_Stripe_Diagnostics_Trace_Store $store,
 		WC_Stripe_Diagnostics_Redactor $redactor,
-		?WC_Stripe_Diagnostics_Outcome_Promoter $promoter = null
+		?WC_Stripe_Diagnostics_Outcome_Promoter $promoter = null,
+		?WC_Stripe_Diagnostics_Order_Snapshotter $snapshotter = null
 	) {
-		$this->store    = $store;
-		$this->redactor = $redactor;
-		$this->promoter = $promoter ?? new WC_Stripe_Diagnostics_Outcome_Promoter( $store );
+		$this->store       = $store;
+		$this->redactor    = $redactor;
+		$this->promoter    = $promoter ?? new WC_Stripe_Diagnostics_Outcome_Promoter( $store );
+		$this->snapshotter = $snapshotter ?? new WC_Stripe_Diagnostics_Order_Snapshotter( $store, $redactor );
 	}
 
 	/**
@@ -128,6 +138,7 @@ class WC_Stripe_Diagnostics_Recorder {
 		add_filter( 'wc_stripe_request_body', [ $this, 'on_request_body' ], 10, 2 );
 		add_action( 'wc_stripe_api_response_received', [ $this, 'on_request_response' ], 10, 4 );
 		add_action( 'wc_stripe_webhook_received', [ $this, 'on_webhook_received' ], 10, 3 );
+		$this->snapshotter->register();
 	}
 
 	/**
@@ -201,6 +212,12 @@ class WC_Stripe_Diagnostics_Recorder {
 			$request['metadata'][ self::SESSION_ID_META_KEY ] = $session_id;
 		}
 
+		// Pin order id for the snapshotter. Skipped silently if the call
+		// site doesn't set metadata.order_id
+		if ( isset( $request['metadata']['order_id'] ) ) {
+			$this->store->set_order_id( $session_id, (int) $request['metadata']['order_id'] );
+		}
+
 		$this->request_start_times[ $this->request_key( $api ) ] = microtime( true );
 
 		$this->store->append_event(
@@ -272,6 +289,11 @@ class WC_Stripe_Diagnostics_Recorder {
 		}
 		$this->store->create( $session_id, [ 'source' => 'webhook' ] );
 
+		$order_id = $resolved_order instanceof WC_Order ? (int) $resolved_order->get_id() : null;
+		if ( null !== $order_id ) {
+			$this->store->set_order_id( $session_id, $order_id );
+		}
+
 		$object = self::webhook_object( $notification );
 
 		$redacted = $this->redactor->redact(
@@ -282,7 +304,7 @@ class WC_Stripe_Diagnostics_Recorder {
 				'status'     => is_object( $object ) && isset( $object->status ) ? (string) $object->status : null,
 				'intent_id'  => is_object( $object ) && isset( $object->object, $object->id ) && 'payment_intent' === $object->object ? (string) $object->id : null,
 				'charge_id'  => is_object( $object ) && isset( $object->object, $object->id ) && 'charge' === $object->object ? (string) $object->id : null,
-				'order_id'   => is_object( $resolved_order ) && method_exists( $resolved_order, 'get_id' ) ? (int) $resolved_order->get_id() : null,
+				'order_id'   => $order_id,
 				'session_id' => $session_id,
 			]
 		);

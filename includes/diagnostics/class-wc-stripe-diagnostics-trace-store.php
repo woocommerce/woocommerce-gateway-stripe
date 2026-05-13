@@ -140,7 +140,7 @@ class WC_Stripe_Diagnostics_Trace_Store {
 			return false;
 		}
 
-		return (bool) $this->with_lock(
+		$result = (bool) $this->with_lock(
 			function () use ( $session_id, $status ) {
 				$trace = $this->read_trace( $session_id );
 				if ( null === $trace ) {
@@ -148,6 +148,97 @@ class WC_Stripe_Diagnostics_Trace_Store {
 				}
 				$trace['status']     = $status;
 				$trace['updated_at'] = time();
+				return $this->write_trace( $session_id, $trace );
+			}
+		);
+
+		if ( $result ) {
+			/**
+			 * Fires after a diagnostics trace transitions to a terminal status
+			 * (completed | failed | abandoned). Listeners can use this to enrich
+			 * the trace with end-of-life context — for example, appending an
+			 * order_snapshot event. Listeners should call $store->get() and
+			 * $store->append_event() rather than expecting the trace payload as
+			 * an argument.
+			 *
+			 * @param string $session_id Trace session identifier.
+			 * @param string $status     New terminal status.
+			 */
+			do_action( 'wc_stripe_diagnostics_trace_finalized', $session_id, $status );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Pin an order id to the trace's meta so the snapshotter can read it
+	 * deterministically, regardless of which event(s) carried it.
+	 *
+	 * First-writer-wins: a webhook arriving after checkout submission must
+	 * not clobber the order id captured during the API request flow. The
+	 * order id is the same across any writer for a given session, so the
+	 * guard is purely defensive.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @param int    $order_id   WooCommerce order id (must be > 0).
+	 * @return bool True when the order id was written or already present.
+	 */
+	public function set_order_id( $session_id, $order_id ) {
+		$session_id = self::sanitize_id( $session_id );
+		$order_id   = (int) $order_id;
+		if ( '' === $session_id || $order_id <= 0 ) {
+			return false;
+		}
+		if ( ! $this->ensure_storage_dir() ) {
+			return false;
+		}
+
+		return (bool) $this->with_lock(
+			function () use ( $session_id, $order_id ) {
+				$trace = $this->read_trace( $session_id );
+				if ( null === $trace ) {
+					return false;
+				}
+				if ( isset( $trace['meta']['order_id'] ) && (int) $trace['meta']['order_id'] > 0 ) {
+					return true;
+				}
+				if ( ! isset( $trace['meta'] ) || ! is_array( $trace['meta'] ) ) {
+					$trace['meta'] = [];
+				}
+				$trace['meta']['order_id'] = $order_id;
+				$trace['updated_at']       = time();
+				return $this->write_trace( $session_id, $trace );
+			}
+		);
+	}
+
+	/**
+	 * Persist a curated order snapshot at the trace's top level. The
+	 * snapshot is metadata about the trace (the order's state at the
+	 * moment the trace ended), not a chronological event, so it lives
+	 * outside the events array.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @param array  $snapshot   Already-redacted snapshot payload.
+	 * @return bool True when the snapshot was written.
+	 */
+	public function set_order_snapshot( $session_id, array $snapshot ) {
+		$session_id = self::sanitize_id( $session_id );
+		if ( '' === $session_id ) {
+			return false;
+		}
+		if ( ! $this->ensure_storage_dir() ) {
+			return false;
+		}
+
+		return (bool) $this->with_lock(
+			function () use ( $session_id, $snapshot ) {
+				$trace = $this->read_trace( $session_id );
+				if ( null === $trace ) {
+					return false;
+				}
+				$trace['order_snapshot'] = $snapshot;
+				$trace['updated_at']     = time();
 				return $this->write_trace( $session_id, $trace );
 			}
 		);
