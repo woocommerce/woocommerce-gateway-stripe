@@ -324,6 +324,8 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 		}
 		$limit = self::capture_limit();
 		$store = $store ?? new WC_Stripe_Diagnostics_Trace_Store();
+		// Note: parallel ingests can each pass this check and land a trace
+		// before any of them flips the toggle, this is meant to be a soft limit
 		if ( $store->count() < $limit ) {
 			return false;
 		}
