@@ -76,7 +76,7 @@ class WC_Stripe_Webhook_State {
 	 * started tracking webhook failure and successes.
 	 *
 	 * @since 5.0.0
-	 * @return integer UTC seconds since 1970.
+	 * @return int UTC seconds since 1970.
 	 */
 	public static function get_monitoring_began_at() {
 		$option              = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_MONITORING_BEGAN_AT : self::OPTION_LIVE_MONITORING_BEGAN_AT;
@@ -99,7 +99,7 @@ class WC_Stripe_Webhook_State {
 	 * Sets the timestamp of the last successfully processed webhook.
 	 *
 	 * @since 5.0.0
-	 * @param integer UTC seconds since 1970.
+	 * @param int $timestamp UTC seconds since 1970.
 	 */
 	public static function set_last_webhook_success_at( $timestamp ) {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_SUCCESS_AT;
@@ -122,7 +122,7 @@ class WC_Stripe_Webhook_State {
 	 * Sets the timestamp of the last failed webhook.
 	 *
 	 * @since 5.0.0
-	 * @param int UTC seconds since 1970.
+	 * @param int $timestamp UTC seconds since 1970.
 	 */
 	public static function set_last_webhook_failure_at( $timestamp ) {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
@@ -134,7 +134,7 @@ class WC_Stripe_Webhook_State {
 	 * or returns 0 if no webhook has ever failed to process.
 	 *
 	 * @since 5.0.0
-	 * @return integer UTC seconds since 1970 | 0.
+	 * @return int UTC seconds since 1970 | 0.
 	 */
 	public static function get_last_webhook_failure_at() {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
@@ -145,7 +145,7 @@ class WC_Stripe_Webhook_State {
 	 * Sets the reason for the last failed webhook.
 	 *
 	 * @since 5.0.0
-	 * @param string Reason code.
+	 * @param string $reason Reason code.
 	 */
 	public static function set_last_error_reason( $reason ) {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
