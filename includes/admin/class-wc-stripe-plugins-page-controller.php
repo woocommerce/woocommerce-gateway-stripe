@@ -154,7 +154,7 @@ class WC_Stripe_Plugins_Page_Controller {
 	private function has_pending_update( string $file ): bool {
 		$updates = get_site_transient( 'update_plugins' );
 		return isset( $updates->response[ $file ] );
-  }
+	}
 
 	/**
 	 * Localized params used by the post-update changelog link.
