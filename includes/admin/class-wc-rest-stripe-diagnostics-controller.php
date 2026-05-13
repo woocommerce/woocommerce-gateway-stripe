@@ -330,12 +330,7 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 			return false;
 		}
 
-		$settings = get_option( self::SETTINGS_OPTION, [] );
-		if ( ! is_array( $settings ) ) {
-			$settings = [];
-		}
-		$settings[ self::SETTINGS_KEY ] = 'no';
-		update_option( self::SETTINGS_OPTION, $settings );
+		WC_Stripe::get_instance()->get_main_stripe_gateway()->update_option( self::SETTINGS_KEY, 'no' );
 
 		if ( function_exists( 'wc_admin_record_tracks_event' ) ) {
 			wc_admin_record_tracks_event(
