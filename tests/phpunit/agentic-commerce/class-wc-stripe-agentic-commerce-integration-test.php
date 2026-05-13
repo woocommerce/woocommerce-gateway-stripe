@@ -12,6 +12,15 @@
  */
 class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	/**
+	 * Resolved value of the private LAST_UPLOAD_OPTION constant on the integration
+	 * class, cached so tests can read/write the dedup record without exposing the
+	 * constant publicly just for test access.
+	 *
+	 * @var string
+	 */
+	private string $last_upload_option;
+
+	/**
 	 * Setup test environment before each test.
 	 *
 	 * @return void
@@ -27,9 +36,8 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
 		}
 
-		if ( ! class_exists( 'Stripe_Agentic_Commerce_Integration_Dedup_Harness' ) ) {
-			require_once __DIR__ . '/class-stripe-agentic-commerce-integration-dedup-harness.php';
-		}
+		$this->last_upload_option = ( new \ReflectionClass( \WC_Stripe_Agentic_Commerce_Integration::class ) )
+			->getConstant( 'LAST_UPLOAD_OPTION' );
 	}
 
 	/**
@@ -277,8 +285,11 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$tmp = tempnam( sys_get_temp_dir(), 'wc-stripe-feed-' );
 		file_put_contents( $tmp, "id,title\n1,Widget\n" );
 
-		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
-		$this->assertSame( hash_file( 'sha256', $tmp ), $integration->public_get_feed_hash( $tmp ) );
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+		$get_hash    = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'get_feed_hash' );
+		$get_hash->setAccessible( true );
+
+		$this->assertSame( hash_file( 'sha256', $tmp ), $get_hash->invoke( $integration, $tmp ) );
 
 		unlink( $tmp );
 	}
@@ -289,9 +300,12 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_get_feed_hash_returns_empty_when_file_missing() {
-		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
-		$this->assertSame( '', $integration->public_get_feed_hash( '' ) );
-		$this->assertSame( '', $integration->public_get_feed_hash( '/nonexistent/path/feed.csv' ) );
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+		$get_hash    = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'get_feed_hash' );
+		$get_hash->setAccessible( true );
+
+		$this->assertSame( '', $get_hash->invoke( $integration, '' ) );
+		$this->assertSame( '', $get_hash->invoke( $integration, '/nonexistent/path/feed.csv' ) );
 	}
 
 	/**
@@ -300,10 +314,13 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_is_feed_unchanged_returns_false_when_no_cached_upload() {
-		delete_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+		delete_option( $this->last_upload_option );
 
-		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
-		$this->assertFalse( $integration->public_is_feed_unchanged( 'abc123' ) );
+		$integration  = new \WC_Stripe_Agentic_Commerce_Integration();
+		$is_unchanged = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'is_feed_unchanged' );
+		$is_unchanged->setAccessible( true );
+
+		$this->assertFalse( $is_unchanged->invoke( $integration, 'abc123' ) );
 	}
 
 	/**
@@ -313,7 +330,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 */
 	public function test_is_feed_unchanged_returns_true_when_hash_matches() {
 		update_option(
-			\WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION,
+			$this->last_upload_option,
 			[
 				'hash'        => 'abc123',
 				'uploaded_at' => time(),
@@ -322,10 +339,13 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			false
 		);
 
-		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
-		$this->assertTrue( $integration->public_is_feed_unchanged( 'abc123' ) );
+		$integration  = new \WC_Stripe_Agentic_Commerce_Integration();
+		$is_unchanged = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'is_feed_unchanged' );
+		$is_unchanged->setAccessible( true );
 
-		delete_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+		$this->assertTrue( $is_unchanged->invoke( $integration, 'abc123' ) );
+
+		delete_option( $this->last_upload_option );
 	}
 
 	/**
@@ -335,7 +355,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 */
 	public function test_is_feed_unchanged_returns_false_when_hash_differs() {
 		update_option(
-			\WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION,
+			$this->last_upload_option,
 			[
 				'hash'        => 'abc123',
 				'uploaded_at' => time(),
@@ -344,10 +364,13 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			false
 		);
 
-		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
-		$this->assertFalse( $integration->public_is_feed_unchanged( 'different_hash' ) );
+		$integration  = new \WC_Stripe_Agentic_Commerce_Integration();
+		$is_unchanged = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'is_feed_unchanged' );
+		$is_unchanged->setAccessible( true );
 
-		delete_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+		$this->assertFalse( $is_unchanged->invoke( $integration, 'different_hash' ) );
+
+		delete_option( $this->last_upload_option );
 	}
 
 	/**
@@ -358,7 +381,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 */
 	public function test_is_feed_unchanged_returns_false_when_cache_expired() {
 		update_option(
-			\WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION,
+			$this->last_upload_option,
 			[
 				'hash'        => 'abc123',
 				'uploaded_at' => time() - ( 2 * WEEK_IN_SECONDS ),
@@ -367,10 +390,13 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			false
 		);
 
-		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
-		$this->assertFalse( $integration->public_is_feed_unchanged( 'abc123' ) );
+		$integration  = new \WC_Stripe_Agentic_Commerce_Integration();
+		$is_unchanged = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'is_feed_unchanged' );
+		$is_unchanged->setAccessible( true );
 
-		delete_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+		$this->assertFalse( $is_unchanged->invoke( $integration, 'abc123' ) );
+
+		delete_option( $this->last_upload_option );
 	}
 
 	/**
@@ -380,7 +406,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 */
 	public function test_is_feed_unchanged_respects_disable_filter() {
 		update_option(
-			\WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION,
+			$this->last_upload_option,
 			[
 				'hash'        => 'abc123',
 				'uploaded_at' => time(),
@@ -389,13 +415,16 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			false
 		);
 
-		add_filter( 'wc_stripe_agentic_commerce_dedup_enabled', '__return_false' );
+		add_filter( 'wc_stripe_agentic_commerce_feed_dedupe_enabled', '__return_false' );
 
-		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
-		$this->assertFalse( $integration->public_is_feed_unchanged( 'abc123' ) );
+		$integration  = new \WC_Stripe_Agentic_Commerce_Integration();
+		$is_unchanged = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'is_feed_unchanged' );
+		$is_unchanged->setAccessible( true );
 
-		remove_filter( 'wc_stripe_agentic_commerce_dedup_enabled', '__return_false' );
-		delete_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+		$this->assertFalse( $is_unchanged->invoke( $integration, 'abc123' ) );
+
+		remove_filter( 'wc_stripe_agentic_commerce_feed_dedupe_enabled', '__return_false' );
+		delete_option( $this->last_upload_option );
 	}
 
 	/**
@@ -404,12 +433,15 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_is_feed_unchanged_returns_false_for_malformed_record() {
-		update_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION, 'not_an_array', false );
+		update_option( $this->last_upload_option, 'not_an_array', false );
 
-		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
-		$this->assertFalse( $integration->public_is_feed_unchanged( 'abc123' ) );
+		$integration  = new \WC_Stripe_Agentic_Commerce_Integration();
+		$is_unchanged = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'is_feed_unchanged' );
+		$is_unchanged->setAccessible( true );
 
-		delete_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+		$this->assertFalse( $is_unchanged->invoke( $integration, 'abc123' ) );
+
+		delete_option( $this->last_upload_option );
 	}
 
 	/**
@@ -418,10 +450,14 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_remember_feed_upload_persists_expected_fields() {
-		delete_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+		delete_option( $this->last_upload_option );
 
-		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
-		$integration->public_remember_feed_upload(
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+		$remember    = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'remember_feed_upload' );
+		$remember->setAccessible( true );
+
+		$remember->invoke(
+			$integration,
 			'abc123',
 			[
 				'file_id'       => 'file_123',
@@ -430,7 +466,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$record = get_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+		$record = get_option( $this->last_upload_option );
 		$this->assertIsArray( $record );
 		$this->assertSame( 'abc123', $record['hash'] );
 		$this->assertSame( 'file_123', $record['file_id'] );
@@ -438,7 +474,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$this->assertIsInt( $record['uploaded_at'] );
 		$this->assertLessThanOrEqual( time(), $record['uploaded_at'] );
 
-		delete_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+		delete_option( $this->last_upload_option );
 	}
 
 	// -------------------------------------------------------------------------
