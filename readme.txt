@@ -152,7 +152,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.8.0 - xxxx-xx-xx =
-* Fix - Report Agentic Commerce dashboard product count from delivered CSV rows so it matches Stripe's ImportSet, surface "Partial Success" when the local validator drops products, and auto-refresh the badge while a sync is in flight
+* Fix - Improve handling of skipped products and in-flight syncs in Agentic Commerce sync dashboard
 * Fix - Make the "Update now" link in the account status tooltip clickable and improve its contrast against the tooltip background
 * Dev - Add Jurassic Ninja preview link for PRs to enable one-click browser testing
 * Remove - Remove giropay from new checkouts (deprecated by Stripe on 2024-06-30); legacy refund and past-order rendering preserved
