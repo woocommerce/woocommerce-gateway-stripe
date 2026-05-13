@@ -297,16 +297,16 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests the timestamp getter methods correctly return integer values
+	 * Tests the integer getter methods correctly return integer values
 	 * for stored integer and stringified integer values.
 	 *
 	 * @param string     $option_constant Constant name on WC_Stripe_Webhook_State that references the option name.
 	 * @param string     $getter_method   Static getter under test.
 	 * @param int|string $stored_value    Value to store via update_option.
 	 * @param int        $expected        Expected return value.
-	 * @dataProvider provide_timestamp_getter_integer_values
+	 * @dataProvider provide_integer_getter_integer_values
 	 */
-	public function test_timestamp_getters_coerce_integer_values( string $option_constant, string $getter_method, $stored_value, int $expected ) {
+	public function test_integer_getters_coerce_integer_values( string $option_constant, string $getter_method, $stored_value, int $expected ) {
 		$this->set_testmode( 'no' );
 		$option_name = constant( 'WC_Stripe_Webhook_State::' . $option_constant );
 		update_option( $option_name, $stored_value );
@@ -316,11 +316,11 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Data provider for {@see test_timestamp_getters_coerce_integer_values()}.
+	 * Data provider for {@see test_integer_getters_coerce_integer_values()}.
 	 *
 	 * @return array
 	 */
-	public function provide_timestamp_getter_integer_values(): array {
+	public function provide_integer_getter_integer_values(): array {
 		$getters = [
 			[ 'OPTION_LIVE_LAST_SUCCESS_AT', 'get_last_webhook_success_at' ],
 			[ 'OPTION_LIVE_LAST_FAILURE_AT', 'get_last_webhook_failure_at' ],
@@ -339,14 +339,14 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests that the integer-coercing getters return 0 for any non-integer stored value.
+	 * Tests that the integer getters return 0 for any non-integer stored value.
 	 *
 	 * @param string $option_constant Constant suffix on WC_Stripe_Webhook_State for the option name.
 	 * @param string $getter_method   Static getter under test.
 	 * @param mixed  $stored_value    Value to store via update_option.
-	 * @dataProvider provide_timestamp_getter_non_integer_values
+	 * @dataProvider provide_integer_getter_non_integer_values
 	 */
-	public function test_timestamp_getters_return_zero_for_non_integer_values( string $option_constant, string $getter_method, $stored_value ) {
+	public function test_integer_getters_return_zero_for_non_integer_values( string $option_constant, string $getter_method, $stored_value ) {
 		$this->set_testmode( 'no' );
 		$option_name = constant( 'WC_Stripe_Webhook_State::' . $option_constant );
 		update_option( $option_name, $stored_value );
@@ -356,11 +356,11 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Data provider for {@see test_timestamp_getters_return_zero_for_non_integer_values()}.
+	 * Data provider for {@see test_integer_getters_return_zero_for_non_integer_values()}.
 	 *
 	 * @return array
 	 */
-	public function provide_timestamp_getter_non_integer_values(): array {
+	public function provide_integer_getter_non_integer_values(): array {
 		$getters = [
 			[ 'OPTION_LIVE_LAST_SUCCESS_AT', 'get_last_webhook_success_at' ],
 			[ 'OPTION_LIVE_LAST_FAILURE_AT', 'get_last_webhook_failure_at' ],
