@@ -518,104 +518,37 @@ describe( 'Recorder', () => {
 			} );
 		} );
 
-		describe( 'attachExpress() integration with the Express Checkout Element', () => {
-			function makeFakeEce() {
+		describe( 'attachExpress() — wires ECE button events to recordExpressEvent', () => {
+			it( 'forwards each ECE event to recordExpressEvent with the original payload', () => {
 				const handlers = {};
-				return {
+				const eceButton = {
 					on: ( event, cb ) => {
 						handlers[ event ] = cb;
 					},
-					emit: ( event, payload ) => handlers[ event ]?.( payload ),
 				};
-			}
-
-			it( 'records paymentmethod with wallet_type and payment_method_type', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
-				const eceButton = makeFakeEce();
+				const recordSpy = jest.spyOn( recorder, 'recordExpressEvent' );
 
 				recorder.attachExpress( eceButton );
-				eceButton.emit( 'paymentmethod', {
-					expressPaymentType: 'link',
-					paymentMethod: {
-						type: 'card',
-						card: { brand: 'visa', last4: '4242' },
-					},
-					billingDetails: {
-						name: 'Jane Doe',
-						email: 'jane@example.com',
-					},
-				} );
-				recorder.flush();
 
-				const body = await readBeaconBody(
-					sendBeaconSpy.mock.calls[ 0 ]
-				);
-				expect( body.events[ 0 ].kind ).toBe( 'express.paymentmethod' );
-				expect( body.events[ 0 ].data ).toEqual( {
-					wallet_type: 'link',
-					payment_method_type: 'card',
-				} );
-			} );
+				const events = [
+					'click',
+					'confirm',
+					'cancel',
+					'shippingratechange',
+					'shippingaddresschange',
+					'paymentmethod',
+				];
+				const payload = { expressPaymentType: 'apple_pay' };
+				events.forEach( ( ev ) => handlers[ ev ]( payload ) );
 
-			it( 'records shippingaddresschange with wallet_type and country (drops other address fields)', async () => {
-				const recorder = makeRecorder();
-				recorder.boot();
-				const eceButton = makeFakeEce();
-
-				recorder.attachExpress( eceButton );
-				eceButton.emit( 'shippingaddresschange', {
-					expressPaymentType: 'google_pay',
-					address: {
-						country: 'CA',
-						postalCode: 'M5V 0J5',
-						city: 'Toronto',
-						state: 'ON',
-					},
-				} );
-				recorder.flush();
-
-				const body = await readBeaconBody(
-					sendBeaconSpy.mock.calls[ 0 ]
-				);
-				expect( body.events[ 0 ].kind ).toBe(
-					'express.shippingaddresschange'
-				);
-				expect( body.events[ 0 ].data ).toEqual( {
-					wallet_type: 'google_pay',
-					country: 'CA',
-				} );
-			} );
-
-			it( 'records click, confirm, cancel, and shippingratechange with wallet_type', async () => {
-				const recorder = makeRecorder();
-				recorder.boot();
-				const eceButton = makeFakeEce();
-
-				recorder.attachExpress( eceButton );
-				eceButton.emit( 'click', { expressPaymentType: 'apple_pay' } );
-				eceButton.emit( 'confirm', {
-					expressPaymentType: 'apple_pay',
-				} );
-				eceButton.emit( 'cancel', {
-					expressPaymentType: 'apple_pay',
-				} );
-				eceButton.emit( 'shippingratechange', {
-					expressPaymentType: 'apple_pay',
-				} );
-				recorder.flush();
-
-				const body = await readBeaconBody(
-					sendBeaconSpy.mock.calls[ 0 ]
-				);
-				expect( body.events.map( ( e ) => e.kind ) ).toEqual( [
-					'express.click',
-					'express.confirm',
-					'express.cancel',
-					'express.shippingratechange',
-				] );
-				body.events.forEach( ( e ) => {
-					expect( e.data ).toEqual( { wallet_type: 'apple_pay' } );
+				expect( recordSpy ).toHaveBeenCalledTimes( events.length );
+				events.forEach( ( ev, i ) => {
+					expect( recordSpy.mock.calls[ i ] ).toEqual( [
+						ev,
+						payload,
+					] );
 				} );
 			} );
 		} );
@@ -676,28 +609,33 @@ describe( 'Recorder', () => {
 				} );
 			} );
 
-			it( 'records confirm with wallet_type and payment_method_type when paymentMethod is present (Blocks merges paymentmethod into onConfirm)', async () => {
-				const recorder = makeRecorder();
-				recorder.boot();
+			it.each( [ [ 'paymentmethod' ], [ 'confirm' ] ] )(
+				'records %s with wallet_type and payment_method_type when paymentMethod is present',
+				async ( eventName ) => {
+					const recorder = makeRecorder();
+					recorder.boot();
 
-				recorder.recordExpressEvent( 'confirm', {
-					expressPaymentType: 'link',
-					paymentMethod: {
-						type: 'card',
-						card: { brand: 'visa', last4: '4242' },
-					},
-				} );
-				recorder.flush();
+					recorder.recordExpressEvent( eventName, {
+						expressPaymentType: 'link',
+						paymentMethod: {
+							type: 'card',
+							card: { brand: 'visa', last4: '4242' },
+						},
+					} );
+					recorder.flush();
 
-				const body = await readBeaconBody(
-					sendBeaconSpy.mock.calls[ 0 ]
-				);
-				expect( body.events[ 0 ].kind ).toBe( 'express.confirm' );
-				expect( body.events[ 0 ].data ).toEqual( {
-					wallet_type: 'link',
-					payment_method_type: 'card',
-				} );
-			} );
+					const body = await readBeaconBody(
+						sendBeaconSpy.mock.calls[ 0 ]
+					);
+					expect( body.events[ 0 ].kind ).toBe(
+						`express.${ eventName }`
+					);
+					expect( body.events[ 0 ].data ).toEqual( {
+						wallet_type: 'link',
+						payment_method_type: 'card',
+					} );
+				}
+			);
 
 			it( 'records confirm with only wallet_type when paymentMethod is absent', async () => {
 				const recorder = makeRecorder();
