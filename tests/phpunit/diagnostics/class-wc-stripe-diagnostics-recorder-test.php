@@ -118,13 +118,16 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 		$response         = new stdClass();
 		$response->id     = 'pi_123';
 		$response->status = 'succeeded';
-		$this->recorder->on_request_response( $response, 'payment_intents', 'POST', [ 'amount' => 100 ] );
+		$this->recorder->on_request_response( $response, 'payment_intents', 'POST', [ 'amount' => 100 ], 'req_abc123' );
 
 		$events = $this->store->get( 'rec2' )['events'];
 		$this->assertCount( 2, $events );
 		$this->assertSame( 'stripe.api.response', $events[1]['kind'] );
 		$this->assertSame( 'payment_intents', $events[1]['api'] );
 		$this->assertArrayHasKey( 'latency_ms', $events[1] );
+		// request_id comes from the Stripe Request-Id response header,
+		// not the body, so it must arrive via the 5th hook argument.
+		$this->assertSame( 'req_abc123', $events[1]['request_id'] );
 	}
 
 	/**

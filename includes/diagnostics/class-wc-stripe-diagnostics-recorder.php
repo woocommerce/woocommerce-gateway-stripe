@@ -136,7 +136,7 @@ class WC_Stripe_Diagnostics_Recorder {
 		}
 
 		add_filter( 'wc_stripe_request_body', [ $this, 'on_request_body' ], 10, 2 );
-		add_action( 'wc_stripe_api_response_received', [ $this, 'on_request_response' ], 10, 4 );
+		add_action( 'wc_stripe_api_response_received', [ $this, 'on_request_response' ], 10, 5 );
 		add_action( 'wc_stripe_webhook_received', [ $this, 'on_webhook_received' ], 10, 3 );
 		$this->snapshotter->register();
 	}
@@ -245,8 +245,9 @@ class WC_Stripe_Diagnostics_Recorder {
 	 * @param string $api           The Stripe endpoint.
 	 * @param string $method        HTTP method.
 	 * @param array  $request       The request body.
+	 * @param string $request_id    Stripe Request-Id response header (empty when absent).
 	 */
-	public function on_request_response( $response_body, $api, $method, $request ): void {
+	public function on_request_response( $response_body, $api, $method, $request, $request_id = '' ): void {
 		$session_id = $this->current_session_id();
 		if ( null === $session_id ) {
 			return;
@@ -265,7 +266,7 @@ class WC_Stripe_Diagnostics_Recorder {
 			'api'        => (string) $api,
 			'method'     => (string) $method,
 			'latency_ms' => $latency,
-			'request_id' => self::extract_request_id( $response_body ),
+			'request_id' => is_string( $request_id ) && '' !== $request_id ? $request_id : null,
 			'error'      => self::extract_error( $response_body ),
 		];
 		$redacted = $this->redactor->redact( $event );
@@ -327,19 +328,6 @@ class WC_Stripe_Diagnostics_Recorder {
 	 */
 	private function request_key( string $api ): string {
 		return $api . ':POST';
-	}
-
-	/**
-	 * Pull Stripe's request_id off a decoded response body.
-	 *
-	 * @param mixed $response Decoded response body.
-	 * @return string|null
-	 */
-	private static function extract_request_id( $response ): ?string {
-		if ( is_object( $response ) && isset( $response->request_id ) && is_string( $response->request_id ) ) {
-			return $response->request_id;
-		}
-		return null;
 	}
 
 	/**

@@ -185,10 +185,10 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
 
 		$captured = [];
-		$listener = function ( $body, $api, $method, $request ) use ( &$captured ) {
-			$captured = compact( 'body', 'api', 'method', 'request' );
+		$listener = function ( $body, $api, $method, $request, $request_id ) use ( &$captured ) {
+			$captured = compact( 'body', 'api', 'method', 'request', 'request_id' );
 		};
-		add_action( 'wc_stripe_api_response_received', $listener, 10, 4 );
+		add_action( 'wc_stripe_api_response_received', $listener, 10, 5 );
 
 		$result = WC_Stripe_API::request( [ 'foo' => 'bar' ], 'payment_intents', 'POST' );
 
@@ -197,6 +197,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertSame( 'payment_intents', $captured['api'] );
 		$this->assertSame( 'POST', $captured['method'] );
 		$this->assertSame( [ 'foo' => 'bar' ], $captured['request'] );
+		$this->assertSame( 'req_test_abc123', $captured['request_id'] );
 
 		remove_action( 'wc_stripe_api_response_received', $listener, 10 );
 		remove_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
@@ -211,6 +212,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 				'code'    => 200,
 				'message' => 'OK',
 			],
+			'headers'  => [ 'request-id' => 'req_test_abc123' ],
 			'body'     => json_encode( 'success' ),
 		];
 	}
