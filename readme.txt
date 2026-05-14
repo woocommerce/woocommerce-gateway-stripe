@@ -160,5 +160,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Append a "what's new" changelog link to the Updated! message after manually updating the plugin from the Plugins page
 * Add - Add a "Release notes" link to the WooCommerce Stripe row on the Plugins page that opens the changelog modal
 * Fix - Add guards against invalid values for webhook state timestamps
+* Dev - Refactor docker setup to be docker friendly
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
