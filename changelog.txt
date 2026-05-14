@@ -7,11 +7,7 @@ xxxx-xx-xx - version 10.8.0
 * Remove - Remove giropay from new checkouts (deprecated by Stripe on 2024-06-30); legacy refund and past-order rendering preserved
 * Dev - Exclude AGENTS.md and CLAUDE.md contributor-instruction files from the built plugin zip
 * Add - Append a "what's new" changelog link to the Updated! message after manually updating the plugin from the Plugins page
-* Dev - Add wc_stripe_api_response_received action and wc_stripe_localized_data filter to pave the way for the upcoming diagnostics recorder
-* Dev - Add WC_Stripe_Diagnostics_Trace_Store (file-backed trace storage with FIFO eviction and size caps) for the upcoming diagnostics recorder
-* Dev - Add WC_Stripe_Diagnostics_Redactor (allow-list registry + PII scrubbers) for the upcoming diagnostics recorder
-* Dev - Add POST /wc/v3/wc_stripe/diagnostics/events REST endpoint that accepts batched client events and appends them to the file-backed trace store
-* Dev - Add WC_Stripe_Diagnostics_Recorder server-side singleton that injects wc_diag_session_id into Stripe metadata and records redacted request/response/webhook events
+* Add - Implement diagnostic mode to help debug checkout issues
 
 2026-05-12 - version 10.7.0
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
