@@ -650,14 +650,19 @@ class WC_Stripe_Admin_Notices {
 					update_option( 'wc_stripe_show_subscriptions_notice', 'no' );
 					break;
 				case 'subscription_detached':
+					 // Non-HPOS uses `post`, HPOS uses `id` in URL query string to store post ID.
+					$subscription_id = 0;
 					if ( isset( $_REQUEST['post'] ) ) {
 						$subscription_id = absint( wp_unslash( $_REQUEST['post'] ) );
-						$subscription    = wcs_get_subscription( $subscription_id );
-						if ( ! $subscription instanceof WC_Subscription ) {
-							break;
+					} elseif ( isset( $_REQUEST['id'] ) ) {
+						$subscription_id = absint( wp_unslash( $_REQUEST['id'] ) );
+					}
+					if ( $subscription_id > 0 ) {
+						$subscription = wcs_get_subscription( $subscription_id );
+						if ( $subscription instanceof WC_Subscription ) {
+							$subscription->update_meta_data( '_wc_stripe_subscription_detached_notice_dismissed', 'yes' );
+							$subscription->save_meta_data();
 						}
-						$subscription->update_meta_data( '_wc_stripe_subscription_detached_notice_dismissed', 'yes' );
-						$subscription->save_meta_data();
 					}
 					if ( isset( $_SERVER['REQUEST_URI'] ) ) {
 						wp_safe_redirect( remove_query_arg( [ 'wc-stripe-hide-notice', '_wc_stripe_notice_nonce' ], esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) );
