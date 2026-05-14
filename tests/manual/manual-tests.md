@@ -24,7 +24,7 @@ To be able to use and test Stripe, you need to enable Stripe and set required se
 
 ### Go to WooCommerce > Settings > Payments
 
-I see Stripe, Stripe SEPA Direct Debit, Stripe Bancontact, Stripe Sofort, Stripe giropay, Stripe EPS, Stripe iDEAL, Stripe P24, Stripe Alipay, and Stripe Multibanco methods listed.
+I see Stripe, Stripe SEPA Direct Debit, Stripe Bancontact, Stripe Sofort, Stripe EPS, Stripe iDEAL, Stripe P24, Stripe Alipay, and Stripe Multibanco methods listed.
 
 ### Click into Stripe via Manage button
 
@@ -58,10 +58,6 @@ To be able to test checkout flow with Stripe in Test Mode, you will need test pr
 ## Stripe Sofort
 
 [stripe-sofort.md](stripe-sofort.md)
-
-## Stripe giropay
-
-[stripe-giropay.md](stripe-giropay.md)
 
 ## Stripe iDEAL
 

@@ -29,7 +29,7 @@ import { useSelect, useDispatch } from '@wordpress/data';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_EPS,
-	PAYMENT_METHOD_GIROPAY,
+	PAYMENT_METHOD_BANCONTACT,
 	PAYMENT_METHOD_AMAZON_PAY,
 } from 'wcstripe/stripe-utils/constants';
 
@@ -145,7 +145,7 @@ describe( 'Settings hooks tests', () => {
 					ordered_payment_method_ids: [
 						PAYMENT_METHOD_CARD,
 						PAYMENT_METHOD_EPS,
-						PAYMENT_METHOD_GIROPAY,
+						PAYMENT_METHOD_BANCONTACT,
 					],
 				} ) ),
 				isSavingOrderedPaymentMethodIds: jest.fn(),
@@ -160,17 +160,17 @@ describe( 'Settings hooks tests', () => {
 			expect( orderedPaymentMethodIds ).toEqual( [
 				PAYMENT_METHOD_CARD,
 				PAYMENT_METHOD_EPS,
-				PAYMENT_METHOD_GIROPAY,
+				PAYMENT_METHOD_BANCONTACT,
 			] );
 
 			setOrderedPaymentMethodIds( [
-				PAYMENT_METHOD_GIROPAY,
+				PAYMENT_METHOD_BANCONTACT,
 				PAYMENT_METHOD_CARD,
 				PAYMENT_METHOD_EPS,
 			] );
 			expect( actions.updateSettingsValues ).toHaveBeenCalledWith( {
 				ordered_payment_method_ids: [
-					PAYMENT_METHOD_GIROPAY,
+					PAYMENT_METHOD_BANCONTACT,
 					PAYMENT_METHOD_CARD,
 					PAYMENT_METHOD_EPS,
 				],
