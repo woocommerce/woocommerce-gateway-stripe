@@ -650,7 +650,7 @@ class WC_Stripe_Admin_Notices {
 					update_option( 'wc_stripe_show_subscriptions_notice', 'no' );
 					break;
 				case 'subscription_detached':
-					 // Non-HPOS uses `post`, HPOS uses `id` in URL query string to store post ID.
+					// Non-HPOS uses `post`, HPOS uses `id` in URL query string to store post ID.
 					$subscription_id = 0;
 					if ( isset( $_REQUEST['post'] ) ) {
 						$subscription_id = absint( wp_unslash( $_REQUEST['post'] ) );
