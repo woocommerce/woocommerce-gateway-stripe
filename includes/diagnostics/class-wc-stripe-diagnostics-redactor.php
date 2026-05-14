@@ -244,11 +244,6 @@ class WC_Stripe_Diagnostics_Redactor {
 	 * @return string
 	 */
 	private static function scrub_string( string $value ): string {
-		// Truncate extremely long strings — the redactor should never amplify them.
-		if ( strlen( $value ) > 512 ) {
-			$value = substr( $value, 0, 512 ) . '…';
-		}
-
 		$patterns = [
 			// Emails.
 			'/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/'     => '[email]',
@@ -277,6 +272,10 @@ class WC_Stripe_Diagnostics_Redactor {
 		);
 		if ( is_string( $replaced ) ) {
 			$value = $replaced;
+		}
+
+		if ( strlen( $value ) > 512 ) {
+			$value = substr( $value, 0, 512 ) . '…';
 		}
 
 		return $value;

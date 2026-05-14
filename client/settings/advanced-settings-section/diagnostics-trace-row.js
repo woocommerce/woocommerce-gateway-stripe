@@ -1,7 +1,7 @@
 import React from 'react';
 import classNames from 'classnames';
 import { Button } from '@wordpress/components';
-import { __, sprintf } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 
 const STATUS_LABELS = {
 	pending: 'Pending',
@@ -22,7 +22,12 @@ const formatRelative = ( unixSeconds, nowSeconds ) => {
 		const mins = Math.round( diff / 60 );
 		return sprintf(
 			/* translators: %d: minutes ago */
-			__( '%d min ago', 'woocommerce-gateway-stripe' ),
+			_n(
+				'%d min ago',
+				'%d mins ago',
+				mins,
+				'woocommerce-gateway-stripe'
+			),
 			mins
 		);
 	}
@@ -30,14 +35,14 @@ const formatRelative = ( unixSeconds, nowSeconds ) => {
 		const hrs = Math.round( diff / 3600 );
 		return sprintf(
 			/* translators: %d: hours ago */
-			__( '%d hr ago', 'woocommerce-gateway-stripe' ),
+			_n( '%d hr ago', '%d hrs ago', hrs, 'woocommerce-gateway-stripe' ),
 			hrs
 		);
 	}
 	const days = Math.round( diff / 86400 );
 	return sprintf(
 		/* translators: %d: days ago */
-		__( '%d day ago', 'woocommerce-gateway-stripe' ),
+		_n( '%d day ago', '%d days ago', days, 'woocommerce-gateway-stripe' ),
 		days
 	);
 };

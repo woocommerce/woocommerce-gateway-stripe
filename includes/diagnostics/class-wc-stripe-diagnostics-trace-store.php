@@ -289,7 +289,7 @@ class WC_Stripe_Diagnostics_Trace_Store {
 	 *             count without racing with a concurrent clear.
 	 */
 	public function delete_all(): int {
-		if ( null === $this->base_dir && ! is_dir( $this->base_dir() ) ) {
+		if ( ! is_dir( $this->base_dir() ) ) {
 			return 0;
 		}
 

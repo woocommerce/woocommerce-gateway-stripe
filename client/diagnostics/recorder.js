@@ -46,11 +46,15 @@ export class Recorder {
 				diag_session_id: this.config.sessionId,
 				events: persisted.bufferedEvents,
 			} );
-			navigator.sendBeacon( buildIngestUrl( this.config ), payload );
-
-			const cleared = { ...persisted };
-			delete cleared.bufferedEvents;
-			writeStoredState( storageKey, cleared );
+			const queued = navigator.sendBeacon(
+				buildIngestUrl( this.config ),
+				payload
+			);
+			if ( queued ) {
+				const cleared = { ...persisted };
+				delete cleared.bufferedEvents;
+				writeStoredState( storageKey, cleared );
+			}
 		}
 
 		this.pagehideHandler = () => this._handlePagehide();

@@ -131,7 +131,7 @@ class WC_Stripe_Diagnostics_Recorder {
 	 * disabled, no hooks register and the recorder is effectively dormant.
 	 */
 	public function init(): void {
-		if ( class_exists( 'WC_REST_Stripe_Diagnostics_Controller' ) && ! WC_REST_Stripe_Diagnostics_Controller::is_enabled() ) {
+		if ( ! class_exists( 'WC_REST_Stripe_Diagnostics_Controller' ) || ! WC_REST_Stripe_Diagnostics_Controller::is_enabled() ) {
 			return;
 		}
 
