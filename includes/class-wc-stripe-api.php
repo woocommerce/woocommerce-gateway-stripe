@@ -286,7 +286,7 @@ class WC_Stripe_API {
 		 * returned to the caller. Observe-only: handlers must not mutate the
 		 * response. Used by diagnostics to capture API exchanges.
 		 *
-		 * @since 10.7.0
+		 * @since 10.8.0
 		 *
 		 * @param mixed  $response_body The decoded response body.
 		 * @param string $api           The Stripe API endpoint.

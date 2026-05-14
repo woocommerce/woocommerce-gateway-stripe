@@ -2239,7 +2239,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 * UPE and express checkout enqueue paths. Subscribers can modify
 		 * the data, or attach additional globals to the same handle.
 		 *
-		 * @since 10.7.0
+		 * @since 10.8.0
 		 *
 		 * @param array  $data          The localized data array.
 		 * @param string $script_handle The registered script handle.
