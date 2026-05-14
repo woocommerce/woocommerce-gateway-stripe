@@ -44,7 +44,7 @@ const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 		paymentMethodTypes: [ PAYMENT_METHOD_CARD ],
 	};
 
-	const height = buttonSizeToPxMap[ size ] || buttonSizeToPxMap.medium;
+	const height = buttonSizeToPxMap[ size ] || buttonSizeToPxMap.default;
 
 	const mapThemeConfigToButtonTheme = ( paymentMethod, buttonTheme ) => {
 		switch ( buttonTheme ) {
