@@ -121,8 +121,8 @@ const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 		return (
 			<InlineNotice icon status="warning" isDismissible={ false }>
 				{ __(
-					'Express checkout preview is only available when express checkout is enabled. ' +
-						'Please enable express checkout to view the preview.',
+					'The preview is only available when Apple Pay and Google Pay are enabled. ' +
+						'Please enable Apple Pay and Google Pay to see the preview.',
 					'woocommerce-gateway-stripe'
 				) }
 			</InlineNotice>
