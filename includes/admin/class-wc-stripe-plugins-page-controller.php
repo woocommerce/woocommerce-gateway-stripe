@@ -119,6 +119,8 @@ class WC_Stripe_Plugins_Page_Controller {
 	 * @return array Updated row meta links.
 	 */
 	public function add_release_notes_link( $links, $file ): array {
+		$links = (array) $links;
+
 		if ( plugin_basename( WC_STRIPE_MAIN_FILE ) !== $file ) {
 			return (array) $links;
 		}
