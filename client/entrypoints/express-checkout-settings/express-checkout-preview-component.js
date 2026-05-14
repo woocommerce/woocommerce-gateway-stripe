@@ -100,6 +100,18 @@ const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 		}
 	};
 
+	if ( ! isExpressCheckoutEnabled ) {
+		return (
+			<InlineNotice icon status="warning" isDismissible={ false }>
+				{ __(
+					'The preview is only available when Apple Pay and Google Pay are enabled. ' +
+						'Please enable Apple Pay and Google Pay to see the preview.',
+					'woocommerce-gateway-stripe'
+				) }
+			</InlineNotice>
+		);
+	}
+
 	if ( canRenderButtons ) {
 		return (
 			<div
@@ -114,18 +126,6 @@ const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 					/>
 				</Elements>
 			</div>
-		);
-	}
-
-	if ( ! isExpressCheckoutEnabled ) {
-		return (
-			<InlineNotice icon status="warning" isDismissible={ false }>
-				{ __(
-					'The preview is only available when Apple Pay and Google Pay are enabled. ' +
-						'Please enable Apple Pay and Google Pay to see the preview.',
-					'woocommerce-gateway-stripe'
-				) }
-			</InlineNotice>
 		);
 	}
 
