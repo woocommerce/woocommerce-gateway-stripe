@@ -476,59 +476,49 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
-		if ( 'yes' === $subscription->get_meta( '_wc_stripe_subscription_detached_notice_dismissed' ) ) {
+		// If not detached but the user dismissed the notice prior, clear the meta so it can show if later detached.
+		$detachment_meta_key = '_wc_stripe_subscription_detached_notice_dismissed';
+		if ( ! WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription ) ) {
+			$subscription->delete_meta_data( $detachment_meta_key );
+			$subscription->save_meta_data();
 			return;
 		}
 
-		if ( WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription ) ) {
-			$customer_payment_method_link = sprintf(
-				'<a href="%s">%s</a>',
-				esc_url( $subscription->get_change_payment_method_url() ),
-				esc_html(
-					/* translators: this is a text for a link pointing to the customer's payment method page */
-					__( 'Payment method page &rarr;', 'woocommerce-gateway-stripe' )
-				)
-			);
-			$customer_stripe_page = sprintf(
-				'<a href="%s">%s</a>',
-				esc_url( WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $subscription ) ),
-				esc_html(
-					/* translators: this is a text for a link pointing to the customer's page on Stripe */
-					__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
-				)
-			);
-
-			$detached_message  = __( 'The payment method for this subscription has been detached, <strong>preventing renewals</strong>. ', 'woocommerce-gateway-stripe' );
-			$detached_message .= __( 'To fix this, either: <br />', 'woocommerce-gateway-stripe' );
-			$detached_message .= __( '1) Share the payment method page link with the customer to update it: ', 'woocommerce-gateway-stripe' ) . $customer_payment_method_link . '<br />';
-			$detached_message .= __( ' or <br />', 'woocommerce-gateway-stripe' );
-			$detached_message .= __( "2) Manually update the payment method in the subscription's billing details using a valid payment method from the customer's Stripe account: ", 'woocommerce-gateway-stripe' ) . $customer_stripe_page . '<br />';
-			$detached_message .= '<br />' . sprintf(
-				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag 3) The already-translated title of the tool*/
-				__( 'To list all your current subscriptions with payment methods detached, go to WooCommerce -> Status -> %1$sTools%2$s -> <strong>%3$s</strong>.', 'woocommerce-gateway-stripe' ),
-				'<a href="' . esc_url( admin_url( 'admin.php?page=wc-status&tab=tools' ) ) . '">',
-				'</a>',
-				__( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
-			);
-
-			$dismiss_url = wp_nonce_url(
-				add_query_arg(
-					[
-						'wc-stripe-hide-notice'     => 'subscription_detached',
-						'wc-stripe-subscription-id' => $subscription->get_id(),
-					]
-				),
-				'wc_stripe_hide_notices_nonce',
-				'_wc_stripe_notice_nonce'
-			);
-
-			$dismiss_link = sprintf(
-				'<a href="' . esc_url( $dismiss_url ) . '">%s</a>',
-				__( 'Dismiss', 'woocommerce-gateway-stripe' )
-			);
-
-			$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message, true, [ $dismiss_link ] );
+		if ( 'yes' === $subscription->get_meta( $detachment_meta_key ) ) {
+			return;
 		}
+
+		$customer_payment_method_link = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( $subscription->get_change_payment_method_url() ),
+			esc_html(
+				/* translators: this is a text for a link pointing to the customer's payment method page */
+				__( 'Payment method page &rarr;', 'woocommerce-gateway-stripe' )
+			)
+		);
+		$customer_stripe_page = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $subscription ) ),
+			esc_html(
+				/* translators: this is a text for a link pointing to the customer's page on Stripe */
+				__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
+			)
+		);
+
+		$detached_message  = __( 'The payment method for this subscription has been detached, <strong>preventing renewals</strong>. ', 'woocommerce-gateway-stripe' );
+		$detached_message .= __( 'To fix this, either: <br />', 'woocommerce-gateway-stripe' );
+		$detached_message .= __( '1) Share the payment method page link with the customer to update it: ', 'woocommerce-gateway-stripe' ) . $customer_payment_method_link . '<br />';
+		$detached_message .= __( ' or <br />', 'woocommerce-gateway-stripe' );
+		$detached_message .= __( "2) Manually update the payment method in the subscription's billing details using a valid payment method from the customer's Stripe account: ", 'woocommerce-gateway-stripe' ) . $customer_stripe_page . '<br />';
+		$detached_message .= '<br />' . sprintf(
+			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag 3) The already-translated title of the tool*/
+			__( 'To list all your current subscriptions with payment methods detached, go to WooCommerce -> Status -> %1$sTools%2$s -> <strong>%3$s</strong>.', 'woocommerce-gateway-stripe' ),
+			'<a href="' . esc_url( admin_url( 'admin.php?page=wc-status&tab=tools' ) ) . '">',
+			'</a>',
+			__( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
+		);
+
+		$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message, true );
 	}
 
 	/**
@@ -660,25 +650,17 @@ class WC_Stripe_Admin_Notices {
 					update_option( 'wc_stripe_show_subscriptions_notice', 'no' );
 					break;
 				case 'subscription_detached':
-					if ( isset( $_GET['wc-stripe-subscription-id'] ) ) {
-						$subscription_id = esc_url_raw( wp_unslash( $_GET['wc-stripe-subscription-id'] ) );
+					if ( isset( $_REQUEST['post'] ) ) {
+						$subscription_id = absint( wp_unslash( $_REQUEST['post'] ) );
 						$subscription    = wcs_get_subscription( $subscription_id );
-
 						if ( ! $subscription instanceof WC_Subscription ) {
-							return;
+							break;
 						}
-
 						$subscription->update_meta_data( '_wc_stripe_subscription_detached_notice_dismissed', 'yes' );
 						$subscription->save_meta_data();
 					}
-
 					if ( isset( $_SERVER['REQUEST_URI'] ) ) {
-						wp_safe_redirect(
-							remove_query_arg(
-								[ 'wc-stripe-hide-notice', '_wc_stripe_notice_nonce', 'wc-stripe-subscription-id' ],
-								esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) )
-							)
-						);
+						wp_safe_redirect( remove_query_arg( [ 'wc-stripe-hide-notice', '_wc_stripe_notice_nonce' ], esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) );
 					}
 					break;
 				case 'subscription_detached_bulk_action':

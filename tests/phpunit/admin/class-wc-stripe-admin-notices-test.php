@@ -798,6 +798,58 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test that the dismissed meta is cleared when the payment method is no longer detached.
+	 *
+	 * @return void
+	 */
+	public function test_subscription_check_detachment_clears_dismissed_meta_when_not_detached() {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_id( 999 );
+		$subscription->set_status( 'active' );
+		$subscription->set_payment_method( 'stripe_klarna' );
+		$subscription->save();
+
+		$subscription->update_meta_data( '_stripe_source_id', 'src_999' );
+		$subscription->update_meta_data( '_wc_stripe_subscription_detached_notice_dismissed', 'yes' );
+		$subscription->save_meta_data();
+
+		global $theorder;
+		$original_order = $theorder;
+		$theorder       = $subscription;
+
+		$_GET['page'] = 'wc-orders--shop_subscription';
+		$_GET['id']   = $subscription->get_id();
+
+		$test_request = function () {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'customer' => 'cus_test123',
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->subscription_check_detachment();
+
+		remove_filter( 'pre_http_request', $test_request );
+
+		$theorder = $original_order;
+		unset( $_GET['page'], $_GET['id'] );
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_src_999' );
+
+		$this->assertCount( 0, $notices->notices );
+		$this->assertSame( '', $subscription->get_meta( '_wc_stripe_subscription_detached_notice_dismissed' ) );
+	}
+
+	/**
 	 * Tests for `subscription_check_detachment_bulk_action`.
 	 *
 	 * @param array|null $request_params Request parameters to simulate.
