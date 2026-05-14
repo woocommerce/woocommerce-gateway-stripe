@@ -17,6 +17,13 @@ class WC_Stripe_Admin_Notices {
 	private const STRIPE_CUSTOMER_PAGE_BASE_URL = 'https://dashboard.stripe.com/customers/';
 
 	/**
+	 * Meta key name to store the subscription detachment notice status.
+	 *
+	 * @var string
+	 */
+	const DETACHED_NOTICE_DISMISSED_META = '_wc_stripe_subscription_detached_notice_dismissed';
+
+	/**
 	 * Notices (array)
 	 *
 	 * @var array
@@ -477,16 +484,15 @@ class WC_Stripe_Admin_Notices {
 		}
 
 		// If not detached but the user dismissed the notice prior, clear the meta so it can show if later detached.
-		$detachment_meta_key = '_wc_stripe_subscription_detached_notice_dismissed';
 		if ( ! WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription ) ) {
-			if ( $subscription->get_meta( $detachment_meta_key ) ) {
-				$subscription->delete_meta_data( $detachment_meta_key );
+			if ( $subscription->get_meta( self::DETACHED_NOTICE_DISMISSED_META ) ) {
+				$subscription->delete_meta_data( self::DETACHED_NOTICE_DISMISSED_META );
 				$subscription->save_meta_data();
 			}
 			return;
 		}
 
-		if ( 'yes' === $subscription->get_meta( $detachment_meta_key ) ) {
+		if ( 'yes' === $subscription->get_meta( self::DETACHED_NOTICE_DISMISSED_META ) ) {
 			return;
 		}
 
@@ -662,7 +668,7 @@ class WC_Stripe_Admin_Notices {
 					if ( $subscription_id > 0 ) {
 						$subscription = wcs_get_subscription( $subscription_id );
 						if ( $subscription instanceof WC_Subscription ) {
-							$subscription->update_meta_data( '_wc_stripe_subscription_detached_notice_dismissed', 'yes' );
+							$subscription->update_meta_data( self::DETACHED_NOTICE_DISMISSED_META, 'yes' );
 							$subscription->save_meta_data();
 						}
 					}
