@@ -907,6 +907,73 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test that dismissing the subscription_detached notice sets the post meta (HPOS path).
+	 *
+	 * @return void
+	 */
+	public function test_hide_notices_dismisses_subscription_detached_notice_hpos() {
+		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_user );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_status( 'active' );
+		$subscription->save();
+
+		$_GET['wc-stripe-hide-notice']   = 'subscription_detached';
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+		$_REQUEST['id']                  = $subscription->get_id(); // HPOS path
+
+		$notices = $this->create_admin_notices_instance();
+		$notices->hide_notices();
+
+		$reloaded = wcs_get_subscription( $subscription->get_id() );
+		$this->assertEquals( 'yes', $reloaded->get_meta( '_wc_stripe_subscription_detached_notice_dismissed' ) );
+
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['id'] );
+	}
+
+	/**
+	 * Test that hide_notices does nothing for subscription_detached when no subscription ID param is present.
+	 *
+	 * @return void
+	 */
+	public function test_hide_notices_subscription_detached_no_param_does_nothing() {
+		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_user );
+
+		$_GET['wc-stripe-hide-notice']   = 'subscription_detached';
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		$notices = $this->create_admin_notices_instance();
+		$notices->hide_notices();
+
+		$this->assertTrue( true );
+
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+	}
+
+	/**
+	 * Test that hide_notices for subscription_detached with a non-existent subscription ID is a no-op.
+	 *
+	 * @return void
+	 */
+	public function test_hide_notices_subscription_detached_nonexistent_id_does_nothing() {
+		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_user );
+
+		$_GET['wc-stripe-hide-notice']   = 'subscription_detached';
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+		$_REQUEST['id']                  = 999999; // Non-existent subscription.
+
+		$notices = $this->create_admin_notices_instance();
+		$notices->hide_notices();
+
+		$this->assertFalse( wcs_get_subscription( 999999 ) );
+
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['id'] );
+	}
+
+	/**
 	 * Tests for `subscription_check_detachment_bulk_action`.
 	 *
 	 * @param array|null $request_params Request parameters to simulate.
