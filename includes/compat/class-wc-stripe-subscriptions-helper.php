@@ -156,7 +156,7 @@ class WC_Stripe_Subscriptions_Helper {
 			return false;
 		}
 
-		$source_id = $subscription->get_meta( '_stripe_source_id' );
+		$source_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $subscription );
 		if ( ! $source_id ) {
 			return false;
 		}
@@ -225,7 +225,7 @@ class WC_Stripe_Subscriptions_Helper {
 	public static function get_detached_payment_data_from_subscription( $subscription ) {
 		return [
 			'id'                        => $subscription->get_id(),
-			'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
+			'customer_id'               => WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $subscription ),
 			'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 		];
 	}
@@ -333,5 +333,26 @@ class WC_Stripe_Subscriptions_Helper {
 		$cached_payment_methods[ $stripe_customer_id ][ $payment_method_id ] = $saved_payment_method;
 
 		return $saved_payment_method;
+	}
+
+	/**
+	 * Checks if the current page is a subscription edit page in wp-admin.
+	 *
+	 * This should be removed once WooCommerce provides a way to check for subscription edit pages.
+	 *
+	 * @return bool
+	 */
+	public static function is_subscription_edit_page(): bool {
+		$query_params = wp_unslash( $_REQUEST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) { // If custom order tables are enabled, we need to check the page query param.
+			return isset( $query_params['page'] ) && 'wc-orders--shop_subscription' === $query_params['page'] && isset( $query_params['id'] );
+		}
+
+		// If custom order tables are not enabled, we need to check the post type and action query params.
+		if ( 'edit' !== ( $query_params['action'] ?? '' ) ) {
+			return false;
+		}
+
+		return isset( $query_params['post'] ) && 'shop_subscription' === get_post_type( $query_params['post'] );
 	}
 }

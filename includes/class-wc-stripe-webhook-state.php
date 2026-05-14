@@ -54,7 +54,7 @@ class WC_Stripe_Webhook_State {
 	 * @param string $mode Optional. The mode to clear the webhook state for. Can be 'all', 'live', or 'test'. Default is 'all'.
 	 * @return void
 	 */
-	public static function clear_state( $mode = 'all' ) {
+	public static function clear_state( $mode = 'all' ): void {
 		if ( 'all' === $mode || 'live' === $mode ) {
 			delete_option( self::OPTION_LIVE_MONITORING_BEGAN_AT );
 			delete_option( self::OPTION_LIVE_LAST_SUCCESS_AT );
@@ -77,11 +77,11 @@ class WC_Stripe_Webhook_State {
 	 * started tracking webhook failure and successes.
 	 *
 	 * @since 5.0.0
-	 * @return integer UTC seconds since 1970.
+	 * @return int UTC seconds since 1970.
 	 */
 	public static function get_monitoring_began_at() {
 		$option              = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_MONITORING_BEGAN_AT : self::OPTION_LIVE_MONITORING_BEGAN_AT;
-		$monitoring_began_at = get_option( $option, 0 );
+		$monitoring_began_at = self::get_int_option( $option );
 		if ( 0 == $monitoring_began_at ) {
 			$monitoring_began_at = time();
 			update_option( $option, $monitoring_began_at );
@@ -104,7 +104,7 @@ class WC_Stripe_Webhook_State {
 	 *
 	 * @return void
 	 */
-	public static function set_last_webhook_success_at( $timestamp ) {
+	public static function set_last_webhook_success_at( $timestamp ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_SUCCESS_AT;
 		update_option( $option, $timestamp );
 	}
@@ -114,11 +114,11 @@ class WC_Stripe_Webhook_State {
 	 * or returns 0 if no webhook has ever been successfully processed.
 	 *
 	 * @since 5.0.0
-	 * @return integer UTC seconds since 1970 | 0.
+	 * @return int UTC seconds since 1970 | 0.
 	 */
 	public static function get_last_webhook_success_at() {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_SUCCESS_AT;
-		return get_option( $option, 0 );
+		return self::get_int_option( $option );
 	}
 
 	/**
@@ -129,7 +129,7 @@ class WC_Stripe_Webhook_State {
 	 *
 	 * @return void
 	 */
-	public static function set_last_webhook_failure_at( $timestamp ) {
+	public static function set_last_webhook_failure_at( $timestamp ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
 		update_option( $option, $timestamp );
 	}
@@ -139,11 +139,11 @@ class WC_Stripe_Webhook_State {
 	 * or returns 0 if no webhook has ever failed to process.
 	 *
 	 * @since 5.0.0
-	 * @return integer UTC seconds since 1970 | 0.
+	 * @return int UTC seconds since 1970 | 0.
 	 */
 	public static function get_last_webhook_failure_at() {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
-		return get_option( $option, 0 );
+		return self::get_int_option( $option );
 	}
 
 	/**
@@ -154,7 +154,7 @@ class WC_Stripe_Webhook_State {
 	 *
 	 * @return void
 	 */
-	public static function set_last_error_reason( $reason ) {
+	public static function set_last_error_reason( $reason ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
 		update_option( $option, $reason );
 	}
@@ -247,7 +247,7 @@ class WC_Stripe_Webhook_State {
 	 *
 	 * @return void
 	 */
-	public static function set_pending_webhooks_count( $pending_webhooks ) {
+	public static function set_pending_webhooks_count( $pending_webhooks ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_PENDING_WEBHOOKS : self::OPTION_LIVE_PENDING_WEBHOOKS;
 		update_option( $option, $pending_webhooks );
 	}
@@ -261,7 +261,7 @@ class WC_Stripe_Webhook_State {
 	 */
 	public static function get_pending_webhooks_count() {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_PENDING_WEBHOOKS : self::OPTION_LIVE_PENDING_WEBHOOKS;
-		return get_option( $option, 0 );
+		return self::get_int_option( $option );
 	}
 
 	/**
@@ -373,4 +373,21 @@ class WC_Stripe_Webhook_State {
 			'test' => empty( $test_webhook['url'] ) ? null : rawurlencode( $test_webhook['url'] ),
 		];
 	}
-};
+
+	/**
+	 * Gets an option value that must be an integer. Stringified integers will be cast to int,
+	 * but other non-integer values will be returned as 0.
+	 *
+	 * @since 10.8.0
+	 * @param string $option_name The name of the option to get.
+	 * @return int The integer value of the option, or 0 if the option is not an integer.
+	 */
+	protected static function get_int_option( string $option_name ): int {
+		$option_value = get_option( $option_name, 0 );
+		if ( ! ctype_digit( (string) $option_value ) ) {
+			return 0;
+		}
+
+		return (int) $option_value;
+	}
+}

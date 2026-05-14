@@ -72,6 +72,34 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_SETUP_INTENT = '_stripe_setup_intent';
 
 	/**
+	 * Meta key for Stripe checkout session ID.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_CHECKOUT_SESSION_ID = '_stripe_checkout_session_id';
+
+	/**
+	 * Meta key for whether the payment method should be saved to the store after checkout session payment.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_SHOULD_SAVE_PAYMENT_METHOD = '_stripe_should_save_payment_method_to_store';
+
+	/**
+	 * Meta key for Stripe presentment currency.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_PRESENTMENT_CURRENCY = '_stripe_presentment_currency';
+
+	/**
+	 * Meta key for Stripe presentment amount.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_PRESENTMENT_AMOUNT = '_stripe_presentment_amount';
+
+	/**
 	 * Meta key for Stripe customer ID.
 	 *
 	 * @var string
@@ -163,6 +191,30 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_PAYMENT_AWAITING_ACTION = '_stripe_payment_awaiting_action';
 
 	/**
+	 * Meta key for lock payment to prevent multiple simultaneous payment attempts.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_LOCK_PAYMENT = '_stripe_lock_payment';
+
+	/**
+	 * Meta key for lock refund to prevent multiple simultaneous refund attempts.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_LOCK_REFUND = '_stripe_lock_refund';
+
+	/**
+	 * Meta key for the In-Person Payments channel.
+	 *
+	 * Stores the ipp_channel value from Stripe PaymentIntent metadata.
+	 * Used to identify POS terminal payments (e.g. 'mobile_pos', 'mobile_store_management').
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_IPP_CHANNEL = '_stripe_ipp_channel';
+
+	/**
 	 * Singleton instance of the class.
 	 *
 	 * @var null|WC_Stripe_Order_Helper
@@ -201,11 +253,7 @@ class WC_Stripe_Order_Helper {
 	 * @return string $currency
 	 */
 	public function get_stripe_currency( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_CURRENCY, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_CURRENCY );
 	}
 
 	/**
@@ -231,15 +279,11 @@ class WC_Stripe_Order_Helper {
 	 * @return string $amount
 	 */
 	public function get_stripe_fee( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$amount = $order->get_meta( self::META_STRIPE_FEE, true );
+		$amount = $this->get_order_meta( $order, self::META_STRIPE_FEE );
 
 		// If not found let's check for legacy name.
 		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( self::LEGACY_META_STRIPE_FEE, true );
+			$amount = $this->get_order_meta( $order, self::LEGACY_META_STRIPE_FEE );
 
 			// If found update to new name.
 			if ( $amount ) {
@@ -291,15 +335,11 @@ class WC_Stripe_Order_Helper {
 	 * @return string $amount
 	 */
 	public function get_stripe_net( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$amount = $order->get_meta( self::META_STRIPE_NET, true );
+		$amount = $this->get_order_meta( $order, self::META_STRIPE_NET );
 
 		// If not found let's check for legacy name.
 		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( self::LEGACY_META_STRIPE_NET, true );
+			$amount = $this->get_order_meta( $order, self::LEGACY_META_STRIPE_NET );
 
 			// If found update to new name.
 			if ( $amount ) {
@@ -351,11 +391,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_source_id( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_SOURCE_ID, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_SOURCE_ID );
 	}
 
 	/**
@@ -392,11 +428,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_refund_id( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_REFUND_ID, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_REFUND_ID );
 	}
 
 	/**
@@ -433,11 +465,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_intent_id( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_INTENT_ID, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_INTENT_ID );
 	}
 
 	/**
@@ -474,11 +502,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_setup_intent_id( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_SETUP_INTENT, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_SETUP_INTENT );
 	}
 
 	/**
@@ -495,6 +519,109 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Gets the Stripe checkout session ID for order.
+	 *
+	 * @since 10.5.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_checkout_session_id( ?WC_Order $order = null ) {
+		return $this->get_order_meta( $order, self::META_STRIPE_CHECKOUT_SESSION_ID );
+	}
+
+	/**
+	 * Updates the Stripe checkout session ID for order.
+	 *
+	 * @since 10.5.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $checkout_session_id
+	 * @return false|void
+	 */
+	public function update_stripe_checkout_session_id( ?WC_Order $order = null, string $checkout_session_id = '' ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_CHECKOUT_SESSION_ID, $checkout_session_id );
+	}
+
+	/**
+	 * Gets whether the payment method should be saved to the store after a checkout session payment.
+	 *
+	 * @param WC_Order|null $order
+	 * @return bool
+	 */
+	public function get_should_save_stripe_payment_method( ?WC_Order $order = null ): bool {
+		return wc_string_to_bool( $this->get_order_meta( $order, self::META_STRIPE_SHOULD_SAVE_PAYMENT_METHOD ) );
+	}
+
+	/**
+	 * Sets the flag indicating the payment method should be saved to the store after a checkout session payment.
+	 *
+	 * @param WC_Order|null $order
+	 */
+	public function update_should_save_stripe_payment_method( ?WC_Order $order = null, bool $value = false ): void {
+		$this->update_order_meta( $order, self::META_STRIPE_SHOULD_SAVE_PAYMENT_METHOD, wc_bool_to_string( $value ) );
+	}
+
+	/**
+	 * Clears the flag indicating the payment method should be saved to the store after a checkout session payment.
+	 *
+	 * @param WC_Order|null $order
+	 */
+	public function delete_should_save_stripe_payment_method( ?WC_Order $order = null ): void {
+		$this->delete_order_meta( $order, self::META_STRIPE_SHOULD_SAVE_PAYMENT_METHOD );
+	}
+
+	/**
+	 * Gets the Stripe presentment currency for order.
+	 *
+	 * @since 10.5.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_presentment_currency( ?WC_Order $order = null ) {
+		return $this->get_order_meta( $order, self::META_STRIPE_PRESENTMENT_CURRENCY );
+	}
+
+	/**
+	 * Updates the Stripe presentment currency for order.
+	 *
+	 * @since 10.5.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $presentment_currency
+	 * @return false|void
+	 */
+	public function update_stripe_presentment_currency( ?WC_Order $order = null, string $presentment_currency = '' ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_PRESENTMENT_CURRENCY, strtolower( $presentment_currency ) );
+	}
+
+	/**
+	 * Gets the Stripe presentment amount for order.
+	 *
+	 * @since 10.5.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_presentment_amount( ?WC_Order $order = null ) {
+		return $this->get_order_meta( $order, self::META_STRIPE_PRESENTMENT_AMOUNT );
+	}
+
+	/**
+	 * Updates the Stripe presentment amount for order.
+	 *
+	 * @since 10.5.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param int           $presentment_amount Stripe minor-unit integer (e.g. 7800 for $78.00)
+	 * @return false|void
+	 */
+	public function update_stripe_presentment_amount( ?WC_Order $order = null, int $presentment_amount = 0 ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_PRESENTMENT_AMOUNT, $presentment_amount );
+	}
+
+	/**
 	 * Gets the Stripe customer ID for an order.
 	 *
 	 * @since 10.0.0
@@ -503,11 +630,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_customer_id( ?WC_Order $order = null ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_CUSTOMER_ID, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_CUSTOMER_ID );
 	}
 
 	/**
@@ -544,11 +667,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_card_id( ?WC_Order $order = null ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_CARD_ID, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_CARD_ID );
 	}
 
 	/**
@@ -749,11 +868,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_upe_payment_type( ?WC_Order $order = null ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_UPE_PAYMENT_TYPE, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_UPE_PAYMENT_TYPE );
 	}
 
 	/**
@@ -778,11 +893,7 @@ class WC_Stripe_Order_Helper {
 	 * @return bool|null
 	 */
 	public function get_stripe_upe_waiting_for_redirect( ?WC_Order $order = null ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_UPE_WAITING_FOR_REDIRECT, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_UPE_WAITING_FOR_REDIRECT );
 	}
 
 	/**
@@ -819,11 +930,7 @@ class WC_Stripe_Order_Helper {
 	 * @return bool|null
 	 */
 	public function get_stripe_upe_redirect_processed( ?WC_Order $order = null ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_UPE_REDIRECT_PROCESSED, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_UPE_REDIRECT_PROCESSED );
 	}
 
 	/**
@@ -837,6 +944,31 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function update_stripe_upe_redirect_processed( ?WC_Order $order = null, bool $redirect_processed = false ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_UPE_REDIRECT_PROCESSED, $redirect_processed );
+	}
+
+	/**
+	 * Gets the In-Person Payments channel for the order.
+	 *
+	 * @since 10.6.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_ipp_channel( ?WC_Order $order = null ) {
+		return $this->get_order_meta( $order, self::META_STRIPE_IPP_CHANNEL );
+	}
+
+	/**
+	 * Updates the In-Person Payments channel for the order.
+	 *
+	 * @since 10.6.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $channel The IPP channel value (e.g. 'mobile_pos', 'mobile_store_management').
+	 * @return false|void
+	 */
+	public function update_stripe_ipp_channel( ?WC_Order $order = null, string $channel = '' ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_IPP_CHANNEL, $channel );
 	}
 
 	/**
@@ -991,7 +1123,7 @@ class WC_Stripe_Order_Helper {
 	public function validate_intent_for_order( WC_Order $order, $intent, ?string $selected_payment_type = null ): void {
 		$intent_id = null;
 		if ( is_string( $intent ) ) {
-			$intent_id = $intent;
+			$intent_id       = $intent;
 			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
 			if ( $is_setup_intent ) {
 				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
@@ -1106,7 +1238,7 @@ class WC_Stripe_Order_Helper {
 
 		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS );
 
-		$order->update_meta_data( '_stripe_lock_payment', $new_lock );
+		$order->update_meta_data( self::META_STRIPE_LOCK_PAYMENT, $new_lock );
 		$order->save_meta_data();
 
 		return false;
@@ -1120,7 +1252,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_payment( WC_Order $order ): void {
-		$order->delete_meta_data( '_stripe_lock_payment' );
+		$order->delete_meta_data( self::META_STRIPE_LOCK_PAYMENT );
 		$order->save_meta_data();
 	}
 
@@ -1134,7 +1266,7 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function get_order_existing_payment_lock( WC_Order $order ) {
 		$order->read_meta_data( true );
-		return $order->get_meta( '_stripe_lock_payment', true );
+		return $order->get_meta( self::META_STRIPE_LOCK_PAYMENT, true );
 	}
 
 	/**
@@ -1153,7 +1285,7 @@ class WC_Stripe_Order_Helper {
 
 		$new_lock = time() + 5 * MINUTE_IN_SECONDS;
 
-		$order->update_meta_data( '_stripe_lock_refund', $new_lock );
+		$order->update_meta_data( self::META_STRIPE_LOCK_REFUND, $new_lock );
 		$order->save_meta_data();
 
 		return false;
@@ -1169,7 +1301,7 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function get_order_existing_refund_lock( WC_Order $order ) {
 		$order->read_meta_data( true );
-		return $order->get_meta( '_stripe_lock_refund', true );
+		return $order->get_meta( self::META_STRIPE_LOCK_REFUND, true );
 	}
 
 	/**
@@ -1180,7 +1312,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_refund( WC_Order $order ): void {
-		$order->delete_meta_data( '_stripe_lock_refund' );
+		$order->delete_meta_data( self::META_STRIPE_LOCK_REFUND );
 		$order->save_meta_data();
 	}
 

@@ -14,7 +14,6 @@ import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
 	PAYMENT_METHOD_EPS,
-	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_IDEAL,
 	PAYMENT_METHOD_KLARNA,
 	PAYMENT_METHOD_MULTIBANCO,
@@ -45,16 +44,6 @@ const paymentMethodsMap = {
 		currencies: [],
 		allows_manual_capture: true,
 		supportsRecurring: true,
-	},
-	giropay: {
-		id: PAYMENT_METHOD_GIROPAY,
-		label: __( 'giropay', 'woocommerce-gateway-stripe' ),
-		description: __(
-			'Expand your business with giropay — Germany’s second most popular payment system.',
-			'woocommerce-gateway-stripe'
-		),
-		Icon: icons.giropay,
-		currencies: [ 'EUR' ],
 	},
 	klarna: {
 		id: PAYMENT_METHOD_KLARNA,
@@ -172,9 +161,9 @@ const paymentMethodsMap = {
 	},
 	ideal: {
 		id: PAYMENT_METHOD_IDEAL,
-		label: __( 'iDEAL', 'woocommerce-gateway-stripe' ),
+		label: 'iDEAL | Wero',
 		description: __(
-			'iDEAL is a Netherlands-based payment method that allows customers to complete transactions online using their bank credentials.',
+			'iDEAL | Wero is a Netherlands-based payment method that allows customers to complete transactions online using their bank credentials.',
 			'woocommerce-gateway-stripe'
 		),
 		Icon: icons.ideal,

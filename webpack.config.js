@@ -112,7 +112,6 @@ module.exports = {
 		},
 	},
 	entry: {
-		index: './client/blocks/index.js',
 		'upe-classic': './client/classic/upe/index.js',
 		'upe-blocks': './client/blocks/upe/index.js',
 		'upe-settings': './client/settings/index.js',
@@ -122,5 +121,6 @@ module.exports = {
 			'./client/entrypoints/express-checkout-settings/index.js',
 		'amazon-pay-settings':
 			'./client/entrypoints/amazon-pay-settings/index.js',
+		'plugins-page': './client/entrypoints/plugins-page/index.js',
 	},
 };

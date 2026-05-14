@@ -5,7 +5,6 @@ import {
 import {
 	PAYMENT_METHOD_AFFIRM,
 	PAYMENT_METHOD_AMAZON_PAY,
-	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_KLARNA,
 	PAYMENT_METHOD_LINK,
 } from '../../stripe-utils/constants';
@@ -23,6 +22,7 @@ import {
 	populateOrderAttributionInputs,
 } from 'wcstripe/blocks/utils';
 import './styles.scss';
+import 'wcstripe/blocks/express-checkout/styles.scss';
 import { upeElement } from 'wcstripe/blocks/upe/upe-element';
 
 const api = new WCStripeAPI(
@@ -38,11 +38,7 @@ const api = new WCStripeAPI(
 const paymentMethodsConfig =
 	getBlocksConfiguration()?.paymentMethodsConfig ?? {};
 
-const methodsToFilter = [
-	PAYMENT_METHOD_AMAZON_PAY,
-	PAYMENT_METHOD_LINK,
-	PAYMENT_METHOD_GIROPAY, // Skip giropay as it was deprecated by Jun, 30th 2024.
-];
+const methodsToFilter = [ PAYMENT_METHOD_AMAZON_PAY, PAYMENT_METHOD_LINK ];
 
 // Filter out some BNPLs when other official extensions are present.
 if ( getBlocksConfiguration()?.hasAffirmGatewayPlugin ) {

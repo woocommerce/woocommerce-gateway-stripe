@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -24,7 +27,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		$this->title       = __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
 		$this->is_reusable = true;
 		$this->label       = __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
-		$this->supports[]  = 'tokenization';
+		$this->supports[]  = PaymentGatewayFeature::TOKENIZATION;
 		$this->description = __(
 			'Let your customers pay with major credit and debit cards without leaving your store.',
 			'woocommerce-gateway-stripe'
@@ -32,6 +35,22 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();
+	}
+
+	/**
+	 * Whether the save-to-account checkbox should be shown on classic checkout.
+	 *
+	 * When Link is enabled, Link handles save consent via the Payment Element,
+	 * so the store-level checkbox is hidden for card.
+	 *
+	 * @return bool
+	 */
+	public function should_show_save_option() {
+		if ( WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( woocommerce_gateway_stripe()->get_main_stripe_gateway() ) ) {
+			return false;
+		}
+
+		return parent::should_show_save_option();
 	}
 
 	/**
@@ -121,10 +140,12 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		}
 
 		return sprintf(
-			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML anchor open tag 2) HTML anchor closing tag */
-			esc_html__( '%1$sTest mode:%2$s use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed %3$shere%4$s.', 'woocommerce-gateway-stripe' ),
+			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) number open tag 4) number closing tag 5) HTML anchor open tag 6) HTML anchor closing tag */
+			esc_html__( '%1$sTest mode:%2$s use card %3$s4242 4242 4242 4242%4$s with any expiry and CVC. %5$sMore test cards%6$s.', 'woocommerce-gateway-stripe' ),
 			'<strong>',
 			'</strong>',
+			'<number>',
+			'</number>',
 			'<a href="https://docs.stripe.com/testing" target="_blank">',
 			'</a>'
 		);

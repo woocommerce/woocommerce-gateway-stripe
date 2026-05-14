@@ -38,6 +38,21 @@ rm( 'build/*.map' );
 // copy the directories to the release folder
 cp( '-Rf', filesToCopy, targetFolder );
 
+// Strip contributor-tooling instruction files (AGENTS.md, CLAUDE.md) from the bundled directories.
+// These are read by coding agents working on the source repo and have no purpose inside the shipped plugin.
+find( targetFolder )
+	.filter( ( file ) => /\/(AGENTS|CLAUDE)\.md$/.test( file ) )
+	.forEach( ( file ) => rm( file ) );
+
+// Install production-only Composer dependencies in the release folder
+cp( 'composer.json', targetFolder );
+cp( 'composer.lock', targetFolder );
+exec(
+	`composer install --no-dev --classmap-authoritative --working-dir=${ targetFolder }`
+);
+rm( targetFolder + '/composer.json' );
+rm( targetFolder + '/composer.lock' );
+
 const output = fs.createWriteStream(
 	releaseFolder + '/' + pluginSlug + '.zip'
 );

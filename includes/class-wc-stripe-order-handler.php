@@ -207,7 +207,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 						sleep( $this->retry_interval );
 
-						$this->retry_interval++;
+						++$this->retry_interval;
 						return $this->process_redirect_payment( $order_id, true, $response->error );
 					} else {
 						$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
@@ -268,6 +268,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
 		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			// The Checkout Sessions (Adaptive Pricing) return URL uses its own
+			// nonce action and validation lifecycle, so it has its own dispatcher.
+			// Short-circuits internally when the request isn't a CS return.
+			$gateway->maybe_process_checkout_session_redirect();
 			$gateway->maybe_process_upe_redirect();
 		} else {
 			$this->maybe_process_legacy_redirect();
@@ -303,6 +307,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$result       = new stdClass();
 		$order        = wc_get_order( $order_id );
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$charge             = $order->get_transaction_id();
@@ -383,14 +391,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					// Store other data such as fees
 					$order->set_transaction_id( $result->id );
 
-					if ( is_callable( [ $order, 'save' ] ) ) {
-						$order->save();
-					}
+					$order->save();
 
 					$balance_transaction_id = $this->get_balance_transaction_id_from_charge( $result );
 
 					if ( ! empty( $balance_transaction_id ) ) {
-						$this->update_fees( $order, $balance_transaction_id );
+						$this->update_fees( $order, $balance_transaction_id, true );
 					}
 				}
 
@@ -500,5 +506,3 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		return $cancel_order;
 	}
 }
-
-new WC_Stripe_Order_Handler();

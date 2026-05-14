@@ -100,7 +100,7 @@ class WC_Stripe_Customer {
 	/**
 	 * Set Stripe customer ID.
 	 *
-	 * @param string|array $id The Stripe customer ID, or an array with 'customer_id' key for backwards compatibility.
+	 * @param string|array $id The Stripe customer ID, or an array containing the customer ID for backwards compatibility with pre-3.0 data storage.
 	 *
 	 * @return void
 	 */
@@ -185,6 +185,14 @@ class WC_Stripe_Customer {
 				$billing_last_name = get_user_meta( $user->ID, 'last_name', true );
 			}
 
+			// If still empty, fall back to POST/order data (e.g. during auto-account creation).
+			if ( empty( $billing_first_name ) ) {
+				$billing_first_name = $this->get_billing_data_field( 'billing_first_name', $order );
+			}
+			if ( empty( $billing_last_name ) ) {
+				$billing_last_name = $this->get_billing_data_field( 'billing_last_name', $order );
+			}
+
 			$email = $user->user_email;
 
 			// If the user email is not set, use the billing email.
@@ -237,11 +245,14 @@ class WC_Stripe_Customer {
 			'country'     => 'billing_country',
 		];
 		foreach ( $address_fields as $key => $field ) {
+			$value = '';
 			if ( $user ) {
-				$defaults['address'][ $key ] = get_user_meta( $user->ID, $field, true );
-			} else {
-				$defaults['address'][ $key ] = $this->get_billing_data_field( $field, $order );
+				$value = get_user_meta( $user->ID, $field, true );
 			}
+			if ( empty( $value ) ) {
+				$value = $this->get_billing_data_field( $field, $order );
+			}
+			$defaults['address'][ $key ] = $value;
 		}
 
 		return wp_parse_args( $args, $defaults );
@@ -426,7 +437,9 @@ class WC_Stripe_Customer {
 	 */
 	public function maybe_create_customer() {
 		if ( ! $this->get_id() ) {
-			return $this->set_id( $this->create_customer() );
+			$customer_id = $this->create_customer();
+			$this->set_id( $customer_id );
+			return $customer_id;
 		}
 
 		$response = WC_Stripe_API::retrieve( 'customers/' . $this->get_id() );
@@ -469,7 +482,7 @@ class WC_Stripe_Customer {
 	 * @param string|null   $current_context The context we are creating the customer in (optional).
 	 * @param WC_Order|null $order           The order object (optional). If provided, billing details will be retrieved from the order.
 	 *
-	 * @return WP_Error|int
+	 * @return string Stripe customer ID in the format `cus_XXXXXXXXXXXXXX`
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
@@ -529,7 +542,7 @@ class WC_Stripe_Customer {
 	 * @param bool          $is_retry Whether the current call is a retry (optional, defaults to false). If true, then an exception will be thrown instead of further retries on error.
 	 * @param WC_Order|null $order    The order object (optional). If provided, billing details will be retrieved from the order.
 	 *
-	 * @return string Customer ID
+	 * @return string Stripe customer ID in the format `cus_XXXXXXXXXXXXXX`
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
@@ -576,7 +589,7 @@ class WC_Stripe_Customer {
 	 * @param string|null   $current_context The context we are creating the customer in (optional).
 	 * @param WC_Order|null $order           The order object (optional). If provided, billing details will be retrieved from the order.
 	 *
-	 * @return string Customer ID
+	 * @return string Stripe customer ID in the format `cus_XXXXXXXXXXXXXX`
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
@@ -839,7 +852,7 @@ class WC_Stripe_Customer {
 			return [];
 		}
 
-		$cache_key = self::PAYMENT_METHODS_TRANSIENT_KEY . '__all_' . $this->get_id();
+		$cache_key           = self::PAYMENT_METHODS_TRANSIENT_KEY . '__all_' . $this->get_id();
 		$all_payment_methods = get_transient( $cache_key );
 
 		if ( false === $all_payment_methods || ! is_array( $all_payment_methods ) ) {
@@ -965,11 +978,11 @@ class WC_Stripe_Customer {
 	/**
 	 * Set default source in Stripe.
 	 *
-	 * @param string $source_id The source ID to set as default.
-	 *
-	 * @return bool True if successfully set, false otherwise.
+	 * @param string $source_id The ID of the source to set as default.
+	 * @return bool True if the default source was set successfully, false otherwise.
+	 * @throws WC_Stripe_Exception
 	 */
-	public function set_default_source( $source_id ) {
+	public function set_default_source( $source_id ): bool {
 		$response = WC_Stripe_API::request(
 			[
 				'default_source' => sanitize_text_field( $source_id ),
@@ -979,7 +992,9 @@ class WC_Stripe_Customer {
 		);
 
 		if ( empty( $response->error ) ) {
+			// Clear cache so that the payment methods list from Stripe is refreshed to have the correct default payment method.
 			$this->clear_cache();
+
 			do_action( 'wc_stripe_set_default_source', $this->get_id(), $response );
 
 			return true;
@@ -991,11 +1006,11 @@ class WC_Stripe_Customer {
 	/**
 	 * Set default payment method in Stripe.
 	 *
-	 * @param string $payment_method_id The payment method ID to set as default.
-	 *
-	 * @return bool True if successfully set, false otherwise.
+	 * @param string $payment_method_id The ID of the payment method to set as default.
+	 * @return bool True if the default payment method was set successfully, false otherwise.
+	 * @throws WC_Stripe_Exception
 	 */
-	public function set_default_payment_method( $payment_method_id ) {
+	public function set_default_payment_method( $payment_method_id ): bool {
 		$response = WC_Stripe_API::request(
 			[
 				'invoice_settings' => [
@@ -1007,7 +1022,9 @@ class WC_Stripe_Customer {
 		);
 
 		if ( empty( $response->error ) ) {
+			// Clear cache so that the payment methods list from Stripe is refreshed to have the correct default payment method.
 			$this->clear_cache();
+
 			do_action( 'wc_stripe_set_default_payment_method', $this->get_id(), $response );
 
 			return true;
@@ -1118,6 +1135,7 @@ class WC_Stripe_Customer {
 			'it_IT'          => 'it-IT',
 			'ja'             => 'ja-JP',
 			'nl_NL'          => 'nl-NL',
+			'nb_NO'          => 'no-NO',
 			'nn_NO'          => 'no-NO',
 			'pt_BR'          => 'pt-BR',
 			'sv_SE'          => 'sv-SE',

@@ -83,7 +83,6 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
-		add_action( 'template_redirect', [ $this, 'set_session' ] );
 		add_action( 'template_redirect', [ $this, 'handle_express_checkout_redirect' ] );
 
 		add_action( 'wp_enqueue_scripts', [ $this, 'scripts' ] );
@@ -125,10 +124,13 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * Sets the WC customer session if one is not set.
 	 * This is needed so nonces can be verified by AJAX Request.
+	 * DEPRECATED: We now defer creation of sessions until the user actually interacts with the Express Checkout Element.
 	 *
+	 * @deprecated 10.5.0
 	 * @return void
 	 */
 	public function set_session() {
+		wc_deprecated_function( __FUNCTION__, '10.5.0' );
 		// Don't set session cookies on product pages to allow for caching when payment request
 		// buttons are disabled. But keep cookies if there is already an active WC session in place.
 		if (
@@ -198,7 +200,6 @@ class WC_Stripe_Express_Checkout_Element {
 				'is_link_enabled'             => $this->express_checkout_helper->is_link_enabled(),
 				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
 				'is_amazon_pay_enabled'       => $this->express_checkout_helper->is_amazon_pay_enabled(),
-				'is_payment_request_enabled'  => $this->express_checkout_helper->is_payment_request_enabled(),
 			],
 			'nonce'                      => [
 				'payment'                       => wp_create_nonce( 'wc-stripe-express-checkout' ),
@@ -277,8 +278,15 @@ class WC_Stripe_Express_Checkout_Element {
 		$data     = [];
 		$items    = [];
 
-		// Allow third-party plugins to show itemization on the payment request button.
-		if ( apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) ) {
+		// Allow third-party plugins to show itemization on express checkout (keep legacy hook for BC).
+		$hide_itemization = apply_filters_deprecated(
+			'wc_stripe_payment_request_hide_itemization',
+			[ true ],
+			'10.6.0',
+			'wc_stripe_express_checkout_hide_itemization'
+		);
+		$hide_itemization = apply_filters( 'wc_stripe_express_checkout_hide_itemization', $hide_itemization );
+		if ( $hide_itemization ) {
 			$items[] = [
 				'label'  => __( 'Subtotal', 'woocommerce-gateway-stripe' ),
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_subtotal(), $currency ),
@@ -393,7 +401,7 @@ class WC_Stripe_Express_Checkout_Element {
 	private function register_express_checkout_script() {
 		$asset_data = $this->get_asset_data();
 
-		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
+		wp_register_script( 'stripe', 'https://js.stripe.com/clover/stripe.js', '', null, true );
 		wp_register_script(
 			'wc_stripe_express_checkout',
 			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',

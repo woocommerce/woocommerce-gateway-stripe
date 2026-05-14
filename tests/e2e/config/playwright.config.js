@@ -49,7 +49,7 @@ const config = {
 		[
 			'allure-playwright',
 			{
-				outputFolder: 'tests/e2e/test-results/report-allure/',
+				resultsDir: 'tests/e2e/test-results/report-allure/',
 			},
 		],
 	],
@@ -90,7 +90,14 @@ const config = {
 				'**/optimized-checkout.spec.js',
 				'**/blik.spec.js',
 				'**/becs.spec.js',
+				'**/isk.spec.js',
 			],
+			dependencies: [ 'default-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'isk',
+			testMatch: '**/isk.spec.js',
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},

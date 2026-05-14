@@ -99,22 +99,22 @@ export const useEnabledPaymentMethodIds = makeSettingsHook(
 	EMPTY_ARR
 );
 export const useExpressCheckoutEnabledSettings = makeSettingsHook(
-	'is_payment_request_enabled'
+	'is_express_checkout_enabled'
 );
 export const useExpressCheckoutButtonSize = makeSettingsHook(
-	'payment_request_button_size',
+	'express_checkout_button_size',
 	''
 );
 export const useExpressCheckoutButtonType = makeSettingsHook(
-	'payment_request_button_type',
+	'express_checkout_button_type',
 	''
 );
 export const useExpressCheckoutButtonTheme = makeSettingsHook(
-	'payment_request_button_theme',
+	'express_checkout_button_theme',
 	''
 );
 export const useExpressCheckoutLocations = makeSettingsHook(
-	'payment_request_button_locations',
+	'express_checkout_button_locations',
 	EMPTY_ARR
 );
 export const useAmazonPayEnabledSettings = () => {
@@ -167,6 +167,7 @@ export const useIsShortAccountStatementEnabled = makeSettingsHook(
 );
 export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
 export const useIsOCEnabled = makeSettingsHook( 'is_oc_enabled' );
+export const useIsAdaptivePricingEnabled = makeSettingsHook( 'is_ap_enabled' );
 export const useOCLayout = makeSettingsHook( 'oc_layout' );
 export const useIsPMCEnabled = makeReadOnlySettingsHook(
 	'is_pmc_enabled',

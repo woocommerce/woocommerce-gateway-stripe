@@ -76,6 +76,10 @@ class WC_Stripe_Admin_Notices {
 		// All other payment methods.
 		$this->payment_methods_check_environment();
 
+		// Check for merchants affected by ECE button location bug.
+		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4861
+		$this->check_express_checkout_location();
+
 		// Check for subscriptions detached from the customer.
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 			$this->subscription_check_detachment();
@@ -95,7 +99,7 @@ class WC_Stripe_Admin_Notices {
 
 			if ( $notice['dismissible'] ) {
 				?>
-				<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'wc-stripe-hide-notice', $notice_key ), 'wc_stripe_hide_notices_nonce', '_wc_stripe_notice_nonce' ) ); ?>" class="woocommerce-message-close notice-dismiss" style="position:relative;float:right;padding:9px 0px 9px 9px 9px;text-decoration:none;"></a>
+				<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'wc-stripe-hide-notice', $notice_key ), 'wc_stripe_hide_notices_nonce', '_wc_stripe_notice_nonce' ) ); ?>" class="woocommerce-message-close notice-dismiss" style="position:relative;float:right;padding:9px 0 9px 9px;text-decoration:none;"></a>
 				<?php
 			}
 
@@ -393,12 +397,63 @@ class WC_Stripe_Admin_Notices {
 	}
 
 	/**
+	 * Checks if the merchant may have been affected by the ECE button location bug
+	 * in versions 10.1.0–10.2.x and displays a notice if so.
+	 *
+	 * @since 10.4.0
+	 *
+	 * @return void
+	 */
+	public function check_express_checkout_location(): void {
+		$show_notice = get_option( 'wc_stripe_show_ece_location_notice' );
+
+		if ( 'yes' !== $show_notice ) {
+			return;
+		}
+
+		$options   = WC_Stripe_Helper::get_stripe_settings();
+		$enabled   = isset( $options['express_checkout'] ) && 'yes' === $options['express_checkout'];
+		$locations = isset( $options['express_checkout_button_locations'] ) ? $options['express_checkout_button_locations'] : [];
+
+		if ( ! $enabled ) {
+			return;
+		}
+
+		$has_product  = in_array( 'product', $locations, true );
+		$has_cart     = in_array( 'cart', $locations, true );
+		$has_checkout = in_array( 'checkout', $locations, true );
+
+		// We only need to show the notice if we have ( product + cart ) but not checkout, so return if we have anything else.
+		if ( ! ( $has_product && $has_cart && ! $has_checkout ) ) {
+			return;
+		}
+
+		$settings_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods&area=express_checkout' );
+
+		$message = sprintf(
+			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML line break tag */
+			__( '%1$sAction Required: Review your Stripe express checkout settings.%2$s%3$sA recent update to the Stripe plugin may have unintentionally changed where Apple Pay and Google Pay buttons appear. Currently, they are active on the product and cart pages but not on the checkout page. Please review your express checkout settings to ensure your customers have the best checkout experience.', 'woocommerce-gateway-stripe' ),
+			'<strong>',
+			'</strong>',
+			'<br>'
+		);
+
+		$review_action = sprintf(
+			'<a href="%s" style="display:inline-block;margin:4px 4px 4px 0;">%s</a>',
+			esc_url( $settings_url ),
+			__( 'Review Settings', 'woocommerce-gateway-stripe' )
+		);
+
+		$this->add_admin_notice( 'ece_location', 'notice notice-warning', $message, true, [ $review_action ] );
+	}
+
+	/**
 	 * Adds a notice to the subscription details page if we are looking at an active subscription and the payment method has been detached.
 	 *
 	 * @return void
 	 */
 	public function subscription_check_detachment() {
-		if ( ! self::is_subscription_edit_page() ) {
+		if ( ! WC_Stripe_Subscriptions_Helper::is_subscription_edit_page() ) {
 			return;
 		}
 
@@ -432,7 +487,7 @@ class WC_Stripe_Admin_Notices {
 			);
 			$customer_stripe_page = sprintf(
 				'<a href="%s">%s</a>',
-				esc_url( WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . $subscription->get_meta( '_stripe_customer_id' ) ),
+				esc_url( WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $subscription ) ),
 				esc_html(
 					/* translators: this is a text for a link pointing to the customer's page on Stripe */
 					__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
@@ -477,7 +532,7 @@ class WC_Stripe_Admin_Notices {
 				}
 				$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
 				if ( ! empty( $detached_messages ) ) {
-					$notice_content = '<p>';
+					$notice_content  = '<p>';
 					$notice_content .= wp_kses(
 						$detached_messages,
 						[
@@ -591,6 +646,9 @@ class WC_Stripe_Admin_Notices {
 						wp_safe_redirect( remove_query_arg( [ 'wc-stripe-hide-notice', '_wc_stripe_notice_nonce' ], esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) );
 					}
 					break;
+				case 'ece_location':
+					update_option( 'wc_stripe_show_ece_location_notice', 'no' );
+					break;
 			}
 		}
 	}
@@ -625,25 +683,15 @@ class WC_Stripe_Admin_Notices {
 		if ( empty( $previous_version ) || version_compare( $previous_version, '4.3.0', 'ge' ) ) {
 			update_option( 'wc_stripe_show_sca_notice', 'no' );
 		}
-	}
 
-	/**
-	 * Checks if the current page is a subscription edit page in wp-admin.
-	 *
-	 * This should be removed once WooCommerce provides a way to check for subscription edit pages.
-	 *
-	 * @return bool
-	 */
-	private static function is_subscription_edit_page() {
-		$query_params = wp_unslash( $_REQUEST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) { // If custom order tables are enabled, we need to check the page query param.
-			return isset( $query_params['page'] ) && 'wc-orders--shop_subscription' === $query_params['page'] && isset( $query_params['id'] );
+		// Set the ECE location notice flag if upgrading from the affected version range (10.1.0–10.2.x).
+		// A bug in these versions reset express checkout button locations during upgrade.
+		$was_affected_version = ! empty( $previous_version )
+			&& version_compare( $previous_version, '10.1.0', '>=' )
+			&& version_compare( $previous_version, '10.4.0', '<' );
+
+		if ( $was_affected_version && 'no' !== get_option( 'wc_stripe_show_ece_location_notice' ) ) {
+			update_option( 'wc_stripe_show_ece_location_notice', 'yes' );
 		}
-
-		// If custom order tables are not enabled, we need to check the post type and action query params.
-		$is_shop_subscription_post_type = isset( $query_params['post'] ) && 'shop_subscription' === get_post_type( $query_params['post'] );
-		return isset( $query_params['action'] ) && 'edit' === $query_params['action'] && $is_shop_subscription_post_type;
 	}
 }
-
-new WC_Stripe_Admin_Notices();

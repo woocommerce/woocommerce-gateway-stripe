@@ -12,18 +12,9 @@ export const gatewaysInfo = {
 		),
 		guide: 'https://stripe.com/payments/payment-methods-guide#sepa-direct-debit',
 	},
-	stripe_giropay: {
-		id: 'giropay',
-		title: __( 'giropay', 'woocommerce-gateway-stripe' ),
-		geography: __(
-			'Customer Geography: Germany.',
-			'woocommerce-gateway-stripe'
-		),
-		guide: 'https://stripe.com/payments/payment-methods-guide#giropay',
-	},
 	stripe_ideal: {
 		id: 'ideal',
-		title: __( 'iDEAL', 'woocommerce-gateway-stripe' ),
+		title: 'iDEAL | Wero',
 		geography: __(
 			'Customer Geography: The Netherlands.',
 			'woocommerce-gateway-stripe'
