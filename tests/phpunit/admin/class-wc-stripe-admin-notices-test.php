@@ -815,6 +815,12 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$subscription->update_meta_data( $meta_key, 'yes' );
 		$subscription->save_meta_data();
 
+		// Ensure HPOS is enabled so is_subscription_edit_page() recognises the request params.
+		$cot_ctrl = wc_get_container()->get( \Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController::class );
+		remove_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999 );
+		update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+		add_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999, 3 );
+
 		$_REQUEST = [
 			'page' => 'wc-orders--shop_subscription',
 			'id'   => $subscription->get_id(),
@@ -874,6 +880,12 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			HOUR_IN_SECONDS
 		);
 
+		// Ensure HPOS is enabled so is_subscription_edit_page() recognises the request params.
+		$cot_ctrl = wc_get_container()->get( \Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController::class );
+		remove_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999 );
+		update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+		add_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999, 3 );
+
 		$_REQUEST = [
 			'page' => 'wc-orders--shop_subscription',
 			'id'   => $subscription->get_id(),
@@ -907,6 +919,12 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$subscription->set_status( 'active' );
 		$subscription->save();
 
+		WC_Subscriptions::set_wcs_get_subscription(
+			function ( $id ) use ( $subscription ) {
+				return $subscription;
+			}
+		);
+
 		$_GET['wc-stripe-hide-notice']   = 'subscription_detached';
 		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
 		$_REQUEST['id']                  = $subscription->get_id(); // HPOS path
@@ -914,9 +932,9 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$notices = $this->create_admin_notices_instance();
 		$notices->hide_notices();
 
-		$reloaded = wcs_get_subscription( $subscription->get_id() );
-		$this->assertEquals( 'yes', $reloaded->get_meta( '_wc_stripe_subscription_detached_notice_dismissed' ) );
+		$this->assertEquals( 'yes', $subscription->get_meta( '_wc_stripe_subscription_detached_notice_dismissed' ) );
 
+		WC_Subscriptions::$wcs_get_subscription = null;
 		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['id'] );
 	}
 
@@ -933,6 +951,12 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$subscription->set_status( 'active' );
 		$subscription->save();
 
+		WC_Subscriptions::set_wcs_get_subscription(
+			function ( $id ) use ( $subscription ) {
+				return $subscription;
+			}
+		);
+
 		$_GET['wc-stripe-hide-notice']   = 'subscription_detached';
 		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
 		$_REQUEST['post']                = $subscription->get_id(); // Non-HPOS path
@@ -940,9 +964,9 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$notices = $this->create_admin_notices_instance();
 		$notices->hide_notices();
 
-		$reloaded = wcs_get_subscription( $subscription->get_id() );
-		$this->assertEquals( 'yes', $reloaded->get_meta( '_wc_stripe_subscription_detached_notice_dismissed' ) );
+		$this->assertEquals( 'yes', $subscription->get_meta( '_wc_stripe_subscription_detached_notice_dismissed' ) );
 
+		WC_Subscriptions::$wcs_get_subscription = null;
 		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['post'] );
 	}
 
@@ -965,8 +989,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$notices = $this->create_admin_notices_instance();
 		$notices->hide_notices();
 
-		$reloaded = wcs_get_subscription( $subscription->get_id() );
-		$this->assertEmpty( $reloaded->get_meta( '_wc_stripe_subscription_detached_notice_dismissed' ) );
+		$this->assertEmpty( $subscription->get_meta( '_wc_stripe_subscription_detached_notice_dismissed' ) );
 
 		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
 	}
@@ -991,8 +1014,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$notices = $this->create_admin_notices_instance();
 		$notices->hide_notices();
 
-		$reloaded = wcs_get_subscription( $subscription->get_id() );
-		$this->assertEmpty( $reloaded->get_meta( '_wc_stripe_subscription_detached_notice_dismissed' ) );
+		$this->assertEmpty( $subscription->get_meta( '_wc_stripe_subscription_detached_notice_dismissed' ) );
 
 		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['id'] );
 	}
