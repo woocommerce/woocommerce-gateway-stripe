@@ -110,6 +110,18 @@ class WC_Stripe_Plugins_Page_Controller {
 
 	/**
 	 * Appends a "Release Notes" link to the plugin row meta on the plugins admin page.
+
+	private string $stripe_plugin_basename = '';
+
+	private function get_plugin_basename(): string {
+		if ( '' === $this->stripe_plugin_basename ) {
+			$this->stripe_plugin_basename = plugin_basename( WC_STRIPE_MAIN_FILE );
+		}
+		return $this->stripe_plugin_basename;
+	}
+
+	/**
+	 * Appends a "Release Notes" link to the plugin row meta on the plugins admin page.
 	 *
 	 * The link reuses WordPress' built-in plugin information modal, opened on the
 	 * changelog tab via thickbox (already enqueued by `enqueue_scripts`).
@@ -119,9 +131,7 @@ class WC_Stripe_Plugins_Page_Controller {
 	 * @return array Updated row meta links.
 	 */
 	public function add_release_notes_link( $links, $file ): array {
-		$links = (array) $links;
-
-		if ( plugin_basename( WC_STRIPE_MAIN_FILE ) !== $file ) {
+		if ( $this->get_plugin_basename() !== $file ) {
 			return (array) $links;
 		}
 
