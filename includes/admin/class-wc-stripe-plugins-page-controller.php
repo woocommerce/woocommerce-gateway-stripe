@@ -71,7 +71,10 @@ class WC_Stripe_Plugins_Page_Controller {
 		wp_localize_script(
 			'wc-stripe-plugins-page',
 			'wcStripePluginsPageParams',
-			WC_Stripe_Helper::get_exit_survey_params( $this->account )
+			array_merge(
+				WC_Stripe_Helper::get_exit_survey_params( $this->account ),
+				$this->get_changelog_link_params()
+			)
 		);
 
 		// Required for the plugin information modal that the "Release notes" link opens.
@@ -82,12 +85,15 @@ class WC_Stripe_Plugins_Page_Controller {
 	}
 
 	/**
-	 * Returns the plugin slug derived from the plugin path.
+	 * Returns the WordPress.org plugin slug.
+	 *
+	 * Hard-coded so the plugin information modal still resolves when the plugin
+	 * is installed in a non-standard directory.
 	 *
 	 * @return string The plugin slug.
 	 */
 	private function get_plugin_slug(): string {
-		return basename( WC_STRIPE_PLUGIN_PATH );
+		return 'woocommerce-gateway-stripe';
 	}
 
 	/**
@@ -102,6 +108,15 @@ class WC_Stripe_Plugins_Page_Controller {
 		);
 	}
 
+	private string $stripe_plugin_basename = '';
+
+	private function get_plugin_basename(): string {
+		if ( '' === $this->stripe_plugin_basename ) {
+			$this->stripe_plugin_basename = plugin_basename( WC_STRIPE_MAIN_FILE );
+		}
+		return $this->stripe_plugin_basename;
+	}
+
 	/**
 	 * Appends a "Release Notes" link to the plugin row meta on the plugins admin page.
 	 *
@@ -113,8 +128,16 @@ class WC_Stripe_Plugins_Page_Controller {
 	 * @return array Updated row meta links.
 	 */
 	public function add_release_notes_link( $links, $file ): array {
-		if ( plugin_basename( WC_STRIPE_MAIN_FILE ) !== $file ) {
+		if ( $this->get_plugin_basename() !== $file ) {
 			return (array) $links;
+		}
+
+		// When an update is available, WordPress core already injects its own
+		// "View details" link into the plugin row pointing at the same modal.
+		// Skip ours to avoid redundancy and to avoid surfacing release notes
+		// for a version the user has not installed yet.
+		if ( $this->has_pending_update( $file ) ) {
+			return $links;
 		}
 
 		$plugin_slug = $this->get_plugin_slug();
@@ -129,6 +152,29 @@ class WC_Stripe_Plugins_Page_Controller {
 		);
 
 		return $links;
+	}
+
+	/**
+	 * Whether WordPress has staged an available update for the given plugin file.
+	 *
+	 * @param string $file Plugin file relative path.
+	 * @return bool
+	 */
+	private function has_pending_update( string $file ): bool {
+		$updates = get_site_transient( 'update_plugins' );
+		return isset( $updates->response[ $file ] );
+	}
+
+	/**
+	 * Localized params used by the post-update changelog link.
+	 *
+	 * @return array{plugin_slug: string, view_changelog_url: string}
+	 */
+	private function get_changelog_link_params(): array {
+		return [
+			'plugin_slug'        => $this->get_plugin_slug(),
+			'view_changelog_url' => $this->get_changelog_url(),
+		];
 	}
 
 	/**

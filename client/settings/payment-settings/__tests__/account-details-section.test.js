@@ -19,6 +19,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn(),
 	useTestMode: jest.fn(),
 	useUpeTitle: jest.fn().mockReturnValue( [] ),
+	useIsPMCEnabled: jest.fn().mockReturnValue( false ),
 } ) );
 
 jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {

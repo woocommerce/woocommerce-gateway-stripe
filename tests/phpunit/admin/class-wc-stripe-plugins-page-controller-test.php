@@ -23,6 +23,8 @@ class WC_Stripe_Plugins_Page_Controller_Test extends WP_UnitTestCase {
 		wp_dequeue_script( 'thickbox' );
 		wp_dequeue_style( 'thickbox' );
 
+		delete_site_transient( 'update_plugins' );
+
 		parent::tearDown();
 	}
 
@@ -70,8 +72,8 @@ class WC_Stripe_Plugins_Page_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests that the "Updated!" changelog link relies on thickbox being enqueued
-	 * so the plugin information modal can open from the plugins.php page.
+	 * Tests that thickbox is enqueued on plugins.php so the plugin information
+	 * modal opened by the "Release notes" link can render.
 	 *
 	 * @return void
 	 */
@@ -108,5 +110,52 @@ class WC_Stripe_Plugins_Page_Controller_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'plugin=woocommerce-gateway-stripe', $link_html );
 		$this->assertStringContainsString( 'section=changelog', $link_html );
 		$this->assertStringContainsString( 'TB_iframe=true', $link_html );
+	}
+
+	/**
+	 * Tests that the "Release notes" link is omitted when WordPress has staged
+	 * an available update for the Stripe plugin, so it does not duplicate the
+	 * core "View details" link and does not surface notes for a not-yet-installed version.
+	 *
+	 * @return void
+	 */
+	public function test_add_release_notes_link_skipped_when_update_is_pending(): void {
+		$basename = plugin_basename( WC_STRIPE_MAIN_FILE );
+
+		set_site_transient(
+			'update_plugins',
+			(object) [
+				'response' => [
+					$basename => (object) [ 'new_version' => '999.0.0' ],
+				],
+			]
+		);
+
+		$controller = $this->get_mock_controller();
+		$result     = $controller->add_release_notes_link( [], $basename );
+
+		$this->assertArrayNotHasKey( 'wc_stripe_release_notes', $result );
+	}
+
+	/**
+	 * Tests that the changelog link parameters are localized for the JS
+	 * post-update enhancement. Guards the contract between the controller
+	 * and `initAppendChangelogLink` so renaming or dropping a key surfaces here.
+	 *
+	 * @return void
+	 */
+	public function test_enqueue_scripts_localizes_changelog_link_params(): void {
+		$controller = $this->get_mock_controller();
+
+		$controller->enqueue_scripts( 'plugins.php' );
+
+		$inline_data = wp_scripts()->get_data( 'wc-stripe-plugins-page', 'data' );
+		$this->assertIsString( $inline_data );
+
+		$this->assertStringContainsString( '"plugin_slug":"woocommerce-gateway-stripe"', $inline_data );
+		$this->assertStringContainsString( 'tab=plugin-information', $inline_data );
+		$this->assertStringContainsString( 'plugin=woocommerce-gateway-stripe', $inline_data );
+		$this->assertStringContainsString( 'section=changelog', $inline_data );
+		$this->assertStringContainsString( 'TB_iframe=true', $inline_data );
 	}
 }
