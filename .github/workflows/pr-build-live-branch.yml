@@ -132,7 +132,7 @@ jobs:
 
           **If you are a logged-in Automattic staff member:**
 
-          :rocket: [Launch a Jurassic Ninja site with this branch](https://jurassic.ninja/create/?jetpack-beta&shortlived&nojetpack&woocommerce&woocommerce-import-sample-data&woocommerce-gateway-stripe-dev-tools&branches.woocommerce-gateway-stripe=${PR_HEAD_REF}) :rocket:
+          :rocket: [Launch a Jurassic Ninja site with this branch and sample products](https://jurassic.ninja/create/?jetpack-beta&shortlived&nojetpack&woocommerce&woocommerce-import-sample-data&woocommerce-gateway-stripe-dev-tools&branches.woocommerce-gateway-stripe=${PR_HEAD_REF}) :rocket:
           
           **Otherwise, use the following manual flow:**
 
@@ -141,7 +141,7 @@ jobs:
           * Check \"Jetpack Beta\"
           * Enter \`${PR_HEAD_REF}\` for the WooCommerce Stripe Gateway line
           * Check \"WooCommerce\"
-          * Check \"Import sample product data\"
+          * Check \"Import sample product data\" (it should be immediately below the WooCommerce option)
           * Enter your email address
           * Click on \"Launch single site\"
 
