@@ -479,8 +479,10 @@ class WC_Stripe_Admin_Notices {
 		// If not detached but the user dismissed the notice prior, clear the meta so it can show if later detached.
 		$detachment_meta_key = '_wc_stripe_subscription_detached_notice_dismissed';
 		if ( ! WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription ) ) {
-			$subscription->delete_meta_data( $detachment_meta_key );
-			$subscription->save_meta_data();
+			if ( $subscription->get_meta( $detachment_meta_key ) ) {
+				$subscription->delete_meta_data( $detachment_meta_key );
+				$subscription->save_meta_data();
+			}
 			return;
 		}
 
