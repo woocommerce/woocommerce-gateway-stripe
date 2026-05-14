@@ -153,7 +153,6 @@ function wcstripe_deactivated(): void {
 	woocommerce_stripe_init_autoloader();
 
 	// admin notes are not supported on older versions of WooCommerce.
-	require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
 	if ( class_exists( 'WC_Stripe_Inbox_Notes' ) && WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
 		// requirements for the note
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
