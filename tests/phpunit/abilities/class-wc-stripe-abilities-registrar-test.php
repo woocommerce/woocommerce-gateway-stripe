@@ -72,10 +72,9 @@ class WC_Stripe_Abilities_Registrar_Test extends WP_UnitTestCase {
 
 		$classes = WC_Stripe_Abilities_Registrar::append_classes( [] );
 
-		// Filled per-ability as Domain classes land in Phases II–III. The
-		// list is currently empty; assert that explicitly so a stray
-		// addition without a matching expectation fails this guard.
-		$expected = [];
+		$expected = [
+			WC_Stripe_Ability_Get_Account_Summary::class,
+		];
 
 		foreach ( $expected as $class ) {
 			$this->assertContains( $class, $classes, "append_classes() must include $class." );

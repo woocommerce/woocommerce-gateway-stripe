@@ -53,7 +53,9 @@ class WC_Stripe_Abilities_Registrar {
 	 *
 	 * @var array<int, class-string>
 	 */
-	private const ABILITY_CLASSES = [];
+	private const ABILITY_CLASSES = [
+		WC_Stripe_Ability_Get_Account_Summary::class,
+	];
 
 	/**
 	 * Whether init() has already wired its filter callbacks.
