@@ -7,6 +7,7 @@ xxxx-xx-xx - version 10.8.0
 * Remove - Remove giropay from new checkouts (deprecated by Stripe on 2024-06-30); legacy refund and past-order rendering preserved
 * Dev - Exclude AGENTS.md and CLAUDE.md contributor-instruction files from the built plugin zip
 * Add - Append a "what's new" changelog link to the Updated! message after manually updating the plugin from the Plugins page
+* Fix - Add guards against invalid values for webhook state timestamps
 * Fix - Show better message when express checkout preview is not available
 
 2026-05-12 - version 10.7.0
