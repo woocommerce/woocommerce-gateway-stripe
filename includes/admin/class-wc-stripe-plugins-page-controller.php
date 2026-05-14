@@ -108,9 +108,6 @@ class WC_Stripe_Plugins_Page_Controller {
 		);
 	}
 
-	/**
-	 * Appends a "Release Notes" link to the plugin row meta on the plugins admin page.
-
 	private string $stripe_plugin_basename = '';
 
 	private function get_plugin_basename(): string {
