@@ -50,10 +50,8 @@ export function recordEvent( eventName, eventProperties ) {
 			return;
 		}
 
-		// Add default properties to every event. `wc_stripe_settings_params`
-		// is localized only on Stripe-owned admin screens (settings, payment
-		// gateways), so callers on other screens (e.g. the plugins page) skip
-		// these defaults rather than throwing a ReferenceError.
+		// Only localized on Stripe admin screens; guard so callers elsewhere
+		// (e.g. plugins page) don't throw ReferenceError.
 		const settingsParams =
 			// eslint-disable-next-line camelcase
 			typeof wc_stripe_settings_params !== 'undefined'
