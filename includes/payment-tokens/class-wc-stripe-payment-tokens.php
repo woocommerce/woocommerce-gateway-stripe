@@ -85,9 +85,20 @@ class WC_Stripe_Payment_Tokens {
 				return 'BECS Direct Debit';
 			case 'sepa iban':
 				return 'SEPA IBAN';
-			default:
-				return $label;
 		}
+
+		// Repair wallet-prefixed brand labels mangled by `wc_get_credit_card_type_label`.
+		// The My Account payment-methods template re-applies that function to the brand we
+		// set in `get_account_saved_payment_methods_list_item`. Its internal lowercase +
+		// `ucwords()` pass capitalizes words that start with a letter, but the inner card
+		// brand wrapped in parens (e.g. "(visa)") starts with `(`, which `ucwords` doesn't
+		// treat as a word boundary — so "Google Pay (Visa)" arrives here as
+		// "Google Pay (visa)". Re-look-up the inner card brand to restore its label.
+		if ( preg_match( '/^(Apple Pay|Google Pay) \(([a-z][a-z ]*)\)$/', $label, $matches ) ) {
+			return $matches[1] . ' (' . wc_get_credit_card_type_label( $matches[2] ) . ')';
+		}
+
+		return $label;
 	}
 
 	/**
@@ -676,7 +687,47 @@ class WC_Stripe_Payment_Tokens {
 				break;
 		}
 
+		// Wallet-tokenized credit cards: surface the wallet branding so the shopper can
+		// distinguish e.g. an Apple Pay-saved card from a manually entered one. Link
+		// (`card.wallet.type === 'link'`) is persisted but not displayed here — the
+		// dedicated WC_Payment_Token_Link covers pure-Link UI, and the Link-stamped card
+		// case is a separate UX decision (see #5437).
+		if ( $payment_token instanceof WC_Stripe_Payment_Token_CC ) {
+			$wallet_label = $this->get_wallet_brand_label( $payment_token->get_wallet_type() );
+			if ( '' !== $wallet_label ) {
+				$existing_brand = isset( $item['method']['brand'] ) ? trim( (string) $item['method']['brand'] ) : '';
+				// `wc_get_credit_card_type_label` is what WC's template would apply to the raw
+				// (lowercase) card_type; do it here so the wrapped value stays consistent with
+				// non-wallet rendering (e.g. "Visa", not "visa").
+				if ( '' !== $existing_brand ) {
+					$existing_brand = wc_get_credit_card_type_label( $existing_brand );
+				}
+				$item['method']['brand'] = '' === $existing_brand
+					? $wallet_label
+					: sprintf( '%s (%s)', $wallet_label, $existing_brand );
+			}
+		}
+
 		return $item;
+	}
+
+	/**
+	 * Maps a `card.wallet.type` slug to the shopper-facing wallet brand. Returns an
+	 * empty string for slugs that should not be surfaced in the saved-methods list
+	 * (currently including `link`; see `get_account_saved_payment_methods_list_item`).
+	 *
+	 * @param string $wallet_type Stripe wallet type slug.
+	 * @return string Wallet brand label, or empty string.
+	 */
+	private function get_wallet_brand_label( $wallet_type ) {
+		switch ( $wallet_type ) {
+			case WC_Stripe_Payment_Methods::APPLE_PAY:
+				return WC_Stripe_Payment_Methods::APPLE_PAY_LABEL;
+			case WC_Stripe_Payment_Methods::GOOGLE_PAY:
+				return WC_Stripe_Payment_Methods::GOOGLE_PAY_LABEL;
+			default:
+				return '';
+		}
 	}
 
 	/**
@@ -777,6 +828,7 @@ class WC_Stripe_Payment_Tokens {
 					$found_token->set_expiry_year( $payment_method->card->exp_year );
 					$found_token->set_card_type( strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand ) );
 					$found_token->set_last4( $payment_method->card->last4 );
+					$found_token->set_wallet_type( (string) ( $payment_method->card->wallet->type ?? '' ) );
 				}
 
 				$found_token->save();
@@ -795,6 +847,7 @@ class WC_Stripe_Payment_Tokens {
 				$token->set_card_type( strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand ) );
 				$token->set_last4( $payment_method->card->last4 );
 				$token->set_fingerprint( $payment_method->card->fingerprint );
+				$token->set_wallet_type( (string) ( $payment_method->card->wallet->type ?? '' ) );
 				break;
 			case WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID:
 				$token = new WC_Payment_Token_Bacs_Debit();
@@ -1097,7 +1150,7 @@ class WC_Stripe_Payment_Tokens {
 			$bancontact_tokens_enabled = $gateway->is_sepa_tokens_for_bancontact_enabled();
 
 			if ( ( $ideal_tokens_enabled && in_array( WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID, $active_reusable_payment_method_types, true ) )
-				 || ( $bancontact_tokens_enabled && in_array( WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID, $active_reusable_payment_method_types, true ) ) ) {
+				|| ( $bancontact_tokens_enabled && in_array( WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID, $active_reusable_payment_method_types, true ) ) ) {
 				$active_reusable_payment_method_types[] = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
 			}
 		}

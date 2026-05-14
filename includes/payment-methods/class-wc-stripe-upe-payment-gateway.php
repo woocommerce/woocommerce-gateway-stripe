@@ -3597,6 +3597,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( $found_token ) {
 			// Update the token with the new payment method ID.
 			$payment_method_instance->update_payment_token( $found_token, $payment_method_object->id );
+
+			// `update_payment_token` only refreshes the PaymentMethod ID. When the
+			// matched token predates the wallet-aware token-create paths (or was last
+			// updated from a non-wallet purchase of the same underlying card),
+			// refresh its `wallet_type` so the saved-methods list reflects the
+			// current wallet branding.
+			if ( $found_token instanceof WC_Stripe_Payment_Token_CC && isset( $payment_method_object->card ) ) {
+				$found_token->set_wallet_type( (string) ( $payment_method_object->card->wallet->type ?? '' ) );
+				$found_token->save();
+			}
 		} else {
 			// Create a payment token for the user in the store.
 			$payment_method_instance->create_payment_token_for_user( $user->ID, $payment_method_object );
