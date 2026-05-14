@@ -87,13 +87,9 @@ class WC_Stripe_Payment_Tokens {
 				return 'SEPA IBAN';
 		}
 
-		// Repair wallet-prefixed brand labels mangled by `wc_get_credit_card_type_label`.
-		// The My Account payment-methods template re-applies that function to the brand we
-		// set in `get_account_saved_payment_methods_list_item`. Its internal lowercase +
-		// `ucwords()` pass capitalizes words that start with a letter, but the inner card
-		// brand wrapped in parens (e.g. "(visa)") starts with `(`, which `ucwords` doesn't
-		// treat as a word boundary — so "Google Pay (Visa)" arrives here as
-		// "Google Pay (visa)". Re-look-up the inner card brand to restore its label.
+		// The My Account template re-applies wc_get_credit_card_type_label to our wrapped
+		// brand. Its ucwords pass leaves the inner card name lowercase because `(` isn't
+		// a word boundary — restore it here.
 		if ( preg_match( '/^(Apple Pay|Google Pay) \(([a-z][a-z ]*)\)$/', $label, $matches ) ) {
 			return $matches[1] . ' (' . wc_get_credit_card_type_label( $matches[2] ) . ')';
 		}
@@ -687,18 +683,12 @@ class WC_Stripe_Payment_Tokens {
 				break;
 		}
 
-		// Wallet-tokenized credit cards: surface the wallet branding so the shopper can
-		// distinguish e.g. an Apple Pay-saved card from a manually entered one. Link
-		// (`card.wallet.type === 'link'`) is persisted but not displayed here — the
-		// dedicated WC_Payment_Token_Link covers pure-Link UI, and the Link-stamped card
-		// case is a separate UX decision (see #5437).
+		// Wrap Apple Pay / Google Pay branding around the card brand. Link wallet_type
+		// is persisted but not surfaced here (see #5437).
 		if ( $payment_token instanceof WC_Stripe_Payment_Token_CC ) {
 			$wallet_label = $this->get_wallet_brand_label( $payment_token->get_wallet_type() );
 			if ( '' !== $wallet_label ) {
 				$existing_brand = isset( $item['method']['brand'] ) ? trim( (string) $item['method']['brand'] ) : '';
-				// `wc_get_credit_card_type_label` is what WC's template would apply to the raw
-				// (lowercase) card_type; do it here so the wrapped value stays consistent with
-				// non-wallet rendering (e.g. "Visa", not "visa").
 				if ( '' !== $existing_brand ) {
 					$existing_brand = wc_get_credit_card_type_label( $existing_brand );
 				}
@@ -712,12 +702,11 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
-	 * Maps a `card.wallet.type` slug to the shopper-facing wallet brand. Returns an
-	 * empty string for slugs that should not be surfaced in the saved-methods list
-	 * (currently including `link`; see `get_account_saved_payment_methods_list_item`).
+	 * Maps a `card.wallet.type` slug to the shopper-facing wallet brand, or empty
+	 * for slugs we don't surface in the saved-methods list (currently including `link`).
 	 *
-	 * @param string $wallet_type Stripe wallet type slug.
-	 * @return string Wallet brand label, or empty string.
+	 * @param string $wallet_type
+	 * @return string
 	 */
 	private function get_wallet_brand_label( $wallet_type ) {
 		switch ( $wallet_type ) {

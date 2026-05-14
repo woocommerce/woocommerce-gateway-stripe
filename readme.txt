@@ -152,6 +152,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.8.0 - xxxx-xx-xx =
+* Add - Show Apple Pay / Google Pay branding on saved card tokens in My Account → Payment Methods
 * Fix - Improve handling of skipped products and in-flight syncs in Agentic Commerce sync dashboard
 * Fix - Make the "Update now" link in the account status tooltip clickable and improve its contrast against the tooltip background
 * Dev - Add Jurassic Ninja preview link for PRs to enable one-click browser testing
