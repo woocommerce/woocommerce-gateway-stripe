@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { Elements, ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { __ } from '@wordpress/i18n';
+import { useExpressCheckoutEnabledSettings } from 'wcstripe/data';
 import { getDefaultBorderRadius } from 'wcstripe/express-checkout/utils';
 import InlineNotice from 'components/inline-notice';
 import {
@@ -20,6 +21,7 @@ const buttonSizeToPxMap = {
 
 const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 	const [ canRenderButtons, setCanRenderButtons ] = useState( true );
+	const [ isExpressCheckoutEnabled ] = useExpressCheckoutEnabledSettings();
 
 	/* eslint-disable camelcase */
 	const stripePromise = useMemo( () => {
@@ -112,6 +114,18 @@ const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 					/>
 				</Elements>
 			</div>
+		);
+	}
+
+	if ( ! isExpressCheckoutEnabled ) {
+		return (
+			<InlineNotice icon status="warning" isDismissible={ false }>
+				{ __(
+					'Express checkout preview is only available when express checkout is enabled. ' +
+						'Please enable express checkout to view the preview.',
+					'woocommerce-gateway-stripe'
+				) }
+			</InlineNotice>
 		);
 	}
 
