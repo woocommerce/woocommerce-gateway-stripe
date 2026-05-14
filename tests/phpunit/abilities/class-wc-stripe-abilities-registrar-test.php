@@ -16,6 +16,7 @@ class WC_Stripe_Abilities_Registrar_Test extends WP_UnitTestCase {
 	public function tearDown(): void {
 		remove_all_filters( self::LOADER_FILTER );
 		remove_all_filters( self::FEATURE_FILTER );
+		remove_all_filters( 'wc_stripe_is_agentic_commerce_enabled' );
 		WC_Stripe_Abilities_Registrar::reset_initialized_for_testing();
 		wp_set_current_user( 0 );
 		parent::tearDown();
@@ -65,21 +66,63 @@ class WC_Stripe_Abilities_Registrar_Test extends WP_UnitTestCase {
 		);
 	}
 
-	public function test_append_classes_returns_all_ability_classes() {
+	public function test_append_classes_returns_always_on_ability_classes() {
 		if ( ! class_exists( '\\Automattic\\WooCommerce\\Internal\\Abilities\\AbilitiesLoader' ) ) {
 			$this->markTestSkipped( 'WooCommerce 10.9 AbilitiesLoader required for this test.' );
 		}
 
+		// Force the Agentic Commerce feature flag off so the conditional
+		// classes are NOT included.
+		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_false' );
+
 		$classes = WC_Stripe_Abilities_Registrar::append_classes( [] );
 
-		$expected = [
+		$always_on = [
 			WC_Stripe_Ability_Get_Account_Summary::class,
+			WC_Stripe_Ability_Get_Webhook_Status::class,
+			WC_Stripe_Ability_Get_Settings::class,
+			WC_Stripe_Ability_Get_Account_Keys_Fingerprints::class,
+			WC_Stripe_Ability_Get_Terminal_Locations::class,
+			WC_Stripe_Ability_Get_Charges::class,
+			WC_Stripe_Ability_Get_Charge::class,
+			WC_Stripe_Ability_Get_Payment_Intent::class,
+			WC_Stripe_Ability_Get_Disputes::class,
+			WC_Stripe_Ability_Get_Dispute::class,
+			WC_Stripe_Ability_Get_Payouts::class,
+			WC_Stripe_Ability_Get_Balance::class,
+			WC_Stripe_Ability_Get_Balance_Transactions::class,
 		];
 
-		foreach ( $expected as $class ) {
+		foreach ( $always_on as $class ) {
 			$this->assertContains( $class, $classes, "append_classes() must include $class." );
 		}
-		$this->assertCount( count( $expected ), $classes, 'append_classes() must return exactly the expected Domain classes.' );
+		$this->assertNotContains( WC_Stripe_Ability_Get_Agentic_Commerce_Sync_Status::class, $classes, 'Agentic Commerce sync-status ability must not be registered when the feature flag is off.' );
+		$this->assertNotContains( WC_Stripe_Ability_Get_Agentic_Commerce_Settings::class, $classes, 'Agentic Commerce settings ability must not be registered when the feature flag is off.' );
+		$this->assertCount( count( $always_on ), $classes, 'append_classes() must return exactly the always-on Domain classes when the Agentic Commerce flag is off.' );
+	}
+
+	public function test_append_classes_includes_agentic_commerce_when_feature_flag_enabled() {
+		if ( ! class_exists( '\\Automattic\\WooCommerce\\Internal\\Abilities\\AbilitiesLoader' ) ) {
+			$this->markTestSkipped( 'WooCommerce 10.9 AbilitiesLoader required for this test.' );
+		}
+		if ( ! class_exists( 'WC_Stripe_Feature_Flags' ) ) {
+			$this->markTestSkipped( 'WC_Stripe_Feature_Flags not loaded in this environment.' );
+		}
+
+		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+
+		$classes = WC_Stripe_Abilities_Registrar::append_classes( [] );
+
+		$this->assertContains(
+			WC_Stripe_Ability_Get_Agentic_Commerce_Sync_Status::class,
+			$classes,
+			'Agentic Commerce sync-status ability must be registered when the feature flag is on.'
+		);
+		$this->assertContains(
+			WC_Stripe_Ability_Get_Agentic_Commerce_Settings::class,
+			$classes,
+			'Agentic Commerce settings ability must be registered when the feature flag is on.'
+		);
 	}
 
 	public function test_can_manage_woocommerce_matches_manage_woocommerce_capability() {
@@ -137,7 +180,7 @@ class WC_Stripe_Abilities_Registrar_Test extends WP_UnitTestCase {
 		foreach ( $wp_filter[ $hook ]->callbacks as $callbacks ) {
 			foreach ( $callbacks as $entry ) {
 				if ( $entry['function'] === $callback ) {
-					$count++;
+					++$count;
 				}
 			}
 		}

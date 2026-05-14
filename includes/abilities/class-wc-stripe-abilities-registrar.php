@@ -55,6 +55,35 @@ class WC_Stripe_Abilities_Registrar {
 	 */
 	private const ABILITY_CLASSES = [
 		WC_Stripe_Ability_Get_Account_Summary::class,
+		WC_Stripe_Ability_Get_Webhook_Status::class,
+		WC_Stripe_Ability_Get_Settings::class,
+		WC_Stripe_Ability_Get_Account_Keys_Fingerprints::class,
+		WC_Stripe_Ability_Get_Terminal_Locations::class,
+		WC_Stripe_Ability_Get_Charges::class,
+		WC_Stripe_Ability_Get_Charge::class,
+		WC_Stripe_Ability_Get_Payment_Intent::class,
+		WC_Stripe_Ability_Get_Disputes::class,
+		WC_Stripe_Ability_Get_Dispute::class,
+		WC_Stripe_Ability_Get_Payouts::class,
+		WC_Stripe_Ability_Get_Balance::class,
+		WC_Stripe_Ability_Get_Balance_Transactions::class,
+	];
+
+	/**
+	 * Ability classes registered only when the Agentic Commerce feature
+	 * flag is enabled.
+	 *
+	 * The backing controller's register_routes() returns early when
+	 * WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() is false, so
+	 * the underlying REST routes do not exist on those sites. We mirror
+	 * that guard at the registrar so we never register an ability whose
+	 * backing route is absent.
+	 *
+	 * @var array<int, class-string>
+	 */
+	private const AGENTIC_COMMERCE_ABILITY_CLASSES = [
+		WC_Stripe_Ability_Get_Agentic_Commerce_Sync_Status::class,
+		WC_Stripe_Ability_Get_Agentic_Commerce_Settings::class,
 	];
 
 	/**
@@ -134,13 +163,25 @@ class WC_Stripe_Abilities_Registrar {
 	/**
 	 * Append Stripe ability classes to Woo Core's loader.
 	 *
-	 * Filter callback for `woocommerce_ability_definition_classes`.
+	 * Filter callback for `woocommerce_ability_definition_classes`. The
+	 * Agentic Commerce abilities are only appended when the matching
+	 * feature flag is enabled — they back onto routes that don't exist
+	 * otherwise.
 	 *
 	 * @param array $classes Class names accumulated by the loader.
 	 * @return array
 	 */
 	public static function append_classes( array $classes ): array {
-		return array_merge( $classes, self::ABILITY_CLASSES );
+		$abilities = self::ABILITY_CLASSES;
+
+		if ( class_exists( 'WC_Stripe_Feature_Flags' )
+			&& method_exists( 'WC_Stripe_Feature_Flags', 'is_agentic_commerce_enabled' )
+			&& WC_Stripe_Feature_Flags::is_agentic_commerce_enabled()
+		) {
+			$abilities = array_merge( $abilities, self::AGENTIC_COMMERCE_ABILITY_CLASSES );
+		}
+
+		return array_merge( $classes, $abilities );
 	}
 
 	/**
