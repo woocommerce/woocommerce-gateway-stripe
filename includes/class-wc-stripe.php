@@ -313,6 +313,13 @@ class WC_Stripe {
 
 			// Handle the async cache prefetch action.
 			add_action( WC_Stripe_Database_Cache_Prefetch::ASYNC_PREFETCH_ACTION, [ WC_Stripe_Database_Cache_Prefetch::get_instance(), 'handle_prefetch_action' ], 10, 1 );
+
+			// Register Stripe abilities with the WordPress Abilities API.
+			// Default-off behind `wc_stripe_abilities_enabled`; structural
+			// gate is WC 10.9+'s AbilitiesLoader (silent no-op on older WC).
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/abilities/abstract-wc-stripe-ability-base.php';
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/abilities/class-wc-stripe-abilities-registrar.php';
+			WC_Stripe_Abilities_Registrar::init();
 		}
 	}
 
