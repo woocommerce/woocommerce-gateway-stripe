@@ -27,8 +27,14 @@ Use the smallest command set needed for the task:
 | Task | Command | Notes |
 | --- | --- | --- |
 | Install dependencies | `composer install && npm install` | Runs Composer install and npm install, which then installs all dependencies. |
-| Start local environment | `npm run up` | Docker-based site at `http://localhost:8072`. |
-| Stop local environment | `npm run down` | Preserves local Docker state. |
+| Start local environment (first run / reset) | `npm run up:recreate` | Auto-starts shared infrastructure (db + phpMyAdmin) if not running. Main checkout serves `http://localhost:8072`; worktrees get ports 8170–8189. |
+| Start local environment (subsequent) | `npm run up` | Reuses the existing WP container and shared infra. |
+| Stop local environment | `npm run down` | Stops this worktree's WordPress container only; shared infra keeps running. |
+| Start shared infrastructure | `npm run infra:up` | Run from the main checkout. Brings up shared db + phpMyAdmin + bind volumes. |
+| Stop shared infrastructure | `npm run infra:down` | Stops shared db + phpMyAdmin (volumes preserved). |
+| Configure a worktree | `npm run worktree:setup` | Writes `.env` with `WORKTREE_ID` + an unused `WORDPRESS_PORT`. Called automatically by `npm run up`. |
+| List worktrees | `npm run worktree:status` | Shows port, URL, container state for every worktree; warns about orphan containers. |
+| Clean up a worktree | `npm run worktree:cleanup` | Stops the worktree's container, drops `wcstripe_tests_<id>`, removes `.env`. Run before `git worktree remove`. |
 | Build frontend assets | `npm run build:webpack` | Use when editing client-side sources that ship built assets. |
 | Dev hot reload | `npm start` | Webpack watch/dev mode. |
 | PHPUnit | `npm run test:php` | Requires Docker environment running. |
@@ -45,6 +51,8 @@ Use the smallest command set needed for the task:
 ## Common Pitfalls
 
 - Running PHP tests without Docker: `npm run test:php` fails unless containers are up.
+- Running `npm run infra:up` from a worktree: prefer the main checkout. The script warns interactively if you do it from a worktree.
+- Forgetting `npm run worktree:cleanup` before `git worktree remove`: leaves orphan containers and test databases behind. Run `npm run worktree:status` to find orphans.
 - Missing E2E config: copy `tests/e2e/config/local.env.example` to `tests/e2e/config/local.env`.
 - E2E specs that mutate global store settings (for example currency) MUST run in a dedicated Playwright project and separate CI matrix job, not in `default`.
 - Forgetting payment method registration: adding a `WC_Stripe_UPE_Payment_Method` class is not enough; it must also be registered in `WC_Stripe::init()` and constants updated.
