@@ -78,6 +78,12 @@ class WC_Stripe_Express_Checkout_Element {
 		// AJAX confirmation request doesn't run through the change-payment-method page check.
 		add_action( 'wc_stripe_after_set_payment_method_title_for_confirmed_intent', [ $this, 'maybe_apply_express_title_after_confirmed_intent' ] );
 
+		// Substitute the express checkout label into the WCS-written change-payment note.
+		// Registered unconditionally so the filter is in place by the time WCS calls
+		// `WC_Subscriptions_Change_Payment_Gateway::update_payment_method()` during the
+		// form submission, regardless of which page hook bootstrapped this class.
+		add_filter( 'woocommerce_subscription_note_new_payment_method_title', [ $this, 'filter_change_payment_method_note_title' ], 10, 3 );
+
 		// Change-payment uses WC Subscriptions' own template, so ride
 		// `before_woocommerce_pay` (the only action the gateway fires before it).
 		if ( $this->express_checkout_helper->is_change_payment_method_page() ) {
@@ -577,29 +583,80 @@ class WC_Stripe_Express_Checkout_Element {
 	 * @return bool    Whether the title was applied.
 	 */
 	private function apply_express_checkout_title_to_order( $order, $express_checkout_type ) {
-		$payment_method_title = '';
-		$append_suffix        = true;
-		if ( WC_Stripe_Payment_Methods::APPLE_PAY === $express_checkout_type ) {
-			$payment_method_title = WC_Stripe_Payment_Methods::APPLE_PAY_LABEL;
-		} elseif ( WC_Stripe_Payment_Methods::GOOGLE_PAY === $express_checkout_type ) {
-			$payment_method_title = WC_Stripe_Payment_Methods::GOOGLE_PAY_LABEL;
-		} elseif ( WC_Stripe_Payment_Methods::LINK === $express_checkout_type ) {
-			// Match the title produced by the standard Link path (set_payment_method_title_for_order)
-			// and expected by WC_Stripe_UPE_Payment_Method_Link::filter_gateway_title — bare "Link", no suffix.
-			$payment_method_title = WC_Stripe_Payment_Methods::LINK_LABEL;
-			$append_suffix        = false;
-		}
+		$payment_method_title = $this->get_express_checkout_method_title( $express_checkout_type );
 
-		if ( ! $payment_method_title ) {
+		if ( '' === $payment_method_title ) {
 			return false;
 		}
 
-		if ( $append_suffix ) {
-			$payment_method_title .= WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
-		}
 		$order->set_payment_method_title( $payment_method_title );
 		$order->save();
 		return true;
+	}
+
+	/**
+	 * Returns the order-storage title for an express checkout type, including the
+	 * "(Stripe)" suffix for Apple Pay / Google Pay and the bare "Link" label for Stripe Link.
+	 *
+	 * @param string $express_checkout_type One of WC_Stripe_Payment_Methods::APPLE_PAY/GOOGLE_PAY/LINK, or empty.
+	 * @return string The express label, or empty string if the type is not an express method.
+	 */
+	private function get_express_checkout_method_title( $express_checkout_type ) {
+		$suffix = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
+
+		if ( WC_Stripe_Payment_Methods::APPLE_PAY === $express_checkout_type ) {
+			return WC_Stripe_Payment_Methods::APPLE_PAY_LABEL . $suffix;
+		}
+		if ( WC_Stripe_Payment_Methods::GOOGLE_PAY === $express_checkout_type ) {
+			return WC_Stripe_Payment_Methods::GOOGLE_PAY_LABEL . $suffix;
+		}
+		if ( WC_Stripe_Payment_Methods::LINK === $express_checkout_type ) {
+			// Match the title produced by the standard Link path (set_payment_method_title_for_order)
+			// and expected by WC_Stripe_UPE_Payment_Method_Link::filter_gateway_title — bare "Link", no suffix.
+			return WC_Stripe_Payment_Methods::LINK_LABEL;
+		}
+
+		return '';
+	}
+
+	/**
+	 * Substitutes the express checkout label into the change-payment-method order note
+	 * that `WC_Subscriptions_Change_Payment_Gateway::update_payment_method()` writes.
+	 *
+	 * Without this filter, WCS records "Payment method changed from X to Credit Card" even
+	 * when the shopper paid via Apple Pay / Google Pay / Link, because WCS computes the
+	 * "to" label from `$gateway->get_title()` (which is "Credit Card" for the `stripe`
+	 * gateway). Our own title override on `wc_stripe_change_subs_payment_method_success`
+	 * runs after the note has already been written, so it can correct the visible
+	 * subscription title but not the note copy.
+	 *
+	 * @param string          $title              The WCS-computed new payment method title.
+	 * @param string          $new_payment_method The new payment gateway ID.
+	 * @param WC_Subscription $subscription       The subscription being updated.
+	 * @return string
+	 */
+	public function filter_change_payment_method_note_title( $title, $new_payment_method, $subscription ) {
+		if ( 'stripe' !== $new_payment_method ) {
+			return $title;
+		}
+
+		$express_checkout_type = '';
+
+		// No-3DS path: the form submission is in progress, so $_POST is authoritative.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! empty( $_POST['express_checkout_type'] ) && ! is_array( $_POST['express_checkout_type'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$express_checkout_type = sanitize_text_field( wp_unslash( $_POST['express_checkout_type'] ) );
+		} elseif ( $subscription instanceof WC_Order ) {
+			// 3DS-redirect path: WCS may re-run update_payment_method after intent confirmation,
+			// when $_POST has been lost. The express type was persisted to subscription meta
+			// before the redirect and is read here as a fallback.
+			$express_checkout_type = (string) $subscription->get_meta( '_wc_stripe_express_checkout_type' );
+		}
+
+		$express_title = $this->get_express_checkout_method_title( $express_checkout_type );
+
+		return '' !== $express_title ? $express_title : $title;
 	}
 
 	/**
