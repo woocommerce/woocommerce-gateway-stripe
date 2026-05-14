@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ExitSurveyModal, {
 	isCooldownActive,
 } from 'wcstripe/components/exit-survey-modal';
+import { recordEvent } from 'wcstripe/tracking';
 
 const PluginsPageApp = () => {
 	const [ showSurvey, setShowSurvey ] = useState( false );
@@ -48,6 +49,25 @@ const PluginsPageApp = () => {
 
 			event.preventDefault();
 			setShowSurvey( true );
+		};
+
+		link.addEventListener( 'click', handleClick );
+		return () => link.removeEventListener( 'click', handleClick );
+	}, [] );
+
+	useEffect( () => {
+		const link = document.querySelector(
+			'[data-wc-stripe-tracking="release-notes-link"]'
+		);
+
+		if ( ! link ) {
+			return;
+		}
+
+		const handleClick = () => {
+			recordEvent( 'wcstripe_release_notes_click', {
+				source: 'plugins_page_row_link',
+			} );
 		};
 
 		link.addEventListener( 'click', handleClick );
