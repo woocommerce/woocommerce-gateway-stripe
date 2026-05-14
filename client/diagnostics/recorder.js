@@ -4,6 +4,8 @@ const IDLE_FLUSH_MS = 5000;
 // (e.g., intercepted console.warn/error) can't push past the cap and
 // have the controller silently truncate.
 const MAX_BUFFER_BEFORE_FLUSH = 200;
+// Drop-oldest ceiling so a string of sendBeacon refusals can't grow the buffer unboundedly.
+const MAX_BUFFER_SIZE = 500;
 const CONSOLE_MESSAGE_MAX_CHARS = 500;
 const CONSOLE_LEVELS = [ 'warn', 'error' ];
 
@@ -256,6 +258,9 @@ export class Recorder {
 			kind,
 			data,
 		} );
+		if ( this.buffer.length > MAX_BUFFER_SIZE ) {
+			this.buffer.splice( 0, this.buffer.length - MAX_BUFFER_SIZE );
+		}
 		if ( this.buffer.length >= MAX_BUFFER_BEFORE_FLUSH ) {
 			this.flush();
 			return;
