@@ -497,7 +497,7 @@ describe( 'Express checkout normalization', () => {
 					country: '',
 					email: '',
 					first_name: 'John',
-					last_name: '',
+					last_name: '-',
 					phone: '',
 					postcode: '',
 					state: '',
@@ -545,6 +545,24 @@ describe( 'Express checkout normalization', () => {
 			expect(
 				normalizeOrderData( { event: minimumEvent, paymentMethodId } )
 			).toEqual( expectedNormalizedDataWithMinimumFields );
+		} );
+
+		test( 'should use the billing last name fallback for empty billing names', () => {
+			const emptyBillingNameEvent = {
+				billingDetails: {
+					name: '',
+				},
+			};
+
+			const normalizedData = normalizeOrderData( {
+				event: emptyBillingNameEvent,
+				paymentMethodId,
+			} );
+
+			expect( normalizedData.billing_address ).toMatchObject( {
+				first_name: '',
+				last_name: '-',
+			} );
 		} );
 	} );
 

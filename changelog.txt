@@ -20,6 +20,7 @@ xxxx-xx-xx - version 10.8.0
 * Dev - Add Claude Code skills and review rules under .claude/ to capture repo-specific contributor guidance
 * Dev - Move some independent classes into autoloader
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
+* Fix - Use a fallback billing last name for single-name express checkout payments
 
 2026-05-12 - version 10.7.0
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
