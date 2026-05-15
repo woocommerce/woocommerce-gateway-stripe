@@ -113,6 +113,44 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The walker (via ProductWalker::from_integration) and the post-walk
+	 * caller both go through get_feed_validator(); they must end up with
+	 * the same instance so the validator's accumulated per-product errors
+	 * are observable from the caller after the walk.
+	 *
+	 * @return void
+	 */
+	public function test_get_feed_validator_returns_same_instance_within_sync() {
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+
+		$first  = $integration->get_feed_validator();
+		$second = $integration->get_feed_validator();
+
+		$this->assertSame( $first, $second );
+	}
+
+	/**
+	 * Each sync_feed() run must start with a clean validator — otherwise a
+	 * previous sync's accumulated errors would leak into the current one.
+	 * Verifying via the early-return path (feature disabled) keeps the test
+	 * isolated from the rest of the sync pipeline.
+	 *
+	 * @return void
+	 */
+	public function test_sync_feed_resets_cached_validator() {
+		delete_option( 'woocommerce_stripe_settings' );
+
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+		$before      = $integration->get_feed_validator();
+
+		$integration->sync_feed();
+
+		$after = $integration->get_feed_validator();
+
+		$this->assertNotSame( $before, $after );
+	}
+
+	/**
 	 * Test is_enabled returns false by default.
 	 *
 	 * @return void
@@ -150,6 +188,14 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$this->assertNotFalse(
 			has_action( 'wc_stripe_agentic_commerce_sync_feed', [ $integration, 'sync_feed' ] )
 		);
+		$this->assertNotFalse(
+			has_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $integration, 'allow_agentic_payment_complete' ] )
+		);
+
+		$allowed = apply_filters( 'woocommerce_payment_complete_allowed_created_via_values', [], null );
+		$this->assertContains( \WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA, $allowed );
+
+		remove_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $integration, 'allow_agentic_payment_complete' ] );
 	}
 
 	/**
@@ -231,11 +277,12 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
 
 		$result = [
-			'products'      => 100,
-			'status'        => 'succeeded',
-			'file_id'       => 'file_abc',
-			'import_set_id' => 'impset_xyz',
-			'error'         => '',
+			'products'         => 100,
+			'status'           => 'succeeded',
+			'file_id'          => 'file_abc',
+			'import_set_id'    => 'impset_xyz',
+			'error'            => '',
+			'skipped_products' => 3,
 		];
 
 		$integration->store_sync_result( $result );
@@ -247,9 +294,35 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$this->assertEquals( 100, $history[0]['products'] );
 		$this->assertEquals( 'succeeded', $history[0]['status'] );
 		$this->assertEquals( 'impset_xyz', $history[0]['import_set_id'] );
+		$this->assertSame( 3, $history[0]['skipped_products'] );
 		$this->assertArrayHasKey( 'timestamp', $history[0] );
 
 		$this->assertEquals( $history[0], $last_sync );
+	}
+
+	/**
+	 * store_sync_result defaults skipped_products to 0 when the caller omits
+	 * the field, so older entries written before the field existed survive
+	 * the refresh-time upgrade rule without breaking the partial-success path.
+	 *
+	 * @return void
+	 */
+	public function test_store_sync_result_defaults_skipped_products_to_zero(): void {
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+
+		$integration->store_sync_result(
+			[
+				'products'      => 1,
+				'status'        => 'pending',
+				'file_id'       => 'file_a',
+				'import_set_id' => 'impset_a',
+				'error'         => '',
+			]
+		);
+
+		$history = get_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
+
+		$this->assertSame( 0, $history[0]['skipped_products'] );
 	}
 
 	/**
@@ -317,10 +390,99 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * normalize_delivery_status() must:
+	 *   - Pass through whatever Stripe returns when present.
+	 *   - Default to `pending` when an import_set_id was returned but no status,
+	 *     so the dashboard's lazy refresh keeps polling instead of getting
+	 *     stuck on "Unknown".
+	 *   - Fall back to `unknown` only when delivery failed outright (no
+	 *     import_set_id returned).
+	 *   - Upgrade a Stripe-reported `succeeded` to `succeeded_with_errors`
+	 *     whenever the local validator dropped products, so the
+	 *     "Partial Success" badge matches the warning log.
+	 *
+	 * @dataProvider provider_normalize_delivery_status
+	 *
+	 * @param array  $result        Simulated delivery result from the Files API.
+	 * @param int    $skipped_count Local-validator drops to fold into the result.
+	 * @param string $expected      Normalized status that should be persisted.
+	 * @return void
+	 */
+	public function test_normalize_delivery_status( array $result, int $skipped_count, string $expected ): void {
+		$method = ( new \ReflectionClass( \WC_Stripe_Agentic_Commerce_Integration::class ) )
+			->getMethod( 'normalize_delivery_status' );
+		$method->setAccessible( true );
+
+		$this->assertSame(
+			$expected,
+			$method->invoke( null, $result, $skipped_count )
+		);
+	}
+
+	/**
+	 * @return array<string, array{0: array, 1: int, 2: string}>
+	 */
+	public function provider_normalize_delivery_status(): array {
+		return [
+			'explicit status wins'                     => [
+				[
+					'status'        => 'succeeded',
+					'import_set_id' => 'impset_ok',
+				],
+				0,
+				'succeeded',
+			],
+			'created without status is pending'        => [
+				[
+					'status'        => '',
+					'import_set_id' => 'impset_new',
+				],
+				0,
+				'pending',
+			],
+			'missing status key is pending'            => [
+				[ 'import_set_id' => 'impset_new' ],
+				0,
+				'pending',
+			],
+			'no import_set_id falls to unknown'        => [
+				[
+					'status'        => '',
+					'import_set_id' => '',
+				],
+				0,
+				'unknown',
+			],
+			'empty result is unknown'                  => [ [], 0, 'unknown' ],
+			'succeeded with skips upgrades to partial' => [
+				[
+					'status'        => 'succeeded',
+					'import_set_id' => 'impset_ok',
+				],
+				2,
+				'succeeded_with_errors',
+			],
+			'failed status preserved despite skips'    => [
+				[
+					'status'        => 'failed',
+					'import_set_id' => 'impset_ok',
+				],
+				1,
+				'failed',
+			],
+			'pending preserved despite skips'          => [
+				[ 'import_set_id' => 'impset_new' ],
+				3,
+				'pending',
+			],
+		];
+	}
+
+	/**
 	 * update_pending_statuses rewrites entries whose stored status is non-terminal.
 	 *
 	 * The non-terminal set must match the controller's REFRESHABLE_STATUSES
-	 * (`queued`, `validating`, `pending`, `creating_records`, `unknown`);
+	 * (`queued`, `validating_records`, `pending`, `creating_records`, `unknown`);
 	 * entries in terminal statuses must not be mutated.
 	 *
 	 * @dataProvider provider_update_pending_statuses_rewrites_non_terminal_entries
@@ -362,13 +524,130 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 */
 	public function provider_update_pending_statuses_rewrites_non_terminal_entries(): array {
 		return [
-			'queued is refreshable'           => [ 'queued', 'succeeded' ],
-			'validating is refreshable'       => [ 'validating', 'succeeded' ],
-			'pending is refreshable'          => [ 'pending', 'succeeded' ],
-			'creating_records is refreshable' => [ 'creating_records', 'succeeded' ],
-			'unknown is refreshable'          => [ 'unknown', 'succeeded' ],
-			'succeeded is terminal'           => [ 'succeeded', 'succeeded' ],
-			'failed is terminal'              => [ 'failed', 'failed' ],
+			'queued is refreshable'             => [ 'queued', 'succeeded' ],
+			'validating_records is refreshable' => [ 'validating_records', 'succeeded' ],
+			'pending is refreshable'            => [ 'pending', 'succeeded' ],
+			'creating_records is refreshable'   => [ 'creating_records', 'succeeded' ],
+			'unknown is refreshable'            => [ 'unknown', 'succeeded' ],
+			'succeeded is terminal'             => [ 'succeeded', 'succeeded' ],
+			'failed is terminal'                => [ 'failed', 'failed' ],
 		];
+	}
+
+	/**
+	 * When the dashboard's refresh poll observes Stripe's terminal `succeeded`
+	 * for an entry whose local validator dropped products at sync time, the
+	 * stored status must upgrade to `succeeded_with_errors` so the
+	 * "Partial Success" badge matches the warning logged for the skips.
+	 * Stripe never reports `succeeded` synchronously at ImportSet creation,
+	 * so this upgrade has to fire on the refresh path — not just inside
+	 * normalize_delivery_status() at initial sync.
+	 *
+	 * @return void
+	 */
+	public function test_update_pending_statuses_upgrades_succeeded_to_partial_when_validator_dropped_products(): void {
+		$history = [
+			[
+				'timestamp'        => time() - 60,
+				'products'         => 7,
+				'status'           => 'pending',
+				'file_id'          => 'file_a',
+				'import_set_id'    => 'impset_a',
+				'error'            => '',
+				'skipped_products' => 1,
+			],
+		];
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, $history );
+
+		\WC_Stripe_Agentic_Commerce_Integration::update_pending_statuses( [ 'impset_a' => 'succeeded' ] );
+
+		$stored    = get_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
+		$last_sync = get_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, [] );
+
+		$this->assertSame( 'succeeded_with_errors', $stored[0]['status'] );
+		$this->assertSame( 'succeeded_with_errors', $last_sync['status'] );
+	}
+
+	/**
+	 * Entries with skipped_products = 0 must store Stripe's `succeeded`
+	 * verbatim — the upgrade only applies when the local validator actually
+	 * dropped something.
+	 *
+	 * @return void
+	 */
+	public function test_update_pending_statuses_keeps_succeeded_when_no_skips_recorded(): void {
+		$history = [
+			[
+				'timestamp'        => time() - 60,
+				'products'         => 8,
+				'status'           => 'pending',
+				'file_id'          => 'file_a',
+				'import_set_id'    => 'impset_a',
+				'error'            => '',
+				'skipped_products' => 0,
+			],
+		];
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, $history );
+
+		\WC_Stripe_Agentic_Commerce_Integration::update_pending_statuses( [ 'impset_a' => 'succeeded' ] );
+
+		$stored = get_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
+
+		$this->assertSame( 'succeeded', $stored[0]['status'] );
+	}
+
+	/**
+	 * Entries persisted before skipped_products existed must not crash the
+	 * upgrade rule — missing field is treated as zero skips, so Stripe's
+	 * `succeeded` flows through unchanged.
+	 *
+	 * @return void
+	 */
+	public function test_update_pending_statuses_treats_missing_skipped_products_as_zero(): void {
+		$history = [
+			[
+				'timestamp'     => time() - 60,
+				'products'      => 5,
+				'status'        => 'pending',
+				'file_id'       => 'file_legacy',
+				'import_set_id' => 'impset_legacy',
+				'error'         => '',
+			],
+		];
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, $history );
+
+		\WC_Stripe_Agentic_Commerce_Integration::update_pending_statuses( [ 'impset_legacy' => 'succeeded' ] );
+
+		$stored = get_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
+
+		$this->assertSame( 'succeeded', $stored[0]['status'] );
+	}
+
+	/**
+	 * The upgrade rule must not interfere with non-`succeeded` transitions:
+	 * `failed` reported by Stripe stays `failed` even when the local validator
+	 * dropped products.
+	 *
+	 * @return void
+	 */
+	public function test_update_pending_statuses_does_not_upgrade_failed_status(): void {
+		$history = [
+			[
+				'timestamp'        => time() - 60,
+				'products'         => 7,
+				'status'           => 'pending',
+				'file_id'          => 'file_a',
+				'import_set_id'    => 'impset_a',
+				'error'            => '',
+				'skipped_products' => 2,
+			],
+		];
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, $history );
+
+		\WC_Stripe_Agentic_Commerce_Integration::update_pending_statuses( [ 'impset_a' => 'failed' ] );
+
+		$stored = get_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
+
+		$this->assertSame( 'failed', $stored[0]['status'] );
 	}
 }

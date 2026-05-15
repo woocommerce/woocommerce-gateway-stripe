@@ -116,6 +116,18 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public const SYNC_HISTORY_LIMIT = 50;
 
 	/**
+	 * Cached validator instance for the current sync, so the walker (via
+	 * {@see ProductWalker::from_integration()}) and the post-walk caller in
+	 * {@see self::sync_feed()} share state — specifically, the validator's
+	 * accumulated per-product failures. Reset to null at the start of each
+	 * sync_feed() call so successive syncs in the same request don't pool
+	 * errors across runs.
+	 *
+	 * @var FeedValidatorInterface|null
+	 */
+	protected ?FeedValidatorInterface $feed_validator = null;
+
+	/**
 	 * Get integration ID.
 	 *
 	 * @since 10.5.0
@@ -134,8 +146,26 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public function register_hooks(): void {
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 
+		// WC 10.8+ requires `created_via` to be in an allowlist for `payment_complete()` to run.
+		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $this, 'allow_agentic_payment_complete' ] );
+
 		$inventory_tracker = new WC_Stripe_Agentic_Commerce_Inventory_Tracker();
 		$inventory_tracker->register_hooks();
+	}
+
+	/**
+	 * Adds the agentic `created_via` value to the WooCommerce allowlist so that
+	 * `WC_Order::payment_complete()` (WC 10.8+) does not block agentic orders.
+	 *
+	 * @param array $allowed Existing allowlist passed by the filter.
+	 * @return array
+	 */
+	public function allow_agentic_payment_complete( $allowed ): array {
+		if ( ! is_array( $allowed ) ) {
+			$allowed = [];
+		}
+		$allowed[] = WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA;
+		return $allowed;
 	}
 
 	/**
@@ -234,7 +264,10 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return FeedValidatorInterface Feed validator instance.
 	 */
 	public function get_feed_validator(): FeedValidatorInterface {
-		return new WC_Stripe_Agentic_Commerce_Feed_Validator();
+		if ( null === $this->feed_validator ) {
+			$this->feed_validator = new WC_Stripe_Agentic_Commerce_Feed_Validator();
+		}
+		return $this->feed_validator;
 	}
 
 	/**
@@ -279,6 +312,10 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return bool True on successful delivery, false on early returns or failure.
 	 */
 	public function sync_feed(): bool {
+		// Drop any validator cached from a previous sync so this run starts
+		// with a clean per-product error accumulator.
+		$this->feed_validator = null;
+
 		if ( ! $this->is_enabled() ) {
 			WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - feature not enabled' );
 			return false;
@@ -302,7 +339,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			$walker = ProductWalker::from_integration( $this, $feed );
 
 			// Walk through products and generate feed.
-			$total_products = $walker->walk(
+			$iterated_products = $walker->walk(
 				function ( WalkerProgress $progress ) {
 					WC_Stripe_Logger::info(
 						'Agentic Commerce: Feed generation progress',
@@ -315,6 +352,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					);
 				}
 			);
+
+			// Use the CSV entry count as the authoritative "synced" number — the
+			// walker returns the count of products *iterated*, which includes rows
+			// the validator silently dropped before they made it into the feed.
+			$total_products = $feed instanceof WC_Stripe_Agentic_Commerce_Csv_Feed
+				? $feed->get_entry_count()
+				: $iterated_products;
+			$skipped_count  = max( 0, $iterated_products - $total_products );
 
 			if ( 0 === $total_products ) {
 				WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - no products to sync' );
@@ -338,22 +383,52 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			WC_Stripe_Logger::info(
 				'Agentic Commerce: Feed generated successfully',
 				[
-					'total_products'  => $total_products,
-					'generation_time' => round( $generation_time, 2 ) . 's',
-					'file_path'       => $file_path,
-					'file_size_mb'    => round( $file_size / 1024 / 1024, 2 ),
+					'total_products'    => $total_products,
+					'iterated_products' => $iterated_products,
+					'skipped_products'  => $skipped_count,
+					'generation_time'   => round( $generation_time, 2 ) . 's',
+					'file_path'         => $file_path,
+					'file_size_mb'      => round( $file_size / 1024 / 1024, 2 ),
 				]
 			);
 
+			if ( $skipped_count > 0 ) {
+				$validator       = $this->get_feed_validator();
+				$collected       = $validator instanceof WC_Stripe_Agentic_Commerce_Feed_Validator
+					? $validator->get_collected_errors()
+					: [
+						'products'  => [],
+						'truncated' => 0,
+					];
+				$logged_products = $collected['products'] ?? [];
+				$truncated       = $collected['truncated'] ?? 0;
+
+				WC_Stripe_Logger::warning(
+					sprintf(
+						/* translators: 1: number of skipped products, 2: number of iterated products */
+						'Agentic Commerce: %1$d of %2$d products were skipped because they failed feed validation.',
+						$skipped_count,
+						$iterated_products
+					),
+					[
+						'products'  => $logged_products,
+						'truncated' => $truncated,
+					]
+				);
+			}
+
 			// Deliver feed to Stripe via Files API.
 			$result = $delivery->deliver( $feed );
+
+			$import_set_id = $result['import_set_id'] ?? '';
+			$status        = self::normalize_delivery_status( $result, $skipped_count );
 
 			WC_Stripe_Logger::info(
 				'Agentic Commerce: Feed delivered to Stripe',
 				[
 					'file_id'       => $result['file_id'] ?? '',
-					'import_set_id' => $result['import_set_id'] ?? '',
-					'status'        => $result['status'] ?? 'unknown',
+					'import_set_id' => $import_set_id,
+					'status'        => $status,
 				]
 			);
 
@@ -366,11 +441,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			// Persist sync result for dashboard display.
 			$this->store_sync_result(
 				[
-					'products'      => $total_products,
-					'status'        => $result['status'] ?? 'unknown',
-					'file_id'       => $result['file_id'] ?? '',
-					'import_set_id' => $result['import_set_id'] ?? '',
-					'error'         => '',
+					'products'         => $total_products,
+					'status'           => $status,
+					'file_id'          => $result['file_id'] ?? '',
+					'import_set_id'    => $import_set_id,
+					'error'            => '',
+					'skipped_products' => $skipped_count,
 				]
 			);
 
@@ -389,11 +465,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			// Persist failure for dashboard display.
 			$this->store_sync_result(
 				[
-					'products'      => 0,
-					'status'        => 'failed',
-					'file_id'       => '',
-					'import_set_id' => '',
-					'error'         => $e->getMessage(),
+					'products'         => 0,
+					'status'           => 'failed',
+					'file_id'          => '',
+					'import_set_id'    => '',
+					'error'            => $e->getMessage(),
+					'skipped_products' => 0,
 				]
 			);
 
@@ -408,11 +485,17 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @param array $result {
 	 *     Sync result data.
 	 *
-	 *     @type int    $products      Number of products synced.
-	 *     @type string $status        Sync status (e.g. "succeeded", "failed").
-	 *     @type string $file_id       Stripe file ID.
-	 *     @type string $import_set_id Stripe ImportSet ID.
-	 *     @type string $error         Error message, if any.
+	 *     @type int    $products         Number of products synced.
+	 *     @type string $status           Sync status (e.g. "succeeded", "failed").
+	 *     @type string $file_id          Stripe file ID.
+	 *     @type string $import_set_id    Stripe ImportSet ID.
+	 *     @type string $error            Error message, if any.
+	 *     @type int    $skipped_products Count of products dropped by the local
+	 *                                    feed validator before the CSV reached
+	 *                                    Stripe. Persisted so the refresh poll
+	 *                                    can upgrade a Stripe-reported `succeeded`
+	 *                                    to `succeeded_with_errors` once the
+	 *                                    ImportSet completes.
 	 * }
 	 * @return void
 	 */
@@ -424,12 +507,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		}
 
 		$entry = [
-			'timestamp'     => time(),
-			'products'      => $result['products'] ?? 0,
-			'status'        => $result['status'] ?? 'unknown',
-			'file_id'       => $result['file_id'] ?? '',
-			'import_set_id' => $result['import_set_id'] ?? '',
-			'error'         => $result['error'] ?? '',
+			'timestamp'        => time(),
+			'products'         => $result['products'] ?? 0,
+			'status'           => $result['status'] ?? 'unknown',
+			'file_id'          => $result['file_id'] ?? '',
+			'import_set_id'    => $result['import_set_id'] ?? '',
+			'error'            => $result['error'] ?? '',
+			'skipped_products' => isset( $result['skipped_products'] ) ? max( 0, (int) $result['skipped_products'] ) : 0,
 		];
 
 		$history[] = $entry;
@@ -481,11 +565,65 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
+	 * Resolve the status to persist from an ImportSet creation response.
+	 *
+	 * When Stripe returns an `import_set_id` but omits a `status` string, the
+	 * ImportSet is in-flight and should be recorded as `pending` so the
+	 * dashboard's non-terminal poll keeps refreshing until Stripe returns a
+	 * terminal state. Falls back to `unknown` only when the delivery failed
+	 * outright (no `import_set_id` returned).
+	 *
+	 * When `$skipped_count` is positive — i.e. the local validator dropped
+	 * some products before they reached the CSV — a Stripe-reported
+	 * `succeeded` is upgraded to `succeeded_with_errors` so the dashboard
+	 * badge ("Partial Success") matches the warning logged for the skips.
+	 *
+	 * @since 10.7.0
+	 * @param array $result        Delivery result from the Files API.
+	 * @param int   $skipped_count Count of products dropped by the local validator.
+	 * @return string Normalized status string.
+	 */
+	private static function normalize_delivery_status( array $result, int $skipped_count = 0 ): string {
+		$status        = $result['status'] ?? '';
+		$import_set_id = $result['import_set_id'] ?? '';
+
+		if ( '' === $status ) {
+			$status = '' !== $import_set_id ? 'pending' : 'unknown';
+		}
+
+		return self::apply_partial_success_rule( $status, $skipped_count );
+	}
+
+	/**
+	 * Upgrade `succeeded` to `succeeded_with_errors` when the local validator
+	 * dropped products at sync time.
+	 *
+	 * Centralizes the upgrade so it runs both at initial sync (via
+	 * {@see self::normalize_delivery_status()}) and at refresh time (via
+	 * {@see self::update_pending_statuses()}). The initial-sync call rarely
+	 * sees `succeeded` directly because Stripe processes the ImportSet
+	 * asynchronously; the refresh path is where the upgrade typically fires.
+	 *
+	 * @since 10.7.0
+	 * @param string $status        Status reported by Stripe (or normalized fallback).
+	 * @param int    $skipped_count Count of products dropped by the local validator
+	 *                              for the corresponding sync.
+	 * @return string Status with the partial-success upgrade applied if applicable.
+	 */
+	private static function apply_partial_success_rule( string $status, int $skipped_count ): string {
+		if ( 'succeeded' === $status && $skipped_count > 0 ) {
+			return 'succeeded_with_errors';
+		}
+
+		return $status;
+	}
+
+	/**
 	 * Apply status updates to non-terminal history entries by import_set_id.
 	 *
 	 * Re-reads the current history at write time and applies the updates to
 	 * matching entries whose stored status is non-terminal (`queued`,
-	 * `validating`, `pending`, `creating_records`, or `unknown`), matching
+	 * `validating_records`, `pending`, `creating_records`, or `unknown`), matching
 	 * the controller's
 	 * {@see WC_REST_Stripe_Agentic_Commerce_Controller::REFRESHABLE_STATUSES}.
 	 * This preserves any entries appended concurrently by
@@ -501,7 +639,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		$non_terminal_statuses = [ 'queued', 'validating', 'pending', 'creating_records', 'unknown' ];
+		$non_terminal_statuses = [ 'queued', 'validating_records', 'pending', 'creating_records', 'unknown' ];
 
 		$history = self::get_sync_history();
 		$changed = false;
@@ -516,7 +654,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				continue;
 			}
 
-			$entry['status'] = $status_updates[ $import_set_id ];
+			$skipped_count = isset( $entry['skipped_products'] ) ? (int) $entry['skipped_products'] : 0;
+			$new_status    = self::apply_partial_success_rule( $status_updates[ $import_set_id ], $skipped_count );
+
+			if ( ( $entry['status'] ?? '' ) === $new_status ) {
+				continue;
+			}
+
+			$entry['status'] = $new_status;
 			$changed         = true;
 		}
 		unset( $entry );
