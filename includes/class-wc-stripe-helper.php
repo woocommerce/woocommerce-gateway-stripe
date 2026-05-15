@@ -1114,14 +1114,56 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Checks if Adaptive Pricing is available for the current Stripe account based on country.
-	 * Adaptive Pricing is not supported by Stripe for accounts based in India (see https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?payment-ui=stripe-hosted#restrictions).
+	 * Checks if Adaptive Pricing is available for the current Stripe account.
+	 * Refer to {@see get_adaptive_pricing_account_unavailable_reason()} for more details.
 	 *
-	 * @return bool True if the account is not in supported countries.
+	 * @return bool True if Adaptive Pricing is available for the current Stripe account, false otherwise.
 	 */
 	public static function is_adaptive_pricing_available_for_account(): bool {
-		$account_country = WC_Stripe::get_instance()->account->get_account_country();
-		return strtoupper( $account_country ) !== WC_Stripe_Country_Code::INDIA;
+		$reason = self::get_adaptive_pricing_account_unavailable_reason();
+		if ( null === $reason ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Returns the reason why adaptive pricing is not available for the current Stripe account.
+	 * Adaptive Pricing is not supported for accounts based in India, as well as for other situations.
+	 *
+	 * @link https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?payment-ui=embedded-components#restrictions
+	 *
+	 * @return string|null The reason why adaptive pricing is not available for the current Stripe account, or null if it is available.
+	 */
+	public static function get_adaptive_pricing_account_unavailable_reason(): ?string {
+		$stripe_account  = WC_Stripe::get_instance()->account;
+		$account_country = $stripe_account->get_account_country();
+
+		if ( WC_Stripe_Country_Code::INDIA === strtoupper( $account_country ) ) {
+			return 'account-country';
+		}
+
+		// If we are in test mode, payout details are often missing and currency-based rules
+		// are not enforced.
+		if ( WC_Stripe_Mode::is_test() ) {
+			return null;
+		}
+
+		// Check that the store currency can be used for settlement.
+		$stripe_settlement_currencies = $stripe_account->get_supported_store_currencies();
+		if ( [] === $stripe_settlement_currencies ) {
+			return 'no-settlement-currencies';
+		}
+
+		// Ensure we have lowercase currency codes.
+		$stripe_settlement_currencies = array_map( 'strtolower', $stripe_settlement_currencies );
+		$store_currency_lower         = strtolower( get_woocommerce_currency() );
+		if ( ! in_array( $store_currency_lower, $stripe_settlement_currencies, true ) ) {
+			return 'store-currency-not-settlement-currency';
+		}
+
+		return null;
 	}
 
 	/**
