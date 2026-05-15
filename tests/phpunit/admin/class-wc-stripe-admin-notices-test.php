@@ -907,11 +907,13 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Test that dismissing the subscription_detached notice sets the post meta (HPOS path).
+	 * Test that dismissing the subscription_detached notice sets the post meta.
 	 *
+	 * @param string $request_param The request parameter key for the subscription ID.
 	 * @return void
+	 * @dataProvider provide_hide_notices_subscription_detached_paths
 	 */
-	public function test_hide_notices_dismisses_subscription_detached_notice_hpos() {
+	public function test_hide_notices_dismisses_subscription_detached_notice( $request_param ) {
 		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_user );
 
@@ -927,7 +929,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$_GET['wc-stripe-hide-notice']   = 'subscription_detached';
 		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
-		$_REQUEST['id']                  = $subscription->get_id(); // HPOS path
+		$_REQUEST[ $request_param ]      = $subscription->get_id();
 
 		$notices = $this->create_admin_notices_instance();
 		$notices->hide_notices();
@@ -935,39 +937,19 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertEquals( 'yes', $subscription->get_meta( WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META ) );
 
 		WC_Subscriptions::$wcs_get_subscription = null;
-		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['id'] );
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST[ $request_param ] );
 	}
 
 	/**
-	 * Test that dismissing the subscription_detached notice sets the post meta (non-HPOS path).
+	 * Data provider for test_hide_notices_dismisses_subscription_detached_notice.
 	 *
-	 * @return void
+	 * @return array
 	 */
-	public function test_hide_notices_dismisses_subscription_detached_notice_non_hpos() {
-		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
-		wp_set_current_user( $admin_user );
-
-		$subscription = new WC_Subscription();
-		$subscription->set_status( 'active' );
-		$subscription->save();
-
-		WC_Subscriptions::set_wcs_get_subscription(
-			function ( $id ) use ( $subscription ) {
-				return $subscription;
-			}
-		);
-
-		$_GET['wc-stripe-hide-notice']   = 'subscription_detached';
-		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
-		$_REQUEST['post']                = $subscription->get_id(); // Non-HPOS path
-
-		$notices = $this->create_admin_notices_instance();
-		$notices->hide_notices();
-
-		$this->assertEquals( 'yes', $subscription->get_meta( WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META ) );
-
-		WC_Subscriptions::$wcs_get_subscription = null;
-		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['post'] );
+	public function provide_hide_notices_subscription_detached_paths() {
+		return [
+			'HPOS path'     => [ 'id' ],
+			'non-HPOS path' => [ 'post' ],
+		];
 	}
 
 	/**
@@ -976,6 +958,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @return void
 	 */
 	public function test_hide_notices_subscription_detached_no_param_does_nothing() {
+		unset( $_REQUEST['post'], $_REQUEST['id'] );
 		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_user );
 
@@ -991,7 +974,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->assertEmpty( $subscription->get_meta( WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META ) );
 
-		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['post'], $_REQUEST['id'] );
 	}
 
 	/**
@@ -1000,6 +983,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @return void
 	 */
 	public function test_hide_notices_subscription_detached_nonexistent_id_does_nothing() {
+		unset( $_REQUEST['post'] );
 		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_user );
 
@@ -1016,7 +1000,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->assertEmpty( $subscription->get_meta( WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META ) );
 
-		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['id'] );
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['post'], $_REQUEST['id'] );
 	}
 
 	/**
