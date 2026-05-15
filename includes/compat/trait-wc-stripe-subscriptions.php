@@ -295,6 +295,11 @@ trait WC_Stripe_Subscriptions_Trait {
 		// checkbox, so its default-checked state can't be treated as consent.
 		if ( $is_express_checkout_submission ) {
 			unset( $_POST['update_all_subscriptions_payment_method'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+			// The change-payment form carries the saved-cards selector value, so
+			// is_using_saved_payment_method() would otherwise route to the old
+			// saved token and discard the ECE-supplied payment method.
+			$_POST['wc-stripe-payment-token'] = 'new'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
 
 		try {
