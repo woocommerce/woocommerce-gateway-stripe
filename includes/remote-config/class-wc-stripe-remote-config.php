@@ -3,8 +3,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once __DIR__ . '/class-wc-stripe-remote-config-flags.php';
-
 /**
  * Cache and resolver for remotely-controlled feature flags.
  *

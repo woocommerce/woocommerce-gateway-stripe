@@ -3,9 +3,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once __DIR__ . '/class-wc-stripe-remote-config-client.php';
-require_once __DIR__ . '/class-wc-stripe-remote-config.php';
-
 /**
  * Schedules and runs the Stripe remote-config sync.
  *

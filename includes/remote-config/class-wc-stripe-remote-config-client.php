@@ -3,8 +3,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once __DIR__ . '/class-wc-stripe-remote-config-flags.php';
-
 /**
  * Outbound HTTP client for the Stripe remote-config endpoint.
  *
