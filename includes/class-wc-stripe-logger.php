@@ -122,7 +122,7 @@ class WC_Stripe_Logger {
 	 * @return void
 	 */
 	public static function warning( $message, $context = [] ) {
-		if ( ! self::can_log() ) {
+		if ( ! self::can_log( 'warning' ) ) {
 			return;
 		}
 
@@ -144,7 +144,7 @@ class WC_Stripe_Logger {
 	 * @return void
 	 */
 	public static function notice( $message, $context = [] ) {
-		if ( ! self::can_log() ) {
+		if ( ! self::can_log( 'notice' ) ) {
 			return;
 		}
 
@@ -166,7 +166,7 @@ class WC_Stripe_Logger {
 	 * @return void
 	 */
 	public static function info( $message, $context = [] ) {
-		if ( ! self::can_log() ) {
+		if ( ! self::can_log( 'info' ) ) {
 			return;
 		}
 
@@ -188,7 +188,7 @@ class WC_Stripe_Logger {
 	 * @return void
 	 */
 	public static function debug( $message, $context = [] ) {
-		if ( ! self::can_log() ) {
+		if ( ! self::can_log( 'debug' ) ) {
 			return;
 		}
 
@@ -202,19 +202,90 @@ class WC_Stripe_Logger {
 	/**
 	 * Whether we can log based on the plugin settings.
 	 *
+	 * @param string|null $log_level The log level to check. Can be one of 'warning', 'notice', 'info', 'debug'.
+	 *
 	 * @return boolean
 	 */
-	public static function can_log(): bool {
+	public static function can_log( ?string $log_level = null ): bool {
 		if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 			return true;
 		}
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 
-		if ( empty( $settings ) || ( isset( $settings['logging'] ) && 'yes' !== $settings['logging'] ) ) {
+		if ( is_array( $settings ) && 'yes' === ( $settings['logging'] ?? 'no' ) ) {
+			return true;
+		}
+
+		// Return early if there are no listeners for the 'wc_stripe_logger_can_log' filter.
+		// We only want to call get_caller() if there are listeners for the filter.
+		if ( ! has_filter( 'wc_stripe_logger_can_log' ) ) {
 			return false;
 		}
 
-		return true;
+		$caller = self::get_caller();
+
+		/**
+		 * Filter to determine if logging is allowed.
+		 *
+		 * @param boolean     $can_log   Whether logging is allowed.
+		 * @param string|null $log_level The log level to check. Can be one of 'warning', 'notice', 'info', 'debug'.
+		 * @param array|null  $caller {
+		 *     The calling code that is trying to log something. When not null, has the following properties:
+		 *
+		 *     @type string|null $class    The class that called the log method. May be null if the caller is a function.
+		 *     @type string      $function The function that called the log method.
+		 * }
+		 *
+		 * @since 10.8.0
+		 */
+		return apply_filters( 'wc_stripe_logger_can_log', false, $log_level, $caller );
+	}
+
+	/**
+	 * Get the caller from outside this class.
+	 *
+	 * @return array|null {
+	 *     The calling code that is trying to log something. When not null, has the following properties:
+	 *
+	 *     @type string|null $class    The class that called the log method. May be null if the caller is a function.
+	 *     @type string      $function The function that called the log method.
+	 * }
+	 *
+	 * @since 10.8.0
+	 */
+	private static function get_caller(): ?array {
+		// Ignore arguments and only look at the last few frames, as we only want the first caller outside of this class.
+		// - Direct call to WC_Stripe_Logger::can_log() -> self::get_caller() - we only need 2 frames.
+		// - Direct call to WC_Stripe_Logger::<log_type>() -> self::can_log() -> self::get_caller() - we need 3 frames.
+		$trace = debug_backtrace( DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 4 );
+
+		// Start looking at frame 1, as we know we were called from within this class.
+		for ( $frame_index = 1; $frame_index < 4; $frame_index++ ) {
+			$frame = $trace[ $frame_index ] ?? null;
+			// Return early if the second frame is not an array or does not contain a class or function.
+			if ( ! is_array( $frame ) || ! ( isset( $frame['class'] ) || isset( $frame['function'] ) ) ) {
+				return null;
+			}
+
+			$calling_class = $frame['class'] ?? null;
+
+			// If the current frame is from this class, move to the next frame.
+			if ( self::class === $calling_class ) {
+				continue;
+			}
+
+			$calling_function = $frame['function'] ?? null;
+
+			// If we have a calling function, we have something usable. The calling class may be null.
+			if ( null !== $calling_function ) {
+				return [
+					'class'    => $calling_class,
+					'function' => $calling_function,
+				];
+			}
+		}
+
+		return null;
 	}
 }
