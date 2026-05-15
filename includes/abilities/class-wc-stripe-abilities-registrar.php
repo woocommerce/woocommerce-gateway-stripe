@@ -41,10 +41,6 @@ class WC_Stripe_Abilities_Registrar {
 	 */
 	private const ABILITY_CLASSES = [
 		WC_Stripe_Ability_Get_Account_Summary::class,
-		WC_Stripe_Ability_Get_Webhook_Status::class,
-		WC_Stripe_Ability_Get_Settings::class,
-		WC_Stripe_Ability_Get_Account_Keys_Fingerprints::class,
-		WC_Stripe_Ability_Get_Terminal_Locations::class,
 		WC_Stripe_Ability_Get_Charges::class,
 		WC_Stripe_Ability_Get_Charge::class,
 		WC_Stripe_Ability_Get_Payment_Intent::class,
@@ -53,23 +49,6 @@ class WC_Stripe_Abilities_Registrar {
 		WC_Stripe_Ability_Get_Payouts::class,
 		WC_Stripe_Ability_Get_Balance::class,
 		WC_Stripe_Ability_Get_Balance_Transactions::class,
-	];
-
-	/**
-	 * Ability classes registered only when the Agentic Commerce feature
-	 * flag is enabled.
-	 *
-	 * The backing controller's register_routes() returns early when
-	 * WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() is false, so
-	 * the underlying REST routes do not exist on those sites. We mirror
-	 * that guard at the registrar so we never register an ability whose
-	 * backing route is absent.
-	 *
-	 * @var array<int, class-string>
-	 */
-	private const AGENTIC_COMMERCE_ABILITY_CLASSES = [
-		WC_Stripe_Ability_Get_Agentic_Commerce_Sync_Status::class,
-		WC_Stripe_Ability_Get_Agentic_Commerce_Settings::class,
 	];
 
 	/**
@@ -149,10 +128,7 @@ class WC_Stripe_Abilities_Registrar {
 	/**
 	 * Append Stripe ability classes to Woo Core's loader.
 	 *
-	 * Filter callback for `woocommerce_ability_definition_classes`. The
-	 * Agentic Commerce abilities are only appended when the matching
-	 * feature flag is enabled — they back onto routes that don't exist
-	 * otherwise.
+	 * Filter callback for `woocommerce_ability_definition_classes`.
 	 *
 	 * Domain classes are resolved via the Composer classmap autoloader; a
 	 * stale autoloader (contributor checkout without `composer dump-autoload`)
@@ -165,15 +141,7 @@ class WC_Stripe_Abilities_Registrar {
 	 */
 	public static function append_classes( array $classes ): array {
 		$abilities = self::ABILITY_CLASSES;
-
-		if ( class_exists( 'WC_Stripe_Feature_Flags' )
-			&& method_exists( 'WC_Stripe_Feature_Flags', 'is_agentic_commerce_enabled' )
-			&& WC_Stripe_Feature_Flags::is_agentic_commerce_enabled()
-		) {
-			$abilities = array_merge( $abilities, self::AGENTIC_COMMERCE_ABILITY_CLASSES );
-		}
-
-		$resolved = array_values( array_filter( $abilities, 'class_exists' ) );
+		$resolved  = array_values( array_filter( $abilities, 'class_exists' ) );
 
 		// If the safety net actually dropped anything, log it so a stale
 		// Composer autoloader is detectable rather than silently shipping a
