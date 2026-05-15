@@ -7,6 +7,8 @@ description: Use when PHPStan reports new errors and you're considering whether 
 
 The repo's CRITICAL rule (from `AGENTS.md`): treat baseline updates as the *last* option, not the first. If we commit baseline-only changes for issues that have a real fix, future contributors inherit a less-typed codebase. The baseline exists for genuine PHPStan limitations, not as a blanket suppressor.
 
+When suppression is unavoidable, prefer an **inline `@phpstan-ignore-next-line` (or `@phpstan-ignore-line`) with a reason comment** over a baseline entry. Inline ignores live next to the code they justify, get reviewed in the same diff, and are removed as soon as the surrounding code changes — baseline entries are silent and easy to forget.
+
 ## Procedure
 
 1. **Run the analyzer:**
@@ -25,17 +27,18 @@ The repo's CRITICAL rule (from `AGENTS.md`): treat baseline updates as the *last
    | Wrong type annotation that lies about the actual return | **Fix the annotation** |
    | Untyped WP/WC hook return (`mixed`, etc.) | **Add a defensive check at the boundary** |
    | Stripe SDK type that genuinely allows multiple shapes | **Narrow with explicit assertion or fix the call site** |
-   | Genuine PHPStan limitation (intersection types, generic variance) | **Baseline with a `# Reason:` comment** |
+   | Genuine PHPStan limitation (intersection types, generic variance) | **Add an inline `@phpstan-ignore-next-line` with a reason comment** |
 
 3. **Fix legitimate issues first.** Most level 8 errors indicate real null/false paths that production hasn't hit yet — the type checker is doing its job.
 
-4. **Only after fixing what's fixable, baseline the rest:**
+4. **For genuine PHPStan limitations, prefer an inline ignore over the baseline:**
 
-   ```bash
-   npm run phpstan:baseline
+   ```php
+   /** @phpstan-ignore-next-line Reason: PHPStan can't follow the intersection narrowing here. */
+   $foo->bar();
    ```
 
-   Inspect the resulting `phpstan-baseline.neon` diff. If the diff added entries you didn't intend to baseline, fix those instead and re-run.
+   Reach for `npm run phpstan:baseline` only when an inline ignore is impossible (e.g., the error is reported on generated code or a file you cannot annotate). Inspect the resulting `phpstan-baseline.neon` diff; if the diff added entries you didn't intend to baseline, fix or inline-ignore those instead and re-run.
 
 5. **Don't mix baseline churn with feature work** in the same commit (CRITICAL rule from `AGENTS.md`). Either:
 
@@ -68,7 +71,7 @@ A bare `if ( ! $order )` is not enough — `wc_get_order()` can return a `WC_Ord
 - WP/WC core types that are wrong upstream and will be fixed there.
 - Stripe SDK return types that PHPStan over-narrowed.
 
-In all baseline-only cases, the `phpstan-baseline.neon` entry should carry a `# Reason:` comment so future reviewers can judge whether the suppression is still justified later.
+In all baseline-only cases, the `phpstan-baseline.neon` entry should carry a `# Reason:` comment so future reviewers can judge whether the suppression is still justified later. Prefer the inline `@phpstan-ignore-next-line` form whenever the file is editable — the reason lives next to the code instead of in a sibling file.
 
 ## Verifying after the change
 

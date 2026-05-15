@@ -32,7 +32,7 @@ Add the new class to the payment method classes array initialized in `WC_Stripe:
 
 ### 4. Icon
 
-Add the icon asset under `client/payment-method-icons/` (SVG preferred). Register it in the icons map used by the payment-methods rendering layer so `get_icon()` resolves correctly.
+Add the icon asset under `client/payment-method-icons/` (SVG preferred). Register it in `client/payment-method-icons/index.js` so `get_icon()` resolves correctly.
 
 ### 5. Blocks support
 
@@ -47,14 +47,14 @@ Per the project's CRITICAL rule, any change to payment-method availability or re
 | Classic checkout | `/checkout` with Blocks disabled |
 | Blocks checkout | `/checkout` with Blocks enabled (default for new sites) |
 | Optimized Checkout (OCS) | `/checkout` with OCS enabled in plugin settings |
-| Express checkout (ECE) | If the method supports express, verify Apple Pay and Google Pay paths |
+| Express checkout (ECE) | Verify the Apple Pay / Google Pay / Link buttons on each ECE surface: product page, cart, checkout, and pay-for-order |
 
 If the method intentionally does not support a surface, verifying that it's *cleanly hidden* — not erroring — is still a tested outcome.
 
 ## Tests
 
-- **PHPUnit:** add `tests/phpunit/PaymentMethods/test-class-wc-stripe-upe-payment-method-<id>.php`. Use `@dataProvider` for capability matrix scenarios (subscriptions on/off, pre-orders on/off, currency, country).
-- **Jest:** if the Blocks config or icon registration has logic beyond static configuration, add a Jest test under `tests/js/`.
+- **PHPUnit:** add `tests/phpunit/payment-methods/class-wc-stripe-upe-payment-method-<id>-test.php`. Use `@dataProvider` for capability matrix scenarios (subscriptions on/off, pre-orders on/off, currency, country).
+- **Jest:** if the Blocks config or icon registration has logic beyond static configuration, add a Jest test in a `__tests__/` folder alongside the code (e.g., `client/blocks/upe/__tests__/`).
 - **E2E:** at minimum one shopper happy-path spec under `tests/e2e/specs/<method>/`. Several methods have dedicated Playwright projects — match the existing convention rather than dropping into `default`.
 
 ## Recurring-payment regressions

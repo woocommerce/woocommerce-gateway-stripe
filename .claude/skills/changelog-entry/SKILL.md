@@ -58,9 +58,9 @@ Major or breaking changes also need a bullet under `== Compatibility Notes ==` i
 ## Wording conventions
 
 - Describe behavior, not implementation.
-  - ❌ "Add `basename( WC_STRIPE_PLUGIN_PATH )` helper for slug derivation"
-  - ✅ "Append a 'See what's new' link to the plugin Updated! message after manual updates"
-- Lead with the verb. ✅ "Cancel pending WC Subscriptions retry when Stripe Radar blocks a renewal payment"
+  - Incorrect: Add `basename( WC_STRIPE_PLUGIN_PATH )` helper for slug derivation
+  - Correct: Append a "See what's new" link to the plugin Updated! message after manual updates
+- Lead with the verb: "Cancel pending WC Subscriptions retry when Stripe Radar blocks a renewal payment"
 - One line per entry, no trailing period.
 - If a related Linear issue or PR carries context, the *title* of the change is what ships — not the issue number.
 
