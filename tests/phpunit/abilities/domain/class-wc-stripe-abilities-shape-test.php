@@ -103,7 +103,66 @@ class WC_Stripe_Abilities_Shape_Test extends WP_UnitTestCase {
 
 		$this->assertTrue( $annotations['readonly'] ?? false, "$class must have readonly: true." );
 		$this->assertFalse( $annotations['destructive'] ?? true, "$class must have destructive: false." );
-		$this->assertTrue( $annotations['idempotent'] ?? false, "$class must have idempotent: true." );
+	}
+
+	/**
+	 * Abilities that satisfy the strict idempotency contract — every Tier 1
+	 * REST-backed read and every single-lookup Tier 2 Stripe read. Excluded:
+	 * `get-settings` and `get-agentic-commerce-sync-status`, both of which
+	 * force a Stripe refresh on every invocation and therefore observably
+	 * change state between identical calls.
+	 *
+	 * @return array<string, array{0: class-string}>
+	 */
+	public function idempotent_ability_provider(): array {
+		return [
+			'get-webhook-status'            => [ WC_Stripe_Ability_Get_Webhook_Status::class ],
+			'get-account-keys-fingerprints' => [ WC_Stripe_Ability_Get_Account_Keys_Fingerprints::class ],
+			'get-terminal-locations'        => [ WC_Stripe_Ability_Get_Terminal_Locations::class ],
+			'get-agentic-commerce-settings' => [ WC_Stripe_Ability_Get_Agentic_Commerce_Settings::class ],
+			'get-charges'                   => [ WC_Stripe_Ability_Get_Charges::class ],
+			'get-charge'                    => [ WC_Stripe_Ability_Get_Charge::class ],
+			'get-payment-intent'            => [ WC_Stripe_Ability_Get_Payment_Intent::class ],
+			'get-disputes'                  => [ WC_Stripe_Ability_Get_Disputes::class ],
+			'get-dispute'                   => [ WC_Stripe_Ability_Get_Dispute::class ],
+			'get-payouts'                   => [ WC_Stripe_Ability_Get_Payouts::class ],
+			'get-balance'                   => [ WC_Stripe_Ability_Get_Balance::class ],
+			'get-balance-transactions'      => [ WC_Stripe_Ability_Get_Balance_Transactions::class ],
+		];
+	}
+
+	/**
+	 * @dataProvider idempotent_ability_provider
+	 */
+	public function test_idempotent_abilities_declare_idempotent_true( string $class ) {
+		$annotations = $class::get_registration_args()['meta']['annotations'] ?? [];
+
+		$this->assertTrue(
+			$annotations['idempotent'] ?? false,
+			"$class must declare idempotent: true — none of its calls force a Stripe-side refresh or persist state."
+		);
+	}
+
+	/**
+	 * @return array<string, array{0: class-string}>
+	 */
+	public function non_idempotent_ability_provider(): array {
+		return [
+			'get-settings'                     => [ WC_Stripe_Ability_Get_Settings::class ],
+			'get-agentic-commerce-sync-status' => [ WC_Stripe_Ability_Get_Agentic_Commerce_Sync_Status::class ],
+		];
+	}
+
+	/**
+	 * @dataProvider non_idempotent_ability_provider
+	 */
+	public function test_non_idempotent_abilities_declare_idempotent_false( string $class ) {
+		$annotations = $class::get_registration_args()['meta']['annotations'] ?? [];
+
+		$this->assertFalse(
+			$annotations['idempotent'] ?? true,
+			"$class must declare idempotent: false — it forces a Stripe-side refresh or writes state on every invocation."
+		);
 	}
 
 	/**

@@ -109,9 +109,11 @@ abstract class WC_Stripe_Ability_Base {
 	 * the merchant's stored secret key. Returns the decoded Stripe object or
 	 * a WP_Error.
 	 *
-	 * `WC_Stripe_API::retrieve()` short-circuits to `null` after repeated
-	 * 401s (the invalid-API-key backoff) — surface that as a typed error
-	 * rather than a quiet empty.
+	 * `WC_Stripe_API::retrieve()` returns `null` on every 401 (the
+	 * invalid-API-key UI signal), and additionally short-circuits before
+	 * any network call once the invalid-key error counter exceeds the
+	 * threshold — both paths surface here as a typed
+	 * `wc_stripe_api_unauthenticated` `WP_Error` rather than a quiet empty.
 	 *
 	 * @param string $stripe_api_path Stripe API path (e.g. "charges/ch_xxx" or
 	 *                                "charges?limit=10"). Caller is responsible

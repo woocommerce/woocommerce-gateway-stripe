@@ -173,9 +173,20 @@ class WC_Stripe_Abilities_Registrar {
 			$abilities = array_merge( $abilities, self::AGENTIC_COMMERCE_ABILITY_CLASSES );
 		}
 
-		$abilities = array_values( array_filter( $abilities, 'class_exists' ) );
+		$resolved = array_values( array_filter( $abilities, 'class_exists' ) );
 
-		return array_merge( $classes, $abilities );
+		// If the safety net actually dropped anything, log it so a stale
+		// Composer autoloader is detectable rather than silently shipping a
+		// reduced ability surface.
+		if ( count( $resolved ) !== count( $abilities ) && class_exists( 'WC_Stripe_Logger' ) ) {
+			$missing = array_values( array_diff( $abilities, $resolved ) );
+			WC_Stripe_Logger::error(
+				'Abilities Registrar dropped unresolvable Domain classes from the loader filter; run `composer dump-autoload`.',
+				[ 'missing' => $missing ]
+			);
+		}
+
+		return array_merge( $classes, $resolved );
 	}
 
 	/**
