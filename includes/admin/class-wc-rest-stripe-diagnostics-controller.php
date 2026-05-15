@@ -22,6 +22,13 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	// this list being a finite set of positive integers.
 	const CAPTURE_LIMIT_PRESETS = [ 5, 10, 25, 50 ];
 
+	// EXPLORATION (RSM-1638): per-IP rate-limit window for the unauthenticated
+	// /events endpoint. A single token over N seconds — enough to bound disk
+	// I/O and FIFO-eviction cost against a basic flooder. Filterable so we
+	// can tune without a release if 1s proves too tight in production.
+	const EVENTS_RATE_LIMIT_KEY_PREFIX  = 'stripe_diag_events_';
+	const DEFAULT_EVENTS_RATE_LIMIT_SEC = 1;
+
 	protected $namespace = 'wc/v3';
 	protected $rest_base = 'wc_stripe/diagnostics';
 
@@ -227,7 +234,76 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 		if ( ! self::is_enabled() ) {
 			return new WP_Error( 'wc_stripe_diagnostics_disabled', 'Diagnostics mode is not enabled.', [ 'status' => 403 ] );
 		}
+		if ( self::is_rate_limited() ) {
+			return new WP_Error( 'wc_stripe_diagnostics_rate_limited', 'Too many requests.', [ 'status' => 429 ] );
+		}
 		return true;
+	}
+
+	/**
+	 * EXPLORATION (RSM-1638): per-IP rate-limit gate for the unauthenticated
+	 * /events endpoint.
+	 *
+	 * The endpoint stays unauthenticated by design (guest shoppers need to
+	 * post traces), and `is_enabled()` is the only existing gate. An
+	 * attacker can spam the endpoint while diagnostics is on — burning disk
+	 * I/O, padding traces to the 200-event cap, and (if `capture_limit` is
+	 * high) evicting legitimate sessions from the FIFO trace store. A
+	 * per-IP delay window bounds the attack rate without locking out
+	 * legitimate shoppers.
+	 *
+	 * Caveats worth weighing in review:
+	 *   - Per-IP keys collide for shoppers behind the same NAT/proxy; the
+	 *     current 1s window is loose enough that this should be tolerable
+	 *     for the bounded debug session this feature targets, but it is
+	 *     an inherent trade-off.
+	 *   - `WC_Rate_Limiter::set_rate_limit()` writes to the
+	 *     `wc_rate_limits` table on every request; expensive at scale but
+	 *     scoped to the diagnostics-on window.
+	 *   - The IP is hashed (`wp_hash`) so the rate-limit table never holds
+	 *     a raw client address.
+	 */
+	private static function is_rate_limited(): bool {
+		if ( ! class_exists( 'WC_Geolocation' ) || ! class_exists( 'WC_Rate_Limiter' ) ) {
+			return false;
+		}
+		$ip = WC_Geolocation::get_ip_address();
+		if ( '' === $ip ) {
+			// No IP signal (CLI/cron path or a hosting setup we can't read);
+			// don't block — the diagnostics-enabled gate upstream still applies.
+			return false;
+		}
+		$key = self::EVENTS_RATE_LIMIT_KEY_PREFIX . substr( wp_hash( $ip ), 0, 16 );
+		return WC_Rate_Limiter::retried_too_soon( $key );
+	}
+
+	/**
+	 * Counterpart to {@see self::is_rate_limited()} — extends the per-IP
+	 * window after a request lands. Kept private and called from
+	 * `ingest_events()` so the gate trips on the next request rather than
+	 * the current one.
+	 */
+	private static function arm_rate_limit(): void {
+		if ( ! class_exists( 'WC_Geolocation' ) || ! class_exists( 'WC_Rate_Limiter' ) ) {
+			return;
+		}
+		$ip = WC_Geolocation::get_ip_address();
+		if ( '' === $ip ) {
+			return;
+		}
+		/**
+		 * EXPLORATION (RSM-1638): filter the per-IP rate-limit window in
+		 * seconds for the diagnostics /events endpoint. Default is 1s — a
+		 * single batch (up to 200 events) per second per IP.
+		 *
+		 * @param int $delay Window in seconds.
+		 */
+		$delay = (int) apply_filters( 'wc_stripe_diagnostics_events_rate_limit', self::DEFAULT_EVENTS_RATE_LIMIT_SEC );
+		if ( $delay <= 0 ) {
+			return;
+		}
+		$key = self::EVENTS_RATE_LIMIT_KEY_PREFIX . substr( wp_hash( $ip ), 0, 16 );
+		WC_Rate_Limiter::set_rate_limit( $key, $delay );
 	}
 
 	/**
@@ -237,6 +313,12 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function ingest_events( $request ) {
+		// EXPLORATION (RSM-1638): arm the next-request rate-limit window for
+		// this IP as soon as we accept a request, regardless of whether the
+		// payload is valid. A malformed-events flooder still costs disk and
+		// CPU, so the window has to start before we bail on validation.
+		self::arm_rate_limit();
+
 		$session_id = WC_Stripe_Diagnostics_Trace_Store::sanitize_id( (string) $request->get_param( 'diag_session_id' ) );
 		if ( '' === $session_id ) {
 			return new WP_Error( 'wc_stripe_diagnostics_bad_session', 'Invalid diag_session_id.', [ 'status' => 400 ] );

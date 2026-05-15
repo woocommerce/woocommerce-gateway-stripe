@@ -25,17 +25,26 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 		$this->controller = new WC_REST_Stripe_Diagnostics_Controller( $this->store );
 		$this->set_diagnostics_enabled( true );
 		$this->clear_state();
+		$_SERVER['REMOTE_ADDR'] = '203.0.113.7';
 	}
 
 	public function tear_down() {
 		$this->clear_state();
 		$this->set_diagnostics_enabled( false );
 		$this->set_capture_limit( null );
+		unset( $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_X_REAL_IP'], $_SERVER['HTTP_X_FORWARDED_FOR'] );
 		parent::tear_down();
 	}
 
 	private function clear_state() {
 		$this->store->delete_all();
+		global $wpdb;
+		// WC_Rate_Limiter is transient/DB-backed; reset between tests so
+		// rate-limit assertions don't carry state across cases.
+		$wpdb->query( "DELETE FROM {$wpdb->prefix}wc_rate_limits" );
+		if ( class_exists( 'WC_Cache_Helper' ) ) {
+			WC_Cache_Helper::invalidate_cache_group( 'wc_rate_limit' );
+		}
 	}
 
 	/**
@@ -100,6 +109,139 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 			]
 		);
 		$this->assertTrue( $this->controller->permissions_check( $request ) );
+	}
+
+	/**
+	 * After a request lands, a second request from the same IP within the
+	 * window must trip the new rate-limit gate with HTTP 429. Guards against
+	 * volume abuse of the unauthenticated events endpoint.
+	 *
+	 * EXPLORATION (RSM-1638).
+	 */
+	public function test_permission_rate_limited_on_second_request_within_window() {
+		$first = $this->make_request(
+			[
+				'diag_session_id' => 'rate-limit-burst',
+				'events'          => [
+					[
+						'kind'              => 'consoleMessage',
+						'level'             => 'warn',
+						'message_truncated' => 'hi',
+					],
+				],
+			]
+		);
+		$this->controller->ingest_events( $first );
+
+		$second = $this->make_request(
+			[
+				'diag_session_id' => 'rate-limit-burst-2',
+				'events'          => [],
+			]
+		);
+		$result = $this->controller->permissions_check( $second );
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'wc_stripe_diagnostics_rate_limited', $result->get_error_code() );
+		$this->assertSame( 429, $result->get_error_data()['status'] );
+	}
+
+	/**
+	 * If we can't read an IP (no $_SERVER headers at all — CLI/cron-like
+	 * paths), the gate must default to allowing the request. The
+	 * diagnostics-enabled toggle is the only upstream gate in that case.
+	 *
+	 * EXPLORATION (RSM-1638).
+	 */
+	public function test_permission_not_rate_limited_when_no_client_ip() {
+		unset( $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_X_REAL_IP'], $_SERVER['HTTP_X_FORWARDED_FOR'] );
+		$first = $this->make_request(
+			[
+				'diag_session_id' => 'no-ip-1',
+				'events'          => [
+					[
+						'kind'              => 'consoleMessage',
+						'level'             => 'warn',
+						'message_truncated' => 'hi',
+					],
+				],
+			]
+		);
+		$this->controller->ingest_events( $first );
+
+		$second = $this->make_request(
+			[
+				'diag_session_id' => 'no-ip-2',
+				'events'          => [],
+			]
+		);
+		$this->assertTrue( $this->controller->permissions_check( $second ) );
+	}
+
+	/**
+	 * Requests from a different IP must not be blocked by the previous
+	 * request's window — confirms the rate-limit key is partitioned per
+	 * client, not global.
+	 *
+	 * EXPLORATION (RSM-1638).
+	 */
+	public function test_permission_rate_limit_is_per_ip() {
+		$first = $this->make_request(
+			[
+				'diag_session_id' => 'ip-a',
+				'events'          => [
+					[
+						'kind'              => 'consoleMessage',
+						'level'             => 'warn',
+						'message_truncated' => 'hi',
+					],
+				],
+			]
+		);
+		$this->controller->ingest_events( $first );
+
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.42';
+		$second                 = $this->make_request(
+			[
+				'diag_session_id' => 'ip-b',
+				'events'          => [],
+			]
+		);
+		$this->assertTrue( $this->controller->permissions_check( $second ) );
+	}
+
+	/**
+	 * A filter that returns 0 must disable the rate limit. Lets operators
+	 * opt out without a code change if 1s/IP proves too tight.
+	 *
+	 * EXPLORATION (RSM-1638).
+	 */
+	public function test_rate_limit_window_is_filterable_to_zero() {
+		add_filter( 'wc_stripe_diagnostics_events_rate_limit', '__return_zero' );
+		try {
+			$first = $this->make_request(
+				[
+					'diag_session_id' => 'filter-zero-1',
+					'events'          => [
+						[
+							'kind'              => 'consoleMessage',
+							'level'             => 'warn',
+							'message_truncated' => 'hi',
+						],
+					],
+				]
+			);
+			$this->controller->ingest_events( $first );
+
+			$second = $this->make_request(
+				[
+					'diag_session_id' => 'filter-zero-2',
+					'events'          => [],
+				]
+			);
+			$this->assertTrue( $this->controller->permissions_check( $second ) );
+		} finally {
+			remove_filter( 'wc_stripe_diagnostics_events_rate_limit', '__return_zero' );
+		}
 	}
 
 	public function test_ingest_rejects_invalid_session_id() {
