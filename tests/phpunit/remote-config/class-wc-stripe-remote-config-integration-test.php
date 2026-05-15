@@ -8,11 +8,6 @@
  * @package WooCommerce/Stripe
  */
 
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/remote-config/class-wc-stripe-remote-config-flags.php';
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/remote-config/class-wc-stripe-remote-config-client.php';
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/remote-config/class-wc-stripe-remote-config.php';
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/remote-config/class-wc-stripe-remote-config-scheduler.php';
-
 class WC_Stripe_Remote_Config_Integration_Test extends WP_UnitTestCase {
 
 	public function set_up(): void {

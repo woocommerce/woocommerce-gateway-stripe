@@ -3,8 +3,6 @@
  * @package WooCommerce/Stripe
  */
 
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/remote-config/class-wc-stripe-remote-config-client.php';
-
 class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 
 	/** @var WC_Stripe_Remote_Config_Client */

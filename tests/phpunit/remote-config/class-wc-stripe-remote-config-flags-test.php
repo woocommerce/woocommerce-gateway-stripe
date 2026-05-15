@@ -3,8 +3,6 @@
  * @package WooCommerce/Stripe
  */
 
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/remote-config/class-wc-stripe-remote-config-flags.php';
-
 class WC_Stripe_Remote_Config_Flags_Test extends WP_UnitTestCase {
 
 	public function test_flags_array_declares_optimized_checkout(): void {

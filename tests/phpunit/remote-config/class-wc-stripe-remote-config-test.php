@@ -3,9 +3,6 @@
  * @package WooCommerce/Stripe
  */
 
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/remote-config/class-wc-stripe-remote-config-flags.php';
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/remote-config/class-wc-stripe-remote-config.php';
-
 class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 
 	public function set_up(): void {
