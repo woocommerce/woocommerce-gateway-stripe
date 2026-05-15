@@ -38,17 +38,27 @@ class WC_Stripe_Ability_Get_Account_Summary_Test extends WP_UnitTestCase {
 		);
 	}
 
-	public function test_ability_has_expected_shape() {
+	public function test_ability_name() {
 		$this->assertSame( 'woocommerce-gateway-stripe/get-account-summary', WC_Stripe_Ability_Get_Account_Summary::get_name() );
+	}
 
+	public function test_ability_category() {
 		$args = WC_Stripe_Ability_Get_Account_Summary::get_registration_args();
 		$this->assertSame( WC_Stripe_Ability_Base::CATEGORY_SLUG, $args['category'] );
+	}
+
+	public function test_ability_annotations() {
+		$args = WC_Stripe_Ability_Get_Account_Summary::get_registration_args();
 
 		$this->assertArrayHasKey( 'meta', $args );
 		$annotations = $args['meta']['annotations'] ?? [];
 		$this->assertTrue( $annotations['readonly'] ?? false, 'get-account-summary should be readonly.' );
 		$this->assertFalse( $annotations['destructive'] ?? true, 'get-account-summary should not be destructive.' );
 		$this->assertTrue( $annotations['idempotent'] ?? false, 'get-account-summary should be idempotent.' );
+	}
+
+	public function test_ability_rest_and_mcp_exposure() {
+		$args = WC_Stripe_Ability_Get_Account_Summary::get_registration_args();
 
 		$this->assertTrue(
 			$args['meta']['show_in_rest'] ?? false,
@@ -58,18 +68,24 @@ class WC_Stripe_Ability_Get_Account_Summary_Test extends WP_UnitTestCase {
 			$args['meta']['mcp']['public'] ?? false,
 			'get-account-summary must be opted into MCP discovery via meta.mcp.public.'
 		);
+	}
 
-		// Behavioural permission check via the wired callback. Catches the
-		// __return_true regression that would let subscribers pass through.
+	public function test_permission_callback_denies_subscribers() {
+		$args          = WC_Stripe_Ability_Get_Account_Summary::get_registration_args();
 		$subscriber_id = self::factory()->user->create( [ 'role' => 'subscriber' ] );
 		wp_set_current_user( $subscriber_id );
+
 		$this->assertFalse(
 			call_user_func( $args['permission_callback'] ),
 			'Wired permission_callback must deny subscribers.'
 		);
+	}
 
+	public function test_permission_callback_allows_administrators() {
+		$args     = WC_Stripe_Ability_Get_Account_Summary::get_registration_args();
 		$admin_id = self::factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_id );
+
 		$this->assertTrue(
 			call_user_func( $args['permission_callback'] ),
 			'Wired permission_callback must allow administrators.'
