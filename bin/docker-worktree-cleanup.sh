@@ -4,6 +4,25 @@
 
 set -e
 
+# Refuse to run from the main checkout. The main checkout's .env exists after
+# the first `up`, which would otherwise let this script silently stop the main
+# WP container, drop wcstripe_tests_default, and delete the main .env.
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null || true)
+GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null || true)
+if [[ -n "$GIT_DIR" && "$GIT_DIR" == "$GIT_COMMON_DIR" ]]; then
+    echo "ERROR: worktree:cleanup is destructive and you are in the main checkout:"
+    echo "       $(pwd)"
+    echo
+    echo "It would stop the main WP container, drop wcstripe_tests_default, and"
+    echo "delete .env. To tear down the main checkout's docker state explicitly:"
+    echo
+    echo "  npm run down"
+    echo "  docker exec wcstripe_db mysql -uroot -pwordpress -e \\"
+    echo "    'DROP DATABASE IF EXISTS wcstripe_tests_default;'"
+    echo "  rm .env"
+    exit 1
+fi
+
 WORKTREE_ID="default"
 if [[ -f ".env" ]]; then
     source .env
