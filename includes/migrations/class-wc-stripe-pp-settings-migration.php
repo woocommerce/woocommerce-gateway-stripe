@@ -218,6 +218,9 @@ class WC_Stripe_PP_Settings_Migration {
 			);
 		}
 
+		// Persist all buffered ledger rows in a single DB write.
+		$ledger->flush();
+
 		update_option( self::COMPLETED_OPTION, 'yes' );
 
 		self::log_info(
@@ -283,6 +286,10 @@ class WC_Stripe_PP_Settings_Migration {
 				continue;
 			}
 
+			// Note: `! empty()` treats '0' as empty, so a future AUTO row targeting a numeric
+			// field where 0 is a meaningful merchant choice (e.g., button radius) would incorrectly
+			// allow an overwrite. Add a sentinel comment in the map row when such a case first
+			// appears so reviewers know to switch this guard to `null !== $dest_before`.
 			if ( ! empty( $dest_before ) ) {
 				$ledger->record_skip(
 					WC_Stripe_Settings_Migration_Ledger::CATEGORY_AUTO,
@@ -361,6 +368,7 @@ class WC_Stripe_PP_Settings_Migration {
 				continue;
 			}
 
+			// Note: see the same guard in apply_auto_rows() — same numeric-zero caveat applies here.
 			if ( ! empty( $dest_before ) ) {
 				$ledger->record_skip(
 					WC_Stripe_Settings_Migration_Ledger::CATEGORY_TRANSFORM,
@@ -460,9 +468,20 @@ class WC_Stripe_PP_Settings_Migration {
 		$dest_before  = $dest[ self::DEST_KEY_ENABLED_METHODS ] ?? [];
 		$enabled_list = is_array( $dest_before ) ? $dest_before : [];
 
+		// Pre-load all PP per-gateway settings in one pass to avoid 21+ individual get_option()
+		// calls inside the loop below.
+		$all_gateway_ids      = array_merge( array_keys( self::PP_GATEWAY_ID_TO_UPE_METHOD ), self::PP_ONLY_GATEWAY_IDS );
+		$gateway_settings_map = [];
+		foreach ( $all_gateway_ids as $gw_id ) {
+			$settings = get_option( 'woocommerce_' . $gw_id . '_settings', null );
+			if ( is_array( $settings ) ) {
+				$gateway_settings_map[ $gw_id ] = $settings;
+			}
+		}
+
 		foreach ( self::PP_GATEWAY_ID_TO_UPE_METHOD as $pp_gateway_id => $upe_method_id ) {
-			$gateway_settings = get_option( 'woocommerce_' . $pp_gateway_id . '_settings', null );
-			if ( ! is_array( $gateway_settings ) ) {
+			$gateway_settings = $gateway_settings_map[ $pp_gateway_id ] ?? null;
+			if ( null === $gateway_settings ) {
 				continue;
 			}
 
@@ -491,8 +510,8 @@ class WC_Stripe_PP_Settings_Migration {
 
 		// Record PP-only methods that were enabled but have no Woo Stripe destination.
 		foreach ( self::PP_ONLY_GATEWAY_IDS as $pp_gateway_id ) {
-			$gateway_settings = get_option( 'woocommerce_' . $pp_gateway_id . '_settings', null );
-			if ( ! is_array( $gateway_settings ) ) {
+			$gateway_settings = $gateway_settings_map[ $pp_gateway_id ] ?? null;
+			if ( null === $gateway_settings ) {
 				continue;
 			}
 			if ( ( $gateway_settings['enabled'] ?? 'no' ) !== 'yes' ) {

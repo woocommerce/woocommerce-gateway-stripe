@@ -44,6 +44,7 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 			'',
 			'yes'
 		);
+		$this->ledger->flush();
 
 		$rows = WC_Stripe_Settings_Migration_Ledger::load();
 		$this->assertCount( 1, $rows );
@@ -82,6 +83,7 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 			WC_Stripe_Settings_Migration_Ledger::OUTCOME_SKIPPED_DEST_SET,
 			'Destination already had merchant value — preserved'
 		);
+		$this->ledger->flush();
 
 		$row = WC_Stripe_Settings_Migration_Ledger::load()[0];
 		$this->assertSame( WC_Stripe_Settings_Migration_Ledger::TYPE_SKIP, $row['type'] );
@@ -103,6 +105,7 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 			WC_Stripe_Settings_Migration_Ledger::OUTCOME_SKIPPED_SOURCE_MISSING,
 			'PP source option/key not present'
 		);
+		$this->ledger->flush();
 
 		$row = WC_Stripe_Settings_Migration_Ledger::load()[0];
 		$this->assertNull( $row['source_value'] );
@@ -132,6 +135,8 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 			'No destination feature in Woo Stripe'
 		);
 
+		$this->ledger->flush();
+
 		$rows = WC_Stripe_Settings_Migration_Ledger::load();
 		$this->assertCount( 3, $rows );
 
@@ -157,6 +162,7 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 			[ 'enabled' => 'yes' ],  // current (post-migration) value
 			$snapshot_to_restore_from
 		);
+		$this->ledger->flush();
 
 		$row = WC_Stripe_Settings_Migration_Ledger::load()[0];
 		$this->assertSame( WC_Stripe_Settings_Migration_Ledger::TYPE_REVERT, $row['type'] );
@@ -180,6 +186,8 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 			'',
 			'sk_live_super_secret_value'
 		);
+
+		$this->ledger->flush();
 
 		$row = WC_Stripe_Settings_Migration_Ledger::load()[0];
 		$this->assertSame( WC_Stripe_Settings_Migration_Ledger::REDACTED, $row['source_value'] );
@@ -211,6 +219,7 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 			'',
 			'yes'
 		);
+		$this->ledger->flush();
 
 		$row = WC_Stripe_Settings_Migration_Ledger::load()[0];
 		$this->assertSame( 'yes', $row['source_value'] );
@@ -239,6 +248,8 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 			'dest preserved'
 		);
 
+		$this->ledger->flush();
+
 		foreach ( WC_Stripe_Settings_Migration_Ledger::load() as $row ) {
 			$this->assertSame( $this->run_id, $row['run_id'] );
 		}
@@ -265,6 +276,8 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 			'',
 			'yes'
 		);
+
+		$this->ledger->flush();
 
 		$matches = WC_Stripe_Settings_Migration_Ledger::find_by_source_key( 'debug_log' );
 		$this->assertCount( 1, $matches );
@@ -296,6 +309,9 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 			'c'
 		);
 
+		$this->ledger->flush();
+		$other_ledger->flush();
+
 		$mine  = WC_Stripe_Settings_Migration_Ledger::find_by_run_id( $this->run_id );
 		$other = WC_Stripe_Settings_Migration_Ledger::find_by_run_id( $other_run_id );
 
@@ -316,6 +332,7 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 			'',
 			'a'
 		);
+		$this->ledger->flush();
 		$this->assertCount( 1, WC_Stripe_Settings_Migration_Ledger::load() );
 
 		// Second run, second ledger instance — must append, not overwrite.
@@ -330,6 +347,7 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 			'',
 			'c'
 		);
+		$next->flush();
 
 		$this->assertCount( 2, WC_Stripe_Settings_Migration_Ledger::load() );
 	}
@@ -345,6 +363,7 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 			'',
 			'a'
 		);
+		$this->ledger->flush();
 
 		global $wpdb;
 		$autoload = $wpdb->get_var(
@@ -372,6 +391,7 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 				'a'
 			);
 		}
+		$this->ledger->flush();
 
 		$ids = array_map(
 			static function ( $row ) {
