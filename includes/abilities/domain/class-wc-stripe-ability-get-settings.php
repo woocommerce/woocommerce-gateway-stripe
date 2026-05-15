@@ -27,6 +27,8 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
  * rate-limit consumption.
  *
  * @internal
+ *
+ * @since 10.8.0
  */
 class WC_Stripe_Ability_Get_Settings extends WC_Stripe_Ability_Base implements AbilityDefinition {
 
@@ -54,7 +56,7 @@ class WC_Stripe_Ability_Get_Settings extends WC_Stripe_Ability_Base implements A
 				'annotations'  => [
 					'readonly'    => true,
 					'destructive' => false,
-					'idempotent'  => true,
+					'idempotent'  => false,
 				],
 				'show_in_rest' => true,
 				'mcp'          => [

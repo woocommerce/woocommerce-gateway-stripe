@@ -128,7 +128,7 @@ class WC_Stripe_Abilities_Shape_Test extends WP_UnitTestCase {
 	public function test_ability_uses_shared_woocommerce_category( string $class ) {
 		$args = $class::get_registration_args();
 		$this->assertSame(
-			WC_Stripe_Abilities_Registrar::CATEGORY_SLUG,
+			WC_Stripe_Ability_Base::CATEGORY_SLUG,
 			$args['category'],
 			"$class must register under the shared `woocommerce` category."
 		);
@@ -145,6 +145,20 @@ class WC_Stripe_Abilities_Shape_Test extends WP_UnitTestCase {
 		$this->assertFalse(
 			call_user_func( $args['permission_callback'] ),
 			"$class permission_callback must deny subscribers."
+		);
+	}
+
+	/**
+	 * @dataProvider read_ability_provider
+	 */
+	public function test_ability_permission_callback_allows_administrators( string $class ) {
+		$args     = $class::get_registration_args();
+		$admin_id = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$this->assertTrue(
+			(bool) call_user_func( $args['permission_callback'] ),
+			"$class permission_callback must allow administrators (manage_woocommerce capability)."
 		);
 	}
 }

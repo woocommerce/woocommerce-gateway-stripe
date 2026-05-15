@@ -19,6 +19,8 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
  * get-dispute ability. Backs onto WC_Stripe_API::retrieve("disputes/{$id}").
  *
  * @internal
+ *
+ * @since 10.8.0
  */
 class WC_Stripe_Ability_Get_Dispute extends WC_Stripe_Ability_Base implements AbilityDefinition {
 
@@ -41,8 +43,8 @@ class WC_Stripe_Ability_Get_Dispute extends WC_Stripe_Ability_Base implements Ab
 				'properties'           => [
 					'dispute_id' => [
 						'type'        => 'string',
-						'pattern'     => '^dp_[A-Za-z0-9_]+$',
-						'description' => __( 'Stripe dispute ID (dp_xxx).', 'woocommerce-gateway-stripe' ),
+						'pattern'     => '^(dp|du)_[A-Za-z0-9_]+$',
+						'description' => __( 'Stripe dispute ID (dp_xxx or legacy du_xxx).', 'woocommerce-gateway-stripe' ),
 					],
 				],
 				'additionalProperties' => false,
@@ -72,7 +74,8 @@ class WC_Stripe_Ability_Get_Dispute extends WC_Stripe_Ability_Base implements Ab
 		) {
 			return new WP_Error(
 				'wc_stripe_missing_dispute_id',
-				__( 'A dispute_id is required to fetch a Stripe dispute.', 'woocommerce-gateway-stripe' )
+				__( 'A dispute_id is required to fetch a Stripe dispute.', 'woocommerce-gateway-stripe' ),
+				[ 'status' => 400 ]
 			);
 		}
 

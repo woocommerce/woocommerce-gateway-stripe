@@ -21,6 +21,8 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
  * WC_Stripe_API::retrieve('balance').
  *
  * @internal
+ *
+ * @since 10.8.0
  */
 class WC_Stripe_Ability_Get_Balance extends WC_Stripe_Ability_Base implements AbilityDefinition {
 

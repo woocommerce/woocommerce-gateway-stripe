@@ -17,6 +17,13 @@ defined( 'ABSPATH' ) || exit;
  * without coupling this plugin to that class — Woo Core's lives under
  * `Internal\`, which we treat as off-limits for cross-plugin reuse.
  *
+ * Lives in `includes/abilities/` rather than the plugin's usual
+ * `includes/abstracts/` directory because every consumer is itself in
+ * `includes/abilities/domain/`; co-locating the base with its subdomain keeps
+ * the abilities module self-contained.
+ *
+ * @since 10.8.0
+ *
  * @internal Subject to change without notice between releases.
  */
 abstract class WC_Stripe_Ability_Base {
@@ -26,8 +33,8 @@ abstract class WC_Stripe_Ability_Base {
 	 *
 	 * The `woocommerce` category is owned and registered by WooCommerce
 	 * Core (10.9+); plugin ownership lives in the ability namespace
-	 * (`woocommerce-gateway-stripe/*`), not the category. Mirrors
-	 * `WC_Stripe_Abilities_Registrar::CATEGORY_SLUG`.
+	 * (`woocommerce-gateway-stripe/*`), not the category. Single source of
+	 * truth — Domain classes reference this via `self::CATEGORY_SLUG`.
 	 */
 	public const CATEGORY_SLUG = 'woocommerce';
 

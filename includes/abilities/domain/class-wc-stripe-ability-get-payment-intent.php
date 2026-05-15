@@ -20,6 +20,8 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
  * WC_Stripe_API::retrieve("payment_intents/{$id}").
  *
  * @internal
+ *
+ * @since 10.8.0
  */
 class WC_Stripe_Ability_Get_Payment_Intent extends WC_Stripe_Ability_Base implements AbilityDefinition {
 
@@ -73,7 +75,8 @@ class WC_Stripe_Ability_Get_Payment_Intent extends WC_Stripe_Ability_Base implem
 		) {
 			return new WP_Error(
 				'wc_stripe_missing_payment_intent_id',
-				__( 'A payment_intent_id is required to fetch a Stripe payment intent.', 'woocommerce-gateway-stripe' )
+				__( 'A payment_intent_id is required to fetch a Stripe payment intent.', 'woocommerce-gateway-stripe' ),
+				[ 'status' => 400 ]
 			);
 		}
 

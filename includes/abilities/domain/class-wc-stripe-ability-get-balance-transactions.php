@@ -21,6 +21,8 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
  * amounts. Backs onto WC_Stripe_API::retrieve("balance_transactions?...").
  *
  * @internal
+ *
+ * @since 10.8.0
  */
 class WC_Stripe_Ability_Get_Balance_Transactions extends WC_Stripe_Ability_Base implements AbilityDefinition {
 
@@ -57,7 +59,48 @@ class WC_Stripe_Ability_Get_Balance_Transactions extends WC_Stripe_Ability_Base 
 					],
 					'type'           => [
 						'type'        => 'string',
-						'description' => __( 'Filter to balance transactions of a specific type (e.g. charge, refund, payout, adjustment, application_fee, stripe_fee).', 'woocommerce-gateway-stripe' ),
+						'enum'        => [
+							'adjustment',
+							'advance',
+							'advance_funding',
+							'anticipation_repayment',
+							'application_fee',
+							'application_fee_refund',
+							'charge',
+							'connect_collection_transfer',
+							'contribution',
+							'issuing_authorization_hold',
+							'issuing_authorization_release',
+							'issuing_dispute',
+							'issuing_transaction',
+							'obligation_inbound',
+							'obligation_outbound',
+							'obligation_reversal_inbound',
+							'obligation_reversal_outbound',
+							'obligation_payout',
+							'obligation_payout_failure',
+							'payment',
+							'payment_failure_refund',
+							'payment_refund',
+							'payment_reversal',
+							'payout',
+							'payout_cancel',
+							'payout_failure',
+							'refund',
+							'refund_failure',
+							'reserve_transaction',
+							'reserved_funds',
+							'stripe_fee',
+							'stripe_fx_fee',
+							'tax_fee',
+							'topup',
+							'topup_reversal',
+							'transfer',
+							'transfer_cancel',
+							'transfer_failure',
+							'transfer_refund',
+						],
+						'description' => __( 'Filter to balance transactions of a specific type. See Stripe BalanceTransaction.type for the canonical enum.', 'woocommerce-gateway-stripe' ),
 					],
 					'payout'         => [
 						'type'        => 'string',
@@ -66,7 +109,8 @@ class WC_Stripe_Ability_Get_Balance_Transactions extends WC_Stripe_Ability_Base 
 					],
 					'source'         => [
 						'type'        => 'string',
-						'description' => __( 'Filter to balance transactions for a specific source object ID (charge, refund, etc.).', 'woocommerce-gateway-stripe' ),
+						'pattern'     => '^[a-z]{2,}_[A-Za-z0-9_]+$',
+						'description' => __( 'Filter to balance transactions for a specific source object ID (e.g. ch_xxx, re_xxx, txn_xxx).', 'woocommerce-gateway-stripe' ),
 					],
 					'created_gte'    => [
 						'type'        => 'integer',

@@ -24,6 +24,8 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
  * whsec_, etc.). Agents should not echo these into low-trust contexts.
  *
  * @internal
+ *
+ * @since 10.8.0
  */
 class WC_Stripe_Ability_Get_Account_Keys_Fingerprints extends WC_Stripe_Ability_Base implements AbilityDefinition {
 

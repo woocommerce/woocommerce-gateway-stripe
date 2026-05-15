@@ -123,6 +123,14 @@ class WC_Stripe_Abilities_Registrar_Test extends WP_UnitTestCase {
 			$classes,
 			'Agentic Commerce settings ability must be registered when the feature flag is on.'
 		);
+
+		// Lock in the full registered set so a future regression that wipes the
+		// always-on list while still appending the agentic ones cannot pass.
+		$this->assertCount(
+			15,
+			$classes,
+			'append_classes() must return all 13 always-on + 2 agentic-commerce abilities when the feature flag is on.'
+		);
 	}
 
 	public function test_can_manage_woocommerce_matches_manage_woocommerce_capability() {

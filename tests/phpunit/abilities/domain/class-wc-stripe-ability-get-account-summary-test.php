@@ -42,7 +42,7 @@ class WC_Stripe_Ability_Get_Account_Summary_Test extends WP_UnitTestCase {
 		$this->assertSame( 'woocommerce-gateway-stripe/get-account-summary', WC_Stripe_Ability_Get_Account_Summary::get_name() );
 
 		$args = WC_Stripe_Ability_Get_Account_Summary::get_registration_args();
-		$this->assertSame( WC_Stripe_Abilities_Registrar::CATEGORY_SLUG, $args['category'] );
+		$this->assertSame( WC_Stripe_Ability_Base::CATEGORY_SLUG, $args['category'] );
 
 		$this->assertArrayHasKey( 'meta', $args );
 		$annotations = $args['meta']['annotations'] ?? [];

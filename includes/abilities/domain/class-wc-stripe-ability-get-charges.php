@@ -23,6 +23,8 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
  * receipt_email).
  *
  * @internal
+ *
+ * @since 10.8.0
  */
 class WC_Stripe_Ability_Get_Charges extends WC_Stripe_Ability_Base implements AbilityDefinition {
 

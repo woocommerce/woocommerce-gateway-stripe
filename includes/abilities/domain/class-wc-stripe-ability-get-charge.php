@@ -19,6 +19,8 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
  * get-charge ability. Backs onto WC_Stripe_API::retrieve("charges/{$id}").
  *
  * @internal
+ *
+ * @since 10.8.0
  */
 class WC_Stripe_Ability_Get_Charge extends WC_Stripe_Ability_Base implements AbilityDefinition {
 
@@ -72,7 +74,8 @@ class WC_Stripe_Ability_Get_Charge extends WC_Stripe_Ability_Base implements Abi
 		) {
 			return new WP_Error(
 				'wc_stripe_missing_charge_id',
-				__( 'A charge_id is required to fetch a Stripe charge.', 'woocommerce-gateway-stripe' )
+				__( 'A charge_id is required to fetch a Stripe charge.', 'woocommerce-gateway-stripe' ),
+				[ 'status' => 400 ]
 			);
 		}
 

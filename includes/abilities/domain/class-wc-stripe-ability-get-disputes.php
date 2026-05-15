@@ -24,6 +24,8 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
  * aggregation ability — see surfaced_gaps).
  *
  * @internal
+ *
+ * @since 10.8.0
  */
 class WC_Stripe_Ability_Get_Disputes extends WC_Stripe_Ability_Base implements AbilityDefinition {
 

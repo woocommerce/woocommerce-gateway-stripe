@@ -21,6 +21,8 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
  * abstract base's delegate_to_rest_controller() helper.
  *
  * @internal
+ *
+ * @since 10.8.0
  */
 class WC_Stripe_Ability_Get_Webhook_Status extends WC_Stripe_Ability_Base implements AbilityDefinition {
 

@@ -23,22 +23,11 @@ defined( 'ABSPATH' ) || exit;
  * WC 10.9). On stores running WC < 10.9 the feature silently no-ops — see
  * `woo_abilities_loader_available()`.
  *
+ * @since 10.8.0
+ *
  * @internal Subject to change without notice between releases.
  */
 class WC_Stripe_Abilities_Registrar {
-
-	/**
-	 * Category slug used for every Stripe ability.
-	 *
-	 * The `woocommerce` category is owned and registered by WooCommerce
-	 * Core (10.9+); plugin ownership lives in the ability namespace
-	 * (`woocommerce-gateway-stripe/*`), not the category. Mirrored on
-	 * `WC_Stripe_Ability_Base::CATEGORY_SLUG` so Domain classes can
-	 * reference `self::CATEGORY_SLUG` without a cross-class static call.
-	 *
-	 * @var string
-	 */
-	const CATEGORY_SLUG = 'woocommerce';
 
 	/**
 	 * Ability definition classes registered through the WC 10.9 loader.
@@ -47,9 +36,6 @@ class WC_Stripe_Abilities_Registrar {
 	 * compile-time strings — referencing them does NOT autoload the
 	 * classes. They resolve only when Woo Core's loader iterates the
 	 * filter return value on WC 10.9+.
-	 *
-	 * Filled in subsequent commits (Phases II–III). See the RSM-108 audit
-	 * doc under `plans/` for the full list.
 	 *
 	 * @var array<int, class-string>
 	 */
@@ -168,6 +154,12 @@ class WC_Stripe_Abilities_Registrar {
 	 * feature flag is enabled — they back onto routes that don't exist
 	 * otherwise.
 	 *
+	 * Domain classes are resolved via the Composer classmap autoloader; a
+	 * stale autoloader (contributor checkout without `composer dump-autoload`)
+	 * could otherwise hand Woo Core unresolvable class strings. The
+	 * `class_exists()` filter contains that to a quiet drop instead of a
+	 * fatal in the loader.
+	 *
 	 * @param array $classes Class names accumulated by the loader.
 	 * @return array
 	 */
@@ -180,6 +172,8 @@ class WC_Stripe_Abilities_Registrar {
 		) {
 			$abilities = array_merge( $abilities, self::AGENTIC_COMMERCE_ABILITY_CLASSES );
 		}
+
+		$abilities = array_values( array_filter( $abilities, 'class_exists' ) );
 
 		return array_merge( $classes, $abilities );
 	}

@@ -31,6 +31,8 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
  *           loader would iterate ABILITY_CLASSES on earlier WC versions;
  *           PHP's lazy autoload means the unresolved AbilityDefinition FQN
  *           never reaches the parser there.
+ *
+ * @since 10.8.0
  */
 class WC_Stripe_Ability_Get_Account_Summary extends WC_Stripe_Ability_Base implements AbilityDefinition {
 
