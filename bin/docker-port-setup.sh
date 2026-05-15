@@ -21,12 +21,17 @@ is_main_checkout() {
 }
 
 get_reserved_ports() {
-    git worktree list 2>/dev/null | cut -d' ' -f1 | while read -r dir; do
-        [[ "$dir" == "$CURRENT_DIR" ]] && continue
-        if [[ -f "$dir/.env" ]]; then
-            grep '^WORDPRESS_PORT=' "$dir/.env" 2>/dev/null | cut -d= -f2
+    # Parse `git worktree list --porcelain` (each worktree starts with `worktree <path>`)
+    # so paths containing spaces are handled correctly.
+    while IFS= read -r line; do
+        if [[ $line =~ ^worktree\ (.+)$ ]]; then
+            local dir="${BASH_REMATCH[1]}"
+            [[ "$dir" == "$CURRENT_DIR" ]] && continue
+            if [[ -f "$dir/.env" ]]; then
+                grep '^WORDPRESS_PORT=' "$dir/.env" 2>/dev/null | cut -d= -f2
+            fi
         fi
-    done
+    done < <(git worktree list --porcelain 2>/dev/null)
 }
 
 DEFAULT_WORKTREE_ID=$(basename "$(pwd)" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g')
