@@ -227,6 +227,8 @@ class WC_Stripe_Logger {
 
 		/**
 		 * Filter to determine if logging is allowed.
+		 * Extreme care should be taken when implementing hooks against this filter,
+		 * as it will be called many times per request when a filter is active.
 		 *
 		 * @param boolean     $can_log   Whether logging is allowed.
 		 * @param string|null $log_level The log level to check. Can be one of 'warning', 'notice', 'info', 'debug'.
