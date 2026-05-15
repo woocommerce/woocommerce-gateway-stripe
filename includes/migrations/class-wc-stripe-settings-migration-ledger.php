@@ -82,12 +82,20 @@ class WC_Stripe_Settings_Migration_Ledger {
 	/**
 	 * Substrings that trigger redaction when found anywhere in a key name.
 	 *
+	 * Covers all Stripe API credential and webhook secret key names known to PP and Woo Stripe at
+	 * the time of writing. When a new sensitive key is introduced (e.g., a new PP auth token or a
+	 * new Stripe API credential field), add its identifying substring here AND update the
+	 * corresponding test in `WC_Stripe_Settings_Migration_Ledger_Test::secret_key_provider()`.
+	 *
 	 * @var array<int, string>
 	 */
 	public const SECRET_PATTERNS = [ 'secret_key', 'webhook_secret', 'refresh_token', 'access_token' ];
 
 	/**
 	 * Suffixes that trigger redaction when the key name ends with them.
+	 *
+	 * Catches generic secret/token field names not enumerated in SECRET_PATTERNS. Extend this list
+	 * if a new category of sensitive suffix is introduced.
 	 *
 	 * @var array<int, string>
 	 */

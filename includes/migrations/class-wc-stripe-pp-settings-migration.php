@@ -161,7 +161,7 @@ class WC_Stripe_PP_Settings_Migration {
 			return;
 		}
 
-		$map = self::map_for_version( $version );
+		$map = static::map_for_version( $version );
 
 		if ( null === $map ) {
 			// Future version we don't have a map for — fall back to 3.X best-effort.
@@ -236,10 +236,12 @@ class WC_Stripe_PP_Settings_Migration {
 	/**
 	 * Returns a concrete map for the given major version, or null when no map is available.
 	 *
+	 * Protected (not private) so tests can subclass and override with an injected map.
+	 *
 	 * @param string $version Major version string ('3', '4', etc.).
 	 * @return WC_Stripe_PP_Settings_Map|null
 	 */
-	private static function map_for_version( string $version ): ?WC_Stripe_PP_Settings_Map {
+	protected static function map_for_version( string $version ): ?WC_Stripe_PP_Settings_Map {
 		switch ( $version ) {
 			case '3':
 				return new WC_Stripe_PP_Settings_Map_3X();

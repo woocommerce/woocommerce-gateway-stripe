@@ -6,6 +6,7 @@
  */
 
 require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-wc-stripe-pp-settings-migration.php';
+require_once __DIR__ . '/class-wc-stripe-pp-settings-migration-throwing-first-transform.php';
 
 /**
  * Unit tests for {@see WC_Stripe_PP_Settings_Migration}.
@@ -425,5 +426,33 @@ class WC_Stripe_PP_Settings_Migration_Test extends WP_UnitTestCase {
 		$run_ids = array_unique( array_column( $rows, 'run_id' ) );
 
 		$this->assertCount( 1, $run_ids, 'Multiple run_ids found in a single orchestrator invocation' );
+	}
+
+	/**
+	 * When one TRANSFORM row's callable throws, the remaining rows must still be applied.
+	 * Verifies that apply_transform_rows() isolates per-row exceptions.
+	 */
+	public function test_transform_exception_in_one_row_does_not_abort_remaining_rows() {
+		$this->seed_pp_3x();
+		// Seed both `mode` (first TRANSFORM row) and `charge_type` (second TRANSFORM row).
+		update_option( 'woocommerce_stripe_api_settings', [ 'mode' => 'test' ] );
+		update_option( 'woocommerce_stripe_cc_settings', [ 'charge_type' => 'capture' ] );
+
+		// Subclass injects a map where the first transformer always throws; second is the real one.
+		WC_Stripe_PP_Settings_Migration_Throwing_First_Transform::maybe_run();
+
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		// Second transformer (charge_type→capture) must have applied despite the first throwing.
+		$this->assertSame( 'yes', $stripe_settings['capture'] ?? null, 'Second TRANSFORM row did not apply after first threw' );
+
+		// First row must be recorded as SKIPPED_TRANSFORM_FAILED.
+		$mode_rows = WC_Stripe_Settings_Migration_Ledger::find_by_source_key( 'mode' );
+		$this->assertCount( 1, $mode_rows );
+		$this->assertSame(
+			WC_Stripe_Settings_Migration_Ledger::OUTCOME_SKIPPED_TRANSFORM_FAILED,
+			$mode_rows[0]['outcome'],
+			'Throwing transformer row was not recorded as SKIPPED_TRANSFORM_FAILED'
+		);
 	}
 }
