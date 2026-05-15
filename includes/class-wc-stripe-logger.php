@@ -264,7 +264,7 @@ class WC_Stripe_Logger {
 		for ( $frame_index = 1; $frame_index < 4; $frame_index++ ) {
 			$frame = $trace[ $frame_index ] ?? null;
 			// Return early if the second frame is not an array or does not contain a class or function.
-			if ( ! is_array( $frame ) || ! ( isset( $frame['class'] ) || isset( $frame['function'] ) ) ) {
+			if ( ! is_array( $frame ) || ( empty( $frame['class'] ) && empty( $frame['function'] ) ) ) {
 				return null;
 			}
 
@@ -275,10 +275,11 @@ class WC_Stripe_Logger {
 				continue;
 			}
 
+			// @phpstan-ignore nullCoalesce.offset (The 'function' key may be empty if called from outside a function.)
 			$calling_function = $frame['function'] ?? null;
 
 			// If we have a calling function, we have something usable. The calling class may be null.
-			if ( null !== $calling_function ) {
+			if ( ! empty( $calling_function ) ) {
 				return [
 					'class'    => $calling_class,
 					'function' => $calling_function,
