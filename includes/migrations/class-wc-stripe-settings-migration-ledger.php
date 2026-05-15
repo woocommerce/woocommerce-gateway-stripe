@@ -53,6 +53,7 @@ class WC_Stripe_Settings_Migration_Ledger {
 	const OUTCOME_SKIPPED_DEST_SET         = 'skipped_dest_set';
 	const OUTCOME_SKIPPED_SOURCE_MISSING   = 'skipped_source_missing';
 	const OUTCOME_SKIPPED_TRANSFORM_FAILED = 'skipped_transform_failed';
+	const OUTCOME_DROPPED                  = 'dropped';
 	const OUTCOME_ERRORED                  = 'errored';
 	const OUTCOME_REVERTED                 = 'reverted';
 
@@ -238,7 +239,7 @@ class WC_Stripe_Settings_Migration_Ledger {
 				'dest_key'          => null,
 				'dest_value_before' => null,
 				'dest_value_after'  => null,
-				'outcome'           => self::OUTCOME_SKIPPED_DEST_SET,
+				'outcome'           => self::OUTCOME_DROPPED,
 				'reason'            => $reason,
 			]
 		);
