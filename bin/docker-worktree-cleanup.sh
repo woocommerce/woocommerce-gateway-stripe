@@ -10,7 +10,7 @@ if [[ -f ".env" ]]; then
 else
     echo "No .env file detected, which means you might not be on a worktree."
     read -p "Do you want to continue? (y/N) " -r
-    if [[ ! ${REPLY,,} =~ ^y(es)?$ ]]; then
+    if [[ ! "$REPLY" =~ ^[Yy] ]]; then
         exit 0
     fi
 fi

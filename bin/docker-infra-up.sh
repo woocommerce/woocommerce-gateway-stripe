@@ -14,7 +14,7 @@ if git rev-parse --is-inside-work-tree &>/dev/null; then
         echo "   If this is not intended, run infra:up from your main checkout instead."
         echo ""
         read -p "Do you want to continue? (y/N) " -r
-        if [[ ! ${REPLY,,} =~ ^y(es)?$ ]]; then
+        if [[ ! "$REPLY" =~ ^[Yy] ]]; then
             echo "Aborted."
             exit 0
         fi
