@@ -1837,7 +1837,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @param bool $is_connected    Whether the Stripe account is connected.
 	 * @param bool $stripe_gateway  Whether the 'stripe' gateway is available.
 	 * @param bool $ece_enabled     Whether ECE is enabled.
-	 * @param bool $show_on_checkout Whether ECE should show on checkout.
+	 * @param bool $show_on_change_payment_location Whether ECE should show on the change-payment location.
 	 * @param bool $expected        Expected result.
 	 * @return void
 	 *
@@ -1847,7 +1847,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$is_connected,
 		$stripe_gateway,
 		$ece_enabled,
-		$show_on_checkout,
+		$show_on_change_payment_location,
 		$expected
 	) {
 		$_GET['change_payment_method']                 = 123;
@@ -1870,18 +1870,20 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			->disableOriginalConstructor()
 			->getMock();
 		$helper  = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
-			->onlyMethods( [ 'is_express_checkout_enabled', 'should_show_ece_on_checkout_page' ] )
+			->onlyMethods( [ 'is_express_checkout_enabled', 'should_show_ece_on_change_payment_method_location' ] )
 			->setConstructorArgs( [ $gateway ] )
 			->getMock();
 		$helper->method( 'is_express_checkout_enabled' )->willReturn( $ece_enabled );
-		$helper->method( 'should_show_ece_on_checkout_page' )->willReturn( $show_on_checkout );
+		$helper->method( 'should_show_ece_on_change_payment_method_location' )->willReturn( $show_on_change_payment_location );
 		$helper->testmode = true; // Skip SSL gating.
 
-		$this->assertSame( $expected, $helper->should_show_express_checkout_button() );
-
-		WC()->payment_gateways()->payment_gateways = $original_gateways;
-		unset( $_GET['change_payment_method'] );
-		WC_Subscriptions_Helpers::$wcs_is_subscription = null;
+		try {
+			$this->assertSame( $expected, $helper->should_show_express_checkout_button() );
+		} finally {
+			WC()->payment_gateways()->payment_gateways = $original_gateways;
+			unset( $_GET['change_payment_method'] );
+			WC_Subscriptions_Helpers::$wcs_is_subscription = null;
+		}
 	}
 
 	/**
@@ -1891,40 +1893,40 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_should_show_express_checkout_button_change_payment() {
 		return [
-			'all checks pass'             => [
-				'is_connected'     => true,
-				'stripe_gateway'   => true,
-				'ece_enabled'      => true,
-				'show_on_checkout' => true,
-				'expected'         => true,
+			'all checks pass'                            => [
+				'is_connected'                    => true,
+				'stripe_gateway'                  => true,
+				'ece_enabled'                     => true,
+				'show_on_change_payment_location' => true,
+				'expected'                        => true,
 			],
-			'not connected'               => [
-				'is_connected'     => false,
-				'stripe_gateway'   => true,
-				'ece_enabled'      => true,
-				'show_on_checkout' => true,
-				'expected'         => false,
+			'not connected'                              => [
+				'is_connected'                    => false,
+				'stripe_gateway'                  => true,
+				'ece_enabled'                     => true,
+				'show_on_change_payment_location' => true,
+				'expected'                        => false,
 			],
-			'stripe gateway missing'      => [
-				'is_connected'     => true,
-				'stripe_gateway'   => false,
-				'ece_enabled'      => true,
-				'show_on_checkout' => true,
-				'expected'         => false,
+			'stripe gateway missing'                     => [
+				'is_connected'                    => true,
+				'stripe_gateway'                  => false,
+				'ece_enabled'                     => true,
+				'show_on_change_payment_location' => true,
+				'expected'                        => false,
 			],
-			'ECE disabled'                => [
-				'is_connected'     => true,
-				'stripe_gateway'   => true,
-				'ece_enabled'      => false,
-				'show_on_checkout' => true,
-				'expected'         => false,
+			'ECE disabled'                               => [
+				'is_connected'                    => true,
+				'stripe_gateway'                  => true,
+				'ece_enabled'                     => false,
+				'show_on_change_payment_location' => true,
+				'expected'                        => false,
 			],
-			'should not show on checkout' => [
-				'is_connected'     => true,
-				'stripe_gateway'   => true,
-				'ece_enabled'      => true,
-				'show_on_checkout' => false,
-				'expected'         => false,
+			'should not show on change-payment location' => [
+				'is_connected'                    => true,
+				'stripe_gateway'                  => true,
+				'ece_enabled'                     => true,
+				'show_on_change_payment_location' => false,
+				'expected'                        => false,
 			],
 		];
 	}

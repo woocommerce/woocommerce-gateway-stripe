@@ -38,6 +38,7 @@
         "includes/class-wc-stripe-upe-compatibility.php",
         "includes/compat/class-wc-stripe-woo-compat-utils.php",
         "includes/constants/",
+        "includes/migrations/class-wc-stripe-express-checkout-add-change-payment-method-location-update.php",
         "includes/payment-methods/class-wc-stripe-express-checkout-custom-fields.php",
         "includes/payment-tokens/interface-wc-stripe-payment-method-comparison.php",
         "includes/payment-tokens/trait-wc-stripe-fingerprint.php"
