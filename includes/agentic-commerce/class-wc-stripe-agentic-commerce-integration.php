@@ -64,6 +64,29 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	const ENABLED_OPTION = 'wc_stripe_agentic_commerce_enabled';
 
 	/**
+	 * Option key storing the content hash, upload timestamp, and Stripe file id
+	 * of the most recent successful full-catalog upload. Used to skip the Stripe
+	 * Files API upload when the regenerated catalog is byte-identical to the
+	 * previously uploaded one.
+	 *
+	 * @var string
+	 * @since 10.8.0
+	 */
+	private const LAST_UPLOAD_OPTION = 'wc_stripe_agentic_commerce_last_feed_upload';
+
+	/**
+	 * Maximum age (in seconds) before a cached feed upload is considered stale
+	 * and the next sync uploads even if the content hash matches. Guards against
+	 * Stripe-side file expiration and against bugs in our hashing logic.
+	 *
+	 * Override via the `wc_stripe_agentic_commerce_feed_cache_ttl` filter.
+	 *
+	 * @var int
+	 * @since 10.8.0
+	 */
+	private const FEED_CACHE_TTL = WEEK_IN_SECONDS;
+
+	/**
 	 * Option key for the Agentic Commerce webhook secret.
 	 *
 	 * Lives on the integration class (not the REST controller) because this
@@ -209,6 +232,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], 'wc-stripe' );
 		delete_option( self::SCHEDULED_OPTION );
+		delete_option( self::LAST_UPLOAD_OPTION );
 
 		WC_Stripe_Logger::info( 'Agentic Commerce: Canceled all scheduled feed syncs' );
 	}
@@ -309,9 +333,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Generates product feed using ProductWalker.
 	 *
 	 * @since 10.5.0
+	 * @param bool $force_upload When true, bypass the content-hash dedup check and always
+	 *                           push the regenerated catalog to Stripe. Used by manual sync
+	 *                           from the UI, where the merchant expects every click to land
+	 *                           an upload regardless of whether the file changed.
 	 * @return bool True on successful delivery, false on early returns or failure.
 	 */
-	public function sync_feed(): bool {
+	public function sync_feed( bool $force_upload = false ): bool {
 		// Drop any validator cached from a previous sync so this run starts
 		// with a clean per-product error accumulator.
 		$this->feed_validator = null;
@@ -417,6 +445,26 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				);
 			}
 
+			// Skip upload when the regenerated catalog is byte-identical to the last
+			// successfully uploaded one. Hashing still streams the file so memory
+			// stays bounded per the feed's streaming contract. Manual sync from the
+			// UI passes $force_upload=true so a merchant click always lands an
+			// upload regardless of whether the content changed.
+			$feed_hash = $this->get_feed_hash( (string) $file_path );
+			if ( ! $force_upload && $this->is_feed_unchanged( $feed_hash ) ) {
+				WC_Stripe_Logger::info(
+					'Agentic Commerce: Upload skipped - feed content unchanged since last successful upload',
+					[ 'content_hash' => $feed_hash ]
+				);
+				if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
+					wp_delete_file( $file_path );
+				}
+				// The feed on Stripe is already in sync, so report success rather
+				// than failure — the controller would otherwise treat a no-op as
+				// an error and surface it as a 500 to the manual-sync UI.
+				return true;
+			}
+
 			// Deliver feed to Stripe via Files API.
 			$result = $delivery->deliver( $feed );
 
@@ -431,6 +479,15 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					'status'        => $status,
 				]
 			);
+
+			// Only record the dedup hash for runs Stripe actually accepted —
+			// `deliver()` throws on hard upload failure, but a returned import set
+			// with a `failed` status (or a missing ImportSet ID) still means we
+			// can't claim "this catalog is on Stripe". Storing the hash in those
+			// cases would suppress the next upload that could have recovered.
+			if ( ! empty( $feed_hash ) && '' !== $import_set_id && 'failed' !== $status ) {
+				$this->remember_feed_upload( $feed_hash, $result );
+			}
 
 			// Delete the file to prevent accumulation.
 			// Might be removed in favor of a scheduled job to allow debugging.
@@ -639,7 +696,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		$non_terminal_statuses = [ 'queued', 'validating_records', 'pending', 'creating_records', 'unknown' ];
+		$non_terminal_statuses = [ 'queued', 'validating', 'validating_records', 'pending', 'creating_records', 'unknown' ];
 
 		$history = self::get_sync_history();
 		$changed = false;
@@ -676,6 +733,104 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		if ( is_array( $last ) ) {
 			update_option( self::LAST_SYNC_OPTION, $last, false );
 		}
+	}
+
+	/**
+	 * Compute the content hash of a generated feed file.
+	 *
+	 * Uses `hash_file` so PHP streams the file in chunks — the full catalog
+	 * is never buffered in memory, preserving the streaming feed contract.
+	 *
+	 * @since 10.8.0
+	 * @param string $file_path Absolute path to the generated feed file.
+	 * @return string SHA-256 hex digest, or an empty string if the file cannot be hashed.
+	 */
+	protected function get_feed_hash( string $file_path ): string {
+		if ( empty( $file_path ) || ! is_readable( $file_path ) ) {
+			return '';
+		}
+
+		$hash = hash_file( 'sha256', $file_path );
+		return false === $hash ? '' : $hash;
+	}
+
+	/**
+	 * Decide whether an upload can be skipped because the generated feed matches
+	 * the last successfully uploaded one.
+	 *
+	 * Returns false when dedup is disabled via filter, when the cached record is
+	 * missing/malformed, or when the cached upload has exceeded the cache TTL.
+	 *
+	 * @since 10.8.0
+	 * @param string $current_hash Hash of the feed that was just generated.
+	 * @return bool True if the upload should be skipped.
+	 */
+	protected function is_feed_unchanged( string $current_hash ): bool {
+		if ( empty( $current_hash ) ) {
+			return false;
+		}
+
+		/**
+		 * Filter whether the unchanged-feed deduplication is enabled.
+		 *
+		 * Set to false to force every sync cycle to upload to the Stripe Files API,
+		 * regardless of whether the feed content has changed.
+		 *
+		 * @since 10.8.0
+		 * @param bool $enabled Default true.
+		 */
+		if ( true !== apply_filters( 'wc_stripe_agentic_commerce_feed_dedupe_enabled', true ) ) {
+			return false;
+		}
+
+		$last = get_option( self::LAST_UPLOAD_OPTION, [] );
+		if ( ! is_array( $last ) || empty( $last['hash'] ) || ! is_string( $last['hash'] ) ) {
+			return false;
+		}
+
+		/**
+		 * Filter the max age of the cached upload record before dedup is bypassed.
+		 *
+		 * Defaults to one week. Applied as a safety valve so a stale or lost Stripe
+		 * file id still gets refreshed on a predictable cadence.
+		 *
+		 * @since 10.8.0
+		 * @param int $ttl_seconds Default self::FEED_CACHE_TTL.
+		 */
+		if ( ! isset( $last['uploaded_at'] ) || ! is_numeric( $last['uploaded_at'] ) ) {
+			return false;
+		}
+		$uploaded_at = (int) $last['uploaded_at'];
+		if ( $uploaded_at <= 0 ) {
+			return false;
+		}
+		$max_age = (int) apply_filters( 'wc_stripe_agentic_commerce_feed_cache_ttl', self::FEED_CACHE_TTL );
+		if ( $max_age > 0 && ( time() - $uploaded_at ) > $max_age ) {
+			return false;
+		}
+
+		return hash_equals( $last['hash'], $current_hash );
+	}
+
+	/**
+	 * Record the hash, timestamp, and Stripe file id of a successful upload.
+	 *
+	 * @since 10.8.0
+	 * @param string $hash   SHA-256 hex digest of the uploaded feed content.
+	 * @param array  $result Delivery result array returned by the Files API delivery method.
+	 * @return void
+	 */
+	protected function remember_feed_upload( string $hash, array $result ): void {
+		update_option(
+			self::LAST_UPLOAD_OPTION,
+			[
+				'hash'          => $hash,
+				'uploaded_at'   => time(),
+				'file_id'       => is_string( $result['file_id'] ?? null ) ? $result['file_id'] : '',
+				'import_set_id' => is_string( $result['import_set_id'] ?? null ) ? $result['import_set_id'] : '',
+			],
+			false
+		);
 	}
 
 	/**

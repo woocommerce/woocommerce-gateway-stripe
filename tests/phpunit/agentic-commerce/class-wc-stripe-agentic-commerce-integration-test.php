@@ -12,6 +12,15 @@
  */
 class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	/**
+	 * Resolved value of the private LAST_UPLOAD_OPTION constant on the integration
+	 * class, cached so tests can read/write the dedup record without exposing the
+	 * constant publicly just for test access.
+	 *
+	 * @var string
+	 */
+	private string $last_upload_option;
+
+	/**
 	 * Setup test environment before each test.
 	 *
 	 * @return void
@@ -26,6 +35,21 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
 			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
 		}
+
+		$this->last_upload_option = ( new \ReflectionClass( \WC_Stripe_Agentic_Commerce_Integration::class ) )
+			->getConstant( 'LAST_UPLOAD_OPTION' );
+	}
+
+	/**
+	 * Reset cross-test state. Runs after every test (including failed ones)
+	 * so assertion failures don't leak dedup state into the next case.
+	 *
+	 * @return void
+	 */
+	public function tearDown(): void {
+		delete_option( $this->last_upload_option );
+		remove_all_filters( 'wc_stripe_agentic_commerce_feed_dedupe_enabled' );
+		parent::tearDown();
 	}
 
 	/**
@@ -264,6 +288,158 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
 	}
 
+	/**
+	 * Test get_feed_hash returns SHA-256 of file contents.
+	 *
+	 * @return void
+	 */
+	public function test_get_feed_hash_matches_sha256_of_file() {
+		$tmp = tempnam( sys_get_temp_dir(), 'wc-stripe-feed-' );
+		$this->assertNotFalse( $tmp, 'tempnam() returned false; cannot run the test.' );
+		file_put_contents( $tmp, "id,title\n1,Widget\n" );
+
+		try {
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+			$get_hash    = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'get_feed_hash' );
+			$get_hash->setAccessible( true );
+
+			$this->assertSame( hash_file( 'sha256', $tmp ), $get_hash->invoke( $integration, $tmp ) );
+		} finally {
+			unlink( $tmp );
+		}
+	}
+
+	/**
+	 * Test get_feed_hash returns empty string when file is missing or unreadable.
+	 *
+	 * @return void
+	 */
+	public function test_get_feed_hash_returns_empty_when_file_missing() {
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+		$get_hash    = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'get_feed_hash' );
+		$get_hash->setAccessible( true );
+
+		$this->assertSame( '', $get_hash->invoke( $integration, '' ) );
+		$this->assertSame( '', $get_hash->invoke( $integration, '/nonexistent/path/feed.csv' ) );
+	}
+
+	/**
+	 * Lock in the dedup contract: `is_feed_unchanged` only short-circuits when
+	 * we have a well-formed, fresh, hash-matching record AND the kill-switch
+	 * filter is on. Every other shape (missing record, mismatching hash,
+	 * expired record, malformed record, filter disabled) has to fall through
+	 * so we re-upload.
+	 *
+	 * @dataProvider provide_is_feed_unchanged_scenarios
+	 *
+	 * @param array|string|null $cached_record  Value to write to the dedup option, or null to leave it unset.
+	 * @param string            $candidate_hash Hash to compare against the cached record.
+	 * @param bool              $filter_enabled Whether the dedup kill-switch filter is on (true) or off (false).
+	 * @param bool              $expected       Expected return from `is_feed_unchanged`.
+	 */
+	public function test_is_feed_unchanged_scenarios( $cached_record, string $candidate_hash, bool $filter_enabled, bool $expected ) {
+		if ( null !== $cached_record ) {
+			update_option( $this->last_upload_option, $cached_record, false );
+		}
+		if ( ! $filter_enabled ) {
+			add_filter( 'wc_stripe_agentic_commerce_feed_dedupe_enabled', '__return_false' );
+		}
+
+		$integration  = new \WC_Stripe_Agentic_Commerce_Integration();
+		$is_unchanged = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'is_feed_unchanged' );
+		$is_unchanged->setAccessible( true );
+
+		$this->assertSame( $expected, $is_unchanged->invoke( $integration, $candidate_hash ) );
+	}
+
+	public function provide_is_feed_unchanged_scenarios(): array {
+		$fresh_record = [
+			'hash'        => 'abc123',
+			'uploaded_at' => time(),
+			'file_id'     => 'file_test',
+		];
+
+		return [
+			'no cached record falls through'              => [ null, 'abc123', true, false ],
+			'fresh hash match short-circuits'             => [ $fresh_record, 'abc123', true, true ],
+			'hash mismatch falls through'                 => [ $fresh_record, 'different_hash', true, false ],
+			'expired record forces fresh upload'          => [
+				[
+					'hash'        => 'abc123',
+					'uploaded_at' => time() - ( 2 * WEEK_IN_SECONDS ),
+					'file_id'     => 'file_test',
+				],
+				'abc123',
+				true,
+				false,
+			],
+			'kill-switch filter forces fresh upload'      => [ $fresh_record, 'abc123', false, false ],
+			'malformed cached record is tolerated'        => [ 'not_an_array', 'abc123', true, false ],
+			'missing uploaded_at forces fresh upload'     => [
+				[
+					'hash'    => 'abc123',
+					'file_id' => 'file_test',
+				],
+				'abc123',
+				true,
+				false,
+			],
+			'non-numeric uploaded_at forces fresh upload' => [
+				[
+					'hash'        => 'abc123',
+					'uploaded_at' => 'not-a-timestamp',
+					'file_id'     => 'file_test',
+				],
+				'abc123',
+				true,
+				false,
+			],
+			'zero uploaded_at forces fresh upload'        => [
+				[
+					'hash'        => 'abc123',
+					'uploaded_at' => 0,
+					'file_id'     => 'file_test',
+				],
+				'abc123',
+				true,
+				false,
+			],
+		];
+	}
+
+	/**
+	 * Test remember_feed_upload persists hash, timestamp, and file_id.
+	 *
+	 * @return void
+	 */
+	public function test_remember_feed_upload_persists_expected_fields() {
+		delete_option( $this->last_upload_option );
+
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+		$remember    = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'remember_feed_upload' );
+		$remember->setAccessible( true );
+
+		$remember->invoke(
+			$integration,
+			'abc123',
+			[
+				'file_id'       => 'file_123',
+				'import_set_id' => 'imp_456',
+				'status'        => 'processed',
+			]
+		);
+
+		$record = get_option( $this->last_upload_option );
+		$this->assertIsArray( $record );
+		$this->assertSame( 'abc123', $record['hash'] );
+		$this->assertSame( 'file_123', $record['file_id'] );
+		$this->assertSame( 'imp_456', $record['import_set_id'] );
+		$this->assertIsInt( $record['uploaded_at'] );
+		$this->assertLessThanOrEqual( time(), $record['uploaded_at'] );
+
+		delete_option( $this->last_upload_option );
+	}
+
 	// -------------------------------------------------------------------------
 	// store_sync_result
 	// -------------------------------------------------------------------------
@@ -482,7 +658,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * update_pending_statuses rewrites entries whose stored status is non-terminal.
 	 *
 	 * The non-terminal set must match the controller's REFRESHABLE_STATUSES
-	 * (`queued`, `validating_records`, `pending`, `creating_records`, `unknown`);
+	 * (`queued`, `validating`, `validating_records`, `pending`, `creating_records`, `unknown`);
 	 * entries in terminal statuses must not be mutated.
 	 *
 	 * @dataProvider provider_update_pending_statuses_rewrites_non_terminal_entries
@@ -525,12 +701,15 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	public function provider_update_pending_statuses_rewrites_non_terminal_entries(): array {
 		return [
 			'queued is refreshable'             => [ 'queued', 'succeeded' ],
+			'validating is refreshable'         => [ 'validating', 'succeeded' ],
 			'validating_records is refreshable' => [ 'validating_records', 'succeeded' ],
 			'pending is refreshable'            => [ 'pending', 'succeeded' ],
 			'creating_records is refreshable'   => [ 'creating_records', 'succeeded' ],
 			'unknown is refreshable'            => [ 'unknown', 'succeeded' ],
 			'succeeded is terminal'             => [ 'succeeded', 'succeeded' ],
 			'failed is terminal'                => [ 'failed', 'failed' ],
+			'pending_archive is terminal'       => [ 'pending_archive', 'pending_archive' ],
+			'archived is terminal'              => [ 'archived', 'archived' ],
 		];
 	}
 
