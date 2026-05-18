@@ -349,12 +349,14 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 
 		// Unrecognized express type: pass through.
 		$_POST['express_checkout_type'] = 'paypal';
-		$this->assertSame(
-			'Credit Card',
-			$this->element->filter_change_payment_method_note_title( 'Credit Card', 'stripe', $subscription )
-		);
-
-		unset( $_POST['express_checkout_type'] );
+		try {
+			$this->assertSame(
+				'Credit Card',
+				$this->element->filter_change_payment_method_note_title( 'Credit Card', 'stripe', $subscription )
+			);
+		} finally {
+			unset( $_POST['express_checkout_type'] );
+		}
 	}
 
 	/**
