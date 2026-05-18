@@ -71,7 +71,7 @@ A bare `if ( ! $order )` is not enough — `wc_get_order()` can return a `WC_Ord
 - WP/WC core types that are wrong upstream and will be fixed there.
 - Stripe SDK return types that PHPStan over-narrowed.
 
-In all baseline-only cases, the `phpstan-baseline.neon` entry should carry a `# Reason:` comment so future reviewers can judge whether the suppression is still justified later. Prefer the inline `@phpstan-ignore-next-line` form whenever the file is editable — the reason lives next to the code instead of in a sibling file.
+Prefer the inline `@phpstan-ignore` comment form whenever the file is editable — the reason lives next to the code instead of in a sibling file.
 
 ## Verifying after the change
 
