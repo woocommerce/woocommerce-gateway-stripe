@@ -5,8 +5,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $is_gte_wc6_6 = defined( WC_VERSION ) && version_compare( WC_VERSION, '6.6', '>=' );
 
-$wc_stripe_subscriptions_enabled = WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled();
-
 $wc_stripe_express_checkout_location_options = [
 	'product'  => __( 'Product', 'woocommerce-gateway-stripe' ),
 	'cart'     => __( 'Cart', 'woocommerce-gateway-stripe' ),
@@ -15,7 +13,7 @@ $wc_stripe_express_checkout_location_options = [
 
 $wc_stripe_default_express_checkout_locations = [ 'product', 'cart', 'checkout' ];
 
-if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled()) {
+if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 	$wc_stripe_express_checkout_location_options['change_payment_method'] = __( 'Change payment method (subscriptions)', 'woocommerce-gateway-stripe' );
 	$wc_stripe_default_express_checkout_locations[]                       = 'change_payment_method';
 }
