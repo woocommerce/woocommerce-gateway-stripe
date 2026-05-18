@@ -174,6 +174,10 @@ const IntroDescription = styled.p`
 
 const SectionCard = styled( Card )`
 	margin-bottom: 20px;
+
+	&:last-child {
+		margin-bottom: 0;
+	}
 `;
 
 const SectionHeading = styled.h2`
