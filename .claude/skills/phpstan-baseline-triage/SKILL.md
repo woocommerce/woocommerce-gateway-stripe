@@ -27,7 +27,7 @@ When suppression is unavoidable, prefer an **inline `@phpstan-ignore-next-line` 
    | Wrong type annotation that lies about the actual return | **Fix the annotation** |
    | Untyped WP/WC hook return (`mixed`, etc.) | **Add a defensive check at the boundary** |
    | Stripe SDK type that genuinely allows multiple shapes | **Narrow with explicit assertion or fix the call site** |
-   | Genuine PHPStan limitation (intersection types, generic variance) | **Add an inline `@phpstan-ignore-next-line` with a reason comment** |
+   | Genuine PHPStan limitation (intersection types, generic variance) | **Add an inline `@phpstan-ignore` comment with a specific error type to ignore as well as descriptive text** |
 
 3. **Fix legitimate issues first.** Most level 8 errors indicate real null/false paths that production hasn't hit yet — the type checker is doing its job.
 
