@@ -209,7 +209,10 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 
 		try {
 			$integration = new WC_Stripe_Agentic_Commerce_Integration();
-			$success     = $integration->sync_feed();
+			// $force_upload = true so a manual click always lands an upload even
+			// when the catalog hash matches the last successful upload — the
+			// scheduled sync still uses dedup.
+			$success = $integration->sync_feed( true );
 
 			if ( ! $success ) {
 				$last_sync = WC_Stripe_Agentic_Commerce_Integration::get_last_sync();
