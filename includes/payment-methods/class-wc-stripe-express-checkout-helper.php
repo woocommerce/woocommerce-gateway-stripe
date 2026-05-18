@@ -1133,8 +1133,6 @@ class WC_Stripe_Express_Checkout_Helper {
 		// @reykjalin: This HK specific sanitazation *should be removed* once Apple Pay fix
 		// the address bug. More info on that in pc4etw-bY-p2.
 		if ( WC_Stripe_Country_Code::HONG_KONG === $billing_country ) {
-			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
-
 			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $billing_state ) ) ) {
 				$billing_postcode = ! empty( $data['billing_address']['postcode'] ) ? wc_clean( wp_unslash( $data['billing_address']['postcode'] ) ) : '';
 				if ( WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $billing_postcode ) ) ) {
@@ -1143,8 +1141,6 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 		if ( WC_Stripe_Country_Code::HONG_KONG === $shipping_country ) {
-			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
-
 			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $shipping_state ) ) ) {
 				$shipping_postcode = ! empty( $data['shipping_address']['postcode'] ) ? wc_clean( wp_unslash( $data['shipping_address']['postcode'] ) ) : '';
 				if ( WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $shipping_postcode ) ) ) {
@@ -1202,7 +1198,6 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function get_normalized_state_from_pr_states( $state, $country ) {
 		// Include Payment Request API State list for compatibility with WC countries/states.
-		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-payment-request-button-states.php';
 		$pr_states = WC_Stripe_Payment_Request_Button_States::STATES;
 
 		if ( ! isset( $pr_states[ $country ] ) ) {
