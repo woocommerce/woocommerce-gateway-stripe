@@ -11,32 +11,22 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update_Test 
 
 	private const MIGRATION_FLAG_OPTION = 'wc_stripe_express_checkout_cpm_location_migrated';
 
-	/**
-	 * Stripe gateway mock.
-	 *
-	 * @var MockObject|WC_Stripe_UPE_Payment_Gateway
-	 */
-	private $gateway_mock;
-
 	public function set_up() {
 		parent::set_up();
 
 		delete_option( self::MIGRATION_FLAG_OPTION );
-
-		$this->gateway_mock = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
-									->disableOriginalConstructor()
-									->getMock();
+		WC_Stripe_Helper::delete_main_stripe_settings();
 	}
 
 	public function tear_down() {
 		delete_option( self::MIGRATION_FLAG_OPTION );
+		WC_Stripe_Helper::delete_main_stripe_settings();
 		parent::tear_down();
 	}
 
 	/**
-	 * Build a partial mock of the migration. `get_gateway()` returns the
-	 * shared gateway mock; `is_subscriptions_enabled()` is stubbed so we
-	 * don't depend on Subscriptions plugin state.
+	 * Build a partial mock of the migration. `is_subscriptions_enabled()` is
+	 * stubbed so we don't depend on the Subscriptions plugin state.
 	 *
 	 * @param bool $subscriptions_enabled Value `is_subscriptions_enabled()` should return.
 	 *
@@ -45,32 +35,47 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update_Test 
 	private function build_migration( bool $subscriptions_enabled = true ) {
 		$migration = $this->getMockBuilder( WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update::class )
 							->disableOriginalConstructor()
-							->onlyMethods( [ 'get_gateway', 'is_subscriptions_enabled' ] )
+							->onlyMethods( [ 'is_subscriptions_enabled' ] )
 							->getMock();
-		$migration->method( 'get_gateway' )->willReturn( $this->gateway_mock );
 		$migration->method( 'is_subscriptions_enabled' )->willReturn( $subscriptions_enabled );
 		return $migration;
 	}
 
 	/**
+	 * Seed the stored stripe settings, mirroring how the option is persisted in
+	 * production. We deliberately go through `update_main_stripe_settings` so
+	 * the `pre_update_option_woocommerce_stripe_settings` filter runs, just
+	 * like production writes.
+	 *
+	 * @param array $settings Settings array to persist.
+	 * @return void
+	 */
+	private function set_stored_settings( array $settings ): void {
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+	}
+
+	/**
 	 * The merchant had every pre-PR default location enabled. The migration
 	 * appends `change_payment_method` so the upgrade preserves the
-	 * "everything on" state.
+	 * "everything on" state. Unrelated stored keys (e.g. `pmc_enabled`) must
+	 * survive the write — the migration must not clobber them.
 	 */
 	public function test_appends_change_payment_method_when_all_legacy_locations_enabled() {
-		$this->gateway_mock->method( 'get_option' )
-							->with( 'express_checkout_button_locations' )
-							->willReturn( [ 'product', 'cart', 'checkout' ] );
-
-		$this->gateway_mock->expects( $this->once() )
-							->method( 'update_option' )
-							->with(
-								'express_checkout_button_locations',
-								[ 'product', 'cart', 'checkout', 'change_payment_method' ]
-							);
+		$this->set_stored_settings(
+			[
+				'express_checkout_button_locations' => [ 'product', 'cart', 'checkout' ],
+				'pmc_enabled'                       => 'no',
+			]
+		);
 
 		$this->build_migration()->maybe_migrate();
 
+		$stored = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame(
+			[ 'product', 'cart', 'checkout', 'change_payment_method' ],
+			$stored['express_checkout_button_locations']
+		);
+		$this->assertSame( 'no', $stored['pmc_enabled'], 'unrelated stored keys must survive the migration write.' );
 		$this->assertSame( 'yes', get_option( self::MIGRATION_FLAG_OPTION ) );
 	}
 
@@ -79,14 +84,16 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update_Test 
 	 * this as a deliberate customization and don't add the new location.
 	 */
 	public function test_leaves_partial_legacy_set_alone() {
-		$this->gateway_mock->method( 'get_option' )
-							->with( 'express_checkout_button_locations' )
-							->willReturn( [ 'checkout' ] );
-
-		$this->gateway_mock->expects( $this->never() )->method( 'update_option' );
+		$this->set_stored_settings(
+			[
+				'express_checkout_button_locations' => [ 'checkout' ],
+			]
+		);
 
 		$this->build_migration()->maybe_migrate();
 
+		$stored = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( [ 'checkout' ], $stored['express_checkout_button_locations'] );
 		$this->assertSame( 'yes', get_option( self::MIGRATION_FLAG_OPTION ) );
 	}
 
@@ -96,14 +103,19 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update_Test 
 	 * to do.
 	 */
 	public function test_skips_when_change_payment_method_already_present() {
-		$this->gateway_mock->method( 'get_option' )
-							->with( 'express_checkout_button_locations' )
-							->willReturn( [ 'product', 'cart', 'checkout', 'change_payment_method' ] );
-
-		$this->gateway_mock->expects( $this->never() )->method( 'update_option' );
+		$this->set_stored_settings(
+			[
+				'express_checkout_button_locations' => [ 'product', 'cart', 'checkout', 'change_payment_method' ],
+			]
+		);
 
 		$this->build_migration()->maybe_migrate();
 
+		$stored = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame(
+			[ 'product', 'cart', 'checkout', 'change_payment_method' ],
+			$stored['express_checkout_button_locations']
+		);
 		$this->assertSame( 'yes', get_option( self::MIGRATION_FLAG_OPTION ) );
 	}
 
@@ -114,11 +126,19 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update_Test 
 	 */
 	public function test_does_not_run_when_flag_already_set() {
 		update_option( self::MIGRATION_FLAG_OPTION, 'yes' );
-
-		$this->gateway_mock->expects( $this->never() )->method( 'get_option' );
-		$this->gateway_mock->expects( $this->never() )->method( 'update_option' );
+		$this->set_stored_settings(
+			[
+				'express_checkout_button_locations' => [ 'product', 'cart', 'checkout' ],
+			]
+		);
 
 		$this->build_migration()->maybe_migrate();
+
+		$stored = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame(
+			[ 'product', 'cart', 'checkout' ],
+			$stored['express_checkout_button_locations']
+		);
 	}
 
 	/**
@@ -126,28 +146,38 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update_Test 
 	 * migration, just leave the option alone and mark the flag.
 	 */
 	public function test_leaves_non_array_stored_value_alone() {
-		$this->gateway_mock->method( 'get_option' )
-							->with( 'express_checkout_button_locations' )
-							->willReturn( '' );
-
-		$this->gateway_mock->expects( $this->never() )->method( 'update_option' );
+		$this->set_stored_settings(
+			[
+				'express_checkout_button_locations' => '',
+			]
+		);
 
 		$this->build_migration()->maybe_migrate();
 
+		$stored = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( '', $stored['express_checkout_button_locations'] );
 		$this->assertSame( 'yes', get_option( self::MIGRATION_FLAG_OPTION ) );
 	}
 
 	/**
-	 * Subscriptions isn't installed: skip without touching gateway state
-	 * and leave the flag unset so a later plugin update can run the
-	 * migration if the merchant installs Subscriptions.
+	 * Subscriptions isn't installed: skip without touching settings and
+	 * leave the flag unset so a later plugin update can run the migration
+	 * if the merchant installs Subscriptions.
 	 */
 	public function test_skips_and_does_not_set_flag_when_subscriptions_not_enabled() {
-		$this->gateway_mock->expects( $this->never() )->method( 'get_option' );
-		$this->gateway_mock->expects( $this->never() )->method( 'update_option' );
+		$this->set_stored_settings(
+			[
+				'express_checkout_button_locations' => [ 'product', 'cart', 'checkout' ],
+			]
+		);
 
 		$this->build_migration( false )->maybe_migrate();
 
+		$stored = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame(
+			[ 'product', 'cart', 'checkout' ],
+			$stored['express_checkout_button_locations']
+		);
 		$this->assertFalse( get_option( self::MIGRATION_FLAG_OPTION ) );
 	}
 }

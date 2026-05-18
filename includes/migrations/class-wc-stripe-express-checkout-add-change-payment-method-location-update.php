@@ -69,8 +69,15 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update {
 			return;
 		}
 
-		$gateway   = $this->get_gateway();
-		$locations = $gateway->get_option( 'express_checkout_button_locations' );
+		// Read and write the stored option directly. Going through the
+		// gateway's get_option/update_option pair re-saves the whole
+		// in-memory settings array — which was hydrated from form-field
+		// defaults at gateway-construction time, before this migration's
+		// subscriptions-aware default existed — and would wipe out any
+		// unrelated stored keys (e.g. `pmc_enabled`) that were added after
+		// the gateway was first constructed.
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$locations       = $stripe_settings['express_checkout_button_locations'] ?? null;
 
 		// Treat anything other than an array as "not the all-three default" —
 		// don't touch it.
@@ -79,20 +86,11 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update {
 			&& count( array_intersect( self::LEGACY_LOCATIONS, $locations ) ) === count( self::LEGACY_LOCATIONS )
 		) {
 			$locations[] = self::NEW_LOCATION;
-			$gateway->update_option( 'express_checkout_button_locations', $locations );
+			$stripe_settings['express_checkout_button_locations'] = $locations;
+			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		}
 
 		update_option( self::MIGRATION_FLAG_OPTION, 'yes' );
-	}
-
-	/**
-	 * Returns the main Stripe payment gateway. Kept as a protected seam so
-	 * tests can override gateway resolution via a partial mock.
-	 *
-	 * @return WC_Stripe_Payment_Gateway
-	 */
-	protected function get_gateway() {
-		return woocommerce_gateway_stripe()->get_main_stripe_gateway();
 	}
 
 	/**
