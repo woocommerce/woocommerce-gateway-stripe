@@ -567,8 +567,12 @@ class WC_Stripe_Express_Checkout_Element {
 			WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $order, $payment_method_id );
 		}
 
-		// One-shot: clear the markers even if the override didn't apply, so
-		// stale values can't leak into a later confirmation.
+		// Always remove the markers — the values are only meaningful for the
+		// single confirmation that follows the 3DS redirect, and leaving them
+		// behind would let a later confirmation on the same subscription
+		// re-apply a stale title or token. The cleanup runs unconditionally
+		// because that's also true when apply_express_checkout_title_to_order
+		// returned false: junk should not linger if we couldn't handle it.
 		$order->delete_meta_data( '_wc_stripe_express_checkout_type' );
 		$order->delete_meta_data( '_wc_stripe_express_checkout_payment_method_id' );
 		$order->save();
@@ -609,9 +613,10 @@ class WC_Stripe_Express_Checkout_Element {
 
 	/**
 	 * Returns the order-storage title for an express checkout type, including the
-	 * "(Stripe)" suffix for Apple Pay / Google Pay and the bare "Link" label for Stripe Link.
+	 * "(Stripe)" suffix for Apple Pay / Google Pay / Amazon Pay and the bare "Link"
+	 * label for Stripe Link.
 	 *
-	 * @param string $express_checkout_type One of WC_Stripe_Payment_Methods::APPLE_PAY/GOOGLE_PAY/LINK, or empty.
+	 * @param string $express_checkout_type One of WC_Stripe_Payment_Methods::APPLE_PAY/GOOGLE_PAY/AMAZON_PAY/LINK, or empty.
 	 * @return string The express label, or empty string if the type is not an express method.
 	 */
 	private function get_express_checkout_method_title( $express_checkout_type ) {
@@ -622,6 +627,9 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 		if ( WC_Stripe_Payment_Methods::GOOGLE_PAY === $express_checkout_type ) {
 			return WC_Stripe_Payment_Methods::GOOGLE_PAY_LABEL . $suffix;
+		}
+		if ( WC_Stripe_Payment_Methods::AMAZON_PAY === $express_checkout_type ) {
+			return WC_Stripe_Payment_Methods::AMAZON_PAY_LABEL . $suffix;
 		}
 		if ( WC_Stripe_Payment_Methods::LINK === $express_checkout_type ) {
 			// Match the title produced by the standard Link path (set_payment_method_title_for_order)

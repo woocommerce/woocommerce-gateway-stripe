@@ -87,7 +87,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		$tokens = WC_Payment_Tokens::get_customer_tokens( $user_id, 'stripe' );
+		$tokens = WC_Payment_Tokens::get_customer_tokens( $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
 		foreach ( $tokens as $token ) {
 			if ( $token->get_token() === $payment_method_id ) {
 				// Replace via the data store so we go through the official
