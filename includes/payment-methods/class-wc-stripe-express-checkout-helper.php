@@ -87,12 +87,17 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		$tokens = WC_Payment_Tokens::get_customer_tokens( $user_id, 'stripe' );
+		$tokens = WC_Payment_Tokens::get_customer_tokens( $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
 		foreach ( $tokens as $token ) {
 			if ( $token->get_token() === $payment_method_id ) {
-				$subscription->delete_meta_data( '_payment_tokens' );
-				$subscription->add_payment_token( $token );
-				$subscription->save();
+				// `_payment_tokens` is in WC's internal-meta-keys list, so
+				// `delete_meta_data()` is a no-op on it; `add_payment_token()`
+				// then appends rather than replaces, leaving the stale token
+				// alongside the new one. The data-store API rewrites the list
+				// in one call (and works under both CPT and HPOS).
+				// PHPStan can't follow WC_Data_Store's generic factory return type to
+				// the order data store that owns update_payment_token_ids().
+				$subscription->get_data_store()->update_payment_token_ids( $subscription, [ $token->get_id() ] ); // @phpstan-ignore-line method.notFound
 				return true;
 			}
 		}

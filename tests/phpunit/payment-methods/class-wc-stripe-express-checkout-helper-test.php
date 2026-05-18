@@ -1930,4 +1930,98 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * Helper to attach a Stripe CC token to a user.
+	 */
+	private function attach_stripe_token( int $user_id, string $pm_id ): WC_Payment_Token_CC {
+		$token = new WC_Payment_Token_CC();
+		$token->set_user_id( $user_id );
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( $pm_id );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+		$token->save();
+		return $token;
+	}
+
+	/**
+	 * Replacing a subscription's payment token must leave exactly the matching
+	 * token attached — the previous token (e.g. a Visa added before the change-
+	 * payment flow) has to be removed, not appended-to. Guards against the
+	 * regression Malith called out on PR #5284: `delete_meta_data('_payment_tokens')`
+	 * is a no-op (WC marks the key as internal), so an `add_payment_token()` on top
+	 * would silently leave the stale token in place and My Account would render it.
+	 */
+	public function test_replace_subscription_payment_token_replaces_existing_token() {
+		$user_id      = self::factory()->user->create();
+		$old_token    = $this->attach_stripe_token( $user_id, 'pm_old' );
+		$new_token    = $this->attach_stripe_token( $user_id, 'pm_new' );
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $user_id );
+		$subscription->save(); // Persist before add_payment_token — otherwise it writes to post_id=0 and is lost.
+		$subscription->add_payment_token( $old_token );
+
+		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_new' );
+
+		$this->assertTrue( $result );
+		$tokens = $subscription->get_payment_tokens();
+		$this->assertSame( [ $new_token->get_id() ], $tokens );
+	}
+
+	/**
+	 * If no saved token matches the supplied Stripe payment-method ID, the
+	 * helper must report false and leave the subscription's tokens untouched.
+	 */
+	public function test_replace_subscription_payment_token_noop_when_no_match() {
+		$user_id      = self::factory()->user->create();
+		$old_token    = $this->attach_stripe_token( $user_id, 'pm_old' );
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $user_id );
+		$subscription->save(); // Persist before add_payment_token — otherwise it writes to post_id=0 and is lost.
+		$subscription->add_payment_token( $old_token );
+
+		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_does_not_exist' );
+
+		$this->assertFalse( $result );
+		$this->assertSame( [ $old_token->get_id() ], $subscription->get_payment_tokens() );
+	}
+
+	/**
+	 * Guard clauses: a non-order argument, an empty payment-method ID, or a
+	 * subscription with no associated user must all short-circuit to false.
+	 *
+	 * @dataProvider provide_replace_subscription_payment_token_invalid_inputs
+	 */
+	public function test_replace_subscription_payment_token_invalid_inputs( $subscription_or_factory, $payment_method_id ) {
+		$subscription = is_callable( $subscription_or_factory )
+			? $subscription_or_factory( $this )
+			: $subscription_or_factory;
+		$this->assertFalse(
+			WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $payment_method_id )
+		);
+	}
+
+	public function provide_replace_subscription_payment_token_invalid_inputs() {
+		return [
+			'non-order'        => [
+				'subscription'      => 'not an order',
+				'payment_method_id' => 'pm_xxx',
+			],
+			'empty pm id'      => [
+				'subscription'      => function () {
+					return new WC_Subscription();
+				},
+				'payment_method_id' => '',
+			],
+			'no user on order' => [
+				'subscription'      => function () {
+					return new WC_Subscription();
+				},
+				'payment_method_id' => 'pm_xxx',
+			],
+		];
+	}
 }

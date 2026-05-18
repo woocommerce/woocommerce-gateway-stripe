@@ -225,6 +225,10 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 				'checkout type' => 'google_pay',
 				'expected'      => 'Google Pay (Stripe)',
 			],
+			'amazon pay' => [
+				'checkout type' => 'amazon_pay',
+				'expected'      => 'Amazon Pay (Stripe)',
+			],
 			'link'       => [
 				'checkout type' => 'link',
 				'expected'      => 'Link',
@@ -291,9 +295,9 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 
 		$filtered = $this->element->filter_change_payment_method_note_title( 'Credit Card', 'stripe', $subscription );
 
-		$this->assertSame( $expected, $filtered );
-
 		unset( $_POST['express_checkout_type'] );
+
+		$this->assertSame( $expected, $filtered );
 	}
 
 	/**
@@ -349,12 +353,14 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 
 		// Unrecognized express type: pass through.
 		$_POST['express_checkout_type'] = 'paypal';
-		$this->assertSame(
-			'Credit Card',
-			$this->element->filter_change_payment_method_note_title( 'Credit Card', 'stripe', $subscription )
-		);
-
-		unset( $_POST['express_checkout_type'] );
+		try {
+			$this->assertSame(
+				'Credit Card',
+				$this->element->filter_change_payment_method_note_title( 'Credit Card', 'stripe', $subscription )
+			);
+		} finally {
+			unset( $_POST['express_checkout_type'] );
+		}
 	}
 
 	/**
@@ -379,15 +385,17 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		unset( $_POST['express_checkout_type'] );
 
 		$this->element->update_subscription_payment_method_title();
-		$this->assertSame( 'Stripe', $subscription->get_payment_method_title() );
+		try {
+			$this->assertSame( 'Stripe', $subscription->get_payment_method_title() );
 
-		// Unrecognized type should also leave the title unchanged.
-		$_POST['express_checkout_type'] = 'paypal';
-		$this->element->update_subscription_payment_method_title();
-		$this->assertSame( 'Stripe', $subscription->get_payment_method_title() );
-
-		unset( $_GET['change_payment_method'], $_POST['express_checkout_type'] );
-		WC_Subscriptions::$wcs_get_subscription = null;
+			// Unrecognized type should also leave the title unchanged.
+			$_POST['express_checkout_type'] = 'paypal';
+			$this->element->update_subscription_payment_method_title();
+			$this->assertSame( 'Stripe', $subscription->get_payment_method_title() );
+		} finally {
+			unset( $_GET['change_payment_method'], $_POST['express_checkout_type'] );
+			WC_Subscriptions::$wcs_get_subscription = null;
+		}
 	}
 
 	/**
