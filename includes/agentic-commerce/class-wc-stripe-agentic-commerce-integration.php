@@ -779,7 +779,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		 * @since 10.8.0
 		 * @param bool $enabled Default true.
 		 */
-		if ( ! apply_filters( 'wc_stripe_agentic_commerce_feed_dedupe_enabled', true ) ) {
+		if ( true !== apply_filters( 'wc_stripe_agentic_commerce_feed_dedupe_enabled', true ) ) {
 			return false;
 		}
 
