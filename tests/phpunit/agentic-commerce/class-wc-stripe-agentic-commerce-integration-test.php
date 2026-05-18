@@ -41,6 +41,18 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Reset cross-test state. Runs after every test (including failed ones)
+	 * so assertion failures don't leak dedup state into the next case.
+	 *
+	 * @return void
+	 */
+	public function tearDown(): void {
+		delete_option( $this->last_upload_option );
+		remove_all_filters( 'wc_stripe_agentic_commerce_feed_dedupe_enabled' );
+		parent::tearDown();
+	}
+
+	/**
 	 * Test get_id returns correct identifier.
 	 *
 	 * @return void
@@ -283,15 +295,18 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_feed_hash_matches_sha256_of_file() {
 		$tmp = tempnam( sys_get_temp_dir(), 'wc-stripe-feed-' );
+		$this->assertNotFalse( $tmp, 'tempnam() returned false; cannot run the test.' );
 		file_put_contents( $tmp, "id,title\n1,Widget\n" );
 
-		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
-		$get_hash    = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'get_feed_hash' );
-		$get_hash->setAccessible( true );
+		try {
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+			$get_hash    = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'get_feed_hash' );
+			$get_hash->setAccessible( true );
 
-		$this->assertSame( hash_file( 'sha256', $tmp ), $get_hash->invoke( $integration, $tmp ) );
-
-		unlink( $tmp );
+			$this->assertSame( hash_file( 'sha256', $tmp ), $get_hash->invoke( $integration, $tmp ) );
+		} finally {
+			unlink( $tmp );
+		}
 	}
 
 	/**
@@ -309,139 +324,58 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test is_feed_unchanged returns false on first run (no cached record).
+	 * Lock in the dedup contract: `is_feed_unchanged` only short-circuits when
+	 * we have a well-formed, fresh, hash-matching record AND the kill-switch
+	 * filter is on. Every other shape (missing record, mismatching hash,
+	 * expired record, malformed record, filter disabled) has to fall through
+	 * so we re-upload.
 	 *
-	 * @return void
+	 * @dataProvider provide_is_feed_unchanged_scenarios
+	 *
+	 * @param array|string|null $cached_record  Value to write to the dedup option, or null to leave it unset.
+	 * @param string            $candidate_hash Hash to compare against the cached record.
+	 * @param bool              $filter_enabled Whether the dedup kill-switch filter is on (true) or off (false).
+	 * @param bool              $expected       Expected return from `is_feed_unchanged`.
 	 */
-	public function test_is_feed_unchanged_returns_false_when_no_cached_upload() {
-		delete_option( $this->last_upload_option );
+	public function test_is_feed_unchanged_scenarios( $cached_record, string $candidate_hash, bool $filter_enabled, bool $expected ) {
+		if ( null !== $cached_record ) {
+			update_option( $this->last_upload_option, $cached_record, false );
+		}
+		if ( ! $filter_enabled ) {
+			add_filter( 'wc_stripe_agentic_commerce_feed_dedupe_enabled', '__return_false' );
+		}
 
 		$integration  = new \WC_Stripe_Agentic_Commerce_Integration();
 		$is_unchanged = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'is_feed_unchanged' );
 		$is_unchanged->setAccessible( true );
 
-		$this->assertFalse( $is_unchanged->invoke( $integration, 'abc123' ) );
+		$this->assertSame( $expected, $is_unchanged->invoke( $integration, $candidate_hash ) );
 	}
 
-	/**
-	 * Test is_feed_unchanged returns true when hash matches a fresh cached upload.
-	 *
-	 * @return void
-	 */
-	public function test_is_feed_unchanged_returns_true_when_hash_matches() {
-		update_option(
-			$this->last_upload_option,
-			[
-				'hash'        => 'abc123',
-				'uploaded_at' => time(),
-				'file_id'     => 'file_test',
+	public function provide_is_feed_unchanged_scenarios(): array {
+		$fresh_record = [
+			'hash'        => 'abc123',
+			'uploaded_at' => time(),
+			'file_id'     => 'file_test',
+		];
+
+		return [
+			'no cached record falls through'         => [ null, 'abc123', true, false ],
+			'fresh hash match short-circuits'        => [ $fresh_record, 'abc123', true, true ],
+			'hash mismatch falls through'            => [ $fresh_record, 'different_hash', true, false ],
+			'expired record forces fresh upload'     => [
+				[
+					'hash'        => 'abc123',
+					'uploaded_at' => time() - ( 2 * WEEK_IN_SECONDS ),
+					'file_id'     => 'file_test',
+				],
+				'abc123',
+				true,
+				false,
 			],
-			false
-		);
-
-		$integration  = new \WC_Stripe_Agentic_Commerce_Integration();
-		$is_unchanged = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'is_feed_unchanged' );
-		$is_unchanged->setAccessible( true );
-
-		$this->assertTrue( $is_unchanged->invoke( $integration, 'abc123' ) );
-
-		delete_option( $this->last_upload_option );
-	}
-
-	/**
-	 * Test is_feed_unchanged returns false when hashes differ.
-	 *
-	 * @return void
-	 */
-	public function test_is_feed_unchanged_returns_false_when_hash_differs() {
-		update_option(
-			$this->last_upload_option,
-			[
-				'hash'        => 'abc123',
-				'uploaded_at' => time(),
-				'file_id'     => 'file_test',
-			],
-			false
-		);
-
-		$integration  = new \WC_Stripe_Agentic_Commerce_Integration();
-		$is_unchanged = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'is_feed_unchanged' );
-		$is_unchanged->setAccessible( true );
-
-		$this->assertFalse( $is_unchanged->invoke( $integration, 'different_hash' ) );
-
-		delete_option( $this->last_upload_option );
-	}
-
-	/**
-	 * Test is_feed_unchanged returns false when the cached record is past the TTL,
-	 * forcing a fresh upload as a safety valve.
-	 *
-	 * @return void
-	 */
-	public function test_is_feed_unchanged_returns_false_when_cache_expired() {
-		update_option(
-			$this->last_upload_option,
-			[
-				'hash'        => 'abc123',
-				'uploaded_at' => time() - ( 2 * WEEK_IN_SECONDS ),
-				'file_id'     => 'file_test',
-			],
-			false
-		);
-
-		$integration  = new \WC_Stripe_Agentic_Commerce_Integration();
-		$is_unchanged = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'is_feed_unchanged' );
-		$is_unchanged->setAccessible( true );
-
-		$this->assertFalse( $is_unchanged->invoke( $integration, 'abc123' ) );
-
-		delete_option( $this->last_upload_option );
-	}
-
-	/**
-	 * Test dedup can be disabled via filter.
-	 *
-	 * @return void
-	 */
-	public function test_is_feed_unchanged_respects_disable_filter() {
-		update_option(
-			$this->last_upload_option,
-			[
-				'hash'        => 'abc123',
-				'uploaded_at' => time(),
-				'file_id'     => 'file_test',
-			],
-			false
-		);
-
-		add_filter( 'wc_stripe_agentic_commerce_feed_dedupe_enabled', '__return_false' );
-
-		$integration  = new \WC_Stripe_Agentic_Commerce_Integration();
-		$is_unchanged = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'is_feed_unchanged' );
-		$is_unchanged->setAccessible( true );
-
-		$this->assertFalse( $is_unchanged->invoke( $integration, 'abc123' ) );
-
-		remove_filter( 'wc_stripe_agentic_commerce_feed_dedupe_enabled', '__return_false' );
-		delete_option( $this->last_upload_option );
-	}
-
-	/**
-	 * Test is_feed_unchanged tolerates a malformed/partial cached record.
-	 *
-	 * @return void
-	 */
-	public function test_is_feed_unchanged_returns_false_for_malformed_record() {
-		update_option( $this->last_upload_option, 'not_an_array', false );
-
-		$integration  = new \WC_Stripe_Agentic_Commerce_Integration();
-		$is_unchanged = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'is_feed_unchanged' );
-		$is_unchanged->setAccessible( true );
-
-		$this->assertFalse( $is_unchanged->invoke( $integration, 'abc123' ) );
-
-		delete_option( $this->last_upload_option );
+			'kill-switch filter forces fresh upload' => [ $fresh_record, 'abc123', false, false ],
+			'malformed cached record is tolerated'   => [ 'not_an_array', 'abc123', true, false ],
+		];
 	}
 
 	/**
