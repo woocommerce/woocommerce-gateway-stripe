@@ -68,6 +68,42 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Replaces the subscription's saved payment tokens with the WC token that
+	 * matches the given Stripe payment method ID. The change-payment flow
+	 * updates `_stripe_source_id` / `_payment_method` but not `_payment_tokens`,
+	 * so without this My Account keeps rendering the previously saved card.
+	 *
+	 * @param WC_Order $subscription      The subscription being updated.
+	 * @param string   $payment_method_id The Stripe payment method ID just attached to the subscription.
+	 * @return bool                       Whether a matching token was attached.
+	 */
+	public static function replace_subscription_payment_token( $subscription, $payment_method_id ) {
+		if ( ! $subscription instanceof WC_Order || empty( $payment_method_id ) ) {
+			return false;
+		}
+
+		$user_id = $subscription->get_user_id();
+		if ( ! $user_id ) {
+			return false;
+		}
+
+		$tokens = WC_Payment_Tokens::get_customer_tokens( $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+		foreach ( $tokens as $token ) {
+			if ( $token->get_token() === $payment_method_id ) {
+				// `_payment_tokens` is in WC's internal-meta-keys list, so
+				// `delete_meta_data()` is a no-op on it; `add_payment_token()`
+				// then appends rather than replaces, leaving the stale token
+				// alongside the new one. The data-store API rewrites the list
+				// in one call (and works under both CPT and HPOS).
+				$subscription->get_data_store()->update_payment_token_ids( $subscription, [ $token->get_id() ] ); // @phpstan-ignore-line method.notFound (PHPStan can't follow the generic get_data_store() return type to the order data store that implements update_payment_token_ids().)
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Checks whether authentication is required for checkout.
 	 *
 	 * @return bool
@@ -629,7 +665,52 @@ class WC_Stripe_Express_Checkout_Helper {
 	public function is_page_supported() {
 		return $this->is_product()
 				|| WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
-				|| is_wc_endpoint_url( 'order-pay' );
+				|| is_wc_endpoint_url( 'order-pay' )
+				|| $this->is_change_payment_method_page();
+	}
+
+	/**
+	 * Returns true if the current page is a subscription change payment method page.
+	 *
+	 * @return boolean
+	 */
+	public function is_change_payment_method_page() {
+		return isset( $_GET['change_payment_method'] ) // phpcs:ignore WordPress.Security.NonceVerification
+			&& function_exists( 'wcs_is_subscription' )
+			&& wcs_is_subscription( absint( $_GET['change_payment_method'] ) ); // phpcs:ignore WordPress.Security.NonceVerification
+	}
+
+	/**
+	 * Returns true if ECE should be shown on the subscription change payment method page.
+	 *
+	 * Performs only the basic checks needed (account connected, SSL, gateway available,
+	 * ECE enabled) without cart-dependent validations which don't apply to this flow.
+	 *
+	 * @return boolean
+	 */
+	private function should_show_ece_on_change_payment_method_page() {
+		if ( ! WC_Stripe::get_instance()->connect->is_connected() ) {
+			return false;
+		}
+
+		if ( ! $this->testmode && ! is_ssl() ) {
+			return false;
+		}
+
+		$available_gateways = WC()->payment_gateways()->get_available_payment_gateways();
+		if ( ! isset( $available_gateways['stripe'] ) ) {
+			return false;
+		}
+
+		if ( ! $this->is_express_checkout_enabled() ) {
+			return false;
+		}
+
+		if ( ! $this->should_show_ece_on_checkout_page() ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -639,6 +720,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  boolean  True if express checkout elements are supported on current page, false otherwise
 	 */
 	public function should_show_express_checkout_button() {
+		// For subscription change payment method, only check basic requirements.
+		if ( $this->is_change_payment_method_page() ) {
+			return $this->should_show_ece_on_change_payment_method_page();
+		}
+
 		// Bail if account is not connected.
 		if ( ! WC_Stripe::get_instance()->connect->is_connected() ) {
 			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {

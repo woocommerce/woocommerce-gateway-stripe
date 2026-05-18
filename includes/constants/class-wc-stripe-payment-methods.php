@@ -47,6 +47,7 @@ class WC_Stripe_Payment_Methods {
 	const BACS_DEBIT_LABEL      = 'Bacs Direct Debit';
 	const GOOGLE_PAY_LABEL      = 'Google Pay';
 	const APPLE_PAY_LABEL       = 'Apple Pay';
+	const AMAZON_PAY_LABEL      = 'Amazon Pay';
 	const LINK_LABEL            = 'Link';
 	const PAYMENT_REQUEST_LABEL = 'Payment Request';
 
