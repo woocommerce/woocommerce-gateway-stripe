@@ -95,9 +95,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				// then appends rather than replaces, leaving the stale token
 				// alongside the new one. The data-store API rewrites the list
 				// in one call (and works under both CPT and HPOS).
-				// PHPStan can't follow WC_Data_Store's generic factory return type to
-				// the order data store that owns update_payment_token_ids().
-				$subscription->get_data_store()->update_payment_token_ids( $subscription, [ $token->get_id() ] ); // @phpstan-ignore-line method.notFound
+				$subscription->get_data_store()->update_payment_token_ids( $subscription, [ $token->get_id() ] ); // @phpstan-ignore-line method.notFound (PHPStan can't follow the generic get_data_store() return type to the order data store that implements update_payment_token_ids().)
 				return true;
 			}
 		}
@@ -721,7 +719,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Returns true if any express checkout buttons are enabled for the subscription
 	 * change payment method location, false otherwise.
 	 *
-	 * @since 10.7.0
+	 * @since 10.8.0
 	 * @return boolean
 	 */
 	public function should_show_ece_on_change_payment_method_location() {
@@ -731,7 +729,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		 * Filters whether Express Checkout buttons should appear on the
 		 * WooCommerce Subscriptions "Change payment method" page.
 		 *
-		 * @since 10.7.0
+		 * @since 10.8.0
 		 * @param bool $should_show Whether the buttons should be shown.
 		 */
 		return apply_filters(
@@ -1246,8 +1244,6 @@ class WC_Stripe_Express_Checkout_Helper {
 		// @reykjalin: This HK specific sanitazation *should be removed* once Apple Pay fix
 		// the address bug. More info on that in pc4etw-bY-p2.
 		if ( WC_Stripe_Country_Code::HONG_KONG === $billing_country ) {
-			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
-
 			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $billing_state ) ) ) {
 				$billing_postcode = ! empty( $data['billing_address']['postcode'] ) ? wc_clean( wp_unslash( $data['billing_address']['postcode'] ) ) : '';
 				if ( WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $billing_postcode ) ) ) {
@@ -1256,8 +1252,6 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 		if ( WC_Stripe_Country_Code::HONG_KONG === $shipping_country ) {
-			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
-
 			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $shipping_state ) ) ) {
 				$shipping_postcode = ! empty( $data['shipping_address']['postcode'] ) ? wc_clean( wp_unslash( $data['shipping_address']['postcode'] ) ) : '';
 				if ( WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $shipping_postcode ) ) ) {
@@ -1315,7 +1309,6 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function get_normalized_state_from_pr_states( $state, $country ) {
 		// Include Payment Request API State list for compatibility with WC countries/states.
-		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-payment-request-button-states.php';
 		$pr_states = WC_Stripe_Payment_Request_Button_States::STATES;
 
 		if ( ! isset( $pr_states[ $country ] ) ) {

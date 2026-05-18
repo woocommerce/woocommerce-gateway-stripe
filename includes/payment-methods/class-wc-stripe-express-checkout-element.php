@@ -655,7 +655,7 @@ class WC_Stripe_Express_Checkout_Element {
 		if ( ! empty( $_POST['express_checkout_type'] ) && ! is_array( $_POST['express_checkout_type'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$express_checkout_type = sanitize_text_field( wp_unslash( $_POST['express_checkout_type'] ) );
-		} elseif ( $subscription instanceof WC_Order ) {
+		} elseif ( $subscription instanceof WC_Subscription ) {
 			// 3DS-redirect path: WCS may re-run update_payment_method after intent confirmation,
 			// when $_POST has been lost. The express type was persisted to subscription meta
 			// before the redirect and is read here as a fallback.

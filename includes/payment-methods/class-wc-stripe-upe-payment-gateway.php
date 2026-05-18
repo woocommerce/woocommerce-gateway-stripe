@@ -2460,7 +2460,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		 * Fires after the payment method title is set on a confirmed intent, allowing
 		 * extensions (e.g. express checkout) to override the title for special cases.
 		 *
-		 * @since 10.7.0
+		 * @since 10.8.0
 		 *
 		 * @param WC_Order $order               The order or subscription being processed.
 		 * @param string   $payment_method_type The Stripe payment method type.
