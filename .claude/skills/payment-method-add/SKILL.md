@@ -47,7 +47,7 @@ Per the project's CRITICAL rule, any change to payment-method availability or re
 | Classic checkout | `/checkout` with Blocks disabled |
 | Blocks checkout | `/checkout` with Blocks enabled (default for new sites) |
 | Optimized Checkout (OCS) | `/checkout` with OCS enabled in plugin settings |
-| Express checkout (ECE) | Verify the Apple Pay / Google Pay / Link buttons on each ECE surface: product page, cart, checkout, and pay-for-order |
+| Express checkout (ECE) | Verify the Apple Pay / Google Pay / Link / Amazon Pay buttons on each ECE surface: product page, cart, checkout, and pay-for-order |
 
 If the method intentionally does not support a surface, verifying that it's *cleanly hidden* — not erroring — is still a tested outcome.
 
