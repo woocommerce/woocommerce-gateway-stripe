@@ -797,9 +797,15 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		 * @since 10.8.0
 		 * @param int $ttl_seconds Default self::FEED_CACHE_TTL.
 		 */
-		$max_age     = (int) apply_filters( 'wc_stripe_agentic_commerce_feed_cache_ttl', self::FEED_CACHE_TTL );
-		$uploaded_at = isset( $last['uploaded_at'] ) ? (int) $last['uploaded_at'] : 0;
-		if ( $max_age > 0 && $uploaded_at > 0 && ( time() - $uploaded_at ) > $max_age ) {
+		if ( ! isset( $last['uploaded_at'] ) || ! is_numeric( $last['uploaded_at'] ) ) {
+			return false;
+		}
+		$uploaded_at = (int) $last['uploaded_at'];
+		if ( $uploaded_at <= 0 ) {
+			return false;
+		}
+		$max_age = (int) apply_filters( 'wc_stripe_agentic_commerce_feed_cache_ttl', self::FEED_CACHE_TTL );
+		if ( $max_age > 0 && ( time() - $uploaded_at ) > $max_age ) {
 			return false;
 		}
 

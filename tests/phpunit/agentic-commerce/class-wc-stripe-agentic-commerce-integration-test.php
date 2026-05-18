@@ -360,10 +360,10 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		];
 
 		return [
-			'no cached record falls through'         => [ null, 'abc123', true, false ],
-			'fresh hash match short-circuits'        => [ $fresh_record, 'abc123', true, true ],
-			'hash mismatch falls through'            => [ $fresh_record, 'different_hash', true, false ],
-			'expired record forces fresh upload'     => [
+			'no cached record falls through'              => [ null, 'abc123', true, false ],
+			'fresh hash match short-circuits'             => [ $fresh_record, 'abc123', true, true ],
+			'hash mismatch falls through'                 => [ $fresh_record, 'different_hash', true, false ],
+			'expired record forces fresh upload'          => [
 				[
 					'hash'        => 'abc123',
 					'uploaded_at' => time() - ( 2 * WEEK_IN_SECONDS ),
@@ -373,8 +373,37 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 				true,
 				false,
 			],
-			'kill-switch filter forces fresh upload' => [ $fresh_record, 'abc123', false, false ],
-			'malformed cached record is tolerated'   => [ 'not_an_array', 'abc123', true, false ],
+			'kill-switch filter forces fresh upload'      => [ $fresh_record, 'abc123', false, false ],
+			'malformed cached record is tolerated'        => [ 'not_an_array', 'abc123', true, false ],
+			'missing uploaded_at forces fresh upload'     => [
+				[
+					'hash'    => 'abc123',
+					'file_id' => 'file_test',
+				],
+				'abc123',
+				true,
+				false,
+			],
+			'non-numeric uploaded_at forces fresh upload' => [
+				[
+					'hash'        => 'abc123',
+					'uploaded_at' => 'not-a-timestamp',
+					'file_id'     => 'file_test',
+				],
+				'abc123',
+				true,
+				false,
+			],
+			'zero uploaded_at forces fresh upload'        => [
+				[
+					'hash'        => 'abc123',
+					'uploaded_at' => 0,
+					'file_id'     => 'file_test',
+				],
+				'abc123',
+				true,
+				false,
+			],
 		];
 	}
 
