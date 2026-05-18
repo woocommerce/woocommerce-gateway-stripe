@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.7
 Tested up to: 6.9.4
 Requires PHP: 7.4
-Stable tag: 10.6.0
+Stable tag: 10.7.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -35,6 +35,12 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 10.7.0
+   - Optimized Checkout Suite re-enabled by default for new installs
+   - Adaptive Pricing enabled by default for new installs
+   - Removed deprecated backend methods that called wc_deprecated_function - [PR #5066](https://github.com/woocommerce/woocommerce-gateway-stripe/pull/5066)
+* 10.6.0
+   - Adaptive Pricing available
 * 10.4.0
    - Optimized Checkout Suite no longer enabled by default for new installs
    - Removed the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
@@ -145,12 +151,16 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 10.7.0 - xxxx-xx-xx =
+= 10.8.0 - xxxx-xx-xx =
 * Fix - Prevent Stripe API calls from failing due to DNS resolution issues
-* Dev - Use paratest in CI workflow for faster PHP test execution
-* Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
-* Dev - Rename payment request references to express checkout
-* Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
-* Fix - Fix Optimized Checkout Suite bugs that could result in duplicate subscription charges and generic payment methods names
+* Fix - Improve handling of skipped products and in-flight syncs in Agentic Commerce sync dashboard
+* Fix - Make the "Update now" link in the account status tooltip clickable and improve its contrast against the tooltip background
+* Dev - Add Jurassic Ninja preview link for PRs to enable one-click browser testing
+* Remove - Remove giropay from new checkouts (deprecated by Stripe on 2024-06-30); legacy refund and past-order rendering preserved
+* Dev - Exclude AGENTS.md and CLAUDE.md contributor-instruction files from the built plugin zip
+* Add - Append a "what's new" changelog link to the Updated! message after manually updating the plugin from the Plugins page
+* Add - Add a "Release notes" link to the WooCommerce Stripe row on the Plugins page that opens the changelog modal
+* Fix - Add guards against invalid values for webhook state timestamps
+* Fix - Show better message when express checkout preview is not available
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

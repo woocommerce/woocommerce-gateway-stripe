@@ -62,7 +62,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'price', $result );
 
 		// Verify field values.
-		$this->assertEquals( (string) $product->get_id(), $result['id'] );
+		$this->assertEquals( $product->get_sku(), $result['id'] );
 		$this->assertEquals( 'Test Product', $result['title'] );
 		$this->assertEquals( 'Test Description', $result['description'] );
 		$this->assertEquals( 'in_stock', $result['availability'] );
@@ -70,6 +70,40 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( '19.99', $result['price'] );
 
 		// Cleanup.
+		$product->delete( true );
+	}
+
+	/**
+	 * The catalog row's `id` must be the merchant SKU when the product has one,
+	 * so it shows up in Stripe's UI and the round-trip lookup can resolve via
+	 * `wc_get_product_id_by_sku()`.
+	 */
+	public function test_id_uses_sku_when_present() {
+		$product = WC_Helper_Product::create_simple_product(
+			true,
+			[ 'sku' => 'MAPPER-SKU-' . uniqid() ]
+		);
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertSame( $product->get_sku(), $result['id'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Falls back to the product ID when the product has no SKU, so SKU-less
+	 * catalogs keep working under the legacy contract.
+	 */
+	public function test_id_falls_back_to_product_id_when_no_sku() {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'sku' => '' ] );
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertSame( (string) $product->get_id(), $result['id'] );
+
 		$product->delete( true );
 	}
 

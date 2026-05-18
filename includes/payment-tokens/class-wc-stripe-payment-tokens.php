@@ -768,6 +768,17 @@ class WC_Stripe_Payment_Tokens {
 				// Clear cached payment methods.
 				$customer->clear_cache();
 				$found_token->set_token( $payment_method->id );
+
+				// Card fingerprint hashes the card number only, so a fingerprint
+				// match can still carry a different expiry or brand. Refresh the
+				// mutable card metadata so the UI reflects the replacement.
+				if ( WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID === $payment_method_type && $found_token instanceof WC_Stripe_Payment_Token_CC ) {
+					$found_token->set_expiry_month( $payment_method->card->exp_month );
+					$found_token->set_expiry_year( $payment_method->card->exp_year );
+					$found_token->set_card_type( strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand ) );
+					$found_token->set_last4( $payment_method->card->last4 );
+				}
+
 				$found_token->save();
 			}
 			return $found_token;
