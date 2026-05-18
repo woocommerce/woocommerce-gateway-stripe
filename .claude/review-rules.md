@@ -127,7 +127,7 @@ The checkout flow (classic, Blocks, OCS, ECE) is the critical path. Code added t
 - [ ] PHPUnit parameterized tests use `@dataProvider`
 - [ ] PHPUnit test methods include a PHPDoc describing the contract being guarded
 - [ ] E2E specs that mutate global store settings (currency, payment method availability) live in a dedicated Playwright project and CI matrix job, not in `default`
-- [ ] Tests live nearest to the code they cover (`tests/phpunit/Admin/`, `tests/phpunit/PaymentMethods/`, etc.)
+- [ ] Tests live nearest to the code they cover (`tests/phpunit/admin/`, `tests/phpunit/payment-methods/`, etc.)
 
 ---
 
