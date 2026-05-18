@@ -291,9 +291,9 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 
 		$filtered = $this->element->filter_change_payment_method_note_title( 'Credit Card', 'stripe', $subscription );
 
-		$this->assertSame( $expected, $filtered );
-
 		unset( $_POST['express_checkout_type'] );
+
+		$this->assertSame( $expected, $filtered );
 	}
 
 	/**
