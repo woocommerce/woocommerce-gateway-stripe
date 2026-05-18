@@ -243,7 +243,7 @@ const ExpressCheckoutSettingsSection = () => {
 										'change_payment_method'
 									) }
 									label={ __(
-										'Change payment method (subscriptions)',
+										'Change payment method for WooCommerce Subscriptions',
 										'woocommerce-gateway-stripe'
 									) }
 								/>
