@@ -203,8 +203,8 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Regression test for STRIPE-816: the POST path must not use wp_safe_remote_*,
-	 * which would trigger wp_http_validate_url() and fail when the host's DNS is flaky.
+	 * Regression test for https://github.com/woocommerce/woocommerce-gateway-stripe/pull/5337
+	 * We must not use wp_safe_remote_post(), as the calls can fail when the host's DNS resolution is flaky.
 	 */
 	public function test_request_does_not_use_safe_remote_http() {
 		$captured_args = null;
@@ -224,12 +224,13 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertIsArray( $captured_args );
 		$this->assertNotTrue(
 			$captured_args['reject_unsafe_urls'] ?? false,
-			'Stripe API POST requests must not set reject_unsafe_urls (see STRIPE-816).'
+			'Stripe API POST requests must not set reject_unsafe_urls.'
 		);
 	}
 
 	/**
-	 * Regression test for STRIPE-816: the GET path must not use wp_safe_remote_*.
+	 * Regression test for https://github.com/woocommerce/woocommerce-gateway-stripe/pull/5337
+	 * We must not use wp_safe_remote_get() as the calls can fail when the host's DNS resolution is flaky.
 	 */
 	public function test_retrieve_does_not_use_safe_remote_http() {
 		$captured_args = null;
@@ -249,7 +250,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertIsArray( $captured_args );
 		$this->assertNotTrue(
 			$captured_args['reject_unsafe_urls'] ?? false,
-			'Stripe API GET requests must not set reject_unsafe_urls (see STRIPE-816).'
+			'Stripe API GET requests must not set reject_unsafe_urls.'
 		);
 	}
 

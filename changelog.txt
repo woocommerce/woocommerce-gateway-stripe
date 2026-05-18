@@ -1,7 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.7.0
-* Fix - Stop Stripe API calls from failing when WordPress URL validation rejects api.stripe.com due to intermittent DNS resolution
+* Fix - Prevent Stripe API calls from failing due to DNS resolution issues
 * Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
 * Dev - Rename payment request references to express checkout
 * Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
