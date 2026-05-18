@@ -379,15 +379,17 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		unset( $_POST['express_checkout_type'] );
 
 		$this->element->update_subscription_payment_method_title();
-		$this->assertSame( 'Stripe', $subscription->get_payment_method_title() );
+		try {
+			$this->assertSame( 'Stripe', $subscription->get_payment_method_title() );
 
-		// Unrecognized type should also leave the title unchanged.
-		$_POST['express_checkout_type'] = 'paypal';
-		$this->element->update_subscription_payment_method_title();
-		$this->assertSame( 'Stripe', $subscription->get_payment_method_title() );
-
-		unset( $_GET['change_payment_method'], $_POST['express_checkout_type'] );
-		WC_Subscriptions::$wcs_get_subscription = null;
+			// Unrecognized type should also leave the title unchanged.
+			$_POST['express_checkout_type'] = 'paypal';
+			$this->element->update_subscription_payment_method_title();
+			$this->assertSame( 'Stripe', $subscription->get_payment_method_title() );
+		} finally {
+			unset( $_GET['change_payment_method'], $_POST['express_checkout_type'] );
+			WC_Subscriptions::$wcs_get_subscription = null;
+		}
 	}
 
 	/**
