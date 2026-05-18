@@ -123,8 +123,7 @@ class WC_Stripe_Plugins_Page_Controller {
 	 * The link reuses WordPress' built-in plugin information modal, opened on the
 	 * changelog tab via thickbox (already enqueued by `enqueue_scripts`).
 	 *
-	 * @param mixed  $links Existing plugin row meta links. Normalized to an array because
-	 *                      other `plugin_row_meta` filter callbacks may return non-array values.
+	 * @param mixed  $links Existing plugin row meta links.
 	 * @param string $file  Plugin file the row belongs to.
 	 * @return array Updated row meta links.
 	 */
