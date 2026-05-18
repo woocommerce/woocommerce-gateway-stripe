@@ -34,7 +34,7 @@ When suppression is unavoidable, prefer an **inline `@phpstan-ignore-next-line` 
 4. **For genuine PHPStan limitations, prefer an inline ignore over the baseline:**
 
    ```php
-   /** @phpstan-ignore-next-line Reason: PHPStan can't follow the intersection narrowing here. */
+   // @phpstan-ignore function.alreadyNarrowedType (This is the output of a filter that may return other data types.)
    $foo->bar();
    ```
 
