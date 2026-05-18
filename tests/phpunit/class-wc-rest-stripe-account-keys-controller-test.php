@@ -284,14 +284,14 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$this->assertArrayHasKey( 'https://api.stripe.com/v1/tokens', $captured_args_by_url );
 		$this->assertNotTrue(
 			$captured_args_by_url['https://api.stripe.com/v1/tokens']['reject_unsafe_urls'] ?? false,
-			'POST to https://api.stripe.com/v1/tokens must not set reject_unsafe_urls (see STRIPE-816).'
+			'POST to https://api.stripe.com/v1/tokens must not set reject_unsafe_urls'
 		);
 
 		$get_url = 'https://api.stripe.com/v1/tokens/tok_visa_test';
 		$this->assertArrayHasKey( $get_url, $captured_args_by_url );
 		$this->assertNotTrue(
 			$captured_args_by_url[ $get_url ]['reject_unsafe_urls'] ?? false,
-			'GET to https://api.stripe.com/v1/tokens/{id} must not set reject_unsafe_urls (see STRIPE-816).'
+			'GET to https://api.stripe.com/v1/tokens/{id} must not set reject_unsafe_urls'
 		);
 	}
 }
