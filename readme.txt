@@ -153,6 +153,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.8.0 - xxxx-xx-xx =
 * Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Link)
+* Add - Add a setting to control whether Express Checkout is shown on the WooCommerce Subscriptions change payment method page
 * Fix - Prevent Stripe API calls from failing due to DNS resolution issues
 * Fix - Improve handling of skipped products and in-flight syncs in Agentic Commerce sync dashboard
 * Fix - Make the "Update now" link in the account status tooltip clickable and improve its contrast against the tooltip background
