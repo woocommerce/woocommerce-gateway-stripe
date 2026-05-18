@@ -80,16 +80,22 @@ function woocommerce_stripe_wc_not_supported() {
  * Initialize the autoloader for the plugin.
  *
  * @since 10.8.0
- * @return void
+ * @return bool Return whether the autoloader is available.
  */
-function woocommerce_stripe_init_autoloader(): void {
-	static $autoloader_initialized = false;
-	if ( $autoloader_initialized ) {
-		return;
+function woocommerce_stripe_init_autoloader(): bool {
+	static $autoloader_initialized = null;
+	if ( true === $autoloader_initialized ) {
+		return true;
 	}
 
-	require_once WC_STRIPE_PLUGIN_PATH . '/vendor/autoload.php';
-	$autoloader_initialized = true;
+	$autoloader_initialized = false;
+
+	if ( file_exists( WC_STRIPE_PLUGIN_PATH . '/vendor/autoload.php' ) ) {
+		$autoloader_initialized = true;
+		require_once WC_STRIPE_PLUGIN_PATH . '/vendor/autoload.php';
+	}
+
+	return $autoloader_initialized;
 }
 
 function woocommerce_gateway_stripe() {
@@ -150,7 +156,11 @@ function wc_stripe_set_settings_redirection_transient(): void {
 }
 
 function wcstripe_deactivated(): void {
-	woocommerce_stripe_init_autoloader();
+	// If we don't have the autoloader available, return early before we call any dependent code.
+	// This should only occur in development environments.
+	if ( ! woocommerce_stripe_init_autoloader() ) {
+		return;
+	}
 
 	// admin notes are not supported on older versions of WooCommerce.
 	if ( class_exists( 'WC_Stripe_Inbox_Notes' ) && WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
