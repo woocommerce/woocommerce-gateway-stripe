@@ -41,6 +41,20 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tear down test environment after each test.
+	 *
+	 * Centralises cleanup of the dedup option and any filter overrides so
+	 * individual test methods do not need to repeat the same calls.
+	 *
+	 * @return void
+	 */
+	public function tearDown(): void {
+		delete_option( $this->last_upload_option );
+		remove_all_filters( 'wc_stripe_agentic_commerce_feed_dedupe_enabled' );
+		parent::tearDown();
+	}
+
+	/**
 	 * Test get_id returns correct identifier.
 	 *
 	 * @return void
@@ -344,8 +358,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$is_unchanged->setAccessible( true );
 
 		$this->assertTrue( $is_unchanged->invoke( $integration, 'abc123' ) );
-
-		delete_option( $this->last_upload_option );
 	}
 
 	/**
@@ -369,8 +381,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$is_unchanged->setAccessible( true );
 
 		$this->assertFalse( $is_unchanged->invoke( $integration, 'different_hash' ) );
-
-		delete_option( $this->last_upload_option );
 	}
 
 	/**
@@ -395,8 +405,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$is_unchanged->setAccessible( true );
 
 		$this->assertFalse( $is_unchanged->invoke( $integration, 'abc123' ) );
-
-		delete_option( $this->last_upload_option );
 	}
 
 	/**
@@ -422,9 +430,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$is_unchanged->setAccessible( true );
 
 		$this->assertFalse( $is_unchanged->invoke( $integration, 'abc123' ) );
-
-		remove_filter( 'wc_stripe_agentic_commerce_feed_dedupe_enabled', '__return_false' );
-		delete_option( $this->last_upload_option );
 	}
 
 	/**
@@ -440,8 +445,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$is_unchanged->setAccessible( true );
 
 		$this->assertFalse( $is_unchanged->invoke( $integration, 'abc123' ) );
-
-		delete_option( $this->last_upload_option );
 	}
 
 	/**
@@ -473,12 +476,10 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$this->assertSame( 'imp_456', $record['import_set_id'] );
 		$this->assertIsInt( $record['uploaded_at'] );
 		$this->assertLessThanOrEqual( time(), $record['uploaded_at'] );
-
-		delete_option( $this->last_upload_option );
 	}
 
 	// -------------------------------------------------------------------------
-	// store_sync_result
+
 	// -------------------------------------------------------------------------
 
 	/**
