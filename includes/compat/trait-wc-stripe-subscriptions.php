@@ -289,6 +289,8 @@ trait WC_Stripe_Subscriptions_Trait {
 		$express_checkout_type          = isset( $_POST['express_checkout_type'] ) && is_string( $_POST['express_checkout_type'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			? wc_clean( wp_unslash( $_POST['express_checkout_type'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			: '';
+		$express_checkout_type = in_array( $express_checkout_type, WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS, true ) ? $express_checkout_type : '';
+
 		$is_express_checkout_submission = '' !== $express_checkout_type;
 
 		// ECE confirms before the shopper sees the "update all subscriptions"
