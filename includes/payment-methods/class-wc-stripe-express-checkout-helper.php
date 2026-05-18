@@ -95,9 +95,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				// then appends rather than replaces, leaving the stale token
 				// alongside the new one. The data-store API rewrites the list
 				// in one call (and works under both CPT and HPOS).
-				// PHPStan can't follow WC_Data_Store's generic factory return type to
-				// the order data store that owns update_payment_token_ids().
-				$subscription->get_data_store()->update_payment_token_ids( $subscription, [ $token->get_id() ] ); // @phpstan-ignore-line method.notFound
+				$subscription->get_data_store()->update_payment_token_ids( $subscription, [ $token->get_id() ] ); // @phpstan-ignore-line method.notFound (PHPStan can't follow the generic get_data_store() return type to the order data store that implements update_payment_token_ids().)
 				return true;
 			}
 		}
