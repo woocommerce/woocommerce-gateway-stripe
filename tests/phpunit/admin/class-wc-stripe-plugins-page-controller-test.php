@@ -138,6 +138,44 @@ class WC_Stripe_Plugins_Page_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that `add_release_notes_link()` honors its `array` return type when
+	 * another `plugin_row_meta` filter callback hands it a non-array value, so
+	 * the method does not fatal under a misbehaving filter chain.
+	 *
+	 * @dataProvider provide_non_array_links
+	 *
+	 * @param mixed $links Value a misbehaving upstream filter could return.
+	 *
+	 * @return void
+	 */
+	public function test_add_release_notes_link_normalizes_non_array_links( $links ): void {
+		$controller = $this->get_mock_controller();
+
+		$other_plugin = $controller->add_release_notes_link( $links, 'some-other/some-other.php' );
+		$this->assertIsArray( $other_plugin );
+		$this->assertArrayNotHasKey( 'wc_stripe_release_notes', $other_plugin );
+
+		$stripe = $controller->add_release_notes_link( $links, plugin_basename( WC_STRIPE_MAIN_FILE ) );
+		$this->assertIsArray( $stripe );
+		$this->assertArrayHasKey( 'wc_stripe_release_notes', $stripe );
+	}
+
+	/**
+	 * Data provider for `test_add_release_notes_link_normalizes_non_array_links`.
+	 *
+	 * @return array<string, array{0: mixed}>
+	 */
+	public function provide_non_array_links(): array {
+		return [
+			'null'         => [ null ],
+			'false'        => [ false ],
+			'empty string' => [ '' ],
+			'string'       => [ 'unexpected' ],
+			'integer'      => [ 0 ],
+		];
+	}
+
+	/**
 	 * Tests that the changelog link parameters are localized for the JS
 	 * post-update enhancement. Guards the contract between the controller
 	 * and `initAppendChangelogLink` so renaming or dropping a key surfaces here.
