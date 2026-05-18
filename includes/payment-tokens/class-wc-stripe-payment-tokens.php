@@ -686,7 +686,7 @@ class WC_Stripe_Payment_Tokens {
 		// Wrap Apple Pay / Google Pay branding around the card brand. Link wallet_type
 		// is persisted but not surfaced here (see #5437).
 		if ( $payment_token instanceof WC_Stripe_Payment_Token_CC ) {
-			$wallet_label = $this->get_wallet_brand_label( $payment_token->get_wallet_type() );
+			$wallet_label = $payment_token->get_wallet_brand_label();
 			if ( '' !== $wallet_label ) {
 				$existing_brand = isset( $item['method']['brand'] ) ? trim( (string) $item['method']['brand'] ) : '';
 				if ( '' !== $existing_brand ) {
@@ -699,24 +699,6 @@ class WC_Stripe_Payment_Tokens {
 		}
 
 		return $item;
-	}
-
-	/**
-	 * Maps a `card.wallet.type` slug to the shopper-facing wallet brand, or empty
-	 * for slugs we don't surface in the saved-methods list (currently including `link`).
-	 *
-	 * @param string $wallet_type
-	 * @return string
-	 */
-	private function get_wallet_brand_label( $wallet_type ) {
-		switch ( $wallet_type ) {
-			case WC_Stripe_Payment_Methods::APPLE_PAY:
-				return WC_Stripe_Payment_Methods::APPLE_PAY_LABEL;
-			case WC_Stripe_Payment_Methods::GOOGLE_PAY:
-				return WC_Stripe_Payment_Methods::GOOGLE_PAY_LABEL;
-			default:
-				return '';
-		}
 	}
 
 	/**
