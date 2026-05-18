@@ -442,6 +442,31 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Country-specific payment methods (Boleto/BR, OXXO/MX, ACSS/CA) must report
+	 * available for accounts in their supported country and unavailable elsewhere.
+	 * Locks in the consolidated `is_available_for_account_country()` behavior on
+	 * the parent class so the per-method overrides can stay deleted.
+	 *
+	 * @dataProvider provide_is_available_for_account_country
+	 */
+	public function test_is_available_for_account_country_country_specific_methods( $payment_method_class, $account_country, $expected ) {
+		$this->set_stripe_account_data( [ 'country' => $account_country ] );
+		$method = new $payment_method_class();
+		$this->assertSame( $expected, $method->is_available_for_account_country() );
+	}
+
+	public function provide_is_available_for_account_country() {
+		return [
+			'Boleto in BR' => [ WC_Stripe_UPE_Payment_Method_Boleto::class, WC_Stripe_Country_Code::BRAZIL, true ],
+			'Boleto in US' => [ WC_Stripe_UPE_Payment_Method_Boleto::class, WC_Stripe_Country_Code::UNITED_STATES, false ],
+			'OXXO in MX'   => [ WC_Stripe_UPE_Payment_Method_Oxxo::class, WC_Stripe_Country_Code::MEXICO, true ],
+			'OXXO in US'   => [ WC_Stripe_UPE_Payment_Method_Oxxo::class, WC_Stripe_Country_Code::UNITED_STATES, false ],
+			'ACSS in CA'   => [ WC_Stripe_UPE_Payment_Method_Acss::class, WC_Stripe_Country_Code::CANADA, true ],
+			'ACSS in US'   => [ WC_Stripe_UPE_Payment_Method_Acss::class, WC_Stripe_Country_Code::UNITED_STATES, false ],
+		];
+	}
+
+	/**
 	 * Data provider for `test_get_upe_enabled_at_checkout_payment_method_ids`.
 	 *
 	 * @return array[]

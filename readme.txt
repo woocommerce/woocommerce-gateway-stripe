@@ -162,7 +162,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add a "Release notes" link to the WooCommerce Stripe row on the Plugins page that opens the changelog modal
 * Fix - Add guards against invalid values for webhook state timestamps
 * Fix - Show better message when express checkout preview is not available
-* Dev - Consolidate duplicate `get_retrievable_type` and `is_available_for_account_country` implementations into `WC_Stripe_UPE_Payment_Method`; non-default implementations (Bancontact, iDEAL, OC, Sofort, Amazon Pay, Link) are retained
-* Fix - Hide Boleto, OXXO, and ACSS at checkout when the merchant's Stripe account country does not support them
+* Dev - Remove redundant `get_retrievable_type()` and `is_available_for_account_country()` overrides from payment methods
+* Fix - Hide Boleto, OXXO, and ACSS at checkout and in the admin UI when they are not available to the merchant
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
