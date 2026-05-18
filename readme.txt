@@ -161,6 +161,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Remove - Remove giropay from new checkouts (deprecated by Stripe on 2024-06-30); legacy refund and past-order rendering preserved
 * Dev - Exclude AGENTS.md and CLAUDE.md contributor-instruction files from the built plugin zip
 * Add - Append a "what's new" changelog link to the Updated! message after manually updating the plugin from the Plugins page
+* Fix - Dismissible subscription detached admin notices
 * Dev - Skip Agentic Commerce catalog upload when content is unchanged
 * Dev - Align Agentic Commerce sync status UI with the WordPress design system
 * Add - Add a "Release notes" link to the WooCommerce Stripe row on the Plugins page that opens the changelog modal
