@@ -153,6 +153,7 @@ class WC_Stripe_Plugins_Page_Controller_Test extends WP_UnitTestCase {
 
 		$other_plugin = $controller->add_release_notes_link( $links, 'some-other/some-other.php' );
 		$this->assertIsArray( $other_plugin );
+		$this->assertArrayNotHasKey( 'wc_stripe_release_notes', $other_plugin );
 
 		$stripe = $controller->add_release_notes_link( $links, plugin_basename( WC_STRIPE_MAIN_FILE ) );
 		$this->assertIsArray( $stripe );
