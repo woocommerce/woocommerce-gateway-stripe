@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
  * Runs once. Merchants who customized their location set (i.e. didn't have
  * all three of product/cart/checkout enabled) are left alone.
  *
- * @since 10.7.0
+ * @since 10.8.0
  */
 class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update {
 	/**
