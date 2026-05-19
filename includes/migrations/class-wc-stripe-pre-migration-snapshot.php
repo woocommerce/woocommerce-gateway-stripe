@@ -25,7 +25,7 @@ require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-wc-stripe-pp-ve
 /**
  * Pre-migration snapshot capture and retrieval.
  *
- * @since 9.7.0
+ * @since 10.8.0
  */
 class WC_Stripe_Pre_Migration_Snapshot {
 
@@ -34,21 +34,21 @@ class WC_Stripe_Pre_Migration_Snapshot {
 	 *
 	 * @var string
 	 */
-	const CURRENT_OPTION = 'wc_stripe_pre_migration_snapshot';
+	public const CURRENT_OPTION = 'wc_stripe_pre_migration_snapshot';
 
 	/**
 	 * WP options key prefix for archived snapshots. Archives are timestamped and never auto-deleted.
 	 *
 	 * @var string
 	 */
-	const ARCHIVE_PREFIX = 'wc_stripe_pre_migration_snapshot_archive_';
+	public const ARCHIVE_PREFIX = 'wc_stripe_pre_migration_snapshot_archive_';
 
 	/**
 	 * Schema version for the snapshot blob. Bump when changing the captured structure.
 	 *
 	 * @var int
 	 */
-	const SNAPSHOT_VERSION = 1;
+	public const SNAPSHOT_VERSION = 1;
 
 	/**
 	 * Sentinel used to distinguish "option missing" from "option exists with empty value".
@@ -57,7 +57,7 @@ class WC_Stripe_Pre_Migration_Snapshot {
 	 *
 	 * @var string
 	 */
-	const SENTINEL_NOT_SET = '__WC_STRIPE_NOT_SET__';
+	public const SENTINEL_NOT_SET = '__WC_STRIPE_NOT_SET__';
 
 	/**
 	 * The migration's completed-flag option name. Excluded from the catch-all sweep so the
@@ -68,7 +68,7 @@ class WC_Stripe_Pre_Migration_Snapshot {
 	 *
 	 * @var string
 	 */
-	const COMPLETED_OPTION_NAME = 'woocommerce_stripe_pp_settings_migrated';
+	public const COMPLETED_OPTION_NAME = 'woocommerce_stripe_pp_settings_migrated';
 
 	/**
 	 * Explicitly enumerated option keys. Anything missing here is caught by the LIKE-pattern sweep.

@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * migration orchestrator. Concrete subclasses (one per PP major version)
  * return the AUTO/TRANSFORM/DROP/INVESTIGATE/BUILD row lists.
  *
- * @since 9.7.0
+ * @since 10.8.0
  */
 abstract class WC_Stripe_PP_Settings_Map {
 

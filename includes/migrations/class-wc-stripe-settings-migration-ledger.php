@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Per-row ledger for the PP settings migration.
  *
- * @since 9.7.0
+ * @since 10.8.0
  */
 class WC_Stripe_Settings_Migration_Ledger {
 
@@ -35,70 +35,70 @@ class WC_Stripe_Settings_Migration_Ledger {
 	 *
 	 * @var string
 	 */
-	const OPTION_NAME = 'wc_stripe_settings_migration_ledger';
+	public const OPTION_NAME = 'wc_stripe_settings_migration_ledger';
 
 	/**
 	 * WC log handle. Maps to `wp-content/uploads/wc-logs/woocommerce-gateway-stripe-pp-settings-migration-{date}.log`.
 	 *
 	 * @var string
 	 */
-	const LOG_HANDLE = 'woocommerce-gateway-stripe-pp-settings-migration';
+	public const LOG_HANDLE = 'woocommerce-gateway-stripe-pp-settings-migration';
 
 	/**
 	 * Outcome enum values. Used in the `outcome` ledger field.
 	 *
 	 * @var string
 	 */
-	const OUTCOME_APPLIED                  = 'applied';
-	const OUTCOME_SKIPPED_DEST_SET         = 'skipped_dest_set';
-	const OUTCOME_SKIPPED_SOURCE_MISSING   = 'skipped_source_missing';
-	const OUTCOME_SKIPPED_TRANSFORM_FAILED = 'skipped_transform_failed';
-	const OUTCOME_DROPPED                  = 'dropped';
-	const OUTCOME_ERRORED                  = 'errored';
-	const OUTCOME_REVERTED                 = 'reverted';
+	public const OUTCOME_APPLIED                  = 'applied';
+	public const OUTCOME_SKIPPED_DEST_SET         = 'skipped_dest_set';
+	public const OUTCOME_SKIPPED_SOURCE_MISSING   = 'skipped_source_missing';
+	public const OUTCOME_SKIPPED_TRANSFORM_FAILED = 'skipped_transform_failed';
+	public const OUTCOME_DROPPED                  = 'dropped';
+	public const OUTCOME_ERRORED                  = 'errored';
+	public const OUTCOME_REVERTED                 = 'reverted';
 
 	/**
 	 * Event type enum values. Used in the `type` ledger field.
 	 *
 	 * @var string
 	 */
-	const TYPE_APPLY  = 'apply';
-	const TYPE_SKIP   = 'skip';
-	const TYPE_DROP   = 'drop';
-	const TYPE_ERROR  = 'error';
-	const TYPE_REVERT = 'revert';
+	public const TYPE_APPLY  = 'apply';
+	public const TYPE_SKIP   = 'skip';
+	public const TYPE_DROP   = 'drop';
+	public const TYPE_ERROR  = 'error';
+	public const TYPE_REVERT = 'revert';
 
 	/**
 	 * Category enum values. Mirrors the settings-map Strategy column.
 	 *
 	 * @var string
 	 */
-	const CATEGORY_AUTO        = 'AUTO';
-	const CATEGORY_TRANSFORM   = 'TRANSFORM';
-	const CATEGORY_DROP        = 'DROP';
-	const CATEGORY_INVESTIGATE = 'INVESTIGATE';
-	const CATEGORY_BUILD       = 'BUILD';
+	public const CATEGORY_AUTO        = 'AUTO';
+	public const CATEGORY_TRANSFORM   = 'TRANSFORM';
+	public const CATEGORY_DROP        = 'DROP';
+	public const CATEGORY_INVESTIGATE = 'INVESTIGATE';
+	public const CATEGORY_BUILD       = 'BUILD';
 
 	/**
 	 * Substrings that trigger redaction when found anywhere in a key name.
 	 *
 	 * @var array<int, string>
 	 */
-	const SECRET_PATTERNS = [ 'secret_key', 'webhook_secret', 'refresh_token', 'access_token' ];
+	public const SECRET_PATTERNS = [ 'secret_key', 'webhook_secret', 'refresh_token', 'access_token' ];
 
 	/**
 	 * Suffixes that trigger redaction when the key name ends with them.
 	 *
 	 * @var array<int, string>
 	 */
-	const SECRET_SUFFIXES = [ '_secret', '_token' ];
+	public const SECRET_SUFFIXES = [ '_secret', '_token' ];
 
 	/**
 	 * Sentinel string used in place of secret values.
 	 *
 	 * @var string
 	 */
-	const REDACTED = '__REDACTED__';
+	public const REDACTED = '__REDACTED__';
 
 	/**
 	 * UUID v4 shared across one orchestrator run. Every row appended through this instance

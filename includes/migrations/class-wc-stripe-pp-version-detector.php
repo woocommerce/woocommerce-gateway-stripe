@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   2. Plugin file header parse via `get_plugin_data()` (works while PP files are on disk).
  *   3. Option-shape sniff (last-resort fingerprint of PP 3.X's option layout).
  *
- * @since 9.7.0
+ * @since 10.8.0
  */
 class WC_Stripe_PP_Version_Detector {
 
@@ -28,7 +28,7 @@ class WC_Stripe_PP_Version_Detector {
 	 *
 	 * @var string
 	 */
-	const PP_PLUGIN_FILE = 'woo-stripe-payment/stripe-payments.php';
+	public const PP_PLUGIN_FILE = 'woo-stripe-payment/stripe-payments.php';
 
 	/**
 	 * PP's own version-storage option key (PP's `WC_Stripe_Constants::VERSION_KEY`).
@@ -37,14 +37,14 @@ class WC_Stripe_PP_Version_Detector {
 	 *
 	 * @var string
 	 */
-	const PP_VERSION_OPTION = 'stripe_wc_version';
+	public const PP_VERSION_OPTION = 'stripe_wc_version';
 
 	/**
 	 * Sentinel returned when no PP version can be determined.
 	 *
 	 * @var string
 	 */
-	const VERSION_UNKNOWN = 'unknown';
+	public const VERSION_UNKNOWN = 'unknown';
 
 	/**
 	 * Returns the PP major version as a string: e.g. '3', '4', or 'unknown'.
@@ -52,15 +52,7 @@ class WC_Stripe_PP_Version_Detector {
 	 * @return string
 	 */
 	public static function detect_major_version(): string {
-		$version = self::from_version_option();
-
-		if ( null === $version ) {
-			$version = self::from_plugin_header();
-		}
-
-		if ( null === $version ) {
-			$version = self::from_option_shape();
-		}
+		$version = self::detect_full_version();
 
 		if ( null === $version || '' === $version ) {
 			return self::VERSION_UNKNOWN;

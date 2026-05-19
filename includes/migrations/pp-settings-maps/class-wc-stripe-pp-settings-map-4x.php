@@ -24,7 +24,7 @@ require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/pp-settings-maps/clas
 /**
  * Concrete map for Payment Plugins for Stripe v4.X (placeholder).
  *
- * @since 9.7.0
+ * @since 10.8.0
  */
 class WC_Stripe_PP_Settings_Map_4X extends WC_Stripe_PP_Settings_Map {
 
