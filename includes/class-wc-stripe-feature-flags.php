@@ -238,12 +238,6 @@ class WC_Stripe_Feature_Flags {
 			return false;
 		}
 
-		// woocommerce-gateway-stripe.php loads this file standalone before WC_Stripe::init()
-		// runs, so Remote_Config may not be loaded yet on early calls.
-		if ( ! class_exists( 'WC_Stripe_Remote_Config' ) ) {
-			return $local;
-		}
-
 		return (bool) ( new WC_Stripe_Remote_Config() )->resolve( 'optimized_checkout', $local );
 	}
 
