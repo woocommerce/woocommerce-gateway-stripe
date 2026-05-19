@@ -27,17 +27,17 @@ class WC_Stripe_Refund {
 	/**
 	 * The underlying Refund payload.
 	 *
-	 * @var stdClass
+	 * @var object
 	 */
-	private stdClass $refund;
+	private object $refund;
 
 	/**
 	 * Constructor.
 	 *
 	 * @since 10.8.0
-	 * @param stdClass $refund The Stripe refund payload (as returned by `json_decode`).
+	 * @param object $refund The Stripe refund payload (typically stdClass produced by `json_decode`).
 	 */
-	public function __construct( stdClass $refund ) {
+	public function __construct( object $refund ) {
 		$this->refund = $refund;
 	}
 
@@ -48,7 +48,7 @@ class WC_Stripe_Refund {
 	 *
 	 * @since 10.8.0
 	 */
-	public function raw(): stdClass {
+	public function raw(): object {
 		return $this->refund;
 	}
 
@@ -139,8 +139,8 @@ class WC_Stripe_Refund {
 			return null;
 		}
 
-		$currency = null !== $currency_override ? strtolower( $currency_override ) : $this->get_currency();
-		if ( null !== $currency && in_array( $currency, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+		$currency = null !== $currency_override ? strtoupper( $currency_override ) : strtoupper( (string) $this->get_currency() );
+		if ( '' !== $currency && in_array( $currency, WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 			return (float) $amount;
 		}
 
