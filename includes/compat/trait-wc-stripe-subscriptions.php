@@ -286,15 +286,22 @@ trait WC_Stripe_Subscriptions_Trait {
 			];
 		}
 
-		$express_checkout_type          = isset( $_POST['express_checkout_type'] ) && is_string( $_POST['express_checkout_type'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$express_checkout_type = isset( $_POST['express_checkout_type'] ) && is_string( $_POST['express_checkout_type'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			? wc_clean( wp_unslash( $_POST['express_checkout_type'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			: '';
+		$express_checkout_type = in_array( $express_checkout_type, WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS, true ) ? $express_checkout_type : '';
+
 		$is_express_checkout_submission = '' !== $express_checkout_type;
 
 		// ECE confirms before the shopper sees the "update all subscriptions"
 		// checkbox, so its default-checked state can't be treated as consent.
 		if ( $is_express_checkout_submission ) {
 			unset( $_POST['update_all_subscriptions_payment_method'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+			// The change-payment form carries the saved-cards selector value, so
+			// is_using_saved_payment_method() would otherwise route to the old
+			// saved token and discard the ECE-supplied payment method.
+			$_POST['wc-stripe-payment-token'] = 'new'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
 
 		try {

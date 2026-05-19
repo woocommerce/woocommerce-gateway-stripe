@@ -7,7 +7,7 @@ import {
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_EPS,
-	PAYMENT_METHOD_GIROPAY,
+	PAYMENT_METHOD_BANCONTACT,
 } from 'wcstripe/stripe-utils/constants';
 
 describe( 'Settings selectors tests', () => {
@@ -59,7 +59,7 @@ describe( 'Settings selectors tests', () => {
 						foo: 'bar',
 						ordered_payment_method_ids: [
 							PAYMENT_METHOD_CARD,
-							PAYMENT_METHOD_GIROPAY,
+							PAYMENT_METHOD_BANCONTACT,
 							PAYMENT_METHOD_EPS,
 						],
 					},
@@ -68,7 +68,7 @@ describe( 'Settings selectors tests', () => {
 
 			expect( getOrderedPaymentMethodIds( state ) ).toEqual( [
 				PAYMENT_METHOD_CARD,
-				PAYMENT_METHOD_GIROPAY,
+				PAYMENT_METHOD_BANCONTACT,
 				PAYMENT_METHOD_EPS,
 			] );
 		} );

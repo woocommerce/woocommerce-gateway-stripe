@@ -1,7 +1,6 @@
 import AlipayIcon from './alipay';
 import BlikIcon from './blik';
 import CreditCardIcon from './cards';
-import GiropayIcon from './giropay';
 import KlarnaIcon from './klarna';
 import AffirmIcon from './affirm';
 import AfterpayIcon from './afterpay';
@@ -24,7 +23,6 @@ export default {
 	alipay: AlipayIcon,
 	blik: BlikIcon,
 	card: CreditCardIcon,
-	giropay: GiropayIcon,
 	klarna: KlarnaIcon,
 	affirm: AffirmIcon,
 	afterpay: AfterpayIcon,
