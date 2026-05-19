@@ -83,6 +83,11 @@ trait WC_Stripe_Subscriptions_Trait {
 		if ( WC_Stripe_UPE_Payment_Gateway::ID !== $this->id ) {
 			return;
 		}
+		// Secondary check to skip registration for the OC payment method, which mimics the Stripe ID.
+		$current_class = get_class( $this );
+		if ( WC_Stripe_UPE_Payment_Gateway::class !== $current_class ) {
+			return;
+		}
 
 		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
 		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
@@ -281,6 +286,24 @@ trait WC_Stripe_Subscriptions_Trait {
 			];
 		}
 
+		$express_checkout_type = isset( $_POST['express_checkout_type'] ) && is_string( $_POST['express_checkout_type'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			? wc_clean( wp_unslash( $_POST['express_checkout_type'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			: '';
+		$express_checkout_type = in_array( $express_checkout_type, WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS, true ) ? $express_checkout_type : '';
+
+		$is_express_checkout_submission = '' !== $express_checkout_type;
+
+		// ECE confirms before the shopper sees the "update all subscriptions"
+		// checkbox, so its default-checked state can't be treated as consent.
+		if ( $is_express_checkout_submission ) {
+			unset( $_POST['update_all_subscriptions_payment_method'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+			// The change-payment form carries the saved-cards selector value, so
+			// is_using_saved_payment_method() would otherwise route to the old
+			// saved token and discard the ECE-supplied payment method.
+			$_POST['wc-stripe-payment-token'] = 'new'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		}
+
 		try {
 			$payment_information = $this->prepare_payment_information_from_request( $subscription );
 
@@ -306,6 +329,12 @@ trait WC_Stripe_Subscriptions_Trait {
 					$payment_information['payment_method_details'],
 					$selected_payment_type
 				);
+
+				// Link the new token to the subscription so My Account renders it.
+				// Scoped to ECE here; tracked for the broader paths in #5382.
+				if ( $is_express_checkout_submission ) {
+					WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $payment_method_id );
+				}
 			}
 
 			$redirect           = $this->get_return_url( $subscription );
@@ -318,6 +347,18 @@ trait WC_Stripe_Subscriptions_Trait {
 					$subscription->update_meta_data( '_delayed_update_payment_method_all', $new_payment_method );
 					$subscription->save();
 				}
+
+				// Persist the express type and the new payment method ID for the
+				// post-confirmation hooks (title override + token replacement),
+				// or clear any stale markers when this submission isn't express.
+				if ( $is_express_checkout_submission ) {
+					$subscription->update_meta_data( '_wc_stripe_express_checkout_type', $express_checkout_type );
+					$subscription->update_meta_data( '_wc_stripe_express_checkout_payment_method_id', $payment_method_id );
+				} else {
+					$subscription->delete_meta_data( '_wc_stripe_express_checkout_type' );
+					$subscription->delete_meta_data( '_wc_stripe_express_checkout_payment_method_id' );
+				}
+				$subscription->save();
 
 				wp_safe_redirect( $this->get_redirect_url( $redirect, $payment_intent, $payment_information, $subscription, false ) );
 				exit;
@@ -555,37 +596,64 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			$renewal_order->update_status( OrderStatus::FAILED );
 
-			// If the payment was blocked by Stripe Radar, suspend the parent subscription(s)
-			// so that WC Subscriptions does not schedule further retry attempts. Each retry
-			// would create a new charge that Radar would block again, inflating the block rate.
+			// If the payment was blocked by Stripe Radar, cancel any scheduled
+			// retry attempt. Without this, WC Subscriptions schedules a retry
+			// that would create another charge for Radar to block, inflating
+			// the block rate.
 			if ( false !== $radar_reason ) {
+				$radar_cause = '';
 				switch ( $radar_reason ) {
 					case 'rule':
-						$radar_note = __( 'Stripe Radar blocked this payment due to a custom Radar rule. The subscription has been put on hold to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' );
+						$radar_cause = __( 'Stripe Radar blocked payment for the saved payment method due to a custom Radar rule.', 'woocommerce-gateway-stripe' );
 						break;
 					case 'low_probability_of_authorization':
-						$radar_note = __( 'Stripe blocked this payment due to low probability of authorization. The subscription has been put on hold to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' );
+						$radar_cause = __( 'Stripe blocked payment for the saved payment method due to low probability of authorization.', 'woocommerce-gateway-stripe' );
 						break;
 					case 'highest_risk_level':
+						$radar_cause = __( 'Stripe Radar blocked payment for the saved payment method as high risk.', 'woocommerce-gateway-stripe' );
+						break;
 					default:
-						$radar_note = __( 'Stripe Radar blocked this payment as high risk. The subscription has been put on hold to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' );
+						$radar_cause = sprintf(
+							/* translators: %s is the Stripe Radar reason code returned by the API. */
+							__( 'Stripe Radar blocked payment for the saved payment method (reason: %s).', 'woocommerce-gateway-stripe' ),
+							$radar_reason
+						);
 						break;
 				}
+				$retry_cancelled_suffix = __( 'The automatic retry has been cancelled to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' );
+
 				try {
-					$subscriptions     = function_exists( 'wcs_get_subscriptions_for_renewal_order' )
+					$subscriptions = function_exists( 'wcs_get_subscriptions_for_renewal_order' )
 						? wcs_get_subscriptions_for_renewal_order( $renewal_order )
 						: [];
-					$terminal_statuses = [ 'cancelled', 'expired', 'trash', 'completed', OrderStatus::ON_HOLD ];
-					foreach ( $subscriptions as $subscription ) {
-						if ( in_array( $subscription->get_status(), $terminal_statuses, true ) ) {
-							continue;
+
+					$retry_cancelled = false;
+					if ( class_exists( 'WCS_Retry_Manager' ) && method_exists( 'WCS_Retry_Manager', 'is_retry_enabled' ) && WCS_Retry_Manager::is_retry_enabled() && method_exists( 'WCS_Retry_Manager', 'store' ) ) {
+						$retry_store = WCS_Retry_Manager::store();
+						$last_retry  = method_exists( $retry_store, 'get_last_retry_for_order' ) ? $retry_store->get_last_retry_for_order( $renewal_order->get_id() ) : null;
+						if ( $last_retry && 'pending' === $last_retry->get_status() ) {
+							$last_retry->update_status( 'cancelled' );
+							$retry_cancelled = true;
 						}
-						$subscription->update_status( OrderStatus::ON_HOLD, $radar_note );
+						foreach ( $subscriptions as $subscription ) {
+							if ( $subscription->get_date( 'payment_retry' ) > 0 ) {
+								$subscription->delete_date( 'payment_retry' );
+								$retry_cancelled = true;
+							}
+						}
+					}
+
+					$radar_note = $retry_cancelled
+						? $radar_cause . ' ' . $retry_cancelled_suffix
+						: $radar_cause;
+
+					foreach ( $subscriptions as $subscription ) {
+						$subscription->add_order_note( $radar_note );
 					}
 					$renewal_order->add_order_note( $radar_note );
 				} catch ( Exception $radar_e ) {
 					WC_Stripe_Logger::error(
-						'Failed to put subscription on hold after Stripe Radar block: ' . $radar_e->getMessage(),
+						'Failed to cancel scheduled retry after Stripe Radar blocked subscription renewal: ' . $radar_e->getMessage(),
 						[ 'order_id' => $renewal_order->get_id() ]
 					);
 				}
