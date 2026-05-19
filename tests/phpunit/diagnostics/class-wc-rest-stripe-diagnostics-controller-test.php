@@ -116,8 +116,6 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 	 * After a request lands, a second request from the same IP within the
 	 * window must trip the new rate-limit gate with HTTP 429. Guards against
 	 * volume abuse of the unauthenticated events endpoint.
-	 *
-	 * EXPLORATION (RSM-1638).
 	 */
 	public function test_permission_rate_limited_on_second_request_within_window() {
 		$first = $this->make_request(
@@ -150,8 +148,6 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 	 * If we can't read an IP (no $_SERVER headers at all — CLI/cron-like
 	 * paths), the gate must default to allowing the request. The
 	 * diagnostics-enabled toggle is the only upstream gate in that case.
-	 *
-	 * EXPLORATION (RSM-1638).
 	 */
 	public function test_permission_not_rate_limited_when_no_client_ip() {
 		unset( $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_X_REAL_IP'], $_SERVER['HTTP_X_FORWARDED_FOR'] );
@@ -182,8 +178,6 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 	 * Requests from a different IP must not be blocked by the previous
 	 * request's window — confirms the rate-limit key is partitioned per
 	 * client, not global.
-	 *
-	 * EXPLORATION (RSM-1638).
 	 */
 	public function test_permission_rate_limit_is_per_ip() {
 		$first = $this->make_request(
@@ -213,8 +207,6 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * A filter that returns 0 must disable the rate limit. Lets operators
 	 * opt out without a code change if the 2s/IP default proves too tight.
-	 *
-	 * EXPLORATION (RSM-1638).
 	 */
 	public function test_rate_limit_window_is_filterable_to_zero() {
 		add_filter( 'wc_stripe_diagnostics_events_rate_limit', '__return_zero' );

@@ -22,12 +22,13 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	// this list being a finite set of positive integers.
 	const CAPTURE_LIMIT_PRESETS = [ 5, 10, 25, 50 ];
 
-	// EXPLORATION (RSM-1638): per-IP rate-limit window for the unauthenticated
-	// /events endpoint. A single token over N seconds — enough to bound disk
-	// I/O and FIFO-eviction cost against a basic flooder. Filterable so we
-	// can tune without a release. Default is 2s rather than 1s so wallet flows
-	// (Apple Pay / Google Pay can emit a quick burst) and shoppers behind a
-	// shared NAT egress don't 429 each other on legitimate double-taps.
+	// Per-IP rate-limit window for the unauthenticated /events endpoint.
+	// A single token over N seconds — enough to bound disk I/O and
+	// FIFO-eviction cost against a basic flooder. Filterable via
+	// `wc_stripe_diagnostics_events_rate_limit` (see {@see self::arm_rate_limit()}).
+	// The 2-second default gives wallet flows (Apple Pay / Google Pay can emit a
+	// quick burst) and shoppers behind a shared NAT egress room to land legitimate
+	// double-taps without tripping the gate.
 	const EVENTS_RATE_LIMIT_KEY_PREFIX  = 'stripe_diag_events_';
 	const DEFAULT_EVENTS_RATE_LIMIT_SEC = 2;
 
@@ -263,11 +264,11 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	}
 
 	/**
-	 * EXPLORATION (RSM-1638): emit a Tracks event when the /events rate limit
-	 * trips. Parallels the `wcstripe_diagnostics_auto_off` event so operators
-	 * have visibility into whether the limit is biting in the wild — useful
-	 * for tuning the default window via the
-	 * `wc_stripe_diagnostics_events_rate_limit` filter.
+	 * Emit a Tracks event when the /events rate limit trips. Parallels the
+	 * `wcstripe_diagnostics_auto_off` event so operators have visibility
+	 * into whether the limit is biting in the wild — useful for tuning the
+	 * default window via the `wc_stripe_diagnostics_events_rate_limit`
+	 * filter.
 	 *
 	 * Deliberately omits any IP-derived field; the gate is meant to bound
 	 * abuse, not to identify the actor.
@@ -304,8 +305,7 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	}
 
 	/**
-	 * EXPLORATION (RSM-1638): per-IP rate-limit gate for the unauthenticated
-	 * /events endpoint.
+	 * Per-IP rate-limit gate for the unauthenticated /events endpoint.
 	 *
 	 * The endpoint stays unauthenticated by design (guest shoppers need to
 	 * post traces), and `is_enabled()` is the only existing gate. An
@@ -389,10 +389,10 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function ingest_events( $request ) {
-		// EXPLORATION (RSM-1638): arm the next-request rate-limit window for
-		// this IP as soon as we accept a request, regardless of whether the
-		// payload is valid. A malformed-events flooder still costs disk and
-		// CPU, so the window has to start before we bail on validation.
+		// Arm the next-request rate-limit window for this IP as soon as we
+		// accept a request, regardless of whether the payload is valid. A
+		// malformed-events flooder still costs disk and CPU, so the window
+		// has to start before we bail on validation.
 		self::arm_rate_limit();
 
 		$session_id = WC_Stripe_Diagnostics_Trace_Store::sanitize_id( (string) $request->get_param( 'diag_session_id' ) );
