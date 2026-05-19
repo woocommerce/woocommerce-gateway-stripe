@@ -20,6 +20,12 @@ TEST_ENV="NODE_CONFIG_DIR='tests/e2e/test-data'"
 TEST_ARGS=""
 accepted_args=("--base_url" "--project")
 for arg in "$@"; do
+	# pnpm passes the `--` separator through to the script (npm strips it).
+	# Either way, a bare `--` carries no value here — skip it so the
+	# declare below doesn't see an empty identifier.
+	if [[ "$arg" == "--" ]]; then
+		continue
+	fi
 	key=$(echo $arg | cut -f1 -d=)
 	value=$(echo $arg | cut -f2 -d=)
 
