@@ -62,48 +62,17 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 		$scheduler->init_hooks();
 
 		$this->assertNotFalse( has_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [ $scheduler, 'run' ] ) );
-		$this->assertNotFalse( has_action( 'upgrader_process_complete', [ $scheduler, 'on_plugin_upgrade' ] ) );
+		$this->assertNotFalse( has_action( 'woocommerce_stripe_updated', [ $scheduler, 'on_plugin_upgrade' ] ) );
 	}
 
-	/**
-	 * @dataProvider provide_on_plugin_upgrade_cases
-	 */
-	public function test_on_plugin_upgrade( array $hook_extra, bool $expected_scheduled ): void {
+	public function test_on_plugin_upgrade_enqueues_async_sync(): void {
 		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
 			$this->markTestSkipped( 'Action Scheduler not available.' );
 		}
 
-		( new WC_Stripe_Remote_Config_Scheduler() )->on_plugin_upgrade( null, $hook_extra );
+		( new WC_Stripe_Remote_Config_Scheduler() )->on_plugin_upgrade();
 
-		$this->assertSame( $expected_scheduled, as_has_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION ) );
-	}
-
-	public function provide_on_plugin_upgrade_cases(): array {
-		return [
-			'this plugin is in plugins list' => [
-				[
-					'action'  => 'update',
-					'type'    => 'plugin',
-					'plugins' => [ 'woocommerce-gateway-stripe/woocommerce-gateway-stripe.php' ],
-				],
-				true,
-			],
-			'unrelated plugin update'        => [
-				[
-					'action'  => 'update',
-					'type'    => 'plugin',
-					'plugins' => [ 'some-other-plugin/some-other-plugin.php' ],
-				],
-				false,
-			],
-			'theme upgrade ignored'          => [
-				[
-					'action' => 'update',
-					'type'   => 'theme',
-				],
-				false,
-			],
-		];
+		$this->assertTrue( as_has_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION ) );
 	}
 
 	public function test_run_iterates_only_connected_modes(): void {

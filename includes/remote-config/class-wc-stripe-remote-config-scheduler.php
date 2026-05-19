@@ -16,7 +16,6 @@ class WC_Stripe_Remote_Config_Scheduler {
 
 	const SYNC_ACTION     = 'wc_stripe_remote_config_sync';
 	const SCHEDULER_GROUP = 'woocommerce-gateway-stripe';
-	const PLUGIN_BASENAME = 'woocommerce-gateway-stripe/woocommerce-gateway-stripe.php';
 
 	/**
 	 * Outbound HTTP client used to fetch remote-config payloads.
@@ -42,7 +41,7 @@ class WC_Stripe_Remote_Config_Scheduler {
 	 */
 	public function init_hooks(): void {
 		add_action( self::SYNC_ACTION, [ $this, 'run' ] );
-		add_action( 'upgrader_process_complete', [ $this, 'on_plugin_upgrade' ], 10, 2 );
+		add_action( 'woocommerce_stripe_updated', [ $this, 'on_plugin_upgrade' ] );
 		add_action( 'init', [ $this, 'maybe_schedule_daily_sync' ] );
 		// Re-arm the recurring action if the schedule is purged.
 		add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ $this, 'maybe_schedule_daily_sync' ] );
@@ -89,22 +88,10 @@ class WC_Stripe_Remote_Config_Scheduler {
 	}
 
 	/**
-	 * Hook callback for `upgrader_process_complete`. Enqueues an immediate
-	 * single sync if this plugin was part of the upgrade.
-	 *
-	 * @param mixed $upgrader   Unused (Plugin_Upgrader instance, varies).
-	 * @param array $hook_extra Upgrader payload.
+	 * Hook callback for `woocommerce_stripe_updated`. Enqueues an immediate
+	 * single sync after the plugin updates.
 	 */
-	public function on_plugin_upgrade( $upgrader, $hook_extra ): void {
-		if ( ! is_array( $hook_extra ) || ( $hook_extra['type'] ?? '' ) !== 'plugin' ) {
-			return;
-		}
-
-		$plugins = $hook_extra['plugins'] ?? [];
-		if ( ! is_array( $plugins ) || ! in_array( self::PLUGIN_BASENAME, $plugins, true ) ) {
-			return;
-		}
-
+	public function on_plugin_upgrade(): void {
 		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
 			return;
 		}
