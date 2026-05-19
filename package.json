@@ -119,7 +119,7 @@
     }
   },
   "scripts": {
-    "postinstall": "composer install --classmap-authoritative && pnpx playwright install chromium",
+    "postinstall": "composer install --classmap-authoritative && pnpm exec playwright install chromium",
     "prebuild": "pnpm install && composer install --classmap-authoritative",
     "prepare": "is-ci || husky install",
     "build": "pnpm run uglify && pnpm run sass && rimraf build/* && pnpm run build:webpack && pnpm run build:i18n && pnpm run build:release",
