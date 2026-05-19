@@ -82,12 +82,20 @@ class WC_Stripe_Settings_Migration_Ledger {
 	/**
 	 * Substrings that trigger redaction when found anywhere in a key name.
 	 *
+	 * Covers all Stripe API credential and webhook secret key names known to PP and Woo Stripe at
+	 * the time of writing. When a new sensitive key is introduced (e.g., a new PP auth token or a
+	 * new Stripe API credential field), add its identifying substring here AND update the
+	 * corresponding test in `WC_Stripe_Settings_Migration_Ledger_Test::secret_key_provider()`.
+	 *
 	 * @var array<int, string>
 	 */
 	public const SECRET_PATTERNS = [ 'secret_key', 'webhook_secret', 'refresh_token', 'access_token' ];
 
 	/**
 	 * Suffixes that trigger redaction when the key name ends with them.
+	 *
+	 * Catches generic secret/token field names not enumerated in SECRET_PATTERNS. Extend this list
+	 * if a new category of sensitive suffix is introduced.
 	 *
 	 * @var array<int, string>
 	 */
@@ -122,6 +130,14 @@ class WC_Stripe_Settings_Migration_Ledger {
 	 * @var string
 	 */
 	private string $pp_version_detected;
+
+	/**
+	 * In-memory row buffer. Rows accumulate here until `flush()` is called, which
+	 * writes the entire batch to the DB in a single `update_option()` call.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $buffer = [];
 
 	/**
 	 * Constructor.
@@ -362,7 +378,39 @@ class WC_Stripe_Settings_Migration_Ledger {
 	}
 
 	/**
-	 * Appends a row to the ledger blob and mirrors it to the WC log.
+	 * Writes all buffered rows to the DB in a single `update_option()` call and mirrors each to
+	 * the WC log. Called once at the end of `WC_Stripe_PP_Settings_Migration::maybe_run()`.
+	 *
+	 * @return void
+	 */
+	public function flush(): void {
+		if ( empty( $this->buffer ) ) {
+			return;
+		}
+
+		$ledger = get_option( self::OPTION_NAME, [] );
+		if ( ! is_array( $ledger ) ) {
+			$ledger = [];
+		}
+
+		foreach ( $this->buffer as $row ) {
+			$ledger[] = $row;
+
+			if ( class_exists( 'WC_Stripe_Logger' ) ) {
+				// Rows go to a dedicated WC log file separate from the main gateway log.
+				$encoded = wp_json_encode( $row );
+				if ( false !== $encoded ) {
+					WC_Stripe_Logger::info( $encoded, [ 'source' => self::LOG_HANDLE ] );
+				}
+			}
+		}
+
+		update_option( self::OPTION_NAME, $ledger, false );
+		$this->buffer = [];
+	}
+
+	/**
+	 * Buffers a row in memory. Rows are persisted to the DB only when `flush()` is called.
 	 *
 	 * Each row receives an id, run_id, snapshot_id, timestamp, and pp_version_detected
 	 * from the instance's context.
@@ -371,7 +419,7 @@ class WC_Stripe_Settings_Migration_Ledger {
 	 * @return void
 	 */
 	private function append( array $row ): void {
-		$row = array_merge(
+		$this->buffer[] = array_merge(
 			[
 				'id'                  => wp_generate_uuid4(),
 				'run_id'              => $this->run_id,
@@ -381,22 +429,6 @@ class WC_Stripe_Settings_Migration_Ledger {
 			],
 			$row
 		);
-
-		$ledger = get_option( self::OPTION_NAME, [] );
-		if ( ! is_array( $ledger ) ) {
-			$ledger = [];
-		}
-		$ledger[] = $row;
-		update_option( self::OPTION_NAME, $ledger, false );
-
-		if ( class_exists( 'WC_Stripe_Logger' ) ) {
-			// Override the default log source so ledger rows go to a dedicated WC log file
-			// (`wp-content/uploads/wc-logs/woocommerce-gateway-stripe-pp-settings-migration-{date}.log`).
-			$encoded = wp_json_encode( $row );
-			if ( false !== $encoded ) {
-				WC_Stripe_Logger::info( $encoded, [ 'source' => self::LOG_HANDLE ] );
-			}
-		}
 	}
 
 	/**

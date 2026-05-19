@@ -19,6 +19,7 @@ xxxx-xx-xx - version 10.8.0
 * Dev - Add Claude Code skills and review rules under .claude/ to capture repo-specific contributor guidance
 * Dev - Move some independent classes into autoloader
 * Dev - Add foundation classes for the Payment Plugins for Stripe settings migration (version detector, pre-migration snapshot, structured ledger, and 3.X mapping table)
+* Add - Pre-fill Woo Stripe settings from Payment Plugins for Stripe at OAuth completion (idempotent, non-destructive, snapshot-backed for rollback)
 
 2026-05-12 - version 10.7.0
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled

@@ -170,5 +170,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add Claude Code skills and review rules under .claude/ to capture repo-specific contributor guidance
 * Dev - Move some independent classes into autoloader
 * Dev - Add foundation classes for the Payment Plugins for Stripe settings migration (version detector, pre-migration snapshot, structured ledger, and 3.X mapping table)
+* Add - Pre-fill Woo Stripe settings from Payment Plugins for Stripe at OAuth completion (idempotent, non-destructive, snapshot-backed for rollback)
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -324,6 +324,12 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				$this->unschedule_connection_refresh();
 			}
 
+			// Pre-fill settings from Payment Plugins for Stripe when present. Idempotent and
+			// self-gated; safe to call on every OAuth completion. Runs BEFORE the PMC migration
+			// below so the existing PMC migration picks up our PP-derived enabled-methods list.
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-wc-stripe-pp-settings-migration.php';
+			WC_Stripe_PP_Settings_Migration::maybe_run();
+
 			// For new installs the legacy gateway gets instantiated because there is no settings in the DB yet,
 			// so we need to instantiate the UPE gateway just for the PMC migration.
 			WC_Stripe::get_instance()->get_main_stripe_gateway();
