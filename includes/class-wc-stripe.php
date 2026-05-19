@@ -14,7 +14,7 @@ class WC_Stripe {
 	 *
 	 * @deprecated 8.7.0
 	 */
-	const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
+	public const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
 
 	/**
 	 * The *Singleton* instance of this class

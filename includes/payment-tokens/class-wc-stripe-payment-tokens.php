@@ -27,7 +27,7 @@ class WC_Stripe_Payment_Tokens {
 	 *
 	 * @var array
 	 */
-	const UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD = [
+	public const UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD = [
 		WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID           => WC_Stripe_UPE_Payment_Gateway::ID,
 		WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID,
 		WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID   => WC_Stripe_UPE_Payment_Gateway::ID,

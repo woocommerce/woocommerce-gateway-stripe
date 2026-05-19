@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	use WC_Stripe_Subscriptions_Trait;
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::CARD;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::CARD;
 
 	/**
 	 * Constructor for card payment method

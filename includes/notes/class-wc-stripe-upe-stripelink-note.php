@@ -19,12 +19,12 @@ class WC_Stripe_UPE_StripeLink_Note {
 	/**
 	 * Name of the note for use in the database.
 	 */
-	const NOTE_NAME = 'wc-stripe-upe-stripelink-note';
+	public const NOTE_NAME = 'wc-stripe-upe-stripelink-note';
 
 	/**
 	 * Link to Stripe Link documentation.
 	 */
-	const NOTE_DOCUMENTATION_URL = 'https://woocommerce.com/document/stripe/setup-and-configuration/express-checkouts/';
+	public const NOTE_DOCUMENTATION_URL = 'https://woocommerce.com/document/stripe/setup-and-configuration/express-checkouts/';
 
 	/**
 	 * Get the note.

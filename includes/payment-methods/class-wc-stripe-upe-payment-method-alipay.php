@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::ALIPAY;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::ALIPAY;
 
 	/**
 	 * Constructor for alipay payment method

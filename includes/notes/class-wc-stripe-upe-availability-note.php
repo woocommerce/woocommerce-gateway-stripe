@@ -21,12 +21,12 @@ class WC_Stripe_UPE_Availability_Note {
 	/**
 	 * Name of the note for use in the database.
 	 */
-	const NOTE_NAME = 'wc-stripe-upe-availability-note';
+	public const NOTE_NAME = 'wc-stripe-upe-availability-note';
 
 	/**
 	 * Link to enable the UPE in store.
 	 */
-	const ENABLE_IN_STORE_LINK = '?page=wc-settings&tab=checkout&section=stripe&panel=settings&highlight=enable-upe';
+	public const ENABLE_IN_STORE_LINK = '?page=wc-settings&tab=checkout&section=stripe&panel=settings&highlight=enable-upe';
 
 
 	/**

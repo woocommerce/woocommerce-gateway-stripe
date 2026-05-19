@@ -15,14 +15,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 */
 class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
-	const ID = 'stripe';
+	public const ID = 'stripe';
 
 	/**
 	 * Upe Available Methods
 	 *
 	 * @type WC_Stripe_UPE_Payment_Method[]
 	 */
-	const UPE_AVAILABLE_METHODS = [
+	public const UPE_AVAILABLE_METHODS = [
 		WC_Stripe_Payment_Methods::CARD              => WC_Stripe_UPE_Payment_Method_CC::class,
 		WC_Stripe_Payment_Methods::ACH               => WC_Stripe_UPE_Payment_Method_ACH::class,
 		WC_Stripe_Payment_Methods::ALIPAY            => WC_Stripe_UPE_Payment_Method_Alipay::class,
@@ -56,7 +56,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @deprecated 9.1.0
 	 */
-	const SUCCESSFUL_INTENT_STATUS = [ 'succeeded', 'requires_capture', 'processing' ];
+	public const SUCCESSFUL_INTENT_STATUS = [ 'succeeded', 'requires_capture', 'processing' ];
 
 	/**
 	 * Transient name for appearance settings.
@@ -64,7 +64,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @deprecated 10.5.0 Appearance is fully managed by the client.
 	 * @type string
 	 */
-	const APPEARANCE_TRANSIENT = 'wc_stripe_appearance';
+	public const APPEARANCE_TRANSIENT = 'wc_stripe_appearance';
 
 	/**
 	 * Transient name for appearance settings on the block checkout.
@@ -72,7 +72,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @deprecated 10.5.0 Appearance is fully managed by the client.
 	 * @type string
 	 */
-	const BLOCKS_APPEARANCE_TRANSIENT = 'wc_stripe_blocks_appearance';
+	public const BLOCKS_APPEARANCE_TRANSIENT = 'wc_stripe_blocks_appearance';
 
 	/**
 	 * The default layout for the Optimized Checkout.
