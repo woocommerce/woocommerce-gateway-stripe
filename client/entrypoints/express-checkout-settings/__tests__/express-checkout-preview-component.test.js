@@ -6,13 +6,10 @@ import ExpressCheckoutPreviewComponent from '../express-checkout-preview-compone
 import { useExpressCheckoutEnabledSettings } from 'wcstripe/data';
 import { getDefaultBorderRadius } from 'wcstripe/express-checkout/utils';
 
-// `<Notice />` from `@wordpress/components` calls into `@wordpress/a11y` via its
-// bundled dependency path; silence the speak() side effect in tests.
-const realPathToA11yModule =
-	'@wordpress/components/node_modules/@wordpress/a11y';
-
-jest.mock( realPathToA11yModule, () => ( {
-	...jest.requireActual( realPathToA11yModule ),
+// `<Notice />` from `@wordpress/components` calls into `@wordpress/a11y` to
+// announce the message; silence the speak() side effect in tests.
+jest.mock( '@wordpress/a11y', () => ( {
+	...jest.requireActual( '@wordpress/a11y' ),
 	speak: jest.fn(),
 } ) );
 

@@ -12,7 +12,11 @@ module.exports = {
 		'^.+\\.jsx?$': 'babel-jest',
 	},
 	transformIgnorePatterns: [
-		'node_modules/(?!(?:@wordpress|@woocommerce|@emotion|memize)/)',
+		// `uuid` ships ESM at its `exports.default` target and CJS at
+		// `exports.node.require`; Jest's resolver doesn't honour the
+		// conditional and picks the ESM file, which babel-jest then needs
+		// to rewrite to CommonJS.
+		'node_modules/(?!(?:@wordpress|@woocommerce|@emotion|memize|uuid)/)',
 	],
 
 	moduleNameMapper: {

@@ -67,7 +67,7 @@ jobs:
                       phpstan-result-cache-
 
             - name: 'Run PHPStan'
-              run: pnpm run phpstan
+              run: composer run-script phpstan
 
             - name: 'Save PHPStan result cache'
               uses: actions/cache/save@v4

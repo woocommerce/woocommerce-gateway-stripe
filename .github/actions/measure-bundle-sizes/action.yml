@@ -48,19 +48,40 @@ runs:
       with:
         php-version: '8.4'
 
-    - name: Install pnpm
-      if: steps.cache.outputs.cache-hit != 'true'
-      uses: pnpm/action-setup@v4
-
-    - name: Install dependencies
+    # The base side of the bundle-size comparison checks out an arbitrary
+    # commit that may predate the pnpm migration, so the package manager
+    # depends on which lockfile is present in the checked-out tree.
+    - name: Detect package manager
+      id: pm
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
+      run: |
+        if [ -f pnpm-lock.yaml ]; then
+          echo "manager=pnpm" >> $GITHUB_OUTPUT
+        else
+          echo "manager=npm" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Install pnpm
+      if: steps.cache.outputs.cache-hit != 'true' && steps.pm.outputs.manager == 'pnpm'
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10.0.0
+
+    - name: Install dependencies (pnpm)
+      if: steps.cache.outputs.cache-hit != 'true' && steps.pm.outputs.manager == 'pnpm'
+      shell: bash
       run: pnpm install --frozen-lockfile
+
+    - name: Install dependencies (npm)
+      if: steps.cache.outputs.cache-hit != 'true' && steps.pm.outputs.manager == 'npm'
+      shell: bash
+      run: npm ci
 
     - name: Build
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
-      run: pnpm run build:webpack
+      run: ${{ steps.pm.outputs.manager }} run build:webpack
 
     - name: Measure bundle sizes
       if: steps.cache.outputs.cache-hit != 'true'

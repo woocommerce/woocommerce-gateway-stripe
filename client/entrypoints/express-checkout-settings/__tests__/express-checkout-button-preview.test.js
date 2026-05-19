@@ -4,12 +4,10 @@ import { useStripe } from '@stripe/react-stripe-js';
 import ExpressCheckoutButtonPreview from '../express-checkout-button-preview';
 import { shouldUseGooglePayBrand } from '../utils/utils';
 
-// We need to mock the actual module being used by `<Notice />` in the `@wordpress/components` module
-const realPathToA11yModule =
-	'@wordpress/components/node_modules/@wordpress/a11y';
-
-jest.mock( realPathToA11yModule, () => ( {
-	...jest.requireActual( realPathToA11yModule ),
+// `<Notice />` from `@wordpress/components` calls into `@wordpress/a11y` to
+// announce the message; silence the speak() side effect in tests.
+jest.mock( '@wordpress/a11y', () => ( {
+	...jest.requireActual( '@wordpress/a11y' ),
 	speak: jest.fn(),
 } ) );
 
