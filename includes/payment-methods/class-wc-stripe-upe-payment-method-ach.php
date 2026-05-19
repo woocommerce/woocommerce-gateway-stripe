@@ -42,6 +42,15 @@ class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Checks if ACH is available for the Stripe account's country.
+	 *
+	 * @return bool True if US-based account; false otherwise.
+	 */
+	public function is_available_for_account_country() {
+		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
+	}
+
+	/**
 	 * Creates an ACH payment token for the customer.
 	 *
 	 * @param int      $user_id        The customer ID the payment token is associated with.

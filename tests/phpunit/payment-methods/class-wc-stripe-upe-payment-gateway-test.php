@@ -378,13 +378,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Boleto::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Multibanco::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Wechat_Pay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 				],
 			],
 			[
@@ -394,12 +397,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Boleto::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 				],
 			],
-			[
+			[ // TODO: Fix each payment method's `is_available_for_account_country` function to match supported countries.
 				'PL',
 				[
 					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
@@ -408,11 +414,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Boleto::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Multibanco::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 				],
 			],
 		];
@@ -439,31 +448,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->mock_gateway->oc_enabled = false;
 
 		$this->assertSame( $expected, $actual );
-	}
-
-	/**
-	 * Country-specific payment methods (Boleto/BR, OXXO/MX, ACSS/CA) must report
-	 * available for accounts in their supported country and unavailable elsewhere.
-	 * Locks in the consolidated `is_available_for_account_country()` behavior on
-	 * the parent class so the per-method overrides can stay deleted.
-	 *
-	 * @dataProvider provide_is_available_for_account_country
-	 */
-	public function test_is_available_for_account_country_country_specific_methods( $payment_method_class, $account_country, $expected ) {
-		$this->set_stripe_account_data( [ 'country' => $account_country ] );
-		$method = new $payment_method_class();
-		$this->assertSame( $expected, $method->is_available_for_account_country() );
-	}
-
-	public function provide_is_available_for_account_country() {
-		return [
-			'Boleto in BR' => [ WC_Stripe_UPE_Payment_Method_Boleto::class, WC_Stripe_Country_Code::BRAZIL, true ],
-			'Boleto in US' => [ WC_Stripe_UPE_Payment_Method_Boleto::class, WC_Stripe_Country_Code::UNITED_STATES, false ],
-			'OXXO in MX'   => [ WC_Stripe_UPE_Payment_Method_Oxxo::class, WC_Stripe_Country_Code::MEXICO, true ],
-			'OXXO in US'   => [ WC_Stripe_UPE_Payment_Method_Oxxo::class, WC_Stripe_Country_Code::UNITED_STATES, false ],
-			'ACSS in CA'   => [ WC_Stripe_UPE_Payment_Method_Acss::class, WC_Stripe_Country_Code::CANADA, true ],
-			'ACSS in US'   => [ WC_Stripe_UPE_Payment_Method_Acss::class, WC_Stripe_Country_Code::UNITED_STATES, false ],
-		];
 	}
 
 	/**

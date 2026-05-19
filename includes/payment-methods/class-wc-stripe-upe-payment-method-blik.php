@@ -65,6 +65,15 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Checks if BLIK is available for the Stripe account's country.
+	 *
+	 * @return bool True if PL-based account; false otherwise.
+	 */
+	public function is_available_for_account_country() {
+		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
+	}
+
+	/**
 	 * Returns testing instructions to be printed at checkout in test mode.
 	 *
 	 * @param bool $show_optimized_checkout_instruction Deprecated. Whether to show optimized checkout instructions.
