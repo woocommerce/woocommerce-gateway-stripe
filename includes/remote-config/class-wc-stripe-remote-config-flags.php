@@ -55,22 +55,27 @@ class WC_Stripe_Remote_Config_Flags {
 	 * Whether the remote-config feature is enabled on this site.
 	 *
 	 * The `WC_STRIPE_DISABLE_REMOTE_CONFIG` constant takes precedence; if not
-	 * defined, the `wc_stripe_remote_config_enabled` filter is consulted with a
-	 * default of true.
+	 * defined, the `wc_stripe_remote_config_enabled` filter is consulted with
+	 * a default of `false` on development environments (WP_DEBUG sites, or
+	 * sites whose `wp_get_environment_type()` is local/development/staging)
+	 * and `true` everywhere else.
 	 */
 	public static function is_remote_config_enabled(): bool {
 		if ( defined( 'WC_STRIPE_DISABLE_REMOTE_CONFIG' ) && WC_STRIPE_DISABLE_REMOTE_CONFIG ) {
 			return false;
 		}
 
+		$is_dev_environment = ( defined( 'WP_DEBUG' ) && WP_DEBUG )
+			|| in_array( wp_get_environment_type(), [ 'development', 'staging', 'local' ], true );
+
 		/**
 		 * Filters whether the Stripe remote-config channel is enabled.
 		 *
 		 * @since 10.8.0
 		 *
-		 * @param bool $enabled Default true.
+		 * @param bool $enabled Default `false` on development environments, `true` elsewhere.
 		 */
-		return (bool) apply_filters( 'wc_stripe_remote_config_enabled', true );
+		return (bool) apply_filters( 'wc_stripe_remote_config_enabled', ! $is_dev_environment );
 	}
 
 	/**

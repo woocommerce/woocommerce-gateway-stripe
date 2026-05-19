@@ -14,6 +14,7 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
+		add_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
 		$this->original_stripe_settings = get_option( 'woocommerce_stripe_settings' );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
@@ -24,6 +25,7 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down(): void {
+		remove_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
 		if ( function_exists( 'as_unschedule_all_actions' ) ) {
 			as_unschedule_all_actions( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], 'woocommerce-gateway-stripe' );
 		}

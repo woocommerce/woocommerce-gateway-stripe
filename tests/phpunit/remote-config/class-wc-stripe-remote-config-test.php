@@ -7,12 +7,14 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
+		add_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 		delete_option( '_wcstripe_remote_config_test' );
 	}
 
 	public function tear_down(): void {
+		remove_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 		delete_option( '_wcstripe_remote_config_test' );

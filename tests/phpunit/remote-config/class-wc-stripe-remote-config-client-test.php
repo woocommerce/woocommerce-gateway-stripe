@@ -13,6 +13,7 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
+		add_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
 		$this->client            = new WC_Stripe_Remote_Config_Client();
 		$this->captured_requests = [];
 
@@ -43,6 +44,7 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down(): void {
+		remove_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
 		remove_all_filters( 'pre_http_request' );
 		parent::tear_down();
 	}
