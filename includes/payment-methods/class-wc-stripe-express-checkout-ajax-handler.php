@@ -461,8 +461,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			return $locale;
 		}
 
-		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-express-checkout-button-states.php';
-
 		// For countries that don't have state fields, make the state field optional.
 		foreach ( WC_Stripe_Express_Checkout_Button_States::STATES as $country_code => $states ) {
 			if ( empty( $states ) ) {
