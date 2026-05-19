@@ -698,7 +698,13 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		}
 
 		if ( $hpos_enabled ) {
+			// Bypass the WooCommerce "orders out of sync" guard that prevents
+			// toggling HPOS in test environments with leftover order data.
+			// The guard is a `pre_update_option` filter at priority 999.
+			$cot_ctrl = wc_get_container()->get( \Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController::class );
+			remove_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999 );
 			update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+			add_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999, 3 );
 		} else {
 			update_option( 'woocommerce_custom_orders_table_enabled', 'no' );
 		}
@@ -789,6 +795,212 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 			],
 		];
+	}
+
+	/**
+	 * Test that subscription_detached notice is not shown when dismissed via post meta.
+	 *
+	 * @return void
+	 */
+	public function test_subscription_check_detachment_not_shown_when_dismissed() {
+		$source_id    = 'src_123_dismissed';
+		$meta_key     = WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META;
+		$subscription = new WC_Subscription();
+
+		$subscription->set_id( 124 );
+		$subscription->set_status( 'active' );
+		$subscription->set_payment_method( 'stripe_klarna' );
+		$subscription->save();
+		$subscription->update_meta_data( '_stripe_source_id', $source_id );
+		$subscription->update_meta_data( $meta_key, 'yes' );
+		$subscription->save_meta_data();
+
+		// Ensure HPOS is enabled so is_subscription_edit_page() recognises the request params.
+		$cot_ctrl = wc_get_container()->get( \Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController::class );
+		remove_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999 );
+		update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+		add_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999, 3 );
+
+		$_REQUEST = [
+			'page' => 'wc-orders--shop_subscription',
+			'id'   => $subscription->get_id(),
+		];
+
+		global $theorder;
+		$original_order = $theorder;
+		$theorder       = $subscription;
+
+		$test_request = function () {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'customer' => null,
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->subscription_check_detachment();
+
+		remove_filter( 'pre_http_request', $test_request, 10, 3 );
+		unset( $_REQUEST );
+		$theorder = $original_order;
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_id );
+
+		$this->assertArrayNotHasKey( 'subscription_detached', $notices->notices );
+		$this->assertSame( 'yes', $subscription->get_meta( $meta_key ) );
+	}
+
+	/**
+	 * Test that the dismissed subscription_detached notice meta is cleared when the payment method is no longer detached.
+	 *
+	 * @return void
+	 */
+	public function test_subscription_check_detachment_clears_dismissed_meta_when_not_detached() {
+		$source_id    = 'src_123_attached';
+		$meta_key     = WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META;
+		$subscription = new WC_Subscription();
+
+		$subscription->set_id( 125 );
+		$subscription->set_status( 'active' );
+		$subscription->set_payment_method( 'stripe_klarna' );
+		$subscription->save();
+		$subscription->update_meta_data( '_stripe_source_id', $source_id );
+		$subscription->update_meta_data( $meta_key, 'yes' );
+		$subscription->save_meta_data();
+
+		WC_Stripe_Database_Cache::set(
+			'payment_method_for_source_' . $source_id,
+			(object) [ 'customer' => 'cus_123' ],
+			HOUR_IN_SECONDS
+		);
+
+		// Ensure HPOS is enabled so is_subscription_edit_page() recognises the request params.
+		$cot_ctrl = wc_get_container()->get( \Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController::class );
+		remove_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999 );
+		update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+		add_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999, 3 );
+
+		$_REQUEST = [
+			'page' => 'wc-orders--shop_subscription',
+			'id'   => $subscription->get_id(),
+		];
+
+		global $theorder;
+		$original_order = $theorder;
+		$theorder       = $subscription;
+
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->subscription_check_detachment();
+
+		unset( $_REQUEST );
+		$theorder = $original_order;
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_id );
+
+		$this->assertArrayNotHasKey( 'subscription_detached', $notices->notices );
+		$this->assertSame( '', $subscription->get_meta( $meta_key ) );
+	}
+
+	/**
+	 * Test that dismissing the subscription_detached notice sets the post meta.
+	 *
+	 * @param string $request_param The request parameter key for the subscription ID.
+	 * @return void
+	 * @dataProvider provide_hide_notices_subscription_detached_paths
+	 */
+	public function test_hide_notices_dismisses_subscription_detached_notice( $request_param ) {
+		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_user );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_status( 'active' );
+		$subscription->save();
+
+		WC_Subscriptions::set_wcs_get_subscription(
+			function ( $id ) use ( $subscription ) {
+				return $subscription;
+			}
+		);
+
+		$_GET['wc-stripe-hide-notice']   = 'subscription_detached';
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+		$_REQUEST[ $request_param ]      = $subscription->get_id();
+
+		$notices = $this->create_admin_notices_instance();
+		$notices->hide_notices();
+
+		$this->assertEquals( 'yes', $subscription->get_meta( WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META ) );
+
+		WC_Subscriptions::$wcs_get_subscription = null;
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST[ $request_param ] );
+	}
+
+	/**
+	 * Data provider for test_hide_notices_dismisses_subscription_detached_notice.
+	 *
+	 * @return array
+	 */
+	public function provide_hide_notices_subscription_detached_paths() {
+		return [
+			'HPOS path'     => [ 'id' ],
+			'non-HPOS path' => [ 'post' ],
+		];
+	}
+
+	/**
+	 * Test that hide_notices does nothing for subscription_detached when no subscription ID param is present.
+	 *
+	 * @return void
+	 */
+	public function test_hide_notices_subscription_detached_no_param_does_nothing() {
+		unset( $_REQUEST['post'], $_REQUEST['id'] );
+		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_user );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_status( 'active' );
+		$subscription->save();
+
+		$_GET['wc-stripe-hide-notice']   = 'subscription_detached';
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		$notices = $this->create_admin_notices_instance();
+		$notices->hide_notices();
+
+		$this->assertEmpty( $subscription->get_meta( WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META ) );
+
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['post'], $_REQUEST['id'] );
+	}
+
+	/**
+	 * Test that hide_notices for subscription_detached with a non-existent subscription ID is a no-op.
+	 *
+	 * @return void
+	 */
+	public function test_hide_notices_subscription_detached_nonexistent_id_does_nothing() {
+		unset( $_REQUEST['post'] );
+		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_user );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_status( 'active' );
+		$subscription->save();
+
+		$_GET['wc-stripe-hide-notice']   = 'subscription_detached';
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+		$_REQUEST['id']                  = 999999; // Non-existent subscription.
+
+		$notices = $this->create_admin_notices_instance();
+		$notices->hide_notices();
+
+		$this->assertEmpty( $subscription->get_meta( WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META ) );
+
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['post'], $_REQUEST['id'] );
 	}
 
 	/**
