@@ -40,6 +40,16 @@
         "includes/constants/",
         "includes/migrations/class-wc-stripe-express-checkout-add-change-payment-method-location-update.php",
         "includes/payment-methods/class-wc-stripe-express-checkout-custom-fields.php",
+        "includes/payment-tokens/class-wc-stripe-ach-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-acss-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-amazon-pay-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-bacs-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-becs-debit-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-cash-app-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-cc-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-klarna-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-link-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-sepa-payment-token.php",
         "includes/payment-tokens/interface-wc-stripe-payment-method-comparison.php",
         "includes/payment-tokens/trait-wc-stripe-fingerprint.php"
       ]
