@@ -17,8 +17,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/pp-settings-maps/class-wc-stripe-pp-settings-map.php';
-
 /**
  * Concrete map for Payment Plugins for Stripe v3.X.
  *

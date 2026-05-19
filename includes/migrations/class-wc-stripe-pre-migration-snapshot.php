@@ -20,8 +20,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-wc-stripe-pp-version-detector.php';
-
 /**
  * Pre-migration snapshot capture and retrieval.
  *
