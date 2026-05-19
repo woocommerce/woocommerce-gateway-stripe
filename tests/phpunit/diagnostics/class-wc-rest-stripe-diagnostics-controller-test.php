@@ -45,6 +45,7 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 		if ( class_exists( 'WC_Cache_Helper' ) ) {
 			WC_Cache_Helper::invalidate_cache_group( 'wc_rate_limit' );
 		}
+		delete_transient( WC_REST_Stripe_Diagnostics_Controller::RATE_LIMITED_COUNT_TRANSIENT );
 	}
 
 	/**
@@ -242,6 +243,48 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 		} finally {
 			remove_filter( 'wc_stripe_diagnostics_events_rate_limit', '__return_zero' );
 		}
+	}
+
+	/**
+	 * The admin summary surface needs to tell operators whether the /events
+	 * gate is biting on this store. Every 429 must bump the rolling
+	 * 24-hour counter; the surface returns 0 when nothing has been
+	 * rate-limited recently.
+	 */
+	public function test_summary_includes_rate_limited_count_and_increments_on_429() {
+		$this->assertSame( 0, $this->controller->get_summary()->get_data()['rate_limited_count'] );
+
+		$first = $this->make_request(
+			[
+				'diag_session_id' => 'rl-count-1',
+				'events'          => [
+					[
+						'kind'              => 'consoleMessage',
+						'level'             => 'warn',
+						'message_truncated' => 'hi',
+					],
+				],
+			]
+		);
+		$this->controller->ingest_events( $first );
+
+		// Trip the gate twice in a row from the same IP.
+		$second = $this->make_request(
+			[
+				'diag_session_id' => 'rl-count-2',
+				'events'          => [],
+			]
+		);
+		$this->controller->permissions_check( $second );
+		$third = $this->make_request(
+			[
+				'diag_session_id' => 'rl-count-3',
+				'events'          => [],
+			]
+		);
+		$this->controller->permissions_check( $third );
+
+		$this->assertSame( 2, $this->controller->get_summary()->get_data()['rate_limited_count'] );
 	}
 
 	public function test_ingest_rejects_invalid_session_id() {

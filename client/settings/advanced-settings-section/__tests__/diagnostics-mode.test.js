@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DiagnosticsMode from '../diagnostics-mode';
 import {
@@ -73,5 +73,51 @@ describe( 'DiagnosticsMode', () => {
 		expect( screen.getByTestId( 'diagnostics-traces' ) ).toHaveTextContent(
 			'recording=true'
 		);
+	} );
+
+	describe( 'rate-limit notice', () => {
+		it( 'hides the notice when the summary reports zero rate-limited events', async () => {
+			useDiagnosticsMode.mockReturnValue( [ true, jest.fn() ] );
+			apiFetch.mockResolvedValue( { rate_limited_count: 0 } );
+
+			render( <DiagnosticsMode /> );
+
+			await waitFor( () =>
+				expect( apiFetch ).toHaveBeenCalledWith( {
+					path: expect.stringContaining( '/diagnostics/summary' ),
+				} )
+			);
+			expect(
+				screen.queryByText( /rate-limited in the last 24 hours/i )
+			).not.toBeInTheDocument();
+		} );
+
+		it( 'renders the notice with the count when the summary reports a non-zero value', async () => {
+			useDiagnosticsMode.mockReturnValue( [ true, jest.fn() ] );
+			apiFetch.mockResolvedValue( { rate_limited_count: 7 } );
+
+			render( <DiagnosticsMode /> );
+
+			await screen.findByText(
+				/7 diagnostics event requests were rate-limited in the last 24 hours/i
+			);
+			// Surfacing the filter name lets the merchant act on the notice
+			// without leaving the page to look it up.
+			expect(
+				screen.getByText( /wc_stripe_diagnostics_events_rate_limit/i )
+			).toBeInTheDocument();
+		} );
+
+		it( 'falls back to hiding the notice when the summary fetch fails', async () => {
+			useDiagnosticsMode.mockReturnValue( [ true, jest.fn() ] );
+			apiFetch.mockRejectedValue( new Error( 'boom' ) );
+
+			render( <DiagnosticsMode /> );
+
+			await waitFor( () => expect( apiFetch ).toHaveBeenCalled() );
+			expect(
+				screen.queryByText( /rate-limited in the last 24 hours/i )
+			).not.toBeInTheDocument();
+		} );
 	} );
 } );

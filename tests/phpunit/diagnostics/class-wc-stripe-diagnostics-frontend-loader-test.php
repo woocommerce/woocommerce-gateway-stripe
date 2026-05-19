@@ -95,6 +95,74 @@ class WC_Stripe_Diagnostics_Frontend_Loader_Test extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Helper to invoke the private build_inline_config() method and return
+	 * the decoded config payload so individual assertions stay terse.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function build_decoded_config(): array {
+		$method = new ReflectionMethod(
+			WC_Stripe_Diagnostics_Frontend_Loader::class,
+			'build_inline_config'
+		);
+		$method->setAccessible( true );
+		$inline = $method->invoke( $this->loader );
+		$this->assertNotNull( $inline, 'build_inline_config returned null.' );
+		$json = preg_replace( '/^window\.wcStripeDiag = (.+);$/', '$1', $inline );
+		return json_decode( $json, true );
+	}
+
+	/**
+	 * The frontend recorder coalesces flushes inside the server-side rate
+	 * window via `wcStripeDiag.rateLimitMs`. Confirm the loader passes the
+	 * default (2s, the controller's `DEFAULT_EVENTS_RATE_LIMIT_SEC` × 1000)
+	 * straight through so the JS-side throttle matches the PHP-side gate.
+	 */
+	public function test_inline_config_includes_default_rate_limit_in_ms() {
+		$this->simulate_active_wc_session();
+
+		$config = $this->build_decoded_config();
+
+		$this->assertArrayHasKey( 'rateLimitMs', $config );
+		$this->assertSame(
+			WC_REST_Stripe_Diagnostics_Controller::DEFAULT_EVENTS_RATE_LIMIT_SEC * 1000,
+			$config['rateLimitMs']
+		);
+	}
+
+	/**
+	 * Operator overrides via the same filter the controller honours should
+	 * flow through to the recorder so client- and server-side windows stay
+	 * synchronized.
+	 */
+	public function test_inline_config_rate_limit_honours_server_filter() {
+		$this->simulate_active_wc_session();
+		add_filter( 'wc_stripe_diagnostics_events_rate_limit', fn() => 5 );
+		try {
+			$config = $this->build_decoded_config();
+			$this->assertSame( 5000, $config['rateLimitMs'] );
+		} finally {
+			remove_all_filters( 'wc_stripe_diagnostics_events_rate_limit' );
+		}
+	}
+
+	/**
+	 * A filter that disables the server-side gate (returns 0) should also
+	 * disable the client-side throttle; the recorder treats `0` as "no
+	 * window" and flushes on every call.
+	 */
+	public function test_inline_config_rate_limit_is_zero_when_filter_disables_gate() {
+		$this->simulate_active_wc_session();
+		add_filter( 'wc_stripe_diagnostics_events_rate_limit', '__return_zero' );
+		try {
+			$config = $this->build_decoded_config();
+			$this->assertSame( 0, $config['rateLimitMs'] );
+		} finally {
+			remove_all_filters( 'wc_stripe_diagnostics_events_rate_limit' );
+		}
+	}
+
 	public function test_session_id_regenerates_when_stored_value_is_invalid() {
 		$this->simulate_active_wc_session();
 		WC()->session->set(

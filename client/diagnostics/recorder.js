@@ -24,6 +24,15 @@ export class Recorder {
 		this.idleTimer = null;
 		this.pagehideHandler = null;
 		this.originalConsole = null;
+		// Tracks the timestamp of the most recent flush so we can coalesce a
+		// burst of record() calls into a single flush per server-side rate
+		// window. `sendBeacon` is fire-and-forget — we can't observe a 429 —
+		// so the recorder leans on this preemptive throttle instead of a
+		// post-hoc retry, and accepts that multi-tab / shared-NAT clients can
+		// still 429 (and silently drop) on the server side. `null` means no
+		// flush has happened yet — the first one always goes through.
+		this._lastFlushAtMs = null;
+		this._throttleTimer = null;
 	}
 
 	boot() {
@@ -109,7 +118,10 @@ export class Recorder {
 				bufferedEvents: [ ...this.buffer ],
 			} );
 		}
-		this.flush();
+		// Force the flush past the rate-limit throttle — pagehide is our last
+		// chance to drain before the tab is gone, and dropping the events here
+		// for the sake of a 429 we couldn't observe anyway is the wrong trade.
+		this.flush( { force: true } );
 		// Only clear the persisted copy if flush() actually drained the
 		// buffer. If sendBeacon refused (returned false), flush() preserves
 		// `this.buffer`, but on pagehide that in-memory buffer is useless —
@@ -268,10 +280,28 @@ export class Recorder {
 		this._resetIdleTimer();
 	}
 
-	flush() {
+	flush( { force = false } = {} ) {
 		if ( ! this.config?.active || this.buffer.length === 0 ) {
 			return;
 		}
+
+		if ( ! force ) {
+			const wait = this._throttleRemainingMs();
+			if ( wait > 0 ) {
+				// Match the server-side rate-limit window. Coalesces a burst
+				// of record() calls into a single flush per window so a noisy
+				// page doesn't burn 429s. One in-flight deferred timer covers
+				// any number of queued events.
+				if ( this._throttleTimer === null ) {
+					this._throttleTimer = this.setTimer( () => {
+						this._throttleTimer = null;
+						this.flush();
+					}, wait );
+				}
+				return;
+			}
+		}
+
 		const payload = buildIngestBlob( {
 			diag_session_id: this.config.sessionId,
 			events: this.buffer,
@@ -285,12 +315,14 @@ export class Recorder {
 		// of silently dropping events.
 		if ( queued ) {
 			this.buffer = [];
+			this._lastFlushAtMs = this.now();
 		}
 		this._clearIdleTimer();
 	}
 
 	destroy() {
 		this._clearIdleTimer();
+		this._clearThrottleTimer();
 		if ( this.pagehideHandler ) {
 			window.removeEventListener( 'pagehide', this.pagehideHandler );
 			this.pagehideHandler = null;
@@ -309,6 +341,29 @@ export class Recorder {
 			this.clearTimer( this.idleTimer );
 			this.idleTimer = null;
 		}
+	}
+
+	_clearThrottleTimer() {
+		if ( this._throttleTimer !== null ) {
+			this.clearTimer( this._throttleTimer );
+			this._throttleTimer = null;
+		}
+	}
+
+	/**
+	 * Milliseconds the next flush must wait so we don't outrun the server
+	 * rate window. Returns 0 when there's nothing to wait for (no prior
+	 * flush, or no configured window).
+	 *
+	 * @return {number} Remaining throttle time in ms.
+	 */
+	_throttleRemainingMs() {
+		const limit = Number( this.config?.rateLimitMs ) || 0;
+		if ( limit <= 0 || this._lastFlushAtMs === null ) {
+			return 0;
+		}
+		const elapsed = this.now() - this._lastFlushAtMs;
+		return elapsed >= limit ? 0 : limit - elapsed;
 	}
 }
 

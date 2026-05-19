@@ -286,6 +286,205 @@ describe( 'Recorder', () => {
 			);
 		} );
 
+		describe( 'client-side rate-limit throttle', () => {
+			// Wire a manual scheduler so the throttle's deferred flush is
+			// observable without a real timer: capture the (fn, ms) pair on
+			// setTimer and fire it manually after asserting on it.
+			function makeManualScheduler() {
+				const scheduled = [];
+				return {
+					setTimer: ( fn, ms ) => {
+						scheduled.push( { fn, ms } );
+						return scheduled.length;
+					},
+					clearTimer: () => {},
+					scheduled,
+				};
+			}
+
+			it( 'flushes immediately on the first record() when rateLimitMs is set', () => {
+				window.wcStripeDiag.rateLimitMs = 2000;
+				const mockTime = 0;
+
+				const recorder = makeRecorder( { now: () => mockTime } );
+				recorder.boot();
+				recorder.record( 'element.ready', { element_type: 'card' } );
+				recorder.flush();
+
+				expect( sendBeaconSpy ).toHaveBeenCalledTimes( 1 );
+			} );
+
+			it( 'defers a second flush within the rate window to a deferred-flush timer instead of firing sendBeacon', () => {
+				window.wcStripeDiag.rateLimitMs = 2000;
+				let mockTime = 0;
+				const scheduler = makeManualScheduler();
+
+				const recorder = makeRecorder( {
+					now: () => mockTime,
+					setTimer: scheduler.setTimer,
+					clearTimer: scheduler.clearTimer,
+				} );
+				recorder.boot();
+
+				// First flush goes through.
+				recorder.record( 'element.ready', { element_type: 'card' } );
+				recorder.flush();
+				expect( sendBeaconSpy ).toHaveBeenCalledTimes( 1 );
+
+				// 500ms later (well inside the 2s window), record + flush again.
+				mockTime = 500;
+				recorder.record( 'element.change', { element_type: 'card' } );
+				recorder.flush();
+
+				// sendBeacon must NOT have been called a second time — the
+				// recorder should have scheduled a deferred flush for the
+				// remainder of the window (1500ms).
+				expect( sendBeaconSpy ).toHaveBeenCalledTimes( 1 );
+
+				const deferred = scheduler.scheduled.find(
+					( s ) => s.ms === 1500
+				);
+				expect( deferred ).toBeDefined();
+			} );
+
+			it( 'coalesces a burst of record() calls during the wait into a single deferred flush', () => {
+				window.wcStripeDiag.rateLimitMs = 2000;
+				let mockTime = 0;
+				const scheduler = makeManualScheduler();
+
+				const recorder = makeRecorder( {
+					now: () => mockTime,
+					setTimer: scheduler.setTimer,
+					clearTimer: scheduler.clearTimer,
+				} );
+				recorder.boot();
+
+				recorder.record( 'element.ready', { element_type: 'card' } );
+				recorder.flush();
+
+				mockTime = 100;
+				recorder.record( 'a', {} );
+				recorder.flush();
+				recorder.record( 'b', {} );
+				recorder.flush();
+				recorder.record( 'c', {} );
+				recorder.flush();
+
+				// Only one throttle timer should be in flight regardless of
+				// how many flushes were attempted during the wait.
+				const throttleTimers = scheduler.scheduled.filter(
+					( s ) => s.ms === 1900
+				);
+				expect( throttleTimers ).toHaveLength( 1 );
+			} );
+
+			it( 'fires the deferred flush when its timer elapses, sending all buffered events in one batch', async () => {
+				window.wcStripeDiag.rateLimitMs = 2000;
+				let mockTime = 0;
+				const scheduler = makeManualScheduler();
+
+				const recorder = makeRecorder( {
+					now: () => mockTime,
+					setTimer: scheduler.setTimer,
+					clearTimer: scheduler.clearTimer,
+				} );
+				recorder.boot();
+
+				recorder.record( 'element.ready', { element_type: 'card' } );
+				recorder.flush();
+
+				// During the wait, buffer two more events.
+				mockTime = 500;
+				recorder.record( 'a', {} );
+				recorder.record( 'b', {} );
+				recorder.flush();
+
+				expect( sendBeaconSpy ).toHaveBeenCalledTimes( 1 );
+
+				// Advance past the window and fire the deferred callback.
+				mockTime = 2000;
+				const deferred = scheduler.scheduled.find(
+					( s ) => s.ms === 1500
+				);
+				deferred.fn();
+
+				expect( sendBeaconSpy ).toHaveBeenCalledTimes( 2 );
+				const secondBody = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 1 ]
+				);
+				expect( secondBody.events.map( ( e ) => e.kind ) ).toEqual( [
+					'a',
+					'b',
+				] );
+			} );
+
+			it( 'does not throttle when rateLimitMs is unset (default config)', () => {
+				delete window.wcStripeDiag.rateLimitMs;
+				let mockTime = 0;
+
+				const recorder = makeRecorder( { now: () => mockTime } );
+				recorder.boot();
+				recorder.record( 'a', {} );
+				recorder.flush();
+				mockTime = 1;
+				recorder.record( 'b', {} );
+				recorder.flush();
+
+				expect( sendBeaconSpy ).toHaveBeenCalledTimes( 2 );
+			} );
+
+			it( 'pagehide flush forces past the throttle so the buffer drains before the tab is torn down', () => {
+				window.wcStripeDiag.rateLimitMs = 2000;
+				let mockTime = 0;
+				const scheduler = makeManualScheduler();
+
+				const recorder = makeRecorder( {
+					now: () => mockTime,
+					setTimer: scheduler.setTimer,
+					clearTimer: scheduler.clearTimer,
+				} );
+				recorder.boot();
+				recorder.record( 'element.ready', { element_type: 'card' } );
+				recorder.flush();
+
+				// Pagehide fires inside the throttle window.
+				mockTime = 500;
+				recorder.record( 'last-gasp', {} );
+				window.dispatchEvent( new Event( 'pagehide' ) );
+
+				// Pagehide must drain immediately, not schedule a deferred
+				// flush that the closing tab will never service.
+				expect( sendBeaconSpy ).toHaveBeenCalledTimes( 2 );
+			} );
+
+			it( 'destroy() clears any pending throttle timer so the recorder leaves no scheduled work behind', () => {
+				window.wcStripeDiag.rateLimitMs = 2000;
+				const cleared = [];
+				let mockTime = 0;
+				const scheduler = makeManualScheduler();
+
+				const recorder = makeRecorder( {
+					now: () => mockTime,
+					setTimer: scheduler.setTimer,
+					clearTimer: ( id ) => cleared.push( id ),
+				} );
+				recorder.boot();
+				recorder.record( 'a', {} );
+				recorder.flush();
+
+				mockTime = 100;
+				recorder.record( 'b', {} );
+				recorder.flush();
+				// Confirms a throttle timer was actually scheduled.
+				expect( scheduler.scheduled.length ).toBeGreaterThan( 1 );
+
+				recorder.destroy();
+
+				// The throttle timer's id is one of the cleared ids.
+				expect( cleared.length ).toBeGreaterThan( 0 );
+			} );
+		} );
+
 		describe( 'attach() integration with Stripe Element instances', () => {
 			function makeFakeElement() {
 				const handlers = {};

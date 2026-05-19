@@ -31,6 +31,13 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	const EVENTS_RATE_LIMIT_KEY_PREFIX  = 'stripe_diag_events_';
 	const DEFAULT_EVENTS_RATE_LIMIT_SEC = 2;
 
+	// Per-store 429 counter surfaced in the admin summary so operators can see
+	// whether the limit is biting on this store without needing fleet Tracks
+	// data. Transient (24h TTL) — decays naturally so a single old spike doesn't
+	// linger forever.
+	const RATE_LIMITED_COUNT_TRANSIENT = 'wc_stripe_diag_rate_limited_count_24h';
+	const RATE_LIMITED_COUNT_TTL       = DAY_IN_SECONDS;
+
 	protected $namespace = 'wc/v3';
 	protected $rest_base = 'wc_stripe/diagnostics';
 
@@ -164,11 +171,23 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 		$counts = $this->store->count_by_status();
 		return new WP_REST_Response(
 			[
-				'counts' => $counts,
-				'total'  => array_sum( $counts ),
+				'counts'             => $counts,
+				'total'              => array_sum( $counts ),
+				'rate_limited_count' => self::get_rate_limited_count(),
 			],
 			200
 		);
+	}
+
+	/**
+	 * Read the rolling 24-hour 429 count. Returns 0 when no requests have been
+	 * rate-limited recently, which is the common case. Surfaced via
+	 * {@see self::get_summary()} and used by the admin UI to indicate whether
+	 * the /events rate limit has been tripping for this store.
+	 */
+	public static function get_rate_limited_count(): int {
+		$value = get_transient( self::RATE_LIMITED_COUNT_TRANSIENT );
+		return is_numeric( $value ) ? (int) $value : 0;
 	}
 
 	/**
@@ -254,6 +273,8 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	 * abuse, not to identify the actor.
 	 */
 	private static function record_rate_limited_event(): void {
+		self::increment_rate_limited_count();
+
 		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
 			return;
 		}
@@ -263,6 +284,23 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 				'test_mode' => class_exists( 'WC_Stripe_Mode' ) && WC_Stripe_Mode::is_test() ? 1 : 0,
 			]
 		);
+	}
+
+	/**
+	 * Bump the 24h 429 counter that {@see self::get_summary()} surfaces.
+	 *
+	 * Transient rather than option so the count fades out 24h after the
+	 * last hit — operators see "recent abuse" rather than a lifetime
+	 * total that gives no signal about the current state of the store.
+	 *
+	 * The read-modify-write race window is acceptable: a missed increment
+	 * under contention only undercounts the surface; the gate itself is
+	 * still firing and the Tracks event still emits.
+	 */
+	private static function increment_rate_limited_count(): void {
+		$current = get_transient( self::RATE_LIMITED_COUNT_TRANSIENT );
+		$next    = ( is_numeric( $current ) ? (int) $current : 0 ) + 1;
+		set_transient( self::RATE_LIMITED_COUNT_TRANSIENT, $next, self::RATE_LIMITED_COUNT_TTL );
 	}
 
 	/**
@@ -317,10 +355,23 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 			return;
 		}
 		/**
-		 * EXPLORATION (RSM-1638): filter the per-IP rate-limit window in
-		 * seconds for the diagnostics /events endpoint. Default is 1s — a
-		 * single batch (up to 200 events) per second per IP.
+		 * Filter the per-IP rate-limit window, in seconds, for the
+		 * shopper-facing diagnostics `/events` endpoint.
 		 *
+		 * Defaults to 2s. A single accepted POST opens a window of this
+		 * length for the requester's IP; subsequent posts inside the
+		 * window return HTTP 429 and increment the admin-visible
+		 * `rate_limited_count` returned by `/diagnostics/summary`. The
+		 * frontend recorder reads the same value (in ms) via
+		 * `wcStripeDiag.rateLimitMs` and coalesces its own flushes so a
+		 * single shopper does not burn 429s on the server.
+		 *
+		 * Set to 0 (or any non-positive value) to disable the gate
+		 * entirely. Raise it for high-NAT environments where legitimate
+		 * shoppers share an egress IP and trip the limit on wallet
+		 * bursts.
+		 *
+		 * @since 10.8.0
 		 * @param int $delay Window in seconds.
 		 */
 		$delay = (int) apply_filters( 'wc_stripe_diagnostics_events_rate_limit', self::DEFAULT_EVENTS_RATE_LIMIT_SEC );

@@ -85,11 +85,24 @@ class WC_Stripe_Diagnostics_Frontend_Loader {
 			return $this->cached;
 		}
 
+		// Mirror the server-side `/events` rate limit so the recorder can throttle
+		// itself client-side and avoid burning 429s for traffic it could have
+		// coalesced. The recorder reads this as milliseconds; the filter is in
+		// seconds to match the server-side configuration. A non-positive value
+		// disables client-side throttling, matching the server-side filter
+		// semantics (zero seconds = no gate).
+		$rate_limit_seconds = (int) apply_filters(
+			'wc_stripe_diagnostics_events_rate_limit',
+			WC_REST_Stripe_Diagnostics_Controller::DEFAULT_EVENTS_RATE_LIMIT_SEC
+		);
+		$rate_limit_ms      = max( 0, $rate_limit_seconds ) * 1000;
+
 		$config = [
-			'active'    => true,
-			'sessionId' => $this->get_or_create_session_id(),
-			'endpoint'  => rest_url( 'wc/v3/wc_stripe/diagnostics/events' ),
-			'nonce'     => wp_create_nonce( 'wp_rest' ),
+			'active'      => true,
+			'sessionId'   => $this->get_or_create_session_id(),
+			'endpoint'    => rest_url( 'wc/v3/wc_stripe/diagnostics/events' ),
+			'nonce'       => wp_create_nonce( 'wp_rest' ),
+			'rateLimitMs' => $rate_limit_ms,
 		];
 
 		$encoded = wp_json_encode( $config );
