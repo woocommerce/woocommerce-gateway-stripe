@@ -242,4 +242,56 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 			'test secret: sk_live is invalid'      => [ 'validate_test_secret_key', 'test_secret_key', 'sk_live_123123', $test_sk_error ],
 		];
 	}
+
+	/**
+	 * Regression test for STRIPE-816: test_account_keys() must not use wp_safe_remote_*,
+	 * which would trigger wp_http_validate_url() and fail when the host's DNS is flaky.
+	 */
+	public function test_test_account_keys_does_not_use_safe_remote_http() {
+		$captured_args_by_url = [];
+
+		$capture_filter = function ( $return_value, $parsed_args, $url ) use ( &$captured_args_by_url ) {
+			$captured_args_by_url[ $url ] = $parsed_args;
+
+			$body = 'https://api.stripe.com/v1/tokens' === $url
+				? [ 'id' => 'tok_visa_test' ]
+				: [
+					'id'   => 'tok_visa_test',
+					'type' => 'pii',
+				];
+
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => json_encode( $body ),
+			];
+		};
+		add_filter( 'pre_http_request', $capture_filter, 10, 3 );
+
+		$request = new WP_REST_Request( 'POST', self::ROUTE . '/test' );
+		$request->set_param( 'live_mode', true );
+		$request->set_param( 'publishable', 'pk_live_test_123' );
+		$request->set_param( 'secret', 'sk_live_test_123' );
+
+		try {
+			$this->controller->test_account_keys( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $capture_filter, 10 );
+		}
+
+		$this->assertArrayHasKey( 'https://api.stripe.com/v1/tokens', $captured_args_by_url );
+		$this->assertNotTrue(
+			$captured_args_by_url['https://api.stripe.com/v1/tokens']['reject_unsafe_urls'] ?? false,
+			'POST to https://api.stripe.com/v1/tokens must not set reject_unsafe_urls'
+		);
+
+		$get_url = 'https://api.stripe.com/v1/tokens/tok_visa_test';
+		$this->assertArrayHasKey( $get_url, $captured_args_by_url );
+		$this->assertNotTrue(
+			$captured_args_by_url[ $get_url ]['reject_unsafe_urls'] ?? false,
+			'GET to https://api.stripe.com/v1/tokens/{id} must not set reject_unsafe_urls'
+		);
+	}
 }

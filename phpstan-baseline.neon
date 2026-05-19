@@ -1189,12 +1189,6 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Agentic_Commerce_Controller\:\:update_agentic_settings\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
-			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:test_account_keys\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
@@ -1229,6 +1223,12 @@ parameters:
 			identifier: missingType.generics
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
+
+		-
+			message: '#^Method WC_REST_Stripe_Agentic_Commerce_Controller\:\:update_agentic_settings\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			identifier: missingType.generics
+			count: 1
+			path: includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php
 
 		-
 			message: '#^Method WC_REST_Stripe_Connection_Tokens_Controller\:\:create_token\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
@@ -3395,72 +3395,6 @@ parameters:
 			identifier: deadCode.unreachable
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_State\:\:clear_state\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-webhook-state.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_State\:\:set_last_error_reason\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-webhook-state.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_State\:\:set_last_error_reason\(\) has parameter \$reason with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-webhook-state.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_State\:\:set_last_webhook_failure_at\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-webhook-state.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_State\:\:set_last_webhook_failure_at\(\) has parameter \$timestamp with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-webhook-state.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_State\:\:set_last_webhook_success_at\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-webhook-state.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_State\:\:set_last_webhook_success_at\(\) has parameter \$timestamp with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-webhook-state.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_State\:\:set_pending_webhooks_count\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-webhook-state.php
-
-		-
-			message: '#^PHPDoc tag @param has invalid value \(integer UTC seconds since 1970\.\)\: Unexpected token "UTC", expected variable at offset 111 on line 5$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/class-wc-stripe-webhook-state.php
-
-		-
-			message: '#^PHPDoc tag @param has invalid value \(integer UTC seconds since 1970\.\)\: Unexpected token "UTC", expected variable at offset 95 on line 5$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/class-wc-stripe-webhook-state.php
-
-		-
-			message: '#^PHPDoc tag @param has invalid value \(string Reason code\.\)\: Unexpected token "Reason", expected variable at offset 92 on line 5$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/class-wc-stripe-webhook-state.php
 
 		-
 			message: '#^Call to an undefined method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:init\(\)\.$#'
