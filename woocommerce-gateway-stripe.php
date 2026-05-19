@@ -76,16 +76,34 @@ function woocommerce_stripe_wc_not_supported() {
 	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), esc_html( WC_STRIPE_MIN_WC_VER ), esc_html( WC_VERSION ) ) . '</strong></p></div>';
 }
 
+/**
+ * Initialize the autoloader for the plugin.
+ *
+ * @since 10.8.0
+ * @return bool Return whether the autoloader is available.
+ */
+function woocommerce_stripe_init_autoloader(): bool {
+	static $autoloader_initialized = null;
+	if ( true === $autoloader_initialized ) {
+		return true;
+	}
+
+	$autoloader_initialized = false;
+
+	if ( file_exists( WC_STRIPE_PLUGIN_PATH . '/vendor/autoload.php' ) ) {
+		$autoloader_initialized = true;
+		require_once WC_STRIPE_PLUGIN_PATH . '/vendor/autoload.php';
+	}
+
+	return $autoloader_initialized;
+}
+
 function woocommerce_gateway_stripe() {
 
 	static $plugin;
 
 	if ( ! isset( $plugin ) ) {
-		// Attempts to include the default composer autoloader.
-		$autoload_filepath = WC_STRIPE_PLUGIN_PATH . '/vendor/autoload.php';
-		if ( file_exists( $autoload_filepath ) ) {
-			require $autoload_filepath;
-		}
+		woocommerce_stripe_init_autoloader();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe.php';
 
@@ -138,8 +156,13 @@ function wc_stripe_set_settings_redirection_transient(): void {
 }
 
 function wcstripe_deactivated(): void {
+	// If we don't have the autoloader available, return early before we call any dependent code.
+	// This should only occur in development environments.
+	if ( ! woocommerce_stripe_init_autoloader() ) {
+		return;
+	}
+
 	// admin notes are not supported on older versions of WooCommerce.
-	require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
 	if ( class_exists( 'WC_Stripe_Inbox_Notes' ) && WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
 		// requirements for the note
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
