@@ -593,8 +593,7 @@ class WC_Stripe_Express_Checkout_Element {
 			return false;
 		}
 
-		$full_title = $payment_method_title . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
-		$order->set_payment_method_title( $full_title );
+		$order->set_payment_method_title( $payment_method_title );
 
 		// WC Subscriptions writes a "from X to Credit Card" note before our title
 		// override runs (its label comes from the gateway, not the wallet). Add a
@@ -603,10 +602,9 @@ class WC_Stripe_Express_Checkout_Element {
 			sprintf(
 				/* translators: %s: Express checkout payment method title, e.g. "Apple Pay (Stripe)". */
 				__( 'Payment method updated to %s.', 'woocommerce-gateway-stripe' ),
-				$full_title
+				$payment_method_title
 			)
 		);
-
 		$order->save();
 		return true;
 	}
@@ -668,7 +666,7 @@ class WC_Stripe_Express_Checkout_Element {
 		if ( ! empty( $_POST['express_checkout_type'] ) && ! is_array( $_POST['express_checkout_type'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$express_checkout_type = sanitize_text_field( wp_unslash( $_POST['express_checkout_type'] ) );
-		} elseif ( $subscription instanceof WC_Order ) {
+		} elseif ( $subscription instanceof WC_Subscription ) {
 			// 3DS-redirect path: WCS may re-run update_payment_method after intent confirmation,
 			// when $_POST has been lost. The express type was persisted to subscription meta
 			// before the redirect and is read here as a fallback.
