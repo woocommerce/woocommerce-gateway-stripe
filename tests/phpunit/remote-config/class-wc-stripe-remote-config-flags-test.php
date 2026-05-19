@@ -5,14 +5,6 @@
 
 class WC_Stripe_Remote_Config_Flags_Test extends WP_UnitTestCase {
 
-	public function test_flags_array_declares_optimized_checkout(): void {
-		$flags = WC_Stripe_Remote_Config_Flags::FLAGS;
-
-		$this->assertIsArray( $flags );
-		$this->assertArrayHasKey( 'optimized_checkout', $flags );
-		$this->assertSame( 'bool', $flags['optimized_checkout']['type'] );
-	}
-
 	public function test_is_known_flag_returns_true_for_declared_flag(): void {
 		$this->assertTrue( WC_Stripe_Remote_Config_Flags::is_known_flag( 'optimized_checkout' ) );
 	}

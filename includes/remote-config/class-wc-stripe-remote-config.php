@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Remote_Config {
 
-	const SCHEMA_VERSION = 1;
+	private const SCHEMA_VERSION = 1;
 
 	/**
 	 * In-process per-request cache of decoded options, keyed by mode.
