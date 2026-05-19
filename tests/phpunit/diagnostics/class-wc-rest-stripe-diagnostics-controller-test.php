@@ -211,7 +211,7 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 
 	/**
 	 * A filter that returns 0 must disable the rate limit. Lets operators
-	 * opt out without a code change if 1s/IP proves too tight.
+	 * opt out without a code change if the 2s/IP default proves too tight.
 	 *
 	 * EXPLORATION (RSM-1638).
 	 */

@@ -25,9 +25,11 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	// EXPLORATION (RSM-1638): per-IP rate-limit window for the unauthenticated
 	// /events endpoint. A single token over N seconds — enough to bound disk
 	// I/O and FIFO-eviction cost against a basic flooder. Filterable so we
-	// can tune without a release if 1s proves too tight in production.
+	// can tune without a release. Default is 2s rather than 1s so wallet flows
+	// (Apple Pay / Google Pay can emit a quick burst) and shoppers behind a
+	// shared NAT egress don't 429 each other on legitimate double-taps.
 	const EVENTS_RATE_LIMIT_KEY_PREFIX  = 'stripe_diag_events_';
-	const DEFAULT_EVENTS_RATE_LIMIT_SEC = 1;
+	const DEFAULT_EVENTS_RATE_LIMIT_SEC = 2;
 
 	protected $namespace = 'wc/v3';
 	protected $rest_base = 'wc_stripe/diagnostics';
@@ -235,9 +237,32 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 			return new WP_Error( 'wc_stripe_diagnostics_disabled', 'Diagnostics mode is not enabled.', [ 'status' => 403 ] );
 		}
 		if ( self::is_rate_limited() ) {
+			self::record_rate_limited_event();
 			return new WP_Error( 'wc_stripe_diagnostics_rate_limited', 'Too many requests.', [ 'status' => 429 ] );
 		}
 		return true;
+	}
+
+	/**
+	 * EXPLORATION (RSM-1638): emit a Tracks event when the /events rate limit
+	 * trips. Parallels the `wcstripe_diagnostics_auto_off` event so operators
+	 * have visibility into whether the limit is biting in the wild — useful
+	 * for tuning the default window via the
+	 * `wc_stripe_diagnostics_events_rate_limit` filter.
+	 *
+	 * Deliberately omits any IP-derived field; the gate is meant to bound
+	 * abuse, not to identify the actor.
+	 */
+	private static function record_rate_limited_event(): void {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+			return;
+		}
+		wc_admin_record_tracks_event(
+			'wcstripe_diagnostics_rate_limited',
+			[
+				'test_mode' => class_exists( 'WC_Stripe_Mode' ) && WC_Stripe_Mode::is_test() ? 1 : 0,
+			]
+		);
 	}
 
 	/**
