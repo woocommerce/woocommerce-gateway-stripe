@@ -286,6 +286,24 @@ trait WC_Stripe_Subscriptions_Trait {
 			];
 		}
 
+		$express_checkout_type = isset( $_POST['express_checkout_type'] ) && is_string( $_POST['express_checkout_type'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			? wc_clean( wp_unslash( $_POST['express_checkout_type'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			: '';
+		$express_checkout_type = in_array( $express_checkout_type, WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS, true ) ? $express_checkout_type : '';
+
+		$is_express_checkout_submission = '' !== $express_checkout_type;
+
+		// ECE confirms before the shopper sees the "update all subscriptions"
+		// checkbox, so its default-checked state can't be treated as consent.
+		if ( $is_express_checkout_submission ) {
+			unset( $_POST['update_all_subscriptions_payment_method'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+			// The change-payment form carries the saved-cards selector value, so
+			// is_using_saved_payment_method() would otherwise route to the old
+			// saved token and discard the ECE-supplied payment method.
+			$_POST['wc-stripe-payment-token'] = 'new'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		}
+
 		try {
 			$payment_information = $this->prepare_payment_information_from_request( $subscription );
 
@@ -311,6 +329,12 @@ trait WC_Stripe_Subscriptions_Trait {
 					$payment_information['payment_method_details'],
 					$selected_payment_type
 				);
+
+				// Link the new token to the subscription so My Account renders it.
+				// Scoped to ECE here; tracked for the broader paths in #5382.
+				if ( $is_express_checkout_submission ) {
+					WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $payment_method_id );
+				}
 			}
 
 			$redirect           = $this->get_return_url( $subscription );
@@ -323,6 +347,18 @@ trait WC_Stripe_Subscriptions_Trait {
 					$subscription->update_meta_data( '_delayed_update_payment_method_all', $new_payment_method );
 					$subscription->save();
 				}
+
+				// Persist the express type and the new payment method ID for the
+				// post-confirmation hooks (title override + token replacement),
+				// or clear any stale markers when this submission isn't express.
+				if ( $is_express_checkout_submission ) {
+					$subscription->update_meta_data( '_wc_stripe_express_checkout_type', $express_checkout_type );
+					$subscription->update_meta_data( '_wc_stripe_express_checkout_payment_method_id', $payment_method_id );
+				} else {
+					$subscription->delete_meta_data( '_wc_stripe_express_checkout_type' );
+					$subscription->delete_meta_data( '_wc_stripe_express_checkout_payment_method_id' );
+				}
+				$subscription->save();
 
 				wp_safe_redirect( $this->get_redirect_url( $redirect, $payment_intent, $payment_information, $subscription, false ) );
 				exit;
