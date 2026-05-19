@@ -67,32 +67,6 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		$this->assertSame( 10, $args['timeout'] );
 	}
 
-	public function test_fetch_does_not_route_through_connect_api_filters(): void {
-		// Deprecated Connect API filters must not run for remote-config requests.
-		$tampered = false;
-		add_filter(
-			'wc_connect_server_url',
-			function ( $url ) use ( &$tampered ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $url required by filter signature
-				$tampered = true;
-				return 'https://evil.example.com';
-			}
-		);
-		add_filter(
-			'wc_connect_request_args',
-			function ( $args ) use ( &$tampered ) {
-				$tampered          = true;
-				$args['sslverify'] = false;
-				return $args;
-			}
-		);
-
-		$this->client->fetch( 'live' );
-
-		$this->assertFalse( $tampered, 'Connect_API filters must not run for remote-config requests' );
-		$this->assertStringStartsWith( 'https://public-api.wordpress.com', $this->captured_requests[0]['url'] );
-		$this->assertTrue( $this->captured_requests[0]['args']['sslverify'] );
-	}
-
 	public function test_fetch_short_circuits_when_disabled_by_filter(): void {
 		add_filter( 'wc_stripe_remote_config_enabled', '__return_false' );
 

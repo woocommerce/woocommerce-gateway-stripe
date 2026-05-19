@@ -5,13 +5,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Outbound HTTP client for the Stripe remote-config endpoint.
- *
- * Built directly on `wp_remote_get` to avoid entering any plugin-specific
- * request-mutation filter chain. In particular, this client does NOT reuse
- * `WC_Stripe_Connect_API`, whose `wc_connect_server_url`,
- * `wc_connect_request_args`, and `wc_connect_api_client_body` filters could
- * otherwise be hooked by third parties to re-target the URL or disable TLS
- * verification.
  */
 class WC_Stripe_Remote_Config_Client {
 
