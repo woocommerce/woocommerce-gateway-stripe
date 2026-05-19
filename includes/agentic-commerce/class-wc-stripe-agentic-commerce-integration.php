@@ -333,9 +333,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Generates product feed using ProductWalker.
 	 *
 	 * @since 10.5.0
+	 * @param bool $force_upload When true, bypass the content-hash dedup check and always
+	 *                           push the regenerated catalog to Stripe. Used by manual sync
+	 *                           from the UI, where the merchant expects every click to land
+	 *                           an upload regardless of whether the file changed.
 	 * @return bool True on successful delivery, false on early returns or failure.
 	 */
-	public function sync_feed(): bool {
+	public function sync_feed( bool $force_upload = false ): bool {
 		// Drop any validator cached from a previous sync so this run starts
 		// with a clean per-product error accumulator.
 		$this->feed_validator = null;
@@ -443,9 +447,11 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 			// Skip upload when the regenerated catalog is byte-identical to the last
 			// successfully uploaded one. Hashing still streams the file so memory
-			// stays bounded per the feed's streaming contract.
+			// stays bounded per the feed's streaming contract. Manual sync from the
+			// UI passes $force_upload=true so a merchant click always lands an
+			// upload regardless of whether the content changed.
 			$feed_hash = $this->get_feed_hash( (string) $file_path );
-			if ( $this->is_feed_unchanged( $feed_hash ) ) {
+			if ( ! $force_upload && $this->is_feed_unchanged( $feed_hash ) ) {
 				WC_Stripe_Logger::info(
 					'Agentic Commerce: Upload skipped - feed content unchanged since last successful upload',
 					[ 'content_hash' => $feed_hash ]
@@ -453,7 +459,10 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
 					wp_delete_file( $file_path );
 				}
-				return false;
+				// The feed on Stripe is already in sync, so report success rather
+				// than failure — the controller would otherwise treat a no-op as
+				// an error and surface it as a 500 to the manual-sync UI.
+				return true;
 			}
 
 			// Deliver feed to Stripe via Files API.
@@ -471,7 +480,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				]
 			);
 
-			if ( ! empty( $feed_hash ) ) {
+			// Only record the dedup hash for runs Stripe actually accepted —
+			// `deliver()` throws on hard upload failure, but a returned import set
+			// with a `failed` status (or a missing ImportSet ID) still means we
+			// can't claim "this catalog is on Stripe". Storing the hash in those
+			// cases would suppress the next upload that could have recovered.
+			if ( ! empty( $feed_hash ) && '' !== $import_set_id && 'failed' !== $status ) {
 				$this->remember_feed_upload( $feed_hash, $result );
 			}
 
@@ -682,7 +696,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		$non_terminal_statuses = [ 'queued', 'validating_records', 'pending', 'creating_records', 'unknown' ];
+		$non_terminal_statuses = [ 'queued', 'validating', 'validating_records', 'pending', 'creating_records', 'unknown' ];
 
 		$history = self::get_sync_history();
 		$changed = false;
@@ -765,7 +779,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		 * @since 10.8.0
 		 * @param bool $enabled Default true.
 		 */
-		if ( ! apply_filters( 'wc_stripe_agentic_commerce_feed_dedupe_enabled', true ) ) {
+		if ( true !== apply_filters( 'wc_stripe_agentic_commerce_feed_dedupe_enabled', true ) ) {
 			return false;
 		}
 
@@ -783,9 +797,15 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		 * @since 10.8.0
 		 * @param int $ttl_seconds Default self::FEED_CACHE_TTL.
 		 */
-		$max_age     = (int) apply_filters( 'wc_stripe_agentic_commerce_feed_cache_ttl', self::FEED_CACHE_TTL );
-		$uploaded_at = isset( $last['uploaded_at'] ) ? (int) $last['uploaded_at'] : 0;
-		if ( $max_age > 0 && $uploaded_at > 0 && ( time() - $uploaded_at ) > $max_age ) {
+		if ( ! isset( $last['uploaded_at'] ) || ! is_numeric( $last['uploaded_at'] ) ) {
+			return false;
+		}
+		$uploaded_at = (int) $last['uploaded_at'];
+		if ( $uploaded_at <= 0 ) {
+			return false;
+		}
+		$max_age = (int) apply_filters( 'wc_stripe_agentic_commerce_feed_cache_ttl', self::FEED_CACHE_TTL );
+		if ( $max_age > 0 && ( time() - $uploaded_at ) > $max_age ) {
 			return false;
 		}
 
