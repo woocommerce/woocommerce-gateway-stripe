@@ -77,8 +77,9 @@ class WC_Stripe_Remote_Config_Scheduler {
 				WC_Stripe_Logger::debug(
 					'Stripe remote-config: fetch failed; keeping previous cache.',
 					[
-						'mode'  => $mode,
-						'error' => $response->get_error_code(),
+						'mode'           => $mode,
+						'error'          => $response->get_error_code(),
+						'previous_cache' => $this->remote_config->get_cache_snapshot( $mode ),
 					]
 				);
 				continue;

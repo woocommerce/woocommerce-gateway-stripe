@@ -100,6 +100,25 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 		$this->assertSame( false, $stored['flags']['optimized_checkout']['value'] );
 	}
 
+	public function test_get_cache_snapshot_returns_null_when_no_cache(): void {
+		$rc = new WC_Stripe_Remote_Config();
+		$this->assertNull( $rc->get_cache_snapshot( 'live' ) );
+	}
+
+	public function test_get_cache_snapshot_returns_flags_and_timestamp_after_apply(): void {
+		$before = time();
+		$rc     = new WC_Stripe_Remote_Config();
+		$rc->apply( 'live', $this->valid_payload( false ) );
+		$after = time();
+
+		$snapshot = $rc->get_cache_snapshot( 'live' );
+		$this->assertIsArray( $snapshot );
+		$this->assertSame( [ 'fetched_at', 'flags' ], array_keys( $snapshot ) );
+		$this->assertGreaterThanOrEqual( $before, $snapshot['fetched_at'] );
+		$this->assertLessThanOrEqual( $after, $snapshot['fetched_at'] );
+		$this->assertSame( [ 'optimized_checkout' => [ 'value' => false ] ], $snapshot['flags'] );
+	}
+
 	public function test_resolve_remote_wins_when_present_else_local(): void {
 		$rc = new WC_Stripe_Remote_Config();
 

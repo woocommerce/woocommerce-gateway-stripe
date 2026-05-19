@@ -49,8 +49,9 @@ class WC_Stripe_Remote_Config {
 			WC_Stripe_Logger::warning(
 				'Stripe remote-config: payload rejected; keeping previous cache.',
 				[
-					'mode'   => $mode,
-					'reason' => $rejection_reason,
+					'mode'           => $mode,
+					'reason'         => $rejection_reason,
+					'previous_cache' => $this->get_cache_snapshot( $mode ),
 				]
 			);
 			return false;
@@ -164,6 +165,23 @@ class WC_Stripe_Remote_Config {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Snapshot of the stored cache for the given mode, or null if
+	 * no valid cache is stored.
+	 *
+	 * @return array|null
+	 */
+	public function get_cache_snapshot( string $mode ): ?array {
+		$cache = $this->get_cache( $mode );
+		if ( null === $cache ) {
+			return null;
+		}
+		return [
+			'fetched_at' => (int) $cache['fetched_at'],
+			'flags'      => $cache['flags'],
+		];
 	}
 
 	/**
