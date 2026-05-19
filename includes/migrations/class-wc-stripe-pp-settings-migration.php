@@ -27,13 +27,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-wc-stripe-pp-version-detector.php';
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-wc-stripe-pre-migration-snapshot.php';
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-wc-stripe-settings-migration-ledger.php';
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/pp-settings-maps/class-wc-stripe-pp-settings-map.php';
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/pp-settings-maps/class-wc-stripe-pp-settings-map-3x.php';
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/pp-settings-maps/class-wc-stripe-pp-settings-map-4x.php';
-
 /**
  * PP→Woo Stripe settings migration orchestrator.
  *
