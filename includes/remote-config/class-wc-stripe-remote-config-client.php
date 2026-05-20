@@ -91,6 +91,8 @@ class WC_Stripe_Remote_Config_Client {
 	/**
 	 * Builds the query arguments for the remote-config request.
 	 *
+	 * @param string $mode 'live' or 'test'.
+	 *
 	 * @return array<string, string>
 	 */
 	private function build_query_args( string $mode ): array {
@@ -107,6 +109,8 @@ class WC_Stripe_Remote_Config_Client {
 
 	/**
 	 * Reads the account country from the mode-prefixed cache.
+	 *
+	 * @param string $mode 'live' or 'test'.
 	 */
 	private function get_account_country( string $mode ): string {
 		$cached = WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $mode );
