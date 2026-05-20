@@ -204,11 +204,11 @@
   },
   "pnpm": {
     "overrides": {
-      "eslint-plugin-jsdoc": "^46.0.0",
-      "memize": "^2.1.1"
-    },
-    "minimatch@3": "^3.1.5",
-    "minimatch@9": "^9.0.9",
-    "serialize-javascript": "^7.0.5"
+      "@wordpress/eslint-plugin>eslint-plugin-jsdoc": "^46.0.0",
+      "@wordpress/i18n>memize": "^2.1.1",
+      "minimatch@3": "^3.1.5",
+      "minimatch@9": "^9.0.9",
+      "serialize-javascript": "^7.0.5"
+    }
   }
 }

@@ -65,8 +65,6 @@ runs:
     - name: Install pnpm
       if: steps.cache.outputs.cache-hit != 'true' && steps.pm.outputs.manager == 'pnpm'
       uses: pnpm/action-setup@v4
-      with:
-        version: 10.0.0
 
     - name: Install dependencies (pnpm)
       if: steps.cache.outputs.cache-hit != 'true' && steps.pm.outputs.manager == 'pnpm'
