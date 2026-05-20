@@ -130,31 +130,11 @@ class WC_Stripe_Abilities_Registrar {
 	 *
 	 * Filter callback for `woocommerce_ability_definition_classes`.
 	 *
-	 * Domain classes are resolved via the Composer classmap autoloader; a
-	 * stale autoloader (contributor checkout without `composer dump-autoload`)
-	 * could otherwise hand Woo Core unresolvable class strings. The
-	 * `class_exists()` filter contains that to a quiet drop instead of a
-	 * fatal in the loader.
-	 *
 	 * @param array $classes Class names accumulated by the loader.
 	 * @return array
 	 */
 	public static function append_classes( array $classes ): array {
-		$abilities = self::ABILITY_CLASSES;
-		$resolved  = array_values( array_filter( $abilities, 'class_exists' ) );
-
-		// If the safety net actually dropped anything, log it so a stale
-		// Composer autoloader is detectable rather than silently shipping a
-		// reduced ability surface.
-		if ( count( $resolved ) !== count( $abilities ) && class_exists( 'WC_Stripe_Logger' ) ) {
-			$missing = array_values( array_diff( $abilities, $resolved ) );
-			WC_Stripe_Logger::error(
-				'Abilities Registrar dropped unresolvable Domain classes from the loader filter; run `composer dump-autoload`.',
-				[ 'missing' => $missing ]
-			);
-		}
-
-		return array_merge( $classes, $resolved );
+		return array_merge( $classes, self::ABILITY_CLASSES );
 	}
 
 	/**
