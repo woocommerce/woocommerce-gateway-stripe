@@ -15,22 +15,41 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 	const STRIPE_ID = WC_Stripe_Payment_Methods::ACSS_DEBIT;
 
 	/**
+	 * Stripe account countries that may enable ACSS Debit.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [
+		WC_Stripe_Country_Code::CANADA,
+		WC_Stripe_Country_Code::UNITED_STATES,
+	];
+
+	/**
+	 * Shopper billing countries permitted to use ACSS Debit.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [ WC_Stripe_Country_Code::CANADA ];
+
+	/**
 	 * Constructor for ACSS Debit payment method
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id                = self::STRIPE_ID;
-		$this->title                    = __( 'Pre-Authorized Debit', 'woocommerce-gateway-stripe' );
-		$this->is_reusable              = true;
-		$this->supported_currencies     = [ WC_Stripe_Currency_Code::CANADIAN_DOLLAR ]; // The US dollar is also supported, but has a high risk of failure since only a few Canadian bank accounts support it.
-		$this->supported_countries      = [ WC_Stripe_Country_Code::CANADA ];
-		$this->label                    = __( 'Pre-Authorized Debit', 'woocommerce-gateway-stripe' );
-		$this->description              = __(
+		$this->stripe_id                     = self::STRIPE_ID;
+		$this->title                         = __( 'Pre-Authorized Debit', 'woocommerce-gateway-stripe' );
+		$this->is_reusable                   = true;
+		$this->supported_currencies          = [ WC_Stripe_Currency_Code::CANADIAN_DOLLAR ]; // The US dollar is also supported, but has a high risk of failure since only a few Canadian bank accounts support it.
+		$this->supported_account_countries   = self::SUPPORTED_ACCOUNT_COUNTRIES;
+		$this->unsupported_account_countries = self::UNSUPPORTED_ACCOUNT_COUNTRIES;
+		$this->supported_billing_countries   = self::SUPPORTED_BILLING_COUNTRIES;
+		$this->label                         = __( 'Pre-Authorized Debit', 'woocommerce-gateway-stripe' );
+		$this->description                   = __(
 			'Canadian Pre-Authorized Debit is a payment method that allows customers to pay using their Canadian bank account.',
 			'woocommerce-gateway-stripe'
 		);
-		$this->supports_deferred_intent = false;
-		$this->supports[]               = PaymentGatewayFeature::TOKENIZATION;
+		$this->supports_deferred_intent      = false;
+		$this->supports[]                    = PaymentGatewayFeature::TOKENIZATION;
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();

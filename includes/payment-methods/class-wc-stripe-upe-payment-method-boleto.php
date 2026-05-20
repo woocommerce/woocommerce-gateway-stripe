@@ -15,21 +15,37 @@ class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 	const STRIPE_ID = WC_Stripe_Payment_Methods::BOLETO;
 
 	/**
+	 * Stripe account countries that may enable Boleto.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [ WC_Stripe_Country_Code::BRAZIL ];
+
+	/**
+	 * Shopper billing countries permitted to use Boleto.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [ WC_Stripe_Country_Code::BRAZIL ];
+
+	/**
 	 * Constructor for Boleto payment method
 	 *
 	 * @since 5.8.0
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id            = self::STRIPE_ID;
-		$this->can_refund           = false;
-		$this->title                = 'Boleto';
-		$this->is_reusable          = false;
-		$this->supported_currencies = [ WC_Stripe_Currency_Code::BRAZILIAN_REAL ];
-		$this->supported_countries  = [ WC_Stripe_Country_Code::BRAZIL ];
-		$this->supports             = [ PaymentGatewayFeature::PRODUCTS ];
-		$this->label                = __( 'Boleto', 'woocommerce-gateway-stripe' );
-		$this->description          = __(
+		$this->stripe_id                     = self::STRIPE_ID;
+		$this->can_refund                    = false;
+		$this->title                         = 'Boleto';
+		$this->is_reusable                   = false;
+		$this->supported_currencies          = [ WC_Stripe_Currency_Code::BRAZILIAN_REAL ];
+		$this->supported_account_countries   = self::SUPPORTED_ACCOUNT_COUNTRIES;
+		$this->unsupported_account_countries = self::UNSUPPORTED_ACCOUNT_COUNTRIES;
+		$this->supported_billing_countries   = self::SUPPORTED_BILLING_COUNTRIES;
+		$this->supports                      = [ PaymentGatewayFeature::PRODUCTS ];
+		$this->label                         = __( 'Boleto', 'woocommerce-gateway-stripe' );
+		$this->description                   = __(
 			'Boleto is an official payment method in Brazil. Customers receive a voucher that can be paid at authorized agencies or banks, ATMs, or online bank portals.',
 			'woocommerce-gateway-stripe'
 		);

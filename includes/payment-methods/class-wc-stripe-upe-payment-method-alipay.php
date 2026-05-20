@@ -11,14 +11,62 @@ class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 	const STRIPE_ID = WC_Stripe_Payment_Methods::ALIPAY;
 
 	/**
+	 * Stripe account countries that may enable Alipay. Differs slightly from the global
+	 * list (includes Malaysia; excludes Poland and Mexico) per Stripe's docs.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [
+		WC_Stripe_Country_Code::AUSTRIA,
+		WC_Stripe_Country_Code::AUSTRALIA,
+		WC_Stripe_Country_Code::BELGIUM,
+		WC_Stripe_Country_Code::BULGARIA,
+		WC_Stripe_Country_Code::CANADA,
+		WC_Stripe_Country_Code::SWITZERLAND,
+		WC_Stripe_Country_Code::CYPRUS,
+		WC_Stripe_Country_Code::CZECH_REPUBLIC,
+		WC_Stripe_Country_Code::GERMANY,
+		WC_Stripe_Country_Code::DENMARK,
+		WC_Stripe_Country_Code::ESTONIA,
+		WC_Stripe_Country_Code::SPAIN,
+		WC_Stripe_Country_Code::FINLAND,
+		WC_Stripe_Country_Code::FRANCE,
+		WC_Stripe_Country_Code::UNITED_KINGDOM,
+		WC_Stripe_Country_Code::GIBRALTAR,
+		WC_Stripe_Country_Code::GREECE,
+		WC_Stripe_Country_Code::HONG_KONG,
+		WC_Stripe_Country_Code::CROATIA,
+		WC_Stripe_Country_Code::HUNGARY,
+		WC_Stripe_Country_Code::IRELAND,
+		WC_Stripe_Country_Code::ITALY,
+		WC_Stripe_Country_Code::JAPAN,
+		WC_Stripe_Country_Code::LIECHTENSTEIN,
+		WC_Stripe_Country_Code::LITHUANIA,
+		WC_Stripe_Country_Code::LUXEMBOURG,
+		WC_Stripe_Country_Code::LATVIA,
+		WC_Stripe_Country_Code::MALTA,
+		WC_Stripe_Country_Code::MALAYSIA,
+		WC_Stripe_Country_Code::NETHERLANDS,
+		WC_Stripe_Country_Code::NORWAY,
+		WC_Stripe_Country_Code::NEW_ZEALAND,
+		WC_Stripe_Country_Code::PORTUGAL,
+		WC_Stripe_Country_Code::ROMANIA,
+		WC_Stripe_Country_Code::SWEDEN,
+		WC_Stripe_Country_Code::SINGAPORE,
+		WC_Stripe_Country_Code::SLOVENIA,
+		WC_Stripe_Country_Code::SLOVAKIA,
+		WC_Stripe_Country_Code::UNITED_STATES,
+	];
+
+	/**
 	 * Constructor for alipay payment method
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id            = self::STRIPE_ID;
-		$this->title                = __( 'Alipay', 'woocommerce-gateway-stripe' );
-		$this->is_reusable          = false;
-		$this->supported_currencies = [
+		$this->stripe_id                     = self::STRIPE_ID;
+		$this->title                         = __( 'Alipay', 'woocommerce-gateway-stripe' );
+		$this->is_reusable                   = false;
+		$this->supported_currencies          = [
 			WC_Stripe_Currency_Code::EURO,
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
 			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
@@ -31,8 +79,12 @@ class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 			WC_Stripe_Currency_Code::MALAYSIAN_RINGGIT,
 		];
-		$this->label                = __( 'Alipay', 'woocommerce-gateway-stripe' );
-		$this->description          = __(
+		$this->supported_account_countries   = self::SUPPORTED_ACCOUNT_COUNTRIES;
+		$this->unsupported_account_countries = self::UNSUPPORTED_ACCOUNT_COUNTRIES;
+		// Buyer eligibility is gated by having an Alipay account, not by country.
+		$this->supported_billing_countries = [];
+		$this->label                       = __( 'Alipay', 'woocommerce-gateway-stripe' );
+		$this->description                 = __(
 			'Alipay is a popular wallet in China, operated by Ant Financial Services Group, a financial services provider affiliated with Alibaba.',
 			'woocommerce-gateway-stripe'
 		);

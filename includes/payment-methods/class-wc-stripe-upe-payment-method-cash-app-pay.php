@@ -21,6 +21,20 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 	const STRIPE_ID = WC_Stripe_Payment_Methods::CASHAPP_PAY;
 
 	/**
+	 * Stripe account countries that may enable Cash App Pay.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [ WC_Stripe_Country_Code::UNITED_STATES ];
+
+	/**
+	 * Shopper billing countries permitted to use Cash App Pay.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [ WC_Stripe_Country_Code::UNITED_STATES ];
+
+	/**
 	 * Constructor for Cash App payment method.
 	 */
 	public function __construct() {
@@ -30,7 +44,8 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		$this->title                        = __( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 		$this->is_reusable                  = true;
 		$this->supported_currencies         = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
-		$this->supported_countries          = [ WC_Stripe_Country_Code::UNITED_STATES ];
+		$this->supported_account_countries  = self::SUPPORTED_ACCOUNT_COUNTRIES;
+		$this->supported_billing_countries  = self::SUPPORTED_BILLING_COUNTRIES;
 		$this->accept_only_domestic_payment = true;
 		$this->supports[]                   = PaymentGatewayFeature::TOKENIZATION;
 		$this->label                        = __( 'Cash App Pay', 'woocommerce-gateway-stripe' );
@@ -43,17 +58,6 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		$this->maybe_init_subscriptions();
 
 		add_filter( 'woocommerce_thankyou_order_received_text', [ $this, 'order_received_text_for_wallet_failure' ], 10, 2 );
-	}
-
-	/**
-	 * Returns whether the payment method is available for the Stripe account's country.
-	 *
-	 * Cash App Pay is only available to merchants in the United States.
-	 *
-	 * @return bool True if the payment method is available for the account's country, false otherwise.
-	 */
-	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
 	}
 
 	/**

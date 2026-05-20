@@ -11,15 +11,48 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 	const STRIPE_ID = WC_Stripe_Payment_Methods::WECHAT_PAY;
 
 	/**
+	 * Stripe account countries that may enable WeChat Pay.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [
+		WC_Stripe_Country_Code::AUSTRIA,
+		WC_Stripe_Country_Code::AUSTRALIA,
+		WC_Stripe_Country_Code::BELGIUM,
+		WC_Stripe_Country_Code::CANADA,
+		WC_Stripe_Country_Code::SWITZERLAND,
+		WC_Stripe_Country_Code::GERMANY,
+		WC_Stripe_Country_Code::DENMARK,
+		WC_Stripe_Country_Code::SPAIN,
+		WC_Stripe_Country_Code::FINLAND,
+		WC_Stripe_Country_Code::FRANCE,
+		WC_Stripe_Country_Code::HONG_KONG,
+		WC_Stripe_Country_Code::IRELAND,
+		WC_Stripe_Country_Code::ITALY,
+		WC_Stripe_Country_Code::JAPAN,
+		WC_Stripe_Country_Code::LUXEMBOURG,
+		WC_Stripe_Country_Code::NETHERLANDS,
+		WC_Stripe_Country_Code::NORWAY,
+		WC_Stripe_Country_Code::PORTUGAL,
+		WC_Stripe_Country_Code::SWEDEN,
+		WC_Stripe_Country_Code::SINGAPORE,
+		WC_Stripe_Country_Code::UNITED_KINGDOM,
+		WC_Stripe_Country_Code::UNITED_STATES,
+	];
+
+	/**
 	 * Constructor for WeChat Pay payment method
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id            = self::STRIPE_ID;
-		$this->title                = __( 'WeChat Pay', 'woocommerce-gateway-stripe' );
-		$this->is_reusable          = false;
-		$this->supported_countries  = [ WC_Stripe_Country_Code::AUSTRIA, WC_Stripe_Country_Code::AUSTRALIA, WC_Stripe_Country_Code::BELGIUM, WC_Stripe_Country_Code::CANADA, WC_Stripe_Country_Code::SWITZERLAND, WC_Stripe_Country_Code::GERMANY, WC_Stripe_Country_Code::DENMARK, WC_Stripe_Country_Code::SPAIN, WC_Stripe_Country_Code::FINLAND, WC_Stripe_Country_Code::FRANCE, WC_Stripe_Country_Code::HONG_KONG, WC_Stripe_Country_Code::IRELAND, WC_Stripe_Country_Code::ITALY, WC_Stripe_Country_Code::JAPAN, WC_Stripe_Country_Code::LUXEMBOURG, WC_Stripe_Country_Code::NETHERLANDS, WC_Stripe_Country_Code::NORWAY, WC_Stripe_Country_Code::PORTUGAL, WC_Stripe_Country_Code::SWEDEN, WC_Stripe_Country_Code::SINGAPORE, WC_Stripe_Country_Code::UNITED_KINGDOM, WC_Stripe_Country_Code::UNITED_STATES ];
-		$this->supported_currencies = [
+		$this->stripe_id                     = self::STRIPE_ID;
+		$this->title                         = __( 'WeChat Pay', 'woocommerce-gateway-stripe' );
+		$this->is_reusable                   = false;
+		$this->supported_account_countries   = self::SUPPORTED_ACCOUNT_COUNTRIES;
+		$this->unsupported_account_countries = self::UNSUPPORTED_ACCOUNT_COUNTRIES;
+		// Buyer needs a WeChat Pay account (CN-issued); no Stripe-enforced billing-country restriction.
+		$this->supported_billing_countries = [];
+		$this->supported_currencies        = [
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
 			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
 			WC_Stripe_Currency_Code::SWISS_FRANC,
@@ -34,8 +67,8 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 			WC_Stripe_Currency_Code::SINGAPORE_DOLLAR,
 			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 		];
-		$this->label                = __( 'WeChat Pay', 'woocommerce-gateway-stripe' );
-		$this->description          = __(
+		$this->label                       = __( 'WeChat Pay', 'woocommerce-gateway-stripe' );
+		$this->description                 = __(
 			'WeChat Pay is a popular mobile payment and digital wallet service by WeChat in China.',
 			'woocommerce-gateway-stripe'
 		);
@@ -97,16 +130,5 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 		}
 
 		return $currency;
-	}
-
-	/**
-	 * Returns whether the payment method is available for the Stripe account's country.
-	 *
-	 * WeChat Pay is available for the following countries: AT, AU, BE, CA, CH, DE, DK, ES, FI, FR, HK, IE, IT, JP, LU, NL, NO, PT, SE, SG, UK, US.
-	 *
-	 * @return bool True if the payment method is available for the account's country, false otherwise.
-	 */
-	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
 	}
 }

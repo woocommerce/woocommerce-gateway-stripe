@@ -22,6 +22,30 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	use WC_Stripe_Pre_Orders_Trait;
 
 	/**
+	 * Stripe account countries permitted to enable this payment method.
+	 * Default is all countries.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [];
+
+	/**
+	 * Stripe account countries not permitted to enable this payment method.
+	 * Default is no countries.
+	 *
+	 * @var string[]
+	 */
+	protected const UNSUPPORTED_ACCOUNT_COUNTRIES = [];
+
+	/**
+	 * Customer billing countries permitted to use this payment method at checkout.
+	 * Default is all countries.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [];
+
+	/**
 	 * Stripe key name
 	 *
 	 * @var string
@@ -78,12 +102,28 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public $enabled;
 
 	/**
-	 * Supported customer locations for which charges for a payment method can be processed.
-	 * Empty if all customer locations are supported.
+	 * Stripe account countries permitted to enable this payment method.
+	 * Empty means no restriction (all merchant account countries permitted).
 	 *
 	 * @var string[]
 	 */
-	protected $supported_countries = [];
+	protected $supported_account_countries = [];
+
+	/**
+	 * Stripe account countries not permitted to enable this payment method.
+	 * Empty means no countries are unsupported.
+	 *
+	 * @var string[]
+	 */
+	protected $unsupported_account_countries = [];
+
+	/**
+	 * Customer billing countries permitted to use this payment method at checkout.
+	 * Empty means no restriction (all billing countries permitted).
+	 *
+	 * @var string[]
+	 */
+	protected $supported_billing_countries = [];
 
 	/**
 	 * Should payment method be restricted to only domestic payments.
@@ -135,6 +175,22 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->supports                 = [ PaymentGatewayFeature::PRODUCTS, PaymentGatewayFeature::REFUNDS ];
 		$this->supports_deferred_intent = true;
 		$this->oc_enabled               = WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
+	}
+
+	/**
+	 * Magic method to get properties.
+	 * Used for backwards compatibility with deprecated properties.
+	 *
+	 * @param string $property The property name.
+	 * @return mixed
+	 */
+	public function __get( $property ) {
+		if ( 'supported_countries' === $property ) {
+			wc_doing_it_wrong( get_class( $this ) . '->supported_countries', 'Use supported_account_countries or supported_billing_countries instead.', '10.8.0' );
+			return $this->supported_account_countries;
+		}
+
+		throw new Exception( 'Property ' . $property . ' is not defined.' );
 	}
 
 	/**
@@ -345,22 +401,39 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return array Supported customer locations.
 	 */
 	public function get_available_billing_countries() {
-		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
-		$account_country = isset( $account['country'] ) ? strtoupper( $account['country'] ) : '';
+		if ( $this->has_domestic_transactions_restrictions() ) {
+			$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
+			$account_country = isset( $account['country'] ) ? strtoupper( $account['country'] ) : '';
+			return [ $account_country ];
+		}
 
-		return $this->has_domestic_transactions_restrictions() ? [ $account_country ] : $this->supported_countries;
+		return $this->supported_billing_countries;
 	}
 
 	/**
-	 * Validates if a payment method is available on a given country
+	 * Validates if a payment method is available on a given country.
 	 *
-	 * @param string $country a two-letter country code
+	 * @deprecated 10.8.0 Use is_available_for_billing_country() instead.
 	 *
-	 * @return bool Will return true if supported_countries is empty on payment method
+	 * @param string $country A two-letter country code.
+	 *
+	 * @return bool
 	 */
 	public function is_allowed_on_country( $country ) {
-		if ( ! empty( $this->supported_countries ) ) {
-			return in_array( $country, $this->supported_countries );
+		wc_deprecated_function( __METHOD__, '10.8.0', 'WC_Stripe_UPE_Payment_Method::is_available_for_billing_country' );
+		return $this->is_available_for_billing_country( $country );
+	}
+
+	/**
+	 * Whether the given billing country for a shopper is permitted to use this payment method.
+	 *
+	 * @param string $country_code Two-letter ISO country code.
+	 *
+	 * @return bool True when no restriction is set or the country is in the supported list.
+	 */
+	public function is_available_for_billing_country( $country_code ): bool {
+		if ( ! empty( $this->supported_billing_countries ) ) {
+			return in_array( $country_code, $this->supported_billing_countries, true );
 		}
 
 		return true;
@@ -605,6 +678,19 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_available_for_account_country() {
+		if ( [] === $this->supported_account_countries && [] === $this->unsupported_account_countries ) {
+			return true;
+		}
+
+		$account_country = WC_Stripe::get_instance()->account->get_account_country();
+		if ( [] !== $this->unsupported_account_countries && in_array( $account_country, $this->unsupported_account_countries, true ) ) {
+			return false;
+		}
+
+		if ( [] !== $this->supported_account_countries && ! in_array( $account_country, $this->supported_account_countries, true ) ) {
+			return false;
+		}
+
 		return true;
 	}
 
