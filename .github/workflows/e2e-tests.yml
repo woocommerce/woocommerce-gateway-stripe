@@ -67,6 +67,16 @@ jobs:
         shell: bash
         run: pnpm install --frozen-lockfile
 
+      # Ensure Playwright browsers exist even when the node-cache hit restored a
+      # node_modules cache that was saved by a sibling workflow using
+      # `--ignore-scripts` (bundle-size / linting / js-tests), in which case
+      # `~/.cache/ms-playwright` is missing from the cached archive. The
+      # install command is idempotent and skips when browsers are already
+      # present, so it's safe to run unconditionally.
+      - name: Ensure Playwright browsers
+        shell: bash
+        run: pnpm exec playwright install chromium
+
       # Build
 
       - name: Build plugin package
