@@ -25,9 +25,15 @@ class WC_Stripe_Update_Manager {
 		// Check for any notices to display after an update.
 		WC_Stripe_Admin_Notices::check_update_notices( $previous_version );
 
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-allowed-payment-request-button-types-update.php';
 		( new Allowed_Payment_Request_Button_Types_Update() )->maybe_migrate();
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php';
 		( new Migrate_Payment_Request_Data_To_Express_Checkout_Data() )->maybe_migrate();
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-sepa-tokens-for-other-methods-settings-update.php';
 		( new Sepa_Tokens_For_Other_Methods_Settings_Update() )->maybe_migrate();
+
 		( new WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update() )->maybe_migrate();
 
 		/**
