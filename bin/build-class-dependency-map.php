@@ -29,18 +29,21 @@ use PhpParser\ParserFactory;
 // CLI parsing
 // ---------------------------------------------------------------------------
 
-$cli_options = getopt( '', [ 'path::', 'format::', 'output::', 'include-external', 'exclude-autoloaded', 'help' ] );
+$cli_options = getopt( '', [ 'path::', 'format::', 'output::', 'include-external', 'exclude-autoloaded', 'no-tier-dedupe', 'help' ] );
 
 if ( isset( $cli_options['help'] ) ) {
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
 	fwrite(
 		STDERR,
-		"Usage: php bin/build-class-dependency-map.php [--path=<dir>] [--format=json|mermaid] [--output=<file>] [--exclude-autoloaded]\n"
+		"Usage: php bin/build-class-dependency-map.php [--path=<dir>] [--format=json|mermaid] [--output=<file>] [--exclude-autoloaded] [--no-tier-dedupe]\n"
 		. "  --path=<dir>           Directory to scan (default: includes)\n"
 		. "  --format=json|mermaid  Output format (default: json)\n"
 		. "  --output=<file>        Write to file instead of stdout\n"
 		. "  --exclude-autoloaded   Drop classes covered by composer.json's autoload.classmap,\n"
 		. "                         and strip references to them from remaining classes' edges.\n"
+		. "  --no-tier-dedupe       Emit each target in every tier it's referenced from, instead\n"
+		. "                         of collapsing to the strongest tier (compile_time > runtime >\n"
+		. "                         doc_only). Useful for diagnostics.\n"
 	);
 	exit( 0 );
 }
@@ -49,6 +52,7 @@ $directory          = $cli_options['path'] ?? 'includes';
 $format             = $cli_options['format'] ?? 'json';
 $output             = $cli_options['output'] ?? null;
 $exclude_autoloaded = isset( $cli_options['exclude-autoloaded'] );
+$tier_dedupe        = ! isset( $cli_options['no-tier-dedupe'] );
 
 if ( ! in_array( $format, [ 'json', 'mermaid' ], true ) ) {
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
@@ -237,7 +241,7 @@ class EdgeVisitor extends NodeVisitorAbstract {
 	 *
 	 * @var array<string, array>
 	 */
-	public array $edges = [];
+	private array $edges = [];
 
 	/**
 	 * Stack of class names.
@@ -245,6 +249,14 @@ class EdgeVisitor extends NodeVisitorAbstract {
 	 * @var list<string>
 	 */
 	private array $stack = [];
+
+	/**
+	 * Depth of nested class-const declarations currently being visited.
+	 * ClassConstFetch nodes encountered while > 0 are compile-time.
+	 *
+	 * @var int
+	 */
+	private int $const_depth = 0;
 
 	/**
 	 * Callback to determine if a type is a built-in type.
@@ -263,6 +275,64 @@ class EdgeVisitor extends NodeVisitorAbstract {
 		$this->is_builtin = $is_builtin;
 	}
 
+	/**
+	 * Returns all classes that are depended on by the current class.
+	 *
+	 * @return string[]
+	 */
+	public function getAllDependedOnClasses(): array {
+		return array_keys( $this->edges );
+	}
+
+	/**
+	 * Returns the compile-time dependencies of the given class.
+	 *
+	 * @param string  $owner The class to get the compile-time dependencies of.
+	 * @param Closure $keep  Callback to determine if a target is valid.
+	 * @return string[]
+	 */
+	public function getCompileTimeDependencies( string $owner, Closure $keep ): array {
+		if ( ! isset( $this->edges[ $owner ] ) ) {
+			return [];
+		}
+
+		$compile_time = [];
+		if ( null !== $this->edges[ $owner ]['compile_time']['extends'] ) {
+			$compile_time[] = $this->edges[ $owner ]['compile_time']['extends'];
+		}
+		$compile_time = array_merge(
+			$compile_time,
+			$this->edges[ $owner ]['compile_time']['implements'],
+			$this->edges[ $owner ]['compile_time']['uses_traits'],
+			$this->edges[ $owner ]['compile_time']['param_types'],
+			$this->edges[ $owner ]['compile_time']['return_types'],
+			$this->edges[ $owner ]['compile_time']['property_types'],
+			$this->edges[ $owner ]['compile_time']['const_refs'],
+		);
+		$compile_time = array_values( array_unique( array_filter( $compile_time, $keep ) ) );
+		sort( $compile_time );
+
+		return $compile_time;
+	}
+
+	public function getRuntimeDependencies( string $owner, Closure $keep ): array {
+		return $this->getDependencies( $owner, 'runtime', $keep );
+	}
+
+	public function getDocOnlyDependencies( string $owner, Closure $keep ): array {
+		return $this->getDependencies( $owner, 'doc_only', $keep );
+	}
+
+	private function getDependencies( string $owner, string $dependency_type, Closure $keep ): array {
+		if ( ! isset( $this->edges[ $owner ] ) ) {
+			return [];
+		}
+
+		$dependencies = array_values( array_unique( array_filter( $this->edges[ $owner ][ $dependency_type ], $keep ) ) );
+		sort( $dependencies );
+		return $dependencies;
+	}
+
 	public function enterNode( Node $node ) {
 		if ( $this->is_class_like( $node ) ) {
 			$owner = $this->resolve_name( $node );
@@ -274,14 +344,14 @@ class EdgeVisitor extends NodeVisitorAbstract {
 
 			if ( $node instanceof Node\Stmt\Class_ ) {
 				if ( null !== $node->extends ) {
-					$this->add_strict( 'extends', $this->fq( $node->extends ), true );
+					$this->add_parent_class( $this->fq( $node->extends ) );
 				}
 				foreach ( $node->implements as $impl ) {
-					$this->add_strict( 'implements', $this->fq( $impl ) );
+					$this->add_interface( $this->fq( $impl ) );
 				}
 			} elseif ( $node instanceof Node\Stmt\Interface_ ) {
 				foreach ( $node->extends as $impl ) {
-					$this->add_strict( 'implements', $this->fq( $impl ) );
+					$this->add_interface( $this->fq( $impl ) );
 				}
 			}
 
@@ -293,16 +363,21 @@ class EdgeVisitor extends NodeVisitorAbstract {
 			return;
 		}
 
+		if ( $node instanceof Node\Stmt\ClassConst ) {
+			++$this->const_depth;
+			return;
+		}
+
 		if ( $node instanceof Node\Stmt\TraitUse ) {
 			foreach ( $node->traits as $t ) {
-				$this->add_strict( 'uses_traits', $this->fq( $t ) );
+				$this->add_trait( $this->fq( $t ) );
 			}
 			return;
 		}
 
 		if ( $node instanceof Node\Param ) {
 			foreach ( $this->unwrap_type( $node->type ) as $name ) {
-				$this->add_strict( 'param_types', $name );
+				$this->add_parameter( $name );
 			}
 			return;
 		}
@@ -310,7 +385,7 @@ class EdgeVisitor extends NodeVisitorAbstract {
 		if ( $node instanceof Node\Stmt\ClassMethod || $node instanceof Node\Stmt\Function_ ) {
 			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			foreach ( $this->unwrap_type( $node->returnType ) as $name ) {
-				$this->add_strict( 'return_types', $name );
+				$this->add_return_type( $name );
 			}
 			$this->collect_docblock( $node->getDocComment() );
 			return;
@@ -318,27 +393,38 @@ class EdgeVisitor extends NodeVisitorAbstract {
 
 		if ( $node instanceof Node\Stmt\Property ) {
 			foreach ( $this->unwrap_type( $node->type ) as $name ) {
-				$this->add_strict( 'property_types', $name );
+				$this->add_property_type( $name );
 			}
 			$this->collect_docblock( $node->getDocComment() );
+			return;
+		}
+
+		if ( $node instanceof Node\Expr\ClassConstFetch ) {
+			if ( $node->class instanceof Node\Name ) {
+				$target = $this->fq( $node->class );
+				if ( $this->const_depth > 0 ) {
+					$this->add_const_ref( $target );
+				} else {
+					$this->add_runtime( $target );
+				}
+			}
 			return;
 		}
 
 		if ( $node instanceof Node\Expr\New_
 			|| $node instanceof Node\Expr\StaticCall
 			|| $node instanceof Node\Expr\StaticPropertyFetch
-			|| $node instanceof Node\Expr\ClassConstFetch
 			|| $node instanceof Node\Expr\Instanceof_
 		) {
 			if ( $node->class instanceof Node\Name ) {
-				$this->add_loose( $this->fq( $node->class ) );
+				$this->add_runtime( $this->fq( $node->class ) );
 			}
 			return;
 		}
 
 		if ( $node instanceof Node\Stmt\Catch_ ) {
 			foreach ( $node->types as $t ) {
-				$this->add_loose( $this->fq( $t ) );
+				$this->add_runtime( $this->fq( $t ) );
 			}
 		}
 	}
@@ -346,6 +432,10 @@ class EdgeVisitor extends NodeVisitorAbstract {
 	public function leaveNode( Node $node ) {
 		if ( $this->is_class_like( $node ) && ! empty( $this->stack ) ) {
 			array_pop( $this->stack );
+			return;
+		}
+		if ( $node instanceof Node\Stmt\ClassConst && $this->const_depth > 0 ) {
+			--$this->const_depth;
 		}
 	}
 
@@ -373,37 +463,71 @@ class EdgeVisitor extends NodeVisitorAbstract {
 	private function ensure( string $owner ): void {
 		if ( ! isset( $this->edges[ $owner ] ) ) {
 			$this->edges[ $owner ] = [
-				'strict' => [
+				'compile_time' => [
 					'extends'        => null,
 					'implements'     => [],
 					'uses_traits'    => [],
 					'param_types'    => [],
 					'return_types'   => [],
 					'property_types' => [],
+					'const_refs'     => [],
 				],
-				'loose'  => [],
+				'runtime'      => [],
+				'doc_only'     => [],
 			];
 		}
 	}
 
-	private function add_strict( string $field, ?string $target, bool $single = false ): void {
+	private function add_compile_time( string $field, ?string $target ): void {
 		$owner = $this->guarded_target( $target );
-		if ( null === $owner ) {
-			return;
-		}
-		if ( $single ) {
-			$this->edges[ $owner ]['strict'][ $field ] = $target;
-		} else {
-			$this->edges[ $owner ]['strict'][ $field ][] = $target;
+		if ( null !== $owner && ! in_array( $target, $this->edges[ $owner ]['compile_time'][ $field ], true ) ) {
+			$this->edges[ $owner ]['compile_time'][ $field ][] = $target;
 		}
 	}
 
-	private function add_loose( ?string $target ): void {
+	private function add_parameter( string $target ): void {
+		$this->add_compile_time( 'param_types', $target );
+	}
+
+	private function add_trait( string $target ): void {
+		$this->add_compile_time( 'uses_traits', $target );
+	}
+
+	private function add_parent_class( string $target ): void {
 		$owner = $this->guarded_target( $target );
-		if ( null === $owner ) {
-			return;
+		if ( null !== $owner ) {
+			$this->edges[ $owner ]['compile_time']['extends'] = $target;
 		}
-		$this->edges[ $owner ]['loose'][] = $target;
+	}
+
+	private function add_interface( string $target ): void {
+		$this->add_compile_time( 'implements', $target );
+	}
+
+	private function add_return_type( string $target ): void {
+		$this->add_compile_time( 'return_types', $target );
+	}
+
+	private function add_property_type( string $target ): void {
+		$this->add_compile_time( 'property_types', $target );
+	}
+
+	private function add_const_ref( string $target ): void {
+		$this->add_compile_time( 'const_refs', $target );
+	}
+
+	private function add_runtime( ?string $target ): void {
+		$owner = $this->guarded_target( $target );
+		if ( null !== $owner && ! in_array( $target, $this->edges[ $owner ]['runtime'], true ) ) {
+			$this->edges[ $owner ]['runtime'][] = $target;
+		}
+	}
+
+	private function add_doc_only( ?string $target ): void {
+		$owner = $this->guarded_target( $target );
+		if ( null !== $owner && ! in_array( $target, $this->edges[ $owner ]['doc_only'], true ) ) {
+			$this->edges[ $owner ]['doc_only'][] = $target;
+		}
 	}
 
 	/**
@@ -490,7 +614,7 @@ class EdgeVisitor extends NodeVisitorAbstract {
 				if ( ! preg_match( '/^[A-Za-z_][A-Za-z0-9_\\\\]*$/', $tok ) ) {
 					continue;
 				}
-				$this->add_loose( $tok );
+				$this->add_doc_only( $tok );
 			}
 		}
 	}
@@ -533,29 +657,37 @@ $keep = static function ( string $target ) use ( $index, $autoloaded, $exclude_a
 };
 
 $result = [];
-foreach ( $edge_visitor->edges as $owner => $data ) {
+foreach ( $edge_visitor->getAllDependedOnClasses() as $owner ) {
 	if ( ! isset( $index[ $owner ] ) ) {
 		continue;
 	}
 	if ( $exclude_autoloaded && ! empty( $autoloaded[ $owner ] ) ) {
 		continue;
 	}
-	$strict = $data['strict'];
+	$compile_time = $edge_visitor->getCompileTimeDependencies( $owner, $keep );
 
-	if ( null !== $strict['extends'] && ! $keep( $strict['extends'] ) ) {
-		$strict['extends'] = null;
+	$runtime  = $edge_visitor->getRuntimeDependencies( $owner, $keep );
+	$doc_only = $edge_visitor->getDocOnlyDependencies( $owner, $keep );
+
+	if ( $tier_dedupe ) {
+		$runtime  = array_values( array_diff( $runtime, $compile_time ) );
+		$doc_only = array_values(
+			array_diff(
+				$doc_only,
+				$compile_time,
+				$runtime
+			)
+		);
 	}
-	foreach ( [ 'implements', 'uses_traits', 'param_types', 'return_types', 'property_types' ] as $field ) {
-		$strict[ $field ] = array_values( array_unique( array_filter( $strict[ $field ], $keep ) ) );
-		sort( $strict[ $field ] );
-	}
-	$loose = array_values( array_unique( array_filter( $data['loose'], $keep ) ) );
-	sort( $loose );
+
+	sort( $runtime );
+	sort( $doc_only );
 
 	$result[ $owner ] = [
-		'autoloaded' => ! empty( $autoloaded[ $owner ] ),
-		'strict'     => $strict,
-		'loose'      => $loose,
+		'autoloaded'   => ! empty( $autoloaded[ $owner ] ),
+		'compile_time' => $compile_time,
+		'runtime'      => $runtime,
+		'doc_only'     => $doc_only,
 	];
 }
 
@@ -602,24 +734,25 @@ function render_mermaid( array $result ): string { // phpcs:ignore Universal.Fil
 		if ( ! empty( $data['autoloaded'] ) ) {
 			$lines[] = "    <<autoloaded>> {$own}";
 		}
-		$strict = $data['strict'];
+		$compile_time = $data['compile_time'];
 
-		if ( null !== $strict['extends'] ) {
-			$lines[] = "    {$sanitize( $strict['extends'] )} <|-- {$own}";
+		if ( null !== $compile_time['extends'] ) {
+			$lines[] = "    {$sanitize( $compile_time['extends'] )} <|-- {$own}";
 		}
-		foreach ( $strict['implements'] as $t ) {
+		foreach ( $compile_time['implements'] as $t ) {
 			$lines[] = "    {$sanitize( $t )} <|.. {$own}";
 		}
-		foreach ( $strict['uses_traits'] as $t ) {
+		foreach ( $compile_time['uses_traits'] as $t ) {
 			$lines[] = "    {$own} --* {$sanitize( $t )} : uses";
 		}
 
 		$declared = array_values(
 			array_unique(
 				array_merge(
-					$strict['param_types'],
-					$strict['return_types'],
-					$strict['property_types']
+					$compile_time['param_types'],
+					$compile_time['return_types'],
+					$compile_time['property_types'],
+					$compile_time['const_refs']
 				)
 			)
 		);
@@ -628,7 +761,7 @@ function render_mermaid( array $result ): string { // phpcs:ignore Universal.Fil
 			$lines[] = "    {$own} --> {$sanitize( $t )}";
 		}
 
-		foreach ( $data['loose'] as $t ) {
+		foreach ( $data['runtime'] as $t ) {
 			$lines[] = "    {$own} ..> {$sanitize( $t )}";
 		}
 	}
