@@ -36,4 +36,14 @@ class WC_Stripe_UPE_Payment_Method_Sofort extends WC_Stripe_UPE_Payment_Method {
 		// Init subscription so it can process subscription payments.
 		$this->maybe_init_subscriptions();
 	}
+
+	/**
+	 * Sofort saves tokens as SEPA Direct Debit on the Stripe side, so saved
+	 * payment methods must be retrieved using the SEPA type rather than `sofort`.
+	 *
+	 * @return string
+	 */
+	public function get_retrievable_type() {
+		return WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
+	}
 }
