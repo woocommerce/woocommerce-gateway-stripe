@@ -62,10 +62,6 @@ runs:
           echo "manager=npm" >> $GITHUB_OUTPUT
         fi
 
-    - name: Install pnpm
-      if: steps.cache.outputs.cache-hit != 'true' && steps.pm.outputs.manager == 'pnpm'
-      uses: pnpm/action-setup@v4
-
     - name: Install dependencies (pnpm)
       if: steps.cache.outputs.cache-hit != 'true' && steps.pm.outputs.manager == 'pnpm'
       shell: bash
