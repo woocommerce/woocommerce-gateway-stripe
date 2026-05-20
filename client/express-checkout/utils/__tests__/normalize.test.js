@@ -571,15 +571,15 @@ describe( 'Express checkout normalization', () => {
 				getAdditionalFields: () => ( {} ),
 				getCustomerData: () => ( {
 					billingAddress: {
-						first_name: 'Ryan',
-						last_name: 'Ray',
+						first_name: 'John',
+						last_name: 'Doe',
 					},
 				} ),
 			} ) );
 
 			const emptyBillingLastNameEvent = {
 				billingDetails: {
-					name: 'Ryan',
+					name: 'John',
 				},
 			};
 
@@ -589,8 +589,8 @@ describe( 'Express checkout normalization', () => {
 			} );
 
 			expect( normalizedData.billing_address ).toMatchObject( {
-				first_name: 'Ryan',
-				last_name: 'Ray',
+				first_name: 'John',
+				last_name: 'Doe',
 			} );
 		} );
 
@@ -600,15 +600,15 @@ describe( 'Express checkout normalization', () => {
 				getAdditionalFields: () => ( {} ),
 				getCustomerData: () => ( {
 					billingAddress: {
-						first_name: 'Alice',
-						last_name: 'Ray',
+						first_name: 'Jane',
+						last_name: 'Doe',
 					},
 				} ),
 			} ) );
 
 			const differentBillingFirstNameEvent = {
 				billingDetails: {
-					name: 'Ryan',
+					name: 'John',
 				},
 			};
 
@@ -618,7 +618,7 @@ describe( 'Express checkout normalization', () => {
 			} );
 
 			expect( normalizedData.billing_address ).toMatchObject( {
-				first_name: 'Ryan',
+				first_name: 'John',
 				last_name: '-',
 			} );
 		} );
@@ -626,16 +626,16 @@ describe( 'Express checkout normalization', () => {
 		test( 'should not use the shipping name as the billing name for Amazon Pay', () => {
 			const amazonPayEvent = {
 				billingDetails: {
-					name: 'Ryan',
+					name: 'John',
 				},
 				shippingAddress: {
-					name: 'Tom Thompson',
+					name: 'Jane Doe',
 					address: {
-						line1: 'Happy Happy Toys',
-						line2: '45 Big Apple Way',
+						line1: 'Some Company',
+						line2: '123 Main St',
 						city: 'New York',
 						state: 'NY',
-						postal_code: '10016',
+						postal_code: '10001',
 						country: 'US',
 					},
 				},
@@ -648,7 +648,7 @@ describe( 'Express checkout normalization', () => {
 			} );
 
 			expect( normalizedData.billing_address ).toMatchObject( {
-				first_name: 'Ryan',
+				first_name: 'John',
 				last_name: '-',
 			} );
 		} );
