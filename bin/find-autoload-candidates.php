@@ -160,19 +160,9 @@ if ( empty( $graph ) ) {
 // after the --exclude-autoloaded filter).
 // ---------------------------------------------------------------------------
 
-$compile_time_fields = [ 'implements', 'uses_traits', 'param_types', 'return_types', 'property_types', 'const_refs' ];
-
-$is_unblocked = static function ( array $entry ) use ( $blockers, $compile_time_fields ): bool {
-	if ( $blockers['compile_time'] ) {
-		$ct = $entry['compile_time'] ?? [];
-		if ( null !== ( $ct['extends'] ?? null ) ) {
-			return false;
-		}
-		foreach ( $compile_time_fields as $field ) {
-			if ( ! empty( $ct[ $field ] ?? [] ) ) {
-				return false;
-			}
-		}
+$is_unblocked = static function ( array $entry ) use ( $blockers ): bool {
+	if ( $blockers['compile_time'] && ! empty( $entry['compile_time'] ?? [] ) ) {
+		return false;
 	}
 	if ( $blockers['runtime'] && ! empty( $entry['runtime'] ?? [] ) ) {
 		return false;
@@ -233,14 +223,8 @@ $adjacency = [];
 foreach ( $graph as $owner => $entry ) {
 	$deps = [];
 	if ( $blockers['compile_time'] ) {
-		$ct = $entry['compile_time'] ?? [];
-		if ( null !== ( $ct['extends'] ?? null ) ) {
-			$deps[ $ct['extends'] ] = true;
-		}
-		foreach ( $compile_time_fields as $field ) {
-			foreach ( $ct[ $field ] ?? [] as $dep ) {
-				$deps[ $dep ] = true;
-			}
+		foreach ( $entry['compile_time'] ?? [] as $dep ) {
+			$deps[ $dep ] = true;
 		}
 	}
 	if ( $blockers['runtime'] ) {
