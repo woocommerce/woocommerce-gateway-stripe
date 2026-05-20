@@ -9,6 +9,10 @@ import {
 
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
+// Transitively required: a jQuery submit handler bound by modules pulled in via
+// payment-flow.js's import graph calls getStripeServerData() when form.trigger('submit')
+// fires in the success-path tests. Without this mock those tests throw and the
+// completePayment assertions fail. Not consumed directly by the test cases.
 jest.mock( 'wcstripe/stripe-utils', () => ( {
 	getStripeServerData: jest.fn( () => ( {
 		isCheckout: true,
