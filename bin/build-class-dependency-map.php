@@ -29,7 +29,7 @@ use PhpParser\ParserFactory;
 // CLI parsing
 // ---------------------------------------------------------------------------
 
-$cli_options = getopt( '', [ 'path::', 'format::', 'output::', 'include-external', 'exclude-autoloaded', 'no-tier-dedupe', 'help' ] );
+$cli_options = getopt( '', [ 'path::', 'format::', 'output::', 'exclude-autoloaded', 'no-tier-dedupe', 'help' ] );
 
 if ( isset( $cli_options['help'] ) ) {
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
