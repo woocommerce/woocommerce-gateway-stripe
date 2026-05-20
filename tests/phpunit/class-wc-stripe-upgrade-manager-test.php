@@ -21,8 +21,11 @@ class WC_Stripe_Upgrade_Manager_Test extends WP_UnitTestCase {
 			[ Allowed_Payment_Request_Button_Types_Update::class, 'maybe_migrate', 'instance' ],
 			[ Migrate_Payment_Request_Data_To_Express_Checkout_Data::class, 'maybe_migrate', 'instance' ],
 			[ Sepa_Tokens_For_Other_Methods_Settings_Update::class, 'maybe_migrate', 'instance' ],
+			[ WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update::class, 'maybe_migrate', 'instance' ],
 		];
+
 		$this->assertCount( count( $expected_functions ), $result );
+
 		foreach ( $expected_functions as $expected_function ) {
 			$expected_target_type = $expected_function[2];
 			if ( 'static' === $expected_target_type ) {

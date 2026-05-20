@@ -87,6 +87,8 @@ class WC_Stripe_Update_Manager {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-sepa-tokens-for-other-methods-settings-update.php';
 		$functions[] = [ new Sepa_Tokens_For_Other_Methods_Settings_Update(), 'maybe_migrate' ];
 
+		$functions[] = [ new WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update(), 'maybe_migrate' ];
+
 		return $functions;
 	}
 }
