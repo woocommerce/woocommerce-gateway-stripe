@@ -18,6 +18,7 @@ class WC_Stripe_Ability_Get_Account_Summary_Test extends WP_UnitTestCase {
 	}
 
 	public function tearDown(): void {
+		remove_all_filters( 'user_has_cap' );
 		wp_set_current_user( 0 );
 		parent::tearDown();
 	}
@@ -86,9 +87,20 @@ class WC_Stripe_Ability_Get_Account_Summary_Test extends WP_UnitTestCase {
 		$admin_id = self::factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_id );
 
+		// WC's role-cap binding for `manage_woocommerce` isn't reproduced by
+		// the WP_UnitTestCase transaction rollback; inject the cap so this
+		// exercises the wiring rather than WC's bootstrap order.
+		add_filter(
+			'user_has_cap',
+			static function ( $allcaps ) {
+				$allcaps['manage_woocommerce'] = true;
+				return $allcaps;
+			}
+		);
+
 		$this->assertTrue(
 			call_user_func( $args['permission_callback'] ),
-			'Wired permission_callback must allow administrators.'
+			'Wired permission_callback must allow users with manage_woocommerce.'
 		);
 	}
 }

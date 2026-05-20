@@ -16,9 +16,30 @@ class WC_Stripe_Abilities_Registrar_Test extends WP_UnitTestCase {
 	public function tearDown(): void {
 		remove_all_filters( self::LOADER_FILTER );
 		remove_all_filters( self::FEATURE_FILTER );
+		remove_all_filters( 'user_has_cap' );
 		WC_Stripe_Abilities_Registrar::reset_initialized_for_testing();
 		wp_set_current_user( 0 );
 		parent::tearDown();
+	}
+
+	/**
+	 * Inject `manage_woocommerce` into the current user's effective caps.
+	 *
+	 * WooCommerce normally adds this cap to the administrator role via
+	 * `WC_Install::create_roles()` on activation; the WP_UnitTestCase
+	 * transaction rollback drops that role-cap mapping between tests, so
+	 * an admin user created via `self::factory()` does not inherit it.
+	 * Filter at `user_has_cap` so the assertion below exercises only the
+	 * wiring (`current_user_can( 'manage_woocommerce' )`) and not WC's
+	 * role-setup ordering.
+	 */
+	private static function grant_manage_woocommerce_to_current_user(): callable {
+		$grant = static function ( $allcaps ) {
+			$allcaps['manage_woocommerce'] = true;
+			return $allcaps;
+		};
+		add_filter( 'user_has_cap', $grant );
+		return $grant;
 	}
 
 	public function test_init_is_no_op_when_feature_flag_disabled() {
@@ -100,9 +121,10 @@ class WC_Stripe_Abilities_Registrar_Test extends WP_UnitTestCase {
 
 		$admin_id = self::factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_id );
+		self::grant_manage_woocommerce_to_current_user();
 		$this->assertTrue(
 			WC_Stripe_Abilities_Registrar::can_manage_woocommerce(),
-			'Administrators must pass the manage_woocommerce capability check.'
+			'Administrators with manage_woocommerce must pass the capability check.'
 		);
 	}
 
