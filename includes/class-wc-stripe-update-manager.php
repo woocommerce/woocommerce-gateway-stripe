@@ -12,33 +12,81 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Update_Manager {
 
 	/**
+	 * Singleton instance of the update manager.
+	 *
+	 * @var self|null
+	 */
+	private static $instance = null;
+
+	/**
+	 * Get the singleton instance of the update manager.
+	 *
+	 * @return self
+	 */
+	public static function get_instance(): self {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
+
+	/**
+	 * Private constructor to prevent direct instantiation.
+	 */
+	private function __construct() {}
+
+	/**
 	 * Run update checks when a new version of the plugin is being installed.
 	 * This can include updates, downgrades, and fresh installs.
 	 *
 	 * @param string $previous_version The previous version of the plugin.
 	 * @param string $current_version  The current version of the plugin.
 	 * @return void
+	 * @since 10.8.0
 	 */
 	public static function run_update_checks( $previous_version, $current_version ): void {
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
-
-		// Check for any notices to display after an update.
-		WC_Stripe_Admin_Notices::check_update_notices( $previous_version );
-
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-allowed-payment-request-button-types-update.php';
-		( new Allowed_Payment_Request_Button_Types_Update() )->maybe_migrate();
-
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php';
-		( new Migrate_Payment_Request_Data_To_Express_Checkout_Data() )->maybe_migrate();
-
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-sepa-tokens-for-other-methods-settings-update.php';
-		( new Sepa_Tokens_For_Other_Methods_Settings_Update() )->maybe_migrate();
-
-		( new WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update() )->maybe_migrate();
+		$update_manager = self::get_instance();
+		$update_manager->run_upgrade_functions( $previous_version );
 
 		/**
 		 * Action triggered when the plugin is updated.
 		 */
 		do_action( 'woocommerce_stripe_updated' );
+	}
+
+	/**
+	 * Run the update functions.
+	 *
+	 * @param string $previous_version The previous version of the plugin.
+	 * @return void
+	 */
+	protected function run_upgrade_functions( $previous_version ): void {
+		foreach ( $this->get_update_functions() as $check ) {
+			call_user_func( $check, $previous_version );
+		}
+	}
+
+	/**
+	 * Get the update functions to run.
+	 *
+	 * @return callable[]
+	 */
+	protected function get_update_functions(): array {
+		$functions = [];
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
+
+		$functions[] = [ WC_Stripe_Admin_Notices::class, 'check_update_notices' ];
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-allowed-payment-request-button-types-update.php';
+		$functions[] = [ new Allowed_Payment_Request_Button_Types_Update(), 'maybe_migrate' ];
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php';
+		$functions[] = [ new Migrate_Payment_Request_Data_To_Express_Checkout_Data(), 'maybe_migrate' ];
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-sepa-tokens-for-other-methods-settings-update.php';
+		$functions[] = [ new Sepa_Tokens_For_Other_Methods_Settings_Update(), 'maybe_migrate' ];
+
+		return $functions;
 	}
 }
