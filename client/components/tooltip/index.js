@@ -14,7 +14,10 @@ const Tooltip = ( { isVisible, onHide = noop, ...props } ) => {
 		onHide();
 	};
 	const handleMouseClick = ( event ) => {
-		if ( event.target.closest( 'a' ) ) {
+		// Portal content (tooltip popup) is outside the button in the DOM but
+		// still bubbles clicks through React's component tree. Guard against
+		// treating those clicks as trigger activations.
+		if ( ! event.currentTarget.contains( event.target ) ) {
 			return;
 		}
 		event.preventDefault();

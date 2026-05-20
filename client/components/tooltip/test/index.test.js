@@ -73,6 +73,30 @@ describe( 'Tooltip', () => {
 		expect( handleHideMock ).toHaveBeenCalled();
 	} );
 
+	it( 'does not close the tooltip when clicking interactive content inside it', async () => {
+		render(
+			<Tooltip content={ <a href="#link">Link in tooltip</a> }>
+				<span>Trigger element</span>
+			</Tooltip>
+		);
+
+		jest.runAllTimers();
+
+		// Open the tooltip by clicking the trigger.
+		await userEvent.click( screen.getByText( 'Trigger element' ) );
+		jest.runAllTimers();
+		expect( screen.queryByText( 'Link in tooltip' ) ).toBeInTheDocument();
+
+		// Click the link rendered in the portal. React bubbles portal clicks
+		// through the component tree, so without the DOM-containment guard
+		// the button's handler would toggle isClicked and close the tooltip.
+		await userEvent.click( screen.getByText( 'Link in tooltip' ) );
+		jest.runAllTimers();
+
+		// Tooltip must stay open — the portal click must not count as a trigger click.
+		expect( screen.queryByText( 'Link in tooltip' ) ).toBeInTheDocument();
+	} );
+
 	it( 'asks other Tooltips to hide, when multiple are opened', async () => {
 		const handleHide1Mock = jest.fn();
 		const handleHide2Mock = jest.fn();
