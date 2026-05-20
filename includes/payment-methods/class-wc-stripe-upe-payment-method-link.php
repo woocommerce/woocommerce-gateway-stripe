@@ -96,18 +96,6 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Determines if the Stripe Account country this UPE method supports.
-	 *
-	 * @return bool
-	 */
-	public function is_available_for_account_country() {
-		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
-		$account_country     = $cached_account_data['country'] ?? null;
-
-		return in_array( $account_country, self::SUPPORTED_ACCOUNT_COUNTRIES, true );
-	}
-
-	/**
 	 * Returns true if the UPE method is available.
 	 *
 	 * Link isn't like a traditional UPE payment method as it is not shown as a standard payment method at checkout.
