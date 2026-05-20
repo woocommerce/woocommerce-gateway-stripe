@@ -709,7 +709,7 @@ class WC_Stripe_Admin_Notices {
 	 * @return void
 	 */
 	public function stripe_updated() {
-		wc_deprecated_function( __METHOD__, '10.8.0', 'WC_Stripe_Admin_Notice::check_update_notices' );
+		wc_deprecated_function( __METHOD__, '10.8.0', 'WC_Stripe_Admin_Notices::check_update_notices()' );
 		self::check_update_notices( get_option( 'wc_stripe_version' ) );
 	}
 
