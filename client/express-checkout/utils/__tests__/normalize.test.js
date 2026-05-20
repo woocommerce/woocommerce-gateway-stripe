@@ -564,6 +564,94 @@ describe( 'Express checkout normalization', () => {
 				last_name: '-',
 			} );
 		} );
+
+		test( 'should use an existing billing last name before the placeholder fallback', () => {
+			select.mockImplementation( () => ( {
+				getExtensionData: () => ( {} ),
+				getAdditionalFields: () => ( {} ),
+				getCustomerData: () => ( {
+					billingAddress: {
+						first_name: 'Ryan',
+						last_name: 'Ray',
+					},
+				} ),
+			} ) );
+
+			const emptyBillingLastNameEvent = {
+				billingDetails: {
+					name: 'Ryan',
+				},
+			};
+
+			const normalizedData = normalizeOrderData( {
+				event: emptyBillingLastNameEvent,
+				paymentMethodId,
+			} );
+
+			expect( normalizedData.billing_address ).toMatchObject( {
+				first_name: 'Ryan',
+				last_name: 'Ray',
+			} );
+		} );
+
+		test( 'should not use an existing billing last name for a different billing first name', () => {
+			select.mockImplementation( () => ( {
+				getExtensionData: () => ( {} ),
+				getAdditionalFields: () => ( {} ),
+				getCustomerData: () => ( {
+					billingAddress: {
+						first_name: 'Alice',
+						last_name: 'Ray',
+					},
+				} ),
+			} ) );
+
+			const differentBillingFirstNameEvent = {
+				billingDetails: {
+					name: 'Ryan',
+				},
+			};
+
+			const normalizedData = normalizeOrderData( {
+				event: differentBillingFirstNameEvent,
+				paymentMethodId,
+			} );
+
+			expect( normalizedData.billing_address ).toMatchObject( {
+				first_name: 'Ryan',
+				last_name: '-',
+			} );
+		} );
+
+		test( 'should not use the shipping name as the billing name for Amazon Pay', () => {
+			const amazonPayEvent = {
+				billingDetails: {
+					name: 'Ryan',
+				},
+				shippingAddress: {
+					name: 'Tom Thompson',
+					address: {
+						line1: 'Happy Happy Toys',
+						line2: '45 Big Apple Way',
+						city: 'New York',
+						state: 'NY',
+						postal_code: '10016',
+						country: 'US',
+					},
+				},
+				expressPaymentType: 'amazon_pay',
+			};
+
+			const normalizedData = normalizeOrderData( {
+				event: amazonPayEvent,
+				paymentMethodId,
+			} );
+
+			expect( normalizedData.billing_address ).toMatchObject( {
+				first_name: 'Ryan',
+				last_name: '-',
+			} );
+		} );
 	} );
 
 	describe( 'normalizeShippingAddress', () => {
