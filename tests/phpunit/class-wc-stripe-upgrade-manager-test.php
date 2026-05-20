@@ -49,6 +49,7 @@ class WC_Stripe_Upgrade_Manager_Test extends WP_UnitTestCase {
 			}
 		}
 	}
+
 	/**
 	 * Test that {@see WC_Stripe_Update_Manager::run_update_checks()} runs all the functions returned
 	 * from {@see WC_Stripe_Update_Manager::get_update_functions()}.
@@ -89,6 +90,14 @@ class WC_Stripe_Upgrade_Manager_Test extends WP_UnitTestCase {
 			->method( 'get_update_functions' )
 			->willReturn( $mock_callbacks );
 
+		$action_called = false;
+		add_action(
+			'woocommerce_stripe_updated',
+			function () use ( &$action_called ) {
+				$action_called = true;
+			}
+		);
+
 		$upgrade_manager_instance = null;
 
 		try {
@@ -98,6 +107,8 @@ class WC_Stripe_Upgrade_Manager_Test extends WP_UnitTestCase {
 			$upgrade_manager_instance->setValue( null, $upgrade_manager );
 
 			WC_Stripe_Update_Manager::run_update_checks( $mock_previous_version, '10.5.0' );
+
+			$this->assertTrue( $action_called );
 		} finally {
 			if ( $upgrade_manager_instance ) {
 				$upgrade_manager_instance->setValue( null, null );
