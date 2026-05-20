@@ -169,5 +169,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Show better message when express checkout preview is not available
 * Dev - Add Claude Code skills and review rules under .claude/ to capture repo-specific contributor guidance
 * Dev - Move some independent classes into autoloader
+* Dev - Add wc_stripe_agentic_commerce_should_sync_product filter so adapters can exclude products from the Agentic Commerce catalog, inventory, and archive syncs
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

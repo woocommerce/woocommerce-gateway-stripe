@@ -345,6 +345,29 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	}
 
 	/**
+	 * Test that `track_stock_change` skips products an adapter excluded via
+	 * `wc_stripe_agentic_commerce_should_sync_product`. Guards the contract that
+	 * a product excluded from the catalog must not generate inventory deltas
+	 * either — otherwise Stripe would receive stock updates for SKUs it doesn't
+	 * know about.
+	 *
+	 * @return void
+	 */
+	public function test_track_stock_change_skips_excluded_product() {
+		$product  = $this->create_simple_product_with_stock( 10 );
+		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
+
+		try {
+			$this->sut->track_stock_change( $product );
+
+			$this->assertSame( [], get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] ) );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
+		}
+	}
+
+	/**
 	 * Test that no new entries are added once the MAX_PENDING_UPDATES threshold is reached.
 	 *
 	 * @return void
@@ -675,6 +698,28 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		$this->assertArrayHasKey( 'link', $pending[ $product->get_id() ] );
 		$this->assertArrayHasKey( 'price', $pending[ $product->get_id() ] );
 		$this->assertArrayHasKey( 'timestamp', $pending[ $product->get_id() ] );
+	}
+
+	/**
+	 * Test that `track_product_archive` skips products an adapter excluded via
+	 * `wc_stripe_agentic_commerce_should_sync_product`. An excluded product was
+	 * never on Stripe in the first place, so emitting an out_of_stock entry for
+	 * it on deletion would surface a SKU Stripe doesn't recognise.
+	 *
+	 * @return void
+	 */
+	public function test_track_product_archive_skips_excluded_product() {
+		$product  = $this->create_simple_product_with_stock( 3 );
+		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
+
+		try {
+			$this->sut->track_product_archive( $product );
+
+			$this->assertSame( [], get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
+		}
 	}
 
 	/**

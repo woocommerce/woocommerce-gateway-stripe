@@ -103,6 +103,10 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * @return void
 	 */
 	public function track_stock_change( \WC_Product $product ): void {
+		if ( ! WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) ) {
+			return;
+		}
+
 		$pending = get_option( self::PENDING_UPDATES_OPTION, [] );
 
 		// Once we hit the threshold, stop accumulating — sync_inventory() will
@@ -197,6 +201,10 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * @return void
 	 */
 	public function track_product_archive( \WC_Product $product ): void {
+		if ( ! WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) ) {
+			return;
+		}
+
 		$product_id = $product->get_id();
 
 		// Remove from pending inventory updates — stock quantity is irrelevant for archived products.
