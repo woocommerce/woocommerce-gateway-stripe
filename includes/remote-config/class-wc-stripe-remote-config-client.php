@@ -40,10 +40,7 @@ class WC_Stripe_Remote_Config_Client {
 		}
 
 		$url = add_query_arg(
-			[
-				'mode'           => $mode,
-				'plugin_version' => WC_STRIPE_VERSION,
-			],
+			$this->build_query_args( $mode ),
 			self::BASE_URL . self::PATH
 		);
 
@@ -89,5 +86,38 @@ class WC_Stripe_Remote_Config_Client {
 		}
 
 		return $decoded;
+	}
+
+	/**
+	 * Builds the query arguments for the remote-config request.
+	 *
+	 * @return array<string, string>
+	 */
+	private function build_query_args( string $mode ): array {
+		return [
+			'mode'                  => $mode,
+			'plugin_version'        => WC_STRIPE_VERSION,
+			'wc_version'            => defined( 'WC_VERSION' ) ? WC_VERSION : '',
+			'account_country'       => $this->get_account_country( $mode ),
+			'store_currency'        => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : '',
+			'subscriptions_enabled' => $this->bool_param( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ),
+			'pre_orders_enabled'    => $this->bool_param( class_exists( 'WC_Pre_Orders' ) ),
+		];
+	}
+
+	/**
+	 * Reads the account country from the mode-prefixed cache.
+	 */
+	private function get_account_country( string $mode ): string {
+		$cached = WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $mode );
+		if ( ! is_array( $cached ) || empty( $cached['country'] ) ) {
+			return '';
+		}
+
+		return (string) $cached['country'];
+	}
+
+	private function bool_param( bool $value ): string {
+		return $value ? '1' : '0';
 	}
 }
