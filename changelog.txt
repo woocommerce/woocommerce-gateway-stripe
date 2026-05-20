@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.8.0
+* Update - Ensure payment method restrictions based on account and shopper countries are up to date
 * Add - Add a setting to control whether Express Checkout is shown on the WooCommerce Subscriptions change payment method page
 * Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Link)
 * Fix - Prevent Stripe API calls from failing due to DNS resolution issues
