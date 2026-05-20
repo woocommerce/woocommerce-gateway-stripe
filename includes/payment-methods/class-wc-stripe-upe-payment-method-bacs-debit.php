@@ -63,15 +63,6 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	}
 
 	/**
-	 * Returns a string representing payment method type to query for when retrieving saved payment methods from Stripe.
-	 *
-	 * @return string The payment method type.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
-	}
-
-	/**
 	 * Creates a Bacs Direct Debit payment token for the customer.
 	 *
 	 * @param int      $user_id        The customer ID the payment token is associated with.
