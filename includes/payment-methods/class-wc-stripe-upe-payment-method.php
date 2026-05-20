@@ -360,7 +360,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function is_allowed_on_country( $country ) {
 		if ( ! empty( $this->supported_countries ) ) {
-			return in_array( $country, $this->supported_countries, true );
+			return in_array( $country, $this->supported_countries );
 		}
 
 		return true;
