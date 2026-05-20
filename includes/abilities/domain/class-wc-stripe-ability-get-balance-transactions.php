@@ -10,7 +10,6 @@ defined( 'ABSPATH' ) || exit;
 use Automattic\WooCommerce\Abilities\AbilityDefinition;
 
 // phpcs:disable WordPress.Files.FileName -- Domain class follows the plugin's `class-*` convention with `ability-` infix.
-// @phan-file-suppress PhanUndeclaredClassMethod, PhanUndeclaredFunction @phan-suppress-current-line UnusedSuppression -- Abilities API + AbilityDefinition added in WC 10.9.
 
 /**
  * Registers the woocommerce-gateway-stripe/get-balance-transactions ability.
@@ -102,6 +101,12 @@ class WC_Stripe_Ability_Get_Balance_Transactions extends WC_Stripe_Ability_Base 
 		];
 	}
 
+	/**
+	 * Execute the ability.
+	 *
+	 * @param array|null $input Optional ability input.
+	 * @return array|WP_Error
+	 */
 	public static function execute( $input = null ) {
 		$input = is_array( $input ) ? $input : [];
 

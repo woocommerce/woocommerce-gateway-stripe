@@ -10,7 +10,6 @@ defined( 'ABSPATH' ) || exit;
 use Automattic\WooCommerce\Abilities\AbilityDefinition;
 
 // phpcs:disable WordPress.Files.FileName -- Domain class follows the plugin's `class-*` convention with `ability-` infix.
-// @phan-file-suppress PhanUndeclaredClassMethod, PhanUndeclaredFunction @phan-suppress-current-line UnusedSuppression -- Abilities API + AbilityDefinition added in WC 10.9; suppression covers older-WC compat runs where this class never loads.
 
 /**
  * Registers the woocommerce-gateway-stripe/get-account-summary ability.

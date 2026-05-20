@@ -56,6 +56,7 @@ abstract class WC_Stripe_Ability_Base {
 	 *                                 callers can read response headers (e.g.
 	 *                                 X-WP-Total for paginated envelopes).
 	 *
+	 * @phpstan-return ($return_response is true ? array|WP_REST_Response|WP_Error : array|WP_Error)
 	 * @return array|WP_REST_Response|WP_Error
 	 */
 	protected static function delegate_to_rest_controller(
@@ -90,6 +91,10 @@ abstract class WC_Stripe_Ability_Base {
 
 		if ( $response instanceof WP_REST_Response ) {
 			if ( $response->is_error() ) {
+				// WP_REST_Response::as_error() always returns a WP_Error when
+				// is_error() is true; the declared WP_Error|null union is
+				// safe to narrow here.
+				// @phpstan-ignore-next-line return.type
 				return $response->as_error();
 			}
 			if ( $return_response ) {
@@ -152,7 +157,11 @@ abstract class WC_Stripe_Ability_Base {
 		}
 
 		// Cast stdClass response to array for consistent agent-facing shape.
-		return is_object( $response ) ? json_decode( wp_json_encode( $response ), true ) : (array) $response;
+		if ( is_object( $response ) ) {
+			$encoded = wp_json_encode( $response );
+			return is_string( $encoded ) ? json_decode( $encoded, true ) : (array) $response;
+		}
+		return (array) $response;
 	}
 
 	/**

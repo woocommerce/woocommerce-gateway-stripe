@@ -7,8 +7,6 @@
 
 defined( 'ABSPATH' ) || exit;
 
-// @phan-file-suppress PhanUndeclaredFunction, PhanUndeclaredClassMethod @phan-suppress-current-line UnusedSuppression -- Abilities API added in WP 6.9 (shipped via WC 10.9); suppression covers older-WC compat runs.
-
 /**
  * Registers Stripe abilities with the WordPress Abilities API.
  *
