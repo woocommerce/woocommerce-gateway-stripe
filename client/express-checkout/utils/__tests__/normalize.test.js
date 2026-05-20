@@ -623,6 +623,35 @@ describe( 'Express checkout normalization', () => {
 			} );
 		} );
 
+		test( 'should not use an existing billing last name when the stored first name is empty', () => {
+			select.mockImplementation( () => ( {
+				getExtensionData: () => ( {} ),
+				getAdditionalFields: () => ( {} ),
+				getCustomerData: () => ( {
+					billingAddress: {
+						first_name: '',
+						last_name: 'Doe',
+					},
+				} ),
+			} ) );
+
+			const eventWithSingleFirstName = {
+				billingDetails: {
+					name: 'John',
+				},
+			};
+
+			const normalizedData = normalizeOrderData( {
+				event: eventWithSingleFirstName,
+				paymentMethodId,
+			} );
+
+			expect( normalizedData.billing_address ).toMatchObject( {
+				first_name: 'John',
+				last_name: '-',
+			} );
+		} );
+
 		test( 'should not use the shipping name as the billing name for Amazon Pay', () => {
 			const amazonPayEvent = {
 				billingDetails: {

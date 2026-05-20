@@ -150,23 +150,29 @@ const getCustomerDataFromStore = () => {
 	return store.getCustomerData() || {};
 };
 
-const getExistingBillingAddressData = () =>
-	getCustomerDataFromStore()?.billingAddress ?? {};
+const getExistingBillingAddressData = ( customerData ) =>
+	customerData?.billingAddress ?? {};
 
-const getExistingBillingName = ( billingAddress ) =>
-	[ billingAddress?.first_name, billingAddress?.last_name ]
-		.filter( Boolean )
-		.join( ' ' );
+const getExistingBillingName = ( billingAddress ) => {
+	const firstName = ( billingAddress?.first_name ?? '' ).trim();
+	const lastName = ( billingAddress?.last_name ?? '' ).trim();
+
+	return firstName
+		? [ firstName, lastName ].filter( Boolean ).join( ' ' )
+		: '';
+};
 
 const getBillingLastNameFallback = ( billingName, billingAddress ) => {
-	const billingFirstName = approximateFirstName( billingName );
-	const existingBillingFirstName = billingAddress?.first_name ?? '';
-	const existingBillingLastName = billingAddress?.last_name ?? '';
+	const billingFirstName = approximateFirstName( billingName ).trim();
+	const existingBillingFirstName = (
+		billingAddress?.first_name ?? ''
+	).trim();
+	const existingBillingLastName = ( billingAddress?.last_name ?? '' ).trim();
 
 	if (
 		existingBillingLastName &&
-		( ! existingBillingFirstName ||
-			existingBillingFirstName === billingFirstName )
+		existingBillingFirstName &&
+		existingBillingFirstName === billingFirstName
 	) {
 		return existingBillingLastName;
 	}
@@ -177,11 +183,12 @@ const getBillingLastNameFallback = ( billingName, billingAddress ) => {
 /**
  * Get custom billing address field data.
  *
- * @param {Object} data The standard billing address data.
+ * @param {Object} data         The standard billing address data.
+ * @param {Object} customerData The customer data.
  *
  * @return {Object} The custom billing address data.
  */
-const getCustomBillingAddressData = ( data ) => {
+const getCustomBillingAddressData = ( data, customerData ) => {
 	// Bail if we're on classic checkout. We do not use the Checkout/Cart Store
 	// for supporting custom fields in classic checkout.
 	if ( getStripeServerData()?.isCheckout && ! isBlockCheckoutPage() ) {
@@ -195,8 +202,6 @@ const getCustomBillingAddressData = ( data ) => {
 	if ( ! isBlockCheckoutPage() ) {
 		return emptyCustomFieldsData( [ 'address' ] );
 	}
-
-	const customerData = getCustomerDataFromStore();
 
 	if ( ! customerData || ! customerData.billingAddress ) {
 		return {};
@@ -375,7 +380,9 @@ const getBillingAddressData = ( event ) => {
 	const name = event?.billingDetails?.name;
 	const email = event?.billingDetails?.email ?? '';
 	const billing = event?.billingDetails?.address ?? {};
-	const existingBillingAddress = getExistingBillingAddressData();
+	const customerData = getCustomerDataFromStore();
+	const existingBillingAddress =
+		getExistingBillingAddressData( customerData );
 	const billingName =
 		name || getExistingBillingName( existingBillingAddress );
 
@@ -397,7 +404,7 @@ const getBillingAddressData = ( event ) => {
 	};
 
 	return {
-		...getCustomBillingAddressData( data ),
+		...getCustomBillingAddressData( data, customerData ),
 		...data,
 	};
 };
