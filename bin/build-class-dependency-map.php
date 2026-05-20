@@ -8,11 +8,11 @@
  * classes. Internal-only by design — external symbols (WP/WC/SPL/
  * Automattic\WooCommerce\*) are filtered out.
  *
- * Two edge buckets:
- *   - strict: explicit declared relationships (extends, implements, use trait,
- *     and native param/return/property type declarations).
- *   - loose: named runtime references (new X, X::y, instanceof X, catch X,
- *     and docblock types in @var/@param/@return/@throws/@property).
+ * Three edge buckets:
+ *   - compile_time: compile-time dependencies (including extends, implements, trait usage,
+ *     and explicit param/return/property type declarations).
+ *   - runtime: runtime references within method implementations (including new X, X::y, instanceof X, catch X).
+ *   - doc_only: docblock types in @var/@param/@return/@throws/@property.
  */
 
 declare( strict_types=1 );
@@ -734,31 +734,9 @@ function render_mermaid( array $result ): string { // phpcs:ignore Universal.Fil
 		if ( ! empty( $data['autoloaded'] ) ) {
 			$lines[] = "    <<autoloaded>> {$own}";
 		}
-		$compile_time = $data['compile_time'];
 
-		if ( null !== $compile_time['extends'] ) {
-			$lines[] = "    {$sanitize( $compile_time['extends'] )} <|-- {$own}";
-		}
-		foreach ( $compile_time['implements'] as $t ) {
-			$lines[] = "    {$sanitize( $t )} <|.. {$own}";
-		}
-		foreach ( $compile_time['uses_traits'] as $t ) {
-			$lines[] = "    {$own} --* {$sanitize( $t )} : uses";
-		}
-
-		$declared = array_values(
-			array_unique(
-				array_merge(
-					$compile_time['param_types'],
-					$compile_time['return_types'],
-					$compile_time['property_types'],
-					$compile_time['const_refs']
-				)
-			)
-		);
-		sort( $declared );
-		foreach ( $declared as $t ) {
-			$lines[] = "    {$own} --> {$sanitize( $t )}";
+		foreach ( $data['compile_time'] as $t ) {
+			$lines[] = "    {$sanitize( $t )} --> {$own}";
 		}
 
 		foreach ( $data['runtime'] as $t ) {
