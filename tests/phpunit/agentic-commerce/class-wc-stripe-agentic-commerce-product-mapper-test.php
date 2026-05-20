@@ -946,17 +946,34 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that an adapter returning false from `wc_stripe_agentic_commerce_should_sync_product`
-	 * suppresses the product. Verifies the boolean cast so adapters that return any
-	 * falsy value (null, 0, '') are honoured.
+	 * Data provider for falsy adapter return values.
 	 *
+	 * @return array<string, array{0: mixed}>
+	 */
+	public function provide_falsy_filter_values(): array {
+		return [
+			'false'        => [ false ],
+			'zero int'     => [ 0 ],
+			'empty string' => [ '' ],
+			'null'         => [ null ],
+		];
+	}
+
+	/**
+	 * Test that any falsy adapter return suppresses the product. The contract is
+	 * "false-y, not literal false" — the wrapper's `(bool)` cast normalises null,
+	 * 0, and '' too, so adapters that idiomatically return null from a missing-key
+	 * lookup or 0 from a count check don't accidentally include products.
+	 *
+	 * @dataProvider provide_falsy_filter_values
+	 * @param mixed $filtered_value Value the adapter returns from the filter.
 	 * @return void
 	 */
-	public function test_should_sync_product_respects_filter_returning_false() {
+	public function test_should_sync_product_treats_any_falsy_filter_return_as_exclude( $filtered_value ) {
 		$product = WC_Helper_Product::create_simple_product();
 		$product->save();
 
-		$callback = static fn() => false;
+		$callback = static fn() => $filtered_value;
 		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
 
 		try {

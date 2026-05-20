@@ -368,6 +368,35 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	}
 
 	/**
+	 * Test that `track_stock_change` evicts a previously-queued stock update for
+	 * a product whose visibility just flipped to excluded. Without this, the
+	 * stale entry would still flush to Stripe on the next batch — defeating
+	 * the new exclusion contract for any product queued before the merchant
+	 * hid it.
+	 *
+	 * @return void
+	 */
+	public function test_track_stock_change_evicts_stale_entry_when_filter_now_excludes() {
+		$product = $this->create_simple_product_with_stock( 10 );
+
+		// Queue the update while the filter still allows it.
+		$this->sut->track_stock_change( $product );
+		$this->assertArrayHasKey( $product->get_id(), get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] ) );
+
+		// Flip the filter to exclude this product, then trigger another stock change.
+		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
+
+		try {
+			$this->sut->track_stock_change( $product );
+
+			$this->assertSame( [], get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] ) );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
+		}
+	}
+
+	/**
 	 * Test that no new entries are added once the MAX_PENDING_UPDATES threshold is reached.
 	 *
 	 * @return void
@@ -716,6 +745,37 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		try {
 			$this->sut->track_product_archive( $product );
 
+			$this->assertSame( [], get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
+		}
+	}
+
+	/**
+	 * Test that `track_product_archive` evicts previously-queued inventory and
+	 * archive entries for a product whose visibility just flipped to excluded.
+	 * Guards both stale-entry families: a hidden product that had been queued
+	 * for an inventory delta or an archive must not flush to Stripe on the
+	 * next batch.
+	 *
+	 * @return void
+	 */
+	public function test_track_product_archive_evicts_stale_entries_when_filter_now_excludes() {
+		$product = $this->create_simple_product_with_stock( 7 );
+
+		// Seed both queues while the filter still allows it.
+		$this->sut->track_stock_change( $product );
+		$this->sut->track_product_archive( $product );
+		$this->assertArrayHasKey( $product->get_id(), get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
+
+		// Flip the filter, then trigger another archive event.
+		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
+
+		try {
+			$this->sut->track_product_archive( $product );
+
+			$this->assertSame( [], get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] ) );
 			$this->assertSame( [], get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
 		} finally {
 			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );

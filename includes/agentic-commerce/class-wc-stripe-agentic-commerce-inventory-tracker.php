@@ -104,6 +104,10 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 */
 	public function track_stock_change( \WC_Product $product ): void {
 		if ( ! WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) ) {
+			// Evict any stale entries that were queued before the visibility filter
+			// flipped — otherwise a now-excluded product would still flush to Stripe
+			// on the next batch.
+			$this->evict_pending_entries( $product->get_id() );
 			return;
 		}
 
@@ -184,6 +188,39 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	}
 
 	/**
+	 * Remove any pending inventory or archive entry queued for $product_id.
+	 *
+	 * Called from the track_* methods when the visibility filter votes false so
+	 * a product that was queued before the filter flipped doesn't still flush
+	 * to Stripe on the next batch.
+	 *
+	 * @since 10.8.0
+	 * @param int $product_id Product ID to evict.
+	 * @return void
+	 */
+	private function evict_pending_entries( int $product_id ): void {
+		$updates = get_option( self::PENDING_UPDATES_OPTION, [] );
+		if ( isset( $updates[ $product_id ] ) ) {
+			unset( $updates[ $product_id ] );
+			if ( empty( $updates ) ) {
+				delete_option( self::PENDING_UPDATES_OPTION );
+			} else {
+				update_option( self::PENDING_UPDATES_OPTION, $updates, false );
+			}
+		}
+
+		$archives = get_option( self::PENDING_ARCHIVES_OPTION, [] );
+		if ( isset( $archives[ $product_id ] ) ) {
+			unset( $archives[ $product_id ] );
+			if ( empty( $archives ) ) {
+				delete_option( self::PENDING_ARCHIVES_OPTION );
+			} else {
+				update_option( self::PENDING_ARCHIVES_OPTION, $archives, false );
+			}
+		}
+	}
+
+	/**
 	 * Track a product deletion (permanent delete or trash) for archiving on Stripe.
 	 *
 	 * Uses the product mapper to capture all required feed fields (title, description,
@@ -202,6 +239,10 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 */
 	public function track_product_archive( \WC_Product $product ): void {
 		if ( ! WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) ) {
+			// Evict any stale entries that were queued before the visibility filter
+			// flipped — otherwise a now-excluded product would still flush to Stripe
+			// on the next batch.
+			$this->evict_pending_entries( $product->get_id() );
 			return;
 		}
 
