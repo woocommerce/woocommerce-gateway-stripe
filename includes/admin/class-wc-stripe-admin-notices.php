@@ -38,7 +38,6 @@ class WC_Stripe_Admin_Notices {
 	public function __construct() {
 		add_action( 'admin_notices', [ $this, 'admin_notices' ] );
 		add_action( 'wp_loaded', [ $this, 'hide_notices' ] );
-		add_action( 'woocommerce_stripe_updated', [ $this, 'stripe_updated' ] );
 	}
 
 	/**
@@ -710,8 +709,20 @@ class WC_Stripe_Admin_Notices {
 	 * @return void
 	 */
 	public function stripe_updated() {
-		$previous_version = get_option( 'wc_stripe_version' );
+		wc_deprecated_function( __METHOD__, '10.8.0', 'WC_Stripe_Admin_Notice::check_update_notices' );
+		self::check_update_notices( get_option( 'wc_stripe_version' ) );
+	}
 
+	/**
+	 * Check for any notices to display after an update.
+	 *
+	 * @param string $previous_version The previous version of the plugin.
+	 *
+	 * @since 10.8.0
+	 *
+	 * @return void
+	 */
+	public static function check_update_notices( $previous_version ): void {
 		// Only show the style notice if the plugin was installed and older than 4.1.4.
 		if ( empty( $previous_version ) || version_compare( $previous_version, '4.1.4', 'ge' ) ) {
 			update_option( 'wc_stripe_show_style_notice', 'no' );
