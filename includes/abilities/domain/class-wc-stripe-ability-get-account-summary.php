@@ -15,22 +15,15 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
 /**
  * Registers the woocommerce-gateway-stripe/get-account-summary ability.
  *
- * Reference ability for the RSM-108 rollout. Answers
- * "what's the current state of my Stripe account?" in one zero-arg call —
- * status, country, supported currencies, statement descriptor, test/live
- * mode, and pending/overdue requirements. Backs onto
+ * Answers "what's the current state of my Stripe account?" in one zero-arg
+ * call — status, country, supported currencies, statement descriptor,
+ * test/live mode, and pending/overdue requirements. Delegates to
  * WC_REST_Stripe_Account_Controller::get_account_summary via the abstract
- * base's delegate_to_rest_controller() helper (Shape 2).
- *
- * The backing controller emits no telemetry, fires no hooks, and dispatches
- * no notifications, so the metric-trap rationale for extracting a shared
- * service (Shape 3) does not apply here.
+ * base's delegate_to_rest_controller() helper.
  *
  * @internal Only loaded when WooCommerce 10.9+ is active. The
  *           WC_Stripe_Abilities_Registrar short-circuits before Woo Core's
- *           loader would iterate ABILITY_CLASSES on earlier WC versions;
- *           PHP's lazy autoload means the unresolved AbilityDefinition FQN
- *           never reaches the parser there.
+ *           loader would iterate ABILITY_CLASSES on earlier WC versions.
  *
  * @since 10.8.0
  */
