@@ -96,7 +96,7 @@ class WC_Stripe_Remote_Config_Client {
 	 * @return array<string, string>
 	 */
 	private function build_query_args( string $mode ): array {
-		return [
+		$args = [
 			'mode'                  => $mode,
 			'plugin_version'        => WC_STRIPE_VERSION,
 			'wc_version'            => defined( 'WC_VERSION' ) ? WC_VERSION : '',
@@ -105,6 +105,13 @@ class WC_Stripe_Remote_Config_Client {
 			'subscriptions_enabled' => $this->bool_param( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ),
 			'pre_orders_enabled'    => $this->bool_param( class_exists( 'WC_Pre_Orders' ) ),
 		];
+
+		return array_filter(
+			$args,
+			static function ( $value ) {
+				return '' !== $value;
+			}
+		);
 	}
 
 	/**
