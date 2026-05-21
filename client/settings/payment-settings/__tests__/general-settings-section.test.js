@@ -10,7 +10,7 @@ import {
 import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
 import {
 	PAYMENT_METHOD_CARD,
-	PAYMENT_METHOD_GIROPAY,
+	PAYMENT_METHOD_BANCONTACT,
 } from 'wcstripe/stripe-utils/constants';
 
 jest.mock( 'wcstripe/data', () => ( {
@@ -48,7 +48,7 @@ describe( 'GeneralSettingsSection', () => {
 			},
 		} );
 		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_CARD, PAYMENT_METHOD_GIROPAY ],
+			[ PAYMENT_METHOD_CARD, PAYMENT_METHOD_BANCONTACT ],
 			jest.fn(),
 		] );
 

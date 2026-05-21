@@ -10,7 +10,7 @@ import { apiFetch } from '@wordpress/data-controls';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_EPS,
-	PAYMENT_METHOD_GIROPAY,
+	PAYMENT_METHOD_BANCONTACT,
 } from 'wcstripe/stripe-utils/constants';
 
 jest.mock( '@wordpress/data' );
@@ -154,7 +154,7 @@ describe( 'Settings actions tests', () => {
 			const orderedPaymentMethodIdsMock = {
 				ordered_payment_method_ids: [
 					PAYMENT_METHOD_CARD,
-					PAYMENT_METHOD_GIROPAY,
+					PAYMENT_METHOD_BANCONTACT,
 					PAYMENT_METHOD_EPS,
 				],
 			};

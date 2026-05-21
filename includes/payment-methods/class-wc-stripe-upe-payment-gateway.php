@@ -2455,6 +2455,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$this->save_intent_to_order( $order, $intent );
 		$this->set_payment_method_title_for_order( $order, $payment_method_type );
+
+		/**
+		 * Fires after the payment method title is set on a confirmed intent, allowing
+		 * extensions (e.g. express checkout) to override the title for special cases.
+		 *
+		 * @since 10.8.0
+		 *
+		 * @param WC_Order $order               The order or subscription being processed.
+		 * @param string   $payment_method_type The Stripe payment method type.
+		 */
+		do_action( 'wc_stripe_after_set_payment_method_title_for_confirmed_intent', $order, $payment_method_type );
+
 		$order_helper->update_stripe_upe_redirect_processed( $order, true );
 
 		// TODO: This is a stop-gap to fix a critical issue, see
@@ -3283,6 +3295,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$selected_payment_type = $payment_method_details->type;
 			}
 			$payment_method_types = [ $selected_payment_type ];
+
+			// Re-check reusability against the resolved type; the earlier save signal was computed against the OC pseudo-method.
+			if (
+				$save_payment_method_to_store &&
+				isset( $this->payment_methods[ $selected_payment_type ] ) &&
+				! $this->payment_methods[ $selected_payment_type ]->is_reusable()
+			) {
+				$save_payment_method_to_store = false;
+			}
 		} else {
 			$payment_method_types = $this->get_payment_method_types_for_intent_creation(
 				$selected_payment_type,
@@ -3589,6 +3610,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$payment_method_instance = $this->get_payment_method_instance( $payment_method_type );
 		} else {
 			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
+		}
+
+		// Single choke point for all save paths — enforce per-method toggles here, including the Adaptive Pricing webhook which bypasses prepare_payment_information_from_request().
+		if ( ! $payment_method_instance || ! $payment_method_instance->is_reusable() ) {
+			return;
 		}
 
 		// Searches for an existing duplicate token to update.
