@@ -360,13 +360,10 @@ export default class WCStripeAPI {
 			redirect: 'if_required',
 		};
 
-		const confirmAction = isSetupIntent
-			? diagnostics.aroundStripeCall( 'confirmSetup', () =>
-					this.getStripe().confirmSetup( confirmArgs )
-			  )
-			: diagnostics.aroundStripeCall( 'confirmPayment', () =>
-					this.getStripe( true ).confirmPayment( confirmArgs )
-			  );
+		const stripeMethod = isSetupIntent ? 'confirmSetup' : 'confirmPayment';
+		const confirmAction = diagnostics.aroundStripeCall( stripeMethod, () =>
+			this.getStripe()[ stripeMethod ]( confirmArgs )
+		);
 
 		const request = confirmAction
 			// ToDo: Switch to an async function once it works with webpack.
