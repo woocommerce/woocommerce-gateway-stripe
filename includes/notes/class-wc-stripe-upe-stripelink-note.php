@@ -60,6 +60,12 @@ class WC_Stripe_UPE_StripeLink_Note {
 	 * @throws \Automattic\WooCommerce\Admin\Notes\NotesUnavailableException
 	 */
 	public static function init( WC_Stripe_Payment_Gateway $gateway ) {
+		// Skip if the Stripe gateway itself is disabled — no UPE note is relevant in that case.
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		if ( empty( $stripe_settings['enabled'] ) || 'yes' !== $stripe_settings['enabled'] ) {
+			return;
+		}
+
 		// Check if Link payment is available.
 		$available_upe_payment_methods = $gateway->get_upe_available_payment_methods();
 
