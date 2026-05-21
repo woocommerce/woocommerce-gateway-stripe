@@ -84,7 +84,7 @@ class WC_Stripe_Diagnostics_Outcome_Promoter {
 		// Stripe.js wrapped-call rejections, emitted by aroundStripeCall()
 		// as `stripe.<method>.throw` for any thrown error (network drop, JS
 		// exception). Treat as failure regardless of which method threw.
-		if ( 0 === strncmp( $kind, 'stripe.', 7 ) && str_ends_with( $kind, '.throw' ) ) {
+		if ( str_starts_with( $kind, 'stripe.' ) && str_ends_with( $kind, '.throw' ) ) {
 			return WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED;
 		}
 
