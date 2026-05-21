@@ -78,7 +78,8 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		$this->assertSame( WC_VERSION, $query['wc_version'] );
 		$this->assertSame( 'US', $query['account_country'] );
 		$this->assertSame( get_woocommerce_currency(), $query['store_currency'] );
-		$this->assertSame( '0', $query['subscriptions_enabled'] );
+		// `WC_Subscriptions` stub is loaded by the test bootstrap; `WC_Pre_Orders` has no stub.
+		$this->assertSame( '1', $query['subscriptions_enabled'] );
 		$this->assertSame( '0', $query['pre_orders_enabled'] );
 
 		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'live' );
