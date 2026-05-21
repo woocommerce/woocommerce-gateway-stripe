@@ -37,7 +37,7 @@ class WC_Stripe_Remote_Config_Flags {
 	 */
 	private const FLAGS = [
 		'optimized_checkout' => [
-			'reader' => 'WC_Stripe_Feature_Flags::is_oc_available',
+			'reader' => 'WC_Stripe_Feature_Flags::is_oc_offered',
 			'type'   => 'bool',
 		],
 	];

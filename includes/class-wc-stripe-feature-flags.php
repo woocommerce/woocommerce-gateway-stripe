@@ -181,7 +181,7 @@ class WC_Stripe_Feature_Flags {
 	 * @since 10.6.0
 	 */
 	public static function should_expand_ocs_in_legacy_checkout(): bool {
-		if ( ! self::is_oc_available() ) {
+		if ( ! self::is_oc_offered() ) {
 			return false;
 		}
 
@@ -203,7 +203,11 @@ class WC_Stripe_Feature_Flags {
 	}
 
 	/**
-	 * Whether the Optimized Checkout (OC) feature flag is enabled.
+	 * Whether the Optimized Checkout (OC) feature is available for this merchant.
+	 *
+	 * Reflects the local feature-flag/checks only. Deliberately does
+	 * NOT consult remote-config. Returning false here means the feature is hidden
+	 * entirely.
 	 *
 	 * @return bool
 	 */
@@ -212,33 +216,44 @@ class WC_Stripe_Feature_Flags {
 		$pmc_enabled     = $stripe_settings['pmc_enabled'] ?? 'no';
 
 		if ( 'yes' !== $pmc_enabled ) {
-			$local = false;
-		} else {
-			/**
-			 * Filter to control the availability of the Optimized Checkout feature.
-			 *
-			 * @since 9.6.0
-			 * @deprecated This filter will be removed in version 9.9.0. No replacement will be provided as the Optimized Checkout feature will be permanently enabled.
-			 * @param bool   $default_value  The default value for the feature flag.
-			 * @param string $default_pmc    The default value of the 'pmc_enabled' setting passed to the filter.
-			 * @param string $pmc_enabled    The actual value of the 'pmc_enabled' setting.
-			 */
-			$local = (bool) apply_filters(
-				'wc_stripe_is_optimized_checkout_available',
-				true,
-				'yes',
-				$pmc_enabled
-			);
-		}
-
-		// Remote can disable OC, but cannot force-enable it when the
-		// local PMC gate says no. Recovery via remote (reverse the flag or drop it)
-		// still works because the merchant's local state is unchanged.
-		if ( ! $local ) {
 			return false;
 		}
 
-		return (bool) ( new WC_Stripe_Remote_Config() )->resolve( 'optimized_checkout', $local );
+		/**
+		 * Filter to control the availability of the Optimized Checkout feature.
+		 *
+		 * @since 9.6.0
+		 * @deprecated This filter will be removed in version 9.9.0. No replacement will be provided as the Optimized Checkout feature will be permanently enabled.
+		 * @param bool   $default_value  The default value for the feature flag.
+		 * @param string $default_pmc    The default value of the 'pmc_enabled' setting passed to the filter.
+		 * @param string $pmc_enabled    The actual value of the 'pmc_enabled' setting.
+		 */
+		return (bool) apply_filters(
+			'wc_stripe_is_optimized_checkout_available',
+			true,
+			'yes',
+			$pmc_enabled
+		);
+	}
+
+	/**
+	 * Whether the OC feature is currently offered to shoppers / operational at runtime.
+	 *
+	 * False when {@see self::is_oc_available()} is false, OR when remote-config
+	 * has killed the feature. When this returns false but `is_oc_available()`
+	 * returns true, the feature has been remotely killed.
+	 *
+	 * Use for: customer-facing checkout rendering, payment-method registration,
+	 * runtime path gating. Do NOT use for admin settings UI rendering - use
+	 * `is_oc_available()` so remote-killed features still show their settings
+	 * section in a disabled state.
+	 */
+	public static function is_oc_offered(): bool {
+		if ( ! self::is_oc_available() ) {
+			return false;
+		}
+
+		return (bool) ( new WC_Stripe_Remote_Config() )->resolve( 'optimized_checkout', true );
 	}
 
 	/**

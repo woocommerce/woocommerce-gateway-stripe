@@ -91,11 +91,11 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Test that is_oc_available routes its result through the remote-config resolver.
+	 * Test that is_oc_offered routes its result through the remote-config resolver.
 	 *
-	 * @dataProvider provide_test_is_oc_available_with_remote_config
+	 * @dataProvider provide_test_is_oc_offered_with_remote_config
 	 */
-	public function test_is_oc_available_routes_through_remote_config(
+	public function test_is_oc_offered_routes_through_remote_config(
 		bool $pmc_enabled,
 		?bool $remote_value,
 		bool $expected
@@ -126,7 +126,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			);
 		}
 
-		$actual = WC_Stripe_Feature_Flags::is_oc_available();
+		$actual = WC_Stripe_Feature_Flags::is_oc_offered();
 
 		// Cleanup
 		remove_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
@@ -138,7 +138,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertSame( $expected, $actual );
 	}
 
-	public function provide_test_is_oc_available_with_remote_config(): array {
+	public function provide_test_is_oc_offered_with_remote_config(): array {
 		return [
 			'no remote, PMC enabled -> local true'                   => [
 				'PMC enabled'  => true,
@@ -161,6 +161,45 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'     => false,
 			],
 		];
+	}
+
+	/**
+	 * is_oc_available() must stay independent of remote-config: a remotely-killed
+	 * feature is still "available" to the merchant (settings remain editable —
+	 * the runtime predicate is_oc_offered() is the one that flips).
+	 */
+	public function test_is_oc_available_ignores_remote_kill(): void {
+		add_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		PMC_Test_Helper::cache_mocked_configuration();
+		PMC_Test_Helper::enable_pmc();
+
+		WC_Stripe_Remote_Config::reset_in_memory_cache();
+		delete_option( '_wcstripe_remote_config_live' );
+
+		$settings             = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode'] = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		( new WC_Stripe_Remote_Config() )->apply(
+			'live',
+			[
+				'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
+				'generated_at' => '2026-05-09T12:00:00Z',
+			]
+		);
+
+		$is_available = WC_Stripe_Feature_Flags::is_oc_available();
+		$is_offered   = WC_Stripe_Feature_Flags::is_oc_offered();
+
+		// Cleanup
+		remove_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		PMC_Test_Helper::disable_pmc();
+		PMC_Test_Helper::delete_cached_configuration();
+		WC_Stripe_Remote_Config::reset_in_memory_cache();
+		delete_option( '_wcstripe_remote_config_live' );
+
+		$this->assertTrue( $is_available, 'is_oc_available() must ignore remote-config' );
+		$this->assertFalse( $is_offered, 'is_oc_offered() must reflect remote kill' );
 	}
 
 	/**
