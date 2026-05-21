@@ -121,6 +121,7 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends \WP_UnitTestCase {
 			'ZA is not available' => [ 'ZA', false ],
 			'CA is not available' => [ 'CA', false ],
 			'GR is not available' => [ 'GR', false ],
+			'ZZ is not available' => [ 'ZZ', false ],
 		];
 	}
 
