@@ -44,35 +44,35 @@ $diagnostics-bg-toolbar: styles.$wp-gray-0;
 	display: flex;
 	align-items: flex-start;
 	gap: 16px;
+}
 
-	&__text {
-		flex: 1;
+.wc-stripe-diagnostics-header__text {
+	flex: 1;
+}
 
-		h4 {
-			margin-top: 0;
-			margin-bottom: 4px;
-		}
+.wc-stripe-diagnostics-header__text h4 {
+	margin-top: 0;
+	margin-bottom: 4px;
+}
 
-		p {
-			margin: 0;
-			color: $diagnostics-muted-fg;
-			font-size: 13px;
-			line-height: 18px;
-			max-width: 520px;
-		}
-	}
+.wc-stripe-diagnostics-header__text p {
+	margin: 0;
+	color: $diagnostics-muted-fg;
+	font-size: 13px;
+	line-height: 18px;
+	max-width: 520px;
+}
 
-	.components-toggle-control {
-		margin-bottom: 0;
-		flex-shrink: 0;
-	}
+.wc-stripe-diagnostics-header .components-toggle-control {
+	margin-bottom: 0;
+	flex-shrink: 0;
+}
 
-	// `<ToggleControl>` in this `@wordpress/components` version does not honour
-	// `hideLabelFromVision`, so we visually hide the label here while keeping it
-	// in the DOM as the toggle's accessible name.
-	.components-toggle-control__label {
-		display: none;
-	}
+// `<ToggleControl>` in this `@wordpress/components` version does not honour
+// `hideLabelFromVision`, so we visually hide the label here while keeping it
+// in the DOM as the toggle's accessible name.
+.wc-stripe-diagnostics-header .components-toggle-control__label {
+	display: none;
 }
 
 .wc-stripe-diagnostics-traces {
@@ -80,101 +80,101 @@ $diagnostics-bg-toolbar: styles.$wp-gray-0;
 	border: 1px solid $diagnostics-border-strong;
 	border-radius: 4px;
 	overflow: hidden;
+}
 
-	&--empty {
-		padding: 16px;
-		background: $diagnostics-bg-toolbar;
-		color: $diagnostics-muted-fg;
-		font-size: 13px;
-		text-align: center;
+.wc-stripe-diagnostics-traces--empty {
+	padding: 16px;
+	background: $diagnostics-bg-toolbar;
+	color: $diagnostics-muted-fg;
+	font-size: 13px;
+	text-align: center;
+}
 
-		p {
-			margin: 0;
-		}
-	}
+.wc-stripe-diagnostics-traces--empty p {
+	margin: 0;
 }
 
 .wc-stripe-diagnostics-toolbar {
 	background: $diagnostics-bg-toolbar;
 	border-bottom: 1px solid $diagnostics-border;
 	font-size: 13px;
+}
 
-	&__row {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		flex-wrap: wrap;
-		padding: 8px 12px;
+.wc-stripe-diagnostics-toolbar__row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	padding: 8px 12px;
+}
 
-		&--actions {
-			border-top: 1px solid $diagnostics-border;
-		}
-	}
+.wc-stripe-diagnostics-toolbar__row--actions {
+	border-top: 1px solid $diagnostics-border;
+}
 
-	&__status {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		color: $diagnostics-strong-fg;
-		flex-wrap: wrap;
-	}
+.wc-stripe-diagnostics-toolbar__status {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: $diagnostics-strong-fg;
+	flex-wrap: wrap;
+}
 
-	&__status-label {
-		white-space: nowrap;
-	}
+.wc-stripe-diagnostics-toolbar__status-label {
+	white-space: nowrap;
+}
 
-	&__separator {
-		color: $diagnostics-border-strong;
-	}
+.wc-stripe-diagnostics-toolbar__separator {
+	color: $diagnostics-border-strong;
+}
 
-	&__count {
-		color: $diagnostics-muted-fg;
-		white-space: nowrap;
-	}
+.wc-stripe-diagnostics-toolbar__count {
+	color: $diagnostics-muted-fg;
+	white-space: nowrap;
+}
 
-	&__failed-count {
-		color: $diagnostics-failed;
-		font-weight: 500;
-	}
+.wc-stripe-diagnostics-toolbar__failed-count {
+	color: $diagnostics-failed;
+	font-weight: 500;
+}
 
-	&__actions {
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		margin-left: auto;
-	}
+.wc-stripe-diagnostics-toolbar__actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	margin-left: auto;
+}
 
-	&__limit {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		margin-left: auto;
-		color: $diagnostics-muted-fg;
-		white-space: nowrap;
-	}
+.wc-stripe-diagnostics-toolbar__limit {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-left: auto;
+	color: $diagnostics-muted-fg;
+	white-space: nowrap;
+}
 
-	&__limit-select {
-		padding: 3px 6px;
-		font-size: 12px;
-		border: 1px solid $diagnostics-border-strong;
-		border-radius: 2px;
-		background: #fff;
-		color: $diagnostics-strong-fg;
-		font-family: inherit; // some browsers ignore inherited font on <select>.
-		cursor: pointer;
-	}
+.wc-stripe-diagnostics-toolbar__limit-select {
+	padding: 3px 6px;
+	font-size: 12px;
+	border: 1px solid $diagnostics-border-strong;
+	border-radius: 2px;
+	background: #fff;
+	color: $diagnostics-strong-fg;
+	font-family: inherit; // some browsers ignore inherited font on <select>.
+	cursor: pointer;
+}
 
-	&__progress {
-		height: 3px;
-		background: $diagnostics-border;
-		overflow: hidden;
-	}
+.wc-stripe-diagnostics-toolbar__progress {
+	height: 3px;
+	background: $diagnostics-border;
+	overflow: hidden;
+}
 
-	&__progress-bar {
-		height: 100%;
-		background: styles.$wp-blue-50;
-		transition: width 0.2s ease-out;
-	}
+.wc-stripe-diagnostics-toolbar__progress-bar {
+	height: 100%;
+	background: styles.$wp-blue-50;
+	transition: width 0.2s ease-out;
 }
 
 .wc-stripe-diagnostics-recording-indicator {
@@ -184,13 +184,13 @@ $diagnostics-bg-toolbar: styles.$wp-gray-0;
 	background: transparent;
 	border: 1.5px solid styles.$wp-gray-30;
 	flex-shrink: 0;
+}
 
-	&.is-recording {
-		background: $diagnostics-failed;
-		border-color: $diagnostics-failed;
-		box-shadow: 0 0 0 4px rgba( $diagnostics-failed, 0.12 );
-		animation: wc-stripe-diagnostics-pulse 1.6s ease-out infinite;
-	}
+.wc-stripe-diagnostics-recording-indicator.is-recording {
+	background: $diagnostics-failed;
+	border-color: $diagnostics-failed;
+	box-shadow: 0 0 0 4px rgba( $diagnostics-failed, 0.12 );
+	animation: wc-stripe-diagnostics-pulse 1.6s ease-out infinite;
 }
 
 @keyframes wc-stripe-diagnostics-pulse {
@@ -212,39 +212,39 @@ $diagnostics-bg-toolbar: styles.$wp-gray-0;
 	border-radius: 2px;
 	padding: 2px;
 	gap: 2px;
+}
 
-	&__option {
-		background: transparent;
-		border: 1px solid transparent;
-		border-radius: 2px;
-		padding: 2px 10px;
-		font-size: 12px;
-		line-height: 20px;
-		color: $diagnostics-muted-fg;
-		cursor: pointer;
+.wc-stripe-diagnostics-segmented__option {
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: 2px;
+	padding: 2px 10px;
+	font-size: 12px;
+	line-height: 20px;
+	color: $diagnostics-muted-fg;
+	cursor: pointer;
+}
 
-		&:hover {
-			color: $diagnostics-strong-fg;
-		}
+.wc-stripe-diagnostics-segmented__option:hover {
+	color: $diagnostics-strong-fg;
+}
 
-		&.is-active {
-			background: $diagnostics-bg-toolbar;
-			border-color: $diagnostics-border-strong;
-			color: $diagnostics-strong-fg;
-			font-weight: 500;
-		}
-	}
+.wc-stripe-diagnostics-segmented__option.is-active {
+	background: $diagnostics-bg-toolbar;
+	border-color: $diagnostics-border-strong;
+	color: $diagnostics-strong-fg;
+	font-weight: 500;
 }
 
 .wc-stripe-diagnostics-trace-list {
 	background: #fff;
+}
 
-	&__empty {
-		padding: 24px 16px;
-		font-size: 13px;
-		color: $diagnostics-muted-fg;
-		text-align: center;
-	}
+.wc-stripe-diagnostics-trace-list__empty {
+	padding: 24px 16px;
+	font-size: 13px;
+	color: $diagnostics-muted-fg;
+	text-align: center;
 }
 
 .wc-stripe-diagnostics-trace-row {
@@ -255,50 +255,50 @@ $diagnostics-bg-toolbar: styles.$wp-gray-0;
 	padding: 10px 16px;
 	border-top: 1px solid $diagnostics-border;
 	font-size: 13px;
+}
 
-	&:first-of-type {
-		border-top: none;
-	}
+.wc-stripe-diagnostics-trace-row:first-of-type {
+	border-top: none;
+}
 
-	&__main {
-		overflow: hidden;
-	}
+.wc-stripe-diagnostics-trace-row__main {
+	overflow: hidden;
+}
 
-	&__heading {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-	}
+.wc-stripe-diagnostics-trace-row__heading {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
 
-	&__id {
-		font-family: styles.$font-family-mono;
-		font-size: 12px;
-		color: $diagnostics-strong-fg;
-	}
+.wc-stripe-diagnostics-trace-row__id {
+	font-family: styles.$font-family-mono;
+	font-size: 12px;
+	color: $diagnostics-strong-fg;
+}
 
-	&__when {
-		color: $diagnostics-muted-fg;
-		font-size: 12px;
-	}
+.wc-stripe-diagnostics-trace-row__when {
+	color: $diagnostics-muted-fg;
+	font-size: 12px;
+}
 
-	&__summary {
-		color: $diagnostics-strong-fg;
-		margin-top: 2px;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
+.wc-stripe-diagnostics-trace-row__summary {
+	color: $diagnostics-strong-fg;
+	margin-top: 2px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
 
-	&__duration {
-		color: $diagnostics-muted-fg;
-		font-size: 12px;
-		font-variant-numeric: tabular-nums;
-	}
+.wc-stripe-diagnostics-trace-row__duration {
+	color: $diagnostics-muted-fg;
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+}
 
-	&__actions {
-		display: inline-flex;
-		gap: 4px;
-	}
+.wc-stripe-diagnostics-trace-row__actions {
+	display: inline-flex;
+	gap: 4px;
 }
 
 .wc-stripe-diagnostics-status-dot {
@@ -306,39 +306,40 @@ $diagnostics-bg-toolbar: styles.$wp-gray-0;
 	height: 8px;
 	border-radius: 50%;
 	flex-shrink: 0;
-
-	&--failed {
-		background: $diagnostics-failed;
-	}
-	&--completed {
-		background: $diagnostics-success;
-	}
-	&--pending {
-		background: $diagnostics-pending;
-	}
-	&--abandoned {
-		background: $diagnostics-abandoned;
-	}
 }
 
-.wc-stripe-diagnostics-view-modal {
-	.components-modal__content {
-		max-width: 720px;
-	}
+.wc-stripe-diagnostics-status-dot--failed {
+	background: $diagnostics-failed;
+}
 
-	&__json {
-		max-height: 60vh;
-		overflow: auto;
-		background: $diagnostics-bg-toolbar;
-		border: 1px solid $diagnostics-border-strong;
-		border-radius: 2px;
-		padding: 12px;
-		font-family: styles.$font-family-mono;
-		font-size: 12px;
-		line-height: 1.5;
-		white-space: pre;
-		margin: 0;
-	}
+.wc-stripe-diagnostics-status-dot--completed {
+	background: $diagnostics-success;
+}
+
+.wc-stripe-diagnostics-status-dot--pending {
+	background: $diagnostics-pending;
+}
+
+.wc-stripe-diagnostics-status-dot--abandoned {
+	background: $diagnostics-abandoned;
+}
+
+.wc-stripe-diagnostics-view-modal .components-modal__content {
+	max-width: 720px;
+}
+
+.wc-stripe-diagnostics-view-modal__json {
+	max-height: 60vh;
+	overflow: auto;
+	background: $diagnostics-bg-toolbar;
+	border: 1px solid $diagnostics-border-strong;
+	border-radius: 2px;
+	padding: 12px;
+	font-family: styles.$font-family-mono;
+	font-size: 12px;
+	line-height: 1.5;
+	white-space: pre;
+	margin: 0;
 }
 
 .wc-stripe-adaptive-pricing-unavailable-reason {
