@@ -99,7 +99,7 @@ class WC_Stripe_Remote_Config_Client {
 		$args = [
 			'mode'                  => $mode,
 			'plugin_version'        => WC_STRIPE_VERSION,
-			'wc_version'            => defined( 'WC_VERSION' ) ? WC_VERSION : '',
+			'wc_version'            => WC_VERSION,
 			'account_country'       => $this->get_account_country( $mode ),
 			'store_currency'        => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : '',
 			'subscriptions_enabled' => $this->bool_param( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ),
