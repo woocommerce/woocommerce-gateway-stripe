@@ -101,6 +101,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	public $saved_cards;
 
 	/**
+	 * Should SEPA tokens be used for other payment methods (iDEAL and Bancontact).
+	 *
+	 * Kept as a private property so external code that previously set or read
+	 * this hits __set / __get and gets a loud `wc_deprecated_function` notice
+	 * (the doc-only `@deprecated` was too quiet). Replaced by
+	 * `$sepa_tokens_for_ideal` and `$sepa_tokens_for_bancontact`.
+	 *
+	 * @var bool
+	 *
+	 * @deprecated 10.0.0 Use `sepa_tokens_for_ideal` and `sepa_tokens_for_bancontact` instead.
+	 */
+	private $sepa_tokens_for_other_methods;
+
+	/**
 	 * Should SEPA tokens be used for iDEAL
 	 *
 	 * @var bool
@@ -113,6 +127,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @var bool
 	 */
 	public $sepa_tokens_for_bancontact;
+
+	/**
+	 * Is Single Payment Element enabled?
+	 *
+	 * Kept as a private property so external code that previously set or read
+	 * this hits __set / __get and gets a loud `wc_deprecated_function` notice
+	 * (the doc-only `@deprecated` was too quiet). Replaced by `$oc_enabled`.
+	 *
+	 * @var bool
+	 *
+	 * @deprecated 9.5.0 Use `oc_enabled`.
+	 */
+	private $spe_enabled;
 
 	/**
 	 * Is Optimized Checkout enabled?
@@ -4911,5 +4938,55 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'amount'   => $amount,
 			'currency' => $currency,
 		];
+	}
+
+	/**
+	 * Trap writes to deprecated public properties so external code that hasn't
+	 * migrated emits a `wc_deprecated_function` notice instead of silently
+	 * shadowing a now-private property.
+	 *
+	 * @param string $name  Property name.
+	 * @param mixed  $value Value being assigned.
+	 * @return void
+	 */
+	public function __set( $name, $value ) {
+		if ( 'sepa_tokens_for_other_methods' === $name ) {
+			wc_deprecated_function( static::class . '::$' . $name, '10.0.0', '$sepa_tokens_for_ideal and $sepa_tokens_for_bancontact' );
+			$this->sepa_tokens_for_other_methods = $value;
+			return;
+		}
+		if ( 'spe_enabled' === $name ) {
+			wc_deprecated_function( static::class . '::$' . $name, '9.5.0', '$oc_enabled' );
+			$this->spe_enabled = $value;
+			return;
+		}
+
+		// Preserve PHP's default behaviour for unknown properties so we don't
+		// silently swallow typos elsewhere.
+		$this->$name = $value;
+	}
+
+	/**
+	 * Trap reads of deprecated public properties so external code that hasn't
+	 * migrated emits a `wc_deprecated_function` notice instead of silently
+	 * receiving null.
+	 *
+	 * @param string $name Property name.
+	 * @return mixed
+	 */
+	public function __get( $name ) {
+		if ( 'sepa_tokens_for_other_methods' === $name ) {
+			wc_deprecated_function( static::class . '::$' . $name, '10.0.0', '$sepa_tokens_for_ideal and $sepa_tokens_for_bancontact' );
+			return $this->sepa_tokens_for_other_methods;
+		}
+		if ( 'spe_enabled' === $name ) {
+			wc_deprecated_function( static::class . '::$' . $name, '9.5.0', '$oc_enabled' );
+			return $this->spe_enabled;
+		}
+
+		// PHP would emit a notice and return null here for an undefined
+		// property; mirror that explicitly to keep behaviour predictable.
+		trigger_error( esc_html( 'Undefined property: ' . static::class . '::$' . $name ), E_USER_NOTICE ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
+		return null;
 	}
 }

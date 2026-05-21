@@ -859,8 +859,13 @@ class WC_Stripe {
 		$stripe_account_controller->register_routes();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-oc-setting-toggle-controller.php';
+
+		// Deprecated 10.2.0; kept as a shim that loudly logs each call. See the class for context.
+		$upe_flag_toggle_controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
+		$upe_flag_toggle_controller->register_routes();
 
 		$settings_controller = new WC_REST_Stripe_Settings_Controller( $this->get_main_stripe_gateway() );
 		$settings_controller->register_routes();

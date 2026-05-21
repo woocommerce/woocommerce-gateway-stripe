@@ -5209,12 +5209,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Property WC_Stripe_UPE_Payment_Gateway\:\:\$order_pay_intent is unused\.$#'
-			identifier: property.unused
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Property WooCommerce\:\:\$cart \(WC_Cart\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
 			count: 1
