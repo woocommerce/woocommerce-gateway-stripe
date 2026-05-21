@@ -775,8 +775,15 @@ jQuery( function ( $ ) {
 			if ( $container.find( '.single_variation_wrap' ).length ) {
 				productId = $container
 					.find( '.single_variation_wrap' )
-					.find( 'input[name="product_id"]' )
+					.find( 'input[name="variation_id"]' )
 					.val();
+
+				if ( ! productId ) {
+					productId = $container
+						.find( '.single_variation_wrap' )
+						.find( 'input[name="product_id"]' )
+						.val();
+				}
 			}
 
 			if ( $container.find( '.wc-bookings-booking-form' ).length ) {
