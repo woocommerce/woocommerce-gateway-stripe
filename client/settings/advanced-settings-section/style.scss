@@ -271,7 +271,7 @@ $diagnostics-bg-toolbar: styles.$wp-gray-0;
 	}
 
 	&__id {
-		font-family: 'Menlo', 'Consolas', monospace;
+		font-family: styles.$font-family-mono;
 		font-size: 12px;
 		color: $diagnostics-strong-fg;
 	}
@@ -333,7 +333,7 @@ $diagnostics-bg-toolbar: styles.$wp-gray-0;
 		border: 1px solid $diagnostics-border-strong;
 		border-radius: 2px;
 		padding: 12px;
-		font-family: 'Menlo', 'Consolas', monospace;
+		font-family: styles.$font-family-mono;
 		font-size: 12px;
 		line-height: 1.5;
 		white-space: pre;
