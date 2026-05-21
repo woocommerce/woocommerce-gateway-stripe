@@ -582,6 +582,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isAmazonPayEnabled']                = $express_checkout_helper->is_amazon_pay_enabled();
 		$stripe_params['isLinkEnabled']                     = $express_checkout_helper->is_link_enabled();
 
+		if ( $this->testmode ) {
+			/**
+			 * Filters whether the Stripe Developer Widget should be shown in the UI.
+			 * Only available in test mode.
+			 *
+			 * @since 10.7.0
+			 * @param bool $show_stripe_developer_widget Whether the Stripe Developer Widget should be shown in the UI.
+			 */
+			$show_stripe_developer_widget = (bool) apply_filters( 'wc_stripe_show_stripe_developer_widget', false );
+			if ( $show_stripe_developer_widget ) {
+				$stripe_params['showStripeDeveloperWidget'] = true;
+			}
+		}
+
 		// Amazon Pay feature flag.
 		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
 
@@ -637,9 +651,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isAdaptivePricingEnabled'] = $should_show_optimized_checkout && $this->is_adaptive_pricing_supported();
 
 		if ( $should_show_optimized_checkout ) {
-			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
-			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
-			$stripe_params['excludedPaymentMethodTypes']   = $this->get_excluded_payment_method_types();
+			$stripe_params['OCLayout']                      = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
+			$stripe_params['paymentMethodConfigurationId']  = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+			$stripe_params['excludedPaymentMethodTypes']    = $this->get_excluded_payment_method_types();
+			$stripe_params['optimizedCheckoutClassicTitle'] = WC_Stripe_UPE_Payment_Method_OC::get_classic_title();
 		}
 
 		// Checking for other BNPL extensions.
@@ -795,7 +810,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return bool True if we are on a page where the optimized checkout can be shown, false otherwise.
 	 */
 	public function is_valid_optimized_checkout_page(): bool {
-		return ! $this->is_on_add_payment_method_page() && ! $this->is_changing_payment_method_for_subscription();
+		if ( $this->is_on_add_payment_method_page() || $this->is_changing_payment_method_for_subscription() ) {
+			return false;
+		}
+
+		return is_checkout();
+	}
+
+	/**
+	 * Checks whether Optimized Checkout is the active payment strategy for the current request.
+	 *
+	 * Distinct from {@see self::is_valid_optimized_checkout_page()} which gates *rendering* to
+	 * actual checkout pages. This broader check is true wherever OCS-aware token handling should
+	 * apply (e.g. My Account → Payment Methods, where saved tokens for sub-gateways must still
+	 * surface under the consolidated 'stripe' gateway).
+	 *
+	 * @return bool
+	 */
+	public function is_optimized_checkout_active(): bool {
+		return $this->oc_enabled
+			&& ! $this->is_on_add_payment_method_page()
+			&& ! $this->is_changing_payment_method_for_subscription();
 	}
 
 	/**
@@ -824,7 +859,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 			}
 
-			return ( new WC_Stripe_UPE_Payment_Method_OC() )->get_title();
+			return WC_Stripe_UPE_Payment_Method_OC::get_alternative_title();
 		}
 		return parent::get_title();
 	}
@@ -2420,6 +2455,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$this->save_intent_to_order( $order, $intent );
 		$this->set_payment_method_title_for_order( $order, $payment_method_type );
+
+		/**
+		 * Fires after the payment method title is set on a confirmed intent, allowing
+		 * extensions (e.g. express checkout) to override the title for special cases.
+		 *
+		 * @since 10.8.0
+		 *
+		 * @param WC_Order $order               The order or subscription being processed.
+		 * @param string   $payment_method_type The Stripe payment method type.
+		 */
+		do_action( 'wc_stripe_after_set_payment_method_title_for_confirmed_intent', $order, $payment_method_type );
+
 		$order_helper->update_stripe_upe_redirect_processed( $order, true );
 
 		// TODO: This is a stop-gap to fix a critical issue, see
@@ -3248,6 +3295,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$selected_payment_type = $payment_method_details->type;
 			}
 			$payment_method_types = [ $selected_payment_type ];
+
+			// Re-check reusability against the resolved type; the earlier save signal was computed against the OC pseudo-method.
+			if (
+				$save_payment_method_to_store &&
+				isset( $this->payment_methods[ $selected_payment_type ] ) &&
+				! $this->payment_methods[ $selected_payment_type ]->is_reusable()
+			) {
+				$save_payment_method_to_store = false;
+			}
 		} else {
 			$payment_method_types = $this->get_payment_method_types_for_intent_creation(
 				$selected_payment_type,
@@ -3554,6 +3610,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$payment_method_instance = $this->get_payment_method_instance( $payment_method_type );
 		} else {
 			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
+		}
+
+		// Single choke point for all save paths — enforce per-method toggles here, including the Adaptive Pricing webhook which bypasses prepare_payment_information_from_request().
+		if ( ! $payment_method_instance || ! $payment_method_instance->is_reusable() ) {
+			return;
 		}
 
 		// Searches for an existing duplicate token to update.
@@ -4630,7 +4691,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $tokens;
 		}
 
-		if ( ! $this->oc_enabled || ! $this->is_valid_optimized_checkout_page() ) {
+		if ( ! $this->is_optimized_checkout_active() ) {
 			return $tokens;
 		}
 

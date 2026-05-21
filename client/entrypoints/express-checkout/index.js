@@ -367,14 +367,28 @@ jQuery( function ( $ ) {
 			}
 
 			const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
+			const isChangePaymentMethod = getExpressCheckoutData(
+				'is_change_payment_method'
+			);
+
+			let elementsMode;
+			if ( isChangePaymentMethod ) {
+				elementsMode = 'setup';
+			} else if ( hasFreeTrial ) {
+				elementsMode = 'subscription';
+			} else {
+				elementsMode = 'payment';
+			}
 
 			const elements = api.getStripe().elements( {
-				mode: hasFreeTrial ? 'subscription' : 'payment',
-				amount: options.total,
+				mode: elementsMode,
+				...( elementsMode !== 'setup' && {
+					amount: options.total,
+				} ),
 				currency: options.currency,
 				...( isManualPaymentMethodCreation(
 					expressPaymentType,
-					hasFreeTrial
+					isChangePaymentMethod || hasFreeTrial
 				) && {
 					paymentMethodCreation: 'manual',
 				} ),
@@ -536,6 +550,19 @@ jQuery( function ( $ ) {
 		 * Initialize event handlers and UI state
 		 */
 		init: () => {
+			if ( getExpressCheckoutData( 'is_change_payment_method' ) ) {
+				const currency =
+					getExpressCheckoutData( 'checkout' )?.currency_code ??
+					'usd';
+				wcStripeECE.startExpressCheckout( {
+					total: 0,
+					currency,
+					appearance: getExpressCheckoutButtonAppearance(),
+					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
+				} );
+				return;
+			}
+
 			if ( getExpressCheckoutData( 'is_pay_for_order' ) ) {
 				if (
 					typeof wcStripeExpressCheckoutPayForOrderParams ===
