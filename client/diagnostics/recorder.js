@@ -1,8 +1,7 @@
 const STORAGE_KEY_PREFIX = 'wc_stripe_diag_';
 const IDLE_FLUSH_MS = 5000;
-// Server caps a batch at 200 events; flush early so a noisy checkout
-// (e.g., intercepted console.warn/error) can't push past the cap and
-// have the controller silently truncate.
+// Server caps a batch at 200 events; flush at the cap so the next record()
+// can't push past it and have the controller silently truncate.
 const MAX_BUFFER_BEFORE_FLUSH = 200;
 // Drop-oldest ceiling so a string of sendBeacon refusals can't grow the buffer unboundedly.
 const MAX_BUFFER_SIZE = 500;

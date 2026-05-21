@@ -8,7 +8,7 @@ import {
 	useStripe,
 	Elements,
 } from '@stripe/react-stripe-js';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 /**
  * Internal dependencies
  */
@@ -405,6 +405,13 @@ const PaymentProcessor = ( {
 		}
 	};
 
+	const handlePaymentElementReady = useCallback( () => {
+		const el = elements?.getElement( 'payment' );
+		if ( el ) {
+			diagnostics.attachAfterReady( el, 'payment' );
+		}
+	}, [ elements ] );
+
 	return (
 		<>
 			{ description && (
@@ -431,12 +438,7 @@ const PaymentProcessor = ( {
 						options={ getStripeElementOptions() }
 						onChange={ onSelectedPaymentMethodChange }
 						onLoadError={ setHasLoadError }
-						onReady={ () => {
-							const el = elements?.getElement( 'payment' );
-							if ( el ) {
-								diagnostics.attachAfterReady( el, 'payment' );
-							}
-						} }
+						onReady={ handlePaymentElementReady }
 						className="wcstripe-payment-element"
 					/>
 					{ paymentMethodId === PAYMENT_METHOD_ACSS && (

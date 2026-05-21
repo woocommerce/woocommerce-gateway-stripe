@@ -1,6 +1,7 @@
 import { ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import { useExpressCheckout } from './hooks';
 import { PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT } from './constants';
+import { useCallback } from '@wordpress/element';
 import {
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
@@ -81,26 +82,73 @@ const ExpressCheckoutComponent = ( {
 			setExpressPaymentError,
 		} );
 
-	const onShippingAddressChange = ( event ) =>
-		shippingAddressChangeHandler( api, event, elements );
+	const onShippingAddressChange = useCallback(
+		( event ) => shippingAddressChangeHandler( api, event, elements ),
+		[ api, elements ]
+	);
 
-	const onShippingRateChange = ( event ) =>
-		shippingRateChangeHandler( api, event, elements );
+	const onShippingRateChange = useCallback(
+		( event ) => shippingRateChangeHandler( api, event, elements ),
+		[ api, elements ]
+	);
 
-	const onElementsReady = ( event ) => {
-		const paymentMethodContainer = document.getElementById(
-			`express-payment-method-${ PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT }_${ expressPaymentMethod }`
-		);
+	const onElementsReady = useCallback(
+		( event ) => {
+			const paymentMethodContainer = document.getElementById(
+				`express-payment-method-${ PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT }_${ expressPaymentMethod }`
+			);
 
-		const availablePaymentMethods = event.availablePaymentMethods || {};
+			const availablePaymentMethods = event.availablePaymentMethods || {};
 
-		if (
-			paymentMethodContainer &&
-			! availablePaymentMethods[ expressPaymentMethod ]
-		) {
-			paymentMethodContainer.remove();
-		}
-	};
+			if (
+				paymentMethodContainer &&
+				! availablePaymentMethods[ expressPaymentMethod ]
+			) {
+				paymentMethodContainer.remove();
+			}
+		},
+		[ expressPaymentMethod ]
+	);
+
+	const handleClick = useCallback(
+		( event ) => {
+			diagnostics.recordExpressEvent( 'click', event );
+			return onButtonClick( event );
+		},
+		[ onButtonClick ]
+	);
+
+	const handleConfirm = useCallback(
+		( event ) => {
+			diagnostics.recordExpressEvent( 'confirm', event );
+			return onConfirm( event );
+		},
+		[ onConfirm ]
+	);
+
+	const handleCancel = useCallback(
+		( event ) => {
+			diagnostics.recordExpressEvent( 'cancel', event );
+			return onCancel( event );
+		},
+		[ onCancel ]
+	);
+
+	const handleShippingAddressChange = useCallback(
+		( event ) => {
+			diagnostics.recordExpressEvent( 'shippingaddresschange', event );
+			return onShippingAddressChange( event );
+		},
+		[ onShippingAddressChange ]
+	);
+
+	const handleShippingRateChange = useCallback(
+		( event ) => {
+			diagnostics.recordExpressEvent( 'shippingratechange', event );
+			return onShippingRateChange( event );
+		},
+		[ onShippingRateChange ]
+	);
 
 	return (
 		<ExpressCheckoutElement
@@ -108,30 +156,12 @@ const ExpressCheckoutComponent = ( {
 				...adjustButtonHeights( buttonOptions, expressPaymentMethod ),
 				...getPaymentMethodsOverride( expressPaymentMethod ),
 			} }
-			onClick={ ( event ) => {
-				diagnostics.recordExpressEvent( 'click', event );
-				return onButtonClick( event );
-			} }
-			onConfirm={ ( event ) => {
-				diagnostics.recordExpressEvent( 'confirm', event );
-				return onConfirm( event );
-			} }
+			onClick={ handleClick }
+			onConfirm={ handleConfirm }
 			onReady={ onElementsReady }
-			onCancel={ ( event ) => {
-				diagnostics.recordExpressEvent( 'cancel', event );
-				return onCancel( event );
-			} }
-			onShippingAddressChange={ ( event ) => {
-				diagnostics.recordExpressEvent(
-					'shippingaddresschange',
-					event
-				);
-				return onShippingAddressChange( event );
-			} }
-			onShippingRateChange={ ( event ) => {
-				diagnostics.recordExpressEvent( 'shippingratechange', event );
-				return onShippingRateChange( event );
-			} }
+			onCancel={ handleCancel }
+			onShippingAddressChange={ handleShippingAddressChange }
+			onShippingRateChange={ handleShippingRateChange }
 		/>
 	);
 };
