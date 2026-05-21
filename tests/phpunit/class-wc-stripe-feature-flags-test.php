@@ -23,6 +23,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * Test for `is_oc_available`.
 	 *
 	 * @param bool $pmc_enabled Whether the Payment Method Configuration API is enabled.
+	 * @param string $filter_function The filter function to apply.
 	 * @param bool   $expected  The expected result.
 	 * @return void
 	 * @dataProvider provide_test_is_oc_available
