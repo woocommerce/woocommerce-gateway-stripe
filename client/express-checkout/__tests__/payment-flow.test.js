@@ -161,6 +161,27 @@ describe( 'handleChangePaymentMethodFlow', () => {
 		).toBe( 0 );
 	} );
 
+	test( 'should route createPaymentMethod rejection through abortPayment', async () => {
+		// Transport-level failure (network down, malformed request, etc.) —
+		// the Stripe SDK rejects rather than resolving with `{ error }`.
+		// Guards that the try/catch around createPaymentMethod routes the
+		// rejection through handlePaymentFlowException rather than letting
+		// it escape as an unhandled rejection.
+		stripe.createPaymentMethod.mockRejectedValue(
+			new Error( 'Network failure' )
+		);
+
+		await handleChangePaymentMethodFlow( {
+			stripe,
+			elements,
+			abortPayment,
+			event,
+		} );
+
+		expect( abortPayment ).toHaveBeenCalled();
+		expect( abortPayment.mock.calls[ 0 ][ 1 ] ).toBe( 'Network failure' );
+	} );
+
 	test( 'should abort when no form is found', async () => {
 		// Remove all forms from the DOM.
 		document.body.innerHTML = '<div>no form here</div>';
@@ -180,6 +201,7 @@ describe( 'handleChangePaymentMethodFlow', () => {
 			event,
 			'Could not find the checkout form.'
 		);
+		expect( stripe.createPaymentMethod ).not.toHaveBeenCalled();
 	} );
 
 	test( 'should handle missing expressPaymentType gracefully', async () => {
@@ -283,6 +305,27 @@ describe( 'handleManualPaymentMethodFlow', () => {
 
 	afterEach( () => {
 		jest.clearAllMocks();
+	} );
+
+	test( 'should route createPaymentMethod rejection through abortPayment', async () => {
+		// Transport-level failure path: SDK rejects rather than returning
+		// `{ error }`. Guards that handlePaymentFlowException catches it and
+		// completePayment is never reached.
+		stripe.createPaymentMethod.mockRejectedValue(
+			new Error( 'Network failure' )
+		);
+
+		await handleManualPaymentMethodFlow( {
+			api,
+			stripe,
+			elements,
+			completePayment,
+			abortPayment,
+			event,
+		} );
+
+		expect( abortPayment ).toHaveBeenCalled();
+		expect( completePayment ).not.toHaveBeenCalled();
 	} );
 
 	test( 'should abort when createPaymentMethod returns an error', async () => {
@@ -413,6 +456,27 @@ describe( 'handleConfirmationTokenFlow', () => {
 
 	afterEach( () => {
 		jest.clearAllMocks();
+	} );
+
+	test( 'should route createConfirmationToken rejection through abortPayment', async () => {
+		// Transport-level failure path: SDK rejects rather than returning
+		// `{ error }`. Guards that handlePaymentFlowException catches it and
+		// completePayment is never reached.
+		stripe.createConfirmationToken.mockRejectedValue(
+			new Error( 'Network failure' )
+		);
+
+		await handleConfirmationTokenFlow( {
+			api,
+			stripe,
+			elements,
+			completePayment,
+			abortPayment,
+			event,
+		} );
+
+		expect( abortPayment ).toHaveBeenCalled();
+		expect( completePayment ).not.toHaveBeenCalled();
 	} );
 
 	test( 'should abort when createConfirmationToken returns an error', async () => {
