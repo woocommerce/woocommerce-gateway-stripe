@@ -60,11 +60,38 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		$args = $this->captured_requests[0]['args'];
 
 		$this->assertStringStartsWith( 'https://public-api.wordpress.com/wpcom/v2/woocommerce/stripe/remote-config', $url );
-		$this->assertStringContainsString( 'mode=live', $url );
-		$this->assertStringContainsString( 'plugin_version=' . WC_STRIPE_VERSION, $url );
 		$this->assertTrue( $args['sslverify'] );
 		$this->assertSame( 'GET', $args['method'] );
 		$this->assertSame( 10, $args['timeout'] );
+	}
+
+	public function test_fetch_sends_store_identity_query_params(): void {
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, [ 'country' => 'US' ], DAY_IN_SECONDS, 'live' );
+
+		$this->client->fetch( 'live' );
+
+		$query = [];
+		wp_parse_str( (string) wp_parse_url( $this->captured_requests[0]['url'], PHP_URL_QUERY ), $query );
+
+		$this->assertSame( 'live', $query['mode'] );
+		$this->assertSame( WC_STRIPE_VERSION, $query['plugin_version'] );
+		$this->assertSame( WC_VERSION, $query['wc_version'] );
+		$this->assertSame( 'US', $query['account_country'] );
+		$this->assertSame( get_woocommerce_currency(), $query['store_currency'] );
+		$this->assertSame( '0', $query['subscriptions_enabled'] );
+		$this->assertSame( '0', $query['pre_orders_enabled'] );
+
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'live' );
+	}
+
+	public function test_fetch_omits_account_country_when_cache_missing(): void {
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'live' );
+
+		$this->client->fetch( 'live' );
+
+		$query = [];
+		wp_parse_str( (string) wp_parse_url( $this->captured_requests[0]['url'], PHP_URL_QUERY ), $query );
+		$this->assertArrayNotHasKey( 'account_country', $query );
 	}
 
 	public function test_fetch_short_circuits_when_disabled_by_filter(): void {
