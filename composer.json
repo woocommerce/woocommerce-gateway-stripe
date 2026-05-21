@@ -33,7 +33,17 @@
         "includes/admin/class-wc-stripe-rest-base-controller.php",
         "includes/agentic-commerce/",
         "includes/ajax-handlers/",
-        "includes/diagnostics/"
+        "includes/class-wc-stripe-co-branded-cc-compatibility.php",
+        "includes/class-wc-stripe-exception.php",
+        "includes/class-wc-stripe-payment-cancelled-exception.php",
+        "includes/class-wc-stripe-upe-compatibility.php",
+        "includes/compat/class-wc-stripe-woo-compat-utils.php",
+        "includes/constants/",
+        "includes/diagnostics/",
+        "includes/migrations/class-wc-stripe-express-checkout-add-change-payment-method-location-update.php",
+        "includes/payment-methods/class-wc-stripe-express-checkout-custom-fields.php",
+        "includes/payment-tokens/interface-wc-stripe-payment-method-comparison.php",
+        "includes/payment-tokens/trait-wc-stripe-fingerprint.php"
       ]
     },
     "autoload-dev": {

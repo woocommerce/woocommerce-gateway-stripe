@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.7
 Tested up to: 6.9.4
 Requires PHP: 7.4
-Stable tag: 10.6.1
+Stable tag: 10.7.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -152,6 +152,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.8.0 - xxxx-xx-xx =
+* Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Link)
+* Add - Add a setting to control whether Express Checkout is shown on the WooCommerce Subscriptions change payment method page
+* Fix - Prevent Stripe API calls from failing due to DNS resolution issues
 * Fix - Improve handling of skipped products and in-flight syncs in Agentic Commerce sync dashboard
 * Fix - Make the "Update now" link in the account status tooltip clickable and improve its contrast against the tooltip background
 * Dev - Add Jurassic Ninja preview link for PRs to enable one-click browser testing
@@ -159,6 +162,16 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Exclude AGENTS.md and CLAUDE.md contributor-instruction files from the built plugin zip
 * Add - Append a "what's new" changelog link to the Updated! message after manually updating the plugin from the Plugins page
 * Add - Implement diagnostic mode to help debug checkout issues
+* Fix - Dismissible subscription detached admin notices
+* Dev - Skip Agentic Commerce catalog upload when content is unchanged
+* Dev - Align Agentic Commerce sync status UI with the WordPress design system
+* Add - Add a "Release notes" link to the WooCommerce Stripe row on the Plugins page that opens the changelog modal
 * Fix - Add guards against invalid values for webhook state timestamps
+* Fix - Show better message when express checkout preview is not available
+* Dev - Remove redundant `get_retrievable_type()` overrides from payment methods
+* Dev - Add Claude Code skills and review rules under .claude/ to capture repo-specific contributor guidance
+* Dev - Move some independent classes into autoloader
+* Dev - Add Jest tests for ECE payment flow
+* Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

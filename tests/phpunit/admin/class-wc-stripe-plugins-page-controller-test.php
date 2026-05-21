@@ -23,6 +23,8 @@ class WC_Stripe_Plugins_Page_Controller_Test extends WP_UnitTestCase {
 		wp_dequeue_script( 'thickbox' );
 		wp_dequeue_style( 'thickbox' );
 
+		delete_site_transient( 'update_plugins' );
+
 		parent::tearDown();
 	}
 
@@ -70,8 +72,8 @@ class WC_Stripe_Plugins_Page_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests that the "Updated!" changelog link relies on thickbox being enqueued
-	 * so the plugin information modal can open from the plugins.php page.
+	 * Tests that thickbox is enqueued on plugins.php so the plugin information
+	 * modal opened by the "Release notes" link can render.
 	 *
 	 * @return void
 	 */
@@ -82,6 +84,95 @@ class WC_Stripe_Plugins_Page_Controller_Test extends WP_UnitTestCase {
 
 		$this->assertTrue( wp_script_is( 'thickbox', 'enqueued' ) );
 		$this->assertTrue( wp_style_is( 'thickbox', 'enqueued' ) );
+	}
+
+	/**
+	 * Tests that the "Release Notes" plugin row meta link is appended only for
+	 * the WooCommerce Stripe plugin file, and points at the changelog tab of
+	 * the WordPress plugin information modal.
+	 *
+	 * @return void
+	 */
+	public function test_add_release_notes_link_appends_link_for_stripe_plugin_only(): void {
+		$controller = $this->get_mock_controller();
+
+		$other_plugin_links = $controller->add_release_notes_link( [ 'docs' => '<a>Docs</a>' ], 'some-other/some-other.php' );
+		$this->assertSame( [ 'docs' => '<a>Docs</a>' ], $other_plugin_links );
+
+		$stripe_links = $controller->add_release_notes_link( [], plugin_basename( WC_STRIPE_MAIN_FILE ) );
+		$this->assertArrayHasKey( 'wc_stripe_release_notes', $stripe_links );
+
+		$link_html = $stripe_links['wc_stripe_release_notes'];
+		$this->assertStringContainsString( '>Release notes<', $link_html );
+		$this->assertStringContainsString( 'thickbox', $link_html );
+		$this->assertStringContainsString( 'open-plugin-details-modal', $link_html );
+		$this->assertStringContainsString( 'tab=plugin-information', $link_html );
+		$this->assertStringContainsString( 'plugin=woocommerce-gateway-stripe', $link_html );
+		$this->assertStringContainsString( 'section=changelog', $link_html );
+		$this->assertStringContainsString( 'TB_iframe=true', $link_html );
+	}
+
+	/**
+	 * Tests that the "Release notes" link is omitted when WordPress has staged
+	 * an available update for the Stripe plugin, so it does not duplicate the
+	 * core "View details" link and does not surface notes for a not-yet-installed version.
+	 *
+	 * @return void
+	 */
+	public function test_add_release_notes_link_skipped_when_update_is_pending(): void {
+		$basename = plugin_basename( WC_STRIPE_MAIN_FILE );
+
+		set_site_transient(
+			'update_plugins',
+			(object) [
+				'response' => [
+					$basename => (object) [ 'new_version' => '999.0.0' ],
+				],
+			]
+		);
+
+		$controller = $this->get_mock_controller();
+		$result     = $controller->add_release_notes_link( [], $basename );
+
+		$this->assertArrayNotHasKey( 'wc_stripe_release_notes', $result );
+	}
+
+	/**
+	 * Tests that `add_release_notes_link()` honors its `array` return type when
+	 * another `plugin_row_meta` filter callback hands it a non-array value, so
+	 * the method does not fatal under a misbehaving filter chain.
+	 *
+	 * @dataProvider provide_non_array_links
+	 *
+	 * @param mixed $links Value a misbehaving upstream filter could return.
+	 *
+	 * @return void
+	 */
+	public function test_add_release_notes_link_normalizes_non_array_links( $links ): void {
+		$controller = $this->get_mock_controller();
+
+		$other_plugin = $controller->add_release_notes_link( $links, 'some-other/some-other.php' );
+		$this->assertIsArray( $other_plugin );
+		$this->assertArrayNotHasKey( 'wc_stripe_release_notes', $other_plugin );
+
+		$stripe = $controller->add_release_notes_link( $links, plugin_basename( WC_STRIPE_MAIN_FILE ) );
+		$this->assertIsArray( $stripe );
+		$this->assertArrayHasKey( 'wc_stripe_release_notes', $stripe );
+	}
+
+	/**
+	 * Data provider for `test_add_release_notes_link_normalizes_non_array_links`.
+	 *
+	 * @return array<string, array{0: mixed}>
+	 */
+	public function provide_non_array_links(): array {
+		return [
+			'null'         => [ null ],
+			'false'        => [ false ],
+			'empty string' => [ '' ],
+			'string'       => [ 'unexpected' ],
+			'integer'      => [ 0 ],
+		];
 	}
 
 	/**

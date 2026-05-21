@@ -134,6 +134,8 @@ This repository supports:
 - E2E details: `tests/e2e/README.md`
 - API details: `docs/api/README.md`
 - Agentic Commerce feed context: `includes/agentic-commerce/README.md`
+- Repo-specific review checklist: `.claude/review-rules.md`
+- Claude Code skills (invoked via `/<skill-name>`): `.claude/skills/`
 
 ## Directory-Specific Instructions
 

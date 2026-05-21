@@ -247,7 +247,10 @@ class WC_Stripe_API {
 			]
 		);
 
-		$response = wp_safe_remote_post(
+		// Use wp_remote_post() instead of wp_safe_remote_post() as we have a hard-coded URL
+		// and the safe version fails when there are DNS resolution issues.
+		// See https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4801
+		$response = wp_remote_post(
 			self::ENDPOINT . $api,
 			[
 				'method'  => $method,
@@ -338,7 +341,10 @@ class WC_Stripe_API {
 			]
 		);
 
-		$response = wp_safe_remote_get(
+		// Use wp_remote_get() instead of wp_safe_remote_get() as we have a hard-coded URL
+		// and the safe version fails when there are DNS resolution issues.
+		// See https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4801
+		$response = wp_remote_get(
 			self::ENDPOINT . $api,
 			[
 				'method'  => 'GET',
