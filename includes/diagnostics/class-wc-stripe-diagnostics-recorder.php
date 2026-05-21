@@ -24,9 +24,9 @@ defined( 'ABSPATH' ) || exit;
  */
 class WC_Stripe_Diagnostics_Recorder {
 
-	const SESSION_ID_META_KEY   = 'wc_diag_session_id';
-	const SESSION_KEY           = 'wc_stripe_diag_session_id';
-	const METADATA_ENABLED_APIS = [ 'payment_intents', 'setup_intents', 'customers' ];
+	public const SESSION_ID_META_KEY   = 'wc_diag_session_id';
+	public const SESSION_KEY           = 'wc_stripe_diag_session_id';
+	public const METADATA_ENABLED_APIS = [ 'payment_intents', 'setup_intents', 'customers' ];
 
 	/**
 	 * Singleton instance.

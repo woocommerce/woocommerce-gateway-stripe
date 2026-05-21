@@ -23,19 +23,19 @@ defined( 'ABSPATH' ) || exit;
  */
 class WC_Stripe_Diagnostics_Trace_Store {
 
-	const STORAGE_SUBDIR = 'wc-stripe-diagnostics';
-	const INDEX_FILENAME = 'index.json';
-	const LOCK_FILENAME  = '.index.lock';
-	const TRACE_SUFFIX   = '.json';
+	public const STORAGE_SUBDIR = 'wc-stripe-diagnostics';
+	public const INDEX_FILENAME = 'index.json';
+	public const LOCK_FILENAME  = '.index.lock';
+	public const TRACE_SUFFIX   = '.json';
 
-	const MAX_TRACES           = 200;
-	const MAX_EVENTS_PER_TRACE = 200;
-	const MAX_TRACE_BYTES      = 102400; // 100 KB.
+	public const MAX_TRACES           = 200;
+	public const MAX_EVENTS_PER_TRACE = 200;
+	public const MAX_TRACE_BYTES      = 102400; // 100 KB.
 
-	const STATUS_PENDING   = 'pending';
-	const STATUS_COMPLETED = 'completed';
-	const STATUS_ABANDONED = 'abandoned';
-	const STATUS_FAILED    = 'failed';
+	public const STATUS_PENDING   = 'pending';
+	public const STATUS_COMPLETED = 'completed';
+	public const STATUS_ABANDONED = 'abandoned';
+	public const STATUS_FAILED    = 'failed';
 
 	/**
 	 * Cached absolute path (with trailing slash) to the trace storage dir.

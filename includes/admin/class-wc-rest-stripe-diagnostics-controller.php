@@ -13,14 +13,14 @@ defined( 'ABSPATH' ) || exit;
  */
 class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 
-	const SETTINGS_OPTION = 'woocommerce_stripe_settings';
-	const SETTINGS_KEY    = 'diagnostics';
+	public const SETTINGS_OPTION = 'woocommerce_stripe_settings';
+	public const SETTINGS_KEY    = 'diagnostics';
 
-	const CAPTURE_LIMIT_KEY     = 'diagnostics_capture_limit';
-	const DEFAULT_CAPTURE_LIMIT = 10;
+	public const CAPTURE_LIMIT_KEY     = 'diagnostics_capture_limit';
+	public const DEFAULT_CAPTURE_LIMIT = 10;
 	// Auto-off is mandatory; the REST enum and `capture_limit()` both rely on
 	// this list being a finite set of positive integers.
-	const CAPTURE_LIMIT_PRESETS = [ 5, 10, 25, 50 ];
+	public const CAPTURE_LIMIT_PRESETS = [ 5, 10, 25, 50 ];
 
 	protected $namespace = 'wc/v3';
 	protected $rest_base = 'wc_stripe/diagnostics';

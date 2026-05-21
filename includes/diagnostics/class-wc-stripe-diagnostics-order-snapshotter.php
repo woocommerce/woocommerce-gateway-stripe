@@ -31,12 +31,12 @@ defined( 'ABSPATH' ) || exit;
  */
 class WC_Stripe_Diagnostics_Order_Snapshotter {
 
-	const ACTION           = 'wc_stripe_diagnostics_trace_finalized';
-	const MAX_LINE_ITEMS   = 20;
-	const MAX_NOTES        = 20;
-	const NOTE_BODY_MAX    = 500;
-	const PRODUCT_NAME_MAX = 80;
-	const MAX_COUPONS      = 10;
+	public const ACTION           = 'wc_stripe_diagnostics_trace_finalized';
+	public const MAX_LINE_ITEMS   = 20;
+	public const MAX_NOTES        = 20;
+	public const NOTE_BODY_MAX    = 500;
+	public const PRODUCT_NAME_MAX = 80;
+	public const MAX_COUPONS      = 10;
 
 	/**
 	 * Session ids that finalized during this request and are pending
