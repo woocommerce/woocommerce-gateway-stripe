@@ -57,9 +57,21 @@ class WC_Stripe_UPE_Payment_Method_Link_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_is_available_for_account_country
 	 */
 	public function test_is_available_for_account_country( string $account_country, bool $expected_result ): void {
-		$mock_link_payment_method = $this->createTestProxy( WC_Stripe_UPE_Payment_Method_Link::class );
+		$mock_account = $this->createMock( WC_Stripe_Account::class );
+		$mock_account->method( 'get_account_country' )->willReturn( $account_country );
 
-		$this->assertSame( $expected_result, $mock_link_payment_method->is_available_for_account_country( $expected_result ) );
+		$wc_stripe = WC_Stripe::get_instance();
+
+		$initial_account = $wc_stripe->account;
+		try {
+			$wc_stripe->account = $mock_account;
+
+			$mock_link_payment_method = $this->createTestProxy( WC_Stripe_UPE_Payment_Method_Link::class );
+
+			$this->assertSame( $expected_result, $mock_link_payment_method->is_available_for_account_country() );
+		} finally {
+			$wc_stripe->account = $initial_account;
+		}
 	}
 
 	/**
@@ -75,6 +87,7 @@ class WC_Stripe_UPE_Payment_Method_Link_Test extends WP_UnitTestCase {
 			'JP is supported'     => [ WC_Stripe_Country_Code::JAPAN, true ],
 			'BR is not supported' => [ WC_Stripe_Country_Code::BRAZIL, false ],
 			'TH is not supported' => [ WC_Stripe_Country_Code::THAILAND, false ],
+			'ZZ is supported'     => [ 'ZZ', true ],
 		];
 	}
 }
