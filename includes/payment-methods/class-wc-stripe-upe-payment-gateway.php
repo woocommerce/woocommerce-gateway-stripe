@@ -103,10 +103,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Should SEPA tokens be used for other payment methods (iDEAL and Bancontact).
 	 *
-	 * Kept as a private property so external code that previously set or read
-	 * this hits __set / __get and gets a loud `wc_deprecated_function` notice
-	 * (the doc-only `@deprecated` was too quiet). Replaced by
-	 * `$sepa_tokens_for_ideal` and `$sepa_tokens_for_bancontact`.
+	 * Previously public property that is now accessed via `__get()` after deprecation.
 	 *
 	 * @var bool
 	 *
