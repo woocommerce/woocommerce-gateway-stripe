@@ -206,6 +206,58 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Regression test for https://github.com/woocommerce/woocommerce-gateway-stripe/pull/5337
+	 * We must not use wp_safe_remote_post(), as the calls can fail when the host's DNS resolution is flaky.
+	 */
+	public function test_request_does_not_use_safe_remote_http() {
+		$captured_args = null;
+
+		$capture_filter = function ( $return_value, $parsed_args ) use ( &$captured_args ) {
+			$captured_args = $parsed_args;
+			return $this->mock_successful_response();
+		};
+		add_filter( 'pre_http_request', $capture_filter, 10, 2 );
+
+		try {
+			WC_Stripe_API::request( [], 'test_endpoint', 'POST' );
+		} finally {
+			remove_filter( 'pre_http_request', $capture_filter, 10 );
+		}
+
+		$this->assertIsArray( $captured_args );
+		$this->assertNotTrue(
+			$captured_args['reject_unsafe_urls'] ?? false,
+			'Stripe API POST requests must not set reject_unsafe_urls.'
+		);
+	}
+
+	/**
+	 * Regression test for https://github.com/woocommerce/woocommerce-gateway-stripe/pull/5337
+	 * We must not use wp_safe_remote_get() as the calls can fail when the host's DNS resolution is flaky.
+	 */
+	public function test_retrieve_does_not_use_safe_remote_http() {
+		$captured_args = null;
+
+		$capture_filter = function ( $return_value, $parsed_args ) use ( &$captured_args ) {
+			$captured_args = $parsed_args;
+			return $this->mock_successful_response();
+		};
+		add_filter( 'pre_http_request', $capture_filter, 10, 2 );
+
+		try {
+			WC_Stripe_API::retrieve( 'test_endpoint' );
+		} finally {
+			remove_filter( 'pre_http_request', $capture_filter, 10 );
+		}
+
+		$this->assertIsArray( $captured_args );
+		$this->assertNotTrue(
+			$captured_args['reject_unsafe_urls'] ?? false,
+			'Stripe API GET requests must not set reject_unsafe_urls.'
+		);
+	}
+
+	/**
 	 * Test WC_Stripe_API::log_error_response() as called from WC_Stripe_API::request() and WC_Stripe_API::retrieve().
 	 *
 	 * @param array|WP_Error $response     The mock response.

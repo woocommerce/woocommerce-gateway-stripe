@@ -295,4 +295,98 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 			'signature mismatch' => [ 'signature_mismatch', '/was not signed with the expected signing secret/', false ],
 		];
 	}
+
+	/**
+	 * Tests the integer getter methods correctly return integer values
+	 * for stored integer and stringified integer values.
+	 *
+	 * @param string     $option_constant Constant name on WC_Stripe_Webhook_State that references the option name.
+	 * @param string     $getter_method   Static getter under test.
+	 * @param int|string $stored_value    Value to store via update_option.
+	 * @param int        $expected        Expected return value.
+	 * @dataProvider provide_integer_getter_integer_values
+	 */
+	public function test_integer_getters_coerce_integer_values( string $option_constant, string $getter_method, $stored_value, int $expected ) {
+		$this->set_testmode( 'no' );
+		$option_name = constant( 'WC_Stripe_Webhook_State::' . $option_constant );
+		update_option( $option_name, $stored_value );
+
+		$actual = call_user_func( [ 'WC_Stripe_Webhook_State', $getter_method ] );
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Data provider for {@see test_integer_getters_coerce_integer_values()}.
+	 *
+	 * @return array
+	 */
+	public function provide_integer_getter_integer_values(): array {
+		$getters = [
+			[ 'OPTION_LIVE_LAST_SUCCESS_AT', 'get_last_webhook_success_at' ],
+			[ 'OPTION_LIVE_LAST_FAILURE_AT', 'get_last_webhook_failure_at' ],
+			[ 'OPTION_LIVE_PENDING_WEBHOOKS', 'get_pending_webhooks_count' ],
+		];
+
+		$cases = [];
+		foreach ( $getters as [ $option_constant, $method ] ) {
+			$cases[ $method . ' / integer' ]             = [ $option_constant, $method, 1234567890, 1234567890 ];
+			$cases[ $method . ' / stringified integer' ] = [ $option_constant, $method, '1234567890', 1234567890 ];
+			$cases[ $method . ' / zero integer' ]        = [ $option_constant, $method, 0, 0 ];
+			$cases[ $method . ' / stringified zero' ]    = [ $option_constant, $method, '0', 0 ];
+		}
+
+		return $cases;
+	}
+
+	/**
+	 * Tests that the integer getters return 0 for any non-integer stored value.
+	 *
+	 * @param string $option_constant Constant suffix on WC_Stripe_Webhook_State for the option name.
+	 * @param string $getter_method   Static getter under test.
+	 * @param mixed  $stored_value    Value to store via update_option.
+	 * @dataProvider provide_integer_getter_non_integer_values
+	 */
+	public function test_integer_getters_return_zero_for_non_integer_values( string $option_constant, string $getter_method, $stored_value ) {
+		$this->set_testmode( 'no' );
+		$option_name = constant( 'WC_Stripe_Webhook_State::' . $option_constant );
+		update_option( $option_name, $stored_value );
+
+		$actual = call_user_func( [ 'WC_Stripe_Webhook_State', $getter_method ] );
+		$this->assertSame( 0, $actual );
+	}
+
+	/**
+	 * Data provider for {@see test_integer_getters_return_zero_for_non_integer_values()}.
+	 *
+	 * @return array
+	 */
+	public function provide_integer_getter_non_integer_values(): array {
+		$getters = [
+			[ 'OPTION_LIVE_LAST_SUCCESS_AT', 'get_last_webhook_success_at' ],
+			[ 'OPTION_LIVE_LAST_FAILURE_AT', 'get_last_webhook_failure_at' ],
+			[ 'OPTION_LIVE_PENDING_WEBHOOKS', 'get_pending_webhooks_count' ],
+		];
+
+		$invalid_values = [
+			'negative integer string' => '-1',
+			'float'                   => 1.5,
+			'float string'            => '1.5',
+			'leading whitespace'      => ' 123',
+			'trailing whitespace'     => '123 ',
+			'alphabetic string'       => 'abc',
+			'alphanumeric string'     => '123abc',
+			'empty string'            => '',
+			// Note: true is stored as '1' in the database, so it's handled as an integer.
+			'boolean false'           => false,
+		];
+
+		$cases = [];
+		foreach ( $getters as [ $option_constant, $method ] ) {
+			foreach ( $invalid_values as $description => $value ) {
+				$cases[ $method . ' / ' . $description ] = [ $option_constant, $method, $value ];
+			}
+		}
+
+		return $cases;
+	}
 }

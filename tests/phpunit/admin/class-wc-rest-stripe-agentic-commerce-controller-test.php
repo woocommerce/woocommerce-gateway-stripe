@@ -699,7 +699,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 	/**
 	 * GET /status refreshes entries with non-terminal statuses (queued, validating,
-	 * pending, creating_records, unknown).
+	 * validating_records, pending, creating_records, unknown).
 	 *
 	 * @dataProvider provide_non_terminal_statuses
 	 */
@@ -753,11 +753,12 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function provide_non_terminal_statuses(): array {
 		return [
-			'queued'           => [ 'queued' ],
-			'validating'       => [ 'validating' ],
-			'pending'          => [ 'pending' ],
-			'creating_records' => [ 'creating_records' ],
-			'unknown'          => [ 'unknown' ],
+			'queued'             => [ 'queued' ],
+			'validating'         => [ 'validating' ],
+			'validating_records' => [ 'validating_records' ],
+			'pending'            => [ 'pending' ],
+			'creating_records'   => [ 'creating_records' ],
+			'unknown'            => [ 'unknown' ],
 		];
 	}
 
@@ -805,6 +806,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 			'succeeded'             => [ 'succeeded' ],
 			'failed'                => [ 'failed' ],
 			'succeeded_with_errors' => [ 'succeeded_with_errors' ],
+			'pending_archive'       => [ 'pending_archive' ],
+			'archived'              => [ 'archived' ],
 		];
 	}
 

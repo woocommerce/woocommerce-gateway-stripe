@@ -22,7 +22,8 @@
         "woocommerce/woocommerce-sniffs": "1.0.0",
         "wp-cli/wp-cli-bundle": "^2.12",
         "yoast/phpunit-polyfills": "^2.0",
-        "brianium/paratest": "^6.0"
+        "brianium/paratest": "^6.0",
+        "nikic/php-parser": "^5.7"
     },
     "autoload": {
       "classmap": [
@@ -32,7 +33,17 @@
         "includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php",
         "includes/admin/class-wc-rest-stripe-exit-survey-controller.php",
         "includes/admin/class-wc-stripe-plugins-page-controller.php",
-        "includes/class-wc-stripe-api-outage-status.php"
+        "includes/class-wc-stripe-api-outage-status.php",
+        "includes/class-wc-stripe-co-branded-cc-compatibility.php",
+        "includes/class-wc-stripe-exception.php",
+        "includes/class-wc-stripe-payment-cancelled-exception.php",
+        "includes/class-wc-stripe-upe-compatibility.php",
+        "includes/compat/class-wc-stripe-woo-compat-utils.php",
+        "includes/constants/",
+        "includes/migrations/class-wc-stripe-express-checkout-add-change-payment-method-location-update.php",
+        "includes/payment-methods/class-wc-stripe-express-checkout-custom-fields.php",
+        "includes/payment-tokens/interface-wc-stripe-payment-method-comparison.php",
+        "includes/payment-tokens/trait-wc-stripe-fingerprint.php"
       ]
     },
     "autoload-dev": {

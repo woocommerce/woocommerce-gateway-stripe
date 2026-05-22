@@ -7,6 +7,7 @@ import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
 import Tooltip from 'wcstripe/components/tooltip';
 import { useAccount } from 'wcstripe/data/account';
+import { useIsPMCEnabled } from 'wcstripe/data';
 import { WebhookDescription } from 'wcstripe/components/webhook-description';
 
 const AccountDetailsContainer = styled.div`
@@ -102,28 +103,36 @@ const PayoutsSection = () => {
 	);
 };
 
-const WebhooksSection = () => {
-	const { data } = useAccount();
-	const isWebhookEnabled = Boolean( data.is_webhook_enabled );
+const WebhooksSection = ( { isWebhookEnabled } ) => (
+	<AccountSection>
+		<Label>{ __( 'Webhook', 'woocommerce-gateway-stripe' ) }</Label>
+		<SectionStatus isEnabled={ isWebhookEnabled }>
+			{ isWebhookEnabled
+				? __( 'Enabled', 'woocommerce-gateway-stripe' )
+				: __( 'Disabled', 'woocommerce-gateway-stripe' ) }
+		</SectionStatus>
+	</AccountSection>
+);
+
+const SyncSection = () => {
+	const isPMCEnabled = useIsPMCEnabled();
 
 	return (
-		<>
-			<AccountSection>
-				<Label>{ __( 'Webhook', 'woocommerce-gateway-stripe' ) }</Label>
-				<SectionStatus isEnabled={ isWebhookEnabled }>
-					{ isWebhookEnabled
-						? __( 'Enabled', 'woocommerce-gateway-stripe' )
-						: __( 'Disabled', 'woocommerce-gateway-stripe' ) }
-				</SectionStatus>
-			</AccountSection>
-			<WebhookDescription isWebhookEnabled={ isWebhookEnabled } />
-		</>
+		<AccountSection>
+			<Label>{ __( 'Sync', 'woocommerce-gateway-stripe' ) }</Label>
+			<SectionStatus isEnabled={ isPMCEnabled }>
+				{ isPMCEnabled
+					? __( 'Enabled', 'woocommerce-gateway-stripe' )
+					: __( 'Disabled', 'woocommerce-gateway-stripe' ) }
+			</SectionStatus>
+		</AccountSection>
 	);
 };
 
 const AccountDetails = () => {
 	const { data } = useAccount();
 	const isTestModeEnabled = Boolean( data.testmode );
+	const isWebhookEnabled = Boolean( data.is_webhook_enabled );
 
 	const hasAccountError = Object.keys( data.account ?? {} ).length === 0;
 	if ( hasAccountError ) {
@@ -153,7 +162,9 @@ const AccountDetails = () => {
 		<AccountDetailsContainer>
 			<PaymentsSection />
 			<PayoutsSection />
-			<WebhooksSection />
+			<WebhooksSection isWebhookEnabled={ isWebhookEnabled } />
+			<SyncSection />
+			<WebhookDescription isWebhookEnabled={ isWebhookEnabled } />
 		</AccountDetailsContainer>
 	);
 };

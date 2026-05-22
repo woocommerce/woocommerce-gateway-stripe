@@ -1,3 +1,4 @@
+import jQuery from 'jquery';
 import { getErrorMessageFromNotice, normalizeOrderData } from './utils';
 import { __ } from '@wordpress/i18n';
 
@@ -138,15 +139,15 @@ export const handleManualPaymentMethodFlow = async ( {
 	order = 0,
 	orderDetails = {},
 } ) => {
-	const { paymentMethod, error } = await stripe.createPaymentMethod( {
-		elements,
-	} );
-
-	if ( error ) {
-		return abortPayment( event, error.message );
-	}
-
 	try {
+		const { paymentMethod, error } = await stripe.createPaymentMethod( {
+			elements,
+		} );
+
+		if ( error ) {
+			return abortPayment( event, error.message );
+		}
+
 		// Kick off checkout processing step.
 		const { result, errorMessage, redirect } = await processOrder( {
 			api,
@@ -206,20 +207,21 @@ export const handleConfirmationTokenFlow = async ( {
 	order = 0,
 	orderDetails = {},
 } ) => {
-	// Create a ConfirmationToken that we can use later to create and confirm the payment intent.
-	const { error, confirmationToken } = await stripe.createConfirmationToken( {
-		elements,
-	} );
-
-	if ( error ) {
-		return abortPayment(
-			event,
-			getErrorMessageFromNotice( error.message ),
-			true
-		);
-	}
-
 	try {
+		// Create a ConfirmationToken that we can use later to create and confirm the payment intent.
+		const { error, confirmationToken } =
+			await stripe.createConfirmationToken( {
+				elements,
+			} );
+
+		if ( error ) {
+			return abortPayment(
+				event,
+				getErrorMessageFromNotice( error.message ),
+				true
+			);
+		}
+
 		const { result, errorMessage, redirect } = await processOrder( {
 			api,
 			event,
@@ -247,6 +249,91 @@ export const handleConfirmationTokenFlow = async ( {
 
 			completePayment( redirectUrl );
 		}
+	} catch ( e ) {
+		return handlePaymentFlowException( event, e, abortPayment );
+	}
+};
+
+/**
+ * Handles the Express Checkout payment flow for changing a subscription's payment method.
+ * Creates a Stripe payment method from the Elements, populates the checkout form hidden
+ * fields, and submits the form to let WooCommerce process the payment method change.
+ *
+ * @param {Object}   params
+ * @param {Object}   params.stripe       The Stripe.js instance.
+ * @param {Object}   params.elements     The Stripe Elements instance.
+ * @param {Function} params.abortPayment Callback to abort the payment with an error message.
+ * @param {Object}   params.event        The Stripe express checkout event.
+ * @return {Promise<void>}  Resolves when the form has been submitted or the payment has been aborted.
+ */
+export const handleChangePaymentMethodFlow = async ( {
+	stripe,
+	elements,
+	abortPayment,
+	event,
+} ) => {
+	try {
+		// Resolve the target form before talking to Stripe so we don't pay for an
+		// API round-trip on shopper-facing pages where the form never renders.
+		const form = jQuery( 'form#order_review, form.checkout' );
+		if ( ! form.length ) {
+			return abortPayment(
+				event,
+				__(
+					'Could not find the checkout form.',
+					'woocommerce-gateway-stripe'
+				)
+			);
+		}
+
+		const { paymentMethod, error } = await stripe.createPaymentMethod( {
+			elements,
+		} );
+
+		if ( error ) {
+			return abortPayment( event, error.message );
+		}
+
+		// Populate the hidden fields that the UPE gateway expects.
+		const paymentMethodInput = form.find(
+			'input[name="wc-stripe-payment-method"]'
+		);
+		if ( paymentMethodInput.length ) {
+			paymentMethodInput.val( paymentMethod.id );
+		} else {
+			form.append(
+				jQuery( '<input>' )
+					.attr( 'type', 'hidden' )
+					.attr( 'name', 'wc-stripe-payment-method' )
+					.val( paymentMethod.id )
+			);
+		}
+
+		// Set the express checkout type so the backend knows this came from ECE.
+		const expressTypeInput = form.find(
+			'input[name="express_checkout_type"]'
+		);
+		if ( expressTypeInput.length ) {
+			expressTypeInput.val( event.expressPaymentType ?? '' );
+		} else {
+			form.append(
+				jQuery( '<input>' )
+					.attr( 'type', 'hidden' )
+					.attr( 'name', 'express_checkout_type' )
+					.val( event.expressPaymentType ?? '' )
+			);
+		}
+
+		// Ensure the payment method is set to stripe.
+		const paymentGatewayInput = form.find(
+			'input[name="payment_method"][value="stripe"]'
+		);
+		if ( paymentGatewayInput.length ) {
+			paymentGatewayInput.prop( 'checked', true );
+		}
+
+		// Submit the form — the server-side handler processes the SetupIntent.
+		form.trigger( 'submit' );
 	} catch ( e ) {
 		return handlePaymentFlowException( event, e, abortPayment );
 	}
