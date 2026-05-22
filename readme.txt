@@ -153,6 +153,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.8.0 - xxxx-xx-xx =
 * Add - Show Apple Pay / Google Pay branding on saved card tokens in My Account → Payment Methods and at checkout
+* Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Link)
+* Add - Add a setting to control whether Express Checkout is shown on the WooCommerce Subscriptions change payment method page
 * Fix - Prevent Stripe API calls from failing due to DNS resolution issues
 * Fix - Improve handling of skipped products and in-flight syncs in Agentic Commerce sync dashboard
 * Fix - Make the "Update now" link in the account status tooltip clickable and improve its contrast against the tooltip background
@@ -160,11 +162,16 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Remove - Remove giropay from new checkouts (deprecated by Stripe on 2024-06-30); legacy refund and past-order rendering preserved
 * Dev - Exclude AGENTS.md and CLAUDE.md contributor-instruction files from the built plugin zip
 * Add - Append a "what's new" changelog link to the Updated! message after manually updating the plugin from the Plugins page
+* Fix - Dismissible subscription detached admin notices
 * Dev - Skip Agentic Commerce catalog upload when content is unchanged
 * Dev - Align Agentic Commerce sync status UI with the WordPress design system
 * Add - Add a "Release notes" link to the WooCommerce Stripe row on the Plugins page that opens the changelog modal
 * Fix - Add guards against invalid values for webhook state timestamps
 * Fix - Show better message when express checkout preview is not available
+* Dev - Remove redundant `get_retrievable_type()` overrides from payment methods
 * Dev - Add Claude Code skills and review rules under .claude/ to capture repo-specific contributor guidance
+* Dev - Move some independent classes into autoloader
+* Dev - Add Jest tests for ECE payment flow
+* Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

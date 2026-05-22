@@ -72,14 +72,6 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Returns string representing payment method type
-	 * to query to retrieve saved payment methods from Stripe.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
-	}
-
-	/**
 	 * Create and return WC payment token for user.
 	 *
 	 * This will be used from the WC_Stripe_Payment_Tokens service

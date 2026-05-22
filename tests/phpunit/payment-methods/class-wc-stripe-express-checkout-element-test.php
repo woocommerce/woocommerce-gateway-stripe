@@ -180,6 +180,225 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test for `update_subscription_payment_method_title`.
+	 *
+	 * @param string $checkout_type The checkout type.
+	 * @param string $expected      The expected payment method title.
+	 * @return void
+	 * @dataProvider provide_test_update_subscription_payment_method_title
+	 */
+	public function test_update_subscription_payment_method_title( $checkout_type, $expected ) {
+		$subscription = new WC_Subscription();
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->set_payment_method_title( 'Stripe' );
+		$subscription->save();
+
+		WC_Subscriptions::set_wcs_get_subscription(
+			function ( $id ) use ( $subscription ) {
+				return (int) $id === $subscription->get_id() ? $subscription : false;
+			}
+		);
+
+		$_GET['change_payment_method']  = $subscription->get_id();
+		$_POST['express_checkout_type'] = $checkout_type;
+
+		$this->element->update_subscription_payment_method_title();
+
+		$this->assertSame( $expected, $subscription->get_payment_method_title() );
+
+		unset( $_GET['change_payment_method'], $_POST['express_checkout_type'] );
+		WC_Subscriptions::$wcs_get_subscription = null;
+	}
+
+	/**
+	 * Provider for `test_update_subscription_payment_method_title`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_update_subscription_payment_method_title() {
+		return [
+			'apple pay'  => [
+				'checkout type' => 'apple_pay',
+				'expected'      => 'Apple Pay (Stripe)',
+			],
+			'google pay' => [
+				'checkout type' => 'google_pay',
+				'expected'      => 'Google Pay (Stripe)',
+			],
+			'amazon pay' => [
+				'checkout type' => 'amazon_pay',
+				'expected'      => 'Amazon Pay (Stripe)',
+			],
+			'link'       => [
+				'checkout type' => 'link',
+				'expected'      => 'Link',
+			],
+		];
+	}
+
+	/**
+	 * Test for `maybe_apply_express_title_after_confirmed_intent` (3DS-redirect path).
+	 *
+	 * @param string $checkout_type The express checkout type stored on the subscription.
+	 * @param string $expected      The expected payment method title.
+	 * @return void
+	 * @dataProvider provide_test_update_subscription_payment_method_title
+	 */
+	public function test_maybe_apply_express_title_after_confirmed_intent( $checkout_type, $expected ) {
+		$subscription = new WC_Subscription();
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->set_payment_method_title( 'Credit Card (Stripe)' );
+		$subscription->update_meta_data( '_wc_stripe_express_checkout_type', $checkout_type );
+		$subscription->save();
+
+		$this->element->maybe_apply_express_title_after_confirmed_intent( $subscription );
+
+		$this->assertSame( $expected, $subscription->get_payment_method_title() );
+		// Meta should be cleaned up after applying.
+		$this->assertSame( '', $subscription->get_meta( '_wc_stripe_express_checkout_type' ) );
+	}
+
+	/**
+	 * Test that `maybe_apply_express_title_after_confirmed_intent` is a no-op without the meta.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_apply_express_title_after_confirmed_intent_noop_without_meta() {
+		$subscription = new WC_Subscription();
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->set_payment_method_title( 'Credit Card (Stripe)' );
+		$subscription->save();
+
+		$this->element->maybe_apply_express_title_after_confirmed_intent( $subscription );
+
+		$this->assertSame( 'Credit Card (Stripe)', $subscription->get_payment_method_title() );
+	}
+
+	/**
+	 * Test for `filter_change_payment_method_note_title` on the no-3DS path, where
+	 * the form submission carries `$_POST['express_checkout_type']`.
+	 *
+	 * Guards that the order-note "to" label written by WCS gets replaced with the
+	 * express checkout label instead of the bare "Credit Card" gateway title.
+	 *
+	 * @param string $checkout_type The express checkout type posted with the form.
+	 * @param string $expected      The expected note label substituted by the filter.
+	 * @return void
+	 * @dataProvider provide_test_update_subscription_payment_method_title
+	 */
+	public function test_filter_change_payment_method_note_title_uses_post( $checkout_type, $expected ) {
+		$subscription = new WC_Subscription();
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->save();
+
+		$_POST['express_checkout_type'] = $checkout_type;
+
+		$filtered = $this->element->filter_change_payment_method_note_title( 'Credit Card', 'stripe', $subscription );
+
+		unset( $_POST['express_checkout_type'] );
+
+		$this->assertSame( $expected, $filtered );
+	}
+
+	/**
+	 * Test for `filter_change_payment_method_note_title` on the post-3DS path, where
+	 * $_POST is unavailable and the express type was persisted to subscription meta
+	 * before the redirect.
+	 *
+	 * Guards that the note "to" label is corrected after a 3DS round-trip too.
+	 *
+	 * @return void
+	 */
+	public function test_filter_change_payment_method_note_title_falls_back_to_meta() {
+		$subscription = new WC_Subscription();
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->update_meta_data( '_wc_stripe_express_checkout_type', 'apple_pay' );
+		$subscription->save();
+
+		unset( $_POST['express_checkout_type'] );
+
+		$filtered = $this->element->filter_change_payment_method_note_title( 'Credit Card', 'stripe', $subscription );
+
+		$this->assertSame( 'Apple Pay (Stripe)', $filtered );
+	}
+
+	/**
+	 * Test that `filter_change_payment_method_note_title` is a pass-through when the
+	 * target gateway is not Stripe, when no express type signal is present, or when the
+	 * signalled type is not an express method.
+	 *
+	 * Ensures the filter never alters notes for unrelated gateways or non-express
+	 * Stripe submissions.
+	 *
+	 * @return void
+	 */
+	public function test_filter_change_payment_method_note_title_noop_cases() {
+		$subscription = new WC_Subscription();
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->save();
+
+		// Non-Stripe gateway: always pass through.
+		$_POST['express_checkout_type'] = 'apple_pay';
+		$this->assertSame(
+			'PayPal',
+			$this->element->filter_change_payment_method_note_title( 'PayPal', 'paypal', $subscription )
+		);
+
+		// No signal: pass through the original WCS-computed title.
+		unset( $_POST['express_checkout_type'] );
+		$this->assertSame(
+			'Credit Card',
+			$this->element->filter_change_payment_method_note_title( 'Credit Card', 'stripe', $subscription )
+		);
+
+		// Unrecognized express type: pass through.
+		$_POST['express_checkout_type'] = 'paypal';
+		try {
+			$this->assertSame(
+				'Credit Card',
+				$this->element->filter_change_payment_method_note_title( 'Credit Card', 'stripe', $subscription )
+			);
+		} finally {
+			unset( $_POST['express_checkout_type'] );
+		}
+	}
+
+	/**
+	 * Test that `update_subscription_payment_method_title` is a no-op when the express
+	 * checkout type is missing or unrecognized.
+	 *
+	 * @return void
+	 */
+	public function test_update_subscription_payment_method_title_noop_when_no_express_type() {
+		$subscription = new WC_Subscription();
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->set_payment_method_title( 'Stripe' );
+		$subscription->save();
+
+		WC_Subscriptions::set_wcs_get_subscription(
+			function ( $id ) use ( $subscription ) {
+				return (int) $id === $subscription->get_id() ? $subscription : false;
+			}
+		);
+
+		$_GET['change_payment_method'] = $subscription->get_id();
+		unset( $_POST['express_checkout_type'] );
+
+		$this->element->update_subscription_payment_method_title();
+		try {
+			$this->assertSame( 'Stripe', $subscription->get_payment_method_title() );
+
+			// Unrecognized type should also leave the title unchanged.
+			$_POST['express_checkout_type'] = 'paypal';
+			$this->element->update_subscription_payment_method_title();
+			$this->assertSame( 'Stripe', $subscription->get_payment_method_title() );
+		} finally {
+			unset( $_GET['change_payment_method'], $_POST['express_checkout_type'] );
+			WC_Subscriptions::$wcs_get_subscription = null;
+		}
+	}
+
+	/**
 	 * Test for `filter_gateway_title`.
 	 *
 	 * @param string $title    The title to filter.
