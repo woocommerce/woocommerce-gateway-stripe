@@ -43,6 +43,17 @@ class WC_Stripe_Express_Checkout_Helper {
 	private $gateway;
 
 	/**
+	 * Request-scoped cache for `should_show_express_checkout_button()`.
+	 *
+	 * Keyed by whether we're inside the `woocommerce_after_add_to_cart_form` action,
+	 * because the One Page Checkout branch in `compute_should_show_express_checkout_button()`
+	 * consults `doing_action()` and would otherwise return stale answers across call sites.
+	 *
+	 * @var array<string, bool>
+	 */
+	private $should_show_cache = [];
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -742,9 +753,32 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Returns true if express checkout elements are supported on the current page, false
 	 * otherwise.
 	 *
+	 * Memoizes the underlying check, which is called up to four times per request from
+	 * different callers (canonical_url filter, enqueue, render, blocks REST). The cache is
+	 * keyed by whether we're inside the `woocommerce_after_add_to_cart_form` action because
+	 * the One Page Checkout branch in `compute_should_show_express_checkout_button()` reads
+	 * `doing_action()` and the answer can flip between callers.
+	 *
 	 * @return  boolean  True if express checkout elements are supported on current page, false otherwise
 	 */
 	public function should_show_express_checkout_button() {
+		$cache_key = doing_action( 'woocommerce_after_add_to_cart_form' ) ? 'in_atc' : 'default';
+
+		if ( array_key_exists( $cache_key, $this->should_show_cache ) ) {
+			return $this->should_show_cache[ $cache_key ];
+		}
+
+		$this->should_show_cache[ $cache_key ] = $this->compute_should_show_express_checkout_button();
+		return $this->should_show_cache[ $cache_key ];
+	}
+
+	/**
+	 * Evaluate every guard for showing the Express Checkout button. Do not call directly;
+	 * go through `should_show_express_checkout_button()` so the result is cached.
+	 *
+	 * @return boolean
+	 */
+	private function compute_should_show_express_checkout_button() {
 		// For subscription change payment method, only check basic requirements.
 		if ( $this->is_change_payment_method_page() ) {
 			return $this->should_show_ece_on_change_payment_method_page();

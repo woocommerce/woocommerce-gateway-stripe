@@ -1233,6 +1233,67 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify `should_show_express_checkout_button()` only evaluates its guards once per
+	 * action context within a single request, regardless of how many times callers ask.
+	 *
+	 * @return void
+	 */
+	public function test_should_show_express_checkout_button_memoizes_within_request() {
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->onlyMethods( [ 'is_change_payment_method_page', 'should_show_ece_on_change_payment_method_page' ] )
+			->getMock();
+
+		// Both internal calls must run exactly once even though the outer method is
+		// invoked twice — proves the memoization wrapper is hit on the second call.
+		$helper->expects( $this->once() )
+			->method( 'is_change_payment_method_page' )
+			->willReturn( true );
+		$helper->expects( $this->once() )
+			->method( 'should_show_ece_on_change_payment_method_page' )
+			->willReturn( true );
+
+		$first  = $helper->should_show_express_checkout_button();
+		$second = $helper->should_show_express_checkout_button();
+
+		$this->assertTrue( $first );
+		$this->assertTrue( $second );
+	}
+
+	/**
+	 * Verify the cache is keyed by `woocommerce_after_add_to_cart_form` action context.
+	 * The OPC-product branch of `compute_should_show_express_checkout_button()` reads
+	 * `doing_action()`, so callers inside vs. outside the action must each get their own
+	 * computed answer.
+	 *
+	 * @return void
+	 */
+	public function test_should_show_express_checkout_button_cache_is_action_keyed() {
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->onlyMethods( [ 'is_change_payment_method_page', 'should_show_ece_on_change_payment_method_page' ] )
+			->getMock();
+
+		// Two distinct action contexts → two compute invocations expected (one per key).
+		$helper->expects( $this->exactly( 2 ) )
+			->method( 'is_change_payment_method_page' )
+			->willReturn( true );
+		$helper->expects( $this->exactly( 2 ) )
+			->method( 'should_show_ece_on_change_payment_method_page' )
+			->willReturn( true );
+
+		// Outside the action.
+		$helper->should_show_express_checkout_button();
+
+		// Inside the action.
+		global $wp_current_filter;
+		$wp_current_filter[] = 'woocommerce_after_add_to_cart_form';
+		try {
+			$helper->should_show_express_checkout_button();
+		} finally {
+			array_pop( $wp_current_filter );
+		}
+	}
+
+	/**
 	 * Data provider for {@see test_should_show_express_checkout_button_with_amazon_pay_only()}.
 	 *
 	 * @return array
