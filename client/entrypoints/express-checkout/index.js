@@ -699,8 +699,15 @@ jQuery( function ( $ ) {
 			if ( $parentElement.find( '.single_variation_wrap' ).length ) {
 				productId = $parentElement
 					.find( '.single_variation_wrap' )
-					.find( 'input[name="product_id"]' )
+					.find( 'input[name="variation_id"]' )
 					.val();
+
+				if ( ! productId ) {
+					productId = $parentElement
+						.find( '.single_variation_wrap' )
+						.find( 'input[name="product_id"]' )
+						.val();
+				}
 			}
 
 			// WC Bookings Support.
