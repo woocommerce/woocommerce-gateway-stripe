@@ -84,6 +84,13 @@ class WC_Stripe_Express_Checkout_Element {
 		// form submission, regardless of which page hook bootstrapped this class.
 		add_filter( 'woocommerce_subscription_note_new_payment_method_title', [ $this, 'filter_change_payment_method_note_title' ], 10, 3 );
 
+		// Network hints for the wallet-button paint path. The callbacks short-circuit on
+		// pages where ECE isn't going to render, so registering unconditionally is safe.
+		// `wp_head` priority 1 emits the preload before WP core's resource_hints (priority 2),
+		// keeping the bundle fetch ahead of the browser's preload scanner cutoff.
+		add_filter( 'wp_resource_hints', [ $this, 'add_resource_hints' ], 10, 2 );
+		add_action( 'wp_head', [ $this, 'print_ece_bundle_preload' ], 1 );
+
 		// Change-payment uses WC Subscriptions' own template, so ride
 		// `before_woocommerce_pay` (the only action the gateway fires before it).
 		if ( $this->express_checkout_helper->is_change_payment_method_page() ) {
@@ -425,6 +432,84 @@ class WC_Stripe_Express_Checkout_Element {
 			array_merge( [ 'jquery', 'stripe' ], $asset_data['dependencies'] ),
 			$asset_data['version'],
 			true
+		);
+	}
+
+	/**
+	 * Append preconnect URLs for Stripe-owned hosts when the current page will render ECE.
+	 *
+	 * WordPress core already emits a `dns-prefetch` for `js.stripe.com` via
+	 * `wp_dependencies_unique_hosts()` (because we register the Stripe.js script). DNS
+	 * resolution is only one step of the connection; `preconnect` also performs the TCP +
+	 * TLS handshake, saving ~100–200 ms on the wallet-button paint. The two sub-hosts
+	 * (`m.stripe.network`, `q.stripe.com`) are fetched at runtime by Stripe.js itself, so
+	 * core can't infer them and we add them explicitly.
+	 *
+	 * @param array  $urls          URLs that core has gathered for the relation type.
+	 * @param string $relation_type Resource hint relation ('preconnect', 'dns-prefetch', etc.).
+	 *
+	 * @return array
+	 */
+	public function add_resource_hints( $urls, $relation_type ) {
+		if ( 'preconnect' !== $relation_type ) {
+			return $urls;
+		}
+
+		if ( ! $this->express_checkout_helper->is_page_supported() ) {
+			return $urls;
+		}
+
+		if ( ! $this->express_checkout_helper->should_show_express_checkout_button() ) {
+			return $urls;
+		}
+
+		// `js.stripe.com` and `m.stripe.network` host cross-origin scripts/iframes, so the
+		// crossorigin attribute is required for the preconnected connection to be reused
+		// by the subsequent `<script>` and iframe fetches.
+		$urls[] = [
+			'href'        => 'https://js.stripe.com',
+			'crossorigin' => 'anonymous',
+		];
+		$urls[] = [
+			'href'        => 'https://m.stripe.network',
+			'crossorigin' => 'anonymous',
+		];
+		$urls[] = [
+			'href' => 'https://q.stripe.com',
+		];
+
+		return $urls;
+	}
+
+	/**
+	 * Emit a `<link rel="preload">` for the Express Checkout bundle.
+	 *
+	 * Hooked on `wp_head` priority 1 so the hint lands before `wp_resource_hints` runs at
+	 * priority 2 and well before the footer enqueue of the actual `<script>` tag. The
+	 * browser's preload scanner picks it up immediately and the bundle download overlaps
+	 * with the rest of `<head>` parsing instead of waiting for the footer.
+	 *
+	 * @return void
+	 */
+	public function print_ece_bundle_preload() {
+		if ( ! $this->express_checkout_helper->is_page_supported() ) {
+			return;
+		}
+
+		if ( ! $this->express_checkout_helper->should_show_express_checkout_button() ) {
+			return;
+		}
+
+		$asset_data = $this->get_asset_data();
+		$bundle_url = add_query_arg(
+			'ver',
+			$asset_data['version'],
+			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js'
+		);
+
+		printf(
+			'<link rel="preload" as="script" href="%s" />' . "\n",
+			esc_url( $bundle_url )
 		);
 	}
 
