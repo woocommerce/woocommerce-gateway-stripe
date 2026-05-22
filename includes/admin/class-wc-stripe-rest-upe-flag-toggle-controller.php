@@ -8,14 +8,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * REST controller for the legacy UPE feature flag.
  *
- * UPE has been generally available for several releases and the underlying
- * feature flag was already a no-op; the constants this endpoint used to
- * toggle have since been removed from the codebase. The class is kept as a
- * deprecation shim so any external dashboard / extension still calling the
- * `wc_stripe/upe_flag_toggle` endpoint continues to receive the long-standing
- * "always on" answer while emitting a loud deprecation notice that tooling
- * (Query Monitor, `WP_DEBUG_LOG`, error log scrapers) actually surfaces. The
- * `@deprecated` PHPDoc alone was too quiet to be caught.
+ * This class is fully deprecated, but is being kept in the code for backwards compatibility.
+ * It will be fully removed in an upcoming release.
  *
  * @deprecated 10.2.0 UPE is generally available and this endpoint will be removed in a future release.
  */
