@@ -4955,6 +4955,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		if ( method_exists( parent::class, '__set' ) {
+			parent::__set( $name, $value );
+			return;
+		}
+
 		// Preserve PHP's default behaviour for unknown properties so we don't
 		// silently swallow typos elsewhere.
 		$this->$name = $value;
