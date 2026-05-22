@@ -7,11 +7,15 @@ import {
 } from 'wcstripe/settings/payment-settings/constants';
 import {
 	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_AFFIRM,
+	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
 	PAYMENT_METHOD_KLARNA,
 } from 'wcstripe/stripe-utils/constants';
 
 describe( 'getPromotionalBannerType', () => {
 	it( 'Reconnect banner', () => {
+		global.wc_stripe_settings_params = {};
+
 		const accountData = {
 			testmode: false,
 			oauth_connections: {
@@ -29,10 +33,13 @@ describe( 'getPromotionalBannerType', () => {
 			)
 		).toBe( RECONNECT_BANNER );
 	} );
-	it( 'Stripe Tax banner', () => {
-		global.wc_stripe_settings_params = {
-			is_oc_available: true,
-		};
+
+	describe( 'Stripe Tax banner', () => {
+		beforeEach( () => {
+			global.wc_stripe_settings_params = {
+				is_oc_available: '1',
+			};
+		} );
 
 		const accountData = {
 			testmode: false,
@@ -43,18 +50,55 @@ describe( 'getPromotionalBannerType', () => {
 		const isOCEnabled = true;
 		const enabledPaymentMethodIds = [ PAYMENT_METHOD_CARD ];
 
-		expect(
-			getPromotionalBannerType(
-				accountData,
-				isOCEnabled,
-				enabledPaymentMethodIds
-			)
-		).toBe( STRIPE_TAX_BANNER );
+		it( 'should not be selected when the server flag is missing', () => {
+			delete global.wc_stripe_settings_params.show_stripe_tax_banner;
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBeNull();
+		} );
+
+		it( 'should not be selected when the server flag is empty', () => {
+			global.wc_stripe_settings_params = {
+				...global.wc_stripe_settings_params,
+				show_stripe_tax_banner: '',
+			};
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBeNull();
+		} );
+
+		it( 'should be selected when the server flag is set to 1', () => {
+			global.wc_stripe_settings_params = {
+				...global.wc_stripe_settings_params,
+				show_stripe_tax_banner: '1',
+			};
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBe( STRIPE_TAX_BANNER );
+		} );
 	} );
-	it( 'OC promotion banner', () => {
-		global.wc_stripe_settings_params = {
-			is_oc_available: true,
-		};
+
+	describe( 'OC promotion banner', () => {
+		beforeEach( () => {
+			global.wc_stripe_settings_params = {
+				is_oc_available: '1',
+			};
+		} );
 
 		const accountData = {
 			testmode: false,
@@ -65,18 +109,55 @@ describe( 'getPromotionalBannerType', () => {
 		const isOCEnabled = false;
 		const enabledPaymentMethodIds = [ PAYMENT_METHOD_CARD ];
 
-		expect(
-			getPromotionalBannerType(
-				accountData,
-				isOCEnabled,
-				enabledPaymentMethodIds
-			)
-		).toBe( OC_PROMOTION_BANNER );
+		it( 'should not be selected when the server flag is missing', () => {
+			delete global.wc_stripe_settings_params.show_oc_promotional_banner;
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBeNull();
+		} );
+
+		it( 'should not be selected when the server flag is empty', () => {
+			global.wc_stripe_settings_params = {
+				...global.wc_stripe_settings_params,
+				show_oc_promotional_banner: '',
+			};
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBeNull();
+		} );
+
+		it( 'should be selected when the server flag is set to 1', () => {
+			global.wc_stripe_settings_params = {
+				...global.wc_stripe_settings_params,
+				show_oc_promotional_banner: '1',
+			};
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBe( OC_PROMOTION_BANNER );
+		} );
 	} );
-	it( 'BNPL promotion banner', () => {
-		global.wc_stripe_settings_params = {
-			has_other_bnpl_plugins: false,
-		};
+
+	describe( 'BNPL promotion banner', () => {
+		beforeEach( () => {
+			global.wc_stripe_settings_params = {
+				has_other_bnpl_plugins: '',
+			};
+		} );
 
 		const accountData = {
 			testmode: false,
@@ -87,14 +168,129 @@ describe( 'getPromotionalBannerType', () => {
 		const isOCEnabled = false;
 		const enabledPaymentMethodIds = [ PAYMENT_METHOD_CARD ];
 
-		expect(
-			getPromotionalBannerType(
-				accountData,
-				isOCEnabled,
-				enabledPaymentMethodIds
-			)
-		).toBe( BNPL_PROMOTION_BANNER );
+		it( 'should not be selected when the server flag is missing', () => {
+			delete global.wc_stripe_settings_params
+				.show_bnpl_promotional_banner;
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBeNull();
+		} );
+
+		it( 'should not be selected when the server flag is empty', () => {
+			global.wc_stripe_settings_params = {
+				...global.wc_stripe_settings_params,
+				show_bnpl_promotional_banner: '',
+			};
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBeNull();
+		} );
+
+		it( 'should be selected when the server flag is set to 1', () => {
+			global.wc_stripe_settings_params = {
+				...global.wc_stripe_settings_params,
+				show_bnpl_promotional_banner: '1',
+			};
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBe( BNPL_PROMOTION_BANNER );
+		} );
+
+		it( 'should not be selected when other BNPL plugins are enabled', () => {
+			global.wc_stripe_settings_params = {
+				...global.wc_stripe_settings_params,
+				has_other_bnpl_plugins: '1',
+				show_bnpl_promotional_banner: '1',
+			};
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBeNull();
+		} );
+
+		it( 'should not be selected when Affirm is enabled', () => {
+			global.wc_stripe_settings_params = {
+				...global.wc_stripe_settings_params,
+				has_other_bnpl_plugins: '',
+				show_bnpl_promotional_banner: '1',
+			};
+
+			const paymentMethodIds = [
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_AFFIRM,
+			];
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					paymentMethodIds
+				)
+			).toBeNull();
+		} );
+
+		it( 'should not be selected when Afterpay/Clearpay is enabled', () => {
+			global.wc_stripe_settings_params = {
+				...global.wc_stripe_settings_params,
+				has_other_bnpl_plugins: '',
+				show_bnpl_promotional_banner: '1',
+			};
+
+			const paymentMethodIds = [
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_AFTERPAY_CLEARPAY,
+			];
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					paymentMethodIds
+				)
+			).toBeNull();
+		} );
+
+		it( 'should not be selected when Klarna is enabled', () => {
+			global.wc_stripe_settings_params = {
+				...global.wc_stripe_settings_params,
+				has_other_bnpl_plugins: '',
+				show_bnpl_promotional_banner: '1',
+			};
+
+			const paymentMethodIds = [
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_KLARNA,
+			];
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					paymentMethodIds
+				)
+			).toBeNull();
+		} );
 	} );
+
 	it( 'No banner', () => {
 		const accountData = {
 			testmode: false,
