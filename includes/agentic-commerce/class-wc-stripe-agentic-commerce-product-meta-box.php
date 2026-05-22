@@ -1,6 +1,6 @@
 <?php
 /**
- * Per-product "Exclude from Agentic Commerce sync" meta box.
+ * Per-product "Stripe Agentic Commerce" exclude meta box.
  *
  * Adds a checkbox to the WC product editor's Inventory tab that lets
  * merchants opt individual products out of the Stripe Agentic Commerce
@@ -105,11 +105,12 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 	}
 
 	/**
-	 * Render the "Exclude from Stripe Agentic Commerce sync" checkbox.
+	 * Render the "Stripe Agentic Commerce" exclude checkbox.
 	 *
 	 * Uses WC's `woocommerce_wp_checkbox()` helper so the visual treatment
 	 * matches the surrounding Inventory checkboxes (Manage stock, Sold
-	 * individually, etc.).
+	 * individually, etc.). The description renders inline next to the
+	 * checkbox (no tooltip) so the opt-out behavior is visible at a glance.
 	 */
 	public function render_checkbox(): void {
 		if ( ! function_exists( 'woocommerce_wp_checkbox' ) ) {
@@ -119,12 +120,9 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 		woocommerce_wp_checkbox(
 			[
 				'id'          => self::META_KEY,
-				'label'       => __( 'Exclude from Agentic Commerce', 'woocommerce-gateway-stripe' ),
-				'description' => __(
-					'Exclude this product from the Stripe Agentic Commerce sync, so it is not surfaced to AI shopping assistants. Inventory updates and archive events for this product are also skipped.',
-					'woocommerce-gateway-stripe'
-				),
-				'desc_tip'    => true,
+				'label'       => __( 'Stripe Agentic Commerce', 'woocommerce-gateway-stripe' ),
+				'description' => __( 'Exclude from the Stripe Agentic Commerce catalog sync', 'woocommerce-gateway-stripe' ),
+				'desc_tip'    => false,
 			]
 		);
 	}
