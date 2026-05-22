@@ -4937,9 +4937,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Trap writes to deprecated public properties so external code that hasn't
-	 * migrated emits a `wc_deprecated_function` notice instead of silently
-	 * shadowing a now-private property.
+	 * Magic setter to add warnings for deprecated properties.
 	 *
 	 * @param string $name  Property name.
 	 * @param mixed  $value Value being assigned.
