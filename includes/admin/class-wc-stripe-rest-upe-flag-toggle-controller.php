@@ -72,13 +72,11 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Base_Cont
 	}
 
 	/**
-	 * Update the flag. No-op shim: UPE is already generally available, and the
-	 * note-cleanup side-effects this endpoint used to perform run from elsewhere
-	 * now. Always reports success so legacy callers don't break.
-	 *
-	 * @deprecated 10.2.0 UPE is generally available and this endpoint will be removed in a future release.
+	 * Deprecated no-op. Kept in the code for backwards compatibility.
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request Full data about the request.
+	 *
+	 * @deprecated 10.2.0 UPE is generally available and this endpoint will be removed in a future release.
 	 *
 	 * @return WP_REST_Response
 	 */
