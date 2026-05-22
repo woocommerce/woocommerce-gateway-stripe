@@ -167,8 +167,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add a "Release notes" link to the WooCommerce Stripe row on the Plugins page that opens the changelog modal
 * Fix - Add guards against invalid values for webhook state timestamps
 * Fix - Show better message when express checkout preview is not available
+* Dev - Remove redundant `get_retrievable_type()` overrides from payment methods
 * Dev - Add Claude Code skills and review rules under .claude/ to capture repo-specific contributor guidance
 * Dev - Move some independent classes into autoloader
 * Dev - Add wc_stripe_agentic_commerce_should_sync_product filter so adapters can exclude products from the Agentic Commerce catalog, inventory, and archive syncs
+* Dev - Add Jest tests for ECE payment flow
+* Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
