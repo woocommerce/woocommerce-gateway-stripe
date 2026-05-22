@@ -998,6 +998,15 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * to scope the full-feed query — that avoids loading the product at all
 		 * and keeps the validator's skipped-product log unpolluted.
 		 *
+		 * Lifecycle contract: this filter only governs what gets *sent* to Stripe.
+		 * A product that was previously exported and is now excluded stays in
+		 * Stripe's catalog until the next full feed replacement overwrites it —
+		 * the inventory tracker intentionally drops delta events for excluded
+		 * products. Adapters that want immediate convergence when their filter
+		 * outcome changes (e.g. a merchant flips a visibility setting) MUST fire
+		 * `do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' )` to
+		 * enqueue an immediate full-catalog sync.
+		 *
 		 * @since 10.8.0
 		 * @param bool        $should_sync Whether to include the product. Default true.
 		 * @param \WC_Product $product     Product being evaluated.
