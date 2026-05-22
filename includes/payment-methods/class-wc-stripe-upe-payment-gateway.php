@@ -4955,7 +4955,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( method_exists( parent::class, '__set' ) {
+		if ( method_exists( parent::class, '__set' ) ) {
 			parent::__set( $name, $value );
 			return;
 		}
