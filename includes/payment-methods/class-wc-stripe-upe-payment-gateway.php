@@ -4976,6 +4976,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $this->spe_enabled;
 		}
 
+		if ( method_exists( parent::class, '__get' ) ) {
+			return parent::__get( $name );
+		}
+
 		// PHP would emit a notice and return null here for an undefined
 		// property; mirror that explicitly to keep behaviour predictable.
 		trigger_error( esc_html( 'Undefined property: ' . static::class . '::$' . $name ), E_USER_NOTICE ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
