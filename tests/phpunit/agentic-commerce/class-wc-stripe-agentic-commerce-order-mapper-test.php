@@ -27,6 +27,13 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	private $default_product;
 
 	/**
+	 * Filter callback that allowlists the agentic `created_via` value for `payment_complete()`.
+	 *
+	 * @var callable|null
+	 */
+	private $payment_complete_filter;
+
+	/**
 	 * Setup test environment before each test.
 	 *
 	 * @return void
@@ -47,6 +54,17 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 				'sku'           => 'MAPPER-DEFAULT-' . uniqid(),
 			]
 		);
+
+		// WC 10.8+ blocks payment_complete() unless `created_via` is allowlisted.
+		// In production the integration's register_hooks() wires this up; mirror it here.
+		$this->payment_complete_filter = function ( $allowed ) {
+			if ( ! is_array( $allowed ) ) {
+				$allowed = [];
+			}
+			$allowed[] = WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA;
+			return $allowed;
+		};
+		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', $this->payment_complete_filter );
 	}
 
 	/**
@@ -55,6 +73,10 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function tearDown(): void {
+		if ( $this->payment_complete_filter ) {
+			remove_filter( 'woocommerce_payment_complete_allowed_created_via_values', $this->payment_complete_filter );
+			$this->payment_complete_filter = null;
+		}
 		if ( $this->default_product ) {
 			$this->default_product->delete( true );
 		}
@@ -106,6 +128,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		$this->assertGreaterThan( 0, $order->get_id() );
 		$this->assertEquals( '25.00', $order->get_total() );
 		$this->assertEquals( 'processing', $order->get_status() );
+		$this->assertEquals( WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA, $order->get_created_via() );
 
 		$order->delete( true );
 		$product->delete( true );
@@ -1406,18 +1429,28 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that map_shipping throws when no matching rate is found.
-	 *
-	 * Disables shipping entirely so WC returns no rates, guaranteeing
-	 * the "not available" exception regardless of leaked zones.
+	 * Falls back to a free-form shipping line built from the Stripe rate when
+	 * WC returns no matching rate. Disables shipping entirely so the fallback
+	 * path runs regardless of any zones leaked from prior tests.
 	 */
-	public function test_shipping_throws_when_no_matching_rate() {
+	public function test_shipping_falls_back_to_free_form_line_when_no_match() {
 		$original = get_option( 'woocommerce_ship_to_countries' );
 		update_option( 'woocommerce_ship_to_countries', 'disabled' );
 
+		\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		WC()->shipping()->reset_shipping();
+
 		$session = $this->build_checkout_session(
 			[
-				'shipping_cost' => (object) [
+				// Default product is $10; add $9.99 shipping → $19.99 total.
+				'amount_total'    => 1999,
+				'amount_subtotal' => 1000,
+				'total_details'   => (object) [
+					'amount_shipping' => 999,
+					'amount_tax'      => 0,
+					'amount_discount' => 0,
+				],
+				'shipping_cost'   => (object) [
 					'shipping_rate' => (object) [
 						'display_name' => 'Nonexistent Method',
 						'metadata'     => (object) [],
@@ -1426,13 +1459,92 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'not available' );
-
 		try {
-			$this->mapper->create_order_from_checkout_session( $session );
+			$order = $this->mapper->create_order_from_checkout_session( $session );
+
+			$shipping_items = $order->get_items( 'shipping' );
+			$this->assertCount( 1, $shipping_items );
+
+			$shipping_item = reset( $shipping_items );
+			$this->assertEquals( 'Nonexistent Method', $shipping_item->get_method_title() );
+			$this->assertEquals( 'stripe_agentic', $shipping_item->get_method_id() );
+			$this->assertEqualsWithDelta( 9.99, (float) $shipping_item->get_total(), 0.001 );
+
+			// The fallback should also leave a contextual note on the order so
+			// support can spot why this order has a free-form shipping line.
+			$notes      = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+			$note_texts = array_column( $notes, 'content' );
+			$this->assertNotEmpty(
+				array_filter(
+					$note_texts,
+					static function ( $content ) {
+						return false !== strpos( $content, 'Nonexistent Method' )
+							&& false !== strpos( $content, 'did not match any configured WooCommerce shipping method' );
+					}
+				),
+				'Expected fallback order note mentioning the unmatched shipping rate.'
+			);
+
+			$order->delete( true );
 		} finally {
 			update_option( 'woocommerce_ship_to_countries', $original );
+			\WC_Cache_Helper::get_transient_version( 'shipping', true );
+			WC()->shipping()->reset_shipping();
+		}
+	}
+
+	/**
+	 * Recovers when WC shipping calculation throws an Error (not Exception):
+	 * the outer mapper handler only catches Exception, so without the inner
+	 * Throwable guard the order would be deleted instead of getting the
+	 * free-form shipping line.
+	 */
+	public function test_shipping_falls_back_to_free_form_line_when_calculation_throws() {
+		$thrower = static function () {
+			throw new \Error( 'Simulated shipping method failure' );
+		};
+		add_filter( 'woocommerce_package_rates', $thrower );
+
+		\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		WC()->shipping()->reset_shipping();
+
+		$session = $this->build_checkout_session(
+			[
+				// Default product is $10; add $9.99 shipping → $19.99 total.
+				'amount_total'    => 1999,
+				'amount_subtotal' => 1000,
+				'total_details'   => (object) [
+					'amount_shipping' => 999,
+					'amount_tax'      => 0,
+					'amount_discount' => 0,
+				],
+				'shipping_cost'   => (object) [
+					'shipping_rate' => (object) [
+						'display_name' => 'Throwing Method',
+						'metadata'     => (object) [],
+					],
+				],
+			]
+		);
+
+		try {
+			$order = $this->mapper->create_order_from_checkout_session( $session );
+
+			$this->assertInstanceOf( WC_Order::class, $order );
+
+			$shipping_items = $order->get_items( 'shipping' );
+			$this->assertCount( 1, $shipping_items );
+
+			$shipping_item = reset( $shipping_items );
+			$this->assertEquals( 'Throwing Method', $shipping_item->get_method_title() );
+			$this->assertEquals( 'stripe_agentic', $shipping_item->get_method_id() );
+			$this->assertEqualsWithDelta( 9.99, (float) $shipping_item->get_total(), 0.001 );
+
+			$order->delete( true );
+		} finally {
+			remove_filter( 'woocommerce_package_rates', $thrower );
+			\WC_Cache_Helper::get_transient_version( 'shipping', true );
+			WC()->shipping()->reset_shipping();
 		}
 	}
 
