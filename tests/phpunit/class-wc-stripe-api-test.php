@@ -661,7 +661,15 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 
 		$caught = null;
 		try {
-			WC_Stripe_API::request( [ 'amount' => 100 ], 'charges', 'POST', false );
+			WC_Stripe_API::request(
+				[
+					'amount'   => 100,
+					'metadata' => [ 'order_id' => 1 ],
+				],
+				'charges',
+				'POST',
+				false
+			);
 		} catch ( \WC_Stripe_Exception $e ) {
 			$caught = $e;
 		}
