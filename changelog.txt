@@ -21,6 +21,7 @@ xxxx-xx-xx - version 10.8.0
 * Dev - Move some independent classes into autoloader
 * Dev - Add Jest tests for ECE payment flow
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
+* Fix - Fix admin banner dismissal and display logic
 
 2026-05-12 - version 10.7.0
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
