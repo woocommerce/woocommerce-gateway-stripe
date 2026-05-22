@@ -54,7 +54,7 @@ cli wp core download --force --skip-content --path=/var/www/html --quiet 2>/dev/
 # (each worktree's container has its own wp-config.php under ./docker/wordpress).
 echo "Configuring wp-config.php for this worktree..."
 cli wp config set DOCKER_HOST "\$_SERVER['HTTP_X_FORWARDED_HOST'] ?? \$_SERVER['HTTP_X_ORIGINAL_HOST'] ?? \$_SERVER['HTTP_HOST'] ?? 'localhost'" --raw
-docker exec $WP_CONTAINER bash -c 'CONFIG=/var/www/html/wp-config.php; grep -q "\$_SERVER\[.HTTP_HOST.\] = DOCKER_HOST" "$CONFIG" || { sed "/define.*'\''DOCKER_HOST'\''/a \\\$_SERVER['\''HTTP_HOST'\''] = DOCKER_HOST;" "$CONFIG" > /tmp/wp-config.new && cat /tmp/wp-config.new > "$CONFIG" && rm /tmp/wp-config.new; }'
+docker exec $WP_CONTAINER bash -c 'WP_CONFIG_CONTENTS=$(cat /var/www/html/wp-config.php) || exit 1; echo "$WP_CONFIG_CONTENTS" | grep -q "\$_SERVER\[.HTTP_HOST.\] = DOCKER_HOST" || echo "$WP_CONFIG_CONTENTS" | sed "/define.*'\''DOCKER_HOST'\''/a \\\$_SERVER['\''HTTP_HOST'\''] = DOCKER_HOST;" > /var/www/html/wp-config.php'
 cli wp config set DOCKER_REQUEST_URL "( ! empty( \$_SERVER['HTTPS'] ) ? 'https://' : 'http://' ) . DOCKER_HOST" --raw
 cli wp config set WP_SITEURL DOCKER_REQUEST_URL --raw
 cli wp config set WP_HOME DOCKER_REQUEST_URL --raw
