@@ -172,5 +172,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Move some independent classes into autoloader
 * Dev - Add Jest tests for ECE payment flow
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
+* Tweak - Preconnect to Stripe hosts and preload the Express Checkout bundle so wallet buttons paint sooner
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
