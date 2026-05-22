@@ -213,13 +213,67 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			has_action( 'wc_stripe_agentic_commerce_sync_feed', [ $integration, 'sync_feed' ] )
 		);
 		$this->assertNotFalse(
+			has_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $integration, 'schedule_full_resync_now' ] )
+		);
+		$this->assertNotFalse(
 			has_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $integration, 'allow_agentic_payment_complete' ] )
 		);
 
 		$allowed = apply_filters( 'woocommerce_payment_complete_allowed_created_via_values', [], null );
 		$this->assertContains( \WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA, $allowed );
 
+		remove_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $integration, 'schedule_full_resync_now' ] );
 		remove_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $integration, 'allow_agentic_payment_complete' ] );
+	}
+
+	/**
+	 * Adapter-fired resync action must enqueue an async Action Scheduler job
+	 * the first time it fires, and become a no-op while that job is still
+	 * pending so repeated visibility-setting saves don't stack queue entries.
+	 */
+	public function test_schedule_full_resync_now_enqueues_once_when_idle() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
+
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+		$integration->register_hooks();
+
+		do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' );
+		$this->assertNotFalse(
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION ),
+			'First firing must enqueue an async sync.'
+		);
+
+		// Second firing while the first job is still pending must be a no-op —
+		// Action Scheduler would otherwise stack duplicate entries.
+		$pending_before = as_get_scheduled_actions(
+			[
+				'hook'   => \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION,
+				'group'  => 'wc-stripe',
+				'status' => \ActionScheduler_Store::STATUS_PENDING,
+			],
+			'ids'
+		);
+		do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' );
+		$pending_after = as_get_scheduled_actions(
+			[
+				'hook'   => \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION,
+				'group'  => 'wc-stripe',
+				'status' => \ActionScheduler_Store::STATUS_PENDING,
+			],
+			'ids'
+		);
+		$this->assertSame(
+			count( $pending_before ),
+			count( $pending_after ),
+			'Repeated calls while a sync is pending must not stack queue entries.'
+		);
+
+		remove_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $integration, 'schedule_full_resync_now' ] );
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 	}
 
 	/**

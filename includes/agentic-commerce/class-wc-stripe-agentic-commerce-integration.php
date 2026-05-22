@@ -169,11 +169,41 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public function register_hooks(): void {
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 
+		// Adapter-fired hook for converging Stripe's catalog when the
+		// `wc_stripe_agentic_commerce_should_sync_product` filter outcome changes.
+		// See the filter docblock for the contract — without this, a previously
+		// exported product that becomes excluded would only drop out of Stripe's
+		// catalog on the next scheduled full sync.
+		add_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $this, 'schedule_full_resync_now' ] );
+
 		// WC 10.8+ requires `created_via` to be in an allowlist for `payment_complete()` to run.
 		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $this, 'allow_agentic_payment_complete' ] );
 
 		$inventory_tracker = new WC_Stripe_Agentic_Commerce_Inventory_Tracker();
 		$inventory_tracker->register_hooks();
+	}
+
+	/**
+	 * Enqueue an immediate full-feed sync if one is not already pending.
+	 *
+	 * Idempotent: when a sync is already pending (recurring cron tick or a
+	 * previous call within the same request), this is a no-op. Adapters can
+	 * call it cheaply on every visibility-setting save without worrying about
+	 * stacking Action Scheduler entries.
+	 *
+	 * @since 10.8.0
+	 * @return void
+	 */
+	public function schedule_full_resync_now(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_enqueue_async_action' ) ) {
+			return;
+		}
+
+		if ( as_has_scheduled_action( self::SCHEDULED_ACTION ) ) {
+			return;
+		}
+
+		as_enqueue_async_action( self::SCHEDULED_ACTION, [], 'wc-stripe' );
 	}
 
 	/**
