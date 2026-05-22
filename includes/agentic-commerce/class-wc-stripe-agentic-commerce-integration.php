@@ -240,23 +240,39 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Get product feed query arguments.
 	 *
+	 * Constructs the `wc_get_products()` argument set passed to the walker.
+	 * When a {@see WC_Stripe_Agentic_Commerce_Product_Filter} has been
+	 * configured (via stored options or the
+	 * `wc_stripe_agentic_commerce_product_filters` filter), the resolved
+	 * union of product IDs is injected as `include` here, then the existing
+	 * low-level `wc_stripe_agentic_commerce_product_query_args` filter still
+	 * runs as a final escape hatch.
+	 *
 	 * @since 10.5.0
 	 * @return array WP_Query arguments for product selection.
 	 */
 	public function get_product_feed_query_args(): array {
+		$args = [
+			'type'   => [ 'simple', 'variation' ],
+			'status' => [ 'publish' ],
+		];
+
+		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		if ( $filter->is_configured() ) {
+			$args['include'] = $filter->resolve_ids();
+		}
+
 		/**
 		 * Filter product feed query arguments.
+		 *
+		 * Runs after the product filter has resolved a configured `include`
+		 * set, so callers can read the resolved IDs or replace the args
+		 * entirely.
 		 *
 		 * @since 10.5.0
 		 * @param array $args WP_Query arguments.
 		 */
-		return apply_filters(
-			'wc_stripe_agentic_commerce_product_query_args',
-			[
-				'type'   => [ 'simple', 'variation' ],
-				'status' => [ 'publish' ],
-			]
-		);
+		return apply_filters( 'wc_stripe_agentic_commerce_product_query_args', $args );
 	}
 
 	/**

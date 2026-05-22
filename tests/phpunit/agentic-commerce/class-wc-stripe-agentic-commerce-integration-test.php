@@ -21,6 +21,15 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	private string $last_upload_option;
 
 	/**
+	 * Resolved value of the protected OPTION_NAME constant on the product filter,
+	 * cached so include-injection tests can seed input state directly without
+	 * exposing the constant publicly.
+	 *
+	 * @var string
+	 */
+	private string $product_filter_option;
+
+	/**
 	 * Setup test environment before each test.
 	 *
 	 * @return void
@@ -38,6 +47,9 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 
 		$this->last_upload_option = ( new \ReflectionClass( \WC_Stripe_Agentic_Commerce_Integration::class ) )
 			->getConstant( 'LAST_UPLOAD_OPTION' );
+
+		$this->product_filter_option = ( new \ReflectionClass( \WC_Stripe_Agentic_Commerce_Product_Filter::class ) )
+			->getConstant( 'OPTION_NAME' );
 	}
 
 	/**
@@ -48,7 +60,10 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 */
 	public function tearDown(): void {
 		delete_option( $this->last_upload_option );
+		delete_option( $this->product_filter_option );
 		remove_all_filters( 'wc_stripe_agentic_commerce_feed_dedupe_enabled' );
+		remove_all_filters( 'wc_stripe_agentic_commerce_product_filters' );
+		remove_all_filters( 'wc_stripe_agentic_commerce_product_query_args' );
 		parent::tearDown();
 	}
 
@@ -96,8 +111,74 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$args        = $integration->get_product_feed_query_args();
 
 		$this->assertEquals( [ 'simple' ], $args['type'] );
+	}
 
-		remove_all_filters( 'wc_stripe_agentic_commerce_product_query_args' );
+	/**
+	 * No product-filter option set means no `include` key — the walker should
+	 * iterate every published simple/variation product as it did before the
+	 * filter abstraction landed.
+	 *
+	 * @return void
+	 */
+	public function test_get_product_feed_query_args_omits_include_when_filter_not_configured() {
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+		$args        = $integration->get_product_feed_query_args();
+
+		$this->assertArrayNotHasKey( 'include', $args );
+	}
+
+	/**
+	 * When the product filter is configured but resolves to nothing, the
+	 * integration must inject the `[0]` sentinel as `include` so wc_get_products
+	 * returns zero rows instead of falling back to "no filter = all products".
+	 *
+	 * @return void
+	 */
+	public function test_get_product_feed_query_args_injects_sentinel_for_empty_resolution() {
+		update_option(
+			$this->product_filter_option,
+			[
+				'categories' => [ '__no-such-category__' ],
+			]
+		);
+
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+		$args        = $integration->get_product_feed_query_args();
+
+		$this->assertArrayHasKey( 'include', $args );
+		$this->assertSame( [ 0 ], $args['include'] );
+	}
+
+	/**
+	 * The low-level `wc_stripe_agentic_commerce_product_query_args` filter
+	 * must still run after the resolver injects `include`, so callers can
+	 * read or mutate the resolved set.
+	 *
+	 * @return void
+	 */
+	public function test_query_args_filter_runs_after_include_injection() {
+		update_option(
+			$this->product_filter_option,
+			[
+				'categories' => [ '__no-such-category__' ],
+			]
+		);
+
+		$observed = null;
+		add_filter(
+			'wc_stripe_agentic_commerce_product_query_args',
+			function ( $args ) use ( &$observed ) {
+				$observed        = $args['include'] ?? null;
+				$args['include'] = [ 42 ];
+				return $args;
+			}
+		);
+
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+		$args        = $integration->get_product_feed_query_args();
+
+		$this->assertSame( [ 0 ], $observed, 'Low-level filter must observe the resolver-injected include.' );
+		$this->assertSame( [ 42 ], $args['include'], 'Low-level filter must still be able to mutate include.' );
 	}
 
 	/**
