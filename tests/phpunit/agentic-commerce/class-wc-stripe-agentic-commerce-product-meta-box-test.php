@@ -180,6 +180,45 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A real flip of the meta value must fire the resync action so
+	 * Stripe's catalog converges immediately. A save that doesn't
+	 * change the value (the merchant just clicked Update again) must
+	 * not fire it — adapters expect the action to be a useful signal,
+	 * not noise on every product save.
+	 */
+	public function test_save_meta_schedules_resync_only_on_real_change(): void {
+		$product = WC_Helper_Product::create_simple_product();
+		$meta    = new WC_Stripe_Agentic_Commerce_Product_Meta_Box();
+
+		$fired = 0;
+		$bump  = function () use ( &$fired ) {
+			++$fired;
+		};
+		add_action( 'wc_stripe_agentic_commerce_schedule_full_resync', $bump );
+
+		// First flip on (missing meta → 'yes') must fire.
+		$_POST = [
+			'woocommerce_meta_nonce'                              => wp_create_nonce( 'woocommerce_save_data' ),
+			WC_Stripe_Agentic_Commerce_Product_Meta_Box::META_KEY => 'yes',
+		];
+		$meta->save_meta( $product->get_id() );
+		$this->assertSame( 1, $fired );
+
+		// Saving again with the same value must not fire.
+		$meta->save_meta( $product->get_id() );
+		$this->assertSame( 1, $fired, 'No-op save must not stack resync events.' );
+
+		// Flipping back off must fire again.
+		$_POST = [ 'woocommerce_meta_nonce' => wp_create_nonce( 'woocommerce_save_data' ) ];
+		$meta->save_meta( $product->get_id() );
+		$this->assertSame( 2, $fired );
+
+		remove_action( 'wc_stripe_agentic_commerce_schedule_full_resync', $bump );
+		$_POST = [];
+		$product->delete( true );
+	}
+
+	/**
 	 * render_checkbox() must emit a checkbox using WC's helper — guards
 	 * against a refactor that swaps in raw HTML and silently drops the
 	 * `desc_tip` styling that ai-storefront and the surrounding

@@ -152,6 +152,20 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 		$posted_value = isset( $_POST[ self::META_KEY ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::META_KEY ] ) ) : '';
 		$value        = 'yes' === $posted_value ? 'yes' : 'no';
 
+		$previous_value = get_post_meta( $product_id, self::META_KEY, true );
+		if ( '' === $previous_value ) {
+			// First-ever save defaults to "not excluded" — treat missing meta as 'no'
+			// so flipping the box on for the first time still counts as a change and
+			// schedules a resync.
+			$previous_value = 'no';
+		}
+
 		update_post_meta( $product_id, self::META_KEY, $value );
+
+		// On a real change, kick the catalog so Stripe converges immediately rather
+		// than waiting for the next scheduled full sync to drop / re-add this product.
+		if ( $previous_value !== $value ) {
+			do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' );
+		}
 	}
 }
