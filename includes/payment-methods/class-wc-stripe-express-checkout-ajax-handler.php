@@ -40,7 +40,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		add_action( 'wc_ajax_wc_stripe_get_selected_product_data', [ $this, 'ajax_get_selected_product_data' ] );
 		add_action( 'wc_ajax_wc_stripe_clear_cart', [ $this, 'ajax_clear_cart' ] );
 		add_action( 'wc_ajax_wc_stripe_log_errors', [ $this, 'ajax_log_errors' ] );
-		add_action( 'wc_ajax_wc_stripe_pay_for_order', [ $this, 'ajax_pay_for_order' ] );
 		add_filter( 'woocommerce_get_country_locale', [ $this, 'modify_country_locale_for_express_checkout' ], 20 );
 	}
 
@@ -382,72 +381,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		exit;
 	}
 	/**
-	 * Processes the Pay for Order AJAX request from the Express Checkout.
-	 *
-	 * @deprecated 9.2.0 Payment is processed using the Blocks API by default.
-	 *
-	 * @return void
-	 */
-	public function ajax_pay_for_order() {
-		_deprecated_function( __METHOD__, '9.2.0' );
-		check_ajax_referer( 'wc-stripe-pay-for-order' );
-
-		if (
-			! isset( $_POST['payment_method'] ) || 'stripe' !== $_POST['payment_method']
-			|| ! isset( $_POST['order'] ) || ! intval( $_POST['order'] )
-			|| ! isset( $_POST['wc-stripe-payment-method'] ) || empty( $_POST['wc-stripe-payment-method'] )
-		) {
-			// Incomplete request.
-			$response = [
-				'result'   => 'error',
-				'messages' => __( 'Invalid request', 'woocommerce-gateway-stripe' ),
-			];
-			wp_send_json( $response, 400 );
-			return;
-		}
-
-		$order_id = intval( $_POST['order'] );
-		try {
-			// Set up an environment, similar to core checkout.
-			wc_maybe_define_constant( 'WOOCOMMERCE_CHECKOUT', true );
-			wc_set_time_limit( 0 );
-
-			// Load the order.
-			$order = wc_get_order( $order_id );
-
-			if ( ! is_a( $order, WC_Order::class ) ) {
-				throw new Exception( __( 'Invalid order!', 'woocommerce-gateway-stripe' ) );
-			}
-
-			if ( ! $order->needs_payment() ) {
-				throw new Exception( __( 'This order does not require payment!', 'woocommerce-gateway-stripe' ) );
-			}
-
-			// Process the payment.
-			$result = WC_Stripe::get_instance()->get_main_stripe_gateway()->process_payment( $order_id );
-
-			// process_payment() should only return `success` or throw an exception.
-			if ( ! is_array( $result ) || ! isset( $result['result'] ) || 'success' !== $result['result'] || ! isset( $result['redirect'] ) ) {
-				throw new Exception( __( 'Unable to determine payment success.', 'woocommerce-gateway-stripe' ) );
-			}
-
-			// Include the order ID in the result.
-			$result['order_id'] = $order_id;
-
-			$result = apply_filters( 'woocommerce_payment_successful_result', $result, $order_id );
-		} catch ( Exception $e ) {
-			WC_Stripe_Logger::error( 'Pay for order failed for order ' . $order_id . ' with express checkout', [ 'error_message' => $e->getMessage() ] );
-
-			$result = [
-				'result'   => 'error',
-				'messages' => $e->getMessage(),
-			];
-		}
-
-		wp_send_json( $result );
-	}
-
-	/**
 	 * Modify country locale for express checkout.
 	 * Countries that don't have state fields, make the state field optional.
 	 * Make postcode optional for specific countries during express checkout.
@@ -460,8 +393,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		if ( ! $this->express_checkout_helper->is_express_checkout_context() ) {
 			return $locale;
 		}
-
-		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-express-checkout-button-states.php';
 
 		// For countries that don't have state fields, make the state field optional.
 		foreach ( WC_Stripe_Express_Checkout_Button_States::STATES as $country_code => $states ) {

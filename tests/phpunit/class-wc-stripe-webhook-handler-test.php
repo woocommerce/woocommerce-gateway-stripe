@@ -1463,6 +1463,13 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
 		$order->save_meta_data();
 
+		// Defensively clear any leftover session-specific cache entries.
+		// handle_checkout_session_success() returns early without calling schedule_job()
+		// when the per-session lock is present, which caused this test to intermittently
+		// fail in CI under paratest/randomized ordering.
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
 		// Build the mock notification.
 		$notification = (object) [
 			'type' => 'checkout.session.completed',
