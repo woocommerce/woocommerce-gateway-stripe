@@ -71,6 +71,13 @@ class WC_Stripe_Abilities_Registrar {
 			return;
 		}
 
+		if ( ! self::woo_abilities_loader_available() ) {
+			// Abilities feature requires WC 10.9. Silently no-op on older
+			// versions; the feature flag is the rollout safety net, the
+			// loader gate is the structural gate.
+			return;
+		}
+
 		/**
 		 * Filter whether Stripe's Abilities API registrations are active.
 		 *
@@ -83,13 +90,6 @@ class WC_Stripe_Abilities_Registrar {
 		 * @param bool $enabled Whether to register Stripe abilities. Default false.
 		 */
 		if ( ! apply_filters( 'wc_stripe_abilities_enabled', false ) ) {
-			return;
-		}
-
-		if ( ! self::woo_abilities_loader_available() ) {
-			// Abilities feature requires WC 10.9. Silently no-op on older
-			// versions; the feature flag is the rollout safety net, the
-			// loader gate is the structural gate.
 			return;
 		}
 
