@@ -16,6 +16,7 @@
  * @covers WC_Stripe_Ability_Get_Disputes
  * @covers WC_Stripe_Ability_Get_Dispute
  * @covers WC_Stripe_Ability_Get_Payouts
+ * @covers WC_Stripe_Ability_Get_Payout
  * @covers WC_Stripe_Ability_Get_Balance
  * @covers WC_Stripe_Ability_Get_Balance_Transactions
  */
@@ -47,6 +48,7 @@ class WC_Stripe_Abilities_Shape_Test extends WP_UnitTestCase {
 			'get-disputes'             => [ WC_Stripe_Ability_Get_Disputes::class, 'woocommerce-gateway-stripe/get-disputes' ],
 			'get-dispute'              => [ WC_Stripe_Ability_Get_Dispute::class, 'woocommerce-gateway-stripe/get-dispute' ],
 			'get-payouts'              => [ WC_Stripe_Ability_Get_Payouts::class, 'woocommerce-gateway-stripe/get-payouts' ],
+			'get-payout'               => [ WC_Stripe_Ability_Get_Payout::class, 'woocommerce-gateway-stripe/get-payout' ],
 			'get-balance'              => [ WC_Stripe_Ability_Get_Balance::class, 'woocommerce-gateway-stripe/get-balance' ],
 			'get-balance-transactions' => [ WC_Stripe_Ability_Get_Balance_Transactions::class, 'woocommerce-gateway-stripe/get-balance-transactions' ],
 		];

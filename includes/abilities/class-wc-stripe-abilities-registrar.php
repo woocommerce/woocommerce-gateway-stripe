@@ -45,6 +45,7 @@ class WC_Stripe_Abilities_Registrar {
 		WC_Stripe_Ability_Get_Disputes::class,
 		WC_Stripe_Ability_Get_Dispute::class,
 		WC_Stripe_Ability_Get_Payouts::class,
+		WC_Stripe_Ability_Get_Payout::class,
 		WC_Stripe_Ability_Get_Balance::class,
 		WC_Stripe_Ability_Get_Balance_Transactions::class,
 	];

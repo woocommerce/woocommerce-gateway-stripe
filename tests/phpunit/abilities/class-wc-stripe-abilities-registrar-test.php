@@ -101,6 +101,7 @@ class WC_Stripe_Abilities_Registrar_Test extends WP_UnitTestCase {
 			WC_Stripe_Ability_Get_Disputes::class,
 			WC_Stripe_Ability_Get_Dispute::class,
 			WC_Stripe_Ability_Get_Payouts::class,
+			WC_Stripe_Ability_Get_Payout::class,
 			WC_Stripe_Ability_Get_Balance::class,
 			WC_Stripe_Ability_Get_Balance_Transactions::class,
 		];

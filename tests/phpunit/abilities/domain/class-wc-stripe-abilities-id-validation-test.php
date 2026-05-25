@@ -13,6 +13,7 @@
  * @covers WC_Stripe_Ability_Get_Charge
  * @covers WC_Stripe_Ability_Get_Payment_Intent
  * @covers WC_Stripe_Ability_Get_Dispute
+ * @covers WC_Stripe_Ability_Get_Payout
  */
 class WC_Stripe_Abilities_Id_Validation_Test extends WP_UnitTestCase {
 
@@ -32,6 +33,7 @@ class WC_Stripe_Abilities_Id_Validation_Test extends WP_UnitTestCase {
 			'get-charge'         => [ WC_Stripe_Ability_Get_Charge::class, 'charge_id', 'charge_id' ],
 			'get-payment-intent' => [ WC_Stripe_Ability_Get_Payment_Intent::class, 'payment_intent_id', 'payment_intent_id' ],
 			'get-dispute'        => [ WC_Stripe_Ability_Get_Dispute::class, 'dispute_id', 'dispute_id' ],
+			'get-payout'         => [ WC_Stripe_Ability_Get_Payout::class, 'payout_id', 'payout_id' ],
 		];
 	}
 
