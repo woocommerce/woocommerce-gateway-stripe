@@ -746,6 +746,26 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
 		}
 
+		// Final fallback: locate the order via its payment intent ID. Some orders are missing
+		// the stored charge ID (for example, a lost write during checkout), so neither the
+		// refund ID nor the charge ID can match. The charge object on the notification still
+		// references the payment intent, which is stored on the order at checkout time. When
+		// found this way, back-fill the charge details from the notification so the refund can
+		// be synced and future lookups succeed.
+		if ( ! $order && ! empty( $notification->data->object->payment_intent ) ) {
+			$order = WC_Stripe_Helper::get_order_by_intent_id( $notification->data->object->payment_intent );
+
+			if ( $order instanceof WC_Order && ! $order->get_transaction_id() ) {
+				$order->set_transaction_id( $notification->data->object->id );
+
+				if ( isset( $notification->data->object->captured ) ) {
+					WC_Stripe_Order_Helper::get_instance()->set_stripe_charge_captured( $order, (bool) $notification->data->object->captured );
+				}
+
+				$order->save();
+			}
+		}
+
 		if ( ! $order ) {
 			WC_Stripe_Logger::warning( "Could not find order via refund ID ({$refund_object->id}) or charge ID ({$notification->data->object->id})" );
 			return;

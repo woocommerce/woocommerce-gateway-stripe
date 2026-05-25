@@ -3039,7 +3039,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 8
+			count: 9
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-

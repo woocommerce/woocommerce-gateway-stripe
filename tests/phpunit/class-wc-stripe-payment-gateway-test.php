@@ -32,6 +32,23 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Helper to build a mocked successful HTTP response for the Stripe API from a body array.
+	 *
+	 * @param array $body The response body to JSON-encode.
+	 * @return array A pre-empted `pre_http_request` response.
+	 */
+	private function build_response( array $body ) {
+		return [
+			'headers'  => [],
+			'body'     => wp_json_encode( $body ),
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+		];
+	}
+
+	/**
 	 * Tests false is returned if payment intent is not set in the order.
 	 */
 	public function test_default_get_payment_intent_from_order() {
@@ -591,6 +608,83 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertTrue( $result );
 
 		remove_filter( 'pre_http_request', $callback );
+	}
+
+	/**
+	 * Tests that process_refund recovers a missing charge ID from the stored payment intent.
+	 *
+	 * Reproduces STRIPE-1099: a paid card order is left without a stored `_transaction_id`,
+	 * which previously made it permanently un-refundable. The charge ID should be recovered
+	 * from the payment intent, persisted back onto the order, and the refund should succeed.
+	 */
+	public function test_process_refund_recovers_missing_charge_id_from_intent() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		// No transaction ID is set, mimicking the lost-write scenario, but the intent is present.
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_123' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'payment_intents/pi_123' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'            => 'pi_123',
+						'object'        => 'payment_intent',
+						'status'        => 'succeeded',
+						'latest_charge' => 'ch_123',
+					]
+				);
+			}
+			if ( strpos( $url, 'charges/ch_123' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 'ch_123',
+						'object'   => 'charge',
+						'captured' => true,
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 're_123',
+						'object'   => 'refund',
+						'amount'   => 1000,
+						'currency' => 'usd',
+						'charge'   => 'ch_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
+		$this->assertTrue( $result );
+
+		// The recovered charge ID should be persisted on the order so it self-heals.
+		$reloaded = wc_get_order( $order_id );
+		$this->assertSame( 'ch_123', $reloaded->get_transaction_id() );
+
+		remove_filter( 'pre_http_request', $callback );
+	}
+
+	/**
+	 * Tests that process_refund still returns false when neither a charge ID nor a
+	 * recoverable payment intent is available.
+	 */
+	public function test_process_refund_returns_false_when_charge_id_unrecoverable() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
+		$this->assertFalse( $result );
 	}
 
 	/**
