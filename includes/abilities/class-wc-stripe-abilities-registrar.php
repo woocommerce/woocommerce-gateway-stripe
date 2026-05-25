@@ -78,18 +78,7 @@ class WC_Stripe_Abilities_Registrar {
 			return;
 		}
 
-		/**
-		 * Filter whether Stripe's Abilities API registrations are active.
-		 *
-		 * Disabled by default during rollout. Flip this filter to true to
-		 * expose Stripe abilities through the shared MCP adapter and the
-		 * WordPress Abilities API REST bridge.
-		 *
-		 * @since 10.8.0
-		 *
-		 * @param bool $enabled Whether to register Stripe abilities. Default false.
-		 */
-		if ( ! apply_filters( 'wc_stripe_abilities_enabled', false ) ) {
+		if ( ! WC_Stripe_Feature_Flags::is_abilities_enabled() ) {
 			return;
 		}
 
