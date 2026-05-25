@@ -13,6 +13,14 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 
 describe( 'getPromotionalBannerType', () => {
+	beforeEach( () => {
+		global.wc_stripe_settings_params = {};
+	} );
+
+	afterEach( () => {
+		delete global.wc_stripe_settings_params;
+	} );
+
 	it( 'Reconnect banner', () => {
 		global.wc_stripe_settings_params = {};
 
