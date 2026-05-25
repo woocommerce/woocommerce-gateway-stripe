@@ -87,11 +87,9 @@ class WC_Stripe_Payment_Tokens {
 				return 'SEPA IBAN';
 		}
 
-		// The My Account template re-applies wc_get_credit_card_type_label to our wrapped
-		// brand, mangling the inner card name through ucwords. Restore it through the
-		// label helper, which handles its own normalization. Match any inner content so
-		// multi-word brands like "Cartes Bancaires" — which ucwords leaves as
-		// "cartes Bancaires" because `(` isn't a word boundary — still get re-labelled.
+		// WC's `ucwords` pass on our wrapped brand mangles the inner card name
+		// (the first letter after `(` stays lowercase). Match any inner content
+		// and re-normalize through the label helper.
 		if ( preg_match( '/^(Apple Pay|Google Pay) \(([^)]+)\)$/', $label, $matches ) ) {
 			return $matches[1] . ' (' . wc_get_credit_card_type_label( $matches[2] ) . ')';
 		}
@@ -796,9 +794,7 @@ class WC_Stripe_Payment_Tokens {
 				// Card fingerprint hashes the card number only, so a fingerprint
 				// match can still carry a different expiry or brand. Refresh the
 				// mutable card metadata so the UI reflects the replacement.
-				// `wallet_type` is intentionally not refreshed — it reflects how
-				// the token was originally created and must not be overwritten
-				// when the same card is later used via a different wallet.
+				// `wallet_type` is left as-is so a later wallet use doesn't re-badge a saved card.
 				if ( WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID === $payment_method_type && $found_token instanceof WC_Stripe_Payment_Token_CC ) {
 					$found_token->set_expiry_month( $payment_method->card->exp_month );
 					$found_token->set_expiry_year( $payment_method->card->exp_year );

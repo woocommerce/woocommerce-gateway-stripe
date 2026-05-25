@@ -152,7 +152,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.8.0 - xxxx-xx-xx =
-* Fix - Address wallet branding edge cases on saved cards: stop re-badging a card when it's later used via Apple Pay or Google Pay, and render multi-word card brands (e.g. Cartes Bancaires) correctly
+* Fix - Preserve saved card branding when the same card is later used via a wallet, and render multi-word brands (e.g. Cartes Bancaires) correctly
 * Add - Show Apple Pay / Google Pay branding on saved card tokens in My Account → Payment Methods and at checkout
 * Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Link)
 * Add - Add a setting to control whether Express Checkout is shown on the WooCommerce Subscriptions change payment method page

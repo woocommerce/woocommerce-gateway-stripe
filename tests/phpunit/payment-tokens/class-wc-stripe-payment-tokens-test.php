@@ -384,12 +384,9 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Guards that `add_token_to_user`'s duplicate-match path does not overwrite
-	 * the original `wallet_type`. `wallet_type` reflects how the token was created,
-	 * so re-using the same card via a wallet (e.g. saving a card directly, then
-	 * later paying via Google Pay with the same card) must not re-badge the
-	 * existing token — the shopper would see their saved Visa flipped to a
-	 * "Google Pay (Visa)" entry in My Account.
+	 * `add_token_to_user`'s duplicate-match path must not overwrite the
+	 * original `wallet_type` when the same card is later used via a wallet —
+	 * otherwise a saved plain card flips to "Google Pay (Visa)" in My Account.
 	 *
 	 * @return void
 	 */
@@ -420,8 +417,7 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 				'exp_year'      => 2028,
 				'last4'         => '4242',
 				'fingerprint'   => 'F_wallet',
-				// Same card paid via Apple Pay this time — the existing token's
-				// wallet_type must NOT be flipped to 'apple_pay'.
+				// Same card paid via Apple Pay this time — must not flip wallet_type.
 				'wallet'        => (object) [ 'type' => 'apple_pay' ],
 			],
 		];
@@ -434,7 +430,7 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 
 		$this->assertSame( $seed_token_id, $result->get_id() );
 		$this->assertSame( '', $result->get_wallet_type(), 'wallet_type must be preserved on duplicate-match.' );
-		// Other mutable card metadata still refreshes (expiry was 01/2027 → 02/2028).
+		// Other mutable card metadata still refreshes.
 		$this->assertEquals( '02', $result->get_expiry_month() );
 		$this->assertEquals( '2028', $result->get_expiry_year() );
 
@@ -660,11 +656,8 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 			'Google Pay + visa'                          => [ 'Google Pay (visa)', 'Google Pay (Visa)' ],
 			'Google Pay + mastercard'                    => [ 'Google Pay (mastercard)', 'Google Pay (MasterCard)' ],
 			'Apple Pay + amex'                           => [ 'Apple Pay (american express)', 'Apple Pay (American Express)' ],
-			// Multi-word brands: WC's `ucwords` pass on our wrapped value
-			// "Apple Pay (Cartes Bancaires)" mangles it to
-			// "Apple Pay (cartes Bancaires)" because `(` isn't a word
-			// boundary, so the first inner letter stays lowercase while the
-			// second word gets re-capitalized. The repair must still kick in.
+			// Multi-word brands: ucwords leaves the first inner letter lowercase
+			// (because `(` isn't a word boundary) but capitalizes the second word.
 			'Apple Pay + cartes_bancaires post-ucwords'  => [ 'Apple Pay (cartes Bancaires)', 'Apple Pay (Cartes Bancaires)' ],
 			'Google Pay + cartes_bancaires post-ucwords' => [ 'Google Pay (cartes Bancaires)', 'Google Pay (Cartes Bancaires)' ],
 			'Bare Visa (pass-through)'                   => [ 'Visa', 'Visa' ],
