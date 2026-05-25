@@ -38,12 +38,14 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		);
 		// Make sure we remove all existing notes.
 		$admin_note_store = WC_Data_Store::load( 'admin-note' );
-		$all_notes        = $admin_note_store->get_notes(
-			[ 'per_page' => 100 ]
-		);
-		foreach ( $all_notes as $note ) {
-			$admin_note_store->delete( $note );
-		}
+		do {
+			$all_notes = $admin_note_store->get_notes(
+				[ 'per_page' => 100 ]
+			);
+			foreach ( $all_notes as $note ) {
+				$admin_note_store->delete( $note );
+			}
+		} while ( ! empty( $all_notes ) );
 	}
 
 	public function tear_down() {
