@@ -50,15 +50,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	];
 
 	/**
-	 * Stripe intents that are treated as successfully created.
-	 *
-	 * @type array
-	 *
-	 * @deprecated 9.1.0
-	 */
-	const SUCCESSFUL_INTENT_STATUS = [ 'succeeded', 'requires_capture', 'processing' ];
-
-	/**
 	 * Transient name for appearance settings.
 	 *
 	 * @deprecated 10.5.0 Appearance is fully managed by the client.
@@ -110,13 +101,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	public $saved_cards;
 
 	/**
-	 * Should SEPA tokens be used for other payment methods (iDEAL and Bancontact)
+	 * Should SEPA tokens be used for other payment methods (iDEAL and Bancontact).
+	 *
+	 * Previously public property that is now private for backwards compatibility.
+	 * Deprecation notices are triggered via {@see __get()} and {@see __set()}.
 	 *
 	 * @var bool
 	 *
 	 * @deprecated 10.0.0 Use `sepa_tokens_for_ideal` and `sepa_tokens_for_bancontact` instead.
 	 */
-	public $sepa_tokens_for_other_methods;
+	private $sepa_tokens_for_other_methods;
 
 	/**
 	 * Should SEPA tokens be used for iDEAL
@@ -135,11 +129,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Is Single Payment Element enabled?
 	 *
+	 * Deprecated property that was previously public and is now private for backwards compatibility.
+	 * Deprecation notices are triggered via {@see __get()} and {@see __set()}.
+	 *
 	 * @var bool
 	 *
 	 * @deprecated 9.5.0 Use `oc_enabled`.
 	 */
-	public $spe_enabled;
+	private $spe_enabled;
 
 	/**
 	 * Is Optimized Checkout enabled?
@@ -2736,7 +2733,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	public function is_sepa_tokens_for_other_methods_enabled() {
 		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_UPE_Payment_Gateway::is_sepa_tokens_for_ideal_enabled()' );
 
-		return $this->sepa_tokens_for_other_methods;
+		return $this->is_sepa_tokens_for_ideal_enabled() || $this->is_sepa_tokens_for_bancontact_enabled();
 	}
 
 	/**
@@ -3115,7 +3112,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$intent = $this->stripe_request( 'payment_intents/' . $existing_intent->id );
 
 			// If the intent is already successful, return it to prevent duplicate charges
-			if ( isset( $intent->status ) && in_array( $intent->status, self::SUCCESSFUL_INTENT_STATUS, true ) ) {
+			if ( isset( $intent->status ) && in_array( $intent->status, WC_Stripe_Intent_Status::SUCCESSFUL_STATUSES, true ) ) {
 				return $intent;
 			}
 		}
@@ -3295,6 +3292,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$selected_payment_type = $payment_method_details->type;
 			}
 			$payment_method_types = [ $selected_payment_type ];
+
+			// Re-check reusability against the resolved type; the earlier save signal was computed against the OC pseudo-method.
+			if (
+				$save_payment_method_to_store &&
+				isset( $this->payment_methods[ $selected_payment_type ] ) &&
+				! $this->payment_methods[ $selected_payment_type ]->is_reusable()
+			) {
+				$save_payment_method_to_store = false;
+			}
 		} else {
 			$payment_method_types = $this->get_payment_method_types_for_intent_creation(
 				$selected_payment_type,
@@ -3603,12 +3609,24 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
 		}
 
+		// Single choke point for all save paths — enforce per-method toggles here, including the Adaptive Pricing webhook which bypasses prepare_payment_information_from_request().
+		if ( ! $payment_method_instance || ! $payment_method_instance->is_reusable() ) {
+			return;
+		}
+
 		// Searches for an existing duplicate token to update.
 		$found_token = WC_Stripe_Payment_Tokens::get_duplicate_token( $payment_method_object, $customer->get_user_id(), $this->id );
 
 		if ( $found_token ) {
 			// Update the token with the new payment method ID.
 			$payment_method_instance->update_payment_token( $found_token, $payment_method_object->id );
+
+			// `update_payment_token` only refreshes the PM id, so backfill wallet_type
+			// when reusing a pre-existing token (e.g. same card paid via a wallet).
+			if ( $found_token instanceof WC_Stripe_Payment_Token_CC && isset( $payment_method_object->card ) ) {
+				$found_token->set_wallet_type( (string) ( $payment_method_object->card->wallet->type ?? '' ) );
+				$found_token->save();
+			}
 		} else {
 			// Create a payment token for the user in the store.
 			$payment_method_instance->create_payment_token_for_user( $user->ID, $payment_method_object );
@@ -4924,5 +4942,60 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'amount'   => $amount,
 			'currency' => $currency,
 		];
+	}
+
+	/**
+	 * Magic setter to add warnings for deprecated properties.
+	 *
+	 * @param string $name  Property name.
+	 * @param mixed  $value Value being assigned.
+	 * @return void
+	 */
+	public function __set( $name, $value ) {
+		if ( 'sepa_tokens_for_other_methods' === $name ) {
+			wc_deprecated_function( static::class . '::$' . $name, '10.0.0', '$sepa_tokens_for_ideal and $sepa_tokens_for_bancontact' );
+			$this->sepa_tokens_for_other_methods = $value;
+			return;
+		}
+		if ( 'spe_enabled' === $name ) {
+			wc_deprecated_function( static::class . '::$' . $name, '9.5.0', '$oc_enabled' );
+			$this->spe_enabled = $value;
+			return;
+		}
+
+		if ( method_exists( parent::class, '__set' ) ) {
+			parent::__set( $name, $value );
+			return;
+		}
+
+		// Preserve PHP's default behaviour for unknown properties so we don't
+		// silently swallow typos elsewhere.
+		$this->$name = $value;
+	}
+
+	/**
+	 * Magic getter to add warnings for deprecated properties.
+	 *
+	 * @param string $name Property name.
+	 * @return mixed
+	 */
+	public function __get( $name ) {
+		if ( 'sepa_tokens_for_other_methods' === $name ) {
+			wc_deprecated_function( static::class . '::$' . $name, '10.0.0', '$sepa_tokens_for_ideal and $sepa_tokens_for_bancontact' );
+			return $this->sepa_tokens_for_other_methods;
+		}
+		if ( 'spe_enabled' === $name ) {
+			wc_deprecated_function( static::class . '::$' . $name, '9.5.0', '$oc_enabled' );
+			return $this->spe_enabled;
+		}
+
+		if ( method_exists( parent::class, '__get' ) ) {
+			return parent::__get( $name );
+		}
+
+		// PHP would emit a notice and return null here for an undefined
+		// property; mirror that explicitly to keep behaviour predictable.
+		trigger_error( esc_html( 'Undefined property: ' . static::class . '::$' . $name ), E_USER_NOTICE ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
+		return null;
 	}
 }
