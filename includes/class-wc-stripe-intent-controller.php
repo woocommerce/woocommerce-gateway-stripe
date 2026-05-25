@@ -1396,7 +1396,12 @@ class WC_Stripe_Intent_Controller {
 
 			// Mirror the no-3DS change-payment branch: associate the new WC token with
 			// the subscription so My Account → Subscriptions reflects the new card.
-			WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $token->get_token() );
+			if ( ! WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $token->get_token() ) ) {
+				throw new WC_Stripe_Exception(
+					'subscription_token_replace_failed',
+					__( "We can't process your payment method change at this time. Please try again later.", 'woocommerce-gateway-stripe' )
+				);
+			}
 
 			// Check if the subscription has the delayed update all flag and attempt to update all subscriptions after the intent has been confirmed. If successful, display the "updated all subscriptions" notice.
 			if ( WC_Subscriptions_Change_Payment_Gateway::will_subscription_update_all_payment_methods( $subscription ) && WC_Subscriptions_Change_Payment_Gateway::update_all_payment_methods_from_subscription( $subscription, $token->get_gateway_id() ) ) {

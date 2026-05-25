@@ -331,7 +331,12 @@ trait WC_Stripe_Subscriptions_Trait {
 				);
 
 				// Link the new token to the subscription so My Account renders it.
-				WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $payment_method_id );
+				if ( ! WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $payment_method_id ) ) {
+					throw new WC_Stripe_Exception(
+						'subscription_token_replace_failed',
+						__( "We can't process your payment method change at this time. Please try again later.", 'woocommerce-gateway-stripe' )
+					);
+				}
 			}
 
 			$redirect           = $this->get_return_url( $subscription );
