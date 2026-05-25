@@ -525,6 +525,38 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			];
 		}
 
+		$test_cases['dismiss multiple notices'] = [
+			'request params'    => [
+				'wc_stripe_show_customization_notice'       => 'no',
+				'wc_stripe_show_optimized_checkout_notice'  => 'no',
+				'wc_stripe_show_stripe_first_method_notice' => 'no',
+				'wc_stripe_show_stripe_tax_banner'          => 'no',
+			],
+			'expected options'  => [
+				'wc_stripe_show_customization_notice'       => 'no',
+				'wc_stripe_show_optimized_checkout_notice'  => 'no',
+				'wc_stripe_show_stripe_first_method_notice' => 'no',
+				'wc_stripe_show_stripe_tax_banner'          => 'no',
+			],
+			'expected response' => $dismissed_result,
+		];
+
+		$test_cases['dismiss multiple notices with mixed values'] = [
+			'request params'    => [
+				'wc_stripe_show_customization_notice'       => 'no',
+				'wc_stripe_show_optimized_checkout_notice'  => '',
+				'wc_stripe_show_stripe_first_method_notice' => 'no',
+				'wc_stripe_show_stripe_tax_banner'          => '',
+			],
+			'expected options'  => [
+				'wc_stripe_show_customization_notice'       => 'no',
+				'wc_stripe_show_optimized_checkout_notice'  => 'no',
+				'wc_stripe_show_stripe_first_method_notice' => 'no',
+				'wc_stripe_show_stripe_tax_banner'          => 'no',
+			],
+			'expected response' => $dismissed_result,
+		];
+
 		return $test_cases;
 	}
 
