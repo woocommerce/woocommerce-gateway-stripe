@@ -51,14 +51,6 @@ class WC_Stripe_UPE_Payment_Method_Becs_Debit extends WC_Stripe_UPE_Payment_Meth
 	}
 
 	/**
-	 * Returns string representing payment method type
-	 * to query to retrieve saved payment methods from Stripe.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
-	}
-
-	/**
 	 * Creates a BECS Debit payment token for the customer.
 	 *
 	 * @param int      $user_id        The customer ID the payment token is associated with.
