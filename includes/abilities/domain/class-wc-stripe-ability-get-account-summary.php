@@ -46,7 +46,7 @@ class WC_Stripe_Ability_Get_Account_Summary extends WC_Stripe_Ability_Base imple
 		return [
 			'label'               => __( 'Get Stripe account summary', 'woocommerce-gateway-stripe' ),
 			'description'         => __(
-				"Returns the current state of the merchant's connected Stripe account — status, country, supported currencies, statement descriptor, test/live mode, and any pending or overdue requirements. Zero-argument read; safe summary suitable for agent tools (excludes the raw account object).",
+				"Returns the current state of the merchant's connected Stripe account — Stripe account ID, status, country, supported currencies, statement descriptor, test/live mode, and any pending or overdue requirements. Zero-argument read; safe summary suitable for agent tools (excludes the raw account object).",
 				'woocommerce-gateway-stripe'
 			),
 			'category'            => self::CATEGORY_SLUG,
@@ -55,6 +55,16 @@ class WC_Stripe_Ability_Get_Account_Summary extends WC_Stripe_Ability_Base imple
 				'default'              => (object) [],
 				'properties'           => [],
 				'additionalProperties' => false,
+			],
+			'output_schema'       => [
+				'type'                 => 'object',
+				'properties'           => [
+					'id' => [
+						'type'        => [ 'string', 'null' ],
+						'description' => __( 'Stripe account ID (e.g. acct_...). Null when no account is connected.', 'woocommerce-gateway-stripe' ),
+					],
+				],
+				'additionalProperties' => true,
 			],
 			'execute_callback'    => [ self::class, 'execute' ],
 			'permission_callback' => [ WC_Stripe_Abilities_Registrar::class, 'can_manage_woocommerce' ],

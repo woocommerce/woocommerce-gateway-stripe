@@ -58,6 +58,21 @@ class WC_Stripe_Ability_Get_Account_Summary_Test extends WP_UnitTestCase {
 		$this->assertTrue( $annotations['idempotent'] ?? false, 'get-account-summary should be idempotent.' );
 	}
 
+	public function test_output_schema_declares_account_id_field() {
+		$args = WC_Stripe_Ability_Get_Account_Summary::get_registration_args();
+
+		$this->assertArrayHasKey( 'output_schema', $args, 'get-account-summary must declare its authored output fields for MCP discovery.' );
+
+		$schema = $args['output_schema'];
+		$this->assertSame( 'object', $schema['type'] ?? null );
+		$this->assertTrue( $schema['additionalProperties'] ?? false, 'output_schema must be partial — controller-owned fields pass through unmodelled.' );
+		$this->assertArrayHasKey( 'id', $schema['properties'] ?? [], 'output_schema must declare the id field that this ability ensures is present in the response.' );
+
+		$id_field = $schema['properties']['id'];
+		$this->assertContains( 'string', (array) ( $id_field['type'] ?? [] ) );
+		$this->assertContains( 'null', (array) ( $id_field['type'] ?? [] ) );
+	}
+
 	public function test_ability_rest_and_mcp_exposure() {
 		$args = WC_Stripe_Ability_Get_Account_Summary::get_registration_args();
 
