@@ -1198,7 +1198,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 			'case-sensitive comparison'           => [
 				[ 'US' ],
 				'us',
-				false,
+				true,
 			],
 		];
 	}
