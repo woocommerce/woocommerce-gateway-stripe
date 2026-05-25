@@ -654,11 +654,15 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		$callback   = static fn( $sync, $candidate ) => $candidate->get_id() !== $flipped_id;
 		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
-		$uploaded_feed = null;
+		// Capture the file path passed to the Files API request so we can read
+		// the uploaded CSV content and prove what was actually sent. Asserting
+		// only on the post-sync pending option wouldn't distinguish "pruned
+		// before upload" from "uploaded then cleared on success".
+		$uploaded_skus = null;
 		add_filter(
 			'wc_stripe_agentic_commerce_files_api_pre_request',
-			function ( $pre, $args ) use ( &$uploaded_feed ) {
-				$uploaded_feed = $args;
+			function ( $pre, $file_path ) use ( &$uploaded_skus ) {
+				$uploaded_skus = $this->read_sku_ids_from_csv( $file_path );
 				return [ 'id' => 'file_test_123' ];
 			},
 			10,
@@ -678,11 +682,12 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
 		}
 
-		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] );
-		$this->assertEmpty( $pending, 'Both entries should be cleared — kept_product was uploaded, flipped_product was pruned.' );
+		$this->assertNotNull( $uploaded_skus, 'A feed should have been uploaded for the kept product.' );
+		$this->assertContains( (string) $kept_product->get_id(), $uploaded_skus, 'Kept product must be in the uploaded feed.' );
+		$this->assertNotContains( (string) $flipped_id, $uploaded_skus, 'Pruned product must not be in the uploaded feed.' );
 
-		// The uploaded CSV must not contain the flipped product's id.
-		$this->assertNotNull( $uploaded_feed, 'A feed should have been uploaded.' );
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] );
+		$this->assertEmpty( $pending, 'Both entries cleared post-sync — kept was uploaded, flipped was pruned.' );
 	}
 
 	/**
@@ -697,16 +702,25 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
 
-		$product = $this->create_simple_product_with_stock( 4 );
+		$product    = $this->create_simple_product_with_stock( 4 );
+		$product_id = $product->get_id();
 		$this->sut->track_stock_change( $product );
 
 		// Permanently delete the product without going through the archive
 		// tracker — simulates an out-of-band delete (e.g. another plugin).
-		wp_delete_post( $product->get_id(), true );
+		wp_delete_post( $product_id, true );
 
+		// Record whether the Files API was invoked at all. If pruning runs
+		// before upload (as it should), the queue is empty and no upload
+		// fires. Asserting only on the post-sync pending option wouldn't
+		// distinguish that from "uploaded then cleared".
+		$upload_attempts = 0;
 		add_filter(
 			'wc_stripe_agentic_commerce_files_api_pre_request',
-			fn() => [ 'id' => 'file_test_123' ]
+			function () use ( &$upload_attempts ) {
+				$upload_attempts++;
+				return [ 'id' => 'file_test_123' ];
+			}
 		);
 		add_filter(
 			'wc_stripe_agentic_commerce_import_set_pre_request',
@@ -718,10 +732,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 		$this->sut->sync_inventory();
 
-		// The deleted product was pruned, leaving nothing to upload — the
-		// option should have been cleared by the prune helper.
+		$this->assertSame( 0, $upload_attempts, 'No upload should have happened — the only pending entry references a deleted product.' );
 		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] );
-		$this->assertEmpty( $pending );
+		$this->assertEmpty( $pending, 'Pruning should clear the stale entry from the pending option.' );
 	}
 
 	public function test_sync_inventory_retains_pending_on_failure() {
@@ -1178,9 +1191,15 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		$callback   = static fn( $sync, $candidate ) => $candidate->get_id() !== $flipped_id;
 		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
+		$uploaded_ids = null;
 		add_filter(
 			'wc_stripe_agentic_commerce_files_api_pre_request',
-			fn() => [ 'id' => 'file_test_123' ]
+			function ( $pre, $file_path ) use ( &$uploaded_ids ) {
+				$uploaded_ids = $this->read_column_from_csv( $file_path, 'id' );
+				return [ 'id' => 'file_test_123' ];
+			},
+			10,
+			2
 		);
 		add_filter(
 			'wc_stripe_agentic_commerce_import_set_pre_request',
@@ -1196,8 +1215,12 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
 		}
 
+		$this->assertNotNull( $uploaded_ids, 'A feed should have been uploaded for the kept product.' );
+		$this->assertContains( (string) $kept_product->get_id(), $uploaded_ids, 'Kept archive must be in the uploaded feed.' );
+		$this->assertNotContains( (string) $flipped_id, $uploaded_ids, 'Pruned archive must not be in the uploaded feed.' );
+
 		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
-		$this->assertEmpty( $pending, 'Both entries should be cleared — kept was uploaded, flipped was pruned.' );
+		$this->assertEmpty( $pending, 'Both entries cleared post-sync — kept was uploaded, flipped was pruned.' );
 	}
 
 	/**
@@ -1220,9 +1243,15 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		// Permanently delete after the archive row was captured.
 		wp_delete_post( $archived_id, true );
 
+		$uploaded_ids = null;
 		add_filter(
 			'wc_stripe_agentic_commerce_files_api_pre_request',
-			fn() => [ 'id' => 'file_test_123' ]
+			function ( $pre, $file_path ) use ( &$uploaded_ids ) {
+				$uploaded_ids = $this->read_column_from_csv( $file_path, 'id' );
+				return [ 'id' => 'file_test_123' ];
+			},
+			10,
+			2
 		);
 		add_filter(
 			'wc_stripe_agentic_commerce_import_set_pre_request',
@@ -1234,9 +1263,14 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 		$this->sut->sync_archives();
 
-		// Upload completed, pending list cleared on success.
+		// The mapped row was captured at archive time, so the upload must still
+		// fire and include the now-deleted product — keep-vs-drop semantics
+		// can't be inferred from the post-sync empty option alone.
+		$this->assertNotNull( $uploaded_ids, 'Upload should fire even though the product no longer resolves.' );
+		$this->assertContains( (string) $archived_id, $uploaded_ids, 'The archived row must be shipped despite the permanent delete.' );
+
 		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
-		$this->assertEmpty( $pending );
+		$this->assertEmpty( $pending, 'Upload completed, pending list cleared on success.' );
 	}
 
 	public function test_sync_archives_retains_pending_on_failure() {
@@ -1281,5 +1315,47 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		$product->save();
 
 		return $product;
+	}
+
+	/**
+	 * Read the values of a single CSV column from the file at $file_path. Used
+	 * by sync tests to assert exactly which product IDs reached the upload
+	 * payload — `assertEmpty()` on the pending option after sync can't tell
+	 * "pruned before upload" from "uploaded then cleared on success".
+	 *
+	 * @param string $file_path Path to the CSV file written by the feed writer.
+	 * @param string $column    Header name to extract.
+	 * @return string[]
+	 */
+	private function read_column_from_csv( string $file_path, string $column ): array {
+		$content = file_get_contents( $file_path );
+		$lines   = array_values( array_filter( explode( "\n", trim( $content ) ) ) );
+		if ( empty( $lines ) ) {
+			return [];
+		}
+
+		$headers = str_getcsv( array_shift( $lines ) );
+		$idx     = array_search( $column, $headers, true );
+		if ( false === $idx ) {
+			return [];
+		}
+
+		$values = [];
+		foreach ( $lines as $line ) {
+			$row      = str_getcsv( $line );
+			$values[] = $row[ $idx ] ?? '';
+		}
+		return $values;
+	}
+
+	/**
+	 * Inventory-feed sugar around `read_column_from_csv()` — the inventory
+	 * feed's identifier column is `sku_id`.
+	 *
+	 * @param string $file_path Path to the CSV file written by the feed writer.
+	 * @return string[]
+	 */
+	private function read_sku_ids_from_csv( string $file_path ): array {
+		return $this->read_column_from_csv( $file_path, 'sku_id' );
 	}
 }
