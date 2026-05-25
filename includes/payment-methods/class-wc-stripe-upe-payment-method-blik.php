@@ -129,7 +129,7 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 	 * @return array Supported customer locations.
 	 */
 	public function get_available_billing_countries() {
-		return [ WC_Stripe_Country_Code::POLAND ];
+		return self::SUPPORTED_BILLING_COUNTRIES;
 	}
 
 	/**
