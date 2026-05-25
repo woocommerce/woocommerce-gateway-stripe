@@ -3618,15 +3618,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$found_token = WC_Stripe_Payment_Tokens::get_duplicate_token( $payment_method_object, $customer->get_user_id(), $this->id );
 
 		if ( $found_token ) {
-			// Update the token with the new payment method ID.
+			// Update the token with the new payment method ID. `wallet_type` is
+			// intentionally not touched here — it reflects how the token was
+			// originally created, and overwriting it would re-badge a card saved
+			// directly as "Google Pay" the first time the shopper paid with the
+			// same card through the Google Pay sheet.
 			$payment_method_instance->update_payment_token( $found_token, $payment_method_object->id );
-
-			// `update_payment_token` only refreshes the PM id, so backfill wallet_type
-			// when reusing a pre-existing token (e.g. same card paid via a wallet).
-			if ( $found_token instanceof WC_Stripe_Payment_Token_CC && isset( $payment_method_object->card ) ) {
-				$found_token->set_wallet_type( (string) ( $payment_method_object->card->wallet->type ?? '' ) );
-				$found_token->save();
-			}
 		} else {
 			// Create a payment token for the user in the store.
 			$payment_method_instance->create_payment_token_for_user( $user->ID, $payment_method_object );

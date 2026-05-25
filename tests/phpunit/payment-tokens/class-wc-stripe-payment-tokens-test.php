@@ -384,13 +384,16 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Guards that a wallet-tokenized card (Apple Pay / Google Pay) persists the
-	 * `wallet_type` so the saved-methods list can show the wallet brand instead of
-	 * just the underlying card.
+	 * Guards that `add_token_to_user`'s duplicate-match path does not overwrite
+	 * the original `wallet_type`. `wallet_type` reflects how the token was created,
+	 * so re-using the same card via a wallet (e.g. saving a card directly, then
+	 * later paying via Google Pay with the same card) must not re-badge the
+	 * existing token — the shopper would see their saved Visa flipped to a
+	 * "Google Pay (Visa)" entry in My Account.
 	 *
 	 * @return void
 	 */
-	public function test_add_token_to_user_persists_wallet_type_on_refresh() {
+	public function test_add_token_to_user_preserves_wallet_type_on_refresh() {
 		$user_id = $this->factory->user->create();
 		update_user_option( $user_id, '_stripe_customer_id', 'cus_test_wallet', false );
 
@@ -403,6 +406,7 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		$seed_token->set_card_type( 'visa' );
 		$seed_token->set_last4( '4242' );
 		$seed_token->set_fingerprint( 'F_wallet' );
+		// Saved as a plain card — no wallet branding.
 		$seed_token->save();
 		$seed_token_id = $seed_token->get_id();
 
@@ -416,6 +420,8 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 				'exp_year'      => 2028,
 				'last4'         => '4242',
 				'fingerprint'   => 'F_wallet',
+				// Same card paid via Apple Pay this time — the existing token's
+				// wallet_type must NOT be flipped to 'apple_pay'.
 				'wallet'        => (object) [ 'type' => 'apple_pay' ],
 			],
 		];
@@ -427,10 +433,13 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		$result = $reflection->invoke( $this->stripe_payment_tokens, $incoming_pm, $customer, [] );
 
 		$this->assertSame( $seed_token_id, $result->get_id() );
-		$this->assertSame( 'apple_pay', $result->get_wallet_type(), 'wallet_type must be refreshed on duplicate-match.' );
+		$this->assertSame( '', $result->get_wallet_type(), 'wallet_type must be preserved on duplicate-match.' );
+		// Other mutable card metadata still refreshes (expiry was 01/2027 → 02/2028).
+		$this->assertEquals( '02', $result->get_expiry_month() );
+		$this->assertEquals( '2028', $result->get_expiry_year() );
 
 		$reloaded = WC_Payment_Tokens::get( $seed_token_id );
-		$this->assertSame( 'apple_pay', $reloaded->get_wallet_type(), 'wallet_type must be persisted to storage.' );
+		$this->assertSame( '', $reloaded->get_wallet_type(), 'preserved wallet_type must be persisted.' );
 	}
 
 	/**
@@ -647,12 +656,19 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_normalize_payment_method_label_wallet_pattern() {
 		return [
-			'Apple Pay + visa'         => [ 'Apple Pay (visa)', 'Apple Pay (Visa)' ],
-			'Google Pay + visa'        => [ 'Google Pay (visa)', 'Google Pay (Visa)' ],
-			'Google Pay + mastercard'  => [ 'Google Pay (mastercard)', 'Google Pay (MasterCard)' ],
-			'Apple Pay + amex'         => [ 'Apple Pay (american express)', 'Apple Pay (American Express)' ],
-			'Bare Visa (pass-through)' => [ 'Visa', 'Visa' ],
-			'BECS still normalized'    => [ 'becs direct debit', 'BECS Direct Debit' ],
+			'Apple Pay + visa'                           => [ 'Apple Pay (visa)', 'Apple Pay (Visa)' ],
+			'Google Pay + visa'                          => [ 'Google Pay (visa)', 'Google Pay (Visa)' ],
+			'Google Pay + mastercard'                    => [ 'Google Pay (mastercard)', 'Google Pay (MasterCard)' ],
+			'Apple Pay + amex'                           => [ 'Apple Pay (american express)', 'Apple Pay (American Express)' ],
+			// Multi-word brands: WC's `ucwords` pass on our wrapped value
+			// "Apple Pay (Cartes Bancaires)" mangles it to
+			// "Apple Pay (cartes Bancaires)" because `(` isn't a word
+			// boundary, so the first inner letter stays lowercase while the
+			// second word gets re-capitalized. The repair must still kick in.
+			'Apple Pay + cartes_bancaires post-ucwords'  => [ 'Apple Pay (cartes Bancaires)', 'Apple Pay (Cartes Bancaires)' ],
+			'Google Pay + cartes_bancaires post-ucwords' => [ 'Google Pay (cartes Bancaires)', 'Google Pay (Cartes Bancaires)' ],
+			'Bare Visa (pass-through)'                   => [ 'Visa', 'Visa' ],
+			'BECS still normalized'                      => [ 'becs direct debit', 'BECS Direct Debit' ],
 		];
 	}
 
