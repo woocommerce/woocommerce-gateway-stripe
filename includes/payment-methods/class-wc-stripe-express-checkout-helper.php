@@ -778,7 +778,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 *
 	 * @return boolean
 	 */
-	private function compute_should_show_express_checkout_button() {
+	protected function compute_should_show_express_checkout_button() {
 		// For subscription change payment method, only check basic requirements.
 		if ( $this->is_change_payment_method_page() ) {
 			return $this->should_show_ece_on_change_payment_method_page();

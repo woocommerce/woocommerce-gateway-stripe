@@ -282,11 +282,16 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test should_show_express_checkout_button, gateway logic.
+	 * Build a helper mock + the world (cart, filters, gateways) used by both
+	 * `test_shows_ece_if_stripe_gateway_available` and `test_hides_ece_if_stripe_gateway_unavailable`.
 	 *
-	 * @return void
+	 * Returns the mock plus a teardown callback that restores everything mutated here. A fresh
+	 * helper instance per test is required because `should_show_express_checkout_button()` memoizes
+	 * its result, so the two scenarios cannot share the same instance.
+	 *
+	 * @return array{0: \PHPUnit\Framework\MockObject\MockObject, 1: callable}
 	 */
-	public function test_hides_ece_if_stripe_gateway_unavailable(): void {
+	private function set_up_stripe_gateway_availability_scenario(): array {
 		$this->set_up_shipping_methods();
 
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
@@ -321,21 +326,55 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC()->cart->empty_cart();
 		WC()->cart->add_to_cart( $product->get_id(), 1 );
 
+		$teardown = function () use ( $original_gateways, $is_checkout_filter ) {
+			WC()->session->cleanup_sessions();
+			WC()->cart->empty_cart();
+			WC()->payment_gateways()->payment_gateways = $original_gateways;
+			remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
+		};
+
+		return [ $wc_stripe_ece_helper_mock, $teardown ];
+	}
+
+	/**
+	 * Test should_show_express_checkout_button when the Stripe gateway is in the
+	 * list of available gateways.
+	 *
+	 * @return void
+	 */
+	public function test_shows_ece_if_stripe_gateway_available(): void {
+		[ $helper, $teardown ] = $this->set_up_stripe_gateway_availability_scenario();
+
 		WC()->payment_gateways()->payment_gateways = [
 			'stripe'        => new WC_Stripe_UPE_Payment_Gateway(),
 			'stripe_alipay' => new WC_Stripe_UPE_Payment_Method_Alipay(),
 		];
-		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
-		// Hide if 'stripe' gateway is unavailable.
-		unset( WC()->payment_gateways()->payment_gateways['stripe'] );
-		$this->assertFalse( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+		try {
+			$this->assertTrue( $helper->should_show_express_checkout_button() );
+		} finally {
+			$teardown();
+		}
+	}
 
-		// Restore original settings.
-		WC()->session->cleanup_sessions();
-		WC()->cart->empty_cart();
-		WC()->payment_gateways()->payment_gateways = $original_gateways;
-		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
+	/**
+	 * Test should_show_express_checkout_button when the Stripe gateway is missing
+	 * from the list of available gateways.
+	 *
+	 * @return void
+	 */
+	public function test_hides_ece_if_stripe_gateway_unavailable(): void {
+		[ $helper, $teardown ] = $this->set_up_stripe_gateway_availability_scenario();
+
+		WC()->payment_gateways()->payment_gateways = [
+			'stripe_alipay' => new WC_Stripe_UPE_Payment_Method_Alipay(),
+		];
+
+		try {
+			$this->assertFalse( $helper->should_show_express_checkout_button() );
+		} finally {
+			$teardown();
+		}
 	}
 
 	/**
@@ -1240,16 +1279,13 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function test_should_show_express_checkout_button_memoizes_within_request() {
 		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
-			->onlyMethods( [ 'is_change_payment_method_page', 'should_show_ece_on_change_payment_method_page' ] )
+			->onlyMethods( [ 'compute_should_show_express_checkout_button' ] )
 			->getMock();
 
-		// Both internal calls must run exactly once even though the outer method is
+		// The wrapped compute must run exactly once even though the outer method is
 		// invoked twice — proves the memoization wrapper is hit on the second call.
 		$helper->expects( $this->once() )
-			->method( 'is_change_payment_method_page' )
-			->willReturn( true );
-		$helper->expects( $this->once() )
-			->method( 'should_show_ece_on_change_payment_method_page' )
+			->method( 'compute_should_show_express_checkout_button' )
 			->willReturn( true );
 
 		$first  = $helper->should_show_express_checkout_button();
@@ -1269,15 +1305,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function test_should_show_express_checkout_button_cache_is_action_keyed() {
 		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
-			->onlyMethods( [ 'is_change_payment_method_page', 'should_show_ece_on_change_payment_method_page' ] )
+			->onlyMethods( [ 'compute_should_show_express_checkout_button' ] )
 			->getMock();
 
 		// Two distinct action contexts → two compute invocations expected (one per key).
 		$helper->expects( $this->exactly( 2 ) )
-			->method( 'is_change_payment_method_page' )
-			->willReturn( true );
-		$helper->expects( $this->exactly( 2 ) )
-			->method( 'should_show_ece_on_change_payment_method_page' )
+			->method( 'compute_should_show_express_checkout_button' )
 			->willReturn( true );
 
 		// Outside the action.
