@@ -1221,4 +1221,80 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
 	}
+
+	/**
+	 * The outage notice should be shown when WC_Stripe_API_Outage_Status flags an outage.
+	 */
+	public function test_api_outage_notice_is_shown_when_in_outage() {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		WC_Stripe_API_Outage_Status::record_outage();
+
+		$notices = new WC_Stripe_Admin_Notices();
+		ob_start();
+		$notices->admin_notices();
+		ob_end_clean();
+
+		$this->assertArrayHasKey( 'api_outage', $notices->notices );
+		$this->assertMatchesRegularExpression( '/Stripe is temporarily unreachable/', $notices->notices['api_outage']['message'] );
+
+		WC_Stripe_API_Outage_Status::record_success();
+	}
+
+	/**
+	 * No outage notice when the flag isn't set.
+	 */
+	public function test_api_outage_notice_is_not_shown_when_no_outage() {
+		WC_Stripe_API_Outage_Status::record_success();
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
+		$notices = new WC_Stripe_Admin_Notices();
+		ob_start();
+		$notices->admin_notices();
+		ob_end_clean();
+
+		$this->assertArrayNotHasKey( 'api_outage', $notices->notices );
+	}
+
+	/**
+	 * The "couldn't connect" notice should be suppressed during an outage to
+	 * avoid contradicting the outage notice.
+	 */
+	public function test_couldnt_connect_notice_is_suppressed_during_outage() {
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_cached_account_data' ] )
+			->getMock();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( null );
+
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'enabled'         => 'yes',
+				'testmode'        => 'no',
+				'publishable_key' => 'pk_live_valid_key',
+				'secret_key'      => 'sk_live_valid_key',
+			]
+		);
+		update_option( 'wc_stripe_show_style_notice', 'no' );
+		update_option( 'wc_stripe_show_sca_notice', 'no' );
+		update_option( 'wc_stripe_show_legacy_deprecation_notice', 'no' );
+
+		WC_Stripe_API_Outage_Status::record_outage();
+
+		$notices = new WC_Stripe_Admin_Notices();
+		ob_start();
+		$notices->admin_notices();
+		ob_end_clean();
+
+		$this->assertArrayHasKey( 'api_outage', $notices->notices );
+		// The "couldn't connect" notice uses the 'keys' slug — make sure it's not present.
+		if ( isset( $notices->notices['keys'] ) ) {
+			$this->assertDoesNotMatchRegularExpression(
+				'/Your customers cannot use Stripe on checkout/',
+				$notices->notices['keys']['message']
+			);
+		}
+
+		WC_Stripe_API_Outage_Status::record_success();
+	}
 }
