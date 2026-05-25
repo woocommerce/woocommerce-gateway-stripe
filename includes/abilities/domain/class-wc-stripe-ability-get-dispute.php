@@ -14,8 +14,10 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
 /**
  * Registers the woocommerce-gateway-stripe/get-dispute ability.
  *
- * Single dispute lookup by Stripe dispute ID. Parity with WooPayments'
- * get-dispute ability. Backs onto WC_Stripe_API::retrieve("disputes/{$id}").
+ * Single dispute lookup by Stripe dispute ID.
+ * Calls the Stripe `disputes` API.
+ *
+ * @see https://docs.stripe.com/api/disputes/retrieve
  *
  * @internal
  *

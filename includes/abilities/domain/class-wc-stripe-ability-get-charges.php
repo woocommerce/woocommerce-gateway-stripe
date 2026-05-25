@@ -15,11 +15,12 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
  * Registers the woocommerce-gateway-stripe/get-charges ability.
  *
  * Lists recent Stripe charges with filters (date range, customer,
- * payment_intent, limit). Parity with WooPayments' get-transactions
- * ability. Each invocation calls Stripe directly via
- * WC_Stripe_API::retrieve() and returns raw Stripe charge objects
+ * payment_intent, limit).
+ * Calls the Stripe `charges` API and returns raw Stripe charge objects
  * (which include customer-shaped data like billing_details and
  * receipt_email).
+ *
+ * @see https://docs.stripe.com/api/charges/list
  *
  * @internal
  *

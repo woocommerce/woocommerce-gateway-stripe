@@ -14,10 +14,10 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
 /**
  * Registers the woocommerce-gateway-stripe/get-balance ability.
  *
- * Zero-arg balance overview. Parity with WooPayments'
- * get-deposits-overview ability (which returns per-currency next-payout
- * info; this returns Stripe's native balance object instead). Backs onto
- * WC_Stripe_API::retrieve('balance').
+ * Get the current balance overview.
+ * Calls the Stripe `balance` API.
+ *
+ * @see https://docs.stripe.com/api/balance/balance_retrieve
  *
  * @internal
  *

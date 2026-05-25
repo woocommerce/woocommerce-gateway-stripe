@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests for WC_Stripe_Abilities_Registrar (Phase I scaffold).
+ * Tests for WC_Stripe_Abilities_Registrar.
  *
  * @package WooCommerce_Stripe
  */

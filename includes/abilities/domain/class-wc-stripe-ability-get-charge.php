@@ -14,8 +14,10 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
 /**
  * Registers the woocommerce-gateway-stripe/get-charge ability.
  *
- * Single-charge lookup by Stripe charge ID. Parity with WooPayments'
- * get-charge ability. Backs onto WC_Stripe_API::retrieve("charges/{$id}").
+ * Single-charge lookup by Stripe charge ID.
+ * Calls Stripe `charges` API.
+ *
+ * @see https://docs.stripe.com/api/charges/retrieve
  *
  * @internal
  *

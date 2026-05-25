@@ -17,7 +17,9 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
  * Lists Stripe balance transactions (charges, refunds, payouts,
  * adjustments) — answers "what cleared into or out of my Stripe balance
  * recently?". Complements get-payouts when reconciling specific payout
- * amounts. Backs onto WC_Stripe_API::retrieve("balance_transactions?...").
+ * amounts. Backs onto the Stripe `balance_transactions` API.
+ *
+ * @see https://docs.stripe.com/api/balance_transactions/retrieve
  *
  * @internal
  *

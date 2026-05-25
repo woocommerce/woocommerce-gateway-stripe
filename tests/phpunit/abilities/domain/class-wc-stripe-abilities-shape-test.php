@@ -4,9 +4,7 @@
  *
  * Covers the mechanical assertions (callbacks wired correctly, annotations
  * set correctly, show_in_rest + mcp.public on, permission callback
- * resolves to manage_woocommerce) for every read ability except the
- * Phase II reference ability — which keeps its own per-ability test
- * file as a demonstration of the per-Domain-class testing pattern.
+ * resolves to manage_woocommerce) for every read ability that calls Stripe directly.
  *
  * @package WooCommerce_Stripe
  */
@@ -37,14 +35,12 @@ class WC_Stripe_Abilities_Shape_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Every read ability registered by the plugin (except the Phase II
-	 * reference ability, which has its own per-ability test).
+	 * Every read ability registered by the plugin that calls the Stripe API directly.
 	 *
 	 * @return array<string, array{0: class-string, 1: string}>
 	 */
 	public function read_ability_provider(): array {
 		return [
-			// Tier 2 — Stripe-API-backed (WooPayments parity).
 			'get-charges'              => [ WC_Stripe_Ability_Get_Charges::class, 'woocommerce-gateway-stripe/get-charges' ],
 			'get-charge'               => [ WC_Stripe_Ability_Get_Charge::class, 'woocommerce-gateway-stripe/get-charge' ],
 			'get-payment-intent'       => [ WC_Stripe_Ability_Get_Payment_Intent::class, 'woocommerce-gateway-stripe/get-payment-intent' ],

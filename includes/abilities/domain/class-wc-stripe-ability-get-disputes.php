@@ -14,13 +14,11 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
 /**
  * Registers the woocommerce-gateway-stripe/get-disputes ability.
  *
- * Lists Stripe disputes with filters. Parity with WooPayments' get-disputes
- * ability. Backs onto WC_Stripe_API::retrieve("disputes?...").
+ * Lists Stripe disputes with filters.
+ * Calls the Stripe `disputes` API. This API does not support a status filter,
+ * so filtering must be done after fetching data from the API.
  *
- * Note: Stripe's GET /v1/disputes does not support a `status` filter
- * server-side. Agents that want to filter by status must filter the
- * returned list client-side (or wait for a future get-disputes-summary
- * aggregation ability — see surfaced_gaps).
+ * @see https://docs.stripe.com/api/disputes/list
  *
  * @internal
  *

@@ -14,9 +14,10 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
 /**
  * Registers the woocommerce-gateway-stripe/get-payment-intent ability.
  *
- * Single payment-intent lookup by Stripe ID. Parity with WooPayments'
- * get-payment-intent ability. Backs onto
- * WC_Stripe_API::retrieve("payment_intents/{$id}").
+ * Single payment-intent lookup by Stripe ID.
+ * Calls the Stripe `payment_intents` API.
+ *
+ * @see https://docs.stripe.com/api/payment_intents/retrieve
  *
  * @internal
  *

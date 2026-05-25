@@ -14,10 +14,10 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
 /**
  * Registers the woocommerce-gateway-stripe/get-payouts ability.
  *
- * Lists Stripe payouts (WooPayments calls these "deposits" for
- * user-friendliness; this plugin uses Stripe's terminology). Parity with
- * WooPayments' get-deposits ability. Backs onto
- * WC_Stripe_API::retrieve("payouts?...").
+ * Lists Stripe payouts.
+ * Calls the Stripe `payouts` API.
+ *
+ * @see https://docs.stripe.com/api/payouts/list
  *
  * @internal
  *
@@ -33,7 +33,7 @@ class WC_Stripe_Ability_Get_Payouts extends WC_Stripe_Ability_Base implements Ab
 		return [
 			'label'               => __( 'Get Stripe payouts', 'woocommerce-gateway-stripe' ),
 			'description'         => __(
-				"Lists Stripe payouts (called 'deposits' in WooPayments). Filters: status, arrival_date range, created date range, and Stripe cursor pagination.",
+				'Lists Stripe payouts. Filters: status, arrival_date range, created date range, and Stripe cursor pagination.',
 				'woocommerce-gateway-stripe'
 			),
 			'category'            => self::CATEGORY_SLUG,

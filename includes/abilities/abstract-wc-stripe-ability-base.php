@@ -91,10 +91,7 @@ abstract class WC_Stripe_Ability_Base {
 
 		if ( $response instanceof WP_REST_Response ) {
 			if ( $response->is_error() ) {
-				// WP_REST_Response::as_error() always returns a WP_Error when
-				// is_error() is true; the declared WP_Error|null union is
-				// safe to narrow here.
-				// @phpstan-ignore-next-line return.type
+				// @phpstan-ignore-next-line return.type (WP_REST_Response::as_error() always returns a WP_Error when is_error() is true.)
 				return $response->as_error();
 			}
 			if ( $return_response ) {
@@ -109,10 +106,8 @@ abstract class WC_Stripe_Ability_Base {
 	/**
 	 * Call Stripe's API via WC_Stripe_API::retrieve() and normalize the response.
 	 *
-	 * Used by Shape-Stripe-API abilities (the Tier 2 abilities in the RSM-108
-	 * audit) that read directly from `https://api.stripe.com/v1/$path` using
-	 * the merchant's stored secret key. Returns the decoded Stripe object or
-	 * a WP_Error.
+	 * Used by abilities that read directly from `https://api.stripe.com/v1/$path`.
+	 *  Returns the decoded Stripe object or a WP_Error.
 	 *
 	 * `WC_Stripe_API::retrieve()` returns `null` on every 401 (the
 	 * invalid-API-key UI signal), and additionally short-circuits before
