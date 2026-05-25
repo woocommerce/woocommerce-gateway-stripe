@@ -179,5 +179,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Improve express checkout load times by preloading the resources
 * Tweak - Reduce JS bundle sizes by externalizing core-js polyfills for features natively supported in modern browsers.
 * Add - Detect Stripe API outages (network failures, timeouts, 5xx responses) and surface a wp-admin notice instead of crashing or showing misleading "couldn't connect" messages
+* Tweak - Move UPE-only appearance helpers out of the shared stripe-utils module.
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
