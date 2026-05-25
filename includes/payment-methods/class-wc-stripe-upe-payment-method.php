@@ -696,6 +696,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		}
 
 		$account_country = WC_Stripe::get_instance()->account->get_account_country();
+		$account_country = is_string( $account_country ) ? strtoupper( $account_country ) : '';
+		if ( '' === $account_country ) {
+			return false;
+		}
+
 		if ( [] !== $this->unsupported_account_countries && in_array( $account_country, $this->unsupported_account_countries, true ) ) {
 			return false;
 		}
