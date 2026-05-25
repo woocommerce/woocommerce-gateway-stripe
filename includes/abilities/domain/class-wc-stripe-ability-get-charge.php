@@ -25,6 +25,21 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
  */
 class WC_Stripe_Ability_Get_Charge extends WC_Stripe_Ability_Base implements AbilityDefinition {
 
+	/**
+	 * Fields the Stripe `GET /v1/charges/{id}` endpoint supports expanding.
+	 *
+	 * @see https://docs.stripe.com/api/charges/retrieve
+	 *
+	 * @var array<int, string>
+	 */
+	public const EXPANDABLE_FIELDS = [
+		'balance_transaction',
+		'customer',
+		'payment_intent',
+		'refunds',
+		'review',
+	];
+
 	public static function get_name(): string {
 		return 'woocommerce-gateway-stripe/get-charge';
 	}
@@ -33,7 +48,7 @@ class WC_Stripe_Ability_Get_Charge extends WC_Stripe_Ability_Base implements Abi
 		return [
 			'label'               => __( 'Get Stripe charge by ID', 'woocommerce-gateway-stripe' ),
 			'description'         => __(
-				'Returns a single Stripe charge by ID. Response is the raw Stripe charge object including payment_method_details, billing_details, and receipt_email.',
+				'Returns a single Stripe charge by ID. Response is the raw Stripe charge object including payment_method_details, billing_details, and receipt_email. Optionally inflate related objects via `expand`.',
 				'woocommerce-gateway-stripe'
 			),
 			'category'            => self::CATEGORY_SLUG,
@@ -46,6 +61,16 @@ class WC_Stripe_Ability_Get_Charge extends WC_Stripe_Ability_Base implements Abi
 						'type'        => 'string',
 						'pattern'     => '^ch_[A-Za-z0-9_]+$',
 						'description' => __( 'Stripe charge ID (ch_xxx).', 'woocommerce-gateway-stripe' ),
+					],
+					'expand'    => [
+						'type'        => 'array',
+						'items'       => [
+							'type' => 'string',
+							'enum' => self::EXPANDABLE_FIELDS,
+						],
+						'uniqueItems' => true,
+						'maxItems'    => 5,
+						'description' => __( 'Related objects to inflate inline. Allowed values: balance_transaction, customer, payment_intent, refunds, review.', 'woocommerce-gateway-stripe' ),
 					],
 				],
 				'additionalProperties' => false,
@@ -86,6 +111,12 @@ class WC_Stripe_Ability_Get_Charge extends WC_Stripe_Ability_Base implements Abi
 			);
 		}
 
-		return self::retrieve_from_stripe( 'charges/' . rawurlencode( $input['charge_id'] ) );
+		$expand = isset( $input['expand'] ) && is_array( $input['expand'] ) ? $input['expand'] : [];
+		$path   = self::append_expand_to_path(
+			'charges/' . rawurlencode( $input['charge_id'] ),
+			$expand
+		);
+
+		return self::retrieve_from_stripe( $path );
 	}
 }

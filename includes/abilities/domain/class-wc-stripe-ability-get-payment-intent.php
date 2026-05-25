@@ -25,6 +25,20 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
  */
 class WC_Stripe_Ability_Get_Payment_Intent extends WC_Stripe_Ability_Base implements AbilityDefinition {
 
+	/**
+	 * Fields the Stripe `GET /v1/payment_intents/{id}` endpoint supports expanding.
+	 *
+	 * @see https://docs.stripe.com/api/payment_intents/retrieve
+	 *
+	 * @var array<int, string>
+	 */
+	public const EXPANDABLE_FIELDS = [
+		'customer',
+		'latest_charge',
+		'payment_method',
+		'review',
+	];
+
 	public static function get_name(): string {
 		return 'woocommerce-gateway-stripe/get-payment-intent';
 	}
@@ -33,7 +47,7 @@ class WC_Stripe_Ability_Get_Payment_Intent extends WC_Stripe_Ability_Base implem
 		return [
 			'label'               => __( 'Get Stripe payment intent by ID', 'woocommerce-gateway-stripe' ),
 			'description'         => __(
-				"Returns a single Stripe payment intent by ID. Response is the raw Stripe payment_intent object including status, charges, and the attached payment method's billing details.",
+				"Returns a single Stripe payment intent by ID. Response is the raw Stripe payment_intent object including status, charges, and the attached payment method's billing details. Optionally inflate related objects via `expand`.",
 				'woocommerce-gateway-stripe'
 			),
 			'category'            => self::CATEGORY_SLUG,
@@ -46,6 +60,16 @@ class WC_Stripe_Ability_Get_Payment_Intent extends WC_Stripe_Ability_Base implem
 						'type'        => 'string',
 						'pattern'     => '^pi_[A-Za-z0-9_]+$',
 						'description' => __( 'Stripe payment intent ID (pi_xxx).', 'woocommerce-gateway-stripe' ),
+					],
+					'expand'            => [
+						'type'        => 'array',
+						'items'       => [
+							'type' => 'string',
+							'enum' => self::EXPANDABLE_FIELDS,
+						],
+						'uniqueItems' => true,
+						'maxItems'    => 4,
+						'description' => __( 'Related objects to inflate inline. Allowed values: customer, latest_charge, payment_method, review.', 'woocommerce-gateway-stripe' ),
 					],
 				],
 				'additionalProperties' => false,
@@ -86,6 +110,12 @@ class WC_Stripe_Ability_Get_Payment_Intent extends WC_Stripe_Ability_Base implem
 			);
 		}
 
-		return self::retrieve_from_stripe( 'payment_intents/' . rawurlencode( $input['payment_intent_id'] ) );
+		$expand = isset( $input['expand'] ) && is_array( $input['expand'] ) ? $input['expand'] : [];
+		$path   = self::append_expand_to_path(
+			'payment_intents/' . rawurlencode( $input['payment_intent_id'] ),
+			$expand
+		);
+
+		return self::retrieve_from_stripe( $path );
 	}
 }

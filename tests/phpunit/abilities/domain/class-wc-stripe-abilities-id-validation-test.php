@@ -66,4 +66,38 @@ class WC_Stripe_Abilities_Id_Validation_Test extends WP_UnitTestCase {
 		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( "wc_stripe_missing_$code_suffix", $result->get_error_code() );
 	}
+
+	/**
+	 * @return array<string, array{0: class-string, 1: int}>
+	 *                Each row: [ Domain class, expected expand allowlist size ]
+	 */
+	public function expandable_ability_provider(): array {
+		return [
+			'get-charge'         => [ WC_Stripe_Ability_Get_Charge::class, 5 ],
+			'get-payment-intent' => [ WC_Stripe_Ability_Get_Payment_Intent::class, 4 ],
+			'get-dispute'        => [ WC_Stripe_Ability_Get_Dispute::class, 11 ],
+		];
+	}
+
+	/**
+	 * @dataProvider expandable_ability_provider
+	 */
+	public function test_expand_input_is_declared_as_array_with_enum_allowlist( string $class, int $expected_size ) {
+		$args   = $class::get_registration_args();
+		$schema = $args['input_schema']['properties']['expand'] ?? null;
+
+		$this->assertIsArray( $schema, "$class must declare an `expand` input property." );
+		$this->assertSame( 'array', $schema['type'] ?? null );
+		$this->assertTrue( $schema['uniqueItems'] ?? false, '`expand` must enforce unique items so the same field can\'t be inflated twice.' );
+		$this->assertSame( $expected_size, $schema['maxItems'] ?? null, '`expand` maxItems must match the size of the allowlist.' );
+
+		$items = $schema['items'] ?? [];
+		$this->assertSame( 'string', $items['type'] ?? null );
+		$this->assertIsArray( $items['enum'] ?? null );
+		$this->assertCount( $expected_size, $items['enum'], '`expand.items.enum` must enumerate exactly the documented Stripe expandable fields.' );
+
+		// Mirror EXPANDABLE_FIELDS const so a future drift between schema and
+		// const surfaces here.
+		$this->assertSame( $class::EXPANDABLE_FIELDS, $items['enum'] );
+	}
 }

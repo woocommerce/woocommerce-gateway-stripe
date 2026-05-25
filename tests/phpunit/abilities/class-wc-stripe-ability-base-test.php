@@ -28,6 +28,14 @@ class WC_Stripe_Ability_Base_Test_Fixture extends WC_Stripe_Ability_Base {
 	public static function call_build_query( array $params ): string {
 		return self::build_stripe_query_string( $params );
 	}
+
+	public static function call_build_expand_fragment( array $expand ): string {
+		return self::build_expand_query_fragment( $expand );
+	}
+
+	public static function call_append_expand( string $path, array $expand ): string {
+		return self::append_expand_to_path( $path, $expand );
+	}
 }
 // phpcs:enable WordPress.Files.FileName
 
@@ -169,5 +177,65 @@ class WC_Stripe_Ability_Base_Test extends WP_UnitTestCase {
 		);
 
 		$this->assertSame( '', $result );
+	}
+
+	public function test_build_expand_fragment_emits_stripe_bracket_form() {
+		// Stripe expects `expand[]=foo&expand[]=bar` — brackets, no index.
+		// http_build_query's default indexed form would not be accepted.
+		$result = WC_Stripe_Ability_Base_Test_Fixture::call_build_expand_fragment(
+			[ 'customer', 'balance_transaction' ]
+		);
+
+		$this->assertSame( 'expand[]=customer&expand[]=balance_transaction', $result );
+	}
+
+	public function test_build_expand_fragment_url_encodes_field_names() {
+		// Stripe dispute expand values include dotted names like
+		// `evidence.receipt`. The dot must round-trip, but any nasty
+		// caller-supplied byte must be percent-encoded.
+		$result = WC_Stripe_Ability_Base_Test_Fixture::call_build_expand_fragment(
+			[ 'evidence.receipt', 'evidence.cancellation_policy' ]
+		);
+
+		$this->assertSame( 'expand[]=evidence.receipt&expand[]=evidence.cancellation_policy', $result );
+	}
+
+	public function test_build_expand_fragment_returns_empty_when_no_fields() {
+		$this->assertSame( '', WC_Stripe_Ability_Base_Test_Fixture::call_build_expand_fragment( [] ) );
+	}
+
+	public function test_build_expand_fragment_drops_non_string_entries() {
+		$result = WC_Stripe_Ability_Base_Test_Fixture::call_build_expand_fragment(
+			[ 'customer', 42, null, '', 'review' ]
+		);
+
+		$this->assertSame( 'expand[]=customer&expand[]=review', $result );
+	}
+
+	public function test_append_expand_to_path_uses_question_mark_separator_on_bare_path() {
+		$result = WC_Stripe_Ability_Base_Test_Fixture::call_append_expand(
+			'charges/ch_test_xxx',
+			[ 'customer' ]
+		);
+
+		$this->assertSame( 'charges/ch_test_xxx?expand[]=customer', $result );
+	}
+
+	public function test_append_expand_to_path_uses_ampersand_when_path_already_has_query() {
+		$result = WC_Stripe_Ability_Base_Test_Fixture::call_append_expand(
+			'charges?limit=10',
+			[ 'customer' ]
+		);
+
+		$this->assertSame( 'charges?limit=10&expand[]=customer', $result );
+	}
+
+	public function test_append_expand_to_path_passes_through_when_expand_empty() {
+		$result = WC_Stripe_Ability_Base_Test_Fixture::call_append_expand(
+			'charges/ch_test_xxx',
+			[]
+		);
+
+		$this->assertSame( 'charges/ch_test_xxx', $result );
 	}
 }

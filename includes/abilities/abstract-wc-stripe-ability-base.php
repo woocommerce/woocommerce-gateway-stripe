@@ -186,4 +186,50 @@ abstract class WC_Stripe_Ability_Base {
 
 		return '?' . http_build_query( $filtered, '', '&', PHP_QUERY_RFC3986 );
 	}
+
+	/**
+	 * Build a Stripe-style `expand[]=...` query fragment.
+	 *
+	 * Stripe expects `expand[]=foo&expand[]=bar` (brackets-no-index), which
+	 * is *not* what `http_build_query()` emits for indexed arrays. Callers
+	 * append the fragment to a path (with `?` or `&` separator chosen by
+	 * the caller, since the path may already carry an id segment or other
+	 * filters).
+	 *
+	 * Empty / non-string entries are dropped. Returns an empty string when
+	 * the resulting list is empty.
+	 *
+	 * @param array<int, mixed> $expand Whitelisted expand field names.
+	 * @return string e.g. "expand[]=customer&expand[]=balance_transaction" or "".
+	 */
+	protected static function build_expand_query_fragment( array $expand ): string {
+		$parts = [];
+		foreach ( $expand as $field ) {
+			if ( ! is_string( $field ) || '' === $field ) {
+				continue;
+			}
+			$parts[] = 'expand[]=' . rawurlencode( $field );
+		}
+		return implode( '&', $parts );
+	}
+
+	/**
+	 * Append an `expand[]=...` fragment to a Stripe API path.
+	 *
+	 * Picks the right separator (`?` or `&`) based on whether the path
+	 * already carries a query string, and skips entirely when no expand
+	 * fields are requested.
+	 *
+	 * @param string            $resource_path e.g. "charges/ch_xxx" or "charges?limit=10".
+	 * @param array<int, mixed> $expand        Whitelisted expand field names.
+	 * @return string Path suitable for WC_Stripe_API::retrieve().
+	 */
+	protected static function append_expand_to_path( string $resource_path, array $expand ): string {
+		$fragment = self::build_expand_query_fragment( $expand );
+		if ( '' === $fragment ) {
+			return $resource_path;
+		}
+		$separator = ( false === strpos( $resource_path, '?' ) ) ? '?' : '&';
+		return $resource_path . $separator . $fragment;
+	}
 }

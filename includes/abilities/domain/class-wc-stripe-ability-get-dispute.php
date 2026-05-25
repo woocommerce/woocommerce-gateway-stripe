@@ -25,6 +25,27 @@ use Automattic\WooCommerce\Abilities\AbilityDefinition;
  */
 class WC_Stripe_Ability_Get_Dispute extends WC_Stripe_Ability_Base implements AbilityDefinition {
 
+	/**
+	 * Fields the Stripe `GET /v1/disputes/{id}` endpoint supports expanding.
+	 *
+	 * @see https://docs.stripe.com/api/disputes/retrieve
+	 *
+	 * @var array<int, string>
+	 */
+	public const EXPANDABLE_FIELDS = [
+		'charge',
+		'evidence.cancellation_policy',
+		'evidence.customer_communication',
+		'evidence.customer_signature',
+		'evidence.duplicate_charge_documentation',
+		'evidence.receipt',
+		'evidence.refund_policy',
+		'evidence.service_documentation',
+		'evidence.shipping_documentation',
+		'evidence.uncategorized_file',
+		'payment_intent',
+	];
+
 	public static function get_name(): string {
 		return 'woocommerce-gateway-stripe/get-dispute';
 	}
@@ -33,7 +54,7 @@ class WC_Stripe_Ability_Get_Dispute extends WC_Stripe_Ability_Base implements Ab
 		return [
 			'label'               => __( 'Get Stripe dispute by ID', 'woocommerce-gateway-stripe' ),
 			'description'         => __(
-				'Returns a single Stripe dispute by ID. Response is the raw Stripe dispute object including evidence_details and the associated charge reference.',
+				'Returns a single Stripe dispute by ID. Response is the raw Stripe dispute object including evidence_details and the associated charge reference. Optionally inflate related objects (and evidence file references) via `expand`.',
 				'woocommerce-gateway-stripe'
 			),
 			'category'            => self::CATEGORY_SLUG,
@@ -46,6 +67,16 @@ class WC_Stripe_Ability_Get_Dispute extends WC_Stripe_Ability_Base implements Ab
 						'type'        => 'string',
 						'pattern'     => '^(dp|du)_[A-Za-z0-9_]+$',
 						'description' => __( 'Stripe dispute ID (dp_xxx or legacy du_xxx).', 'woocommerce-gateway-stripe' ),
+					],
+					'expand'     => [
+						'type'        => 'array',
+						'items'       => [
+							'type' => 'string',
+							'enum' => self::EXPANDABLE_FIELDS,
+						],
+						'uniqueItems' => true,
+						'maxItems'    => 11,
+						'description' => __( 'Related objects to inflate inline. Allowed values: charge, payment_intent, evidence.cancellation_policy, evidence.customer_communication, evidence.customer_signature, evidence.duplicate_charge_documentation, evidence.receipt, evidence.refund_policy, evidence.service_documentation, evidence.shipping_documentation, evidence.uncategorized_file.', 'woocommerce-gateway-stripe' ),
 					],
 				],
 				'additionalProperties' => false,
@@ -86,6 +117,12 @@ class WC_Stripe_Ability_Get_Dispute extends WC_Stripe_Ability_Base implements Ab
 			);
 		}
 
-		return self::retrieve_from_stripe( 'disputes/' . rawurlencode( $input['dispute_id'] ) );
+		$expand = isset( $input['expand'] ) && is_array( $input['expand'] ) ? $input['expand'] : [];
+		$path   = self::append_expand_to_path(
+			'disputes/' . rawurlencode( $input['dispute_id'] ),
+			$expand
+		);
+
+		return self::retrieve_from_stripe( $path );
 	}
 }
