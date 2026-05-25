@@ -153,6 +153,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.8.0 - xxxx-xx-xx =
 * Update - Ensure payment method restrictions based on account and shopper countries are up to date
+* Add - Show Apple Pay / Google Pay branding on saved card tokens in My Account → Payment Methods and at checkout
 * Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Link)
 * Add - Add a setting to control whether Express Checkout is shown on the WooCommerce Subscriptions change payment method page
 * Fix - Prevent Stripe API calls from failing due to DNS resolution issues
@@ -171,6 +172,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Remove redundant `get_retrievable_type()` overrides from payment methods
 * Dev - Add Claude Code skills and review rules under .claude/ to capture repo-specific contributor guidance
 * Dev - Move some independent classes into autoloader
+* Remove - Remove deprecated code up to version 10.1.0
 * Dev - Add Jest tests for ECE payment flow
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
 
