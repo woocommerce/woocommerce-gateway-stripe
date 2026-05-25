@@ -628,6 +628,102 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 *
 	 * @return void
 	 */
+	/**
+	 * Closes the race window the event-driven eviction can't catch: a product
+	 * queued for an inventory delta whose visibility filter flips to excluded
+	 * during the 60-second batch window — with no follow-up stock change to
+	 * trigger `track_stock_change`'s eviction. Without the flush-time re-check,
+	 * the stale row would ship to Stripe anyway. Guards the contract the filter's
+	 * docblock advertises ("the inventory tracker drops delta events for excluded
+	 * products").
+	 *
+	 * @return void
+	 */
+	public function test_sync_inventory_prunes_entries_whose_filter_now_excludes() {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
+
+		$kept_product    = $this->create_simple_product_with_stock( 5 );
+		$flipped_product = $this->create_simple_product_with_stock( 9 );
+		$this->sut->track_stock_change( $kept_product );
+		$this->sut->track_stock_change( $flipped_product );
+
+		// Filter flips to exclude one of the two queued products AFTER enqueue,
+		// and no further event fires for it before the flush.
+		$flipped_id = $flipped_product->get_id();
+		$callback   = static fn( $sync, $candidate ) => $candidate->get_id() !== $flipped_id;
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
+
+		$uploaded_feed = null;
+		add_filter(
+			'wc_stripe_agentic_commerce_files_api_pre_request',
+			function ( $pre, $args ) use ( &$uploaded_feed ) {
+				$uploaded_feed = $args;
+				return [ 'id' => 'file_test_123' ];
+			},
+			10,
+			2
+		);
+		add_filter(
+			'wc_stripe_agentic_commerce_import_set_pre_request',
+			fn() => [
+				'id'     => 'impset_test_456',
+				'status' => 'pending',
+			]
+		);
+
+		try {
+			$this->sut->sync_inventory();
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
+		}
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] );
+		$this->assertEmpty( $pending, 'Both entries should be cleared — kept_product was uploaded, flipped_product was pruned.' );
+
+		// The uploaded CSV must not contain the flipped product's id.
+		$this->assertNotNull( $uploaded_feed, 'A feed should have been uploaded.' );
+	}
+
+	/**
+	 * Permanently-deleted products lose their `wc_get_product()` lookup, so the
+	 * flush-time prune can't ask the filter. For inventory deltas the row is
+	 * meaningless without a SKU on Stripe's side, so drop it. (Archive entries
+	 * use the opposite policy — see the archive-side test.)
+	 *
+	 * @return void
+	 */
+	public function test_sync_inventory_drops_entries_for_deleted_products() {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
+
+		$product = $this->create_simple_product_with_stock( 4 );
+		$this->sut->track_stock_change( $product );
+
+		// Permanently delete the product without going through the archive
+		// tracker — simulates an out-of-band delete (e.g. another plugin).
+		wp_delete_post( $product->get_id(), true );
+
+		add_filter(
+			'wc_stripe_agentic_commerce_files_api_pre_request',
+			fn() => [ 'id' => 'file_test_123' ]
+		);
+		add_filter(
+			'wc_stripe_agentic_commerce_import_set_pre_request',
+			fn() => [
+				'id'     => 'impset_test_456',
+				'status' => 'pending',
+			]
+		);
+
+		$this->sut->sync_inventory();
+
+		// The deleted product was pruned, leaving nothing to upload — the
+		// option should have been cleared by the prune helper.
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] );
+		$this->assertEmpty( $pending );
+	}
+
 	public function test_sync_inventory_retains_pending_on_failure() {
 		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
@@ -1061,6 +1157,88 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 *
 	 * @return void
 	 */
+	/**
+	 * Same race as the inventory side: an archive event queued before the
+	 * filter flipped must not still ship if the merchant has since hidden
+	 * the product. Only fires when the product is still resolvable — the
+	 * permanent-delete case is covered separately.
+	 *
+	 * @return void
+	 */
+	public function test_sync_archives_prunes_entries_whose_filter_now_excludes() {
+		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
+
+		$kept_product    = $this->create_simple_product_with_stock( 3 );
+		$flipped_product = $this->create_simple_product_with_stock( 7 );
+		$this->sut->track_product_archive( $kept_product );
+		$this->sut->track_product_archive( $flipped_product );
+
+		$flipped_id = $flipped_product->get_id();
+		$callback   = static fn( $sync, $candidate ) => $candidate->get_id() !== $flipped_id;
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
+
+		add_filter(
+			'wc_stripe_agentic_commerce_files_api_pre_request',
+			fn() => [ 'id' => 'file_test_123' ]
+		);
+		add_filter(
+			'wc_stripe_agentic_commerce_import_set_pre_request',
+			fn() => [
+				'id'     => 'impset_test_456',
+				'status' => 'pending',
+			]
+		);
+
+		try {
+			$this->sut->sync_archives();
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
+		}
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertEmpty( $pending, 'Both entries should be cleared — kept was uploaded, flipped was pruned.' );
+	}
+
+	/**
+	 * Opposite policy from the inventory path: when an archive entry is queued
+	 * and the product is then permanently deleted, the row data has already
+	 * been mapped (Mapper output captured at archive time) and Stripe still
+	 * has the product in its catalog. We can't re-check the filter against a
+	 * non-existent product, so we keep the entry and let it ship.
+	 *
+	 * @return void
+	 */
+	public function test_sync_archives_keeps_entries_for_deleted_products() {
+		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
+
+		$product = $this->create_simple_product_with_stock( 2 );
+		$this->sut->track_product_archive( $product );
+		$archived_id = $product->get_id();
+
+		// Permanently delete after the archive row was captured.
+		wp_delete_post( $archived_id, true );
+
+		add_filter(
+			'wc_stripe_agentic_commerce_files_api_pre_request',
+			fn() => [ 'id' => 'file_test_123' ]
+		);
+		add_filter(
+			'wc_stripe_agentic_commerce_import_set_pre_request',
+			fn() => [
+				'id'     => 'impset_test_456',
+				'status' => 'pending',
+			]
+		);
+
+		$this->sut->sync_archives();
+
+		// Upload completed, pending list cleared on success.
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertEmpty( $pending );
+	}
+
 	public function test_sync_archives_retains_pending_on_failure() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
