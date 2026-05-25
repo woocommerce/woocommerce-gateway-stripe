@@ -612,15 +612,11 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	/**
 	 * Tests that process_refund recovers a missing charge ID from the stored payment intent.
-	 *
-	 * Reproduces STRIPE-1099: a paid card order is left without a stored `_transaction_id`,
-	 * which previously made it permanently un-refundable. The charge ID should be recovered
-	 * from the payment intent, persisted back onto the order, and the refund should succeed.
 	 */
 	public function test_process_refund_recovers_missing_charge_id_from_intent() {
 		$order = WC_Helper_Order::create_order();
 		$order->set_currency( 'USD' );
-		// No transaction ID is set, mimicking the lost-write scenario, but the intent is present.
+		// No transaction ID, but the intent is present.
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_123' );
 		$order->save();
 		$order_id = $order->get_id();
@@ -666,7 +662,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
 		$this->assertTrue( $result );
 
-		// The recovered charge ID should be persisted on the order so it self-heals.
+		// The recovered charge ID is persisted on the order.
 		$reloaded = wc_get_order( $order_id );
 		$this->assertSame( 'ch_123', $reloaded->get_transaction_id() );
 
@@ -674,8 +670,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Tests that process_refund still returns false when neither a charge ID nor a
-	 * recoverable payment intent is available.
+	 * Tests that process_refund returns false when the charge ID can't be recovered.
 	 */
 	public function test_process_refund_returns_false_when_charge_id_unrecoverable() {
 		$order = WC_Helper_Order::create_order();

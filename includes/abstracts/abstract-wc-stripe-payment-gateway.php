@@ -1212,10 +1212,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$order_currency = $order->get_currency();
 		$charge_id      = $order->get_transaction_id();
 
-		// Some orders end up paid but without a stored charge ID (for example, a lost write
-		// during checkout). For card payments no webhook back-fills it afterwards, leaving the
-		// order permanently un-refundable. If the payment intent is still stored on the order,
-		// recover the charge ID from it so the order becomes refundable again.
+		// Card payments have no webhook that back-fills a lost charge ID, so recover it from the intent.
 		if ( ! $charge_id && $order instanceof WC_Order ) {
 			$charge_id = $this->recover_charge_id_from_intent( $order );
 		}
@@ -1224,7 +1221,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return false;
 		}
 
-		// Read the captured flag after any recovery, as recovery reconciles it from the charge.
+		// Read after recovery, which reconciles the captured flag.
 		$captured = $order_helper->is_stripe_charge_captured( $order );
 
 		if ( ! is_null( $amount ) ) {
@@ -1357,15 +1354,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Recovers a missing Stripe charge ID for an order from its stored payment intent.
-	 *
-	 * Card payments store the charge ID (`_transaction_id`) only during the synchronous
-	 * checkout request; no webhook back-fills it afterwards (`charge.succeeded` is skipped
-	 * for synchronous methods and `payment_intent.succeeded` only acts on pending/failed
-	 * orders). If that write is lost, the order is left paid but un-refundable. When the
-	 * order still has a stored payment intent, the charge can be retrieved from the intent
-	 * and persisted back onto the order so wp-admin refunds and Stripe Dashboard refund
-	 * sync work again.
+	 * Recovers a missing charge ID from the order's stored payment intent and persists it.
 	 *
 	 * @param WC_Order $order The order to recover the charge ID for.
 	 * @return string The recovered charge ID, or an empty string if it could not be recovered.
@@ -1373,13 +1362,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	private function recover_charge_id_from_intent( WC_Order $order ) {
 		$intent = $this->get_intent_from_order( $order );
 
-		// Only payment intents carry a charge; setup intents (e.g. free trials) do not.
+		// Only payment intents carry a charge.
 		if ( ! $intent || ! isset( $intent->object ) || 'payment_intent' !== $intent->object ) {
 			return '';
 		}
 
-		// Fetching the charge can throw; keep the helper's "empty string on failure" contract
-		// so process_refund() fails gracefully instead of surfacing an uncaught exception.
+		// Keep the "empty string on failure" contract so process_refund() fails gracefully.
 		try {
 			$charge = $this->get_latest_charge_from_intent( $intent );
 		} catch ( WC_Stripe_Exception $e ) {
@@ -1402,7 +1390,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$order->set_transaction_id( $charge_id );
 
-		// The captured flag may have been lost alongside the charge ID; reconcile it from the charge.
+		// Reconcile the captured flag, which may have been lost with the charge ID.
 		if ( isset( $charge->captured ) ) {
 			$order_helper->set_stripe_charge_captured( $order, (bool) $charge->captured );
 		}
