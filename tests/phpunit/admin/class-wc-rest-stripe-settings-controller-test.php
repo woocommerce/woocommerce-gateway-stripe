@@ -33,6 +33,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	private static $gateway;
+
 	/**
 	 * Enable UPE and store gateway instance.
 	 *
@@ -41,17 +42,17 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 * would contain another gateway instance than the controller.
 	 *
 	 * @see UPE_Test_Utils::reload_payment_gateways()
+	 *
+	 * @return void
+	 * @throws Exception
 	 */
-	public static function set_up_before_class() {
+	public static function set_up_before_class(): void {
 		parent::set_up_before_class();
 
 		$upe_helper = new UPE_Test_Helper();
 
 		// Enable Amazon Pay
 		update_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME, 'yes' );
-
-		// All tests assume UPE is enabled.
-		update_option( '_wcstripe_feature_upe', 'yes' );
 
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
