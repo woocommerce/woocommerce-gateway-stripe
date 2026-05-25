@@ -45,6 +45,21 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_feed';
 
 	/**
+	 * Action Scheduler group for adapter-fired one-off resyncs.
+	 *
+	 * Kept distinct from the recurring `wc-stripe` group so the idempotency
+	 * guard in {@see self::schedule_full_resync_now()} can ask "is another
+	 * adapter-fired resync already pending?" without matching the recurring
+	 * full-feed occurrence — `as_has_scheduled_action()` filters by group,
+	 * so a shared group would make the one-off a no-op whenever the cron
+	 * tick is queued.
+	 *
+	 * @var string
+	 * @since 10.8.0
+	 */
+	private const ASYNC_RESYNC_GROUP = 'wc-stripe-agentic-resync';
+
+	/**
 	 * Option name to track whether the sync is scheduled.
 	 *
 	 * @var string
@@ -199,11 +214,11 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		if ( as_has_scheduled_action( self::SCHEDULED_ACTION ) ) {
+		if ( as_has_scheduled_action( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP ) ) {
 			return;
 		}
 
-		as_enqueue_async_action( self::SCHEDULED_ACTION, [], 'wc-stripe' );
+		as_enqueue_async_action( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP );
 	}
 
 	/**
@@ -261,6 +276,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		}
 
 		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], 'wc-stripe' );
+		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP );
 		delete_option( self::SCHEDULED_OPTION );
 		delete_option( self::LAST_UPLOAD_OPTION );
 
