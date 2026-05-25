@@ -81,7 +81,7 @@ class WC_Stripe_Payment_Token_CC extends WC_Payment_Token_CC implements WC_Strip
 		}
 
 		return sprintf(
-			/* translators: 1: wallet brand 2: card brand 3: last 4 digits 4: expiry month 5: expiry year */
+			/* translators: 1: wallet brand e.g. "Apple Pay", "Google Pay"; 2: card brand e.g. Visa; 3: last 4 digits; 4: expiry month; 5: expiry year */
 			__( '%1$s (%2$s) ending in %3$s (expires %4$s/%5$s)', 'woocommerce-gateway-stripe' ),
 			$wallet_label,
 			wc_get_credit_card_type_label( $this->get_card_type() ),
