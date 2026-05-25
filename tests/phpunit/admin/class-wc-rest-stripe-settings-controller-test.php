@@ -469,6 +469,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			foreach ( $expected_options as $option_name => $option_value ) {
 				$notice_option = get_option( $option_name );
 				$this->assertEquals( $option_value, $notice_option );
+
+				$this->assertArrayHasKey( $option_name, $updated_stripe_options );
+				$this->assertEquals( $option_value, $updated_stripe_options[ $option_name ] );
 			}
 
 			$this->assertEquals( 200, $response->get_status() );
