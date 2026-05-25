@@ -22,6 +22,7 @@ xxxx-xx-xx - version 10.8.0
 * Dev - Add Jest tests for ECE payment flow
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
 * Update - Improve express checkout load times by preloading the resources
+* Tweak - Reduce JS bundle sizes by externalizing core-js polyfills for features natively supported in modern browsers.
 
 2026-05-12 - version 10.7.0
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
