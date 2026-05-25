@@ -1,7 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.8.0
-* Fix - Recover the Stripe charge ID from the stored payment intent when it is missing from an order, so affected card orders can still be refunded from wp-admin and Stripe Dashboard refunds sync back to WooCommerce
+* Fix - Recover a missing Stripe charge ID from the order's payment intent so affected orders stay refundable
 * Add - Show Apple Pay / Google Pay branding on saved card tokens in My Account → Payment Methods and at checkout
 * Add - Add a setting to control whether Express Checkout is shown on the WooCommerce Subscriptions change payment method page
 * Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Link)
