@@ -282,53 +282,63 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that `print_ece_bundle_preload` emits a preload link only when ECE will render.
+	 * Test that `add_preload_resources` appends the ECE bundle entry only when ECE will render.
 	 *
 	 * @param bool $page_supported Return value for is_page_supported().
 	 * @param bool $should_show    Return value for should_show_express_checkout_button().
-	 * @param bool $expect_output  Whether a preload link should be emitted.
+	 * @param bool $expect_entry   Whether a preload entry should be appended.
 	 *
 	 * @return void
-	 * @dataProvider provide_test_print_ece_bundle_preload
+	 * @dataProvider provide_test_add_preload_resources
 	 */
-	public function test_print_ece_bundle_preload( $page_supported, $should_show, $expect_output ) {
+	public function test_add_preload_resources( $page_supported, $should_show, $expect_entry ) {
 		$element = $this->build_element_with_guards( $page_supported, $should_show );
 
-		ob_start();
-		$element->print_ece_bundle_preload();
-		$output = ob_get_clean();
+		$existing = [
+			[
+				'href' => 'https://example.com/other.js',
+				'as'   => 'script',
+			],
+		];
+		$output   = $element->add_preload_resources( $existing );
 
-		if ( $expect_output ) {
+		// Pre-existing entries must be preserved regardless of the guard outcome.
+		$this->assertSame( $existing[0], $output[0] );
+
+		if ( $expect_entry ) {
+			$this->assertCount( 2, $output );
+			$bundle_entry = $output[1];
+			$this->assertSame( 'script', $bundle_entry['as'] );
 			$this->assertMatchesRegularExpression(
-				'#<link rel="preload" as="script" href="[^"]+/build/express-checkout\.js\?ver=[^"]+" />#',
-				$output
+				'#/build/express-checkout\.js\?ver=[^&]+$#',
+				$bundle_entry['href']
 			);
 		} else {
-			$this->assertSame( '', $output );
+			$this->assertSame( $existing, $output );
 		}
 	}
 
 	/**
-	 * Provider for `test_print_ece_bundle_preload`.
+	 * Provider for `test_add_preload_resources`.
 	 *
 	 * @return array[]
 	 */
-	public function provide_test_print_ece_bundle_preload() {
+	public function provide_test_add_preload_resources() {
 		return [
 			'page not supported'    => [
 				'page supported' => false,
 				'should show'    => true,
-				'expect output'  => false,
+				'expect entry'   => false,
 			],
 			'should not show'       => [
 				'page supported' => true,
 				'should show'    => false,
-				'expect output'  => false,
+				'expect entry'   => false,
 			],
 			'successfully rendered' => [
 				'page supported' => true,
 				'should show'    => true,
-				'expect output'  => true,
+				'expect entry'   => true,
 			],
 		];
 	}

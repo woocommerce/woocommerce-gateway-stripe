@@ -86,10 +86,8 @@ class WC_Stripe_Express_Checkout_Element {
 
 		// Network hints for the wallet-button paint path. The callbacks short-circuit on
 		// pages where ECE isn't going to render, so registering unconditionally is safe.
-		// `wp_head` priority 1 emits the preload before WP core's resource_hints (priority 2),
-		// keeping the bundle fetch ahead of the browser's preload scanner cutoff.
 		add_filter( 'wp_resource_hints', [ $this, 'add_resource_hints' ], 10, 2 );
-		add_action( 'wp_head', [ $this, 'print_ece_bundle_preload' ], 1 );
+		add_filter( 'wp_preload_resources', [ $this, 'add_preload_resources' ] );
 
 		// Change-payment uses WC Subscriptions' own template, so ride
 		// `before_woocommerce_pay` (the only action the gateway fires before it).
@@ -482,35 +480,38 @@ class WC_Stripe_Express_Checkout_Element {
 	}
 
 	/**
-	 * Emit a `<link rel="preload">` for the Express Checkout bundle.
+	 * Append a preload entry for the Express Checkout bundle when ECE will render.
 	 *
-	 * Hooked on `wp_head` priority 1 so the hint lands before `wp_resource_hints` runs at
-	 * priority 2 and well before the footer enqueue of the actual `<script>` tag. The
-	 * browser's preload scanner picks it up immediately and the bundle download overlaps
-	 * with the rest of `<head>` parsing instead of waiting for the footer.
+	 * Routed through the `wp_preload_resources` filter (WP 6.1+) so core handles the
+	 * `<link>` emission, attribute escaping, and deduplication. The hint lands in
+	 * `<head>` ahead of the footer enqueue, letting the browser's preload scanner
+	 * overlap the bundle fetch with the rest of `<head>` parsing.
 	 *
-	 * @return void
+	 * @param array $preload_resources Preload entries gathered by core.
+	 *
+	 * @return array
 	 */
-	public function print_ece_bundle_preload() {
+	public function add_preload_resources( $preload_resources ) {
 		if ( ! $this->express_checkout_helper->is_page_supported() ) {
-			return;
+			return $preload_resources;
 		}
 
 		if ( ! $this->express_checkout_helper->should_show_express_checkout_button() ) {
-			return;
+			return $preload_resources;
 		}
 
 		$asset_data = $this->get_asset_data();
-		$bundle_url = add_query_arg(
-			'ver',
-			$asset_data['version'],
-			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js'
-		);
 
-		printf(
-			'<link rel="preload" as="script" href="%s" />' . "\n",
-			esc_url( $bundle_url )
-		);
+		$preload_resources[] = [
+			'href' => add_query_arg(
+				'ver',
+				$asset_data['version'],
+				WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js'
+			),
+			'as'   => 'script',
+		];
+
+		return $preload_resources;
 	}
 
 	/**
