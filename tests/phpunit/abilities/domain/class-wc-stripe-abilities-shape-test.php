@@ -4,12 +4,13 @@
  *
  * Covers the mechanical assertions (callbacks wired correctly, annotations
  * set correctly, show_in_rest + mcp.public on, permission callback
- * resolves to manage_woocommerce) for every read ability that calls Stripe directly.
+ * resolves to manage_woocommerce) for every read ability the plugin registers.
  *
  * @package WooCommerce_Stripe
  */
 
 /**
+ * @covers WC_Stripe_Ability_Get_Account_Summary
  * @covers WC_Stripe_Ability_Get_Charges
  * @covers WC_Stripe_Ability_Get_Charge
  * @covers WC_Stripe_Ability_Get_Payment_Intent
@@ -42,6 +43,7 @@ class WC_Stripe_Abilities_Shape_Test extends WP_UnitTestCase {
 	 */
 	public function read_ability_provider(): array {
 		return [
+			'get-account-summary'      => [ WC_Stripe_Ability_Get_Account_Summary::class, 'woocommerce-gateway-stripe/get-account-summary' ],
 			'get-charges'              => [ WC_Stripe_Ability_Get_Charges::class, 'woocommerce-gateway-stripe/get-charges' ],
 			'get-charge'               => [ WC_Stripe_Ability_Get_Charge::class, 'woocommerce-gateway-stripe/get-charge' ],
 			'get-payment-intent'       => [ WC_Stripe_Ability_Get_Payment_Intent::class, 'woocommerce-gateway-stripe/get-payment-intent' ],
@@ -156,5 +158,40 @@ class WC_Stripe_Abilities_Shape_Test extends WP_UnitTestCase {
 			(bool) call_user_func( $args['permission_callback'] ),
 			"$class permission_callback must allow users with manage_woocommerce."
 		);
+	}
+
+	/**
+	 * The reference ability (zero-arg, default-empty `input_schema`) must
+	 * accept `execute([])` without raising. The other abilities require an
+	 * id or expose an Options object — only this one is callable with no
+	 * arguments at all, which is the load-bearing property MCP clients rely
+	 * on when they first probe an unfamiliar tool surface.
+	 */
+	public function test_get_account_summary_accepts_zero_arg_execute() {
+		$schema = WC_Stripe_Ability_Get_Account_Summary::get_registration_args()['input_schema'];
+
+		$this->assertSame( [], $schema['properties'], 'get-account-summary must keep an empty properties bag — the zero-arg contract is its discoverability anchor.' );
+		$this->assertSame( [], $schema['required'] ?? [], 'get-account-summary must not require any input.' );
+		$this->assertFalse( $schema['additionalProperties'] ?? true, 'get-account-summary must reject stray inputs so callers cannot mistake it for a list ability.' );
+	}
+
+	/**
+	 * get-account-summary is the only ability in this PR that authors fields
+	 * on top of its backing controller's response. The partial output_schema
+	 * lets MCP discovery surface the authored field (`id`) without
+	 * over-modelling the controller-owned portion (additionalProperties: true).
+	 */
+	public function test_get_account_summary_output_schema_declares_authored_id_field() {
+		$args = WC_Stripe_Ability_Get_Account_Summary::get_registration_args();
+
+		$this->assertArrayHasKey( 'output_schema', $args );
+		$schema = $args['output_schema'];
+		$this->assertSame( 'object', $schema['type'] );
+		$this->assertTrue( $schema['additionalProperties'] ?? false, 'output_schema must be partial (additionalProperties: true) so the controller-owned payload passes through unmodelled.' );
+
+		$id_field = $schema['properties']['id'] ?? null;
+		$this->assertIsArray( $id_field );
+		$this->assertContains( 'string', (array) ( $id_field['type'] ?? [] ) );
+		$this->assertContains( 'null', (array) ( $id_field['type'] ?? [] ) );
 	}
 }
