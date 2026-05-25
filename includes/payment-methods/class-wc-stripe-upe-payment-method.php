@@ -411,6 +411,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		if ( $this->has_domestic_transactions_restrictions() ) {
 			$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
 			$account_country = isset( $account['country'] ) ? strtoupper( $account['country'] ) : '';
+			// Intentionally return [ '' ] when no account country is known, as [] indicates that all countries are supported.
 			return [ $account_country ];
 		}
 
