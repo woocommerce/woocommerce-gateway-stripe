@@ -186,7 +186,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function __get( $property ) {
 		if ( 'supported_countries' === $property ) {
-			wc_deprecated_function( get_class( $this ) . '->supported_countries', 'Use supported_account_countries or supported_billing_countries instead.', '10.8.0' );
+			wc_doing_it_wrong( get_class( $this ) . '->supported_countries', 'Use supported_account_countries or supported_billing_countries instead.', '10.8.0' );
 			return $this->supported_account_countries;
 		}
 
