@@ -42,9 +42,14 @@ class WC_Stripe_UPE_Payment_Method_BLIK_Test extends WP_UnitTestCase {
 			'US is supported'     => [ WC_Stripe_Country_Code::UNITED_STATES, true ],
 			'GB is supported'     => [ WC_Stripe_Country_Code::UNITED_KINGDOM, true ],
 			'DE is supported'     => [ WC_Stripe_Country_Code::GERMANY, true ],
+			'PL is supported'     => [ WC_Stripe_Country_Code::POLAND, true ],
 			'BR is not supported' => [ WC_Stripe_Country_Code::BRAZIL, false ],
 			'JP is not supported' => [ WC_Stripe_Country_Code::JAPAN, false ],
 			'MX is not supported' => [ WC_Stripe_Country_Code::MEXICO, false ],
+			'NZ is not supported' => [ WC_Stripe_Country_Code::NEW_ZEALAND, false ],
+			'TH is not supported' => [ WC_Stripe_Country_Code::THAILAND, false ],
+			// Note that BLIK uses a list of unsupported countries, so ZZ will be reported as supported as it
+			// is not in the list of unsupported countries.
 			'ZZ is supported'     => [ 'ZZ', true ],
 		];
 	}
