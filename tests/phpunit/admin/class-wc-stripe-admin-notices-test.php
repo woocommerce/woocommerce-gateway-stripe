@@ -1235,7 +1235,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		ob_end_clean();
 
 		$this->assertArrayHasKey( 'api_outage', $notices->notices );
-		$this->assertMatchesRegularExpression( '/Stripe is temporarily unavailable/', $notices->notices['api_outage']['message'] );
+		$this->assertMatchesRegularExpression( '/Stripe is temporarily unreachable/', $notices->notices['api_outage']['message'] );
 
 		WC_Stripe_API_Outage_Status::record_success();
 	}

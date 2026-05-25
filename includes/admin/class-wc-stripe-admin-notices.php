@@ -391,7 +391,7 @@ class WC_Stripe_Admin_Notices {
 
 		$message = sprintf(
 			/* translators: 1) HTML strong open tag 2) HTML strong closing tag */
-			__( '%1$sStripe is temporarily unavailable.%2$s We are unable to reach the Stripe API right now. Payments and account details may not work until the service is restored. This notice will clear automatically once Stripe responds again.', 'woocommerce-gateway-stripe' ),
+			__( '%1$sStripe is temporarily unreachable.%2$s Payments and account updates may not go through until the connection is restored. This notice will clear automatically once requests start succeeding again.', 'woocommerce-gateway-stripe' ),
 			'<strong>',
 			'</strong>'
 		);

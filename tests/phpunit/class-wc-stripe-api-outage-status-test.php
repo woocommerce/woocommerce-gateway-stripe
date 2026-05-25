@@ -56,19 +56,21 @@ class WC_Stripe_API_Outage_Status_Test extends WP_UnitTestCase {
 
 		$this->assertTrue( WC_Stripe_API_Outage_Status::is_in_outage() );
 
-		$detected_at = WC_Stripe_API_Outage_Status::get_outage_detected_at();
-		$this->assertNotNull( $detected_at );
-		$this->assertGreaterThanOrEqual( $before, $detected_at );
-		$this->assertLessThanOrEqual( $after, $detected_at );
+		$stored = get_transient( WC_Stripe_API_Outage_Status::OUTAGE_TRANSIENT_KEY );
+		$this->assertIsArray( $stored );
+		$this->assertArrayHasKey( 'detected_at', $stored );
+		$this->assertGreaterThanOrEqual( $before, (int) $stored['detected_at'] );
+		$this->assertLessThanOrEqual( $after, (int) $stored['detected_at'] );
 	}
 
 	public function test_record_outage_preserves_initial_detected_at() {
 		WC_Stripe_API_Outage_Status::record_outage();
-		$first_detected = WC_Stripe_API_Outage_Status::get_outage_detected_at();
-		$this->assertNotNull( $first_detected );
+		$stored         = get_transient( WC_Stripe_API_Outage_Status::OUTAGE_TRANSIENT_KEY );
+		$first_detected = (int) $stored['detected_at'];
 
-		// Move clock forward in a way we can observe by manipulating the
-		// stored value: write a known earlier timestamp, then re-record.
+		// Move the recorded detection backwards by writing a known earlier
+		// timestamp, then re-record. The second call must keep the earlier
+		// timestamp rather than overwriting with `time()`.
 		set_transient(
 			WC_Stripe_API_Outage_Status::OUTAGE_TRANSIENT_KEY,
 			[ 'detected_at' => $first_detected - 60 ],
@@ -77,7 +79,8 @@ class WC_Stripe_API_Outage_Status_Test extends WP_UnitTestCase {
 
 		WC_Stripe_API_Outage_Status::record_outage();
 
-		$this->assertSame( $first_detected - 60, WC_Stripe_API_Outage_Status::get_outage_detected_at() );
+		$stored_after = get_transient( WC_Stripe_API_Outage_Status::OUTAGE_TRANSIENT_KEY );
+		$this->assertSame( $first_detected - 60, (int) $stored_after['detected_at'] );
 	}
 
 	public function test_record_success_clears_outage() {
@@ -87,11 +90,9 @@ class WC_Stripe_API_Outage_Status_Test extends WP_UnitTestCase {
 		WC_Stripe_API_Outage_Status::record_success();
 
 		$this->assertFalse( WC_Stripe_API_Outage_Status::is_in_outage() );
-		$this->assertNull( WC_Stripe_API_Outage_Status::get_outage_detected_at() );
 	}
 
 	public function test_is_in_outage_defaults_to_false() {
 		$this->assertFalse( WC_Stripe_API_Outage_Status::is_in_outage() );
-		$this->assertNull( WC_Stripe_API_Outage_Status::get_outage_detected_at() );
 	}
 }

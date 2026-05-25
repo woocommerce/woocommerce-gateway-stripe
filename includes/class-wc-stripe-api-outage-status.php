@@ -92,15 +92,4 @@ class WC_Stripe_API_Outage_Status {
 	public static function is_in_outage(): bool {
 		return false !== get_transient( self::OUTAGE_TRANSIENT_KEY );
 	}
-
-	/**
-	 * Unix timestamp of when the current outage was first detected, or null.
-	 */
-	public static function get_outage_detected_at(): ?int {
-		$value = get_transient( self::OUTAGE_TRANSIENT_KEY );
-		if ( ! is_array( $value ) || empty( $value['detected_at'] ) ) {
-			return null;
-		}
-		return (int) $value['detected_at'];
-	}
 }

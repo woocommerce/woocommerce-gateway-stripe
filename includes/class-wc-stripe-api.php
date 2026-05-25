@@ -359,10 +359,7 @@ class WC_Stripe_API {
 		if ( WC_Stripe_API_Outage_Status::is_outage_response( $response ) ) {
 			WC_Stripe_API_Outage_Status::record_outage();
 
-			$error_data = [
-				'stripe_api_key' => $masked_secret_key,
-			];
-			self::log_error_response( $response, $api, 'GET', $error_data );
+			self::log_error_response( $response, $api, 'GET' );
 
 			return new WP_Error(
 				'stripe_api_outage',
