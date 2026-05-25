@@ -440,6 +440,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool True when no restriction is set or the country is in the supported list.
 	 */
 	public function is_available_for_billing_country( $country_code ): bool {
+		$country_code = is_string( $country_code ) ? strtoupper( $country_code ) : '';
+		if ( '' === $country_code ) {
+			return false;
+		}
+
 		if ( ! empty( $this->supported_billing_countries ) ) {
 			return in_array( $country_code, $this->supported_billing_countries, true );
 		}
