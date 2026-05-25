@@ -175,5 +175,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Remove - Remove deprecated code up to version 10.1.0
 * Dev - Add Jest tests for ECE payment flow
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
+* Add - Detect Stripe API outages (network failures, timeouts, 5xx responses) and surface a wp-admin notice instead of crashing or showing misleading "couldn't connect" messages
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
