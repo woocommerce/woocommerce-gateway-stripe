@@ -85,9 +85,16 @@ class WC_Stripe_Payment_Tokens {
 				return 'BECS Direct Debit';
 			case 'sepa iban':
 				return 'SEPA IBAN';
-			default:
-				return $label;
 		}
+
+		// The My Account template re-applies wc_get_credit_card_type_label to our wrapped
+		// brand. Its ucwords pass leaves the inner card name lowercase because `(` isn't
+		// a word boundary — restore it here.
+		if ( preg_match( '/^(Apple Pay|Google Pay) \(([a-z][a-z ]*)\)$/', $label, $matches ) ) {
+			return $matches[1] . ' (' . wc_get_credit_card_type_label( $matches[2] ) . ')';
+		}
+
+		return $label;
 	}
 
 	/**
@@ -676,6 +683,21 @@ class WC_Stripe_Payment_Tokens {
 				break;
 		}
 
+		// Wrap Apple Pay / Google Pay branding around the card brand. Link wallet_type
+		// is persisted but not surfaced here (see #5437).
+		if ( $payment_token instanceof WC_Stripe_Payment_Token_CC ) {
+			$wallet_label = $payment_token->get_wallet_brand_label();
+			if ( '' !== $wallet_label ) {
+				$existing_brand = isset( $item['method']['brand'] ) ? trim( (string) $item['method']['brand'] ) : '';
+				if ( '' !== $existing_brand ) {
+					$existing_brand = wc_get_credit_card_type_label( $existing_brand );
+				}
+				$item['method']['brand'] = '' === $existing_brand
+					? $wallet_label
+					: sprintf( '%s (%s)', $wallet_label, $existing_brand );
+			}
+		}
+
 		return $item;
 	}
 
@@ -777,6 +799,7 @@ class WC_Stripe_Payment_Tokens {
 					$found_token->set_expiry_year( $payment_method->card->exp_year );
 					$found_token->set_card_type( strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand ) );
 					$found_token->set_last4( $payment_method->card->last4 );
+					$found_token->set_wallet_type( (string) ( $payment_method->card->wallet->type ?? '' ) );
 				}
 
 				$found_token->save();
@@ -795,6 +818,7 @@ class WC_Stripe_Payment_Tokens {
 				$token->set_card_type( strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand ) );
 				$token->set_last4( $payment_method->card->last4 );
 				$token->set_fingerprint( $payment_method->card->fingerprint );
+				$token->set_wallet_type( (string) ( $payment_method->card->wallet->type ?? '' ) );
 				break;
 			case WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID:
 				$token = new WC_Payment_Token_Bacs_Debit();
@@ -1057,21 +1081,6 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
-	 * Controls the output for SEPA on the my account page.
-	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
-	 * @deprecated 8.4.0
-	 * @param  array            $item          Individual list item from woocommerce_saved_payment_methods_list
-	 * @param  WC_Payment_Token $payment_token The payment token associated with this method entry
-	 * @return array                           Filtered item
-	 */
-	public function get_account_saved_payment_methods_list_item_sepa( $item, $payment_token ) {
-		_deprecated_function( __METHOD__, '8.4.0', 'WC_Stripe_Payment_Tokens::get_account_saved_payment_methods_list_item' );
-		return $this->get_account_saved_payment_methods_list_item( $item, $payment_token );
-	}
-
-	/**
 	 * Returns the list of active reusable payment method types based on the enabled gateways and their settings.
 	 *
 	 * @return array List of active reusable payment method types.
@@ -1097,7 +1106,7 @@ class WC_Stripe_Payment_Tokens {
 			$bancontact_tokens_enabled = $gateway->is_sepa_tokens_for_bancontact_enabled();
 
 			if ( ( $ideal_tokens_enabled && in_array( WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID, $active_reusable_payment_method_types, true ) )
-				 || ( $bancontact_tokens_enabled && in_array( WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID, $active_reusable_payment_method_types, true ) ) ) {
+				|| ( $bancontact_tokens_enabled && in_array( WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID, $active_reusable_payment_method_types, true ) ) ) {
 				$active_reusable_payment_method_types[] = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
 			}
 		}

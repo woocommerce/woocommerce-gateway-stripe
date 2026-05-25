@@ -287,7 +287,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 	}
 
 	public function test_maybe_update_subscription_legacy_payment_method_adds_note_when_not_using_src() {
-		$this->upe_helper->enable_upe_feature_flag();
+		$this->upe_helper->reset_stripe_settings_and_reload_gateways();
 		$this->upe_helper->enable_upe();
 
 		// Retrieve the actual subscription.
@@ -314,7 +314,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 	}
 
 	public function test_maybe_update_subscription_legacy_payment_method_adds_note_when_source_not_migrated() {
-		$this->upe_helper->enable_upe_feature_flag();
+		$this->upe_helper->reset_stripe_settings_and_reload_gateways();
 		$this->upe_helper->enable_upe();
 
 		// Retrieve the actual subscription.

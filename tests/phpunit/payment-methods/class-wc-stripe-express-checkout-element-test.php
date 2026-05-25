@@ -225,6 +225,10 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 				'checkout type' => 'google_pay',
 				'expected'      => 'Google Pay (Stripe)',
 			],
+			'amazon pay' => [
+				'checkout type' => 'amazon_pay',
+				'expected'      => 'Amazon Pay (Stripe)',
+			],
 			'link'       => [
 				'checkout type' => 'link',
 				'expected'      => 'Link',
@@ -271,6 +275,95 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test for `filter_change_payment_method_note_title` on the no-3DS path, where
+	 * the form submission carries `$_POST['express_checkout_type']`.
+	 *
+	 * Guards that the order-note "to" label written by WCS gets replaced with the
+	 * express checkout label instead of the bare "Credit Card" gateway title.
+	 *
+	 * @param string $checkout_type The express checkout type posted with the form.
+	 * @param string $expected      The expected note label substituted by the filter.
+	 * @return void
+	 * @dataProvider provide_test_update_subscription_payment_method_title
+	 */
+	public function test_filter_change_payment_method_note_title_uses_post( $checkout_type, $expected ) {
+		$subscription = new WC_Subscription();
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->save();
+
+		$_POST['express_checkout_type'] = $checkout_type;
+
+		$filtered = $this->element->filter_change_payment_method_note_title( 'Credit Card', 'stripe', $subscription );
+
+		unset( $_POST['express_checkout_type'] );
+
+		$this->assertSame( $expected, $filtered );
+	}
+
+	/**
+	 * Test for `filter_change_payment_method_note_title` on the post-3DS path, where
+	 * $_POST is unavailable and the express type was persisted to subscription meta
+	 * before the redirect.
+	 *
+	 * Guards that the note "to" label is corrected after a 3DS round-trip too.
+	 *
+	 * @return void
+	 */
+	public function test_filter_change_payment_method_note_title_falls_back_to_meta() {
+		$subscription = new WC_Subscription();
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->update_meta_data( '_wc_stripe_express_checkout_type', 'apple_pay' );
+		$subscription->save();
+
+		unset( $_POST['express_checkout_type'] );
+
+		$filtered = $this->element->filter_change_payment_method_note_title( 'Credit Card', 'stripe', $subscription );
+
+		$this->assertSame( 'Apple Pay (Stripe)', $filtered );
+	}
+
+	/**
+	 * Test that `filter_change_payment_method_note_title` is a pass-through when the
+	 * target gateway is not Stripe, when no express type signal is present, or when the
+	 * signalled type is not an express method.
+	 *
+	 * Ensures the filter never alters notes for unrelated gateways or non-express
+	 * Stripe submissions.
+	 *
+	 * @return void
+	 */
+	public function test_filter_change_payment_method_note_title_noop_cases() {
+		$subscription = new WC_Subscription();
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->save();
+
+		// Non-Stripe gateway: always pass through.
+		$_POST['express_checkout_type'] = 'apple_pay';
+		$this->assertSame(
+			'PayPal',
+			$this->element->filter_change_payment_method_note_title( 'PayPal', 'paypal', $subscription )
+		);
+
+		// No signal: pass through the original WCS-computed title.
+		unset( $_POST['express_checkout_type'] );
+		$this->assertSame(
+			'Credit Card',
+			$this->element->filter_change_payment_method_note_title( 'Credit Card', 'stripe', $subscription )
+		);
+
+		// Unrecognized express type: pass through.
+		$_POST['express_checkout_type'] = 'paypal';
+		try {
+			$this->assertSame(
+				'Credit Card',
+				$this->element->filter_change_payment_method_note_title( 'Credit Card', 'stripe', $subscription )
+			);
+		} finally {
+			unset( $_POST['express_checkout_type'] );
+		}
+	}
+
+	/**
 	 * Test that `update_subscription_payment_method_title` is a no-op when the express
 	 * checkout type is missing or unrecognized.
 	 *
@@ -292,15 +385,17 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		unset( $_POST['express_checkout_type'] );
 
 		$this->element->update_subscription_payment_method_title();
-		$this->assertSame( 'Stripe', $subscription->get_payment_method_title() );
+		try {
+			$this->assertSame( 'Stripe', $subscription->get_payment_method_title() );
 
-		// Unrecognized type should also leave the title unchanged.
-		$_POST['express_checkout_type'] = 'paypal';
-		$this->element->update_subscription_payment_method_title();
-		$this->assertSame( 'Stripe', $subscription->get_payment_method_title() );
-
-		unset( $_GET['change_payment_method'], $_POST['express_checkout_type'] );
-		WC_Subscriptions::$wcs_get_subscription = null;
+			// Unrecognized type should also leave the title unchanged.
+			$_POST['express_checkout_type'] = 'paypal';
+			$this->element->update_subscription_payment_method_title();
+			$this->assertSame( 'Stripe', $subscription->get_payment_method_title() );
+		} finally {
+			unset( $_GET['change_payment_method'], $_POST['express_checkout_type'] );
+			WC_Subscriptions::$wcs_get_subscription = null;
+		}
 	}
 
 	/**
