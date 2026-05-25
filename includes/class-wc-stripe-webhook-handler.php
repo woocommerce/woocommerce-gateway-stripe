@@ -740,6 +740,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	public function process_webhook_refund( $notification ) {
 		$refund_object = $this->get_refund_object( $notification );
 		$order         = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
+		$order_helper  = WC_Stripe_Order_Helper::get_instance();
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::debug( 'Could not find order via refund ID: ' . $refund_object->id );
@@ -755,11 +756,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( ! $order && ! empty( $notification->data->object->payment_intent ) ) {
 			$order = WC_Stripe_Helper::get_order_by_intent_id( $notification->data->object->payment_intent );
 
-			if ( $order instanceof WC_Order && ! $order->get_transaction_id() ) {
+			if ( $order instanceof WC_Order && $order_helper->is_stripe_gateway_order( $order ) && ! $order->get_transaction_id() ) {
 				$order->set_transaction_id( $notification->data->object->id );
 
 				if ( isset( $notification->data->object->captured ) ) {
-					WC_Stripe_Order_Helper::get_instance()->set_stripe_charge_captured( $order, (bool) $notification->data->object->captured );
+					$order_helper->set_stripe_charge_captured( $order, (bool) $notification->data->object->captured );
 				}
 
 				$order->save();
@@ -775,8 +776,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$this->resolved_order = $order;
 
 		$order_id = $order->get_id();
-
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		if ( $order_helper->is_stripe_gateway_order( $order ) ) {
 			$charge     = $order->get_transaction_id();

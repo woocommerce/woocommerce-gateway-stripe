@@ -1378,8 +1378,22 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return '';
 		}
 
-		$charge = $this->get_latest_charge_from_intent( $intent );
-		if ( empty( $charge->id ) ) {
+		// Fetching the charge can throw; keep the helper's "empty string on failure" contract
+		// so process_refund() fails gracefully instead of surfacing an uncaught exception.
+		try {
+			$charge = $this->get_latest_charge_from_intent( $intent );
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::warning(
+				'Unable to recover missing Stripe charge ID from payment intent.',
+				[
+					'order_id'      => $order->get_id(),
+					'error_message' => $e->getMessage(),
+				]
+			);
+			return '';
+		}
+
+		if ( ! is_object( $charge ) || empty( $charge->id ) ) {
 			return '';
 		}
 
