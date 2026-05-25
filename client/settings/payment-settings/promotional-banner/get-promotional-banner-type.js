@@ -28,7 +28,7 @@ export const getPromotionalBannerType = (
 		enabledPaymentMethodIds.filter( ( e ) => BNPL_METHODS.includes( e ) )
 			.length > 0;
 	// eslint-disable-next-line camelcase
-	const isOCAvailable = wc_stripe_settings_params?.is_oc_available;
+	const isOCAvailable = wc_stripe_settings_params?.is_oc_available === '1';
 
 	if ( oauthConnected === false ) {
 		return RECONNECT_BANNER;
