@@ -685,7 +685,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			'wc_stripe_show_stripe_tax_banner'          => 'wc_stripe_show_stripe_tax_banner',
 		];
 
-		// Loop though the supported request parameters once and perform any requested updates.
+		// Loop through the supported request parameters once and perform any requested updates.
 		$has_any_parameter = false;
 		foreach ( $notice_parameters as $parameter_name => $option_name ) {
 			if ( $request->has_param( $parameter_name ) ) {
