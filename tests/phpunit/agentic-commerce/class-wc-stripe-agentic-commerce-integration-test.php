@@ -347,6 +347,56 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * `deactivate()` must clear pending occurrences from BOTH groups. The
+	 * recurring full-feed schedule lives in `wc-stripe`; the adapter-fired
+	 * one-off resync lives in `wc-stripe-agentic-resync`. A deactivate that
+	 * only cleared one group would leave orphaned actions firing against a
+	 * disabled integration.
+	 */
+	public function test_deactivate_clears_both_scheduled_action_groups() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' );
+
+		// Seed both groups: the recurring occurrence (as activate() would) and
+		// the one-off resync (as the adapter-fired action would).
+		as_schedule_recurring_action(
+			time() + HOUR_IN_SECONDS,
+			\WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL,
+			\WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION,
+			[],
+			'wc-stripe'
+		);
+		as_enqueue_async_action(
+			\WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION,
+			[],
+			'wc-stripe-agentic-resync'
+		);
+		$this->assertNotFalse(
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' ),
+			'Sanity: recurring action must be pending before deactivate().'
+		);
+		$this->assertNotFalse(
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' ),
+			'Sanity: one-off resync must be pending before deactivate().'
+		);
+
+		( new \WC_Stripe_Agentic_Commerce_Integration() )->deactivate();
+
+		$this->assertFalse(
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' ),
+			'deactivate() must clear the recurring action from the wc-stripe group.'
+		);
+		$this->assertFalse(
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' ),
+			'deactivate() must clear the one-off resync from the wc-stripe-agentic-resync group.'
+		);
+	}
+
+	/**
 	 * Test sync_feed skips when feature is disabled.
 	 *
 	 * @return void
