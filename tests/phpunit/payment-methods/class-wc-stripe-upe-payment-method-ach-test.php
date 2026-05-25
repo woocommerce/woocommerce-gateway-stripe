@@ -3,7 +3,7 @@
 /**
  * These tests make assertions against class WC_Stripe_UPE_Payment_Method_ACH.
  */
-class WC_Stripe_UPE_Payment_Method_ACH_Test extends WP_UnitTestCase {
+class WC_Stripe_UPE_Payment_Method_ACH_Test extends WC_Stripe_UPE_Payment_Method_Test_Case {
 	/**
 	 * Tests for create_payment_token_for_user.
 	 */
@@ -73,21 +73,7 @@ class WC_Stripe_UPE_Payment_Method_ACH_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_is_available_for_account_country
 	 */
 	public function test_is_available_for_account_country( string $account_country, bool $expected_result ): void {
-		$mock_account = $this->createMock( WC_Stripe_Account::class );
-		$mock_account->method( 'get_account_country' )->willReturn( $account_country );
-
-		$wc_stripe = WC_Stripe::get_instance();
-
-		$initial_account = $wc_stripe->account;
-		try {
-			$wc_stripe->account = $mock_account;
-
-			$payment_method = new WC_Stripe_UPE_Payment_Method_ACH();
-
-			$this->assertSame( $expected_result, $payment_method->is_available_for_account_country() );
-		} finally {
-			$wc_stripe->account = $initial_account;
-		}
+		$this->run_is_available_for_account_country_test( WC_Stripe_UPE_Payment_Method_ACH::class, $account_country, $expected_result );
 	}
 
 	/**
