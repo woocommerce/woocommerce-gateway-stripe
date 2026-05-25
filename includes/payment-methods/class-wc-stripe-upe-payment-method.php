@@ -186,11 +186,18 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function __get( $property ) {
 		if ( 'supported_countries' === $property ) {
-			wc_doing_it_wrong( get_class( $this ) . '->supported_countries', 'Use supported_account_countries or supported_billing_countries instead.', '10.8.0' );
+			wc_deprecated_function( get_class( $this ) . '->supported_countries', 'Use supported_account_countries or supported_billing_countries instead.', '10.8.0' );
 			return $this->supported_account_countries;
 		}
 
-		throw new Exception( 'Property ' . $property . ' is not defined.' );
+		// Add a defensive check to see if we have an inherited __get method that we should call.
+		if ( method_exists( parent::class, '__get' ) ) {
+			return parent::__get( $property );
+		}
+
+		// Mimic PHP behaviour for undefined properties: emit a notice and return null.
+		trigger_error( esc_html( 'Undefined property: ' . static::class . '::$' . $property ), E_USER_NOTICE ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
+		return null;
 	}
 
 	/**
