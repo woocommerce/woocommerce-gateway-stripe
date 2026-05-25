@@ -77,6 +77,10 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
+		// Stripe API outage detection. Runs first so other environment checks
+		// can suppress notices that would be misleading during an outage.
+		$this->check_api_outage();
+
 		// Main Stripe payment method.
 		$this->stripe_check_environment();
 
@@ -315,9 +319,11 @@ class WC_Stripe_Admin_Notices {
 					}
 				}
 
-				// Check if Stripe Account data was successfully fetched.
+				// Check if Stripe Account data was successfully fetched. Skip when
+				// an outage is in progress: empty account data is the expected
+				// symptom and the outage notice already explains it.
 				$account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
-				if ( ! empty( $secret ) && empty( $account_data ) ) {
+				if ( ! empty( $secret ) && empty( $account_data ) && ! WC_Stripe_API_Outage_Status::is_in_outage() ) {
 					$setting_link = $this->get_setting_link();
 
 					$message = sprintf(
@@ -367,6 +373,30 @@ class WC_Stripe_Admin_Notices {
 				$this->add_admin_notice( 'changed_keys', 'notice notice-warning', $message, true );
 			}
 		}
+	}
+
+	/**
+	 * Surfaces a notice when the Stripe API appears to be experiencing an outage.
+	 *
+	 * The outage flag is set by WC_Stripe_API when requests fail with network
+	 * errors, timeouts, or 5xx responses, and clears automatically when the
+	 * transient expires (or earlier on the next successful response).
+	 *
+	 * @return void
+	 */
+	public function check_api_outage(): void {
+		if ( ! WC_Stripe_API_Outage_Status::is_in_outage() ) {
+			return;
+		}
+
+		$message = sprintf(
+			/* translators: 1) HTML strong open tag 2) HTML strong closing tag */
+			__( '%1$sStripe is temporarily unreachable.%2$s Payments and account updates may not go through until the connection is restored. This notice will clear automatically once requests start succeeding again.', 'woocommerce-gateway-stripe' ),
+			'<strong>',
+			'</strong>'
+		);
+
+		$this->add_admin_notice( 'api_outage', 'notice notice-warning', $message );
 	}
 
 	/**
