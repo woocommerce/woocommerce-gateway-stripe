@@ -1,5 +1,6 @@
 import { React } from 'react';
 import {
+	ADAPTIVE_PRICING_BANNER,
 	RECONNECT_BANNER,
 	BNPL_PROMOTION_BANNER,
 	OC_PROMOTION_BANNER,
@@ -10,6 +11,7 @@ import { BNPLPromotionBanner } from 'wcstripe/settings/payment-settings/promotio
 import { BannerCard } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
 import { OCPromotionBanner } from 'wcstripe/settings/payment-settings/promotional-banner/oc-promotion-banner';
 import { StripeTaxBanner } from 'wcstripe/settings/payment-settings/promotional-banner/stripe-tax-banner';
+import { AdaptivePricingBanner } from 'wcstripe/settings/payment-settings/promotional-banner/adaptive-pricing-banner';
 
 const PromotionalBanner = ( {
 	setShowPromotionalBanner,
@@ -24,6 +26,13 @@ const PromotionalBanner = ( {
 		case STRIPE_TAX_BANNER:
 			BannerContent = (
 				<StripeTaxBanner
+					setShowPromotionalBanner={ setShowPromotionalBanner }
+				/>
+			);
+			break;
+		case ADAPTIVE_PRICING_BANNER:
+			BannerContent = (
+				<AdaptivePricingBanner
 					setShowPromotionalBanner={ setShowPromotionalBanner }
 				/>
 			);

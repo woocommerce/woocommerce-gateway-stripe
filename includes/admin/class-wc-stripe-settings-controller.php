@@ -215,6 +215,12 @@ class WC_Stripe_Settings_Controller {
 			// Show the Stripe Tax banner only if OC is enabled
 			&& $is_oc_enabled;
 
+		$is_adaptive_pricing_enabled  = 'yes' === $this->get_gateway()->get_option( 'adaptive_pricing' );
+		$show_adaptive_pricing_banner = get_option( 'wc_stripe_show_adaptive_pricing_banner', 'yes' ) === 'yes'
+			// Show the Adaptive Pricing banner only when OC is enabled but AP is not.
+			&& $is_oc_enabled
+			&& ! $is_adaptive_pricing_enabled;
+
 		$is_checkout_sessions_available      = false;
 		$adaptive_pricing_unavailable_reason = 'disabled';
 		if ( WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
@@ -233,6 +239,7 @@ class WC_Stripe_Settings_Controller {
 			'show_bnpl_promotional_banner'          => $show_bnpl_promotion_banner,
 			'show_oc_promotional_banner'            => $show_oc_promotion_banner,
 			'show_stripe_tax_banner'                => $show_stripe_tax_banner,
+			'show_adaptive_pricing_banner'          => $show_adaptive_pricing_banner,
 			'is_test_mode'                          => $this->get_gateway()->is_in_test_mode(),
 			'plugin_version'                        => WC_STRIPE_VERSION,
 			'account_country'                       => $this->account->get_account_country(),

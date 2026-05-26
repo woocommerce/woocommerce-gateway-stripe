@@ -1,5 +1,6 @@
 /* global wc_stripe_settings_params */
 import {
+	ADAPTIVE_PRICING_BANNER,
 	BNPL_PROMOTION_BANNER,
 	OC_PROMOTION_BANNER,
 	RECONNECT_BANNER,
@@ -10,15 +11,17 @@ import { BNPL_METHODS } from 'wcstripe/stripe-utils/constants';
 /**
  * Returns the type of promotional banner to display based on the current extension state.
  *
- * @param {Object}  accountData             The account data object containing information about the Stripe account.
- * @param {boolean} isOCEnabled             Whether the Optimized Checkout Suite (OC) is enabled.
- * @param {Array}   enabledPaymentMethodIds List of enabled payment method IDs.
+ * @param {Object}  accountData              The account data object containing information about the Stripe account.
+ * @param {boolean} isOCEnabled              Whether the Optimized Checkout Suite (OC) is enabled.
+ * @param {Array}   enabledPaymentMethodIds  List of enabled payment method IDs.
+ * @param {boolean} isAdaptivePricingEnabled Whether Adaptive Pricing is enabled.
  * @return {null|string} The type of promotional banner to display, or null if no banner is applicable.
  */
 export const getPromotionalBannerType = (
 	accountData,
 	isOCEnabled,
-	enabledPaymentMethodIds
+	enabledPaymentMethodIds,
+	isAdaptivePricingEnabled
 ) => {
 	const isTestModeEnabled = Boolean( accountData.testmode );
 	const oauthConnected = isTestModeEnabled
@@ -30,6 +33,13 @@ export const getPromotionalBannerType = (
 
 	if ( oauthConnected === false ) {
 		return RECONNECT_BANNER;
+	} else if (
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params?.is_oc_available &&
+		isOCEnabled &&
+		! isAdaptivePricingEnabled
+	) {
+		return ADAPTIVE_PRICING_BANNER;
 	} else if (
 		// eslint-disable-next-line camelcase
 		wc_stripe_settings_params?.is_oc_available &&

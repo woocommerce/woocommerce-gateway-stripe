@@ -1,5 +1,6 @@
 import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
 import {
+	ADAPTIVE_PRICING_BANNER,
 	BNPL_PROMOTION_BANNER,
 	OC_PROMOTION_BANNER,
 	RECONNECT_BANNER,
@@ -29,7 +30,7 @@ describe( 'getPromotionalBannerType', () => {
 			)
 		).toBe( RECONNECT_BANNER );
 	} );
-	it( 'Stripe Tax banner', () => {
+	it( 'Adaptive Pricing banner — OC enabled, AP disabled', () => {
 		global.wc_stripe_settings_params = {
 			is_oc_available: true,
 		};
@@ -42,12 +43,38 @@ describe( 'getPromotionalBannerType', () => {
 		};
 		const isOCEnabled = true;
 		const enabledPaymentMethodIds = [ PAYMENT_METHOD_CARD ];
+		const isAdaptivePricingEnabled = false;
 
 		expect(
 			getPromotionalBannerType(
 				accountData,
 				isOCEnabled,
-				enabledPaymentMethodIds
+				enabledPaymentMethodIds,
+				isAdaptivePricingEnabled
+			)
+		).toBe( ADAPTIVE_PRICING_BANNER );
+	} );
+	it( 'Stripe Tax banner — OC enabled and AP also enabled', () => {
+		global.wc_stripe_settings_params = {
+			is_oc_available: true,
+		};
+
+		const accountData = {
+			testmode: false,
+			oauth_connections: {
+				live: { connected: true },
+			},
+		};
+		const isOCEnabled = true;
+		const enabledPaymentMethodIds = [ PAYMENT_METHOD_CARD ];
+		const isAdaptivePricingEnabled = true;
+
+		expect(
+			getPromotionalBannerType(
+				accountData,
+				isOCEnabled,
+				enabledPaymentMethodIds,
+				isAdaptivePricingEnabled
 			)
 		).toBe( STRIPE_TAX_BANNER );
 	} );

@@ -7,7 +7,11 @@ import SettingsLayout from '../settings-layout';
 import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';
 import SaveSettingsSection from '../save-settings-section';
-import { useEnabledPaymentMethodIds, useSettings } from '../../data';
+import {
+	useEnabledPaymentMethodIds,
+	useIsAdaptivePricingEnabled,
+	useSettings,
+} from '../../data';
 import { TabPanel } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { useEffect } from '@wordpress/element';
@@ -15,6 +19,7 @@ import { useAccount } from 'wcstripe/data/account';
 import OCToggleContext from 'wcstripe/settings/oc-toggle/context';
 import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
 import {
+	ADAPTIVE_PRICING_BANNER,
 	BNPL_PROMOTION_BANNER,
 	OC_PROMOTION_BANNER,
 	STRIPE_TAX_BANNER,
@@ -52,10 +57,12 @@ const SettingsManager = () => {
 	const { data } = useAccount();
 	const { isOCEnabled, setIsOCEnabled } = useContext( OCToggleContext );
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
+	const [ isAdaptivePricingEnabled ] = useIsAdaptivePricingEnabled();
 	const promotionalBannerType = getPromotionalBannerType(
 		data,
 		isOCEnabled,
-		enabledPaymentMethodIds
+		enabledPaymentMethodIds,
+		isAdaptivePricingEnabled
 	);
 	let initialBannerState;
 	if (
@@ -76,6 +83,13 @@ const SettingsManager = () => {
 		promotionalBannerType === OC_PROMOTION_BANNER &&
 		// eslint-disable-next-line camelcase
 		wc_stripe_settings_params?.show_oc_promotional_banner === '1'
+	) {
+		initialBannerState = true;
+	}
+	if (
+		promotionalBannerType === ADAPTIVE_PRICING_BANNER &&
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params?.show_adaptive_pricing_banner === '1'
 	) {
 		initialBannerState = true;
 	}
