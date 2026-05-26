@@ -58,7 +58,8 @@ Agentic Commerce feed integration:
 - Use data providers for parameterized PHPUnit coverage.
 - Define failure contracts for token/intent creation paths and handle failure explicitly at call sites.
 - For amount conversion paths, round before integer casting and test edge precision cases.
-- When adding `const` declarations to classes, they **MUST** have explicit visibility, and the visibility should default to `protected` or `private` with their values exposed via getter methods.
+- When adding `const` declarations to classes, they **MUST** have explicit visibility. Where practical, aim to expose their values via getter methods and use `protected` visibility.
+  * Classes in `includes/constants/` are generally expected to expose public constants, so most use cases in this folder may use `public` visibility.
 
 ## Common Pitfalls
 
