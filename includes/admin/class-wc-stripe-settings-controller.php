@@ -217,9 +217,9 @@ class WC_Stripe_Settings_Controller {
 
 		$is_adaptive_pricing_enabled  = 'yes' === $this->get_gateway()->get_option( 'adaptive_pricing' );
 		$show_adaptive_pricing_banner = get_option( 'wc_stripe_show_adaptive_pricing_banner', 'yes' ) === 'yes'
-			// Show the Adaptive Pricing banner only when OC is enabled but AP is not.
+			// Show the "OCS is now active" acknowledgment banner only when both OC and AP are enabled.
 			&& $is_oc_enabled
-			&& ! $is_adaptive_pricing_enabled;
+			&& $is_adaptive_pricing_enabled;
 
 		$is_checkout_sessions_available      = false;
 		$adaptive_pricing_unavailable_reason = 'disabled';

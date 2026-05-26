@@ -37,7 +37,7 @@ export const getPromotionalBannerType = (
 		// eslint-disable-next-line camelcase
 		wc_stripe_settings_params?.is_oc_available &&
 		isOCEnabled &&
-		! isAdaptivePricingEnabled
+		isAdaptivePricingEnabled
 	) {
 		return ADAPTIVE_PRICING_BANNER;
 	} else if (

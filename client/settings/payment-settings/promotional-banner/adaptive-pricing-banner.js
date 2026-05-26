@@ -41,13 +41,13 @@ export const AdaptivePricingBanner = ( { setShowPromotionalBanner } ) => {
 				<CardColumn>
 					<TitleAP>
 						{ __(
-							'A new (included) feature to sell more globally',
+							'Stripe Optimized Checkout Suite is now active',
 							'woocommerce-gateway-stripe'
 						) }
 					</TitleAP>
 					<IntroAP>
 						{ __(
-							'Did you know that around 90% of buyers prefer to pay in their local currency? By using local currency presentment, you can grow your global revenue by an average of 17.8%.',
+							"Your checkout dynamically displays the most relevant payment methods you've enabled for each customer. International shoppers also see prices in their local currency, growing cross-border revenue by an average of 17.8%.",
 							'woocommerce-gateway-stripe'
 						) }
 					</IntroAP>
@@ -62,18 +62,15 @@ export const AdaptivePricingBanner = ( { setShowPromotionalBanner } ) => {
 					<BannerIllustrationWithOffset
 						src={ illustration }
 						alt={ __(
-							'Try Adaptive Pricing',
+							'Optimized Checkout Suite is active',
 							'woocommerce-gateway-stripe'
 						) }
 					/>
 				</CenteredColumnIllustration>
 			</CardInner>
 			<ButtonsRowWithMargin>
-				<ExternalLink href="https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing">
-					{ __(
-						'Learn more about Adaptive Pricing',
-						'woocommerce-gateway-stripe'
-					) }
+				<ExternalLink href="https://woocommerce.com/product-update/stripe-for-woocommerce-10-8-0">
+					{ __( 'Learn more', 'woocommerce-gateway-stripe' ) }
 				</ExternalLink>
 				<DismissButton
 					variant="secondary"
