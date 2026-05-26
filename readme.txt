@@ -172,7 +172,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Move some independent classes into autoloader
 * Dev - Add Jest tests for ECE payment flow
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
-* Tweak - Preconnect to Stripe hosts and preload the Express Checkout bundle so wallet buttons paint sooner
+* Update - Improve express checkout load times by preloading the resources
 * Dev - Memoize the Express Checkout button visibility check within a request
 * Update - Improve express checkout load times by preloading the resources
 
