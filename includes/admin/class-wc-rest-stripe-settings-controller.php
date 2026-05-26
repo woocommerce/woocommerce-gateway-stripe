@@ -679,6 +679,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			&& null === $request->get_param( 'wc_stripe_show_optimized_checkout_notice' )
 			&& null === $request->get_param( 'wc_stripe_show_bnpl_promotion_banner' )
 			&& null === $request->get_param( 'wc_stripe_show_oc_promotion_banner' )
+			&& null === $request->get_param( 'wc_stripe_show_ocs_ap_banner' )
+			&& null === $request->get_param( 'wc_stripe_show_ap_only_banner' )
 			&& null === $request->get_param( 'wc_stripe_show_stripe_first_method_notice' ) ) {
 			return new WP_REST_Response( [], 200 );
 		}
@@ -697,6 +699,14 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		if ( null !== $request->get_param( 'wc_stripe_show_oc_promotion_banner' ) ) {
 			update_option( 'wc_stripe_show_oc_promotion_banner', 'no' );
+		}
+
+		if ( null !== $request->get_param( 'wc_stripe_show_ocs_ap_banner' ) ) {
+			update_option( 'wc_stripe_show_ocs_ap_banner', 'no' );
+		}
+
+		if ( null !== $request->get_param( 'wc_stripe_show_ap_only_banner' ) ) {
+			update_option( 'wc_stripe_show_ap_only_banner', 'no' );
 		}
 
 		if ( null !== $request->get_param( 'wc_stripe_show_stripe_first_method_notice' ) ) {
