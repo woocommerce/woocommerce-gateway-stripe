@@ -45,7 +45,7 @@ class WC_Stripe_Update_Manager {
 	 */
 	public static function run_update_checks( $previous_version ): void {
 		$update_manager = self::get_instance();
-		$update_manager->run_upgrade_functions( $previous_version );
+		$update_manager->run_update_functions( $previous_version );
 
 		/**
 		 * Action triggered when the plugin is updated.
@@ -59,7 +59,7 @@ class WC_Stripe_Update_Manager {
 	 * @param string $previous_version The previous version of the plugin.
 	 * @return void
 	 */
-	protected function run_upgrade_functions( $previous_version ): void {
+	protected function run_update_functions( $previous_version ): void {
 		foreach ( $this->get_update_functions() as $check ) {
 			call_user_func( $check, $previous_version );
 		}
