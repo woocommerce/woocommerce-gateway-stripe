@@ -143,16 +143,6 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	}
 
 	/**
-	 * Get the maximum number of collected errors; defined in {@see self::MAX_COLLECTED_ERRORS}.
-	 *
-	 * @since 10.8.0
-	 * @return int The maximum number of collected errors.
-	 */
-	public function get_max_collected_errors(): int {
-		return self::MAX_COLLECTED_ERRORS;
-	}
-
-	/**
 	 * Validate required fields are present.
 	 *
 	 * @since 10.5.0
