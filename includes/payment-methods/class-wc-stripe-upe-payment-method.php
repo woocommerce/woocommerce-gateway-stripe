@@ -206,6 +206,26 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Magic method to check if properties are set.
+	 * Used for backwards compatibility with deprecated properties.
+	 *
+	 * @param string $property The property name.
+	 * @return bool
+	 */
+	public function __isset( $property ): bool {
+		if ( 'supported_countries' === $property ) {
+			wc_doing_it_wrong( get_class( $this ) . '->supported_countries', 'Use supported_account_countries or supported_billing_countries instead.', '10.8.0' );
+			return [] !== $this->supported_account_countries;
+		}
+
+		if ( method_exists( parent::class, '__isset' ) ) {
+			return parent::__isset( $property );
+		}
+
+		return false;
+	}
+
+	/**
 	 * Magic method to call methods from the main UPE Stripe gateway.
 	 *
 	 * Calling methods on the UPE method instance should forward the call to the main UPE Stripe gateway.
