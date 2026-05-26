@@ -10,13 +10,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe {
 
 	/**
-	 * The option name for the Stripe gateway settings.
-	 *
-	 * @deprecated 8.7.0
-	 */
-	const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
-
-	/**
 	 * The *Singleton* instance of this class
 	 *
 	 * @var WC_Stripe
@@ -131,10 +124,6 @@ class WC_Stripe {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
 		}
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-co-branded-cc-compatibility.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-exception.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-payment-cancelled-exception.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-logger.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-helper.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-helper.php';
@@ -158,26 +147,10 @@ class WC_Stripe {
 			new WC_Stripe_Webhook_Handler();
 		}
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/trait-wc-stripe-fingerprint.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/interface-wc-stripe-payment-method-comparison.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-cc-payment-token.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-ach-payment-token.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-acss-payment-token.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-sepa-payment-token.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-link-payment-token.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-cash-app-payment-token.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-bacs-payment-token.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-becs-debit-payment-token.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-amazon-pay-payment-token.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-klarna-payment-token.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-apple-pay-registration.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-status.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-gateway-stripe.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-currency-code.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-country-code.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-payment-methods.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-intent-status.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php';
@@ -207,8 +180,6 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-element.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-helper.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-custom-fields.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-woo-compat-utils.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-api.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-handler.php';
@@ -239,6 +210,7 @@ class WC_Stripe {
 			new Allowed_Payment_Request_Button_Types_Update();
 			new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
 			new Sepa_Tokens_For_Other_Methods_Settings_Update();
+			new WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update();
 		}
 
 		$this->api     = new WC_Stripe_Connect_API();
