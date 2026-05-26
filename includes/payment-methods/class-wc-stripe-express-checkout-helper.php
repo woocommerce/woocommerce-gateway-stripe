@@ -753,12 +753,6 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Returns true if express checkout elements are supported on the current page, false
 	 * otherwise.
 	 *
-	 * Memoizes the underlying check, which is called up to four times per request from
-	 * different callers (canonical_url filter, enqueue, render, blocks REST). The cache is
-	 * keyed by whether we're inside the `woocommerce_after_add_to_cart_form` action because
-	 * the One Page Checkout branch in `compute_should_show_express_checkout_button()` reads
-	 * `doing_action()` and the answer can flip between callers.
-	 *
 	 * @return  boolean  True if express checkout elements are supported on current page, false otherwise
 	 */
 	public function should_show_express_checkout_button() {
