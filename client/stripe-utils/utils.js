@@ -463,9 +463,13 @@ export const getHiddenBillingFields = ( enabledBillingFields ) => {
 			line1: enabledBillingFields.includes( 'billing_address_1' )
 				? 'never'
 				: 'auto',
-			line2: enabledBillingFields.includes( 'billing_address_2' )
-				? 'never'
-				: 'auto',
+			// The other fields fall back to "auto" when not enabled in WooCommerce so
+			// Stripe can collect them if a payment method needs them. Line 2 is the
+			// exception: it's always optional and never needed by Stripe, so forcing
+			// "never" is safe (unlike phone, it can't cause a confirmation error) and
+			// avoids stores that disable the field getting an unwanted "Address Line
+			// 2" rendered inside the Payment Element.
+			line2: 'never',
 			city: enabledBillingFields.includes( 'billing_city' )
 				? 'never'
 				: 'auto',
