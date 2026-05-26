@@ -204,6 +204,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-allowed-payment-request-button-types-update.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-sepa-tokens-for-other-methods-settings-update.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-wc-stripe-ocs-ap-default-on-update.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
 
 		if ( self::$instance === $this ) {
@@ -211,6 +212,7 @@ class WC_Stripe {
 			new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
 			new Sepa_Tokens_For_Other_Methods_Settings_Update();
 			new WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update();
+			new WC_Stripe_OCS_AP_Default_On_Update();
 		}
 
 		$this->api     = new WC_Stripe_Connect_API();
