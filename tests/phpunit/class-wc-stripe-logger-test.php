@@ -88,17 +88,20 @@ class WC_Stripe_Logger_Test extends WP_UnitTestCase {
 		unset( $stripe_settings['logging'] );
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$captured_can_log   = null;
-		$captured_log_level = null;
-		$captured_caller    = null;
-		$filter             = function ( $can_log, $log_level, $caller ) use ( &$captured_can_log, &$captured_caller, &$captured_log_level ) {
-			$captured_can_log   = $can_log;
-			$captured_caller    = $caller;
-			$captured_log_level = $log_level;
+		$captured_can_log          = null;
+		$captured_log_level        = null;
+		$captured_calling_class    = null;
+		$captured_calling_function = null;
+
+		$filter = function ( $can_log, $log_level, $calling_class, $calling_function ) use ( &$captured_can_log, &$captured_calling_class, &$captured_calling_function, &$captured_log_level ) {
+			$captured_can_log          = $can_log;
+			$captured_calling_class    = $calling_class;
+			$captured_calling_function = $calling_function;
+			$captured_log_level        = $log_level;
 
 			return true;
 		};
-		add_filter( 'wc_stripe_logger_can_log', $filter, 10, 3 );
+		add_filter( 'wc_stripe_logger_can_log', $filter, 10, 4 );
 
 		$mock_message = 'test message: ' . $logger_method;
 
@@ -116,11 +119,8 @@ class WC_Stripe_Logger_Test extends WP_UnitTestCase {
 
 		$this->assertFalse( $captured_can_log );
 		$this->assertEquals( $logger_method, $captured_log_level );
-		$this->assertIsArray( $captured_caller );
-		$this->assertArrayHasKey( 'class', $captured_caller );
-		$this->assertArrayHasKey( 'function', $captured_caller );
-		$this->assertEquals( self::class, $captured_caller['class'] );
-		$this->assertEquals( __FUNCTION__, $captured_caller['function'] );
+		$this->assertEquals( self::class, $captured_calling_class );
+		$this->assertEquals( __FUNCTION__, $captured_calling_function );
 	}
 
 	/**

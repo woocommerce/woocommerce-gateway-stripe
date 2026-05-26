@@ -225,6 +225,14 @@ class WC_Stripe_Logger {
 
 		$caller = self::get_caller();
 
+		$calling_class    = null;
+		$calling_function = null;
+
+		if ( is_array( $caller ) ) {
+			$calling_class    = $caller['class'] ?? null;
+			$calling_function = $caller['function'] ?? null;
+		}
+
 		/**
 		 * Filter to determine if logging is allowed.
 		 * Extreme care should be taken when implementing hooks against this filter,
@@ -232,16 +240,12 @@ class WC_Stripe_Logger {
 		 *
 		 * @param boolean     $can_log   Whether logging is allowed.
 		 * @param string|null $log_level The log level to check. Can be one of 'warning', 'notice', 'info', 'debug'.
-		 * @param array|null  $caller {
-		 *     The calling code that is trying to log something. When not null, has the following properties:
-		 *
-		 *     @type string|null $class    The class that called the log method. May be null if the caller is a function.
-		 *     @type string      $function The function that called the log method.
-		 * }
+		 * @param string|null $calling_class The class that called the log method. May be null if the caller is a function.
+		 * @param string|null $calling_function The function or method that called the WC_Stripe_Logger log method.
 		 *
 		 * @since 10.8.0
 		 */
-		return apply_filters( 'wc_stripe_logger_can_log', false, $log_level, $caller );
+		return apply_filters( 'wc_stripe_logger_can_log', false, $log_level, $calling_class, $calling_function );
 	}
 
 	/**
