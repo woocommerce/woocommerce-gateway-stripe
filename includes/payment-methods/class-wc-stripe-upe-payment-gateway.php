@@ -3080,7 +3080,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return array
 	 */
 	private function get_address_data_for_payment_request( $order ) {
-		return [
+		$address_data = [
 			'name'    => trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() ),
 			'address' => [
 				'line1'       => $order->get_shipping_address_1(),
@@ -3091,6 +3091,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				'state'       => $order->get_shipping_state(),
 			],
 		];
+
+		// Include the shipping phone, when available, to support risk decisioning.
+		$shipping_phone = $order->get_shipping_phone();
+		if ( ! empty( $shipping_phone ) ) {
+			$address_data['phone'] = $shipping_phone;
+		}
+
+		return $address_data;
 	}
 
 	/**
