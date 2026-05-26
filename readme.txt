@@ -176,5 +176,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add Jest tests for ECE payment flow
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
 * Add - Detect Stripe API outages (network failures, timeouts, 5xx responses) and surface a wp-admin notice instead of crashing or showing misleading "couldn't connect" messages
+* Fix - Prevent test mode from being turned off when no live account is connected
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
