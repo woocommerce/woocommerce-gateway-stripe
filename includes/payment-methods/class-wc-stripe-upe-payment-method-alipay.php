@@ -59,14 +59,21 @@ class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 	];
 
 	/**
+	 * Buyer eligibility is gated by having an Alipay account, not by country.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [];
+
+	/**
 	 * Constructor for alipay payment method
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id                     = self::STRIPE_ID;
-		$this->title                         = __( 'Alipay', 'woocommerce-gateway-stripe' );
-		$this->is_reusable                   = false;
-		$this->supported_currencies          = [
+		$this->stripe_id            = self::STRIPE_ID;
+		$this->title                = __( 'Alipay', 'woocommerce-gateway-stripe' );
+		$this->is_reusable          = false;
+		$this->supported_currencies = [
 			WC_Stripe_Currency_Code::EURO,
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
 			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
@@ -79,12 +86,8 @@ class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 			WC_Stripe_Currency_Code::MALAYSIAN_RINGGIT,
 		];
-		$this->supported_account_countries   = self::SUPPORTED_ACCOUNT_COUNTRIES;
-		$this->unsupported_account_countries = self::UNSUPPORTED_ACCOUNT_COUNTRIES;
-		// Buyer eligibility is gated by having an Alipay account, not by country.
-		$this->supported_billing_countries = [];
-		$this->label                       = __( 'Alipay', 'woocommerce-gateway-stripe' );
-		$this->description                 = __(
+		$this->label                = __( 'Alipay', 'woocommerce-gateway-stripe' );
+		$this->description          = __(
 			'Alipay is a popular wallet in China, operated by Ant Financial Services Group, a financial services provider affiliated with Alibaba.',
 			'woocommerce-gateway-stripe'
 		);

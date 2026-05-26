@@ -69,20 +69,16 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id                     = self::STRIPE_ID;
-		$this->title                         = __( 'Amazon Pay', 'woocommerce-gateway-stripe' );
-		$this->supported_currencies          = self::get_amazon_pay_supported_currencies();
-		$this->supported_account_countries   = self::SUPPORTED_ACCOUNT_COUNTRIES;
-		$this->unsupported_account_countries = self::UNSUPPORTED_ACCOUNT_COUNTRIES;
-		// Customer locations are worldwide for Amazon Pay.
-		$this->supported_billing_countries = [];
-		$this->is_reusable                 = true;
-		$this->label                       = __( 'Amazon Pay', 'woocommerce-gateway-stripe' );
-		$this->description                 = __(
+		$this->stripe_id            = self::STRIPE_ID;
+		$this->title                = __( 'Amazon Pay', 'woocommerce-gateway-stripe' );
+		$this->supported_currencies = self::get_amazon_pay_supported_currencies();
+		$this->is_reusable          = true;
+		$this->label                = __( 'Amazon Pay', 'woocommerce-gateway-stripe' );
+		$this->description          = __(
 			'Amazon Pay is a payment method that allows customers to pay with their Amazon account.',
 			'woocommerce-gateway-stripe'
 		);
-		$this->supports[]                  = PaymentGatewayFeature::TOKENIZATION;
+		$this->supports[]           = PaymentGatewayFeature::TOKENIZATION;
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();

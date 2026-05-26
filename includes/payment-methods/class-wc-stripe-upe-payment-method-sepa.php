@@ -79,19 +79,16 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id                     = self::STRIPE_ID;
-		$this->title                         = __( 'SEPA Direct Debit', 'woocommerce-gateway-stripe' );
-		$this->is_reusable                   = true;
-		$this->supported_currencies          = [ WC_Stripe_Currency_Code::EURO ];
-		$this->supported_account_countries   = self::SUPPORTED_ACCOUNT_COUNTRIES;
-		$this->unsupported_account_countries = self::UNSUPPORTED_ACCOUNT_COUNTRIES;
-		$this->supported_billing_countries   = self::SUPPORTED_BILLING_COUNTRIES;
-		$this->label                         = __( 'SEPA Direct Debit', 'woocommerce-gateway-stripe' );
-		$this->description                   = __(
+		$this->stripe_id            = self::STRIPE_ID;
+		$this->title                = __( 'SEPA Direct Debit', 'woocommerce-gateway-stripe' );
+		$this->is_reusable          = true;
+		$this->supported_currencies = [ WC_Stripe_Currency_Code::EURO ];
+		$this->label                = __( 'SEPA Direct Debit', 'woocommerce-gateway-stripe' );
+		$this->description          = __(
 			'Reach 500 million customers and over 20 million businesses across the European Union.',
 			'woocommerce-gateway-stripe'
 		);
-		$this->supports[]                    = PaymentGatewayFeature::TOKENIZATION;
+		$this->supports[]           = PaymentGatewayFeature::TOKENIZATION;
 
 		// SEPA Direct Debit is the tokenization method for this method as well as Bancontact and iDEAL. Init subscription so it can process subscription payments.
 		$this->maybe_init_subscriptions();

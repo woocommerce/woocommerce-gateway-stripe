@@ -39,8 +39,6 @@ class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 		$this->title                        = __( 'Affirm', 'woocommerce-gateway-stripe' );
 		$this->is_reusable                  = false;
 		$this->supported_currencies         = [ WC_Stripe_Currency_Code::CANADIAN_DOLLAR, WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
-		$this->supported_account_countries  = self::SUPPORTED_ACCOUNT_COUNTRIES;
-		$this->supported_billing_countries  = self::SUPPORTED_BILLING_COUNTRIES;
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Affirm', 'woocommerce-gateway-stripe' );
 		$this->description                  = __(

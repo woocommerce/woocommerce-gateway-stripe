@@ -74,15 +74,13 @@ class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
 	public function __construct() {
 		parent::__construct();
 
-		$this->stripe_id                   = self::STRIPE_ID;
-		$this->title                       = __( 'ACH Direct Debit', 'woocommerce-gateway-stripe' );
-		$this->is_reusable                 = true;
-		$this->label                       = __( 'ACH Direct Debit', 'woocommerce-gateway-stripe' );
-		$this->description                 = __( 'Pay directly from your US bank account via ACH.', 'woocommerce-gateway-stripe' );
-		$this->supported_currencies        = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
-		$this->supported_account_countries = self::SUPPORTED_ACCOUNT_COUNTRIES;
-		$this->supported_billing_countries = self::SUPPORTED_BILLING_COUNTRIES;
-		$this->supports[]                  = PaymentGatewayFeature::TOKENIZATION;
+		$this->stripe_id            = self::STRIPE_ID;
+		$this->title                = __( 'ACH Direct Debit', 'woocommerce-gateway-stripe' );
+		$this->is_reusable          = true;
+		$this->label                = __( 'ACH Direct Debit', 'woocommerce-gateway-stripe' );
+		$this->description          = __( 'Pay directly from your US bank account via ACH.', 'woocommerce-gateway-stripe' );
+		$this->supported_currencies = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
+		$this->supports[]           = PaymentGatewayFeature::TOKENIZATION;
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();

@@ -39,19 +39,16 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id                     = self::STRIPE_ID;
-		$this->title                         = 'BLIK';
-		$this->is_reusable                   = false;
-		$this->supported_currencies          = [ WC_Stripe_Currency_Code::POLISH_ZLOTY ];
-		$this->supported_account_countries   = self::SUPPORTED_ACCOUNT_COUNTRIES;
-		$this->unsupported_account_countries = self::UNSUPPORTED_ACCOUNT_COUNTRIES;
-		$this->supported_billing_countries   = self::SUPPORTED_BILLING_COUNTRIES;
-		$this->label                         = 'BLIK';
-		$this->description                   = __(
+		$this->stripe_id                = self::STRIPE_ID;
+		$this->title                    = 'BLIK';
+		$this->is_reusable              = false;
+		$this->supported_currencies     = [ WC_Stripe_Currency_Code::POLISH_ZLOTY ];
+		$this->label                    = 'BLIK';
+		$this->description              = __(
 			'BLIK enables customers in Poland to pay directly via online payouts from their bank account.',
 			'woocommerce-gateway-stripe'
 		);
-		$this->supports_deferred_intent      = false;
+		$this->supports_deferred_intent = false;
 
 		// Add support for pre-orders.
 		$this->maybe_init_pre_orders();

@@ -66,15 +66,12 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id                     = self::STRIPE_ID;
-		$this->title                         = __( 'Multibanco', 'woocommerce-gateway-stripe' );
-		$this->is_reusable                   = false;
-		$this->supported_currencies          = [ WC_Stripe_Currency_Code::EURO ];
-		$this->supported_account_countries   = self::SUPPORTED_ACCOUNT_COUNTRIES;
-		$this->unsupported_account_countries = self::UNSUPPORTED_ACCOUNT_COUNTRIES;
-		$this->supported_billing_countries   = self::SUPPORTED_BILLING_COUNTRIES;
-		$this->label                         = __( 'Multibanco', 'woocommerce-gateway-stripe' );
-		$this->description                   = __(
+		$this->stripe_id            = self::STRIPE_ID;
+		$this->title                = __( 'Multibanco', 'woocommerce-gateway-stripe' );
+		$this->is_reusable          = false;
+		$this->supported_currencies = [ WC_Stripe_Currency_Code::EURO ];
+		$this->label                = __( 'Multibanco', 'woocommerce-gateway-stripe' );
+		$this->description          = __(
 			'Multibanco is an interbank network that links the ATMs of all major banks in Portugal, allowing customers to pay through either their ATM or online banking environment.',
 			'woocommerce-gateway-stripe'
 		);

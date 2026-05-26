@@ -45,14 +45,10 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id                     = self::STRIPE_ID;
-		$this->title                         = __( 'WeChat Pay', 'woocommerce-gateway-stripe' );
-		$this->is_reusable                   = false;
-		$this->supported_account_countries   = self::SUPPORTED_ACCOUNT_COUNTRIES;
-		$this->unsupported_account_countries = self::UNSUPPORTED_ACCOUNT_COUNTRIES;
-		// Buyer needs a WeChat Pay account (CN-issued); no Stripe-enforced billing-country restriction.
-		$this->supported_billing_countries = [];
-		$this->supported_currencies        = [
+		$this->stripe_id            = self::STRIPE_ID;
+		$this->title                = __( 'WeChat Pay', 'woocommerce-gateway-stripe' );
+		$this->is_reusable          = false;
+		$this->supported_currencies = [
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
 			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
 			WC_Stripe_Currency_Code::SWISS_FRANC,
@@ -67,8 +63,8 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 			WC_Stripe_Currency_Code::SINGAPORE_DOLLAR,
 			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 		];
-		$this->label                       = __( 'WeChat Pay', 'woocommerce-gateway-stripe' );
-		$this->description                 = __(
+		$this->label                = __( 'WeChat Pay', 'woocommerce-gateway-stripe' );
+		$this->description          = __(
 			'WeChat Pay is a popular mobile payment and digital wallet service by WeChat in China.',
 			'woocommerce-gateway-stripe'
 		);

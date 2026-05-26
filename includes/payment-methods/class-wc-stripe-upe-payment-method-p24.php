@@ -34,15 +34,12 @@ class WC_Stripe_UPE_Payment_Method_P24 extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id                     = self::STRIPE_ID;
-		$this->title                         = __( 'Przelewy24', 'woocommerce-gateway-stripe' );
-		$this->is_reusable                   = false;
-		$this->supported_currencies          = [ WC_Stripe_Currency_Code::EURO, WC_Stripe_Currency_Code::POLISH_ZLOTY ];
-		$this->supported_account_countries   = self::SUPPORTED_ACCOUNT_COUNTRIES;
-		$this->unsupported_account_countries = self::UNSUPPORTED_ACCOUNT_COUNTRIES;
-		$this->supported_billing_countries   = self::SUPPORTED_BILLING_COUNTRIES;
-		$this->label                         = __( 'Przelewy24', 'woocommerce-gateway-stripe' );
-		$this->description                   = __(
+		$this->stripe_id            = self::STRIPE_ID;
+		$this->title                = __( 'Przelewy24', 'woocommerce-gateway-stripe' );
+		$this->is_reusable          = false;
+		$this->supported_currencies = [ WC_Stripe_Currency_Code::EURO, WC_Stripe_Currency_Code::POLISH_ZLOTY ];
+		$this->label                = __( 'Przelewy24', 'woocommerce-gateway-stripe' );
+		$this->description          = __(
 			'Przelewy24 is a Poland-based payment method aggregator that allows customers to complete transactions online using bank transfers and other methods.',
 			'woocommerce-gateway-stripe'
 		);

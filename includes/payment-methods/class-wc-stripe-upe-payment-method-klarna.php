@@ -91,11 +91,11 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id                     = self::STRIPE_ID;
-		$this->title                         = __( 'Klarna', 'woocommerce-gateway-stripe' );
-		$this->is_reusable                   = true;
-		$this->supports[]                    = PaymentGatewayFeature::TOKENIZATION;
-		$this->supported_currencies          = [
+		$this->stripe_id            = self::STRIPE_ID;
+		$this->title                = __( 'Klarna', 'woocommerce-gateway-stripe' );
+		$this->is_reusable          = true;
+		$this->supports[]           = PaymentGatewayFeature::TOKENIZATION;
+		$this->supported_currencies = [
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
 			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
 			WC_Stripe_Currency_Code::SWISS_FRANC,
@@ -110,11 +110,8 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 			WC_Stripe_Currency_Code::SWEDISH_KRONA,
 			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 		];
-		$this->supported_account_countries   = self::SUPPORTED_ACCOUNT_COUNTRIES;
-		$this->unsupported_account_countries = self::UNSUPPORTED_ACCOUNT_COUNTRIES;
-		$this->supported_billing_countries   = self::SUPPORTED_BILLING_COUNTRIES;
-		$this->label                         = __( 'Klarna', 'woocommerce-gateway-stripe' );
-		$this->description                   = __(
+		$this->label                = __( 'Klarna', 'woocommerce-gateway-stripe' );
+		$this->description          = __(
 			'Allow customers to pay over time with Klarna.',
 			'woocommerce-gateway-stripe'
 		);

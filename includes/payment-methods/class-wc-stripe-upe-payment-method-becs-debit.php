@@ -39,16 +39,13 @@ class WC_Stripe_UPE_Payment_Method_Becs_Debit extends WC_Stripe_UPE_Payment_Meth
 	public function __construct() {
 		parent::__construct();
 
-		$this->stripe_id                     = self::STRIPE_ID;
-		$this->title                         = __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' );
-		$this->is_reusable                   = true;
-		$this->label                         = __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' );
-		$this->description                   = __( 'Pay directly from your Australian bank account via BECS.', 'woocommerce-gateway-stripe' );
-		$this->supported_currencies          = [ WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR ];
-		$this->supported_account_countries   = self::SUPPORTED_ACCOUNT_COUNTRIES;
-		$this->unsupported_account_countries = self::UNSUPPORTED_ACCOUNT_COUNTRIES;
-		$this->supported_billing_countries   = self::SUPPORTED_BILLING_COUNTRIES;
-		$this->supports[]                    = PaymentGatewayFeature::TOKENIZATION;
+		$this->stripe_id            = self::STRIPE_ID;
+		$this->title                = __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' );
+		$this->is_reusable          = true;
+		$this->label                = __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' );
+		$this->description          = __( 'Pay directly from your Australian bank account via BECS.', 'woocommerce-gateway-stripe' );
+		$this->supported_currencies = [ WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR ];
+		$this->supports[]           = PaymentGatewayFeature::TOKENIZATION;
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();

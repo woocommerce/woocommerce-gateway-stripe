@@ -52,8 +52,6 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
 			WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR,
 		];
-		$this->supported_account_countries  = self::SUPPORTED_ACCOUNT_COUNTRIES;
-		$this->supported_billing_countries  = self::SUPPORTED_BILLING_COUNTRIES;
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Clearpay / Afterpay', 'woocommerce-gateway-stripe' );
 		$this->description                  = __(

@@ -35,17 +35,14 @@ class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id                     = self::STRIPE_ID;
-		$this->can_refund                    = false;
-		$this->title                         = 'OXXO';
-		$this->is_reusable                   = false;
-		$this->supported_currencies          = [ WC_Stripe_Currency_Code::MEXICAN_PESO ];
-		$this->supported_account_countries   = self::SUPPORTED_ACCOUNT_COUNTRIES;
-		$this->unsupported_account_countries = self::UNSUPPORTED_ACCOUNT_COUNTRIES;
-		$this->supported_billing_countries   = self::SUPPORTED_BILLING_COUNTRIES;
-		$this->supports                      = [ PaymentGatewayFeature::PRODUCTS ];
-		$this->label                         = __( 'OXXO', 'woocommerce-gateway-stripe' );
-		$this->description                   = __(
+		$this->stripe_id            = self::STRIPE_ID;
+		$this->can_refund           = false;
+		$this->title                = 'OXXO';
+		$this->is_reusable          = false;
+		$this->supported_currencies = [ WC_Stripe_Currency_Code::MEXICAN_PESO ];
+		$this->supports             = [ PaymentGatewayFeature::PRODUCTS ];
+		$this->label                = __( 'OXXO', 'woocommerce-gateway-stripe' );
+		$this->description          = __(
 			'OXXO is a Mexican chain of convenience stores that allows customers to pay bills and online purchases in-store with cash.',
 			'woocommerce-gateway-stripe'
 		);

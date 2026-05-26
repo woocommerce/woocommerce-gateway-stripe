@@ -27,14 +27,10 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 		parent::__construct();
 		$this->stripe_id = self::STRIPE_ID;
 		// Note that the title and label are not translated, as "Link" should not be translated.
-		$this->title                         = 'Link';
-		$this->is_reusable                   = true;
-		$this->label                         = 'Stripe Link';
-		$this->supported_account_countries   = self::SUPPORTED_ACCOUNT_COUNTRIES;
-		$this->unsupported_account_countries = self::UNSUPPORTED_ACCOUNT_COUNTRIES;
-		// No Stripe-enforced billing-country restriction for Link itself.
-		$this->supported_billing_countries = [];
-		$this->description                 = sprintf(
+		$this->title       = 'Link';
+		$this->is_reusable = true;
+		$this->label       = 'Stripe Link';
+		$this->description = sprintf(
 			/* translators: %s: "Link" - a product name that should not be translated. */
 			__(
 				'%s is a payment method that allows customers to save payment information and use the payment details for further payments.',

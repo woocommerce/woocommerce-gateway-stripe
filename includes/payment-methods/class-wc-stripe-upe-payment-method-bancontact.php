@@ -43,9 +43,6 @@ class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Meth
 		$this->title                           = 'Bancontact';
 		$this->is_reusable                     = $is_sepa_tokens_for_bancontact_enabled;
 		$this->supported_currencies            = [ WC_Stripe_Currency_Code::EURO ];
-		$this->supported_account_countries     = self::SUPPORTED_ACCOUNT_COUNTRIES;
-		$this->unsupported_account_countries   = self::UNSUPPORTED_ACCOUNT_COUNTRIES;
-		$this->supported_billing_countries     = self::SUPPORTED_BILLING_COUNTRIES;
 		$this->label                           = __( 'Bancontact', 'woocommerce-gateway-stripe' );
 		$this->description                     = __(
 			'Bancontact is the most popular online payment method in Belgium, with over 15 million cards in circulation.',
