@@ -55,7 +55,7 @@ export const getPromotionalBannerType = (
 	if (
 		! hasBNPLEnabled &&
 		// eslint-disable-next-line camelcase
-		! wc_stripe_settings_params?.has_other_bnpl_plugins &&
+		wc_stripe_settings_params?.has_other_bnpl_plugins !== '1' &&
 		// eslint-disable-next-line camelcase
 		wc_stripe_settings_params?.show_bnpl_promotional_banner === '1'
 	) {
