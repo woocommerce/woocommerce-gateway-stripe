@@ -3,62 +3,97 @@ import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TestModeCheckbox from '../test-mode-checkbox';
 import { useTestMode } from 'wcstripe/data';
-import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
+import { useAccount } from 'wcstripe/data/account';
+
+// Stub @wordpress/components to avoid pulling its heavy (and, in this repo's
+// node_modules, mismatched) dependency tree into the test runner.
+jest.mock( '@wordpress/components', () => ( {
+	CheckboxControl: ( { checked, disabled, onChange, label, help } ) => (
+		<>
+			<input
+				type="checkbox"
+				aria-label={ label }
+				checked={ checked }
+				disabled={ disabled }
+				onChange={ ( event ) => onChange( event.target.checked ) }
+			/>
+			<span>{ help }</span>
+		</>
+	),
+} ) );
 
 jest.mock( 'wcstripe/data', () => ( {
 	useTestMode: jest.fn(),
 } ) );
 
-jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
-	useAccountKeys: jest.fn(),
-	useAccountKeysPublishableKey: jest.fn(),
-	useAccountKeysSecretKey: jest.fn(),
-	useAccountKeysWebhookSecret: jest.fn(),
-	useAccountKeysTestPublishableKey: jest.fn(),
-	useAccountKeysTestSecretKey: jest.fn(),
-	useAccountKeysTestWebhookSecret: jest.fn(),
+jest.mock( 'wcstripe/data/account', () => ( {
+	useAccount: jest.fn(),
 } ) );
 
+const mockAccount = ( { liveConnected } ) => {
+	useAccount.mockReturnValue( {
+		data: {
+			oauth_connections: {
+				live: { connected: liveConnected },
+			},
+		},
+	} );
+};
+
 describe( 'TestModeCheckbox', () => {
-	it( 'should enable test mode when the test account keys are present', async () => {
+	it( 'allows enabling test mode while in live mode', async () => {
 		const setTestModeMock = jest.fn();
 		useTestMode.mockReturnValue( [ false, setTestModeMock ] );
-		useAccountKeys.mockReturnValue( {
-			accountKeys: {
-				test_publishable_key: 'test_pk',
-				test_secret_key: 'test_sk',
-				test_webhook_secret: 'test_whs',
-			},
-		} );
+		mockAccount( { liveConnected: true } );
 
 		render( <TestModeCheckbox /> );
 
 		const testModeCheckbox = screen.getByLabelText( 'Enable test mode' );
 		expect( testModeCheckbox ).not.toBeChecked();
+		expect( testModeCheckbox ).not.toBeDisabled();
 
 		await userEvent.click( testModeCheckbox );
 
 		expect( setTestModeMock ).toHaveBeenCalledWith( true );
 	} );
 
-	it( 'should enable live mode when the account keys are present', async () => {
+	it( 'allows disabling test mode when a live account is connected', async () => {
 		const setTestModeMock = jest.fn();
 		useTestMode.mockReturnValue( [ true, setTestModeMock ] );
-		useAccountKeys.mockReturnValue( {
-			accountKeys: {
-				publishable_key: 'live_pk',
-				secret_key: 'live_sk',
-				webhook_secret: 'live_whs',
-			},
-		} );
+		mockAccount( { liveConnected: true } );
 
 		render( <TestModeCheckbox /> );
 
 		const testModeCheckbox = screen.getByLabelText( 'Enable test mode' );
 		expect( testModeCheckbox ).toBeChecked();
+		expect( testModeCheckbox ).not.toBeDisabled();
 
 		await userEvent.click( testModeCheckbox );
 
 		expect( setTestModeMock ).toHaveBeenCalledWith( false );
+	} );
+
+	it( 'locks test mode on when no live account is connected', async () => {
+		const setTestModeMock = jest.fn();
+		useTestMode.mockReturnValue( [ true, setTestModeMock ] );
+		mockAccount( { liveConnected: false } );
+
+		render( <TestModeCheckbox /> );
+
+		const testModeCheckbox = screen.getByLabelText( 'Enable test mode' );
+		expect( testModeCheckbox ).toBeChecked();
+		expect( testModeCheckbox ).toBeDisabled();
+		// The original help text is still shown...
+		expect( screen.getByText( 'test card numbers' ) ).toBeInTheDocument();
+		// ...with the connect-a-live-account guidance appended.
+		expect(
+			screen.getByText(
+				/Connect a live Stripe account before turning off test mode\./
+			)
+		).toBeInTheDocument();
+
+		await userEvent.click( testModeCheckbox );
+
+		expect( setTestModeMock ).not.toHaveBeenCalled();
 	} );
 } );
