@@ -260,7 +260,7 @@ class WC_Stripe_Logger {
 		// Ignore arguments and only look at the last few frames, as we only want the first caller outside of this class.
 		// - Direct call to WC_Stripe_Logger::can_log() -> self::get_caller() - we only need 2 frames.
 		// - Direct call to WC_Stripe_Logger::<log_type>() -> self::can_log() -> self::get_caller() - we need 3 frames.
-		$trace = debug_backtrace( DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 4 );
+		$trace = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 4 );
 
 		// Start looking at frame 1, as we know we were called from within this class.
 		for ( $frame_index = 1; $frame_index < 4; $frame_index++ ) {
