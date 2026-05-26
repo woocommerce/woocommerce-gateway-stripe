@@ -138,6 +138,50 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * Test mode cannot be turned off unless a live account is connected.
+	 *
+	 * @param bool   $live_connected  Whether live API keys are present.
+	 * @param string $expected_option The expected `testmode` option value after the request.
+	 *
+	 * @dataProvider disable_test_mode_requires_live_connection_provider
+	 */
+	public function test_disable_test_mode_requires_live_connection( bool $live_connected, string $expected_option ) {
+		// Start in test mode.
+		$this->get_gateway()->update_option( 'testmode', 'yes' );
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		if ( $live_connected ) {
+			$settings['publishable_key'] = 'pk_live_1234567890';
+			$settings['secret_key']      = 'sk_live_1234567890';
+		} else {
+			$settings['publishable_key'] = '';
+			$settings['secret_key']      = '';
+		}
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		// Attempt to turn test mode off (switch to live).
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_test_mode_enabled', false );
+		$response = rest_do_request( $request );
+
+		// The request always succeeds; only the saved value differs (soft clamp).
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( $expected_option, $this->get_gateway()->get_option( 'testmode' ) );
+	}
+
+	/**
+	 * Data provider for `test_disable_test_mode_requires_live_connection`.
+	 *
+	 * @return array
+	 */
+	public function disable_test_mode_requires_live_connection_provider(): array {
+		return [
+			'live connected: switches to live mode' => [ true, 'no' ],
+			'live disconnected: stays in test mode' => [ false, 'yes' ],
+		];
+	}
+
+	/**
 	 * Tests for boolean fields.
 	 *
 	 * @param string $rest_key    REST API key.
