@@ -94,6 +94,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		if ( isset( $payment_method->card->fingerprint ) ) {
 			$token->set_fingerprint( $payment_method->card->fingerprint );
 		}
+		$token->set_wallet_type( (string) ( $payment_method->card->wallet->type ?? '' ) );
 		$token->save();
 		return $token;
 	}

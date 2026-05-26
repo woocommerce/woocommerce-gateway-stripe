@@ -687,6 +687,7 @@ class WC_Stripe_Customer {
 							$wc_token->set_expiry_month( $response->card->exp_month );
 							$wc_token->set_expiry_year( $response->card->exp_year );
 							$wc_token->set_fingerprint( $response->card->fingerprint );
+							$wc_token->set_wallet_type( (string) ( $response->card->wallet->type ?? '' ) );
 						}
 						break;
 				}
