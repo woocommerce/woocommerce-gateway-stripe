@@ -174,6 +174,5 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
 * Update - Improve express checkout load times by preloading the resources
 * Dev - Memoize the Express Checkout button visibility check within a request
-* Update - Improve express checkout load times by preloading the resources
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
