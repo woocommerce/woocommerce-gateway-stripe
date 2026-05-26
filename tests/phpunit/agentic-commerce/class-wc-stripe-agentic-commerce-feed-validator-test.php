@@ -688,7 +688,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_collected_errors_caps_detail_at_max() {
 		$validator = new \WC_Stripe_Agentic_Commerce_Feed_Validator();
-		$max       = \WC_Stripe_Agentic_Commerce_Feed_Validator::MAX_COLLECTED_ERRORS;
+		$max       = $validator->get_max_collected_errors();
 		$products  = [];
 
 		try {
