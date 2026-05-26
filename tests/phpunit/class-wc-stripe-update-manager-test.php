@@ -106,7 +106,7 @@ class WC_Stripe_Update_Manager_Test extends WP_UnitTestCase {
 			$upgrade_manager_instance->setAccessible( true );
 			$upgrade_manager_instance->setValue( null, $upgrade_manager );
 
-			WC_Stripe_Update_Manager::run_update_checks( $mock_previous_version, '10.5.0' );
+			WC_Stripe_Update_Manager::run_update_checks( $mock_previous_version );
 
 			$this->assertTrue( $action_called );
 		} finally {

@@ -40,11 +40,10 @@ class WC_Stripe_Update_Manager {
 	 * This can include updates, downgrades, and fresh installs.
 	 *
 	 * @param string $previous_version The previous version of the plugin.
-	 * @param string $current_version  The current version of the plugin.
 	 * @return void
 	 * @since 10.8.0
 	 */
-	public static function run_update_checks( $previous_version, $current_version ): void {
+	public static function run_update_checks( $previous_version ): void {
 		$update_manager = self::get_instance();
 		$update_manager->run_upgrade_functions( $previous_version );
 

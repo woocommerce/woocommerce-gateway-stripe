@@ -366,7 +366,7 @@ class WC_Stripe {
 			return;
 		}
 
-		WC_Stripe_Update_Manager::run_update_checks( $previous_version, WC_STRIPE_VERSION );
+		WC_Stripe_Update_Manager::run_update_checks( $previous_version );
 
 		if ( ! defined( 'WC_STRIPE_INSTALLING' ) ) {
 			define( 'WC_STRIPE_INSTALLING', true );
