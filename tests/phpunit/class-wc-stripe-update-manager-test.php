@@ -1,9 +1,9 @@
 <?php
 
 /**
- * These tests make assertions against the WC_Stripe_Checkout_Sessions_Ajax_Handler class.
+ * These tests make assertions against the WC_Stripe_Update_Manager class.
  */
-class WC_Stripe_Upgrade_Manager_Test extends WP_UnitTestCase {
+class WC_Stripe_Update_Manager_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test that {@see WC_Stripe_Update_Manager::get_update_functions()} returns the expected functions.
