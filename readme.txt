@@ -181,5 +181,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
 * Fix - Fix admin banner dismissal and display logic
 * Add - Detect Stripe API outages (network failures, timeouts, 5xx responses) and surface a wp-admin notice instead of crashing or showing misleading "couldn't connect" messages
+* Dev - Initial infrastructure for more complex Agentic feed filtering
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
