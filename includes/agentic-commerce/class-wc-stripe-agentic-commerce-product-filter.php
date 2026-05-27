@@ -166,16 +166,22 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 			return self::EMPTY_RESOLUTION;
 		}
 
+		$include_variable_products = true === ( $filters['include_variable_products'] ?? false );
+
+		$query_product_types = [
+			\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
+			\Automattic\WooCommerce\Enums\ProductType::VARIATION,
+		];
+		if ( $include_variable_products ) {
+			$query_product_types[] = \Automattic\WooCommerce\Enums\ProductType::VARIABLE;
+		}
+
 		$candidate_ids = [];
 
 		if ( [] !== $filters['product_ids'] ) {
 			$product_id_query = [
 				'status'  => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
-				'type'    => [
-					\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
-					\Automattic\WooCommerce\Enums\ProductType::VARIATION,
-					\Automattic\WooCommerce\Enums\ProductType::VARIABLE,
-				],
+				'type'    => $query_product_types,
 				'limit'   => -1,
 				'return'  => 'ids',
 				'include' => $filters['product_ids'],
@@ -210,11 +216,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 			}
 
 			$tax_query_args = [
-				'type'      => [
-					\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
-					\Automattic\WooCommerce\Enums\ProductType::VARIATION,
-					\Automattic\WooCommerce\Enums\ProductType::VARIABLE,
-				],
+				'type'      => $query_product_types,
 				'status'    => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
 				'limit'     => -1,
 				'return'    => 'ids',
@@ -233,34 +235,36 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 			return self::EMPTY_RESOLUTION;
 		}
 
-		// We need to resolve variable products to their variations.
-		// First step is to identify which product IDs in our list are variable products.
-		$variable_product_ids = (array) wc_get_products(
-			[
-				'status'  => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
-				'limit'   => -1,
-				'return'  => 'ids',
-				'type'    => [ \Automattic\WooCommerce\Enums\ProductType::VARIABLE ],
-				'include' => $candidate_ids,
-			]
-		);
+		if ( $include_variable_products ) {
+			// We need to resolve variable products to their variations.
+			// First step is to identify which product IDs in our list are variable products.
+			$variable_product_ids = (array) wc_get_products(
+				[
+					'status'  => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+					'limit'   => -1,
+					'return'  => 'ids',
+					'type'    => [ \Automattic\WooCommerce\Enums\ProductType::VARIABLE ],
+					'include' => $candidate_ids,
+				]
+			);
 
-		if ( [] !== $variable_product_ids ) {
-			// We have some variable products, so let's remove them from $candidate_ids and then find the child variations.
-			$candidate_ids = array_diff( $candidate_ids, $variable_product_ids );
+			if ( [] !== $variable_product_ids ) {
+				// We have some variable products, so let's remove them from $candidate_ids and then find the child variations.
+				$candidate_ids = array_diff( $candidate_ids, $variable_product_ids );
 
-			$variation_query = [
-				'status'          => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
-				'limit'           => -1,
-				'return'          => 'ids',
-				'type'            => [ \Automattic\WooCommerce\Enums\ProductType::VARIATION ],
-				// WooCommerce doesn't have a mapped keyword for parent product IDs, so we use the WordPress post_parent__in.
-				'post_parent__in' => $variable_product_ids,
-			];
+				$variation_query = [
+					'status'          => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+					'limit'           => -1,
+					'return'          => 'ids',
+					'type'            => [ \Automattic\WooCommerce\Enums\ProductType::VARIATION ],
+					// WooCommerce doesn't have a mapped keyword for parent product IDs, so we use the WordPress post_parent__in.
+					'post_parent__in' => $variable_product_ids,
+				];
 
-			$variation_product_ids = (array) wc_get_products( $variation_query );
+				$variation_product_ids = (array) wc_get_products( $variation_query );
 
-			$candidate_ids = array_merge( $candidate_ids, $variation_product_ids );
+				$candidate_ids = array_merge( $candidate_ids, $variation_product_ids );
+			}
 		}
 
 		$candidate_ids = array_values( array_unique( $candidate_ids ) );
