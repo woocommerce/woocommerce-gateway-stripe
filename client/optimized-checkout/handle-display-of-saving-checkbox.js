@@ -72,15 +72,8 @@ const HIDE_SAVE_CHECKBOX_CLASS = 'wc-stripe-hide-save-checkbox';
  * Clear the save-checkbox state from both the classic DOM input and the
  * Blocks payment store.
  *
- * The body-class toggle hides the container visually but doesn't reset the
- * underlying state. Without this, a checkbox the shopper checked while a
- * reusable sub-method was active inside the OC Payment Element stays
- * checked when the PE switches to a non-reusable method (iDEAL, Bancontact,
- * etc.) — and the request body still carries `wc-stripe-new-payment-method=1`
- * (classic) or `shouldSavePaymentMethod=true` (Blocks). The backend gate
- * added in 10.8.0 drops `setup_future_usage` regardless, so this is
- * defence-in-depth: request bodies stay clean and any future server-side
- * code that reads the field can trust it.
+ * This ensures that we don't include a stale value for the "save payment method"
+ * input field when the field has been hidden due to a payment method change.
  */
 const clearSaveCheckboxState = () => {
 	// Classic: the form input WC reads on submit.
