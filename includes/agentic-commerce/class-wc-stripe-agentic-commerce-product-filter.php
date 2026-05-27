@@ -229,7 +229,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 		$candidate_ids = array_unique( array_map( 'intval', $candidate_ids ) );
 		$candidate_ids = array_values( array_filter( $candidate_ids ) );
 
-		if ( [] == $candidate_ids ) {
+		if ( [] === $candidate_ids ) {
 			return self::EMPTY_RESOLUTION;
 		}
 
@@ -265,7 +265,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 
 		$candidate_ids = array_values( array_unique( $candidate_ids ) );
 
-		if ( [] == $candidate_ids ) {
+		if ( [] === $candidate_ids ) {
 			return self::EMPTY_RESOLUTION;
 		}
 
