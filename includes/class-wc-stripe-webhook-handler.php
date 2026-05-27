@@ -537,7 +537,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					&& $this->maybe_flag_orphaned_payment_intent_on_order(
 						$intent_order,
 						(string) $charge->payment_intent,
-						null,
 						$charge,
 						'charge.captured'
 					)
@@ -619,7 +618,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				&& $this->maybe_flag_orphaned_payment_intent_on_order(
 					$intent_order,
 					(string) $charge->payment_intent,
-					null,
 					$charge,
 					'charge.succeeded'
 				)
@@ -1484,32 +1482,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Convenience wrapper around @see flag_orphaned_payment_intent_on_order() that short-circuits
-	 * when the order is still paid via Stripe or the orphan has already been flagged for this intent.
-	 *
-	 * @param WC_Order    $order        The order to evaluate.
-	 * @param string      $intent_id    The Stripe PaymentIntent ID.
-	 * @param object|null $intent       The Stripe PaymentIntent object, when available.
-	 * @param object|null $charge       The Stripe Charge object, when available.
-	 * @param string      $webhook_type The Stripe webhook event type (e.g. 'charge.succeeded' or 'charge.captured').
-	 *
-	 * @return bool True when an orphan note was added, false when skipped.
-	 */
-	protected function maybe_flag_orphaned_payment_intent_on_order( $order, $intent_id, $intent, $charge, $webhook_type ): bool {
-		if ( '' === $intent_id ) {
-			return false;
-		}
-		if ( ! $this->is_order_paid_via_non_stripe_gateway( $order ) ) {
-			return false;
-		}
-		if ( '' !== (string) $order->get_meta( '_stripe_orphan_charge_flagged_' . $intent_id ) ) {
-			return false;
-		}
-		$this->flag_orphaned_payment_intent_on_order( $order, $intent_id, $intent, $charge, $webhook_type );
-		return true;
-	}
-
-	/**
 	 * Flags an orphaned Stripe PaymentIntent on an order that was paid via a different gateway.
 	 *
 	 * Adds a visible order note linking to the Stripe dashboard and fires an action so site-specific
@@ -1517,63 +1489,37 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * the same PaymentIntent on the same order are no-ops, so it's safe to invoke from every webhook
 	 * path that can detect the orphan (charge.succeeded fallback, charge.captured fallback).
 	 *
-	 * @param WC_Order    $order        The order paid via a non-Stripe gateway.
-	 * @param string      $intent_id    The Stripe PaymentIntent ID.
-	 * @param object|null $intent       The Stripe PaymentIntent object, when available.
-	 * @param object|null $charge       The Stripe Charge object, when available.
-	 * @param string      $webhook_type The Stripe webhook event type (e.g. 'charge.succeeded' or 'charge.captured').
+	 * @param WC_Order $order        The order to evaluate.
+	 * @param string   $intent_id    The Stripe PaymentIntent ID.
+	 * @param object   $charge       The Stripe Charge object.
+	 * @param string   $webhook_type The Stripe webhook event type (e.g. 'charge.succeeded' or 'charge.captured').
+	 *
+	 * @return bool True when an orphan note was added, false when skipped.
 	 */
-	protected function flag_orphaned_payment_intent_on_order( $order, $intent_id, $intent, $charge, $webhook_type ): void {
+	protected function maybe_flag_orphaned_payment_intent_on_order( $order, $intent_id, $charge, $webhook_type ): bool {
+		if ( ! $this->is_order_paid_via_non_stripe_gateway( $order ) ) {
+			return false;
+		}
 		$dedup_meta_key = '_stripe_orphan_charge_flagged_' . $intent_id;
 		if ( '' !== (string) $order->get_meta( $dedup_meta_key ) ) {
-			return;
+			return false;
 		}
 
-		$charge_id = is_object( $charge ) && isset( $charge->id ) ? (string) $charge->id : '';
-
-		if ( is_object( $intent ) && ! empty( $intent->currency ) ) {
-			$currency = strtoupper( (string) $intent->currency );
-		} elseif ( is_object( $charge ) && ! empty( $charge->currency ) ) {
-			$currency = strtoupper( (string) $charge->currency );
-		} else {
-			$currency = strtoupper( $order->get_currency() );
-		}
-
-		if ( is_object( $intent ) && isset( $intent->amount ) ) {
-			$stripe_amount = (int) $intent->amount;
-		} elseif ( is_object( $charge ) && isset( $charge->amount ) ) {
-			$stripe_amount = (int) $charge->amount;
-		} else {
-			$stripe_amount = 0;
-		}
-
-		$decimal_amount  = WC_Stripe_Helper::convert_from_stripe_amount( $stripe_amount, $currency );
+		$currency        = strtoupper( (string) $charge->currency );
+		$decimal_amount  = WC_Stripe_Helper::convert_from_stripe_amount( (int) $charge->amount, $currency );
 		$formatted_price = wc_price( $decimal_amount, [ 'currency' => $currency ] );
+		$dashboard_url   = sprintf( WC_Stripe_Helper::get_transaction_url( $this->testmode ), $intent_id );
 
-		$dashboard_url = sprintf( WC_Stripe_Helper::get_transaction_url( $this->testmode ), $intent_id );
-
-		if ( '' !== $charge_id ) {
-			$message = sprintf(
-				/* translators: 1) formatted amount with currency, 2) Stripe PaymentIntent ID, 3) Stripe charge ID, 4) order payment method title, 5) opening anchor tag for the Stripe dashboard link, 6) closing anchor tag. */
-				__( 'Stripe captured a charge of %1$s (PaymentIntent %2$s, charge %3$s) after this order was already paid via %4$s. This orphaned charge needs to be refunded manually from the %5$sStripe dashboard%6$s.', 'woocommerce-gateway-stripe' ),
-				wp_kses_post( $formatted_price ),
-				esc_html( $intent_id ),
-				esc_html( $charge_id ),
-				esc_html( $order->get_payment_method_title() ),
-				'<a href="' . esc_url( $dashboard_url ) . '" target="_blank" rel="noopener noreferrer">',
-				'</a>'
-			);
-		} else {
-			$message = sprintf(
-				/* translators: 1) formatted amount with currency, 2) Stripe PaymentIntent ID, 3) order payment method title, 4) opening anchor tag for the Stripe dashboard link, 5) closing anchor tag. */
-				__( 'Stripe captured a charge of %1$s (PaymentIntent %2$s) after this order was already paid via %3$s. This orphaned charge needs to be refunded manually from the %4$sStripe dashboard%5$s.', 'woocommerce-gateway-stripe' ),
-				wp_kses_post( $formatted_price ),
-				esc_html( $intent_id ),
-				esc_html( $order->get_payment_method_title() ),
-				'<a href="' . esc_url( $dashboard_url ) . '" target="_blank" rel="noopener noreferrer">',
-				'</a>'
-			);
-		}
+		$message = sprintf(
+			/* translators: 1) formatted amount with currency, 2) Stripe PaymentIntent ID, 3) Stripe charge ID, 4) order payment method title, 5) opening anchor tag for the Stripe dashboard link, 6) closing anchor tag. */
+			__( 'Stripe captured a charge of %1$s (PaymentIntent %2$s, charge %3$s) after this order was already paid via %4$s. This orphaned charge needs to be refunded manually from the %5$sStripe dashboard%6$s.', 'woocommerce-gateway-stripe' ),
+			wp_kses_post( $formatted_price ),
+			esc_html( $intent_id ),
+			esc_html( (string) $charge->id ),
+			esc_html( $order->get_payment_method_title() ),
+			'<a href="' . esc_url( $dashboard_url ) . '" target="_blank" rel="noopener noreferrer">',
+			'</a>'
+		);
 
 		$order->add_order_note( $message );
 		$order->update_meta_data( $dedup_meta_key, current_time( 'mysql' ) );
@@ -1586,12 +1532,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 *
 		 * @since 10.8.0
 		 *
-		 * @param WC_Order    $order        The order paid via a non-Stripe gateway.
-		 * @param object|null $intent       The Stripe PaymentIntent object, when available.
-		 * @param object|null $charge       The Stripe Charge object, when available.
-		 * @param string      $webhook_type The Stripe webhook event type ('charge.succeeded' or 'charge.captured').
+		 * @param WC_Order $order        The order paid via a non-Stripe gateway.
+		 * @param object   $charge       The Stripe Charge object.
+		 * @param string   $webhook_type The Stripe webhook event type ('charge.succeeded' or 'charge.captured').
 		 */
-		do_action( 'wc_stripe_orphaned_charge_detected', $order, $intent, $charge, $webhook_type );
+		do_action( 'wc_stripe_orphaned_charge_detected', $order, $charge, $webhook_type );
+
+		return true;
 	}
 
 	/**

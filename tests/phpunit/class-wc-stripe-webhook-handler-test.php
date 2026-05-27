@@ -375,22 +375,20 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->method( 'process_response' );
 
 		$captured = [];
-		$listener = function ( $hook_order, $hook_intent, $hook_charge, $hook_type ) use ( &$captured ) {
+		$listener = function ( $hook_order, $hook_charge, $hook_type ) use ( &$captured ) {
 			$captured[] = [
 				'order_id'     => $hook_order instanceof WC_Order ? $hook_order->get_id() : null,
-				'intent'       => $hook_intent,
 				'charge_id'    => is_object( $hook_charge ) ? $hook_charge->id : null,
 				'webhook_type' => $hook_type,
 			];
 		};
-		add_action( 'wc_stripe_orphaned_charge_detected', $listener, 10, 4 );
+		add_action( 'wc_stripe_orphaned_charge_detected', $listener, 10, 3 );
 
 		try {
 			$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
 
 			$this->assertCount( 1, $captured );
 			$this->assertSame( $order->get_id(), $captured[0]['order_id'] );
-			$this->assertNull( $captured[0]['intent'] );
 			$this->assertSame( 'py_orphan_xxx', $captured[0]['charge_id'] );
 			$this->assertSame( 'charge.succeeded', $captured[0]['webhook_type'] );
 
@@ -484,14 +482,14 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$captured = [];
-		$listener = function ( $hook_order, $hook_intent, $hook_charge, $hook_type ) use ( &$captured ) {
+		$listener = function ( $hook_order, $hook_charge, $hook_type ) use ( &$captured ) {
 			$captured[] = [
 				'order_id'     => $hook_order instanceof WC_Order ? $hook_order->get_id() : null,
 				'charge_id'    => is_object( $hook_charge ) ? $hook_charge->id : null,
 				'webhook_type' => $hook_type,
 			];
 		};
-		add_action( 'wc_stripe_orphaned_charge_detected', $listener, 10, 4 );
+		add_action( 'wc_stripe_orphaned_charge_detected', $listener, 10, 3 );
 
 		try {
 			$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
@@ -535,14 +533,14 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$captured = [];
-		$listener = function ( $hook_order, $hook_intent, $hook_charge, $hook_type ) use ( &$captured ) {
+		$listener = function ( $hook_order, $hook_charge, $hook_type ) use ( &$captured ) {
 			$captured[] = [
 				'order_id'     => $hook_order instanceof WC_Order ? $hook_order->get_id() : null,
 				'charge_id'    => is_object( $hook_charge ) ? $hook_charge->id : null,
 				'webhook_type' => $hook_type,
 			];
 		};
-		add_action( 'wc_stripe_orphaned_charge_detected', $listener, 10, 4 );
+		add_action( 'wc_stripe_orphaned_charge_detected', $listener, 10, 3 );
 
 		try {
 			$this->mock_webhook_handler->process_webhook_capture( $notification );

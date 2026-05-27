@@ -3015,11 +3015,17 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$amount\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 4
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$balance_transaction\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$currency\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
@@ -3033,7 +3039,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 9
+			count: 10
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
