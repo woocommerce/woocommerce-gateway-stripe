@@ -70,9 +70,8 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Blocking a paid-but-pending order's cancellation must surface the situation exactly once:
-	 * an order note, a meta flag, and the `wc_stripe_paid_order_cancellation_prevented` action,
-	 * even though wc_cancel_unpaid_orders() re-runs the filter on every scheduled pass.
+	 * Surfacing a blocked paid-order cancellation is idempotent: one note and one action fire even
+	 * though wc_cancel_unpaid_orders() re-runs the filter on every scheduled pass.
 	 */
 	public function test_surfaces_prevented_paid_order_cancellation_only_once() {
 		$order = WC_Helper_Order::create_order();

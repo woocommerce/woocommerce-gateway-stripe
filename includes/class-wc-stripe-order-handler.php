@@ -501,12 +501,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Surfaces a paid Stripe order whose auto-cancellation we just blocked.
-	 *
-	 * A paid order stuck at `pending` is a symptom of the checkout/webhook race, so rather than
-	 * silently keeping it alive we leave an order note and fire an action that stores can hook into
-	 * (e.g. to log or alert) and reconcile the stuck status. wc_cancel_unpaid_orders() retries on a
-	 * schedule, so a meta flag ensures we surface this only once per order.
+	 * Surfaces a paid-but-pending Stripe order whose auto-cancellation we just blocked via an order
+	 * note and an action hook. A meta flag keeps it idempotent across wc_cancel_unpaid_orders() retries.
 	 *
 	 * @since 10.8.0
 	 *
@@ -523,8 +519,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		/**
 		 * Fires when a paid Stripe order stuck at `pending` is prevented from being auto-cancelled as unpaid.
-		 *
-		 * Lets stores detect and reconcile the stuck status, for example by logging or alerting.
 		 *
 		 * @since 10.8.0
 		 *
