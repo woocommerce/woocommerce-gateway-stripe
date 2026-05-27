@@ -1576,6 +1576,63 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * handle_saving_payment_method() must refresh a reused token's wallet_type so the
+	 * saved-card display reflects the wallet just used. Paying with Apple/Google Pay
+	 * over a card the shopper already saved manually reuses the existing token by
+	 * fingerprint; without refreshing wallet_type the saved-card row (e.g. My Account
+	 * → Subscriptions after a change-payment) keeps showing the bare card.
+	 */
+	public function test_handle_saving_payment_method_refreshes_wallet_type_on_reused_token() {
+		$this->mock_gateway->oc_enabled = true;
+
+		$user_id = $this->factory()->user->create();
+		$order   = WC_Helper_Order::create_order( $user_id );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		// An existing manually-entered token for the same card — no wallet branding.
+		$existing = new WC_Stripe_Payment_Token_CC();
+		$existing->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$existing->set_token( 'pm_existing' );
+		$existing->set_card_type( 'visa' );
+		$existing->set_last4( '4242' );
+		$existing->set_expiry_month( '12' );
+		$existing->set_expiry_year( '2030' );
+		$existing->set_fingerprint( 'fp_match' );
+		$existing->set_wallet_type( '' );
+		$existing->set_user_id( $user_id );
+		$existing->save();
+
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		// The same card (matching fingerprint) now tokenized through Google Pay.
+		$payment_method_object = (object) [
+			'id'       => 'pm_googlepay',
+			'object'   => 'payment_method',
+			'type'     => WC_Stripe_Payment_Methods::CARD,
+			'customer' => 'cus_mock',
+			'card'     => (object) [
+				'exp_month'   => 12,
+				'exp_year'    => 2030,
+				'brand'       => 'visa',
+				'last4'       => '4242',
+				'fingerprint' => 'fp_match',
+				'wallet'      => (object) [ 'type' => 'google_pay' ],
+			],
+		];
+
+		$this->mock_gateway->handle_saving_payment_method( $order, $payment_method_object, WC_Stripe_Payment_Methods::CARD );
+
+		$refreshed = WC_Payment_Tokens::get( $existing->get_id() );
+		$this->assertInstanceOf( WC_Stripe_Payment_Token_CC::class, $refreshed );
+		// The reused token now carries the wallet branding and the latest Stripe id.
+		$this->assertSame( 'google_pay', $refreshed->get_wallet_type() );
+		$this->assertSame( 'pm_googlepay', $refreshed->get_token() );
+	}
+
+	/**
 	 * Test checkout flow while saving payment method with SEPA generated payment method AND setup intents.
 	 */
 	public function test_setup_intent_checkout_saves_sepa_generated_payment_method_to_order() {
