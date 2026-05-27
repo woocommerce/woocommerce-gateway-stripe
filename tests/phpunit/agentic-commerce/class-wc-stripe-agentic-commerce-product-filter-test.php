@@ -74,7 +74,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 
 	public function tearDown(): void {
 		delete_option( $this->option_name );
-		remove_all_filters( 'wc_stripe_agentic_commerce_product_filters' );
+		remove_all_filters( 'wc_stripe_agentic_commerce_product_filter' );
 
 		foreach ( $this->created_products as $product_id ) {
 			wp_delete_post( $product_id, true );
@@ -518,7 +518,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$simple = $this->create_simple_product();
 
 		add_filter(
-			'wc_stripe_agentic_commerce_product_filters',
+			'wc_stripe_agentic_commerce_product_filter',
 			function () use ( $simple ) {
 				return [
 					'product_ids'  => [ $simple->get_id() ],
@@ -537,7 +537,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$simple = $this->create_simple_product();
 
 		add_filter(
-			'wc_stripe_agentic_commerce_product_filters',
+			'wc_stripe_agentic_commerce_product_filter',
 			function () use ( $simple ) {
 				return [
 					'product_ids' => [ (string) $simple->get_id(), 'not-a-number', -5 ],

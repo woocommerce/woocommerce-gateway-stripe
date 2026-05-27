@@ -62,7 +62,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		delete_option( $this->last_upload_option );
 		delete_option( $this->product_filter_option );
 		remove_all_filters( 'wc_stripe_agentic_commerce_feed_dedupe_enabled' );
-		remove_all_filters( 'wc_stripe_agentic_commerce_product_filters' );
+		remove_all_filters( 'wc_stripe_agentic_commerce_product_filter' );
 		remove_all_filters( 'wc_stripe_agentic_commerce_product_query_args' );
 		parent::tearDown();
 	}

@@ -64,7 +64,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 		 *     brand_ids: int[],
 		 * } $filters Normalized filters derived from the persisted option.
 		 */
-		$filtered = apply_filters( 'wc_stripe_agentic_commerce_product_filters', $filters );
+		$filtered = apply_filters( 'wc_stripe_agentic_commerce_product_filter', $filters );
 
 		return $this->normalize_option_data( is_array( $filtered ) ? $filtered : [] );
 	}
