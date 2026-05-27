@@ -73,6 +73,24 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	protected int $overflow_count = 0;
 
 	/**
+	 * Products dropped by the visibility filter, not by validation. The caller
+	 * subtracts this from the skip total so exclusions don't log as failures or
+	 * trigger "Partial success".
+	 *
+	 * @since 10.8.0
+	 * @var int
+	 */
+	protected int $excluded_count = 0;
+
+	/**
+	 * Non-empty return from {@see self::validate_entry()} for an excluded product,
+	 * so the walker drops the row without recording it as a validation error.
+	 *
+	 * @since 10.8.0
+	 */
+	private const EXCLUDED_SENTINEL = '__excluded_by_filter__';
+
+	/**
 	 * Initialize validator with schema.
 	 *
 	 * @since 10.5.0
@@ -90,6 +108,15 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	 * @return array Array of validation error messages (empty if valid).
 	 */
 	public function validate_entry( array $row, \WC_Product $product ): array {
+		// An excluded product arrives as an empty row (map_product()'s skip signal):
+		// drop it as an exclusion, not a validation failure. The non-empty return
+		// makes the walker skip add_entry; the empty-row guard keeps the filter
+		// check off the normal path.
+		if ( empty( $row ) && ! WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) ) {
+			++$this->excluded_count;
+			return [ self::EXCLUDED_SENTINEL ];
+		}
+
 		$errors = array_merge(
 			// Validate required fields.
 			$this->validate_required_fields( $row ),
@@ -140,6 +167,16 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 			'products'  => $this->collected_errors,
 			'truncated' => $this->overflow_count,
 		];
+	}
+
+	/**
+	 * Count of products dropped by the visibility filter this run.
+	 *
+	 * @since 10.8.0
+	 * @return int
+	 */
+	public function get_excluded_count(): int {
+		return $this->excluded_count;
 	}
 
 	/**

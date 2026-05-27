@@ -952,18 +952,21 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_falsy_filter_values(): array {
 		return [
-			'false'        => [ false ],
-			'zero int'     => [ 0 ],
-			'empty string' => [ '' ],
-			'null'         => [ null ],
+			'false'              => [ false ],
+			'zero int'           => [ 0 ],
+			'empty string'       => [ '' ],
+			'null'               => [ null ],
+			'string false'       => [ 'false' ],
+			'string False mixed' => [ 'False' ],
 		];
 	}
 
 	/**
 	 * Test that any falsy adapter return suppresses the product. The contract is
-	 * "false-y, not literal false" — the wrapper's `(bool)` cast normalises null,
-	 * 0, and '' too, so adapters that idiomatically return null from a missing-key
-	 * lookup or 0 from a count check don't accidentally include products.
+	 * "false-y, not literal false" — the wrapper runs the return through
+	 * wp_validate_boolean(), so null, 0, and '' all normalise to false, and the
+	 * string 'false' (any case) is treated as false rather than as a truthy
+	 * non-empty string the way a plain (bool) cast would.
 	 *
 	 * @dataProvider provide_falsy_filter_values
 	 * @param mixed $filtered_value Value the adapter returns from the filter.
