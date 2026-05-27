@@ -468,6 +468,10 @@ class WC_Stripe_Express_Checkout_Element {
 		$urls[] = [
 			'href' => 'https://q.stripe.com',
 		];
+		$urls[] = [
+			'href'        => 'https://b.stripecdn.com',
+			'crossorigin' => 'anonymous',
+		];
 
 		return $urls;
 	}
