@@ -51,4 +51,21 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 
 		$this->assertTrue( $this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order ) );
 	}
+
+	public function test_prevent_cancelling_orders_that_have_been_paid() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		// Mimic the race outcome: payment captured (date_paid set) but status stuck at pending.
+		$order->set_date_paid( time() );
+		$order->set_status( 'pending' );
+		$order->save();
+
+		// Read in a fresh order object.
+		$order = wc_get_order( $order->get_id() );
+
+		// A paid order must never be cancelled as unpaid, and we shouldn't need to fetch the intent.
+		$this->order_handler->expects( $this->never() )->method( 'get_intent_from_order' );
+
+		$this->assertFalse( $this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order ) );
+	}
 }
