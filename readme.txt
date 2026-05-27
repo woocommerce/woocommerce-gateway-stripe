@@ -161,7 +161,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add a setting to control whether Express Checkout is shown on the WooCommerce Subscriptions change payment method page
 * Fix - Prevent Stripe API calls from failing due to DNS resolution issues
 * Fix - Improve handling of skipped products and in-flight syncs in Agentic Commerce sync dashboard
-* Fix - Drop the previously saved payment token from a subscription when its payment method is changed via Express Checkout, so My Account no longer shows the old card
 * Fix - Make the "Update now" link in the account status tooltip clickable and improve its contrast against the tooltip background
 * Dev - Add Jurassic Ninja preview link for PRs to enable one-click browser testing
 * Remove - Remove giropay from new checkouts (deprecated by Stripe on 2024-06-30); legacy refund and past-order rendering preserved
