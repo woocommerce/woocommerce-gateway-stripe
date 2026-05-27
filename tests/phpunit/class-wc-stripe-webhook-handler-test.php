@@ -461,6 +461,354 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Synchronous payment_intent.succeeded for an order already paid via a non-Stripe gateway should
+	 * flag the orphaned charge before returning. This is the common case the deferred-handler check
+	 * cannot reach, because process_payment_intent returns early without ever scheduling a deferred job.
+	 */
+	public function test_process_payment_intent_flags_orphan_when_already_paid_via_non_stripe_gateway() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->set_payment_method( 'klarna_payments' );
+		$order->set_payment_method_title( 'Klarna Payments' );
+		$order->set_currency( 'EUR' );
+		$order->save();
+
+		$intent_id = 'pi_orphan_sync_' . $order->get_id();
+		$intent    = (object) [
+			'id'       => $intent_id,
+			'amount'   => 19900,
+			'currency' => 'eur',
+			'metadata' => (object) [
+				'order_id' => (string) $order->get_id(),
+			],
+		];
+
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => $intent,
+			],
+		];
+
+		$this->mock_webhook_handler->expects( $this->once() )
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'process_response' );
+
+		$captured = [];
+		$listener = function ( $hook_order, $hook_intent, $hook_charge, $hook_type ) use ( &$captured ) {
+			$captured[] = [
+				'order_id'     => $hook_order instanceof WC_Order ? $hook_order->get_id() : null,
+				'intent_id'    => is_object( $hook_intent ) ? $hook_intent->id : null,
+				'charge_id'    => is_object( $hook_charge ) ? $hook_charge->id : null,
+				'webhook_type' => $hook_type,
+			];
+		};
+		add_action( 'wc_stripe_deferred_orphaned_charge_detected', $listener, 10, 4 );
+
+		try {
+			$this->mock_webhook_handler->process_payment_intent( $notification );
+
+			$this->assertCount( 1, $captured );
+			$this->assertSame( $order->get_id(), $captured[0]['order_id'] );
+			$this->assertSame( $intent_id, $captured[0]['intent_id'] );
+			$this->assertSame( self::MOCK_PAYMENT_INTENT['charges']['data'][0]['id'], $captured[0]['charge_id'] );
+			$this->assertSame( 'payment_intent.succeeded', $captured[0]['webhook_type'] );
+
+			$notes = wc_get_order_notes(
+				[
+					'order_id' => $order->get_id(),
+					'limit'    => 1,
+				]
+			);
+			$this->assertNotEmpty( $notes );
+			$this->assertStringContainsString( $intent_id, $notes[0]->content );
+			$this->assertStringContainsString( 'Klarna Payments', $notes[0]->content );
+			$this->assertStringContainsString( 'dashboard.stripe.com', $notes[0]->content );
+		} finally {
+			remove_action( 'wc_stripe_deferred_orphaned_charge_detected', $listener, 10 );
+		}
+	}
+
+	/**
+	 * Synchronous payment_intent.succeeded should NOT flag an orphan when the order was paid via Stripe.
+	 */
+	public function test_process_payment_intent_does_not_flag_when_already_paid_via_stripe() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->set_payment_method( 'stripe_klarna' );
+		$order->save();
+
+		$intent = (object) [
+			'id'       => 'pi_no_orphan_sync',
+			'amount'   => 5000,
+			'currency' => 'usd',
+			'metadata' => (object) [
+				'order_id' => (string) $order->get_id(),
+			],
+		];
+
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => $intent,
+			],
+		];
+
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'get_latest_charge_from_intent' );
+
+		$called   = 0;
+		$listener = function () use ( &$called ) {
+			++$called;
+		};
+		add_action( 'wc_stripe_deferred_orphaned_charge_detected', $listener );
+
+		try {
+			$this->mock_webhook_handler->process_payment_intent( $notification );
+
+			$this->assertSame( 0, $called );
+		} finally {
+			remove_action( 'wc_stripe_deferred_orphaned_charge_detected', $listener );
+		}
+	}
+
+	/**
+	 * Non-eligible PI events (e.g. payment_intent.requires_action) on an already-completed order should
+	 * still return silently — only succeeded / amount_capturable_updated trigger orphan flagging.
+	 */
+	public function test_process_payment_intent_does_not_flag_for_non_eligible_event_types() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->set_payment_method( 'klarna_payments' );
+		$order->save();
+
+		$intent = (object) [
+			'id'       => 'pi_requires_action',
+			'amount'   => 5000,
+			'currency' => 'usd',
+			'metadata' => (object) [
+				'order_id' => (string) $order->get_id(),
+			],
+		];
+
+		$notification = (object) [
+			'type' => 'payment_intent.requires_action',
+			'data' => (object) [
+				'object' => $intent,
+			],
+		];
+
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'get_latest_charge_from_intent' );
+
+		$called   = 0;
+		$listener = function () use ( &$called ) {
+			++$called;
+		};
+		add_action( 'wc_stripe_deferred_orphaned_charge_detected', $listener );
+
+		try {
+			$this->mock_webhook_handler->process_payment_intent( $notification );
+
+			$this->assertSame( 0, $called );
+		} finally {
+			remove_action( 'wc_stripe_deferred_orphaned_charge_detected', $listener );
+		}
+	}
+
+	/**
+	 * When charge.succeeded fires for a charge whose ID isn't stored on any order (because the shopper
+	 * settled the order via a different gateway), the handler must fall back to looking up the order
+	 * by the parent PaymentIntent and flag the orphan instead of silently dropping the event.
+	 */
+	public function test_process_webhook_charge_succeeded_flags_orphan_via_payment_intent_fallback() {
+		$intent_id = 'pi_orphan_charge_lookup';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->set_payment_method( 'cod' );
+		$order->set_payment_method_title( 'Cash on Delivery' );
+		$order->set_currency( 'EUR' );
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->save();
+
+		$charge = (object) [
+			'id'                     => 'py_orphan_xxx',
+			'captured'               => true,
+			'payment_intent'         => $intent_id,
+			'amount'                 => 4200,
+			'currency'               => 'eur',
+			'payment_method_details' => (object) [ 'type' => 'sepa_debit' ],
+		];
+
+		$notification = (object) [
+			'type' => 'charge.succeeded',
+			'data' => (object) [
+				'object' => $charge,
+			],
+		];
+
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'process_response' );
+
+		$captured = [];
+		$listener = function ( $hook_order, $hook_intent, $hook_charge, $hook_type ) use ( &$captured ) {
+			$captured[] = [
+				'order_id'     => $hook_order instanceof WC_Order ? $hook_order->get_id() : null,
+				'intent'       => $hook_intent,
+				'charge_id'    => is_object( $hook_charge ) ? $hook_charge->id : null,
+				'webhook_type' => $hook_type,
+			];
+		};
+		add_action( 'wc_stripe_deferred_orphaned_charge_detected', $listener, 10, 4 );
+
+		try {
+			$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
+
+			$this->assertCount( 1, $captured );
+			$this->assertSame( $order->get_id(), $captured[0]['order_id'] );
+			$this->assertNull( $captured[0]['intent'] );
+			$this->assertSame( 'py_orphan_xxx', $captured[0]['charge_id'] );
+			$this->assertSame( 'charge.succeeded', $captured[0]['webhook_type'] );
+
+			$notes = wc_get_order_notes(
+				[
+					'order_id' => $order->get_id(),
+					'limit'    => 1,
+				]
+			);
+			$this->assertNotEmpty( $notes );
+			$this->assertStringContainsString( $intent_id, $notes[0]->content );
+			$this->assertStringContainsString( 'py_orphan_xxx', $notes[0]->content );
+			$this->assertStringContainsString( 'Cash on Delivery', $notes[0]->content );
+		} finally {
+			remove_action( 'wc_stripe_deferred_orphaned_charge_detected', $listener, 10 );
+		}
+	}
+
+	/**
+	 * charge.succeeded fallback must not flag when the charge has not been captured yet.
+	 */
+	public function test_process_webhook_charge_succeeded_fallback_skips_uncaptured_charge() {
+		$intent_id = 'pi_uncaptured';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->set_payment_method( 'cod' );
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->save();
+
+		$charge = (object) [
+			'id'                     => 'py_uncaptured',
+			'captured'               => false,
+			'payment_intent'         => $intent_id,
+			'amount'                 => 100,
+			'currency'               => 'usd',
+			'payment_method_details' => (object) [ 'type' => 'sepa_debit' ],
+		];
+
+		$notification = (object) [
+			'type' => 'charge.succeeded',
+			'data' => (object) [
+				'object' => $charge,
+			],
+		];
+
+		$called   = 0;
+		$listener = function () use ( &$called ) {
+			++$called;
+		};
+		add_action( 'wc_stripe_deferred_orphaned_charge_detected', $listener );
+
+		try {
+			$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
+
+			$this->assertSame( 0, $called );
+		} finally {
+			remove_action( 'wc_stripe_deferred_orphaned_charge_detected', $listener );
+		}
+	}
+
+	/**
+	 * Repeat orphan detections for the same PaymentIntent on the same order must be no-ops: only one
+	 * note is added and the action fires exactly once, even when multiple webhook paths detect it.
+	 */
+	public function test_flag_orphaned_payment_intent_is_idempotent_per_intent() {
+		$intent_id = 'pi_dedup';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->set_payment_method( 'klarna_payments' );
+		$order->set_payment_method_title( 'Klarna Payments' );
+		$order->set_currency( 'EUR' );
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->save();
+
+		// First detection comes via charge.succeeded (no intent object).
+		$charge              = (object) [
+			'id'                     => 'py_dedup',
+			'captured'               => true,
+			'payment_intent'         => $intent_id,
+			'amount'                 => 1000,
+			'currency'               => 'eur',
+			'payment_method_details' => (object) [ 'type' => 'sepa_debit' ],
+		];
+		$charge_notification = (object) [
+			'type' => 'charge.succeeded',
+			'data' => (object) [ 'object' => $charge ],
+		];
+
+		// Second detection comes via synchronous payment_intent.succeeded.
+		$intent          = (object) [
+			'id'       => $intent_id,
+			'amount'   => 1000,
+			'currency' => 'eur',
+			'metadata' => (object) [
+				'order_id' => (string) $order->get_id(),
+			],
+		];
+		$pi_notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [ 'object' => $intent ],
+		];
+
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'get_latest_charge_from_intent' );
+
+		$called   = 0;
+		$listener = function () use ( &$called ) {
+			++$called;
+		};
+		add_action( 'wc_stripe_deferred_orphaned_charge_detected', $listener );
+
+		try {
+			$this->mock_webhook_handler->process_webhook_charge_succeeded( $charge_notification );
+			$this->mock_webhook_handler->process_payment_intent( $pi_notification );
+
+			$this->assertSame( 1, $called );
+
+			$notes        = wc_get_order_notes(
+				[
+					'order_id' => $order->get_id(),
+					'limit'    => 10,
+				]
+			);
+			$orphan_notes = array_filter(
+				$notes,
+				static function ( $note ) use ( $intent_id ) {
+					return false !== strpos( $note->content, $intent_id ) && false !== strpos( $note->content, 'orphan' );
+				}
+			);
+			$this->assertCount( 1, $orphan_notes );
+		} finally {
+			remove_action( 'wc_stripe_deferred_orphaned_charge_detected', $listener );
+		}
+	}
+
+	/**
 	 * When no order is linked yet, checkout session success defers processing via Action Scheduler.
 	 *
 	 * @return void
