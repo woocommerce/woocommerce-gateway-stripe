@@ -609,7 +609,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// PaymentIntent and, if the order was paid by another gateway, flag the orphaned charge.
 			if ( ! empty( $charge->payment_intent ) && ! empty( $charge->captured ) ) {
 				$intent_order = WC_Stripe_Helper::get_order_by_intent_id( (string) $charge->payment_intent );
-				if ( $intent_order
+				if ( $intent_order instanceof WC_Order
 					&& $this->is_order_paid_via_non_stripe_gateway( $intent_order )
 					&& ! $this->has_orphan_charge_been_flagged( $intent_order, (string) $charge->payment_intent )
 				) {
