@@ -138,7 +138,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		update_option(
 			$this->product_filter_option,
 			[
-				'categories' => [ '__no-such-category__' ],
+				'category_ids' => [ 99999999 ],
 			]
 		);
 
@@ -160,7 +160,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		update_option(
 			$this->product_filter_option,
 			[
-				'categories' => [ '__no-such-category__' ],
+				'category_ids' => [ 999999999 ],
 			]
 		);
 
