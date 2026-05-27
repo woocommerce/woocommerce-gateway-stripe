@@ -307,14 +307,33 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$this->assertSame( [ 0 ], $filter->get_filtered_product_ids() );
 	}
 
-	public function test_get_filtered_product_ids_explicit_variable_id_expands_to_variations() {
+	public function test_get_filtered_product_ids_explicit_variable_id_not_expanded_when_disabled() {
+		$variable = $this->create_variable_product();
+
+		update_option(
+			$this->option_name,
+			[
+				'product_ids'               => [ $variable->get_id() ],
+				'include_variable_products' => false,
+			]
+		);
+
+		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
+
+		$filtered_product_ids = $filter->get_filtered_product_ids();
+
+		$this->assertSame( [ 0 ], $filtered_product_ids );
+	}
+
+	public function test_get_filtered_product_ids_explicit_variable_id_expands_to_variations_when_enabled() {
 		$variable = $this->create_variable_product();
 		$expected = $this->get_variation_ids( $variable );
 
 		update_option(
 			$this->option_name,
 			[
-				'product_ids' => [ $variable->get_id() ],
+				'product_ids'               => [ $variable->get_id() ],
+				'include_variable_products' => true,
 			]
 		);
 
@@ -358,7 +377,8 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		update_option(
 			$this->option_name,
 			[
-				'category_ids' => [ $cat['term_id'] ],
+				'category_ids'              => [ $cat['term_id'] ],
+				'include_variable_products' => true,
 			]
 		);
 
@@ -411,7 +431,12 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$this->assertSame( [ $simple->get_id() ], $filter->get_filtered_product_ids() );
 	}
 
-	public function test_get_filtered_product_ids_with_multiple_filter_types() {
+	/**
+	 * @dataProvider provide_include_variable_product_cases
+	 *
+	 * @param bool $include_variable_products
+	 */
+	public function test_get_filtered_product_ids_with_multiple_filter_types( bool $include_variable_products ) {
 		$brand_taxonomy_exists = taxonomy_exists( 'product_brand' );
 
 		$cat = $this->create_term( 'shoes', 'product_cat' );
@@ -421,8 +446,18 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$only_cat = $this->create_simple_product();
 		$only_tag = $this->create_simple_product();
 		$only_id  = $this->create_simple_product();
+		$variable = $this->create_variable_product();
 
-		$expected = [ $shared->get_id(), $only_cat->get_id(), $only_tag->get_id(), $only_id->get_id() ];
+		$expected = [
+			$shared->get_id(),
+			$only_cat->get_id(),
+			$only_tag->get_id(),
+			$only_id->get_id(),
+		];
+
+		if ( $include_variable_products ) {
+			$expected = array_merge( $expected, $this->get_variation_ids( $variable ) );
+		}
 
 		$brand_ids = [];
 		if ( $brand_taxonomy_exists ) {
@@ -450,10 +485,11 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$only_tag->save();
 
 		$option_data = [
-			'product_ids'  => [ $only_id->get_id(), $shared->get_id() ],
-			'category_ids' => [ $cat['term_id'] ],
-			'tag_ids'      => [ $tag['term_id'] ],
-			'brand_ids'    => $brand_ids,
+			'product_ids'               => [ $only_id->get_id(), $shared->get_id(), $variable->get_id() ],
+			'category_ids'              => [ $cat['term_id'] ],
+			'tag_ids'                   => [ $tag['term_id'] ],
+			'brand_ids'                 => $brand_ids,
+			'include_variable_products' => $include_variable_products,
 		];
 		update_option(
 			$this->option_name,
@@ -467,6 +503,19 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		sort( $expected );
 
 		$this->assertSame( $expected, $filtered_product_ids );
+	}
+
+	/**
+	 * Provide cases for the include_variable_products filter.
+	 *
+	 * @see test_get_filtered_product_ids_with_multiple_filter_types()
+	 * @return array<string, bool>
+	 */
+	public function provide_include_variable_product_cases(): array {
+		return [
+			'enabled'  => [ true ],
+			'disabled' => [ false ],
+		];
 	}
 
 	public function test_get_filtered_product_ids_returns_sentinel_when_configured_but_no_matches() {
