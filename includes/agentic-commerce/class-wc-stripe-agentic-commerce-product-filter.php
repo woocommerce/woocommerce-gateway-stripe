@@ -166,7 +166,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 				'return'  => 'ids',
 				'include' => $filters['product_ids'],
 			];
-			$product_ids      = wc_get_products( $product_id_query );
+			$product_ids      = (array) wc_get_products( $product_id_query );
 			$candidate_ids    = array_merge( $candidate_ids, $product_ids );
 		}
 
@@ -207,7 +207,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 				'tax_query' => $tax_query_clauses,
 			];
 
-			$tax_product_ids = wc_get_products( $tax_query_args );
+			$tax_product_ids = (array) wc_get_products( $tax_query_args );
 
 			$candidate_ids = array_merge( $candidate_ids, $tax_product_ids );
 		}
@@ -221,7 +221,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 
 		// We need to resolve variable products to their variations.
 		// First step is to identify which product IDs in our list are variable products.
-		$variable_product_ids = wc_get_products(
+		$variable_product_ids = (array) wc_get_products(
 			[
 				'status'  => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
 				'limit'   => -1,
@@ -244,7 +244,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 				'post_parent__in' => $variable_product_ids,
 			];
 
-			$variation_product_ids = wc_get_products( $variation_query );
+			$variation_product_ids = (array) wc_get_products( $variation_query );
 
 			$candidate_ids = array_merge( $candidate_ids, $variation_product_ids );
 		}
