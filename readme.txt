@@ -179,6 +179,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Remove - Remove deprecated code up to version 10.1.0
 * Dev - Add Jest tests for ECE payment flow
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
+* Fix - Fix admin banner dismissal and display logic
 * Add - Detect Stripe API outages (network failures, timeouts, 5xx responses) and surface a wp-admin notice instead of crashing or showing misleading "couldn't connect" messages
 * Dev - Add wc_stripe_agentic_commerce_should_sync_product filter so adapters can exclude products from the Agentic Commerce catalog, inventory, and archive syncs
 
