@@ -1359,7 +1359,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param WC_Order $order The order to recover the charge ID for.
 	 * @return string The recovered charge ID, or an empty string if it could not be recovered.
 	 */
-	private function recover_charge_id_from_intent( WC_Order $order ) {
+	private function recover_charge_id_from_intent( WC_Order $order ): string {
 		$intent = $this->get_intent_from_order( $order );
 
 		// Only payment intents carry a charge.
