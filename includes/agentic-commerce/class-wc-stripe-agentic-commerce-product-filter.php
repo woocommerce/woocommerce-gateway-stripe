@@ -206,9 +206,11 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 			$tax_query_clauses = [];
 			foreach ( $taxonomy_conditions as $taxonomy => $term_ids ) {
 				$tax_query_clauses[] = [
-					'taxonomy' => $taxonomy,
-					'field'    => 'term_id',
-					'terms'    => $term_ids,
+					'taxonomy'         => $taxonomy,
+					'field'            => 'term_id',
+					'terms'            => $term_ids,
+					'operator'         => 'IN',
+					'include_children' => false,
 				];
 			}
 			if ( count( $tax_query_clauses ) > 1 ) {
@@ -220,7 +222,8 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 				'status'    => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
 				'limit'     => -1,
 				'return'    => 'ids',
-				'tax_query' => $tax_query_clauses,
+				// Use a nested array to ensure our OR is properly encapsulated.
+				'tax_query' => [ $tax_query_clauses ], // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 			];
 
 			$tax_product_ids = (array) wc_get_products( $tax_query_args );
