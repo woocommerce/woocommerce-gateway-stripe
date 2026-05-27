@@ -45,6 +45,21 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_feed';
 
 	/**
+	 * Action Scheduler hook name for an immediate, one-off full resync.
+	 *
+	 * Distinct from {@see self::SCHEDULED_ACTION} on purpose: the recurring
+	 * cadence keeps a pending occurrence at all times, so reusing that hook for
+	 * the on-demand resync would make `as_has_scheduled_action()` always report
+	 * "already pending" and silently drop every immediate convergence request.
+	 * A separate hook lets us dedupe immediate resyncs against each other
+	 * without the recurring action masking them.
+	 *
+	 * @var string
+	 * @since 10.8.0
+	 */
+	const IMMEDIATE_SYNC_ACTION = 'wc_stripe_agentic_commerce_sync_feed_now';
+
+	/**
 	 * Option name to track whether the sync is scheduled.
 	 *
 	 * @var string
@@ -168,6 +183,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 */
 	public function register_hooks(): void {
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
+		add_action( self::IMMEDIATE_SYNC_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 
 		// Adapter-fired hook for converging Stripe's catalog when the
 		// `wc_stripe_agentic_commerce_should_sync_product` filter outcome changes.
@@ -186,10 +202,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Enqueue an immediate full-feed sync if one is not already pending.
 	 *
-	 * Idempotent: when a sync is already pending (recurring cron tick or a
-	 * previous call within the same request), this is a no-op. Adapters can
-	 * call it cheaply on every visibility-setting save without worrying about
-	 * stacking Action Scheduler entries.
+	 * Idempotent against other immediate resyncs only: when an immediate sync is
+	 * already queued (a previous call before Action Scheduler has drained it),
+	 * this is a no-op, so adapters can call it cheaply on every visibility-setting
+	 * save without stacking entries. It deliberately does NOT dedupe against the
+	 * recurring {@see self::SCHEDULED_ACTION}, which always has a pending
+	 * occurrence and is typically up to {@see self::SYNC_INTERVAL} away — letting
+	 * it suppress the immediate job would leave the catalog stale until the next
+	 * cron tick, defeating the purpose of converging on a visibility change.
 	 *
 	 * @since 10.8.0
 	 * @return void
@@ -199,11 +219,11 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		if ( as_has_scheduled_action( self::SCHEDULED_ACTION ) ) {
+		if ( as_has_scheduled_action( self::IMMEDIATE_SYNC_ACTION ) ) {
 			return;
 		}
 
-		as_enqueue_async_action( self::SCHEDULED_ACTION, [], 'wc-stripe' );
+		as_enqueue_async_action( self::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
 	}
 
 	/**
@@ -261,6 +281,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		}
 
 		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], 'wc-stripe' );
+		as_unschedule_all_actions( self::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
 		delete_option( self::SCHEDULED_OPTION );
 		delete_option( self::LAST_UPLOAD_OPTION );
 

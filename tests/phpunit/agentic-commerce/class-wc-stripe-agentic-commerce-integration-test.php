@@ -213,6 +213,9 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			has_action( 'wc_stripe_agentic_commerce_sync_feed', [ $integration, 'sync_feed' ] )
 		);
 		$this->assertNotFalse(
+			has_action( 'wc_stripe_agentic_commerce_sync_feed_now', [ $integration, 'sync_feed' ] )
+		);
+		$this->assertNotFalse(
 			has_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $integration, 'schedule_full_resync_now' ] )
 		);
 		$this->assertNotFalse(
@@ -227,31 +230,32 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Adapter-fired resync action must enqueue an async Action Scheduler job
-	 * the first time it fires, and become a no-op while that job is still
-	 * pending so repeated visibility-setting saves don't stack queue entries.
+	 * Adapter-fired resync action must enqueue an immediate async Action
+	 * Scheduler job the first time it fires, and become a no-op while that job
+	 * is still pending so repeated visibility-setting saves don't stack queue
+	 * entries.
 	 */
 	public function test_schedule_full_resync_now_enqueues_once_when_idle() {
 		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
 			$this->markTestSkipped( 'Action Scheduler not available.' );
 		}
 
-		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
 
 		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
 		$integration->register_hooks();
 
 		do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' );
 		$this->assertNotFalse(
-			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION ),
-			'First firing must enqueue an async sync.'
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::IMMEDIATE_SYNC_ACTION ),
+			'First firing must enqueue an immediate async sync.'
 		);
 
 		// Second firing while the first job is still pending must be a no-op —
 		// Action Scheduler would otherwise stack duplicate entries.
 		$pending_before = as_get_scheduled_actions(
 			[
-				'hook'   => \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION,
+				'hook'   => \WC_Stripe_Agentic_Commerce_Integration::IMMEDIATE_SYNC_ACTION,
 				'group'  => 'wc-stripe',
 				'status' => \ActionScheduler_Store::STATUS_PENDING,
 			],
@@ -260,7 +264,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' );
 		$pending_after = as_get_scheduled_actions(
 			[
-				'hook'   => \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION,
+				'hook'   => \WC_Stripe_Agentic_Commerce_Integration::IMMEDIATE_SYNC_ACTION,
 				'group'  => 'wc-stripe',
 				'status' => \ActionScheduler_Store::STATUS_PENDING,
 			],
@@ -273,7 +277,51 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		);
 
 		remove_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $integration, 'schedule_full_resync_now' ] );
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
+	}
+
+	/**
+	 * Regression: the recurring sync action keeps a pending occurrence at all
+	 * times once `activate()` has run, which is the normal feature-enabled
+	 * state. The immediate resync must still enqueue under those conditions —
+	 * deduping it against the recurring cadence would leave a just-excluded
+	 * product in Stripe's catalog until the next cron tick (up to SYNC_INTERVAL
+	 * away), which is exactly the staleness this path exists to prevent.
+	 */
+	public function test_schedule_full_resync_now_enqueues_when_recurring_already_scheduled() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
 		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
+
+		// Simulate the normal enabled state: a recurring sync is already pending.
+		as_schedule_recurring_action(
+			time(),
+			\WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL,
+			\WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION,
+			[],
+			'wc-stripe'
+		);
+		$this->assertNotFalse(
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION ),
+			'Test setup: recurring sync should be pending.'
+		);
+
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+		$integration->register_hooks();
+
+		do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' );
+
+		$this->assertNotFalse(
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::IMMEDIATE_SYNC_ACTION ),
+			'Immediate resync must enqueue even while the recurring sync is pending.'
+		);
+
+		remove_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $integration, 'schedule_full_resync_now' ] );
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
 	}
 
 	/**
