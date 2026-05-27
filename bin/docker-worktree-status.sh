@@ -39,24 +39,24 @@ printf "  ${BOLD}%-6s %-30s %-14s %s${NC}\n" "PORT" "URL" "STATUS" "NAME"
 
 orphan_containers=()
 
-for wt_path in "${worktrees[@]}"; do
-    wt_name=$(basename "$wt_path")
+for worktree_path in "${worktrees[@]}"; do
+    worktree_name=$(basename "$worktree_path")
     port=""
     status="no container"
     url="n/a"
     worktree_id=""
 
-    if [[ -f "$wt_path/.env" ]]; then
-        port=$(grep '^WORDPRESS_PORT=' "$wt_path/.env" 2>/dev/null | cut -d= -f2)
-        worktree_id=$(grep '^WORKTREE_ID=' "$wt_path/.env" 2>/dev/null | cut -d= -f2)
+    if [[ -f "$worktree_path/.env" ]]; then
+        port=$(grep '^WORDPRESS_PORT=' "$worktree_path/.env" 2>/dev/null | cut -d= -f2)
+        worktree_id=$(grep '^WORKTREE_ID=' "$worktree_path/.env" 2>/dev/null | cut -d= -f2)
     fi
 
     if [[ -z "$worktree_id" ]]; then
-        if [[ "$wt_path" == "$REPO_ROOT" ]]; then
+        if [[ "$worktree_path" == "$REPO_ROOT" ]]; then
             worktree_id="default"
             [[ -z "$port" ]] && port="8072"
         else
-            worktree_id=$(generate_worktree_id "$wt_name")
+            worktree_id=$(generate_worktree_id "$worktree_name")
         fi
     fi
 
@@ -70,29 +70,29 @@ for wt_path in "${worktrees[@]}"; do
 
     [[ -n "$port" ]] && url="http://localhost:$port"
 
-    display_name="$wt_name"
-    [[ "$wt_path" == "$REPO_ROOT" ]] && display_name="$wt_name (main)"
-    [[ "$wt_path" == "$CURRENT_DIR" ]] && display_name="* $display_name"
+    display_name="$worktree_name"
+    [[ "$worktree_path" == "$REPO_ROOT" ]] && display_name="$worktree_name (main)"
+    [[ "$worktree_path" == "$CURRENT_DIR" ]] && display_name="* $display_name"
 
     printf "  %-6s %-30s %-14s %s\n" "${port:-n/a}" "$url" "$status" "$display_name"
 done
 
 for container_name in $containers; do
     [[ -z "$container_name" ]] && continue
-    container_wt_id="${container_name#wcstripe_wp_}"
+    container_worktree_id="${container_name#wcstripe_wp_}"
     found=false
 
-    for wt_path in "${worktrees[@]}"; do
-        wt_name=$(basename "$wt_path")
-        if [[ -f "$wt_path/.env" ]]; then
-            wt_id=$(grep '^WORKTREE_ID=' "$wt_path/.env" 2>/dev/null | cut -d= -f2)
-            [[ -z "$wt_id" ]] && wt_id=$(generate_worktree_id "$wt_name")
-        elif [[ "$wt_path" == "$REPO_ROOT" ]]; then
-            wt_id="default"
+    for worktree_path in "${worktrees[@]}"; do
+        worktree_name=$(basename "$worktree_path")
+        if [[ -f "$worktree_path/.env" ]]; then
+            worktree_id=$(grep '^WORKTREE_ID=' "$worktree_path/.env" 2>/dev/null | cut -d= -f2)
+            [[ -z "$worktree_id" ]] && worktree_id=$(generate_worktree_id "$worktree_name")
+        elif [[ "$worktree_path" == "$REPO_ROOT" ]]; then
+            worktree_id="default"
         else
-            wt_id=$(generate_worktree_id "$wt_name")
+            worktree_id=$(generate_worktree_id "$worktree_name")
         fi
-        [[ "$container_wt_id" == "$wt_id" ]] && found=true && break
+        [[ "$container_worktree_id" == "$worktree_id" ]] && found=true && break
     done
 
     [[ "$found" == "false" ]] && orphan_containers+=("$container_name")
@@ -105,7 +105,7 @@ if [[ ${#orphan_containers[@]} -gt 0 ]]; then
         echo "  - Orphan container: $orphan (no matching worktree)"
     done
     echo ""
-    echo "  To clean up: docker stop <name> && docker rm <name>"
+    echo "  To clean up: docker rm -f ${orphan_containers[*]}"
 fi
 
 echo ""
