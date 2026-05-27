@@ -84,6 +84,11 @@ class WC_Stripe_Express_Checkout_Element {
 		// form submission, regardless of which page hook bootstrapped this class.
 		add_filter( 'woocommerce_subscription_note_new_payment_method_title', [ $this, 'filter_change_payment_method_note_title' ], 10, 3 );
 
+		// Add network and preload hints for express checkout resources.
+		// The hooks check whether express checkout will be shown, and are no-ops in other contexts.
+		add_filter( 'wp_resource_hints', [ $this, 'add_resource_hints' ], 10, 2 );
+		add_filter( 'wp_preload_resources', [ $this, 'add_preload_resources' ] );
+
 		// Change-payment uses WC Subscriptions' own template, so ride
 		// `before_woocommerce_pay` (the only action the gateway fires before it).
 		if ( $this->express_checkout_helper->is_change_payment_method_page() ) {
@@ -429,6 +434,86 @@ class WC_Stripe_Express_Checkout_Element {
 			$asset_data['version'],
 			true
 		);
+	}
+
+	/**
+	 * Append preconnect URLs for Stripe-owned hosts when the current page will render ECE.
+	 *
+	 * @param array  $urls          URLs that core has gathered for the relation type.
+	 * @param string $relation_type Resource hint relation ('preconnect', 'dns-prefetch', etc.).
+	 *
+	 * @return array
+	 */
+	public function add_resource_hints( $urls, $relation_type ) {
+		if ( 'preconnect' !== $relation_type ) {
+			return $urls;
+		}
+
+		if ( ! $this->express_checkout_helper->is_page_supported() ) {
+			return $urls;
+		}
+
+		if ( ! $this->express_checkout_helper->should_show_express_checkout_button() ) {
+			return $urls;
+		}
+
+		// `js.stripe.com` and `m.stripe.network` host cross-origin scripts/iframes, so the
+		// crossorigin attribute is required for the preconnected connection to be reused
+		// by the subsequent `<script>` and iframe fetches.
+		$urls[] = [
+			'href'        => 'https://js.stripe.com',
+			'crossorigin' => 'anonymous',
+		];
+		$urls[] = [
+			'href'        => 'https://m.stripe.network',
+			'crossorigin' => 'anonymous',
+		];
+		$urls[] = [
+			'href' => 'https://q.stripe.com',
+		];
+		$urls[] = [
+			'href'        => 'https://b.stripecdn.com',
+			'crossorigin' => 'anonymous',
+		];
+
+		return $urls;
+	}
+
+	/**
+	 * Append a preload entry for the Express Checkout bundle when ECE will render.
+	 *
+	 * Routed through the `wp_preload_resources` filter (WP 6.1+) so core handles the
+	 * `<link>` emission, attribute escaping, and deduplication. The hint lands in
+	 * `<head>` ahead of the footer enqueue, letting the browser's preload scanner
+	 * overlap the bundle fetch with the rest of `<head>` parsing.
+	 *
+	 * @param array $preload_resources Preload entries gathered by core.
+	 *
+	 * @return array
+	 */
+	public function add_preload_resources( $preload_resources ) {
+		if ( ! $this->express_checkout_helper->is_page_supported() ) {
+			return $preload_resources;
+		}
+
+		if ( ! $this->express_checkout_helper->should_show_express_checkout_button() ) {
+			return $preload_resources;
+		}
+
+		$asset_data = $this->get_asset_data();
+
+		if ( is_array( $asset_data ) && isset( $asset_data['version'] ) ) {
+			$preload_resources[] = [
+				'href' => add_query_arg(
+					'ver',
+					$asset_data['version'],
+					WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js'
+				),
+				'as'   => 'script',
+			];
+		}
+
+		return $preload_resources;
 	}
 
 	/**
