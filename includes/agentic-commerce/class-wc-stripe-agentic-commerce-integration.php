@@ -222,6 +222,27 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
+	 * Cancel any pending adapter-fired one-off resync.
+	 *
+	 * A full sync that has just run — e.g. a manual sync from the settings UI —
+	 * already produces a complete upload reflecting current visibility, so a
+	 * queued {@see self::schedule_full_resync_now()} action would only repeat
+	 * that work. It lives in {@see self::ASYNC_RESYNC_GROUP}, which the manual
+	 * sync's `wc-stripe`-group reschedule does not touch, so it must be cleared
+	 * explicitly. Idempotent: a no-op when nothing is queued.
+	 *
+	 * @since 10.8.0
+	 * @return void
+	 */
+	public function cancel_pending_full_resync(): void {
+		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+
+		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP );
+	}
+
+	/**
 	 * Adds the agentic `created_via` value to the WooCommerce allowlist so that
 	 * `WC_Order::payment_complete()` (WC 10.8+) does not block agentic orders.
 	 *

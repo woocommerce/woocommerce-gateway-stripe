@@ -397,6 +397,53 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * `cancel_pending_full_resync()` must drop a queued adapter-fired one-off
+	 * from the `wc-stripe-agentic-resync` group while leaving the recurring
+	 * full-feed occurrence in the `wc-stripe` group untouched. A manual sync
+	 * calls this so the redundant one-off does not fire right after, but it must
+	 * not collaterally cancel the recurring schedule the manual sync just reset.
+	 */
+	public function test_cancel_pending_full_resync_clears_only_the_resync_group() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' );
+
+		// Seed both groups: the recurring occurrence and the adapter-fired one-off.
+		as_schedule_recurring_action(
+			time() + HOUR_IN_SECONDS,
+			\WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL,
+			\WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION,
+			[],
+			'wc-stripe'
+		);
+		as_enqueue_async_action(
+			\WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION,
+			[],
+			'wc-stripe-agentic-resync'
+		);
+		$this->assertNotFalse(
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' ),
+			'Sanity: one-off resync must be pending before the cancel.'
+		);
+
+		( new \WC_Stripe_Agentic_Commerce_Integration() )->cancel_pending_full_resync();
+
+		$this->assertFalse(
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' ),
+			'cancel_pending_full_resync() must clear the one-off resync.'
+		);
+		$this->assertNotFalse(
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' ),
+			'The recurring wc-stripe occurrence must survive — only the resync group is cleared.'
+		);
+
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
+	}
+
+	/**
 	 * Test sync_feed skips when feature is disabled.
 	 *
 	 * @return void
