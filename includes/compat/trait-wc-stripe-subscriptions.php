@@ -322,21 +322,18 @@ trait WC_Stripe_Subscriptions_Trait {
 			// Create a setup intent, or update an existing one associated with the order.
 			$payment_intent = $this->process_setup_intent_for_order( $subscription, $payment_information );
 
-			// Handle saving the payment method in the store.
-			if ( $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
+			// Handle saving the payment method in the store. The token is linked to
+			// the subscription further down, in the no-confirmation branch only:
+			// when the intent still requires action (3DS), the confirmed token does
+			// not exist yet and is associated post-confirmation in
+			// WC_Stripe_Intent_Controller::confirm_change_payment_from_setup_intent_ajax().
+			$saved_payment_method_to_store = $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type();
+			if ( $saved_payment_method_to_store ) {
 				$this->handle_saving_payment_method(
 					$subscription,
 					$payment_information['payment_method_details'],
 					$selected_payment_type
 				);
-
-				// Link the new token to the subscription so My Account renders it.
-				if ( ! WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $payment_method_id ) ) {
-					throw new WC_Stripe_Exception(
-						'subscription_token_replace_failed',
-						__( "We can't process your payment method change at this time. Please try again later.", 'woocommerce-gateway-stripe' )
-					);
-				}
 			}
 
 			$redirect           = $this->get_return_url( $subscription );
@@ -371,6 +368,13 @@ trait WC_Stripe_Subscriptions_Trait {
 				// Attach the new payment method ID and the customer ID to the subscription on success.
 				$this->set_payment_method_id_for_subscription( $subscription, $payment_method_id );
 				$this->set_customer_id_for_subscription( $subscription, $payment_information['customer'] );
+
+				// Link the saved token to the subscription so My Account renders the
+				// new card. Best-effort: this only refreshes the saved-card display,
+				// so a miss must not fail the payment-method change itself.
+				if ( $saved_payment_method_to_store && ! WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $payment_method_id ) ) {
+					WC_Stripe_Logger::warning( 'Could not re-associate the saved token after change-payment for subscription: ' . $subscription_id );
+				}
 
 				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
 				do_action(
