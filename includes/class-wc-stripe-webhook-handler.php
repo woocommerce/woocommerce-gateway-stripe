@@ -1470,22 +1470,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Returns true when an orphaned-charge note has already been recorded for this PaymentIntent on
-	 * this order. Lets callers short-circuit expensive charge resolution before invoking
-	 *
-	 * @see flag_orphaned_payment_intent_on_order().
-	 *
-	 * @param WC_Order $order
-	 * @param string   $intent_id
-	 */
-	protected function has_orphan_charge_been_flagged( $order, $intent_id ): bool {
-		if ( '' === $intent_id ) {
-			return false;
-		}
-		return '' !== (string) $order->get_meta( '_stripe_orphan_charge_flagged_' . $intent_id );
-	}
-
-	/**
 	 * Convenience wrapper around @see flag_orphaned_payment_intent_on_order() that short-circuits
 	 * when the order is still paid via Stripe or the orphan has already been flagged for this intent.
 	 *
@@ -1504,7 +1488,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( ! $this->is_order_paid_via_non_stripe_gateway( $order ) ) {
 			return false;
 		}
-		if ( $this->has_orphan_charge_been_flagged( $order, $intent_id ) ) {
+		if ( '' !== (string) $order->get_meta( '_stripe_orphan_charge_flagged_' . $intent_id ) ) {
 			return false;
 		}
 		$this->flag_orphaned_payment_intent_on_order( $order, $intent_id, $intent, $charge, $webhook_type );
