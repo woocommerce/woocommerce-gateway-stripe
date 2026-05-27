@@ -14,6 +14,8 @@ To shut down:
 - `npm run infra:down` stops the shared database + phpMyAdmin
 - State is persisted in `docker/data` (database) and the shared Docker volumes (`wcstripe-plugins`, `wcstripe-themes`, `wcstripe-uploads`, `wcstripe-mu-plugins`). To start completely fresh, run `npm run infra:down`, then `docker volume rm wcstripe-plugins wcstripe-themes wcstripe-uploads wcstripe-mu-plugins`, then delete `docker/data`, then `npm run up:recreate`.
 
+The shared database uses `mariadb:11.4`. If `docker/data` was previously written by a different MariaDB major, delete it before the first `npm run up:recreate`. MariaDB cannot read a redo log written by a newer major version and the container will restart-loop on `Unsupported redo log format`.
+
 ## Git worktrees
 
 This plugin supports running multiple git worktrees in parallel — each worktree gets its own WordPress container on its own port, while sharing a single MariaDB instance and the `wp-content/{plugins,themes,uploads,mu-plugins}` directories via Docker volumes.

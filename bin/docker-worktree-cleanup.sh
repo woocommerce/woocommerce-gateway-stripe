@@ -17,7 +17,7 @@ if [[ -n "$GIT_DIR" && "$GIT_DIR" == "$GIT_COMMON_DIR" ]]; then
     echo "delete .env. To tear down the main checkout's docker state explicitly:"
     echo
     echo "  npm run down"
-    echo "  docker exec wcstripe_db mysql -uroot -pwordpress -e \\"
+    echo "  docker exec wcstripe_db mariadb -uroot -pwordpress -e \\"
     echo "    'DROP DATABASE IF EXISTS wcstripe_tests_default;'"
     echo "  rm .env"
     exit 1
@@ -40,10 +40,10 @@ npm run down
 TEST_DB_NAME="wcstripe_tests_${WORKTREE_ID}"
 if docker ps --format '{{.Names}}' | grep -q "wcstripe_db"; then
     echo "Checking for test database: ${TEST_DB_NAME}"
-    DB_EXISTS=$(docker exec wcstripe_db mysql -uroot -pwordpress -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '${TEST_DB_NAME}';" 2>/dev/null | grep -c "${TEST_DB_NAME}" || true)
+    DB_EXISTS=$(docker exec wcstripe_db mariadb -uroot -pwordpress -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '${TEST_DB_NAME}';" 2>/dev/null | grep -c "${TEST_DB_NAME}" || true)
     if [[ "$DB_EXISTS" -gt 0 ]]; then
         echo "Dropping test database: ${TEST_DB_NAME}"
-        docker exec wcstripe_db mysql -uroot -pwordpress -e "DROP DATABASE IF EXISTS \`${TEST_DB_NAME}\`;" 2>/dev/null
+        docker exec wcstripe_db mariadb -uroot -pwordpress -e "DROP DATABASE IF EXISTS \`${TEST_DB_NAME}\`;" 2>/dev/null
         echo "Test database dropped."
     else
         echo "No test database found for this worktree."
