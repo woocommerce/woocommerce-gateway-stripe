@@ -41,11 +41,18 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	 * Read the persisted option and apply the override filter.
 	 *
 	 * @since 10.8.0
-	 * @return array{product_ids: int[], category_ids: int[], tag_ids: int[], brand_ids: int[]}
+	 * @return array {
+	 *     @type int[] $product_ids               Product IDs.
+	 *     @type int[] $category_ids              Category taxonomy IDs.
+	 *     @type int[] $tag_ids                   Tag taxonomy IDs.
+	 *     @type int[] $brand_ids                 Brand taxonomy IDs.
+	 *     @type bool  $include_variable_products Whether to query for variable products, and then resolve
+	 *                                            them to their variations. Default false.
+	 * }
 	 */
 	public function get_filters(): array {
 		$stored  = get_option( self::OPTION_NAME, [] );
-		$filters = $this->normalize_option_data( is_array( $stored ) ? $stored : [] );
+		$filters = $this->normalize_filter_data( is_array( $stored ) ? $stored : [] );
 
 		/**
 		 * Filter the resolved set of filter inputs before resolution runs.
@@ -57,16 +64,20 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 		 * escape-hatch control over the final `wc_get_products()` arguments.
 		 *
 		 * @since 10.8.0
-		 * @param array{
-		 *     product_ids: int[],
-		 *     category_ids: int[],
-		 *     tag_ids: int[],
-		 *     brand_ids: int[],
-		 * } $filters Normalized filters derived from the persisted option.
+		 * @param array $filters {
+		 *     Normalized filters derived from the persisted option.
+		 *
+		 *     @type int[] $product_ids               Product IDs.
+		 *     @type int[] $category_ids              Category taxonomy IDs.
+		 *     @type int[] $tag_ids                   Tag taxonomy IDs.
+		 *     @type int[] $brand_ids                 Brand taxonomy IDs.
+		 *     @type bool  $include_variable_products Whether to query for variable products, and then resolve
+		 *                                            them to their variations. Default false.
+		 * }
 		 */
 		$filtered = apply_filters( 'wc_stripe_agentic_commerce_product_filter', $filters );
 
-		return $this->normalize_option_data( is_array( $filtered ) ? $filtered : [] );
+		return $this->normalize_filter_data( is_array( $filtered ) ? $filtered : [] );
 	}
 
 	/**
@@ -112,13 +123,16 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 			}
 		}
 
+		$include_variable_products = true === ( $filters['include_variable_products'] ?? false );
+
 		return update_option(
 			self::OPTION_NAME,
 			[
-				'product_ids'  => $product_ids,
-				'category_ids' => $category_ids,
-				'tag_ids'      => $tag_ids,
-				'brand_ids'    => $brand_ids,
+				'product_ids'               => $product_ids,
+				'category_ids'              => $category_ids,
+				'tag_ids'                   => $tag_ids,
+				'brand_ids'                 => $brand_ids,
+				'include_variable_products' => $include_variable_products,
 			],
 			false
 		);
@@ -268,6 +282,8 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	 * @return bool
 	 */
 	private function are_filters_empty( array $filters ): bool {
+		// Note that we don't check $filters['include_variable_products'] here,
+		// as it only applies when other filters are present.
 		return ( [] === $filters['product_ids'] )
 			&& ( [] === $filters['category_ids'] )
 			&& ( [] === $filters['tag_ids'] )
@@ -319,18 +335,26 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	}
 
 	/**
-	 * Normalize the data stores in the option.
+	 * Normalize the filter data, which may be stored in the option or provided by a filter.
 	 *
 	 * @since 10.8.0
 	 * @param array $raw The raw data stored in the option.
-	 * @return array{product_ids: int[], category_ids: int[], tag_ids: int[], brand_ids: int[]}
+	 * @return array {
+	 *     @type int[] $product_ids               Product IDs.
+	 *     @type int[] $category_ids              Category taxonomy IDs.
+	 *     @type int[] $tag_ids                   Tag taxonomy IDs.
+	 *     @type int[] $brand_ids                 Brand taxonomy IDs.
+	 *     @type bool  $include_variable_products Whether to query for variable products, and then resolve
+	 *                                            them to their variations. Default false.
+	 * }
 	 */
-	private function normalize_option_data( array $raw ): array {
+	private function normalize_filter_data( array $raw ): array {
 		return [
-			'product_ids'  => $this->normalize_ids( $raw['product_ids'] ?? [] ),
-			'category_ids' => $this->normalize_ids( $raw['category_ids'] ?? [] ),
-			'tag_ids'      => $this->normalize_ids( $raw['tag_ids'] ?? [] ),
-			'brand_ids'    => $this->normalize_ids( $raw['brand_ids'] ?? [] ),
+			'product_ids'               => $this->normalize_ids( $raw['product_ids'] ?? [] ),
+			'category_ids'              => $this->normalize_ids( $raw['category_ids'] ?? [] ),
+			'tag_ids'                   => $this->normalize_ids( $raw['tag_ids'] ?? [] ),
+			'brand_ids'                 => $this->normalize_ids( $raw['brand_ids'] ?? [] ),
+			'include_variable_products' => true === ( $raw['include_variable_products'] ?? false ),
 		];
 	}
 
