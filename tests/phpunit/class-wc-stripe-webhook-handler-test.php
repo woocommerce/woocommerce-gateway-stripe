@@ -340,6 +340,127 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Deferred webhook for an order that was already paid via a non-Stripe gateway should add an
+	 * order note flagging the orphaned charge and fire the `wc_stripe_deferred_orphaned_charge_detected`
+	 * action, while still preserving the silent skip (no payment processing).
+	 */
+	public function test_process_deferred_webhook_flags_orphan_when_order_paid_via_non_stripe_gateway() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->set_payment_method( 'klarna_payments' );
+		$order->set_payment_method_title( 'Klarna Payments' );
+		$order->set_currency( 'EUR' );
+		$order->save();
+
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$intent_obj   = (object) array_merge(
+			self::MOCK_PAYMENT_INTENT,
+			[
+				'amount'   => 19900,
+				'currency' => 'eur',
+			]
+		);
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => $intent_obj,
+			],
+		];
+
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'handle_deferred_payment_intent_succeeded' );
+
+		$this->mock_webhook_handler->expects( $this->once() )
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$captured = [];
+		$listener = function ( $hook_order, $hook_intent, $hook_charge, $hook_type ) use ( &$captured ) {
+			$captured[] = [
+				'order_id' => $hook_order instanceof WC_Order ? $hook_order->get_id() : null,
+				'intent'   => $hook_intent,
+				'charge'   => $hook_charge,
+				'type'     => $hook_type,
+			];
+		};
+		add_action( 'wc_stripe_deferred_orphaned_charge_detected', $listener, 10, 4 );
+
+		try {
+			$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+			$this->assertCount( 1, $captured );
+			$this->assertSame( $order->get_id(), $captured[0]['order_id'] );
+			$this->assertSame( self::MOCK_PAYMENT_INTENT['id'], $captured[0]['intent']->id );
+			$this->assertSame( self::MOCK_PAYMENT_INTENT['charges']['data'][0]['id'], $captured[0]['charge']->id );
+			$this->assertSame( 'payment_intent.succeeded', $captured[0]['type'] );
+
+			$notes = wc_get_order_notes(
+				[
+					'order_id' => $order->get_id(),
+					'limit'    => 1,
+				]
+			);
+			$this->assertNotEmpty( $notes );
+			$this->assertStringContainsString( self::MOCK_PAYMENT_INTENT['id'], $notes[0]->content );
+			$this->assertStringContainsString( self::MOCK_PAYMENT_INTENT['charges']['data'][0]['id'], $notes[0]->content );
+			$this->assertStringContainsString( 'Klarna Payments', $notes[0]->content );
+			$this->assertStringContainsString( 'dashboard.stripe.com', $notes[0]->content );
+		} finally {
+			remove_action( 'wc_stripe_deferred_orphaned_charge_detected', $listener, 10 );
+		}
+	}
+
+	/**
+	 * Deferred webhook for an order already paid via Stripe should keep silently skipping
+	 * (no orphan note, no action) — this is the normal post-sync-completion path.
+	 */
+	public function test_process_deferred_webhook_does_not_flag_when_order_paid_via_stripe() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->set_payment_method( 'stripe' );
+		$order->save();
+
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'handle_deferred_payment_intent_succeeded' );
+
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'get_latest_charge_from_intent' );
+
+		$notes_before = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+
+		$called   = 0;
+		$listener = function () use ( &$called ) {
+			++$called;
+		};
+		add_action( 'wc_stripe_deferred_orphaned_charge_detected', $listener );
+
+		try {
+			$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+			$this->assertSame( 0, $called );
+
+			$notes_after = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+			$this->assertCount( count( $notes_before ), $notes_after );
+		} finally {
+			remove_action( 'wc_stripe_deferred_orphaned_charge_detected', $listener );
+		}
+	}
+
+	/**
 	 * When no order is linked yet, checkout session success defers processing via Action Scheduler.
 	 *
 	 * @return void
