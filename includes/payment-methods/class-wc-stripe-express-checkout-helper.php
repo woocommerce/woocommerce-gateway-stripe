@@ -45,9 +45,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Request-scoped cache for `should_show_express_checkout_button()`.
 	 *
-	 * Keyed by whether we're inside the `woocommerce_after_add_to_cart_form` action,
-	 * because the One Page Checkout branch in `compute_should_show_express_checkout_button()`
-	 * consults `doing_action()` and would otherwise return stale answers across call sites.
+	 * Keys in the array capture specific contexts that may apply within a request.
+	 * Once such case is for handling One Page Checkout, which can affect when we are in checkout via runtime hooks.
 	 *
 	 * @var array<string, bool>
 	 */
@@ -756,7 +755,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  boolean  True if express checkout elements are supported on current page, false otherwise
 	 */
 	public function should_show_express_checkout_button() {
-		$cache_key = doing_action( 'woocommerce_after_add_to_cart_form' ) ? 'in_atc' : 'default';
+		// One Page Checkout can make a page act as a checkout page via runtime hooks.
+		// We need a separate cache key for that case to ensure we enable express checkout.
+		$cache_key = doing_action( 'woocommerce_after_add_to_cart_form' ) ? 'after_add_to_cart' : 'default';
 
 		if ( array_key_exists( $cache_key, $this->should_show_cache ) ) {
 			return $this->should_show_cache[ $cache_key ];
