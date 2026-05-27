@@ -1,11 +1,8 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.8.0
-<<<<<<< fix/clear-save-checkbox-on-non-reusable-method
 * Dev - Clear the save-payment-method checkbox state when Optimized Checkout hides it for a non-reusable sub-method, so the request body matches the UI
-=======
 * Fix - Preserve saved card branding when the same card is later used via a wallet, and render multi-word brands (e.g. Cartes Bancaires) correctly
->>>>>>> develop
 * Add - Show Apple Pay / Google Pay branding on saved card tokens in My Account → Payment Methods and at checkout
 * Add - Add a setting to control whether Express Checkout is shown on the WooCommerce Subscriptions change payment method page
 * Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Link)
