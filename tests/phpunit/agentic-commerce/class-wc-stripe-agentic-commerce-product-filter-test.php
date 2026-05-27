@@ -394,20 +394,6 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	}
 
 	public function test_get_filtered_product_ids_with_multiple_filter_types() {
-		//$this->assertFalse( true, 'This test is disabled because it is flaky.' );
-		$existing_products = wc_get_products(
-			[
-				'status' => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
-				'type'   => [
-					\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
-					\Automattic\WooCommerce\Enums\ProductType::VARIATION,
-					\Automattic\WooCommerce\Enums\ProductType::VARIABLE,
-				],
-				'limit'  => -1,
-				'return' => 'ids',
-			]
-		);
-
 		$brand_taxonomy_exists = taxonomy_exists( 'product_brand' );
 
 		$cat = $this->create_term( 'shoes', 'product_cat' );
@@ -461,32 +447,6 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$filtered_product_ids = $filter->get_filtered_product_ids();
 
 		sort( $expected );
-
-		$difference = array_diff( $filtered_product_ids, $expected );
-		if ( [] !== $difference && false ) {
-			$debug = [
-				'existing_products' => $existing_products,
-				'option_data'       => $option_data,
-				'filters'           => $filter->get_filters(),
-				'unexpected'        => [],
-			];
-			foreach ( $difference as $product_id ) {
-				$product               = wc_get_product( $product_id );
-				$debug['unexpected'][] = [
-					'product_id'            => $product_id,
-					'product_name'          => $product->get_name(),
-					'product_type'          => $product->get_type(),
-					'product_status'        => $product->get_status(),
-					'product_price'         => $product->get_price(),
-					'product_regular_price' => $product->get_regular_price(),
-					'product_category_ids'  => $product->get_category_ids(),
-					'product_tag_ids'       => $product->get_tag_ids(),
-					'product_brand_ids'     => $product->get_brand_ids(),
-				];
-			}
-
-			fwrite( STDERR, PHP_EOL . 'Unexpected product data: ' . PHP_EOL . json_encode( $debug, JSON_PRETTY_PRINT ) . PHP_EOL );
-		}
 
 		$this->assertSame( $expected, $filtered_product_ids );
 	}
