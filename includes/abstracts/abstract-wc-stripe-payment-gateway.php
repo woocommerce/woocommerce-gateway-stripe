@@ -660,6 +660,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				} else {
 					$order->payment_complete( $response->id );
 
+					// payment_complete() skips set_transaction_id() when the order is already in a
+					// paid status (e.g. express checkout orders, or a checkout/webhook race). Persist
+					// it explicitly so refunds, which rely on _transaction_id, work for these orders.
+					if ( ! $order->get_transaction_id() ) {
+						$order->set_transaction_id( $response->id );
+					}
+
 					/* translators: transaction id */
 					$message = sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $response->id );
 					if ( isset( $response->is_webhook_response ) ) {

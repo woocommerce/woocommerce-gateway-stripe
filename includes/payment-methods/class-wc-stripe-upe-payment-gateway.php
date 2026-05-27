@@ -1704,15 +1704,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 				if ( $charge ) {
 					$this->process_response( $charge, $order );
-
-					// process_response() stores the charge ID via payment_complete(), which skips
-					// set_transaction_id() when the order is already in a paid status (common for
-					// express checkout). Persist it explicitly so refunds, which rely on
-					// _transaction_id, work for these orders.
-					if ( $order instanceof WC_Order && ! empty( $charge->id ) && ! $order->get_transaction_id() ) {
-						$order->set_transaction_id( $charge->id );
-						$order->save();
-					}
 				}
 			}
 
