@@ -2,15 +2,8 @@
 /**
  * Product filter for the Agentic Commerce feed.
  *
- * Resolves a union (OR) of four input dimensions — explicit product IDs and
- * product category/tag/brand term slugs — into a flat list of WooCommerce
- * product IDs suitable for passing as `wc_get_products( 'include' => ... )`.
- * Variable products selected by any dimension are expanded to their variation
- * children; the variable parent itself is dropped because the feed only carries
- * `simple` and `variation` types.
- *
  * @package WooCommerce_Stripe
- * @since 10.9.0
+ * @since 10.8.0
  */
 
 declare(strict_types=1);
@@ -20,388 +13,335 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Resolves Agentic Commerce feed inputs into a WooCommerce product ID set.
+ * Manages filtering for the Agentic Commerce feed.
  *
- * @since 10.9.0
+ * @since 10.8.0
  */
 class WC_Stripe_Agentic_Commerce_Product_Filter {
 
 	/**
-	 * Single keyed option storing all four dimensions.
-	 *
-	 * Protected because the storage key is an implementation detail; external
-	 * callers should round-trip through {@see self::get_inputs()} and
-	 * {@see self::set_inputs()} rather than touching the raw option.
+	 * Single option storing all supported filter values.
 	 *
 	 * @var string
-	 * @since 10.9.0
+	 * @since 10.8.0
 	 */
 	protected const OPTION_NAME = 'wc_stripe_agentic_commerce_product_filters';
 
 	/**
-	 * Sentinel returned by {@see self::resolve_ids()} when filters are
-	 * configured but resolve to zero matching products.
-	 *
-	 * `wc_get_products( [ 'include' => [] ] )` is the WP/WC empty-array
-	 * footgun: passing an empty array is treated as "no filter" and returns
-	 * every product. Using `[0]` (a never-existing post ID) forces the data
-	 * store to return nothing instead, which lets the caller treat
-	 * "configured but no matches" as the merchant's intent.
+	 * Value returned by {@see self::get_filtered_product_ids()} to indicate no matching products.
+	 * Intentionally not [] as that is treated as "no filter" by the Agentic feed logic.
+	 * Uses 0 as the product ID to indicate a non-existent product ID should be matched.
 	 *
 	 * @var int[]
-	 * @since 10.9.0
+	 * @since 10.8.0
 	 */
 	private const EMPTY_RESOLUTION = [ 0 ];
 
 	/**
 	 * Read the persisted option and apply the override filter.
 	 *
-	 * @since 10.9.0
-	 * @return array{product_ids: int[], categories: string[], tags: string[], brands: string[]}
+	 * @since 10.8.0
+	 * @return array{product_ids: int[], category_ids: int[], tag_ids: int[], brand_ids: int[]}
 	 */
-	public function get_inputs(): array {
-		$stored = get_option( self::OPTION_NAME, [] );
-		$shape  = $this->coerce_shape( is_array( $stored ) ? $stored : [] );
+	public function get_filters(): array {
+		$stored  = get_option( self::OPTION_NAME, [] );
+		$filters = $this->normalize_option_data( is_array( $stored ) ? $stored : [] );
 
 		/**
-		 * Filter the resolved set of product-filter inputs before resolution runs.
+		 * Filter the resolved set of filter inputs before resolution runs.
 		 *
-		 * Use this to override the option-derived input set entirely or to patch
-		 * individual dimensions from code. The return value is coerced back into
-		 * the strict shape used by the resolver, so non-conforming entries are
-		 * dropped silently.
+		 * Note that data returned from this filter is still normalized, so will be dropped if it is invalid.
 		 *
 		 * The args produced by the resolver still pass through the lower-level
 		 * `wc_stripe_agentic_commerce_product_query_args` filter for full
 		 * escape-hatch control over the final `wc_get_products()` arguments.
 		 *
-		 * @since 10.9.0
+		 * @since 10.8.0
 		 * @param array{
 		 *     product_ids: int[],
-		 *     categories: string[],
-		 *     tags: string[],
-		 *     brands: string[],
-		 * } $shape Inputs derived from the persisted option.
+		 *     category_ids: int[],
+		 *     tag_ids: int[],
+		 *     brand_ids: int[],
+		 * } $filters Normalized filters derived from the persisted option.
 		 */
-		$filtered = apply_filters( 'wc_stripe_agentic_commerce_product_filters', $shape );
+		$filtered = apply_filters( 'wc_stripe_agentic_commerce_product_filters', $filters );
 
-		return $this->coerce_shape( is_array( $filtered ) ? $filtered : [] );
+		return $this->normalize_option_data( is_array( $filtered ) ? $filtered : [] );
 	}
 
 	/**
-	 * Persist a caller-supplied input set, normalizing IDs/slugs first.
+	 * Save a set of filters.
 	 *
-	 * Taxonomy dimensions accept a mix of int term IDs and string slugs;
-	 * normalization rewrites everything to slug strings (resolving term IDs
-	 * via `get_term()`) and drops entries that can't be resolved. After this
-	 * method returns, the stored option matches the strict shape returned by
-	 * {@see self::get_inputs()}.
+	 * Note that input data is normalized, resolved, and verified before being saved.
+	 * {@see self::get_filters()}.
 	 *
-	 * @since 10.9.0
-	 * @param array $raw Raw caller-supplied input. Unknown keys are ignored.
+	 * @since 10.8.0
+	 * @param array $filters Raw caller-supplied filters. Unknown keys are ignored.
 	 * @return bool True when the option was written successfully.
 	 */
-	public function set_inputs( array $raw ): bool {
-		$product_ids = isset( $raw['product_ids'] ) && is_array( $raw['product_ids'] )
-			? $this->normalize_product_ids( $raw['product_ids'] )
-			: [];
+	public function save_filters( array $filters ): bool {
+		$product_ids = [];
+		if ( is_array( $filters['product_ids'] ?? null ) ) {
+			$product_ids = $this->normalize_ids( $filters['product_ids'] );
+		}
 
-		$categories = isset( $raw['categories'] ) && is_array( $raw['categories'] )
-			? $this->normalize_taxonomy_input( $raw['categories'], 'product_cat' )
-			: [];
+		$category_ids = [];
+		if ( is_array( $filters['categories'] ?? null ) ) {
+			$category_ids = array_merge( $category_ids, $this->normalize_taxonomy_ids( $filters['categories'], 'product_cat' ) );
+		}
+		if ( is_array( $filters['category_ids'] ?? null ) ) {
+			$category_ids = array_merge( $category_ids, $this->normalize_taxonomy_ids( $filters['category_ids'], 'product_cat' ) );
+		}
 
-		$tags = isset( $raw['tags'] ) && is_array( $raw['tags'] )
-			? $this->normalize_taxonomy_input( $raw['tags'], 'product_tag' )
-			: [];
+		$tag_ids = [];
+		if ( is_array( $filters['tags'] ?? null ) ) {
+			$tag_ids = array_merge( $tag_ids, $this->normalize_taxonomy_ids( $filters['tags'], 'product_tag' ) );
+		}
+		if ( is_array( $filters['tag_ids'] ?? null ) ) {
+			$tag_ids = array_merge( $tag_ids, $this->normalize_taxonomy_ids( $filters['tag_ids'], 'product_tag' ) );
+		}
 
-		// Brand dimension silently drops when the taxonomy isn't registered on
-		// this site — matches the mapper's `taxonomy_exists` guard so we don't
-		// persist brand slugs that can never resolve.
-		$brands = taxonomy_exists( 'product_brand' ) && isset( $raw['brands'] ) && is_array( $raw['brands'] )
-			? $this->normalize_taxonomy_input( $raw['brands'], 'product_brand' )
-			: [];
+		// Only add brand filters when the product brand taxonomy is registered.
+		$brand_ids = [];
+		if ( taxonomy_exists( 'product_brand' ) ) {
+			if ( is_array( $filters['brands'] ?? null ) ) {
+				$brand_ids = array_merge( $brand_ids, $this->normalize_taxonomy_ids( $filters['brands'], 'product_brand' ) );
+			}
+			if ( is_array( $filters['brand_ids'] ?? null ) ) {
+				$brand_ids = array_merge( $brand_ids, $this->normalize_taxonomy_ids( $filters['brand_ids'], 'product_brand' ) );
+			}
+		}
 
 		return update_option(
 			self::OPTION_NAME,
 			[
-				'product_ids' => $product_ids,
-				'categories'  => $categories,
-				'tags'        => $tags,
-				'brands'      => $brands,
+				'product_ids'  => $product_ids,
+				'category_ids' => $category_ids,
+				'tag_ids'      => $tag_ids,
+				'brand_ids'    => $brand_ids,
 			],
 			false
 		);
 	}
 
 	/**
-	 * True when any dimension is non-empty after option read + override filter.
+	 * Indicate whether we have any filters defined.
+	 * {@see self::get_filters()}
 	 *
-	 * @since 10.9.0
+	 * @since 10.8.0
 	 * @return bool
 	 */
-	public function is_configured(): bool {
-		$inputs = $this->get_inputs();
-		return ! empty( $inputs['product_ids'] )
-			|| ! empty( $inputs['categories'] )
-			|| ! empty( $inputs['tags'] )
-			|| ! empty( $inputs['brands'] );
+	public function has_filters(): bool {
+		$filters = $this->get_filters();
+		return ! $this->are_filters_empty( $filters );
 	}
 
 	/**
-	 * Resolve the union of all configured dimensions to a product ID set.
+	 * Get the set of product IDs product by ORing all configured filters.
+	 * Note that only simple and variation products are returned.
 	 *
-	 * Variable products selected by any dimension expand to their variation
-	 * children and the parent is dropped — only `simple` and `variation` types
-	 * are returned, matching the feed's supported types. Returns
-	 * {@see self::EMPTY_RESOLUTION} (`[0]`) when filters are configured but
-	 * the union is empty, so callers can pass the result as
-	 * `wc_get_products()`'s `include` without tripping the empty-array footgun.
+	 * Returns {@see self::EMPTY_RESOLUTION} (`[0]`) when the result is empty.
 	 *
-	 * @since 10.9.0
-	 * @return int[] Sorted, deduplicated list of product IDs.
+	 * @since 10.8.0
+	 * @return int[] List of product IDs.
 	 */
-	public function resolve_ids(): array {
-		$inputs = $this->get_inputs();
+	public function get_filtered_product_ids(): array {
+		$filters = $this->get_filters();
 
-		$union = [];
-
-		if ( ! empty( $inputs['product_ids'] ) ) {
-			$union = array_merge( $union, $this->resolve_by_ids( $inputs['product_ids'] ) );
-		}
-		if ( ! empty( $inputs['categories'] ) ) {
-			$union = array_merge( $union, $this->resolve_by_taxonomy( 'product_cat', $inputs['categories'] ) );
-		}
-		if ( ! empty( $inputs['tags'] ) ) {
-			$union = array_merge( $union, $this->resolve_by_taxonomy( 'product_tag', $inputs['tags'] ) );
-		}
-		if ( ! empty( $inputs['brands'] ) && taxonomy_exists( 'product_brand' ) ) {
-			$union = array_merge( $union, $this->resolve_by_taxonomy( 'product_brand', $inputs['brands'] ) );
-		}
-
-		if ( empty( $union ) ) {
+		if ( $this->are_filters_empty( $filters ) ) {
 			return self::EMPTY_RESOLUTION;
 		}
 
-		$union = array_values( array_unique( array_map( 'intval', $union ) ) );
-		sort( $union );
+		$candidate_ids = [];
 
-		return $union;
-	}
-
-	/**
-	 * Expand an explicit product-ID input into the set of feed-eligible IDs.
-	 *
-	 * Simple and variation IDs survive as-is. Variable parent IDs are expanded
-	 * to their variation children and dropped. Grouped/external IDs match
-	 * neither query inside {@see self::expand_variables()} and fall away.
-	 *
-	 * @since 10.9.0
-	 * @param int[] $ids Caller-supplied product IDs (already normalized).
-	 * @return int[]
-	 */
-	private function resolve_by_ids( array $ids ): array {
-		if ( empty( $ids ) ) {
-			return [];
-		}
-		return $this->expand_variables( $ids );
-	}
-
-	/**
-	 * Resolve a taxonomy dimension (slugs) to feed-eligible product IDs.
-	 *
-	 * Uses `wc_get_products()`'s native `category` and `tag` slug-array keys
-	 * for the standard WooCommerce taxonomies; falls back to an explicit
-	 * `tax_query` with `field => 'slug'` for `product_brand`. The matched
-	 * parent posts go through {@see self::expand_variables()} so variable
-	 * parents become their variation children.
-	 *
-	 * @since 10.9.0
-	 * @param string   $taxonomy Taxonomy slug (`product_cat`, `product_tag`, `product_brand`).
-	 * @param string[] $slugs    Term slugs (already normalized).
-	 * @return int[]
-	 */
-	private function resolve_by_taxonomy( string $taxonomy, array $slugs ): array {
-		if ( empty( $slugs ) ) {
-			return [];
+		if ( [] !== $filters['product_ids'] ) {
+			$product_id_query = [
+				'status'  => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+				'type'    => [
+					\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
+					\Automattic\WooCommerce\Enums\ProductType::VARIATION,
+					\Automattic\WooCommerce\Enums\ProductType::VARIABLE,
+				],
+				'limit'   => -1,
+				'return'  => 'ids',
+				'include' => $filters['product_ids'],
+			];
+			$product_ids      = wc_get_products( $product_id_query );
+			$candidate_ids    = array_merge( $candidate_ids, $product_ids );
 		}
 
-		$base_args = [
-			'status' => [ 'publish' ],
-			'limit'  => -1,
-			'return' => 'ids',
-		];
-
-		if ( 'product_cat' === $taxonomy ) {
-			$args = array_merge( $base_args, [ 'category' => $slugs ] );
-		} elseif ( 'product_tag' === $taxonomy ) {
-			$args = array_merge( $base_args, [ 'tag' => $slugs ] );
-		} else {
-			$args = array_merge(
-				$base_args,
-				[
-					'tax_query' => [ // phpcs:ignore WordPress.DB.SlowDB.slow_db_query_tax_query -- Bounded by user-supplied slug list.
-						[
-							'taxonomy' => $taxonomy,
-							'field'    => 'slug',
-							'terms'    => $slugs,
-						],
-					],
-				]
-			);
+		// Consolidate the taxonomy conditions so we can run a single query for them.
+		$taxonomy_conditions = [];
+		if ( [] !== $filters['category_ids'] ) {
+			$taxonomy_conditions['product_cat'] = $filters['category_ids'];
+		}
+		if ( [] !== $filters['tag_ids'] ) {
+			$taxonomy_conditions['product_tag'] = $filters['tag_ids'];
+		}
+		if ( [] !== $filters['brand_ids'] && taxonomy_exists( 'product_brand' ) ) {
+			$taxonomy_conditions['product_brand'] = $filters['brand_ids'];
 		}
 
-		$matched = wc_get_products( $args );
-		if ( ! is_array( $matched ) || empty( $matched ) ) {
-			return [];
+		if ( [] !== $taxonomy_conditions ) {
+			$tax_query_clauses = [];
+			foreach ( $taxonomy_conditions as $taxonomy => $term_ids ) {
+				$tax_query_clauses[] = [
+					'taxonomy' => $taxonomy,
+					'field'    => 'term_id',
+					'terms'    => $term_ids,
+				];
+			}
+			if ( count( $tax_query_clauses ) > 1 ) {
+				$tax_query_clauses['relation'] = 'OR';
+			}
+
+			$tax_query_args = [
+				'type'      => [
+					\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
+					\Automattic\WooCommerce\Enums\ProductType::VARIATION,
+					\Automattic\WooCommerce\Enums\ProductType::VARIABLE,
+				],
+				'status'    => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+				'limit'     => -1,
+				'return'    => 'ids',
+				'tax_query' => $tax_query_clauses,
+			];
+
+			$tax_product_ids = wc_get_products( $tax_query_args );
+
+			$candidate_ids = array_merge( $candidate_ids, $tax_product_ids );
 		}
 
-		return $this->expand_variables( array_map( 'intval', $matched ) );
-	}
+		$candidate_ids = array_unique( array_map( 'intval', $candidate_ids ) );
+		$candidate_ids = array_values( array_filter( $candidate_ids ) );
 
-	/**
-	 * Batched variable→variation expansion for a candidate ID set.
-	 *
-	 * Strategy:
-	 *  1. Keep simple/variation IDs from the candidate set as-is.
-	 *  2. Find variable parents in the candidate set and pull their variation
-	 *     children with a single follow-up query.
-	 *  3. Union the two lists and dedupe.
-	 *
-	 * Grouped/external products in the candidate set match neither query and
-	 * fall away — they're not feed-eligible anyway. Two-to-three bounded
-	 * `wc_get_products()` calls keeps memory and round-trip cost predictable
-	 * even for large candidate sets.
-	 *
-	 * @since 10.9.0
-	 * @param int[] $candidate_ids
-	 * @return int[]
-	 */
-	private function expand_variables( array $candidate_ids ): array {
-		if ( empty( $candidate_ids ) ) {
-			return [];
+		if ( [] == $candidate_ids ) {
+			return self::EMPTY_RESOLUTION;
 		}
 
-		$base = [
-			'status'  => [ 'publish' ],
-			'limit'   => -1,
-			'return'  => 'ids',
-			'include' => $candidate_ids,
-		];
-
-		$leaves = wc_get_products(
-			array_merge( $base, [ 'type' => [ 'simple', 'variation' ] ] )
+		// We need to resolve variable products to their variations.
+		// First step is to identify which product IDs in our list are variable products.
+		$variable_product_ids = wc_get_products(
+			[
+				'status'  => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+				'limit'   => -1,
+				'return'  => 'ids',
+				'type'    => [ \Automattic\WooCommerce\Enums\ProductType::VARIABLE ],
+				'include' => $candidate_ids,
+			]
 		);
-		$leaves = is_array( $leaves ) ? array_map( 'intval', $leaves ) : [];
 
-		$variable_parents = wc_get_products(
-			array_merge( $base, [ 'type' => 'variable' ] )
-		);
-		$variable_parents = is_array( $variable_parents ) ? array_map( 'intval', $variable_parents ) : [];
+		if ( [] !== $variable_product_ids ) {
+			// We have some variable products, so let's remove them from $candidate_ids and then find the child variations.
+			$candidate_ids = array_diff( $candidate_ids, $variable_product_ids );
 
-		$children = [];
-		if ( ! empty( $variable_parents ) ) {
-			$children = wc_get_products(
-				[
-					'status' => [ 'publish' ],
-					'limit'  => -1,
-					'return' => 'ids',
-					'type'   => 'variation',
-					'parent' => $variable_parents,
-				]
-			);
-			$children = is_array( $children ) ? array_map( 'intval', $children ) : [];
+			$variation_query = [
+				'status'          => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+				'limit'           => -1,
+				'return'          => 'ids',
+				'type'            => [ \Automattic\WooCommerce\Enums\ProductType::VARIATION ],
+				// WooCommerce doesn't have a mapped keyword for parent product IDs, so we use the WordPress post_parent__in.
+				'post_parent__in' => $variable_product_ids,
+			];
+
+			$variation_product_ids = wc_get_products( $variation_query );
+
+			$candidate_ids = array_merge( $candidate_ids, $variation_product_ids );
 		}
 
-		return array_values( array_unique( array_merge( $leaves, $children ) ) );
+		$candidate_ids = array_values( array_unique( $candidate_ids ) );
+
+		if ( [] == $candidate_ids ) {
+			return self::EMPTY_RESOLUTION;
+		}
+
+		sort( $candidate_ids );
+
+		return $candidate_ids;
 	}
 
 	/**
-	 * Normalize a caller-supplied product-ID list.
+	 * Indicate whether the supplied filters are empty.
 	 *
-	 * Casts numeric values to int, drops `<= 0`, dedupes.
+	 * @since 10.8.0
+	 * @param array $filters
+	 * @return bool
+	 */
+	private function are_filters_empty( array $filters ): bool {
+		return ( [] === $filters['product_ids'] )
+			&& ( [] === $filters['category_ids'] )
+			&& ( [] === $filters['tag_ids'] )
+			&& ( [] === $filters['brand_ids'] );
+	}
+
+	/**
+	 * Normalize an array of taxonomy IDs and slugs to an array of term IDs.
 	 *
-	 * @since 10.9.0
-	 * @param array $raw
+	 * Empty values are dropped and string terms are trimmed. Term slugs are
+	 * resolved to term IDs via `get_term_by()` -- unknown term slugs are removed.
+	 *
+	 * @since 10.8.0
+	 * @param array  $values   Array of taxonomy IDs and/or slugs.
+	 * @param string $taxonomy Taxonomy slug.
 	 * @return int[]
 	 */
-	private function normalize_product_ids( array $raw ): array {
+	private function normalize_taxonomy_ids( array $values, string $taxonomy ): array {
 		$out = [];
-		foreach ( $raw as $value ) {
-			if ( ! is_numeric( $value ) ) {
-				continue;
-			}
-			$id = (int) $value;
-			if ( $id <= 0 ) {
-				continue;
-			}
-			$out[] = $id;
-		}
-		return array_values( array_unique( $out ) );
-	}
-
-	/**
-	 * Normalize a caller-supplied taxonomy input to slug strings.
-	 *
-	 * Strings are trimmed and any empty values are dropped. Int term IDs are
-	 * resolved to slugs via `get_term()`; unknown term IDs fall away.
-	 *
-	 * @since 10.9.0
-	 * @param array  $raw
-	 * @param string $taxonomy
-	 * @return string[]
-	 */
-	private function normalize_taxonomy_input( array $raw, string $taxonomy ): array {
-		$out = [];
-		foreach ( $raw as $value ) {
-			if ( is_string( $value ) ) {
-				$value = trim( $value );
-				if ( '' === $value ) {
-					continue;
-				}
-				$out[] = $value;
-				continue;
-			}
-			if ( is_numeric( $value ) ) {
+		foreach ( $values as $value ) {
+			if ( ctype_digit( $value ) ) {
 				$term_id = (int) $value;
 				if ( $term_id <= 0 ) {
 					continue;
 				}
 				$term = get_term( $term_id, $taxonomy );
 				if ( $term instanceof WP_Term ) {
-					$out[] = $term->slug;
+					$out[] = $term->term_id;
 				}
+
+				continue;
+			}
+
+			if ( is_string( $value ) ) {
+				$value = trim( $value );
+				if ( '' === $value ) {
+					continue;
+				}
+				$term = get_term_by( 'slug', $value, $taxonomy );
+				if ( $term instanceof WP_Term ) {
+					$out[] = $term->term_id;
+				}
+
+				continue;
 			}
 		}
+
 		return array_values( array_unique( $out ) );
 	}
 
 	/**
-	 * Coerce a possibly-malformed shape (hand-edited option, filter return,
-	 * etc.) into the strict shape used by the resolver. Missing keys default
-	 * to empty arrays, non-array dimension values are dropped, non-numeric
-	 * product IDs are dropped, and non-string taxonomy values are dropped.
+	 * Normalize the data stores in the option.
 	 *
-	 * @since 10.9.0
-	 * @param array $raw
-	 * @return array{product_ids: int[], categories: string[], tags: string[], brands: string[]}
+	 * @since 10.8.0
+	 * @param array $raw The raw data stored in the option.
+	 * @return array{product_ids: int[], category_ids: int[], tag_ids: int[], brand_ids: int[]}
 	 */
-	private function coerce_shape( array $raw ): array {
+	private function normalize_option_data( array $raw ): array {
 		return [
-			'product_ids' => $this->coerce_ids( $raw['product_ids'] ?? [] ),
-			'categories'  => $this->coerce_strings( $raw['categories'] ?? [] ),
-			'tags'        => $this->coerce_strings( $raw['tags'] ?? [] ),
-			'brands'      => $this->coerce_strings( $raw['brands'] ?? [] ),
+			'product_ids'  => $this->normalize_ids( $raw['product_ids'] ?? [] ),
+			'category_ids' => $this->normalize_ids( $raw['category_ids'] ?? [] ),
+			'tag_ids'      => $this->normalize_ids( $raw['tag_ids'] ?? [] ),
+			'brand_ids'    => $this->normalize_ids( $raw['brand_ids'] ?? [] ),
 		];
 	}
 
 	/**
-	 * Coerce a possibly-malformed value to int[] — drop non-numerics and `<= 0`.
+	 * Normalize a possibly-malformed value to int[] — drop non-numerics and `<= 0`.
 	 *
-	 * @since 10.9.0
+	 * @since 10.8.0
 	 * @param mixed $value
 	 * @return int[]
 	 */
-	private function coerce_ids( $value ): array {
+	private function normalize_ids( $value ): array {
 		if ( ! is_array( $value ) ) {
 			return [];
 		}
@@ -415,31 +355,6 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 				continue;
 			}
 			$out[] = $id;
-		}
-		return array_values( array_unique( $out ) );
-	}
-
-	/**
-	 * Coerce a possibly-malformed value to string[] — drop non-strings and empties.
-	 *
-	 * @since 10.9.0
-	 * @param mixed $value
-	 * @return string[]
-	 */
-	private function coerce_strings( $value ): array {
-		if ( ! is_array( $value ) ) {
-			return [];
-		}
-		$out = [];
-		foreach ( $value as $entry ) {
-			if ( ! is_string( $entry ) ) {
-				continue;
-			}
-			$entry = trim( $entry );
-			if ( '' === $entry ) {
-				continue;
-			}
-			$out[] = $entry;
 		}
 		return array_values( array_unique( $out ) );
 	}

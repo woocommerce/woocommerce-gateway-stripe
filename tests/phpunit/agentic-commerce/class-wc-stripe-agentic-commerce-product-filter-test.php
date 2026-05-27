@@ -36,6 +36,29 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	 */
 	private array $created_products = [];
 
+	public static function set_up_before_class(): void {
+		parent::set_up_before_class();
+
+		// Ensure that all existing products are deleted before the test suite runs,
+		// as we need control over the products for tests that run queries.
+		$existing_products = wc_get_products(
+			[
+				'status' => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+				'type'   => [
+					\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
+					\Automattic\WooCommerce\Enums\ProductType::VARIATION,
+					\Automattic\WooCommerce\Enums\ProductType::VARIABLE,
+				],
+				'limit'  => -1,
+				'return' => 'ids',
+			]
+		);
+
+		foreach ( $existing_products as $product_id ) {
+			WC_Helper_Product::delete_product( $product_id );
+		}
+	}
+
 	public function setUp(): void {
 		parent::setUp();
 
@@ -67,37 +90,37 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------------
-	// is_configured / get_inputs / set_inputs round-tripping
+	// has_filters / get_filters / save_filters round-tripping
 	// -----------------------------------------------------------------------
 
-	public function test_is_configured_is_false_when_no_option_set() {
+	public function test_has_filters_is_false_when_no_option_set() {
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$this->assertFalse( $filter->is_configured() );
+		$this->assertFalse( $filter->has_filters() );
 	}
 
-	public function test_get_inputs_returns_strict_empty_shape_by_default() {
-		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$inputs = $filter->get_inputs();
+	public function test_get_filters_returns_empty_shape_by_default() {
+		$filter  = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		$filters = $filter->get_filters();
 
 		$this->assertSame(
 			[
-				'product_ids' => [],
-				'categories'  => [],
-				'tags'        => [],
-				'brands'      => [],
+				'product_ids'  => [],
+				'category_ids' => [],
+				'tag_ids'      => [],
+				'brand_ids'    => [],
 			],
-			$inputs
+			$filters
 		);
 	}
 
-	public function test_set_inputs_stores_normalized_shape() {
+	public function test_save_filters_stores_normalized_shape() {
 		$cat   = $this->create_term( 'shoes', 'product_cat' );
 		$tag   = $this->create_term( 'on-sale', 'product_tag' );
 		$brand = $this->create_term( 'nike', 'product_brand' );
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 		$this->assertTrue(
-			$filter->set_inputs(
+			$filter->save_filters(
 				[
 					'product_ids' => [ 123, '456', 0, -1, 'abc' ],
 					'categories'  => [ $cat['term_id'], 'shoes', '' ],
@@ -110,41 +133,43 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$stored = get_option( $this->option_name );
 		$this->assertSame(
 			[
-				'product_ids' => [ 123, 456 ],
-				'categories'  => [ 'shoes' ],
-				'tags'        => [ 'on-sale' ],
-				'brands'      => [ 'nike' ],
+				'product_ids'  => [ 123, 456 ],
+				'category_ids' => [ $cat['term_id'] ],
+				'tag_ids'      => [ $tag['term_id'] ],
+				'brand_ids'    => [ $brand['term_id'] ],
 			],
 			$stored
 		);
 	}
 
-	public function test_set_inputs_drops_unknown_term_ids_silently() {
+	public function test_save_filters_drops_unknown_terms_silently() {
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$filter->set_inputs(
+		$filter->save_filters(
 			[
-				'categories' => [ 9999999, 'real-slug', 'real-slug' ],
+				'categories' => [ 9999999, 'bad-slug' ],
+				'tags'       => [ 9999999, 'bad-tag' ],
 			]
 		);
 
 		$stored = get_option( $this->option_name );
-		$this->assertSame( [ 'real-slug' ], $stored['categories'] );
+		$this->assertSame( [], $stored['category_ids'] );
+		$this->assertSame( [], $stored['tag_ids'] );
 	}
 
-	public function test_set_inputs_silently_drops_brands_when_taxonomy_missing() {
+	public function test_save_filters_silently_drops_brands_when_taxonomy_missing() {
 		if ( taxonomy_exists( 'product_brand' ) ) {
 			$this->markTestSkipped( 'product_brand taxonomy is registered on this environment.' );
 		}
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$filter->set_inputs(
+		$filter->save_filters(
 			[
-				'brands' => [ 'nike', 42 ],
+				'brand_ids' => [ 'nike', 9999999 ],
 			]
 		);
 
 		$stored = get_option( $this->option_name );
-		$this->assertSame( [], $stored['brands'] );
+		$this->assertSame( [], $stored['brand_ids'] );
 	}
 
 	/**
@@ -152,19 +177,19 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	 *
 	 * @param mixed $stored Whatever ended up in the option.
 	 */
-	public function test_get_inputs_coerces_corrupt_option_to_strict_shape( $stored ) {
+	public function test_get_filters_coerces_corrupt_option_to_strict_shape( $stored ) {
 		update_option( $this->option_name, $stored );
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 
 		$this->assertSame(
 			[
-				'product_ids' => [],
-				'categories'  => [],
-				'tags'        => [],
-				'brands'      => [],
+				'product_ids'  => [],
+				'category_ids' => [],
+				'tag_ids'      => [],
+				'brand_ids'    => [],
 			],
-			$filter->get_inputs()
+			$filter->get_filters()
 		);
 	}
 
@@ -175,25 +200,31 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 			'only unrelated keys'        => [ [ 'foo' => 'bar' ] ],
 			'non-array dimension values' => [
 				[
-					'product_ids' => 'oops',
-					'categories'  => 42,
-					'tags'        => null,
-					'brands'      => false,
+					'product_ids'  => 'oops',
+					'categories'   => 42,
+					'category_ids' => null,
+					'tags'         => null,
+					'tag_ids'      => 43,
+					'brands'       => false,
+					'brand_ids'    => true,
 				],
 			],
 			'non-scalar entries'         => [
 				[
-					'product_ids' => [ [ 'nested' ], (object) [ 'x' => 1 ] ],
-					'categories'  => [ 7, false, null ],
-					'tags'        => [ '', '   ' ],
-					'brands'      => [ [] ],
+					'product_ids'  => [ [ 'nested' ], (object) [ 'x' => 1 ] ],
+					'categories'   => [ 'test-invalid-slug', false, null ],
+					'category_ids' => [ 'some-invalid-slug', false, null ],
+					'tags'         => [ '', '   ' ],
+					'tag_ids'      => [ '', '   ' ],
+					'brands'       => [ [] ],
+					'brand_ids'    => [ [] ],
 				],
 			],
 		];
 	}
 
 	// -----------------------------------------------------------------------
-	// is_configured detection per dimension
+	// has_filters detection per dimension
 	// -----------------------------------------------------------------------
 
 	/**
@@ -206,24 +237,24 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		update_option( $this->option_name, $stored_shape );
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$this->assertSame( $expected, $filter->is_configured() );
+		$this->assertSame( $expected, $filter->has_filters() );
 	}
 
 	public function provide_is_configured_scenarios(): array {
 		return [
-			'all empty'       => [ [], false ],
-			'product_ids set' => [ [ 'product_ids' => [ 42 ] ], true ],
-			'categories set'  => [ [ 'categories' => [ 'shoes' ] ], true ],
-			'tags set'        => [ [ 'tags' => [ 'on-sale' ] ], true ],
-			'brands set'      => [ [ 'brands' => [ 'nike' ] ], true ],
+			'all empty'        => [ [], false ],
+			'product_ids set'  => [ [ 'product_ids' => [ 42 ] ], true ],
+			'category_ids set' => [ [ 'category_ids' => [ 42 ] ], true ],
+			'tag_ids set'      => [ [ 'tag_ids' => [ 42 ] ], true ],
+			'brand_ids set'    => [ [ 'brand_ids' => [ 42 ] ], true ],
 		];
 	}
 
 	// -----------------------------------------------------------------------
-	// resolve_ids per dimension
+	// get_filtered_product_ids
 	// -----------------------------------------------------------------------
 
-	public function test_resolve_ids_explicit_product_ids() {
+	public function test_get_filtered_product_ids_explicit_product_ids() {
 		$simple = $this->create_simple_product();
 
 		update_option(
@@ -234,10 +265,10 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		);
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$this->assertSame( [ $simple->get_id() ], $filter->resolve_ids() );
+		$this->assertSame( [ $simple->get_id() ], $filter->get_filtered_product_ids() );
 	}
 
-	public function test_resolve_ids_explicit_product_ids_drops_grouped() {
+	public function test_get_filtered_product_ids_explicit_product_ids_drops_grouped() {
 		$grouped                  = WC_Helper_Product::create_grouped_product();
 		$this->created_products[] = $grouped->get_id();
 		foreach ( $grouped->get_children() as $child_id ) {
@@ -255,10 +286,10 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 
 		// Grouped parent itself isn't simple/variation/variable, so it falls away.
 		// Its children are simple products but weren't named in the input.
-		$this->assertSame( [ 0 ], $filter->resolve_ids() );
+		$this->assertSame( [ 0 ], $filter->get_filtered_product_ids() );
 	}
 
-	public function test_resolve_ids_explicit_variable_id_expands_to_variations() {
+	public function test_get_filtered_product_ids_explicit_variable_id_expands_to_variations() {
 		$variable = $this->create_variable_product();
 		$expected = $this->get_variation_ids( $variable );
 
@@ -269,15 +300,16 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$filter   = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$resolved = $filter->resolve_ids();
+		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
+
+		$filtered_product_ids = $filter->get_filtered_product_ids();
 
 		sort( $expected );
-		$this->assertSame( $expected, $resolved );
-		$this->assertNotContains( $variable->get_id(), $resolved );
+		$this->assertSame( $expected, $filtered_product_ids );
+		$this->assertNotContains( $variable->get_id(), $filtered_product_ids );
 	}
 
-	public function test_resolve_ids_explicit_variation_id_kept_as_is() {
+	public function test_get_filtered_product_ids_explicit_variation_id_kept_as_is() {
 		$variable   = $this->create_variable_product();
 		$variations = $this->get_variation_ids( $variable );
 		$picked     = $variations[0];
@@ -290,111 +322,185 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		);
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$this->assertSame( [ $picked ], $filter->resolve_ids() );
+		$this->assertSame( [ $picked ], $filter->get_filtered_product_ids() );
 	}
 
-	public function test_resolve_ids_category_returns_simple_products_and_expanded_variations() {
+	public function test_get_filtered_product_ids_category_returns_simple_products_and_expanded_variations() {
 		$cat = $this->create_term( 'shoes', 'product_cat' );
 
 		$simple = $this->create_simple_product();
-		wp_set_object_terms( $simple->get_id(), [ (int) $cat['term_id'] ], 'product_cat', false );
+		$simple->set_category_ids( [ $cat['term_id'] ] );
+		$simple->save();
 
 		$variable = $this->create_variable_product();
-		wp_set_object_terms( $variable->get_id(), [ (int) $cat['term_id'] ], 'product_cat', false );
+		$variable->set_category_ids( [ $cat['term_id'] ] );
+		$variable->save();
 		$variations = $this->get_variation_ids( $variable );
 
 		update_option(
 			$this->option_name,
 			[
-				'categories' => [ 'shoes' ],
-			]
-		);
-
-		$filter   = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$resolved = $filter->resolve_ids();
-
-		$expected = array_merge( [ $simple->get_id() ], $variations );
-		sort( $expected );
-
-		$this->assertSame( $expected, $resolved );
-		$this->assertNotContains( $variable->get_id(), $resolved );
-	}
-
-	public function test_resolve_ids_tag_dimension() {
-		$tag    = $this->create_term( 'on-sale', 'product_tag' );
-		$simple = $this->create_simple_product();
-		wp_set_object_terms( $simple->get_id(), [ (int) $tag['term_id'] ], 'product_tag', false );
-
-		update_option(
-			$this->option_name,
-			[
-				'tags' => [ 'on-sale' ],
+				'category_ids' => [ $cat['term_id'] ],
 			]
 		);
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$this->assertSame( [ $simple->get_id() ], $filter->resolve_ids() );
+
+		$filtered_product_ids = $filter->get_filtered_product_ids();
+
+		$expected = array_merge( [ $simple->get_id() ], $variations );
+		sort( $expected );
+
+		$this->assertSame( $expected, $filtered_product_ids );
+		$this->assertNotContains( $variable->get_id(), $filtered_product_ids );
 	}
 
-	public function test_resolve_ids_brand_dimension() {
+	public function test_get_filtered_product_ids_tag_returns_simple_products() {
+		$tag    = $this->create_term( 'on-sale', 'product_tag' );
+		$simple = $this->create_simple_product();
+		$simple->set_tag_ids( [ $tag['term_id'] ] );
+		$simple->save();
+
+		update_option(
+			$this->option_name,
+			[
+				'tag_ids' => [ $tag['term_id'] ],
+			]
+		);
+
+		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		$this->assertSame( [ $simple->get_id() ], $filter->get_filtered_product_ids() );
+	}
+
+	public function test_get_filtered_product_ids_brand_returns_simple_products() {
 		if ( ! taxonomy_exists( 'product_brand' ) ) {
 			$this->markTestSkipped( 'product_brand taxonomy not registered on this environment.' );
 		}
 
 		$brand  = $this->create_term( 'nike', 'product_brand' );
 		$simple = $this->create_simple_product();
-		wp_set_object_terms( $simple->get_id(), [ (int) $brand['term_id'] ], 'product_brand', false );
+		$simple->set_brand_ids( [ $brand['term_id'] ] );
+		$simple->save();
 
 		update_option(
 			$this->option_name,
 			[
-				'brands' => [ 'nike' ],
+				'brand_ids' => [ $brand['term_id'] ],
 			]
 		);
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$this->assertSame( [ $simple->get_id() ], $filter->resolve_ids() );
+		$this->assertSame( [ $simple->get_id() ], $filter->get_filtered_product_ids() );
 	}
 
-	public function test_resolve_ids_unions_across_dimensions_and_dedupes() {
-		$cat      = $this->create_term( 'shoes', 'product_cat' );
-		$tag      = $this->create_term( 'on-sale', 'product_tag' );
+	public function test_get_filtered_product_ids_with_multiple_filter_types() {
+		//$this->assertFalse( true, 'This test is disabled because it is flaky.' );
+		$existing_products = wc_get_products(
+			[
+				'status' => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+				'type'   => [
+					\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
+					\Automattic\WooCommerce\Enums\ProductType::VARIATION,
+					\Automattic\WooCommerce\Enums\ProductType::VARIABLE,
+				],
+				'limit'  => -1,
+				'return' => 'ids',
+			]
+		);
+
+		$brand_taxonomy_exists = taxonomy_exists( 'product_brand' );
+
+		$cat = $this->create_term( 'shoes', 'product_cat' );
+		$tag = $this->create_term( 'on-sale', 'product_tag' );
+
 		$shared   = $this->create_simple_product();
 		$only_cat = $this->create_simple_product();
 		$only_tag = $this->create_simple_product();
+		$only_id  = $this->create_simple_product();
 
-		wp_set_object_terms( $shared->get_id(), [ (int) $cat['term_id'] ], 'product_cat', false );
-		wp_set_object_terms( $shared->get_id(), [ (int) $tag['term_id'] ], 'product_tag', false );
-		wp_set_object_terms( $only_cat->get_id(), [ (int) $cat['term_id'] ], 'product_cat', false );
-		wp_set_object_terms( $only_tag->get_id(), [ (int) $tag['term_id'] ], 'product_tag', false );
+		$expected = [ $shared->get_id(), $only_cat->get_id(), $only_tag->get_id(), $only_id->get_id() ];
 
+		$brand_ids = [];
+		if ( $brand_taxonomy_exists ) {
+			$brand      = $this->create_term( 'nike', 'product_brand' );
+			$brand_ids  = [ $brand['term_id'] ];
+			$only_brand = $this->create_simple_product();
+
+			$shared->set_brand_ids( $brand_ids );
+			$shared->save();
+
+			$only_brand->set_brand_ids( $brand_ids );
+			$only_brand->save();
+
+			$expected[] = $only_brand->get_id();
+		}
+
+		$shared->set_category_ids( [ $cat['term_id'] ] );
+		$shared->set_tag_ids( [ $tag['term_id'] ] );
+		$shared->save();
+
+		$only_cat->set_category_ids( [ $cat['term_id'] ] );
+		$only_cat->save();
+
+		$only_tag->set_tag_ids( [ $tag['term_id'] ] );
+		$only_tag->save();
+
+		$option_data = [
+			'product_ids'  => [ $only_id->get_id(), $shared->get_id() ],
+			'category_ids' => [ $cat['term_id'] ],
+			'tag_ids'      => [ $tag['term_id'] ],
+			'brand_ids'    => $brand_ids,
+		];
 		update_option(
 			$this->option_name,
-			[
-				'categories' => [ 'shoes' ],
-				'tags'       => [ 'on-sale' ],
-			]
+			$option_data
 		);
 
-		$filter   = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$resolved = $filter->resolve_ids();
+		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 
-		$expected = [ $shared->get_id(), $only_cat->get_id(), $only_tag->get_id() ];
+		$filtered_product_ids = $filter->get_filtered_product_ids();
+
 		sort( $expected );
 
-		$this->assertSame( $expected, $resolved );
+		$difference = array_diff( $filtered_product_ids, $expected );
+		if ( [] !== $difference && false ) {
+			$debug = [
+				'existing_products' => $existing_products,
+				'option_data'       => $option_data,
+				'filters'           => $filter->get_filters(),
+				'unexpected'        => [],
+			];
+			foreach ( $difference as $product_id ) {
+				$product               = wc_get_product( $product_id );
+				$debug['unexpected'][] = [
+					'product_id'            => $product_id,
+					'product_name'          => $product->get_name(),
+					'product_type'          => $product->get_type(),
+					'product_status'        => $product->get_status(),
+					'product_price'         => $product->get_price(),
+					'product_regular_price' => $product->get_regular_price(),
+					'product_category_ids'  => $product->get_category_ids(),
+					'product_tag_ids'       => $product->get_tag_ids(),
+					'product_brand_ids'     => $product->get_brand_ids(),
+				];
+			}
+
+			fwrite( STDERR, PHP_EOL . 'Unexpected product data: ' . PHP_EOL . json_encode( $debug, JSON_PRETTY_PRINT ) . PHP_EOL );
+		}
+
+		$this->assertSame( $expected, $filtered_product_ids );
 	}
 
-	public function test_resolve_ids_returns_sentinel_when_configured_but_no_matches() {
+	public function test_get_filtered_product_ids_returns_sentinel_when_configured_but_no_matches() {
 		update_option(
 			$this->option_name,
 			[
-				'categories' => [ '__no-such-category__' ],
+				'category_ids' => [ 9999999999 ],
 			]
 		);
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$this->assertSame( [ 0 ], $filter->resolve_ids() );
+		$this->assertSame( [ 0 ], $filter->get_filtered_product_ids() );
 	}
 
 	// -----------------------------------------------------------------------
@@ -405,7 +511,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		update_option(
 			$this->option_name,
 			[
-				'categories' => [ 'shoes' ],
+				'category_ids' => [ 1234 ],
 			]
 		);
 
@@ -415,19 +521,19 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 			'wc_stripe_agentic_commerce_product_filters',
 			function () use ( $simple ) {
 				return [
-					'product_ids' => [ $simple->get_id() ],
-					'categories'  => [],
-					'tags'        => [],
-					'brands'      => [],
+					'product_ids'  => [ $simple->get_id() ],
+					'category_ids' => [],
+					'tag_ids'      => [],
+					'brand_ids'    => [],
 				];
 			}
 		);
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$this->assertSame( [ $simple->get_id() ], $filter->resolve_ids() );
+		$this->assertSame( [ $simple->get_id() ], $filter->get_filtered_product_ids() );
 	}
 
-	public function test_override_filter_return_is_coerced_to_strict_shape() {
+	public function test_override_filter_return_is_normalized_to_expected_shape() {
 		$simple = $this->create_simple_product();
 
 		add_filter(
@@ -436,17 +542,19 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 				return [
 					'product_ids' => [ (string) $simple->get_id(), 'not-a-number', -5 ],
 					'categories'  => [ 0, '', 'real-slug' ],
+					'tags'        => [ 'not-a-number', -5 ],
+					'brand_ids'   => [ 'not-a-number', -5 ],
 				];
 			}
 		);
 
-		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$inputs = $filter->get_inputs();
+		$filter  = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		$filters = $filter->get_filters();
 
-		$this->assertSame( [ $simple->get_id() ], $inputs['product_ids'] );
-		$this->assertSame( [ 'real-slug' ], $inputs['categories'] );
-		$this->assertSame( [], $inputs['tags'] );
-		$this->assertSame( [], $inputs['brands'] );
+		$this->assertSame( [ $simple->get_id() ], $filters['product_ids'] );
+		$this->assertSame( [], $filters['category_ids'] );
+		$this->assertSame( [], $filters['tag_ids'] );
+		$this->assertSame( [], $filters['brand_ids'] );
 	}
 
 	// -----------------------------------------------------------------------
