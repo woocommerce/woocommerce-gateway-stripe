@@ -20,6 +20,12 @@ if [[ "$infra_needed" == "false" ]]; then
     done
 fi
 
+if [[ "$infra_needed" == "false" ]]; then
+    if ! docker inspect -f '{{.State.Running}}' wcstripe_db 2>/dev/null | grep -q true; then
+        infra_needed=true
+    fi
+fi
+
 if [[ "$infra_needed" == "true" ]]; then
     echo "Shared infrastructure not running. Starting it now..."
     echo ""
