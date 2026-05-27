@@ -524,11 +524,30 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_capture( $notification ) {
-		$order        = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+		$charge       = $notification->data->object;
+		$order        = WC_Stripe_Helper::get_order_by_charge_id( $charge->id );
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		if ( ! $order ) {
-			WC_Stripe_Logger::warning( 'Could not find order via charge ID: ' . $notification->data->object->id );
+			// Orphan detection: when the captured charge isn't on any order, fall back to the parent
+			// PaymentIntent and flag if that order was settled via a different gateway.
+			if ( ! empty( $charge->payment_intent ) ) {
+				$intent_order = WC_Stripe_Helper::get_order_by_intent_id( (string) $charge->payment_intent );
+				if ( $intent_order instanceof WC_Order
+					&& $this->maybe_flag_orphaned_payment_intent_on_order(
+						$intent_order,
+						(string) $charge->payment_intent,
+						null,
+						$charge,
+						'charge.captured'
+					)
+				) {
+					$this->resolved_order = $intent_order;
+					return;
+				}
+			}
+
+			WC_Stripe_Logger::warning( 'Could not find order via charge ID: ' . $charge->id );
 			return;
 		}
 
@@ -588,6 +607,28 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// https://docs.stripe.com/api/events/types#event_types-charge.succeeded
 		$charge = $notification->data->object;
 
+		$order = WC_Stripe_Helper::get_order_by_charge_id( $charge->id );
+
+		// Orphan detection runs before the synchronous-methods filter below so card/3DS orphans
+		// (e.g. shopper abandoned the Stripe flow after authentication and later settled the
+		// order via a different gateway) are also caught. The order will not carry this charge
+		// as its transaction_id, so we fall back to the parent PaymentIntent.
+		if ( ! $order && ! empty( $charge->payment_intent ) && ! empty( $charge->captured ) ) {
+			$intent_order = WC_Stripe_Helper::get_order_by_intent_id( (string) $charge->payment_intent );
+			if ( $intent_order instanceof WC_Order
+				&& $this->maybe_flag_orphaned_payment_intent_on_order(
+					$intent_order,
+					(string) $charge->payment_intent,
+					null,
+					$charge,
+					'charge.succeeded'
+				)
+			) {
+				$this->resolved_order = $intent_order;
+				return;
+			}
+		}
+
 		// The following payment methods are synchronous so does not need to be handled via webhook.
 		$payment_method_type = $this->get_payment_method_type_from_charge( $charge );
 		$synchronous_methods = [
@@ -600,31 +641,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $charge->id );
-
 		if ( ! $order ) {
-			// The order may exist but not carry this charge as its transaction_id — typical when the
-			// shopper abandoned the Stripe flow and later settled the order via a different gateway,
-			// while Stripe still captured the original charge asynchronously. Fall back to the parent
-			// PaymentIntent and, if the order was paid by another gateway, flag the orphaned charge.
-			if ( ! empty( $charge->payment_intent ) && ! empty( $charge->captured ) ) {
-				$intent_order = WC_Stripe_Helper::get_order_by_intent_id( (string) $charge->payment_intent );
-				if ( $intent_order instanceof WC_Order
-					&& $this->is_order_paid_via_non_stripe_gateway( $intent_order )
-					&& ! $this->has_orphan_charge_been_flagged( $intent_order, (string) $charge->payment_intent )
-				) {
-					$this->resolved_order = $intent_order;
-					$this->flag_orphaned_payment_intent_on_order(
-						$intent_order,
-						(string) $charge->payment_intent,
-						null,
-						$charge,
-						'charge.succeeded'
-					);
-					return;
-				}
-			}
-
 			WC_Stripe_Logger::debug( 'Could not find order via charge ID: ' . $charge->id );
 			return;
 		}
@@ -1131,20 +1148,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order
 			)
 		) ) {
-			$orphan_eligible_types = [ 'payment_intent.succeeded', 'payment_intent.amount_capturable_updated' ];
-			if ( in_array( $notification->type, $orphan_eligible_types, true )
-				&& $this->is_order_paid_via_non_stripe_gateway( $order )
-				&& ! $this->has_orphan_charge_been_flagged( $order, (string) $intent->id )
-			) {
-				$resolved_charge = $this->get_latest_charge_from_intent( $intent );
-				$this->flag_orphaned_payment_intent_on_order(
-					$order,
-					(string) $intent->id,
-					$intent,
-					is_object( $resolved_charge ) ? $resolved_charge : null,
-					(string) $notification->type
-				);
-			}
 			return;
 		}
 
@@ -1415,19 +1418,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 					// Check if the order is still in a valid state to process the webhook.
 					if ( ! $order->has_status( apply_filters( 'wc_stripe_allowed_payment_processing_statuses', [ OrderStatus::PENDING, OrderStatus::FAILED ], $order ) ) ) {
-						// If the order was paid via a different gateway, the captured Stripe charge is orphaned.
-						if ( $this->is_order_paid_via_non_stripe_gateway( $order ) && ! $this->has_orphan_charge_been_flagged( $order, $intent_id ) ) {
-							$intent          = $notification->data->object ?? null;
-							$resolved_charge = is_object( $intent ) ? $this->get_latest_charge_from_intent( $intent ) : null;
-							$this->flag_orphaned_payment_intent_on_order(
-								$order,
-								$intent_id,
-								is_object( $intent ) ? $intent : null,
-								is_object( $resolved_charge ) ? $resolved_charge : null,
-								$webhook_type
-							);
-						}
-
 						WC_Stripe_Logger::debug( "Skipped processing deferred webhook for Stripe PaymentIntent {$intent_id} for order {$order->get_id()} - payment already complete." );
 						return;
 					}
@@ -1496,18 +1486,44 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Convenience wrapper around @see flag_orphaned_payment_intent_on_order() that short-circuits
+	 * when the order is still paid via Stripe or the orphan has already been flagged for this intent.
+	 *
+	 * @param WC_Order    $order        The order to evaluate.
+	 * @param string      $intent_id    The Stripe PaymentIntent ID.
+	 * @param object|null $intent       The Stripe PaymentIntent object, when available.
+	 * @param object|null $charge       The Stripe Charge object, when available.
+	 * @param string      $webhook_type The Stripe webhook event type (e.g. 'charge.succeeded' or 'charge.captured').
+	 *
+	 * @return bool True when an orphan note was added, false when skipped.
+	 */
+	protected function maybe_flag_orphaned_payment_intent_on_order( $order, $intent_id, $intent, $charge, $webhook_type ): bool {
+		if ( '' === $intent_id ) {
+			return false;
+		}
+		if ( ! $this->is_order_paid_via_non_stripe_gateway( $order ) ) {
+			return false;
+		}
+		if ( $this->has_orphan_charge_been_flagged( $order, $intent_id ) ) {
+			return false;
+		}
+		$this->flag_orphaned_payment_intent_on_order( $order, $intent_id, $intent, $charge, $webhook_type );
+		return true;
+	}
+
+	/**
 	 * Flags an orphaned Stripe PaymentIntent on an order that was paid via a different gateway.
 	 *
 	 * Adds a visible order note linking to the Stripe dashboard and fires an action so site-specific
 	 * integrations can react (for example, to auto-refund). Idempotent per intent — repeat calls for
 	 * the same PaymentIntent on the same order are no-ops, so it's safe to invoke from every webhook
-	 * path that can detect the orphan (synchronous PI handler, deferred PI handler, charge.succeeded).
+	 * path that can detect the orphan (charge.succeeded fallback, charge.captured fallback).
 	 *
 	 * @param WC_Order    $order        The order paid via a non-Stripe gateway.
 	 * @param string      $intent_id    The Stripe PaymentIntent ID.
 	 * @param object|null $intent       The Stripe PaymentIntent object, when available.
 	 * @param object|null $charge       The Stripe Charge object, when available.
-	 * @param string      $webhook_type The Stripe webhook event type (e.g. 'payment_intent.succeeded' or 'charge.succeeded').
+	 * @param string      $webhook_type The Stripe webhook event type (e.g. 'charge.succeeded' or 'charge.captured').
 	 */
 	protected function flag_orphaned_payment_intent_on_order( $order, $intent_id, $intent, $charge, $webhook_type ): void {
 		$dedup_meta_key = '_stripe_orphan_charge_flagged_' . $intent_id;
@@ -1575,9 +1591,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 * @param WC_Order    $order        The order paid via a non-Stripe gateway.
 		 * @param object|null $intent       The Stripe PaymentIntent object, when available.
 		 * @param object|null $charge       The Stripe Charge object, when available.
-		 * @param string      $webhook_type The Stripe webhook event type (e.g. 'payment_intent.succeeded' or 'charge.succeeded').
+		 * @param string      $webhook_type The Stripe webhook event type ('charge.succeeded' or 'charge.captured').
 		 */
-		do_action( 'wc_stripe_deferred_orphaned_charge_detected', $order, $intent, $charge, $webhook_type );
+		do_action( 'wc_stripe_orphaned_charge_detected', $order, $intent, $charge, $webhook_type );
 	}
 
 	/**
