@@ -84,8 +84,8 @@ class WC_Stripe_Express_Checkout_Element {
 		// form submission, regardless of which page hook bootstrapped this class.
 		add_filter( 'woocommerce_subscription_note_new_payment_method_title', [ $this, 'filter_change_payment_method_note_title' ], 10, 3 );
 
-		// Network hints for the wallet-button paint path. The callbacks short-circuit on
-		// pages where ECE isn't going to render, so registering unconditionally is safe.
+		// Add network and preload hints for express checkout resources.
+		// The hooks check whether express checkout will be shown, and are no-ops in other contexts.
 		add_filter( 'wp_resource_hints', [ $this, 'add_resource_hints' ], 10, 2 );
 		add_filter( 'wp_preload_resources', [ $this, 'add_preload_resources' ] );
 
@@ -436,13 +436,6 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * Append preconnect URLs for Stripe-owned hosts when the current page will render ECE.
 	 *
-	 * WordPress core already emits a `dns-prefetch` for `js.stripe.com` via
-	 * `wp_dependencies_unique_hosts()` (because we register the Stripe.js script). DNS
-	 * resolution is only one step of the connection; `preconnect` also performs the TCP +
-	 * TLS handshake, saving ~100–200 ms on the wallet-button paint. The two sub-hosts
-	 * (`m.stripe.network`, `q.stripe.com`) are fetched at runtime by Stripe.js itself, so
-	 * core can't infer them and we add them explicitly.
-	 *
 	 * @param array  $urls          URLs that core has gathered for the relation type.
 	 * @param string $relation_type Resource hint relation ('preconnect', 'dns-prefetch', etc.).
 	 *
@@ -475,6 +468,10 @@ class WC_Stripe_Express_Checkout_Element {
 		$urls[] = [
 			'href' => 'https://q.stripe.com',
 		];
+		$urls[] = [
+			'href'        => 'https://b.stripecdn.com',
+			'crossorigin' => 'anonymous',
+		];
 
 		return $urls;
 	}
@@ -502,14 +499,16 @@ class WC_Stripe_Express_Checkout_Element {
 
 		$asset_data = $this->get_asset_data();
 
-		$preload_resources[] = [
-			'href' => add_query_arg(
-				'ver',
-				$asset_data['version'],
-				WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js'
-			),
-			'as'   => 'script',
-		];
+		if ( is_array( $asset_data ) && isset( $asset_data['version'] ) ) {
+			$preload_resources[] = [
+				'href' => add_query_arg(
+					'ver',
+					$asset_data['version'],
+					WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js'
+				),
+				'as'   => 'script',
+			];
+		}
 
 		return $preload_resources;
 	}
