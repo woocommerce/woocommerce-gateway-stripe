@@ -1273,6 +1273,60 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		$this->assertEmpty( $pending, 'Upload completed, pending list cleared on success.' );
 	}
 
+	/**
+	 * Guards the one case prune can't cover: a product excluded by the filter
+	 * and then permanently deleted. prune keeps archive rows for unresolvable
+	 * products (it has no `WC_Product` to re-check), so the only place the
+	 * filter is honored for a to-be-deleted product is `track_product_archive`,
+	 * which evicts the queued row at delete time while the product still loads.
+	 *
+	 * Sequence: included → archived (row queued) → excluded → permanently
+	 * deleted. Without the eviction, prune's keep-policy would re-ship the
+	 * `out_of_stock` row for a product the merchant hid — the leak this filter
+	 * exists to close. Distinct from the eager track-time assertion: this drives
+	 * the full flush after the product is gone.
+	 *
+	 * @return void
+	 */
+	public function test_sync_archives_does_not_ship_excluded_product_after_permanent_delete() {
+		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
+
+		$product = $this->create_simple_product_with_stock( 4 );
+		$id      = $product->get_id();
+
+		// Archive row queued while the product is still allowed through.
+		$this->sut->track_product_archive( $product );
+		$this->assertArrayHasKey( $id, get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
+
+		// Merchant hides the product, then it fires the delete-time archive
+		// event while still resolvable (mirrors before_delete_post) and is
+		// permanently deleted.
+		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $id;
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
+
+		$uploaded = false;
+		add_filter(
+			'wc_stripe_agentic_commerce_files_api_pre_request',
+			function () use ( &$uploaded ) {
+				$uploaded = true;
+				return [ 'id' => 'file_test_123' ];
+			}
+		);
+
+		try {
+			$this->sut->maybe_track_product_archive( $id );
+			wp_delete_post( $id, true );
+
+			$this->sut->sync_archives();
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
+		}
+
+		$this->assertFalse( $uploaded, 'Excluded product evicted at delete time must not ship despite prune keeping rows for deleted products.' );
+		$this->assertEmpty( get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ), 'Eviction emptied the archive queue, so nothing remains to flush.' );
+	}
+
 	public function test_sync_archives_retains_pending_on_failure() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
