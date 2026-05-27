@@ -89,6 +89,7 @@ const clearSaveCheckboxState = () => {
 	);
 	if ( classicInput instanceof HTMLInputElement ) {
 		classicInput.checked = false;
+		return;
 	}
 
 	// Blocks: WC Blocks renders the save checkbox from its own paymentStore
