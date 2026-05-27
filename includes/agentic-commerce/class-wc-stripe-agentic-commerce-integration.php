@@ -252,8 +252,11 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 */
 	public function get_product_feed_query_args(): array {
 		$args = [
-			'type'   => [ 'simple', 'variation' ],
-			'status' => [ 'publish' ],
+			'type'   => [
+				\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
+				\Automattic\WooCommerce\Enums\ProductType::VARIATION,
+			],
+			'status' => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
 		];
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
