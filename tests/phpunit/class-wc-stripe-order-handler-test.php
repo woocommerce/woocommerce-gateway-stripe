@@ -68,4 +68,48 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 
 		$this->assertFalse( $this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order ) );
 	}
+
+	/**
+	 * Blocking a paid-but-pending order's cancellation must surface the situation exactly once:
+	 * an order note, a meta flag, and the `wc_stripe_paid_order_cancellation_prevented` action,
+	 * even though wc_cancel_unpaid_orders() re-runs the filter on every scheduled pass.
+	 */
+	public function test_surfaces_prevented_paid_order_cancellation_only_once() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_date_paid( time() );
+		$order->set_status( 'pending' );
+		$order->save();
+
+		$order = wc_get_order( $order->get_id() );
+
+		$fired = 0;
+		add_action(
+			'wc_stripe_paid_order_cancellation_prevented',
+			function () use ( &$fired ) {
+				$fired++;
+			}
+		);
+
+		// Two scheduled passes over the same stuck order.
+		$this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order );
+		$this->order_handler->prevent_cancelling_orders_awaiting_action( true, wc_get_order( $order->get_id() ) );
+
+		$this->assertSame( 1, $fired, 'Action should fire only once.' );
+		$this->assertSame( 'yes', wc_get_order( $order->get_id() )->get_meta( '_stripe_paid_order_cancellation_prevented' ) );
+
+		$notes    = wc_get_order_notes(
+			[
+				'order_id' => $order->get_id(),
+				'limit'    => 5,
+			]
+		);
+		$matching = array_filter(
+			$notes,
+			function ( $note ) {
+				return false !== strpos( $note->content, 'already been paid' );
+			}
+		);
+		$this->assertCount( 1, $matching, 'Order note should be added only once.' );
+	}
 }

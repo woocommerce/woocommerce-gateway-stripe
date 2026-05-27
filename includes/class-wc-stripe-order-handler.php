@@ -483,6 +483,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		// and the Stripe webhook can leave a paid order stuck at `pending` (payment meta written,
 		// status transition lost), which wc_cancel_unpaid_orders() would otherwise cancel.
 		if ( $order->get_date_paid( 'edit' ) ) {
+			$this->surface_prevented_paid_order_cancellation( $order );
 			return false;
 		}
 
@@ -497,5 +498,38 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $cancel_order;
+	}
+
+	/**
+	 * Surfaces a paid Stripe order whose auto-cancellation we just blocked.
+	 *
+	 * A paid order stuck at `pending` is a symptom of the checkout/webhook race, so rather than
+	 * silently keeping it alive we leave an order note and fire an action that stores can hook into
+	 * (e.g. to log or alert) and reconcile the stuck status. wc_cancel_unpaid_orders() retries on a
+	 * schedule, so a meta flag ensures we surface this only once per order.
+	 *
+	 * @since 10.8.0
+	 *
+	 * @param WC_Order $order The paid order whose cancellation was prevented.
+	 */
+	private function surface_prevented_paid_order_cancellation( $order ): void {
+		if ( $order->get_meta( '_stripe_paid_order_cancellation_prevented' ) ) {
+			return;
+		}
+
+		$order->add_order_note( __( 'This order has already been paid, but its status is still pending. Stripe prevented it from being auto-cancelled as unpaid; please review and update the status.', 'woocommerce-gateway-stripe' ) );
+		$order->update_meta_data( '_stripe_paid_order_cancellation_prevented', 'yes' );
+		$order->save();
+
+		/**
+		 * Fires when a paid Stripe order stuck at `pending` is prevented from being auto-cancelled as unpaid.
+		 *
+		 * Lets stores detect and reconcile the stuck status, for example by logging or alerting.
+		 *
+		 * @since 10.8.0
+		 *
+		 * @param WC_Order $order The paid order whose cancellation was prevented.
+		 */
+		do_action( 'wc_stripe_paid_order_cancellation_prevented', $order );
 	}
 }
