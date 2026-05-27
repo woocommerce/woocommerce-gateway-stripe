@@ -175,6 +175,102 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * An excluded product must stay out of the feed without counting as a
+	 * validation skip: `skipped_products` (which drives the "Partial success"
+	 * badge) must persist as 0 for a pure exclusion.
+	 *
+	 * @return void
+	 */
+	public function test_sync_feed_does_not_count_excluded_product_as_validation_skip() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) || ! class_exists( 'WC_Product_Simple' ) ) {
+			$this->markTestSkipped( 'WooCommerce product/Action Scheduler not available.' );
+		}
+
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+		// Secret key lives in settings (test mode); check_setup() gates on it.
+		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']        = 'yes';
+		$settings['test_secret_key'] = 'sk_test_fake';
+		update_option( 'woocommerce_stripe_settings', $settings );
+
+		// Give the kept product a category so it yields a valid row — a bare
+		// product fails the feed's category requirement.
+		$term   = wp_insert_term( 'Stripe Test Cat ' . uniqid(), 'product_cat' );
+		$cat_id = is_wp_error( $term ) ? 0 : (int) $term['term_id'];
+
+		$kept = new WC_Product_Simple();
+		$kept->set_name( 'Kept Product' );
+		$kept->set_regular_price( '10.00' );
+		$kept->set_status( 'publish' );
+		if ( $cat_id ) {
+			$kept->set_category_ids( [ $cat_id ] );
+		}
+		$kept->save();
+
+		$excluded = new WC_Product_Simple();
+		$excluded->set_name( 'Excluded Product' );
+		$excluded->set_regular_price( '20.00' );
+		$excluded->set_status( 'publish' );
+		$excluded->save();
+
+		$excluded_id = $excluded->get_id();
+		$filter      = static fn( $sync, $candidate ) => $candidate->get_id() !== $excluded_id;
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $filter, 10, 2 );
+
+		// Scope the walk to these two products so other tests' leftovers don't
+		// skew the counts.
+		$kept_id = $kept->get_id();
+		$scope   = static function ( $args ) use ( $kept_id, $excluded_id ) {
+			$args['include'] = [ $kept_id, $excluded_id ];
+			return $args;
+		};
+		add_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
+
+		$files_stub = fn() => [ 'id' => 'file_stub' ];
+		add_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10, 2 );
+
+		$http_stub = fn() => [
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'id'     => 'impset_stub',
+					'status' => 'pending',
+				]
+			),
+		];
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+			// force_upload so the store_sync_result path always runs regardless of dedup.
+			$result = $integration->sync_feed( true );
+
+			$this->assertTrue( $result, 'Sync should succeed — the kept product yields a valid feed row.' );
+
+			$last_sync = \WC_Stripe_Agentic_Commerce_Integration::get_last_sync();
+			$this->assertSame( 0, (int) $last_sync['skipped_products'], 'An excluded product must not be counted as a validation skip.' );
+			$this->assertSame( 1, (int) $last_sync['products'], 'Only the kept product belongs in the feed; the excluded one is dropped.' );
+			$this->assertNotSame( 'succeeded_with_errors', $last_sync['status'], 'A pure exclusion must not flip the sync to Partial success.' );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $filter, 10 );
+			remove_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
+			remove_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10 );
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+			delete_option( 'woocommerce_stripe_settings' );
+			$kept->delete( true );
+			$excluded->delete( true );
+			if ( $cat_id ) {
+				wp_delete_term( $cat_id, 'product_cat' );
+			}
+		}
+	}
+
+	/**
 	 * Test is_enabled returns false by default.
 	 *
 	 * @return void

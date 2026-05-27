@@ -450,11 +450,20 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 			// Use the CSV entry count as the authoritative "synced" number — the
 			// walker returns the count of products *iterated*, which includes rows
-			// the validator silently dropped before they made it into the feed.
+			// the validator dropped before they made it into the feed.
 			$total_products = $feed instanceof WC_Stripe_Agentic_Commerce_Csv_Feed
 				? $feed->get_entry_count()
 				: $iterated_products;
-			$skipped_count  = max( 0, $iterated_products - $total_products );
+
+			// Separate the two kinds of dropped row the walker can't distinguish:
+			// filter-excluded (a merchant choice) vs. failed validation. Only the
+			// latter warns and triggers "Partial success".
+			$validator      = $this->get_feed_validator();
+			$excluded_count = $validator instanceof WC_Stripe_Agentic_Commerce_Feed_Validator
+				? $validator->get_excluded_count()
+				: 0;
+			$dropped_count  = max( 0, $iterated_products - $total_products );
+			$skipped_count  = max( 0, $dropped_count - $excluded_count );
 
 			if ( 0 === $total_products ) {
 				WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - no products to sync' );
@@ -481,6 +490,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					'total_products'    => $total_products,
 					'iterated_products' => $iterated_products,
 					'skipped_products'  => $skipped_count,
+					'excluded_products' => $excluded_count,
 					'generation_time'   => round( $generation_time, 2 ) . 's',
 					'file_path'         => $file_path,
 					'file_size_mb'      => round( $file_size / 1024 / 1024, 2 ),
@@ -488,7 +498,6 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			);
 
 			if ( $skipped_count > 0 ) {
-				$validator       = $this->get_feed_validator();
 				$collected       = $validator instanceof WC_Stripe_Agentic_Commerce_Feed_Validator
 					? $validator->get_collected_errors()
 					: [
