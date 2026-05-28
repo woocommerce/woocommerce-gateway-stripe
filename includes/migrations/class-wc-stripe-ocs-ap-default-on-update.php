@@ -80,21 +80,22 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 
 		WC_Stripe_Logger::info( sprintf( '[OCS+AP 10.8] Pre-flip gateway state: optimized_checkout_element=%s, adaptive_pricing=%s.', $oc_pre ? 'yes' : 'no', $ap_pre ? 'yes' : 'no' ) );
 
+		$country      = $this->get_account_country();
+		$is_india     = self::EXCLUDED_COUNTRY === $country;
 		$is_frontbook = $this->is_likely_frontbook_10_7( (string) $previous_version );
 
-		[ $show_a, $show_b ] = $this->decide_banner_visibility( $oc_pre, $ap_pre, $is_frontbook );
+		[ $show_a, $show_b ] = $this->decide_banner_visibility( $oc_pre, $ap_pre, $is_frontbook, $is_india );
 
 		WC_Stripe_Logger::info( sprintf( '[OCS+AP 10.8] Banner decision: wc_stripe_show_ocs_ap_banner=%s, wc_stripe_show_ap_only_banner=%s.', $show_a ? 'yes' : 'no', $show_b ? 'yes' : 'no' ) );
 
 		update_option( self::SHOW_OCS_AP_BANNER_OPTION, $show_a ? 'yes' : 'no' );
 		update_option( self::SHOW_AP_ONLY_BANNER_OPTION, $show_b ? 'yes' : 'no' );
 
-		// Per-feature flip: respect the merchant's explicit choice. If they're a
-		// likely 10.7 frontbook (had the default applied at OAuth time) AND the
-		// feature is currently off, treat that as a deliberate disable and skip
-		// the flip. Otherwise flip the feature on.
-		$flip_oc = ! ( $is_frontbook && ! $oc_pre );
-		$flip_ap = ! ( $is_frontbook && ! $ap_pre );
+		// - India merchants are excluded from backbook defaults
+		// - Skip the flip for any feature the merchant likely
+		//   explicitly disabled after frontbook default on in 10.7
+		$flip_oc = ! $is_india && ! ( $is_frontbook && ! $oc_pre );
+		$flip_ap = ! $is_india && ! ( $is_frontbook && ! $ap_pre );
 
 		if ( $flip_oc ) {
 			$stripe_settings['optimized_checkout_element'] = 'yes';
@@ -106,7 +107,8 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		}
 
-		WC_Stripe_Logger::info( sprintf( '[OCS+AP 10.8] Flip applied: optimized_checkout_element=%s, adaptive_pricing=%s.', $flip_oc ? 'yes' : 'skipped (respect-disable)', $flip_ap ? 'yes' : 'skipped (respect-disable)' ) );
+		$skip_reason = $is_india ? 'skipped (India geo-exclusion)' : 'skipped (respect-disable)';
+		WC_Stripe_Logger::info( sprintf( '[OCS+AP 10.8] Flip applied: optimized_checkout_element=%s, adaptive_pricing=%s.', $flip_oc ? 'yes' : $skip_reason, $flip_ap ? 'yes' : $skip_reason ) );
 
 		update_option( self::MIGRATION_FLAG_OPTION, 'yes' );
 
@@ -119,14 +121,14 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 	 * @param bool $oc_pre       Whether OC was 'yes' before this migration.
 	 * @param bool $ap_pre       Whether AP was 'yes' before this migration.
 	 * @param bool $is_frontbook Whether the merchant is likely a 10.7 frontbook signup.
+	 * @param bool $is_india     Whether the connected Stripe account is in India.
 	 *
 	 * @return array{0: bool, 1: bool} Tuple of (show_banner_a, show_banner_b).
 	 */
-	protected function decide_banner_visibility( bool $oc_pre, bool $ap_pre, bool $is_frontbook ): array {
-		$country = $this->get_account_country();
-		WC_Stripe_Logger::info( sprintf( '[OCS+AP 10.8] Decision inputs: oc_pre=%s, ap_pre=%s, account_country=%s, is_frontbook=%s.', $oc_pre ? 'yes' : 'no', $ap_pre ? 'yes' : 'no', '' === $country ? '(unavailable)' : $country, $is_frontbook ? 'yes' : 'no' ) );
+	protected function decide_banner_visibility( bool $oc_pre, bool $ap_pre, bool $is_frontbook, bool $is_india ): array {
+		WC_Stripe_Logger::info( sprintf( '[OCS+AP 10.8] Decision inputs: oc_pre=%s, ap_pre=%s, is_india=%s, is_frontbook=%s.', $oc_pre ? 'yes' : 'no', $ap_pre ? 'yes' : 'no', $is_india ? 'yes' : 'no', $is_frontbook ? 'yes' : 'no' ) );
 
-		if ( self::EXCLUDED_COUNTRY === $country ) {
+		if ( $is_india ) {
 			WC_Stripe_Logger::info( '[OCS+AP 10.8] Audience: India geo-exclusion -> no banner.' );
 			return [ false, false ];
 		}

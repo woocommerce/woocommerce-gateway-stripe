@@ -174,7 +174,8 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			'AP-only-on disabled-OC'                => [ '10.7.0', 'no', 'yes', 'US', $new_ts, 'no', 'no', 'no', 'yes' ],
 			'previous 10.6 both-off recent-account' => [ '10.6.0', 'no', 'no', 'US', $new_ts, 'yes', 'no', 'yes', 'yes' ],
 			'previous 10.6 OC-only recent-account'  => [ '10.6.0', 'yes', 'no', 'US', $new_ts, 'no', 'yes', 'yes', 'yes' ],
-			'India backbook both-off'               => [ '10.7.0', 'no', 'no', 'IN', $old_ts, 'no', 'no', 'yes', 'yes' ],
+			'India backbook both-off'               => [ '10.7.0', 'no', 'no', 'IN', $old_ts, 'no', 'no', 'no', 'no' ],
+			'India backbook OC-only'                => [ '10.7.0', 'yes', 'no', 'IN', $old_ts, 'no', 'no', 'yes', 'no' ],
 			'unavailable-country backbook both-off' => [ '10.7.0', 'no', 'no', '', $old_ts, 'yes', 'no', 'yes', 'yes' ],
 		];
 	}
@@ -213,7 +214,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		$this->assertSame( 'yes', $stored['adaptive_pricing'] );
 	}
 
-	public function test_flip_applies_in_india_for_non_frontbook_merchants() {
+	public function test_flip_skipped_for_india_merchants() {
 		update_option( self::STRIPE_VERSION_OPTION, '10.7.0' );
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
@@ -222,12 +223,13 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			]
 		);
 
-		// Pre-10.7 account: not classified as frontbook, so the flip still applies.
+		// India geo-exclusion covers both banner and underlying feature flip,
+		// regardless of frontbook status.
 		$this->build_migration( 'IN', 1747008000 )->maybe_run();
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'India non-frontbook: flip still applies to OC.' );
-		$this->assertSame( 'yes', $stored['adaptive_pricing'], 'India non-frontbook: flip still applies to AP.' );
+		$this->assertSame( 'no', $stored['optimized_checkout_element'], 'India: OC flip must be skipped.' );
+		$this->assertSame( 'no', $stored['adaptive_pricing'], 'India: AP flip must be skipped.' );
 		$this->assertSame( 'no', get_option( self::SHOW_OCS_AP_BANNER_OPTION ), 'India: banner is suppressed.' );
 	}
 
