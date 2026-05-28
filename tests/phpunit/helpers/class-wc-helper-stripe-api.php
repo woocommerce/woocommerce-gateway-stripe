@@ -43,6 +43,13 @@ class WC_Helper_Stripe_Api extends WC_Stripe_API {
 	public static $expected_request_call_params = null;
 
 	/**
+	 * The number of retrieve calls.
+	 *
+	 * @var int
+	 */
+	public static $retrieve_call_count = 0;
+
+	/**
 	 * Reset the helper.
 	 */
 	public static function reset() {
@@ -52,6 +59,7 @@ class WC_Helper_Stripe_Api extends WC_Stripe_API {
 		];
 		self::$request_response             = [];
 		self::$expected_request_call_params = null;
+		self::$retrieve_call_count          = 0;
 	}
 
 	/**
@@ -62,6 +70,8 @@ class WC_Helper_Stripe_Api extends WC_Stripe_API {
 	 * @return array retrieved data mock
 	 */
 	public static function retrieve( $key = 'account' ) {
+		self::$retrieve_call_count++;
+
 		return self::$retrieve_response;
 	}
 
