@@ -2,6 +2,7 @@ const path = require( 'path' );
 const webpack = require( 'webpack' );
 const DependencyExtractionWebpackPlugin = require( '@woocommerce/dependency-extraction-webpack-plugin' );
 const LiveReloadWebpackPlugin = require( '@kooneko/livereload-webpack-plugin' );
+const { BundleAnalyzerPlugin } = require( 'webpack-bundle-analyzer' );
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 
 const defaultConfigOutput = defaultConfig.output;
@@ -52,6 +53,12 @@ module.exports = {
 				process.env.PAYMENT_METHOD_FEES_ENABLED === 'true'
 			),
 		} ),
+		process.env.BUNDLE_ANALYZE === 'true' &&
+			new BundleAnalyzerPlugin( {
+				analyzerMode: 'static',
+				reportFilename: '../bundle-report.html',
+				openAnalyzer: false,
+			} ),
 		! isProduction &&
 			new LiveReloadWebpackPlugin( {
 				port: process.env.WP_LIVE_RELOAD_PORT || 35729,
