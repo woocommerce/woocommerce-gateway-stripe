@@ -5,15 +5,15 @@
  */
 class WC_Stripe_Test_Helper {
 	/**
-	 * Get the value of a protected constant.
+	 * Get the value of a class constant, which may not be public, and enforce a specific value type.
 	 *
 	 * @param string $class         The class name.
 	 * @param string $const_name    The constant name.
 	 * @param string $expected_type The expected type of the constant value. One of 'string', 'int', 'bool', or 'float'.
 	 *
-	 * @return mixed The value of the protected constant.
+	 * @return mixed The value of the class constant.
 	 */
-	public static function get_protected_const_value( string $class, string $const_name, string $expected_type ) {
+	public static function get_class_const_value( string $class, string $const_name, string $expected_type ) {
 		$constant = new ReflectionClassConstant( $class, $const_name );
 		$value    = $constant->getValue();
 
