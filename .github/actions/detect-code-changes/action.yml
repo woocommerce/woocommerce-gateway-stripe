@@ -22,6 +22,7 @@ runs:
       run: |
         if [ -z "$PR_NUMBER" ]; then
           # Non-PR event (workflow_dispatch, push, etc.) — don't gate, just run.
+          echo "No PR number defined; assuming we have code to check"
           echo "code=true" >> "$GITHUB_OUTPUT"
           exit 0
         fi
