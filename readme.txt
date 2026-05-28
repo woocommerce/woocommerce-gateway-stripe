@@ -180,7 +180,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add Jest tests for ECE payment flow
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
 * Update - Improve express checkout load times by preloading the resources
-* Tweak - Reduce JS bundle sizes by externalizing core-js polyfills for features natively supported in modern browsers.
+* Tweak - Reduce JS bundle sizes by using native browser features instead of polyfills
 * Dev - Memoize the Express Checkout button visibility check within a request
 * Fix - Fix admin banner dismissal and display logic
 * Add - Detect Stripe API outages (network failures, timeouts, 5xx responses) and surface a wp-admin notice instead of crashing or showing misleading "couldn't connect" messages
