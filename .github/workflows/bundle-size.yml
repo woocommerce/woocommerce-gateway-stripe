@@ -14,8 +14,23 @@ permissions:
   pull-requests: write
 
 jobs:
+  changes:
+    name: Check for code changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.detect.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: detect
+        uses: ./.github/actions/detect-code-changes
+
   measure-head:
     name: Build & measure (head)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -30,6 +45,8 @@ jobs:
 
   measure-base:
     name: Build & measure (base)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     env:
       BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || inputs.base_ref || 'trunk' }}
