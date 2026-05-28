@@ -3939,6 +3939,44 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * The confirmation token flow must still send Klarna's preferred_locale, so cross-border
+	 * customers aren't routed through the Stripe account country's identity verification.
+	 */
+	public function test_prepare_payment_information_sets_klarna_preferred_locale_for_confirmation_token() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_billing_country( 'FI' );
+		$order->save();
+
+		$this->mock_gateway->oc_enabled = true;
+
+		$_POST = [
+			'payment_method'               => 'stripe_klarna',
+			'wc-stripe-confirmation-token' => 'ctoken_mock',
+		];
+
+		$locale_filter = static function () {
+			return 'fi_FI';
+		};
+		add_filter( 'locale', $locale_filter );
+
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+
+		$reflection = new \ReflectionClass( WC_Stripe_UPE_Payment_Gateway::class );
+		$method     = $reflection->getMethod( 'prepare_payment_information_from_request' );
+		$method->setAccessible( true );
+
+		try {
+			$payment_information = $method->invoke( $this->mock_gateway, $order );
+		} finally {
+			remove_filter( 'locale', $locale_filter );
+			$_POST = [];
+		}
+
+		$this->assertSame( 'ctoken_mock', $payment_information['confirmation_token'] );
+		$this->assertSame( 'fi-FI', $payment_information['payment_method_options'][ WC_Stripe_Payment_Methods::KLARNA ]['preferred_locale'] );
+	}
+
+	/**
 	 * Under OCS, save_payment_method_to_store must be re-evaluated against the resolved method type, not the OC pseudo-method.
 	 *
 	 * @dataProvider provide_test_prepare_payment_information_oc_drops_save_flag_when_resolved_method_not_reusable
