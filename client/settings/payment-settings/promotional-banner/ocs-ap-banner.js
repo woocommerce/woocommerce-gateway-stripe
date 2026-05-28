@@ -47,13 +47,13 @@ export const OCSAndAPBanner = ( { setShowPromotionalBanner } ) => {
 					</Title>
 					<Intro>
 						{ __(
-							"Your checkout dynamically displays the most relevant payment methods you've enabled for each customer. International shoppers also see prices in their local currency, growing cross-border revenue by an average of 17.8%.",
+							'Your checkout dynamically displays available payment methods most likely to drive conversions. International shoppers also see prices in their local currency, growing cross-border revenue by an average of 17.8%.',
 							'woocommerce-gateway-stripe'
 						) }
 					</Intro>
 					<Footnote>
 						{ __(
-							'*Data is from Stripe global holdback study conducted in 2024.',
+							'*Data is from Stripe global holdback study conducted in 2024',
 							'woocommerce-gateway-stripe'
 						) }
 					</Footnote>
