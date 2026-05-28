@@ -796,7 +796,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function test_subscription_check_detachment_not_shown_when_dismissed() {
 		$source_id    = 'src_123_dismissed';
-		$meta_key     = WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META;
+		$meta_key     = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Admin_Notices::class, 'DETACHED_NOTICE_DISMISSED_META', 'string' );
 		$subscription = new WC_Subscription();
 
 		$subscription->set_id( 124 );
@@ -855,7 +855,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function test_subscription_check_detachment_clears_dismissed_meta_when_not_detached() {
 		$source_id    = 'src_123_attached';
-		$meta_key     = WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META;
+		$meta_key     = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Admin_Notices::class, 'DETACHED_NOTICE_DISMISSED_META', 'string' );
 		$subscription = new WC_Subscription();
 
 		$subscription->set_id( 125 );
@@ -926,10 +926,14 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$notices = $this->create_admin_notices_instance();
 		$notices->hide_notices();
 
-		$this->assertEquals( 'yes', $subscription->get_meta( WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META ) );
+		$meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Admin_Notices::class, 'DETACHED_NOTICE_DISMISSED_META', 'string' );
 
-		WC_Subscriptions::$wcs_get_subscription = null;
-		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST[ $request_param ] );
+		try {
+			$this->assertEquals( 'yes', $subscription->get_meta( $meta_key ) );
+		} finally {
+			WC_Subscriptions::$wcs_get_subscription = null;
+			unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST[ $request_param ] );
+		}
 	}
 
 	/**
@@ -964,9 +968,12 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$notices = $this->create_admin_notices_instance();
 		$notices->hide_notices();
 
-		$this->assertEmpty( $subscription->get_meta( WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META ) );
-
-		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['post'], $_REQUEST['id'] );
+		try {
+			$meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Admin_Notices::class, 'DETACHED_NOTICE_DISMISSED_META', 'string' );
+			$this->assertEmpty( $subscription->get_meta( $meta_key ) );
+		} finally {
+			unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['post'], $_REQUEST['id'] );
+		}
 	}
 
 	/**
@@ -990,9 +997,12 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$notices = $this->create_admin_notices_instance();
 		$notices->hide_notices();
 
-		$this->assertEmpty( $subscription->get_meta( WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META ) );
-
-		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['post'], $_REQUEST['id'] );
+		try {
+			$meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Admin_Notices::class, 'DETACHED_NOTICE_DISMISSED_META', 'string' );
+			$this->assertEmpty( $subscription->get_meta( $meta_key ) );
+		} finally {
+			unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['post'], $_REQUEST['id'] );
+		}
 	}
 
 	/**

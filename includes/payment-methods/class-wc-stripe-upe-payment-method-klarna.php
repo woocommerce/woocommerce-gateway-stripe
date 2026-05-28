@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	use WC_Stripe_Subscriptions_Trait;
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::KLARNA;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::KLARNA;
 
 	/**
 	 * Constructor for Klarna payment method
