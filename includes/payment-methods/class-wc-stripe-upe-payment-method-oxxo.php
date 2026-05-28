@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::OXXO;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::OXXO;
 
 	/**
 	 * Constructor for OXXO payment method
