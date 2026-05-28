@@ -1,7 +1,7 @@
 name: E2E tests
 
 on:
-  pull_request:
+  pull_request
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -1,7 +1,7 @@
 name: Prepare live branch for Jetpack Beta Builder
 
 on:
-  pull_request:
+  pull_request
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
