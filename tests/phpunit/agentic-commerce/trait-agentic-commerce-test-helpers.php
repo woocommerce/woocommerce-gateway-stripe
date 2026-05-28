@@ -81,7 +81,7 @@ trait Trait_Agentic_Commerce_Test_Helpers {
 		foreach ( $products as $index => $product ) {
 			$items[] = (object) [
 				'id'     => 'li_test_' . $index,
-				'sku_id' => (string) $product->get_id(),
+				'sku_id' => (string) $product->get_sku(),
 			];
 		}
 

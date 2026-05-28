@@ -38,6 +38,22 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Whether the save-to-account checkbox should be shown on classic checkout.
+	 *
+	 * When Link is enabled, Link handles save consent via the Payment Element,
+	 * so the store-level checkbox is hidden for card.
+	 *
+	 * @return bool
+	 */
+	public function should_show_save_option() {
+		if ( WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( woocommerce_gateway_stripe()->get_main_stripe_gateway() ) ) {
+			return false;
+		}
+
+		return parent::should_show_save_option();
+	}
+
+	/**
 	 * Returns payment method title
 	 *
 	 * @param stdClass|array|bool $payment_details Optional payment details from charge object.
@@ -53,14 +69,6 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 
 		// Default
 		return parent::get_title();
-	}
-
-	/**
-	 * Returns string representing payment method type
-	 * to query to retrieve saved payment methods from Stripe.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
 	}
 
 	/**
@@ -86,6 +94,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		if ( isset( $payment_method->card->fingerprint ) ) {
 			$token->set_fingerprint( $payment_method->card->fingerprint );
 		}
+		$token->set_wallet_type( (string) ( $payment_method->card->wallet->type ?? '' ) );
 		$token->save();
 		return $token;
 	}

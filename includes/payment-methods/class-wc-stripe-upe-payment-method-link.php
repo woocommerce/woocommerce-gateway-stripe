@@ -33,6 +33,16 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Link handles its own save consent via the Payment Element, so the
+	 * store-level save checkbox is never needed for Link.
+	 *
+	 * @return bool
+	 */
+	public function should_show_save_option() {
+		return false;
+	}
+
+	/**
 	 * Return if Stripe Link is enabled
 	 *
 	 * @param WC_Stripe_UPE_Payment_Gateway $gateway The gateway instance.
@@ -42,14 +52,6 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 		$upe_enabled_method_ids = $gateway->get_upe_enabled_payment_method_ids();
 
 		return is_array( $upe_enabled_method_ids ) && in_array( self::STRIPE_ID, $upe_enabled_method_ids, true );
-	}
-
-	/**
-	 * Returns string representing payment method type
-	 * to query to retrieve saved payment methods from Stripe.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
 	}
 
 	/**

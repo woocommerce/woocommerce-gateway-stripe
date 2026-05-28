@@ -20,22 +20,30 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 	/**
 	 * Tests for `get_title` method.
 	 *
+	 * @param mixed    $payment_details Payment details or false.
+	 * @param string[] $query_params    Query string parameters merged into $_GET.
+	 * @param string   $expected        Expected title.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_get_title
 	 */
-	public function test_get_title( $payment_details, $query_params, $expected ) {
-		if ( is_array( $payment_details ) ) {
-			$payment_details = json_decode( wp_json_encode( $payment_details ) );
-		}
-		if ( ! empty( $query_params ) ) {
-			$_GET = array_merge( $_GET, $query_params );
-		}
+	public function test_get_title( $payment_details, ?array $query_params, string $expected ) {
+		$original_get = $_GET;
+		try {
+			if ( is_array( $payment_details ) ) {
+				$payment_details = json_decode( wp_json_encode( $payment_details ) );
+			}
+			if ( ! empty( $query_params ) ) {
+				$_GET = array_merge( $_GET, $query_params );
+			}
 
-		$payment_method = new WC_Stripe_UPE_Payment_Method_OC();
-		$actual         = $payment_method->get_title( $payment_details );
+			$payment_method = new WC_Stripe_UPE_Payment_Method_OC();
+			$actual         = $payment_method->get_title( $payment_details );
 
-		$this->assertEquals( $expected, $actual );
+			$this->assertEquals( $expected, $actual );
+		} finally {
+			$_GET = $original_get;
+		}
 	}
 
 	/**
@@ -57,7 +65,7 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 				'query params'    => [
 					'pay_for_order' => 'true',
 				],
-				'expected'        => 'Stripe',
+				'expected'        => 'Payment methods',
 			],
 			'default, hardcoded'                  => [
 				'payment details' => false,
@@ -65,6 +73,54 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 				'expected'        => 'Stripe',
 			],
 		];
+	}
+
+	/**
+	 * `wc_stripe_optimized_checkout_title` filter overrides the Blocks/pay-for-order title.
+	 *
+	 * @return void
+	 */
+	public function test_get_alternative_title_filter_overrides_blocks_title() {
+		$original_get = $_GET;
+		$_GET         = array_merge( $_GET, [ 'pay_for_order' => 'true' ] );
+
+		$captured_context = null;
+		$callback         = function ( $title, $context ) use ( &$captured_context ) {
+			$captured_context = $context;
+			return 'Pay with Stripe';
+		};
+		add_filter( 'wc_stripe_optimized_checkout_title', $callback, 10, 2 );
+
+		try {
+			$this->assertSame( 'Pay with Stripe', WC_Stripe_UPE_Payment_Method_OC::get_alternative_title() );
+			$this->assertSame( 'blocks', $captured_context );
+		} finally {
+			remove_filter( 'wc_stripe_optimized_checkout_title', $callback, 10 );
+			$_GET = $original_get;
+		}
+	}
+
+	/**
+	 * `get_classic_title` returns the default and respects the filter with classic context.
+	 *
+	 * @return void
+	 */
+	public function test_get_classic_title() {
+		$this->assertSame( 'Payment options', WC_Stripe_UPE_Payment_Method_OC::get_classic_title() );
+
+		$captured_context = null;
+		$callback         = function ( $title, $context ) use ( &$captured_context ) {
+			$captured_context = $context;
+			return 'Pay with Stripe';
+		};
+		add_filter( 'wc_stripe_optimized_checkout_title', $callback, 10, 2 );
+
+		try {
+			$this->assertSame( 'Pay with Stripe', WC_Stripe_UPE_Payment_Method_OC::get_classic_title() );
+			$this->assertSame( 'classic', $captured_context );
+		} finally {
+			remove_filter( 'wc_stripe_optimized_checkout_title', $callback, 10 );
+		}
 	}
 
 	/**

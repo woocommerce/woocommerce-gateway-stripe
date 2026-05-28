@@ -18,7 +18,6 @@ import {
 import { useAccount } from 'wcstripe/data/account';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import {
-	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_SOFORT,
 	PAYMENT_METHOD_UNAVAILABLE_REASONS,
 } from 'wcstripe/stripe-utils/constants';
@@ -212,11 +211,6 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 			onReorder={ onReorder }
 		>
 			{ sortedPaymentMethodIds.map( ( method ) => {
-				// Skip giropay as it was deprecated by Jun, 30th 2024.
-				if ( method === PAYMENT_METHOD_GIROPAY ) {
-					return null;
-				}
-
 				const {
 					Icon,
 					label,
@@ -264,20 +258,9 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 		</DraggableList>
 	) : (
 		<List>
-			{ sortedPaymentMethodIds.map( ( method ) => {
-				// Skip giropay as it was deprecated by Jun, 30th 2024.
-				if ( method === PAYMENT_METHOD_GIROPAY ) {
-					return null;
-				}
-
-				return (
-					<PaymentMethod
-						key={ method }
-						method={ method }
-						data={ data }
-					/>
-				);
-			} ) }
+			{ sortedPaymentMethodIds.map( ( method ) => (
+				<PaymentMethod key={ method } method={ method } data={ data } />
+			) ) }
 		</List>
 	);
 };

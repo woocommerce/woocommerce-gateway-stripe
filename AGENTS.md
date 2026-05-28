@@ -18,7 +18,7 @@ WooCommerce Stripe Payment Gateway is the official plugin for accepting Stripe p
 - **CRITICAL:** If you update `phpstan-baseline.neon`, run `npm run phpstan` first, fix legitimate issues, then baseline only unavoidable items.
 - **CRITICAL:** Do not mix broad feature work with PHPStan baseline churn in a single commit unless explicitly requested.
 - **CRITICAL:** Changes to payment method availability/rendering MUST be validated across classic checkout, Blocks checkout, optimized checkout, and express checkout.
-- **CRITICAL:** Respect version support policy (WordPress strict L-2, WooCommerce loose L-2).
+- **CRITICAL:** Respect version support policy: WooCommerce L, L-1, and L-2; transitively WordPress L and L-1 (per WC's [support policy](https://woocommerce.com/support-policy/)).
 
 ## Task-to-Command Matrix
 
@@ -30,8 +30,10 @@ Use the smallest command set needed for the task:
 | Start local environment | `npm run up` | Docker-based site at `http://localhost:8072`. |
 | Stop local environment | `npm run down` | Preserves local Docker state. |
 | Build frontend assets | `npm run build:webpack` | Use when editing client-side sources that ship built assets. |
+| Analyze bundle sizes | `BUNDLE_ANALYZE=true npm run build:webpack` | Writes `bundle-report.html` (gitignored) to the repo root. Open it to see a per-bundle module treemap. |
 | Dev hot reload | `npm start` | Webpack watch/dev mode. |
 | PHPUnit | `npm run test:php` | Requires Docker environment running. |
+| PHPUnit (parallel) | `npm run test:php:parallel` | Runs tests in parallel via paratest; requires Docker. Set `XDEBUG_MODE_PHPUNIT=coverage` to enable coverage. |
 | Jest unit tests | `npm run test:js` | Use `npm run test:js:watch` during iteration. |
 | E2E setup | `npm run test:e2e-setup -- --base_url=...` | Requires `tests/e2e/config/local.env`. |
 | E2E run | `npm run test:e2e -- --base_url=...` | Supports Playwright CLI flags. |
@@ -122,9 +124,9 @@ Traits:
 
 ## Version Support
 
-This repository follows the L-2 policy:
-- WordPress: strict current and previous two major versions.
-- WooCommerce: loose current and previous two major versions.
+This repository supports:
+- WooCommerce: current and the previous two major versions (L, L-1, L-2).
+- WordPress: current and the previous major version (L, L-1) — transitively constrained by WC's [support policy](https://woocommerce.com/support-policy/).
 
 ## Documentation and Context Sources
 
@@ -133,6 +135,8 @@ This repository follows the L-2 policy:
 - E2E details: `tests/e2e/README.md`
 - API details: `docs/api/README.md`
 - Agentic Commerce feed context: `includes/agentic-commerce/README.md`
+- Repo-specific review checklist: `.claude/review-rules.md`
+- Claude Code skills (invoked via `/<skill-name>`): `.claude/skills/`
 
 ## Directory-Specific Instructions
 
