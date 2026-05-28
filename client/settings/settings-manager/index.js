@@ -14,13 +14,6 @@ import { useEffect } from '@wordpress/element';
 import { useAccount } from 'wcstripe/data/account';
 import OCToggleContext from 'wcstripe/settings/oc-toggle/context';
 import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
-import {
-	AP_ONLY_BANNER,
-	BNPL_PROMOTION_BANNER,
-	OC_PROMOTION_BANNER,
-	OCS_AP_BANNER,
-	STRIPE_TAX_BANNER,
-} from 'wcstripe/settings/payment-settings/constants';
 import ExitSurveyModal, {
 	isCooldownActive,
 } from 'wcstripe/components/exit-survey-modal';
@@ -59,42 +52,7 @@ const SettingsManager = () => {
 		isOCEnabled,
 		enabledPaymentMethodIds
 	);
-	let initialBannerState;
-	if (
-		promotionalBannerType === BNPL_PROMOTION_BANNER &&
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.show_bnpl_promotional_banner === '1'
-	) {
-		initialBannerState = true;
-	}
-	if (
-		promotionalBannerType === STRIPE_TAX_BANNER &&
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.show_stripe_tax_banner === '1'
-	) {
-		initialBannerState = true;
-	}
-	if (
-		promotionalBannerType === OC_PROMOTION_BANNER &&
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.show_oc_promotional_banner === '1'
-	) {
-		initialBannerState = true;
-	}
-	if (
-		promotionalBannerType === OCS_AP_BANNER &&
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.show_ocs_ap_banner === '1'
-	) {
-		initialBannerState = true;
-	}
-	if (
-		promotionalBannerType === AP_ONLY_BANNER &&
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.show_ap_only_banner === '1'
-	) {
-		initialBannerState = true;
-	}
+	const initialBannerState = promotionalBannerType !== null;
 	const [ showPromotionalBanner, setShowPromotionalBanner ] =
 		useState( initialBannerState );
 
