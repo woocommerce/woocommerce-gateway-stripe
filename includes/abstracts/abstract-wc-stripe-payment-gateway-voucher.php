@@ -22,7 +22,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	 *
 	 * @var string
 	 */
-	const ID = '';
+	public const ID = '';
 
 	/**
 	 * ID used by WooCommerce to identify the payment method

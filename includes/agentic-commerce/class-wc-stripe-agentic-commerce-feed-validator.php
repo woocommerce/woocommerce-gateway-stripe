@@ -35,7 +35,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	 * {@see self::$overflow_count} so the eventual log entry stays bounded
 	 * regardless of catalog size.
 	 */
-	public const MAX_COLLECTED_ERRORS = 50;
+	protected const MAX_COLLECTED_ERRORS = 50;
 
 	/**
 	 * Stripe feed schema definition.
