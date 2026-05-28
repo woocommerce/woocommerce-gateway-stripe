@@ -108,7 +108,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 
 	/**
 	 * Full audience-decision matrix. Each row drives one execution of maybe_run()
-	 * and asserts both banner-visibility options after the run.
+	 * and asserts both banner-visibility options and post-flip gateway state.
 	 *
 	 * @dataProvider audience_matrix_provider
 	 */
@@ -119,7 +119,9 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		string $country,
 		?int $account_created,
 		string $expected_show_a,
-		string $expected_show_b
+		string $expected_show_b,
+		string $expected_oc_after,
+		string $expected_ap_after
 	) {
 		update_option( self::STRIPE_VERSION_OPTION, $previous_version );
 		WC_Stripe_Helper::update_main_stripe_settings(
@@ -132,15 +134,29 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		$this->build_migration( $country, $account_created )->maybe_run();
 
 		$created_label = null === $account_created ? 'null' : (string) $account_created;
+		$context       = sprintf( 'prev=%s oc=%s ap=%s country=%s created=%s', $previous_version, $oc_pre, $ap_pre, $country, $created_label );
+
 		$this->assertSame(
 			$expected_show_a,
 			get_option( self::SHOW_OCS_AP_BANNER_OPTION ),
-			sprintf( 'Banner A flag mismatch for prev=%s oc=%s ap=%s country=%s created=%s', $previous_version, $oc_pre, $ap_pre, $country, $created_label )
+			sprintf( 'Banner A flag mismatch for %s', $context )
 		);
 		$this->assertSame(
 			$expected_show_b,
 			get_option( self::SHOW_AP_ONLY_BANNER_OPTION ),
-			sprintf( 'Banner B flag mismatch for prev=%s oc=%s ap=%s country=%s created=%s', $previous_version, $oc_pre, $ap_pre, $country, $created_label )
+			sprintf( 'Banner B flag mismatch for %s', $context )
+		);
+
+		$stored = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame(
+			$expected_oc_after,
+			$stored['optimized_checkout_element'] ?? 'no',
+			sprintf( 'optimized_checkout_element mismatch after flip for %s', $context )
+		);
+		$this->assertSame(
+			$expected_ap_after,
+			$stored['adaptive_pricing'] ?? 'no',
+			sprintf( 'adaptive_pricing mismatch after flip for %s', $context )
 		);
 	}
 
@@ -149,17 +165,17 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		$new_ts = 1779148800;   // 2026-05-19 — post-10.7 era.
 
 		return [
-			// previous_version, oc_pre, ap_pre, country, account_created, expected A, expected B.
-			'both-on backbook'                      => [ '10.7.0', 'yes', 'yes', 'US', $new_ts, 'no', 'no' ],
-			'OC-only backbook old-account'          => [ '10.7.0', 'yes', 'no', 'US', $old_ts, 'no', 'yes' ],
-			'OC-only frontbook-10.7 disabled-AP'    => [ '10.7.0', 'yes', 'no', 'US', $new_ts, 'no', 'no' ],
-			'both-off backbook old-account'         => [ '10.7.0', 'no', 'no', 'US', $old_ts, 'yes', 'no' ],
-			'both-off frontbook-10.7 disabled-both' => [ '10.7.0', 'no', 'no', 'US', $new_ts, 'no', 'no' ],
-			'AP-only-on disabled-OC'                => [ '10.7.0', 'no', 'yes', 'US', $new_ts, 'no', 'no' ],
-			'previous 10.6 both-off recent-account' => [ '10.6.0', 'no', 'no', 'US', $new_ts, 'yes', 'no' ],
-			'previous 10.6 OC-only recent-account'  => [ '10.6.0', 'yes', 'no', 'US', $new_ts, 'no', 'yes' ],
-			'India backbook both-off'               => [ '10.7.0', 'no', 'no', 'IN', $old_ts, 'no', 'no' ],
-			'unavailable-country backbook both-off' => [ '10.7.0', 'no', 'no', '', $old_ts, 'yes', 'no' ],
+			// previous_version, oc_pre, ap_pre, country, account_created, expected show_a, show_b, oc_after, ap_after.
+			'both-on backbook'                      => [ '10.7.0', 'yes', 'yes', 'US', $new_ts, 'no', 'no', 'yes', 'yes' ],
+			'OC-only backbook old-account'          => [ '10.7.0', 'yes', 'no', 'US', $old_ts, 'no', 'yes', 'yes', 'yes' ],
+			'OC-only frontbook-10.7 disabled-AP'    => [ '10.7.0', 'yes', 'no', 'US', $new_ts, 'no', 'no', 'yes', 'no' ],
+			'both-off backbook old-account'         => [ '10.7.0', 'no', 'no', 'US', $old_ts, 'yes', 'no', 'yes', 'yes' ],
+			'both-off frontbook-10.7 disabled-both' => [ '10.7.0', 'no', 'no', 'US', $new_ts, 'no', 'no', 'no', 'no' ],
+			'AP-only-on disabled-OC'                => [ '10.7.0', 'no', 'yes', 'US', $new_ts, 'no', 'no', 'no', 'yes' ],
+			'previous 10.6 both-off recent-account' => [ '10.6.0', 'no', 'no', 'US', $new_ts, 'yes', 'no', 'yes', 'yes' ],
+			'previous 10.6 OC-only recent-account'  => [ '10.6.0', 'yes', 'no', 'US', $new_ts, 'no', 'yes', 'yes', 'yes' ],
+			'India backbook both-off'               => [ '10.7.0', 'no', 'no', 'IN', $old_ts, 'no', 'no', 'yes', 'yes' ],
+			'unavailable-country backbook both-off' => [ '10.7.0', 'no', 'no', '', $old_ts, 'yes', 'no', 'yes', 'yes' ],
 		];
 	}
 
@@ -197,7 +213,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		$this->assertSame( 'yes', $stored['adaptive_pricing'] );
 	}
 
-	public function test_flip_applies_even_in_india() {
+	public function test_flip_applies_in_india_for_non_frontbook_merchants() {
 		update_option( self::STRIPE_VERSION_OPTION, '10.7.0' );
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
@@ -206,11 +222,46 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->build_migration( 'IN', 1779148800 )->maybe_run();
+		// Pre-10.7 account: not classified as frontbook, so the flip still applies.
+		$this->build_migration( 'IN', 1747008000 )->maybe_run();
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'India: flip still applies to underlying feature.' );
-		$this->assertSame( 'yes', $stored['adaptive_pricing'] );
+		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'India non-frontbook: flip still applies to OC.' );
+		$this->assertSame( 'yes', $stored['adaptive_pricing'], 'India non-frontbook: flip still applies to AP.' );
 		$this->assertSame( 'no', get_option( self::SHOW_OCS_AP_BANNER_OPTION ), 'India: banner is suppressed.' );
+	}
+
+	public function test_flip_skipped_for_frontbook_with_both_disabled() {
+		update_option( self::STRIPE_VERSION_OPTION, '10.7.0' );
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'optimized_checkout_element' => 'no',
+				'adaptive_pricing'           => 'no',
+			]
+		);
+
+		// Recent account = likely 10.7 frontbook who explicitly disabled both.
+		$this->build_migration( 'US', 1779148800 )->maybe_run();
+
+		$stored = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( 'no', $stored['optimized_checkout_element'], 'Frontbook-disabled OC must not be re-flipped.' );
+		$this->assertSame( 'no', $stored['adaptive_pricing'], 'Frontbook-disabled AP must not be re-flipped.' );
+	}
+
+	public function test_flip_skipped_only_for_disabled_feature_in_frontbook() {
+		update_option( self::STRIPE_VERSION_OPTION, '10.7.0' );
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'optimized_checkout_element' => 'yes',
+				'adaptive_pricing'           => 'no',
+			]
+		);
+
+		// Recent account = likely 10.7 frontbook who kept OC on but disabled AP.
+		$this->build_migration( 'US', 1779148800 )->maybe_run();
+
+		$stored = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'OC stays as set; no change needed.' );
+		$this->assertSame( 'no', $stored['adaptive_pricing'], 'Frontbook-disabled AP must not be re-flipped.' );
 	}
 }
