@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_P24 extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::P24;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::P24;
 
 	/**
 	 * Constructor for Przelewy24 payment method
