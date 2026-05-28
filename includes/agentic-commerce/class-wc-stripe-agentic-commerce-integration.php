@@ -35,14 +35,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 *
 	 * @var string
 	 */
-	const ID = 'stripe-agentic-commerce';
+	public const ID = 'stripe-agentic-commerce';
 
 	/**
 	 * Action Scheduler hook name.
 	 *
 	 * @var string
 	 */
-	const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_feed';
+	public const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_feed';
 
 	/**
 	 * Option name to track whether the sync is scheduled.
@@ -50,7 +50,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @var string
 	 * @since 10.5.0
 	 */
-	const SCHEDULED_OPTION = 'wc_stripe_agentic_commerce_feed_sync_scheduled';
+	public const SCHEDULED_OPTION = 'wc_stripe_agentic_commerce_feed_sync_scheduled';
 
 	/**
 	 * Option key for the merchant-facing enabled toggle.
@@ -61,7 +61,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @var string
 	 * @since 10.6.0
 	 */
-	const ENABLED_OPTION = 'wc_stripe_agentic_commerce_enabled';
+	public const ENABLED_OPTION = 'wc_stripe_agentic_commerce_enabled';
 
 	/**
 	 * Option key storing the content hash, upload timestamp, and Stripe file id
@@ -99,14 +99,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @var string
 	 * @since 10.7.0
 	 */
-	const WEBHOOK_SECRET_OPTION = 'wc_stripe_agentic_commerce_webhook_secret';
+	public const WEBHOOK_SECRET_OPTION = 'wc_stripe_agentic_commerce_webhook_secret';
 
 	/**
 	 * Sync interval in seconds.
 	 *
 	 * @var int
 	 */
-	const SYNC_INTERVAL = 15 * MINUTE_IN_SECONDS;
+	public const SYNC_INTERVAL = 15 * MINUTE_IN_SECONDS;
 
 	/**
 	 * Option key for the last sync result.

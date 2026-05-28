@@ -21,7 +21,7 @@ class WC_Stripe_Admin_Notices {
 	 *
 	 * @var string
 	 */
-	const DETACHED_NOTICE_DISMISSED_META = '_wc_stripe_subscription_detached_notice_dismissed';
+	protected const DETACHED_NOTICE_DISMISSED_META = '_wc_stripe_subscription_detached_notice_dismissed';
 
 	/**
 	 * Notices (array)
