@@ -193,6 +193,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		$this->assertContains( 'https://js.stripe.com', $hrefs );
 		$this->assertContains( 'https://m.stripe.network', $hrefs );
 		$this->assertContains( 'https://q.stripe.com', $hrefs );
+		$this->assertContains( 'https://b.stripecdn.com', $hrefs );
 
 		// js.stripe.com and m.stripe.network must declare crossorigin so the preconnected
 		// TLS session is reused by the script/iframe fetch that follows.
@@ -201,7 +202,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 				continue;
 			}
 
-			if ( in_array( $entry['href'], [ 'https://js.stripe.com', 'https://m.stripe.network' ], true ) ) {
+			if ( in_array( $entry['href'], [ 'https://js.stripe.com', 'https://m.stripe.network', 'https://b.stripecdn.com' ], true ) ) {
 				$this->assertSame( 'anonymous', $entry['crossorigin'] );
 			}
 
