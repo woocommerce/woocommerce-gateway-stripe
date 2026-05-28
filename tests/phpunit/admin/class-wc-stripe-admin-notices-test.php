@@ -1091,15 +1091,15 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Test that stripe_updated() sets the ECE location notice flag correctly based on the previous version.
+	 * Test that {@see WC_Stripe_Admin_Notices::check_update_notices()} sets the ECE location notice flag correctly based on the previous version.
 	 *
-	 * @param string|null $previous_version  Version to set as previous, or null to delete.
-	 * @param string|null $initial_flag      Initial value for the notice option, or null to delete.
-	 * @param string|false $expected         Expected option value after stripe_updated().
+	 * @param string|null $previous_version Version to set as previous, or null to delete.
+	 * @param string|null $initial_flag     Initial value for the notice option, or null to delete.
+	 * @param string|false $expected        Expected option value after stripe_updated().
 	 *
 	 * @dataProvider provide_ece_location_flag_scenarios
 	 */
-	public function test_stripe_updated_sets_ece_location_flag( $previous_version, $initial_flag, $expected ) {
+	public function test_check_update_notices_sets_ece_location_flag( $previous_version, $initial_flag, $expected ) {
 		if ( null === $previous_version ) {
 			delete_option( 'wc_stripe_version' );
 		} else {
@@ -1112,8 +1112,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			update_option( 'wc_stripe_show_ece_location_notice', $initial_flag );
 		}
 
-		$notices = $this->create_admin_notices_instance();
-		$notices->stripe_updated();
+		WC_Stripe_Admin_Notices::check_update_notices( $previous_version );
 
 		$this->assertSame( $expected, get_option( 'wc_stripe_show_ece_location_notice' ) );
 	}
