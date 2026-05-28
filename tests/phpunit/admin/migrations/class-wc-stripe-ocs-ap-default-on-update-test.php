@@ -166,17 +166,18 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 
 		return [
 			// previous_version, oc_pre, ap_pre, country, account_created, expected show_a, show_b, oc_after, ap_after.
-			'both-on backbook'                      => [ '10.7.0', 'yes', 'yes', 'US', $new_ts, 'no', 'no', 'yes', 'yes' ],
-			'OC-only backbook old-account'          => [ '10.7.0', 'yes', 'no', 'US', $old_ts, 'no', 'yes', 'yes', 'yes' ],
-			'OC-only frontbook-10.7 disabled-AP'    => [ '10.7.0', 'yes', 'no', 'US', $new_ts, 'no', 'no', 'yes', 'no' ],
-			'both-off backbook old-account'         => [ '10.7.0', 'no', 'no', 'US', $old_ts, 'yes', 'no', 'yes', 'yes' ],
-			'both-off frontbook-10.7 disabled-both' => [ '10.7.0', 'no', 'no', 'US', $new_ts, 'no', 'no', 'no', 'no' ],
-			'AP-only-on disabled-OC'                => [ '10.7.0', 'no', 'yes', 'US', $new_ts, 'no', 'no', 'no', 'yes' ],
-			'previous 10.6 both-off recent-account' => [ '10.6.0', 'no', 'no', 'US', $new_ts, 'yes', 'no', 'yes', 'yes' ],
-			'previous 10.6 OC-only recent-account'  => [ '10.6.0', 'yes', 'no', 'US', $new_ts, 'no', 'yes', 'yes', 'yes' ],
-			'India backbook both-off'               => [ '10.7.0', 'no', 'no', 'IN', $old_ts, 'no', 'no', 'no', 'no' ],
-			'India backbook OC-only'                => [ '10.7.0', 'yes', 'no', 'IN', $old_ts, 'no', 'no', 'yes', 'no' ],
-			'unavailable-country backbook both-off' => [ '10.7.0', 'no', 'no', '', $old_ts, 'yes', 'no', 'yes', 'yes' ],
+			'both-on backbook'                       => [ '10.7.0', 'yes', 'yes', 'US', $new_ts, 'no', 'no', 'yes', 'yes' ],
+			'OC-only backbook old-account'           => [ '10.7.0', 'yes', 'no', 'US', $old_ts, 'no', 'yes', 'yes', 'yes' ],
+			'OC-only frontbook-10.7 disabled-AP'     => [ '10.7.0', 'yes', 'no', 'US', $new_ts, 'no', 'no', 'yes', 'no' ],
+			'both-off backbook old-account'          => [ '10.7.0', 'no', 'no', 'US', $old_ts, 'yes', 'no', 'yes', 'yes' ],
+			'both-off standard-account null-created' => [ '10.7.0', 'no', 'no', 'US', null, 'yes', 'no', 'yes', 'yes' ],
+			'both-off frontbook-10.7 disabled-both'  => [ '10.7.0', 'no', 'no', 'US', $new_ts, 'no', 'no', 'no', 'no' ],
+			'AP-only-on disabled-OC'                 => [ '10.7.0', 'no', 'yes', 'US', $new_ts, 'no', 'no', 'no', 'yes' ],
+			'previous 10.6 both-off recent-account'  => [ '10.6.0', 'no', 'no', 'US', $new_ts, 'yes', 'no', 'yes', 'yes' ],
+			'previous 10.6 OC-only recent-account'   => [ '10.6.0', 'yes', 'no', 'US', $new_ts, 'no', 'yes', 'yes', 'yes' ],
+			'India backbook both-off'                => [ '10.7.0', 'no', 'no', 'IN', $old_ts, 'no', 'no', 'no', 'no' ],
+			'India backbook OC-only'                 => [ '10.7.0', 'yes', 'no', 'IN', $old_ts, 'no', 'no', 'yes', 'no' ],
+			'unavailable-country backbook both-off'  => [ '10.7.0', 'no', 'no', '', $old_ts, 'yes', 'no', 'yes', 'yes' ],
 		];
 	}
 

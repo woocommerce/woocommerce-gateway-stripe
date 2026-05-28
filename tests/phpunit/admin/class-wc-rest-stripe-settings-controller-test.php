@@ -492,6 +492,8 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			'wc_stripe_show_optimized_checkout_notice'  => 'wc_stripe_show_optimized_checkout_notice',
 			'wc_stripe_show_bnpl_promotion_banner'      => 'wc_stripe_show_bnpl_promotion_banner',
 			'wc_stripe_show_oc_promotion_banner'        => 'wc_stripe_show_oc_promotion_banner',
+			'wc_stripe_show_ocs_ap_banner'              => 'wc_stripe_show_ocs_ap_banner',
+			'wc_stripe_show_ap_only_banner'             => 'wc_stripe_show_ap_only_banner',
 			'wc_stripe_show_stripe_first_method_notice' => 'wc_stripe_show_stripe_first_method_notice',
 			'wc_stripe_show_stripe_tax_banner'          => 'wc_stripe_show_stripe_tax_banner',
 		];
@@ -561,34 +563,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		];
 
 		return $test_cases;
-	}
-
-	public function test_dismiss_notice_sets_ocs_ap_banner_to_no() {
-		delete_option( 'wc_stripe_show_ocs_ap_banner' );
-
-		$request = new WP_REST_Request( 'POST', '/wc/v3/wc_stripe/settings/notice' );
-		$request->set_param( 'wc_stripe_show_ocs_ap_banner', true );
-
-		$response = $this->controller->dismiss_notice( $request );
-
-		$this->assertSame( 200, $response->get_status() );
-		$this->assertSame( 'no', get_option( 'wc_stripe_show_ocs_ap_banner' ) );
-
-		delete_option( 'wc_stripe_show_ocs_ap_banner' );
-	}
-
-	public function test_dismiss_notice_sets_ap_only_banner_to_no() {
-		delete_option( 'wc_stripe_show_ap_only_banner' );
-
-		$request = new WP_REST_Request( 'POST', '/wc/v3/wc_stripe/settings/notice' );
-		$request->set_param( 'wc_stripe_show_ap_only_banner', true );
-
-		$response = $this->controller->dismiss_notice( $request );
-
-		$this->assertSame( 200, $response->get_status() );
-		$this->assertSame( 'no', get_option( 'wc_stripe_show_ap_only_banner' ) );
-
-		delete_option( 'wc_stripe_show_ap_only_banner' );
 	}
 
 	/**
