@@ -34,21 +34,21 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	 *
 	 * @var string
 	 */
-	const FILES_API_ENDPOINT = 'https://files.stripe.com/v1/files';
+	public const FILES_API_ENDPOINT = 'https://files.stripe.com/v1/files';
 
 	/**
 	 * Stripe Data Management API endpoint.
 	 *
 	 * @var string
 	 */
-	const IMPORT_SETS_ENDPOINT = 'https://api.stripe.com/v1/data_management/import_sets';
+	public const IMPORT_SETS_ENDPOINT = 'https://api.stripe.com/v1/data_management/import_sets';
 
 	/**
 	 * Stripe Files API content endpoint.
 	 *
 	 * @var string
 	 */
-	const FILES_CONTENT_ENDPOINT = 'https://files.stripe.com/v1/files/';
+	public const FILES_CONTENT_ENDPOINT = 'https://files.stripe.com/v1/files/';
 
 	/**
 	 * Stripe API version for Data Management (preview).
@@ -56,7 +56,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	 *
 	 * @var string
 	 */
-	const API_VERSION = '2025-09-30.clover;udap_beta=v1';
+	public const API_VERSION = '2025-09-30.clover;udap_beta=v1';
 
 	/**
 	 * Stripe secret key.

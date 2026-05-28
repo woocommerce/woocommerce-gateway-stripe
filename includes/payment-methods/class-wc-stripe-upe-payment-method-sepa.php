@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 	use WC_Stripe_Subscriptions_Trait;
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::SEPA_DEBIT;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::SEPA_DEBIT;
 
 	/**
 	 * Stripe account countries that may not enable SEPA Direct Debit.

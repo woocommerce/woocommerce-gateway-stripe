@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Giropay extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::GIROPAY;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::GIROPAY;
 
 	/**
 	 * Stripe account countries that may enable giropay. Last-known data; giropay was

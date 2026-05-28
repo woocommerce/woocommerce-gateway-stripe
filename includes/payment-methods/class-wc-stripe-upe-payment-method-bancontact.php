@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Method {
 	use WC_Stripe_Subscriptions_Trait;
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::BANCONTACT;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::BANCONTACT;
 
 	/**
 	 * Stripe account countries where Bancontact is not supported.

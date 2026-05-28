@@ -17,7 +17,7 @@ class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Stripe's internal identifier for ACH Direct Debit.
 	 */
-	const STRIPE_ID = WC_Stripe_Payment_Methods::ACH;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::ACH;
 
 	/**
 	 * Stripe account countries that may enable ACH Direct Debit. ACH itself only debits US

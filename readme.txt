@@ -176,6 +176,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Remove redundant `get_retrievable_type()` overrides from payment methods
 * Dev - Add Claude Code skills and review rules under .claude/ to capture repo-specific contributor guidance
 * Dev - Move some independent classes into autoloader
+* Dev - Require explicit visibility for class constants
 * Dev - Add payment token classes to autoloader
 * Remove - Remove deprecated code up to version 10.1.0
 * Dev - Add Jest tests for ECE payment flow

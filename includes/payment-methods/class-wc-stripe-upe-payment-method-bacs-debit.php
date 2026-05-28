@@ -17,7 +17,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	/**
 	 * The Stripe ID for the payment method.
 	 */
-	const STRIPE_ID = WC_Stripe_Payment_Methods::BACS_DEBIT;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::BACS_DEBIT;
 
 	/**
 	 * Stripe account countries that may enable Bacs Direct Debit.

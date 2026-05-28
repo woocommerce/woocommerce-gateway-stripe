@@ -17,7 +17,7 @@ class WC_Stripe_UPE_Payment_Method_Becs_Debit extends WC_Stripe_UPE_Payment_Meth
 	/**
 	 * Stripe's internal identifier for BECS Direct Debit.
 	 */
-	const STRIPE_ID = WC_Stripe_Payment_Methods::BECS_DEBIT;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::BECS_DEBIT;
 
 	/**
 	 * Stripe account countries that may enable BECS Direct Debit.

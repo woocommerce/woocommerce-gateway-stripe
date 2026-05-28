@@ -30,6 +30,7 @@ Use the smallest command set needed for the task:
 | Start local environment | `npm run up` | Docker-based site at `http://localhost:8072`. |
 | Stop local environment | `npm run down` | Preserves local Docker state. |
 | Build frontend assets | `npm run build:webpack` | Use when editing client-side sources that ship built assets. |
+| Analyze bundle sizes | `BUNDLE_ANALYZE=true npm run build:webpack` | Writes `bundle-report.html` (gitignored) to the repo root. Open it to see a per-bundle module treemap. |
 | Dev hot reload | `npm start` | Webpack watch/dev mode. |
 | PHPUnit | `npm run test:php` | Requires Docker environment running. |
 | PHPUnit (parallel) | `npm run test:php:parallel` | Runs tests in parallel via paratest; requires Docker. Set `XDEBUG_MODE_PHPUNIT=coverage` to enable coverage. |

@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY;
 
 	/**
 	 * Stripe account countries that may enable Clearpay / Afterpay.
