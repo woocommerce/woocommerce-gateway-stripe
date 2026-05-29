@@ -150,45 +150,14 @@ const getCustomerDataFromStore = () => {
 	return store.getCustomerData() || {};
 };
 
-const getExistingBillingAddressData = ( customerData ) =>
-	customerData?.billingAddress ?? {};
-
-const getExistingBillingName = ( billingAddress ) => {
-	const firstName = ( billingAddress?.first_name ?? '' ).trim();
-	const lastName = ( billingAddress?.last_name ?? '' ).trim();
-
-	return firstName
-		? [ firstName, lastName ].filter( Boolean ).join( ' ' )
-		: '';
-};
-
-const getBillingLastNameFallback = ( billingName, billingAddress ) => {
-	const billingFirstName = approximateFirstName( billingName ).trim();
-	const existingBillingFirstName = (
-		billingAddress?.first_name ?? ''
-	).trim();
-	const existingBillingLastName = ( billingAddress?.last_name ?? '' ).trim();
-
-	if (
-		existingBillingLastName &&
-		existingBillingFirstName &&
-		existingBillingFirstName === billingFirstName
-	) {
-		return existingBillingLastName;
-	}
-
-	return '-';
-};
-
 /**
  * Get custom billing address field data.
  *
- * @param {Object} data         The standard billing address data.
- * @param {Object} customerData The customer data.
+ * @param {Object} data The standard billing address data.
  *
  * @return {Object} The custom billing address data.
  */
-const getCustomBillingAddressData = ( data, customerData ) => {
+const getCustomBillingAddressData = ( data ) => {
 	// Bail if we're on classic checkout. We do not use the Checkout/Cart Store
 	// for supporting custom fields in classic checkout.
 	if ( getStripeServerData()?.isCheckout && ! isBlockCheckoutPage() ) {
@@ -202,6 +171,8 @@ const getCustomBillingAddressData = ( data, customerData ) => {
 	if ( ! isBlockCheckoutPage() ) {
 		return emptyCustomFieldsData( [ 'address' ] );
 	}
+
+	const customerData = getCustomerDataFromStore();
 
 	if ( ! customerData || ! customerData.billingAddress ) {
 		return {};
@@ -380,18 +351,10 @@ const getBillingAddressData = ( event ) => {
 	const name = event?.billingDetails?.name;
 	const email = event?.billingDetails?.email ?? '';
 	const billing = event?.billingDetails?.address ?? {};
-	const customerData = getCustomerDataFromStore();
-	const existingBillingAddress =
-		getExistingBillingAddressData( customerData );
-	const billingName =
-		name || getExistingBillingName( existingBillingAddress );
 
 	const data = {
-		first_name: approximateFirstName( billingName ),
-		last_name: approximateLastName(
-			billingName,
-			getBillingLastNameFallback( billingName, existingBillingAddress )
-		),
+		first_name: approximateFirstName( name ),
+		last_name: approximateLastName( name, '-' ),
 		company: billing?.organization ?? '',
 		email: email ?? event?.payerEmail ?? '',
 		phone: getPhone( event ),
@@ -404,7 +367,7 @@ const getBillingAddressData = ( event ) => {
 	};
 
 	return {
-		...getCustomBillingAddressData( data, customerData ),
+		...getCustomBillingAddressData( data ),
 		...data,
 	};
 };

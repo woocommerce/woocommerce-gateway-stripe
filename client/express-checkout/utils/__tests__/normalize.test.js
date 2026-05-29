@@ -565,7 +565,7 @@ describe( 'Express checkout normalization', () => {
 			} );
 		} );
 
-		test( 'should use an existing billing last name before the placeholder fallback', () => {
+		test( 'should use the placeholder fallback instead of an existing billing last name', () => {
 			select.mockImplementation( () => ( {
 				getExtensionData: () => ( {} ),
 				getAdditionalFields: () => ( {} ),
@@ -585,64 +585,6 @@ describe( 'Express checkout normalization', () => {
 
 			const normalizedData = normalizeOrderData( {
 				event: emptyBillingLastNameEvent,
-				paymentMethodId,
-			} );
-
-			expect( normalizedData.billing_address ).toMatchObject( {
-				first_name: 'John',
-				last_name: 'Doe',
-			} );
-		} );
-
-		test( 'should not use an existing billing last name for a different billing first name', () => {
-			select.mockImplementation( () => ( {
-				getExtensionData: () => ( {} ),
-				getAdditionalFields: () => ( {} ),
-				getCustomerData: () => ( {
-					billingAddress: {
-						first_name: 'Jane',
-						last_name: 'Doe',
-					},
-				} ),
-			} ) );
-
-			const differentBillingFirstNameEvent = {
-				billingDetails: {
-					name: 'John',
-				},
-			};
-
-			const normalizedData = normalizeOrderData( {
-				event: differentBillingFirstNameEvent,
-				paymentMethodId,
-			} );
-
-			expect( normalizedData.billing_address ).toMatchObject( {
-				first_name: 'John',
-				last_name: '-',
-			} );
-		} );
-
-		test( 'should not use an existing billing last name when the stored first name is empty', () => {
-			select.mockImplementation( () => ( {
-				getExtensionData: () => ( {} ),
-				getAdditionalFields: () => ( {} ),
-				getCustomerData: () => ( {
-					billingAddress: {
-						first_name: '',
-						last_name: 'Doe',
-					},
-				} ),
-			} ) );
-
-			const eventWithSingleFirstName = {
-				billingDetails: {
-					name: 'John',
-				},
-			};
-
-			const normalizedData = normalizeOrderData( {
-				event: eventWithSingleFirstName,
 				paymentMethodId,
 			} );
 
