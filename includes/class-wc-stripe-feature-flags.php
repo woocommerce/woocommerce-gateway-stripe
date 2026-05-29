@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class WC_Stripe_Feature_Flags {
-	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
+	public const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
 
 	/**
 	 * Feature flag for Amazon Pay.
@@ -12,7 +12,7 @@ class WC_Stripe_Feature_Flags {
 	 * @var string
 	 * @deprecated This feature flag will be removed in version 10.5.0. Amazon Pay is permanently enabled as of version 10.4.0.
 	 */
-	const AMAZON_PAY_FEATURE_FLAG_NAME = '_wcstripe_feature_amazon_pay';
+	public const AMAZON_PAY_FEATURE_FLAG_NAME = '_wcstripe_feature_amazon_pay';
 
 	/**
 	 * Feature flag for Stripe Checkout Sessions.
@@ -22,7 +22,7 @@ class WC_Stripe_Feature_Flags {
 	 *
 	 * @deprecated This feature flag will be removed in version 10.8.0. Stripe Checkout Sessions is available as of version 10.6.0.
 	 */
-	const CHECKOUT_SESSIONS_FEATURE_FLAG_NAME = '_wcstripe_feature_stripe_checkout_sessions';
+	public const CHECKOUT_SESSIONS_FEATURE_FLAG_NAME = '_wcstripe_feature_stripe_checkout_sessions';
 
 	/**
 	 * Feature flag for Agentic Commerce.
@@ -30,7 +30,7 @@ class WC_Stripe_Feature_Flags {
 	 * @var string
 	 * @since 10.5.0
 	 */
-	const AGENTIC_COMMERCE_FEATURE_FLAG_NAME = '_wcstripe_feature_agentic_commerce';
+	public const AGENTIC_COMMERCE_FEATURE_FLAG_NAME = '_wcstripe_feature_agentic_commerce';
 
 	/**
 	 * Feature flag for expanding Optimized Checkout Suite in legacy checkout.
