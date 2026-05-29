@@ -229,6 +229,39 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * save_meta() must leave exclusion meta untouched for product types the
+	 * feed doesn't walk. The toggle is hidden for those types, so a save (e.g.
+	 * after a simple → grouped switch) posts no checkbox; a blind save would
+	 * clobber a stored 'yes' and fire a needless resync. Mirrors the type gate
+	 * in render_checkbox().
+	 */
+	public function test_save_meta_skips_unsupported_product_type(): void {
+		$product = WC_Helper_Product::create_grouped_product();
+		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Meta_Box::META_KEY, 'yes' );
+
+		$fired = 0;
+		$bump  = function () use ( &$fired ) {
+			++$fired;
+		};
+		add_action( 'wc_stripe_agentic_commerce_schedule_full_resync', $bump );
+
+		// Unsupported type → the hidden checkbox posts no key, just the nonce.
+		$_POST = [ 'woocommerce_meta_nonce' => wp_create_nonce( 'woocommerce_save_data' ) ];
+		( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->save_meta( $product->get_id() );
+
+		$this->assertSame(
+			'yes',
+			get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Meta_Box::META_KEY, true ),
+			'Unsupported type must not clobber existing exclusion meta.'
+		);
+		$this->assertSame( 0, $fired, 'Unsupported type must not schedule a resync.' );
+
+		remove_action( 'wc_stripe_agentic_commerce_schedule_full_resync', $bump );
+		$_POST = [];
+		$product->delete( true );
+	}
+
+	/**
 	 * render_checkbox() must emit a checkbox using WC's helper — guards
 	 * against a refactor that swaps in raw HTML and silently drops the
 	 * `desc_tip` styling that ai-storefront and the surrounding

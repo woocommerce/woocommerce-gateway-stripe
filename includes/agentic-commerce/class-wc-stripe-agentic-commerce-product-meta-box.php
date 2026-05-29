@@ -179,6 +179,15 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 			return;
 		}
 
+		// Mirror render_checkbox()'s type gate. The toggle only renders for types
+		// the feed walks, so a save for any other type (e.g. after a simple →
+		// grouped switch) won't post the checkbox — bail before that absence
+		// clobbers a stored 'yes' or schedules a needless resync.
+		$product = wc_get_product( $product_id );
+		if ( ! $product instanceof WC_Product || ! in_array( $product->get_type(), self::SUPPORTED_TYPES, true ) ) {
+			return;
+		}
+
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$posted_value = isset( $_POST[ self::META_KEY ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::META_KEY ] ) ) : '';
 		$value        = 'yes' === $posted_value ? 'yes' : 'no';
