@@ -163,7 +163,44 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	}
 
 	/**
-	 * Get the query arguments to match the specified filters.
+	 * At present, the product feed infrastructure can only support query criteria
+	 * that can be handled by a single wc_get_products() call. As such,
+	 * this method indicates which field types will be used to construct the query.
+	 *
+	 * @see get_query_args()
+	 * @since 10.8.0
+	 * @return string[] Field types that will be used to construct the query.
+	 */
+	public function get_effective_filter_types(): array {
+		$filters = $this->get_filters();
+
+		if ( [] !== $filters['product_ids'] ) {
+			return [ 'product_ids' ];
+		}
+
+		if ( [] !== $filters['variable_product_ids'] ) {
+			return [ 'variable_product_ids' ];
+		}
+
+		$taxonomy_filters = [];
+		if ( [] !== $filters['category_ids'] ) {
+			$taxonomy_filters[] = 'category_ids';
+		}
+		if ( [] !== $filters['tag_ids'] ) {
+			$taxonomy_filters[] = 'tag_ids';
+		}
+		if ( [] !== $filters['brand_ids'] && taxonomy_exists( 'product_brand' ) ) {
+			$taxonomy_filters[] = 'brand_ids';
+		}
+
+		return $taxonomy_filters;
+	}
+
+	/**
+	 * Get the query arguments to apply the specified filters.
+	 * Note that not all filter criteria can be applied in a single query,
+	 * so this method has a hierarchy for applicable criteria.
+	 * Call {@see get_effective_filter_types()} to identify which criteria will be used.
 	 *
 	 * @since 10.8.0
 	 * @return array|null WC_Product_Query arguments. Null when no filters are specified.
@@ -175,7 +212,8 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 			return null;
 		}
 
-		$collated_query_args = [];
+		// The product feed infrastructure can only support single queries, so we can only return
+		// query criteria that can be handled by a single wc_get_products() call.
 
 		$standard_product_types = [
 			\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
@@ -183,21 +221,25 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 		];
 
 		if ( [] !== $filters['product_ids'] ) {
-			$product_id_query                   = [
+			return [
 				'status'  => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
 				'type'    => $standard_product_types,
 				'include' => $filters['product_ids'],
 			];
-			$collated_query_args['product_ids'] = $product_id_query;
 		}
 
-		$variation_parent_ids = [];
 		if ( [] !== $filters['variable_product_ids'] ) {
-			$variation_parent_ids = $filters['variable_product_ids'];
+			return [
+				'status'          => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+				'type'            => \Automattic\WooCommerce\Enums\ProductType::VARIATION,
+				// WooCommerce doesn't have a mapped keyword for parent product IDs, so we use the WordPress post_parent__in.
+				'post_parent__in' => $filters['variable_product_ids'],
+			];
 		}
 
 		// Consolidate the taxonomy conditions into a single query.
 		$taxonomy_conditions = [];
+
 		if ( [] !== $filters['category_ids'] ) {
 			$taxonomy_conditions['product_cat'] = $filters['category_ids'];
 		}
@@ -223,37 +265,15 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 				$tax_query_clauses['relation'] = 'OR';
 			}
 
-			$tax_query_args = [
+			return [
 				'type'      => $standard_product_types,
 				'status'    => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
 				// Use a nested array to ensure our OR is properly encapsulated.
 				'tax_query' => [ $tax_query_clauses ], // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 			];
-
-			$collated_query_args['taxonomy_conditions'] = $tax_query_args;
 		}
 
-		if ( [] !== $variation_parent_ids ) {
-			$variation_product_query = [
-				'status'          => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
-				'type'            => \Automattic\WooCommerce\Enums\ProductType::VARIATION,
-				// WooCommerce doesn't have a mapped keyword for parent product IDs, so we use the WordPress post_parent__in.
-				'post_parent__in' => $variation_parent_ids,
-			];
-			$collated_query_args['variation_parent_ids'] = $variation_product_query;
-		}
-
-		if ( [] === $collated_query_args ) {
-			return null;
-		}
-
-		$primary_query = array_shift( $collated_query_args );
-
-		if ( [] !== $collated_query_args ) {
-			$primary_query[ WC_Stripe_Agentic_Commerce_Product_Loader::CUSTOM_QUERIES_KEY ] = $collated_query_args;
-		}
-
-		return $primary_query;
+		return null;
 	}
 
 	/**
