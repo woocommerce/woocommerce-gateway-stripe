@@ -108,7 +108,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 				'category_ids'         => [],
 				'tag_ids'              => [],
 				'brand_ids'            => [],
-				'variation_parent_ids' => [],
+				'variable_product_ids' => [],
 			],
 			$filters
 		);
@@ -127,7 +127,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 					'categories'           => [ $cat['term_id'], 'shoes', '' ],
 					'tags'                 => [ $tag['slug'], $tag['term_id'] ],
 					'brands'               => [ $brand['slug'] ],
-					'variation_parent_ids' => [ '345', 567, -1, 'test', 0.0 ],
+					'variable_product_ids' => [ '345', 567, -1, 'test', 0.0 ],
 				]
 			)
 		);
@@ -139,7 +139,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 				'category_ids'         => [ $cat['term_id'] ],
 				'tag_ids'              => [ $tag['term_id'] ],
 				'brand_ids'            => [ $brand['term_id'] ],
-				'variation_parent_ids' => [ 345, 567 ],
+				'variable_product_ids' => [ 345, 567 ],
 			],
 			$stored
 		);
@@ -176,12 +176,12 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @dataProvider provide_corrupt_option_shapes
+	 * @dataProvider provide_corrupt_option_data
 	 *
 	 * @param mixed $stored Whatever ended up in the option.
 	 */
-	public function test_get_filters_coerces_corrupt_option_to_strict_shape( $stored ) {
-		update_option( $this->option_name, $stored );
+	public function test_get_filters_normalizes_corrupt_option_data( $option_data ): void {
+		update_option( $this->option_name, $option_data );
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 
@@ -191,13 +191,18 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 				'category_ids'         => [],
 				'tag_ids'              => [],
 				'brand_ids'            => [],
-				'variation_parent_ids' => [],
+				'variable_product_ids' => [],
 			],
 			$filter->get_filters()
 		);
 	}
 
-	public function provide_corrupt_option_shapes(): array {
+	/**
+	 * Data provider for {@see test_get_filters_normalizes_corrupt_option_data()}.
+	 *
+	 * @return array
+	 */
+	public function provide_corrupt_option_data(): array {
 		return [
 			'non-array option'           => [ 'not-an-array' ],
 			'empty array'                => [ [] ],
@@ -211,7 +216,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 					'tag_ids'              => 43,
 					'brands'               => false,
 					'brand_ids'            => true,
-					'variation_parent_ids' => 'test',
+					'variable_product_ids' => 'test',
 				],
 			],
 			'non-scalar entries'         => [
@@ -223,7 +228,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 					'tag_ids'              => [ '', '   ' ],
 					'brands'               => [ [] ],
 					'brand_ids'            => [ [] ],
-					'variation_parent_ids' => [ [] ],
+					'variable_product_ids' => [ [] ],
 				],
 			],
 		];
@@ -252,7 +257,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------------
-	// has_filters() detection
+	// has_filters()
 	// -----------------------------------------------------------------------
 
 	/**
@@ -279,174 +284,681 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------------
-	// get_filtered_product_ids
+	// get_effective_filter_types
 	// -----------------------------------------------------------------------
 
-	public function test_get_filtered_product_ids_explicit_product_ids() {
-		$simple = $this->create_simple_product();
-
-		update_option(
-			$this->option_name,
-			[
-				'product_ids' => [ $simple->get_id() ],
-			]
-		);
+	/**
+	 * @dataProvider provide_get_effective_filter_types_scenarios
+	 *
+	 * @param array $stored_filters The data to store in the option.
+	 * @param array $expected_types The types we expect to be returned.
+	 */
+	public function test_get_effective_filter_types( array $stored_filters, array $expected_types ): void {
+		update_option( $this->option_name, $stored_filters );
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$this->assertSame( [ $simple->get_id() ], $filter->get_filtered_product_ids() );
+
+		$actual_types = $filter->get_effective_filter_types();
+		$actual_types = sort( $actual_types );
+
+		$expected_types = sort( $expected_types );
+		$this->assertEqualsCanonicalizing( $expected_types, $actual_types );
 	}
 
-	public function test_get_filtered_product_ids_explicit_product_ids_drops_grouped() {
-		$grouped                  = WC_Helper_Product::create_grouped_product();
-		$this->created_products[] = $grouped->get_id();
-		foreach ( $grouped->get_children() as $child_id ) {
-			$this->created_products[] = (int) $child_id;
-		}
+	public function provide_get_effective_filter_types_scenarios(): array {
+		$product_brand_exists = taxonomy_exists( 'product_brand' );
 
-		update_option(
-			$this->option_name,
-			[
-				'product_ids' => [ $grouped->get_id() ],
-			]
-		);
-
-		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-
-		// Grouped parent itself isn't simple/variation/variable, so it falls away.
-		// Its children are simple products but weren't named in the input.
-		$this->assertSame( [ 0 ], $filter->get_filtered_product_ids() );
-	}
-
-	public function test_get_filtered_product_ids_explicit_variable_id_not_expanded_when_disabled() {
-		$variable = $this->create_variable_product();
-
-		update_option(
-			$this->option_name,
-			[
-				'product_ids'               => [ $variable->get_id() ],
-				'include_variable_products' => false,
-			]
-		);
-
-		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-
-		$filtered_product_ids = $filter->get_filtered_product_ids();
-
-		$this->assertSame( [ 0 ], $filtered_product_ids );
-	}
-
-	public function test_get_filtered_product_ids_explicit_variable_id_expands_to_variations_when_enabled() {
-		$variable = $this->create_variable_product();
-		$expected = $this->get_variation_ids( $variable );
-
-		update_option(
-			$this->option_name,
-			[
-				'product_ids'               => [ $variable->get_id() ],
-				'include_variable_products' => true,
-			]
-		);
-
-		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-
-		$filtered_product_ids = $filter->get_filtered_product_ids();
-
-		sort( $expected );
-		$this->assertSame( $expected, $filtered_product_ids );
-		$this->assertNotContains( $variable->get_id(), $filtered_product_ids );
-	}
-
-	public function test_get_filtered_product_ids_explicit_variation_id_kept_as_is() {
-		$variable   = $this->create_variable_product();
-		$variations = $this->get_variation_ids( $variable );
-		$picked     = $variations[0];
-
-		update_option(
-			$this->option_name,
-			[
-				'product_ids' => [ $picked ],
-			]
-		);
-
-		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$this->assertSame( [ $picked ], $filter->get_filtered_product_ids() );
-	}
-
-	public function test_get_filtered_product_ids_category_returns_simple_products_and_expanded_variations() {
-		$cat = $this->create_term( 'shoes', 'product_cat' );
-
-		$simple = $this->create_simple_product();
-		$simple->set_category_ids( [ $cat['term_id'] ] );
-		$simple->save();
-
-		$variable = $this->create_variable_product();
-		$variable->set_category_ids( [ $cat['term_id'] ] );
-		$variable->save();
-		$variations = $this->get_variation_ids( $variable );
-
-		update_option(
-			$this->option_name,
-			[
-				'category_ids'              => [ $cat['term_id'] ],
-				'include_variable_products' => true,
-			]
-		);
-
-		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-
-		$filtered_product_ids = $filter->get_filtered_product_ids();
-
-		$expected = array_merge( [ $simple->get_id() ], $variations );
-		sort( $expected );
-
-		$this->assertSame( $expected, $filtered_product_ids );
-		$this->assertNotContains( $variable->get_id(), $filtered_product_ids );
-	}
-
-	public function test_get_filtered_product_ids_tag_returns_simple_products() {
-		$tag    = $this->create_term( 'on-sale', 'product_tag' );
-		$simple = $this->create_simple_product();
-		$simple->set_tag_ids( [ $tag['term_id'] ] );
-		$simple->save();
-
-		update_option(
-			$this->option_name,
-			[
-				'tag_ids' => [ $tag['term_id'] ],
-			]
-		);
-
-		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$this->assertSame( [ $simple->get_id() ], $filter->get_filtered_product_ids() );
-	}
-
-	public function test_get_filtered_product_ids_brand_returns_simple_products() {
-		if ( ! taxonomy_exists( 'product_brand' ) ) {
-			$this->markTestSkipped( 'product_brand taxonomy not registered on this environment.' );
-		}
-
-		$brand  = $this->create_term( 'nike', 'product_brand' );
-		$simple = $this->create_simple_product();
-		$simple->set_brand_ids( [ $brand['term_id'] ] );
-		$simple->save();
-
-		update_option(
-			$this->option_name,
-			[
-				'brand_ids' => [ $brand['term_id'] ],
-			]
-		);
-
-		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$this->assertSame( [ $simple->get_id() ], $filter->get_filtered_product_ids() );
+		return [
+			'all empty'                                 => [ [], [] ],
+			'all empty arrays'                          => [
+				'option_data'    => [
+					'product_ids'          => [],
+					'category_ids'         => [],
+					'tag_ids'              => [],
+					'brand_ids'            => [],
+					'variable_product_ids' => [],
+				],
+				'expected_types' => [],
+			],
+			'only product_ids set'                      => [
+				'option_data'    => [ 'product_ids' => [ 123, 456 ] ],
+				'expected_types' => [ 'product_ids' ],
+			],
+			'only category_ids set'                     => [
+				'option_data'    => [ 'category_ids' => [ 321, 654 ] ],
+				'expected_types' => [ 'category_ids' ],
+			],
+			'only tag_ids set'                          => [
+				'option_data'    => [ 'tag_ids' => [ 42 ] ],
+				'expected_types' => [ 'tag_ids' ],
+			],
+			'only brand_ids set'                        => [
+				'option_data'    => [ 'brand_ids' => [ 987, 678, 567 ] ],
+				'expected_types' => $product_brand_exists ? [ 'brand_ids' ] : [],
+			],
+			'only variable_product_ids set'             => [
+				'option_data'    => [ 'variable_product_ids' => [ 123, 456 ] ],
+				'expected_types' => [ 'variable_product_ids' ],
+			],
+			'product_ids and category_ids set'          => [
+				'option_data'    => [
+					'product_ids'  => [ 123 ],
+					'category_ids' => [ 456 ],
+				],
+				'expected_types' => [ 'product_ids' ],
+			],
+			'product_ids and tag_ids set'               => [
+				'option_data'    => [
+					'product_ids' => [ 9999 ],
+					'tag_ids'     => [ 5555 ],
+				],
+				'expected_types' => [ 'product_ids' ],
+			],
+			'product_ids and brand_ids set'             => [
+				'option_data'    => [
+					'product_ids' => [ 42 ],
+					'brand_ids'   => [ 42 ],
+				],
+				'expected_types' => [ 'product_ids' ], // product IDs always supersede brand IDs.
+			],
+			'product_ids and variable_product_ids set'  => [
+				'option_data'    => [
+					'product_ids'          => [ 123, 456 ],
+					'variable_product_ids' => [ 456, 789 ],
+				],
+				'expected_types' => [ 'product_ids' ],
+			],
+			'category_ids and tag_ids set'              => [
+				'option_data'    => [
+					'category_ids' => [ 321, 654 ],
+					'tag_ids'      => [ 42, 567 ],
+				],
+				'expected_types' => [ 'category_ids', 'tag_ids' ],
+			],
+			'category_ids and brand_ids set'            => [
+				'option_data'    => [
+					'category_ids' => [ 321, 654 ],
+					'brand_ids'    => [ 987, 678, 567 ],
+				],
+				'expected_types' => $product_brand_exists ? [ 'category_ids', 'brand_ids' ] : [ 'category_ids' ],
+			],
+			'category_ids and variable_product_ids set' => [
+				'option_data'    => [
+					'category_ids'         => [ 321, 654 ],
+					'variable_product_ids' => [ 456, 789 ],
+				],
+				'expected_types' => [ 'variable_product_ids' ],
+			],
+			'tag_ids and brand_ids set'                 => [
+				'option_data'    => [
+					'tag_ids'   => [ 42, 567 ],
+					'brand_ids' => [ 42 ],
+				],
+				'expected_types' => $product_brand_exists ? [ 'tag_ids', 'brand_ids' ] : [ 'tag_ids' ],
+			],
+			'tag_ids and variable_product_ids set'      => [
+				'option_data'    => [
+					'tag_ids'              => [ 42, 567 ],
+					'variable_product_ids' => [ 456, 789 ],
+				],
+				'expected_types' => [ 'variable_product_ids' ],
+			],
+			'brand_ids and variable_product_ids set'    => [
+				'option_data'    => [
+					'brand_ids'            => [ 42, 567 ],
+					'variable_product_ids' => [ 456, 789 ],
+				],
+				'expected_types' => [ 'variable_product_ids' ],
+			],
+			'category_ids, tag_ids, and brand_ids set'  => [
+				'option_data'    => [
+					'category_ids' => [ 321, 654 ],
+					'tag_ids'      => [ 42, 567 ],
+					'brand_ids'    => [ 987, 678, 567 ],
+				],
+				'expected_types' => $product_brand_exists ? [ 'category_ids', 'tag_ids', 'brand_ids' ] : [ 'category_ids', 'tag_ids' ],
+			],
+		];
 	}
 
 	/**
-	 * @dataProvider provide_include_variable_product_cases
+	 * @dataProvider provide_get_query_args_scenarios
 	 *
-	 * @param bool $include_variable_products
+	 * @param array      $option_data   The data to store in the option.
+	 * @param array|null $expected_args The expected args.
 	 */
-	public function test_get_filtered_product_ids_with_multiple_filter_types( bool $include_variable_products ) {
+	public function test_get_query_args( array $option_data, ?array $expected_args ): void {
+		update_option( $this->option_name, $option_data );
+
+		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
+
+		$actual_args = $filter->get_query_args();
+
+		if ( null === $expected_args ) {
+			$this->assertNull( $actual_args );
+		} else {
+			$this->assertIsArray( $actual_args );
+			$this->assert_nested_array_equals( $expected_args, $actual_args );
+		}
+	}
+
+	private function assert_nested_array_equals( array $expected, array $actual ) {
+		$this->assertEquals( count( $expected ), count( $actual ) );
+
+		foreach ( $expected as $key => $value ) {
+			$this->assertArrayHasKey( $key, $actual );
+			if ( is_array( $value ) ) {
+				if ( is_array( $actual[ $key ] ) ) {
+					$this->assert_nested_array_equals( $value, $actual[ $key ] );
+				} else {
+					$this->fail( 'Expected nested array but got ' . gettype( $actual[ $key ] ) );
+				}
+			} else {
+				$this->assertEquals( $value, $actual[ $key ] );
+			}
+		}
+	}
+
+	public function provide_get_query_args_scenarios(): array {
+		$product_brand_exists = taxonomy_exists( 'product_brand' );
+
+		$normal_product_args = [
+			'status' => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+			'type'   => [
+				\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
+				\Automattic\WooCommerce\Enums\ProductType::VARIATION,
+			],
+		];
+
+		$variable_product_args = [
+			'status' => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+			'type'   => \Automattic\WooCommerce\Enums\ProductType::VARIATION,
+		];
+
+		return [
+			'all empty'                                 => [
+				'option_data'   => [],
+				'expected_args' => null,
+			],
+			'all empty arrays'                          => [
+				'option_data'   => [
+					'product_ids'          => [],
+					'category_ids'         => [],
+					'tag_ids'              => [],
+					'brand_ids'            => [],
+					'variable_product_ids' => [],
+				],
+				'expected_args' => null,
+			],
+			'all set'                                   => [
+				'option_data'   => [
+					'product_ids'          => [ 123, 456, 789 ],
+					'category_ids'         => [ 987, 654, 321 ],
+					'tag_ids'              => [ 42, 9999 ],
+					'brand_ids'            => [ 11, 12, 13 ],
+					'variable_product_ids' => [ 1111, 3333, 5555 ],
+				],
+				'expected_args' => array_merge(
+					$normal_product_args,
+					[ 'include' => [ 123, 456, 789 ] ]
+				),
+			],
+			'only product_ids set'                      => [
+				'option_data'   => [
+					'product_ids' => [ 123, 456, 789 ],
+				],
+				'expected_args' => array_merge(
+					$normal_product_args,
+					[ 'include' => [ 123, 456, 789 ] ]
+				),
+			],
+			'only variable_product_ids set'             => [
+				'option_data'   => [
+					'variable_product_ids' => [ 123, 456, 789 ],
+				],
+				'expected_args' => array_merge(
+					$variable_product_args,
+					[ 'post_parent__in' => [ 123, 456, 789 ] ]
+				),
+			],
+			'only category_ids set'                     => [
+				'option_data'   => [
+					'category_ids' => [ 321, 654 ],
+				],
+				'expected_args' => array_merge(
+					$normal_product_args,
+					[
+						'tax_query' => [
+							[
+								[
+									'taxonomy'         => 'product_cat',
+									'field'            => 'term_id',
+									'terms'            => [ 321, 654 ],
+									'operator'         => 'IN',
+									'include_children' => false,
+								],
+							],
+						],
+					]
+				),
+			],
+			'only tag_ids set'                          => [
+				'option_data'   => [
+					'tag_ids' => [ 42, 9999 ],
+				],
+				'expected_args' => array_merge(
+					$normal_product_args,
+					[
+						'tax_query' => [
+							[
+								[
+									'taxonomy'         => 'product_tag',
+									'field'            => 'term_id',
+									'terms'            => [ 42, 9999 ],
+									'operator'         => 'IN',
+									'include_children' => false,
+								],
+							],
+						],
+					],
+				),
+			],
+			'only brand_ids set'                        => [
+				'option_data'   => [
+					'brand_ids' => [ 42, 9999 ],
+				],
+				'expected_args' => $product_brand_exists ? array_merge(
+					$normal_product_args,
+					[
+						'tax_query' => [
+							[
+								[
+									'taxonomy'         => 'product_brand',
+									'field'            => 'term_id',
+									'terms'            => [ 42, 9999 ],
+									'operator'         => 'IN',
+									'include_children' => false,
+								],
+							],
+						],
+					]
+				) : null,
+			],
+			'product_ids and category_ids set'          => [
+				'option_data'   => [
+					'product_ids'  => [ 123, 456, 789 ],
+					'category_ids' => [ 321, 654 ],
+				],
+				'expected_args' => array_merge(
+					$normal_product_args,
+					[ 'include' => [ 123, 456, 789 ] ]
+				),
+			],
+			'product_ids and tag_ids set'               => [
+				'option_data'   => [
+					'product_ids' => [ 123, 456, 789 ],
+					'tag_ids'     => [ 42, 9999 ],
+				],
+				'expected_args' => array_merge(
+					$normal_product_args,
+					[ 'include' => [ 123, 456, 789 ] ]
+				),
+			],
+			'product_ids and brand_ids set'             => [
+				'option_data'   => [
+					'product_ids' => [ 123, 456, 789 ],
+					'brand_ids'   => [ 42, 9999 ],
+				],
+				'expected_args' => array_merge(
+					$normal_product_args,
+					[ 'include' => [ 123, 456, 789 ] ]
+				),
+			],
+			'product_ids and variable_product_ids set'  => [
+				'option_data'   => [
+					'product_ids'          => [ 123, 456, 789 ],
+					'variable_product_ids' => [ 987, 654 ],
+				],
+				'expected_args' => array_merge(
+					$normal_product_args,
+					[ 'include' => [ 123, 456, 789 ] ]
+				),
+			],
+			'variable_product_ids and category_ids set' => [
+				'option_data'   => [
+					'variable_product_ids' => [ 987, 654 ],
+					'category_ids'         => [ 321, 654 ],
+				],
+				'expected_args' => array_merge(
+					$variable_product_args,
+					[ 'post_parent__in' => [ 987, 654 ] ]
+				),
+			],
+			'variable_product_ids and tag_ids set'      => [
+				'option_data'   => [
+					'variable_product_ids' => [ 987, 654 ],
+					'tag_ids'              => [ 42, 9999 ],
+				],
+				'expected_args' => array_merge(
+					$variable_product_args,
+					[ 'post_parent__in' => [ 987, 654 ] ]
+				),
+			],
+			'variable_product_ids and brand_ids set'    => [
+				'option_data'   => [
+					'variable_product_ids' => [ 987, 654 ],
+					'brand_ids'            => [ 42, 9999 ],
+				],
+				'expected_args' => array_merge(
+					$variable_product_args,
+					[ 'post_parent__in' => [ 987, 654 ] ]
+				),
+			],
+			'category_ids and tag_ids set'              => [
+				'option_data'   => [
+					'category_ids' => [ 321, 654 ],
+					'tag_ids'      => [ 42, 9999 ],
+				],
+				'expected_args' => array_merge(
+					$normal_product_args,
+					[
+						'tax_query' => [
+							[
+								'relation' => 'OR',
+								[
+									'taxonomy'         => 'product_cat',
+									'field'            => 'term_id',
+									'terms'            => [ 321, 654 ],
+									'operator'         => 'IN',
+									'include_children' => false,
+								],
+								[
+									'taxonomy'         => 'product_tag',
+									'field'            => 'term_id',
+									'terms'            => [ 42, 9999 ],
+									'operator'         => 'IN',
+									'include_children' => false,
+								],
+							],
+						],
+					]
+				),
+			],
+			'category_ids and brand_ids set'            => [
+				'option_data'   => [
+					'category_ids' => [ 321, 654 ],
+					'brand_ids'    => [ 42, 9999 ],
+				],
+				'expected_args' => array_merge(
+					$normal_product_args,
+					[
+						'tax_query' => [
+							[
+								'relation' => 'OR',
+								[
+									'taxonomy'         => 'product_cat',
+									'field'            => 'term_id',
+									'terms'            => [ 321, 654 ],
+									'operator'         => 'IN',
+									'include_children' => false,
+								],
+								...[
+									$product_brand_exists ? [
+										'taxonomy'         => 'product_brand',
+										'field'            => 'term_id',
+										'terms'            => [ 42, 9999 ],
+										'operator'         => 'IN',
+										'include_children' => false,
+									] : null,
+								],
+							],
+						],
+					]
+				),
+			],
+			'category_ids, tag_ids, and brand_ids set'  => [
+				'option_data'   => [
+					'category_ids' => [ 321, 654 ],
+					'tag_ids'      => [ 42, 9999 ],
+					'brand_ids'    => [ 123, 456 ],
+				],
+				'expected_args' => array_merge(
+					$normal_product_args,
+					[
+						'tax_query' => [
+							[
+								'relation' => 'OR',
+								[
+									'taxonomy'         => 'product_cat',
+									'field'            => 'term_id',
+									'terms'            => [ 321, 654 ],
+									'operator'         => 'IN',
+									'include_children' => false,
+								],
+								[
+									'taxonomy'         => 'product_tag',
+									'field'            => 'term_id',
+									'terms'            => [ 42, 9999 ],
+									'operator'         => 'IN',
+									'include_children' => false,
+								],
+								...[
+									$product_brand_exists ? [
+										'taxonomy'         => 'product_brand',
+										'field'            => 'term_id',
+										'terms'            => [ 123, 456 ],
+										'operator'         => 'IN',
+										'include_children' => false,
+									] : null,
+								],
+							],
+						],
+					]
+				),
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_product_id_query_handles_product_type_scenarios
+	 *
+	 * @param string $product_type   The product type to test.
+	 * @param bool   $should_include Whether the product should be included in the query results.
+	 */
+	public function test_product_id_query_handles_product_type( string $product_type, bool $should_include ): void {
+		$product_ids_to_query = [];
+		if ( 'grouped' === $product_type ) {
+			$grouped_product = WC_Helper_Product::create_grouped_product();
+
+			$this->created_products[] = $grouped_product->get_id();
+			$product_ids_to_query     = [ $grouped_product->get_id() ];
+
+			foreach ( $grouped_product->get_children() as $child_id ) {
+				$this->created_products[] = (int) $child_id;
+			}
+		} elseif ( in_array( $product_type, [ 'variable', 'variation' ], true ) ) {
+			$variable_product = $this->create_variable_product();
+
+			if ( 'variable' === $product_type ) {
+				$product_ids_to_query = [ $variable_product->get_id() ];
+			} else {
+				$product_ids_to_query = $this->get_sorted_variation_ids( $variable_product );
+			}
+		} elseif ( 'simple' === $product_type ) {
+			$simple_product = $this->create_simple_product();
+
+			$product_ids_to_query = [ $simple_product->get_id() ];
+		} else {
+			$this->fail( 'Invalid product type: ' . $product_type );
+		}
+
+		update_option(
+			$this->option_name,
+			[
+				'product_ids' => $product_ids_to_query,
+			]
+		);
+
+		$filter     = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		$query_args = $filter->get_query_args();
+
+		$query_args['return'] = 'ids';
+
+		$query_results = wc_get_products( $query_args );
+
+		if ( $should_include ) {
+			$this->assertEquals( $product_ids_to_query, $query_results );
+		} else {
+			$this->assertSame( [], $query_results );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_product_id_query_handles_product_type()}.
+	 *
+	 * @return array
+	 */
+	public function provide_product_id_query_handles_product_type_scenarios(): array {
+		return [
+			'grouped'   => [ 'grouped', false ],
+			'variable'  => [ 'variable', false ],
+			'simple'    => [ 'simple', true ],
+			'variation' => [ 'variation', true ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_variable_product_id_query_handles_product_type_scenarios
+	 *
+	 * @param string $product_type   The product type to test.
+	 */
+	public function test_variable_product_id_query_handles_product_type( string $product_type ): void {
+		$variable_product_ids_to_query = [];
+		$expected_variation_ids        = [];
+
+		if ( 'grouped' === $product_type ) {
+			$grouped_product = WC_Helper_Product::create_grouped_product();
+
+			$this->created_products[]      = $grouped_product->get_id();
+			$variable_product_ids_to_query = [ $grouped_product->get_id() ];
+
+			foreach ( $grouped_product->get_children() as $child_id ) {
+				$this->created_products[] = (int) $child_id;
+			}
+		} elseif ( in_array( $product_type, [ 'variable', 'variation' ], true ) ) {
+			$variable_product = $this->create_variable_product();
+			$variation_ids    = $this->get_sorted_variation_ids( $variable_product );
+
+			if ( 'variable' === $product_type ) {
+				$variable_product_ids_to_query = [ $variable_product->get_id() ];
+				$expected_variation_ids        = $variation_ids;
+			} else {
+				$variable_product_ids_to_query = $variation_ids;
+			}
+		} elseif ( 'simple' === $product_type ) {
+			$simple_product                = $this->create_simple_product();
+			$variable_product_ids_to_query = [ $simple_product->get_id() ];
+		} else {
+			$this->fail( 'Invalid product type: ' . $product_type );
+		}
+
+		update_option(
+			$this->option_name,
+			[
+				'variable_product_ids' => $variable_product_ids_to_query,
+			]
+		);
+
+		$filter     = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		$query_args = $filter->get_query_args();
+
+		$query_args['return'] = 'ids';
+
+		$query_results = wc_get_products( $query_args );
+
+		if ( [] !== $expected_variation_ids ) {
+			sort( $query_results );
+			$this->assertEquals( $expected_variation_ids, $query_results );
+		} else {
+			$this->assertSame( [], $query_results );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_product_id_query_handles_product_type()}.
+	 *
+	 * @return array
+	 */
+	public function provide_variable_product_id_query_handles_product_type_scenarios(): array {
+		return [
+			'grouped'   => [ 'grouped' ],
+			'variable'  => [ 'variable' ],
+			'simple'    => [ 'simple' ],
+			'variation' => [ 'variation' ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_taxonomy_query_returns_simple_products_scenarios
+	 *
+	 * @param string $taxonomy       The taxonomy to test.
+	 * @param string $filter_key     The key to use in the filter option data.
+	 * @param string $setter_method  The method to set the taxonomy IDs on the product.
+	 */
+	public function test_taxonomy_query_returns_simple_products( string $taxonomy, string $filter_key, string $setter_method ) {
+		$term = $this->create_term( 'test-test-test', $taxonomy );
+
+		$simple_product_1 = $this->create_simple_product();
+		$simple_product_1->$setter_method( [ $term['term_id'] ] );
+		$simple_product_1->save();
+
+		$simple_product_2 = $this->create_simple_product();
+		$simple_product_2->$setter_method( [ $term['term_id'] ] );
+		$simple_product_2->save();
+
+		$expected_result_ids = [
+			$simple_product_1->get_id(),
+			$simple_product_2->get_id(),
+		];
+		sort( $expected_result_ids );
+
+		update_option(
+			$this->option_name,
+			[
+				$filter_key => [ $term['term_id'] ],
+			]
+		);
+
+		$filter     = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		$query_args = $filter->get_query_args();
+
+		$query_args['return'] = 'ids';
+
+		$query_results = wc_get_products( $query_args );
+		sort( $query_results );
+
+		$this->assertEquals( $expected_result_ids, $query_results );
+	}
+
+	/**
+	 * Data provider for {@see test_taxonomy_query_returns_simple_products()}.
+	 *
+	 * @return array
+	 */
+	public function provide_taxonomy_query_returns_simple_products_scenarios(): array {
+		$scenarios = [
+			'category' => [ 'product_cat', 'category_ids', 'set_category_ids' ],
+			'tag'      => [ 'product_tag', 'tag_ids', 'set_tag_ids' ],
+		];
+
+		if ( taxonomy_exists( 'product_brand' ) ) {
+			$scenarios['brand'] = [ 'product_brand', 'brand_ids', 'set_brand_ids' ];
+		}
+
+		return $scenarios;
+	}
+
+	public function test_multiple_taxonomy_queries_returns_simple_products(): void {
 		$brand_taxonomy_exists = taxonomy_exists( 'product_brand' );
 
 		$cat = $this->create_term( 'shoes', 'product_cat' );
@@ -455,19 +967,12 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$shared   = $this->create_simple_product();
 		$only_cat = $this->create_simple_product();
 		$only_tag = $this->create_simple_product();
-		$only_id  = $this->create_simple_product();
-		$variable = $this->create_variable_product();
 
-		$expected = [
+		$expected_product_ids = [
 			$shared->get_id(),
 			$only_cat->get_id(),
 			$only_tag->get_id(),
-			$only_id->get_id(),
 		];
-
-		if ( $include_variable_products ) {
-			$expected = array_merge( $expected, $this->get_variation_ids( $variable ) );
-		}
 
 		$brand_ids = [];
 		if ( $brand_taxonomy_exists ) {
@@ -481,7 +986,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 			$only_brand->set_brand_ids( $brand_ids );
 			$only_brand->save();
 
-			$expected[] = $only_brand->get_id();
+			$expected_product_ids[] = $only_brand->get_id();
 		}
 
 		$shared->set_category_ids( [ $cat['term_id'] ] );
@@ -495,49 +1000,25 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$only_tag->save();
 
 		$option_data = [
-			'product_ids'               => [ $only_id->get_id(), $shared->get_id(), $variable->get_id() ],
-			'category_ids'              => [ $cat['term_id'] ],
-			'tag_ids'                   => [ $tag['term_id'] ],
-			'brand_ids'                 => $brand_ids,
-			'include_variable_products' => $include_variable_products,
+			'category_ids' => [ $cat['term_id'] ],
+			'tag_ids'      => [ $tag['term_id'] ],
+			'brand_ids'    => $brand_ids,
 		];
 		update_option(
 			$this->option_name,
 			$option_data
 		);
 
-		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		$filter     = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		$query_args = $filter->get_query_args();
 
-		$filtered_product_ids = $filter->get_filtered_product_ids();
+		$query_args['return'] = 'ids';
 
-		sort( $expected );
+		$query_results = wc_get_products( $query_args );
+		sort( $expected_product_ids );
+		sort( $query_results );
 
-		$this->assertSame( $expected, $filtered_product_ids );
-	}
-
-	/**
-	 * Provide cases for the include_variable_products filter.
-	 *
-	 * @see test_get_filtered_product_ids_with_multiple_filter_types()
-	 * @return array<string, bool>
-	 */
-	public function provide_include_variable_product_cases(): array {
-		return [
-			'enabled'  => [ true ],
-			'disabled' => [ false ],
-		];
-	}
-
-	public function test_get_filtered_product_ids_returns_sentinel_when_configured_but_no_matches() {
-		update_option(
-			$this->option_name,
-			[
-				'category_ids' => [ 9999999999 ],
-			]
-		);
-
-		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$this->assertSame( [ 0 ], $filter->get_filtered_product_ids() );
+		$this->assertEquals( $expected_product_ids, $query_results );
 	}
 
 	// -----------------------------------------------------------------------
@@ -627,9 +1108,10 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	/**
 	 * @return int[] Sorted list of variation IDs.
 	 */
-	private function get_variation_ids( WC_Product_Variable $variable ): array {
+	private function get_sorted_variation_ids( WC_Product_Variable $variable ): array {
 		$ids = array_map( 'intval', $variable->get_children() );
 		sort( $ids );
+
 		return $ids;
 	}
 }
