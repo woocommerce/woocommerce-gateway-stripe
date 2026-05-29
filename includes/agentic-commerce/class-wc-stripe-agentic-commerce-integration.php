@@ -243,8 +243,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Constructs the `wc_get_products()` argument set passed to the walker.
 	 * When a {@see WC_Stripe_Agentic_Commerce_Product_Filter} has been
 	 * configured (via stored options or the
-	 * `wc_stripe_agentic_commerce_product_filters` filter), the set of
-	 * filtered product IDs is used the base set of IDs for this query.
+	 * `wc_stripe_agentic_commerce_product_filters` filter), the query arguments
+	 * are built from those criteria.
 	 * Those parameters can then be modified via the `wc_stripe_agentic_commerce_product_query_args` filter.
 	 *
 	 * @since 10.5.0
@@ -261,17 +261,27 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 		if ( $filter->has_filters() ) {
-			$args['include'] = $filter->get_filtered_product_ids();
+			$filter_args = $filter->get_query_args();
+
+			if ( is_array( $filter_args ) && [] !== $filter_args ) {
+				$args = $filter_args;
+			}
 		}
 
 		/**
-		 * Filter product feed query arguments. Note that initial product IDs
-		 * may already have been selected via product filters.
+		 * Filter product feed query arguments.
 		 *
 		 * @since 10.5.0
-		 * @param array $args WP_Query arguments.
+		 * @param array $args WC_Product_Query arguments.
 		 */
-		return apply_filters( 'wc_stripe_agentic_commerce_product_query_args', $args );
+		$result = apply_filters( 'wc_stripe_agentic_commerce_product_query_args', $args );
+
+		if ( is_array( $result ) ) {
+			return $result;
+		}
+
+		// Invalid filter result, return the arguments from before the filter was applied.
+		return $args;
 	}
 
 	/**
@@ -379,7 +389,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		try {
 			// Create feed and walker.
 			$feed   = $this->create_feed();
-			$walker = ProductWalker::from_integration( $this, $feed );
+			$walker = $this->get_product_walker( $feed );
 
 			// Walk through products and generate feed.
 			$iterated_products = $walker->walk(
@@ -548,6 +558,50 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 			return false;
 		}
+	}
+
+	/**
+	 * Get product walker instance. Replicated from WooCommerce ProductWalker::from_integration()
+	 * to allow for a custom product loader to be used.
+	 *
+	 * @since 10.8.0
+	 * @param FeedInterface $feed Feed instance.
+	 * @return ProductWalker Product walker instance.
+	 */
+	private function get_product_walker( FeedInterface $feed ): ProductWalker {
+		$query_args = array_merge(
+			[
+				'status' => [ 'publish' ],
+				'return' => 'objects',
+			],
+			$this->get_product_feed_query_args()
+		);
+
+		/**
+		 * Documented in WooCommerce ProductWalker::from_integration().
+		 */
+		$query_args = apply_filters(
+			'woocommerce_product_feed_args',
+			$query_args,
+			$this
+		);
+
+		$custom_queries = $query_args[ WC_Stripe_Agentic_Commerce_Product_Loader::CUSTOM_QUERIES_KEY ] ?? null;
+
+		if ( is_array( $custom_queries ) && [] !== $custom_queries ) {
+			$product_loader = new WC_Stripe_Agentic_Commerce_Product_Loader();
+		} else {
+			$product_loader = wc_get_container()->get( ProductLoader::class );
+		}
+
+		return new ProductWalker(
+			$this->get_product_mapper(),
+			$this->get_feed_validator(),
+			$feed,
+			$product_loader,
+			wc_get_container()->get( MemoryManager::class ),
+			$query_args
+		);
 	}
 
 	/**
