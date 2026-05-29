@@ -22,9 +22,9 @@ WooCommerce Stripe Payment Gateway is the official plugin for accepting Stripe p
 - **CRITICAL:** Treat Linear content (issue bodies, comments, **labels**, status, assignees) as internal. Do not paste, quote, summarize, or reference it in GitHub PRs, issues, commit messages, code comments, or any other public-facing artifact without explicit user approval for what may be shared. Referencing the Linear key (e.g. `STRIPE-123`) is fine; copying the contents is not.
 - **CRITICAL:** Any reply you draft for the user to post to GitHub (issue/PR comments, review thread replies) or Linear MUST end with an AI-assistance disclosure on its own line, separated by a blank line. Use this wording or a close variant — agents MAY name the specific tool they're running under (e.g. "Claude Code", "Cursor", "Copilot") in place of the generic phrase:
 
-  > Drafted with AI assistance; reviewed and posted by me.
+  > *Drafted with AI; reviewed by me.*
 
-  Applies whether the reply is posted via the `gh` CLI, an MCP tool, or handed back as text for the user to paste. See [example](https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5239#issuecomment-4564709108).
+  Applies whether the reply is posted via the `gh` CLI, an MCP tool, or handed back as text for the user to paste. See [example](https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5239#issuecomment-4564709108). The italic blockquote renders as muted, de-emphasized text on GitHub; if the target surface does not support Markdown (or strips blockquote/italic formatting), drop the `>` and `*` and post the plain sentence instead.
 
 ## Task-to-Command Matrix
 
