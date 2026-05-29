@@ -39,7 +39,7 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 	 *   'yes' → product is excluded from any Agentic Commerce sync.
 	 *   'no' / unset → product participates in sync as before.
 	 */
-	const META_KEY = '_wc_stripe_agentic_commerce_exclude';
+	public const META_KEY = '_wc_stripe_agentic_commerce_exclude';
 
 	/**
 	 * Register hooks.
@@ -114,7 +114,7 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 	 * parent of a `variation` is `variable`, and the checkbox lives on the
 	 * parent — so the editor-facing set is `simple` + `variable`.
 	 */
-	const SUPPORTED_TYPES = [ 'simple', 'variable' ];
+	private const SUPPORTED_TYPES = [ 'simple', 'variable' ];
 
 	/**
 	 * Render the "Agentic Commerce" exclude checkbox.
