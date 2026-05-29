@@ -238,7 +238,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 
 		$call_count     = 0;
-		$capture_filter = function ( $filters ) use ( $call_count ) {
+		$capture_filter = function ( $filters ) use ( &$call_count ) {
 			++$call_count;
 			return $filters;
 		};
@@ -1047,8 +1047,14 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 			}
 		);
 
-		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$this->assertSame( [ $simple->get_id() ], $filter->get_filtered_product_ids() );
+		$filter     = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		$query_args = $filter->get_query_args();
+
+		$query_args['return'] = 'ids';
+
+		$query_results = wc_get_products( $query_args );
+
+		$this->assertEquals( [ $simple->get_id() ], $query_results );
 	}
 
 	public function test_override_filter_return_is_normalized_to_expected_shape() {
@@ -1058,11 +1064,11 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 			'wc_stripe_agentic_commerce_product_filter',
 			function () use ( $simple ) {
 				return [
-					'product_ids'               => [ (string) $simple->get_id(), 'not-a-number', -5 ],
-					'categories'                => [ 0, '', 'real-slug' ],
-					'tags'                      => [ 'not-a-number', -5 ],
-					'brand_ids'                 => [ 'not-a-number', -5 ],
-					'include_variable_products' => 0,
+					'product_ids'          => [ (string) $simple->get_id(), 'not-a-number', -5 ],
+					'categories'           => [ 0, '', 'real-slug' ],
+					'tags'                 => [ 'not-a-number', -5 ],
+					'brand_ids'            => [ 'not-a-number', -5 ],
+					'variable_product_ids' => [ -100, 'slug', '999' ],
 				];
 			}
 		);
@@ -1074,7 +1080,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$this->assertSame( [], $filters['category_ids'] );
 		$this->assertSame( [], $filters['tag_ids'] );
 		$this->assertSame( [], $filters['brand_ids'] );
-		$this->assertFalse( $filters['include_variable_products'] );
+		$this->assertSame( [ 999 ], $filters['variable_product_ids'] );
 	}
 
 	// -----------------------------------------------------------------------

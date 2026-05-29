@@ -125,36 +125,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 'include', $args );
 	}
 
-	/**
-	 * When the product filter is configured but resolves to nothing, the
-	 * integration must inject the `[0]` sentinel as `include` so wc_get_products
-	 * returns zero rows instead of falling back to "no filter = all products".
-	 *
-	 * @return void
-	 */
-	public function test_get_product_feed_query_args_injects_sentinel_for_empty_resolution() {
-		update_option(
-			$this->product_filter_option,
-			[
-				'category_ids' => [ 99999999 ],
-			]
-		);
-
-		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
-		$args        = $integration->get_product_feed_query_args();
-
-		$this->assertArrayHasKey( 'include', $args );
-		$this->assertSame( [ 0 ], $args['include'] );
-	}
-
-	/**
-	 * The low-level `wc_stripe_agentic_commerce_product_query_args` filter
-	 * must still run after the resolver injects `include`, so callers can
-	 * read or mutate the resolved set.
-	 *
-	 * @return void
-	 */
-	public function test_query_args_filter_runs_after_include_injection() {
+	public function test_query_args_filter_runs(): void {
 		update_option(
 			$this->product_filter_option,
 			[
@@ -162,12 +133,12 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$observed = null;
+		$observed_tax_query = null;
 		add_filter(
 			'wc_stripe_agentic_commerce_product_query_args',
-			function ( $args ) use ( &$observed ) {
-				$observed        = $args['include'] ?? null;
-				$args['include'] = [ 42 ];
+			function ( $args ) use ( &$observed_tax_query ) {
+				$observed_tax_query = $args['tax_query'] ?? null;
+				$args['include']    = [ 42 ];
 				return $args;
 			}
 		);
@@ -175,8 +146,8 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
 		$args        = $integration->get_product_feed_query_args();
 
-		$this->assertSame( [ 0 ], $observed, 'Low-level filter must observe the resolver-injected include.' );
-		$this->assertSame( [ 42 ], $args['include'], 'Low-level filter must still be able to mutate include.' );
+		$this->assertIsArray( $observed_tax_query, 'A taxonomy query should be present in the query args.' );
+		$this->assertSame( [ 42 ], $args['include'], 'Filter overrides the "include" query argument.' );
 	}
 
 	/**
