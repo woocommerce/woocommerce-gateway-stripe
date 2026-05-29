@@ -33,7 +33,11 @@ wp() {
 	if [ ! -f $TMPDIR/wp-cli.phar ]; then
 		download https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar  "$TMPDIR/wp-cli.phar"
 	fi
-	php "$TMPDIR/wp-cli.phar" $@
+	# Invoke the phar directly (instead of wp-cli's `wp` launcher), so it inherits
+	# the container's php CLI memory_limit (128M). That is too low for wp-cli's
+	# Extractor to unpack a current WordPress core archive and it fatals with
+	# "Allowed memory size exhausted". Lift the cap for these setup commands.
+	php -d memory_limit=-1 "$TMPDIR/wp-cli.phar" $@
 
 	cd "$WORKING_DIR"
 }
@@ -105,12 +109,15 @@ fi
 set -e
 
 install_wp() {
-	if [ -d $WP_CORE_DIR ]; then
+	# Only treat the install as present when WP core files actually exist.
+	if [ -f "$WP_CORE_DIR/wp-load.php" ]; then
 		patch_ixr_casts
 		return;
 	fi
 
-	mkdir -p $WP_CORE_DIR
+	# Start from a clean directory so a partial/aborted download don't trigger a files are already present error.
+	rm -rf "$WP_CORE_DIR"
+	mkdir -p "$WP_CORE_DIR"
 
 	wp core download --version=$WP_VERSION
 
