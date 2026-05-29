@@ -86,21 +86,6 @@ interface FeedValidatorInterface {
 }
 
 /**
- * Product Loader.
- *
- * @since 10.5.0
- */
-class ProductLoader {
-	/**
-	 * @param array $args
-	 * @return array|\stdClass
-	 */
-	public function get_products( array $args ) {
-		return array();
-	}
-}
-
-/**
  * Walker Progress value object.
  *
  * @since 10.5.0
