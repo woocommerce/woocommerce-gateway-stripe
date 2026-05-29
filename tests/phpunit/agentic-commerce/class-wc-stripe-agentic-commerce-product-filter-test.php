@@ -242,23 +242,23 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------------
-	// has_filters detection per dimension
+	// has_filters() detection
 	// -----------------------------------------------------------------------
 
 	/**
-	 * @dataProvider provide_is_configured_scenarios
+	 * @dataProvider provide_has_filters_scenarios
 	 *
 	 * @param array $stored_shape Shape persisted in the option (already in slug form).
 	 * @param bool  $expected
 	 */
-	public function test_is_configured( array $stored_shape, bool $expected ) {
+	public function test_has_filters( array $stored_shape, bool $expected ) {
 		update_option( $this->option_name, $stored_shape );
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 		$this->assertSame( $expected, $filter->has_filters() );
 	}
 
-	public function provide_is_configured_scenarios(): array {
+	public function provide_has_filters_scenarios(): array {
 		return [
 			'all empty'        => [ [], false ],
 			'product_ids set'  => [ [ 'product_ids' => [ 42 ] ], true ],
