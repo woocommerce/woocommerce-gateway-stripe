@@ -33,9 +33,9 @@ wp() {
 	if [ ! -f $TMPDIR/wp-cli.phar ]; then
 		download https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar  "$TMPDIR/wp-cli.phar"
 	fi
+
 	# wp-cli runs under the container's php CLI memory_limit (128M), which is too
- 	# low for its Extractor to unpack a current WordPress core archive — it fatals
-	# with "Allowed memory size exhausted".
+	# low for its Extractor to unpack a current WordPress core archive.
 	# So, we remove the cap for the setup commands in this script.
 	php -d memory_limit=-1 "$TMPDIR/wp-cli.phar" $@
 
