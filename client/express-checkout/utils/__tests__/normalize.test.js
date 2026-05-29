@@ -547,7 +547,7 @@ describe( 'Express checkout normalization', () => {
 			).toEqual( expectedNormalizedDataWithMinimumFields );
 		} );
 
-		test( 'should use the billing last name fallback for empty billing names', () => {
+		test( 'should use the billing last name fallback of "-" for empty billing names', () => {
 			const emptyBillingNameEvent = {
 				billingDetails: {
 					name: '',
@@ -565,89 +565,20 @@ describe( 'Express checkout normalization', () => {
 			} );
 		} );
 
-		test( 'should use an existing billing last name before the placeholder fallback', () => {
-			select.mockImplementation( () => ( {
-				getExtensionData: () => ( {} ),
-				getAdditionalFields: () => ( {} ),
-				getCustomerData: () => ( {
-					billingAddress: {
-						first_name: 'John',
-						last_name: 'Doe',
-					},
-				} ),
-			} ) );
-
-			const emptyBillingLastNameEvent = {
+		test( 'should use the billing last name fallback of "-" for billing name that only has a first name', () => {
+			const onlyFirstNameBillingNameEvent = {
 				billingDetails: {
-					name: 'John',
+					name: 'Jane',
 				},
 			};
 
 			const normalizedData = normalizeOrderData( {
-				event: emptyBillingLastNameEvent,
+				event: onlyFirstNameBillingNameEvent,
 				paymentMethodId,
 			} );
 
 			expect( normalizedData.billing_address ).toMatchObject( {
-				first_name: 'John',
-				last_name: 'Doe',
-			} );
-		} );
-
-		test( 'should not use an existing billing last name for a different billing first name', () => {
-			select.mockImplementation( () => ( {
-				getExtensionData: () => ( {} ),
-				getAdditionalFields: () => ( {} ),
-				getCustomerData: () => ( {
-					billingAddress: {
-						first_name: 'Jane',
-						last_name: 'Doe',
-					},
-				} ),
-			} ) );
-
-			const differentBillingFirstNameEvent = {
-				billingDetails: {
-					name: 'John',
-				},
-			};
-
-			const normalizedData = normalizeOrderData( {
-				event: differentBillingFirstNameEvent,
-				paymentMethodId,
-			} );
-
-			expect( normalizedData.billing_address ).toMatchObject( {
-				first_name: 'John',
-				last_name: '-',
-			} );
-		} );
-
-		test( 'should not use an existing billing last name when the stored first name is empty', () => {
-			select.mockImplementation( () => ( {
-				getExtensionData: () => ( {} ),
-				getAdditionalFields: () => ( {} ),
-				getCustomerData: () => ( {
-					billingAddress: {
-						first_name: '',
-						last_name: 'Doe',
-					},
-				} ),
-			} ) );
-
-			const eventWithSingleFirstName = {
-				billingDetails: {
-					name: 'John',
-				},
-			};
-
-			const normalizedData = normalizeOrderData( {
-				event: eventWithSingleFirstName,
-				paymentMethodId,
-			} );
-
-			expect( normalizedData.billing_address ).toMatchObject( {
-				first_name: 'John',
+				first_name: 'Jane',
 				last_name: '-',
 			} );
 		} );
