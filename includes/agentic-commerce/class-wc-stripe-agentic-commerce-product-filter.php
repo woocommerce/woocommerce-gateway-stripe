@@ -54,8 +54,6 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	 *     @type int[] $tag_ids                 Tag taxonomy IDs.
 	 *     @type int[] $brand_ids               Brand taxonomy IDs.
 	 *     @type int[] $variable_product_ids    Variable product IDs.
-	 *     @type bool  $query_variable_products Whether to query for variable products, and then resolve
-	 *                                            them to their variations. Default false.
 	 * }
 	 */
 	public function get_filters(): array {
@@ -63,8 +61,12 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 			return $this->filters;
 		}
 
-		$stored  = get_option( self::OPTION_NAME, [] );
-		$filters = $this->normalize_filter_data( is_array( $stored ) ? $stored : [] );
+		$stored = get_option( self::OPTION_NAME, [] );
+		if ( is_array( $stored ) ) {
+			$filters = $this->normalize_filter_data( $stored );
+		} else {
+			$filters = [];
+		}
 
 		/**
 		 * Filter the resolved set of filter inputs before resolution runs.
@@ -84,8 +86,6 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 		 *     @type int[] $tag_ids                 Tag taxonomy IDs.
 		 *     @type int[] $brand_ids               Brand taxonomy IDs.
 		 *     @type int[] $variable_product_ids    Variable product IDs.
-		 *     @type bool  $query_variable_products Whether to query for variable products, and then resolve
-		 *                                            them to their variations. Default false.
 		 * }
 		 */
 		$filtered = apply_filters( 'wc_stripe_agentic_commerce_product_filter', $filters );
@@ -147,17 +147,14 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 			}
 		}
 
-		$query_variable_products = true === ( $filters['query_variable_products'] ?? false );
-
 		return update_option(
 			self::OPTION_NAME,
 			[
-				'product_ids'             => $product_ids,
-				'category_ids'            => $category_ids,
-				'tag_ids'                 => $tag_ids,
-				'brand_ids'               => $brand_ids,
-				'query_variable_products' => $query_variable_products,
-				'variable_product_ids'    => $variable_product_ids,
+				'product_ids'          => $product_ids,
+				'category_ids'         => $category_ids,
+				'tag_ids'              => $tag_ids,
+				'brand_ids'            => $brand_ids,
+				'variable_product_ids' => $variable_product_ids,
 			],
 			false
 		);
@@ -191,15 +188,10 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 			return self::EMPTY_RESOLUTION;
 		}
 
-		$query_variable_products = true === ( $filters['query_variable_products'] ?? false );
-
 		$query_product_types = [
 			\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
 			\Automattic\WooCommerce\Enums\ProductType::VARIATION,
 		];
-		if ( $query_variable_products ) {
-			$query_product_types[] = \Automattic\WooCommerce\Enums\ProductType::VARIABLE;
-		}
 
 		$candidate_ids = [];
 
@@ -263,36 +255,34 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 			return self::EMPTY_RESOLUTION;
 		}
 
-		if ( $query_variable_products ) {
-			// We need to resolve variable products to their variations.
-			// First step is to identify which product IDs in our list are variable products.
-			$variable_product_ids = (array) wc_get_products(
-				[
-					'status'  => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
-					'limit'   => -1,
-					'return'  => 'ids',
-					'type'    => [ \Automattic\WooCommerce\Enums\ProductType::VARIABLE ],
-					'include' => $candidate_ids,
-				]
-			);
+		// We need to resolve variable products to their variations.
+		// First step is to identify which product IDs in our list are variable products.
+		$variable_product_ids = (array) wc_get_products(
+			[
+				'status'  => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+				'limit'   => -1,
+				'return'  => 'ids',
+				'type'    => [ \Automattic\WooCommerce\Enums\ProductType::VARIABLE ],
+				'include' => $candidate_ids,
+			]
+		);
 
-			if ( [] !== $variable_product_ids ) {
-				// We have some variable products, so let's remove them from $candidate_ids and then find the child variations.
-				$candidate_ids = array_diff( $candidate_ids, $variable_product_ids );
+		if ( [] !== $variable_product_ids ) {
+			// We have some variable products, so let's remove them from $candidate_ids and then find the child variations.
+			$candidate_ids = array_diff( $candidate_ids, $variable_product_ids );
 
-				$variation_query = [
-					'status'          => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
-					'limit'           => -1,
-					'return'          => 'ids',
-					'type'            => [ \Automattic\WooCommerce\Enums\ProductType::VARIATION ],
-					// WooCommerce doesn't have a mapped keyword for parent product IDs, so we use the WordPress post_parent__in.
-					'post_parent__in' => $variable_product_ids,
-				];
+			$variation_query = [
+				'status'          => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+				'limit'           => -1,
+				'return'          => 'ids',
+				'type'            => [ \Automattic\WooCommerce\Enums\ProductType::VARIATION ],
+				// WooCommerce doesn't have a mapped keyword for parent product IDs, so we use the WordPress post_parent__in.
+				'post_parent__in' => $variable_product_ids,
+			];
 
-				$variation_product_ids = (array) wc_get_products( $variation_query );
+			$variation_product_ids = (array) wc_get_products( $variation_query );
 
-				$candidate_ids = array_merge( $candidate_ids, $variation_product_ids );
-			}
+			$candidate_ids = array_merge( $candidate_ids, $variation_product_ids );
 		}
 
 		$candidate_ids = array_values( array_unique( $candidate_ids ) );
@@ -375,23 +365,6 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 			];
 
 			$collated_query_args['taxonomy_conditions'] = $tax_query_args;
-
-			$query_variable_products = true === ( $filters['query_variable_products'] ?? false );
-
-			// If we are querying for variable products, we need to identify the parent product IDs using the taxonomy query.
-			if ( $query_variable_products ) {
-				$upfront_variable_product_query = [
-					'status'    => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
-					'type'      => [ \Automattic\WooCommerce\Enums\ProductType::VARIABLE ],
-					'return'    => 'ids',
-					'limit'     => -1,
-					'tax_query' => [ $tax_query_clauses ], // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
-				];
-
-				$variable_product_ids = (array) wc_get_products( $upfront_variable_product_query );
-				$variation_parent_ids = array_merge( $variation_parent_ids, $variable_product_ids );
-				$variation_parent_ids = array_values( array_unique( $variation_parent_ids ) );
-			}
 		}
 
 		if ( [] !== $variation_parent_ids ) {
@@ -425,8 +398,6 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	 * @return bool
 	 */
 	private function are_filters_empty( array $filters ): bool {
-		// Note that we don't check $filters['query_variable_products'] here,
-		// as it only applies when other filters are present.
 		return ( [] === $filters['product_ids'] )
 			&& ( [] === $filters['category_ids'] )
 			&& ( [] === $filters['tag_ids'] )
@@ -489,18 +460,16 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	 *     @type int[] $tag_ids                 Tag taxonomy IDs.
 	 *     @type int[] $brand_ids               Brand taxonomy IDs.
 	 *     @type int[] $variable_product_ids    Variable product IDs.
-	 *     @type bool  $query_variable_products Whether to query for variable products, and then resolve
 	 *                                            them to their variations. Default false.
 	 * }
 	 */
 	private function normalize_filter_data( array $raw ): array {
 		return [
-			'product_ids'             => $this->normalize_ids( $raw['product_ids'] ?? [] ),
-			'category_ids'            => $this->normalize_ids( $raw['category_ids'] ?? [] ),
-			'tag_ids'                 => $this->normalize_ids( $raw['tag_ids'] ?? [] ),
-			'brand_ids'               => $this->normalize_ids( $raw['brand_ids'] ?? [] ),
-			'variable_product_ids'    => $this->normalize_ids( $raw['variable_product_ids'] ?? [] ),
-			'query_variable_products' => true === ( $raw['query_variable_products'] ?? false ),
+			'product_ids'          => $this->normalize_ids( $raw['product_ids'] ?? [] ),
+			'category_ids'         => $this->normalize_ids( $raw['category_ids'] ?? [] ),
+			'tag_ids'              => $this->normalize_ids( $raw['tag_ids'] ?? [] ),
+			'brand_ids'            => $this->normalize_ids( $raw['brand_ids'] ?? [] ),
+			'variable_product_ids' => $this->normalize_ids( $raw['variable_product_ids'] ?? [] ),
 		];
 	}
 
