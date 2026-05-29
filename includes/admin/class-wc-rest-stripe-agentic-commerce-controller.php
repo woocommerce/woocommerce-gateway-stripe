@@ -70,7 +70,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 * @var string
 	 * @since 10.7.0
 	 */
-	const MASKED_WEBHOOK_SECRET = 'whsec_********************************';
+	public const MASKED_WEBHOOK_SECRET = 'whsec_********************************';
 
 	/**
 	 * Configure REST API routes.

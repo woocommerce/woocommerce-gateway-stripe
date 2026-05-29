@@ -11,9 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Logger {
 
-	const WC_LOG_FILENAME = 'woocommerce-gateway-stripe';
+	public const WC_LOG_FILENAME = 'woocommerce-gateway-stripe';
 
-	const LOG_CONTEXT = [
+	public const LOG_CONTEXT = [
 		'source'             => self::WC_LOG_FILENAME,
 		'stripe_version'     => WC_STRIPE_VERSION,
 		'stripe_api_version' => WC_Stripe_API::STRIPE_API_VERSION,
