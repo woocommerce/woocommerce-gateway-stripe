@@ -42,13 +42,6 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update {
 	private const NEW_LOCATION = 'change_payment_method';
 
 	/**
-	 * Constructor.
-	 */
-	public function __construct() {
-		add_action( 'woocommerce_stripe_updated', [ $this, 'maybe_migrate' ] );
-	}
-
-	/**
 	 * Append the new `change_payment_method` location when the merchant had
 	 * the full pre-PR default set enabled. No-op otherwise.
 	 *

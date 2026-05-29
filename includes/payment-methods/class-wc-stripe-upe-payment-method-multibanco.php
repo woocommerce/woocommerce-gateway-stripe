@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::MULTIBANCO;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::MULTIBANCO;
 
 	/**
 	 * Constructor for Multibanco payment method
