@@ -30,42 +30,42 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 *
 	 * @var string
 	 */
-	const PENDING_UPDATES_OPTION = 'wc_stripe_agentic_pending_inventory';
+	public const PENDING_UPDATES_OPTION = 'wc_stripe_agentic_pending_inventory';
 
 	/**
 	 * Option key used to store pending product archives.
 	 *
 	 * @var string
 	 */
-	const PENDING_ARCHIVES_OPTION = 'wc_stripe_agentic_pending_archives';
+	public const PENDING_ARCHIVES_OPTION = 'wc_stripe_agentic_pending_archives';
 
 	/**
 	 * Action Scheduler hook name for inventory sync.
 	 *
 	 * @var string
 	 */
-	const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_inventory';
+	public const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_inventory';
 
 	/**
 	 * Action Scheduler hook name for archive sync.
 	 *
 	 * @var string
 	 */
-	const ARCHIVE_SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_archives';
+	public const ARCHIVE_SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_archives';
 
 	/**
 	 * Maximum number of pending updates before falling back to full catalog sync.
 	 *
 	 * @var int
 	 */
-	const MAX_PENDING_UPDATES = 1000;
+	public const MAX_PENDING_UPDATES = 1000;
 
 	/**
 	 * Delay in seconds before processing a batch of stock changes.
 	 *
 	 * @var int
 	 */
-	const BATCH_DELAY_SECONDS = 60;
+	public const BATCH_DELAY_SECONDS = 60;
 
 	/**
 	 * Register WordPress hooks.

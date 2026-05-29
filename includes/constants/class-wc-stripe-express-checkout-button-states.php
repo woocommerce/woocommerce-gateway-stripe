@@ -41,7 +41,7 @@ class WC_Stripe_Express_Checkout_Button_States {
 	 *
 	 * @var array
 	 */
-	const STATES = [
+	public const STATES = [
 		// Afghanistan.
 		'AF' => [],
 		// Angola.
