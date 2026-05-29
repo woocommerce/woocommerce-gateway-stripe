@@ -175,10 +175,14 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Remove redundant `get_retrievable_type()` overrides from payment methods
 * Dev - Add Claude Code skills and review rules under .claude/ to capture repo-specific contributor guidance
 * Dev - Move some independent classes into autoloader
+* Dev - Require explicit visibility for class constants
 * Dev - Add payment token classes to autoloader
 * Remove - Remove deprecated code up to version 10.1.0
 * Dev - Add Jest tests for ECE payment flow
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
+* Dev - Use explicit method calls for upgrade checks and tools
+* Update - Improve express checkout load times by preloading the resources
+* Dev - Memoize the Express Checkout button visibility check within a request
 * Fix - Fix admin banner dismissal and display logic
 * Add - Detect Stripe API outages (network failures, timeouts, 5xx responses) and surface a wp-admin notice instead of crashing or showing misleading "couldn't connect" messages
 * Dev - Initial infrastructure for more complex Agentic feed filtering
