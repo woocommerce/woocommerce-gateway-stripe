@@ -229,6 +229,28 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		];
 	}
 
+	public function test_get_filters_only_calls_filter_once() {
+		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
+
+		$call_count     = 0;
+		$capture_filter = function ( $filters ) use ( $call_count ) {
+			++$call_count;
+			return $filters;
+		};
+
+		add_filter( 'wc_stripe_agentic_commerce_product_filter', $capture_filter );
+
+		try {
+			$filter->get_filters();
+			$this->assertSame( 1, $call_count );
+
+			$filter->get_filters();
+			$this->assertSame( 1, $call_count );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_product_filter', $capture_filter );
+		}
+	}
+
 	// -----------------------------------------------------------------------
 	// has_filters() detection
 	// -----------------------------------------------------------------------
