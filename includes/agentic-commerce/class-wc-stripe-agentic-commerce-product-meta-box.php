@@ -4,7 +4,9 @@
  *
  * Adds a checkbox to the WC product editor's Inventory tab that lets
  * merchants opt individual products out of the Stripe Agentic Commerce
- * catalog feed, inventory updates, and archive events.
+ * catalog feed, inventory updates, and archive events. The checkbox only
+ * appears when the merchant has Agentic Commerce enabled in settings and
+ * the product is a type the feed walks (simple or variable).
  *
  * Hidden when WC AI Storefront is active: that plugin owns the
  * merchant-facing product selection UI (mode-driven catalog scoping)
@@ -105,15 +107,39 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 	}
 
 	/**
+	 * Product types the feed walks. The toggle is meaningless on anything
+	 * else, so it only renders for these.
+	 *
+	 * `get_product_feed_query_args()` syncs `simple` and `variation`; the
+	 * parent of a `variation` is `variable`, and the checkbox lives on the
+	 * parent — so the editor-facing set is `simple` + `variable`.
+	 */
+	const SUPPORTED_TYPES = [ 'simple', 'variable' ];
+
+	/**
 	 * Render the "Agentic Commerce" exclude checkbox.
 	 *
 	 * Uses WC's `woocommerce_wp_checkbox()` helper so the visual treatment
 	 * matches the surrounding Inventory checkboxes (Manage stock, Sold
 	 * individually, etc.). The description renders inline next to the
 	 * checkbox (no tooltip) so the opt-out behavior is visible at a glance.
+	 *
+	 * Two gates keep the toggle from dangling with nothing behind it: the
+	 * merchant must have switched Agentic Commerce on in settings, and the
+	 * product must be a type the feed actually walks.
 	 */
 	public function render_checkbox(): void {
 		if ( ! function_exists( 'woocommerce_wp_checkbox' ) ) {
+			return;
+		}
+
+		if ( ! WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled() ) {
+			return;
+		}
+
+		global $product_object;
+		$type = $product_object instanceof WC_Product ? $product_object->get_type() : '';
+		if ( ! in_array( $type, self::SUPPORTED_TYPES, true ) ) {
 			return;
 		}
 
@@ -138,6 +164,13 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 	 */
 	public function save_meta( int $product_id ): void {
 		if ( $product_id <= 0 ) {
+			return;
+		}
+
+		// The toggle is hidden while the merchant has the feature off, so the
+		// unchecked checkbox isn't posted — bail before that absence clobbers a
+		// stored 'yes' that should hold until they turn it back on.
+		if ( ! WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled() ) {
 			return;
 		}
 

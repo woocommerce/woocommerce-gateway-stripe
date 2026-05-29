@@ -26,6 +26,16 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box_Test extends WP_UnitTestCase {
 		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Product_Meta_Box' ) ) {
 			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Product_Meta_Box class not loaded' );
 		}
+
+		// The render/save paths now gate on the merchant having switched the
+		// feature on; default it on so each test exercises its real path. The
+		// disabled-gate tests flip it back off themselves.
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+	}
+
+	public function tearDown(): void {
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+		parent::tearDown();
 	}
 
 	/**
@@ -243,11 +253,13 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box_Test extends WP_UnitTestCase {
 		}
 
 		// The helper reads `$thepostid`/`$post` to pull the existing meta
-		// value — seed them with a real product so it doesn't throw.
+		// value; render_checkbox() reads `$product_object` to gate on type —
+		// seed all three with a real (supported) product so it renders.
 		$product = WC_Helper_Product::create_simple_product();
-		global $thepostid, $post;
-		$thepostid = $product->get_id();
-		$post      = get_post( $thepostid );
+		global $thepostid, $post, $product_object;
+		$thepostid      = $product->get_id();
+		$post           = get_post( $thepostid );
+		$product_object = $product;
 
 		ob_start();
 		( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->render_checkbox();
@@ -256,8 +268,103 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( WC_Stripe_Agentic_Commerce_Product_Meta_Box::META_KEY, $output );
 		$this->assertStringContainsString( 'type="checkbox"', $output );
 
-		$thepostid = null;
-		$post      = null;
+		$thepostid      = null;
+		$post           = null;
+		$product_object = null;
+		$product->delete( true );
+	}
+
+	/**
+	 * The feed only walks simple and variable products, so the toggle must
+	 * not render on a type it can't reach (here a grouped product) — leaving
+	 * it would let a merchant set an opt-out that never takes effect.
+	 */
+	public function test_render_checkbox_skips_unsupported_product_types(): void {
+		if ( ! function_exists( 'woocommerce_wp_checkbox' ) ) {
+			$meta_box_helpers = WC_ABSPATH . 'includes/admin/wc-meta-box-functions.php';
+			if ( file_exists( $meta_box_helpers ) ) {
+				require_once $meta_box_helpers;
+			}
+		}
+		if ( ! function_exists( 'woocommerce_wp_checkbox' ) ) {
+			$this->markTestSkipped( 'woocommerce_wp_checkbox helper not available.' );
+		}
+
+		$product = WC_Helper_Product::create_grouped_product();
+		global $thepostid, $post, $product_object;
+		$thepostid      = $product->get_id();
+		$post           = get_post( $thepostid );
+		$product_object = $product;
+
+		ob_start();
+		( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->render_checkbox();
+		$output = ob_get_clean();
+
+		$this->assertSame( '', $output, 'Unsupported product types must render nothing.' );
+
+		$thepostid      = null;
+		$post           = null;
+		$product_object = null;
+		$product->delete( true );
+	}
+
+	/**
+	 * With the feature switched off in settings the toggle must not render —
+	 * a per-product opt-out is meaningless when nothing syncs.
+	 */
+	public function test_render_checkbox_hidden_when_merchant_disabled(): void {
+		if ( ! function_exists( 'woocommerce_wp_checkbox' ) ) {
+			$meta_box_helpers = WC_ABSPATH . 'includes/admin/wc-meta-box-functions.php';
+			if ( file_exists( $meta_box_helpers ) ) {
+				require_once $meta_box_helpers;
+			}
+		}
+		if ( ! function_exists( 'woocommerce_wp_checkbox' ) ) {
+			$this->markTestSkipped( 'woocommerce_wp_checkbox helper not available.' );
+		}
+
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		global $thepostid, $post, $product_object;
+		$thepostid      = $product->get_id();
+		$post           = get_post( $thepostid );
+		$product_object = $product;
+
+		ob_start();
+		( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->render_checkbox();
+		$output = ob_get_clean();
+
+		$this->assertSame( '', $output, 'A disabled feature must render nothing.' );
+
+		$thepostid      = null;
+		$post           = null;
+		$product_object = null;
+		$product->delete( true );
+	}
+
+	/**
+	 * save_meta() must no-op while the feature is off so an absent (hidden)
+	 * checkbox can't clobber a stored 'yes' that should hold until the
+	 * merchant turns the feature back on.
+	 */
+	public function test_save_meta_skips_when_merchant_disabled(): void {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Meta_Box::META_KEY, 'yes' );
+
+		// Valid nonce, no key posted (unchecked) — would normally flip to 'no'.
+		$_POST = [ 'woocommerce_meta_nonce' => wp_create_nonce( 'woocommerce_save_data' ) ];
+		( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->save_meta( $product->get_id() );
+
+		$this->assertSame(
+			'yes',
+			get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Meta_Box::META_KEY, true ),
+			'A save while the feature is off must leave the stored value untouched.'
+		);
+
+		$_POST = [];
 		$product->delete( true );
 	}
 }
