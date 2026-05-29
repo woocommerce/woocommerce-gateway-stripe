@@ -45,11 +45,9 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
 		}
 
-		$this->last_upload_option = ( new \ReflectionClass( \WC_Stripe_Agentic_Commerce_Integration::class ) )
-			->getConstant( 'LAST_UPLOAD_OPTION' );
+		$this->last_upload_option = WC_Stripe_Test_Helper::get_class_const_value( \WC_Stripe_Agentic_Commerce_Integration::class, 'LAST_UPLOAD_OPTION', 'string' );
 
-		$this->product_filter_option = ( new \ReflectionClass( \WC_Stripe_Agentic_Commerce_Product_Filter::class ) )
-			->getConstant( 'OPTION_NAME' );
+		$this->product_filter_option = WC_Stripe_Test_Helper::get_class_const_value( \WC_Stripe_Agentic_Commerce_Product_Filter::class, 'OPTION_NAME', 'string' );
 	}
 
 	/**
