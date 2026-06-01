@@ -677,15 +677,15 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 									'operator'         => 'IN',
 									'include_children' => false,
 								],
-								...[
-									$product_brand_exists ? [
+								...( $product_brand_exists ? [
+									[
 										'taxonomy'         => 'product_brand',
 										'field'            => 'term_id',
 										'terms'            => [ 42, 9999 ],
 										'operator'         => 'IN',
 										'include_children' => false,
-									] : null,
-								],
+									],
+								] : [] ),
 							],
 						],
 					]
@@ -717,15 +717,15 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 									'operator'         => 'IN',
 									'include_children' => false,
 								],
-								...[
-									$product_brand_exists ? [
+								...( $product_brand_exists ? [
+									[
 										'taxonomy'         => 'product_brand',
 										'field'            => 'term_id',
 										'terms'            => [ 123, 456 ],
 										'operator'         => 'IN',
 										'include_children' => false,
-									] : null,
-								],
+									],
+								] : [] ),
 							],
 						],
 					]
