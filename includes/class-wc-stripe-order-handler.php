@@ -509,7 +509,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param WC_Order $order The paid order whose cancellation was prevented.
 	 */
 	private function surface_prevented_paid_order_cancellation( $order ): void {
-		if ( $order->get_meta( '_stripe_paid_order_cancellation_prevented' ) ) {
+		if ( 'yes' === $order->get_meta( '_stripe_paid_order_cancellation_prevented' ) ) {
 			return;
 		}
 
