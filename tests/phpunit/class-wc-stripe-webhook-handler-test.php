@@ -342,10 +342,10 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	/**
 	 * When charge.succeeded fires for a charge whose ID isn't stored on any order (because the shopper
 	 * settled the order via a different gateway), the handler must fall back to looking up the order
-	 * by the parent PaymentIntent and flag the orphan instead of silently dropping the event.
+	 * by the parent PaymentIntent and flag the unexpected charge instead of silently dropping the event.
 	 */
-	public function test_process_webhook_charge_succeeded_flags_orphan_via_payment_intent_fallback() {
-		$intent_id = 'pi_orphan_charge_lookup';
+	public function test_process_webhook_charge_succeeded_flags_unexpected_charge_via_payment_intent_fallback() {
+		$intent_id = 'pi_unexpected_charge_lookup';
 
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::PROCESSING );
@@ -356,7 +356,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order->save();
 
 		$charge = (object) [
-			'id'                     => 'py_orphan_xxx',
+			'id'                     => 'py_unexpected_xxx',
 			'captured'               => true,
 			'payment_intent'         => $intent_id,
 			'amount'                 => 4200,
@@ -382,14 +382,14 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'webhook_type' => $hook_type,
 			];
 		};
-		add_action( 'wc_stripe_orphaned_charge_detected', $listener, 10, 3 );
+		add_action( 'wc_stripe_unexpected_charge_detected', $listener, 10, 3 );
 
 		try {
 			$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
 
 			$this->assertCount( 1, $captured );
 			$this->assertSame( $order->get_id(), $captured[0]['order_id'] );
-			$this->assertSame( 'py_orphan_xxx', $captured[0]['charge_id'] );
+			$this->assertSame( 'py_unexpected_xxx', $captured[0]['charge_id'] );
 			$this->assertSame( 'charge.succeeded', $captured[0]['webhook_type'] );
 
 			$notes = wc_get_order_notes(
@@ -400,10 +400,10 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			);
 			$this->assertNotEmpty( $notes );
 			$this->assertStringContainsString( $intent_id, $notes[0]->content );
-			$this->assertStringContainsString( 'py_orphan_xxx', $notes[0]->content );
+			$this->assertStringContainsString( 'py_unexpected_xxx', $notes[0]->content );
 			$this->assertStringContainsString( 'Cash on Delivery', $notes[0]->content );
 		} finally {
-			remove_action( 'wc_stripe_orphaned_charge_detected', $listener, 10 );
+			remove_action( 'wc_stripe_unexpected_charge_detected', $listener, 10 );
 		}
 	}
 
@@ -439,25 +439,25 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$listener = function () use ( &$called ) {
 			++$called;
 		};
-		add_action( 'wc_stripe_orphaned_charge_detected', $listener );
+		add_action( 'wc_stripe_unexpected_charge_detected', $listener );
 
 		try {
 			$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
 
 			$this->assertSame( 0, $called );
 		} finally {
-			remove_action( 'wc_stripe_orphaned_charge_detected', $listener );
+			remove_action( 'wc_stripe_unexpected_charge_detected', $listener );
 		}
 	}
 
 	/**
-	 * charge.succeeded for a card-based orphan (shopper completed 3DS but never returned, then
-	 * settled the order via a different gateway) must still flag the orphan. This verifies that
-	 * the orphan fallback runs before the synchronous-payment-method filter that otherwise short-
+	 * charge.succeeded for an unexpected card charge (shopper completed 3DS but never returned, then
+	 * settled the order via a different gateway) must still flag it. This verifies that
+	 * the unexpected-charge fallback runs before the synchronous-payment-method filter that otherwise short-
 	 * circuits card / Amazon Pay / 3DS events.
 	 */
-	public function test_process_webhook_charge_succeeded_flags_card_orphan_via_payment_intent_fallback() {
-		$intent_id = 'pi_card_orphan';
+	public function test_process_webhook_charge_succeeded_flags_unexpected_card_charge_via_payment_intent_fallback() {
+		$intent_id = 'pi_card_unexpected';
 
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::PROCESSING );
@@ -468,7 +468,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order->save();
 
 		$charge = (object) [
-			'id'                     => 'ch_card_orphan',
+			'id'                     => 'ch_card_unexpected',
 			'captured'               => true,
 			'payment_intent'         => $intent_id,
 			'amount'                 => 5000,
@@ -489,26 +489,26 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'webhook_type' => $hook_type,
 			];
 		};
-		add_action( 'wc_stripe_orphaned_charge_detected', $listener, 10, 3 );
+		add_action( 'wc_stripe_unexpected_charge_detected', $listener, 10, 3 );
 
 		try {
 			$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
 
 			$this->assertCount( 1, $captured );
 			$this->assertSame( $order->get_id(), $captured[0]['order_id'] );
-			$this->assertSame( 'ch_card_orphan', $captured[0]['charge_id'] );
+			$this->assertSame( 'ch_card_unexpected', $captured[0]['charge_id'] );
 			$this->assertSame( 'charge.succeeded', $captured[0]['webhook_type'] );
 		} finally {
-			remove_action( 'wc_stripe_orphaned_charge_detected', $listener, 10 );
+			remove_action( 'wc_stripe_unexpected_charge_detected', $listener, 10 );
 		}
 	}
 
 	/**
-	 * charge.captured for a captured charge whose ID isn't on any order (manual-capture orphan)
-	 * must fall back to the parent PaymentIntent and flag the orphaned charge.
+	 * charge.captured for a captured charge whose ID isn't on any order (manual-capture unexpected charge)
+	 * must fall back to the parent PaymentIntent and flag the unexpected charge.
 	 */
-	public function test_process_webhook_capture_flags_orphan_via_payment_intent_fallback() {
-		$intent_id = 'pi_capture_orphan';
+	public function test_process_webhook_capture_flags_unexpected_charge_via_payment_intent_fallback() {
+		$intent_id = 'pi_capture_unexpected';
 
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::PROCESSING );
@@ -519,7 +519,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order->save();
 
 		$charge = (object) [
-			'id'                     => 'ch_capture_orphan',
+			'id'                     => 'ch_capture_unexpected',
 			'captured'               => true,
 			'payment_intent'         => $intent_id,
 			'amount'                 => 8000,
@@ -540,14 +540,14 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'webhook_type' => $hook_type,
 			];
 		};
-		add_action( 'wc_stripe_orphaned_charge_detected', $listener, 10, 3 );
+		add_action( 'wc_stripe_unexpected_charge_detected', $listener, 10, 3 );
 
 		try {
 			$this->mock_webhook_handler->process_webhook_capture( $notification );
 
 			$this->assertCount( 1, $captured );
 			$this->assertSame( $order->get_id(), $captured[0]['order_id'] );
-			$this->assertSame( 'ch_capture_orphan', $captured[0]['charge_id'] );
+			$this->assertSame( 'ch_capture_unexpected', $captured[0]['charge_id'] );
 			$this->assertSame( 'charge.captured', $captured[0]['webhook_type'] );
 
 			$notes = wc_get_order_notes(
@@ -558,15 +558,15 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			);
 			$this->assertNotEmpty( $notes );
 			$this->assertStringContainsString( $intent_id, $notes[0]->content );
-			$this->assertStringContainsString( 'ch_capture_orphan', $notes[0]->content );
+			$this->assertStringContainsString( 'ch_capture_unexpected', $notes[0]->content );
 			$this->assertStringContainsString( 'Klarna Payments', $notes[0]->content );
 		} finally {
-			remove_action( 'wc_stripe_orphaned_charge_detected', $listener, 10 );
+			remove_action( 'wc_stripe_unexpected_charge_detected', $listener, 10 );
 		}
 	}
 
 	/**
-	 * charge.captured for an order paid via Stripe must not flag an orphan.
+	 * charge.captured for an order paid via Stripe must not flag an unexpected charge.
 	 */
 	public function test_process_webhook_capture_does_not_flag_when_paid_via_stripe() {
 		$intent_id = 'pi_stripe_capture';
@@ -592,22 +592,22 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$listener = function () use ( &$called ) {
 			++$called;
 		};
-		add_action( 'wc_stripe_orphaned_charge_detected', $listener );
+		add_action( 'wc_stripe_unexpected_charge_detected', $listener );
 
 		try {
 			$this->mock_webhook_handler->process_webhook_capture( $notification );
 
 			$this->assertSame( 0, $called );
 		} finally {
-			remove_action( 'wc_stripe_orphaned_charge_detected', $listener );
+			remove_action( 'wc_stripe_unexpected_charge_detected', $listener );
 		}
 	}
 
 	/**
-	 * Repeat orphan detections for the same PaymentIntent on the same order must be no-ops: only one
+	 * Repeat unexpected-charge detections for the same PaymentIntent on the same order must be no-ops: only one
 	 * note is added and the action fires exactly once, even when multiple webhook paths detect it.
 	 */
-	public function test_flag_orphaned_payment_intent_is_idempotent_per_intent() {
+	public function test_flag_unexpected_charge_is_idempotent_per_intent() {
 		$intent_id = 'pi_dedup';
 
 		$order = WC_Helper_Order::create_order();
@@ -642,7 +642,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$listener = function () use ( &$called ) {
 			++$called;
 		};
-		add_action( 'wc_stripe_orphaned_charge_detected', $listener );
+		add_action( 'wc_stripe_unexpected_charge_detected', $listener );
 
 		try {
 			$this->mock_webhook_handler->process_webhook_charge_succeeded( $charge_notification );
@@ -650,21 +650,21 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 			$this->assertSame( 1, $called );
 
-			$notes        = wc_get_order_notes(
+			$notes            = wc_get_order_notes(
 				[
 					'order_id' => $order->get_id(),
 					'limit'    => 10,
 				]
 			);
-			$orphan_notes = array_filter(
+			$unexpected_notes = array_filter(
 				$notes,
 				static function ( $note ) use ( $intent_id ) {
-					return false !== strpos( $note->content, $intent_id ) && false !== strpos( $note->content, 'orphan' );
+					return false !== strpos( $note->content, $intent_id ) && false !== strpos( $note->content, 'unexpected' );
 				}
 			);
-			$this->assertCount( 1, $orphan_notes );
+			$this->assertCount( 1, $unexpected_notes );
 		} finally {
-			remove_action( 'wc_stripe_orphaned_charge_detected', $listener );
+			remove_action( 'wc_stripe_unexpected_charge_detected', $listener );
 		}
 	}
 
