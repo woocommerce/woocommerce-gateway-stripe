@@ -38,6 +38,7 @@
         "includes/class-wc-stripe-exception.php",
         "includes/class-wc-stripe-payment-cancelled-exception.php",
         "includes/class-wc-stripe-upe-compatibility.php",
+        "includes/class-wc-stripe-update-manager.php",
         "includes/compat/class-wc-stripe-woo-compat-utils.php",
         "includes/constants/",
         "includes/migrations/class-wc-stripe-express-checkout-add-change-payment-method-location-update.php",

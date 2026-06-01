@@ -5,6 +5,23 @@ const LiveReloadWebpackPlugin = require( '@kooneko/livereload-webpack-plugin' );
 const { BundleAnalyzerPlugin } = require( 'webpack-bundle-analyzer' );
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 
+// Map runtime-corejs3 polyfill module imports back to native globals.
+// Modern browser targets (last 2 evergreen versions per @wordpress/browserslist-config)
+// have native support for all of these, and wp-polyfill backstops anything older that WP itself supports.
+const corejsToGlobal = {
+	'@babel/runtime-corejs3/core-js/url': 'URL',
+	'@babel/runtime-corejs3/core-js-stable/url': 'URL',
+	'@babel/runtime-corejs3/core-js/url-search-params': 'URLSearchParams',
+	'@babel/runtime-corejs3/core-js-stable/url-search-params':
+		'URLSearchParams',
+	'@babel/runtime-corejs3/core-js/promise': 'Promise',
+	'@babel/runtime-corejs3/core-js-stable/promise': 'Promise',
+	'@babel/runtime-corejs3/core-js/symbol': 'Symbol',
+	'@babel/runtime-corejs3/core-js-stable/symbol': 'Symbol',
+	'@babel/runtime-corejs3/core-js-stable/map': 'Map',
+	'@babel/runtime-corejs3/core-js-stable/set': 'Set',
+};
+
 const defaultConfigOutput = defaultConfig.output;
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -116,7 +133,13 @@ module.exports = {
 		alias: {
 			...defaultConfig.resolve.alias,
 			wcstripe: path.resolve( __dirname, 'client' ),
+			// Swap Babel runtime helpers for the non-corejs equivalents (identical helpers, no polyfills).
+			'@babel/runtime-corejs3/helpers': '@babel/runtime/helpers',
 		},
+	},
+	externals: {
+		...( defaultConfig.externals || {} ),
+		...corejsToGlobal,
 	},
 	entry: {
 		'upe-classic': './client/classic/upe/index.js',
