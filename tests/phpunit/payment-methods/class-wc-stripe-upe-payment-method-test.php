@@ -1141,4 +1141,76 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 
 		return $test_cases;
 	}
+
+	/**
+	 * Returns an anonymous subclass with $supported_billing_countries set to the given list.
+	 *
+	 * @param string[] $billing_countries Billing-country list to seed.
+	 *
+	 * @return WC_Stripe_UPE_Payment_Method
+	 */
+	private function make_method_with_billing_countries( array $billing_countries ): WC_Stripe_UPE_Payment_Method {
+		return new class( $billing_countries ) extends WC_Stripe_UPE_Payment_Method {
+			const STRIPE_ID = 'test_billing_country_method';
+			public function __construct( array $billing_countries ) {
+				parent::__construct();
+				$this->supported_billing_countries = $billing_countries;
+			}
+		};
+	}
+
+	/**
+	 * @dataProvider provide_test_is_available_for_billing_country
+	 *
+	 * @param string[] $supported_billing_countries Supported billing countries to seed on the method.
+	 * @param string   $country_code                Billing country to check.
+	 * @param bool     $expected                    Expected return value.
+	 */
+	public function test_is_available_for_billing_country( array $supported_billing_countries, string $country_code, bool $expected ): void {
+		$method = $this->make_method_with_billing_countries( $supported_billing_countries );
+
+		$this->assertSame( $expected, $method->is_available_for_billing_country( $country_code ) );
+	}
+
+	public function provide_test_is_available_for_billing_country(): array {
+		return [
+			'empty list permits any country (US)' => [
+				[],
+				'US',
+				true,
+			],
+			'empty list permits any country (ZZ)' => [
+				[],
+				'ZZ',
+				true,
+			],
+			'populated list matches'              => [
+				[ 'US', 'CA' ],
+				'CA',
+				true,
+			],
+			'populated list rejects miss'         => [
+				[ 'US', 'CA' ],
+				'GB',
+				false,
+			],
+			'case-sensitive comparison'           => [
+				[ 'US' ],
+				'us',
+				true,
+			],
+		];
+	}
+
+	/**
+	 * Asserts that the deprecated wrapper raises a deprecation notice and delegates to the new helper.
+	 */
+	public function test_is_allowed_on_country_is_deprecated_and_delegates(): void {
+		$method = $this->make_method_with_billing_countries( [ 'US' ] );
+
+		$this->setExpectedDeprecated( 'WC_Stripe_UPE_Payment_Method::is_allowed_on_country' );
+
+		$this->assertTrue( $method->is_allowed_on_country( 'US' ) );
+		$this->assertFalse( $method->is_allowed_on_country( 'GB' ) );
+	}
 }
