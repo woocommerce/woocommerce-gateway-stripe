@@ -541,7 +541,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						'charge.captured'
 					)
 				) {
-					$this->resolved_order = $intent_order;
 					return;
 				}
 			}
@@ -622,7 +621,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					'charge.succeeded'
 				)
 			) {
-				$this->resolved_order = $intent_order;
 				return;
 			}
 		}
@@ -1473,7 +1471,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param WC_Order $order
 	 */
-	protected function is_order_paid_via_non_stripe_gateway( $order ): bool {
+	protected function order_uses_non_stripe_gateway( $order ): bool {
 		$payment_method = (string) $order->get_payment_method();
 		if ( '' === $payment_method ) {
 			return false;
@@ -1497,7 +1495,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return bool True when an orphan note was added, false when skipped.
 	 */
 	protected function maybe_flag_orphaned_payment_intent_on_order( $order, $intent_id, $charge, $webhook_type ): bool {
-		if ( ! $this->is_order_paid_via_non_stripe_gateway( $order ) ) {
+		if ( ! $this->order_uses_non_stripe_gateway( $order ) ) {
 			return false;
 		}
 		$dedup_meta_key = '_stripe_orphan_charge_flagged_' . $intent_id;
