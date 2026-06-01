@@ -43,6 +43,7 @@ xxxx-xx-xx - version 10.8.0
 * Tweak - Move UPE-only appearance helpers out of the shared stripe-utils module
 * Dev - Add wc_stripe_agentic_commerce_should_sync_product filter so adapters can exclude products from the Agentic Commerce catalog, inventory, and archive syncs
 * Add - Register Stripe gateway capabilities with the WordPress Abilities API for agent access (default off; opt in via the `wc_stripe_abilities_enabled` filter)
+* Fix - Incorrect payment method title on the order confirmation page when Optimized Checkout is enabled
 
 2026-05-12 - version 10.7.0
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
