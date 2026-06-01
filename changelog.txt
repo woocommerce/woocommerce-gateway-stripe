@@ -1,7 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.8.0
-* Fix - Prevent Stripe from rendering an unexpected "Address Line 2" field inside the Payment Element when the field is disabled in WooCommerce checkout
+* Fix - Prevent Stripe from rendering an unexpected "Address Line 2" field inside the Payment Element
 * Update - Ensure payment method restrictions based on account and shopper countries are up to date
 * Fix - Store transaction IDs for orders when we get charges to ensure we can refund correctly
 * Fix - Recover a missing Stripe charge ID from the order's payment intent so affected orders stay refundable
