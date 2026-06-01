@@ -152,6 +152,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.8.0 - xxxx-xx-xx =
+* Fix - Prevent Stripe from rendering an unexpected "Address Line 2" field inside the Payment Element
 * Update - Ensure payment method restrictions based on account and shopper countries are up to date
 * Fix - Store transaction IDs for orders when we get charges to ensure we can refund correctly
 * Fix - Recover a missing Stripe charge ID from the order's payment intent so affected orders stay refundable
