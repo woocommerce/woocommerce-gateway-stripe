@@ -161,25 +161,23 @@ class WC_Stripe_Abilities_Shape_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The reference ability (zero-arg, default-empty `input_schema`) must
-	 * accept `execute([])` without raising. The other abilities require an
-	 * id or expose an Options object — only this one is callable with no
-	 * arguments at all, which is the load-bearing property MCP clients rely
-	 * on when they first probe an unfamiliar tool surface.
+	 * The reference ability must accept `execute([])` — it is the only
+	 * ability callable with no arguments, the property MCP clients rely on
+	 * when first probing the tool surface.
 	 */
 	public function test_get_account_summary_accepts_zero_arg_execute() {
 		$schema = WC_Stripe_Ability_Get_Account_Summary::get_registration_args()['input_schema'];
 
-		$this->assertSame( [], $schema['properties'], 'get-account-summary must keep an empty properties bag — the zero-arg contract is its discoverability anchor.' );
-		$this->assertSame( [], $schema['required'] ?? [], 'get-account-summary must not require any input.' );
-		$this->assertFalse( $schema['additionalProperties'] ?? true, 'get-account-summary must reject stray inputs so callers cannot mistake it for a list ability.' );
+		$this->assertSame( [], $schema['properties'], 'get-account-summary must expose no properties.' );
+		$this->assertSame( [], $schema['required'] ?? [], 'get-account-summary must require no input.' );
+		$this->assertFalse( $schema['additionalProperties'] ?? true, 'get-account-summary must reject stray inputs.' );
 	}
 
 	/**
-	 * get-account-summary is the only ability in this PR that authors fields
-	 * on top of its backing controller's response. The partial output_schema
-	 * lets MCP discovery surface the authored field (`id`) without
-	 * over-modelling the controller-owned portion (additionalProperties: true).
+	 * get-account-summary authors an `id` field on top of its controller
+	 * response, so its output_schema is partial: it declares `id` for MCP
+	 * discovery while letting the controller-owned payload pass through
+	 * (additionalProperties: true).
 	 */
 	public function test_get_account_summary_output_schema_declares_authored_id_field() {
 		$args = WC_Stripe_Ability_Get_Account_Summary::get_registration_args();
@@ -187,7 +185,7 @@ class WC_Stripe_Abilities_Shape_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'output_schema', $args );
 		$schema = $args['output_schema'];
 		$this->assertSame( 'object', $schema['type'] );
-		$this->assertTrue( $schema['additionalProperties'] ?? false, 'output_schema must be partial (additionalProperties: true) so the controller-owned payload passes through unmodelled.' );
+		$this->assertTrue( $schema['additionalProperties'] ?? false, 'output_schema must be partial so the controller payload passes through.' );
 
 		$id_field = $schema['properties']['id'] ?? null;
 		$this->assertIsArray( $id_field );
