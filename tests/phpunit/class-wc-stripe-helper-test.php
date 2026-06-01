@@ -298,23 +298,41 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Test for `get_order_by_setup_intent_id`.
 	 *
-	 * @param bool $save_intent    Whether to associate the SetupIntent ID with the order.
-	 * @param bool $expect_success Whether the order should be found.
+	 * @param string|null $intent_target  Which object to save the SetupIntent ID on. One of null, 'refund', or 'order'.
+	 * @param bool        $expect_success Whether an order should be returned.
 	 * @dataProvider provide_test_get_order_by_setup_intent_id
 	 */
-	public function test_get_order_by_setup_intent_id( bool $save_intent, bool $expect_success ): void {
+	public function test_get_order_by_setup_intent_id( ?string $intent_target, bool $expect_success ): void {
+		global $wpdb;
 		$order     = WC_Helper_Order::create_order();
 		$intent_id = 'seti_mock';
 		$lookup_id = $intent_id;
 
-		if ( $save_intent ) {
+		if ( 'refund' === $intent_target ) {
+			$refund = wc_create_refund(
+				[
+					'amount'   => $order->get_total(),
+					'currency' => $order->get_currency(),
+					'order_id' => $order->get_id(),
+					'reason'   => 'Test refund',
+				]
+			);
+
+			$setup_intent_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_SETUP_INTENT', 'string' );
+
+			$refund->update_meta_data( $setup_intent_meta_key, $intent_id );
+			$refund->save_meta_data();
+		} elseif ( 'order' === $intent_target ) {
 			WC_Stripe_Order_Helper::get_instance()->update_stripe_setup_intent_id( $order, $intent_id );
 			$order->save_meta_data();
-		} else {
+		} elseif ( null === $intent_target ) {
 			$lookup_id = 'seti_unknown';
+		} else {
+			throw new Exception( 'Invalid intent target' );
 		}
 
 		$result = WC_Stripe_Helper::get_order_by_setup_intent_id( $lookup_id );
+
 		if ( $expect_success ) {
 			$this->assertInstanceOf( WC_Order::class, $result );
 			$this->assertSame( $order->get_id(), $result->get_id() );
@@ -330,13 +348,17 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_get_order_by_setup_intent_id(): array {
 		return [
-			'matching SetupIntent ID' => [
-				'store intent' => true,
-				'success'      => true,
+			'SetupIntent matches order'  => [
+				'intent_target' => 'order',
+				'success'       => true,
 			],
-			'unknown SetupIntent ID'  => [
-				'store intent' => false,
-				'success'      => false,
+			'SetupIntent matches refund' => [
+				'intent_target' => 'refund',
+				'success'       => false,
+			],
+			'unknown SetupIntent ID'     => [
+				'intent_target' => null,
+				'success'       => false,
 			],
 		];
 	}
