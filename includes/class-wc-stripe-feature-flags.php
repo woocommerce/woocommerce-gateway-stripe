@@ -46,7 +46,7 @@ class WC_Stripe_Feature_Flags {
 	 * @var string
 	 * @since 10.8.0
 	 */
-	const ABILITIES_FEATURE_FLAG_NAME = '_wcstripe_feature_abilities';
+	public const ABILITIES_FEATURE_FLAG_NAME = '_wcstripe_feature_abilities';
 
 	/**
 	 * Map of feature flag option names => their default "yes"/"no" value.
