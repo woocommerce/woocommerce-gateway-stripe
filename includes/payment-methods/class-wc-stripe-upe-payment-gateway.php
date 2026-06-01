@@ -3630,11 +3630,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$found_token = WC_Stripe_Payment_Tokens::get_duplicate_token( $payment_method_object, $customer->get_user_id(), $this->id );
 
 		if ( $found_token ) {
-			// Refresh `wallet_type` to match the latest tokenization so the saved-card
-			// display reflects the wallet actually used. Without this, paying with
-			// Apple/Google Pay over a card already saved manually reuses the existing
-			// token by fingerprint and keeps showing the bare card with no wallet
-			// branding (e.g. on My Account → Subscriptions after a change-payment).
+			// Update the saved token's wallet_type to match the payment method.
+			// This will update the underlying token to the most recent usage, which may add or remove a wallet.
 			if ( $found_token instanceof WC_Stripe_Payment_Token_CC ) {
 				$found_token->set_wallet_type( (string) ( $payment_method_object->card->wallet->type ?? '' ) );
 			}
