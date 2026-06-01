@@ -11,6 +11,30 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 	public const STRIPE_ID = WC_Stripe_Payment_Methods::BLIK;
 
 	/**
+	 * Stripe account countries that may not enable BLIK.
+	 *
+	 * @var string[]
+	 */
+	protected const UNSUPPORTED_ACCOUNT_COUNTRIES = [
+		WC_Stripe_Country_Code::BRAZIL,
+		WC_Stripe_Country_Code::GIBRALTAR,
+		WC_Stripe_Country_Code::HONG_KONG,
+		WC_Stripe_Country_Code::JAPAN,
+		WC_Stripe_Country_Code::MALAYSIA,
+		WC_Stripe_Country_Code::MEXICO,
+		WC_Stripe_Country_Code::NEW_ZEALAND,
+		WC_Stripe_Country_Code::THAILAND,
+		WC_Stripe_Country_Code::UNITED_ARAB_EMIRATES,
+	];
+
+	/**
+	 * Shopper billing countries permitted to use BLIK.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [ WC_Stripe_Country_Code::POLAND ];
+
+	/**
 	 * Constructor for BLIK payment method
 	 */
 	public function __construct() {
@@ -19,38 +43,6 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 		$this->title                    = 'BLIK';
 		$this->is_reusable              = false;
 		$this->supported_currencies     = [ WC_Stripe_Currency_Code::POLISH_ZLOTY ];
-		$this->supported_countries      = [
-			WC_Stripe_Country_Code::AUSTRIA,
-			WC_Stripe_Country_Code::BELGIUM,
-			WC_Stripe_Country_Code::BULGARIA,
-			WC_Stripe_Country_Code::CROATIA,
-			WC_Stripe_Country_Code::CYPRUS,
-			WC_Stripe_Country_Code::CZECH_REPUBLIC,
-			WC_Stripe_Country_Code::DENMARK,
-			WC_Stripe_Country_Code::ESTONIA,
-			WC_Stripe_Country_Code::FINLAND,
-			WC_Stripe_Country_Code::FRANCE,
-			WC_Stripe_Country_Code::GERMANY,
-			WC_Stripe_Country_Code::GREECE,
-			WC_Stripe_Country_Code::HUNGARY,
-			WC_Stripe_Country_Code::ICELAND,
-			WC_Stripe_Country_Code::IRELAND,
-			WC_Stripe_Country_Code::ITALY,
-			WC_Stripe_Country_Code::LATVIA,
-			WC_Stripe_Country_Code::LIECHTENSTEIN,
-			WC_Stripe_Country_Code::LITHUANIA,
-			WC_Stripe_Country_Code::LUXEMBOURG,
-			WC_Stripe_Country_Code::MALTA,
-			WC_Stripe_Country_Code::NETHERLANDS,
-			WC_Stripe_Country_Code::NORWAY,
-			WC_Stripe_Country_Code::POLAND,
-			WC_Stripe_Country_Code::PORTUGAL,
-			WC_Stripe_Country_Code::ROMANIA,
-			WC_Stripe_Country_Code::SLOVAKIA,
-			WC_Stripe_Country_Code::SLOVENIA,
-			WC_Stripe_Country_Code::SPAIN,
-			WC_Stripe_Country_Code::SWEDEN,
-		];
 		$this->label                    = 'BLIK';
 		$this->description              = __(
 			'BLIK enables customers in Poland to pay directly via online payouts from their bank account.',
@@ -62,15 +54,6 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 		$this->maybe_init_pre_orders();
 
 		$this->maybe_hide_blik();
-	}
-
-	/**
-	 * Checks if BLIK is available for the Stripe account's country.
-	 *
-	 * @return bool True if PL-based account; false otherwise.
-	 */
-	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
 	}
 
 	/**
@@ -143,7 +126,7 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 	 * @return array Supported customer locations.
 	 */
 	public function get_available_billing_countries() {
-		return [ WC_Stripe_Country_Code::POLAND ];
+		return self::SUPPORTED_BILLING_COUNTRIES;
 	}
 
 	/**

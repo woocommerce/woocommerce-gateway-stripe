@@ -23,13 +23,17 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 	} ),
 	getUpeSettings: jest.fn().mockReturnValue( {} ),
 
-	initializeUPEAppearance: jest.fn().mockReturnValue( {} ),
 	isLinkEnabled: jest.fn().mockReturnValue( false ),
 	resetBlockCheckoutPaymentState: jest.fn(),
 	showErrorCheckout: jest.fn(),
 	showErrorPaymentMethod: jest.fn(),
 	unblockBlockCheckout: jest.fn(),
 	validateBlikCode: jest.fn(),
+} ) );
+
+jest.mock( 'wcstripe/stripe-utils/upe-appearance', () => ( {
+	initializeUPEAppearance: jest.fn().mockReturnValue( {} ),
+	invalidateAppearanceCache: jest.fn(),
 } ) );
 
 jest.mock( 'wcstripe/styles/upe', () => ( {
