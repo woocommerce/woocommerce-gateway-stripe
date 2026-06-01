@@ -59,7 +59,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->build_migration()->maybe_run();
+		$this->build_migration()->maybe_migrate();
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'no', $stored['optimized_checkout_element'], 'Flip must not run when guard is set.' );
@@ -77,7 +77,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->build_migration()->maybe_run();
+		$this->build_migration()->maybe_migrate();
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'no', $stored['optimized_checkout_element'], 'New install must not flip OC.' );
@@ -96,7 +96,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->build_migration()->maybe_run();
+		$this->build_migration()->maybe_migrate();
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'no', $stored['optimized_checkout_element'], 'Already-10.8 must not flip OC.' );
@@ -107,7 +107,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Full audience-decision matrix. Each row drives one execution of maybe_run()
+	 * Full audience-decision matrix. Each row drives one execution of maybe_migrate()
 	 * and asserts both banner-visibility options and post-flip gateway state.
 	 *
 	 * @dataProvider audience_matrix_provider
@@ -131,7 +131,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->build_migration( $country, $account_created )->maybe_run();
+		$this->build_migration( $country, $account_created )->maybe_migrate();
 
 		$created_label = null === $account_created ? 'null' : (string) $account_created;
 		$context       = sprintf( 'prev=%s oc=%s ap=%s country=%s created=%s', $previous_version, $oc_pre, $ap_pre, $country, $created_label );
@@ -191,7 +191,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->build_migration( 'US', 1747008000 )->maybe_run();
+		$this->build_migration( 'US', 1747008000 )->maybe_migrate();
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'OC must be flipped to yes.' );
@@ -208,7 +208,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->build_migration( 'US', 1779148800 )->maybe_run();
+		$this->build_migration( 'US', 1779148800 )->maybe_migrate();
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'yes', $stored['optimized_checkout_element'] );
@@ -226,7 +226,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 
 		// India geo-exclusion covers both banner and underlying feature flip,
 		// regardless of frontbook status.
-		$this->build_migration( 'IN', 1747008000 )->maybe_run();
+		$this->build_migration( 'IN', 1747008000 )->maybe_migrate();
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'no', $stored['optimized_checkout_element'], 'India: OC flip must be skipped.' );
@@ -244,7 +244,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		);
 
 		// Recent account = likely 10.7 frontbook who explicitly disabled both.
-		$this->build_migration( 'US', 1779148800 )->maybe_run();
+		$this->build_migration( 'US', 1779148800 )->maybe_migrate();
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'no', $stored['optimized_checkout_element'], 'Frontbook-disabled OC must not be re-flipped.' );
@@ -261,7 +261,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		);
 
 		// Recent account = likely 10.7 frontbook who kept OC on but disabled AP.
-		$this->build_migration( 'US', 1779148800 )->maybe_run();
+		$this->build_migration( 'US', 1779148800 )->maybe_migrate();
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'OC stays as set; no change needed.' );

@@ -21,11 +21,11 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	public const STRIPE_ID = WC_Stripe_Payment_Methods::AMAZON_PAY;
 
 	/**
-	 * Supported countries for Amazon Pay.
+	 * Stripe account countries that may enable Amazon Pay.
 	 *
 	 * @var string[]
 	 */
-	private const SUPPORTED_COUNTRIES = [
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [
 		WC_Stripe_Country_Code::AUSTRIA,
 		WC_Stripe_Country_Code::BELGIUM,
 		WC_Stripe_Country_Code::CYPRUS,
@@ -71,8 +71,7 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'Amazon Pay', 'woocommerce-gateway-stripe' );
-		$this->supported_currencies = self::SUPPORTED_CURRENCIES;
-		$this->supported_countries  = self::SUPPORTED_COUNTRIES;
+		$this->supported_currencies = self::get_amazon_pay_supported_currencies();
 		$this->is_reusable          = true;
 		$this->label                = __( 'Amazon Pay', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
@@ -133,7 +132,7 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	public static function is_amazon_pay_available_for_account_country() {
 		$account_country = WC_Stripe::get_instance()->account->get_account_country();
 
-		return in_array( $account_country, self::SUPPORTED_COUNTRIES, true );
+		return in_array( $account_country, self::SUPPORTED_ACCOUNT_COUNTRIES, true );
 	}
 
 	/**

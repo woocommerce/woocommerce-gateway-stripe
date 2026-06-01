@@ -40,18 +40,11 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 	private const EXCLUDED_COUNTRY = 'IN';
 
 	/**
-	 * Constructor.
-	 */
-	public function __construct() {
-		add_action( 'woocommerce_stripe_updated', [ $this, 'maybe_run' ] );
-	}
-
-	/**
-	 * Entry point hooked to `woocommerce_stripe_updated`.
+	 * Entry point invoked by WC_Stripe_Update_Manager.
 	 *
 	 * @return void
 	 */
-	public function maybe_run(): void {
+	public function maybe_migrate(): void {
 		if ( 'yes' === get_option( self::MIGRATION_FLAG_OPTION ) ) {
 			WC_Stripe_Logger::info( '[OCS+AP 10.8] Skipping: migration already ran on this site.' );
 			return;
