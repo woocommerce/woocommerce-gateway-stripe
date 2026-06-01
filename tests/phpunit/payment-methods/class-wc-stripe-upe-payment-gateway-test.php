@@ -1570,8 +1570,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Reusing a saved card refreshes its wallet_type to the latest tokenization
+	 * (last-write-wins), including clearing it when the card is next used directly.
+	 *
+	 * @dataProvider provider_handle_saving_payment_method_refreshes_wallet_type
+	 *
+	 * @param string $initial_wallet_type wallet_type already stored on the saved token.
+	 * @param string $new_wallet_type     wallet_type on the incoming payment method ('' for a plain card).
+	 * @param string $expected            wallet_type expected on the token after reuse.
 	 */
-	public function test_handle_saving_payment_method_refreshes_wallet_type_on_reused_token() {
+	public function test_handle_saving_payment_method_refreshes_wallet_type_on_reused_token( $initial_wallet_type, $new_wallet_type, $expected ) {
 		$this->mock_gateway->oc_enabled = true;
 
 		$user_id = $this->factory()->user->create();
@@ -1579,7 +1587,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
 
-		// An existing manually-entered token for the same card — no wallet branding.
+		// An existing saved token for the same card, branded with the initial wallet type.
 		$existing = new WC_Stripe_Payment_Token_CC();
 		$existing->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
 		$existing->set_token( 'pm_existing' );
@@ -1588,7 +1596,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$existing->set_expiry_month( '12' );
 		$existing->set_expiry_year( '2030' );
 		$existing->set_fingerprint( 'fp_match' );
-		$existing->set_wallet_type( '' );
+		$existing->set_wallet_type( $initial_wallet_type );
 		$existing->set_user_id( $user_id );
 		$existing->save();
 
@@ -1596,29 +1604,53 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->method( 'get_stripe_customer_id' )
 			->willReturn( 'cus_mock' );
 
-		// The same card (matching fingerprint) now tokenized through Google Pay.
+		$card = [
+			'exp_month'   => 12,
+			'exp_year'    => 2030,
+			'brand'       => 'visa',
+			'last4'       => '4242',
+			'fingerprint' => 'fp_match',
+		];
+		// A plain card carries no wallet object; a wallet payment nests its type under card.wallet.
+		if ( '' !== $new_wallet_type ) {
+			$card['wallet'] = (object) [ 'type' => $new_wallet_type ];
+		}
+
+		// The same card (matching fingerprint) tokenized again through the new method.
 		$payment_method_object = (object) [
-			'id'       => 'pm_googlepay',
+			'id'       => 'pm_reused',
 			'object'   => 'payment_method',
 			'type'     => WC_Stripe_Payment_Methods::CARD,
 			'customer' => 'cus_mock',
-			'card'     => (object) [
-				'exp_month'   => 12,
-				'exp_year'    => 2030,
-				'brand'       => 'visa',
-				'last4'       => '4242',
-				'fingerprint' => 'fp_match',
-				'wallet'      => (object) [ 'type' => 'google_pay' ],
-			],
+			'card'     => (object) $card,
 		];
 
 		$this->mock_gateway->handle_saving_payment_method( $order, $payment_method_object, WC_Stripe_Payment_Methods::CARD );
 
 		$refreshed = WC_Payment_Tokens::get( $existing->get_id() );
 		$this->assertInstanceOf( WC_Stripe_Payment_Token_CC::class, $refreshed );
-		// The reused token now carries the wallet branding and the latest Stripe id.
-		$this->assertSame( 'google_pay', $refreshed->get_wallet_type() );
-		$this->assertSame( 'pm_googlepay', $refreshed->get_token() );
+		// The reused token reflects the latest wallet branding and Stripe id.
+		$this->assertSame( $expected, $refreshed->get_wallet_type() );
+		$this->assertSame( 'pm_reused', $refreshed->get_token() );
+	}
+
+	/**
+	 * Provider for `test_handle_saving_payment_method_refreshes_wallet_type_on_reused_token`.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: string}>
+	 */
+	public function provider_handle_saving_payment_method_refreshes_wallet_type(): array {
+		return [
+			'card to apple pay'        => [ '', 'apple_pay', 'apple_pay' ],
+			'card to google pay'       => [ '', 'google_pay', 'google_pay' ],
+			'card to card'             => [ '', '', '' ],
+			'apple pay to card'        => [ 'apple_pay', '', '' ],
+			'apple pay to google pay'  => [ 'apple_pay', 'google_pay', 'google_pay' ],
+			'apple pay to apple pay'   => [ 'apple_pay', 'apple_pay', 'apple_pay' ],
+			'google pay to apple pay'  => [ 'google_pay', 'apple_pay', 'apple_pay' ],
+			'google pay to card'       => [ 'google_pay', '', '' ],
+			'google pay to google pay' => [ 'google_pay', 'google_pay', 'google_pay' ],
+		];
 	}
 
 	/**

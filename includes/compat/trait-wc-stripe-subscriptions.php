@@ -368,7 +368,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				// If we saved a new token, link the saved token to the subscription for display purposes.
 				// Intentionally ignore any failures, as the display update doesn't affect renewals.
 				if ( $saved_payment_method_to_store && ! WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $payment_method_id ) ) {
-					WC_Stripe_Logger::warning( 'Could not re-associate the saved token after change-payment for subscription: ' . $subscription_id );
+					WC_Stripe_Logger::error( 'Could not re-associate the saved token after change-payment for subscription: ' . $subscription_id );
 				}
 
 				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
