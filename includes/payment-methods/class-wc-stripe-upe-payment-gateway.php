@@ -3769,7 +3769,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// The selected payment method is allowed in the billing country.
-		if ( ! $this->payment_methods[ $payment_method_type ]->is_allowed_on_country( $billing_country ) ) {
+		if ( ! $this->payment_methods[ $payment_method_type ]->is_available_for_billing_country( $billing_country ) ) {
 			throw new WC_Stripe_Exception(
 				sprintf( 'The payment method type "%1$s" is not available in %2$s.', $payment_method_type, $billing_country ),
 				__( 'This payment method type is not available in the selected country.', 'woocommerce-gateway-stripe' )
