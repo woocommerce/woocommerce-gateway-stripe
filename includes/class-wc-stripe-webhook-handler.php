@@ -529,8 +529,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		if ( ! $order ) {
-			// Unexpected-charge detection: when the captured charge isn't on any order, fall back to the parent
-			// PaymentIntent and flag if that order was settled via a different gateway.
+			// Detect an "unexpected charge": this captured charge isn't recorded on any order (the
+			// lookup above found nothing), so recover the order from the charge's parent PaymentIntent
+			// and flag it if the shopper has since settled that order through a different gateway.
 			if ( ! empty( $charge->payment_intent ) ) {
 				$intent_order = WC_Stripe_Helper::get_order_by_intent_id( (string) $charge->payment_intent );
 				if ( $intent_order instanceof WC_Order
@@ -607,10 +608,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order = WC_Stripe_Helper::get_order_by_charge_id( $charge->id );
 
-		// Unexpected-charge detection runs before the synchronous-methods filter below so card/3DS charges
-		// (e.g. shopper abandoned the Stripe flow after authentication and later settled the
-		// order via a different gateway) are also caught. The order will not carry this charge
-		// as its transaction_id, so we fall back to the parent PaymentIntent.
+		// Detect an "unexpected charge": a Stripe charge that succeeds for an order the shopper has
+		// since settled through a different gateway (e.g. they abandoned the Stripe flow after 3DS,
+		// then paid the same order with another method). The order never stored this charge as its
+		// transaction_id, so the lookup above misses it and we recover the order from the charge's
+		// parent PaymentIntent.
 		if ( ! $order && ! empty( $charge->payment_intent ) && ! empty( $charge->captured ) ) {
 			$intent_order = WC_Stripe_Helper::get_order_by_intent_id( (string) $charge->payment_intent );
 			if ( $intent_order instanceof WC_Order
