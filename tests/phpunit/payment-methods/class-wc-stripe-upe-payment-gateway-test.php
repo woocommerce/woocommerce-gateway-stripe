@@ -1570,11 +1570,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * handle_saving_payment_method() must refresh a reused token's wallet_type so the
-	 * saved-card display reflects the wallet just used. Paying with Apple/Google Pay
-	 * over a card the shopper already saved manually reuses the existing token by
-	 * fingerprint; without refreshing wallet_type the saved-card row (e.g. My Account
-	 * → Subscriptions after a change-payment) keeps showing the bare card.
 	 */
 	public function test_handle_saving_payment_method_refreshes_wallet_type_on_reused_token() {
 		$this->mock_gateway->oc_enabled = true;
