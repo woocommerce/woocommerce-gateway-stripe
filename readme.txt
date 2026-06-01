@@ -152,6 +152,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.8.0 - xxxx-xx-xx =
+* Fix - Prevent Stripe from rendering an unexpected "Address Line 2" field inside the Payment Element
+* Update - Ensure payment method restrictions based on account and shopper countries are up to date
+* Fix - Store transaction IDs for orders when we get charges to ensure we can refund correctly
 * Fix - Recover a missing Stripe charge ID from the order's payment intent so affected orders stay refundable
 * Fix - Don't auto-cancel Stripe orders that have already been paid, preventing paid orders left at pending (e.g. by a checkout/webhook race) from being cancelled as unpaid
 * Fix - Send Klarna's preferred locale in the confirmation token (Optimized Checkout) flow so cross-border customers can complete identity verification
@@ -172,6 +175,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add a "Release notes" link to the WooCommerce Stripe row on the Plugins page that opens the changelog modal
 * Fix - Add guards against invalid values for webhook state timestamps
 * Fix - Show better message when express checkout preview is not available
+* Add - Implement wc_stripe_logger_can_log filter to allow for targeted logging on busy sites
 * Dev - Remove redundant `get_retrievable_type()` overrides from payment methods
 * Dev - Add Claude Code skills and review rules under .claude/ to capture repo-specific contributor guidance
 * Dev - Move some independent classes into autoloader
@@ -183,8 +187,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Use a placeholder billing last name for single-name express checkout payments
 * Dev - Use explicit method calls for upgrade checks and tools
 * Update - Improve express checkout load times by preloading the resources
+* Tweak - Reduce JS bundle sizes by using native browser features instead of polyfills
 * Dev - Memoize the Express Checkout button visibility check within a request
 * Fix - Fix admin banner dismissal and display logic
 * Add - Detect Stripe API outages (network failures, timeouts, 5xx responses) and surface a wp-admin notice instead of crashing or showing misleading "couldn't connect" messages
+* Dev - Add wc_stripe_agentic_commerce_should_sync_product filter so adapters can exclude products from the Agentic Commerce catalog, inventory, and archive syncs
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
