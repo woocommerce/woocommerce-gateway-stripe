@@ -142,6 +142,209 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Build an element with helper mocks for both guards.
+	 *
+	 * @param bool $page_supported Return value for is_page_supported().
+	 * @param bool $should_show    Return value for should_show_express_checkout_button().
+	 *
+	 * @return WC_Stripe_Express_Checkout_Element
+	 */
+	private function build_element_with_guards( $page_supported, $should_show ) {
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->setMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
+			->getMock();
+
+		$helper->method( 'is_page_supported' )
+			->willReturn( $page_supported );
+
+		$helper->method( 'should_show_express_checkout_button' )
+			->willReturn( $should_show );
+
+		return new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+	}
+
+	/**
+	 * Test that `add_resource_hints` appends Stripe preconnect entries when ECE will render.
+	 *
+	 * @return void
+	 */
+	public function test_add_resource_hints_appends_preconnect_when_ece_enabled() {
+		$element = $this->build_element_with_guards( true, true );
+
+		$urls = $element->add_resource_hints( [ 'https://example.com' ], 'preconnect' );
+
+		$hrefs = array_map(
+			static function ( $entry ) {
+				return is_array( $entry ) ? $entry['href'] : $entry;
+			},
+			$urls
+		);
+
+		$this->assertContains( 'https://example.com', $hrefs );
+		$this->assertContains( 'https://js.stripe.com', $hrefs );
+		$this->assertContains( 'https://m.stripe.network', $hrefs );
+		$this->assertContains( 'https://q.stripe.com', $hrefs );
+		$this->assertContains( 'https://b.stripecdn.com', $hrefs );
+
+		// js.stripe.com and m.stripe.network must declare crossorigin so the preconnected
+		// TLS session is reused by the script/iframe fetch that follows.
+		foreach ( $urls as $entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+
+			if ( in_array( $entry['href'], [ 'https://js.stripe.com', 'https://m.stripe.network', 'https://b.stripecdn.com' ], true ) ) {
+				$this->assertSame( 'anonymous', $entry['crossorigin'] );
+			}
+
+			if ( 'https://q.stripe.com' === $entry['href'] ) {
+				$this->assertArrayNotHasKey( 'crossorigin', $entry );
+			}
+		}
+	}
+
+	/**
+	 * Test that `add_resource_hints` is a no-op when the page or guard rules block ECE.
+	 *
+	 * @param bool $page_supported Return value for is_page_supported().
+	 * @param bool $should_show    Return value for should_show_express_checkout_button().
+	 *
+	 * @return void
+	 * @dataProvider provide_test_add_resource_hints_skips_when_unavailable
+	 */
+	public function test_add_resource_hints_skips_when_unavailable( $page_supported, $should_show ) {
+		$element = $this->build_element_with_guards( $page_supported, $should_show );
+
+		$input = [ 'https://example.com' ];
+		$urls  = $element->add_resource_hints( $input, 'preconnect' );
+
+		$this->assertSame( $input, $urls );
+	}
+
+	/**
+	 * Provider for `test_add_resource_hints_skips_when_unavailable`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_add_resource_hints_skips_when_unavailable() {
+		return [
+			'page not supported' => [
+				'page supported' => false,
+				'should show'    => true,
+			],
+			'guards say no'      => [
+				'page supported' => true,
+				'should show'    => false,
+			],
+			'both say no'        => [
+				'page supported' => false,
+				'should show'    => false,
+			],
+		];
+	}
+
+	/**
+	 * Test that `add_resource_hints` only touches the `preconnect` relation type.
+	 *
+	 * @param string $relation_type The relation type to pass.
+	 *
+	 * @return void
+	 * @dataProvider provide_test_add_resource_hints_ignores_non_preconnect_relations
+	 */
+	public function test_add_resource_hints_ignores_non_preconnect_relations( $relation_type ) {
+		$element = $this->build_element_with_guards( true, true );
+
+		$input = [ 'https://example.com' ];
+		$urls  = $element->add_resource_hints( $input, $relation_type );
+
+		$this->assertSame( $input, $urls );
+	}
+
+	/**
+	 * Provider for `test_add_resource_hints_ignores_non_preconnect_relations`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_add_resource_hints_ignores_non_preconnect_relations() {
+		return [
+			'dns-prefetch' => [ 'dns-prefetch' ],
+			'prefetch'     => [ 'prefetch' ],
+			'prerender'    => [ 'prerender' ],
+		];
+	}
+
+	/**
+	 * Test that `add_preload_resources` appends the ECE bundle entry only when ECE will render.
+	 *
+	 * @param bool $page_supported Return value for is_page_supported().
+	 * @param bool $should_show    Return value for should_show_express_checkout_button().
+	 * @param bool $expect_entry   Whether a preload entry should be appended.
+	 *
+	 * @return void
+	 * @dataProvider provide_test_add_preload_resources
+	 */
+	public function test_add_preload_resources( $page_supported, $should_show, $expect_entry ) {
+		$element = $this->build_element_with_guards( $page_supported, $should_show );
+
+		$existing = [
+			[
+				'href' => 'https://example.com/other.js',
+				'as'   => 'script',
+			],
+		];
+		$output   = $element->add_preload_resources( $existing );
+
+		// Pre-existing entries must be preserved regardless of the guard outcome.
+		$this->assertSame( $existing[0], $output[0] );
+
+		if ( $expect_entry ) {
+			$this->assertCount( 2, $output );
+			$bundle_entry = $output[1];
+			$this->assertSame( 'script', $bundle_entry['as'] );
+			$this->assertMatchesRegularExpression(
+				'#/build/express-checkout\.js\?ver=[^&]+$#',
+				$bundle_entry['href']
+			);
+		} else {
+			$this->assertSame( $existing, $output );
+		}
+	}
+
+	/**
+	 * Provider for `test_add_preload_resources`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_add_preload_resources() {
+		return [
+			'page not supported'    => [
+				'page supported' => false,
+				'should show'    => true,
+				'expect entry'   => false,
+			],
+			'should not show'       => [
+				'page supported' => true,
+				'should show'    => false,
+				'expect entry'   => false,
+			],
+			'successfully rendered' => [
+				'page supported' => true,
+				'should show'    => true,
+				'expect entry'   => true,
+			],
+		];
+	}
+
+	/**
 	 * Test for `add_order_meta`.
 	 *
 	 * @param string $checkout_type The checkout type.
