@@ -1059,8 +1059,9 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 
 	private function create_term( string $slug, string $taxonomy ): array {
 		if ( 'product_brand' === $taxonomy && ! taxonomy_exists( 'product_brand' ) ) {
-			register_taxonomy( 'product_brand', 'product', [ 'public' => true ] );
+			throw new Exception( 'Product brand taxonomy does not exist' );
 		}
+
 		$term                  = wp_insert_term( $slug, $taxonomy, [ 'slug' => $slug ] );
 		$this->created_terms[] = [ (int) $term['term_id'], $taxonomy ];
 		return array_merge( $term, [ 'slug' => $slug ] );
