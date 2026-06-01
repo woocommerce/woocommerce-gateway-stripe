@@ -101,21 +101,20 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 	public function test_get_settings_returns_available_payment_method_ids_for_gb() {
 		$expected_method_ids = [
 			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::ACH,
 			WC_Stripe_Payment_Methods::ALIPAY,
 			WC_Stripe_Payment_Methods::AMAZON_PAY,
+			WC_Stripe_Payment_Methods::BLIK,
 			WC_Stripe_Payment_Methods::KLARNA,
 			WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY,
 			WC_Stripe_Payment_Methods::EPS,
 			WC_Stripe_Payment_Methods::BANCONTACT,
-			WC_Stripe_Payment_Methods::BOLETO,
 			WC_Stripe_Payment_Methods::IDEAL,
-			WC_Stripe_Payment_Methods::OXXO,
 			WC_Stripe_Payment_Methods::SEPA_DEBIT,
 			WC_Stripe_Payment_Methods::P24,
 			WC_Stripe_Payment_Methods::MULTIBANCO,
 			WC_Stripe_Payment_Methods::LINK,
 			WC_Stripe_Payment_Methods::WECHAT_PAY,
-			WC_Stripe_Payment_Methods::ACSS_DEBIT,
 			WC_Stripe_Payment_Methods::BACS_DEBIT,
 		];
 		$this->mock_payment_method_configurations( $expected_method_ids, [] );
@@ -133,19 +132,18 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 		// Link and Amazon Pay are excluded as they are express methods only.
 		$expected_ordered_method_ids = [
 			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::ACH,
 			WC_Stripe_Payment_Methods::ALIPAY,
+			WC_Stripe_Payment_Methods::BLIK,
 			WC_Stripe_Payment_Methods::KLARNA,
 			WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY,
 			WC_Stripe_Payment_Methods::EPS,
 			WC_Stripe_Payment_Methods::BANCONTACT,
-			WC_Stripe_Payment_Methods::BOLETO,
 			WC_Stripe_Payment_Methods::IDEAL,
-			WC_Stripe_Payment_Methods::OXXO,
 			WC_Stripe_Payment_Methods::SEPA_DEBIT,
 			WC_Stripe_Payment_Methods::P24,
 			WC_Stripe_Payment_Methods::MULTIBANCO,
 			WC_Stripe_Payment_Methods::WECHAT_PAY,
-			WC_Stripe_Payment_Methods::ACSS_DEBIT,
 			WC_Stripe_Payment_Methods::BACS_DEBIT,
 		];
 		$this->mock_payment_method_configurations( $expected_ordered_method_ids, [] );
