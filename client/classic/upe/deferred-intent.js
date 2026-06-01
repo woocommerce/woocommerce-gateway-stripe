@@ -133,13 +133,8 @@ jQuery( function ( $ ) {
 
 	// Pay for Order page submit.
 	$( '#order_review' ).on( 'submit', () => {
-		// Express Checkout drives its own submit on the subscription
-		// change-payment page: it creates the payment method from the ECE element
-		// and populates the hidden fields before triggering submit. Skip the
-		// inline Payment Element flow so it doesn't override the ECE-supplied
-		// payment method — otherwise the buttons break whenever "Use a new
-		// payment method" is selected, since that's when this handler would
-		// otherwise run.
+		// ECE populates the hidden fields and drives its own submit, so skip the
+		// inline Payment Element flow here to avoid overwriting its payment method.
 		const isExpressCheckoutSubmission = $( '#order_review' )
 			.find( 'input[name="express_checkout_type"]' )
 			.val();
