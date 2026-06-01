@@ -11,10 +11,17 @@ const TestModeCheckbox = () => {
 	const isLiveAccountConnected = Boolean(
 		data?.oauth_connections?.live?.connected
 	);
+	const isTestAccountConnected = Boolean(
+		data?.oauth_connections?.test?.connected
+	);
 
 	// Test mode cannot be turned off until a live account is connected, otherwise
 	// the gateway would run in live mode without live keys and break checkout.
 	const isLockedToTestMode = isTestModeEnabled && ! isLiveAccountConnected;
+
+	// Likewise, test mode cannot be turned on until a test account is connected,
+	// otherwise the gateway would run in test mode without test keys.
+	const isLockedToLiveMode = ! isTestModeEnabled && ! isTestAccountConnected;
 
 	const handleCheckboxChange = ( isChecked ) => {
 		setTestMode( isChecked );
@@ -42,7 +49,7 @@ const TestModeCheckbox = () => {
 			<h4>{ __( 'Test mode', 'woocommerce-gateway-stripe' ) }</h4>
 			<CheckboxControl
 				checked={ isTestModeEnabled }
-				disabled={ isLockedToTestMode }
+				disabled={ isLockedToTestMode || isLockedToLiveMode }
 				onChange={ handleCheckboxChange }
 				label={ __( 'Enable test mode', 'woocommerce-gateway-stripe' ) }
 				help={
@@ -51,10 +58,23 @@ const TestModeCheckbox = () => {
 						{ isLockedToTestMode && (
 							<>
 								<br />
-								{ __(
-									'Connect a live Stripe account before turning off test mode.',
-									'woocommerce-gateway-stripe'
-								) }
+								<strong>
+									{ __(
+										'Live mode cannot be enabled before you have connected a live Stripe account.',
+										'woocommerce-gateway-stripe'
+									) }
+								</strong>
+							</>
+						) }
+						{ isLockedToLiveMode && (
+							<>
+								<br />
+								<strong>
+									{ __(
+										'Test mode cannot be enabled before you have connected a test Stripe account.',
+										'woocommerce-gateway-stripe'
+									) }
+								</strong>
 							</>
 						) }
 					</>
