@@ -3939,6 +3939,83 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Paid statuses for which WC core's payment_complete() skips set_transaction_id().
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_paid_statuses_for_confirmation_token_backfill(): array {
+		return [
+			'processing' => [ OrderStatus::PROCESSING ],
+			'completed'  => [ OrderStatus::COMPLETED ],
+		];
+	}
+
+	/**
+	 * Tests that the confirmation token flow persists the charge ID as the transaction ID even
+	 * when the order is already in a paid status, where payment_complete() would otherwise skip it.
+	 *
+	 * @dataProvider provide_paid_statuses_for_confirmation_token_backfill
+	 */
+	public function test_process_payment_with_confirmation_token_backfills_missing_transaction_id( string $paid_status ) {
+		$order = WC_Helper_Order::create_order();
+		// An already-paid status makes WC core's payment_complete() skip set_transaction_id().
+		$order->set_status( $paid_status );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$_POST['payment_method']               = 'stripe';
+		$_POST['wc-stripe-confirmation-token'] = 'ctoken_mock789';
+		$_POST['wc-stripe-payment-method']     = '';
+		$_POST['express_payment_type']         = WC_Stripe_Payment_Methods::APPLE_PAY;
+
+		$this->mock_gateway->oc_enabled = false;
+
+		$stripe_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+
+		$mock_intent = (object) [
+			'id'                   => 'pi_mock1234567890',
+			'object'               => 'payment_intent',
+			'amount'               => $stripe_amount,
+			'currency'             => strtolower( $order->get_currency() ),
+			'customer'             => 'cus_mock1234567890',
+			'latest_charge'        => 'ch_mock1234567890',
+			'payment_method'       => 'pm_mock1234',
+			'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
+			'status'               => 'succeeded',
+			'created'              => time(),
+		];
+
+		$mock_charge = (object) [
+			'id'       => 'ch_mock1234567890',
+			'captured' => true,
+			'status'   => 'succeeded',
+		];
+
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock1234567890' );
+		$this->mock_gateway->method( 'stripe_request' )->willReturn(
+			(object) [
+				'id'   => 'pm_mock1234',
+				'type' => 'card',
+			]
+		);
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( $mock_charge );
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+
+		// Before processing the order has no transaction ID.
+		$this->assertSame( '', $order->get_transaction_id() );
+
+		$response = $this->mock_gateway->process_payment( $order_id );
+
+		$this->assertEquals( 'success', $response['result'] );
+
+		$reloaded = wc_get_order( $order_id );
+		$this->assertSame( 'ch_mock1234567890', $reloaded->get_transaction_id() );
+	}
+
+	/**
 	 * The confirmation token flow must still send Klarna's preferred_locale, so cross-border
 	 * customers aren't routed through the Stripe account country's identity verification.
 	 */
