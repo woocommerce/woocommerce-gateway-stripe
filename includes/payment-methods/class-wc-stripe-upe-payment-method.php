@@ -186,6 +186,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Magic method to get properties.
 	 * Used for backwards compatibility with deprecated properties.
 	 *
+	 * @internal This method may be removed at any time.
+	 *
 	 * @param string $property The property name.
 	 * @return mixed
 	 */
@@ -208,6 +210,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Magic method to check if properties are set.
 	 * Used for backwards compatibility with deprecated properties.
+	 *
+	 * @internal This method may be removed at any time.
 	 *
 	 * @param string $property The property name.
 	 * @return bool
