@@ -667,6 +667,63 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The unexpected-charge note must link to the Stripe dashboard for the charge's own mode
+	 * (derived from the charge's `livemode`), not the gateway's configured test/live flag.
+	 *
+	 * @dataProvider provider_unexpected_charge_dashboard_mode
+	 */
+	public function test_unexpected_charge_note_dashboard_url_follows_charge_livemode( $livemode, $expected_url ) {
+		$intent_id = 'pi_unexpected_mode';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->set_payment_method( 'cod' );
+		$order->set_currency( 'EUR' );
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->save();
+
+		$charge = (object) [
+			'id'             => 'py_unexpected_mode',
+			'captured'       => true,
+			'payment_intent' => $intent_id,
+			'amount'         => 1000,
+			'currency'       => 'eur',
+		];
+		if ( null !== $livemode ) {
+			$charge->livemode = $livemode;
+		}
+
+		$notification = (object) [
+			'type' => 'charge.succeeded',
+			'data' => (object) [ 'object' => $charge ],
+		];
+
+		$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
+
+		$notes = wc_get_order_notes(
+			[
+				'order_id' => $order->get_id(),
+				'limit'    => 1,
+			]
+		);
+		$this->assertNotEmpty( $notes );
+		$this->assertStringContainsString( $expected_url, $notes[0]->content );
+	}
+
+	/**
+	 * Data provider for test_unexpected_charge_note_dashboard_url_follows_charge_livemode.
+	 *
+	 * @return array
+	 */
+	public function provider_unexpected_charge_dashboard_mode() {
+		return [
+			'live charge links to live dashboard' => [ true, 'https://dashboard.stripe.com/payments/pi_unexpected_mode' ],
+			'test charge links to test dashboard' => [ false, 'https://dashboard.stripe.com/test/payments/pi_unexpected_mode' ],
+			'missing livemode falls back to test' => [ null, 'https://dashboard.stripe.com/test/payments/pi_unexpected_mode' ],
+		];
+	}
+
+	/**
 	 * When no order is linked yet, checkout session success defers processing via Action Scheduler.
 	 *
 	 * @return void

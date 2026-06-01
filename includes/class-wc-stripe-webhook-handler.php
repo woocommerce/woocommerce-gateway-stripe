@@ -1508,7 +1508,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$currency        = strtoupper( (string) $charge->currency );
 		$decimal_amount  = WC_Stripe_Helper::convert_from_stripe_amount( (int) $charge->amount, $currency );
 		$formatted_price = wc_price( $decimal_amount, [ 'currency' => $currency ] );
-		$dashboard_url   = sprintf( WC_Stripe_Helper::get_transaction_url( $this->testmode ), $intent_id );
+		$dashboard_url   = WC_Stripe_Helper::get_transaction_url_for_id( $intent_id, empty( $charge->livemode ) );
 
 		$message = sprintf(
 			/* translators: 1) formatted amount with currency, 2) Stripe PaymentIntent ID, 3) Stripe charge ID, 4) opening anchor tag for the Stripe dashboard link, 5) closing anchor tag. */
