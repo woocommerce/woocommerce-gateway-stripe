@@ -299,9 +299,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 
 		$actual_types = $filter->get_effective_filter_types();
-		$actual_types = sort( $actual_types );
 
-		$expected_types = sort( $expected_types );
 		$this->assertEqualsCanonicalizing( $expected_types, $actual_types );
 	}
 
@@ -807,7 +805,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$query_results = wc_get_products( $query_args );
 
 		if ( $should_include ) {
-			$this->assertEquals( $product_ids_to_query, $query_results );
+			$this->assertEqualsCanonicalizing( $product_ids_to_query, $query_results );
 		} else {
 			$this->assertSame( [], $query_results );
 		}
@@ -877,8 +875,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$query_results = wc_get_products( $query_args );
 
 		if ( [] !== $expected_variation_ids ) {
-			sort( $query_results );
-			$this->assertEquals( $expected_variation_ids, $query_results );
+			$this->assertEqualsCanonicalizing( $expected_variation_ids, $query_results );
 		} else {
 			$this->assertSame( [], $query_results );
 		}
@@ -920,7 +917,6 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 			$simple_product_1->get_id(),
 			$simple_product_2->get_id(),
 		];
-		sort( $expected_result_ids );
 
 		update_option(
 			$this->option_name,
@@ -935,9 +931,8 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$query_args['return'] = 'ids';
 
 		$query_results = wc_get_products( $query_args );
-		sort( $query_results );
 
-		$this->assertEquals( $expected_result_ids, $query_results );
+		$this->assertEqualsCanonicalizing( $expected_result_ids, $query_results );
 	}
 
 	/**
@@ -1015,10 +1010,8 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$query_args['return'] = 'ids';
 
 		$query_results = wc_get_products( $query_args );
-		sort( $expected_product_ids );
-		sort( $query_results );
 
-		$this->assertEquals( $expected_product_ids, $query_results );
+		$this->assertEqualsCanonicalizing( $expected_product_ids, $query_results );
 	}
 
 	// -----------------------------------------------------------------------
