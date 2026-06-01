@@ -15,14 +15,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 */
 class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
-	const ID = 'stripe';
+	public const ID = 'stripe';
 
 	/**
 	 * Upe Available Methods
 	 *
 	 * @type WC_Stripe_UPE_Payment_Method[]
 	 */
-	const UPE_AVAILABLE_METHODS = [
+	public const UPE_AVAILABLE_METHODS = [
 		WC_Stripe_Payment_Methods::CARD              => WC_Stripe_UPE_Payment_Method_CC::class,
 		WC_Stripe_Payment_Methods::ACH               => WC_Stripe_UPE_Payment_Method_ACH::class,
 		WC_Stripe_Payment_Methods::ALIPAY            => WC_Stripe_UPE_Payment_Method_Alipay::class,
@@ -55,7 +55,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @deprecated 10.5.0 Appearance is fully managed by the client.
 	 * @type string
 	 */
-	const APPEARANCE_TRANSIENT = 'wc_stripe_appearance';
+	public const APPEARANCE_TRANSIENT = 'wc_stripe_appearance';
 
 	/**
 	 * Transient name for appearance settings on the block checkout.
@@ -63,7 +63,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @deprecated 10.5.0 Appearance is fully managed by the client.
 	 * @type string
 	 */
-	const BLOCKS_APPEARANCE_TRANSIENT = 'wc_stripe_blocks_appearance';
+	public const BLOCKS_APPEARANCE_TRANSIENT = 'wc_stripe_blocks_appearance';
 
 	/**
 	 * The default layout for the Optimized Checkout.
@@ -3348,6 +3348,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$payment_information,
 				$selected_payment_type,
 				$capture_method,
+				$order,
 			);
 		} else {
 			// Add fields that are only set when using the payment method flow.
@@ -3363,15 +3364,26 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param array $payment_information The base payment information.
 	 * @param string $selected_payment_type The selected payment type.
 	 * @param string $capture_method The capture method to be used.
+	 * @param WC_Order $order The WC Order being processed.
 	 * @return array The customized payment information for the confirmation token flow.
 	 */
-	private function prepare_payment_information_for_confirmation_token( $payment_information, $selected_payment_type, $capture_method ) {
+	private function prepare_payment_information_for_confirmation_token( $payment_information, $selected_payment_type, $capture_method, $order ) {
 		// These fields should not be set when using confirmation tokens to create a payment intent.
 		unset( $payment_information['payment_method'] );
 		unset( $payment_information['payment_method_details'] );
 
 		$confirmation_token_id                     = sanitize_text_field( wp_unslash( $_POST['wc-stripe-confirmation-token'] ?? '' ) );
 		$payment_information['confirmation_token'] = $confirmation_token_id;
+
+		// Klarna routes identity verification by the locale we send; without it Stripe falls back
+		// to the account country, which fails for cross-border customers. The payment method flow
+		// sets this via get_payment_method_options(); the confirmation token flow must too.
+		if ( WC_Stripe_Payment_Methods::KLARNA === $selected_payment_type ) {
+			$preferred_locale = WC_Stripe_Helper::get_klarna_preferred_locale( get_locale(), $order->get_billing_country() );
+			if ( ! empty( $preferred_locale ) ) {
+				$payment_information['payment_method_options'][ WC_Stripe_Payment_Methods::KLARNA ]['preferred_locale'] = $preferred_locale;
+			}
+		}
 
 		// Some payment methods such as Amazon Pay will only accept a capture_method of 'manual'
 		// under payment_method_options instead of at the top level.
@@ -3757,7 +3769,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// The selected payment method is allowed in the billing country.
-		if ( ! $this->payment_methods[ $payment_method_type ]->is_allowed_on_country( $billing_country ) ) {
+		if ( ! $this->payment_methods[ $payment_method_type ]->is_available_for_billing_country( $billing_country ) ) {
 			throw new WC_Stripe_Exception(
 				sprintf( 'The payment method type "%1$s" is not available in %2$s.', $payment_method_type, $billing_country ),
 				__( 'This payment method type is not available in the selected country.', 'woocommerce-gateway-stripe' )
