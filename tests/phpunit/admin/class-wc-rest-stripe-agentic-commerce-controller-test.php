@@ -1342,10 +1342,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A manual sync already produces a full upload, so it must drop any pending
-	 * adapter-fired one-off resync queued under the `IMMEDIATE_SYNC_ACTION` hook.
-	 * Without this the one-off fires again right after the manual sync, doing
-	 * redundant work the manual sync just completed.
+	 * A manual sync drops any pending IMMEDIATE_SYNC_ACTION resync, since it
+	 * already produced a full upload.
 	 *
 	 * @return void
 	 */

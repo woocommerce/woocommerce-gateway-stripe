@@ -2,17 +2,9 @@
 /**
  * Per-product "Agentic Commerce" exclude meta box.
  *
- * Adds a checkbox to the WC product editor's Inventory tab that lets
- * merchants opt individual products out of the Stripe Agentic Commerce
- * catalog feed, inventory updates, and archive events. The checkbox only
- * appears when the merchant has Agentic Commerce enabled in settings and
- * the product is a type the feed walks (simple or variable).
- *
- * Hidden when WC AI Storefront is active: that plugin owns the
- * merchant-facing product selection UI (mode-driven catalog scoping)
- * and exposes it through the same `wc_stripe_agentic_commerce_should_sync_product`
- * filter. Showing both surfaces at once would let merchants set
- * conflicting expectations.
+ * Adds an Inventory-tab checkbox to opt a product out of the Stripe Agentic
+ * Commerce sync. Hidden when WC AI Storefront is active, since that plugin owns
+ * product selection through the same `wc_stripe_agentic_commerce_should_sync_product` filter.
  *
  * @package WooCommerce_Stripe
  * @since 10.8.0
@@ -32,22 +24,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 
 	/**
-	 * Hidden post meta key holding the per-product exclude flag.
-	 *
-	 * Underscore prefix keeps WC's Custom Fields panel from listing it
-	 * alongside merchant-authored meta. Value semantics:
-	 *   'yes' → product is excluded from any Agentic Commerce sync.
-	 *   'no' / unset → product participates in sync as before.
+	 * Hidden post meta key for the exclude flag ('yes' = excluded; 'no'/unset = synced).
 	 */
 	public const META_KEY = '_wc_stripe_agentic_commerce_exclude';
 
 	/**
-	 * Register hooks.
-	 *
-	 * Filter callback registers in every context (admin, frontend, cron,
-	 * CLI) so the scheduled sync and inventory tracker honor the flag.
-	 * The editor UI hooks register only in wp-admin since they have no
-	 * frontend purpose.
+	 * Register hooks. The filter runs in every context (cron/CLI included) so
+	 * sync honors the flag; the editor UI hooks are admin-only.
 	 */
 	public function init(): void {
 		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', [ $this, 'filter_should_sync_product' ], 10, 2 );
@@ -61,12 +44,8 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 	}
 
 	/**
-	 * Whether the given product is excluded from Agentic Commerce sync.
-	 *
-	 * For variations the parent's flag is authoritative — the editor UI
-	 * only surfaces the checkbox on the parent product, so reading the
-	 * variation's own meta would always return "not excluded" and let
-	 * variants leak past the parent's setting.
+	 * Whether the product is excluded from Agentic Commerce sync. The parent's
+	 * flag is authoritative for variations (the checkbox lives on the parent).
 	 *
 	 * @since 10.8.0
 	 * @param int $product_id Product post ID.
@@ -88,10 +67,8 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 	}
 
 	/**
-	 * Filter callback: vote false when the merchant has excluded the product.
-	 *
-	 * Other callbacks may have already voted false; respect that and don't
-	 * resurrect an excluded product.
+	 * Filter callback: vote false when the product is excluded, without
+	 * resurrecting one another callback already excluded.
 	 *
 	 * @since 10.8.0
 	 * @param bool        $should_sync Whether to include the product.
@@ -107,26 +84,14 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 	}
 
 	/**
-	 * Product types the feed walks. The toggle is meaningless on anything
-	 * else, so it only renders for these.
-	 *
-	 * `get_product_feed_query_args()` syncs `simple` and `variation`; the
-	 * parent of a `variation` is `variable`, and the checkbox lives on the
-	 * parent — so the editor-facing set is `simple` + `variable`.
+	 * Product types the feed walks, and the only types the toggle renders for.
+	 * The feed syncs `simple` and `variation`; a variation's parent is `variable`.
 	 */
 	private const SUPPORTED_TYPES = [ 'simple', 'variable' ];
 
 	/**
-	 * Render the "Agentic Commerce" exclude checkbox.
-	 *
-	 * Uses WC's `woocommerce_wp_checkbox()` helper so the visual treatment
-	 * matches the surrounding Inventory checkboxes (Manage stock, Sold
-	 * individually, etc.). The description renders inline next to the
-	 * checkbox (no tooltip) so the opt-out behavior is visible at a glance.
-	 *
-	 * Two gates keep the toggle from dangling with nothing behind it: the
-	 * merchant must have switched Agentic Commerce on in settings, and the
-	 * product must be a type the feed actually walks.
+	 * Render the exclude checkbox. Gated on the merchant having Agentic Commerce
+	 * enabled and the product being a supported type, so it never dangles.
 	 */
 	public function render_checkbox(): void {
 		if ( ! function_exists( 'woocommerce_wp_checkbox' ) ) {
@@ -154,11 +119,8 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 	}
 
 	/**
-	 * Persist the checkbox state on product save.
-	 *
-	 * WC core verifies `woocommerce_meta_nonce` in its own save handler
-	 * before firing this action, but the hook is public and any plugin
-	 * or CLI call can fire it directly — so we re-verify here.
+	 * Persist the checkbox state on product save. Re-verifies the nonce since
+	 * `woocommerce_process_product_meta` is public and callable directly.
 	 *
 	 * @param int $product_id Product post ID.
 	 */
@@ -167,9 +129,8 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 			return;
 		}
 
-		// The toggle is hidden while the merchant has the feature off, so the
-		// unchecked checkbox isn't posted — bail before that absence clobbers a
-		// stored 'yes' that should hold until they turn it back on.
+		// Feature off → checkbox isn't rendered or posted; bail so its absence
+		// doesn't clobber a stored 'yes'.
 		if ( ! WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled() ) {
 			return;
 		}
@@ -179,10 +140,8 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 			return;
 		}
 
-		// Mirror render_checkbox()'s type gate. The toggle only renders for types
-		// the feed walks, so a save for any other type (e.g. after a simple →
-		// grouped switch) won't post the checkbox — bail before that absence
-		// clobbers a stored 'yes' or schedules a needless resync.
+		// Mirror render_checkbox()'s type gate so a type switch (e.g. simple →
+		// grouped) doesn't clobber a stored 'yes' or trigger a needless resync.
 		$product = wc_get_product( $product_id );
 		if ( ! $product instanceof WC_Product || ! in_array( $product->get_type(), self::SUPPORTED_TYPES, true ) ) {
 			return;
@@ -192,18 +151,15 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 		$posted_value = isset( $_POST[ self::META_KEY ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::META_KEY ] ) ) : '';
 		$value        = 'yes' === $posted_value ? 'yes' : 'no';
 
+		// Treat missing meta as 'no' so the first opt-in counts as a change.
 		$previous_value = get_post_meta( $product_id, self::META_KEY, true );
 		if ( '' === $previous_value ) {
-			// First-ever save defaults to "not excluded" — treat missing meta as 'no'
-			// so flipping the box on for the first time still counts as a change and
-			// schedules a resync.
 			$previous_value = 'no';
 		}
 
 		update_post_meta( $product_id, self::META_KEY, $value );
 
-		// On a real change, kick the catalog so Stripe converges immediately rather
-		// than waiting for the next scheduled full sync to drop / re-add this product.
+		// Converge Stripe now instead of waiting for the next scheduled sync.
 		if ( $previous_value !== $value ) {
 			do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' );
 		}

@@ -326,10 +326,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Adapter-fired resync action must enqueue an immediate async Action
-	 * Scheduler job the first time it fires, and become a no-op while that job
-	 * is still pending so repeated visibility-setting saves don't stack queue
-	 * entries.
+	 * The resync action enqueues once, then no-ops while that job is still pending.
 	 */
 	public function test_schedule_full_resync_now_enqueues_once_when_idle() {
 		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
@@ -377,12 +374,8 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Regression: the recurring sync action keeps a pending occurrence at all
-	 * times once `activate()` has run, which is the normal feature-enabled
-	 * state. The immediate resync must still enqueue under those conditions —
-	 * deduping it against the recurring cadence would leave a just-excluded
-	 * product in Stripe's catalog until the next cron tick (up to SYNC_INTERVAL
-	 * away), which is exactly the staleness this path exists to prevent.
+	 * Regression: the immediate resync still enqueues when the recurring sync is
+	 * already pending (the normal enabled state), rather than being deduped away.
 	 */
 	public function test_schedule_full_resync_now_enqueues_when_recurring_already_scheduled() {
 		if ( ! function_exists( 'as_enqueue_async_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {
@@ -421,10 +414,8 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * `deactivate()` must clear pending occurrences for BOTH hooks. The recurring
-	 * full-feed schedule runs under `SCHEDULED_ACTION`; the adapter-fired one-off
-	 * resync runs under `IMMEDIATE_SYNC_ACTION`. A deactivate that only cleared
-	 * one hook would leave orphaned actions firing against a disabled integration.
+	 * deactivate() clears pending occurrences for both SCHEDULED_ACTION and
+	 * IMMEDIATE_SYNC_ACTION, leaving no orphaned actions.
 	 */
 	public function test_deactivate_clears_both_scheduled_actions() {
 		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
@@ -470,11 +461,8 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * `cancel_pending_full_resync()` must drop a queued adapter-fired one-off
-	 * (`IMMEDIATE_SYNC_ACTION`) while leaving the recurring full-feed occurrence
-	 * (`SCHEDULED_ACTION`) untouched. A manual sync calls this so the redundant
-	 * one-off does not fire right after, but it must not collaterally cancel the
-	 * recurring schedule the manual sync just reset.
+	 * cancel_pending_full_resync() drops the queued IMMEDIATE_SYNC_ACTION but
+	 * leaves the recurring SCHEDULED_ACTION untouched.
 	 */
 	public function test_cancel_pending_full_resync_clears_only_the_immediate_action() {
 		if ( ! function_exists( 'as_enqueue_async_action' ) ) {

@@ -45,14 +45,9 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_feed';
 
 	/**
-	 * Action Scheduler hook name for an immediate, one-off full resync.
-	 *
-	 * Distinct from {@see self::SCHEDULED_ACTION} on purpose: the recurring
-	 * cadence keeps a pending occurrence at all times, so reusing that hook for
-	 * the on-demand resync would make `as_has_scheduled_action()` always report
-	 * "already pending" and silently drop every immediate convergence request.
-	 * A separate hook lets us dedupe immediate resyncs against each other
-	 * without the recurring action masking them.
+	 * Action Scheduler hook for an immediate, one-off full resync. Kept distinct
+	 * from {@see self::SCHEDULED_ACTION} — the recurring action is always pending,
+	 * so sharing it would make `as_has_scheduled_action()` drop every immediate resync.
 	 *
 	 * @var string
 	 * @since 10.8.0
@@ -185,11 +180,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 		add_action( self::IMMEDIATE_SYNC_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 
-		// Adapter-fired hook for converging Stripe's catalog when the
-		// `wc_stripe_agentic_commerce_should_sync_product` filter outcome changes.
-		// See the filter docblock for the contract — without this, a previously
-		// exported product that becomes excluded would only drop out of Stripe's
-		// catalog on the next scheduled full sync.
+		// Adapter-fired hook to converge Stripe's catalog when a product's
+		// `should_sync` outcome changes, instead of waiting for the next full sync.
 		add_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $this, 'schedule_full_resync_now' ] );
 
 		// WC 10.8+ requires `created_via` to be in an allowlist for `payment_complete()` to run.
@@ -200,16 +192,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
-	 * Enqueue an immediate full-feed sync if one is not already pending.
+	 * Enqueue an immediate full-feed sync unless one is already queued.
 	 *
-	 * Idempotent against other immediate resyncs only: when an immediate sync is
-	 * already queued (a previous call before Action Scheduler has drained it),
-	 * this is a no-op, so adapters can call it cheaply on every visibility-setting
-	 * save without stacking entries. It deliberately does NOT dedupe against the
-	 * recurring {@see self::SCHEDULED_ACTION}, which always has a pending
-	 * occurrence and is typically up to {@see self::SYNC_INTERVAL} away — letting
-	 * it suppress the immediate job would leave the catalog stale until the next
-	 * cron tick, defeating the purpose of converging on a visibility change.
+	 * Idempotent against other immediate resyncs only, so adapters can call it on
+	 * every visibility-setting save. It does NOT dedupe against the recurring
+	 * {@see self::SCHEDULED_ACTION}, which would otherwise leave the catalog stale
+	 * until the next cron tick.
 	 *
 	 * @since 10.8.0
 	 * @return void
@@ -227,15 +215,10 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
-	 * Cancel any pending adapter-fired one-off resync.
-	 *
-	 * A full sync that has just run — e.g. a manual sync from the settings UI —
-	 * already produces a complete upload reflecting current visibility, so a
-	 * queued {@see self::schedule_full_resync_now()} action would only repeat
-	 * that work. It lives under {@see self::IMMEDIATE_SYNC_ACTION}, a separate
-	 * hook the manual sync's reschedule of {@see self::SCHEDULED_ACTION} does
-	 * not touch, so it must be cleared explicitly. Idempotent: a no-op when
-	 * nothing is queued.
+	 * Cancel any pending immediate resync. A just-run full sync already reflects
+	 * current visibility, so a queued {@see self::IMMEDIATE_SYNC_ACTION} would only
+	 * repeat the work; the manual sync's reschedule doesn't touch it, so clear it
+	 * explicitly. Idempotent.
 	 *
 	 * @since 10.8.0
 	 * @return void

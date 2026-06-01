@@ -987,9 +987,8 @@ class WC_Stripe {
 			WP_CLI::add_command( 'stripe agentic-commerce', 'WC_Stripe_Agentic_Commerce_CLI' );
 		}
 
-		// Per-product exclude toggle. WC AI Storefront owns this surface when active —
-		// its product-selection UI funnels into the same should-sync filter, so
-		// rendering both at once would let merchants set conflicting expectations.
+		// Per-product exclude toggle. Skipped when WC AI Storefront is active — it
+		// owns product selection through the same should-sync filter.
 		if ( ! defined( 'WC_AI_STOREFRONT_VERSION' ) && class_exists( 'WC_Stripe_Agentic_Commerce_Product_Meta_Box' ) ) {
 			( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->init();
 		}
