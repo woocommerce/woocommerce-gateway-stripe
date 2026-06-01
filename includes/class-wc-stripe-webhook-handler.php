@@ -1511,12 +1511,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$dashboard_url   = sprintf( WC_Stripe_Helper::get_transaction_url( $this->testmode ), $intent_id );
 
 		$message = sprintf(
-			/* translators: 1) formatted amount with currency, 2) Stripe PaymentIntent ID, 3) Stripe charge ID, 4) order payment method title, 5) opening anchor tag for the Stripe dashboard link, 6) closing anchor tag. */
-			__( 'Stripe captured a charge of %1$s (PaymentIntent %2$s, charge %3$s) after this order was already paid via %4$s. This unexpected charge needs to be refunded manually from the %5$sStripe dashboard%6$s.', 'woocommerce-gateway-stripe' ),
+			/* translators: 1) formatted amount with currency, 2) Stripe PaymentIntent ID, 3) Stripe charge ID, 4) opening anchor tag for the Stripe dashboard link, 5) closing anchor tag. */
+			__( 'Stripe captured a charge of %1$s (PaymentIntent %2$s, charge %3$s) after this order was already paid. This unexpected charge needs to be refunded manually from the %4$sStripe dashboard%5$s.', 'woocommerce-gateway-stripe' ),
 			wp_kses_post( $formatted_price ),
 			esc_html( $intent_id ),
 			esc_html( (string) $charge->id ),
-			esc_html( $order->get_payment_method_title() ),
 			'<a href="' . esc_url( $dashboard_url ) . '" target="_blank" rel="noopener noreferrer">',
 			'</a>'
 		);

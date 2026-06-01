@@ -401,7 +401,6 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			$this->assertNotEmpty( $notes );
 			$this->assertStringContainsString( $intent_id, $notes[0]->content );
 			$this->assertStringContainsString( 'py_unexpected_xxx', $notes[0]->content );
-			$this->assertStringContainsString( 'Cash on Delivery', $notes[0]->content );
 		} finally {
 			remove_action( 'wc_stripe_unexpected_charge_detected', $listener, 10 );
 		}
@@ -559,7 +558,6 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			$this->assertNotEmpty( $notes );
 			$this->assertStringContainsString( $intent_id, $notes[0]->content );
 			$this->assertStringContainsString( 'ch_capture_unexpected', $notes[0]->content );
-			$this->assertStringContainsString( 'Klarna Payments', $notes[0]->content );
 		} finally {
 			remove_action( 'wc_stripe_unexpected_charge_detected', $listener, 10 );
 		}
