@@ -182,7 +182,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Require explicit visibility for class constants
 * Dev - Add payment token classes to autoloader
 * Remove - Remove deprecated code up to version 10.1.0
-* Dev - Add wc_stripe_agentic_commerce_should_sync_product filter so adapters can exclude products from the Agentic Commerce catalog, inventory, and archive syncs
 * Add - Per-product "Agentic Commerce" exclude toggle on the product editor's Inventory tab (hidden when WC AI Storefront is active)
 * Dev - Add Jest tests for ECE payment flow
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
