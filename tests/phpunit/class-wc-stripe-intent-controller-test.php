@@ -737,12 +737,6 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		Ajax_Test_Helper::remove_hooks();
 	}
 
-	/**
-	 * Regression: a failed saved-token re-association only affects the My Account
-	 * saved-card display, so it must not fail a change-payment the shopper has
-	 * already authenticated via 3DS. Previously this threw
-	 * `subscription_token_replace_failed` and aborted the whole flow.
-	 */
 	public function test_confirm_change_payment_succeeds_when_token_relink_finds_no_match() {
 		Ajax_Test_Helper::init_hooks();
 
