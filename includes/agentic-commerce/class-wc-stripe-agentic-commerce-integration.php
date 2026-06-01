@@ -336,7 +336,10 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		}
 
 		/**
-		 * Filter product feed query arguments.
+		 * Filter product feed query arguments. Note that complex filters
+		 * may already exist, so care should be taken to ensure that any overrides
+		 * applied via this filter don't clash with the existing values in a way
+		 * that would generate no results.
 		 *
 		 * @since 10.5.0
 		 * @param array $args WC_Product_Query arguments.
