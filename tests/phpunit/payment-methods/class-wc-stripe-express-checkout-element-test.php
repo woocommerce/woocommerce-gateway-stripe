@@ -409,8 +409,6 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 
 		$this->assertSame( $expected, $subscription->get_payment_method_title() );
 
-		// A clarifying note must be appended so the WCS-written "to Credit Card"
-		// log entry isn't the only record of the change.
 		$this->assertContains( "Payment method updated to {$expected}.", $subscription->get_captured_notes() );
 
 		unset( $_GET['change_payment_method'], $_POST['express_checkout_type'] );
