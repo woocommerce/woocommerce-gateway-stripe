@@ -118,7 +118,6 @@ class WC_Stripe_Logger_Test extends WP_UnitTestCase {
 			"notice log level, '0' filter"         => [ 'notice', '0', false ],
 			"info log level, 'false' filter"       => [ 'info', 'false', false ],
 			"info log level, 'true' filter"        => [ 'info', 'true', false ],
-
 			'debug log level, empty string filter' => [ 'debug', '', false ],
 			"debug log level, '1' filter"          => [ 'debug', '1', false ],
 			'debug log level, array filter'        => [ 'debug', [], false ],
