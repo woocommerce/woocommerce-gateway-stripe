@@ -36,29 +36,6 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	 */
 	private array $created_products = [];
 
-	public static function set_up_before_class(): void {
-		parent::set_up_before_class();
-
-		// Ensure that all existing products are deleted before the test suite runs,
-		// as we need control over the products for tests that run queries.
-		$existing_products = wc_get_products(
-			[
-				'status' => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
-				'type'   => [
-					\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
-					\Automattic\WooCommerce\Enums\ProductType::VARIATION,
-					\Automattic\WooCommerce\Enums\ProductType::VARIABLE,
-				],
-				'limit'  => -1,
-				'return' => 'ids',
-			]
-		);
-
-		foreach ( $existing_products as $product_id ) {
-			WC_Helper_Product::delete_product( $product_id );
-		}
-	}
-
 	public function setUp(): void {
 		parent::setUp();
 
