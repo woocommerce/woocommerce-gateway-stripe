@@ -8,7 +8,22 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Giropay extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::GIROPAY;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::GIROPAY;
+
+	/**
+	 * Stripe account countries that may enable giropay. Last-known data; giropay was
+	 * deprecated by Stripe on 2024-06-30. is_enabled_at_checkout() returns false.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [];
+
+	/**
+	 * Shopper billing countries permitted to use giropay (last-known data).
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [ WC_Stripe_Country_Code::GERMANY ];
 
 	/**
 	 * Constructor for giropay payment method
