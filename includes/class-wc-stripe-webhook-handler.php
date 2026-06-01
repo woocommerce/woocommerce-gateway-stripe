@@ -1971,7 +1971,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// Verify we received the order ID and signature (hash).
 				$order = isset( $data[0], $data[1] ) ? wc_get_order( absint( $data[0] ) ) : false;
 
-				if ( $order instanceof WC_Order ) {
+				if ( $order ) {
+
+					// Ensure we have a valid order, not a refund or other object.
+					if ( ! $order instanceof WC_Order ) {
+						return false;
+					}
 
 					$intent_id = WC_Stripe_Order_Helper::get_instance()->get_intent_id_from_order( $order );
 
