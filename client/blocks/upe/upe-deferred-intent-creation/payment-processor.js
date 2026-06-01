@@ -26,11 +26,11 @@ import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
+import { validateBlikCode } from 'wcstripe/stripe-utils';
 import {
-	validateBlikCode,
 	invalidateAppearanceCache,
 	initializeUPEAppearance,
-} from 'wcstripe/stripe-utils';
+} from 'wcstripe/stripe-utils/upe-appearance';
 import { sampleFontFamily } from 'wcstripe/styles/upe';
 import {
 	PAYMENT_METHOD_ACSS,
