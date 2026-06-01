@@ -1340,4 +1340,86 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 			}
 		}
 	}
+
+	/**
+	 * A manual sync already produces a full upload, so it must drop any pending
+	 * adapter-fired one-off resync queued in the `wc-stripe-agentic-resync`
+	 * group. Without this the one-off fires again right after the manual sync,
+	 * doing redundant work the manual sync just completed.
+	 *
+	 * @return void
+	 */
+	public function test_trigger_sync_cancels_pending_async_resync(): void {
+		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
+			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
+		}
+
+		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available' );
+		}
+
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+
+		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']        = 'yes';
+		$settings['test_secret_key'] = 'sk_test_fake';
+		update_option( 'woocommerce_stripe_settings', $settings );
+
+		$product = new WC_Product_Simple();
+		$product->set_name( 'Test Product' );
+		$product->set_regular_price( '10.00' );
+		$product->set_status( 'publish' );
+		$product->save();
+
+		$files_stub = function () {
+			return [ 'id' => 'file_stub' ];
+		};
+		add_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10, 2 );
+
+		$http_stub = function () {
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'id'     => 'impset_stub',
+						'status' => 'pending',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		// Seed a pending adapter-fired one-off resync, as schedule_full_resync_now() would.
+		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' );
+		as_enqueue_async_action( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' );
+		$this->assertNotFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' ),
+			'Sanity: a one-off resync must be pending before the manual sync.'
+		);
+
+		try {
+			$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
+			$response = rest_do_request( $request );
+
+			$this->assertEquals( 200, $response->get_status() );
+			$this->assertFalse(
+				as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' ),
+				'A successful manual sync must clear the pending one-off resync.'
+			);
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10 );
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+			$product->delete( true );
+
+			if ( function_exists( 'as_unschedule_all_actions' ) ) {
+				as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
+				as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' );
+			}
+		}
+	}
 }
