@@ -222,10 +222,8 @@ class WC_Stripe_Feature_Flags {
 	/**
 	 * Whether the WordPress Abilities API integration is enabled.
 	 *
-	 * Default-off during rollout. Merchants opt in by setting the
-	 * `_wcstripe_feature_abilities` option to `yes`; integrators or local
-	 * environments can force-enable via the `wc_stripe_abilities_enabled`
-	 * filter, which sits on top of the option value.
+	 * Default-off during rollout. Merchants, integrators, and developers
+	 * can opt in via the `wc_stripe_abilities_enabled` filter.
 	 *
 	 * @since 10.8.0
 	 * @return bool True if enabled, false otherwise.
