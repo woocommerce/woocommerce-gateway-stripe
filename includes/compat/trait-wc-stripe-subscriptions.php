@@ -322,11 +322,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			// Create a setup intent, or update an existing one associated with the order.
 			$payment_intent = $this->process_setup_intent_for_order( $subscription, $payment_information );
 
-			// Handle saving the payment method in the store. The token is linked to
-			// the subscription further down, in the no-confirmation branch only:
-			// when the intent still requires action (3DS), the confirmed token does
-			// not exist yet and is associated post-confirmation in
-			// WC_Stripe_Intent_Controller::confirm_change_payment_from_setup_intent_ajax().
+			// Handle saving the payment method in the store.
 			$saved_payment_method_to_store = $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type();
 			if ( $saved_payment_method_to_store ) {
 				$this->handle_saving_payment_method(
