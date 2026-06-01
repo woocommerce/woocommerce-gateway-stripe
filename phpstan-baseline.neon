@@ -3235,6 +3235,12 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
+			message: '#^Parameter \#1 \$order_id of method WC_Stripe_Payment_Gateway\:\:has_pre_order\(\) expects int, WC_Order given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
 			message: '#^Parameter \#1 \$request_body of method WC_Stripe_Webhook_Handler\:\:process_webhook\(\) expects string, string\|false given\.$#'
 			identifier: argument.type
 			count: 1
