@@ -213,4 +213,69 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 	}
+
+	/**
+	 * Test for `is_abilities_enabled`.
+	 *
+	 * @param string|null $option_value     The value to set on `_wcstripe_feature_abilities`, or null to delete.
+	 * @param string      $filter_function  The filter function to apply to `wc_stripe_abilities_enabled`, or '' for none.
+	 * @param bool        $expected         The expected return value.
+	 *
+	 * @dataProvider provide_test_is_abilities_enabled
+	 */
+	public function test_is_abilities_enabled( $option_value, string $filter_function, bool $expected ): void {
+		if ( null === $option_value ) {
+			delete_option( WC_Stripe_Feature_Flags::ABILITIES_FEATURE_FLAG_NAME );
+		} else {
+			update_option( WC_Stripe_Feature_Flags::ABILITIES_FEATURE_FLAG_NAME, $option_value );
+		}
+
+		if ( '' !== $filter_function ) {
+			add_filter( 'wc_stripe_abilities_enabled', $filter_function );
+		}
+
+		$actual = WC_Stripe_Feature_Flags::is_abilities_enabled();
+
+		if ( '' !== $filter_function ) {
+			remove_filter( 'wc_stripe_abilities_enabled', $filter_function );
+		}
+		delete_option( WC_Stripe_Feature_Flags::ABILITIES_FEATURE_FLAG_NAME );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_is_abilities_enabled`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_abilities_enabled(): array {
+		return [
+			'option absent, no filter — default off' => [
+				'option_value'    => null,
+				'filter_function' => '',
+				'expected'        => false,
+			],
+			'option no, no filter'                   => [
+				'option_value'    => 'no',
+				'filter_function' => '',
+				'expected'        => false,
+			],
+			'option yes, no filter'                  => [
+				'option_value'    => 'yes',
+				'filter_function' => '',
+				'expected'        => true,
+			],
+			'option absent, filter true (override)'  => [
+				'option_value'    => null,
+				'filter_function' => '__return_true',
+				'expected'        => true,
+			],
+			'option yes, filter false (override)'    => [
+				'option_value'    => 'yes',
+				'filter_function' => '__return_false',
+				'expected'        => false,
+			],
+		];
+	}
 }
