@@ -1,4 +1,8 @@
-import { getFontSizeBase, getDefaultValues } from '../utils';
+import {
+	getFontSizeBase,
+	getDefaultValues,
+	getHiddenBillingFields,
+} from '../utils';
 import { initializeUPEAppearance } from '../upe-appearance';
 import { getAppearance } from '../../styles/upe';
 
@@ -509,6 +513,46 @@ describe( 'utils', () => {
 					expect( result ).toBe( serverAppearance );
 				} );
 			} );
+		} );
+	} );
+
+	describe( 'getHiddenBillingFields', () => {
+		it( 'should always set address line2 to "never" so Stripe never renders it', () => {
+			// Address line 2 disabled in WooCommerce.
+			expect( getHiddenBillingFields( [] ).address.line2 ).toBe(
+				'never'
+			);
+
+			// Address line 2 enabled in WooCommerce.
+			expect(
+				getHiddenBillingFields( [ 'billing_address_2' ] ).address.line2
+			).toBe( 'never' );
+		} );
+
+		it( 'should set enabled fields to "never" and disabled fields to "auto"', () => {
+			const result = getHiddenBillingFields( [
+				'billing_first_name',
+				'billing_email',
+				'billing_country',
+				'billing_address_1',
+			] );
+
+			expect( result.name ).toBe( 'never' );
+			expect( result.email ).toBe( 'never' );
+			expect( result.address.country ).toBe( 'never' );
+			expect( result.address.line1 ).toBe( 'never' );
+
+			// Not enabled, so Stripe is allowed to collect them.
+			expect( result.address.city ).toBe( 'auto' );
+			expect( result.address.state ).toBe( 'auto' );
+			expect( result.address.postalCode ).toBe( 'auto' );
+		} );
+
+		it( 'should always keep phone as "auto"', () => {
+			expect( getHiddenBillingFields( [] ).phone ).toBe( 'auto' );
+			expect( getHiddenBillingFields( [ 'billing_phone' ] ).phone ).toBe(
+				'auto'
+			);
 		} );
 	} );
 } );
