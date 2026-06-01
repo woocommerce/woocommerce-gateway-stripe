@@ -184,6 +184,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Remove - Remove deprecated code up to version 10.1.0
 * Dev - Add Jest tests for ECE payment flow
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
+* Fix - Use a placeholder billing last name for single-name express checkout payments
 * Dev - Use explicit method calls for upgrade checks and tools
 * Update - Improve express checkout load times by preloading the resources
 * Tweak - Reduce JS bundle sizes by using native browser features instead of polyfills
