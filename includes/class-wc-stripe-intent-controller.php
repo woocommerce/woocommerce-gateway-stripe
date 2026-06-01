@@ -1394,10 +1394,8 @@ class WC_Stripe_Intent_Controller {
 			$gateway->set_customer_id_for_subscription( $subscription, $customer->get_id() );
 			$gateway->set_payment_method_id_for_subscription( $subscription, $token->get_token() );
 
-			// Mirror the no-3DS change-payment branch: associate the new WC token with
-			// the subscription so My Account → Subscriptions reflects the new card.
-			// Best-effort: this only refreshes the saved-card display, so a miss must
-			// not fail the payment-method change the shopper has already authenticated.
+			// Update the saved token details to capture the current details for display purposes.
+			// Errors are intentionally ignored as the changes are cosmetic and don't impact renewals.
 			if ( ! WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $token->get_token() ) ) {
 				WC_Stripe_Logger::warning( 'Could not re-associate the saved token after 3DS change-payment for subscription: ' . $subscription_id );
 			}
