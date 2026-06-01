@@ -35,7 +35,7 @@ volumes:
 services:
   db:
     container_name: wcstripe_db
-    image: mariadb:11.4
+    image: mariadb:11.8
     restart: unless-stopped
     ports:
       - "5668:3306"

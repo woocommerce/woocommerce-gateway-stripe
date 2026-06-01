@@ -7,6 +7,17 @@
 
 set -e
 
+# Run from the main checkout.
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
+GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null)
+if [[ -n "$GIT_DIR" && "$GIT_DIR" != "$GIT_COMMON_DIR" ]]; then
+    MAIN_CHECKOUT=$(cd "$(dirname "$GIT_COMMON_DIR")" && pwd)
+    echo "Running from worktree. Stopping infrastructure from main checkout:"
+    echo "  $MAIN_CHECKOUT"
+    echo ""
+    cd "$MAIN_CHECKOUT"
+fi
+
 # Load default env so docker compose can interpolate ${WCSTRIPE_SHARED_WP_PATH}
 # and ${WCSTRIPE_DB_DATA_PATH} when stopping infra from any shell. `set -a`
 # exports each sourced variable so docker compose (a child process) sees them.
