@@ -245,7 +245,13 @@ class WC_Stripe_Logger {
 		 *
 		 * @since 10.8.0
 		 */
-		return apply_filters( 'wc_stripe_logger_can_log', false, $log_level, $calling_class, $calling_function );
+		$can_log = apply_filters( 'wc_stripe_logger_can_log', false, $log_level, $calling_class, $calling_function );
+
+		if ( is_bool( $can_log ) ) {
+			return $can_log;
+		}
+
+		return false;
 	}
 
 	/**

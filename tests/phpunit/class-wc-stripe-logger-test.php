@@ -76,6 +76,56 @@ class WC_Stripe_Logger_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests {@see WC_Stripe_Logger::can_log()} correctly normalizes the value returned
+	 * from the 'wc_stripe_logger_can_log' filter.
+	 *
+	 * @dataProvider provide_log_level_and_filter_return_scenarios
+	 * @param string|null $log_level_input     The log level to test.
+	 * @param mixed       $filter_return_value The value to return from the 'wc_stripe_logger_can_log' filter.
+	 * @param bool        $expected_result     The expected result of the can_log() call.
+	 * @return void
+	 */
+	public function test_can_log_normalizes_filter_return_value( ?string $log_level_input, $filter_return_value, bool $expected_result ): void {
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		unset( $stripe_settings['logging'] );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$filter = function ( $can_log ) use ( $filter_return_value ) {
+			return $filter_return_value;
+		};
+		add_filter( 'wc_stripe_logger_can_log', $filter, 10, 1 );
+
+		$result = WC_Stripe_Logger::can_log( $log_level_input );
+
+		remove_filter( 'wc_stripe_logger_can_log', $filter, 10 );
+
+		$this->assertEquals( $expected_result, $result );
+	}
+
+	/**
+	 * Provides the log level and filter values for the {@see test_can_log_normalizes_filter_return_value()} test.
+	 *
+	 * @return array The log level inputs and filter return values.
+	 */
+	public function provide_log_level_and_filter_return_scenarios(): array {
+		return [
+			'null log level, null filter'          => [ null, null, false ],
+			'null log level, 0 filter'             => [ null, 0, false ],
+			'null log level, [ true ] filter'      => [ null, [ true ], false ],
+			'warning log level, false filter'      => [ 'warning', false, false ],
+			'warning log level, 1 filter'          => [ 'warning', 1, false ],
+			'notice log level, true filter'        => [ 'notice', true, true ],
+			"notice log level, '0' filter"         => [ 'notice', '0', false ],
+			"info log level, 'false' filter"       => [ 'info', 'false', false ],
+			"info log level, 'true' filter"        => [ 'info', 'true', false ],
+
+			'debug log level, empty string filter' => [ 'debug', '', false ],
+			"debug log level, '1' filter"          => [ 'debug', '1', false ],
+			'debug log level, array filter'        => [ 'debug', [], false ],
+		];
+	}
+
+	/**
 	 * Tests that the logger methods which call {@see WC_Stripe_Logger::can_log()} trigger
 	 * the wc_stripe_logger_can_log filter as expected.
 	 *
