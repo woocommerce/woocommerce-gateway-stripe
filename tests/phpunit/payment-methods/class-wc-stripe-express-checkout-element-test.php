@@ -466,7 +466,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		$this->element->maybe_apply_express_title_after_confirmed_intent( $subscription );
 
 		$this->assertSame( $expected, $subscription->get_payment_method_title() );
-		// Both one-shot markers should be cleaned up after applying.
+		// Both temporary meta fields should be cleaned up after applying.
 		$this->assertSame( '', $subscription->get_meta( '_wc_stripe_express_checkout_type' ) );
 		$this->assertSame( '', $subscription->get_meta( '_wc_stripe_express_checkout_payment_method_id' ) );
 		// The token persisted alongside the title meta must be linked to the subscription.
