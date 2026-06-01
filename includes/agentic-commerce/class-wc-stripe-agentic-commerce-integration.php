@@ -310,7 +310,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Constructs the `wc_get_products()` argument set passed to the walker.
 	 * When a {@see WC_Stripe_Agentic_Commerce_Product_Filter} has been
 	 * configured (via stored options or the
-	 * `wc_stripe_agentic_commerce_product_filters` filter), the query arguments
+	 * `wc_stripe_agentic_commerce_product_filter` filter), the query arguments
 	 * are built from those criteria.
 	 * Those parameters can then be modified via the `wc_stripe_agentic_commerce_product_query_args` filter.
 	 *
