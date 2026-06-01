@@ -296,6 +296,52 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `get_order_by_setup_intent_id`.
+	 *
+	 * @param bool $save_intent    Whether to associate the SetupIntent ID with the order.
+	 * @param bool $expect_success Whether the order should be found.
+	 * @dataProvider provide_test_get_order_by_setup_intent_id
+	 */
+	public function test_get_order_by_setup_intent_id( bool $save_intent, bool $expect_success ): void {
+		$order     = WC_Helper_Order::create_order();
+		$intent_id = 'seti_mock';
+		$lookup_id = $intent_id;
+
+		if ( $save_intent ) {
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_setup_intent_id( $order, $intent_id );
+			$order->save_meta_data();
+		} else {
+			$lookup_id = 'seti_unknown';
+		}
+
+		$result = WC_Stripe_Helper::get_order_by_setup_intent_id( $lookup_id );
+		if ( $expect_success ) {
+			$this->assertInstanceOf( WC_Order::class, $result );
+			$this->assertSame( $order->get_id(), $result->get_id() );
+		} else {
+			$this->assertFalse( $result );
+		}
+	}
+
+	/**
+	 * Data provider for `test_get_order_by_setup_intent_id`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_order_by_setup_intent_id(): array {
+		return [
+			'matching SetupIntent ID' => [
+				'store intent' => true,
+				'success'      => true,
+			],
+			'unknown SetupIntent ID'  => [
+				'store intent' => false,
+				'success'      => false,
+			],
+		];
+	}
+
+	/**
 	 * Test for `get_stripe_amount`
 	 *
 	 * @param int    $total    The total amount.
