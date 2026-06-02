@@ -1570,10 +1570,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Reusing a saved card never refreshes its wallet_type: it is create-time
-	 * state, so the token keeps its original branding no matter how the same
-	 * card is next tokenized (see #5477). This prevents a manually-saved card
-	 * from flipping to a wallet brand after a later Apple Pay / Google Pay use.
+	 * Reusing a saved card never refreshes its wallet_type (create-time state,
+	 * #5477), so a manually-saved card can't flip to a wallet brand.
 	 *
 	 * @dataProvider provider_handle_saving_payment_method_preserves_wallet_type
 	 *
@@ -1637,10 +1635,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Provider for `test_handle_saving_payment_method_preserves_wallet_type_on_reused_token`.
-	 *
-	 * The expected value always equals the initial wallet_type — the incoming
-	 * method's wallet branding is ignored on the duplicate-match path.
+	 * Provider: expected wallet_type always equals the initial — the incoming method's is ignored.
 	 *
 	 * @return array<string, array{0: string, 1: string, 2: string}>
 	 */

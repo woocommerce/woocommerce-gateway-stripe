@@ -1244,9 +1244,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				$card_brand = isset( $payment_method->card->brand ) ? wc_get_credit_card_type_label( $payment_method->card->brand ) : __( 'N/A', 'woocommerce-gateway-stripe' );
 				$card_last4 = $payment_method->card->last4;
 
-				// Surface the digital wallet the card was used through (Apple Pay /
-				// Google Pay) so the subscription row matches the My Account saved-card
-				// label after a wallet change-payment. `link` and manual cards stay bare.
+				// Surface the wallet brand (Apple Pay / Google Pay) used; `link` and manual cards stay bare.
 				$wallet_type  = isset( $payment_method->card->wallet->type ) ? $payment_method->card->wallet->type : '';
 				$wallet_label = WC_Stripe_Payment_Methods::EXPRESS_METHODS_LABELS[ $wallet_type ] ?? '';
 				if ( '' !== $wallet_label ) {
