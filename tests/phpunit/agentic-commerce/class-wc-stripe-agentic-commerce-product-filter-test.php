@@ -92,9 +92,16 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	}
 
 	public function test_save_filters_stores_normalized_shape() {
-		$cat   = $this->create_term( 'shoes', 'product_cat' );
-		$tag   = $this->create_term( 'on-sale', 'product_tag' );
-		$brand = $this->create_term( 'nike', 'product_brand' );
+		$cat = $this->create_term( 'shoes', 'product_cat' );
+		$tag = $this->create_term( 'on-sale', 'product_tag' );
+
+		$expected_brand_ids = [];
+		$brands_input       = [];
+		if ( taxonomy_exists( 'product_brand' ) ) {
+			$brand              = $this->create_term( 'nike', 'product_brand' );
+			$expected_brand_ids = [ $brand['term_id'] ];
+			$brands_input       = [ $brand['slug'] ];
+		}
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 		$this->assertTrue(
@@ -103,7 +110,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 					'product_ids'          => [ 123, '456', 0, -1, 'abc' ],
 					'categories'           => [ $cat['term_id'], 'shoes', '' ],
 					'tags'                 => [ $tag['slug'], $tag['term_id'] ],
-					'brands'               => [ $brand['slug'] ],
+					'brands'               => $brands_input,
 					'variable_product_ids' => [ '345', 567, -1, 'test', 0.0 ],
 				]
 			)
@@ -115,7 +122,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 				'product_ids'          => [ 123, 456 ],
 				'category_ids'         => [ $cat['term_id'] ],
 				'tag_ids'              => [ $tag['term_id'] ],
-				'brand_ids'            => [ $brand['term_id'] ],
+				'brand_ids'            => $expected_brand_ids,
 				'variable_product_ids' => [ 345, 567 ],
 			],
 			$stored
@@ -668,16 +675,20 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 					$normal_product_args,
 					[
 						'tax_query' => [
-							[
-								'relation' => 'OR',
+							// Note that we use array_merge() so we can cleanly handle
+							// the case where the product brand taxonomy does not exist.
+							array_merge(
+								$product_brand_exists ? [ 'relation' => 'OR' ] : [],
 								[
-									'taxonomy'         => 'product_cat',
-									'field'            => 'term_id',
-									'terms'            => [ 321, 654 ],
-									'operator'         => 'IN',
-									'include_children' => false,
+									[
+										'taxonomy'         => 'product_cat',
+										'field'            => 'term_id',
+										'terms'            => [ 321, 654 ],
+										'operator'         => 'IN',
+										'include_children' => false,
+									],
 								],
-								...( $product_brand_exists ? [
+								$product_brand_exists ? [
 									[
 										'taxonomy'         => 'product_brand',
 										'field'            => 'term_id',
@@ -685,8 +696,8 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 										'operator'         => 'IN',
 										'include_children' => false,
 									],
-								] : [] ),
-							],
+								] : []
+							),
 						],
 					]
 				),
