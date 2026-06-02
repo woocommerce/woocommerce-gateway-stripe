@@ -61,11 +61,12 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 	 * order by the webhook handler when available.
 	 */
 	public function get_title() {
-		if ( ! $this->is_valid_optimized_checkout_page() ) {
-			return parent::get_title();
-		}
-
-		if ( is_wc_endpoint_url( 'order-received' ) || $this->is_order_details_page() ) {
+		// The order-received (thank you) and order-details (admin / My Account view-order) pages
+		// aren't checkout pages, so they fall outside is_valid_optimized_checkout_page(). The OC
+		// title would otherwise fall through to the generic "Stripe"; prefer the payment-method
+		// title stored on the order by the webhook handler. Resolve this before the render gate,
+		// using the broader active check, so it still applies on the admin order screen.
+		if ( $this->is_optimized_checkout_active() && ( is_wc_endpoint_url( 'order-received' ) || $this->is_order_details_page() ) ) {
 			global $theorder;
 			if ( $theorder instanceof WC_Order ) {
 				$checkout_session_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $theorder );
@@ -76,6 +77,10 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 					}
 				}
 			}
+		}
+
+		if ( ! $this->is_valid_optimized_checkout_page() ) {
+			return parent::get_title();
 		}
 
 		return ( new WC_Stripe_UPE_Payment_Method_OC() )->get_title();

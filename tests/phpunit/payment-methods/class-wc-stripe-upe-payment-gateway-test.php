@@ -5116,6 +5116,42 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * On the admin order-details screen — which is not a checkout page — the OCS gateway must
+	 * still surface the payment-method title stored on the order, rather than falling through
+	 * to the parent's generic title. Guards the regression where the order-title resolution was
+	 * gated behind the checkout-only is_valid_optimized_checkout_page() render check.
+	 */
+	public function test_get_title_uses_stored_order_title_on_order_details_page() {
+		$gateway = $this->getMockBuilder( WC_Stripe_OCS_Payment_Gateway::class )
+			->onlyMethods( [ 'is_on_add_payment_method_page', 'is_changing_payment_method_for_subscription', 'is_order_details_page' ] )
+			->getMock();
+
+		// Order-details screen: not a checkout page, not add-payment / change-payment.
+		$gateway->method( 'is_on_add_payment_method_page' )->willReturn( false );
+		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( false );
+		$gateway->method( 'is_order_details_page' )->willReturn( true );
+		add_filter( 'woocommerce_is_checkout', '__return_false' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method_title( 'Cartes Bancaires' );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, 'cs_test_title' );
+
+		global $theorder;
+		$previous_theorder = $theorder;
+		$theorder          = $order;
+
+		try {
+			$title = $gateway->get_title();
+		} finally {
+			$theorder = $previous_theorder;
+			remove_filter( 'woocommerce_is_checkout', '__return_false' );
+		}
+
+		$this->assertSame( 'Cartes Bancaires', $title );
+	}
+
+	/**
 	 * Data provider for `test_is_optimized_checkout_active`.
 	 *
 	 * @return array[]
