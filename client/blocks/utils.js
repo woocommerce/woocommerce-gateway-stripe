@@ -72,6 +72,18 @@ export const shouldSetupOffSessionPayment = (
 };
 
 /**
+ * Checks if the save payment method checkbox is checked.
+ *
+ * @return {boolean} True if the save payment method checkbox is checked, false otherwise.
+ */
+export const isSavePaymentMethodCheckboxChecked = () => {
+	const checkbox = document.querySelector(
+		'.wc-block-components-payment-methods__save-card-info input[type=checkbox]'
+	);
+	return Boolean( checkbox?.checked );
+};
+
+/**
  * Returns the public api key for the stripe payment method
  *
  * @throws Error
@@ -203,10 +215,11 @@ export const getStripeElementOptions = ( forCheckoutSession = false ) => {
 		}
 	}
 
-	const config = getBlocksConfiguration();
-	if ( config?.isOCEnabled ) {
+	const stripeServerData = getBlocksConfiguration();
+	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 		const layout = {
-			type: config?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
+			type:
+				stripeServerData?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 		};
 		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
 			layout.radios = false;

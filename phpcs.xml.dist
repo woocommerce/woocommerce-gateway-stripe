@@ -77,4 +77,22 @@
 		<exclude-pattern>tests/</exclude-pattern>
 	</rule>
 
+	<!-- Treat misaligned statements as errors -->
+	<rule ref="Generic.Formatting.MultipleStatementAlignment">
+		<type>error</type>
+	</rule>
+
+	<rule ref="WordPress.Arrays.MultipleStatementAlignment">
+		<type>error</type>
+		<properties>
+			<property name="maxColumn" value="99"/>
+		</properties>
+	</rule>
+
+	<!-- Require class constants to have explicit visibility -->
+	<rule ref="PSR12.Properties.ConstantVisibility.NotFound">
+		<type>error</type>
+		<exclude-pattern>tests/</exclude-pattern>
+	</rule>
+
 </ruleset>

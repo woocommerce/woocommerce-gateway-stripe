@@ -45,18 +45,6 @@ class WC_Stripe_Subscriptions_Helper {
 	}
 
 	/**
-	 * Loads up to 50 subscriptions, and attempts to return those that are detached from the customer.
-	 *
-	 * @return array
-	 *
-	 * @deprecated 9.6.0 This method is no longer used and will be removed in a future version.
-	 */
-	public static function get_some_detached_subscriptions() {
-		_deprecated_function( __METHOD__, '9.6.0' );
-		return self::get_detached_subscriptions( 50 );
-	}
-
-	/**
 	 * Loads all active subscriptions renewing in less than a month, and attempts to return those that are detached from the customer.
 	 *
 	 * @param int $limit The maximum number of subscriptions to retrieve. Use -1 for no limit (default).
@@ -156,7 +144,7 @@ class WC_Stripe_Subscriptions_Helper {
 			return false;
 		}
 
-		$source_id = $subscription->get_meta( '_stripe_source_id' );
+		$source_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $subscription );
 		if ( ! $source_id ) {
 			return false;
 		}
@@ -225,7 +213,7 @@ class WC_Stripe_Subscriptions_Helper {
 	public static function get_detached_payment_data_from_subscription( $subscription ) {
 		return [
 			'id'                        => $subscription->get_id(),
-			'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
+			'customer_id'               => WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $subscription ),
 			'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 		];
 	}

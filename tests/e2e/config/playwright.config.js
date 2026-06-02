@@ -49,7 +49,7 @@ const config = {
 		[
 			'allure-playwright',
 			{
-				outputFolder: 'tests/e2e/test-results/report-allure/',
+				resultsDir: 'tests/e2e/test-results/report-allure/',
 			},
 		],
 	],
