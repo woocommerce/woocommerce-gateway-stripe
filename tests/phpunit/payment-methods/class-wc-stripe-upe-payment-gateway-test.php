@@ -6184,7 +6184,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'get_intent_from_order',
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
-					'is_subscriptions_enabled',
 					'update_saved_payment_method',
 				]
 			)
@@ -6307,7 +6306,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'get_intent_from_order',
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
-					'is_subscriptions_enabled',
 					'update_saved_payment_method',
 				]
 			)
