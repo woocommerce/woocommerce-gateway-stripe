@@ -165,7 +165,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'get_intent_from_order',
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
-					'is_subscriptions_enabled',
 					'update_saved_payment_method',
 				]
 			)
@@ -373,14 +372,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Affirm::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Boleto::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Multibanco::STRIPE_ID,
@@ -394,34 +392,29 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'NON_US',
 				[
 					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Boleto::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 				],
 			],
-			[ // TODO: Fix each payment method's `is_available_for_account_country` function to match supported countries.
+			[
 				'PL',
 				[
 					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Boleto::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Multibanco::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 				],
 			],
 		];
@@ -3946,6 +3939,121 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Paid statuses for which WC core's payment_complete() skips set_transaction_id().
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_paid_statuses_for_confirmation_token_backfill(): array {
+		return [
+			'processing' => [ OrderStatus::PROCESSING ],
+			'completed'  => [ OrderStatus::COMPLETED ],
+		];
+	}
+
+	/**
+	 * Tests that the confirmation token flow persists the charge ID as the transaction ID even
+	 * when the order is already in a paid status, where payment_complete() would otherwise skip it.
+	 *
+	 * @dataProvider provide_paid_statuses_for_confirmation_token_backfill
+	 */
+	public function test_process_payment_with_confirmation_token_backfills_missing_transaction_id( string $paid_status ) {
+		$order = WC_Helper_Order::create_order();
+		// An already-paid status makes WC core's payment_complete() skip set_transaction_id().
+		$order->set_status( $paid_status );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$_POST['payment_method']               = 'stripe';
+		$_POST['wc-stripe-confirmation-token'] = 'ctoken_mock789';
+		$_POST['wc-stripe-payment-method']     = '';
+		$_POST['express_payment_type']         = WC_Stripe_Payment_Methods::APPLE_PAY;
+
+		$this->mock_gateway->oc_enabled = false;
+
+		$stripe_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+
+		$mock_intent = (object) [
+			'id'                   => 'pi_mock1234567890',
+			'object'               => 'payment_intent',
+			'amount'               => $stripe_amount,
+			'currency'             => strtolower( $order->get_currency() ),
+			'customer'             => 'cus_mock1234567890',
+			'latest_charge'        => 'ch_mock1234567890',
+			'payment_method'       => 'pm_mock1234',
+			'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
+			'status'               => 'succeeded',
+			'created'              => time(),
+		];
+
+		$mock_charge = (object) [
+			'id'       => 'ch_mock1234567890',
+			'captured' => true,
+			'status'   => 'succeeded',
+		];
+
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock1234567890' );
+		$this->mock_gateway->method( 'stripe_request' )->willReturn(
+			(object) [
+				'id'   => 'pm_mock1234',
+				'type' => 'card',
+			]
+		);
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( $mock_charge );
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+
+		// Before processing the order has no transaction ID.
+		$this->assertSame( '', $order->get_transaction_id() );
+
+		$response = $this->mock_gateway->process_payment( $order_id );
+
+		$this->assertEquals( 'success', $response['result'] );
+
+		$reloaded = wc_get_order( $order_id );
+		$this->assertSame( 'ch_mock1234567890', $reloaded->get_transaction_id() );
+	}
+
+	/**
+	 * The confirmation token flow must still send Klarna's preferred_locale, so cross-border
+	 * customers aren't routed through the Stripe account country's identity verification.
+	 */
+	public function test_prepare_payment_information_sets_klarna_preferred_locale_for_confirmation_token() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_billing_country( 'FI' );
+		$order->save();
+
+		$this->mock_gateway->oc_enabled = true;
+
+		$_POST = [
+			'payment_method'               => 'stripe_klarna',
+			'wc-stripe-confirmation-token' => 'ctoken_mock',
+		];
+
+		$locale_filter = static function () {
+			return 'fi_FI';
+		};
+		add_filter( 'locale', $locale_filter );
+
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+
+		$reflection = new \ReflectionClass( WC_Stripe_UPE_Payment_Gateway::class );
+		$method     = $reflection->getMethod( 'prepare_payment_information_from_request' );
+		$method->setAccessible( true );
+
+		try {
+			$payment_information = $method->invoke( $this->mock_gateway, $order );
+		} finally {
+			remove_filter( 'locale', $locale_filter );
+			$_POST = [];
+		}
+
+		$this->assertSame( 'ctoken_mock', $payment_information['confirmation_token'] );
+		$this->assertSame( 'fi-FI', $payment_information['payment_method_options'][ WC_Stripe_Payment_Methods::KLARNA ]['preferred_locale'] );
+	}
+
+	/**
 	 * Under OCS, save_payment_method_to_store must be re-evaluated against the resolved method type, not the OC pseudo-method.
 	 *
 	 * @dataProvider provide_test_prepare_payment_information_oc_drops_save_flag_when_resolved_method_not_reusable
@@ -4132,7 +4240,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function test_set_payment_method_title_for_order_ECE_title() {
 		$order = WC_Helper_Order::create_order();
-		update_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME, 'yes' );
 
 		// GOOGLE PAY
 		$mock_ece_payment_method = (object) [
@@ -4165,9 +4272,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		// No wallet type should default to Credit / Debit Card.
 		$this->assertEquals( 'Credit / Debit Card', $order->get_payment_method_title() );
-
-		// Unset the feature flag.
-		delete_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME );
 	}
 
 	/**
