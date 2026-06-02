@@ -1241,11 +1241,29 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		switch ( $payment_method->type ) {
 			case WC_Stripe_Payment_Methods::CARD:
+				$card_brand = isset( $payment_method->card->brand ) ? wc_get_credit_card_type_label( $payment_method->card->brand ) : __( 'N/A', 'woocommerce-gateway-stripe' );
+				$card_last4 = $payment_method->card->last4;
+
+				// Surface the digital wallet the card was used through (Apple Pay /
+				// Google Pay) so the subscription row matches the My Account saved-card
+				// label after a wallet change-payment. `link` and manual cards stay bare.
+				$wallet_type  = isset( $payment_method->card->wallet->type ) ? $payment_method->card->wallet->type : '';
+				$wallet_label = WC_Stripe_Payment_Methods::EXPRESS_METHODS_LABELS[ $wallet_type ] ?? '';
+				if ( '' !== $wallet_label ) {
+					return sprintf(
+						/* translators: 1) wallet brand e.g. "Google Pay"; 2) card brand e.g. Visa; 3) last 4 digits */
+						__( 'Via %1$s (%2$s) ending in %3$s', 'woocommerce-gateway-stripe' ),
+						$wallet_label,
+						$card_brand,
+						$card_last4
+					);
+				}
+
 				return sprintf(
 					/* translators: 1) card brand 2) last 4 digits */
 					__( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ),
-					( isset( $payment_method->card->brand ) ? wc_get_credit_card_type_label( $payment_method->card->brand ) : __( 'N/A', 'woocommerce-gateway-stripe' ) ),
-					$payment_method->card->last4
+					$card_brand,
+					$card_last4
 				);
 			case WC_Stripe_Payment_Methods::SEPA_DEBIT:
 				/* translators: 1) last 4 digits of SEPA Direct Debit */

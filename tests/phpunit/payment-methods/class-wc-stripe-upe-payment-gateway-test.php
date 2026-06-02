@@ -1570,16 +1570,18 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Reusing a saved card refreshes its wallet_type to the latest tokenization
-	 * (last-write-wins), including clearing it when the card is next used directly.
+	 * Reusing a saved card never refreshes its wallet_type: it is create-time
+	 * state, so the token keeps its original branding no matter how the same
+	 * card is next tokenized (see #5477). This prevents a manually-saved card
+	 * from flipping to a wallet brand after a later Apple Pay / Google Pay use.
 	 *
-	 * @dataProvider provider_handle_saving_payment_method_refreshes_wallet_type
+	 * @dataProvider provider_handle_saving_payment_method_preserves_wallet_type
 	 *
 	 * @param string $initial_wallet_type wallet_type already stored on the saved token.
 	 * @param string $new_wallet_type     wallet_type on the incoming payment method ('' for a plain card).
-	 * @param string $expected            wallet_type expected on the token after reuse.
+	 * @param string $expected            wallet_type expected on the token after reuse (always the initial value).
 	 */
-	public function test_handle_saving_payment_method_refreshes_wallet_type_on_reused_token( $initial_wallet_type, $new_wallet_type, $expected ) {
+	public function test_handle_saving_payment_method_preserves_wallet_type_on_reused_token( $initial_wallet_type, $new_wallet_type, $expected ) {
 		$this->mock_gateway->oc_enabled = true;
 
 		$user_id = $this->factory()->user->create();
@@ -1629,27 +1631,30 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$refreshed = WC_Payment_Tokens::get( $existing->get_id() );
 		$this->assertInstanceOf( WC_Stripe_Payment_Token_CC::class, $refreshed );
-		// The reused token reflects the latest wallet branding and Stripe id.
+		// The reused token keeps its create-time wallet branding; only the Stripe id refreshes.
 		$this->assertSame( $expected, $refreshed->get_wallet_type() );
 		$this->assertSame( 'pm_reused', $refreshed->get_token() );
 	}
 
 	/**
-	 * Provider for `test_handle_saving_payment_method_refreshes_wallet_type_on_reused_token`.
+	 * Provider for `test_handle_saving_payment_method_preserves_wallet_type_on_reused_token`.
+	 *
+	 * The expected value always equals the initial wallet_type — the incoming
+	 * method's wallet branding is ignored on the duplicate-match path.
 	 *
 	 * @return array<string, array{0: string, 1: string, 2: string}>
 	 */
-	public function provider_handle_saving_payment_method_refreshes_wallet_type(): array {
+	public function provider_handle_saving_payment_method_preserves_wallet_type(): array {
 		return [
-			'card to apple pay'        => [ '', 'apple_pay', 'apple_pay' ],
-			'card to google pay'       => [ '', 'google_pay', 'google_pay' ],
-			'card to card'             => [ '', '', '' ],
-			'apple pay to card'        => [ 'apple_pay', '', '' ],
-			'apple pay to google pay'  => [ 'apple_pay', 'google_pay', 'google_pay' ],
-			'apple pay to apple pay'   => [ 'apple_pay', 'apple_pay', 'apple_pay' ],
-			'google pay to apple pay'  => [ 'google_pay', 'apple_pay', 'apple_pay' ],
-			'google pay to card'       => [ 'google_pay', '', '' ],
-			'google pay to google pay' => [ 'google_pay', 'google_pay', 'google_pay' ],
+			'plain card reused via apple pay stays plain'        => [ '', 'apple_pay', '' ],
+			'plain card reused via google pay stays plain'       => [ '', 'google_pay', '' ],
+			'plain card reused directly stays plain'             => [ '', '', '' ],
+			'apple pay card reused directly stays apple'         => [ 'apple_pay', '', 'apple_pay' ],
+			'apple pay card reused via google pay stays apple'   => [ 'apple_pay', 'google_pay', 'apple_pay' ],
+			'apple pay card reused via apple pay stays apple'    => [ 'apple_pay', 'apple_pay', 'apple_pay' ],
+			'google pay card reused via apple pay stays google'  => [ 'google_pay', 'apple_pay', 'google_pay' ],
+			'google pay card reused directly stays google'       => [ 'google_pay', '', 'google_pay' ],
+			'google pay card reused via google pay stays google' => [ 'google_pay', 'google_pay', 'google_pay' ],
 		];
 	}
 
