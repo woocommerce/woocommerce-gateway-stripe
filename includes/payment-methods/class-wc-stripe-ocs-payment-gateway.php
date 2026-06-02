@@ -7,17 +7,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Gateway variant used when Optimized Checkout (OCS) is the active payment strategy.
  *
- * All OCS-aware behavior (consolidated Payment Element rendering, payment-method-details
- * routing, saved-token merging across sub-gateways, OC-specific title/params) lives here.
- * The base {@see WC_Stripe_UPE_Payment_Gateway} is unaware of OCS and handles the classic
- * UPE flow. {@see WC_Stripe::get_main_stripe_gateway()} picks the right instance based on
- * the `optimized_checkout_element` setting.
+ * All OCS-aware behavior lives here; the base {@see WC_Stripe_UPE_Payment_Gateway} handles the
+ * classic UPE flow. {@see WC_Stripe::get_main_stripe_gateway()} picks the instance to use.
  */
 class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 
-	/**
-	 * Layout used when a store hasn't explicitly configured the OCS layout option.
-	 */
+	/** Layout used when the store hasn't configured the OCS layout option. */
 	public const DEFAULT_LAYOUT = 'accordion';
 
 	public function __construct() {
@@ -26,25 +21,15 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 	}
 
 	/**
-	 * Whether Optimized Checkout is the active payment strategy for the current request.
-	 *
-	 * Distinct from {@see self::is_valid_optimized_checkout_page()} — which gates *rendering*
-	 * to actual checkout pages. This broader check is true wherever OCS-aware behavior
-	 * should apply (for example, My Account → Payment Methods, where saved tokens for
-	 * sub-gateways must still surface under the consolidated `stripe` gateway).
-	 *
-	 * @return bool
+	 * Whether OCS is the active payment strategy (broader than the render gate; true wherever
+	 * OCS-aware behavior such as token merging applies, e.g. My Account → Payment Methods).
 	 */
 	public function is_optimized_checkout_active(): bool {
 		return ! $this->is_on_add_payment_method_page()
 			&& ! $this->is_changing_payment_method_for_subscription();
 	}
 
-	/**
-	 * Whether the current page is one where the OCS Payment Element may render.
-	 *
-	 * @return bool
-	 */
+	/** Whether the current page is one where the OCS Payment Element may render. */
 	public function is_valid_optimized_checkout_page(): bool {
 		if ( $this->is_on_add_payment_method_page() || $this->is_changing_payment_method_for_subscription() ) {
 			return false;
@@ -53,19 +38,12 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		return is_checkout();
 	}
 
-	/**
-	 * Returns the payment method title.
-	 *
-	 * On OCS checkout pages, use the OC payment method's title. On order received/details
-	 * pages, the OC title falls through to generic "Stripe"; prefer the title stored on the
-	 * order by the webhook handler when available.
-	 */
-	public function get_title() {
+	/** Returns the OC title on checkout, or the order's stored payment-method title on order pages. */
+	public function get_title(): string {
 		// The order-received (thank you) and order-details (admin / My Account view-order) pages
-		// aren't checkout pages, so they fall outside is_valid_optimized_checkout_page(). The OC
-		// title would otherwise fall through to the generic "Stripe"; prefer the payment-method
-		// title stored on the order by the webhook handler. Resolve this before the render gate,
-		// using the broader active check, so it still applies on the admin order screen.
+		// aren't checkout pages, so they fall outside is_valid_optimized_checkout_page(). Prefer the
+		// payment-method title stored on the order; resolve it before the render gate using the
+		// broad active check so it still applies on the admin order screen.
 		if ( $this->is_optimized_checkout_active() && ( is_wc_endpoint_url( 'order-received' ) || $this->is_order_details_page() ) ) {
 			global $theorder;
 			if ( $theorder instanceof WC_Order ) {
@@ -86,10 +64,8 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		return ( new WC_Stripe_UPE_Payment_Method_OC() )->get_title();
 	}
 
-	/**
-	 * Adds OCS-specific keys to the params passed to the client scripts.
-	 */
-	public function javascript_params() {
+	/** Adds OCS-specific keys to the params passed to the client scripts. */
+	public function javascript_params(): array {
 		$stripe_params = parent::javascript_params();
 
 		$should_show_optimized_checkout                 = $this->is_valid_optimized_checkout_page();
@@ -108,11 +84,8 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		return $stripe_params;
 	}
 
-	/**
-	 * Under OCS, the consolidated `oc` payment method is rendered alongside express methods;
-	 * the individual UPE sub-methods are surfaced inside the Payment Element's card container.
-	 */
-	protected function get_enabled_payment_method_config() {
+	/** Surfaces the consolidated `oc` method plus express methods; UPE sub-methods render inside the card container. */
+	protected function get_enabled_payment_method_config(): array {
 		$settings = [];
 
 		$enabled_payment_methods = $this->get_upe_enabled_at_checkout_payment_method_ids();
@@ -162,16 +135,8 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		return $settings;
 	}
 
-	/**
-	 * Overrides the base testing-instructions rendering to output the consolidated OC instructions
-	 * when OCS is rendered.
-	 */
-	/**
-	 * Renders the payment form on checkout pages.
-	 *
-	 * @return void
-	 */
-	public function payment_fields() {
+	/** Renders the consolidated OC payment form on checkout pages. */
+	public function payment_fields(): void {
 		if ( ! $this->is_valid_optimized_checkout_page() ) {
 			parent::payment_fields();
 			return;
@@ -231,9 +196,7 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		}
 	}
 
-	/**
-	 * Adds the adaptive-pricing currency selector above the Payment Element when applicable.
-	 */
+	/** Adds the adaptive-pricing currency selector above the Payment Element when applicable. */
 	protected function render_payment_fields_above_element( bool $display_tokenization ): void {
 		parent::render_payment_fields_above_element( $display_tokenization );
 
@@ -242,10 +205,7 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		}
 	}
 
-	/**
-	 * Under OCS the Payment Element already handles Link save consent at a per-method level,
-	 * so the classic hide-for-Link rule does not apply.
-	 */
+	/** Under OCS the Payment Element handles Link save consent per method, so the hide-for-Link rule does not apply. */
 	protected function should_hide_save_payment_method_checkbox(): bool {
 		if ( $this->is_valid_optimized_checkout_page() ) {
 			return false;
@@ -253,26 +213,16 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		return parent::should_hide_save_payment_method_checkbox();
 	}
 
-	/**
-	 * Ensures the OC payment method instance is present when recording an OC-typed order title.
-	 */
-	/**
-	 * Records the payment method title on the order.
-	 *
-	 * @return void
-	 */
-	public function set_payment_method_title_for_order( $order, $payment_method_type, $stripe_payment_method = false ) {
+	/** Ensures the OC payment method instance is present before recording an OC-typed order title. */
+	public function set_payment_method_title_for_order( $order, $payment_method_type, $stripe_payment_method = false ): void {
 		if ( WC_Stripe_Payment_Methods::OC === $payment_method_type && ! isset( $this->payment_methods[ WC_Stripe_Payment_Methods::OC ] ) ) {
 			$this->payment_methods[ WC_Stripe_Payment_Methods::OC ] = new WC_Stripe_UPE_Payment_Method_OC();
 		}
 		parent::set_payment_method_title_for_order( $order, $payment_method_type, $stripe_payment_method );
 	}
 
-	/**
-	 * Adds saved tokens from sub-gateways (SEPA, ACH, Amazon Pay, etc.) to the consolidated
-	 * `stripe` gateway when OCS is active, so customers see every reusable method in one list.
-	 */
-	public function get_tokens() {
+	/** Merges saved sub-gateway tokens (SEPA, ACH, Amazon Pay, …) into the consolidated `stripe` gateway when OCS is active. */
+	public function get_tokens(): array {
 		$tokens = parent::get_tokens();
 
 		// Use the broad active check (not the page-specific render gate): saved sub-gateway
@@ -319,11 +269,8 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		return $unique;
 	}
 
-	/**
-	 * Under OCS, resolve the payment method from the Stripe-returned payment_method_details
-	 * rather than the selected_payment_type that the classic UPE form sends.
-	 */
-	protected function resolve_upe_payment_method_for_processing( array $payment_information ) {
+	/** Resolves the method being processed from the Stripe-returned payment_method_details type. */
+	protected function resolve_upe_payment_method_for_processing( array $payment_information ): ?WC_Stripe_UPE_Payment_Method {
 		$details = $payment_information['payment_method_details'] ?? null;
 		if ( isset( $details->type ) ) {
 			$instance = self::get_payment_method_instance( $details->type );
@@ -334,10 +281,8 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		return parent::resolve_upe_payment_method_for_processing( $payment_information );
 	}
 
-	/**
-	 * Under OCS, the setup intent's payment_method_details->type is authoritative.
-	 */
-	protected function resolve_payment_method_for_setup_intent( $payment_method_type, $payment_method_details ) {
+	/** Under OCS the setup intent's payment_method_details->type is authoritative. */
+	protected function resolve_payment_method_for_setup_intent( $payment_method_type, $payment_method_details ): ?WC_Stripe_UPE_Payment_Method {
 		$resolved_type = null;
 		if ( is_array( $payment_method_details ) ) {
 			$resolved_type = $payment_method_details['type'] ?? null;
@@ -354,14 +299,10 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		return parent::resolve_payment_method_for_setup_intent( $payment_method_type, $payment_method_details );
 	}
 
-	/**
-	 * Under OCS, use the payment_method_details->type (set by the Payment Element) to drive
-	 * intent creation, with a narrow fallback to the express payment type.
-	 */
-	protected function resolve_intent_payment_method_types( $selected_payment_type, $payment_method_id, $payment_method_details, $order, $express_payment_type, $save_payment_method_to_store = false ) {
+	/** Drives intent creation from payment_method_details->type, with a narrow fallback to the express type. */
+	protected function resolve_intent_payment_method_types( string $selected_payment_type, $payment_method_id, $payment_method_details, $order, $express_payment_type, bool $save_payment_method_to_store = false ): array {
 		if ( empty( $payment_method_id ) || empty( $payment_method_details->type ) ) {
-			// Express paths won't have a payment method created yet; fall back to either the
-			// currently selected type or the express type (whichever is set).
+			// Express paths won't have a payment method created yet; fall back to the express type.
 			if ( '' === $selected_payment_type && null !== $express_payment_type ) {
 				$selected_payment_type = $express_payment_type;
 			}
@@ -385,22 +326,16 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		];
 	}
 
-	/**
-	 * Under OCS, prefer the Stripe-returned payment_method_details->type over the form-sent
-	 * selected_payment_type when building payment_method_options.
-	 */
-	protected function resolve_payment_method_type_for_options( $selected_payment_type, $payment_method_details ) {
+	/** Prefers the Stripe-returned payment_method_details->type when building payment_method_options. */
+	protected function resolve_payment_method_type_for_options( string $selected_payment_type, $payment_method_details ): string {
 		if ( isset( $payment_method_details->type ) ) {
-			return $payment_method_details->type;
+			return (string) $payment_method_details->type;
 		}
 		return parent::resolve_payment_method_type_for_options( $selected_payment_type, $payment_method_details );
 	}
 
-	/**
-	 * Under OCS, saved tokens should reflect the concrete payment-method type Stripe returns
-	 * (rather than the form-sent type, which is always the consolidated OC handle).
-	 */
-	protected function resolve_payment_method_for_saved_token( $payment_method_type, $payment_method_object ) {
+	/** Saved tokens reflect the concrete type Stripe returns rather than the consolidated OC handle. */
+	protected function resolve_payment_method_for_saved_token( string $payment_method_type, $payment_method_object ): array {
 		if ( isset( $payment_method_object->type ) ) {
 			$payment_method_type = $payment_method_object->type;
 			$instance            = $this->get_payment_method_instance( $payment_method_type );
@@ -411,14 +346,11 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		return parent::resolve_payment_method_for_saved_token( $payment_method_type, $payment_method_object );
 	}
 
-	/**
-	 * Under OCS the selected_payment_type on the payment information is always the consolidated
-	 * OC handle; the real type sits in payment_method_details->type.
-	 */
-	public function get_selected_payment_type_from_info( array $payment_information ) {
+	/** The real type lives in payment_method_details->type; the info's selected_payment_type is the OC handle. */
+	public function get_selected_payment_type_from_info( array $payment_information ): string {
 		$details = $payment_information['payment_method_details'] ?? null;
 		if ( isset( $details->type ) ) {
-			return $details->type;
+			return (string) $details->type;
 		}
 		return parent::get_selected_payment_type_from_info( $payment_information );
 	}

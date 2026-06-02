@@ -4574,7 +4574,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param array $payment_information Payment information array used in process_payment.
 	 * @return WC_Stripe_UPE_Payment_Method|null
 	 */
-	protected function resolve_upe_payment_method_for_processing( array $payment_information ) {
+	protected function resolve_upe_payment_method_for_processing( array $payment_information ): ?WC_Stripe_UPE_Payment_Method {
 		$selected_payment_type = $payment_information['selected_payment_type'];
 		return $this->payment_methods[ $selected_payment_type ] ?? null;
 	}
@@ -4587,7 +4587,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return WC_Stripe_UPE_Payment_Method|null
 	 */
-	protected function resolve_payment_method_for_setup_intent( $payment_method_type, $payment_method_details ) {
+	protected function resolve_payment_method_for_setup_intent( $payment_method_type, $payment_method_details ): ?WC_Stripe_UPE_Payment_Method {
 		return $this->payment_methods[ $payment_method_type ] ?? null;
 	}
 
@@ -4603,7 +4603,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return array{ selected_payment_type: string, payment_method_types: string[], save_payment_method_to_store: bool }
 	 */
-	protected function resolve_intent_payment_method_types( $selected_payment_type, $payment_method_id, $payment_method_details, $order, $express_payment_type, $save_payment_method_to_store = false ) {
+	protected function resolve_intent_payment_method_types( string $selected_payment_type, $payment_method_id, $payment_method_details, $order, $express_payment_type, bool $save_payment_method_to_store = false ): array {
 		return [
 			'selected_payment_type'        => $selected_payment_type,
 			'payment_method_types'         => $this->get_payment_method_types_for_intent_creation(
@@ -4623,7 +4623,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return string
 	 */
-	protected function resolve_payment_method_type_for_options( $selected_payment_type, $payment_method_details ) {
+	protected function resolve_payment_method_type_for_options( string $selected_payment_type, $payment_method_details ): string {
 		return $selected_payment_type;
 	}
 
@@ -4635,7 +4635,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return array{0: string, 1: WC_Stripe_UPE_Payment_Method}
 	 */
-	protected function resolve_payment_method_for_saved_token( $payment_method_type, $payment_method_object ) {
+	protected function resolve_payment_method_for_saved_token( string $payment_method_type, $payment_method_object ): array {
 		return [ $payment_method_type, $this->payment_methods[ $payment_method_type ] ];
 	}
 
@@ -4650,8 +4650,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return string
 	 */
-	public function get_selected_payment_type_from_info( array $payment_information ) {
-		return $payment_information['selected_payment_type'];
+	public function get_selected_payment_type_from_info( array $payment_information ): string {
+		return (string) $payment_information['selected_payment_type'];
 	}
 
 
