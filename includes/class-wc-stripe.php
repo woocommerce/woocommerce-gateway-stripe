@@ -311,6 +311,9 @@ class WC_Stripe {
 
 			// Handle the async cache prefetch action.
 			add_action( WC_Stripe_Database_Cache_Prefetch::ASYNC_PREFETCH_ACTION, [ WC_Stripe_Database_Cache_Prefetch::get_instance(), 'handle_prefetch_action' ], 10, 1 );
+
+			// Register Stripe abilities with the WordPress Abilities API.
+			WC_Stripe_Abilities_Registrar::init();
 		}
 	}
 
