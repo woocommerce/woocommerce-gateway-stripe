@@ -2,7 +2,7 @@
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.7
-Tested up to: 6.9.4
+Tested up to: 7.0
 Requires PHP: 7.4
 Stable tag: 10.7.0
 License: GPLv3
@@ -196,5 +196,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add wc_stripe_agentic_commerce_should_sync_product filter so adapters can exclude products from the Agentic Commerce catalog, inventory, and archive syncs
 * Dev - Move additional classes to autoloader, including email and migration classes
 * Add - Register Stripe gateway capabilities with the WordPress Abilities API for agent access (default off; opt in via the `wc_stripe_abilities_enabled` filter)
+* Update - Declare compatibility with WordPress 7.0
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
