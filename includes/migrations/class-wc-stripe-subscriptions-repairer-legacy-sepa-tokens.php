@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
  */
 class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends \WCS_Background_Repairer {
 
-	const LEGACY_SEPA_SUBSCRIPTIONS_COUNT = 'woocommerce_stripe_subscriptions_with_legacy_sepa';
+	public const LEGACY_SEPA_SUBSCRIPTIONS_COUNT = 'woocommerce_stripe_subscriptions_with_legacy_sepa';
 
 	/**
 	 * The transient key used to store the progress of the repair.
