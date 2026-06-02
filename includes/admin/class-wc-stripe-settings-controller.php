@@ -228,6 +228,10 @@ class WC_Stripe_Settings_Controller {
 			&& ! $is_india_account
 			&& 'yes' === get_option( 'wc_stripe_show_ap_only_banner', 'yes' );
 
+		$show_ocs_only_banner = $is_oc_enabled
+			&& ! $is_ap_enabled
+			&& 'yes' === get_option( 'wc_stripe_show_ocs_only_banner', 'yes' );
+
 		$is_checkout_sessions_available      = false;
 		$adaptive_pricing_unavailable_reason = 'disabled';
 		if ( WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
@@ -248,6 +252,7 @@ class WC_Stripe_Settings_Controller {
 			'show_stripe_tax_banner'                => $show_stripe_tax_banner,
 			'show_ocs_ap_banner'                    => $show_ocs_ap_banner,
 			'show_ap_only_banner'                   => $show_ap_only_banner,
+			'show_ocs_only_banner'                  => $show_ocs_only_banner,
 			'is_test_mode'                          => $this->get_gateway()->is_in_test_mode(),
 			'plugin_version'                        => WC_STRIPE_VERSION,
 			'account_country'                       => $this->account->get_account_country(),

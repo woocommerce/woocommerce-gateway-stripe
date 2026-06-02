@@ -4,6 +4,7 @@ import {
 	BNPL_PROMOTION_BANNER,
 	OC_PROMOTION_BANNER,
 	OCS_AP_BANNER,
+	OCS_ONLY_BANNER,
 	RECONNECT_BANNER,
 	STRIPE_TAX_BANNER,
 } from '../constants';
@@ -14,6 +15,7 @@ import { OCPromotionBanner } from 'wcstripe/settings/payment-settings/promotiona
 import { StripeTaxBanner } from 'wcstripe/settings/payment-settings/promotional-banner/stripe-tax-banner';
 import { OCSAndAPBanner } from 'wcstripe/settings/payment-settings/promotional-banner/ocs-ap-banner';
 import { APOnlyBanner } from 'wcstripe/settings/payment-settings/promotional-banner/ap-only-banner';
+import { OCSOnlyBanner } from 'wcstripe/settings/payment-settings/promotional-banner/ocs-only-banner';
 
 const PromotionalBanner = ( {
 	setShowPromotionalBanner,
@@ -35,6 +37,13 @@ const PromotionalBanner = ( {
 		case AP_ONLY_BANNER:
 			BannerContent = (
 				<APOnlyBanner
+					setShowPromotionalBanner={ setShowPromotionalBanner }
+				/>
+			);
+			break;
+		case OCS_ONLY_BANNER:
+			BannerContent = (
+				<OCSOnlyBanner
 					setShowPromotionalBanner={ setShowPromotionalBanner }
 				/>
 			);

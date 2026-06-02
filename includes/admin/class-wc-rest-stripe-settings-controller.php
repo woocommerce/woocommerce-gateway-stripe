@@ -683,6 +683,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			'wc_stripe_show_customization_notice'       => 'wc_stripe_show_customization_notice',
 			'wc_stripe_show_oc_promotion_banner'        => 'wc_stripe_show_oc_promotion_banner',
 			'wc_stripe_show_ocs_ap_banner'              => 'wc_stripe_show_ocs_ap_banner',
+			'wc_stripe_show_ocs_only_banner'            => 'wc_stripe_show_ocs_only_banner',
 			'wc_stripe_show_optimized_checkout_notice'  => 'wc_stripe_show_optimized_checkout_notice',
 			'wc_stripe_show_stripe_first_method_notice' => 'wc_stripe_show_stripe_first_method_notice',
 			'wc_stripe_show_stripe_tax_banner'          => 'wc_stripe_show_stripe_tax_banner',

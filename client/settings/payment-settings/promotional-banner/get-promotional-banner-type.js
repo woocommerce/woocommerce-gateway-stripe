@@ -4,6 +4,7 @@ import {
 	BNPL_PROMOTION_BANNER,
 	OC_PROMOTION_BANNER,
 	OCS_AP_BANNER,
+	OCS_ONLY_BANNER,
 	RECONNECT_BANNER,
 	STRIPE_TAX_BANNER,
 } from 'wcstripe/settings/payment-settings/constants';
@@ -44,6 +45,11 @@ export const getPromotionalBannerType = (
 	// eslint-disable-next-line camelcase
 	if ( wc_stripe_settings_params?.show_ap_only_banner === '1' ) {
 		return AP_ONLY_BANNER;
+	}
+
+	// eslint-disable-next-line camelcase
+	if ( wc_stripe_settings_params?.show_ocs_only_banner === '1' ) {
+		return OCS_ONLY_BANNER;
 	}
 
 	if (

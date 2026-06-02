@@ -7,16 +7,18 @@ use PHPUnit\Framework\MockObject\MockObject;
  */
 class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 
-	private const MIGRATION_FLAG_OPTION      = 'wc_stripe_ocs_ap_default_on_migration_ran';
-	private const SHOW_OCS_AP_BANNER_OPTION  = 'wc_stripe_show_ocs_ap_banner';
-	private const SHOW_AP_ONLY_BANNER_OPTION = 'wc_stripe_show_ap_only_banner';
-	private const STRIPE_VERSION_OPTION      = 'wc_stripe_version';
+	private const MIGRATION_FLAG_OPTION       = 'wc_stripe_ocs_ap_default_on_migration_ran';
+	private const SHOW_OCS_AP_BANNER_OPTION   = 'wc_stripe_show_ocs_ap_banner';
+	private const SHOW_AP_ONLY_BANNER_OPTION  = 'wc_stripe_show_ap_only_banner';
+	private const SHOW_OCS_ONLY_BANNER_OPTION = 'wc_stripe_show_ocs_only_banner';
+	private const STRIPE_VERSION_OPTION       = 'wc_stripe_version';
 
 	public function set_up() {
 		parent::set_up();
 		delete_option( self::MIGRATION_FLAG_OPTION );
 		delete_option( self::SHOW_OCS_AP_BANNER_OPTION );
 		delete_option( self::SHOW_AP_ONLY_BANNER_OPTION );
+		delete_option( self::SHOW_OCS_ONLY_BANNER_OPTION );
 		delete_option( self::STRIPE_VERSION_OPTION );
 		WC_Stripe_Helper::delete_main_stripe_settings();
 	}
@@ -25,26 +27,27 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		delete_option( self::MIGRATION_FLAG_OPTION );
 		delete_option( self::SHOW_OCS_AP_BANNER_OPTION );
 		delete_option( self::SHOW_AP_ONLY_BANNER_OPTION );
+		delete_option( self::SHOW_OCS_ONLY_BANNER_OPTION );
 		delete_option( self::STRIPE_VERSION_OPTION );
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		parent::tear_down();
 	}
 
 	/**
-	 * Build a partial mock so account-country and account-created reads don't
+	 * Build a partial mock so AP-availability and account-created reads don't
 	 * touch the Stripe API.
 	 *
-	 * @param string   $country Country code returned by get_account_country(). Empty string by default.
-	 * @param int|null $created Unix timestamp returned by get_account_created_ts(). Null by default.
+	 * @param string|null $ap_unavailable_reason Reason AP is unavailable, or null when available.
+	 * @param int|null    $created               Unix timestamp returned by get_account_created_ts().
 	 *
 	 * @return MockObject|WC_Stripe_OCS_AP_Default_On_Update
 	 */
-	private function build_migration( string $country = '', ?int $created = null ) {
+	private function build_migration( ?string $ap_unavailable_reason = null, ?int $created = null ) {
 		$migration = $this->getMockBuilder( WC_Stripe_OCS_AP_Default_On_Update::class )
 							->disableOriginalConstructor()
-							->onlyMethods( [ 'get_account_country', 'get_account_created_ts' ] )
+							->onlyMethods( [ 'get_ap_unavailable_reason', 'get_account_created_ts' ] )
 							->getMock();
-		$migration->method( 'get_account_country' )->willReturn( $country );
+		$migration->method( 'get_ap_unavailable_reason' )->willReturn( $ap_unavailable_reason );
 		$migration->method( 'get_account_created_ts' )->willReturn( $created );
 		return $migration;
 	}
@@ -66,6 +69,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		$this->assertSame( 'no', $stored['adaptive_pricing'], 'Flip must not run when guard is set.' );
 		$this->assertFalse( get_option( self::SHOW_OCS_AP_BANNER_OPTION ), 'Banner A option must not be set.' );
 		$this->assertFalse( get_option( self::SHOW_AP_ONLY_BANNER_OPTION ), 'Banner B option must not be set.' );
+		$this->assertFalse( get_option( self::SHOW_OCS_ONLY_BANNER_OPTION ), 'OCS-only banner option must not be set.' );
 	}
 
 	public function test_new_install_writes_only_ran_once_flag() {
@@ -84,6 +88,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		$this->assertSame( 'no', $stored['adaptive_pricing'], 'New install must not flip AP.' );
 		$this->assertFalse( get_option( self::SHOW_OCS_AP_BANNER_OPTION ) );
 		$this->assertFalse( get_option( self::SHOW_AP_ONLY_BANNER_OPTION ) );
+		$this->assertFalse( get_option( self::SHOW_OCS_ONLY_BANNER_OPTION ) );
 		$this->assertSame( 'yes', get_option( self::MIGRATION_FLAG_OPTION ) );
 	}
 
@@ -103,6 +108,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		$this->assertSame( 'no', $stored['adaptive_pricing'], 'Already-10.8 must not flip AP.' );
 		$this->assertFalse( get_option( self::SHOW_OCS_AP_BANNER_OPTION ) );
 		$this->assertFalse( get_option( self::SHOW_AP_ONLY_BANNER_OPTION ) );
+		$this->assertFalse( get_option( self::SHOW_OCS_ONLY_BANNER_OPTION ) );
 		$this->assertSame( 'yes', get_option( self::MIGRATION_FLAG_OPTION ) );
 	}
 
@@ -116,10 +122,11 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		string $previous_version,
 		string $oc_pre,
 		string $ap_pre,
-		string $country,
+		?string $ap_unavailable_reason,
 		?int $account_created,
 		string $expected_show_ocs_ap_banner,
 		string $expected_show_ap_banner,
+		string $expected_show_ocs_only_banner,
 		string $expected_oc_after,
 		string $expected_ap_after
 	) {
@@ -131,20 +138,25 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->build_migration( $country, $account_created )->maybe_migrate();
+		$this->build_migration( $ap_unavailable_reason, $account_created )->maybe_migrate();
 
 		$created_label = null === $account_created ? 'null' : (string) $account_created;
-		$context       = sprintf( 'prev=%s oc=%s ap=%s country=%s created=%s', $previous_version, $oc_pre, $ap_pre, $country, $created_label );
+		$context       = sprintf( 'prev=%s oc=%s ap=%s ap_unavail=%s created=%s', $previous_version, $oc_pre, $ap_pre, $ap_unavailable_reason ?? 'available', $created_label );
 
 		$this->assertSame(
 			$expected_show_ocs_ap_banner,
 			get_option( self::SHOW_OCS_AP_BANNER_OPTION ),
-			sprintf( 'Banner A flag mismatch for %s', $context )
+			sprintf( 'OCS+AP banner flag mismatch for %s', $context )
 		);
 		$this->assertSame(
 			$expected_show_ap_banner,
 			get_option( self::SHOW_AP_ONLY_BANNER_OPTION ),
-			sprintf( 'Banner B flag mismatch for %s', $context )
+			sprintf( 'AP-only banner flag mismatch for %s', $context )
+		);
+		$this->assertSame(
+			$expected_show_ocs_only_banner,
+			get_option( self::SHOW_OCS_ONLY_BANNER_OPTION ),
+			sprintf( 'OCS-only banner flag mismatch for %s', $context )
 		);
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
@@ -165,19 +177,22 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		$new_ts = 1779148800;   // 2026-05-19 — post-10.7 era.
 
 		return [
-			// previous_version, oc_pre, ap_pre, country, account_created, expected show_a, show_b, oc_after, ap_after.
-			'both-on backbook'                       => [ '10.7.0', 'yes', 'yes', 'US', $new_ts, 'no', 'no', 'yes', 'yes' ],
-			'OC-only backbook old-account'           => [ '10.7.0', 'yes', 'no', 'US', $old_ts, 'no', 'yes', 'yes', 'yes' ],
-			'OC-only frontbook-10.7 disabled-AP'     => [ '10.7.0', 'yes', 'no', 'US', $new_ts, 'no', 'no', 'yes', 'no' ],
-			'both-off backbook old-account'          => [ '10.7.0', 'no', 'no', 'US', $old_ts, 'yes', 'no', 'yes', 'yes' ],
-			'both-off standard-account null-created' => [ '10.7.0', 'no', 'no', 'US', null, 'yes', 'no', 'yes', 'yes' ],
-			'both-off frontbook-10.7 disabled-both'  => [ '10.7.0', 'no', 'no', 'US', $new_ts, 'no', 'no', 'no', 'no' ],
-			'AP-only-on disabled-OC'                 => [ '10.7.0', 'no', 'yes', 'US', $new_ts, 'no', 'no', 'no', 'yes' ],
-			'previous 10.6 both-off recent-account'  => [ '10.6.0', 'no', 'no', 'US', $new_ts, 'yes', 'no', 'yes', 'yes' ],
-			'previous 10.6 OC-only recent-account'   => [ '10.6.0', 'yes', 'no', 'US', $new_ts, 'no', 'yes', 'yes', 'yes' ],
-			'India backbook both-off'                => [ '10.7.0', 'no', 'no', 'IN', $old_ts, 'no', 'no', 'no', 'no' ],
-			'India backbook OC-only'                 => [ '10.7.0', 'yes', 'no', 'IN', $old_ts, 'no', 'no', 'yes', 'no' ],
-			'unavailable-country backbook both-off'  => [ '10.7.0', 'no', 'no', '', $old_ts, 'yes', 'no', 'yes', 'yes' ],
+			// prev_ver, oc_pre, ap_pre, ap_unavailable_reason, created, show_ocs_ap, show_ap_only, show_ocs_only, oc_after, ap_after.
+			'both-on backbook'                       => [ '10.7.0', 'yes', 'yes', null, $new_ts, 'no', 'no', 'no', 'yes', 'yes' ],
+			'OC-only backbook old-account'           => [ '10.7.0', 'yes', 'no', null, $old_ts, 'no', 'yes', 'no', 'yes', 'yes' ],
+			'OC-only frontbook-10.7 disabled-AP'     => [ '10.7.0', 'yes', 'no', null, $new_ts, 'no', 'no', 'no', 'yes', 'no' ],
+			'both-off backbook old-account'          => [ '10.7.0', 'no', 'no', null, $old_ts, 'yes', 'no', 'no', 'yes', 'yes' ],
+			'both-off standard-account null-created' => [ '10.7.0', 'no', 'no', null, null, 'yes', 'no', 'no', 'yes', 'yes' ],
+			'both-off frontbook-10.7 disabled-both'  => [ '10.7.0', 'no', 'no', null, $new_ts, 'no', 'no', 'no', 'no', 'no' ],
+			'AP-only-on frontbook disabled-OC'       => [ '10.7.0', 'no', 'yes', null, $new_ts, 'no', 'no', 'no', 'no', 'yes' ],
+			'AP-only-on backbook OC-newly-enabled'   => [ '10.7.0', 'no', 'yes', null, $old_ts, 'no', 'no', 'no', 'yes', 'yes' ],
+			'previous 10.6 both-off recent-account'  => [ '10.6.0', 'no', 'no', null, $new_ts, 'yes', 'no', 'no', 'yes', 'yes' ],
+			'previous 10.6 OC-only recent-account'   => [ '10.6.0', 'yes', 'no', null, $new_ts, 'no', 'yes', 'no', 'yes', 'yes' ],
+			'India backbook both-off'                => [ '10.7.0', 'no', 'no', 'account-country', $old_ts, 'no', 'no', 'yes', 'yes', 'no' ],
+			'India backbook OC-only'                 => [ '10.7.0', 'yes', 'no', 'account-country', $old_ts, 'no', 'no', 'no', 'yes', 'no' ],
+			'India frontbook disabled-OC'            => [ '10.7.0', 'no', 'no', 'account-country', $new_ts, 'no', 'no', 'no', 'no', 'no' ],
+			'currency-unavailable both-off'          => [ '10.7.0', 'no', 'no', 'store-currency-not-settlement-currency', $old_ts, 'no', 'no', 'yes', 'yes', 'no' ],
+			'currency-unavailable OC-only'           => [ '10.7.0', 'yes', 'no', 'no-settlement-currencies', $old_ts, 'no', 'no', 'no', 'yes', 'no' ],
 		];
 	}
 
@@ -191,7 +206,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->build_migration( 'US', 1747008000 )->maybe_migrate();
+		$this->build_migration( null, 1747008000 )->maybe_migrate();
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'OC must be flipped to yes.' );
@@ -208,14 +223,14 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->build_migration( 'US', 1779148800 )->maybe_migrate();
+		$this->build_migration( null, 1779148800 )->maybe_migrate();
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'yes', $stored['optimized_checkout_element'] );
 		$this->assertSame( 'yes', $stored['adaptive_pricing'] );
 	}
 
-	public function test_flip_skipped_for_india_merchants() {
+	public function test_india_enables_oc_skips_ap_with_ocs_only_banner() {
 		update_option( self::STRIPE_VERSION_OPTION, '10.7.0' );
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
@@ -224,14 +239,15 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			]
 		);
 
-		// India geo-exclusion covers both banner and underlying feature flip,
-		// regardless of frontbook status.
-		$this->build_migration( 'IN', 1747008000 )->maybe_migrate();
+		// India: AP is unavailable, but OCS is enabled. Old account => not frontbook.
+		$this->build_migration( 'account-country', 1747008000 )->maybe_migrate();
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertSame( 'no', $stored['optimized_checkout_element'], 'India: OC flip must be skipped.' );
-		$this->assertSame( 'no', $stored['adaptive_pricing'], 'India: AP flip must be skipped.' );
-		$this->assertSame( 'no', get_option( self::SHOW_OCS_AP_BANNER_OPTION ), 'India: banner is suppressed.' );
+		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'India: OC must be enabled.' );
+		$this->assertSame( 'no', $stored['adaptive_pricing'], 'India: AP must stay disabled.' );
+		$this->assertSame( 'yes', get_option( self::SHOW_OCS_ONLY_BANNER_OPTION ), 'India: OCS-only banner shown.' );
+		$this->assertSame( 'no', get_option( self::SHOW_OCS_AP_BANNER_OPTION ), 'India: OCS+AP banner suppressed.' );
+		$this->assertSame( 'no', get_option( self::SHOW_AP_ONLY_BANNER_OPTION ), 'India: AP-only banner suppressed.' );
 	}
 
 	public function test_flip_skipped_for_frontbook_with_both_disabled() {
@@ -244,7 +260,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		);
 
 		// Recent account = likely 10.7 frontbook who explicitly disabled both.
-		$this->build_migration( 'US', 1779148800 )->maybe_migrate();
+		$this->build_migration( null, 1779148800 )->maybe_migrate();
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'no', $stored['optimized_checkout_element'], 'Frontbook-disabled OC must not be re-flipped.' );
@@ -261,7 +277,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		);
 
 		// Recent account = likely 10.7 frontbook who kept OC on but disabled AP.
-		$this->build_migration( 'US', 1779148800 )->maybe_migrate();
+		$this->build_migration( null, 1779148800 )->maybe_migrate();
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'OC stays as set; no change needed.' );
