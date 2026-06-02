@@ -71,6 +71,9 @@ if ( ! defined( 'WC_REMOVE_ALL_DATA' ) || true !== WC_REMOVE_ALL_DATA ) {
 	delete_option( 'wc_stripe_elements_options' );
 	delete_option( 'wc_stripe_version' );
 
+	// Exit survey cooldown
+	delete_option( 'wc_stripe_exit_survey_last_shown' );
+
 	delete_option( 'wc_stripe_show_style_notice' );
 	delete_option( 'wc_stripe_show_styles_notice' );
 	delete_option( 'wc_stripe_show_ssl_notice' );

@@ -21,14 +21,14 @@ class WC_Stripe_Payment_Method_Configurations {
 	 *
 	 * @var string|null
 	 */
-	const TEST_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjBGX8lmJQndTBOzjqxSa';
+	public const TEST_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjBGX8lmJQndTBOzjqxSa';
 
 	/**
 	 * The live mode configuration parent ID.
 	 *
 	 * @var string|null
 	 */
-	const LIVE_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';
+	public const LIVE_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';
 
 	/**
 	 * The payment method configuration cache key.
@@ -42,12 +42,12 @@ class WC_Stripe_Payment_Method_Configurations {
 	 *
 	 * @var int
 	 */
-	const CONFIGURATION_CACHE_EXPIRATION = 20 * MINUTE_IN_SECONDS;
+	public const CONFIGURATION_CACHE_EXPIRATION = 20 * MINUTE_IN_SECONDS;
 
 	/**
 	 * The payment method configuration fetch cooldown option key.
 	 */
-	const FETCH_COOLDOWN_OPTION_KEY = 'wcstripe_payment_method_config_fetch_cooldown';
+	public const FETCH_COOLDOWN_OPTION_KEY = 'wcstripe_payment_method_config_fetch_cooldown';
 
 	/**
 	 * Get the merchant payment method configuration in Stripe.
@@ -120,7 +120,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return object|null
 	 */
 	private static function get_payment_method_configuration_from_stripe() {
-		$is_test_mode       = WC_Stripe_Mode::is_test();
+		$is_test_mode = WC_Stripe_Mode::is_test();
 
 		/**
 		 * Allows merchants to specify the ID of a Payment Method Configuration to use. This makes it possible for
@@ -134,7 +134,7 @@ class WC_Stripe_Payment_Method_Configurations {
 
 		if ( is_string( $preselected_pmc_id ) && str_starts_with( $preselected_pmc_id, 'pmc_' ) ) {
 			$configuration = WC_Stripe_API::retrieve( 'payment_method_configurations/' . $preselected_pmc_id );
-			$error = null;
+			$error         = null;
 			if ( is_wp_error( $configuration ) ) {
 				$error = $configuration;
 			} elseif ( ! empty( $configuration->error ) ) {
@@ -248,8 +248,8 @@ class WC_Stripe_Payment_Method_Configurations {
 			}
 
 			return [
-				'pmc'     => null,
-				'reason'  => 'no_eligible_pmcs',
+				'pmc'    => null,
+				'reason' => 'no_eligible_pmcs',
 			];
 		}
 

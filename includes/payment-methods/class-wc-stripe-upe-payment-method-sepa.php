@@ -12,7 +12,65 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 	use WC_Stripe_Subscriptions_Trait;
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::SEPA_DEBIT;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::SEPA_DEBIT;
+
+	/**
+	 * Stripe account countries that may not enable SEPA Direct Debit.
+	 *
+	 * @var string[]
+	 */
+	protected const UNSUPPORTED_ACCOUNT_COUNTRIES = [
+		WC_Stripe_Country_Code::BRAZIL,
+		WC_Stripe_Country_Code::MALAYSIA,
+		WC_Stripe_Country_Code::THAILAND,
+		WC_Stripe_Country_Code::UNITED_ARAB_EMIRATES,
+	];
+
+	/**
+	 * Shopper billing countries permitted to use SEPA Direct Debit — the SEPA zone (countries whose banks
+	 * can issue a SEPA-compliant IBAN). Stripe's docs say "Europe / SEPA zone" without enumerating.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [
+		WC_Stripe_Country_Code::ANDORRA,
+		WC_Stripe_Country_Code::AUSTRIA,
+		WC_Stripe_Country_Code::BELGIUM,
+		WC_Stripe_Country_Code::BULGARIA,
+		WC_Stripe_Country_Code::SWITZERLAND,
+		WC_Stripe_Country_Code::CYPRUS,
+		WC_Stripe_Country_Code::CZECH_REPUBLIC,
+		WC_Stripe_Country_Code::GERMANY,
+		WC_Stripe_Country_Code::DENMARK,
+		WC_Stripe_Country_Code::ESTONIA,
+		WC_Stripe_Country_Code::SPAIN,
+		WC_Stripe_Country_Code::FINLAND,
+		WC_Stripe_Country_Code::FRANCE,
+		WC_Stripe_Country_Code::UNITED_KINGDOM,
+		WC_Stripe_Country_Code::GIBRALTAR,
+		WC_Stripe_Country_Code::GREECE,
+		WC_Stripe_Country_Code::CROATIA,
+		WC_Stripe_Country_Code::HUNGARY,
+		WC_Stripe_Country_Code::IRELAND,
+		WC_Stripe_Country_Code::ICELAND,
+		WC_Stripe_Country_Code::ITALY,
+		WC_Stripe_Country_Code::LIECHTENSTEIN,
+		WC_Stripe_Country_Code::LITHUANIA,
+		WC_Stripe_Country_Code::LUXEMBOURG,
+		WC_Stripe_Country_Code::LATVIA,
+		WC_Stripe_Country_Code::MONACO,
+		WC_Stripe_Country_Code::MALTA,
+		WC_Stripe_Country_Code::NETHERLANDS,
+		WC_Stripe_Country_Code::NORWAY,
+		WC_Stripe_Country_Code::POLAND,
+		WC_Stripe_Country_Code::PORTUGAL,
+		WC_Stripe_Country_Code::ROMANIA,
+		WC_Stripe_Country_Code::SWEDEN,
+		WC_Stripe_Country_Code::SLOVENIA,
+		WC_Stripe_Country_Code::SLOVAKIA,
+		WC_Stripe_Country_Code::SAN_MARINO,
+		WC_Stripe_Country_Code::VATICAN_CITY,
+	];
 
 	/**
 	 * Constructor for SEPA payment method
@@ -40,14 +98,6 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Returns string representing payment method type
-	 * to query to retrieve saved payment methods from Stripe.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
-	}
-
-	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
 	 * @param bool $show_optimized_checkout_instruction Deprecated. Whether to show optimized checkout instructions.
@@ -62,10 +112,12 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 		}
 
 		return sprintf(
-			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML anchor open tag 2) HTML anchor closing tag */
-			esc_html__( '%1$sTest mode:%2$s use the test account number AT611904300234573201. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed %3$shere%4$s.', 'woocommerce-gateway-stripe' ),
+			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) number open tag 4) number closing tag 5) HTML anchor open tag 6) HTML anchor closing tag */
+			esc_html__( '%1$sTest mode:%2$s use account %3$sAT611904300234573201%4$s. %5$sMore test methods%6$s.', 'woocommerce-gateway-stripe' ),
 			'<strong>',
 			'</strong>',
+			'<number>',
+			'</number>',
 			'<a href="https://docs.stripe.com/testing?payment-method=sepa-direct-debit#non-card-payments" target="_blank">',
 			'</a>'
 		);

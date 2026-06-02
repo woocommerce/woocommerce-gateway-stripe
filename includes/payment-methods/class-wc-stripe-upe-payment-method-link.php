@@ -8,14 +8,24 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::LINK;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::LINK;
+
+	/**
+	 * Stripe account countries where Link is not available.
+	 *
+	 * @var string[]
+	 */
+	protected const UNSUPPORTED_ACCOUNT_COUNTRIES = [
+		WC_Stripe_Country_Code::BRAZIL,
+		WC_Stripe_Country_Code::THAILAND,
+	];
 
 	/**
 	 * Constructor for Link payment method
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id   = self::STRIPE_ID;
+		$this->stripe_id = self::STRIPE_ID;
 		// Note that the title and label are not translated, as "Link" should not be translated.
 		$this->title       = 'Link';
 		$this->is_reusable = true;
@@ -33,6 +43,16 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Link handles its own save consent via the Payment Element, so the
+	 * store-level save checkbox is never needed for Link.
+	 *
+	 * @return bool
+	 */
+	public function should_show_save_option() {
+		return false;
+	}
+
+	/**
 	 * Return if Stripe Link is enabled
 	 *
 	 * @param WC_Stripe_UPE_Payment_Gateway $gateway The gateway instance.
@@ -42,14 +62,6 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 		$upe_enabled_method_ids = $gateway->get_upe_enabled_payment_method_ids();
 
 		return is_array( $upe_enabled_method_ids ) && in_array( self::STRIPE_ID, $upe_enabled_method_ids, true );
-	}
-
-	/**
-	 * Returns string representing payment method type
-	 * to query to retrieve saved payment methods from Stripe.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
 	}
 
 	/**
@@ -69,23 +81,6 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 		$token->set_user_id( $user_id );
 		$token->save();
 		return $token;
-	}
-
-	/**
-	 * Determines if the Stripe Account country this UPE method supports.
-	 *
-	 * @return bool
-	 */
-	public function is_available_for_account_country() {
-		// If merchant is outside US, Link payment method should not be available.
-		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
-		$account_country     = $cached_account_data['country'] ?? null;
-
-		// List of available countries for each PM:
-		// https://docs.stripe.com/payments/payment-methods/integration-options#country-currency-support
-		$country_availablity = [ 'AE', 'AT', 'AU', 'BE', 'BG', 'CA', 'CH', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GB', 'GI', 'GR', 'HK', 'HR', 'HU', 'IE', 'IT', 'JP', 'LI', 'LT', 'LU', 'LV', 'MT', 'MX', 'MY', 'NL', 'NO', 'NZ', 'PL', 'PT', 'RO', 'SE', 'SG', 'SI', 'SK', 'US' ];
-
-		return in_array( $account_country, $country_availablity, true );
 	}
 
 	/**

@@ -40,7 +40,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		add_action( 'wc_ajax_wc_stripe_get_selected_product_data', [ $this, 'ajax_get_selected_product_data' ] );
 		add_action( 'wc_ajax_wc_stripe_clear_cart', [ $this, 'ajax_clear_cart' ] );
 		add_action( 'wc_ajax_wc_stripe_log_errors', [ $this, 'ajax_log_errors' ] );
-		add_action( 'wc_ajax_wc_stripe_pay_for_order', [ $this, 'ajax_pay_for_order' ] );
 		add_filter( 'woocommerce_get_country_locale', [ $this, 'modify_country_locale_for_express_checkout' ], 20 );
 	}
 
@@ -89,52 +88,58 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 		WC()->shipping->reset_shipping();
 
-		$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-		$qty        = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
-		$product    = wc_get_product( $product_id );
+		try {
 
-		if ( ! $product || ! is_a( $product, 'WC_Product' ) ) {
-			/* translators: 1) The product Id */
-			throw new Exception( sprintf( __( 'Product with the ID (%1$s) not found.', 'woocommerce-gateway-stripe' ), $product_id ) );
-		}
+			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+			$qty        = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
+			$product    = wc_get_product( $product_id );
 
-		$product_type = $product->get_type();
-
-		$booking_ids = [];
-		if ( 'booking' === $product_type ) {
-			$booking_ids = $this->express_checkout_helper->get_booking_ids_from_cart();
-		}
-
-		// First empty the cart to prevent wrong calculation.
-		WC()->cart->empty_cart();
-
-		// When a bookable product is added to the cart, a 'booking' is created with status 'in-cart'.
-		// This status is used to prevent the booking from being booked by another customer
-		// and should be removed when the cart is emptied for ECE purposes.
-		if ( has_action( 'wc-booking-remove-inactive-cart' ) ) { // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
-			foreach ( $booking_ids as $booking_id ) {
-				do_action( 'wc-booking-remove-inactive-cart', $booking_id ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
+			if ( ! $product || ! is_a( $product, 'WC_Product' ) ) {
+				/* translators: 1) The product Id */
+				throw new Exception( sprintf( __( 'Product with the ID (%1$s) not found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
+
+			$product_type = $product->get_type();
+
+			$booking_ids = [];
+			if ( 'booking' === $product_type ) {
+				$booking_ids = $this->express_checkout_helper->get_booking_ids_from_cart();
+			}
+
+			// First empty the cart to prevent wrong calculation.
+			WC()->cart->empty_cart();
+
+			// When a bookable product is added to the cart, a 'booking' is created with status 'in-cart'.
+			// This status is used to prevent the booking from being booked by another customer
+			// and should be removed when the cart is emptied for ECE purposes.
+			if ( has_action( 'wc-booking-remove-inactive-cart' ) ) { // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
+				foreach ( $booking_ids as $booking_id ) {
+					do_action( 'wc-booking-remove-inactive-cart', $booking_id ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
+				}
+			}
+
+			if ( ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
+				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
+
+				$data_store   = WC_Data_Store::load( 'product' );
+				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
+
+				WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
+			} elseif ( in_array( $product_type, $this->express_checkout_helper->supported_product_types(), true ) ) {
+				WC()->cart->add_to_cart( $product->get_id(), $qty );
+			}
+
+			WC()->cart->calculate_totals();
+
+			$data           = [];
+			$data          += $this->express_checkout_helper->build_display_items();
+			$data['result'] = 'success';
+
+			wp_send_json( $data );
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error( 'Add to cart error in express checkout.', [ 'error_message' => $e->getMessage() ] );
+			wp_send_json_error( [ 'message' => wp_strip_all_tags( $e->getMessage() ) ] );
 		}
-
-		if ( ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
-			$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
-
-			$data_store   = WC_Data_Store::load( 'product' );
-			$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
-
-			WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
-		} elseif ( in_array( $product_type, $this->express_checkout_helper->supported_product_types(), true ) ) {
-			WC()->cart->add_to_cart( $product->get_id(), $qty );
-		}
-
-		WC()->cart->calculate_totals();
-
-		$data           = [];
-		$data          += $this->express_checkout_helper->build_display_items();
-		$data['result'] = 'success';
-
-		wp_send_json( $data );
 	}
 
 	/**
@@ -287,7 +292,13 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 			// Force quantity to 1 if sold individually and check for existing item in cart.
 			if ( $product->is_sold_individually() ) {
-				$qty = apply_filters( 'wc_stripe_payment_request_add_to_cart_sold_individually_quantity', 1, $qty, $product_id, $variation_id );
+				$qty     = apply_filters_deprecated(
+					'wc_stripe_payment_request_add_to_cart_sold_individually_quantity',
+					[ 1, $qty, $product_id, $variation_id ],
+					'10.6.0',
+					'wc_stripe_express_checkout_add_to_cart_sold_individually_quantity'
+				);
+					$qty = apply_filters( 'wc_stripe_express_checkout_add_to_cart_sold_individually_quantity', $qty, $qty, $product_id, $variation_id );
 			}
 
 			if ( ! $product->has_enough_stock( $qty ) ) {
@@ -370,72 +381,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		exit;
 	}
 	/**
-	 * Processes the Pay for Order AJAX request from the Express Checkout.
-	 *
-	 * @deprecated 9.2.0 Payment is processed using the Blocks API by default.
-	 *
-	 * @return void
-	 */
-	public function ajax_pay_for_order() {
-		_deprecated_function( __METHOD__, '9.2.0' );
-		check_ajax_referer( 'wc-stripe-pay-for-order' );
-
-		if (
-			! isset( $_POST['payment_method'] ) || 'stripe' !== $_POST['payment_method']
-			|| ! isset( $_POST['order'] ) || ! intval( $_POST['order'] )
-			|| ! isset( $_POST['wc-stripe-payment-method'] ) || empty( $_POST['wc-stripe-payment-method'] )
-		) {
-			// Incomplete request.
-			$response = [
-				'result'   => 'error',
-				'messages' => __( 'Invalid request', 'woocommerce-gateway-stripe' ),
-			];
-			wp_send_json( $response, 400 );
-			return;
-		}
-
-		$order_id = intval( $_POST['order'] );
-		try {
-			// Set up an environment, similar to core checkout.
-			wc_maybe_define_constant( 'WOOCOMMERCE_CHECKOUT', true );
-			wc_set_time_limit( 0 );
-
-			// Load the order.
-			$order = wc_get_order( $order_id );
-
-			if ( ! is_a( $order, WC_Order::class ) ) {
-				throw new Exception( __( 'Invalid order!', 'woocommerce-gateway-stripe' ) );
-			}
-
-			if ( ! $order->needs_payment() ) {
-				throw new Exception( __( 'This order does not require payment!', 'woocommerce-gateway-stripe' ) );
-			}
-
-			// Process the payment.
-			$result = WC_Stripe::get_instance()->get_main_stripe_gateway()->process_payment( $order_id );
-
-			// process_payment() should only return `success` or throw an exception.
-			if ( ! is_array( $result ) || ! isset( $result['result'] ) || 'success' !== $result['result'] || ! isset( $result['redirect'] ) ) {
-				throw new Exception( __( 'Unable to determine payment success.', 'woocommerce-gateway-stripe' ) );
-			}
-
-			// Include the order ID in the result.
-			$result['order_id'] = $order_id;
-
-			$result = apply_filters( 'woocommerce_payment_successful_result', $result, $order_id );
-		} catch ( Exception $e ) {
-			WC_Stripe_Logger::error( 'Pay for order failed for order ' . $order_id . ' with express checkout', [ 'error_message' => $e->getMessage() ] );
-
-			$result = [
-				'result'   => 'error',
-				'messages' => $e->getMessage(),
-			];
-		}
-
-		wp_send_json( $result );
-	}
-
-	/**
 	 * Modify country locale for express checkout.
 	 * Countries that don't have state fields, make the state field optional.
 	 * Make postcode optional for specific countries during express checkout.
@@ -448,8 +393,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		if ( ! $this->express_checkout_helper->is_express_checkout_context() ) {
 			return $locale;
 		}
-
-		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-express-checkout-button-states.php';
 
 		// For countries that don't have state fields, make the state field optional.
 		foreach ( WC_Stripe_Express_Checkout_Button_States::STATES as $country_code => $states ) {

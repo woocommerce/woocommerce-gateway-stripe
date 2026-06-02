@@ -1,5 +1,5 @@
 /* global wc_stripe_settings_params */
-import React, { useContext, useState } from 'react';
+import React, { useContext, useRef, useState } from 'react';
 import { getQuery, updateQueryString } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
 import { isEmpty } from 'lodash';
@@ -14,10 +14,9 @@ import { useEffect } from '@wordpress/element';
 import { useAccount } from 'wcstripe/data/account';
 import OCToggleContext from 'wcstripe/settings/oc-toggle/context';
 import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
-import {
-	BNPL_PROMOTION_BANNER,
-	OC_PROMOTION_BANNER,
-} from 'wcstripe/settings/payment-settings/constants';
+import ExitSurveyModal, {
+	isCooldownActive,
+} from 'wcstripe/components/exit-survey-modal';
 
 const StyledTabPanel = styled( TabPanel )`
 	.components-tab-panel__tabs {
@@ -26,7 +25,7 @@ const StyledTabPanel = styled( TabPanel )`
 	}
 `;
 
-const TABS_CONTENT = [
+const TABS = [
 	{
 		name: 'methods',
 		title: __( 'Payment Methods', 'woocommerce-gateway-stripe' ),
@@ -38,6 +37,11 @@ const TABS_CONTENT = [
 ];
 
 const SettingsManager = () => {
+	const isAgenticCommerceEnabled =
+		wc_stripe_settings_params?.is_agentic_commerce_enabled; // eslint-disable-line camelcase
+
+	const agenticSaveRef = useRef( null );
+
 	const { settings, isLoading } = useSettings();
 	const [ initialSettings, setInitialSettings ] = useState( settings );
 	const { data } = useAccount();
@@ -48,21 +52,7 @@ const SettingsManager = () => {
 		isOCEnabled,
 		enabledPaymentMethodIds
 	);
-	let initialBannerState;
-	if (
-		promotionalBannerType === BNPL_PROMOTION_BANNER &&
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.show_bnpl_promotional_banner === '1'
-	) {
-		initialBannerState = true;
-	}
-	if (
-		promotionalBannerType === OC_PROMOTION_BANNER &&
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.show_oc_promotional_banner === '1'
-	) {
-		initialBannerState = true;
-	}
+	const initialBannerState = promotionalBannerType !== null;
 	const [ showPromotionalBanner, setShowPromotionalBanner ] =
 		useState( initialBannerState );
 
@@ -72,7 +62,23 @@ const SettingsManager = () => {
 		}
 	}, [ isLoading, settings ] );
 
+	const [ showExitSurvey, setShowExitSurvey ] = useState( false );
+
 	const onSettingsSave = () => {
+		// Show exit survey if Stripe was just disabled.
+		if (
+			initialSettings.is_stripe_enabled &&
+			! settings.is_stripe_enabled &&
+			// eslint-disable-next-line camelcase
+			typeof wc_stripe_settings_params !== 'undefined' &&
+			! isCooldownActive(
+				// eslint-disable-next-line camelcase
+				wc_stripe_settings_params.exit_survey_last_shown
+			)
+		) {
+			setShowExitSurvey( true );
+		}
+
 		setInitialSettings( settings );
 	};
 
@@ -90,17 +96,35 @@ const SettingsManager = () => {
 		updateQueryString( { panel: tabName }, '/', getQuery() );
 	};
 
+	const getInitialTab = () => {
+		if ( panel === 'settings' ) {
+			return 'settings';
+		}
+
+		return 'methods';
+	};
+
 	return (
 		<SettingsLayout>
+			{ showExitSurvey && (
+				<ExitSurveyModal
+					trigger="settings_disable"
+					surveyParams={
+						// eslint-disable-next-line camelcase
+						wc_stripe_settings_params
+					}
+					onRequestClose={ () => setShowExitSurvey( false ) }
+				/>
+			) }
 			<StyledTabPanel
 				className="wc-stripe-account-settings-panel"
-				initialTabName={ panel === 'settings' ? 'settings' : 'methods' }
-				tabs={ TABS_CONTENT }
+				initialTabName={ getInitialTab() }
+				tabs={ TABS }
 				onSelect={ updatePanelUri }
 			>
 				{ ( tab ) => (
 					<div data-testid={ `${ tab.name }-tab` }>
-						{ tab.name === 'settings' ? (
+						{ tab.name === 'settings' && (
 							<PaymentSettingsPanel
 								showPromotionalBanner={ showPromotionalBanner }
 								setShowPromotionalBanner={
@@ -109,8 +133,13 @@ const SettingsManager = () => {
 								promotionalBannerType={ promotionalBannerType }
 								isOCEnabled={ isOCEnabled }
 								setIsOCEnabled={ setIsOCEnabled }
+								isAgenticCommerceEnabled={
+									isAgenticCommerceEnabled
+								}
+								agenticSaveRef={ agenticSaveRef }
 							/>
-						) : (
+						) }
+						{ tab.name === 'methods' && (
 							<PaymentMethodsPanel
 								onSaveChanges={ onSaveChanges }
 								showPromotionalBanner={ showPromotionalBanner }
@@ -124,6 +153,11 @@ const SettingsManager = () => {
 						) }
 						<SaveSettingsSection
 							onSettingsSave={ onSettingsSave }
+							agenticSaveRef={
+								tab.name === 'settings'
+									? agenticSaveRef
+									: undefined
+							}
 						/>
 					</div>
 				) }

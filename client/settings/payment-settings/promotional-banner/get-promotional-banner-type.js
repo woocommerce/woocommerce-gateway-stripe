@@ -3,6 +3,7 @@ import {
 	BNPL_PROMOTION_BANNER,
 	OC_PROMOTION_BANNER,
 	RECONNECT_BANNER,
+	STRIPE_TAX_BANNER,
 } from 'wcstripe/settings/payment-settings/constants';
 import { BNPL_METHODS } from 'wcstripe/stripe-utils/constants';
 
@@ -26,21 +27,40 @@ export const getPromotionalBannerType = (
 	const hasBNPLEnabled =
 		enabledPaymentMethodIds.filter( ( e ) => BNPL_METHODS.includes( e ) )
 			.length > 0;
+	// eslint-disable-next-line camelcase
+	const isOCAvailable = wc_stripe_settings_params?.is_oc_available === '1';
 
 	if ( oauthConnected === false ) {
 		return RECONNECT_BANNER;
-	} else if (
+	}
+
+	if (
+		isOCAvailable &&
+		isOCEnabled &&
 		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.is_oc_available &&
-		! isOCEnabled
+		wc_stripe_settings_params?.show_stripe_tax_banner === '1'
+	) {
+		return STRIPE_TAX_BANNER;
+	}
+
+	if (
+		isOCAvailable &&
+		! isOCEnabled &&
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params?.show_oc_promotional_banner === '1'
 	) {
 		return OC_PROMOTION_BANNER;
-	} else if (
+	}
+
+	if (
 		! hasBNPLEnabled &&
 		// eslint-disable-next-line camelcase
-		! wc_stripe_settings_params?.has_other_bnpl_plugins
+		wc_stripe_settings_params?.has_other_bnpl_plugins !== '1' &&
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params?.show_bnpl_promotional_banner === '1'
 	) {
 		return BNPL_PROMOTION_BANNER;
 	}
+
 	return null;
 };
