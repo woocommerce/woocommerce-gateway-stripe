@@ -123,15 +123,25 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	/**
 	 * Test for `get_testing_instructions`.
 	 *
+	 * @dataProvider provider_get_testing_instructions
 	 * @return void
 	 */
-	public function test_get_testing_instructions() {
-		$expected = '<strong>Test mode:</strong> use card <number>4242 4242 4242 4242</number> with any expiry and CVC. <a href="https://docs.stripe.com/testing" target="_blank">More test cards</a>.';
-
+	public function test_get_testing_instructions( bool $include_test_mode_label, string $expected ) {
 		$payment_method = new WC_Stripe_UPE_Payment_Method_CC();
-		$actual         = $payment_method->get_testing_instructions();
+		$this->assertEquals( $expected, $payment_method->get_testing_instructions( false, $include_test_mode_label ) );
+	}
 
-		$this->assertEquals( $expected, $actual );
+	public function provider_get_testing_instructions(): array {
+		return [
+			'with label (classic checkout)'   => [
+				true,
+				'<strong>Test mode:</strong> use card <number>4242 4242 4242 4242</number> with any expiry and CVC. <a href="https://docs.stripe.com/testing" target="_blank">More test cards</a>.',
+			],
+			'without label (blocks checkout)' => [
+				false,
+				'Use card <number>4242 4242 4242 4242</number> with any expiry and CVC. <a href="https://docs.stripe.com/testing" target="_blank">More test cards</a>.',
+			],
+		];
 	}
 
 	/**
