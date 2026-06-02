@@ -355,7 +355,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertFalse( $blik_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::BLIK, $blik_method->get_retrievable_type() );
 		$this->assertEquals(
-			'<strong>Test mode:</strong> use any 6-digit number to authorize payment.',
+			'<strong>Test mode:</strong> use any 6-digit number.',
 			$blik_method->get_testing_instructions()
 		);
 
@@ -365,7 +365,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertTrue( $card_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::CARD, $card_method->get_retrievable_type() );
 		$this->assertEquals(
-			'<strong>Test mode:</strong> use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing" target="_blank">here</a>.',
+			'<strong>Test mode:</strong> use card <number>4242 4242 4242 4242</number> with any expiry and CVC. <a href="https://docs.stripe.com/testing" target="_blank">More test cards</a>.',
 			$card_method->get_testing_instructions()
 		);
 
@@ -399,7 +399,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertTrue( $sepa_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::SEPA_DEBIT, $sepa_method->get_retrievable_type() );
 		$this->assertEquals(
-			'<strong>Test mode:</strong> use the test account number AT611904300234573201. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing?payment-method=sepa-direct-debit#non-card-payments" target="_blank">here</a>.',
+			'<strong>Test mode:</strong> use account <number>AT611904300234573201</number>. <a href="https://docs.stripe.com/testing?payment-method=sepa-direct-debit#non-card-payments" target="_blank">More test methods</a>.',
 			$sepa_method->get_testing_instructions()
 		);
 
@@ -777,7 +777,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$stripe_settings                           = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['single_payment_element'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' );
 
 		$mocked_methods = [
 			'get_capabilities_response',
@@ -1141,5 +1140,77 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		}
 
 		return $test_cases;
+	}
+
+	/**
+	 * Returns an anonymous subclass with $supported_billing_countries set to the given list.
+	 *
+	 * @param string[] $billing_countries Billing-country list to seed.
+	 *
+	 * @return WC_Stripe_UPE_Payment_Method
+	 */
+	private function make_method_with_billing_countries( array $billing_countries ): WC_Stripe_UPE_Payment_Method {
+		return new class( $billing_countries ) extends WC_Stripe_UPE_Payment_Method {
+			const STRIPE_ID = 'test_billing_country_method';
+			public function __construct( array $billing_countries ) {
+				parent::__construct();
+				$this->supported_billing_countries = $billing_countries;
+			}
+		};
+	}
+
+	/**
+	 * @dataProvider provide_test_is_available_for_billing_country
+	 *
+	 * @param string[] $supported_billing_countries Supported billing countries to seed on the method.
+	 * @param string   $country_code                Billing country to check.
+	 * @param bool     $expected                    Expected return value.
+	 */
+	public function test_is_available_for_billing_country( array $supported_billing_countries, string $country_code, bool $expected ): void {
+		$method = $this->make_method_with_billing_countries( $supported_billing_countries );
+
+		$this->assertSame( $expected, $method->is_available_for_billing_country( $country_code ) );
+	}
+
+	public function provide_test_is_available_for_billing_country(): array {
+		return [
+			'empty list permits any country (US)' => [
+				[],
+				'US',
+				true,
+			],
+			'empty list permits any country (ZZ)' => [
+				[],
+				'ZZ',
+				true,
+			],
+			'populated list matches'              => [
+				[ 'US', 'CA' ],
+				'CA',
+				true,
+			],
+			'populated list rejects miss'         => [
+				[ 'US', 'CA' ],
+				'GB',
+				false,
+			],
+			'case-sensitive comparison'           => [
+				[ 'US' ],
+				'us',
+				true,
+			],
+		];
+	}
+
+	/**
+	 * Asserts that the deprecated wrapper raises a deprecation notice and delegates to the new helper.
+	 */
+	public function test_is_allowed_on_country_is_deprecated_and_delegates(): void {
+		$method = $this->make_method_with_billing_countries( [ 'US' ] );
+
+		$this->setExpectedDeprecated( 'WC_Stripe_UPE_Payment_Method::is_allowed_on_country' );
+
+		$this->assertTrue( $method->is_allowed_on_country( 'US' ) );
+		$this->assertFalse( $method->is_allowed_on_country( 'GB' ) );
 	}
 }

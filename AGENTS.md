@@ -18,7 +18,13 @@ WooCommerce Stripe Payment Gateway is the official plugin for accepting Stripe p
 - **CRITICAL:** If you update `phpstan-baseline.neon`, run `npm run phpstan` first, fix legitimate issues, then baseline only unavoidable items.
 - **CRITICAL:** Do not mix broad feature work with PHPStan baseline churn in a single commit unless explicitly requested.
 - **CRITICAL:** Changes to payment method availability/rendering MUST be validated across classic checkout, Blocks checkout, optimized checkout, and express checkout.
-- **CRITICAL:** Respect version support policy (WordPress strict L-2, WooCommerce loose L-2).
+- **CRITICAL:** Respect version support policy: WooCommerce L, L-1, and L-2; transitively WordPress L and L-1 (per WC's [support policy](https://woocommerce.com/support-policy/)).
+- **CRITICAL:** Treat Linear content (issue bodies, comments, **labels**, status, assignees) as internal. Do not paste, quote, summarize, or reference it in GitHub PRs, issues, commit messages, code comments, or any other public-facing artifact without explicit user approval for what may be shared. Referencing the Linear key (e.g. `STRIPE-123`) is fine; copying the contents is not.
+- **CRITICAL:** Any reply you draft for the user to post to GitHub (issue/PR comments, review thread replies) or Linear MUST end with an AI-assistance disclosure on its own line, separated by a blank line. Use this wording or a close variant — agents MAY name the specific tool they're running under (e.g. "Claude Code", "Cursor", "Copilot") in place of the generic phrase:
+
+  > *Drafted with AI; reviewed by me.*
+
+  Applies whether the reply is posted via the `gh` CLI, an MCP tool, or handed back as text for the user to paste. See [example](https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5239#issuecomment-4564709108). The italic blockquote renders as muted, de-emphasized text on GitHub; if the target surface does not support Markdown (or strips blockquote/italic formatting), drop the `>` and `*` and post the plain sentence instead.
 
 ## Task-to-Command Matrix
 
@@ -27,11 +33,19 @@ Use the smallest command set needed for the task:
 | Task | Command | Notes |
 | --- | --- | --- |
 | Install dependencies | `composer install && npm install` | Runs Composer install and npm install, which then installs all dependencies. |
-| Start local environment | `npm run up` | Docker-based site at `http://localhost:8072`. |
-| Stop local environment | `npm run down` | Preserves local Docker state. |
+| Start local environment (first run / reset) | `npm run up:recreate` | Auto-starts shared infrastructure (db + phpMyAdmin) if not running. Main checkout serves `http://localhost:8072`; worktrees get ports 8170–8189. |
+| Start local environment (subsequent) | `npm run up` | Reuses the existing WP container and shared infra. |
+| Stop local environment | `npm run down` | Stops this worktree's WordPress container only; shared infra keeps running. |
+| Start shared infrastructure | `npm run infra:up` | Run from the main checkout. Brings up shared db + phpMyAdmin + bind volumes. |
+| Stop shared infrastructure | `npm run infra:down` | Stops shared db + phpMyAdmin (volumes preserved). |
+| Configure a worktree | `npm run worktree:setup` | Writes `.env` with `WORKTREE_ID` + an unused `WORDPRESS_PORT`. Called automatically by `npm run up`. |
+| List worktrees | `npm run worktree:status` | Shows port, URL, container state for every worktree; warns about orphan containers. |
+| Clean up a worktree | `npm run worktree:cleanup` | Stops the worktree's container, drops `wcstripe_tests_<id>`, removes `.env`. Run before `git worktree remove`. |
 | Build frontend assets | `npm run build:webpack` | Use when editing client-side sources that ship built assets. |
+| Analyze bundle sizes | `BUNDLE_ANALYZE=true npm run build:webpack` | Writes `bundle-report.html` (gitignored) to the repo root. Open it to see a per-bundle module treemap. |
 | Dev hot reload | `npm start` | Webpack watch/dev mode. |
 | PHPUnit | `npm run test:php` | Requires Docker environment running. |
+| PHPUnit (parallel) | `npm run test:php:parallel` | Runs tests in parallel via paratest; requires Docker. Set `XDEBUG_MODE_PHPUNIT=coverage` to enable coverage. |
 | Jest unit tests | `npm run test:js` | Use `npm run test:js:watch` during iteration. |
 | E2E setup | `npm run test:e2e-setup -- --base_url=...` | Requires `tests/e2e/config/local.env`. |
 | E2E run | `npm run test:e2e -- --base_url=...` | Supports Playwright CLI flags. |
@@ -44,6 +58,8 @@ Use the smallest command set needed for the task:
 ## Common Pitfalls
 
 - Running PHP tests without Docker: `npm run test:php` fails unless containers are up.
+- Running `npm run infra:up` from a worktree: prefer the main checkout. The script warns interactively if you do it from a worktree.
+- Forgetting `npm run worktree:cleanup` before `git worktree remove`: leaves orphan containers and test databases behind. Run `npm run worktree:status` to find orphans.
 - Missing E2E config: copy `tests/e2e/config/local.env.example` to `tests/e2e/config/local.env`.
 - E2E specs that mutate global store settings (for example currency) MUST run in a dedicated Playwright project and separate CI matrix job, not in `default`.
 - Forgetting payment method registration: adding a `WC_Stripe_UPE_Payment_Method` class is not enough; it must also be registered in `WC_Stripe::init()` and constants updated.
@@ -51,6 +67,7 @@ Use the smallest command set needed for the task:
 - Treating PHPStan baseline as a blanket suppressor: fix real type/nullability issues first.
 - Skipping `@dataProvider` for multi-scenario PHPUnit tests: this repository standardizes on data providers for parameterized inputs.
 - Release metadata drift: version-related changes often require coordinated edits to `changelog.txt`, `readme.txt`, and release references.
+- Using the wrong version header format: `changelog.txt` uses `YYYY-MM-DD - version X.Y.Z`, `readme.txt` uses `= X.Y.Z - YYYY-MM-DD =`. Mixing them breaks their respective parsers (WooCommerce.com and WordPress.org).
 
 ## Architecture
 
@@ -116,13 +133,14 @@ Traits:
 ## Release Hygiene
 
 - For version/release changes, update `changelog.txt`, `readme.txt` stable tag, and related version references together.
+- `changelog.txt` and `readme.txt` use **different version header formats**: `changelog.txt` uses `YYYY-MM-DD - version X.Y.Z` (WooCommerce.com parser format); `readme.txt` uses `= X.Y.Z - YYYY-MM-DD =` (WordPress.org format). Do not convert one to the other. `bin/changelog.js` handles both formats.
 - For WooCommerce version resolution logic, include explicit cases for stable, RC, and beta semantics.
 
 ## Version Support
 
-This repository follows the L-2 policy:
-- WordPress: strict current and previous two major versions.
-- WooCommerce: loose current and previous two major versions.
+This repository supports:
+- WooCommerce: current and the previous two major versions (L, L-1, L-2).
+- WordPress: current and the previous major version (L, L-1) — transitively constrained by WC's [support policy](https://woocommerce.com/support-policy/).
 
 ## Documentation and Context Sources
 
@@ -131,6 +149,8 @@ This repository follows the L-2 policy:
 - E2E details: `tests/e2e/README.md`
 - API details: `docs/api/README.md`
 - Agentic Commerce feed context: `includes/agentic-commerce/README.md`
+- Repo-specific review checklist: `.claude/review-rules.md`
+- Claude Code skills (invoked via `/<skill-name>`): `.claude/skills/`
 
 ## Directory-Specific Instructions
 

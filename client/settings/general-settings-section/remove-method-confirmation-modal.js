@@ -10,7 +10,7 @@ const RemoveMethodConfirmationModal = ( { method, onClose, onConfirm } ) => {
 	const { label } = PaymentMethodsMap[ method ];
 
 	const confirmMethodRemovalString = sprintf(
-		/* translators: %1: payment method name (e.g.: giropay, EPS, etc). */
+		/* translators: %1: payment method name (e.g.: iDEAL, EPS, etc). */
 		__(
 			'Are you sure you want to remove <strong>%1$s</strong>? Your customers will no longer be able to pay using <strong>%1$s</strong>.',
 			'woocommerce-gateway-stripe'
@@ -23,7 +23,7 @@ const RemoveMethodConfirmationModal = ( { method, onClose, onConfirm } ) => {
 			title={
 				<AlertTitle
 					title={ sprintf(
-						/* translators: %s: payment method name (e.g.: giropay, EPS, etc). */
+						/* translators: %s: payment method name (e.g.: iDEAL, EPS, etc). */
 						__(
 							'Remove %s from checkout',
 							'woocommerce-gateway-stripe'

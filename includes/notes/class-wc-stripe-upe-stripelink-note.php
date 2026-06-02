@@ -19,12 +19,12 @@ class WC_Stripe_UPE_StripeLink_Note {
 	/**
 	 * Name of the note for use in the database.
 	 */
-	const NOTE_NAME = 'wc-stripe-upe-stripelink-note';
+	public const NOTE_NAME = 'wc-stripe-upe-stripelink-note';
 
 	/**
 	 * Link to Stripe Link documentation.
 	 */
-	const NOTE_DOCUMENTATION_URL = 'https://woocommerce.com/document/stripe/setup-and-configuration/express-checkouts/';
+	public const NOTE_DOCUMENTATION_URL = 'https://woocommerce.com/document/stripe/setup-and-configuration/express-checkouts/';
 
 	/**
 	 * Get the note.
@@ -60,6 +60,12 @@ class WC_Stripe_UPE_StripeLink_Note {
 	 * @throws \Automattic\WooCommerce\Admin\Notes\NotesUnavailableException
 	 */
 	public static function init( WC_Stripe_Payment_Gateway $gateway ) {
+		// Skip if the Stripe gateway itself is disabled — no UPE note is relevant in that case.
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		if ( empty( $stripe_settings['enabled'] ) || 'yes' !== $stripe_settings['enabled'] ) {
+			return;
+		}
+
 		// Check if Link payment is available.
 		$available_upe_payment_methods = $gateway->get_upe_available_payment_methods();
 

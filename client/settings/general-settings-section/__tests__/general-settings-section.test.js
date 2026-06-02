@@ -11,6 +11,7 @@ import {
 	useIsOCEnabled,
 	useGetOrderedPaymentMethodIds,
 	useIsPMCEnabled,
+	useIsAdaptivePricingEnabled,
 } from 'wcstripe/data';
 import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavailable-reason';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
@@ -35,6 +36,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useIsOCEnabled: jest.fn(),
 	useGetOrderedPaymentMethodIds: jest.fn(),
 	useIsPMCEnabled: jest.fn(),
+	useIsAdaptivePricingEnabled: jest.fn(),
 } ) );
 jest.mock( 'utils/get-payment-method-unavailable-reason' );
 jest.mock( 'wcstripe/data/account', () => ( {
@@ -97,6 +99,7 @@ describe( 'GeneralSettingsSection', () => {
 		} );
 		useIsStripeEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useIsAdaptivePricingEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
 			orderedPaymentMethodIds: [
 				PAYMENT_METHOD_CARD,
@@ -545,5 +548,44 @@ describe( 'GeneralSettingsSection', () => {
 		expect( affirmElement.compareDocumentPosition( alipayElement ) ).toBe(
 			Node.DOCUMENT_POSITION_FOLLOWING
 		);
+	} );
+
+	it( 'should enable payment method checkbox when store currency does not support the method but Optimized Checkout and Adaptive Pricing are enabled', () => {
+		const actual = jest.requireActual(
+			'../../../utils/get-payment-method-unavailable-reason'
+		).default;
+		getPaymentMethodUnavailableReason.mockImplementation( ( ctx ) =>
+			actual( ctx )
+		);
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+		useIsAdaptivePricingEnabled.mockReturnValue( [ true, jest.fn() ] );
+		mockCurrencyCode( 'USD' );
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_CARD ],
+			jest.fn(),
+		] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_SEPA,
+		] );
+		useGetOrderedPaymentMethodIds.mockReturnValue( {
+			orderedPaymentMethodIds: [
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_SEPA,
+			],
+			setOrderedPaymentMethodIds: jest.fn(),
+			saveOrderedPaymentMethodIds: jest.fn(),
+		} );
+
+		render( <GeneralSettingsSection /> );
+
+		expect(
+			screen.getByRole( 'checkbox', {
+				name: 'Direct debit payment',
+			} )
+		).toBeEnabled();
+		expect(
+			screen.queryByText( 'Requires currency' )
+		).not.toBeInTheDocument();
 	} );
 } );
