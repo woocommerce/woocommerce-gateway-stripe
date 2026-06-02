@@ -113,12 +113,12 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Full audience-decision matrix. Each row drives one execution of maybe_migrate()
-	 * and asserts both banner-visibility options and post-flip gateway state.
+	 * Migration scenario matrix. Each row drives one execution of maybe_migrate()
+	 * and asserts all three banner-visibility options and post-flip gateway state.
 	 *
 	 * @dataProvider audience_matrix_provider
 	 */
-	public function test_audience_decision_matrix(
+	public function test_migration_scenarios(
 		string $previous_version,
 		string $oc_pre,
 		string $ap_pre,
@@ -196,7 +196,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		];
 	}
 
-	public function test_migration_writes_yes_for_back_book_merchant() {
+	public function test_migration_preserves_unrelated_settings_keys() {
 		update_option( self::STRIPE_VERSION_OPTION, '10.7.0' );
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
@@ -212,75 +212,5 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'OC must be flipped to yes.' );
 		$this->assertSame( 'yes', $stored['adaptive_pricing'], 'AP must be flipped to yes.' );
 		$this->assertSame( 'no', $stored['pmc_enabled'], 'Unrelated stored keys must survive.' );
-	}
-
-	public function test_flip_is_idempotent_for_already_on_merchant() {
-		update_option( self::STRIPE_VERSION_OPTION, '10.7.0' );
-		WC_Stripe_Helper::update_main_stripe_settings(
-			[
-				'optimized_checkout_element' => 'yes',
-				'adaptive_pricing'           => 'yes',
-			]
-		);
-
-		$this->build_migration( null, 1779148800 )->maybe_migrate( '10.7.0' );
-
-		$stored = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertSame( 'yes', $stored['optimized_checkout_element'] );
-		$this->assertSame( 'yes', $stored['adaptive_pricing'] );
-	}
-
-	public function test_india_enables_oc_skips_ap_with_ocs_only_banner() {
-		update_option( self::STRIPE_VERSION_OPTION, '10.7.0' );
-		WC_Stripe_Helper::update_main_stripe_settings(
-			[
-				'optimized_checkout_element' => 'no',
-				'adaptive_pricing'           => 'no',
-			]
-		);
-
-		// India: AP is unavailable, but OCS is enabled. Old account => not frontbook.
-		$this->build_migration( 'account-country', 1747008000 )->maybe_migrate( '10.7.0' );
-
-		$stored = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'India: OC must be enabled.' );
-		$this->assertSame( 'no', $stored['adaptive_pricing'], 'India: AP must stay disabled.' );
-		$this->assertSame( 'yes', get_option( self::SHOW_OCS_ONLY_BANNER_OPTION ), 'India: OCS-only banner shown.' );
-		$this->assertSame( 'no', get_option( self::SHOW_OCS_AP_BANNER_OPTION ), 'India: OCS+AP banner suppressed.' );
-		$this->assertSame( 'no', get_option( self::SHOW_AP_ONLY_BANNER_OPTION ), 'India: AP-only banner suppressed.' );
-	}
-
-	public function test_flip_skipped_for_frontbook_with_both_disabled() {
-		update_option( self::STRIPE_VERSION_OPTION, '10.7.0' );
-		WC_Stripe_Helper::update_main_stripe_settings(
-			[
-				'optimized_checkout_element' => 'no',
-				'adaptive_pricing'           => 'no',
-			]
-		);
-
-		// Recent account = likely 10.7 frontbook who explicitly disabled both.
-		$this->build_migration( null, 1779148800 )->maybe_migrate( '10.7.0' );
-
-		$stored = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertSame( 'no', $stored['optimized_checkout_element'], 'Frontbook-disabled OC must not be re-flipped.' );
-		$this->assertSame( 'no', $stored['adaptive_pricing'], 'Frontbook-disabled AP must not be re-flipped.' );
-	}
-
-	public function test_flip_skipped_only_for_disabled_feature_in_frontbook() {
-		update_option( self::STRIPE_VERSION_OPTION, '10.7.0' );
-		WC_Stripe_Helper::update_main_stripe_settings(
-			[
-				'optimized_checkout_element' => 'yes',
-				'adaptive_pricing'           => 'no',
-			]
-		);
-
-		// Recent account = likely 10.7 frontbook who kept OC on but disabled AP.
-		$this->build_migration( null, 1779148800 )->maybe_migrate( '10.7.0' );
-
-		$stored = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'OC stays as set; no change needed.' );
-		$this->assertSame( 'no', $stored['adaptive_pricing'], 'Frontbook-disabled AP must not be re-flipped.' );
 	}
 }
