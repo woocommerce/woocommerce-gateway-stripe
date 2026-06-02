@@ -35,15 +35,13 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 	 * would contain another gateway instance than the controller.
 	 *
 	 * @see UPE_Test_Utils::reload_payment_gateways()
+	 *
+	 * @return void
 	 */
-	public static function set_up_before_class() {
+	public static function set_up_before_class(): void {
 		parent::set_up_before_class();
 
 		$upe_helper = new UPE_Test_Helper();
-
-		// All tests assume UPE is enabled.
-		update_option( '_wcstripe_feature_upe', 'yes' );
-
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
 
@@ -52,16 +50,15 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 
 	/**
 	 * Pre-test setup
+	 *
+	 * @return void
 	 */
-	public function set_up() {
+	public function set_up(): void {
 		parent::set_up();
 
 		if ( version_compare( WC_VERSION, '3.4.0', '<' ) ) {
 			$this->markTestSkipped( 'The controller is not compatible with older WC versions, due to the missing `update_option` method on the gateway.' );
 		}
-
-		// All tests assume UPE feature is enabled.
-		update_option( '_wcstripe_feature_upe', 'yes' );
 
 		// Set the user so that we can pass the authentication.
 		wp_set_current_user( 1 );
@@ -104,21 +101,20 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 	public function test_get_settings_returns_available_payment_method_ids_for_gb() {
 		$expected_method_ids = [
 			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::ACH,
 			WC_Stripe_Payment_Methods::ALIPAY,
 			WC_Stripe_Payment_Methods::AMAZON_PAY,
+			WC_Stripe_Payment_Methods::BLIK,
 			WC_Stripe_Payment_Methods::KLARNA,
 			WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY,
 			WC_Stripe_Payment_Methods::EPS,
 			WC_Stripe_Payment_Methods::BANCONTACT,
-			WC_Stripe_Payment_Methods::BOLETO,
 			WC_Stripe_Payment_Methods::IDEAL,
-			WC_Stripe_Payment_Methods::OXXO,
 			WC_Stripe_Payment_Methods::SEPA_DEBIT,
 			WC_Stripe_Payment_Methods::P24,
 			WC_Stripe_Payment_Methods::MULTIBANCO,
 			WC_Stripe_Payment_Methods::LINK,
 			WC_Stripe_Payment_Methods::WECHAT_PAY,
-			WC_Stripe_Payment_Methods::ACSS_DEBIT,
 			WC_Stripe_Payment_Methods::BACS_DEBIT,
 		];
 		$this->mock_payment_method_configurations( $expected_method_ids, [] );
@@ -136,19 +132,18 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 		// Link and Amazon Pay are excluded as they are express methods only.
 		$expected_ordered_method_ids = [
 			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::ACH,
 			WC_Stripe_Payment_Methods::ALIPAY,
+			WC_Stripe_Payment_Methods::BLIK,
 			WC_Stripe_Payment_Methods::KLARNA,
 			WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY,
 			WC_Stripe_Payment_Methods::EPS,
 			WC_Stripe_Payment_Methods::BANCONTACT,
-			WC_Stripe_Payment_Methods::BOLETO,
 			WC_Stripe_Payment_Methods::IDEAL,
-			WC_Stripe_Payment_Methods::OXXO,
 			WC_Stripe_Payment_Methods::SEPA_DEBIT,
 			WC_Stripe_Payment_Methods::P24,
 			WC_Stripe_Payment_Methods::MULTIBANCO,
 			WC_Stripe_Payment_Methods::WECHAT_PAY,
-			WC_Stripe_Payment_Methods::ACSS_DEBIT,
 			WC_Stripe_Payment_Methods::BACS_DEBIT,
 		];
 		$this->mock_payment_method_configurations( $expected_ordered_method_ids, [] );

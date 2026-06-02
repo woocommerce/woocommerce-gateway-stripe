@@ -46,8 +46,11 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_valid_optimized_checkout_page(): bool {
-		return ! $this->is_on_add_payment_method_page()
-			&& ! $this->is_changing_payment_method_for_subscription();
+		if ( $this->is_on_add_payment_method_page() || $this->is_changing_payment_method_for_subscription() ) {
+			return false;
+		}
+
+		return is_checkout();
 	}
 
 	/**
@@ -91,9 +94,10 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		$stripe_params['isAdaptivePricingEnabled']      = $should_show_optimized_checkout && $this->is_adaptive_pricing_supported();
 
 		if ( $should_show_optimized_checkout ) {
-			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::DEFAULT_LAYOUT );
-			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
-			$stripe_params['excludedPaymentMethodTypes']   = $this->get_excluded_payment_method_types();
+			$stripe_params['OCLayout']                      = $this->get_option( 'optimized_checkout_layout', self::DEFAULT_LAYOUT );
+			$stripe_params['paymentMethodConfigurationId']  = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+			$stripe_params['excludedPaymentMethodTypes']    = $this->get_excluded_payment_method_types();
+			$stripe_params['optimizedCheckoutClassicTitle'] = WC_Stripe_UPE_Payment_Method_OC::get_classic_title();
 		}
 
 		return $stripe_params;
@@ -138,7 +142,7 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 				'isReusable'             => $payment_method->is_reusable(),
 				'title'                  => $payment_method->get_title(),
 				'description'            => $payment_method->get_description(),
-				'testingInstructions'    => self::expand_copy_button_markup( $payment_method->get_testing_instructions() ),
+				'testingInstructions'    => self::expand_copy_button_markup( $payment_method->get_testing_instructions( false, false ) ),
 				'showSaveOption'         => $this->should_upe_payment_method_show_save_option( $payment_method ),
 				'supportsDeferredIntent' => $payment_method->supports_deferred_intent(),
 				'countries'              => $payment_method->get_available_billing_countries(),
@@ -266,7 +270,9 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 	public function get_tokens() {
 		$tokens = parent::get_tokens();
 
-		if ( ! is_user_logged_in() || ! $this->is_valid_optimized_checkout_page() ) {
+		// Use the broad active check (not the page-specific render gate): saved sub-gateway
+		// tokens must also surface on My Account → Payment Methods, which is not a checkout page.
+		if ( ! is_user_logged_in() || ! $this->is_optimized_checkout_active() ) {
 			return $tokens;
 		}
 
@@ -347,7 +353,7 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 	 * Under OCS, use the payment_method_details->type (set by the Payment Element) to drive
 	 * intent creation, with a narrow fallback to the express payment type.
 	 */
-	protected function resolve_intent_payment_method_types( $selected_payment_type, $payment_method_id, $payment_method_details, $order, $express_payment_type ) {
+	protected function resolve_intent_payment_method_types( $selected_payment_type, $payment_method_id, $payment_method_details, $order, $express_payment_type, $save_payment_method_to_store = false ) {
 		if ( empty( $payment_method_id ) || empty( $payment_method_details->type ) ) {
 			// Express paths won't have a payment method created yet; fall back to either the
 			// currently selected type or the express type (whichever is set).
@@ -358,9 +364,19 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 			$selected_payment_type = $payment_method_details->type;
 		}
 
+		// Re-check reusability against the resolved type; the earlier save signal was computed against the OC pseudo-method.
+		if (
+			$save_payment_method_to_store &&
+			isset( $this->payment_methods[ $selected_payment_type ] ) &&
+			! $this->payment_methods[ $selected_payment_type ]->is_reusable()
+		) {
+			$save_payment_method_to_store = false;
+		}
+
 		return [
-			'selected_payment_type' => $selected_payment_type,
-			'payment_method_types'  => [ $selected_payment_type ],
+			'selected_payment_type'        => $selected_payment_type,
+			'payment_method_types'         => [ $selected_payment_type ],
+			'save_payment_method_to_store' => $save_payment_method_to_store,
 		];
 	}
 
