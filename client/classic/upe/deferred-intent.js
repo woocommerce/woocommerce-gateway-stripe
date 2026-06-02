@@ -19,6 +19,7 @@ import {
 	maybeUpdateAdaptivePricingCheckoutSession,
 	mountStripePaymentElement,
 	processPayment,
+	trackMountInProgress,
 } from './payment-processing';
 
 jQuery( function ( $ ) {
@@ -86,10 +87,16 @@ jQuery( function ( $ ) {
 	// Only attempt to mount the card element once that section of the page has loaded.
 	// We can use the updated_checkout event for this.
 	$( document.body ).on( 'updated_checkout', () => {
-		void ( async () => {
+		// Register the whole re-render → re-mount chain so a checkout
+		// submission that lands mid-update waits for it to settle, rather than
+		// submitting against a detached/not-yet-mounted Payment Element.
+		// See https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5490.
+		const updateChain = ( async () => {
 			await maybeUpdateAdaptivePricingCheckoutSession( api );
 			await maybeMountStripePaymentElement();
 		} )();
+		trackMountInProgress( updateChain );
+		void updateChain;
 	} );
 
 	function processPaymentIfNotUsingSavedMethod( $form ) {

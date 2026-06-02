@@ -55,6 +55,36 @@ const gatewayUPEComponents = {};
 let hasCheckoutCompleted = false;
 
 /**
+ * Tracks an in-flight Payment Element (re)mount.
+ *
+ * WooCommerce destroys and re-renders the payment box on every
+ * `updated_checkout` (shipping/coupon/address changes). The plugin re-mounts
+ * the Stripe Payment Element asynchronously in response. If the customer
+ * submits the order during that window, the element is detached and the
+ * payment method ID never makes it into the form, so `wc-stripe-payment-method`
+ * arrives empty server-side and the order fails.
+ *
+ * Submissions wait on this promise so they proceed only once the element has
+ * finished (re)mounting. See
+ * https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5490.
+ *
+ * @type {Promise<*>|null}
+ */
+let mountInProgress = null;
+
+/**
+ * Registers a promise that resolves when an in-flight Payment Element
+ * (re)mount completes. Submissions await the most recently registered promise.
+ *
+ * @param {Promise<*>} promise The mount promise to track.
+ */
+export function trackMountInProgress( promise ) {
+	// Swallow rejections here so awaiting it in processPayment never throws;
+	// mount errors are surfaced through their own error handling.
+	mountInProgress = Promise.resolve( promise ).catch( () => {} );
+}
+
+/**
  * Initialize the UPE components for each payment method type.
  */
 export function initializeUPEComponents() {
@@ -584,6 +614,20 @@ function createStripePaymentMethod(
  * @return {Object} An object containing the Stripe Elements object and the Stripe Payment Element.
  */
 export async function mountStripePaymentElement( api, domElement ) {
+	const mountPromise = mountStripePaymentElementImpl( api, domElement );
+	// Track this (re)mount so a concurrent checkout submission waits for it.
+	trackMountInProgress( mountPromise );
+	return mountPromise;
+}
+
+/**
+ * Mounts the Stripe payment element. See {@link mountStripePaymentElement}.
+ *
+ * @param {Object} api        The API object used to create the Stripe payment element.
+ * @param {Object} domElement The DOM element to mount the Stripe payment element on.
+ * @return {Promise<Object|undefined>} The UPE component, or undefined when nothing was mounted.
+ */
+async function mountStripePaymentElementImpl( api, domElement ) {
 	/*
 	 * Trigger this event to ensure the tokenization-form.js init
 	 * is executed.
@@ -843,6 +887,15 @@ export const processPayment = (
 
 	( async () => {
 		try {
+			// If the Payment Element is currently (re)mounting after a
+			// WooCommerce `updated_checkout` re-render, wait for it to finish.
+			// Otherwise we'd validate/create the payment method against a
+			// detached element and submit with an empty payment method ID.
+			// See https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5490.
+			if ( mountInProgress ) {
+				await mountInProgress;
+			}
+
 			const { elements, hasLoadError } =
 				gatewayUPEComponents[ paymentMethodType ];
 

@@ -265,6 +265,47 @@ describe( 'payment-processing', () => {
 				expect( form.trigger ).toHaveBeenCalledWith( 'submit' );
 			} );
 
+			it( 'waits for an in-flight re-mount before validating and submitting (issue #5490)', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				api._stripe.elements.mockReturnValue( api._standardElements );
+
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				// Simulate a re-mount triggered by `updated_checkout` that has
+				// not finished yet, then submit while it is still in flight.
+				let resolveMount;
+				paymentProcessing.trackMountInProgress(
+					new Promise( ( resolve ) => {
+						resolveMount = resolve;
+					} )
+				);
+
+				const form = createMockForm();
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				// Submission is held until the re-mount settles, so the payment
+				// method ID is never created against a detached element.
+				expect( api._standardElements.submit ).not.toHaveBeenCalled();
+				expect(
+					stripeUtils.appendPaymentMethodIdToForm
+				).not.toHaveBeenCalled();
+				expect( form.trigger ).not.toHaveBeenCalledWith( 'submit' );
+
+				// Re-mount completes; submission proceeds normally.
+				resolveMount();
+				await flushPromises();
+
+				expect( api._standardElements.submit ).toHaveBeenCalled();
+				expect(
+					stripeUtils.appendPaymentMethodIdToForm
+				).toHaveBeenCalledWith( form, 'pm_test_123' );
+				expect( form.trigger ).toHaveBeenCalledWith( 'submit' );
+			} );
+
 			it( 'shows an error and does not submit when hasLoadError is true', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
