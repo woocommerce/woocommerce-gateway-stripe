@@ -303,7 +303,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @dataProvider provide_test_get_order_by_setup_intent_id
 	 */
 	public function test_get_order_by_setup_intent_id( ?string $intent_target, bool $expect_success ): void {
-		global $wpdb;
 		$order     = WC_Helper_Order::create_order();
 		$intent_id = 'seti_mock';
 		$lookup_id = $intent_id;
