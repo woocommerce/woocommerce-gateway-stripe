@@ -74,14 +74,24 @@ let mountInProgress = null;
 
 /**
  * Registers a promise that resolves when an in-flight Payment Element
- * (re)mount completes. Submissions await the most recently registered promise.
+ * (re)mount completes. Submissions wait until every tracked re-mount settles.
+ *
+ * Composes with any in-flight tracker rather than replacing it: if two
+ * `updated_checkout` cycles overlap, a later (faster) chain resolving first
+ * must not release submission while the earlier re-mount is still detaching or
+ * mounting the element — that would reintroduce the empty payment-method race.
  *
  * @param {Promise<*>} promise The mount promise to track.
  */
 export function trackMountInProgress( promise ) {
 	// Swallow rejections here so awaiting it in processPayment never throws;
 	// mount errors are surfaced through their own error handling.
-	mountInProgress = Promise.resolve( promise ).catch( () => {} );
+	const trackedPromise = Promise.resolve( promise ).catch( () => {} );
+	mountInProgress = mountInProgress
+		? Promise.allSettled( [ mountInProgress, trackedPromise ] ).then(
+				() => {}
+		  )
+		: trackedPromise;
 }
 
 /**
@@ -102,6 +112,7 @@ export function initializeUPEComponents() {
 	}
 	// Reset so processPayment runs fully when called again (e.g. after re-init or in tests).
 	hasCheckoutCompleted = false;
+	mountInProgress = null;
 }
 
 /**

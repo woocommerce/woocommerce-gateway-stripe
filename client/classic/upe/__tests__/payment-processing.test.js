@@ -306,6 +306,53 @@ describe( 'payment-processing', () => {
 				expect( form.trigger ).toHaveBeenCalledWith( 'submit' );
 			} );
 
+			it( 'holds submission until all overlapping re-mounts settle, even out of order (issue #5490)', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				api._stripe.elements.mockReturnValue( api._standardElements );
+
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				// Two overlapping `updated_checkout` re-mounts in flight.
+				let resolveOlder;
+				let resolveNewer;
+				paymentProcessing.trackMountInProgress(
+					new Promise( ( resolve ) => {
+						resolveOlder = resolve;
+					} )
+				);
+				paymentProcessing.trackMountInProgress(
+					new Promise( ( resolve ) => {
+						resolveNewer = resolve;
+					} )
+				);
+
+				const form = createMockForm();
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				// Newer chain resolves first — submission must still be held,
+				// because the older re-mount is still detaching/mounting.
+				resolveNewer();
+				await flushPromises();
+				expect( api._standardElements.submit ).not.toHaveBeenCalled();
+				expect(
+					stripeUtils.appendPaymentMethodIdToForm
+				).not.toHaveBeenCalled();
+				expect( form.trigger ).not.toHaveBeenCalledWith( 'submit' );
+
+				// Older re-mount finishes — now submission proceeds.
+				resolveOlder();
+				await flushPromises();
+				expect( api._standardElements.submit ).toHaveBeenCalled();
+				expect(
+					stripeUtils.appendPaymentMethodIdToForm
+				).toHaveBeenCalledWith( form, 'pm_test_123' );
+				expect( form.trigger ).toHaveBeenCalledWith( 'submit' );
+			} );
+
 			it( 'shows an error and does not submit when hasLoadError is true', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
