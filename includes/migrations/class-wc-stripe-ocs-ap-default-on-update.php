@@ -30,7 +30,7 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 	/**
 	 * Epoch time for 2026-05-14 09:30 UTC.
 	 * Stripe accounts created on or after this timestamp are treated as
-	 * likely-10.7 frontbook signups for the audience-exclusion heuristic.
+	 * creating their account after 10.7 was released.
 	 */
 	private const OC_AP_DEFAULT_ON_RELEASE_TS = 1778751000;
 

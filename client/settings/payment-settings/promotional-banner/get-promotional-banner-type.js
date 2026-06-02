@@ -10,10 +10,7 @@ import {
 import { BNPL_METHODS } from 'wcstripe/stripe-utils/constants';
 
 /**
- * Returns the type of promotional banner to display based on the current
- * extension state. The server has already AND-gated the visibility flags
- * against current OC/AP state and the India geo-exclusion, so this function
- * only resolves precedence among the candidates.
+ * Returns the type of promotional banner to display based on the current extension state.
  *
  * @param {Object}  accountData             Stripe account data.
  * @param {boolean} isOCEnabled             Whether OC is currently enabled.
