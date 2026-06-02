@@ -4,8 +4,6 @@ import {
 	appendPaymentIntentIdToForm,
 	appendCheckoutSessionIdToForm,
 	getPaymentMethodTypes,
-	initializeUPEAppearance,
-	invalidateAppearanceCache,
 	isLinkEnabled,
 	getDefaultValues,
 	getStripeServerData,
@@ -20,6 +18,10 @@ import {
 	getExcludedPaymentMethodTypes,
 	getUserDataForCheckoutSession,
 } from '../../stripe-utils';
+import {
+	initializeUPEAppearance,
+	invalidateAppearanceCache,
+} from '../../stripe-utils/upe-appearance';
 import { getFontRulesFromPage, sampleFontFamily } from '../../styles/upe';
 import { getPaymentMethodRadioStyles } from '../../styles/upe/utils';
 import { __, sprintf } from '@wordpress/i18n';
