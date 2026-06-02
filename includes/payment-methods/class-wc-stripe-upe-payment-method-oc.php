@@ -151,9 +151,11 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
 	 * @param bool $show_optimized_checkout_instruction Deprecated. Whether to show optimized checkout instructions.
+	 * @param bool $include_test_mode_label Whether to include the "Test mode:" label prefix. Pass false for
+	 *                                      Blocks checkout, which already displays a Test Mode badge.
 	 * @return string
 	 */
-	public function get_testing_instructions( $show_optimized_checkout_instruction = false ) {
+	public function get_testing_instructions( bool $show_optimized_checkout_instruction = false, bool $include_test_mode_label = true ) {
 		if ( false !== $show_optimized_checkout_instruction ) {
 			_deprecated_argument(
 				__FUNCTION__,
@@ -169,7 +171,7 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 				continue;
 			}
 
-			$payment_method_instructions = $payment_method->get_testing_instructions();
+			$payment_method_instructions = $payment_method->get_testing_instructions( false, $include_test_mode_label );
 			if ( $payment_method_instructions ) {
 				$instructions .= sprintf( $base_instruction_html, $payment_method::STRIPE_ID, $payment_method_instructions );
 			}
