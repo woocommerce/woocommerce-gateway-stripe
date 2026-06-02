@@ -2,10 +2,18 @@
 
 set -e
 
+WORKTREE_ID="default"
+if [ -f ".env" ]; then
+    source .env
+fi
+
+TEST_DB_NAME="wcstripe_tests_${WORKTREE_ID}"
+
 echo "Installing the test environment..."
+echo "Using test database: ${TEST_DB_NAME}"
 
 docker compose exec -u www-data -e PARATEST=true wordpress \
-	/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/bin/install-wp-tests.sh
+	/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/bin/install-wp-tests.sh "${TEST_DB_NAME}"
 
 echo "Running the tests in parallel..."
 
