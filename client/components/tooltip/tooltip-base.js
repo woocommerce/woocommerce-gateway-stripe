@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, memo } from 'react';
 import { createPortal } from 'react-dom';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { debounce, noop } from 'lodash';
 
 import './style.scss';
@@ -216,13 +216,12 @@ const TooltipBase = ( {
 				<TooltipPortal>
 					<div
 						ref={ tooltipWrapperRef }
-						className={ classNames(
-							'wcstripe-tooltip__tooltip-wrapper',
-							{ 'is-hiding': ! isVisible }
-						) }
+						className={ clsx( 'wcstripe-tooltip__tooltip-wrapper', {
+							'is-hiding': ! isVisible,
+						} ) }
 					>
 						<div
-							className={ classNames(
+							className={ clsx(
 								'wcstripe-tooltip__tooltip',
 								`wcstripe-tooltip__tooltip-${ tooltipPosition }`,
 								className

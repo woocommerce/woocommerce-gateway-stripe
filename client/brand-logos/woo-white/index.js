@@ -1,4 +1,4 @@
-import classNames from 'classnames';
+import clsx from 'clsx';
 import logo from './logo.svg';
 import { __ } from '@wordpress/i18n';
 
@@ -13,10 +13,7 @@ import { __ } from '@wordpress/i18n';
  */
 const WooLogo = ( { className, ...restProps } ) => (
 	<img
-		className={ classNames(
-			'woocommerce-stripe-woo-white-logo',
-			className
-		) }
+		className={ clsx( 'woocommerce-stripe-woo-white-logo', className ) }
 		src={ logo }
 		width="64"
 		height="64"
