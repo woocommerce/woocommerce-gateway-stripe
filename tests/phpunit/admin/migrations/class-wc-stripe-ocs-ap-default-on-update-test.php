@@ -118,8 +118,8 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		string $ap_pre,
 		string $country,
 		?int $account_created,
-		string $expected_show_a,
-		string $expected_show_b,
+		string $expected_show_ocs_ap_banner,
+		string $expected_show_ap_banner,
 		string $expected_oc_after,
 		string $expected_ap_after
 	) {
@@ -137,12 +137,12 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		$context       = sprintf( 'prev=%s oc=%s ap=%s country=%s created=%s', $previous_version, $oc_pre, $ap_pre, $country, $created_label );
 
 		$this->assertSame(
-			$expected_show_a,
+			$expected_show_ocs_ap_banner,
 			get_option( self::SHOW_OCS_AP_BANNER_OPTION ),
 			sprintf( 'Banner A flag mismatch for %s', $context )
 		);
 		$this->assertSame(
-			$expected_show_b,
+			$expected_show_ap_banner,
 			get_option( self::SHOW_AP_ONLY_BANNER_OPTION ),
 			sprintf( 'Banner B flag mismatch for %s', $context )
 		);
@@ -181,7 +181,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		];
 	}
 
-	public function test_flip_writes_yes_for_back_book_merchant() {
+	public function test_migration_writes_yes_for_back_book_merchant() {
 		update_option( self::STRIPE_VERSION_OPTION, '10.7.0' );
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
