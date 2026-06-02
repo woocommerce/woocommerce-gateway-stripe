@@ -38,17 +38,17 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 	/**
 	 * Entry point invoked by WC_Stripe_Update_Manager.
 	 *
+	 * @param string|false $previous_version The plugin version recorded before this upgrade, or false on a new install.
+	 *
 	 * @return void
 	 */
-	public function maybe_migrate(): void {
+	public function maybe_migrate( $previous_version = false ): void {
 		if ( 'yes' === get_option( self::MIGRATION_FLAG_OPTION ) ) {
 			WC_Stripe_Logger::info( '[OCS+AP 10.8] Skipping: migration already ran on this site.' );
 			return;
 		}
 
-		$previous_version = get_option( 'wc_stripe_version' );
-
-		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- distinguishing `false` (option unset) from string versions in the log message.
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- distinguishing `false` (new install) from string versions in the log message.
 		WC_Stripe_Logger::info( sprintf( '[OCS+AP 10.8] Migration started. previous_version=%s.', var_export( $previous_version, true ) ) );
 
 		if ( false === $previous_version ) {

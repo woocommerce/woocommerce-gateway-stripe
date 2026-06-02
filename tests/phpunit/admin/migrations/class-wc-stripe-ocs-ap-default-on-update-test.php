@@ -101,7 +101,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->build_migration()->maybe_migrate();
+		$this->build_migration()->maybe_migrate( '10.8.0' );
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'no', $stored['optimized_checkout_element'], 'Already-10.8 must not flip OC.' );
@@ -138,7 +138,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->build_migration( $ap_unavailable_reason, $account_created )->maybe_migrate();
+		$this->build_migration( $ap_unavailable_reason, $account_created )->maybe_migrate( $previous_version );
 
 		$created_label = null === $account_created ? 'null' : (string) $account_created;
 		$context       = sprintf( 'prev=%s oc=%s ap=%s ap_unavail=%s created=%s', $previous_version, $oc_pre, $ap_pre, $ap_unavailable_reason ?? 'available', $created_label );
@@ -206,7 +206,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->build_migration( null, 1747008000 )->maybe_migrate();
+		$this->build_migration( null, 1747008000 )->maybe_migrate( '10.7.0' );
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'OC must be flipped to yes.' );
@@ -223,7 +223,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->build_migration( null, 1779148800 )->maybe_migrate();
+		$this->build_migration( null, 1779148800 )->maybe_migrate( '10.7.0' );
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'yes', $stored['optimized_checkout_element'] );
@@ -240,7 +240,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		);
 
 		// India: AP is unavailable, but OCS is enabled. Old account => not frontbook.
-		$this->build_migration( 'account-country', 1747008000 )->maybe_migrate();
+		$this->build_migration( 'account-country', 1747008000 )->maybe_migrate( '10.7.0' );
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'India: OC must be enabled.' );
@@ -260,7 +260,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		);
 
 		// Recent account = likely 10.7 frontbook who explicitly disabled both.
-		$this->build_migration( null, 1779148800 )->maybe_migrate();
+		$this->build_migration( null, 1779148800 )->maybe_migrate( '10.7.0' );
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'no', $stored['optimized_checkout_element'], 'Frontbook-disabled OC must not be re-flipped.' );
@@ -277,7 +277,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		);
 
 		// Recent account = likely 10.7 frontbook who kept OC on but disabled AP.
-		$this->build_migration( null, 1779148800 )->maybe_migrate();
+		$this->build_migration( null, 1779148800 )->maybe_migrate( '10.7.0' );
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'OC stays as set; no change needed.' );
