@@ -2,8 +2,8 @@ import {
 	getFontSizeBase,
 	getDefaultValues,
 	getHiddenBillingFields,
-	initializeUPEAppearance,
 } from '../utils';
+import { initializeUPEAppearance } from '../upe-appearance';
 import { getAppearance } from '../../styles/upe';
 
 jest.mock( '../../styles/upe', () => ( {
@@ -331,7 +331,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -351,7 +351,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -371,7 +371,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -390,7 +390,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -410,7 +410,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -428,7 +428,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -448,7 +448,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -469,7 +469,7 @@ describe( 'utils', () => {
 					const blocksAppearance = { theme: 'blocks' };
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -493,7 +493,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );

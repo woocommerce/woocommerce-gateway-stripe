@@ -60,6 +60,7 @@ Agentic Commerce feed integration:
 - For amount conversion paths, round before integer casting and test edge precision cases.
 - When adding `const` declarations to classes, they **MUST** have explicit visibility. Where practical, aim to expose their values via getter methods and use `protected` visibility.
   * Classes in `includes/constants/` are generally expected to expose public constants, so most use cases in this folder may use `public` visibility.
+- When you change the code path behind a registered Abilities API ability under `includes/abilities/domain/`, audit the registration for required updates (annotations, `input_schema`, description) — silent drift between the ability and its backing controller / `WC_Stripe_API` call defeats the agent introspection contract.
 
 ## Common Pitfalls
 
