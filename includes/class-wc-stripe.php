@@ -149,7 +149,6 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-apple-pay-registration.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-status.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-ocs-payment-gateway.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-gateway-stripe.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
@@ -560,9 +559,12 @@ class WC_Stripe {
 	 * @version 5.6.0
 	 */
 	public function add_gateways( $methods ) {
-		$main_gateway  = $this->get_main_stripe_gateway();
-		$methods[]     = $main_gateway;
-		$is_oc_enabled = 'yes' === $main_gateway->get_option( 'optimized_checkout_element', 'no' );
+		$main_gateway = $this->get_main_stripe_gateway();
+		$methods[]    = $main_gateway;
+		// Key the filtering off the instantiated gateway class so admin/editor filtering can't
+		// treat OCS as on while the classic gateway is actually selected (e.g. when the feature
+		// is unavailable but the setting is still 'yes'). Selection happens in get_main_stripe_gateway().
+		$is_oc_enabled = $main_gateway instanceof WC_Stripe_OCS_Payment_Gateway;
 
 		// The $main_gateway represents the card gateway so we don't want to include it in the list of UPE gateways.
 		$upe_payment_methods = $main_gateway->payment_methods;

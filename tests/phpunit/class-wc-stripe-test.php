@@ -365,14 +365,14 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			->onlyMethods( [ 'get_main_stripe_gateway' ] )
 			->getMock();
 
-		$mock_main_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+		// add_gateways() keys OCS filtering off the instantiated gateway class, mirroring the
+		// selection done in get_main_stripe_gateway(): the OCS gateway when OC is enabled.
+		$main_gateway_class = $oc_enabled ? WC_Stripe_OCS_Payment_Gateway::class : WC_Stripe_UPE_Payment_Gateway::class;
+		$mock_main_gateway  = $this->getMockBuilder( $main_gateway_class )
 			->disableOriginalConstructor()
 			->getMock();
 
 		$mock_main_gateway->payment_methods = $payment_methods;
-		$mock_main_gateway->method( 'get_option' )
-			->with( 'optimized_checkout_element', 'no' )
-			->willReturn( $oc_enabled ? 'yes' : 'no' );
 
 		$wc_stripe->method( 'get_main_stripe_gateway' )
 			->willReturn( $mock_main_gateway );
