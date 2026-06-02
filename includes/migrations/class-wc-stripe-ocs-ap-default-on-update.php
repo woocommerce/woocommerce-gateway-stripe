@@ -73,9 +73,6 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 		$ap_unavailable        = null !== $ap_unavailable_reason;
 		$is_frontbook          = $this->is_likely_frontbook_10_7( (string) $previous_version );
 
-		// OCS is available for every account (including India). Enable it unless a
-		// likely-10.7 frontbook explicitly turned it off. AP is enabled only when it
-		// is actually available for the account AND not frontbook-disabled.
 		$enable_oc = ! ( $is_frontbook && ! $oc_pre );
 		$enable_ap = ! $ap_unavailable && ! ( $is_frontbook && ! $ap_pre );
 
