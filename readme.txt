@@ -174,6 +174,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Align Agentic Commerce sync status UI with the WordPress design system
 * Add - Add a "Release notes" link to the WooCommerce Stripe row on the Plugins page that opens the changelog modal
 * Fix - Add guards against invalid values for webhook state timestamps
+* Dev - Refactor docker setup to be worktree friendly
 * Fix - Show better message when express checkout preview is not available
 * Add - Implement wc_stripe_logger_can_log filter to allow for targeted logging on busy sites
 * Dev - Remove redundant `get_retrievable_type()` overrides from payment methods
