@@ -6155,6 +6155,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_id    = $order->get_id();
 		$customer_id = 'cus_mock';
 
+		// SEPA billing-country validation requires a SEPA-zone country; DE works for all payment types.
+		$order->set_billing_country( 'DE' );
+		$order->save();
+
 		// Configure the statement descriptor settings.
 		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['statement_descriptor'] = $local_descriptor;
@@ -6277,6 +6281,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_statement_descriptor_set_in_payment_info_on_intent_update() {
 		$order    = WC_Helper_Order::create_order();
 		$order_id = $order->get_id();
+
+		// SEPA billing-country validation requires a SEPA-zone country.
+		$order->set_billing_country( 'DE' );
+		$order->save();
 
 		// Configure a local statement descriptor.
 		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
