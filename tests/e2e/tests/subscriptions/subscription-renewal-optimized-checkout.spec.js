@@ -118,6 +118,7 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 			await clickAddToCartButton( page );
 
 			await setupOptimizedCheckout( page, checkoutType, {
+				timeout: 10000,
 				skipCartSetup: true,
 			} );
 			await fillOCDetails(

@@ -65,6 +65,7 @@ test.describe( 'Optimized Checkout subscription purchase tests @subscriptions', 
 		await clickAddToCartButton( page );
 
 		await setupOptimizedCheckout( page, checkoutType, {
+			timeout: 10000,
 			skipCartSetup: true,
 		} );
 		await fillOCDetails( page, config.get( 'cards.basic' ), checkoutType );
