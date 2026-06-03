@@ -381,6 +381,14 @@ class WC_Stripe {
 		}
 
 		add_woocommerce_inbox_variant();
+
+		// Ensure the PP settings-migration ledger table exists/upgraded before the new
+		// plugin version is stamped. Idempotent and gated on its own schema version, so
+		// it's cheap on every upgrade; running it ahead of update_plugin_version() means
+		// a failure here is retried on the next admin_init (the version gate hasn't
+		// advanced yet) rather than being skipped until the following upgrade.
+		WC_Stripe_Settings_Migration_Ledger::install_table();
+
 		$this->update_plugin_version();
 
 		// Add webhook reconfiguration

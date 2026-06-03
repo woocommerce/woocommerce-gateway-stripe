@@ -30,6 +30,8 @@
         "includes/ajax-handlers/",
         "includes/agentic-commerce/",
         "includes/abilities/",
+        "includes/migrations/",
+        "includes/migrations/pp-settings-maps/",
         "includes/admin/class-wc-stripe-rest-base-controller.php",
         "includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php",
         "includes/admin/class-wc-rest-stripe-exit-survey-controller.php",
