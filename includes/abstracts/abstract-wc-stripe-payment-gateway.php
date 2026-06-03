@@ -62,7 +62,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return $cached;
 		}
 
-		$settings = self::read_settings_option();
+		$settings = WC_Stripe::read_settings_option();
 		wp_cache_set( self::SETTINGS_CACHE_KEY, $settings, self::SETTINGS_CACHE_GROUP );
 
 		return $settings;
@@ -81,7 +81,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool Whether the option was actually written (matches `update_option`).
 	 */
 	public function update_settings( array $settings ): bool {
-		return update_option( WC_Stripe::SETTINGS_OPTION_NAME, $settings );
+		return WC_Stripe::write_settings_option( $settings );
 	}
 
 	/**
@@ -97,54 +97,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function refresh_settings_cache() {
 		wp_cache_delete( self::SETTINGS_CACHE_KEY, self::SETTINGS_CACHE_GROUP );
-	}
-
-	/**
-	 * Reads the raw main Stripe settings option directly.
-	 *
-	 * Static and uncached so it is safe to call during bootstrap and gateway
-	 * construction, where routing through the main gateway instance would
-	 * recurse. Always returns an array.
-	 *
-	 * @since 10.9.0
-	 *
-	 * @return array
-	 */
-	public static function read_settings_option(): array {
-		$settings = get_option( WC_Stripe::SETTINGS_OPTION_NAME, [] );
-
-		return is_array( $settings ) ? $settings : [];
-	}
-
-	/**
-	 * Writes the raw main Stripe settings option directly.
-	 *
-	 * Static counterpart to read_settings_option(), safe to call during
-	 * bootstrap and gateway construction. The main gateway's option-change
-	 * hooks keep its in-memory cache in sync after this write.
-	 *
-	 * @since 10.9.0
-	 *
-	 * @param array $settings The settings to persist.
-	 * @return bool Whether the option was actually written (matches `update_option`).
-	 */
-	public static function write_settings_option( array $settings ): bool {
-		return update_option( WC_Stripe::SETTINGS_OPTION_NAME, $settings );
-	}
-
-	/**
-	 * Reads the raw per-method settings option directly (e.g. "boleto" →
-	 * `woocommerce_stripe_boleto_settings`). Always returns an array.
-	 *
-	 * @since 10.9.0
-	 *
-	 * @param string $method The payment method slug.
-	 * @return array
-	 */
-	public static function read_method_settings_option( string $method ): array {
-		$settings = get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
-
-		return is_array( $settings ) ? $settings : [];
 	}
 
 	/**

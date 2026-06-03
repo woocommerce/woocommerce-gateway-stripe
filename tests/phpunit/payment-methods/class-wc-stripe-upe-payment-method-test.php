@@ -505,9 +505,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_INACTIVE_CAPABILITIES_RESPONSE );
 
 		// Disable testmode.
-		$stripe_settings             = WC_Stripe_Payment_Gateway::read_settings_option();
+		$stripe_settings             = WC_Stripe::read_settings_option();
 		$stripe_settings['testmode'] = 'no';
-		WC_Stripe_Payment_Gateway::write_settings_option( $stripe_settings );
+		WC_Stripe::write_settings_option( $stripe_settings );
 
 		$card_method              = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::CARD ];
 		$blik_method              = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::BLIK ];
@@ -553,10 +553,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 */
 	public function test_payment_methods_are_only_enabled_when_capability_is_active() {
 		// Disable testmode.
-		$stripe_settings             = WC_Stripe_Payment_Gateway::read_settings_option();
+		$stripe_settings             = WC_Stripe::read_settings_option();
 		$stripe_settings['testmode'] = 'no';
 		$stripe_settings['capture']  = 'yes';
-		WC_Stripe_Payment_Gateway::write_settings_option( $stripe_settings );
+		WC_Stripe::write_settings_option( $stripe_settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
 
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
@@ -597,9 +597,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * Payment method is only enabled when its supported currency is present or method supports all currencies.
 	 */
 	public function test_payment_methods_are_only_enabled_when_currency_is_supported() {
-		$stripe_settings            = WC_Stripe_Payment_Gateway::read_settings_option();
+		$stripe_settings            = WC_Stripe::read_settings_option();
 		$stripe_settings['capture'] = 'yes';
-		WC_Stripe_Payment_Gateway::write_settings_option( $stripe_settings );
+		WC_Stripe::write_settings_option( $stripe_settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
 
 		$this->set_mock_payment_method_return_value( 'get_current_order_amount', 150, true );
@@ -640,7 +640,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * When has_domestic_transactions_restrictions is true, the payment method is disabled when the store currency and account currency don't match.
 	 */
 	public function test_payment_methods_with_domestic_restrictions_are_disabled_on_currency_mismatch() {
-		WC_Stripe_Payment_Gateway::write_settings_option( [ 'testmode' => 'yes' ] );
+		WC_Stripe::write_settings_option( [ 'testmode' => 'yes' ] );
 
 		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', WC_Stripe_Currency_Code::MEXICAN_PESO, true );
 
@@ -657,7 +657,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * When has_domestic_transactions_restrictions is true, the payment method is enabled when the store currency and account currency match.
 	 */
 	public function test_payment_methods_with_domestic_restrictions_are_enabled_on_currency_match() {
-		WC_Stripe_Payment_Gateway::write_settings_option( [ 'testmode' => 'yes' ] );
+		WC_Stripe::write_settings_option( [ 'testmode' => 'yes' ] );
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 				->disableOriginalConstructor()
 				->setMethods(
@@ -786,9 +786,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 */
 	public function test_non_card_methods_are_not_available_when_optimized_checkout_is_enabled() {
 		// Enable optimized checkout.
-		$stripe_settings                           = WC_Stripe_Payment_Gateway::read_settings_option();
+		$stripe_settings                           = WC_Stripe::read_settings_option();
 		$stripe_settings['single_payment_element'] = 'yes';
-		WC_Stripe_Payment_Gateway::write_settings_option( $stripe_settings );
+		WC_Stripe::write_settings_option( $stripe_settings );
 
 		$mocked_methods = [
 			'get_capabilities_response',
@@ -934,13 +934,13 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * for accounts with PMC sync.
 	 */
 	public function test_upe_method_enabled() {
-		$stripe_settings                         = WC_Stripe_Payment_Gateway::read_settings_option();
+		$stripe_settings                         = WC_Stripe::read_settings_option();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_1234567890';
 		$stripe_settings['test_secret_key']      = 'sk_test_1234567890';
 		$stripe_settings['test_connection_type'] = 'connect';
 		$stripe_settings['pmc_enabled']          = 'yes';
-		WC_Stripe_Payment_Gateway::write_settings_option( $stripe_settings );
+		WC_Stripe::write_settings_option( $stripe_settings );
 
 		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::CASHAPP_PAY ], [] );
 		$link_upe_method    = new WC_Stripe_UPE_Payment_Method_Link();
@@ -956,11 +956,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * for accounts with PMC sync.
 	 */
 	public function test_upe_method_disabled() {
-		$stripe_settings                         = WC_Stripe_Payment_Gateway::read_settings_option();
+		$stripe_settings                         = WC_Stripe::read_settings_option();
 		$stripe_settings['enabled']              = 'no';
 		$stripe_settings['test_connection_type'] = 'connect';
 		$stripe_settings['pmc_enabled']          = 'no';
-		WC_Stripe_Payment_Gateway::write_settings_option( $stripe_settings );
+		WC_Stripe::write_settings_option( $stripe_settings );
 
 		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::CASHAPP_PAY ], [] );
 		$link_upe_method    = new WC_Stripe_UPE_Payment_Method_Link();
@@ -977,7 +977,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 */
 	public function test_upe_method_enabled_no_pmc_sync() {
 		// Enable Stripe and reset the accepted payment methods.
-		$stripe_settings                         = WC_Stripe_Payment_Gateway::read_settings_option();
+		$stripe_settings                         = WC_Stripe::read_settings_option();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['test_connection_type'] = 'connect';
 		$stripe_settings['pmc_enabled']          = 'no';
@@ -985,7 +985,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 			WC_Stripe_Payment_Methods::LINK,
 			WC_Stripe_Payment_Methods::CASHAPP_PAY,
 		];
-		WC_Stripe_Payment_Gateway::write_settings_option( $stripe_settings );
+		WC_Stripe::write_settings_option( $stripe_settings );
 
 		$link_upe_method    = new WC_Stripe_UPE_Payment_Method_Link();
 		$cashapp_upe_method = new WC_Stripe_UPE_Payment_Method_Cash_App_Pay();
@@ -1001,7 +1001,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 */
 	public function test_upe_method_disabled_no_pmc_sync() {
 		// Enable Stripe and reset the accepted payment methods.
-		$stripe_settings                         = WC_Stripe_Payment_Gateway::read_settings_option();
+		$stripe_settings                         = WC_Stripe::read_settings_option();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['test_connection_type'] = 'connect';
 		$stripe_settings['pmc_enabled']          = 'no';
@@ -1009,7 +1009,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 			WC_Stripe_Payment_Methods::LINK,
 			WC_Stripe_Payment_Methods::CASHAPP_PAY,
 		];
-		WC_Stripe_Payment_Gateway::write_settings_option( $stripe_settings );
+		WC_Stripe::write_settings_option( $stripe_settings );
 
 		$link_upe_method    = new WC_Stripe_UPE_Payment_Method_Link();
 		$cashapp_upe_method = new WC_Stripe_UPE_Payment_Method_Cash_App_Pay();
@@ -1036,9 +1036,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		bool $expected
 	) {
 		// Configure saved_cards setting.
-		$settings                = WC_Stripe_Payment_Gateway::read_settings_option();
+		$settings                = WC_Stripe::read_settings_option();
 		$settings['saved_cards'] = $saved_cards_enabled ? 'yes' : 'no';
-		WC_Stripe_Payment_Gateway::write_settings_option( $settings );
+		WC_Stripe::write_settings_option( $settings );
 
 		// Reset the stripe gateway so it re-reads settings.
 		$reset_stripe_gateway = Closure::bind(

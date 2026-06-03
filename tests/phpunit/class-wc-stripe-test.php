@@ -167,7 +167,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
 
 		// Set initial settings.
-		WC_Stripe_Payment_Gateway::write_settings_option( $stripe_settings );
+		WC_Stripe::write_settings_option( $stripe_settings );
 
 		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
 			->disableOriginalConstructor()
@@ -182,7 +182,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$wc_stripe->install();
 
-		$actual_settings = WC_Stripe_Payment_Gateway::read_settings_option();
+		$actual_settings = WC_Stripe::read_settings_option();
 		foreach ( $expected_settings as $key => $value ) {
 			if ( null == $value ) {
 				$this->assertArrayNotHasKey( $key, $actual_settings );

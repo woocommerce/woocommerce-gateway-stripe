@@ -17,6 +17,54 @@ class WC_Stripe {
 	public const SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
 
 	/**
+	 * Reads the raw main Stripe settings option directly.
+	 *
+	 * Static and uncached so it is safe to call during bootstrap and gateway
+	 * construction, where routing through the gateway instance (which holds the
+	 * cached copy) would recurse. Always returns an array. The cached,
+	 * gateway-owned accessor is `WC_Stripe_Payment_Gateway::get_settings()`.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @return array
+	 */
+	public static function read_settings_option(): array {
+		$settings = get_option( self::SETTINGS_OPTION_NAME, [] );
+
+		return is_array( $settings ) ? $settings : [];
+	}
+
+	/**
+	 * Writes the raw main Stripe settings option directly.
+	 *
+	 * Static counterpart to read_settings_option(). The main gateway's
+	 * option-change hooks invalidate its cached copy after this write.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param array $settings The settings to persist.
+	 * @return bool Whether the option was actually written (matches `update_option`).
+	 */
+	public static function write_settings_option( array $settings ): bool {
+		return update_option( self::SETTINGS_OPTION_NAME, $settings );
+	}
+
+	/**
+	 * Reads the raw per-method settings option directly (e.g. "boleto" →
+	 * `woocommerce_stripe_boleto_settings`). Always returns an array.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param string $method The payment method slug.
+	 * @return array
+	 */
+	public static function read_method_settings_option( string $method ): array {
+		$settings = get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
+
+		return is_array( $settings ) ? $settings : [];
+	}
+
+	/**
 	 * The *Singleton* instance of this class
 	 *
 	 * @var WC_Stripe
