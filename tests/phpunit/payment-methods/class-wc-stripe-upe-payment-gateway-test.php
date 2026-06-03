@@ -1829,6 +1829,64 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Regression test for STRIPE-1080: a shopper cancelling on the bank/provider
+	 * page before any charge is created leaves the PaymentIntent in a non-success
+	 * status with no `last_payment_error`. Before the fix, the redirect handler
+	 * silently returned (no notice, no redirect) because no charge → no
+	 * payment-method type → early `return` at the bottom of
+	 * `process_order_for_confirmed_intent()`. This test confirms the outer
+	 * cancellation catch now runs: notice added, redirect to checkout, order
+	 * left in a non-failed state so the shopper can retry.
+	 *
+	 * @dataProvider provider_cancel_statuses_without_error
+	 */
+	public function test_process_upe_redirect_payment_without_last_error_adds_notice_and_redirects( $intent_status ) {
+		$payment_intent_id = 'pi_mock';
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['status']             = $intent_status;
+		$payment_intent_mock['last_payment_error'] = [];
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->willReturn( $this->array_to_object( $payment_intent_mock ) );
+
+		$redirect_url = null;
+		$this->intercept_wp_redirect( $redirect_url );
+
+		try {
+			$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
+			$this->fail( 'Expected redirect to be triggered' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+		}
+
+		$final_order = wc_get_order( $order_id );
+		$this->assertNotEquals( OrderStatus::FAILED, $final_order->get_status() );
+
+		$notices = wc_get_notices( 'notice' );
+		$this->assertNotEmpty( $notices, 'Expected a cancellation notice to be added' );
+
+		$this->assertSame( wc_get_checkout_url(), $redirect_url );
+	}
+
+	public function provider_cancel_statuses_without_error() {
+		return [
+			'requires_payment_method (no charge created)' => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD ],
+			'canceled'                                    => [ WC_Stripe_Intent_Status::CANCELED ],
+		];
+	}
+
+	/**
 	 * Helper: build an order linked to a Checkout Session and return the order plus the
 	 * `checkout/sessions/{id}?expand[]=payment_intent` Stripe URL we expect the handler
 	 * to fetch.
