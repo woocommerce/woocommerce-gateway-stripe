@@ -3,6 +3,7 @@ import React, {
 	useEffect,
 	useCallback,
 	useImperativeHandle,
+	useRef,
 	forwardRef,
 } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
@@ -11,6 +12,7 @@ import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import CopyButton from '../../components/copy-button';
 import AgenticCommerceSyncStatus from './sync-status';
+import ProductFilters from './product-filters';
 import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
 import {
@@ -61,6 +63,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	const [ webhookSecret, setWebhookSecret ] = useState( '' );
 	const [ isLoadingSettings, setIsLoadingSettings ] = useState( true );
 	const [ settingsNotice, setSettingsNotice ] = useState( null );
+	const filtersRef = useRef( null );
 
 	const [ isTestMode ] = useTestMode();
 	const mode = isTestMode ? 'test' : 'live';
@@ -102,6 +105,11 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			} );
 			setIsFeatureEnabled( result.is_enabled );
 			setWebhookSecret( result.webhook_secret ?? '' );
+
+			// Persist the product filters alongside the feature settings so the
+			// single global "Save changes" button covers both.
+			await filtersRef.current?.save();
+
 			setSettingsNotice( {
 				status: 'success',
 				message: __( 'Settings saved.', 'woocommerce-gateway-stripe' ),
@@ -273,6 +281,19 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 											onChange={ setWebhookSecret }
 											autoComplete="off"
 										/>
+
+										<HorizontalRule
+											style={ { margin: '24px 0' } }
+										/>
+										<p>
+											<strong>
+												{ __(
+													'Product filters',
+													'woocommerce-gateway-stripe'
+												) }
+											</strong>
+										</p>
+										<ProductFilters ref={ filtersRef } />
 									</>
 								) }
 							</>
