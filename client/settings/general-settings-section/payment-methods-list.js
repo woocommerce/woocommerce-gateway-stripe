@@ -16,9 +16,7 @@ import {
 } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
-import {
-	PAYMENT_METHOD_UNAVAILABLE_REASONS,
-} from 'wcstripe/stripe-utils/constants';
+import { PAYMENT_METHOD_UNAVAILABLE_REASONS } from 'wcstripe/stripe-utils/constants';
 import { getFormattedPaymentMethodDescription } from 'wcstripe/settings/general-settings-section/get-formatted-payment-method-description';
 
 const List = styled.ul`
