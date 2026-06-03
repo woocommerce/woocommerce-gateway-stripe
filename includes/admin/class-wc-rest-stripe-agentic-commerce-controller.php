@@ -135,6 +135,66 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				],
 			]
 		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/filters',
+			[
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ $this, 'get_filters_config' ],
+					'permission_callback' => [ $this, 'check_permission' ],
+				],
+				[
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => [ $this, 'update_filters_config' ],
+					'permission_callback' => [ $this, 'check_permission' ],
+					'args'                => $this->get_filters_endpoint_args(),
+				],
+			]
+		);
+	}
+
+	/**
+	 * Endpoint args used by the POST /filters route.
+	 *
+	 * Each group is an array of positive integer IDs. Unknown or invalid IDs
+	 * are dropped server-side by {@see WC_Stripe_Agentic_Commerce_Product_Filter::save_filters()}.
+	 *
+	 * @see update_filters_config()
+	 * @since 10.8.0
+	 * @return array
+	 */
+	private function get_filters_endpoint_args(): array {
+		$id_list_arg = [
+			'type'              => 'array',
+			'items'             => [ 'type' => 'integer' ],
+			'sanitize_callback' => 'wp_parse_id_list',
+			'validate_callback' => 'rest_validate_request_arg',
+		];
+
+		return [
+			'product_ids'          => array_merge(
+				[ 'description' => __( 'Simple/variation product IDs to include in the feed.', 'woocommerce-gateway-stripe' ) ],
+				$id_list_arg
+			),
+			'variable_product_ids' => array_merge(
+				[ 'description' => __( 'Variable (parent) product IDs whose variations should be included in the feed.', 'woocommerce-gateway-stripe' ) ],
+				$id_list_arg
+			),
+			'category_ids'         => array_merge(
+				[ 'description' => __( 'Product category term IDs to include in the feed.', 'woocommerce-gateway-stripe' ) ],
+				$id_list_arg
+			),
+			'tag_ids'              => array_merge(
+				[ 'description' => __( 'Product tag term IDs to include in the feed.', 'woocommerce-gateway-stripe' ) ],
+				$id_list_arg
+			),
+			'brand_ids'            => array_merge(
+				[ 'description' => __( 'Product brand term IDs to include in the feed.', 'woocommerce-gateway-stripe' ) ],
+				$id_list_arg
+			),
+		];
 	}
 
 	/**
@@ -315,6 +375,100 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		}
 
 		return $this->get_agentic_settings();
+	}
+
+	/**
+	 * Return the persisted product filters plus resolved labels for the UI.
+	 *
+	 * Include human-readable `name` fields for products to support the UI.
+	 * Terms are fetched separately by the UI, so only their IDs are returned here.
+	 *
+	 * @since 10.8.0
+	 * @return WP_REST_Response
+	 */
+	public function get_filters_config(): WP_REST_Response {
+		$filter  = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		$filters = $filter->get_filters();
+
+		return rest_ensure_response(
+			[
+				'product_ids'              => $filters['product_ids'],
+				'variable_product_ids'     => $filters['variable_product_ids'],
+				'category_ids'             => $filters['category_ids'],
+				'tag_ids'                  => $filters['tag_ids'],
+				'brand_ids'                => $filters['brand_ids'],
+				'products'                 => $this->resolve_product_labels( $filters['product_ids'] ),
+				'variable_products'        => $this->resolve_product_labels( $filters['variable_product_ids'] ),
+				'brand_taxonomy_available' => taxonomy_exists( 'product_brand' ),
+			]
+		);
+	}
+
+	/**
+	 * Persist the product filters supplied by the settings UI.
+	 *
+	 * All five groups are passed through to
+	 * {@see WC_Stripe_Agentic_Commerce_Product_Filter::save_filters()}, which
+	 * validates the inputs and ensure that they are valid.
+	 *
+	 * @since 10.8.0
+	 * @param WP_REST_Request<array<string, mixed>> $request Full request data.
+	 * @return WP_REST_Response
+	 */
+	public function update_filters_config( WP_REST_Request $request ): WP_REST_Response {
+		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		$filter->save_filters(
+			[
+				'product_ids'          => $request->get_param( 'product_ids' ),
+				'variable_product_ids' => $request->get_param( 'variable_product_ids' ),
+				'category_ids'         => $request->get_param( 'category_ids' ),
+				'tag_ids'              => $request->get_param( 'tag_ids' ),
+				'brand_ids'            => $request->get_param( 'brand_ids' ),
+			]
+		);
+
+		return $this->get_filters_config();
+	}
+
+	/**
+	 * Resolve a list of product IDs to `{ id, name }` pairs for the UI.
+	 *
+	 * Unresolvable IDs (deleted/missing products) are skipped so the token
+	 * field only renders products that still exist.
+	 *
+	 * @since 10.8.0
+	 * @param int[] $product_ids Product IDs to resolve.
+	 * @return array<int, array{id:int, name:string}>
+	 */
+	private function resolve_product_labels( array $product_ids ): array {
+		if ( empty( $product_ids ) ) {
+			return [];
+		}
+
+		$products = wc_get_products(
+			[
+				'include' => $product_ids,
+				'limit'   => -1,
+				'return'  => 'objects',
+			]
+		);
+
+		if ( ! is_array( $products ) ) {
+			return [];
+		}
+
+		$labels = [];
+		foreach ( $products as $product ) {
+			if ( ! $product instanceof WC_Product ) {
+				continue;
+			}
+			$labels[] = [
+				'id'   => $product->get_id(),
+				'name' => $product->get_name(),
+			];
+		}
+
+		return $labels;
 	}
 
 	/**
