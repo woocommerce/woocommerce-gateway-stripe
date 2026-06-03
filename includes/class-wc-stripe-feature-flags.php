@@ -41,6 +41,14 @@ class WC_Stripe_Feature_Flags {
 	protected const EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME = '_wcstripe_feature_expand_ocs_legacy_checkout';
 
 	/**
+	 * Feature flag for the WordPress Abilities API integration.
+	 *
+	 * @var string
+	 * @since 10.8.0
+	 */
+	public const ABILITIES_FEATURE_FLAG_NAME = '_wcstripe_feature_abilities';
+
+	/**
 	 * Map of feature flag option names => their default "yes"/"no" value.
 	 * This single source of truth makes it easier to maintain our dev tools.
 	 *
@@ -52,6 +60,7 @@ class WC_Stripe_Feature_Flags {
 		self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME                            => 'no',
 		self::AGENTIC_COMMERCE_FEATURE_FLAG_NAME                             => 'no',
 		self::EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME => 'no',
+		self::ABILITIES_FEATURE_FLAG_NAME                                    => 'no',
 	];
 
 	/**
@@ -208,6 +217,32 @@ class WC_Stripe_Feature_Flags {
 			'yes',
 			$pmc_enabled
 		);
+	}
+
+	/**
+	 * Whether the WordPress Abilities API integration is enabled.
+	 *
+	 * Default-off during rollout. Merchants, integrators, and developers
+	 * can opt in via the `wc_stripe_abilities_enabled` filter.
+	 *
+	 * @since 10.8.0
+	 * @return bool True if enabled, false otherwise.
+	 */
+	public static function is_abilities_enabled(): bool {
+		$is_abilities_enabled = 'yes' === self::get_option_with_default( self::ABILITIES_FEATURE_FLAG_NAME );
+
+		/**
+		 * Filter whether Stripe's Abilities API registrations are active.
+		 *
+		 * Composes with the `_wcstripe_feature_abilities` option: pass the
+		 * option-derived bool through this filter to flip the result
+		 * regardless of the stored option value.
+		 *
+		 * @since 10.8.0
+		 *
+		 * @param bool $enabled Whether to register Stripe abilities.
+		 */
+		return (bool) apply_filters( 'wc_stripe_abilities_enabled', $is_abilities_enabled );
 	}
 
 	/**
