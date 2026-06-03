@@ -128,4 +128,13 @@ if ( ! defined( 'WC_REMOVE_ALL_DATA' ) || true !== WC_REMOVE_ALL_DATA ) {
 	delete_option( '_wcstripe_feature_upe' );
 	delete_option( 'upe_checkout_experience_accepted_payments' );
 	delete_option( '_wcstripe_feature_ece' );
+
+	// PP→Woo settings-migration storage: the custom ledger table + its schema-version
+	// gate, and the single pre-migration snapshot option. Plugin classes are not loaded
+	// during uninstall, so these names are inlined (source of truth:
+	// WC_Stripe_Settings_Migration_Ledger and WC_Stripe_Pre_Migration_Snapshot).
+	global $wpdb;
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wc_stripe_settings_migration_ledger" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	delete_option( 'wc_stripe_settings_migration_ledger_db_version' );
+	delete_option( 'wc_stripe_pre_migration_snapshot' );
 }

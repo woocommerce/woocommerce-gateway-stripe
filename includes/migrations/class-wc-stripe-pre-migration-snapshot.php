@@ -28,18 +28,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Pre_Migration_Snapshot {
 
 	/**
-	 * WP options key for the canonical (most recent) snapshot.
+	 * WP options key for the single pre-migration snapshot. One bounded option,
+	 * autoload=false; re-running capture() overwrites it in place. The migration is
+	 * one-time, so the most recent pre-migration state is all that needs retaining.
 	 *
 	 * @var string
 	 */
 	public const CURRENT_OPTION = 'wc_stripe_pre_migration_snapshot';
-
-	/**
-	 * WP options key prefix for archived snapshots. Archives are timestamped and never auto-deleted.
-	 *
-	 * @var string
-	 */
-	public const ARCHIVE_PREFIX = 'wc_stripe_pre_migration_snapshot_archive_';
 
 	/**
 	 * Schema version for the snapshot blob. Bump when changing the captured structure.
@@ -161,8 +156,8 @@ class WC_Stripe_Pre_Migration_Snapshot {
 	];
 
 	/**
-	 * Captures a full snapshot of all Stripe-related options. Archives any existing snapshot
-	 * under a timestamped key before overwriting.
+	 * Captures a full snapshot of all Stripe-related options into the single
+	 * snapshot option, overwriting any prior capture in place.
 	 *
 	 * @return string ISO-like timestamp (mysql format, UTC) of the capture.
 	 */
@@ -181,13 +176,6 @@ class WC_Stripe_Pre_Migration_Snapshot {
 			'wp_version'        => get_bloginfo( 'version' ),
 			'options'           => self::collect_options(),
 		];
-
-		// Archive any existing snapshot under a timestamped key before overwriting.
-		$existing = get_option( self::CURRENT_OPTION, null );
-		if ( null !== $existing ) {
-			$archive_key = self::ARCHIVE_PREFIX . gmdate( 'Ymd_His' );
-			update_option( $archive_key, $existing, false );
-		}
 
 		update_option( self::CURRENT_OPTION, $blob, false );
 
@@ -214,24 +202,6 @@ class WC_Stripe_Pre_Migration_Snapshot {
 	public static function get_current(): ?array {
 		$snapshot = get_option( self::CURRENT_OPTION, null );
 		return is_array( $snapshot ) ? $snapshot : null;
-	}
-
-	/**
-	 * Lists archived snapshot keys in descending order (newest first).
-	 *
-	 * @return array<int, string>
-	 */
-	public static function list_archives(): array {
-		global $wpdb;
-
-		$rows = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s ORDER BY option_name DESC",
-				$wpdb->esc_like( self::ARCHIVE_PREFIX ) . '%'
-			)
-		);
-
-		return is_array( $rows ) ? array_values( array_filter( array_map( 'strval', $rows ) ) ) : [];
 	}
 
 	/**
@@ -296,10 +266,6 @@ class WC_Stripe_Pre_Migration_Snapshot {
 	 */
 	private static function is_snapshot_infrastructure_key( string $key ): bool {
 		if ( self::CURRENT_OPTION === $key ) {
-			return true;
-		}
-
-		if ( 0 === strpos( $key, self::ARCHIVE_PREFIX ) ) {
 			return true;
 		}
 

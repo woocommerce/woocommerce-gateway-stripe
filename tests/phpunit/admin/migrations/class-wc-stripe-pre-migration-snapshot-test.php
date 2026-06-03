@@ -23,15 +23,6 @@ class WC_Stripe_Pre_Migration_Snapshot_Test extends WP_UnitTestCase {
 	public function tear_down() {
 		delete_option( WC_Stripe_Pre_Migration_Snapshot::CURRENT_OPTION );
 
-		// Clean archives.
-		global $wpdb;
-		$wpdb->query(
-			$wpdb->prepare(
-				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-				$wpdb->esc_like( WC_Stripe_Pre_Migration_Snapshot::ARCHIVE_PREFIX ) . '%'
-			)
-		);
-
 		foreach ( $this->option_keys_to_cleanup as $key ) {
 			delete_option( $key );
 		}
@@ -226,42 +217,25 @@ class WC_Stripe_Pre_Migration_Snapshot_Test extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 'woocommerce_stripe_affirm_settings', $snapshot['options'] );
 	}
 
-	public function test_second_capture_archives_previous_snapshot() {
+	public function test_recapture_overwrites_in_place_without_creating_extra_option_rows() {
 		WC_Stripe_Pre_Migration_Snapshot::capture();
 
-		$first = WC_Stripe_Pre_Migration_Snapshot::get_current();
-		$this->assertNotNull( $first );
-
-		// Seed something new and capture again. The new capture must take the canonical slot
-		// and the first must be archived.
+		// A second capture must reflect newly-seeded state...
 		$this->seed_option( 'woocommerce_stripe_api_settings', [ 'mode' => 'test' ] );
 		WC_Stripe_Pre_Migration_Snapshot::capture();
 
-		$archives = WC_Stripe_Pre_Migration_Snapshot::list_archives();
-		$this->assertCount( 1, $archives );
-		$this->assertStringStartsWith(
-			WC_Stripe_Pre_Migration_Snapshot::ARCHIVE_PREFIX,
-			$archives[0]
+		$snapshot = WC_Stripe_Pre_Migration_Snapshot::get_current();
+		$this->assertSame( 'test', $snapshot['options']['woocommerce_stripe_api_settings']['mode'] );
+
+		// ...and must NOT spawn archive rows. Exactly one snapshot option should exist.
+		global $wpdb;
+		$snapshot_option_count = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s",
+				$wpdb->esc_like( WC_Stripe_Pre_Migration_Snapshot::CURRENT_OPTION ) . '%'
+			)
 		);
-
-		$archived = get_option( $archives[0] );
-		$this->assertSame( $first['captured_at'], $archived['captured_at'] );
-	}
-
-	public function test_list_archives_returns_descending_order() {
-		// Force two captures with distinct archive timestamps. The archive key embeds gmdate
-		// (second resolution), so sleeping for a full second guarantees distinct keys.
-		WC_Stripe_Pre_Migration_Snapshot::capture();
-		sleep( 1 );
-		WC_Stripe_Pre_Migration_Snapshot::capture();
-		sleep( 1 );
-		WC_Stripe_Pre_Migration_Snapshot::capture();
-
-		$archives = WC_Stripe_Pre_Migration_Snapshot::list_archives();
-		$this->assertCount( 2, $archives );
-
-		// Descending order = first element is the newest.
-		$this->assertGreaterThan( strcmp( $archives[1], $archives[0] ), 0 );
+		$this->assertSame( 1, $snapshot_option_count, 'Re-capture must overwrite the single snapshot option, not archive copies.' );
 	}
 
 	public function test_blob_records_pp_version_from_detector() {

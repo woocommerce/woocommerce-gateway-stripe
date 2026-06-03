@@ -16,8 +16,25 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 	private string $snapshot_id;
 	private WC_Stripe_Settings_Migration_Ledger $ledger;
 
+	/**
+	 * Create the ledger table once, before the per-test transactions begin.
+	 * CREATE TABLE implies a commit, so it must not run inside a test's transaction.
+	 *
+	 * @param WP_UnitTest_Factory $factory Shared fixture factory.
+	 */
+	public static function wpSetUpBeforeClass( $factory ) {
+		WC_Stripe_Settings_Migration_Ledger::install_table();
+	}
+
 	public function set_up() {
 		parent::set_up();
+
+		// Start every test from a clean table. Tests that exercise install_table()'s
+		// dbDelta path can implicitly commit rows past the per-test transaction
+		// rollback; deleting here (inside this test's own transaction) guarantees
+		// isolation regardless of what a prior test left behind.
+		global $wpdb;
+		$wpdb->query( 'DELETE FROM ' . $wpdb->prefix . WC_Stripe_Settings_Migration_Ledger::TABLE_NAME ); // phpcs:ignore WordPress.DB
 
 		$this->run_id      = wp_generate_uuid4();
 		$this->snapshot_id = '2026-05-14 12:00:00';
@@ -29,7 +46,8 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
-		delete_option( WC_Stripe_Settings_Migration_Ledger::OPTION_NAME );
+		global $wpdb;
+		$wpdb->query( 'DELETE FROM ' . $wpdb->prefix . WC_Stripe_Settings_Migration_Ledger::TABLE_NAME ); // phpcs:ignore WordPress.DB
 		parent::tear_down();
 	}
 
@@ -64,6 +82,12 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 		$this->assertSame( $this->snapshot_id, $row['snapshot_id'] );
 		$this->assertSame( '3', $row['pp_version_detected'] );
 		$this->assertArrayHasKey( 'id', $row );
+		// entry_uuid is the stable external row reference (CHAR(36) uuid v4), distinct
+		// from the auto-increment `id`.
+		$this->assertMatchesRegularExpression(
+			'/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/',
+			$row['entry_uuid']
+		);
 		$this->assertMatchesRegularExpression(
 			'/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/',
 			$row['timestamp']
@@ -334,7 +358,7 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 		$this->assertCount( 2, WC_Stripe_Settings_Migration_Ledger::load() );
 	}
 
-	public function test_ledger_persists_with_autoload_disabled() {
+	public function test_ledger_data_lives_in_custom_table_not_options() {
 		$this->ledger->record_apply(
 			WC_Stripe_Settings_Migration_Ledger::CATEGORY_AUTO,
 			'a',
@@ -347,16 +371,16 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 		);
 
 		global $wpdb;
-		$autoload = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT autoload FROM {$wpdb->options} WHERE option_name = %s",
-				WC_Stripe_Settings_Migration_Ledger::OPTION_NAME
-			)
+		$count = (int) $wpdb->get_var(
+			'SELECT COUNT(*) FROM ' . $wpdb->prefix . WC_Stripe_Settings_Migration_Ledger::TABLE_NAME // phpcs:ignore WordPress.DB
 		);
+		$this->assertSame( 1, $count, 'Row must be written to the custom ledger table.' );
 
-		// WordPress historically stored autoload=false as the string 'no'; newer versions use 'off'.
-		// Both are valid; accept either to keep this test cross-version.
-		$this->assertContains( $autoload, [ 'no', 'off' ] );
+		// The ledger must not fall back to a wp_options blob.
+		$this->assertFalse(
+			get_option( WC_Stripe_Settings_Migration_Ledger::TABLE_NAME, false ),
+			'Ledger must not create a wp_options row.'
+		);
 	}
 
 	public function test_each_row_has_unique_id() {
@@ -373,17 +397,73 @@ class WC_Stripe_Settings_Migration_Ledger_Test extends WP_UnitTestCase {
 			);
 		}
 
+		$rows = WC_Stripe_Settings_Migration_Ledger::load();
+
 		$ids = array_map(
 			static function ( $row ) {
 				return $row['id'];
 			},
-			WC_Stripe_Settings_Migration_Ledger::load()
+			$rows
 		);
-
 		$this->assertSame( $ids, array_unique( $ids ), 'All ledger row ids must be unique.' );
+
+		$uuids = array_map(
+			static function ( $row ) {
+				return $row['entry_uuid'];
+			},
+			$rows
+		);
+		$this->assertCount( 5, $uuids );
+		$this->assertSame( $uuids, array_unique( $uuids ), 'All ledger entry_uuids must be unique.' );
 	}
 
-	public function test_load_returns_empty_array_when_option_missing() {
+	public function test_load_returns_empty_array_when_no_rows() {
 		$this->assertSame( [], WC_Stripe_Settings_Migration_Ledger::load() );
+	}
+
+	public function test_install_table_rerun_runs_dbdelta_and_preserves_rows() {
+		$this->ledger->record_apply(
+			WC_Stripe_Settings_Migration_Ledger::CATEGORY_AUTO,
+			'a',
+			'a',
+			'a',
+			'b',
+			'b',
+			'',
+			'a'
+		);
+
+		// Clear the schema-version gate so install_table() actually runs dbDelta()
+		// against the live table (not just the gated early-return no-op). dbDelta on
+		// an unchanged schema must be safe and leave existing rows intact.
+		delete_option( WC_Stripe_Settings_Migration_Ledger::DB_VERSION_OPTION );
+		WC_Stripe_Settings_Migration_Ledger::install_table();
+
+		$rows = WC_Stripe_Settings_Migration_Ledger::load();
+		$this->assertCount( 1, $rows );
+		$this->assertSame( 'a', $rows[0]['source_key'] );
+	}
+
+	public function test_array_and_scalar_values_round_trip_through_storage() {
+		$this->ledger->record_revert(
+			WC_Stripe_Settings_Migration_Ledger::CATEGORY_AUTO,
+			'woocommerce_stripe_settings',
+			[
+				'capture' => 'manual',
+				'limit'   => 5,
+			], // array value
+			'automatic',                             // scalar value
+			'2026-05-14 11:00:00'
+		);
+
+		$row = WC_Stripe_Settings_Migration_Ledger::load()[0];
+		$this->assertSame(
+			[
+				'capture' => 'manual',
+				'limit'   => 5,
+			],
+			$row['dest_value_after']
+		);
+		$this->assertSame( 'automatic', $row['dest_value_before'] );
 	}
 }
