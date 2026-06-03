@@ -132,6 +132,34 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_save_filters_updates_filter_cache(): void {
+		$simple_product = $this->create_simple_product();
+
+		$default_filters = [
+			'product_ids'          => [],
+			'category_ids'         => [],
+			'tag_ids'              => [],
+			'brand_ids'            => [],
+			'variable_product_ids' => [],
+		];
+
+		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
+
+		$filters = $filter->get_filters();
+		$this->assertSame( $default_filters, $filters );
+
+		$filter->save_filters(
+			[
+				'product_ids' => [ $simple_product->get_id() ],
+			]
+		);
+
+		$filters = $filter->get_filters();
+		$this->assertNotSame( $default_filters, $filters );
+		$this->assertArrayHasKey( 'product_ids', $filters );
+		$this->assertSame( [ $simple_product->get_id() ], $filters['product_ids'] );
+	}
+
 	public function test_save_filters_drops_unknown_terms_silently() {
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 		$filter->save_filters(
