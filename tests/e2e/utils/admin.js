@@ -153,7 +153,7 @@ export const initializeOptimizedCheckout = async (
  * @returns {string} The order ID.
  */
 export const getOrderIdFromOrderReceivedUrl = ( url ) =>
-	url.split( 'order-received/' )[ 1 ].split( '/?' )[ 0 ];
+	url.split( 'order-received/' )[ 1 ].split( '/' )[ 0 ];
 
 /**
  * Open the admin order edit page for an order and confirm the expected amount
