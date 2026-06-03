@@ -146,15 +146,17 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 			}
 		}
 
+		$this->filters = [
+			'product_ids'          => $product_ids,
+			'category_ids'         => $category_ids,
+			'tag_ids'              => $tag_ids,
+			'brand_ids'            => $brand_ids,
+			'variable_product_ids' => $variable_product_ids,
+		];
+
 		return update_option(
 			self::OPTION_NAME,
-			[
-				'product_ids'          => $product_ids,
-				'category_ids'         => $category_ids,
-				'tag_ids'              => $tag_ids,
-				'brand_ids'            => $brand_ids,
-				'variable_product_ids' => $variable_product_ids,
-			],
+			$this->filters,
 			false
 		);
 	}
