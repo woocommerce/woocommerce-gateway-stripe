@@ -1,5 +1,4 @@
 import { React } from 'react';
-import styled from '@emotion/styled';
 import { __ } from '@wordpress/i18n';
 import { ExternalLink } from '@wordpress/components';
 import CardBody from 'wcstripe/settings/card-body';
@@ -11,17 +10,11 @@ import {
 	BannerIllustrationWithOffset,
 	ButtonsRowWithMargin,
 	CenteredColumnIllustration,
+	BannerTitle,
+	BannerIntro,
 } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
+import { OCS_AP_PRODUCT_UPDATE_URL } from 'wcstripe/settings/payment-settings/constants';
 import { dismissNotice } from 'wcstripe/utils';
-
-const Title = styled.h4`
-	margin-top: 0.6em !important;
-	font-weight: 500;
-`;
-
-const Intro = styled.p`
-	line-height: 20px;
-`;
 
 export const OCSOnlyBanner = ( { setShowPromotionalBanner } ) => {
 	const handleBannerDismiss = () => {
@@ -34,18 +27,18 @@ export const OCSOnlyBanner = ( { setShowPromotionalBanner } ) => {
 		<CardBody>
 			<CardInner>
 				<CardColumn>
-					<Title>
+					<BannerTitle>
 						{ __(
 							'Stripe Optimized Checkout is now active',
 							'woocommerce-gateway-stripe'
 						) }
-					</Title>
-					<Intro>
+					</BannerTitle>
+					<BannerIntro>
 						{ __(
 							'Your checkout dynamically displays the payment methods most likely to drive conversions. [Placeholder copy — pending Stripe approval.]',
 							'woocommerce-gateway-stripe'
 						) }
-					</Intro>
+					</BannerIntro>
 				</CardColumn>
 				<CenteredColumnIllustration>
 					<BannerIllustrationWithOffset
@@ -58,7 +51,7 @@ export const OCSOnlyBanner = ( { setShowPromotionalBanner } ) => {
 				</CenteredColumnIllustration>
 			</CardInner>
 			<ButtonsRowWithMargin>
-				<ExternalLink href="https://woocommerce.com/product-update/stripe-for-woocommerce-10-8-0">
+				<ExternalLink href={ OCS_AP_PRODUCT_UPDATE_URL }>
 					{ __( 'Learn more', 'woocommerce-gateway-stripe' ) }
 				</ExternalLink>
 				<DismissButton

@@ -1,5 +1,4 @@
 import { React } from 'react';
-import styled from '@emotion/styled';
 import { __ } from '@wordpress/i18n';
 import { ExternalLink } from '@wordpress/components';
 import CardBody from 'wcstripe/settings/card-body';
@@ -11,22 +10,12 @@ import {
 	BannerIllustrationWithOffset,
 	ButtonsRowWithMargin,
 	CenteredColumnIllustration,
+	BannerTitle,
+	BannerIntro,
+	BannerFootnote,
 } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
+import { OCS_AP_PRODUCT_UPDATE_URL } from 'wcstripe/settings/payment-settings/constants';
 import { dismissNotice } from 'wcstripe/utils';
-
-const Title = styled.h4`
-	margin-top: 0.6em !important;
-	font-weight: 500;
-`;
-
-const Intro = styled.p`
-	line-height: 20px;
-`;
-
-const Footnote = styled.p`
-	font-size: 12px;
-	color: #757575;
-`;
 
 export const APOnlyBanner = ( { setShowPromotionalBanner } ) => {
 	const handleBannerDismiss = () => {
@@ -39,24 +28,24 @@ export const APOnlyBanner = ( { setShowPromotionalBanner } ) => {
 		<CardBody>
 			<CardInner>
 				<CardColumn>
-					<Title>
+					<BannerTitle>
 						{ __(
 							'Stripe Adaptive Pricing is now active',
 							'woocommerce-gateway-stripe'
 						) }
-					</Title>
-					<Intro>
+					</BannerTitle>
+					<BannerIntro>
 						{ __(
 							"Your checkout now shows prices in shoppers' local currency across 150+ countries, growing cross-border revenue by an average of 17.8%. Stripe handles real-time exchange rates with no currency conversion fees.",
 							'woocommerce-gateway-stripe'
 						) }
-					</Intro>
-					<Footnote>
+					</BannerIntro>
+					<BannerFootnote>
 						{ __(
 							'*Data is from Stripe global holdback study conducted in 2024.',
 							'woocommerce-gateway-stripe'
 						) }
-					</Footnote>
+					</BannerFootnote>
 				</CardColumn>
 				<CenteredColumnIllustration>
 					<BannerIllustrationWithOffset
@@ -69,7 +58,7 @@ export const APOnlyBanner = ( { setShowPromotionalBanner } ) => {
 				</CenteredColumnIllustration>
 			</CardInner>
 			<ButtonsRowWithMargin>
-				<ExternalLink href="https://woocommerce.com/product-update/stripe-for-woocommerce-10-8-0">
+				<ExternalLink href={ OCS_AP_PRODUCT_UPDATE_URL }>
 					{ __( 'Learn more', 'woocommerce-gateway-stripe' ) }
 				</ExternalLink>
 				<DismissButton
