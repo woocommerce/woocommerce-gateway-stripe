@@ -582,7 +582,6 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return void
 	 */
 	public static function refresh_pmc_availability() {
-		self::clear_payment_method_configuration_cache();
 		delete_option( self::FETCH_COOLDOWN_OPTION_KEY );
 
 		$usable_pmc   = null;
@@ -633,6 +632,10 @@ class WC_Stripe_Payment_Method_Configurations {
 		}
 
 		if ( ! $usable_pmc ) {
+			WC_Stripe_Logger::warning(
+				'No usable Payment Method Configuration found during account refresh; disabling Payment Method Configuration sync',
+				[ 'stripe_mode' => $is_test_mode ? 'test' : 'live' ]
+			);
 			self::disable_payment_method_configuration_sync();
 			return;
 		}
