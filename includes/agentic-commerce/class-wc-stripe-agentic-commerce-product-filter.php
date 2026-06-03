@@ -121,28 +121,28 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 
 		$category_ids = [];
 		if ( is_array( $filters['categories'] ?? null ) ) {
-			$category_ids = array_merge( $category_ids, $this->normalize_taxonomy_ids( $filters['categories'], 'product_cat' ) );
+			$category_ids = array_merge( $category_ids, $this->validate_taxonomy_ids( $filters['categories'], 'product_cat' ) );
 		}
 		if ( is_array( $filters['category_ids'] ?? null ) ) {
-			$category_ids = array_merge( $category_ids, $this->normalize_taxonomy_ids( $filters['category_ids'], 'product_cat' ) );
+			$category_ids = array_merge( $category_ids, $this->validate_taxonomy_ids( $filters['category_ids'], 'product_cat' ) );
 		}
 
 		$tag_ids = [];
 		if ( is_array( $filters['tags'] ?? null ) ) {
-			$tag_ids = array_merge( $tag_ids, $this->normalize_taxonomy_ids( $filters['tags'], 'product_tag' ) );
+			$tag_ids = array_merge( $tag_ids, $this->validate_taxonomy_ids( $filters['tags'], 'product_tag' ) );
 		}
 		if ( is_array( $filters['tag_ids'] ?? null ) ) {
-			$tag_ids = array_merge( $tag_ids, $this->normalize_taxonomy_ids( $filters['tag_ids'], 'product_tag' ) );
+			$tag_ids = array_merge( $tag_ids, $this->validate_taxonomy_ids( $filters['tag_ids'], 'product_tag' ) );
 		}
 
 		// Only add brand filters when the product brand taxonomy is registered.
 		$brand_ids = [];
 		if ( taxonomy_exists( 'product_brand' ) ) {
 			if ( is_array( $filters['brands'] ?? null ) ) {
-				$brand_ids = array_merge( $brand_ids, $this->normalize_taxonomy_ids( $filters['brands'], 'product_brand' ) );
+				$brand_ids = array_merge( $brand_ids, $this->validate_taxonomy_ids( $filters['brands'], 'product_brand' ) );
 			}
 			if ( is_array( $filters['brand_ids'] ?? null ) ) {
-				$brand_ids = array_merge( $brand_ids, $this->normalize_taxonomy_ids( $filters['brand_ids'], 'product_brand' ) );
+				$brand_ids = array_merge( $brand_ids, $this->validate_taxonomy_ids( $filters['brand_ids'], 'product_brand' ) );
 			}
 		}
 
@@ -301,18 +301,21 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	}
 
 	/**
-	 * Normalize an array of taxonomy IDs and slugs to an array of term IDs.
+	 * Validate an array of possible taxonomy IDs and slugs and return an
+	 * array of valid term IDs.
 	 *
-	 * Empty values are dropped and string terms are trimmed. Term slugs are
-	 * resolved to term IDs via `get_term_by()` -- unknown term slugs are removed.
+	 * Empty values are dropped and string terms are trimmed.
+	 * Term slugs are resolved to term IDs via `get_term_by()`,
+	 * and unknown term slugs and term IDs are removed.
 	 *
 	 * @since 10.8.0
 	 * @param array  $values   Array of taxonomy IDs and/or slugs.
 	 * @param string $taxonomy Taxonomy slug.
-	 * @return int[]
+	 * @return int[] List of valid term IDs.
 	 */
-	private function normalize_taxonomy_ids( array $values, string $taxonomy ): array {
-		$out = [];
+	private function validate_taxonomy_ids( array $values, string $taxonomy ): array {
+		$validated_term_ids = [];
+
 		foreach ( $values as $value ) {
 			if ( is_int( $value ) || ctype_digit( $value ) ) {
 				$term_id = (int) $value;
@@ -321,7 +324,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 				}
 				$term = get_term( $term_id, $taxonomy );
 				if ( $term instanceof WP_Term ) {
-					$out[] = $term->term_id;
+					$validated_term_ids[] = $term->term_id;
 				}
 
 				continue;
@@ -334,14 +337,14 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 				}
 				$term = get_term_by( 'slug', $value, $taxonomy );
 				if ( $term instanceof WP_Term ) {
-					$out[] = $term->term_id;
+					$validated_term_ids[] = $term->term_id;
 				}
 
 				continue;
 			}
 		}
 
-		return array_values( array_unique( $out ) );
+		return array_values( array_unique( $validated_term_ids ) );
 	}
 
 	/**
