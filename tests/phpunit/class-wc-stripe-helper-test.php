@@ -1788,10 +1788,10 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		string $store_currency,
 		?string $expected
 	): void {
-		$original_settings    = WC_Stripe_Helper::get_stripe_settings();
+		$original_settings    = WC_Stripe::get_settings();
 		$settings             = $original_settings;
 		$settings['testmode'] = $test_mode ? 'yes' : 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe::update_settings( $settings );
 
 		$this->set_stripe_account_data( $account_data );
 
@@ -1802,7 +1802,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		// Cleanup.
 		update_option( 'woocommerce_currency', $original_currency );
-		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+		WC_Stripe::update_settings( $original_settings );
 
 		$this->assertSame( $expected, $actual );
 	}

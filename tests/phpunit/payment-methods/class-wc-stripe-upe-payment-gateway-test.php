@@ -1519,9 +1519,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @dataProvider provider_handle_saving_payment_method_respects_per_method_toggle
 	 */
 	public function test_handle_saving_payment_method_respects_per_method_toggle( string $sepa_tokens_for_ideal, bool $expected_save ) {
-		$stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                          = WC_Stripe::get_settings();
 		$stripe_settings['sepa_tokens_for_ideal'] = $sepa_tokens_for_ideal;
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe::update_settings( $stripe_settings );
 		$this->mock_gateway->oc_enabled = true;
 
 		$user_id = $this->factory()->user->create();

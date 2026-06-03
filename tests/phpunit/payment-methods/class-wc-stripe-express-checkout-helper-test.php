@@ -1949,10 +1949,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		// Toggle connection by clearing the test keys (set_up populates them).
 		if ( ! $is_connected ) {
-			$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+			$stripe_settings                         = WC_Stripe::get_settings();
 			$stripe_settings['test_publishable_key'] = '';
 			$stripe_settings['test_secret_key']      = '';
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+			WC_Stripe::update_settings( $stripe_settings );
 		}
 
 		$original_gateways                         = WC()->payment_gateways()->payment_gateways;

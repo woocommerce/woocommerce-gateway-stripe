@@ -34,7 +34,6 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			return;
 		}
 
-		update_option( '_wcstripe_feature_upe', 'yes' );
 		WC_Stripe::update_settings(
 			[
 				'enabled'                         => 'yes',
