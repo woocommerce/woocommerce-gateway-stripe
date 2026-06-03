@@ -44,13 +44,13 @@ class WC_Stripe_Helper {
 	/**
 	 * Get the main Stripe settings option.
 	 *
-	 * @deprecated 10.7.0 Use `WC_Stripe::get_settings()` (or `WC_Stripe::get_settings_for_method( $method )`).
+	 * @deprecated 10.9.0 Use `WC_Stripe::get_settings()` (or `WC_Stripe::get_settings_for_method( $method )`).
 	 *
 	 * @param string $method (Optional) The payment method to get the settings from.
 	 * @return array $settings The Stripe settings.
 	 */
 	public static function get_stripe_settings( $method = null ) {
-		_deprecated_function( __METHOD__, '10.7.0', 'WC_Stripe::get_settings' );
+		_deprecated_function( __METHOD__, '10.9.0', 'WC_Stripe::get_settings' );
 
 		return null === $method ? WC_Stripe::get_settings() : WC_Stripe::get_settings_for_method( $method );
 	}
@@ -58,13 +58,13 @@ class WC_Stripe_Helper {
 	/**
 	 * Update the main Stripe settings option.
 	 *
-	 * @deprecated 10.7.0 Use `WC_Stripe::update_settings()`.
+	 * @deprecated 10.9.0 Use `WC_Stripe::update_settings()`.
 	 *
 	 * @param $options array The Stripe settings.
 	 * @return void
 	 */
 	public static function update_main_stripe_settings( $options ) {
-		_deprecated_function( __METHOD__, '10.7.0', 'WC_Stripe::update_settings' );
+		_deprecated_function( __METHOD__, '10.9.0', 'WC_Stripe::update_settings' );
 
 		WC_Stripe::update_settings( (array) $options );
 	}

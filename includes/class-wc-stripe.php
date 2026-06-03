@@ -12,7 +12,7 @@ class WC_Stripe {
 	/**
 	 * The option name that stores the main Stripe gateway settings array.
 	 *
-	 * @since 10.7.0
+	 * @since 10.9.0
 	 */
 	public const SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
 
@@ -22,7 +22,7 @@ class WC_Stripe {
 	 * Always returns an array, even when the option was deleted or stored as
 	 * a non-array value.
 	 *
-	 * @since 10.7.0
+	 * @since 10.9.0
 	 */
 	public static function get_settings(): array {
 		$settings = get_option( self::SETTINGS_OPTION_NAME, [] );
@@ -33,7 +33,7 @@ class WC_Stripe {
 	/**
 	 * Replaces the main Stripe gateway settings option.
 	 *
-	 * @since 10.7.0
+	 * @since 10.9.0
 	 *
 	 * @return bool Whether the option was actually written (matches `update_option`).
 	 */
@@ -44,7 +44,7 @@ class WC_Stripe {
 	/**
 	 * Returns the per-method settings array (e.g. "boleto" → `woocommerce_stripe_boleto_settings`).
 	 *
-	 * @since 10.7.0
+	 * @since 10.9.0
 	 */
 	public static function get_settings_for_method( string $method ): array {
 		$settings = get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
