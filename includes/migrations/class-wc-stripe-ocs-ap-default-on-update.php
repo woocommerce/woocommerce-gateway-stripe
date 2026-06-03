@@ -73,15 +73,16 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 		$ap_unavailable        = null !== $ap_unavailable_reason;
 		$is_frontbook          = $this->is_likely_frontbook_10_7( (string) $previous_version );
 
-		// OCS only functions when the store is connected to the Stripe platform
-		// (pmc_enabled='yes'). Withhold the OC flip non-pmc accounts
-		// For An empty account read we stay optimistic and still enable.
+		// OCS and AP only function when the store is connected to our platform account
+		// (pmc_enabled='yes'); AP additionally rides on OCS at runtime. Withhold both
+		// flips for connected non-PMC accounts. For an empty account read we stay
+		// optimistic and still enable.
 		$has_account_data = ! empty( $this->get_account_data() );
 		$pmc_enabled      = ( $stripe_settings['pmc_enabled'] ?? 'no' ) === 'yes';
 		$oc_eligible      = ! $has_account_data || $pmc_enabled;
 
 		$enable_oc = $oc_eligible && ! ( $is_frontbook && ! $oc_pre );
-		$enable_ap = ! $ap_unavailable && ! ( $is_frontbook && ! $ap_pre );
+		$enable_ap = $oc_eligible && ! $ap_unavailable && ! ( $is_frontbook && ! $ap_pre );
 
 		$oc_newly_enabled = $enable_oc && ! $oc_pre;
 		$ap_newly_enabled = $enable_ap && ! $ap_pre;

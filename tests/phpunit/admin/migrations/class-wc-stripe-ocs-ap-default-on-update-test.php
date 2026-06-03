@@ -197,10 +197,10 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			'India frontbook disabled-OC'               => [ '10.7.0', 'no', 'no', 'account-country', $new_ts, 'yes', true, 'no', 'no', 'no', 'no', 'no' ],
 			'currency-unavailable both-off'             => [ '10.7.0', 'no', 'no', 'store-currency-not-settlement-currency', $old_ts, 'yes', true, 'no', 'no', 'yes', 'yes', 'no' ],
 			'currency-unavailable OC-only'              => [ '10.7.0', 'yes', 'no', 'no-settlement-currencies', $old_ts, 'yes', true, 'no', 'no', 'no', 'yes', 'no' ],
-			// Connected, non-PMC account (direct API keys, pmc_enabled='no') - OCS can't function,
-			// so the OC flip is withheld; `created` is absent for these Standard accounts.
-			'non-PMC account both-off (OC withheld)'    => [ '10.7.0', 'no', 'no', null, null, 'no', true, 'no', 'yes', 'no', 'no', 'yes' ],
-			'non-PMC account OC-already-on (unchanged)' => [ '10.7.0', 'yes', 'no', null, null, 'no', true, 'no', 'no', 'no', 'yes', 'yes' ],
+			// Connected, non-PMC account (direct API keys, pmc_enabled='no') - neither OCS nor AP
+			// can function, so both flips are withheld; `created` is absent for these Standard accounts.
+			'non-PMC account both-off (no flip)'        => [ '10.7.0', 'no', 'no', null, null, 'no', true, 'no', 'no', 'no', 'no', 'no' ],
+			'non-PMC account OC-already-on (unchanged)' => [ '10.7.0', 'yes', 'no', null, null, 'no', true, 'no', 'no', 'no', 'yes', 'no' ],
 			// No account data (invalid/absent credentials) - uninformative, so stay optimistic and enable.
 			'unreadable account both-off (OC enabled)'  => [ '10.7.0', 'no', 'no', null, null, 'no', false, 'yes', 'no', 'no', 'yes', 'yes' ],
 		];
