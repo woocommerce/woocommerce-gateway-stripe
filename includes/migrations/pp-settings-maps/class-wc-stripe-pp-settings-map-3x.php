@@ -29,7 +29,7 @@ class WC_Stripe_PP_Settings_Map_3X extends WC_Stripe_PP_Settings_Map {
 	 *
 	 * @var int
 	 */
-	const STATEMENT_DESCRIPTOR_MAX_LENGTH = 22;
+	private const STATEMENT_DESCRIPTOR_MAX_LENGTH = 22;
 
 	public function get_auto_rows(): array {
 		return [

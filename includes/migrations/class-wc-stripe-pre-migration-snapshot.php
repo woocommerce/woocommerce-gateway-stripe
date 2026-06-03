@@ -68,7 +68,7 @@ class WC_Stripe_Pre_Migration_Snapshot {
 	 *
 	 * @var array<int, string>
 	 */
-	const KNOWN_OPTION_KEYS = [
+	private const KNOWN_OPTION_KEYS = [
 		// --- Version markers ---
 		'stripe_wc_version',
 		// --- PP global settings ---
@@ -148,7 +148,7 @@ class WC_Stripe_Pre_Migration_Snapshot {
 	 *
 	 * @var array<int, string>
 	 */
-	const LIKE_PATTERNS = [
+	private const LIKE_PATTERNS = [
 		'woocommerce_stripe_%',
 		'woocommerce_gateway_stripe_%',
 		'stripe_wc_%',
