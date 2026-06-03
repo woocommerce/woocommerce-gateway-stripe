@@ -213,7 +213,7 @@ class WC_Stripe_Logger {
 
 		$settings = WC_Stripe::get_settings();
 
-		if ( is_array( $settings ) && 'yes' === ( $settings['logging'] ?? 'no' ) ) {
+		if ( 'yes' === ( $settings['logging'] ?? 'no' ) ) {
 			return true;
 		}
 
