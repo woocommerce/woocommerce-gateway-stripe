@@ -84,8 +84,12 @@ trait WC_Stripe_Subscriptions_Trait {
 			return;
 		}
 		// Secondary check to skip registration for the OC payment method, which mimics the Stripe ID.
+		// Allow the UPE gateway and its subclasses (e.g. WC_Stripe_OCS_Payment_Gateway) through;
+		// the OC payment method is not a gateway, so it is correctly excluded. A string/get_class
+		// check (rather than instanceof) keeps PHPStan from narrowing $this across the many
+		// payment-method classes that also use this trait.
 		$current_class = get_class( $this );
-		if ( WC_Stripe_UPE_Payment_Gateway::class !== $current_class ) {
+		if ( WC_Stripe_UPE_Payment_Gateway::class !== $current_class && ! is_subclass_of( $current_class, WC_Stripe_UPE_Payment_Gateway::class ) ) {
 			return;
 		}
 

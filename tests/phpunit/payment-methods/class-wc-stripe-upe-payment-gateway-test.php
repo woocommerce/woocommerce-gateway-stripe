@@ -5152,6 +5152,77 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * get_title() must use the static title helper, not instantiate WC_Stripe_UPE_Payment_Method_OC.
+	 *
+	 * The OC payment method mimics the 'stripe' gateway id and re-registers subscription hooks in
+	 * its constructor; instantiating it from the broadly-called title path previously caused
+	 * duplicate renewal charges (see #5325). This guards against reintroducing that instantiation.
+	 */
+	public function test_get_title_does_not_instantiate_oc_payment_method() {
+		$gateway = $this->getMockBuilder( WC_Stripe_OCS_Payment_Gateway::class )
+			->onlyMethods( [ 'is_on_add_payment_method_page', 'is_changing_payment_method_for_subscription' ] )
+			->getMock();
+		$gateway->method( 'is_on_add_payment_method_page' )->willReturn( false );
+		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( false );
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+
+		// Force the OC method's hook-registration flag false so that *any* instantiation would
+		// register its per-id subscription hooks, which we can then detect.
+		$oc_flag = new ReflectionProperty( WC_Stripe_UPE_Payment_Method_OC::class, 'has_attached_integration_hooks' );
+		$oc_flag->setAccessible( true );
+		$previous_flag = $oc_flag->getValue();
+		$oc_flag->setValue( null, false );
+
+		$hook         = 'woocommerce_scheduled_subscription_payment_stripe';
+		$count_before = isset( $GLOBALS['wp_filter'][ $hook ] ) ? count( $GLOBALS['wp_filter'][ $hook ]->callbacks[10] ?? [] ) : 0;
+
+		try {
+			$title = $gateway->get_title();
+		} finally {
+			$oc_flag->setValue( null, $previous_flag );
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+		}
+
+		$count_after = isset( $GLOBALS['wp_filter'][ $hook ] ) ? count( $GLOBALS['wp_filter'][ $hook ]->callbacks[10] ?? [] ) : 0;
+
+		$this->assertSame( WC_Stripe_UPE_Payment_Method_OC::get_alternative_title(), $title );
+		$this->assertSame( $count_before, $count_after, 'get_title() must not instantiate the OC payment method (which registers subscription hooks).' );
+	}
+
+	/**
+	 * The OCS gateway is a subclass of the UPE gateway, so the subscriptions trait must register
+	 * its once-global integration hooks (e.g. mandate-info injection, renewal-meta cleanup) for it.
+	 *
+	 * Guards the regression where the trait's strict class-equality guard skipped subclasses,
+	 * silently dropping subscription hooks whenever Optimized Checkout was the active gateway.
+	 */
+	public function test_ocs_gateway_registers_subscription_integration_hooks() {
+		$gateway = new WC_Stripe_OCS_Payment_Gateway();
+
+		// The gateway hierarchy pulls the subscriptions trait in via the abstract base, so its
+		// shared static flag lives on WC_Stripe_Payment_Gateway.
+		$flag = new ReflectionProperty( WC_Stripe_Payment_Gateway::class, 'has_attached_integration_hooks' );
+		$flag->setAccessible( true );
+		$previous_flag = $flag->getValue();
+
+		$filter   = 'wc_stripe_generate_create_intent_request';
+		$callback = [ $gateway, 'add_subscription_information_to_intent' ];
+		remove_filter( $filter, $callback );
+		$flag->setValue( null, false );
+
+		try {
+			$gateway->maybe_init_subscriptions();
+			$registered = has_filter( $filter, $callback );
+		} finally {
+			remove_filter( $filter, $callback );
+			remove_action( 'woocommerce_scheduled_subscription_payment_stripe', [ $gateway, 'scheduled_subscription_payment' ] );
+			$flag->setValue( null, $previous_flag );
+		}
+
+		$this->assertNotFalse( $registered, 'OCS gateway (a UPE subclass) must register the once-global subscription hooks.' );
+	}
+
+	/**
 	 * Data provider for `test_is_optimized_checkout_active`.
 	 *
 	 * @return array[]

@@ -85,7 +85,10 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 			return parent::get_title();
 		}
 
-		return ( new WC_Stripe_UPE_Payment_Method_OC() )->get_title();
+		// Use the static title helper rather than instantiating WC_Stripe_UPE_Payment_Method_OC:
+		// that class mimics the 'stripe' gateway id and re-registers subscription hooks in its
+		// constructor, which previously caused duplicate renewal charges (see #5325).
+		return WC_Stripe_UPE_Payment_Method_OC::get_alternative_title();
 	}
 
 	/**
