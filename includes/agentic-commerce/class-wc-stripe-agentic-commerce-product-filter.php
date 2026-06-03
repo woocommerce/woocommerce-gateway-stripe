@@ -305,16 +305,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	private function normalize_taxonomy_ids( array $values, string $taxonomy ): array {
 		$out = [];
 		foreach ( $values as $value ) {
-			if ( is_int( $value ) ) {
-				if ( $value <= 0 ) {
-					continue;
-				}
-				$out[] = $value;
-
-				continue;
-			}
-
-			if ( ctype_digit( $value ) ) {
+			if ( is_int( $value ) || ctype_digit( $value ) ) {
 				$term_id = (int) $value;
 				if ( $term_id <= 0 ) {
 					continue;
