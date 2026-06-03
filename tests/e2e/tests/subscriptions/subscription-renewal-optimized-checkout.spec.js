@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
-import { api, payments, products, user } from '../../utils';
+import { admin, api, payments, products, user } from '../../utils';
 
 const {
 	emptyCart,
@@ -12,6 +12,9 @@ const {
 } = payments;
 
 let productId;
+
+// Subscription product ($9.99) + flat-rate shipping ($10.00).
+const EXPECTED_ORDER_TOTAL = '19.99';
 
 const relatedOrdersRow = '.woocommerce-orders-table--orders tbody tr';
 
@@ -42,6 +45,7 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 	 *
 	 * @param {import('@playwright/test').Page} page         Playwright page fixture.
 	 * @param {string}                          checkoutType 'blocks' or 'shortcode'.
+	 * @returns {Promise<string>} The renewal order ID.
 	 */
 	async function completeRenewal( page, checkoutType ) {
 		// Note that the selectors and UX are different for blocks and shortcode.
@@ -64,9 +68,12 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 			await page.locator( '#place_order' ).click();
 		}
 
+		await page.waitForURL( '**/order-received/**' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
 		);
+
+		return admin.getOrderIdFromOrderReceivedUrl( page.url() );
 	}
 
 	/**
@@ -77,10 +84,11 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 	 * pre-existing saved token (which would collapse the new-card OCS
 	 * element). Logging in is required so the renewal can reuse the token.
 	 *
-	 * @param {import('@playwright/test').Page} page         Playwright page fixture.
-	 * @param {string}                          checkoutType 'blocks' or 'shortcode'.
+	 * @param {import('@playwright/test').Page}    page         Playwright page fixture.
+	 * @param {import('@playwright/test').Browser} browser      Playwright browser fixture.
+	 * @param {string}                             checkoutType 'blocks' or 'shortcode'.
 	 */
-	async function purchaseAndRenew( page, checkoutType ) {
+	async function purchaseAndRenew( page, browser, checkoutType ) {
 		const randomString = randomUUID();
 		const username =
 			randomString + '.' + config.get( 'users.customer.username' );
@@ -91,6 +99,8 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 			email: randomString + '+' + config.get( 'users.customer.email' ),
 			username,
 		} );
+
+		let purchaseOrderId, renewalOrderId;
 
 		await test.step( 'customer login', async () => {
 			await user.login(
@@ -121,6 +131,10 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 				'Order received'
 			);
+
+			purchaseOrderId = admin.getOrderIdFromOrderReceivedUrl(
+				page.url()
+			);
 		} );
 
 		await test.step( 'customer renews the subscription', async () => {
@@ -139,7 +153,7 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 				await page.goto( '/checkout-shortcode/' );
 			}
 
-			await completeRenewal( page, checkoutType );
+			renewalOrderId = await completeRenewal( page, checkoutType );
 		} );
 
 		await test.step( 'renewal appears in the related orders table', async () => {
@@ -149,17 +163,32 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 			// Initial purchase + renewal.
 			await expect( renewalOrderRows( page ) ).toHaveCount( 2 );
 		} );
+
+		await test.step( 'admin confirms the expected amounts were charged', async () => {
+			await admin.verifyOrderChargedAmount(
+				browser,
+				purchaseOrderId,
+				EXPECTED_ORDER_TOTAL
+			);
+			await admin.verifyOrderChargedAmount(
+				browser,
+				renewalOrderId,
+				EXPECTED_ORDER_TOTAL
+			);
+		} );
 	}
 
 	test( 'customer can renew an Optimized Checkout subscription @smoke @blocks', async ( {
 		page,
+		browser,
 	} ) => {
-		await purchaseAndRenew( page, 'blocks' );
+		await purchaseAndRenew( page, browser, 'blocks' );
 	} );
 
 	test( 'customer can renew an Optimized Checkout subscription @smoke @shortcode', async ( {
 		page,
+		browser,
 	} ) => {
-		await purchaseAndRenew( page, 'shortcode' );
+		await purchaseAndRenew( page, browser, 'shortcode' );
 	} );
 } );

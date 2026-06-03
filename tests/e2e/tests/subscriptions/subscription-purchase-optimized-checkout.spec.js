@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
-import { api, payments, products, user } from '../../utils';
+import { admin, api, payments, products, user } from '../../utils';
 
 const {
 	emptyCart,
@@ -12,6 +12,9 @@ const {
 } = payments;
 
 let productId;
+
+// Subscription product ($9.99) + flat-rate shipping ($10.00).
+const EXPECTED_ORDER_TOTAL = '19.99';
 
 test.describe( 'Optimized Checkout subscription purchase tests @subscriptions', () => {
 	test.beforeAll( async () => {
@@ -33,10 +36,11 @@ test.describe( 'Optimized Checkout subscription purchase tests @subscriptions', 
 	 * guest checkout) is needed because setupOptimizedCheckout uses a fixed
 	 * billing email that would collide across the two tests.
 	 *
-	 * @param {import('@playwright/test').Page} page         Playwright page fixture.
-	 * @param {string}                          checkoutType 'blocks' or 'shortcode'.
+	 * @param {import('@playwright/test').Page}    page         Playwright page fixture.
+	 * @param {import('@playwright/test').Browser} browser      Playwright browser fixture.
+	 * @param {string}                             checkoutType 'blocks' or 'shortcode'.
 	 */
-	async function purchaseSubscriptionWithOC( page, checkoutType ) {
+	async function purchaseSubscriptionWithOC( page, browser, checkoutType ) {
 		const randomString = randomUUID();
 		const username =
 			randomString + '.' + config.get( 'users.customer.username' );
@@ -70,17 +74,27 @@ test.describe( 'Optimized Checkout subscription purchase tests @subscriptions', 
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
 		);
+
+		// As the admin, confirm the order was charged the expected amount.
+		const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
+		await admin.verifyOrderChargedAmount(
+			browser,
+			orderId,
+			EXPECTED_ORDER_TOTAL
+		);
 	}
 
 	test( 'customer can purchase a subscription with Optimized Checkout @smoke @blocks', async ( {
 		page,
+		browser,
 	} ) => {
-		await purchaseSubscriptionWithOC( page, 'blocks' );
+		await purchaseSubscriptionWithOC( page, browser, 'blocks' );
 	} );
 
 	test( 'customer can purchase a subscription with Optimized Checkout @smoke @shortcode', async ( {
 		page,
+		browser,
 	} ) => {
-		await purchaseSubscriptionWithOC( page, 'shortcode' );
+		await purchaseSubscriptionWithOC( page, browser, 'shortcode' );
 	} );
 } );
