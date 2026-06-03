@@ -415,11 +415,12 @@ class WC_Stripe {
 
 		// If we have previously disabled settings synchronization, remove the flag after the upgrade,
 		// just to make sure we are still ineligible for settings synchronization.
-		$stripe_settings = $this->get_main_stripe_gateway()->get_settings();
+		$gateway         = $this->get_main_stripe_gateway();
+		$stripe_settings = $gateway->get_settings();
 		if ( isset( $stripe_settings['pmc_enabled'] ) && 'no' === $stripe_settings['pmc_enabled'] ) {
 			unset( $stripe_settings['pmc_enabled'] );
 			$stripe_settings['skip_pmc_express_checkout_defaults'] = 'yes';
-			$this->get_main_stripe_gateway()->update_settings( $stripe_settings );
+			$gateway->update_settings( $stripe_settings );
 			WC_Stripe_Logger::error( 'Settings synchronization eligibility will be re-checked after upgrade' );
 		}
 	}
@@ -465,11 +466,12 @@ class WC_Stripe {
 	 * @version 9.6.0
 	 */
 	public function migrate_to_new_checkout_experience() {
-		$stripe_settings = $this->get_main_stripe_gateway()->get_settings();
+		$gateway         = $this->get_main_stripe_gateway();
+		$stripe_settings = $gateway->get_settings();
 		// If the flag is not set or not set to yes (set to no/disabled), it means the site was using the legacy checkout experience.
 		if ( empty( $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) || 'yes' !== $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
 			$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
-			$this->get_main_stripe_gateway()->update_settings( $stripe_settings );
+			$gateway->update_settings( $stripe_settings );
 
 			if ( class_exists( 'WC_Tracks' ) ) {
 				WC_Tracks::record_event( 'wcstripe_migrated_to_new_checkout_experience' );
@@ -488,7 +490,8 @@ class WC_Stripe {
 	 * @version 5.5.0
 	 */
 	public function update_prb_location_settings() {
-		$stripe_settings = $this->get_main_stripe_gateway()->get_settings();
+		$gateway         = $this->get_main_stripe_gateway();
+		$stripe_settings = $gateway->get_settings();
 		$prb_locations   = isset( $stripe_settings['express_checkout_button_locations'] )
 			? $stripe_settings['express_checkout_button_locations']
 			: [];
@@ -497,7 +500,7 @@ class WC_Stripe {
 			if ( array_key_exists( 'payment_request_button_locations', $stripe_settings ) ) {
 				$stripe_settings['express_checkout_button_locations'] = $stripe_settings['payment_request_button_locations'];
 				unset( $stripe_settings['payment_request_button_locations'] );
-				$this->get_main_stripe_gateway()->update_settings( $stripe_settings );
+				$gateway->update_settings( $stripe_settings );
 				return;
 			}
 
@@ -523,7 +526,7 @@ class WC_Stripe {
 			}
 
 			$stripe_settings['express_checkout_button_locations'] = $new_prb_locations;
-			$this->get_main_stripe_gateway()->update_settings( $stripe_settings );
+			$gateway->update_settings( $stripe_settings );
 		}
 	}
 
@@ -831,11 +834,12 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-orders-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-tokens-controller.php';
 
-		$connection_tokens_controller = new WC_REST_Stripe_Connection_Tokens_Controller( $this->get_main_stripe_gateway() );
+		$main_gateway                 = $this->get_main_stripe_gateway();
+		$connection_tokens_controller = new WC_REST_Stripe_Connection_Tokens_Controller( $main_gateway );
 		$locations_controller         = new WC_REST_Stripe_Locations_Controller();
-		$orders_controller            = new WC_REST_Stripe_Orders_Controller( $this->get_main_stripe_gateway() );
+		$orders_controller            = new WC_REST_Stripe_Orders_Controller( $main_gateway );
 		$stripe_tokens_controller     = new WC_REST_Stripe_Tokens_Controller();
-		$stripe_account_controller    = new WC_REST_Stripe_Account_Controller( $this->get_main_stripe_gateway(), $this->account );
+		$stripe_account_controller    = new WC_REST_Stripe_Account_Controller( $main_gateway, $this->account );
 
 		$connection_tokens_controller->register_routes();
 		$locations_controller->register_routes();
@@ -850,13 +854,13 @@ class WC_Stripe {
 		$upe_flag_toggle_controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
 		$upe_flag_toggle_controller->register_routes();
 
-		$settings_controller = new WC_REST_Stripe_Settings_Controller( $this->get_main_stripe_gateway() );
+		$settings_controller = new WC_REST_Stripe_Settings_Controller( $main_gateway );
 		$settings_controller->register_routes();
 
 		$stripe_account_keys_controller = new WC_REST_Stripe_Account_Keys_Controller( $this->account );
 		$stripe_account_keys_controller->register_routes();
 
-		$oc_setting_toggle_controller = new WC_Stripe_REST_OC_Setting_Toggle_Controller( $this->get_main_stripe_gateway() );
+		$oc_setting_toggle_controller = new WC_Stripe_REST_OC_Setting_Toggle_Controller( $main_gateway );
 		$oc_setting_toggle_controller->register_routes();
 
 		$exit_survey_controller = new WC_REST_Stripe_Exit_Survey_Controller();

@@ -280,7 +280,8 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * @return WP_REST_Response
 	 */
 	public function set_account_keys( WP_REST_Request $request ) {
-		$settings       = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_settings();
+		$gateway        = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$settings       = $gateway->get_settings();
 		$allowed_params = [ 'publishable_key', 'secret_key', 'webhook_secret', 'test_publishable_key', 'test_secret_key', 'test_webhook_secret' ];
 
 		$current_account_keys = array_intersect_key( $settings, array_flip( $allowed_params ) );
@@ -312,7 +313,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// Before saving the settings, decommission any previously automatically configured webhook endpoint.
 		$settings = $this->decommission_configured_webhook_after_key_update( $settings, $current_account_keys );
 
-		WC_Stripe::get_instance()->get_main_stripe_gateway()->update_settings( $settings );
+		$gateway->update_settings( $settings );
 
 		// Disable all payment methods if all keys are different from the current ones
 		if ( $current_account_keys['publishable_key'] !== $settings['publishable_key']

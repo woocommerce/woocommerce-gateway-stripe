@@ -69,7 +69,8 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update {
 		// subscriptions-aware default existed — and would wipe out any
 		// unrelated stored keys (e.g. `pmc_enabled`) that were added after
 		// the gateway was first constructed.
-		$stripe_settings = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_settings();
+		$gateway         = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$stripe_settings = $gateway->get_settings();
 		$locations       = $stripe_settings['express_checkout_button_locations'] ?? null;
 
 		// Treat anything other than an array as "not the all-three default" —
@@ -80,7 +81,7 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update {
 		) {
 			$locations[] = self::NEW_LOCATION;
 			$stripe_settings['express_checkout_button_locations'] = $locations;
-			WC_Stripe::get_instance()->get_main_stripe_gateway()->update_settings( $stripe_settings );
+			$gateway->update_settings( $stripe_settings );
 		}
 
 		update_option( self::MIGRATION_FLAG_OPTION, 'yes' );
