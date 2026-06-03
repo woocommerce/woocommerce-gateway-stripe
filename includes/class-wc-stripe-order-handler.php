@@ -474,8 +474,20 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
-		// Bail if payment method is not stripe or `stripe_{apm_method}` or doesn't have an intent yet.
-		if ( ! $order_helper->is_stripe_gateway_order( $order ) || ! $this->get_intent_from_order( $order ) ) {
+		// Bail if the payment method is not stripe or `stripe_{apm_method}`.
+		if ( ! $order_helper->is_stripe_gateway_order( $order ) ) {
+			return $cancel_order;
+		}
+
+		// Never cancel an order that has already been paid. A race between the Store API checkout
+		// and the Stripe webhook can leave a paid order stuck at `pending` (payment meta written,
+		// status transition lost), which wc_cancel_unpaid_orders() would otherwise cancel.
+		if ( $order->get_date_paid( 'edit' ) ) {
+			return false;
+		}
+
+		// Bail if the order doesn't have an intent yet.
+		if ( ! $this->get_intent_from_order( $order ) ) {
 			return $cancel_order;
 		}
 

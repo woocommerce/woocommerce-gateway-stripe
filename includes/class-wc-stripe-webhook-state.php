@@ -11,42 +11,27 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 5.0.0
  */
 class WC_Stripe_Webhook_State {
-	const OPTION_LIVE_MONITORING_BEGAN_AT = 'wc_stripe_wh_monitor_began_at';
-	const OPTION_LIVE_LAST_SUCCESS_AT     = 'wc_stripe_wh_last_success_at';
-	const OPTION_LIVE_LAST_FAILURE_AT     = 'wc_stripe_wh_last_failure_at';
-	const OPTION_LIVE_LAST_ERROR          = 'wc_stripe_wh_last_error';
-	const OPTION_LIVE_PENDING_WEBHOOKS    = 'wc_stripe_wh_live_pending_webhooks';
+	public const OPTION_LIVE_MONITORING_BEGAN_AT = 'wc_stripe_wh_monitor_began_at';
+	public const OPTION_LIVE_LAST_SUCCESS_AT     = 'wc_stripe_wh_last_success_at';
+	public const OPTION_LIVE_LAST_FAILURE_AT     = 'wc_stripe_wh_last_failure_at';
+	public const OPTION_LIVE_LAST_ERROR          = 'wc_stripe_wh_last_error';
+	public const OPTION_LIVE_PENDING_WEBHOOKS    = 'wc_stripe_wh_live_pending_webhooks';
 
-	const OPTION_TEST_MONITORING_BEGAN_AT = 'wc_stripe_wh_test_monitor_began_at';
-	const OPTION_TEST_LAST_SUCCESS_AT     = 'wc_stripe_wh_test_last_success_at';
-	const OPTION_TEST_LAST_FAILURE_AT     = 'wc_stripe_wh_test_last_failure_at';
-	const OPTION_TEST_LAST_ERROR          = 'wc_stripe_wh_test_last_error';
-	const OPTION_TEST_PENDING_WEBHOOKS    = 'wc_stripe_wh_test_pending_webhooks';
+	public const OPTION_TEST_MONITORING_BEGAN_AT = 'wc_stripe_wh_test_monitor_began_at';
+	public const OPTION_TEST_LAST_SUCCESS_AT     = 'wc_stripe_wh_test_last_success_at';
+	public const OPTION_TEST_LAST_FAILURE_AT     = 'wc_stripe_wh_test_last_failure_at';
+	public const OPTION_TEST_LAST_ERROR          = 'wc_stripe_wh_test_last_error';
+	public const OPTION_TEST_PENDING_WEBHOOKS    = 'wc_stripe_wh_test_pending_webhooks';
 
-	const VALIDATION_SUCCEEDED                 = 'validation_succeeded';
-	const VALIDATION_FAILED_EMPTY_HEADERS      = 'empty_headers';
-	const VALIDATION_FAILED_EMPTY_BODY         = 'empty_body';
-	const VALIDATION_FAILED_EMPTY_SECRET       = 'empty_secret';
-	const VALIDATION_FAILED_USER_AGENT_INVALID = 'user_agent_invalid';
-	const VALIDATION_FAILED_SIGNATURE_INVALID  = 'signature_invalid';
-	const VALIDATION_FAILED_DUPLICATE_WEBHOOKS = 'duplicate_webhooks';
-	const VALIDATION_FAILED_TIMESTAMP_MISMATCH = 'timestamp_out_of_range';
-	const VALIDATION_FAILED_SIGNATURE_MISMATCH = 'signature_mismatch';
-
-	/**
-	 * Gets whether Stripe is in test mode or not
-	 *
-	 * @since 5.0.0
-	 * @return bool
-	 *
-	 * @deprecated 8.9.0
-	 */
-	public static function get_testmode() {
-		wc_deprecated_function( __METHOD__, '8.9.0', 'WC_Stripe_Mode::is_test()' );
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		return ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
-	}
+	public const VALIDATION_SUCCEEDED                 = 'validation_succeeded';
+	public const VALIDATION_FAILED_EMPTY_HEADERS      = 'empty_headers';
+	public const VALIDATION_FAILED_EMPTY_BODY         = 'empty_body';
+	public const VALIDATION_FAILED_EMPTY_SECRET       = 'empty_secret';
+	public const VALIDATION_FAILED_USER_AGENT_INVALID = 'user_agent_invalid';
+	public const VALIDATION_FAILED_SIGNATURE_INVALID  = 'signature_invalid';
+	public const VALIDATION_FAILED_DUPLICATE_WEBHOOKS = 'duplicate_webhooks';
+	public const VALIDATION_FAILED_TIMESTAMP_MISMATCH = 'timestamp_out_of_range';
+	public const VALIDATION_FAILED_SIGNATURE_MISMATCH = 'signature_mismatch';
 
 	/**
 	 * Clears the webhook state.
