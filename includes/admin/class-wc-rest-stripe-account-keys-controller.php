@@ -14,13 +14,6 @@ defined( 'ABSPATH' ) || exit;
  */
 class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Controller {
 	/**
-	 * The option name for the Stripe gateway settings.
-	 *
-	 * @deprecated 8.7.0
-	 */
-	const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
-
-	/**
 	 * Endpoint path.
 	 *
 	 * @var string
@@ -365,7 +358,10 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			$secret = $settings[ $live_mode ? 'secret_key' : 'test_secret_key' ];
 		}
 
-		$response = wp_safe_remote_post(
+		// Use wp_remote_post() instead of wp_safe_remote_post() as we have a hard-coded URL
+		// and the safe version fails when there are DNS resolution issues.
+		// See https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4801
+		$response = wp_remote_post(
 			'https://api.stripe.com/v1/tokens',
 			[
 				'method'  => 'POST',
@@ -381,7 +377,10 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$response_data = json_decode( $response['body'] );
 		$token_id      = $response_data->id;
 
-		$response = wp_safe_remote_get(
+		// Use wp_remote_get() instead of wp_safe_remote_get() as we have a hard-coded URL
+		// and the safe version fails when there are DNS resolution issues.
+		// See https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4801
+		$response = wp_remote_get(
 			'https://api.stripe.com/v1/tokens/' . $token_id,
 			[
 				'method'  => 'GET',

@@ -214,10 +214,12 @@ describe( 'AgenticCommerceSection', () => {
 		render( <AgenticCommerceSection /> );
 
 		await waitFor( () => {
-			const infoIcons = document.querySelectorAll(
-				'[title="Network error"]'
-			);
-			expect( infoIcons.length ).toBeGreaterThanOrEqual( 1 );
+			// The error message is exposed via aria-label on the icon's
+			// focusable wrapper (so screen readers and keyboard users can
+			// reach it), not as a `title` attribute.
+			expect(
+				screen.getByLabelText( /Sync error: Network error/ )
+			).toBeInTheDocument();
 		} );
 	} );
 
@@ -481,7 +483,7 @@ describe( 'AgenticCommerceSection', () => {
 	it( 'shows onboarding steps when feature is enabled even with webhook secret saved', async () => {
 		mockFetchByPath( EMPTY_RESPONSE, {
 			is_enabled: true,
-			webhook_secret: '****',
+			webhook_secret: 'whsec_********************************',
 		} );
 
 		render( <AgenticCommerceSection /> );
@@ -591,14 +593,16 @@ describe( 'AgenticCommerceSection', () => {
 	it( 'prefills webhook secret field with masked placeholder when a secret is stored', async () => {
 		mockFetchByPath( EMPTY_RESPONSE, {
 			is_enabled: true,
-			webhook_secret: '****',
+			webhook_secret: 'whsec_********************************',
 		} );
 
 		render( <AgenticCommerceSection /> );
 
 		await waitFor( () => {
 			const input = screen.getByLabelText( /Webhook secret/i );
-			expect( input.value ).toBe( '****' );
+			expect( input.value ).toBe(
+				'whsec_********************************'
+			);
 		} );
 	} );
 

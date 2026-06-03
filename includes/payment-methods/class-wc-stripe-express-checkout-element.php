@@ -73,13 +73,34 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
-		// Don't load for change payment method page.
-		if ( isset( $_GET['change_payment_method'] ) ) {
+		// Apply the express checkout title after intent confirmation (e.g. 3DS) for the
+		// subscription change-payment-method flow. Registered unconditionally because the
+		// AJAX confirmation request doesn't run through the change-payment-method page check.
+		add_action( 'wc_stripe_after_set_payment_method_title_for_confirmed_intent', [ $this, 'maybe_apply_express_title_after_confirmed_intent' ] );
+
+		// Substitute the express checkout label into the WCS-written change-payment note.
+		// Registered unconditionally so the filter is in place by the time WCS calls
+		// `WC_Subscriptions_Change_Payment_Gateway::update_payment_method()` during the
+		// form submission, regardless of which page hook bootstrapped this class.
+		add_filter( 'woocommerce_subscription_note_new_payment_method_title', [ $this, 'filter_change_payment_method_note_title' ], 10, 3 );
+
+		// Add network and preload hints for express checkout resources.
+		// The hooks check whether express checkout will be shown, and are no-ops in other contexts.
+		add_filter( 'wp_resource_hints', [ $this, 'add_resource_hints' ], 10, 2 );
+		add_filter( 'wp_preload_resources', [ $this, 'add_preload_resources' ] );
+
+		// Change-payment uses WC Subscriptions' own template, so ride
+		// `before_woocommerce_pay` (the only action the gateway fires before it).
+		if ( $this->express_checkout_helper->is_change_payment_method_page() ) {
+			add_action( 'wp_enqueue_scripts', [ $this, 'scripts' ] );
+			add_action( 'before_woocommerce_pay', [ $this, 'display_express_checkout_button_html' ], 1 );
+			add_filter( 'woocommerce_gateway_title', [ $this, 'filter_gateway_title' ], 10, 2 );
+			add_action( 'wc_stripe_change_subs_payment_method_success', [ $this, 'update_subscription_payment_method_title' ] );
 			return;
 		}
 
 		// Don't load for switch subscription page.
-		if ( isset( $_GET['switch-subscription'] ) ) {
+		if ( isset( $_GET['switch-subscription'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			return;
 		}
 
@@ -234,6 +255,7 @@ class WC_Stripe_Express_Checkout_Element {
 			'allowed_shipping_countries' => $this->express_checkout_helper->get_allowed_shipping_countries(),
 			'custom_checkout_fields'     => ( new WC_Stripe_Express_Checkout_Custom_Fields() )->get_custom_checkout_fields(),
 			'has_free_trial'             => $this->express_checkout_helper->has_free_trial(),
+			'is_change_payment_method'   => $this->express_checkout_helper->is_change_payment_method_page(),
 		];
 	}
 
@@ -412,6 +434,86 @@ class WC_Stripe_Express_Checkout_Element {
 	}
 
 	/**
+	 * Append preconnect URLs for Stripe-owned hosts when the current page will render ECE.
+	 *
+	 * @param array  $urls          URLs that core has gathered for the relation type.
+	 * @param string $relation_type Resource hint relation ('preconnect', 'dns-prefetch', etc.).
+	 *
+	 * @return array
+	 */
+	public function add_resource_hints( $urls, $relation_type ) {
+		if ( 'preconnect' !== $relation_type ) {
+			return $urls;
+		}
+
+		if ( ! $this->express_checkout_helper->is_page_supported() ) {
+			return $urls;
+		}
+
+		if ( ! $this->express_checkout_helper->should_show_express_checkout_button() ) {
+			return $urls;
+		}
+
+		// `js.stripe.com` and `m.stripe.network` host cross-origin scripts/iframes, so the
+		// crossorigin attribute is required for the preconnected connection to be reused
+		// by the subsequent `<script>` and iframe fetches.
+		$urls[] = [
+			'href'        => 'https://js.stripe.com',
+			'crossorigin' => 'anonymous',
+		];
+		$urls[] = [
+			'href'        => 'https://m.stripe.network',
+			'crossorigin' => 'anonymous',
+		];
+		$urls[] = [
+			'href' => 'https://q.stripe.com',
+		];
+		$urls[] = [
+			'href'        => 'https://b.stripecdn.com',
+			'crossorigin' => 'anonymous',
+		];
+
+		return $urls;
+	}
+
+	/**
+	 * Append a preload entry for the Express Checkout bundle when ECE will render.
+	 *
+	 * Routed through the `wp_preload_resources` filter (WP 6.1+) so core handles the
+	 * `<link>` emission, attribute escaping, and deduplication. The hint lands in
+	 * `<head>` ahead of the footer enqueue, letting the browser's preload scanner
+	 * overlap the bundle fetch with the rest of `<head>` parsing.
+	 *
+	 * @param array $preload_resources Preload entries gathered by core.
+	 *
+	 * @return array
+	 */
+	public function add_preload_resources( $preload_resources ) {
+		if ( ! $this->express_checkout_helper->is_page_supported() ) {
+			return $preload_resources;
+		}
+
+		if ( ! $this->express_checkout_helper->should_show_express_checkout_button() ) {
+			return $preload_resources;
+		}
+
+		$asset_data = $this->get_asset_data();
+
+		if ( is_array( $asset_data ) && isset( $asset_data['version'] ) ) {
+			$preload_resources[] = [
+				'href' => add_query_arg(
+					'ver',
+					$asset_data['version'],
+					WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js'
+				),
+				'as'   => 'script',
+			];
+		}
+
+		return $preload_resources;
+	}
+
+	/**
 	 * Load scripts and styles.
 	 *
 	 * @return void
@@ -490,6 +592,164 @@ class WC_Stripe_Express_Checkout_Element {
 				$order->save_meta_data();
 			}
 		}
+	}
+
+	/**
+	 * Updates the subscription's payment method title to reflect the express checkout type.
+	 *
+	 * Mirrors `add_order_meta()` for the subscription change-payment-method flow, which
+	 * doesn't fire `woocommerce_checkout_order_processed`. Hooked on
+	 * `wc_stripe_change_subs_payment_method_success` (success path with $_POST data).
+	 *
+	 * @return void
+	 */
+	public function update_subscription_payment_method_title() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended
+		if ( empty( $_POST['express_checkout_type'] ) || ! isset( $_GET['change_payment_method'] ) ) {
+			return;
+		}
+
+		if ( ! function_exists( 'wcs_get_subscription' ) ) {
+			return;
+		}
+
+		$subscription = wcs_get_subscription( absint( $_GET['change_payment_method'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( ! $subscription ) {
+			return;
+		}
+
+		$express_checkout_type = is_array( $_POST['express_checkout_type'] ) ? '' : sanitize_text_field( wp_unslash( $_POST['express_checkout_type'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$this->apply_express_checkout_title_to_order( $subscription, $express_checkout_type );
+	}
+
+	/**
+	 * After intent confirmation (e.g. post-3DS), re-apply the express checkout title to
+	 * the subscription using the type persisted to subscription meta during the change-
+	 * payment-method redirect. This compensates for `set_payment_method_title_for_order()`
+	 * resetting the title to the underlying card type during 3DS confirmation.
+	 *
+	 * Hooked on `wc_stripe_after_set_payment_method_title_for_confirmed_intent`.
+	 *
+	 * @param WC_Order $order The order or subscription that was just confirmed.
+	 * @return void
+	 */
+	public function maybe_apply_express_title_after_confirmed_intent( $order ) {
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
+
+		$express_checkout_type = $order->get_meta( '_wc_stripe_express_checkout_type' );
+		if ( empty( $express_checkout_type ) ) {
+			return;
+		}
+
+		$this->apply_express_checkout_title_to_order( $order, $express_checkout_type );
+
+		// Mirror the no-3DS path: associate the new WC payment token with the
+		// subscription so the shopper-facing My Account list reflects it.
+		$payment_method_id = $order->get_meta( '_wc_stripe_express_checkout_payment_method_id' );
+		if ( ! empty( $payment_method_id ) ) {
+			WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $order, $payment_method_id );
+		}
+
+		// Always remove the markers — the values are only meaningful for the
+		// single confirmation that follows the 3DS redirect, and leaving them
+		// behind would let a later confirmation on the same subscription
+		// re-apply a stale title or token. The cleanup runs unconditionally
+		// because that's also true when apply_express_checkout_title_to_order
+		// returned false: junk should not linger if we couldn't handle it.
+		$order->delete_meta_data( '_wc_stripe_express_checkout_type' );
+		$order->delete_meta_data( '_wc_stripe_express_checkout_payment_method_id' );
+		$order->save();
+	}
+
+	/**
+	 * Applies an express checkout title (Apple Pay / Google Pay) to the given order or
+	 * subscription. Returns true when the title was applied.
+	 *
+	 * @param WC_Order $order                 Order or subscription to update.
+	 * @param string   $express_checkout_type The express checkout type (apple_pay, google_pay, link).
+	 * @return bool    Whether the title was applied.
+	 */
+	private function apply_express_checkout_title_to_order( $order, $express_checkout_type ) {
+		$payment_method_title = $this->get_express_checkout_method_title( $express_checkout_type );
+
+		if ( '' === $payment_method_title ) {
+			return false;
+		}
+
+		$order->set_payment_method_title( $payment_method_title );
+		$order->save();
+		return true;
+	}
+
+	/**
+	 * Returns the order-storage title for an express checkout type, including the
+	 * "(Stripe)" suffix for Apple Pay / Google Pay / Amazon Pay and the bare "Link"
+	 * label for Stripe Link.
+	 *
+	 * @param string $express_checkout_type One of WC_Stripe_Payment_Methods::APPLE_PAY/GOOGLE_PAY/AMAZON_PAY/LINK, or empty.
+	 * @return string The express label, or empty string if the type is not an express method.
+	 */
+	private function get_express_checkout_method_title( $express_checkout_type ) {
+		$suffix = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
+
+		if ( WC_Stripe_Payment_Methods::APPLE_PAY === $express_checkout_type ) {
+			return WC_Stripe_Payment_Methods::APPLE_PAY_LABEL . $suffix;
+		}
+		if ( WC_Stripe_Payment_Methods::GOOGLE_PAY === $express_checkout_type ) {
+			return WC_Stripe_Payment_Methods::GOOGLE_PAY_LABEL . $suffix;
+		}
+		if ( WC_Stripe_Payment_Methods::AMAZON_PAY === $express_checkout_type ) {
+			return WC_Stripe_Payment_Methods::AMAZON_PAY_LABEL . $suffix;
+		}
+		if ( WC_Stripe_Payment_Methods::LINK === $express_checkout_type ) {
+			// Match the title produced by the standard Link path (set_payment_method_title_for_order)
+			// and expected by WC_Stripe_UPE_Payment_Method_Link::filter_gateway_title — bare "Link", no suffix.
+			return WC_Stripe_Payment_Methods::LINK_LABEL;
+		}
+
+		return '';
+	}
+
+	/**
+	 * Substitutes the express checkout label into the change-payment-method order note
+	 * that `WC_Subscriptions_Change_Payment_Gateway::update_payment_method()` writes.
+	 *
+	 * Without this filter, WCS records "Payment method changed from X to Credit Card" even
+	 * when the shopper paid via Apple Pay / Google Pay / Link, because WCS computes the
+	 * "to" label from `$gateway->get_title()` (which is "Credit Card" for the `stripe`
+	 * gateway). Our own title override on `wc_stripe_change_subs_payment_method_success`
+	 * runs after the note has already been written, so it can correct the visible
+	 * subscription title but not the note copy.
+	 *
+	 * @param string          $title              The WCS-computed new payment method title.
+	 * @param string          $new_payment_method The new payment gateway ID.
+	 * @param WC_Subscription $subscription       The subscription being updated.
+	 * @return string
+	 */
+	public function filter_change_payment_method_note_title( $title, $new_payment_method, $subscription ) {
+		if ( 'stripe' !== $new_payment_method ) {
+			return $title;
+		}
+
+		$express_checkout_type = '';
+
+		// No-3DS path: the form submission is in progress, so $_POST is authoritative.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! empty( $_POST['express_checkout_type'] ) && ! is_array( $_POST['express_checkout_type'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$express_checkout_type = sanitize_text_field( wp_unslash( $_POST['express_checkout_type'] ) );
+		} elseif ( $subscription instanceof WC_Subscription ) {
+			// 3DS-redirect path: WCS may re-run update_payment_method after intent confirmation,
+			// when $_POST has been lost. The express type was persisted to subscription meta
+			// before the redirect and is read here as a fallback.
+			$express_checkout_type = (string) $subscription->get_meta( '_wc_stripe_express_checkout_type' );
+		}
+
+		$express_title = $this->get_express_checkout_method_title( $express_checkout_type );
+
+		return '' !== $express_title ? $express_title : $title;
 	}
 
 	/**

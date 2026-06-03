@@ -33,6 +33,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	private static $gateway;
+
 	/**
 	 * Enable UPE and store gateway instance.
 	 *
@@ -41,17 +42,17 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 * would contain another gateway instance than the controller.
 	 *
 	 * @see UPE_Test_Utils::reload_payment_gateways()
+	 *
+	 * @return void
+	 * @throws Exception
 	 */
-	public static function set_up_before_class() {
+	public static function set_up_before_class(): void {
 		parent::set_up_before_class();
 
 		$upe_helper = new UPE_Test_Helper();
 
 		// Enable Amazon Pay
 		update_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME, 'yes' );
-
-		// All tests assume UPE is enabled.
-		update_option( '_wcstripe_feature_upe', 'yes' );
 
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
@@ -437,77 +438,129 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	/**
 	 * Tests for the dismiss notice endpoint.
 	 *
-	 * @param array $request_params The request parameters.
-	 * @param array $expected_option The expected option after the request.
+	 * @param array $request_params    The request parameters.
+	 * @param array $expected_options  The expected options to have been updated.
 	 * @param array $expected_response The expected response.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_dismiss_notice
 	 */
-	public function test_dismiss_notice( $request_params, $expected_option, $expected_response ) {
+	public function test_dismiss_notice( array $request_params, array $expected_options, array $expected_response ) {
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE . '/notice' );
 		foreach ( $request_params as $key => $value ) {
 			$request->set_param( $key, $value );
 		}
 
-		$response = rest_do_request( $request );
-		if ( count( $expected_option ) > 0 ) {
-			foreach ( $expected_option as $option_name => $option_value ) {
+		$updated_stripe_options = [];
+
+		$pre_update_filter = function ( $value, $option_name ) use ( &$updated_stripe_options ) {
+			if ( str_starts_with( $option_name, 'wc_stripe_' ) ) {
+				$updated_stripe_options[ $option_name ] = $value;
+			}
+			return $value;
+		};
+		add_filter( 'pre_update_option', $pre_update_filter, 10, 2 );
+
+		try {
+			$response = rest_do_request( $request );
+
+			$this->assertEquals( count( $expected_options ), count( $updated_stripe_options ) );
+
+			foreach ( $expected_options as $option_name => $option_value ) {
 				$notice_option = get_option( $option_name );
 				$this->assertEquals( $option_value, $notice_option );
-			}
-		}
 
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( $expected_response, $response->get_data() );
+				$this->assertArrayHasKey( $option_name, $updated_stripe_options );
+				$this->assertEquals( $option_value, $updated_stripe_options[ $option_name ] );
+			}
+
+			$this->assertEquals( 200, $response->get_status() );
+			$this->assertEquals( $expected_response, $response->get_data() );
+		} finally {
+			remove_filter( 'pre_update_option', $pre_update_filter, 10 );
+		}
 	}
 
 	/**
-	 * Provider for test_dismiss_notice.
+	 * Provider for {@see test_dismiss_notice()}.
 	 *
 	 * @return array
 	 */
 	public function provide_test_dismiss_notice() {
-		return [
-			'empty request'                => [
+		$supported_options = [
+			'wc_stripe_show_customization_notice'       => 'wc_stripe_show_customization_notice',
+			'wc_stripe_show_optimized_checkout_notice'  => 'wc_stripe_show_optimized_checkout_notice',
+			'wc_stripe_show_bnpl_promotion_banner'      => 'wc_stripe_show_bnpl_promotion_banner',
+			'wc_stripe_show_oc_promotion_banner'        => 'wc_stripe_show_oc_promotion_banner',
+			'wc_stripe_show_stripe_first_method_notice' => 'wc_stripe_show_stripe_first_method_notice',
+			'wc_stripe_show_stripe_tax_banner'          => 'wc_stripe_show_stripe_tax_banner',
+		];
+
+		$dismissed_result = [
+			'result' => 'notice dismissed',
+		];
+
+		$test_cases = [
+			'empty request'             => [
 				'request params'    => [],
-				'expected option'   => [],
+				'expected options'  => [],
 				'expected response' => [],
 			],
-			'dismiss customization notice' => [
+			'unsupported request param' => [
 				'request params'    => [
-					'wc_stripe_show_customization_notice' => 'no',
+					'wc_stripe_test_notice' => 'no',
 				],
-				'expected option'   => [
-					'wc_stripe_show_customization_notice' => 'no',
-				],
-				'expected response' => [
-					'result' => 'notice dismissed',
-				],
-			],
-			'dismiss BNPL banner'          => [
-				'request params'    => [
-					'wc_stripe_show_bnpl_promotion_banner' => 'no',
-				],
-				'expected option'   => [
-					'wc_stripe_show_bnpl_promotion_banner' => 'no',
-				],
-				'expected response' => [
-					'result' => 'notice dismissed',
-				],
-			],
-			'dismiss stripe first notice'  => [
-				'request params'    => [
-					'wc_stripe_show_stripe_first_method_notice' => 'no',
-				],
-				'expected option'   => [
-					'wc_stripe_show_stripe_first_method_notice' => 'no',
-				],
-				'expected response' => [
-					'result' => 'notice dismissed',
-				],
+				'expected options'  => [],
+				'expected response' => [],
 			],
 		];
+
+		foreach ( $supported_options as $request_param => $option_name ) {
+			$test_cases[ 'dismiss ' . $request_param . ' notice' ]               = [
+				'request params'    => [ $request_param => 'no' ],
+				'expected options'  => [ $option_name => 'no' ],
+				'expected response' => $dismissed_result,
+			];
+			$test_cases[ 'dismiss ' . $request_param . ' with empty parameter' ] = [
+				'request params'    => [ $request_param => '' ],
+				'expected options'  => [ $option_name => 'no' ],
+				'expected response' => $dismissed_result,
+			];
+		}
+
+		$test_cases['dismiss multiple notices'] = [
+			'request params'    => [
+				'wc_stripe_show_customization_notice'       => 'no',
+				'wc_stripe_show_optimized_checkout_notice'  => 'no',
+				'wc_stripe_show_stripe_first_method_notice' => 'no',
+				'wc_stripe_show_stripe_tax_banner'          => 'no',
+			],
+			'expected options'  => [
+				'wc_stripe_show_customization_notice'       => 'no',
+				'wc_stripe_show_optimized_checkout_notice'  => 'no',
+				'wc_stripe_show_stripe_first_method_notice' => 'no',
+				'wc_stripe_show_stripe_tax_banner'          => 'no',
+			],
+			'expected response' => $dismissed_result,
+		];
+
+		$test_cases['dismiss multiple notices with mixed values'] = [
+			'request params'    => [
+				'wc_stripe_show_customization_notice'       => 'no',
+				'wc_stripe_show_optimized_checkout_notice'  => '',
+				'wc_stripe_show_stripe_first_method_notice' => 'no',
+				'wc_stripe_show_stripe_tax_banner'          => '',
+			],
+			'expected options'  => [
+				'wc_stripe_show_customization_notice'       => 'no',
+				'wc_stripe_show_optimized_checkout_notice'  => 'no',
+				'wc_stripe_show_stripe_first_method_notice' => 'no',
+				'wc_stripe_show_stripe_tax_banner'          => 'no',
+			],
+			'expected response' => $dismissed_result,
+		];
+
+		return $test_cases;
 	}
 
 	/**

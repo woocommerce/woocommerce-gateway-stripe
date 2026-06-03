@@ -15,28 +15,28 @@ class WC_Stripe_Account {
 	 *
 	 * @var string
 	 */
-	const ACCOUNT_CACHE_KEY = 'account_data';
+	public const ACCOUNT_CACHE_KEY = 'account_data';
 
 	/**
 	 * The Account Data cache expiration (TTL).
 	 *
 	 * @var int
 	 */
-	const ACCOUNT_CACHE_EXPIRATION = 2 * HOUR_IN_SECONDS;
+	public const ACCOUNT_CACHE_EXPIRATION = 2 * HOUR_IN_SECONDS;
 
-	const LIVE_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_live';
-	const TEST_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_test';
+	public const LIVE_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_live';
+	public const TEST_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_test';
 
-	const STATUS_COMPLETE        = 'complete';
-	const STATUS_NO_ACCOUNT      = 'NOACCOUNT';
-	const STATUS_RESTRICTED_SOON = 'restricted_soon';
-	const STATUS_RESTRICTED      = 'restricted';
+	public const STATUS_COMPLETE        = 'complete';
+	public const STATUS_NO_ACCOUNT      = 'NOACCOUNT';
+	public const STATUS_RESTRICTED_SOON = 'restricted_soon';
+	public const STATUS_RESTRICTED      = 'restricted';
 
 	/**
 	 * List of webhook events that this plugin listens to.
 	 * Based on WC_Stripe_Webhook_Handler::process_webhook()
 	 */
-	const WEBHOOK_EVENTS = [
+	public const WEBHOOK_EVENTS = [
 		'account.updated',
 		'source.chargeable',
 		'source.canceled',

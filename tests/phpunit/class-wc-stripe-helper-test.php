@@ -727,21 +727,40 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Test for `is_stripe_in_position_one_in_woocommerce_gateway_order`.
 	 *
-	 * @param array $gateway_order WooCommerce gateway order option value.
-	 * @param bool  $expected      Expected result.
+	 * @param array $payment_gateways Stub for `WC()->payment_gateways->payment_gateways` (id ⇒ enabled).
+	 *                                Iteration order matches WC's sorted-by-position order.
+	 * @param bool  $expected         Expected result.
 	 * @dataProvider provide_test_is_stripe_in_position_one_in_woocommerce_gateway_order
 	 */
-	public function test_is_stripe_in_position_one_in_woocommerce_gateway_order( ?array $gateway_order, bool $expected ) {
-		if ( null === $gateway_order ) {
-			delete_option( 'woocommerce_gateway_order' );
-		} else {
-			update_option( 'woocommerce_gateway_order', $gateway_order );
-		}
+	public function test_is_stripe_in_position_one_in_woocommerce_gateway_order( array $payment_gateways, bool $expected ) {
+		$original_payment_gateways               = WC()->payment_gateways->payment_gateways;
+		WC()->payment_gateways->payment_gateways = $this->build_gateway_stubs( $payment_gateways );
 
-		$this->assertSame(
-			$expected,
-			WC_Stripe_Helper::is_stripe_in_position_one_in_woocommerce_gateway_order()
-		);
+		try {
+			$this->assertSame(
+				$expected,
+				WC_Stripe_Helper::is_stripe_in_position_one_in_woocommerce_gateway_order()
+			);
+		} finally {
+			WC()->payment_gateways->payment_gateways = $original_payment_gateways;
+		}
+	}
+
+	/**
+	 * Builds an array of gateway stub objects from an `[ id => enabled_bool ]` map.
+	 *
+	 * @param array $map Gateway id → enabled bool.
+	 * @return array Stub objects with `id` and `enabled` properties keyed by gateway id.
+	 */
+	private function build_gateway_stubs( array $map ): array {
+		$stubs = [];
+		foreach ( $map as $id => $enabled ) {
+			$stubs[ $id ] = (object) [
+				'id'      => $id,
+				'enabled' => $enabled ? 'yes' : 'no',
+			];
+		}
+		return $stubs;
 	}
 
 	/**
@@ -751,44 +770,63 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_is_stripe_in_position_one_in_woocommerce_gateway_order(): array {
 		return [
-			'stripe is first'                                     => [
-				'gateway_order' => [
-					'stripe' => '0',
-					'cod'    => '1',
-					'bacs'   => '2',
+			'stripe is first'                              => [
+				'payment_gateways' => [
+					'stripe' => true,
+					'cod'    => true,
+					'bacs'   => true,
 				],
-				'expected'      => true,
+				'expected'         => true,
 			],
-			'stripe exists but is not first'                      => [
-				'gateway_order' => [
-					'cod'    => '0',
-					'stripe' => '1',
-					'bacs'   => '2',
+			'stripe is not first'                          => [
+				'payment_gateways' => [
+					'cod'    => true,
+					'stripe' => true,
+					'bacs'   => true,
 				],
-				'expected'      => false,
+				'expected'         => false,
 			],
-			'stripe is first real gateway after internal entries' => [
-				'gateway_order' => [
-					'_wc_pes_wc_payments' => '0',
-					'stripe'              => '1',
-					'cod'                 => '2',
+			'stripe missing from loaded gateways'          => [
+				'payment_gateways' => [
+					'cod'  => true,
+					'bacs' => true,
 				],
-				'expected'      => true,
+				'expected'         => false,
 			],
-			'stripe missing from order'                           => [
-				'gateway_order' => [
-					'cod'  => '0',
-					'bacs' => '1',
+			'no loaded gateways'                           => [
+				'payment_gateways' => [],
+				'expected'         => true,
+			],
+			'all methods above stripe are disabled'        => [
+				'payment_gateways' => [
+					'cod'    => false,
+					'bacs'   => false,
+					'stripe' => true,
 				],
-				'expected'      => false,
+				'expected'         => true,
 			],
-			'gateway order option missing'                        => [
-				'gateway_order' => null,
-				'expected'      => true,
+			'mixed enabled/disabled above stripe'          => [
+				'payment_gateways' => [
+					'cod'    => false,
+					'bacs'   => true,
+					'stripe' => true,
+				],
+				'expected'         => false,
 			],
-			'gateway order option empty'                          => [
-				'gateway_order' => [],
-				'expected'      => true,
+			'stripe APM (stripe_klarna) is first'          => [
+				'payment_gateways' => [
+					'stripe_klarna' => true,
+					'stripe'        => true,
+					'cod'           => true,
+				],
+				'expected'         => true,
+			],
+			'stripe disabled at top still counts as first' => [
+				'payment_gateways' => [
+					'stripe' => false,
+					'cod'    => true,
+				],
+				'expected'         => true,
 			],
 		];
 	}
@@ -796,25 +834,26 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Test for `should_show_stripe_first_method_notice`.
 	 *
-	 * @param string|null $notice_option Value for `wc_stripe_show_stripe_first_method_notice`, or null to delete (default yes).
-	 * @param array|null  $gateway_order Value for `woocommerce_gateway_order`, or null to delete.
-	 * @param bool        $expected      Expected return value.
+	 * @param string|null $notice_option    Value for `wc_stripe_show_stripe_first_method_notice`, or null to delete (default yes).
+	 * @param array       $payment_gateways Stub for `WC()->payment_gateways->payment_gateways` (id ⇒ enabled).
+	 * @param bool        $expected         Expected return value.
 	 * @dataProvider provide_test_should_show_stripe_first_method_notice
 	 */
-	public function test_should_show_stripe_first_method_notice( ?string $notice_option, ?array $gateway_order, bool $expected ): void {
+	public function test_should_show_stripe_first_method_notice( ?string $notice_option, array $payment_gateways, bool $expected ): void {
 		if ( null === $notice_option ) {
 			delete_option( 'wc_stripe_show_stripe_first_method_notice' );
 		} else {
 			update_option( 'wc_stripe_show_stripe_first_method_notice', $notice_option );
 		}
 
-		if ( null === $gateway_order ) {
-			delete_option( 'woocommerce_gateway_order' );
-		} else {
-			update_option( 'woocommerce_gateway_order', $gateway_order );
-		}
+		$original_payment_gateways               = WC()->payment_gateways->payment_gateways;
+		WC()->payment_gateways->payment_gateways = $this->build_gateway_stubs( $payment_gateways );
 
-		$this->assertSame( $expected, WC_Stripe_Helper::should_show_stripe_first_method_notice() );
+		try {
+			$this->assertSame( $expected, WC_Stripe_Helper::should_show_stripe_first_method_notice() );
+		} finally {
+			WC()->payment_gateways->payment_gateways = $original_payment_gateways;
+		}
 	}
 
 	/**
@@ -824,55 +863,59 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_should_show_stripe_first_method_notice(): array {
 		return [
-			'notice dismissed'                               => [
-				'notice_option' => 'no',
-				'gateway_order' => [
-					'cod'    => '0',
-					'stripe' => '1',
+			'notice dismissed'                                     => [
+				'notice_option'    => 'no',
+				'payment_gateways' => [
+					'cod'    => true,
+					'stripe' => true,
 				],
-				'expected'      => false,
+				'expected'         => false,
 			],
-			'notice enabled and stripe is first'             => [
-				'notice_option' => 'yes',
-				'gateway_order' => [
-					'stripe' => '0',
-					'cod'    => '1',
+			'notice enabled and stripe is first'                   => [
+				'notice_option'    => 'yes',
+				'payment_gateways' => [
+					'stripe' => true,
+					'cod'    => true,
 				],
-				'expected'      => false,
+				'expected'         => false,
 			],
-			'notice enabled default and stripe is first'     => [
-				'notice_option' => null,
-				'gateway_order' => [
-					'stripe' => '0',
-					'cod'    => '1',
+			'notice enabled default and stripe is first'           => [
+				'notice_option'    => null,
+				'payment_gateways' => [
+					'stripe' => true,
+					'cod'    => true,
 				],
-				'expected'      => false,
+				'expected'         => false,
 			],
-			'notice enabled and stripe is not first'         => [
-				'notice_option' => 'yes',
-				'gateway_order' => [
-					'cod'    => '0',
-					'stripe' => '1',
+			'notice enabled and stripe is not first'               => [
+				'notice_option'    => 'yes',
+				'payment_gateways' => [
+					'cod'    => true,
+					'stripe' => true,
 				],
-				'expected'      => true,
+				'expected'         => true,
 			],
-			'notice enabled default and stripe is not first' => [
-				'notice_option' => null,
-				'gateway_order' => [
-					'cod'    => '0',
-					'stripe' => '1',
+			'notice enabled default and stripe is not first'       => [
+				'notice_option'    => null,
+				'payment_gateways' => [
+					'cod'    => true,
+					'stripe' => true,
 				],
-				'expected'      => true,
+				'expected'         => true,
 			],
-			'notice enabled and gateway order empty'         => [
-				'notice_option' => 'yes',
-				'gateway_order' => [],
-				'expected'      => false,
+			'notice enabled and no loaded gateways'                => [
+				'notice_option'    => 'yes',
+				'payment_gateways' => [],
+				'expected'         => false,
 			],
-			'notice enabled and gateway order missing'       => [
-				'notice_option' => 'yes',
-				'gateway_order' => null,
-				'expected'      => false,
+			'notice hidden when methods above stripe are disabled' => [
+				'notice_option'    => 'yes',
+				'payment_gateways' => [
+					'cod'    => false,
+					'bacs'   => false,
+					'stripe' => true,
+				],
+				'expected'         => false,
 			],
 		];
 	}
@@ -1727,6 +1770,162 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		delete_option( 'woocommerce_calc_taxes' );
 
 		$this->assertSame( $expected_items, $actual );
+	}
+
+	/**
+	 * Test for {@see WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason()}.
+	 *
+	 * @param array   $account_data    Stripe account data to mock.
+	 * @param bool    $test_mode       Whether Stripe test mode is enabled.
+	 * @param string  $store_currency  WooCommerce store currency code.
+	 * @param ?string $expected        Expected return value.
+	 * @return void
+	 * @dataProvider provide_test_get_adaptive_pricing_account_unavailable_reason
+	 */
+	public function test_get_adaptive_pricing_account_unavailable_reason(
+		array $account_data,
+		bool $test_mode,
+		string $store_currency,
+		?string $expected
+	): void {
+		$original_settings    = WC_Stripe_Helper::get_stripe_settings();
+		$settings             = $original_settings;
+		$settings['testmode'] = $test_mode ? 'yes' : 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$this->set_stripe_account_data( $account_data );
+
+		$original_currency = get_option( 'woocommerce_currency' );
+		update_option( 'woocommerce_currency', $store_currency );
+
+		$actual = WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason();
+
+		// Cleanup.
+		update_option( 'woocommerce_currency', $original_currency );
+		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Data provider for {@see test_get_adaptive_pricing_account_unavailable_reason()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_adaptive_pricing_account_unavailable_reason(): array {
+		return [
+			'India account (uppercase) → account-country'                             => [
+				'account_data'   => [
+					'country'           => 'IN',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'inr' ],
+						],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'USD',
+				'expected'       => 'account-country',
+			],
+			'India account (lowercase) → account-country'                             => [
+				'account_data'   => [
+					'country'           => 'in',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'inr' ],
+						],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'USD',
+				'expected'       => 'account-country',
+			],
+			'India account + test mode → account-country (India checked before mode)' => [
+				'account_data'   => [
+					'country'           => 'IN',
+					'external_accounts' => [
+						'data' => [],
+					],
+				],
+				'test_mode'      => true,
+				'store_currency' => 'USD',
+				'expected'       => 'account-country',
+			],
+			'Test mode, no settlement currencies → null (currency check bypassed)'    => [
+				'account_data'   => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [],
+					],
+				],
+				'test_mode'      => true,
+				'store_currency' => 'USD',
+				'expected'       => null,
+			],
+			'Test mode, currency mismatch → null (currency check bypassed)'           => [
+				'account_data'   => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'eur' ],
+						],
+					],
+				],
+				'test_mode'      => true,
+				'store_currency' => 'USD',
+				'expected'       => null,
+			],
+			'Live mode, no settlement currencies → no-settlement-currencies'          => [
+				'account_data'   => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'USD',
+				'expected'       => 'no-settlement-currencies',
+			],
+			'Live mode, store currency not in settlement → store-currency-not-settlement-currency' => [
+				'account_data'   => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'eur' ],
+						],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'USD',
+				'expected'       => 'store-currency-not-settlement-currency',
+			],
+			'Live mode, store currency in settlement → null'                          => [
+				'account_data'   => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'usd' ],
+						],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'USD',
+				'expected'       => null,
+			],
+			'Live mode, non-US account, matching currency → null'                     => [
+				'account_data'   => [
+					'country'           => 'GB',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'gbp' ],
+						],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'GBP',
+				'expected'       => null,
+			],
+		];
 	}
 
 	/**

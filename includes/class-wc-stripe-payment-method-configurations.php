@@ -21,14 +21,14 @@ class WC_Stripe_Payment_Method_Configurations {
 	 *
 	 * @var string|null
 	 */
-	const TEST_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjBGX8lmJQndTBOzjqxSa';
+	public const TEST_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjBGX8lmJQndTBOzjqxSa';
 
 	/**
 	 * The live mode configuration parent ID.
 	 *
 	 * @var string|null
 	 */
-	const LIVE_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';
+	public const LIVE_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';
 
 	/**
 	 * The payment method configuration cache key.
@@ -42,12 +42,12 @@ class WC_Stripe_Payment_Method_Configurations {
 	 *
 	 * @var int
 	 */
-	const CONFIGURATION_CACHE_EXPIRATION = 20 * MINUTE_IN_SECONDS;
+	public const CONFIGURATION_CACHE_EXPIRATION = 20 * MINUTE_IN_SECONDS;
 
 	/**
 	 * The payment method configuration fetch cooldown option key.
 	 */
-	const FETCH_COOLDOWN_OPTION_KEY = 'wcstripe_payment_method_config_fetch_cooldown';
+	public const FETCH_COOLDOWN_OPTION_KEY = 'wcstripe_payment_method_config_fetch_cooldown';
 
 	/**
 	 * Get the merchant payment method configuration in Stripe.

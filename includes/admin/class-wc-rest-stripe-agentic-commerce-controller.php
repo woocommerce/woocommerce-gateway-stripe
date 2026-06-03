@@ -41,7 +41,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	/**
 	 * ImportSet statuses that are non-terminal and should be re-polled.
 	 *
-	 * Stripe advances an ImportSet through `queued` → `validating` →
+	 * Stripe advances an ImportSet through `queued` → `validating_records` →
 	 * `pending` → `creating_records` → one of the terminal states
 	 * (`succeeded`, `succeeded_with_errors`, or `failed`). Entries in any
 	 * non-terminal state get refreshed on dashboard load. `unknown` is also
@@ -51,7 +51,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 * @since 10.7.0
 	 * @var string[]
 	 */
-	private const REFRESHABLE_STATUSES = [ 'queued', 'validating', 'pending', 'creating_records', 'unknown' ];
+	private const REFRESHABLE_STATUSES = [ 'queued', 'validating', 'validating_records', 'pending', 'creating_records', 'unknown' ];
 
 	/**
 	 * Endpoint path.
@@ -70,7 +70,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 * @var string
 	 * @since 10.7.0
 	 */
-	const MASKED_WEBHOOK_SECRET = 'whsec_********************************';
+	public const MASKED_WEBHOOK_SECRET = 'whsec_********************************';
 
 	/**
 	 * Configure REST API routes.
@@ -209,7 +209,10 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 
 		try {
 			$integration = new WC_Stripe_Agentic_Commerce_Integration();
-			$success     = $integration->sync_feed();
+			// $force_upload = true so a manual click always lands an upload even
+			// when the catalog hash matches the last successful upload — the
+			// scheduled sync still uses dedup.
+			$success = $integration->sync_feed( true );
 
 			if ( ! $success ) {
 				$last_sync = WC_Stripe_Agentic_Commerce_Integration::get_last_sync();
@@ -251,6 +254,11 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 					'wc-stripe'
 				);
 			}
+
+			// This manual sync already produced a full upload, so drop any pending
+			// adapter-fired one-off resync — it lives in a separate Action Scheduler
+			// group the recurring reschedule above does not clear.
+			$integration->cancel_pending_full_resync();
 		} catch ( Exception $e ) {
 			return new WP_Error(
 				'stripe_agentic_commerce_sync_failed',
