@@ -7,6 +7,13 @@ import {
 	useAmazonPayButtonSize,
 } from 'wcstripe/data';
 
+const realPathToA11yModule =
+	'@wordpress/components/node_modules/@wordpress/a11y';
+
+jest.mock( realPathToA11yModule, () => ( {
+	...jest.requireActual( realPathToA11yModule ),
+	speak: jest.fn(),
+} ) );
 jest.mock( 'wcstripe/data', () => ( {
 	useAmazonPayEnabledSettings: jest.fn(),
 	useAmazonPayLocations: jest.fn(),

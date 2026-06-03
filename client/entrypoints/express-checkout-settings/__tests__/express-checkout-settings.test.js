@@ -10,6 +10,13 @@ import {
 } from 'wcstripe/data';
 import ExpressCheckoutButtonPreview from 'wcstripe/entrypoints/express-checkout-settings/express-checkout-button-preview';
 
+const realPathToA11yModule =
+	'@wordpress/components/node_modules/@wordpress/a11y';
+
+jest.mock( realPathToA11yModule, () => ( {
+	...jest.requireActual( realPathToA11yModule ),
+	speak: jest.fn(),
+} ) );
 jest.mock( 'wcstripe/data', () => ( {
 	useExpressCheckoutEnabledSettings: jest.fn(),
 	useExpressCheckoutLocations: jest.fn(),
