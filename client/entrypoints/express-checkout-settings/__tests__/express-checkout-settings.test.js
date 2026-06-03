@@ -145,4 +145,22 @@ describe( 'ExpressCheckoutSettingsSection', () => {
 
 		expect( setButtonSizeMock ).toHaveBeenCalledWith( 'large' );
 	} );
+
+	it( 'shows the appearance override notice when an override is in effect', () => {
+		global.wc_stripe_express_checkout_settings_params.is_button_style_overridden = true;
+
+		render( <ExpressCheckoutSettingsSection /> );
+
+		expect( screen.getByText( /may be overridden/ ) ).toBeInTheDocument();
+	} );
+
+	it( 'hides the appearance override notice when there is no override', () => {
+		global.wc_stripe_express_checkout_settings_params.is_button_style_overridden = false;
+
+		render( <ExpressCheckoutSettingsSection /> );
+
+		expect(
+			screen.queryByText( /may be overridden/ )
+		).not.toBeInTheDocument();
+	} );
 } );
