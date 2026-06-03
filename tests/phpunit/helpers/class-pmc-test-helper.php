@@ -10,9 +10,9 @@ class PMC_Test_Helper {
 	 * @return void
 	 */
 	public static function enable_pmc() {
-		$stripe_settings                = WC_Stripe::get_settings();
+		$stripe_settings                = WC_Stripe_Payment_Gateway::get_stored_settings();
 		$stripe_settings['pmc_enabled'] = 'yes';
-		WC_Stripe::update_settings( $stripe_settings );
+		WC_Stripe_Payment_Gateway::update_stored_settings( $stripe_settings );
 	}
 
 	/**
@@ -21,9 +21,9 @@ class PMC_Test_Helper {
 	 * @return void
 	 */
 	public static function disable_pmc() {
-		$stripe_settings                = WC_Stripe::get_settings();
+		$stripe_settings                = WC_Stripe_Payment_Gateway::get_stored_settings();
 		$stripe_settings['pmc_enabled'] = 'no';
-		WC_Stripe::update_settings( $stripe_settings );
+		WC_Stripe_Payment_Gateway::update_stored_settings( $stripe_settings );
 	}
 
 	/**

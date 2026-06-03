@@ -225,7 +225,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$enabled_payment_methods = $this->get_upe_enabled_payment_method_ids();
 		$is_sofort_enabled       = in_array( WC_Stripe_Payment_Methods::SOFORT, $enabled_payment_methods, true );
 
-		$main_settings    = WC_Stripe::get_settings();
+		$main_settings    = $this->get_settings();
 		$this->oc_enabled = WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
 
 		$this->payment_methods = [];
@@ -287,6 +287,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
+
+		// Keep the in-memory settings cache in sync with any write to the option.
+		add_action( 'add_option_' . WC_Stripe::SETTINGS_OPTION_NAME, [ $this, 'refresh_settings_cache' ] );
+		add_action( 'update_option_' . WC_Stripe::SETTINGS_OPTION_NAME, [ $this, 'refresh_settings_cache' ] );
+		add_action( 'delete_option_' . WC_Stripe::SETTINGS_OPTION_NAME, [ $this, 'refresh_settings_cache' ] );
 
 		add_action( 'wp_footer', [ $this, 'payment_scripts' ] );
 

@@ -50,3 +50,5 @@ phpunit-html/
 
 # PHPStan temporary files
 phpstan-tmp/
+
+.claude/scheduled_tasks.lock

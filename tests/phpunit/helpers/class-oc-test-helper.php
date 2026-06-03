@@ -10,9 +10,9 @@ class OC_Test_Helper {
 	 * @return void
 	 */
 	public static function enable_oc() {
-		$stripe_settings                               = WC_Stripe::get_settings();
+		$stripe_settings                               = WC_Stripe_Payment_Gateway::get_stored_settings();
 		$stripe_settings['optimized_checkout_element'] = 'yes';
-		WC_Stripe::update_settings( $stripe_settings );
+		WC_Stripe_Payment_Gateway::update_stored_settings( $stripe_settings );
 	}
 
 	/**
@@ -21,8 +21,8 @@ class OC_Test_Helper {
 	 * @return void
 	 */
 	public static function disable_oc() {
-		$stripe_settings                               = WC_Stripe::get_settings();
+		$stripe_settings                               = WC_Stripe_Payment_Gateway::get_stored_settings();
 		$stripe_settings['optimized_checkout_element'] = 'no';
-		WC_Stripe::update_settings( $stripe_settings );
+		WC_Stripe_Payment_Gateway::update_stored_settings( $stripe_settings );
 	}
 }

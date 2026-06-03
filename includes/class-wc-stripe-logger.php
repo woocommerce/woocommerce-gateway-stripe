@@ -211,7 +211,7 @@ class WC_Stripe_Logger {
 			return true;
 		}
 
-		$settings = WC_Stripe::get_settings();
+		$settings = WC_Stripe_Payment_Gateway::get_stored_settings();
 
 		if ( 'yes' === ( $settings['logging'] ?? 'no' ) ) {
 			return true;

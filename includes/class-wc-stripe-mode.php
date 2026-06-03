@@ -13,7 +13,7 @@ class WC_Stripe_Mode {
 	 * @return bool Whether the plugin is in live mode.
 	 */
 	public static function is_live() {
-		$settings = WC_Stripe::get_settings();
+		$settings = WC_Stripe_Payment_Gateway::get_stored_settings();
 		return 'yes' !== ( $settings['testmode'] ?? 'no' );
 	}
 
@@ -23,7 +23,7 @@ class WC_Stripe_Mode {
 	 * @return bool Whether the plugin is in test mode.
 	 */
 	public static function is_test() {
-		$settings = WC_Stripe::get_settings();
+		$settings = WC_Stripe_Payment_Gateway::get_stored_settings();
 		return 'yes' === ( $settings['testmode'] ?? 'no' );
 	}
 }

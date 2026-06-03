@@ -47,12 +47,12 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$this->statement_descriptor = 'This is a statement descriptor.';
 
-		$stripe_settings = WC_Stripe::get_settings();
+		$stripe_settings = WC_Stripe_Payment_Gateway::get_stored_settings();
 		// Disable UPE.
 		$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
 		// Set statement descriptor.
 		$stripe_settings['statement_descriptor'] = $this->statement_descriptor;
-		WC_Stripe::update_settings( $stripe_settings );
+		WC_Stripe_Payment_Gateway::update_stored_settings( $stripe_settings );
 	}
 
 	/**

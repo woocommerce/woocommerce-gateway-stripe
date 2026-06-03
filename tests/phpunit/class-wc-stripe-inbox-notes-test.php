@@ -34,7 +34,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			return;
 		}
 
-		WC_Stripe::update_settings(
+		WC_Stripe_Payment_Gateway::update_stored_settings(
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'no',
@@ -69,7 +69,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
 
-		WC_Stripe::update_settings(
+		WC_Stripe_Payment_Gateway::update_stored_settings(
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'yes',
@@ -84,7 +84,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	public function test_create_upe_notes_does_not_create_note_when_stripe_is_disabled() {
-		WC_Stripe::update_settings(
+		WC_Stripe_Payment_Gateway::update_stored_settings(
 			[
 				'enabled'                         => 'no',
 				'upe_checkout_experience_enabled' => 'no',
@@ -98,7 +98,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	public function test_create_stripelink_note_unavailable_if_cc_not_enabled() {
-		WC_Stripe::update_settings(
+		WC_Stripe_Payment_Gateway::update_stored_settings(
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'yes',
@@ -106,6 +106,9 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		);
 
 		$mock_gateway = $this->createMock( WC_Stripe_UPE_Payment_Gateway::class );
+		$mock_gateway->expects( $this->any() )
+			->method( 'get_settings' )
+			->willReturn( [ 'enabled' => 'yes' ] );
 		$mock_gateway->expects( $this->any() )
 			->method( 'get_upe_available_payment_methods' )
 			->willReturn( [ WC_Stripe_Payment_Methods::KLARNA ] );
@@ -134,7 +137,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	public function test_create_stripelink_note_unavailable_link_enabled() {
-		WC_Stripe::update_settings(
+		WC_Stripe_Payment_Gateway::update_stored_settings(
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'yes',

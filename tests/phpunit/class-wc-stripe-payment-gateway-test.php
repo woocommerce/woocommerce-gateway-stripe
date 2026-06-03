@@ -49,6 +49,75 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * get_settings() returns the stored option as an array and memoizes it on the instance.
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_returns_stored_option(): void {
+		update_option( WC_Stripe::SETTINGS_OPTION_NAME, [ 'enabled' => 'yes' ] );
+		$this->gateway->refresh_settings_cache();
+
+		$this->assertSame( 'yes', $this->gateway->get_settings()['enabled'] );
+	}
+
+	/**
+	 * get_settings() always returns an array, even when the option holds a non-array value.
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_normalizes_non_array_option(): void {
+		$force_scalar = static function () {
+			return 'not-an-array';
+		};
+		add_filter( 'option_' . WC_Stripe::SETTINGS_OPTION_NAME, $force_scalar );
+
+		try {
+			$this->gateway->refresh_settings_cache();
+			$this->assertSame( [], WC_Stripe_Payment_Gateway::get_stored_settings() );
+			$this->assertSame( [], $this->gateway->get_settings() );
+		} finally {
+			remove_filter( 'option_' . WC_Stripe::SETTINGS_OPTION_NAME, $force_scalar );
+		}
+	}
+
+	/**
+	 * update_settings() persists the option and subsequent reads reflect the new value (cache self-heals).
+	 *
+	 * @return void
+	 */
+	public function test_update_settings_persists_and_refreshes_cache(): void {
+		$this->gateway->update_settings( [ 'enabled' => 'yes' ] );
+		$this->assertSame( 'yes', $this->gateway->get_settings()['enabled'] );
+
+		$this->gateway->update_settings( [ 'enabled' => 'no' ] );
+		$this->assertSame( 'no', $this->gateway->get_settings()['enabled'] );
+	}
+
+	/**
+	 * A raw update_option() write bypassing update_settings() still invalidates the cache via the option-change hook.
+	 *
+	 * @return void
+	 */
+	public function test_raw_option_write_self_heals_cache(): void {
+		$this->gateway->update_settings( [ 'enabled' => 'yes' ] );
+		$this->assertSame( 'yes', $this->gateway->get_settings()['enabled'] );
+
+		update_option( WC_Stripe::SETTINGS_OPTION_NAME, [ 'enabled' => 'no' ] );
+		$this->assertSame( 'no', $this->gateway->get_settings()['enabled'] );
+	}
+
+	/**
+	 * The static get_stored_settings() reads the raw option without requiring an instance.
+	 *
+	 * @return void
+	 */
+	public function test_get_stored_settings_reads_raw_option(): void {
+		$this->gateway->update_settings( [ 'foo' => 'bar' ] );
+
+		$this->assertSame( 'bar', WC_Stripe_Payment_Gateway::get_stored_settings()['foo'] );
+	}
+
+	/**
 	 * Tests false is returned if payment intent is not set in the order.
 	 */
 	public function test_default_get_payment_intent_from_order() {
@@ -240,14 +309,14 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @dataProvider provide_test_needs_setup
 	 */
 	public function test_needs_setup( $is_test_mode, $test_publishable_key, $test_secret_key, $publishable_key, $secret_key, $expected ) {
-		$stripe_settings                         = WC_Stripe::get_settings();
+		$stripe_settings                         = WC_Stripe_Payment_Gateway::get_stored_settings();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = $is_test_mode ? 'yes' : 'no';
 		$stripe_settings['test_publishable_key'] = $test_publishable_key;
 		$stripe_settings['test_secret_key']      = $test_secret_key;
 		$stripe_settings['publishable_key']      = $publishable_key;
 		$stripe_settings['secret_key']           = $secret_key;
-		WC_Stripe::update_settings( $stripe_settings );
+		WC_Stripe_Payment_Gateway::update_stored_settings( $stripe_settings );
 
 		$gateway = new WC_Stripe_UPE_Payment_Gateway();
 		$this->assertSame( $expected, $gateway->needs_setup() );

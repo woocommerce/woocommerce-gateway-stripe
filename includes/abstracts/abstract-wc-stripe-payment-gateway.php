@@ -36,6 +36,118 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	protected $retry_interval = 1;
 
 	/**
+	 * Object-cache key/group for the request-scoped main settings cache.
+	 *
+	 * A single shared cache entry (rather than a per-instance property) so every
+	 * gateway instance reads the same value — no divergent in-memory copies.
+	 */
+	protected const SETTINGS_CACHE_GROUP = 'woocommerce_stripe';
+	protected const SETTINGS_CACHE_KEY   = 'main_settings';
+
+	/**
+	 * Returns the main Stripe gateway settings array.
+	 *
+	 * Caches the raw option in a request-scoped object-cache entry shared by all
+	 * gateway instances, so repeated reads within a request hit one source of
+	 * truth. Always returns an array, even when the option is missing or stored
+	 * as a non-array value.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @return array
+	 */
+	public function get_settings(): array {
+		$cached = wp_cache_get( self::SETTINGS_CACHE_KEY, self::SETTINGS_CACHE_GROUP );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
+		$settings = self::get_stored_settings();
+		wp_cache_set( self::SETTINGS_CACHE_KEY, $settings, self::SETTINGS_CACHE_GROUP );
+
+		return $settings;
+	}
+
+	/**
+	 * Replaces the main Stripe gateway settings option.
+	 *
+	 * The cache is not written here on purpose: the option-change hooks
+	 * registered by the main gateway invalidate it, so the next read reloads the
+	 * persisted value regardless of which write path ran.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param array $settings The settings to persist.
+	 * @return bool Whether the option was actually written (matches `update_option`).
+	 */
+	public function update_settings( array $settings ): bool {
+		return update_option( WC_Stripe::SETTINGS_OPTION_NAME, $settings );
+	}
+
+	/**
+	 * Invalidates the cached settings so the next read reloads them.
+	 *
+	 * Hooked to the option-change actions for the main settings option so the
+	 * cache self-heals after any write (our update_settings(), WooCommerce's
+	 * admin save, or a raw update_option()).
+	 *
+	 * @since 10.9.0
+	 *
+	 * @return void
+	 */
+	public function refresh_settings_cache() {
+		wp_cache_delete( self::SETTINGS_CACHE_KEY, self::SETTINGS_CACHE_GROUP );
+	}
+
+	/**
+	 * Reads the raw main Stripe settings option directly.
+	 *
+	 * Static and uncached so it is safe to call during bootstrap and gateway
+	 * construction, where routing through the main gateway instance would
+	 * recurse. Always returns an array.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @return array
+	 */
+	public static function get_stored_settings(): array {
+		$settings = get_option( WC_Stripe::SETTINGS_OPTION_NAME, [] );
+
+		return is_array( $settings ) ? $settings : [];
+	}
+
+	/**
+	 * Writes the raw main Stripe settings option directly.
+	 *
+	 * Static counterpart to get_stored_settings(), safe to call during
+	 * bootstrap and gateway construction. The main gateway's option-change
+	 * hooks keep its in-memory cache in sync after this write.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param array $settings The settings to persist.
+	 * @return bool Whether the option was actually written (matches `update_option`).
+	 */
+	public static function update_stored_settings( array $settings ): bool {
+		return update_option( WC_Stripe::SETTINGS_OPTION_NAME, $settings );
+	}
+
+	/**
+	 * Reads the raw per-method settings option directly (e.g. "boleto" →
+	 * `woocommerce_stripe_boleto_settings`). Always returns an array.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param string $method The payment method slug.
+	 * @return array
+	 */
+	public static function get_stored_settings_for_method( string $method ): array {
+		$settings = get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
+
+		return is_array( $settings ) ? $settings : [];
+	}
+
+	/**
 	 * Fallback method to be inherited by all payment methods. Stripe UPE will override it.
 	 *
 	 * @return string[]
@@ -478,7 +590,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return array()
 	 */
 	public function generate_payment_request( $order, $prepared_payment_method ) {
-		$settings                              = WC_Stripe::get_settings();
+		$settings                              = $this->get_settings();
 		$is_short_statement_descriptor_enabled = ! empty( $settings['is_short_statement_descriptor_enabled'] ) && 'yes' === $settings['is_short_statement_descriptor_enabled'];
 		$capture                               = ! empty( $settings['capture'] ) && 'yes' === $settings['capture'] ? true : false;
 		$post_data                             = [];
