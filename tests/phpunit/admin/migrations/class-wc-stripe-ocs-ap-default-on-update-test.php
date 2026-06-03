@@ -34,21 +34,24 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Build a partial mock so AP-availability and account-created reads don't
-	 * touch the Stripe API.
+	 * Build a partial mock so AP-availability, account-created, and account-data
+	 * reads don't touch the Stripe API.
 	 *
 	 * @param string|null $ap_unavailable_reason Reason AP is unavailable, or null when available.
 	 * @param int|null    $created               Unix timestamp returned by get_account_created_ts().
+	 * @param bool        $has_account_data      Whether get_account_data() returns a non-empty array
+	 *                                           (false simulates invalid/absent credentials).
 	 *
 	 * @return MockObject|WC_Stripe_OCS_AP_Default_On_Update
 	 */
-	private function build_migration( ?string $ap_unavailable_reason = null, ?int $created = null ) {
+	private function build_migration( ?string $ap_unavailable_reason = null, ?int $created = null, bool $has_account_data = true ) {
 		$migration = $this->getMockBuilder( WC_Stripe_OCS_AP_Default_On_Update::class )
 							->disableOriginalConstructor()
-							->onlyMethods( [ 'get_ap_unavailable_reason', 'get_account_created_ts' ] )
+							->onlyMethods( [ 'get_ap_unavailable_reason', 'get_account_created_ts', 'get_account_data' ] )
 							->getMock();
 		$migration->method( 'get_ap_unavailable_reason' )->willReturn( $ap_unavailable_reason );
 		$migration->method( 'get_account_created_ts' )->willReturn( $created );
+		$migration->method( 'get_account_data' )->willReturn( $has_account_data ? [ 'id' => 'acct_test' ] : [] );
 		return $migration;
 	}
 
@@ -124,6 +127,8 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		string $ap_pre,
 		?string $ap_unavailable_reason,
 		?int $account_created,
+		string $pmc_enabled,
+		bool $has_account_data,
 		string $expected_show_ocs_ap_banner,
 		string $expected_show_ap_banner,
 		string $expected_show_ocs_only_banner,
@@ -135,13 +140,14 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			[
 				'optimized_checkout_element' => $oc_pre,
 				'adaptive_pricing'           => $ap_pre,
+				'pmc_enabled'                => $pmc_enabled,
 			]
 		);
 
-		$this->build_migration( $ap_unavailable_reason, $account_created )->maybe_migrate( $previous_version );
+		$this->build_migration( $ap_unavailable_reason, $account_created, $has_account_data )->maybe_migrate( $previous_version );
 
 		$created_label = null === $account_created ? 'null' : (string) $account_created;
-		$context       = sprintf( 'prev=%s oc=%s ap=%s ap_unavail=%s created=%s', $previous_version, $oc_pre, $ap_pre, $ap_unavailable_reason ?? 'available', $created_label );
+		$context       = sprintf( 'prev=%s oc=%s ap=%s ap_unavail=%s created=%s pmc=%s has_account=%s', $previous_version, $oc_pre, $ap_pre, $ap_unavailable_reason ?? 'available', $created_label, $pmc_enabled, $has_account_data ? 'yes' : 'no' );
 
 		$this->assertSame(
 			$expected_show_ocs_ap_banner,
@@ -177,22 +183,28 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		$new_ts = 1779148800;   // 2026-05-19 — post-10.7 era.
 
 		return [
-			// prev_ver, oc_pre, ap_pre, ap_unavailable_reason, created, show_ocs_ap, show_ap_only, show_ocs_only, oc_after, ap_after.
-			'both-on backbook'                       => [ '10.7.0', 'yes', 'yes', null, $new_ts, 'no', 'no', 'no', 'yes', 'yes' ],
-			'OC-only backbook old-account'           => [ '10.7.0', 'yes', 'no', null, $old_ts, 'no', 'yes', 'no', 'yes', 'yes' ],
-			'OC-only frontbook-10.7 disabled-AP'     => [ '10.7.0', 'yes', 'no', null, $new_ts, 'no', 'no', 'no', 'yes', 'no' ],
-			'both-off backbook old-account'          => [ '10.7.0', 'no', 'no', null, $old_ts, 'yes', 'no', 'no', 'yes', 'yes' ],
-			'both-off standard-account null-created' => [ '10.7.0', 'no', 'no', null, null, 'yes', 'no', 'no', 'yes', 'yes' ],
-			'both-off frontbook-10.7 disabled-both'  => [ '10.7.0', 'no', 'no', null, $new_ts, 'no', 'no', 'no', 'no', 'no' ],
-			'AP-only-on frontbook disabled-OC'       => [ '10.7.0', 'no', 'yes', null, $new_ts, 'no', 'no', 'no', 'no', 'yes' ],
-			'AP-only-on backbook OC-newly-enabled'   => [ '10.7.0', 'no', 'yes', null, $old_ts, 'no', 'no', 'no', 'yes', 'yes' ],
-			'previous 10.6 both-off recent-account'  => [ '10.6.0', 'no', 'no', null, $new_ts, 'yes', 'no', 'no', 'yes', 'yes' ],
-			'previous 10.6 OC-only recent-account'   => [ '10.6.0', 'yes', 'no', null, $new_ts, 'no', 'yes', 'no', 'yes', 'yes' ],
-			'India backbook both-off'                => [ '10.7.0', 'no', 'no', 'account-country', $old_ts, 'no', 'no', 'yes', 'yes', 'no' ],
-			'India backbook OC-only'                 => [ '10.7.0', 'yes', 'no', 'account-country', $old_ts, 'no', 'no', 'no', 'yes', 'no' ],
-			'India frontbook disabled-OC'            => [ '10.7.0', 'no', 'no', 'account-country', $new_ts, 'no', 'no', 'no', 'no', 'no' ],
-			'currency-unavailable both-off'          => [ '10.7.0', 'no', 'no', 'store-currency-not-settlement-currency', $old_ts, 'no', 'no', 'yes', 'yes', 'no' ],
-			'currency-unavailable OC-only'           => [ '10.7.0', 'yes', 'no', 'no-settlement-currencies', $old_ts, 'no', 'no', 'no', 'yes', 'no' ],
+			// prev_ver, oc_pre, ap_pre, ap_unavailable_reason, created, pmc_enabled, has_account_data, show_ocs_ap, show_ap_only, show_ocs_only, oc_after, ap_after.
+			// Platform-connected merchants (pmc_enabled='yes') — OCS can function.
+			'both-on backbook'                          => [ '10.7.0', 'yes', 'yes', null, $new_ts, 'yes', true, 'no', 'no', 'no', 'yes', 'yes' ],
+			'OC-only backbook old-account'              => [ '10.7.0', 'yes', 'no', null, $old_ts, 'yes', true, 'no', 'yes', 'no', 'yes', 'yes' ],
+			'OC-only frontbook-10.7 disabled-AP'        => [ '10.7.0', 'yes', 'no', null, $new_ts, 'yes', true, 'no', 'no', 'no', 'yes', 'no' ],
+			'both-off backbook old-account'             => [ '10.7.0', 'no', 'no', null, $old_ts, 'yes', true, 'yes', 'no', 'no', 'yes', 'yes' ],
+			'both-off frontbook-10.7 disabled-both'     => [ '10.7.0', 'no', 'no', null, $new_ts, 'yes', true, 'no', 'no', 'no', 'no', 'no' ],
+			'AP-only-on frontbook disabled-OC'          => [ '10.7.0', 'no', 'yes', null, $new_ts, 'yes', true, 'no', 'no', 'no', 'no', 'yes' ],
+			'AP-only-on backbook OC-newly-enabled'      => [ '10.7.0', 'no', 'yes', null, $old_ts, 'yes', true, 'no', 'no', 'no', 'yes', 'yes' ],
+			'previous 10.6 both-off recent-account'     => [ '10.6.0', 'no', 'no', null, $new_ts, 'yes', true, 'yes', 'no', 'no', 'yes', 'yes' ],
+			'previous 10.6 OC-only recent-account'      => [ '10.6.0', 'yes', 'no', null, $new_ts, 'yes', true, 'no', 'yes', 'no', 'yes', 'yes' ],
+			'India backbook both-off'                   => [ '10.7.0', 'no', 'no', 'account-country', $old_ts, 'yes', true, 'no', 'no', 'yes', 'yes', 'no' ],
+			'India backbook OC-only'                    => [ '10.7.0', 'yes', 'no', 'account-country', $old_ts, 'yes', true, 'no', 'no', 'no', 'yes', 'no' ],
+			'India frontbook disabled-OC'               => [ '10.7.0', 'no', 'no', 'account-country', $new_ts, 'yes', true, 'no', 'no', 'no', 'no', 'no' ],
+			'currency-unavailable both-off'             => [ '10.7.0', 'no', 'no', 'store-currency-not-settlement-currency', $old_ts, 'yes', true, 'no', 'no', 'yes', 'yes', 'no' ],
+			'currency-unavailable OC-only'              => [ '10.7.0', 'yes', 'no', 'no-settlement-currencies', $old_ts, 'yes', true, 'no', 'no', 'no', 'yes', 'no' ],
+			// Connected, non-PMC account (direct API keys, pmc_enabled='no') — OCS can't function,
+			// so the OC flip is withheld; `created` is absent for these Standard accounts.
+			'non-PMC account both-off (OC withheld)'    => [ '10.7.0', 'no', 'no', null, null, 'no', true, 'no', 'yes', 'no', 'no', 'yes' ],
+			'non-PMC account OC-already-on (unchanged)' => [ '10.7.0', 'yes', 'no', null, null, 'no', true, 'no', 'no', 'no', 'yes', 'yes' ],
+			// No account data (invalid/absent credentials) — uninformative, so stay optimistic and enable.
+			'unreadable account both-off (OC enabled)'  => [ '10.7.0', 'no', 'no', null, null, 'no', false, 'yes', 'no', 'no', 'yes', 'yes' ],
 		];
 	}
 
@@ -202,7 +214,8 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			[
 				'optimized_checkout_element' => 'no',
 				'adaptive_pricing'           => 'no',
-				'pmc_enabled'                => 'no',
+				'pmc_enabled'                => 'yes',
+				'statement_descriptor'       => 'My Store',
 			]
 		);
 
@@ -211,6 +224,6 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'OC must be flipped to yes.' );
 		$this->assertSame( 'yes', $stored['adaptive_pricing'], 'AP must be flipped to yes.' );
-		$this->assertSame( 'no', $stored['pmc_enabled'], 'Unrelated stored keys must survive.' );
+		$this->assertSame( 'My Store', $stored['statement_descriptor'], 'Unrelated stored keys must survive.' );
 	}
 }

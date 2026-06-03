@@ -73,7 +73,14 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 		$ap_unavailable        = null !== $ap_unavailable_reason;
 		$is_frontbook          = $this->is_likely_frontbook_10_7( (string) $previous_version );
 
-		$enable_oc = ! ( $is_frontbook && ! $oc_pre );
+		// OCS only functions when the store is connected to the Stripe platform
+		// (pmc_enabled='yes'). Withhold the OC flip non-pmc accounts
+		// For An empty account read we stay optimistic and still enable.
+		$has_account_data = ! empty( $this->get_account_data() );
+		$pmc_enabled      = ( $stripe_settings['pmc_enabled'] ?? 'no' ) === 'yes';
+		$oc_eligible      = ! $has_account_data || $pmc_enabled;
+
+		$enable_oc = $oc_eligible && ! ( $is_frontbook && ! $oc_pre );
 		$enable_ap = ! $ap_unavailable && ! ( $is_frontbook && ! $ap_pre );
 
 		$oc_newly_enabled = $enable_oc && ! $oc_pre;
@@ -85,10 +92,13 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 
 		WC_Stripe_Logger::info(
 			sprintf(
-				'[OCS+AP 10.8] Decision: ap_unavailable=%s (reason=%s), is_frontbook=%s, enable_oc=%s, enable_ap=%s -> show_ocs_ap=%s, show_ap_only=%s, show_ocs_only=%s.',
+				'[OCS+AP 10.8] Decision: ap_unavailable=%s (reason=%s), is_frontbook=%s, has_account_data=%s, pmc_enabled=%s, oc_eligible=%s, enable_oc=%s, enable_ap=%s -> show_ocs_ap=%s, show_ap_only=%s, show_ocs_only=%s.',
 				$ap_unavailable ? 'yes' : 'no',
 				$ap_unavailable_reason ?? 'available',
 				$is_frontbook ? 'yes' : 'no',
+				$has_account_data ? 'yes' : 'no',
+				$pmc_enabled ? 'yes' : 'no',
+				$oc_eligible ? 'yes' : 'no',
 				$enable_oc ? 'yes' : 'no',
 				$enable_ap ? 'yes' : 'no',
 				$show_ocs_ap ? 'yes' : 'no',
@@ -165,8 +175,19 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 	 * @return int|null
 	 */
 	protected function get_account_created_ts(): ?int {
-		$account = WC_Stripe::get_instance()->account->get_cached_account_data();
-		$created = $account['created'] ?? null;
+		$created = $this->get_account_data()['created'] ?? null;
 		return is_int( $created ) ? $created : null;
+	}
+
+	/**
+	 * Returns the cached Stripe account data, or an empty array when the account
+	 * cannot be read (invalid/absent credentials). Wrapped so it can be overridden
+	 * in tests.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function get_account_data(): array {
+		$account = WC_Stripe::get_instance()->account->get_cached_account_data();
+		return is_array( $account ) ? $account : [];
 	}
 }
