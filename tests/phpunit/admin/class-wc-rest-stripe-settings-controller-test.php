@@ -77,13 +77,13 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 		// Ensure API keys are present so WC_Stripe_Payment_Method_Configurations::is_enabled()
 		// returns true. Without them, PMC-reliant tests fall back to the legacy DB path.
-		$settings                         = WC_Stripe_Payment_Gateway::get_stored_settings();
+		$settings                         = WC_Stripe_Payment_Gateway::read_settings_option();
 		$settings['publishable_key']      = 'pk_live_1234567890';
 		$settings['secret_key']           = 'sk_live_1234567890';
 		$settings['test_publishable_key'] = 'pk_test_1234567890';
 		$settings['test_secret_key']      = 'sk_test_1234567890';
 		$settings['pmc_enabled']          = 'yes';
-		WC_Stripe_Payment_Gateway::update_stored_settings( $settings );
+		WC_Stripe_Payment_Gateway::write_settings_option( $settings );
 
 		$this->controller = new WC_REST_Stripe_Settings_Controller( $this->get_gateway() );
 
@@ -123,9 +123,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$this->mock_payment_method_configurations( [ 'card' ], [ 'amazon_pay', 'google_pay', 'apple_pay' ] );
 
 		// Set pmc_enabled to yes to prevent migration
-		$stripe_settings                = WC_Stripe_Payment_Gateway::get_stored_settings();
+		$stripe_settings                = WC_Stripe_Payment_Gateway::read_settings_option();
 		$stripe_settings['pmc_enabled'] = 'yes';
-		WC_Stripe_Payment_Gateway::update_stored_settings( $stripe_settings );
+		WC_Stripe_Payment_Gateway::write_settings_option( $stripe_settings );
 
 		$this->expect_payment_method_configurations_update( [ 'amazon_pay', 'card' ] );
 

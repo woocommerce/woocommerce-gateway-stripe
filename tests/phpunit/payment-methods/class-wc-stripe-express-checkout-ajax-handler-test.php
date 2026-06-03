@@ -28,12 +28,12 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$stripe_settings                         = WC_Stripe_Payment_Gateway::get_stored_settings();
+		$stripe_settings                         = WC_Stripe_Payment_Gateway::read_settings_option();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
-		WC_Stripe_Payment_Gateway::update_stored_settings( $stripe_settings );
+		WC_Stripe_Payment_Gateway::write_settings_option( $stripe_settings );
 
 		$this->express_checkout_helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
 			->disableOriginalConstructor()

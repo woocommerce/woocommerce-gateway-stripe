@@ -45,11 +45,11 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->webhook_secret = 'whsec_123';
 
 		// Resets settings.
-		$stripe_settings                        = WC_Stripe_Payment_Gateway::get_stored_settings();
+		$stripe_settings                        = WC_Stripe_Payment_Gateway::read_settings_option();
 		$stripe_settings['webhook_secret']      = $this->webhook_secret;
 		$stripe_settings['test_webhook_secret'] = $this->webhook_secret;
 		unset( $stripe_settings['testmode'] );
-		WC_Stripe_Payment_Gateway::update_stored_settings( $stripe_settings );
+		WC_Stripe_Payment_Gateway::write_settings_option( $stripe_settings );
 
 		$this->wc_stripe_webhook_handler = new WC_Stripe_Webhook_Handler();
 	}
@@ -75,10 +75,10 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	}
 
 	private function cleanup_webhook_secret() {
-		$stripe_settings = WC_Stripe_Payment_Gateway::get_stored_settings();
+		$stripe_settings = WC_Stripe_Payment_Gateway::read_settings_option();
 		unset( $stripe_settings['webhook_secret'] );
 		unset( $stripe_settings['test_webhook_secret'] );
-		WC_Stripe_Payment_Gateway::update_stored_settings( $stripe_settings );
+		WC_Stripe_Payment_Gateway::write_settings_option( $stripe_settings );
 		$this->wc_stripe_webhook_handler = new WC_Stripe_Webhook_Handler();
 	}
 
@@ -105,9 +105,9 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	}
 
 	private function set_testmode( $testmode = 'yes' ) {
-		$stripe_settings             = WC_Stripe_Payment_Gateway::get_stored_settings();
+		$stripe_settings             = WC_Stripe_Payment_Gateway::read_settings_option();
 		$stripe_settings['testmode'] = $testmode;
-		WC_Stripe_Payment_Gateway::update_stored_settings( $stripe_settings );
+		WC_Stripe_Payment_Gateway::write_settings_option( $stripe_settings );
 	}
 
 	/**

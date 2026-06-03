@@ -62,7 +62,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return $cached;
 		}
 
-		$settings = self::get_stored_settings();
+		$settings = self::read_settings_option();
 		wp_cache_set( self::SETTINGS_CACHE_KEY, $settings, self::SETTINGS_CACHE_GROUP );
 
 		return $settings;
@@ -110,7 +110,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @return array
 	 */
-	public static function get_stored_settings(): array {
+	public static function read_settings_option(): array {
 		$settings = get_option( WC_Stripe::SETTINGS_OPTION_NAME, [] );
 
 		return is_array( $settings ) ? $settings : [];
@@ -119,7 +119,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Writes the raw main Stripe settings option directly.
 	 *
-	 * Static counterpart to get_stored_settings(), safe to call during
+	 * Static counterpart to read_settings_option(), safe to call during
 	 * bootstrap and gateway construction. The main gateway's option-change
 	 * hooks keep its in-memory cache in sync after this write.
 	 *
@@ -128,7 +128,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param array $settings The settings to persist.
 	 * @return bool Whether the option was actually written (matches `update_option`).
 	 */
-	public static function update_stored_settings( array $settings ): bool {
+	public static function write_settings_option( array $settings ): bool {
 		return update_option( WC_Stripe::SETTINGS_OPTION_NAME, $settings );
 	}
 
@@ -141,7 +141,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param string $method The payment method slug.
 	 * @return array
 	 */
-	public static function get_stored_settings_for_method( string $method ): array {
+	public static function read_method_settings_option( string $method ): array {
 		$settings = get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
 
 		return is_array( $settings ) ? $settings : [];

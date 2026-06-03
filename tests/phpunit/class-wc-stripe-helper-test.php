@@ -614,7 +614,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertSame( $current_settings['test'], 'abc' );
 
 		WC_Stripe_Helper::delete_main_stripe_settings();
-		$current_settings = WC_Stripe_Payment_Gateway::get_stored_settings();
+		$current_settings = WC_Stripe_Payment_Gateway::read_settings_option();
 		$this->assertSame( [], $current_settings );
 	}
 
@@ -1550,13 +1550,13 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @dataProvider provide_is_adaptive_pricing_supported
 	 */
 	public function test_is_adaptive_pricing_supported( bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected, string $account_country = 'US' ): void {
-		$original_stripe_settings                          = WC_Stripe_Payment_Gateway::get_stored_settings();
+		$original_stripe_settings                          = WC_Stripe_Payment_Gateway::read_settings_option();
 		$new_stripe_settings                               = $original_stripe_settings;
 		$new_stripe_settings['adaptive_pricing']           = $adaptive_pricing;
 		$new_stripe_settings['optimized_checkout_element'] = 'yes';
 		$new_stripe_settings['capture']                    = 'yes';
 		$new_stripe_settings['pmc_enabled']                = 'yes';
-		WC_Stripe_Payment_Gateway::update_stored_settings( $new_stripe_settings );
+		WC_Stripe_Payment_Gateway::write_settings_option( $new_stripe_settings );
 
 		$is_checkout_filter = function () use ( $is_checkout ) {
 			return $is_checkout;
@@ -1614,7 +1614,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC()->shipping()->shipping_methods = $saved_shipping_methods;
 
 		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
-		WC_Stripe_Payment_Gateway::update_stored_settings( $original_stripe_settings );
+		WC_Stripe_Payment_Gateway::write_settings_option( $original_stripe_settings );
 		\WC_Subscriptions_Product::set_is_subscription( false );
 		\WC_Subscriptions_Product::set_subscription_product_ids( [] );
 		\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
@@ -1788,10 +1788,10 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		string $store_currency,
 		?string $expected
 	): void {
-		$original_settings    = WC_Stripe_Payment_Gateway::get_stored_settings();
+		$original_settings    = WC_Stripe_Payment_Gateway::read_settings_option();
 		$settings             = $original_settings;
 		$settings['testmode'] = $test_mode ? 'yes' : 'no';
-		WC_Stripe_Payment_Gateway::update_stored_settings( $settings );
+		WC_Stripe_Payment_Gateway::write_settings_option( $settings );
 
 		$this->set_stripe_account_data( $account_data );
 
@@ -1802,7 +1802,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		// Cleanup.
 		update_option( 'woocommerce_currency', $original_currency );
-		WC_Stripe_Payment_Gateway::update_stored_settings( $original_settings );
+		WC_Stripe_Payment_Gateway::write_settings_option( $original_settings );
 
 		$this->assertSame( $expected, $actual );
 	}

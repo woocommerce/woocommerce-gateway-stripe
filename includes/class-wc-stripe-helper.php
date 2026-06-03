@@ -44,29 +44,29 @@ class WC_Stripe_Helper {
 	/**
 	 * Get the main Stripe settings option.
 	 *
-	 * @deprecated 10.9.0 Use `WC_Stripe_Payment_Gateway::get_stored_settings()` (or `WC_Stripe_Payment_Gateway::get_stored_settings_for_method( $method )`).
+	 * @deprecated 10.9.0 Use `WC_Stripe_Payment_Gateway::read_settings_option()` (or `WC_Stripe_Payment_Gateway::read_method_settings_option( $method )`).
 	 *
 	 * @param string $method (Optional) The payment method to get the settings from.
 	 * @return array $settings The Stripe settings.
 	 */
 	public static function get_stripe_settings( $method = null ) {
-		_deprecated_function( __METHOD__, '10.9.0', 'WC_Stripe_Payment_Gateway::get_stored_settings' );
+		_deprecated_function( __METHOD__, '10.9.0', 'WC_Stripe_Payment_Gateway::read_settings_option' );
 
-		return null === $method ? WC_Stripe_Payment_Gateway::get_stored_settings() : WC_Stripe_Payment_Gateway::get_stored_settings_for_method( $method );
+		return null === $method ? WC_Stripe_Payment_Gateway::read_settings_option() : WC_Stripe_Payment_Gateway::read_method_settings_option( $method );
 	}
 
 	/**
 	 * Update the main Stripe settings option.
 	 *
-	 * @deprecated 10.9.0 Use `WC_Stripe_Payment_Gateway::update_stored_settings()`.
+	 * @deprecated 10.9.0 Use `WC_Stripe_Payment_Gateway::write_settings_option()`.
 	 *
 	 * @param $options array The Stripe settings.
 	 * @return void
 	 */
 	public static function update_main_stripe_settings( $options ) {
-		_deprecated_function( __METHOD__, '10.9.0', 'WC_Stripe_Payment_Gateway::update_stored_settings' );
+		_deprecated_function( __METHOD__, '10.9.0', 'WC_Stripe_Payment_Gateway::write_settings_option' );
 
-		WC_Stripe_Payment_Gateway::update_stored_settings( (array) $options );
+		WC_Stripe_Payment_Gateway::write_settings_option( (array) $options );
 	}
 
 	/**
@@ -386,7 +386,7 @@ class WC_Stripe_Helper {
 	 * @param string $setting The name of the setting to get.
 	 */
 	public static function get_settings( $method = null, $setting = null ) {
-		$all_settings = null === $method ? WC_Stripe_Payment_Gateway::get_stored_settings() : WC_Stripe_Payment_Gateway::get_stored_settings_for_method( $method );
+		$all_settings = null === $method ? WC_Stripe_Payment_Gateway::read_settings_option() : WC_Stripe_Payment_Gateway::read_method_settings_option( $method );
 
 		if ( null === $setting ) {
 			return $all_settings;
@@ -474,7 +474,7 @@ class WC_Stripe_Helper {
 	 * @return string[]
 	 */
 	public static function get_upe_ordered_payment_method_ids( $gateway ) {
-		$stripe_settings            = WC_Stripe_Payment_Gateway::get_stored_settings();
+		$stripe_settings            = WC_Stripe_Payment_Gateway::read_settings_option();
 		$testmode                   = WC_Stripe_Mode::is_test();
 		$ordered_payment_method_ids = isset( $stripe_settings['stripe_upe_payment_method_order'] ) ? $stripe_settings['stripe_upe_payment_method_order'] : [];
 
@@ -515,7 +515,7 @@ class WC_Stripe_Helper {
 		$updated_order      = array_merge( $ordered_payment_method_ids_with_capability, $additional_methods );
 
 		$stripe_settings['stripe_upe_payment_method_order'] = $updated_order;
-		WC_Stripe_Payment_Gateway::update_stored_settings( $stripe_settings );
+		WC_Stripe_Payment_Gateway::write_settings_option( $stripe_settings );
 
 		return $updated_order;
 	}
@@ -579,7 +579,7 @@ class WC_Stripe_Helper {
 	public static function add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids = [] ) {
 		// If the ordered payment method ids are not passed, get them from the relevant settings.
 		if ( empty( $ordered_payment_method_ids ) ) {
-			$stripe_settings = WC_Stripe_Payment_Gateway::get_stored_settings();
+			$stripe_settings = WC_Stripe_Payment_Gateway::read_settings_option();
 
 			$ordered_payment_method_ids = $stripe_settings['stripe_upe_payment_method_order'] ?? [];
 
@@ -1963,7 +1963,7 @@ class WC_Stripe_Helper {
 			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
 		}
 
-		$options = WC_Stripe_Payment_Gateway::get_stored_settings();
+		$options = WC_Stripe_Payment_Gateway::read_settings_option();
 		if ( 'test' === $mode ) {
 			return isset( $options['test_publishable_key'], $options['test_secret_key'] ) && trim( $options['test_publishable_key'] ) && trim( $options['test_secret_key'] );
 		} else {
