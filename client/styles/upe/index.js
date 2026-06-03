@@ -379,7 +379,7 @@ const DEFAULT_FONT_DOMAINS = [
  */
 const getPermittedFontDomains = () => {
 	if (
-		undefined !== wc_stripe_upe_params && // eslint-disable-line camelcase
+		typeof wc_stripe_upe_params !== 'undefined' && // eslint-disable-line camelcase
 		Array.isArray( wc_stripe_upe_params?.permittedFontDomains ) // eslint-disable-line camelcase
 	) {
 		return DEFAULT_FONT_DOMAINS.concat(
