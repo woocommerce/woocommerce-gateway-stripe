@@ -115,7 +115,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 		if ( is_array( $filters['variable_product_ids'] ?? null ) ) {
 			$variable_product_ids = $this->validate_product_ids(
 				$filters['variable_product_ids'],
-				[ \Automattic\WooCommerce\Enums\ProductType::VARIATION ]
+				[ \Automattic\WooCommerce\Enums\ProductType::VARIABLE ]
 			);
 		}
 

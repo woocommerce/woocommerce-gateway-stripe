@@ -91,9 +91,12 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		);
 	}
 
-	public function test_save_filters_stores_normalized_shape() {
+	public function test_save_filters_stores_validated_shape() {
 		$cat = $this->create_term( 'shoes', 'product_cat' );
 		$tag = $this->create_term( 'on-sale', 'product_tag' );
+
+		$simple_product   = $this->create_simple_product();
+		$variable_product = $this->create_variable_product();
 
 		$expected_brand_ids = [];
 		$brands_input       = [];
@@ -107,11 +110,11 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$this->assertTrue(
 			$filter->save_filters(
 				[
-					'product_ids'          => [ 123, '456', 0, -1, 'abc' ],
+					'product_ids'          => [ 123, '456', 0, -1, 'abc', $simple_product->get_id(), $variable_product->get_id() ],
 					'categories'           => [ $cat['term_id'], 'shoes', '' ],
 					'tags'                 => [ $tag['slug'], $tag['term_id'] ],
 					'brands'               => $brands_input,
-					'variable_product_ids' => [ '345', 567, -1, 'test', 0.0 ],
+					'variable_product_ids' => [ '345', 567, -1, 'test', 0.0, $simple_product->get_id(), $variable_product->get_id() ],
 				]
 			)
 		);
@@ -119,11 +122,11 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$stored = get_option( $this->option_name );
 		$this->assertSame(
 			[
-				'product_ids'          => [ 123, 456 ],
+				'product_ids'          => [ $simple_product->get_id() ],
 				'category_ids'         => [ $cat['term_id'] ],
 				'tag_ids'              => [ $tag['term_id'] ],
 				'brand_ids'            => $expected_brand_ids,
-				'variable_product_ids' => [ 345, 567 ],
+				'variable_product_ids' => [ $variable_product->get_id() ],
 			],
 			$stored
 		);
