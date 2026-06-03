@@ -394,7 +394,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	 * @return int[] List of validated product IDs.
 	 */
 	private function validate_product_ids( array $product_ids, array $allowed_product_types ): array {
-		$validated_product_ids = [];
+		$candidate_product_ids = [];
 		foreach ( $product_ids as $possible_product_id ) {
 			if ( ! is_int( $possible_product_id ) && ! ctype_digit( $possible_product_id ) ) {
 				continue;
@@ -404,18 +404,27 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 				continue;
 			}
 
-			$product = wc_get_product( $possible_product_id );
-			if ( ! $product instanceof \WC_Product ) {
-				continue;
-			}
-			if ( ! in_array( $product->get_type(), $allowed_product_types, true ) ) {
-				continue;
-			}
-
-			$validated_product_ids[] = $possible_product_id;
+			$candidate_product_ids[] = $possible_product_id;
 		}
 
-		return $validated_product_ids;
+		if ( [] === $candidate_product_ids ) {
+			return [];
+		}
+
+		$valid_product_ids = wc_get_products(
+			[
+				'include' => $candidate_product_ids,
+				'type'    => $allowed_product_types,
+				'return'  => 'ids',
+			]
+		);
+
+		if ( [] === $valid_product_ids ) {
+			return [];
+		}
+
+		// Make sure we have unique, integer product IDs.
+		return array_values( array_filter( array_map( 'intval', array_unique( $valid_product_ids ) ) ) );
 	}
 
 	/**
