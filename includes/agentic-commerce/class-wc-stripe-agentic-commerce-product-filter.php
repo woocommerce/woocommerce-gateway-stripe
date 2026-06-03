@@ -102,12 +102,21 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	public function save_filters( array $filters ): bool {
 		$product_ids = [];
 		if ( is_array( $filters['product_ids'] ?? null ) ) {
-			$product_ids = $this->normalize_ids( $filters['product_ids'] );
+			$product_ids = $this->validate_product_ids(
+				$filters['product_ids'],
+				[
+					\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
+					\Automattic\WooCommerce\Enums\ProductType::VARIATION,
+				]
+			);
 		}
 
 		$variable_product_ids = [];
 		if ( is_array( $filters['variable_product_ids'] ?? null ) ) {
-			$variable_product_ids = $this->normalize_ids( $filters['variable_product_ids'] );
+			$variable_product_ids = $this->validate_product_ids(
+				$filters['variable_product_ids'],
+				[ \Automattic\WooCommerce\Enums\ProductType::VARIATION ]
+			);
 		}
 
 		$category_ids = [];
@@ -357,6 +366,39 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 			'brand_ids'            => $this->normalize_ids( $raw['brand_ids'] ?? [] ),
 			'variable_product_ids' => $this->normalize_ids( $raw['variable_product_ids'] ?? [] ),
 		];
+	}
+
+	/**
+	 * Validate a list of product IDs.
+	 *
+	 * @since 10.8.0
+	 * @param mixed[]  $product_ids           List of product IDs to validate.
+	 * @param string[] $allowed_product_types List of allowed product types.
+	 * @return int[] List of validated product IDs.
+	 */
+	private function validate_product_ids( array $product_ids, array $allowed_product_types ): array {
+		$validated_product_ids = [];
+		foreach ( $product_ids as $possible_product_id ) {
+			if ( ! is_int( $possible_product_id ) && ! ctype_digit( $possible_product_id ) ) {
+				continue;
+			}
+			$possible_product_id = (int) $possible_product_id;
+			if ( $possible_product_id <= 0 ) {
+				continue;
+			}
+
+			$product = wc_get_product( $possible_product_id );
+			if ( ! $product instanceof \WC_Product ) {
+				continue;
+			}
+			if ( ! in_array( $product->get_type(), $allowed_product_types, true ) ) {
+				continue;
+			}
+
+			$validated_product_ids[] = $possible_product_id;
+		}
+
+		return $validated_product_ids;
 	}
 
 	/**
