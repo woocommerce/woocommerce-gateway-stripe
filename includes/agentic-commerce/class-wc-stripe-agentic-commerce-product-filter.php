@@ -424,7 +424,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 		}
 
 		// Make sure we have unique, integer product IDs.
-		return array_values( array_filter( array_map( 'intval', array_unique( $valid_product_ids ) ) ) );
+		return array_values( array_filter( array_map( 'intval', array_unique( (array) $valid_product_ids ) ) ) );
 	}
 
 	/**
