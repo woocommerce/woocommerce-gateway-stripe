@@ -70,12 +70,12 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	// has_filters / get_filters / save_filters round-tripping
 	// -----------------------------------------------------------------------
 
-	public function test_has_filters_is_false_when_no_option_set() {
+	public function test_has_filters_is_false_when_no_option_set(): void {
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 		$this->assertFalse( $filter->has_filters() );
 	}
 
-	public function test_get_filters_returns_empty_shape_by_default() {
+	public function test_get_filters_returns_empty_shape_by_default(): void {
 		$filter  = new WC_Stripe_Agentic_Commerce_Product_Filter();
 		$filters = $filter->get_filters();
 
@@ -91,7 +91,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		);
 	}
 
-	public function test_save_filters_stores_validated_shape() {
+	public function test_save_filters_stores_validated_shape(): void {
 		$cat = $this->create_term( 'shoes', 'product_cat' );
 		$tag = $this->create_term( 'on-sale', 'product_tag' );
 
@@ -160,7 +160,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$this->assertSame( [ $simple_product->get_id() ], $filters['product_ids'] );
 	}
 
-	public function test_save_filters_drops_unknown_terms_silently() {
+	public function test_save_filters_drops_unknown_terms_silently(): void {
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 		$filter->save_filters(
 			[
@@ -174,7 +174,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$this->assertSame( [], $stored['tag_ids'] );
 	}
 
-	public function test_save_filters_silently_drops_brands_when_taxonomy_missing() {
+	public function test_save_filters_silently_drops_brands_when_taxonomy_missing(): void {
 		if ( taxonomy_exists( 'product_brand' ) ) {
 			$this->markTestSkipped( 'product_brand taxonomy is registered on this environment.' );
 		}
@@ -249,7 +249,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		];
 	}
 
-	public function test_get_filters_only_calls_filter_once() {
+	public function test_get_filters_only_calls_filter_once(): void {
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 
 		$call_count     = 0;
@@ -281,7 +281,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	 * @param array $stored_shape Shape persisted in the option (already in slug form).
 	 * @param bool  $expected
 	 */
-	public function test_has_filters( array $stored_shape, bool $expected ) {
+	public function test_has_filters( array $stored_shape, bool $expected ): void {
 		update_option( $this->option_name, $stored_shape );
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
@@ -921,7 +921,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	 * @param string $filter_key     The key to use in the filter option data.
 	 * @param string $setter_method  The method to set the taxonomy IDs on the product.
 	 */
-	public function test_taxonomy_query_returns_simple_products( string $taxonomy, string $filter_key, string $setter_method ) {
+	public function test_taxonomy_query_returns_simple_products( string $taxonomy, string $filter_key, string $setter_method ): void {
 		$term = $this->create_term( 'test-test-test', $taxonomy );
 
 		$simple_product_1 = $this->create_simple_product();
@@ -1037,7 +1037,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	// Override filter hook
 	// -----------------------------------------------------------------------
 
-	public function test_override_filter_replaces_option_derived_inputs() {
+	public function test_override_filter_replaces_option_derived_inputs(): void {
 		update_option(
 			$this->option_name,
 			[
@@ -1069,7 +1069,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$this->assertEquals( [ $simple->get_id() ], $query_results );
 	}
 
-	public function test_override_filter_return_is_normalized_to_expected_shape() {
+	public function test_override_filter_return_is_normalized_to_expected_shape(): void {
 		$simple = $this->create_simple_product();
 
 		add_filter(
