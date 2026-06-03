@@ -40,6 +40,7 @@
         "includes/class-wc-stripe-api-outage-status.php",
         "includes/class-wc-stripe-co-branded-cc-compatibility.php",
         "includes/class-wc-stripe-exception.php",
+        "includes/class-wc-stripe-hook-manager.php",
         "includes/class-wc-stripe-payment-cancelled-exception.php",
         "includes/class-wc-stripe-upe-compatibility.php",
         "includes/class-wc-stripe-update-manager.php",

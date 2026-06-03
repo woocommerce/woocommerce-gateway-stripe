@@ -15,15 +15,6 @@ trait WC_Stripe_Subscriptions_Trait {
 	use WC_Stripe_Subscriptions_Utilities_Trait;
 
 	/**
-	 * Stores a flag to indicate if the subscription integration hooks have been attached.
-	 *
-	 * The callbacks attached as part of maybe_init_subscriptions() only need to be attached once to avoid duplication.
-	 *
-	 * @var bool False by default, true once the callbacks have been attached.
-	 */
-	private static $has_attached_integration_hooks = false;
-
-	/**
 	 * Initialize subscription support and hooks.
 	 *
 	 * @return void
@@ -50,19 +41,30 @@ trait WC_Stripe_Subscriptions_Trait {
 			]
 		);
 
-		/**
-		 * We need to attach the callbacks below once per Gateway (CC, SEPA, etc.), but only once.
-		 * Therefore, we use a static flag at class level to indicate that they have been attached.
-		 */
-		if ( self::$has_attached_integration_hooks ) {
+		$this->maybe_register_payment_method_hooks( $this->id );
+		$this->maybe_register_plugin_hooks();
+	}
+
+	/**
+	 * Maybe register the payment method hooks for subscriptions.
+	 * These should be registered once per payment method.
+	 *
+	 * @param string $payment_method_id The payment method ID to register the hooks for.
+	 * @return void
+	 */
+	private function maybe_register_payment_method_hooks( string $payment_method_id ): void {
+		// Ensure we register the subscription hooks only once per payment method.
+		$hook_manager = WC_Stripe_Hook_Manager::get_instance();
+
+		if ( $hook_manager->are_payment_method_hooks_registered( $payment_method_id, WC_Stripe_Hook_Categories::SUBSCRIPTIONS ) ) {
 			return;
 		}
 
-		add_action( 'woocommerce_scheduled_subscription_payment_' . $this->id, [ $this, 'scheduled_subscription_payment' ], 10, 2 );
-		add_action( 'woocommerce_subscription_failing_payment_method_updated_' . $this->id, [ $this, 'update_failing_payment_method' ], 10, 2 );
+		add_action( 'woocommerce_scheduled_subscription_payment_' . $payment_method_id, [ $this, 'scheduled_subscription_payment' ], 10, 2 );
+		add_action( 'woocommerce_subscription_failing_payment_method_updated_' . $payment_method_id, [ $this, 'update_failing_payment_method' ], 10, 2 );
 
-		add_action( 'wc_stripe_payment_fields_' . $this->id, [ $this, 'display_update_subs_payment_checkout' ] );
-		add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', [ $this, 'handle_add_payment_method_success' ], 10, 2 );
+		add_action( 'wc_stripe_payment_fields_' . $payment_method_id, [ $this, 'display_update_subs_payment_checkout' ] );
+		add_action( 'wc_stripe_add_payment_method_' . $payment_method_id . '_success', [ $this, 'handle_add_payment_method_success' ], 10, 2 );
 		add_action( 'woocommerce_stripe_add_payment_method', [ $this, 'handle_upe_add_payment_method_success' ], 10, 2 );
 
 		// Display the payment method used for a subscription in the "My Subscriptions" table.
@@ -74,18 +76,24 @@ trait WC_Stripe_Subscriptions_Trait {
 		// Validate the payment method meta data set on a subscription.
 		add_action( 'woocommerce_subscription_validate_payment_meta', [ $this, 'validate_subscription_payment_meta' ], 10, 2 );
 
-		self::$has_attached_integration_hooks = true;
+		$hook_manager->register_payment_method_hooks( $payment_method_id, WC_Stripe_Hook_Categories::SUBSCRIPTIONS );
+	}
 
-		/**
-		 * The callbacks attached below only need to be attached once. We don't need each gateway instance to have its own callback.
-		 * Therefore we only attach them once on the main `stripe` gateway and store a flag to indicate that they have been attached.
-		 */
-		if ( WC_Stripe_UPE_Payment_Gateway::ID !== $this->id ) {
+	/**
+	 * Maybe register the plugin-level hooks for subscriptions.
+	 * These should only be registered once for the main gateway instance.
+	 *
+	 * @return void
+	 */
+	private function maybe_register_plugin_hooks(): void {
+		$hook_manager = WC_Stripe_Hook_Manager::get_instance();
+
+		if ( $hook_manager->are_plugin_hooks_registered( WC_Stripe_Hook_Categories::SUBSCRIPTIONS ) ) {
 			return;
 		}
-		// Secondary check to skip registration for the OC payment method, which mimics the Stripe ID.
-		$current_class = get_class( $this );
-		if ( WC_Stripe_UPE_Payment_Gateway::class !== $current_class ) {
+
+		// Return early if we don't have a UPE payment gateway instance.
+		if ( ! $this instanceof WC_Stripe_UPE_Payment_Gateway ) {
 			return;
 		}
 
@@ -112,6 +120,8 @@ trait WC_Stripe_Subscriptions_Trait {
 		add_filter( 'wc_order_is_editable', [ $this, 'disable_subscription_edit_for_india' ], 10, 2 );
 
 		add_filter( 'woocommerce_subscriptions_update_payment_via_pay_shortcode', [ $this, 'update_payment_after_deferred_intent' ], 10, 3 );
+
+		$hook_manager->register_plugin_hooks( WC_Stripe_Hook_Categories::SUBSCRIPTIONS );
 	}
 
 	/**
