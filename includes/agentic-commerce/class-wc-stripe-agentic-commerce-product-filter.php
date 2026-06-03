@@ -364,13 +364,25 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	 * }
 	 */
 	private function normalize_filter_data( array $raw ): array {
-		return [
-			'product_ids'          => $this->normalize_ids( $raw['product_ids'] ?? [] ),
-			'category_ids'         => $this->normalize_ids( $raw['category_ids'] ?? [] ),
-			'tag_ids'              => $this->normalize_ids( $raw['tag_ids'] ?? [] ),
-			'brand_ids'            => $this->normalize_ids( $raw['brand_ids'] ?? [] ),
-			'variable_product_ids' => $this->normalize_ids( $raw['variable_product_ids'] ?? [] ),
+		$normalized_data = [
+			'product_ids'          => [],
+			'category_ids'         => [],
+			'tag_ids'              => [],
+			'brand_ids'            => [],
+			'variable_product_ids' => [],
 		];
+
+		foreach ( array_keys( $normalized_data ) as $key ) {
+			if ( is_array( $raw[ $key ] ?? null ) ) {
+				$normalized_data[ $key ] = $this->normalize_ids( $raw[ $key ] );
+			}
+		}
+
+		if ( ! taxonomy_exists( 'product_brand' ) ) {
+			$normalized_data['brand_ids'] = [];
+		}
+
+		return $normalized_data;
 	}
 
 	/**
