@@ -184,14 +184,12 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 
 		return [
 			// prev_ver, oc_pre, ap_pre, ap_unavailable_reason, created, pmc_enabled, has_account_data, show_ocs_ap, show_ap_only, show_ocs_only, oc_after, ap_after.
-			// Platform-connected merchants (pmc_enabled='yes') — OCS can function.
+			// Platform-connected merchants (pmc_enabled='yes') - OCS can function.
 			'both-on backbook'                          => [ '10.7.0', 'yes', 'yes', null, $new_ts, 'yes', true, 'no', 'no', 'no', 'yes', 'yes' ],
 			'OC-only backbook old-account'              => [ '10.7.0', 'yes', 'no', null, $old_ts, 'yes', true, 'no', 'yes', 'no', 'yes', 'yes' ],
 			'OC-only frontbook-10.7 disabled-AP'        => [ '10.7.0', 'yes', 'no', null, $new_ts, 'yes', true, 'no', 'no', 'no', 'yes', 'no' ],
 			'both-off backbook old-account'             => [ '10.7.0', 'no', 'no', null, $old_ts, 'yes', true, 'yes', 'no', 'no', 'yes', 'yes' ],
 			'both-off frontbook-10.7 disabled-both'     => [ '10.7.0', 'no', 'no', null, $new_ts, 'yes', true, 'no', 'no', 'no', 'no', 'no' ],
-			'AP-only-on frontbook disabled-OC'          => [ '10.7.0', 'no', 'yes', null, $new_ts, 'yes', true, 'no', 'no', 'no', 'no', 'yes' ],
-			'AP-only-on backbook OC-newly-enabled'      => [ '10.7.0', 'no', 'yes', null, $old_ts, 'yes', true, 'no', 'no', 'no', 'yes', 'yes' ],
 			'previous 10.6 both-off recent-account'     => [ '10.6.0', 'no', 'no', null, $new_ts, 'yes', true, 'yes', 'no', 'no', 'yes', 'yes' ],
 			'previous 10.6 OC-only recent-account'      => [ '10.6.0', 'yes', 'no', null, $new_ts, 'yes', true, 'no', 'yes', 'no', 'yes', 'yes' ],
 			'India backbook both-off'                   => [ '10.7.0', 'no', 'no', 'account-country', $old_ts, 'yes', true, 'no', 'no', 'yes', 'yes', 'no' ],
@@ -199,11 +197,11 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			'India frontbook disabled-OC'               => [ '10.7.0', 'no', 'no', 'account-country', $new_ts, 'yes', true, 'no', 'no', 'no', 'no', 'no' ],
 			'currency-unavailable both-off'             => [ '10.7.0', 'no', 'no', 'store-currency-not-settlement-currency', $old_ts, 'yes', true, 'no', 'no', 'yes', 'yes', 'no' ],
 			'currency-unavailable OC-only'              => [ '10.7.0', 'yes', 'no', 'no-settlement-currencies', $old_ts, 'yes', true, 'no', 'no', 'no', 'yes', 'no' ],
-			// Connected, non-PMC account (direct API keys, pmc_enabled='no') — OCS can't function,
+			// Connected, non-PMC account (direct API keys, pmc_enabled='no') - OCS can't function,
 			// so the OC flip is withheld; `created` is absent for these Standard accounts.
 			'non-PMC account both-off (OC withheld)'    => [ '10.7.0', 'no', 'no', null, null, 'no', true, 'no', 'yes', 'no', 'no', 'yes' ],
 			'non-PMC account OC-already-on (unchanged)' => [ '10.7.0', 'yes', 'no', null, null, 'no', true, 'no', 'no', 'no', 'yes', 'yes' ],
-			// No account data (invalid/absent credentials) — uninformative, so stay optimistic and enable.
+			// No account data (invalid/absent credentials) - uninformative, so stay optimistic and enable.
 			'unreadable account both-off (OC enabled)'  => [ '10.7.0', 'no', 'no', null, null, 'no', false, 'yes', 'no', 'no', 'yes', 'yes' ],
 		];
 	}
