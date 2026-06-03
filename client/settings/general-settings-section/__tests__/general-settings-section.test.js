@@ -22,7 +22,6 @@ import {
 	PAYMENT_METHOD_EPS,
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_SEPA,
-	PAYMENT_METHOD_SOFORT,
 	PAYMENT_METHOD_UNAVAILABLE_REASONS,
 } from 'wcstripe/stripe-utils/constants';
 
@@ -230,52 +229,6 @@ describe( 'GeneralSettingsSection', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'should confirm before disabling Sofort because the action is irreversible', async () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_CARD,
-			PAYMENT_METHOD_SOFORT,
-		] );
-		useGetOrderedPaymentMethodIds.mockReturnValue( {
-			orderedPaymentMethodIds: [
-				PAYMENT_METHOD_CARD,
-				PAYMENT_METHOD_SOFORT,
-			],
-			setOrderedPaymentMethodIds: jest.fn(),
-			saveOrderedPaymentMethodIds: jest.fn(),
-		} );
-		const updateEnabledMethodsMock = jest.fn();
-		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_CARD, PAYMENT_METHOD_SOFORT ],
-			updateEnabledMethodsMock,
-		] );
-		const confirmSpy = jest
-			.spyOn( window, 'confirm' )
-			.mockImplementation( () => false );
-
-		try {
-			render( <GeneralSettingsSection /> );
-
-			const sofortCheckbox = screen.getByRole( 'checkbox', {
-				name: /Sofort/,
-			} );
-			await userEvent.click( sofortCheckbox );
-
-			expect( confirmSpy ).toHaveBeenCalledWith(
-				expect.stringContaining( 'Sofort is being deprecated' )
-			);
-			expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
-
-			confirmSpy.mockImplementation( () => true );
-			await userEvent.click( sofortCheckbox );
-
-			expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [
-				PAYMENT_METHOD_CARD,
-			] );
-		} finally {
-			confirmSpy.mockRestore();
-		}
-	} );
-
 	it( 'does not display the payment method checkbox when currency is not supported', () => {
 		mockCurrencyCode( 'USD' );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
@@ -370,8 +323,8 @@ describe( 'GeneralSettingsSection', () => {
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
 			PAYMENT_METHOD_SEPA,
-			PAYMENT_METHOD_SOFORT,
 			PAYMENT_METHOD_EPS,
+			PAYMENT_METHOD_AFFIRM,
 		] );
 		useEnabledPaymentMethodIds.mockReturnValue( [
 			[ PAYMENT_METHOD_CARD ],
