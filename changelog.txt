@@ -1,5 +1,8 @@
 *** Changelog ***
 
+xxxx-xx-xx - version 10.9.0
+* Fix - Append the 3-letter currency code to the Stripe Fee and Stripe Payout amounts in WP Admin order totals when the Stripe account currency differs from the order currency
+
 xxxx-xx-xx - version 10.8.0
 * Fix - Prevent Stripe from rendering an unexpected "Address Line 2" field inside the Payment Element
 * Update - Ensure payment method restrictions based on account and shopper countries are up to date
