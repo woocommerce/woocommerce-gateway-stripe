@@ -109,6 +109,7 @@ require_once __DIR__ . '/helpers/class-ajax-test-helper.php';
 require_once __DIR__ . '/helpers/class-oc-test-helper.php';
 require_once __DIR__ . '/helpers/class-pmc-test-helper.php';
 require_once __DIR__ . '/helpers/class-upe-test-helper.php';
+require_once __DIR__ . '/helpers/class-wc-stripe-test-helper.php';
 
 // Pre-create HPOS (Custom Orders Table) schema so that parallel workers don't
 // race to create it when tests toggle `woocommerce_custom_orders_table_enabled`.

@@ -406,6 +406,16 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
+		// Prevent switching to live mode when no live account is connected.
+		if ( ! $is_test_mode_enabled && ! WC_Stripe_Helper::is_connected( 'live' ) ) {
+			return;
+		}
+
+		// Prevent switching to test mode when no test account is connected.
+		if ( $is_test_mode_enabled && ! WC_Stripe_Helper::is_connected( 'test' ) ) {
+			return;
+		}
+
 		$this->gateway->update_option( 'testmode', $is_test_mode_enabled ? 'yes' : 'no' );
 	}
 
@@ -675,35 +685,36 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function dismiss_notice( WP_REST_Request $request ) {
-		if ( null === $request->get_param( 'wc_stripe_show_customization_notice' )
-			&& null === $request->get_param( 'wc_stripe_show_optimized_checkout_notice' )
-			&& null === $request->get_param( 'wc_stripe_show_bnpl_promotion_banner' )
-			&& null === $request->get_param( 'wc_stripe_show_oc_promotion_banner' )
-			&& null === $request->get_param( 'wc_stripe_show_stripe_first_method_notice' ) ) {
-			return new WP_REST_Response( [], 200 );
+		// Map of supported request parameters to the corresponding option names.
+		// For now, parameters map directly to option names, but we should decouple them in the future.
+		$notice_parameters = [
+			'wc_stripe_show_ap_only_banner'             => 'wc_stripe_show_ap_only_banner',
+			'wc_stripe_show_bnpl_promotion_banner'      => 'wc_stripe_show_bnpl_promotion_banner',
+			'wc_stripe_show_customization_notice'       => 'wc_stripe_show_customization_notice',
+			'wc_stripe_show_oc_promotion_banner'        => 'wc_stripe_show_oc_promotion_banner',
+			'wc_stripe_show_ocs_ap_banner'              => 'wc_stripe_show_ocs_ap_banner',
+			'wc_stripe_show_ocs_only_banner'            => 'wc_stripe_show_ocs_only_banner',
+			'wc_stripe_show_optimized_checkout_notice'  => 'wc_stripe_show_optimized_checkout_notice',
+			'wc_stripe_show_stripe_first_method_notice' => 'wc_stripe_show_stripe_first_method_notice',
+			'wc_stripe_show_stripe_tax_banner'          => 'wc_stripe_show_stripe_tax_banner',
+		];
+
+		// Loop through the supported request parameters once and perform any requested updates.
+		$has_any_parameter = false;
+		foreach ( $notice_parameters as $parameter_name => $option_name ) {
+			if ( $request->has_param( $parameter_name ) ) {
+				$has_any_parameter = true;
+
+				update_option( $option_name, 'no' );
+			}
 		}
 
-		if ( null !== $request->get_param( 'wc_stripe_show_customization_notice' ) ) {
-			update_option( 'wc_stripe_show_customization_notice', 'no' );
+		$response = [];
+		if ( $has_any_parameter ) {
+			$response['result'] = 'notice dismissed';
 		}
 
-		if ( null !== $request->get_param( 'wc_stripe_show_optimized_checkout_notice' ) ) {
-			update_option( 'wc_stripe_show_optimized_checkout_notice', 'no' );
-		}
-
-		if ( null !== $request->get_param( 'wc_stripe_show_bnpl_promotion_banner' ) ) {
-			update_option( 'wc_stripe_show_bnpl_promotion_banner', 'no' );
-		}
-
-		if ( null !== $request->get_param( 'wc_stripe_show_oc_promotion_banner' ) ) {
-			update_option( 'wc_stripe_show_oc_promotion_banner', 'no' );
-		}
-
-		if ( null !== $request->get_param( 'wc_stripe_show_stripe_first_method_notice' ) ) {
-			update_option( 'wc_stripe_show_stripe_first_method_notice', 'no' );
-		}
-
-		return new WP_REST_Response( [ 'result' => 'notice dismissed' ], 200 );
+		return new WP_REST_Response( $response, 200 );
 	}
 
 	/**

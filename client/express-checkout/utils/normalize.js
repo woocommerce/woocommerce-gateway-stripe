@@ -86,7 +86,8 @@ const approximateFirstName = ( name, defaultValue = '' ) => {
  * @return {string} The approximate last name.
  */
 const approximateLastName = ( name, defaultValue = '' ) => {
-	return name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? defaultValue;
+	const lastName = name?.split( ' ' )?.slice( 1 )?.join( ' ' )?.trim();
+	return lastName || defaultValue;
 };
 
 /**

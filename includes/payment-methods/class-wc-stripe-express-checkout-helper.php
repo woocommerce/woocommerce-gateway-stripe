@@ -43,6 +43,16 @@ class WC_Stripe_Express_Checkout_Helper {
 	private $gateway;
 
 	/**
+	 * Request-scoped cache for `should_show_express_checkout_button()`.
+	 *
+	 * Keys in the array capture specific contexts that may apply within a request.
+	 * Once such case is for handling One Page Checkout, which can affect when we are in checkout via runtime hooks.
+	 *
+	 * @var array<string, bool>
+	 */
+	private $should_show_cache = [];
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -745,6 +755,25 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  boolean  True if express checkout elements are supported on current page, false otherwise
 	 */
 	public function should_show_express_checkout_button() {
+		// One Page Checkout can make a page act as a checkout page via runtime hooks.
+		// We need a separate cache key for that case to ensure we enable express checkout.
+		$cache_key = doing_action( 'woocommerce_after_add_to_cart_form' ) ? 'after_add_to_cart' : 'default';
+
+		if ( array_key_exists( $cache_key, $this->should_show_cache ) ) {
+			return $this->should_show_cache[ $cache_key ];
+		}
+
+		$this->should_show_cache[ $cache_key ] = $this->compute_should_show_express_checkout_button();
+		return $this->should_show_cache[ $cache_key ];
+	}
+
+	/**
+	 * Evaluate every guard for showing the Express Checkout button. Do not call directly;
+	 * go through `should_show_express_checkout_button()` so the result is cached.
+	 *
+	 * @return boolean
+	 */
+	protected function compute_should_show_express_checkout_button() {
 		// For subscription change payment method, only check basic requirements.
 		if ( $this->is_change_payment_method_page() ) {
 			return $this->should_show_ece_on_change_payment_method_page();
@@ -1866,18 +1895,6 @@ class WC_Stripe_Express_Checkout_Helper {
 		$is_enabled = WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this->gateway );
 
 		return $is_enabled && $this->is_enabled_for_current_context( 'link' );
-	}
-
-	/**
-	 * Returns whether Stripe express checkout element should use the Blocks API.
-	 *
-	 * @return boolean
-	 *
-	 * @deprecated 9.2.0 Feature flag enable by default.
-	 */
-	public function use_blocks_api() {
-		_deprecated_function( __METHOD__, '9.2.0' );
-		return isset( $this->stripe_settings['express_checkout_use_blocks_api'] ) && 'yes' === $this->stripe_settings['express_checkout_use_blocks_api'];
 	}
 
 	/**

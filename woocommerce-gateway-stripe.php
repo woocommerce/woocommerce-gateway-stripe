@@ -8,7 +8,7 @@
  * Version: 10.7.0
  * Requires Plugins: woocommerce
  * Requires at least: 6.7
- * Tested up to: 6.9.4
+ * Tested up to: 7.0
  * WC requires at least: 10.5
  * WC tested up to: 10.7
  * Text Domain: woocommerce-gateway-stripe
@@ -166,9 +166,6 @@ function wcstripe_deactivated(): void {
 	if ( class_exists( 'WC_Stripe_Inbox_Notes' ) && WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
 		// requirements for the note
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
-		WC_Stripe_UPE_Availability_Note::possibly_delete_note();
-
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
 		WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
 	}

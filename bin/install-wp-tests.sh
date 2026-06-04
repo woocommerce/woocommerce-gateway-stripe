@@ -33,7 +33,11 @@ wp() {
 	if [ ! -f $TMPDIR/wp-cli.phar ]; then
 		download https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar  "$TMPDIR/wp-cli.phar"
 	fi
-	php "$TMPDIR/wp-cli.phar" $@
+
+	# wp-cli runs under the container's php CLI memory_limit (128M), which is too
+	# low for its Extractor to unpack a current WordPress core archive.
+	# So, we remove the cap for the setup commands in this script.
+	php -d memory_limit=-1 "$TMPDIR/wp-cli.phar" $@
 
 	cd "$WORKING_DIR"
 }
@@ -105,12 +109,15 @@ fi
 set -e
 
 install_wp() {
-	if [ -d $WP_CORE_DIR ]; then
+	# Only treat the install as present when WP core files actually exist.
+	if [ -f "$WP_CORE_DIR/wp-load.php" ]; then
 		patch_ixr_casts
 		return;
 	fi
 
-	mkdir -p $WP_CORE_DIR
+	# Start from a clean directory so a partial/aborted download don't trigger a files are already present error.
+	rm -rf "$WP_CORE_DIR"
+	mkdir -p "$WP_CORE_DIR"
 
 	wp core download --version=$WP_VERSION
 

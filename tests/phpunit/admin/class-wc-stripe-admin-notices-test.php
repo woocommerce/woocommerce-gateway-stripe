@@ -288,16 +288,15 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			[
 				[
-					'woocommerce_stripe_settings'    => [
+					'woocommerce_stripe_settings' => [
 						'enabled'         => 'yes',
 						'testmode'        => 'no',
 						'publishable_key' => 'pk_live_valid_test_key',
 						'secret_key'      => 'sk_live_valid_test_key',
 					],
-					'wc_stripe_show_style_notice'    => 'no',
-					'wc_stripe_show_sca_notice'      => 'no',
-					'_wcstripe_feature_upe_settings' => 'yes',
-					'home'                           => 'https://...',
+					'wc_stripe_show_style_notice' => 'no',
+					'wc_stripe_show_sca_notice'   => 'no',
+					'home'                        => 'https://...',
 				],
 				'is oauth connected' => true,
 				[],
@@ -309,13 +308,12 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			[
 				[
-					'woocommerce_stripe_settings'    => [
+					'woocommerce_stripe_settings' => [
 						'enabled' => 'yes',
 					],
-					'wc_stripe_show_style_notice'    => 'no',
-					'wc_stripe_show_sca_notice'      => 'no',
-					'_wcstripe_feature_upe_settings' => 'yes',
-					'home'                           => 'https://...',
+					'wc_stripe_show_style_notice' => 'no',
+					'wc_stripe_show_sca_notice'   => 'no',
+					'home'                        => 'https://...',
 				],
 				'is oauth connected' => true,
 				[
@@ -577,13 +575,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 *
 	 * @return void
 	 */
-	public function test_currency_notice_is_shown_for_upe_methods() {
-		add_filter(
-			'pre_option__wcstripe_feature_upe',
-			function () {
-				return 'yes';
-			}
-		);
+	public function test_currency_notice_is_shown_for_upe_methods(): void {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
 
 		$this->mock_payment_method_configurations(
@@ -804,7 +796,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function test_subscription_check_detachment_not_shown_when_dismissed() {
 		$source_id    = 'src_123_dismissed';
-		$meta_key     = WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META;
+		$meta_key     = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Admin_Notices::class, 'DETACHED_NOTICE_DISMISSED_META', 'string' );
 		$subscription = new WC_Subscription();
 
 		$subscription->set_id( 124 );
@@ -863,7 +855,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function test_subscription_check_detachment_clears_dismissed_meta_when_not_detached() {
 		$source_id    = 'src_123_attached';
-		$meta_key     = WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META;
+		$meta_key     = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Admin_Notices::class, 'DETACHED_NOTICE_DISMISSED_META', 'string' );
 		$subscription = new WC_Subscription();
 
 		$subscription->set_id( 125 );
@@ -934,10 +926,14 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$notices = $this->create_admin_notices_instance();
 		$notices->hide_notices();
 
-		$this->assertEquals( 'yes', $subscription->get_meta( WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META ) );
+		$meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Admin_Notices::class, 'DETACHED_NOTICE_DISMISSED_META', 'string' );
 
-		WC_Subscriptions::$wcs_get_subscription = null;
-		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST[ $request_param ] );
+		try {
+			$this->assertEquals( 'yes', $subscription->get_meta( $meta_key ) );
+		} finally {
+			WC_Subscriptions::$wcs_get_subscription = null;
+			unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST[ $request_param ] );
+		}
 	}
 
 	/**
@@ -972,9 +968,12 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$notices = $this->create_admin_notices_instance();
 		$notices->hide_notices();
 
-		$this->assertEmpty( $subscription->get_meta( WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META ) );
-
-		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['post'], $_REQUEST['id'] );
+		try {
+			$meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Admin_Notices::class, 'DETACHED_NOTICE_DISMISSED_META', 'string' );
+			$this->assertEmpty( $subscription->get_meta( $meta_key ) );
+		} finally {
+			unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['post'], $_REQUEST['id'] );
+		}
 	}
 
 	/**
@@ -998,9 +997,12 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$notices = $this->create_admin_notices_instance();
 		$notices->hide_notices();
 
-		$this->assertEmpty( $subscription->get_meta( WC_Stripe_Admin_Notices::DETACHED_NOTICE_DISMISSED_META ) );
-
-		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['post'], $_REQUEST['id'] );
+		try {
+			$meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Admin_Notices::class, 'DETACHED_NOTICE_DISMISSED_META', 'string' );
+			$this->assertEmpty( $subscription->get_meta( $meta_key ) );
+		} finally {
+			unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['post'], $_REQUEST['id'] );
+		}
 	}
 
 	/**
@@ -1089,15 +1091,15 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Test that stripe_updated() sets the ECE location notice flag correctly based on the previous version.
+	 * Test that {@see WC_Stripe_Admin_Notices::check_update_notices()} sets the ECE location notice flag correctly based on the previous version.
 	 *
-	 * @param string|null $previous_version  Version to set as previous, or null to delete.
-	 * @param string|null $initial_flag      Initial value for the notice option, or null to delete.
-	 * @param string|false $expected         Expected option value after stripe_updated().
+	 * @param string|null $previous_version Version to set as previous, or null to delete.
+	 * @param string|null $initial_flag     Initial value for the notice option, or null to delete.
+	 * @param string|false $expected        Expected option value after stripe_updated().
 	 *
 	 * @dataProvider provide_ece_location_flag_scenarios
 	 */
-	public function test_stripe_updated_sets_ece_location_flag( $previous_version, $initial_flag, $expected ) {
+	public function test_check_update_notices_sets_ece_location_flag( $previous_version, $initial_flag, $expected ) {
 		if ( null === $previous_version ) {
 			delete_option( 'wc_stripe_version' );
 		} else {
@@ -1110,8 +1112,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			update_option( 'wc_stripe_show_ece_location_notice', $initial_flag );
 		}
 
-		$notices = $this->create_admin_notices_instance();
-		$notices->stripe_updated();
+		WC_Stripe_Admin_Notices::check_update_notices( $previous_version );
 
 		$this->assertSame( $expected, get_option( 'wc_stripe_show_ece_location_notice' ) );
 	}
@@ -1228,5 +1229,81 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
 
 		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+	}
+
+	/**
+	 * The outage notice should be shown when WC_Stripe_API_Outage_Status flags an outage.
+	 */
+	public function test_api_outage_notice_is_shown_when_in_outage() {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		WC_Stripe_API_Outage_Status::record_outage();
+
+		$notices = new WC_Stripe_Admin_Notices();
+		ob_start();
+		$notices->admin_notices();
+		ob_end_clean();
+
+		$this->assertArrayHasKey( 'api_outage', $notices->notices );
+		$this->assertMatchesRegularExpression( '/Stripe is temporarily unreachable/', $notices->notices['api_outage']['message'] );
+
+		WC_Stripe_API_Outage_Status::record_success();
+	}
+
+	/**
+	 * No outage notice when the flag isn't set.
+	 */
+	public function test_api_outage_notice_is_not_shown_when_no_outage() {
+		WC_Stripe_API_Outage_Status::record_success();
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
+		$notices = new WC_Stripe_Admin_Notices();
+		ob_start();
+		$notices->admin_notices();
+		ob_end_clean();
+
+		$this->assertArrayNotHasKey( 'api_outage', $notices->notices );
+	}
+
+	/**
+	 * The "couldn't connect" notice should be suppressed during an outage to
+	 * avoid contradicting the outage notice.
+	 */
+	public function test_couldnt_connect_notice_is_suppressed_during_outage() {
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_cached_account_data' ] )
+			->getMock();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( null );
+
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'enabled'         => 'yes',
+				'testmode'        => 'no',
+				'publishable_key' => 'pk_live_valid_key',
+				'secret_key'      => 'sk_live_valid_key',
+			]
+		);
+		update_option( 'wc_stripe_show_style_notice', 'no' );
+		update_option( 'wc_stripe_show_sca_notice', 'no' );
+		update_option( 'wc_stripe_show_legacy_deprecation_notice', 'no' );
+
+		WC_Stripe_API_Outage_Status::record_outage();
+
+		$notices = new WC_Stripe_Admin_Notices();
+		ob_start();
+		$notices->admin_notices();
+		ob_end_clean();
+
+		$this->assertArrayHasKey( 'api_outage', $notices->notices );
+		// The "couldn't connect" notice uses the 'keys' slug — make sure it's not present.
+		if ( isset( $notices->notices['keys'] ) ) {
+			$this->assertDoesNotMatchRegularExpression(
+				'/Your customers cannot use Stripe on checkout/',
+				$notices->notices['keys']['message']
+			);
+		}
+
+		WC_Stripe_API_Outage_Status::record_success();
 	}
 }
