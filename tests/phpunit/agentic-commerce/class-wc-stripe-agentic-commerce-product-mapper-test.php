@@ -62,7 +62,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'price', $result );
 
 		// Verify field values.
-		$this->assertEquals( (string) $product->get_id(), $result['id'] );
+		$this->assertEquals( $product->get_sku(), $result['id'] );
 		$this->assertEquals( 'Test Product', $result['title'] );
 		$this->assertEquals( 'Test Description', $result['description'] );
 		$this->assertEquals( 'in_stock', $result['availability'] );
@@ -70,6 +70,40 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( '19.99', $result['price'] );
 
 		// Cleanup.
+		$product->delete( true );
+	}
+
+	/**
+	 * The catalog row's `id` must be the merchant SKU when the product has one,
+	 * so it shows up in Stripe's UI and the round-trip lookup can resolve via
+	 * `wc_get_product_id_by_sku()`.
+	 */
+	public function test_id_uses_sku_when_present() {
+		$product = WC_Helper_Product::create_simple_product(
+			true,
+			[ 'sku' => 'MAPPER-SKU-' . uniqid() ]
+		);
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertSame( $product->get_sku(), $result['id'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Falls back to the product ID when the product has no SKU, so SKU-less
+	 * catalogs keep working under the legacy contract.
+	 */
+	public function test_id_falls_back_to_product_id_when_no_sku() {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'sku' => '' ] );
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertSame( (string) $product->get_id(), $result['id'] );
+
 		$product->delete( true );
 	}
 
@@ -892,5 +926,122 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$this->assertNull( $result['delete'], 'delete field should always be null for products in the feed' );
 
 		$product->delete( true );
+	}
+
+	/**
+	 * Test that `should_sync_product` returns true by default for any product.
+	 *
+	 * Guards the contract that the visibility hook is opt-in for adapters: with
+	 * no filter registered, every product flows through to the feed.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_defaults_to_true() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Data provider for falsy adapter return values.
+	 *
+	 * @return array<string, array{0: mixed}>
+	 */
+	public function provide_falsy_filter_values(): array {
+		return [
+			'false'              => [ false ],
+			'zero int'           => [ 0 ],
+			'empty string'       => [ '' ],
+			'null'               => [ null ],
+			'string false'       => [ 'false' ],
+			'string False mixed' => [ 'False' ],
+		];
+	}
+
+	/**
+	 * Test that any falsy adapter return suppresses the product. The contract is
+	 * "false-y, not literal false" — the wrapper runs the return through
+	 * wp_validate_boolean(), so null, 0, and '' all normalise to false, and the
+	 * string 'false' (any case) is treated as false rather than as a truthy
+	 * non-empty string the way a plain (bool) cast would.
+	 *
+	 * @dataProvider provide_falsy_filter_values
+	 * @param mixed $filtered_value Value the adapter returns from the filter.
+	 * @return void
+	 */
+	public function test_should_sync_product_treats_any_falsy_filter_return_as_exclude( $filtered_value ) {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$callback = static fn() => $filtered_value;
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+
+		try {
+			$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * Test that `map_product` short-circuits to an empty row when the visibility
+	 * hook excludes the product. An empty row is the agreed signal the feed
+	 * validator's required-field check rejects, so the walker skips the entry
+	 * without polluting the validator's per-product error accumulator with
+	 * intentional exclusions.
+	 *
+	 * @return void
+	 */
+	public function test_map_product_returns_empty_row_when_filter_excludes_product() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_regular_price( '9.99' );
+		$product->save();
+
+		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$result = $mapper->map_product( $product );
+
+			$this->assertSame( [], $result );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * Test that products other than the excluded one still map normally — the
+	 * filter receives the specific product instance and a per-product decision
+	 * doesn't bleed across the catalog.
+	 *
+	 * @return void
+	 */
+	public function test_map_product_still_maps_other_products_when_filter_excludes_one() {
+		$included = WC_Helper_Product::create_simple_product();
+		$included->set_regular_price( '5.00' );
+		$included->save();
+
+		$excluded = WC_Helper_Product::create_simple_product();
+		$excluded->set_regular_price( '7.00' );
+		$excluded->save();
+
+		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $excluded->get_id();
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$this->assertNotEmpty( $mapper->map_product( $included ) );
+			$this->assertSame( [], $mapper->map_product( $excluded ) );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
+			$included->delete( true );
+			$excluded->delete( true );
+		}
 	}
 }

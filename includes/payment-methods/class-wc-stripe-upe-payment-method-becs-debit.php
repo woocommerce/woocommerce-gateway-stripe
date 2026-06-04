@@ -17,7 +17,21 @@ class WC_Stripe_UPE_Payment_Method_Becs_Debit extends WC_Stripe_UPE_Payment_Meth
 	/**
 	 * Stripe's internal identifier for BECS Direct Debit.
 	 */
-	const STRIPE_ID = WC_Stripe_Payment_Methods::BECS_DEBIT;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::BECS_DEBIT;
+
+	/**
+	 * Stripe account countries that may enable BECS Direct Debit.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [ WC_Stripe_Country_Code::AUSTRALIA ];
+
+	/**
+	 * Shopper billing countries permitted to use BECS Direct Debit.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [ WC_Stripe_Country_Code::AUSTRALIA ];
 
 	/**
 	 * Constructor for BECS Direct Debit payment method.
@@ -31,7 +45,6 @@ class WC_Stripe_UPE_Payment_Method_Becs_Debit extends WC_Stripe_UPE_Payment_Meth
 		$this->label                = __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->description          = __( 'Pay directly from your Australian bank account via BECS.', 'woocommerce-gateway-stripe' );
 		$this->supported_currencies = [ WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR ];
-		$this->supported_countries  = [ WC_Stripe_Country_Code::AUSTRALIA ];
 		$this->supports[]           = PaymentGatewayFeature::TOKENIZATION;
 
 		// Check if subscriptions are enabled and add support for them.
@@ -39,23 +52,6 @@ class WC_Stripe_UPE_Payment_Method_Becs_Debit extends WC_Stripe_UPE_Payment_Meth
 
 		// Add support for pre-orders.
 		$this->maybe_init_pre_orders();
-	}
-
-	/**
-	 * Checks if BECS is available for the Stripe account's country.
-	 *
-	 * @return bool True if AU-based account; false otherwise.
-	 */
-	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
-	}
-
-	/**
-	 * Returns string representing payment method type
-	 * to query to retrieve saved payment methods from Stripe.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
 	}
 
 	/**

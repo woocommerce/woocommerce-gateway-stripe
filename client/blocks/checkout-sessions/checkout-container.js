@@ -2,7 +2,7 @@ import { CheckoutProvider } from '@stripe/react-stripe-js/checkout';
 import React, { useMemo } from 'react';
 import CheckoutForm from 'wcstripe/blocks/checkout-sessions/checkout-form';
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
-import { initializeUPEAppearance } from 'wcstripe/stripe-utils';
+import { initializeUPEAppearance } from 'wcstripe/stripe-utils/upe-appearance';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
 
 const stripePromise = loadStripe();

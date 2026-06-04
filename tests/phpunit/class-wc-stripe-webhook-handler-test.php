@@ -340,6 +340,167 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * When no order is linked yet, checkout session success defers processing via Action Scheduler.
+	 *
+	 * @return void
+	 */
+	public function test_process_checkout_session_success_defers_when_order_not_found(): void {
+		$checkout_session_id = 'cs_test_deferred_no_order';
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_deferred',
+				],
+			],
+		];
+
+		$start          = time();
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->callback(
+					function ( $timestamp ) use ( $start ) {
+						$this->assertIsInt( $timestamp );
+						$this->assertGreaterThanOrEqual( $start + 2 * MINUTE_IN_SECONDS, $timestamp );
+
+						return true;
+					}
+				),
+				'wc_stripe_deferred_webhook',
+				$this->callback(
+					function ( $args ) use ( $notification, $checkout_session_id ) {
+						return isset( $args['type'], $args['data'], $args['notification'] )
+							&& 'checkout.session.completed' === $args['type']
+							&& isset( $args['data']['session_id'] )
+							&& $checkout_session_id === $args['data']['session_id']
+							&& $args['notification'] === $notification;
+					}
+				)
+			);
+
+		$handler = new WC_Stripe_Webhook_Handler();
+		$prop    = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		$handler->process_checkout_session_success( $notification );
+	}
+
+	/**
+	 * Deferred checkout session success events should run handle_checkout_session_success when the job executes.
+	 *
+	 * @param string $event_type Stripe event type.
+	 * @return void
+	 * @dataProvider provide_deferred_checkout_session_success_event_types
+	 */
+	public function test_process_deferred_webhook_invokes_handle_checkout_session_success( string $event_type ): void {
+		$checkout_session_id = 'cs_test_deferred_job';
+
+		$notification = (object) [
+			'type' => $event_type,
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_job',
+				],
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'handle_checkout_session_success' ] )
+			->getMock();
+
+		$handler->expects( $this->once() )
+			->method( 'handle_checkout_session_success' )
+			->with(
+				$this->callback(
+					function ( $passed ) use ( $notification ) {
+						return is_object( $passed )
+							&& isset( $passed->type )
+							&& $notification->type === $passed->type
+							&& isset( $passed->data->object->id )
+							&& $notification->data->object->id === $passed->data->object->id;
+					}
+				)
+			);
+
+		$handler->process_deferred_webhook(
+			$event_type,
+			[ 'session_id' => $checkout_session_id ],
+			$notification
+		);
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_deferred_checkout_session_success_event_types(): array {
+		return [
+			'checkout.session.completed'               => [ 'checkout.session.completed' ],
+			'checkout.session.async_payment_succeeded' => [ 'checkout.session.async_payment_succeeded' ],
+		];
+	}
+
+	/**
+	 * Deferred checkout session failure events should run handle_checkout_session_failure when the job executes.
+	 *
+	 * @param string $event_type Stripe event type.
+	 * @return void
+	 * @dataProvider provide_deferred_checkout_session_failure_event_types
+	 */
+	public function test_process_deferred_webhook_invokes_handle_checkout_session_failure( string $event_type ): void {
+		$checkout_session_id = 'cs_test_deferred_failure_job';
+
+		$notification = (object) [
+			'type' => $event_type,
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_failure_job',
+				],
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'handle_checkout_session_failure' ] )
+			->getMock();
+
+		$handler->expects( $this->once() )
+			->method( 'handle_checkout_session_failure' )
+			->with(
+				$this->callback(
+					function ( $passed ) use ( $notification ) {
+						return is_object( $passed )
+							&& isset( $passed->type )
+							&& $notification->type === $passed->type
+							&& isset( $passed->data->object->id )
+							&& $notification->data->object->id === $passed->data->object->id;
+					}
+				)
+			);
+
+		$handler->process_deferred_webhook(
+			$event_type,
+			[ 'session_id' => $checkout_session_id ],
+			$notification
+		);
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_deferred_checkout_session_failure_event_types(): array {
+		return [
+			'checkout.session.expired'              => [ 'checkout.session.expired' ],
+			'checkout.session.async_payment_failed' => [ 'checkout.session.async_payment_failed' ],
+		];
+	}
+
+	/**
 	 * Test for `process_webhook_charge_failed`.
 	 *
 	 * @param string $order_status       The order status.
@@ -840,6 +1001,47 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that a refund webhook finds the order via the intent ID when the charge ID is missing.
+	 */
+	public function test_process_webhook_refund_finds_order_via_intent_when_charge_id_missing() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_intent_1' );
+		$order->save();
+
+		$notification = (object) [
+			'data' => (object) [
+				'object' => (object) [
+					'id'              => 'ch_missing',
+					'object'          => 'charge',
+					'payment_intent'  => 'pi_intent_1',
+					'captured'        => true,
+					'amount'          => 5000,
+					'amount_refunded' => 1000,
+					'currency'        => 'usd',
+					'refunds'         => (object) [
+						'data' => [
+							(object) [
+								'id'                  => 're_xyz',
+								'amount'              => 1000,
+								'balance_transaction' => 'txn_1',
+							],
+						],
+					],
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_refund( $notification );
+
+		$reloaded = wc_get_order( $order->get_id() );
+
+		// Charge ID back-filled and refund synced against the recovered order.
+		$this->assertSame( 'ch_missing', $reloaded->get_transaction_id() );
+		$this->assertSame( 're_xyz', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( $reloaded ) );
+	}
+
+	/**
 	 * Tests for `process_webhook_refund_updated`.
 	 *
 	 * @param string $notification_status The notification status.
@@ -1255,6 +1457,13 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
 		$order->save_meta_data();
 
+		// Defensively clear any leftover session-specific cache entries.
+		// handle_checkout_session_success() returns early without calling schedule_job()
+		// when the per-session lock is present, which caused this test to intermittently
+		// fail in CI under paratest/randomized ordering.
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
 		// Build the mock notification.
 		$notification = (object) [
 			'type' => 'checkout.session.completed',
@@ -1312,7 +1521,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$prop->setAccessible( true );
 		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
 
-		$this->mock_webhook_handler->process_checkout_session( $notification );
+		$this->mock_webhook_handler->process_checkout_session_success( $notification );
 
 		// Verify the metadata contains the correct order data.
 		$this->assertNotNull( $scheduled_args );
@@ -1373,9 +1582,141 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$prop->setAccessible( true );
 		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
 
-		$this->mock_webhook_handler->process_checkout_session( $notification );
+		$this->mock_webhook_handler->process_checkout_session_success( $notification );
 
 		// Needed to avoid flagging the test as `risky`. Actual assertions happen in the mock expectations above.
 		$this->assertTrue( true );
+	}
+
+	/**
+	 * Test that `process_checkout_session_success` sets the payment method title on the order.
+	 *
+	 * When adaptive pricing is used, payments go through checkout sessions and are finalised via
+	 * the `checkout.session.completed` webhook. Without an explicit call to
+	 * `set_payment_method_title_for_order()`, the order retains the gateway's default title
+	 * ("Stripe") instead of the actual method name (e.g. "Credit / Debit Card" or "iDEAL").
+	 *
+	 * @dataProvider provider_checkout_session_payment_method_titles
+	 *
+	 * @param string $payment_method_type Stripe payment method type (e.g. 'card', 'ideal').
+	 * @param string $expected_title      Expected WooCommerce payment method title on the order.
+	 * @return void
+	 */
+	public function test_process_checkout_session_success_sets_payment_method_title( string $payment_method_type, string $expected_title ): void {
+		$checkout_session_id = 'cs_test_title_' . $payment_method_type;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_abc',
+				],
+			],
+		];
+
+		// Build a payment method object that mimics a Stripe expanded payment_method field.
+		$payment_method_object = (object) [
+			'id'   => 'pm_mock_' . $payment_method_type,
+			'type' => $payment_method_type,
+		];
+
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )->method( 'schedule_job' );
+
+		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => $payment_method_object ] ) );
+
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$this->mock_webhook_handler->method( 'process_response' );
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
+
+		$this->mock_webhook_handler->process_checkout_session_success( $notification );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertEquals( $expected_title, $updated_order->get_payment_method_title() );
+	}
+
+	/**
+	 * Data provider for `test_process_checkout_session_success_sets_payment_method_title`.
+	 *
+	 * @return array[]
+	 */
+	public function provider_checkout_session_payment_method_titles(): array {
+		return [
+			'card payment'   => [ WC_Stripe_Payment_Methods::CARD, 'Credit / Debit Card' ],
+			'klarna payment' => [ WC_Stripe_Payment_Methods::KLARNA, 'Klarna' ],
+			'ideal payment'  => [ WC_Stripe_Payment_Methods::IDEAL, 'iDEAL | Wero' ],
+		];
+	}
+
+	/**
+	 * Test that `checkout.session.async_payment_succeeded` processes on-hold orders.
+	 *
+	 * @return void
+	 */
+	public function test_process_async_checkout_session_success_for_on_hold_order(): void {
+		$checkout_session_id = 'cs_test_async_success_on_hold';
+
+		// Create an order in on-hold status and associate it with the checkout session.
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::ON_HOLD );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		$notification = (object) [
+			'type' => 'checkout.session.async_payment_succeeded',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_async_success',
+				],
+			],
+		];
+
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->isType( 'int' ),
+				'wc_stripe_process_checkout_session_metadata',
+				$this->callback(
+					function ( $args ) use ( $checkout_session_id ) {
+						return isset( $args['checkout_session_id'] ) && $checkout_session_id === $args['checkout_session_id'];
+					}
+				)
+			);
+
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
+
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
+
+		$this->mock_webhook_handler->process_webhook( wp_json_encode( $notification ) );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertInstanceOf( WC_Order::class, $updated_order );
+		$this->assertTrue( $updated_order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED ] ) );
 	}
 }

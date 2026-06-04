@@ -51,6 +51,28 @@ composer run-script phpstan
 
 Our goal is to remove our dependence on the need for a baseline file, but we are not there yet.
 
+## Unit Tests
+
+PHP unit tests use PHPUnit and require the Docker environment to be running (`npm run up`).
+
+Run all PHP unit tests:
+
+```
+npm run test:php
+```
+
+Run tests in parallel using [paratest](https://github.com/paratestphp/paratest) for faster execution:
+
+```
+npm run test:php:parallel
+```
+
+To collect coverage data during a parallel run, set the `XDEBUG_MODE_PHPUNIT` environment variable:
+
+```
+XDEBUG_MODE_PHPUNIT=coverage npm run test:php:parallel
+```
+
 ## Setup
 
 If you're using the Docker environment see setup instructions here:
