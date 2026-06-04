@@ -52,6 +52,7 @@ xxxx-xx-xx - version 10.8.0
 * Add - Register Stripe gateway capabilities with the WordPress Abilities API for agent access (default off; opt in via the `wc_stripe_abilities_enabled` filter)
 * Dev - Add e2e tests for subscriptions and Optimized Checkout Suite and support stricter payment confirmation checks
 * Fix - Correct Amazon Pay button preview rendering in the Full Site Editor block cart and checkout pages
+* Fix - Prevent dismissed admin banner notices from reappearing after navigating between Settings and Payment Methods tabs
 
 2026-05-12 - version 10.7.0
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
@@ -103,7 +104,6 @@ xxxx-xx-xx - version 10.8.0
 * Fix - Better background color detection for block themes and allow fonts from fonts.bunny.net
 * Update - Shorten test mode messaging, add Test Mode badge on Blocks checkout, and add copy-to-clipboard for test card numbers
 * Fix - Prevent brief display of wrong title on classic checkout when Optimized Checkout is enabled
-* Fix - Prevent dismissed admin banner notices from reappearing after navigating between Settings and Payment Methods tabs
 * Fix - Update Stripe Fee and Stripe Payout values correctly after partial capture by replacing authorization-phase values instead of adding to them
 * Fix - Add defensive checks before running renewal meta cleanup when renewal/subscription objects are missing or invalid
 * Dev - Add metadata accessor methods for subscription objects to WC_Stripe_Order_Helper, centralizing subscription-specific metadata handling
