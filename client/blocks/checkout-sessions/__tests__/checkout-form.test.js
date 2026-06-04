@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import {
 	CurrencySelectorElement,
 	PaymentElement,
@@ -73,6 +73,7 @@ describe( 'CheckoutForm', () => {
 	};
 
 	beforeEach( () => {
+		jest.clearAllMocks();
 		getBlocksConfiguration.mockReturnValue( { paymentMethodsConfig } );
 		CurrencySelectorElement.mockReturnValue(
 			<div>Currency Selector Element</div>
@@ -199,7 +200,7 @@ describe( 'CheckoutForm', () => {
 	 * Switching the Payment Element to a non-reusable sub-method must run the
 	 * shared hide/clear helper so the checkbox does not stay visible/checked.
 	 */
-	it( 'evaluates the save checkbox when the selected method changes', () => {
+	it( 'evaluates the save checkbox when the selected method changes', async () => {
 		useCheckout.mockReturnValue( {
 			type: 'success',
 			checkout: { id: 'test_checkout_id' },
@@ -220,7 +221,9 @@ describe( 'CheckoutForm', () => {
 		const { onChange } = PaymentElement.mock.calls[ 0 ][ 0 ];
 		handleDisplayOfSavingCheckbox.mockClear();
 
-		onChange( { value: { type: 'ideal' }, complete: false } );
+		await act( async () => {
+			onChange( { value: { type: 'ideal' }, complete: false } );
+		} );
 
 		expect( handleDisplayOfSavingCheckbox ).toHaveBeenCalledWith(
 			'ideal',
