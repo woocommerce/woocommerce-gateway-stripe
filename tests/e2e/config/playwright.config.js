@@ -49,7 +49,7 @@ const config = {
 		[
 			'allure-playwright',
 			{
-				outputFolder: 'tests/e2e/test-results/report-allure/',
+				resultsDir: 'tests/e2e/test-results/report-allure/',
 			},
 		],
 	],
@@ -87,7 +87,7 @@ const config = {
 			testMatch: '**/*.spec.js',
 			testIgnore: [
 				'**/acss.spec.js',
-				'**/optimized-checkout.spec.js',
+				'**/*optimized-checkout.spec.js',
 				'**/blik.spec.js',
 				'**/becs.spec.js',
 				'**/isk.spec.js',
@@ -131,7 +131,7 @@ const config = {
 		},
 		{
 			name: 'optimized-checkout',
-			testMatch: '**/optimized-checkout.spec.js',
+			testMatch: '**/*optimized-checkout.spec.js',
 			dependencies: [ 'oc-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},

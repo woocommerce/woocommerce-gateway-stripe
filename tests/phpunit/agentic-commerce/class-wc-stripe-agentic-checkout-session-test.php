@@ -438,71 +438,60 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	 */
 	public function provide_is_agentic_cases(): array {
 		return [
-			'has external_reference product ID' => [
+			'network_business_profile present'    => [
 				(object) [
-					'line_items' => (object) [
-						'data' => [
-							(object) [
-								'price' => (object) [ 'external_reference' => '42' ],
-							],
+					'payment_intent' => (object) [
+						'id'            => 'pi_test_agentic',
+						'agent_details' => (object) [
+							'network_business_profile' => 'profile_test_123',
 						],
 					],
 				],
 				true,
 			],
-			'multiple items one with reference' => [
+			'network_business_profile empty'      => [
 				(object) [
-					'line_items' => (object) [
-						'data' => [
-							(object) [
-								'price' => (object) [ 'external_reference' => null ],
-							],
-							(object) [
-								'price' => (object) [ 'external_reference' => '99' ],
-							],
-						],
-					],
-				],
-				true,
-			],
-			'no external_reference'             => [
-				(object) [
-					'line_items' => (object) [
-						'data' => [
-							(object) [ 'price' => (object) [] ],
+					'payment_intent' => (object) [
+						'id'            => 'pi_test_empty_nbp',
+						'agent_details' => (object) [
+							'network_business_profile' => '',
 						],
 					],
 				],
 				false,
 			],
-			'external_reference is zero string' => [
+			'agent_details without nbp'           => [
 				(object) [
-					'line_items' => (object) [
-						'data' => [
-							(object) [
-								'price' => (object) [ 'external_reference' => '0' ],
-							],
-						],
+					'payment_intent' => (object) [
+						'id'            => 'pi_test_no_nbp',
+						'agent_details' => (object) [],
 					],
 				],
 				false,
 			],
-			'empty line items'                  => [
+			'agent_details is null'               => [
 				(object) [
-					'line_items' => (object) [ 'data' => [] ],
+					'payment_intent' => (object) [
+						'id'            => 'pi_test_null_agent_details',
+						'agent_details' => null,
+					],
 				],
 				false,
 			],
-			'external_reference is non-numeric' => [
+			'payment_intent has no agent_details' => [
 				(object) [
-					'line_items' => (object) [
-						'data' => [
-							(object) [
-								'price' => (object) [ 'external_reference' => 'not-a-number' ],
-							],
-						],
-					],
+					'payment_intent' => (object) [ 'id' => 'pi_test_not_agentic' ],
 				],
+				false,
+			],
+			'payment_intent is unexpanded string' => [
+				(object) [
+					'payment_intent' => 'pi_test_not_expanded',
+				],
+				false,
+			],
+			'payment_intent missing'              => [
+				(object) [],
 				false,
 			],
 		];

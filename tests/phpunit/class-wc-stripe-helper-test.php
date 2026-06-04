@@ -716,6 +716,241 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertTrue( $gateway_order['stripe_klarna'] < $gateway_order['stripe'] );
 		$this->assertTrue( $gateway_order['stripe'] < $gateway_order['stripe_affirm'] );
 		$this->assertTrue( $gateway_order['stripe_affirm'] < $gateway_order['cheque'] );
+		$this->assertSame( 'yes', get_option( 'wc_stripe_show_stripe_first_method_notice' ) );
+	}
+
+	/**
+	 * Test for `is_stripe_in_position_one_in_woocommerce_gateway_order`.
+	 *
+	 * @param array $payment_gateways Stub for `WC()->payment_gateways->payment_gateways` (id ⇒ enabled).
+	 *                                Iteration order matches WC's sorted-by-position order.
+	 * @param bool  $expected         Expected result.
+	 * @dataProvider provide_test_is_stripe_in_position_one_in_woocommerce_gateway_order
+	 */
+	public function test_is_stripe_in_position_one_in_woocommerce_gateway_order( array $payment_gateways, bool $expected ) {
+		$original_payment_gateways               = WC()->payment_gateways->payment_gateways;
+		WC()->payment_gateways->payment_gateways = $this->build_gateway_stubs( $payment_gateways );
+
+		try {
+			$this->assertSame(
+				$expected,
+				WC_Stripe_Helper::is_stripe_in_position_one_in_woocommerce_gateway_order()
+			);
+		} finally {
+			WC()->payment_gateways->payment_gateways = $original_payment_gateways;
+		}
+	}
+
+	/**
+	 * Builds an array of gateway stub objects from an `[ id => enabled_bool ]` map.
+	 *
+	 * @param array $map Gateway id → enabled bool.
+	 * @return array Stub objects with `id` and `enabled` properties keyed by gateway id.
+	 */
+	private function build_gateway_stubs( array $map ): array {
+		$stubs = [];
+		foreach ( $map as $id => $enabled ) {
+			$stubs[ $id ] = (object) [
+				'id'      => $id,
+				'enabled' => $enabled ? 'yes' : 'no',
+			];
+		}
+		return $stubs;
+	}
+
+	/**
+	 * Data provider for `test_is_stripe_in_position_one_in_woocommerce_gateway_order`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_stripe_in_position_one_in_woocommerce_gateway_order(): array {
+		return [
+			'stripe is first'                              => [
+				'payment_gateways' => [
+					'stripe' => true,
+					'cod'    => true,
+					'bacs'   => true,
+				],
+				'expected'         => true,
+			],
+			'stripe is not first'                          => [
+				'payment_gateways' => [
+					'cod'    => true,
+					'stripe' => true,
+					'bacs'   => true,
+				],
+				'expected'         => false,
+			],
+			'stripe missing from loaded gateways'          => [
+				'payment_gateways' => [
+					'cod'  => true,
+					'bacs' => true,
+				],
+				'expected'         => false,
+			],
+			'no loaded gateways'                           => [
+				'payment_gateways' => [],
+				'expected'         => true,
+			],
+			'all methods above stripe are disabled'        => [
+				'payment_gateways' => [
+					'cod'    => false,
+					'bacs'   => false,
+					'stripe' => true,
+				],
+				'expected'         => true,
+			],
+			'mixed enabled/disabled above stripe'          => [
+				'payment_gateways' => [
+					'cod'    => false,
+					'bacs'   => true,
+					'stripe' => true,
+				],
+				'expected'         => false,
+			],
+			'stripe APM (stripe_klarna) is first'          => [
+				'payment_gateways' => [
+					'stripe_klarna' => true,
+					'stripe'        => true,
+					'cod'           => true,
+				],
+				'expected'         => true,
+			],
+			'stripe disabled at top still counts as first' => [
+				'payment_gateways' => [
+					'stripe' => false,
+					'cod'    => true,
+				],
+				'expected'         => true,
+			],
+		];
+	}
+
+	/**
+	 * Test for `should_show_stripe_first_method_notice`.
+	 *
+	 * @param string|null $notice_option    Value for `wc_stripe_show_stripe_first_method_notice`, or null to delete (default yes).
+	 * @param array       $payment_gateways Stub for `WC()->payment_gateways->payment_gateways` (id ⇒ enabled).
+	 * @param bool        $expected         Expected return value.
+	 * @dataProvider provide_test_should_show_stripe_first_method_notice
+	 */
+	public function test_should_show_stripe_first_method_notice( ?string $notice_option, array $payment_gateways, bool $expected ): void {
+		if ( null === $notice_option ) {
+			delete_option( 'wc_stripe_show_stripe_first_method_notice' );
+		} else {
+			update_option( 'wc_stripe_show_stripe_first_method_notice', $notice_option );
+		}
+
+		$original_payment_gateways               = WC()->payment_gateways->payment_gateways;
+		WC()->payment_gateways->payment_gateways = $this->build_gateway_stubs( $payment_gateways );
+
+		try {
+			$this->assertSame( $expected, WC_Stripe_Helper::should_show_stripe_first_method_notice() );
+		} finally {
+			WC()->payment_gateways->payment_gateways = $original_payment_gateways;
+		}
+	}
+
+	/**
+	 * Data provider for `test_should_show_stripe_first_method_notice`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_should_show_stripe_first_method_notice(): array {
+		return [
+			'notice dismissed'                                     => [
+				'notice_option'    => 'no',
+				'payment_gateways' => [
+					'cod'    => true,
+					'stripe' => true,
+				],
+				'expected'         => false,
+			],
+			'notice enabled and stripe is first'                   => [
+				'notice_option'    => 'yes',
+				'payment_gateways' => [
+					'stripe' => true,
+					'cod'    => true,
+				],
+				'expected'         => false,
+			],
+			'notice enabled default and stripe is first'           => [
+				'notice_option'    => null,
+				'payment_gateways' => [
+					'stripe' => true,
+					'cod'    => true,
+				],
+				'expected'         => false,
+			],
+			'notice enabled and stripe is not first'               => [
+				'notice_option'    => 'yes',
+				'payment_gateways' => [
+					'cod'    => true,
+					'stripe' => true,
+				],
+				'expected'         => true,
+			],
+			'notice enabled default and stripe is not first'       => [
+				'notice_option'    => null,
+				'payment_gateways' => [
+					'cod'    => true,
+					'stripe' => true,
+				],
+				'expected'         => true,
+			],
+			'notice enabled and no loaded gateways'                => [
+				'notice_option'    => 'yes',
+				'payment_gateways' => [],
+				'expected'         => false,
+			],
+			'notice hidden when methods above stripe are disabled' => [
+				'notice_option'    => 'yes',
+				'payment_gateways' => [
+					'cod'    => false,
+					'bacs'   => false,
+					'stripe' => true,
+				],
+				'expected'         => false,
+			],
+		];
+	}
+
+	/**
+	 * Test for `move_stripe_gateways_to_top_in_woocommerce_gateway_order`.
+	 */
+	public function test_move_stripe_gateways_to_top_in_woocommerce_gateway_order() {
+		update_option(
+			'woocommerce_gateway_order',
+			[
+				'affirm'       => '0',
+				'woopayments'  => '1',
+				'amazon_pay'   => '2',
+				'stripe_sepa'  => '3',
+				'stripe_ideal' => '4',
+				'stripe'       => '5',
+				'stripe_eps'   => '6',
+				'cod'          => '7',
+				'paypal'       => '8',
+			]
+		);
+
+		WC_Stripe_Helper::move_stripe_gateways_to_top_in_woocommerce_gateway_order();
+		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+
+		$this->assertSame(
+			[
+				'stripe_sepa'  => '0',
+				'stripe_ideal' => '1',
+				'stripe'       => '2',
+				'stripe_eps'   => '3',
+				'affirm'       => '4',
+				'woopayments'  => '5',
+				'amazon_pay'   => '6',
+				'cod'          => '7',
+				'paypal'       => '8',
+			],
+			$gateway_order
+		);
 	}
 
 	/**
@@ -1300,16 +1535,16 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Test for `is_adaptive_pricing_supported` – cart content and preconditions.
 	 *
-	 * @param bool   $feature_flag       Feature flag enabled.
 	 * @param bool   $is_checkout        Whether is classic checkout page.
 	 * @param bool   $has_block          Whether is block checkout page.
 	 * @param string $adaptive_pricing   Adaptive pricing setting.
 	 * @param array  $cart_product_types Cart product types (e.g. ['simple'], ['simple','simple'], ['simple','simple','subscription']). Empty or null = empty cart.
 	 * @param bool   $expected           Expected result.
+	 * @param string $account_country    Two-letter ISO country code for the Stripe account. Defaults to 'US'.
 	 * @return void
 	 * @dataProvider provide_is_adaptive_pricing_supported
 	 */
-	public function test_is_adaptive_pricing_supported( bool $feature_flag, bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected ): void {
+	public function test_is_adaptive_pricing_supported( bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected, string $account_country = 'US' ): void {
 		$original_stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
 		$new_stripe_settings                               = $original_stripe_settings;
 		$new_stripe_settings['adaptive_pricing']           = $adaptive_pricing;
@@ -1317,8 +1552,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$new_stripe_settings['capture']                    = 'yes';
 		$new_stripe_settings['pmc_enabled']                = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
-
-		update_option( \WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, $feature_flag ? 'yes' : 'no' );
 
 		$is_checkout_filter = function () use ( $is_checkout ) {
 			return $is_checkout;
@@ -1367,6 +1600,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			}
 		}
 
+		$this->set_stripe_account_data( [ 'country' => $account_country ] );
+
 		$actual = WC_Stripe_Helper::is_adaptive_pricing_supported();
 
 		// Cleanup.
@@ -1379,7 +1614,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		\WC_Subscriptions_Product::set_subscription_product_ids( [] );
 		\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
 		\WC_Deposits_Product_Manager::set_deposits_enabled( false );
-		update_option( \WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, 'no' );
 
 		foreach ( $products as $product ) {
 			$product->delete( true );
@@ -1400,16 +1634,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_is_adaptive_pricing_supported(): array {
 		return [
-			'feature flag disabled'                     => [
-				'feature_flag'       => false,
-				'is_checkout'        => true,
-				'has_block'          => false,
-				'adaptive_pricing'   => 'yes',
-				'cart_product_types' => [ 'simple' ],
-				'expected'           => false,
-			],
 			'adaptive pricing disabled'                 => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'no',
@@ -1417,7 +1642,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'not on classic checkout or block checkout' => [
-				'feature_flag'       => true,
 				'is_checkout'        => false,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1425,7 +1649,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'on block checkout'                         => [
-				'feature_flag'       => true,
 				'is_checkout'        => false,
 				'has_block'          => true,
 				'adaptive_pricing'   => 'yes',
@@ -1433,7 +1656,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => true,
 			],
 			'empty cart'                                => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1441,7 +1663,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => true,
 			],
 			'simple product only'                       => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1449,7 +1670,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => true,
 			],
 			'multiple simple products'                  => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1457,7 +1677,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => true,
 			],
 			'simple and subscription products mixed'    => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1465,7 +1684,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'simple and deposits products mixed'        => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1473,7 +1691,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'subscription in cart'                      => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1481,7 +1698,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'pre-order in cart'                         => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1489,12 +1705,27 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'deposits in cart'                          => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
 				'cart_product_types' => [ 'deposits' ],
 				'expected'           => false,
+			],
+			'India account country'                     => [
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => false,
+				'account_country'    => 'IN',
+			],
+			'supported account country'                 => [
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => true,
+				'account_country'    => 'US',
 			],
 		];
 	}
@@ -1534,6 +1765,162 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		delete_option( 'woocommerce_calc_taxes' );
 
 		$this->assertSame( $expected_items, $actual );
+	}
+
+	/**
+	 * Test for {@see WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason()}.
+	 *
+	 * @param array   $account_data    Stripe account data to mock.
+	 * @param bool    $test_mode       Whether Stripe test mode is enabled.
+	 * @param string  $store_currency  WooCommerce store currency code.
+	 * @param ?string $expected        Expected return value.
+	 * @return void
+	 * @dataProvider provide_test_get_adaptive_pricing_account_unavailable_reason
+	 */
+	public function test_get_adaptive_pricing_account_unavailable_reason(
+		array $account_data,
+		bool $test_mode,
+		string $store_currency,
+		?string $expected
+	): void {
+		$original_settings    = WC_Stripe_Helper::get_stripe_settings();
+		$settings             = $original_settings;
+		$settings['testmode'] = $test_mode ? 'yes' : 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$this->set_stripe_account_data( $account_data );
+
+		$original_currency = get_option( 'woocommerce_currency' );
+		update_option( 'woocommerce_currency', $store_currency );
+
+		$actual = WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason();
+
+		// Cleanup.
+		update_option( 'woocommerce_currency', $original_currency );
+		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Data provider for {@see test_get_adaptive_pricing_account_unavailable_reason()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_adaptive_pricing_account_unavailable_reason(): array {
+		return [
+			'India account (uppercase) → account-country'                             => [
+				'account_data'   => [
+					'country'           => 'IN',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'inr' ],
+						],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'USD',
+				'expected'       => 'account-country',
+			],
+			'India account (lowercase) → account-country'                             => [
+				'account_data'   => [
+					'country'           => 'in',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'inr' ],
+						],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'USD',
+				'expected'       => 'account-country',
+			],
+			'India account + test mode → account-country (India checked before mode)' => [
+				'account_data'   => [
+					'country'           => 'IN',
+					'external_accounts' => [
+						'data' => [],
+					],
+				],
+				'test_mode'      => true,
+				'store_currency' => 'USD',
+				'expected'       => 'account-country',
+			],
+			'Test mode, no settlement currencies → null (currency check bypassed)'    => [
+				'account_data'   => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [],
+					],
+				],
+				'test_mode'      => true,
+				'store_currency' => 'USD',
+				'expected'       => null,
+			],
+			'Test mode, currency mismatch → null (currency check bypassed)'           => [
+				'account_data'   => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'eur' ],
+						],
+					],
+				],
+				'test_mode'      => true,
+				'store_currency' => 'USD',
+				'expected'       => null,
+			],
+			'Live mode, no settlement currencies → no-settlement-currencies'          => [
+				'account_data'   => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'USD',
+				'expected'       => 'no-settlement-currencies',
+			],
+			'Live mode, store currency not in settlement → store-currency-not-settlement-currency' => [
+				'account_data'   => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'eur' ],
+						],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'USD',
+				'expected'       => 'store-currency-not-settlement-currency',
+			],
+			'Live mode, store currency in settlement → null'                          => [
+				'account_data'   => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'usd' ],
+						],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'USD',
+				'expected'       => null,
+			],
+			'Live mode, non-US account, matching currency → null'                     => [
+				'account_data'   => [
+					'country'           => 'GB',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'gbp' ],
+						],
+					],
+				],
+				'test_mode'      => false,
+				'store_currency' => 'GBP',
+				'expected'       => null,
+			],
+		];
 	}
 
 	/**

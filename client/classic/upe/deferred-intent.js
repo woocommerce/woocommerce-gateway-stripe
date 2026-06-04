@@ -17,6 +17,7 @@ import {
 	getMountedUPEComponent,
 	hasEmptyRequiredFields,
 	initializeUPEComponents,
+	maybeUpdateAdaptivePricingCheckoutSession,
 	mountStripePaymentElement,
 	processPayment,
 } from './payment-processing';
@@ -86,7 +87,10 @@ jQuery( function ( $ ) {
 	// Only attempt to mount the card element once that section of the page has loaded.
 	// We can use the updated_checkout event for this.
 	$( document.body ).on( 'updated_checkout', () => {
-		maybeMountStripePaymentElement();
+		void ( async () => {
+			await maybeUpdateAdaptivePricingCheckoutSession( api );
+			await maybeMountStripePaymentElement();
+		} )();
 	} );
 
 	function processPaymentIfNotUsingSavedMethod( $form ) {
@@ -220,5 +224,39 @@ jQuery( function ( $ ) {
 				}
 			}
 		} );
+
+		// TODO: Remove this once we support saved payment methods with adaptive pricing.
+		// Hide the Adaptive Pricing currency selector when a saved payment method is selected,
+		// since no new Checkout Session is created in that flow.
+		const maybeShowCurrencySelector = () => {
+			const currencySelector = document.getElementById(
+				'wc-stripe-currency-selector'
+			);
+			if ( ! currencySelector ) {
+				return;
+			}
+			if (
+				isUsingSavedPaymentMethod(
+					getSelectedUPEGatewayPaymentMethod()
+				)
+			) {
+				$( currencySelector ).hide();
+			} else {
+				$( currencySelector ).show();
+			}
+		};
+
+		// Set initial visibility state on page load.
+		maybeShowCurrencySelector();
+
+		// Re-evaluate after WooCommerce re-renders the checkout.
+		$( document.body ).on( 'updated_checkout', maybeShowCurrencySelector );
+
+		// Re-evaluate when user switches between saved tokens and "Use a new payment method".
+		$( 'form.checkout' ).on(
+			'change',
+			'input[name="wc-stripe-payment-token"]',
+			maybeShowCurrencySelector
+		);
 	}
 } );

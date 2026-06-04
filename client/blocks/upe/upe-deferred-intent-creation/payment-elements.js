@@ -12,9 +12,9 @@ import { useEffect, useState } from '@wordpress/element';
 import WCStripeAPI from 'wcstripe/api';
 import {
 	getPaymentMethodTypes,
-	initializeUPEAppearance,
 	getExcludedPaymentMethodTypes,
 } from 'wcstripe/stripe-utils';
+import { initializeUPEAppearance } from 'wcstripe/stripe-utils/upe-appearance';
 import {
 	getBlocksConfiguration,
 	shouldSetupOffSessionPayment,
@@ -232,6 +232,8 @@ const PaymentElements = ( {
 		containerComponent = (
 			<CheckoutContainer
 				api={ api }
+				isLoggedIn={ stripeServerData?.isLoggedIn }
+				isPayerPhoneRequired={ stripeServerData?.isPayerPhoneRequired }
 				setPaymentProcessorLoadErrorMessage={
 					setPaymentProcessorLoadErrorMessage
 				}

@@ -79,6 +79,13 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_CHECKOUT_SESSION_ID = '_stripe_checkout_session_id';
 
 	/**
+	 * Meta key for whether the payment method should be saved to the store after checkout session payment.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_SHOULD_SAVE_PAYMENT_METHOD = '_stripe_should_save_payment_method_to_store';
+
+	/**
 	 * Meta key for Stripe presentment currency.
 	 *
 	 * @var string
@@ -196,6 +203,16 @@ class WC_Stripe_Order_Helper {
 	 * @var string
 	 */
 	private const META_STRIPE_LOCK_REFUND = '_stripe_lock_refund';
+
+	/**
+	 * Meta key for the In-Person Payments channel.
+	 *
+	 * Stores the ipp_channel value from Stripe PaymentIntent metadata.
+	 * Used to identify POS terminal payments (e.g. 'mobile_pos', 'mobile_store_management').
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_IPP_CHANNEL = '_stripe_ipp_channel';
 
 	/**
 	 * Singleton instance of the class.
@@ -514,6 +531,34 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function update_stripe_checkout_session_id( ?WC_Order $order = null, string $checkout_session_id = '' ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_CHECKOUT_SESSION_ID, $checkout_session_id );
+	}
+
+	/**
+	 * Gets whether the payment method should be saved to the store after a checkout session payment.
+	 *
+	 * @param WC_Order|null $order
+	 * @return bool
+	 */
+	public function get_should_save_stripe_payment_method( ?WC_Order $order = null ): bool {
+		return wc_string_to_bool( $this->get_order_meta( $order, self::META_STRIPE_SHOULD_SAVE_PAYMENT_METHOD ) );
+	}
+
+	/**
+	 * Sets the flag indicating the payment method should be saved to the store after a checkout session payment.
+	 *
+	 * @param WC_Order|null $order
+	 */
+	public function update_should_save_stripe_payment_method( ?WC_Order $order = null, bool $value = false ): void {
+		$this->update_order_meta( $order, self::META_STRIPE_SHOULD_SAVE_PAYMENT_METHOD, wc_bool_to_string( $value ) );
+	}
+
+	/**
+	 * Clears the flag indicating the payment method should be saved to the store after a checkout session payment.
+	 *
+	 * @param WC_Order|null $order
+	 */
+	public function delete_should_save_stripe_payment_method( ?WC_Order $order = null ): void {
+		$this->delete_order_meta( $order, self::META_STRIPE_SHOULD_SAVE_PAYMENT_METHOD );
 	}
 
 	/**
@@ -889,6 +934,31 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function update_stripe_upe_redirect_processed( ?WC_Order $order = null, bool $redirect_processed = false ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_UPE_REDIRECT_PROCESSED, $redirect_processed );
+	}
+
+	/**
+	 * Gets the In-Person Payments channel for the order.
+	 *
+	 * @since 10.6.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_ipp_channel( ?WC_Order $order = null ) {
+		return $this->get_order_meta( $order, self::META_STRIPE_IPP_CHANNEL );
+	}
+
+	/**
+	 * Updates the In-Person Payments channel for the order.
+	 *
+	 * @since 10.6.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $channel The IPP channel value (e.g. 'mobile_pos', 'mobile_store_management').
+	 * @return false|void
+	 */
+	public function update_stripe_ipp_channel( ?WC_Order $order = null, string $channel = '' ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_IPP_CHANNEL, $channel );
 	}
 
 	/**
