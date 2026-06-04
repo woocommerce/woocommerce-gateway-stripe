@@ -1,6 +1,6 @@
 # WooCommerce Stripe Benchmark Fixtures
 
-`fixture-bootstrap.php` prepares deterministic WooCommerce and Stripe state for benchmark workloads that run in a plain WordPress runtime, such as WP Codebox or `wp eval-file`.
+`fixture-bootstrap.php` prepares deterministic WooCommerce and Stripe state for benchmark workloads that run outside the PHPUnit test runner.
 
 Require the helper after WordPress, WooCommerce, and WooCommerce Stripe are loaded:
 
@@ -23,7 +23,7 @@ The helper sets up:
 - Stripe test mode, UPE, saved cards, and express checkout settings.
 - Preflight assertions that fail fixture setup before benchmark timing starts.
 
-Stripe keys default to local dummy test values for render-only workloads. WP Codebox workloads that need real Stripe API behavior can provide environment variables:
+Stripe keys default to local dummy test values for render-only workloads. Workloads that need real Stripe API behavior can provide environment variables:
 
 ```sh
 STRIPE_PUBLISHABLE_KEY=pk_test_...
