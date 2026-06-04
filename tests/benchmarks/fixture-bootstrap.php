@@ -1,11 +1,11 @@
 <?php
 /**
- * Plain WordPress/WP Codebox fixture bootstrap for WooCommerce Stripe benchmarks.
+ * Plain WordPress fixture bootstrap for WooCommerce Stripe benchmarks.
  *
  * Require this file from a WP-CLI eval-file or benchmark workload after WordPress,
  * WooCommerce, and WooCommerce Stripe are loaded. This helper intentionally avoids
  * PHPUnit globals and test-runner internals so fixture setup can run before timing
- * starts in a disposable benchmark runtime.
+ * starts in an isolated benchmark runtime.
  *
  * @package WooCommerce\Stripe\Tests\Benchmarks
  */
