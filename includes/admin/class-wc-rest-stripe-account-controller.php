@@ -126,6 +126,7 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 
 		return new WP_REST_Response(
 			[
+				'id'                       => $account['id'] ?? null,
 				'has_pending_requirements' => $this->account->has_pending_requirements(),
 				'has_overdue_requirements' => $this->account->has_overdue_requirements(),
 				'current_deadline'         => $account['requirements']['current_deadline'] ?? null,

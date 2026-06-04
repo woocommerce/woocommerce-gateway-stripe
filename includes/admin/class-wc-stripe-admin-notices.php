@@ -17,6 +17,13 @@ class WC_Stripe_Admin_Notices {
 	private const STRIPE_CUSTOMER_PAGE_BASE_URL = 'https://dashboard.stripe.com/customers/';
 
 	/**
+	 * Meta key name to store the subscription detachment notice status.
+	 *
+	 * @var string
+	 */
+	protected const DETACHED_NOTICE_DISMISSED_META = '_wc_stripe_subscription_detached_notice_dismissed';
+
+	/**
 	 * Notices (array)
 	 *
 	 * @var array
@@ -31,7 +38,6 @@ class WC_Stripe_Admin_Notices {
 	public function __construct() {
 		add_action( 'admin_notices', [ $this, 'admin_notices' ] );
 		add_action( 'wp_loaded', [ $this, 'hide_notices' ] );
-		add_action( 'woocommerce_stripe_updated', [ $this, 'stripe_updated' ] );
 	}
 
 	/**
@@ -69,6 +75,10 @@ class WC_Stripe_Admin_Notices {
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
 			return;
 		}
+
+		// Stripe API outage detection. Runs first so other environment checks
+		// can suppress notices that would be misleading during an outage.
+		$this->check_api_outage();
 
 		// Main Stripe payment method.
 		$this->stripe_check_environment();
@@ -308,9 +318,11 @@ class WC_Stripe_Admin_Notices {
 					}
 				}
 
-				// Check if Stripe Account data was successfully fetched.
+				// Check if Stripe Account data was successfully fetched. Skip when
+				// an outage is in progress: empty account data is the expected
+				// symptom and the outage notice already explains it.
 				$account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
-				if ( ! empty( $secret ) && empty( $account_data ) ) {
+				if ( ! empty( $secret ) && empty( $account_data ) && ! WC_Stripe_API_Outage_Status::is_in_outage() ) {
 					$setting_link = $this->get_setting_link();
 
 					$message = sprintf(
@@ -360,6 +372,30 @@ class WC_Stripe_Admin_Notices {
 				$this->add_admin_notice( 'changed_keys', 'notice notice-warning', $message, true );
 			}
 		}
+	}
+
+	/**
+	 * Surfaces a notice when the Stripe API appears to be experiencing an outage.
+	 *
+	 * The outage flag is set by WC_Stripe_API when requests fail with network
+	 * errors, timeouts, or 5xx responses, and clears automatically when the
+	 * transient expires (or earlier on the next successful response).
+	 *
+	 * @return void
+	 */
+	public function check_api_outage(): void {
+		if ( ! WC_Stripe_API_Outage_Status::is_in_outage() ) {
+			return;
+		}
+
+		$message = sprintf(
+			/* translators: 1) HTML strong open tag 2) HTML strong closing tag */
+			__( '%1$sStripe is temporarily unreachable.%2$s Payments and account updates may not go through until the connection is restored. This notice will clear automatically once requests start succeeding again.', 'woocommerce-gateway-stripe' ),
+			'<strong>',
+			'</strong>'
+		);
+
+		$this->add_admin_notice( 'api_outage', 'notice notice-warning', $message );
 	}
 
 	/**
@@ -476,38 +512,50 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
-		if ( WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription ) ) {
-			$customer_payment_method_link = sprintf(
-				'<a href="%s">%s</a>',
-				esc_url( $subscription->get_change_payment_method_url() ),
-				esc_html(
-					/* translators: this is a text for a link pointing to the customer's payment method page */
-					__( 'Payment method page &rarr;', 'woocommerce-gateway-stripe' )
-				)
-			);
-			$customer_stripe_page = sprintf(
-				'<a href="%s">%s</a>',
-				esc_url( WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . $subscription->get_meta( '_stripe_customer_id' ) ),
-				esc_html(
-					/* translators: this is a text for a link pointing to the customer's page on Stripe */
-					__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
-				)
-			);
-
-			$detached_message  = __( 'The payment method for this subscription has been detached, <strong>preventing renewals</strong>. ', 'woocommerce-gateway-stripe' );
-			$detached_message .= __( 'To fix this, either: <br />', 'woocommerce-gateway-stripe' );
-			$detached_message .= __( '1) Share the payment method page link with the customer to update it: ', 'woocommerce-gateway-stripe' ) . $customer_payment_method_link . '<br />';
-			$detached_message .= __( ' or <br />', 'woocommerce-gateway-stripe' );
-			$detached_message .= __( "2) Manually update the payment method in the subscription's billing details using a valid payment method from the customer's Stripe account: ", 'woocommerce-gateway-stripe' ) . $customer_stripe_page . '<br />';
-			$detached_message .= '<br />' . sprintf(
-				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag 3) The already-translated title of the tool*/
-				__( 'To list all your current subscriptions with payment methods detached, go to WooCommerce -> Status -> %1$sTools%2$s -> <strong>%3$s</strong>.', 'woocommerce-gateway-stripe' ),
-				'<a href="' . esc_url( admin_url( 'admin.php?page=wc-status&tab=tools' ) ) . '">',
-				'</a>',
-				__( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
-			);
-			$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message );
+		// If not detached but the user dismissed the notice prior, clear the meta so it can show if later detached.
+		if ( ! WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription ) ) {
+			if ( $subscription->get_meta( self::DETACHED_NOTICE_DISMISSED_META ) ) {
+				$subscription->delete_meta_data( self::DETACHED_NOTICE_DISMISSED_META );
+				$subscription->save_meta_data();
+			}
+			return;
 		}
+
+		if ( 'yes' === $subscription->get_meta( self::DETACHED_NOTICE_DISMISSED_META ) ) {
+			return;
+		}
+
+		$customer_payment_method_link = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( $subscription->get_change_payment_method_url() ),
+			esc_html(
+				/* translators: this is a text for a link pointing to the customer's payment method page */
+				__( 'Payment method page &rarr;', 'woocommerce-gateway-stripe' )
+			)
+		);
+		$customer_stripe_page = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $subscription ) ),
+			esc_html(
+				/* translators: this is a text for a link pointing to the customer's page on Stripe */
+				__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
+			)
+		);
+
+		$detached_message  = __( 'The payment method for this subscription has been detached, <strong>preventing renewals</strong>. ', 'woocommerce-gateway-stripe' );
+		$detached_message .= __( 'To fix this, either: <br />', 'woocommerce-gateway-stripe' );
+		$detached_message .= __( '1) Share the payment method page link with the customer to update it: ', 'woocommerce-gateway-stripe' ) . $customer_payment_method_link . '<br />';
+		$detached_message .= __( ' or <br />', 'woocommerce-gateway-stripe' );
+		$detached_message .= __( "2) Manually update the payment method in the subscription's billing details using a valid payment method from the customer's Stripe account: ", 'woocommerce-gateway-stripe' ) . $customer_stripe_page . '<br />';
+		$detached_message .= '<br />' . sprintf(
+			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag 3) The already-translated title of the tool*/
+			__( 'To list all your current subscriptions with payment methods detached, go to WooCommerce -> Status -> %1$sTools%2$s -> <strong>%3$s</strong>.', 'woocommerce-gateway-stripe' ),
+			'<a href="' . esc_url( admin_url( 'admin.php?page=wc-status&tab=tools' ) ) . '">',
+			'</a>',
+			__( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
+		);
+
+		$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message, true );
 	}
 
 	/**
@@ -549,25 +597,6 @@ class WC_Stripe_Admin_Notices {
 				}
 			}
 			$this->add_admin_notice( 'subscription_detached_bulk_action', 'notice notice-' . $notice_class, $notice_content, true );
-		}
-	}
-
-	/**
-	 * Environment check for subscriptions.
-	 *
-	 * @return void
-	 *
-	 * @deprecated 9.6.0 This method is no longer used and will be removed in a future version.
-	 */
-	public function subscriptions_check_environment() {
-		_deprecated_function( __METHOD__, '9.6.0' );
-		$options = WC_Stripe_Helper::get_stripe_settings();
-		if ( 'yes' === ( $options['enabled'] ?? null ) && 'no' !== get_option( 'wc_stripe_show_subscriptions_notice' ) ) {
-			$subscriptions     = WC_Stripe_Subscriptions_Helper::get_some_detached_subscriptions();
-			$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
-			if ( ! empty( $detached_messages ) ) {
-				$this->add_admin_notice( 'subscriptions', 'notice notice-error', $detached_messages, true );
-			}
 		}
 	}
 
@@ -638,6 +667,25 @@ class WC_Stripe_Admin_Notices {
 				case 'subscriptions':
 					update_option( 'wc_stripe_show_subscriptions_notice', 'no' );
 					break;
+				case 'subscription_detached':
+					// Non-HPOS uses `post`, HPOS uses `id` in URL query string to store post ID.
+					$subscription_id = 0;
+					if ( isset( $_REQUEST['post'] ) ) {
+						$subscription_id = absint( wp_unslash( $_REQUEST['post'] ) );
+					} elseif ( isset( $_REQUEST['id'] ) ) {
+						$subscription_id = absint( wp_unslash( $_REQUEST['id'] ) );
+					}
+					if ( $subscription_id > 0 ) {
+						$subscription = wcs_get_subscription( $subscription_id );
+						if ( $subscription instanceof WC_Subscription ) {
+							$subscription->update_meta_data( self::DETACHED_NOTICE_DISMISSED_META, 'yes' );
+							$subscription->save_meta_data();
+						}
+					}
+					if ( isset( $_SERVER['REQUEST_URI'] ) ) {
+						wp_safe_redirect( remove_query_arg( [ 'wc-stripe-hide-notice', '_wc_stripe_notice_nonce' ], esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) );
+					}
+					break;
 				case 'subscription_detached_bulk_action':
 					update_option( 'wc_stripe_show_subscription_detached_bulk_action_notice', 'no' );
 
@@ -672,8 +720,20 @@ class WC_Stripe_Admin_Notices {
 	 * @return void
 	 */
 	public function stripe_updated() {
-		$previous_version = get_option( 'wc_stripe_version' );
+		wc_deprecated_function( __METHOD__, '10.8.0', 'WC_Stripe_Admin_Notices::check_update_notices()' );
+		self::check_update_notices( get_option( 'wc_stripe_version' ) );
+	}
 
+	/**
+	 * Check for any notices to display after an update.
+	 *
+	 * @param string $previous_version The previous version of the plugin.
+	 *
+	 * @since 10.8.0
+	 *
+	 * @return void
+	 */
+	public static function check_update_notices( $previous_version ): void {
 		// Only show the style notice if the plugin was installed and older than 4.1.4.
 		if ( empty( $previous_version ) || version_compare( $previous_version, '4.1.4', 'ge' ) ) {
 			update_option( 'wc_stripe_show_style_notice', 'no' );

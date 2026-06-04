@@ -11,13 +11,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 	class WC_Stripe_Connect {
 
 		/**
-		 * The option name for the Stripe gateway settings.
-		 *
-		 * @deprecated 8.7.0
-		 */
-		const SETTINGS_OPTION = 'woocommerce_stripe_settings';
-
-		/**
 		 * Stripe connect api.
 		 *
 		 * @var object $api
@@ -282,6 +275,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			delete_option( 'wc_stripe_optimized_checkout_default_on' );
 			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
 				$options['optimized_checkout_element'] = 'yes';
+				$options['adaptive_pricing']           = 'yes';
 			}
 			if ( 'app' === $type ) {
 				$options[ $prefix . 'refresh_token' ] = $result->refreshToken; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
