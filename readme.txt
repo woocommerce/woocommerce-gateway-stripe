@@ -205,5 +205,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add e2e tests for subscriptions and Optimized Checkout Suite and support stricter payment confirmation checks
 * Fix - Restore "Refund via Gateway" button and Stripe dashboard transaction link for Amazon Pay orders by keeping Amazon Pay registered in the gateway list on order edit and refund pages
 * Fix - Correct Amazon Pay button preview rendering in the Full Site Editor block cart and checkout pages
+* Fix - Express Checkout (Apple Pay / Google Pay) now uses the order's currency instead of the store base currency on the Pay for Order page
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
