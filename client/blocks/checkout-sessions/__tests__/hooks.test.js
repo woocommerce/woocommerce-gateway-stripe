@@ -1,14 +1,21 @@
+import { renderHook, waitFor } from '@testing-library/react';
 import {
 	usePaymentSetupHandler,
 	useCheckoutSuccessHandler,
 	usePaymentFailHandler,
+	useCheckoutSessionTotalsSync,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
 import { useEffect } from '@wordpress/element';
-import { select } from '@wordpress/data';
+import { select, useSelect } from '@wordpress/data';
 
-jest.mock( '@wordpress/element' );
+jest.mock( '@wordpress/element', () => ( {
+	...jest.requireActual( '@wordpress/element' ),
+	useEffect: jest.fn( ( fn ) => fn() ),
+} ) );
+
 jest.mock( '@wordpress/data', () => ( {
 	select: jest.fn(),
+	useSelect: jest.fn( () => '' ),
 } ) );
 
 describe( 'CheckoutSessions hook tests', () => {
@@ -116,9 +123,27 @@ describe( 'CheckoutSessions hook tests', () => {
 						payment_method: 'stripe',
 						save_payment_method: 'no',
 						wc_stripe_checkout_session_id: checkoutSessionId,
+						wc_stripe_selected_upe_payment_type: '',
 					},
 				},
 			} );
+		} );
+
+		it( 'forwards the actual selected payment method type so the server can set the order title', async () => {
+			const hasLoadErrorRef = { current: false };
+			usePaymentSetupHandler(
+				onPaymentSetup,
+				checkoutSessionId,
+				null,
+				hasLoadErrorRef,
+				true,
+				'ideal'
+			);
+			const result = await onPaymentSetupResultPromise;
+			expect(
+				result.meta.paymentMethodData
+					.wc_stripe_selected_upe_payment_type
+			).toBe( 'ideal' );
 		} );
 
 		it( 'returns save_payment_method yes when the Blocks save checkbox is checked', async () => {
@@ -192,6 +217,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				onCheckoutSuccess,
 				billing,
 				true,
+				false,
 				shippingData
 			);
 			expect( await onCheckoutSuccessResultPromise ).toEqual( {
@@ -217,6 +243,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				onCheckoutSuccess,
 				billing,
 				true,
+				false,
 				shippingData
 			);
 			expect( await onCheckoutSuccessResultPromise ).toEqual( {
@@ -267,6 +294,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				onCheckoutSuccess,
 				billing,
 				true,
+				false,
 				shippingData
 			);
 			expect( await onCheckoutSuccessResultPromise ).toEqual( {
@@ -295,6 +323,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				onCheckoutSuccess,
 				billing,
 				false,
+				false,
 				shippingData
 			);
 			await onCheckoutSuccessResultPromise;
@@ -322,6 +351,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				onCheckoutSuccess,
 				billing,
 				true,
+				false,
 				shippingData
 			);
 			await onCheckoutSuccessResultPromise;
@@ -351,6 +381,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				checkoutState,
 				onCheckoutSuccess,
 				billing,
+				true,
 				true,
 				shippingData
 			);
@@ -384,6 +415,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				onCheckoutSuccess,
 				billing,
 				true,
+				true,
 				shippingData
 			);
 			await onCheckoutSuccessResultPromise;
@@ -413,6 +445,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				onCheckoutSuccess,
 				billing,
 				true,
+				false,
 				shippingData
 			);
 			await onCheckoutSuccessResultPromise;
@@ -457,6 +490,88 @@ describe( 'CheckoutSessions hook tests', () => {
 				message:
 					'An error occurred during payment processing. Please try again.',
 			} );
+		} );
+	} );
+
+	describe( 'useCheckoutSessionTotalsSync hook', () => {
+		let cartPrice;
+
+		beforeEach( () => {
+			cartPrice = '1000';
+			window.wc = {
+				wcBlocksData: { cartStore: 'wc/store/cart' },
+			};
+			useSelect.mockImplementation( ( mapSelect ) => {
+				const mockSelect = ( storeKey ) =>
+					storeKey === window.wc.wcBlocksData.cartStore
+						? {
+								getCartTotals: () => ( {
+									total_price: cartPrice,
+								} ),
+						  }
+						: {};
+				return mapSelect( mockSelect );
+			} );
+		} );
+
+		afterEach( () => {
+			useEffect.mockImplementation( ( fn ) => fn() );
+		} );
+
+		it( 'does not call update on the first totals snapshot', () => {
+			const api = {
+				checkoutSessionsUpdateSession: jest.fn( () =>
+					Promise.resolve( {} )
+				),
+			};
+			const checkoutState = {
+				type: 'success',
+				checkout: {
+					id: 'cs_test',
+					runServerUpdate: jest.fn( async ( fn ) => {
+						await fn();
+						return { type: 'success' };
+					} ),
+				},
+			};
+
+			renderHook( () =>
+				useCheckoutSessionTotalsSync( api, 'cs_test', checkoutState )
+			);
+
+			expect( api.checkoutSessionsUpdateSession ).not.toHaveBeenCalled();
+		} );
+
+		it( 'calls checkoutSessionsUpdateSession when cart totals change', async () => {
+			const api = {
+				checkoutSessionsUpdateSession: jest.fn( () =>
+					Promise.resolve( {} )
+				),
+			};
+			const checkoutState = {
+				type: 'success',
+				checkout: {
+					id: 'cs_test',
+					runServerUpdate: jest.fn( async ( fn ) => {
+						await fn();
+						return { type: 'success' };
+					} ),
+				},
+			};
+
+			const { rerender } = renderHook( () =>
+				useCheckoutSessionTotalsSync( api, 'cs_test', checkoutState )
+			);
+
+			cartPrice = '2000';
+			rerender();
+
+			await waitFor( () => {
+				expect(
+					api.checkoutSessionsUpdateSession
+				).toHaveBeenCalledWith( 'cs_test' );
+			} );
+			expect( checkoutState.checkout.runServerUpdate ).toHaveBeenCalled();
 		} );
 	} );
 } );

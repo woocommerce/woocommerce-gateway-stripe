@@ -1,6 +1,6 @@
-import { useEffect } from '@wordpress/element';
+import { useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { select } from '@wordpress/data';
+import { select, useSelect } from '@wordpress/data';
 import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
 
 /**
@@ -15,13 +15,15 @@ import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
  * @param {string}  errorMessage             An error message to display if there was an error loading the checkout session, used to provide feedback to the user.
  * @param {Object}  hasLoadErrorRef          A ref object that indicates whether there was an error loading the checkout session, used to prevent further processing if the session failed to load.
  * @param {boolean} isPaymentElementComplete A boolean that indicates whether the Stripe Payment Element is complete, used to validate that the user has entered all required payment information before allowing them to proceed with the payment.
+ * @param {string}  selectedPaymentType      The Stripe payment method type the customer picked inside the Payment Element (e.g. 'ideal'), used so the server can set the order's payment method title to the actual method instead of the OC pseudo-method default.
  */
 export const usePaymentSetupHandler = (
 	onPaymentSetup,
 	checkoutSessionId,
 	errorMessage,
 	hasLoadErrorRef,
-	isPaymentElementComplete
+	isPaymentElementComplete,
+	selectedPaymentType
 ) => {
 	useEffect(
 		() =>
@@ -86,6 +88,8 @@ export const usePaymentSetupHandler = (
 										: 'no',
 								wc_stripe_checkout_session_id:
 									checkoutSessionId,
+								wc_stripe_selected_upe_payment_type:
+									selectedPaymentType ?? '',
 							},
 						},
 					};
@@ -98,6 +102,7 @@ export const usePaymentSetupHandler = (
 			hasLoadErrorRef,
 			isPaymentElementComplete,
 			onPaymentSetup,
+			selectedPaymentType,
 		]
 	);
 };
@@ -105,17 +110,19 @@ export const usePaymentSetupHandler = (
 /**
  * Handles the Block Checkout onCheckoutSuccess event for the Checkout Sessions integration.
  *
- * @param {*}       checkoutState     The checkout state.
- * @param {*}       onCheckoutSuccess The onCheckoutSuccess event.
- * @param {Object}  billing           The billing data from WooCommerce Blocks, containing billingAddress.
- * @param {boolean} isLoggedIn        Whether the customer is logged-in.
- * @param {Object}  shippingData      The shipping data from WooCommerce Blocks, containing shippingAddress.
+ * @param {*}       checkoutState        The checkout state.
+ * @param {*}       onCheckoutSuccess    The onCheckoutSuccess event.
+ * @param {Object}  billing              The billing data from WooCommerce Blocks, containing billingAddress.
+ * @param {boolean} isLoggedIn           Whether the customer is logged-in.
+ * @param {boolean} isPayerPhoneRequired Whether the payer phone information is required.
+ * @param {Object}  shippingData         The shipping data from WooCommerce Blocks, containing shippingAddress.
  */
 export const useCheckoutSuccessHandler = (
 	checkoutState,
 	onCheckoutSuccess,
 	billing,
 	isLoggedIn,
+	isPayerPhoneRequired,
 	shippingData
 ) => {
 	useEffect(
@@ -154,8 +161,12 @@ export const useCheckoutSuccessHandler = (
 						},
 						returnUrl: redirect,
 						redirect: 'if_required',
-						savePaymentMethod: isSavePaymentMethodCheckboxChecked(),
 					};
+
+					if ( isLoggedIn ) {
+						confirmArgs.savePaymentMethod =
+							isSavePaymentMethodCheckboxChecked();
+					}
 
 					// Only include shipping information if the min. requirement is met.
 					if (
@@ -212,7 +223,7 @@ export const useCheckoutSuccessHandler = (
 						}
 					}
 
-					if ( isLoggedIn ) {
+					if ( isPayerPhoneRequired ) {
 						const userPhone =
 							document.getElementById( 'billing-phone' )?.value ||
 							document.getElementById( 'shipping-phone' )?.value;
@@ -237,7 +248,14 @@ export const useCheckoutSuccessHandler = (
 					};
 				}
 			),
-		[ onCheckoutSuccess, checkoutState, billing, isLoggedIn, shippingData ]
+		[
+			onCheckoutSuccess,
+			checkoutState,
+			billing,
+			isLoggedIn,
+			isPayerPhoneRequired,
+			shippingData,
+		]
 	);
 };
 
@@ -261,4 +279,104 @@ export const usePaymentFailHandler = ( onCheckoutFail, emitResponse ) => {
 			} ),
 		[ onCheckoutFail, emitResponse ]
 	);
+};
+
+/**
+ * Keeps the Stripe Checkout Session in sync with WooCommerce cart totals (price, tax, shipping) on block checkout.
+ * Uses Custom Checkout `runServerUpdate` when available (same pattern as classic checkout).
+ *
+ * @param {Object|null} api               WCStripeAPI instance (with checkoutSessionsUpdateSession).
+ * @param {string|null} checkoutSessionId Stripe Checkout Session id once the session is ready.
+ * @param {Object}      checkoutState     Result of useCheckout() from @stripe/react-stripe-js/checkout.
+ */
+export const useCheckoutSessionTotalsSync = (
+	api,
+	checkoutSessionId,
+	checkoutState
+) => {
+	const cartTotals = useSelect( ( selectCart ) => {
+		const cartStoreKey = window.wc?.wcBlocksData?.cartStore;
+		if ( ! cartStoreKey ) {
+			return '';
+		}
+
+		const cartStore = selectCart( cartStoreKey );
+		if ( typeof cartStore?.getCartTotals !== 'function' ) {
+			return '';
+		}
+		const totals = cartStore.getCartTotals();
+
+		return totals?.total_price;
+	}, [] );
+
+	const checkoutStateRef = useRef( checkoutState );
+	checkoutStateRef.current = checkoutState;
+
+	const prevSessionIdRef = useRef( null );
+	const prevCartTotalsRef = useRef( null );
+
+	// Update the previous session ID and totals signature when the checkout session ID changes.
+	useEffect( () => {
+		if ( prevSessionIdRef.current !== checkoutSessionId ) {
+			prevSessionIdRef.current = checkoutSessionId;
+			prevCartTotalsRef.current = null;
+		}
+	}, [ checkoutSessionId ] );
+
+	useEffect( () => {
+		if ( ! checkoutSessionId || cartTotals === '' ) {
+			return;
+		}
+
+		if ( prevCartTotalsRef.current === null ) {
+			prevCartTotalsRef.current = cartTotals;
+			return;
+		}
+
+		if ( prevCartTotalsRef.current === cartTotals ) {
+			return;
+		}
+
+		prevCartTotalsRef.current = cartTotals;
+
+		const state = checkoutStateRef.current;
+		if ( state?.type !== 'success' ) {
+			return;
+		}
+
+		let cancelled = false;
+
+		const run = async () => {
+			try {
+				const { checkout } = state;
+				if (
+					typeof api?.checkoutSessionsUpdateSession !== 'function' ||
+					typeof checkout?.runServerUpdate !== 'function'
+				) {
+					return;
+				}
+
+				const result = await checkout.runServerUpdate( async () => {
+					await api.checkoutSessionsUpdateSession(
+						checkoutSessionId
+					);
+				} );
+				if ( ! cancelled && result && result.type === 'error' ) {
+					// eslint-disable-next-line no-console
+					console.error( result.error );
+				}
+			} catch ( error ) {
+				if ( ! cancelled ) {
+					// eslint-disable-next-line no-console
+					console.error( error );
+				}
+			}
+		};
+
+		run();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [ api, cartTotals, checkoutSessionId ] );
 };
