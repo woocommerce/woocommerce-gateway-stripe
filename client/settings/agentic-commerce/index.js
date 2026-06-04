@@ -102,6 +102,10 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			} );
 			setIsFeatureEnabled( result.is_enabled );
 			setWebhookSecret( result.webhook_secret ?? '' );
+			setSettingsNotice( {
+				status: 'success',
+				message: __( 'Settings saved.', 'woocommerce-gateway-stripe' ),
+			} );
 		} catch ( err ) {
 			setSettingsNotice( {
 				status: 'error',

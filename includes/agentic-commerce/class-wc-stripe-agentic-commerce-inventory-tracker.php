@@ -30,42 +30,42 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 *
 	 * @var string
 	 */
-	const PENDING_UPDATES_OPTION = 'wc_stripe_agentic_pending_inventory';
+	public const PENDING_UPDATES_OPTION = 'wc_stripe_agentic_pending_inventory';
 
 	/**
 	 * Option key used to store pending product archives.
 	 *
 	 * @var string
 	 */
-	const PENDING_ARCHIVES_OPTION = 'wc_stripe_agentic_pending_archives';
+	public const PENDING_ARCHIVES_OPTION = 'wc_stripe_agentic_pending_archives';
 
 	/**
 	 * Action Scheduler hook name for inventory sync.
 	 *
 	 * @var string
 	 */
-	const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_inventory';
+	public const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_inventory';
 
 	/**
 	 * Action Scheduler hook name for archive sync.
 	 *
 	 * @var string
 	 */
-	const ARCHIVE_SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_archives';
+	public const ARCHIVE_SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_archives';
 
 	/**
 	 * Maximum number of pending updates before falling back to full catalog sync.
 	 *
 	 * @var int
 	 */
-	const MAX_PENDING_UPDATES = 1000;
+	public const MAX_PENDING_UPDATES = 1000;
 
 	/**
 	 * Delay in seconds before processing a batch of stock changes.
 	 *
 	 * @var int
 	 */
-	const BATCH_DELAY_SECONDS = 60;
+	public const BATCH_DELAY_SECONDS = 60;
 
 	/**
 	 * Register WordPress hooks.
@@ -103,6 +103,14 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * @return void
 	 */
 	public function track_stock_change( \WC_Product $product ): void {
+		if ( ! WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) ) {
+			// Evict any stale entries that were queued before the visibility filter
+			// flipped — otherwise a now-excluded product would still flush to Stripe
+			// on the next batch.
+			$this->evict_pending_entries( $product->get_id() );
+			return;
+		}
+
 		$pending = get_option( self::PENDING_UPDATES_OPTION, [] );
 
 		// Once we hit the threshold, stop accumulating — sync_inventory() will
@@ -180,6 +188,92 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	}
 
 	/**
+	 * Remove any pending inventory or archive entry queued for $product_id.
+	 *
+	 * Called from the track_* methods when the visibility filter votes false so
+	 * a product that was queued before the filter flipped doesn't still flush
+	 * to Stripe on the next batch.
+	 *
+	 * @since 10.8.0
+	 * @param int $product_id Product ID to evict.
+	 * @return void
+	 */
+	private function evict_pending_entries( int $product_id ): void {
+		$updates = get_option( self::PENDING_UPDATES_OPTION, [] );
+		if ( isset( $updates[ $product_id ] ) ) {
+			unset( $updates[ $product_id ] );
+			if ( empty( $updates ) ) {
+				delete_option( self::PENDING_UPDATES_OPTION );
+			} else {
+				update_option( self::PENDING_UPDATES_OPTION, $updates, false );
+			}
+		}
+
+		$archives = get_option( self::PENDING_ARCHIVES_OPTION, [] );
+		if ( isset( $archives[ $product_id ] ) ) {
+			unset( $archives[ $product_id ] );
+			if ( empty( $archives ) ) {
+				delete_option( self::PENDING_ARCHIVES_OPTION );
+			} else {
+				update_option( self::PENDING_ARCHIVES_OPTION, $archives, false );
+			}
+		}
+	}
+
+	/**
+	 * Re-check `should_sync_product()` for each pending entry and drop the
+	 * ones whose filter outcome flipped to false between enqueue and flush.
+	 *
+	 * The event-driven eviction in `track_stock_change()` and `track_product_archive()`
+	 * only fires when a follow-up event arrives. If a merchant hides a product
+	 * during the 60-second batch window and no further event lands for it, the
+	 * queued row would otherwise still ship on the next flush — defeating the
+	 * filter's "this product should not be synced" contract. Reading the option
+	 * blind at flush time isn't enough; the visibility decision can move.
+	 *
+	 * For permanently-deleted products (`wc_get_product()` returns false): inventory
+	 * entries are dropped (the stock delta references a SKU that no longer exists),
+	 * but archive entries are kept because the row data was already captured at
+	 * archive time and Stripe still has the product to mark out_of_stock.
+	 *
+	 * @since 10.8.0
+	 * @param string $option_key Pending option to prune.
+	 * @param bool   $is_archive Whether the option holds archive entries (changes the missing-product policy).
+	 * @return array Pruned pending entries — also persisted back to `$option_key` if anything changed.
+	 */
+	private function prune_stale_pending_entries( string $option_key, bool $is_archive ): array {
+		$pending = get_option( $option_key, [] );
+		if ( empty( $pending ) ) {
+			return [];
+		}
+
+		$kept = [];
+		foreach ( $pending as $id => $row ) {
+			$product = wc_get_product( $id );
+			if ( ! $product ) {
+				if ( $is_archive ) {
+					$kept[ $id ] = $row;
+				}
+				continue;
+			}
+			if ( WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) ) {
+				$kept[ $id ] = $row;
+			}
+		}
+
+		if ( count( $kept ) === count( $pending ) ) {
+			return $pending;
+		}
+
+		if ( empty( $kept ) ) {
+			delete_option( $option_key );
+		} else {
+			update_option( $option_key, $kept, false );
+		}
+		return $kept;
+	}
+
+	/**
 	 * Track a product deletion (permanent delete or trash) for archiving on Stripe.
 	 *
 	 * Uses the product mapper to capture all required feed fields (title, description,
@@ -197,6 +291,14 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * @return void
 	 */
 	public function track_product_archive( \WC_Product $product ): void {
+		if ( ! WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) ) {
+			// Evict any stale entries that were queued before the visibility filter
+			// flipped — otherwise a now-excluded product would still flush to Stripe
+			// on the next batch.
+			$this->evict_pending_entries( $product->get_id() );
+			return;
+		}
+
 		$product_id = $product->get_id();
 
 		// Remove from pending inventory updates — stock quantity is irrelevant for archived products.
@@ -302,12 +404,25 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		}
 
 		// Too many pending updates — fall back to full catalog sync on its next scheduled run.
+		// Run this before the visibility re-check so an enormous queue still defers cleanly
+		// instead of paying the per-row product load cost.
 		if ( count( $pending ) >= self::MAX_PENDING_UPDATES ) {
 			WC_Stripe_Logger::info(
 				'Agentic Commerce: Inventory sync - pending update threshold exceeded, deferring to full catalog sync',
 				[ 'pending_count' => count( $pending ) ]
 			);
 			delete_option( self::PENDING_UPDATES_OPTION );
+			return;
+		}
+
+		// Re-check the visibility filter for each pending entry before flushing:
+		// the outcome can flip between enqueue and the batch window elapsing,
+		// and the event-driven eviction only catches products that get a
+		// follow-up stock or archive event in that window.
+		$pending = $this->prune_stale_pending_entries( self::PENDING_UPDATES_OPTION, false );
+
+		if ( empty( $pending ) ) {
+			WC_Stripe_Logger::info( 'Agentic Commerce: Inventory sync skipped - all pending updates pruned by visibility filter' );
 			return;
 		}
 
@@ -447,12 +562,25 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		}
 
 		// Too many pending archives — fall back to full catalog sync on its next scheduled run.
+		// Run this before the visibility re-check so an enormous queue still defers cleanly
+		// instead of paying the per-row product load cost.
 		if ( count( $pending ) >= self::MAX_PENDING_UPDATES ) {
 			WC_Stripe_Logger::info(
 				'Agentic Commerce: Archive sync - pending archive threshold exceeded, deferring to full catalog sync',
 				[ 'pending_count' => count( $pending ) ]
 			);
 			delete_option( self::PENDING_ARCHIVES_OPTION );
+			return;
+		}
+
+		// Re-check the visibility filter for each pending entry before flushing —
+		// see the matching note in sync_inventory(). For permanently-deleted
+		// products the helper keeps archive entries (the mapped row was captured
+		// before the delete) so Stripe still receives the out_of_stock signal.
+		$pending = $this->prune_stale_pending_entries( self::PENDING_ARCHIVES_OPTION, true );
+
+		if ( empty( $pending ) ) {
+			WC_Stripe_Logger::info( 'Agentic Commerce: Archive sync skipped - all pending archives pruned by visibility filter' );
 			return;
 		}
 

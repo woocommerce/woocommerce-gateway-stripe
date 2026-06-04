@@ -8,8 +8,23 @@ env:
   WC_VERSION: latest
 
 jobs:
+  changes:
+    name: Check for code changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.detect.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: detect
+        uses: ./.github/actions/detect-code-changes
+
   php_lint:
     name:    PHP linting
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       # clone the repository
@@ -29,6 +44,8 @@ jobs:
       - run: composer install --no-progress && ./vendor/bin/phpcs --standard=phpcs.xml.dist -n $(git ls-files | grep .php$)
   js_css_lint:
     name: JS & CSS linting
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       # clone the repository

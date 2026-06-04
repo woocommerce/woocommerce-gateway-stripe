@@ -9,53 +9,54 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Payment_Methods {
 	// Standard payment method constants
-	const ACH               = 'us_bank_account';
-	const ACSS_DEBIT        = 'acss_debit';
-	const AFFIRM            = 'affirm';
-	const AFTERPAY_CLEARPAY = 'afterpay_clearpay';
-	const ALIPAY            = 'alipay';
-	const BACS_DEBIT        = 'bacs_debit';
-	const BECS_DEBIT        = 'au_becs_debit';
-	const BANCONTACT        = 'bancontact';
-	const BLIK              = 'blik';
-	const BOLETO            = 'boleto';
-	const CARD              = 'card';
-	const CARD_PRESENT      = 'card_present';
-	const CASHAPP_PAY       = 'cashapp';
-	const EPS               = 'eps';
-	const GIROPAY           = 'giropay';
-	const IDEAL             = 'ideal';
-	const KLARNA            = 'klarna';
-	const MULTIBANCO        = 'multibanco';
-	const OXXO              = 'oxxo';
-	const P24               = 'p24';
-	const SEPA              = 'sepa';
-	const SEPA_DEBIT        = 'sepa_debit';
-	const SOFORT            = 'sofort';
-	const WECHAT_PAY        = 'wechat_pay';
-	const OC                = 'card'; // This is a special case for the Optimized Checkout
+	public const ACH               = 'us_bank_account';
+	public const ACSS_DEBIT        = 'acss_debit';
+	public const AFFIRM            = 'affirm';
+	public const AFTERPAY_CLEARPAY = 'afterpay_clearpay';
+	public const ALIPAY            = 'alipay';
+	public const BACS_DEBIT        = 'bacs_debit';
+	public const BECS_DEBIT        = 'au_becs_debit';
+	public const BANCONTACT        = 'bancontact';
+	public const BLIK              = 'blik';
+	public const BOLETO            = 'boleto';
+	public const CARD              = 'card';
+	public const CARD_PRESENT      = 'card_present';
+	public const CASHAPP_PAY       = 'cashapp';
+	public const EPS               = 'eps';
+	public const GIROPAY           = 'giropay';
+	public const IDEAL             = 'ideal';
+	public const KLARNA            = 'klarna';
+	public const MULTIBANCO        = 'multibanco';
+	public const OXXO              = 'oxxo';
+	public const P24               = 'p24';
+	public const SEPA              = 'sepa';
+	public const SEPA_DEBIT        = 'sepa_debit';
+	public const SOFORT            = 'sofort';
+	public const WECHAT_PAY        = 'wechat_pay';
+	public const OC                = 'card'; // This is a special case for the Optimized Checkout
 
 	public const LEGACY_SEPA = 'stripe_sepa'; // Sepa method identifier for the legacy checkout (now removed)
 
 	// Express method constants
-	const AMAZON_PAY = 'amazon_pay';
-	const GOOGLE_PAY = 'google_pay';
-	const APPLE_PAY  = 'apple_pay';
-	const LINK       = 'link';
+	public const AMAZON_PAY = 'amazon_pay';
+	public const GOOGLE_PAY = 'google_pay';
+	public const APPLE_PAY  = 'apple_pay';
+	public const LINK       = 'link';
 
 	// Payment method labels
-	const BACS_DEBIT_LABEL      = 'Bacs Direct Debit';
-	const GOOGLE_PAY_LABEL      = 'Google Pay';
-	const APPLE_PAY_LABEL       = 'Apple Pay';
-	const LINK_LABEL            = 'Link';
-	const PAYMENT_REQUEST_LABEL = 'Payment Request';
+	public const BACS_DEBIT_LABEL      = 'Bacs Direct Debit';
+	public const GOOGLE_PAY_LABEL      = 'Google Pay';
+	public const APPLE_PAY_LABEL       = 'Apple Pay';
+	public const AMAZON_PAY_LABEL      = 'Amazon Pay';
+	public const LINK_LABEL            = 'Link';
+	public const PAYMENT_REQUEST_LABEL = 'Payment Request';
 
 	/**
 	 * Payment methods that are considered as express payment methods.
 	 *
 	 * @var array
 	 */
-	const EXPRESS_PAYMENT_METHODS = [
+	public const EXPRESS_PAYMENT_METHODS = [
 		self::AMAZON_PAY,
 		self::GOOGLE_PAY,
 		self::APPLE_PAY,
@@ -67,7 +68,7 @@ class WC_Stripe_Payment_Methods {
 	 *
 	 * @var array
 	 */
-	const VOUCHER_PAYMENT_METHODS = [
+	public const VOUCHER_PAYMENT_METHODS = [
 		self::BOLETO,
 		self::MULTIBANCO,
 		self::OXXO,
@@ -78,7 +79,7 @@ class WC_Stripe_Payment_Methods {
 	 *
 	 * @var array
 	 */
-	const BNPL_PAYMENT_METHODS = [
+	public const BNPL_PAYMENT_METHODS = [
 		self::AFFIRM,
 		self::AFTERPAY_CLEARPAY,
 		self::KLARNA,
@@ -89,7 +90,7 @@ class WC_Stripe_Payment_Methods {
 	 *
 	 * @var array
 	 */
-	const WALLET_PAYMENT_METHODS = [
+	public const WALLET_PAYMENT_METHODS = [
 		self::CASHAPP_PAY,
 		self::WECHAT_PAY,
 	];
@@ -98,7 +99,7 @@ class WC_Stripe_Payment_Methods {
 	 * List of express payment methods labels. Amazon Pay and Link are not included,
 	 * as they have their own payment method classes.
 	 */
-	const EXPRESS_METHODS_LABELS = [
+	public const EXPRESS_METHODS_LABELS = [
 		'google_pay' => self::GOOGLE_PAY_LABEL,
 		'apple_pay'  => self::APPLE_PAY_LABEL,
 	];
@@ -113,7 +114,7 @@ class WC_Stripe_Payment_Methods {
 	 *
 	 * @var array
 	 */
-	const NON_EXCLUDABLE_PAYMENT_METHOD_TYPES = [
+	public const NON_EXCLUDABLE_PAYMENT_METHOD_TYPES = [
 		self::APPLE_PAY,
 		self::GOOGLE_PAY,
 		self::LINK,
