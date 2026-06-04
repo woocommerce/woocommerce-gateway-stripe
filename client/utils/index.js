@@ -42,6 +42,8 @@ export const dismissNotice = ( noticeKey, callback ) => {
 						'show_customization_notice',
 					wc_stripe_show_optimized_checkout_notice:
 						'show_optimized_checkout_notice',
+					wc_stripe_show_stripe_first_method_notice:
+						'show_stripe_first_method_notice',
 				};
 				const paramKey = optionToParamMap[ noticeKey ];
 				if ( paramKey ) {

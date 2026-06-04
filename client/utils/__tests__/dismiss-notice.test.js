@@ -87,6 +87,21 @@ describe( 'dismissNotice', () => {
 		);
 	} );
 
+	it( 'should update wc_stripe_settings_params for Stripe first position notice', async () => {
+		global.wc_stripe_settings_params = {
+			show_stripe_first_method_notice: '1',
+		};
+
+		apiFetch.mockImplementation( () => Promise.resolve( {} ) );
+
+		dismissNotice( 'wc_stripe_show_stripe_first_method_notice', jest.fn() );
+		await new Promise( process.nextTick );
+
+		expect(
+			global.wc_stripe_settings_params.show_stripe_first_method_notice
+		).toBe( false );
+	} );
+
 	it( 'should not throw when wc_stripe_settings_params is undefined', async () => {
 		apiFetch.mockImplementation( () => Promise.resolve( {} ) );
 
