@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 import { Icon, info } from '@wordpress/icons';
-import RemoveMethodConfirmationModal from './remove-method-confirmation-modal';
 import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
 import { useEnabledPaymentMethodIds, useManualCapture } from 'wcstripe/data';
@@ -29,8 +28,6 @@ const PaymentMethodCheckbox = ( {
 	disabled,
 } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
-	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] =
-		useState( false );
 	const [ enabledPaymentMethods, setEnabledPaymentMethods ] =
 		useEnabledPaymentMethodIds();
 	const checked = ! disabled && enabledPaymentMethods.includes( id );
@@ -40,18 +37,13 @@ const PaymentMethodCheckbox = ( {
 			return;
 		}
 		if ( ! hasBeenChecked ) {
-			setIsConfirmationModalOpen( true );
+			setEnabledPaymentMethods(
+				enabledPaymentMethods.filter( ( m ) => m !== id )
+			);
 			return;
 		}
 
 		setEnabledPaymentMethods( [ ...enabledPaymentMethods, id ] );
-	};
-
-	const handleRemovalConfirmation = () => {
-		setIsConfirmationModalOpen( false );
-		setEnabledPaymentMethods(
-			enabledPaymentMethods.filter( ( m ) => m !== id )
-		);
 	};
 
 	return (
@@ -88,13 +80,6 @@ const PaymentMethodCheckbox = ( {
 					onChange={ handleCheckboxChange }
 					checked={ checked }
 					disabled={ disabled }
-				/>
-			) }
-			{ isConfirmationModalOpen && (
-				<RemoveMethodConfirmationModal
-					method={ id }
-					onClose={ () => setIsConfirmationModalOpen( false ) }
-					onConfirm={ handleRemovalConfirmation }
 				/>
 			) }
 		</>
