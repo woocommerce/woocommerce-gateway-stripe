@@ -96,6 +96,53 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		} );
 	} );
 
+	it( 'shows Adaptive Pricing as unchecked and disabled when OCS is off, without clearing the saved value', () => {
+		global.wc_stripe_settings_params = {
+			is_cs_available: true,
+			adaptive_pricing_unavailable_reason: null,
+		};
+
+		// OCS is off but Adaptive Pricing was previously enabled (saved value is true).
+		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
+		const setAdaptivePricingEnabledMock = jest.fn();
+		useIsAdaptivePricingEnabled.mockReturnValue( [
+			true,
+			setAdaptivePricingEnabledMock,
+		] );
+
+		render( <OptimizedCheckoutFeature isOCAvailable={ true } /> );
+
+		const adaptivePricingCheckbox = screen.getByLabelText(
+			'Let customers pay in their local currency with Adaptive Pricing'
+		);
+
+		// It should appear unchecked (not stuck "on") and be disabled while OCS is off...
+		expect( adaptivePricingCheckbox ).not.toBeChecked();
+		expect( adaptivePricingCheckbox ).toBeDisabled();
+		// ...and we never mutate the saved Adaptive Pricing value, so it can be restored when OCS is re-enabled.
+		expect( setAdaptivePricingEnabledMock ).not.toHaveBeenCalled();
+	} );
+
+	it( 'restores the saved Adaptive Pricing value once OCS is enabled', () => {
+		global.wc_stripe_settings_params = {
+			is_cs_available: true,
+			adaptive_pricing_unavailable_reason: null,
+		};
+
+		// OCS enabled and Adaptive Pricing previously enabled.
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+		useIsAdaptivePricingEnabled.mockReturnValue( [ true, jest.fn() ] );
+
+		render( <OptimizedCheckoutFeature isOCAvailable={ true } /> );
+
+		const adaptivePricingCheckbox = screen.getByLabelText(
+			'Let customers pay in their local currency with Adaptive Pricing'
+		);
+
+		expect( adaptivePricingCheckbox ).toBeChecked();
+		expect( adaptivePricingCheckbox ).toBeEnabled();
+	} );
+
 	it( 'triggers the hook when changing the Adaptive Pricing setting', async () => {
 		global.wc_stripe_settings_params = {
 			is_cs_available: true,

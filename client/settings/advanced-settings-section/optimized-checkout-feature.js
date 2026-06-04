@@ -158,6 +158,13 @@ const OptimizedCheckoutFeature = ( { isOCAvailable } ) => {
 		);
 	}, [ adaptivePricingUnavailableReason, isOCAvailable, isOCEnabled ] );
 
+	// Adaptive Pricing is a sub-feature of Optimized Checkout Suite: it cannot be used unless OCS is
+	// available and enabled (and the account supports it). When unavailable, the checkbox is disabled.
+	const isAdaptivePricingUnavailable =
+		! isOCAvailable ||
+		! isOCEnabled ||
+		adaptivePricingUnavailableReason !== null;
+
 	return (
 		<>
 			<h4 ref={ headingRef }>
@@ -224,17 +231,16 @@ const OptimizedCheckoutFeature = ( { isOCAvailable } ) => {
 			) }
 			<h4>{ __( 'Adaptive Pricing', 'woocommerce-gateway-stripe' ) }</h4>
 			<CheckboxControl
-				disabled={
-					! isOCAvailable ||
-					! isOCEnabled ||
-					adaptivePricingUnavailableReason !== null
-				}
+				disabled={ isAdaptivePricingUnavailable }
 				label={ __(
 					'Let customers pay in their local currency with Adaptive Pricing',
 					'woocommerce-gateway-stripe'
 				) }
 				help={ adaptivePricingHelp }
-				checked={ isAdaptivePricingEnabled }
+				// Show the checkbox as unchecked whenever Adaptive Pricing is unavailable.
+				checked={
+					! isAdaptivePricingUnavailable && isAdaptivePricingEnabled
+				}
 				onChange={ setIsAdaptivePricingEnabled }
 			/>
 		</>
