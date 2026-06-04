@@ -56,26 +56,20 @@ const TestModeCheckbox = () => {
 					<>
 						{ helpText }
 						{ isLockedToTestMode && (
-							<>
-								<br />
-								<strong>
-									{ __(
-										'Live mode cannot be enabled before you have connected a live Stripe account.',
-										'woocommerce-gateway-stripe'
-									) }
-								</strong>
-							</>
+							<strong className="wcstripe-test-mode-checkbox__lock-notice">
+								{ __(
+									'Live mode cannot be enabled before you have connected a live Stripe account.',
+									'woocommerce-gateway-stripe'
+								) }
+							</strong>
 						) }
 						{ isLockedToLiveMode && (
-							<>
-								<br />
-								<strong>
-									{ __(
-										'Test mode cannot be enabled before you have connected a test Stripe account.',
-										'woocommerce-gateway-stripe'
-									) }
-								</strong>
-							</>
+							<strong className="wcstripe-test-mode-checkbox__lock-notice">
+								{ __(
+									'Test mode cannot be enabled before you have connected a test Stripe account.',
+									'woocommerce-gateway-stripe'
+								) }
+							</strong>
 						) }
 					</>
 				}
