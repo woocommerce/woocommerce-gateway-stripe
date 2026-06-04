@@ -134,58 +134,58 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 	 *
 	 * @dataProvider audience_matrix_provider
 	 */
-	public function test_migration_scenarios(
-		string $previous_version,
-		string $oc_pre,
-		string $ap_pre,
-		?string $ap_unavailable_reason,
-		?int $account_created,
-		string $pmc_enabled,
-		bool $has_account_data,
-		string $expected_show_ocs_ap_banner,
-		string $expected_show_ap_banner,
-		string $expected_show_ocs_only_banner,
-		string $expected_oc_after,
-		string $expected_ap_after
-	) {
-		update_option( self::STRIPE_VERSION_OPTION, $previous_version );
+	public function test_migration_scenarios( array $scenario ) {
+		update_option( self::STRIPE_VERSION_OPTION, $scenario['previous_version'] );
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
-				'optimized_checkout_element' => $oc_pre,
-				'adaptive_pricing'           => $ap_pre,
-				'pmc_enabled'                => $pmc_enabled,
+				'optimized_checkout_element' => $scenario['oc_pre'],
+				'adaptive_pricing'           => $scenario['ap_pre'],
+				'pmc_enabled'                => $scenario['pmc_enabled'],
 			]
 		);
 
-		$this->build_migration( $ap_unavailable_reason, $account_created, $has_account_data )->maybe_migrate( $previous_version );
+		$this->build_migration(
+			$scenario['ap_unavailable_reason'],
+			$scenario['account_created'],
+			$scenario['has_account_data']
+		)->maybe_migrate( $scenario['previous_version'] );
 
-		$created_label = null === $account_created ? 'null' : (string) $account_created;
-		$context       = sprintf( 'prev=%s oc=%s ap=%s ap_unavail=%s created=%s pmc=%s has_account=%s', $previous_version, $oc_pre, $ap_pre, $ap_unavailable_reason ?? 'available', $created_label, $pmc_enabled, $has_account_data ? 'yes' : 'no' );
+		$created_label = null === $scenario['account_created'] ? 'null' : (string) $scenario['account_created'];
+		$context       = sprintf(
+			'prev=%s oc=%s ap=%s ap_unavail=%s created=%s pmc=%s has_account=%s',
+			$scenario['previous_version'],
+			$scenario['oc_pre'],
+			$scenario['ap_pre'],
+			$scenario['ap_unavailable_reason'] ?? 'available',
+			$created_label,
+			$scenario['pmc_enabled'],
+			$scenario['has_account_data'] ? 'yes' : 'no'
+		);
 
 		$this->assertSame(
-			$expected_show_ocs_ap_banner,
+			$scenario['expected_show_ocs_ap'],
 			get_option( self::SHOW_OCS_AP_BANNER_OPTION ),
 			sprintf( 'OCS+AP banner flag mismatch for %s', $context )
 		);
 		$this->assertSame(
-			$expected_show_ap_banner,
+			$scenario['expected_show_ap_only'],
 			get_option( self::SHOW_AP_ONLY_BANNER_OPTION ),
 			sprintf( 'AP-only banner flag mismatch for %s', $context )
 		);
 		$this->assertSame(
-			$expected_show_ocs_only_banner,
+			$scenario['expected_show_ocs_only'],
 			get_option( self::SHOW_OCS_ONLY_BANNER_OPTION ),
 			sprintf( 'OCS-only banner flag mismatch for %s', $context )
 		);
 
 		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame(
-			$expected_oc_after,
+			$scenario['expected_oc_after'],
 			$stored['optimized_checkout_element'] ?? 'no',
 			sprintf( 'optimized_checkout_element mismatch after migration for %s', $context )
 		);
 		$this->assertSame(
-			$expected_ap_after,
+			$scenario['expected_ap_after'],
 			$stored['adaptive_pricing'] ?? 'no',
 			sprintf( 'adaptive_pricing mismatch after migration for %s', $context )
 		);
@@ -195,28 +195,229 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 		$old_ts = 1747008000;   // 2025-05-12 — pre-10.7 era.
 		$new_ts = 1779148800;   // 2026-05-19 — post-10.7 era.
 
-		return [
-			// prev_ver, oc_pre, ap_pre, ap_unavailable_reason, created, pmc_enabled, has_account_data, show_ocs_ap, show_ap_only, show_ocs_only, oc_after, ap_after.
+		$scenarios = [
 			// Platform-connected merchants (pmc_enabled='yes') - OCS can function.
-			'both-on backbook'                           => [ '10.7.0', 'yes', 'yes', null, $new_ts, 'yes', true, 'no', 'no', 'no', 'yes', 'yes' ],
-			'OC-only backbook old-account'               => [ '10.7.0', 'yes', 'no', null, $old_ts, 'yes', true, 'no', 'yes', 'no', 'yes', 'yes' ],
-			'OC-only frontbook-10.7 disabled-AP'         => [ '10.7.0', 'yes', 'no', null, $new_ts, 'yes', true, 'no', 'no', 'no', 'yes', 'no' ],
-			'both-off backbook old-account'              => [ '10.7.0', 'no', 'no', null, $old_ts, 'yes', true, 'yes', 'no', 'no', 'yes', 'yes' ],
-			'both-off frontbook-10.7 disabled-both'      => [ '10.7.0', 'no', 'no', null, $new_ts, 'yes', true, 'no', 'no', 'no', 'no', 'no' ],
-			'previous 10.6 both-off recent-account'      => [ '10.6.0', 'no', 'no', null, $new_ts, 'yes', true, 'yes', 'no', 'no', 'yes', 'yes' ],
-			'previous 10.6 OC-only recent-account'       => [ '10.6.0', 'yes', 'no', null, $new_ts, 'yes', true, 'no', 'yes', 'no', 'yes', 'yes' ],
-			'India backbook both-off'                    => [ '10.7.0', 'no', 'no', 'account-country', $old_ts, 'yes', true, 'no', 'no', 'yes', 'yes', 'no' ],
-			'India backbook OC-only'                     => [ '10.7.0', 'yes', 'no', 'account-country', $old_ts, 'yes', true, 'no', 'no', 'no', 'yes', 'no' ],
-			'India frontbook disabled-OC'                => [ '10.7.0', 'no', 'no', 'account-country', $new_ts, 'yes', true, 'no', 'no', 'no', 'no', 'no' ],
-			'currency-unavailable both-off'              => [ '10.7.0', 'no', 'no', 'store-currency-not-settlement-currency', $old_ts, 'yes', true, 'no', 'no', 'yes', 'yes', 'no' ],
-			'currency-unavailable OC-only'               => [ '10.7.0', 'yes', 'no', 'no-settlement-currencies', $old_ts, 'yes', true, 'no', 'no', 'no', 'yes', 'no' ],
-			// Connected, non-PMC account (direct API keys, pmc_enabled='no') - neither OCS nor AP
+			'both-on backbook'                           => [
+				'previous_version'       => '10.7.0',
+				'oc_pre'                 => 'yes',
+				'ap_pre'                 => 'yes',
+				'ap_unavailable_reason'  => null,
+				'account_created'        => $new_ts,
+				'pmc_enabled'            => 'yes',
+				'has_account_data'       => true,
+				'expected_show_ocs_ap'   => 'no',
+				'expected_show_ap_only'  => 'no',
+				'expected_show_ocs_only' => 'no',
+				'expected_oc_after'      => 'yes',
+				'expected_ap_after'      => 'yes',
+			],
+			'OC-only backbook old-account'               => [
+				'previous_version'       => '10.7.0',
+				'oc_pre'                 => 'yes',
+				'ap_pre'                 => 'no',
+				'ap_unavailable_reason'  => null,
+				'account_created'        => $old_ts,
+				'pmc_enabled'            => 'yes',
+				'has_account_data'       => true,
+				'expected_show_ocs_ap'   => 'no',
+				'expected_show_ap_only'  => 'yes',
+				'expected_show_ocs_only' => 'no',
+				'expected_oc_after'      => 'yes',
+				'expected_ap_after'      => 'yes',
+			],
+			'OC-only frontbook-10.7 disabled-AP'         => [
+				'previous_version'       => '10.7.0',
+				'oc_pre'                 => 'yes',
+				'ap_pre'                 => 'no',
+				'ap_unavailable_reason'  => null,
+				'account_created'        => $new_ts,
+				'pmc_enabled'            => 'yes',
+				'has_account_data'       => true,
+				'expected_show_ocs_ap'   => 'no',
+				'expected_show_ap_only'  => 'no',
+				'expected_show_ocs_only' => 'no',
+				'expected_oc_after'      => 'yes',
+				'expected_ap_after'      => 'no',
+			],
+			'both-off backbook old-account'              => [
+				'previous_version'       => '10.7.0',
+				'oc_pre'                 => 'no',
+				'ap_pre'                 => 'no',
+				'ap_unavailable_reason'  => null,
+				'account_created'        => $old_ts,
+				'pmc_enabled'            => 'yes',
+				'has_account_data'       => true,
+				'expected_show_ocs_ap'   => 'yes',
+				'expected_show_ap_only'  => 'no',
+				'expected_show_ocs_only' => 'no',
+				'expected_oc_after'      => 'yes',
+				'expected_ap_after'      => 'yes',
+			],
+			'both-off frontbook-10.7 disabled-both'      => [
+				'previous_version'       => '10.7.0',
+				'oc_pre'                 => 'no',
+				'ap_pre'                 => 'no',
+				'ap_unavailable_reason'  => null,
+				'account_created'        => $new_ts,
+				'pmc_enabled'            => 'yes',
+				'has_account_data'       => true,
+				'expected_show_ocs_ap'   => 'no',
+				'expected_show_ap_only'  => 'no',
+				'expected_show_ocs_only' => 'no',
+				'expected_oc_after'      => 'no',
+				'expected_ap_after'      => 'no',
+			],
+			'previous 10.6 both-off recent-account'      => [
+				'previous_version'       => '10.6.0',
+				'oc_pre'                 => 'no',
+				'ap_pre'                 => 'no',
+				'ap_unavailable_reason'  => null,
+				'account_created'        => $new_ts,
+				'pmc_enabled'            => 'yes',
+				'has_account_data'       => true,
+				'expected_show_ocs_ap'   => 'yes',
+				'expected_show_ap_only'  => 'no',
+				'expected_show_ocs_only' => 'no',
+				'expected_oc_after'      => 'yes',
+				'expected_ap_after'      => 'yes',
+			],
+			'previous 10.6 OC-only recent-account'       => [
+				'previous_version'       => '10.6.0',
+				'oc_pre'                 => 'yes',
+				'ap_pre'                 => 'no',
+				'ap_unavailable_reason'  => null,
+				'account_created'        => $new_ts,
+				'pmc_enabled'            => 'yes',
+				'has_account_data'       => true,
+				'expected_show_ocs_ap'   => 'no',
+				'expected_show_ap_only'  => 'yes',
+				'expected_show_ocs_only' => 'no',
+				'expected_oc_after'      => 'yes',
+				'expected_ap_after'      => 'yes',
+			],
+			'India backbook both-off'                    => [
+				'previous_version'       => '10.7.0',
+				'oc_pre'                 => 'no',
+				'ap_pre'                 => 'no',
+				'ap_unavailable_reason'  => 'account-country',
+				'account_created'        => $old_ts,
+				'pmc_enabled'            => 'yes',
+				'has_account_data'       => true,
+				'expected_show_ocs_ap'   => 'no',
+				'expected_show_ap_only'  => 'no',
+				'expected_show_ocs_only' => 'yes',
+				'expected_oc_after'      => 'yes',
+				'expected_ap_after'      => 'no',
+			],
+			'India backbook OC-only'                     => [
+				'previous_version'       => '10.7.0',
+				'oc_pre'                 => 'yes',
+				'ap_pre'                 => 'no',
+				'ap_unavailable_reason'  => 'account-country',
+				'account_created'        => $old_ts,
+				'pmc_enabled'            => 'yes',
+				'has_account_data'       => true,
+				'expected_show_ocs_ap'   => 'no',
+				'expected_show_ap_only'  => 'no',
+				'expected_show_ocs_only' => 'no',
+				'expected_oc_after'      => 'yes',
+				'expected_ap_after'      => 'no',
+			],
+			'India frontbook disabled-OC'                => [
+				'previous_version'       => '10.7.0',
+				'oc_pre'                 => 'no',
+				'ap_pre'                 => 'no',
+				'ap_unavailable_reason'  => 'account-country',
+				'account_created'        => $new_ts,
+				'pmc_enabled'            => 'yes',
+				'has_account_data'       => true,
+				'expected_show_ocs_ap'   => 'no',
+				'expected_show_ap_only'  => 'no',
+				'expected_show_ocs_only' => 'no',
+				'expected_oc_after'      => 'no',
+				'expected_ap_after'      => 'no',
+			],
+			'currency-unavailable both-off'              => [
+				'previous_version'       => '10.7.0',
+				'oc_pre'                 => 'no',
+				'ap_pre'                 => 'no',
+				'ap_unavailable_reason'  => 'store-currency-not-settlement-currency',
+				'account_created'        => $old_ts,
+				'pmc_enabled'            => 'yes',
+				'has_account_data'       => true,
+				'expected_show_ocs_ap'   => 'no',
+				'expected_show_ap_only'  => 'no',
+				'expected_show_ocs_only' => 'yes',
+				'expected_oc_after'      => 'yes',
+				'expected_ap_after'      => 'no',
+			],
+			'currency-unavailable OC-only'               => [
+				'previous_version'       => '10.7.0',
+				'oc_pre'                 => 'yes',
+				'ap_pre'                 => 'no',
+				'ap_unavailable_reason'  => 'no-settlement-currencies',
+				'account_created'        => $old_ts,
+				'pmc_enabled'            => 'yes',
+				'has_account_data'       => true,
+				'expected_show_ocs_ap'   => 'no',
+				'expected_show_ap_only'  => 'no',
+				'expected_show_ocs_only' => 'no',
+				'expected_oc_after'      => 'yes',
+				'expected_ap_after'      => 'no',
+			],
+			// Connected, non-PMC account (direct API keys, pmc_enabled='no') — neither OCS nor AP
 			// can function, so neither is enabled; `created` is absent for these Standard accounts.
-			'non-PMC account both-off (nothing enabled)' => [ '10.7.0', 'no', 'no', null, null, 'no', true, 'no', 'no', 'no', 'no', 'no' ],
-			'non-PMC account OC-already-on (unchanged)'  => [ '10.7.0', 'yes', 'no', null, null, 'no', true, 'no', 'no', 'no', 'yes', 'no' ],
-			// No account data (invalid/absent credentials) - uninformative, so stay optimistic and enable.
-			'unreadable account both-off (OC enabled)'   => [ '10.7.0', 'no', 'no', null, null, 'no', false, 'yes', 'no', 'no', 'yes', 'yes' ],
+			'non-PMC account both-off (nothing enabled)' => [
+				'previous_version'       => '10.7.0',
+				'oc_pre'                 => 'no',
+				'ap_pre'                 => 'no',
+				'ap_unavailable_reason'  => null,
+				'account_created'        => null,
+				'pmc_enabled'            => 'no',
+				'has_account_data'       => true,
+				'expected_show_ocs_ap'   => 'no',
+				'expected_show_ap_only'  => 'no',
+				'expected_show_ocs_only' => 'no',
+				'expected_oc_after'      => 'no',
+				'expected_ap_after'      => 'no',
+			],
+			'non-PMC account OC-already-on (unchanged)'  => [
+				'previous_version'       => '10.7.0',
+				'oc_pre'                 => 'yes',
+				'ap_pre'                 => 'no',
+				'ap_unavailable_reason'  => null,
+				'account_created'        => null,
+				'pmc_enabled'            => 'no',
+				'has_account_data'       => true,
+				'expected_show_ocs_ap'   => 'no',
+				'expected_show_ap_only'  => 'no',
+				'expected_show_ocs_only' => 'no',
+				'expected_oc_after'      => 'yes',
+				'expected_ap_after'      => 'no',
+			],
+			// No account data (invalid/absent credentials) — uninformative, so stay optimistic and enable.
+			'unreadable account both-off (OC enabled)'   => [
+				'previous_version'       => '10.7.0',
+				'oc_pre'                 => 'no',
+				'ap_pre'                 => 'no',
+				'ap_unavailable_reason'  => null,
+				'account_created'        => null,
+				'pmc_enabled'            => 'no',
+				'has_account_data'       => false,
+				'expected_show_ocs_ap'   => 'yes',
+				'expected_show_ap_only'  => 'no',
+				'expected_show_ocs_only' => 'no',
+				'expected_oc_after'      => 'yes',
+				'expected_ap_after'      => 'yes',
+			],
 		];
+
+		return array_map(
+			static function ( $scenario ) {
+				return [ $scenario ];
+			},
+			$scenarios
+		);
 	}
 
 	public function test_migration_preserves_unrelated_settings_keys() {
