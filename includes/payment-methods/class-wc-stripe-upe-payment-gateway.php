@@ -4283,6 +4283,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$order = wc_get_order( $order_id );
 
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$fee          = $order_helper->get_stripe_fee( $order );
 		$currency     = $order_helper->get_stripe_currency( $order );
@@ -4326,6 +4330,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		$order = wc_get_order( $order_id );
+
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$net          = $order_helper->get_stripe_net( $order );
