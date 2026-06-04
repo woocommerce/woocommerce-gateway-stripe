@@ -587,16 +587,25 @@ class WC_Stripe_Payment_Method_Configurations {
 		$usable_pmc   = null;
 		$is_test_mode = WC_Stripe_Mode::is_test();
 
-		// Honor the `wc_stripe_preselect_payment_method_configuration` filter the same way
-		// `get_payment_method_configuration_from_stripe()` does: when set, the preselected PMC
-		// takes priority over platform-child / fallback selection. On any failure we silently
-		// fall through to the default selection below.
+		// Honor the `wc_stripe_preselect_payment_method_configuration` filter: a set preselected
+		// PMC takes priority over platform-child / fallback selection. Unlike
+		// `get_payment_method_configuration_from_stripe()`, a failed lookup here is not a
+		// fall-through: the merchant pinned this PMC, so we leave `pmc_enabled` untouched rather
+		// than caching a different PMC or disabling sync over a transient failure.
 		$preselected_pmc_id = apply_filters( 'wc_stripe_preselect_payment_method_configuration', null, $is_test_mode );
 		if ( is_string( $preselected_pmc_id ) && str_starts_with( $preselected_pmc_id, 'pmc_' ) ) {
 			$preselected_configuration = WC_Stripe_API::retrieve( 'payment_method_configurations/' . $preselected_pmc_id );
-			if ( is_object( $preselected_configuration ) && ! is_wp_error( $preselected_configuration ) && empty( $preselected_configuration->error ) ) {
-				$usable_pmc = $preselected_configuration;
+			if ( ! is_object( $preselected_configuration ) || is_wp_error( $preselected_configuration ) || ! empty( $preselected_configuration->error ) ) {
+				WC_Stripe_Logger::warning(
+					'Skipping PMC availability refresh: preselected Payment Method Configuration could not be retrieved',
+					[
+						'pmc_id'   => $preselected_pmc_id,
+						'response' => $preselected_configuration,
+					]
+				);
+				return;
 			}
+			$usable_pmc = $preselected_configuration;
 		}
 
 		if ( null === $usable_pmc ) {
