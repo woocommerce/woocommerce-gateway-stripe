@@ -70,7 +70,7 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 		WC_Stripe_Logger::info( sprintf( '[OCS+AP 10.8] Pre-flip gateway state: optimized_checkout_element=%s, adaptive_pricing=%s.', $oc_pre ? 'yes' : 'no', $ap_pre ? 'yes' : 'no' ) );
 
 		$ap_unavailable_reason = $this->get_ap_unavailable_reason();
-		$ap_unavailable        = null !== $ap_unavailable_reason;
+		$ap_available          = null === $ap_unavailable_reason;
 		$is_frontbook          = $this->is_likely_frontbook_10_7( (string) $previous_version );
 
 		// OCS and AP only function when the store is connected to our platform account
@@ -82,7 +82,7 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 		$oc_eligible      = ! $has_account_data || $pmc_enabled;
 
 		$enable_oc = $oc_eligible && ! ( $is_frontbook && ! $oc_pre );
-		$enable_ap = $oc_eligible && ! $ap_unavailable && ! ( $is_frontbook && ! $ap_pre );
+		$enable_ap = $oc_eligible && $ap_available && ! ( $is_frontbook && ! $ap_pre );
 
 		$oc_newly_enabled = $enable_oc && ! $oc_pre;
 		$ap_newly_enabled = $enable_ap && ! $ap_pre;
@@ -93,8 +93,8 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 
 		WC_Stripe_Logger::info(
 			sprintf(
-				'[OCS+AP 10.8] Decision: ap_unavailable=%s (reason=%s), is_frontbook=%s, has_account_data=%s, pmc_enabled=%s, oc_eligible=%s, enable_oc=%s, enable_ap=%s -> show_ocs_ap=%s, show_ap_only=%s, show_ocs_only=%s.',
-				$ap_unavailable ? 'yes' : 'no',
+				'[OCS+AP 10.8] Decision: ap_available=%s (reason=%s), is_frontbook=%s, has_account_data=%s, pmc_enabled=%s, oc_eligible=%s, enable_oc=%s, enable_ap=%s -> show_ocs_ap=%s, show_ap_only=%s, show_ocs_only=%s.',
+				$ap_available ? 'yes' : 'no',
 				$ap_unavailable_reason ?? 'available',
 				$is_frontbook ? 'yes' : 'no',
 				$has_account_data ? 'yes' : 'no',
