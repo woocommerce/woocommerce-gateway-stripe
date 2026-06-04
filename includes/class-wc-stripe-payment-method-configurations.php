@@ -185,9 +185,6 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * Selects a usable Payment Method Configuration from a Stripe configurations list:
 	 * the platform-child PMC if present, otherwise the fallback PMC.
 	 *
-	 * Selection (and selection logging) only — it does not cache the result, mutate
-	 * settings, or disable sync, so callers can apply their own policy.
-	 *
 	 * @param array $configurations The list of payment method configurations returned from Stripe.
 	 * @return array {
 	 *     @type object|null $pmc    The selected Payment Method Configuration, or null if none is usable.
