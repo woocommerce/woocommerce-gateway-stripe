@@ -196,6 +196,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Memoize the Express Checkout button visibility check within a request
 * Fix - Fix admin banner dismissal and display logic
 * Add - Detect Stripe API outages (network failures, timeouts, 5xx responses) and surface a wp-admin notice instead of crashing or showing misleading "couldn't connect" messages
+* Fix - Require a connected account for the target mode before switching between test and live
 * Tweak - Move UPE-only appearance helpers out of the shared stripe-utils module
 * Dev - Add wc_stripe_agentic_commerce_should_sync_product filter so adapters can exclude products from the Agentic Commerce catalog, inventory, and archive syncs
 * Dev - Move additional classes to autoloader, including email and migration classes
