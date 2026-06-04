@@ -48,8 +48,8 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 			return;
 		}
 
-		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- distinguishing `false` (new install) from string versions in the log message.
-		WC_Stripe_Logger::info( sprintf( '[OCS+AP 10.8] Migration started. previous_version=%s.', var_export( $previous_version, true ) ) );
+		// json-encode so `false` (new install) is distinguishable from string versions in the log message.
+		WC_Stripe_Logger::info( sprintf( '[OCS+AP 10.8] Migration started. previous_version=%s.', wp_json_encode( $previous_version ) ) );
 
 		if ( false === $previous_version ) {
 			WC_Stripe_Logger::info( '[OCS+AP 10.8] Skipping: new install (no previous_version recorded). Frontbook 10.8 path will be handled at OAuth time.' );
