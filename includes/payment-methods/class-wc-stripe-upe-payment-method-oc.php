@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 	use WC_Stripe_Subscriptions_Trait;
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::OC;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::OC;
 
 	private const DEFAULT_TITLE = 'Stripe';
 
@@ -26,8 +26,10 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 		$main_settings     = WC_Stripe_Helper::get_stripe_settings();
 		$is_stripe_enabled = ! empty( $main_settings['enabled'] ) && 'yes' === $main_settings['enabled'];
 
-		$this->enabled     = $is_stripe_enabled && $this->oc_enabled ? 'yes' : 'no';
-		$this->id          = WC_Stripe_UPE_Payment_Gateway::ID; // Force the ID to be the same as the main payment gateway.
+		$this->enabled = $is_stripe_enabled && $this->oc_enabled ? 'yes' : 'no';
+		$this->id      = WC_Stripe_UPE_Payment_Gateway::ID; // Force the ID to be the same as the main payment gateway.
+		// OC is a checkout-element wrapper around the underlying payment methods, not a Stripe payment method itself.
+		// Gating happens via $this->oc_enabled (a feature flag), so $supported_account_countries and $supported_billing_countries stay empty (no restriction).
 		$this->stripe_id   = self::STRIPE_ID;
 		$this->title       = self::DEFAULT_TITLE;
 		$this->is_reusable = true;
@@ -149,9 +151,11 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
 	 * @param bool $show_optimized_checkout_instruction Deprecated. Whether to show optimized checkout instructions.
+	 * @param bool $include_test_mode_label Whether to include the "Test mode:" label prefix. Pass false for
+	 *                                      Blocks checkout, which already displays a Test Mode badge.
 	 * @return string
 	 */
-	public function get_testing_instructions( $show_optimized_checkout_instruction = false ) {
+	public function get_testing_instructions( bool $show_optimized_checkout_instruction = false, bool $include_test_mode_label = true ) {
 		if ( false !== $show_optimized_checkout_instruction ) {
 			_deprecated_argument(
 				__FUNCTION__,
@@ -167,7 +171,7 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 				continue;
 			}
 
-			$payment_method_instructions = $payment_method->get_testing_instructions();
+			$payment_method_instructions = $payment_method->get_testing_instructions( false, $include_test_mode_label );
 			if ( $payment_method_instructions ) {
 				$instructions .= sprintf( $base_instruction_html, $payment_method::STRIPE_ID, $payment_method_instructions );
 			}

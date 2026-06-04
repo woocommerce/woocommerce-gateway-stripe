@@ -733,4 +733,215 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 	}
+
+	/* -----------------------------------------------------------------
+	 * Plugin initialization guards
+	 *
+	 * Cover the `if ( self::$instance === $this )` guard pattern added to
+	 * WC_Stripe::__construct() and WC_Stripe::init() to prevent duplicate
+	 * hook registration and collaborator re-instantiation when WC_Stripe is
+	 * constructed more than once.
+	 * ----------------------------------------------------------------- */
+
+	/**
+	 * The singleton accessor must keep returning the same instance.
+	 */
+	public function test_get_instance_returns_same_singleton_on_repeated_calls(): void {
+		$this->assertSame( WC_Stripe::get_instance(), WC_Stripe::get_instance() );
+	}
+
+	/**
+	 * Constructing a second WC_Stripe via `new` must not replace the singleton.
+	 */
+	public function test_direct_construction_does_not_replace_existing_singleton(): void {
+		$first  = WC_Stripe::get_instance();
+		$second = new WC_Stripe();
+
+		$this->assertSame( $first, WC_Stripe::get_instance() );
+		$this->assertNotSame( $first, $second );
+	}
+
+	/**
+	 * The two admin_init hooks added in __construct()'s guarded block must
+	 * only land on the first instance.
+	 */
+	public function test_admin_init_hooks_registered_only_for_first_instance(): void {
+		$first = WC_Stripe::get_instance();
+
+		$this->assertSame( 10, has_action( 'admin_init', [ $first, 'install' ] ) );
+		$this->assertSame( 15, has_action( 'admin_init', [ $first, 'maybe_redirect_to_stripe_settings' ] ) );
+
+		$second = new WC_Stripe();
+
+		$this->assertFalse( has_action( 'admin_init', [ $second, 'install' ] ) );
+		$this->assertFalse( has_action( 'admin_init', [ $second, 'maybe_redirect_to_stripe_settings' ] ) );
+
+		// First instance's hooks remain at their original priorities.
+		$this->assertSame( 10, has_action( 'admin_init', [ $first, 'install' ] ) );
+		$this->assertSame( 15, has_action( 'admin_init', [ $first, 'maybe_redirect_to_stripe_settings' ] ) );
+	}
+
+	/**
+	 * The rest_api_init guard at the end of __construct() must only register
+	 * register_routes on the first instance.
+	 */
+	public function test_register_routes_hook_registered_only_for_first_instance(): void {
+		$first = WC_Stripe::get_instance();
+
+		$this->assertSame( 10, has_action( 'rest_api_init', [ $first, 'register_routes' ] ) );
+
+		$second = new WC_Stripe();
+
+		$this->assertFalse( has_action( 'rest_api_init', [ $second, 'register_routes' ] ) );
+		$this->assertSame( 10, has_action( 'rest_api_init', [ $first, 'register_routes' ] ) );
+	}
+
+	/**
+	 * Every hook added by the guarded blocks in init() must be registered on
+	 * the first instance and must NOT be registered on a second instance.
+	 *
+	 * Single sweep test — failure messages identify the offending row.
+	 */
+	public function test_init_hooks_registered_only_for_first_instance(): void {
+		$hooks = [
+			[ 'woocommerce_payment_gateways', 'add_gateways', 10 ],
+			[ 'pre_update_option_woocommerce_stripe_settings', 'gateway_settings_update', 10 ],
+			[ 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), 'plugin_action_links', 10 ],
+			[ 'plugin_row_meta', 'plugin_row_meta', 10 ],
+			[ 'update_option_woocommerce_gateway_order', 'set_stripe_gateways_in_list', 10 ],
+			[ 'woocommerce_email_classes', 'add_emails', 20 ],
+			[ 'init', 'init_express_checkout', 11 ],
+			[ 'init', 'initialize_subscriptions_updater', 10 ],
+			[ 'init', 'load_plugin_textdomain', 10 ],
+			[ 'init', 'initialize_status_page', 15 ],
+			[ 'init', 'initialize_apple_pay_registration', 10 ],
+			[ 'woocommerce_init', 'initialize_agentic_commerce', 10 ],
+			[ 'wc_payment_gateways_initialized', 'maybe_toggle_payment_methods', 10 ],
+			[ 'update_option_woocommerce_stripe_settings', 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled', 10 ],
+		];
+
+		$first = WC_Stripe::get_instance();
+
+		foreach ( $hooks as [ $hook, $callback, $priority ] ) {
+			$this->assertSame(
+				$priority,
+				has_filter( $hook, [ $first, $callback ] ),
+				"hook {$hook} -> {$callback} should be registered on the first instance at priority {$priority}"
+			);
+		}
+
+		$second = new WC_Stripe();
+
+		foreach ( $hooks as [ $hook, $callback, $priority ] ) {
+			$this->assertFalse(
+				has_filter( $hook, [ $second, $callback ] ),
+				"hook {$hook} -> {$callback} should NOT be registered on the second instance"
+			);
+			$this->assertSame(
+				$priority,
+				has_filter( $hook, [ $first, $callback ] ),
+				"hook {$hook} -> {$callback} on the first instance should remain at priority {$priority} after second construction"
+			);
+		}
+	}
+
+	/**
+	 * The frontend-only billing-fields filter must follow the same guard.
+	 */
+	public function test_checkout_update_email_field_priority_filter_registered_only_for_first_instance_in_frontend(): void {
+		$initial_screen = $GLOBALS['current_screen'] ?? null;
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$GLOBALS['current_screen'] = \WP_Screen::get( 'post.php' );
+
+		try {
+			$first = WC_Stripe::get_instance();
+
+			$this->assertSame(
+				50,
+				has_filter( 'woocommerce_billing_fields', [ $first, 'checkout_update_email_field_priority' ] )
+			);
+
+			$second = new WC_Stripe();
+
+			$this->assertFalse(
+				has_filter( 'woocommerce_billing_fields', [ $second, 'checkout_update_email_field_priority' ] )
+			);
+			$this->assertSame(
+				50,
+				has_filter( 'woocommerce_billing_fields', [ $first, 'checkout_update_email_field_priority' ] )
+			);
+		} finally {
+			if ( null !== $initial_screen ) {
+				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+				$GLOBALS['current_screen'] = $initial_screen;
+			}
+		}
+	}
+
+	/**
+	 * Collaborator classes that init() instantiates inside guarded blocks must
+	 * not be re-instantiated when a second WC_Stripe is constructed.
+	 *
+	 * Detection: count the callbacks registered on a hook unique to each
+	 * collaborator before and after the second construction. The delta must
+	 * be zero.
+	 */
+	public function test_collaborators_not_reinstantiated_on_second_construction(): void {
+		// Hooks chosen because they are registered ONLY by the collaborator's
+		// constructor / init_hooks() — so a duplicate instance bumps the count
+		// by exactly 1.
+		$collaborators = [
+			'WC_Stripe_Webhook_Handler'                => [ 'woocommerce_api_wc_stripe', 10 ],
+			'WC_Stripe_Order_Handler'                  => [ 'woocommerce_admin_order_totals_after_total', 10 ],
+			'WC_Stripe_Payment_Tokens'                 => [ 'woocommerce_payment_methods_list_item', 10 ],
+			'WC_Stripe_Intent_Controller'              => [ 'wc_ajax_wc_stripe_verify_intent', 10 ],
+			'WC_Stripe_Checkout_Sessions_Ajax_Handler' => [ 'wc_ajax_wc_stripe_create_checkout_session', 10 ],
+		];
+
+		$before = [];
+		foreach ( $collaborators as $class => [ $hook, $priority ] ) {
+			$before[ $class ] = $this->count_hook_callbacks( $hook, $priority );
+		}
+
+		$wc_stripe_reflection = new ReflectionClass( WC_Stripe::class );
+		$instance_reflection  = $wc_stripe_reflection->getProperty( 'instance' );
+		$instance_reflection->setAccessible( true );
+		$instance_reflection->setValue( null, null );
+
+		$first = WC_Stripe::get_instance();
+
+		$after_first = [];
+		foreach ( $collaborators as $class => [ $hook, $priority ] ) {
+			$after_first[ $class ] = $this->count_hook_callbacks( $hook, $priority );
+			$this->assertGreaterThan( $before[ $class ], $after_first[ $class ], "{$class} should have been instantiated on the first instance" );
+		}
+
+		$second = new WC_Stripe();
+
+		foreach ( $collaborators as $class => [ $hook, $priority ] ) {
+			$after = $this->count_hook_callbacks( $hook, $priority );
+			$this->assertSame(
+				$after_first[ $class ] ?? -1,
+				$after,
+				"{$class} appears to have been re-instantiated: callback count on {$hook} (priority {$priority}) changed from {$before[ $class ]} to {$after}"
+			);
+		}
+	}
+
+	/**
+	 * Helper: count callbacks registered on `$hook` at `$priority`.
+	 *
+	 * @param string $hook     Hook name.
+	 * @param int    $priority Priority level.
+	 * @return int Number of registered callbacks at that priority.
+	 */
+	private function count_hook_callbacks( string $hook, int $priority ): int {
+		global $wp_filter;
+
+		if ( ! isset( $wp_filter[ $hook ] ) || ! isset( $wp_filter[ $hook ]->callbacks[ $priority ] ) ) {
+			return 0;
+		}
+
+		return count( $wp_filter[ $hook ]->callbacks[ $priority ] );
+	}
 }

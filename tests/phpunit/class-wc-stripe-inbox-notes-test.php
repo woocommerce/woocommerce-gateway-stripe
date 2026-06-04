@@ -11,7 +11,12 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public $stripe_connect_mock;
 	public $stripe_connect_original;
 
-	public function set_up() {
+	/**
+	 * Pre-test setup.
+	 *
+	 * @return void
+	 */
+	public function set_up(): void {
 		parent::set_up();
 
 		// overriding the `WC_Stripe_Connect` in woocommerce_gateway_stripe(),
@@ -29,18 +34,31 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			return;
 		}
 
-		update_option( '_wcstripe_feature_upe', 'yes' );
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'no',
 			]
 		);
+		// Make sure we remove all existing notes.
+		$admin_note_store = WC_Data_Store::load( 'admin-note' );
+		do {
+			$all_notes = $admin_note_store->get_notes(
+				[ 'per_page' => 100 ]
+			);
+			foreach ( $all_notes as $note ) {
+				$admin_note_store->delete( $note );
+			}
+		} while ( ! empty( $all_notes ) );
 	}
 
-	public function tear_down() {
+	/**
+	 * Post-test tear down.
+	 *
+	 * @return void
+	 */
+	public function tear_down(): void {
 		woocommerce_gateway_stripe()->connect = $this->stripe_connect_original;
-		delete_option( '_wcstripe_feature_upe' );
 		WC_Stripe_Helper::delete_main_stripe_settings();
 
 		parent::tear_down();
@@ -87,11 +105,32 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			]
 		);
 
-		$this->mock_payment_method_configurations( [ 'test' ] );
-		WC_Stripe_Inbox_Notes::create_upe_notes();
+		$mock_gateway = $this->createMock( WC_Stripe_UPE_Payment_Gateway::class );
+		$mock_gateway->expects( $this->any() )
+			->method( 'get_upe_available_payment_methods' )
+			->willReturn( [ WC_Stripe_Payment_Methods::KLARNA ] );
+		$mock_gateway->expects( $this->any() )
+			->method( 'get_upe_enabled_payment_method_ids' )
+			->willReturn( [ WC_Stripe_Payment_Methods::KLARNA ] );
 
-		$admin_note_store = WC_Data_Store::load( 'admin-note' );
-		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
+			//get_upe_enabled_payment_method_ids
+		$mock_wc_stripe = $this->createMock( WC_Stripe::class );
+		$mock_wc_stripe->expects( $this->once() )
+			->method( 'get_main_stripe_gateway' )
+			->willReturn( $mock_gateway );
+
+		$wc_stripe_instance_reflection = new ReflectionProperty( WC_Stripe::class, 'instance' );
+		$wc_stripe_instance_reflection->setAccessible( true );
+		$wc_stripe_instance_reflection->setValue( null, $mock_wc_stripe );
+
+		try {
+			WC_Stripe_Inbox_Notes::create_upe_notes();
+
+			$admin_note_store = WC_Data_Store::load( 'admin-note' );
+			$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
+		} finally {
+			$wc_stripe_instance_reflection->setValue( null, null );
+		}
 	}
 
 	public function test_create_stripelink_note_unavailable_link_enabled() {
