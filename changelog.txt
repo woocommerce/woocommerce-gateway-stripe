@@ -51,11 +51,8 @@ xxxx-xx-xx - version 10.8.0
 * Dev - Move additional classes to autoloader, including email and migration classes
 * Add - Register Stripe gateway capabilities with the WordPress Abilities API for agent access (default off; opt in via the `wc_stripe_abilities_enabled` filter)
 * Dev - Add e2e tests for subscriptions and Optimized Checkout Suite and support stricter payment confirmation checks
-<<<<<<< stripe-1081-amazon-pay-missing-refund-via-gateway
 * Fix - Restore "Refund via Gateway" button and Stripe dashboard transaction link for Amazon Pay orders by keeping Amazon Pay registered in the gateway list on order edit and refund pages
-=======
 * Fix - Correct Amazon Pay button preview rendering in the Full Site Editor block cart and checkout pages
->>>>>>> develop
 
 2026-05-12 - version 10.7.0
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
