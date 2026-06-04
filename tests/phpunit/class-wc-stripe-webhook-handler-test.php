@@ -19,6 +19,20 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	private $mock_webhook_handler;
 
 	/**
+	 * Payloads captured from the wc_stripe_unexpected_charge_detected action during a test.
+	 *
+	 * @var array
+	 */
+	private $captured_unexpected_charges = [];
+
+	/**
+	 * Listeners registered via spy_on_unexpected_charge_detected(), removed in tear_down().
+	 *
+	 * @var callable[]
+	 */
+	private $unexpected_charge_listeners = [];
+
+	/**
 	 * Mock card payment intent template.
 	 */
 	const MOCK_PAYMENT_INTENT = [
@@ -59,6 +73,18 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->method( 'unlock_order_payment' );
 
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
+	}
+
+	/**
+	 * Tear down the test.
+	 */
+	public function tear_down() {
+		foreach ( $this->unexpected_charge_listeners as $listener ) {
+			remove_action( 'wc_stripe_unexpected_charge_detected', $listener, 10 );
+		}
+		$this->unexpected_charge_listeners = [];
+
+		parent::tear_down();
 	}
 
 	/**
@@ -340,6 +366,85 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Creates an order carrying a Stripe PaymentIntent that was ultimately settled via the given
+	 * gateway — the shared setup for the unexpected-charge detection tests.
+	 *
+	 * @param string $payment_method The gateway recorded on the order.
+	 * @param string $intent_id      The Stripe PaymentIntent ID stored on the order.
+	 * @return WC_Order
+	 */
+	private function create_order_with_intent( string $payment_method, string $intent_id ): WC_Order {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->set_payment_method( $payment_method );
+		$order->set_currency( 'EUR' );
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->save();
+
+		return $order;
+	}
+
+	/**
+	 * Builds a Stripe charge webhook notification for the unexpected-charge detection tests.
+	 *
+	 * @param string $type             The webhook event type ('charge.succeeded' or 'charge.captured').
+	 * @param string $intent_id        The parent PaymentIntent ID (matches the order's stored intent).
+	 * @param array  $charge_overrides Charge properties to override the defaults.
+	 * @return object
+	 */
+	private function build_charge_notification( string $type, string $intent_id, array $charge_overrides = [] ): object {
+		$charge = (object) array_merge(
+			[
+				'id'             => 'py_unexpected',
+				'captured'       => true,
+				'payment_intent' => $intent_id,
+				'amount'         => 1000,
+				'currency'       => 'eur',
+			],
+			$charge_overrides
+		);
+
+		return (object) [
+			'type' => $type,
+			'data' => (object) [ 'object' => $charge ],
+		];
+	}
+
+	/**
+	 * Registers a spy on wc_stripe_unexpected_charge_detected that records every invocation into
+	 * $this->captured_unexpected_charges. The listener is removed automatically in tear_down().
+	 */
+	private function spy_on_unexpected_charge_detected(): void {
+		$listener = function ( $order, $charge, $type ) {
+			$this->captured_unexpected_charges[] = [
+				'order_id'     => $order instanceof WC_Order ? $order->get_id() : null,
+				'charge_id'    => is_object( $charge ) ? $charge->id : null,
+				'webhook_type' => $type,
+			];
+		};
+
+		add_action( 'wc_stripe_unexpected_charge_detected', $listener, 10, 3 );
+		$this->unexpected_charge_listeners[] = $listener;
+	}
+
+	/**
+	 * Returns the content of the most recent note on the given order (empty string when none).
+	 *
+	 * @param WC_Order $order
+	 * @return string
+	 */
+	private function get_latest_order_note_content( WC_Order $order ): string {
+		$notes = wc_get_order_notes(
+			[
+				'order_id' => $order->get_id(),
+				'limit'    => 1,
+			]
+		);
+
+		return empty( $notes ) ? '' : $notes[0]->content;
+	}
+
+	/**
 	 * When charge.succeeded fires for a charge whose ID isn't stored on any order (because the shopper
 	 * settled the order via a different gateway), the handler must fall back to looking up the order
 	 * by the parent PaymentIntent and flag the unexpected charge instead of silently dropping the event.
@@ -347,63 +452,32 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function test_process_webhook_charge_succeeded_flags_unexpected_charge_via_payment_intent_fallback() {
 		$intent_id = 'pi_unexpected_charge_lookup';
 
-		$order = WC_Helper_Order::create_order();
-		$order->set_status( OrderStatus::PROCESSING );
-		$order->set_payment_method( 'cod' );
-		$order->set_payment_method_title( 'Cash on Delivery' );
-		$order->set_currency( 'EUR' );
-		$order->update_meta_data( '_stripe_intent_id', $intent_id );
-		$order->save();
-
-		$charge = (object) [
-			'id'                     => 'py_unexpected_xxx',
-			'captured'               => true,
-			'payment_intent'         => $intent_id,
-			'amount'                 => 4200,
-			'currency'               => 'eur',
-			'payment_method_details' => (object) [ 'type' => 'sepa_debit' ],
-		];
-
-		$notification = (object) [
-			'type' => 'charge.succeeded',
-			'data' => (object) [
-				'object' => $charge,
-			],
-		];
+		$order        = $this->create_order_with_intent( 'cod', $intent_id );
+		$notification = $this->build_charge_notification(
+			'charge.succeeded',
+			$intent_id,
+			[
+				'id'                     => 'py_unexpected_xxx',
+				'amount'                 => 4200,
+				'payment_method_details' => (object) [ 'type' => 'sepa_debit' ],
+			]
+		);
 
 		$this->mock_webhook_handler->expects( $this->never() )
 			->method( 'process_response' );
 
-		$captured = [];
-		$listener = function ( $hook_order, $hook_charge, $hook_type ) use ( &$captured ) {
-			$captured[] = [
-				'order_id'     => $hook_order instanceof WC_Order ? $hook_order->get_id() : null,
-				'charge_id'    => is_object( $hook_charge ) ? $hook_charge->id : null,
-				'webhook_type' => $hook_type,
-			];
-		};
-		add_action( 'wc_stripe_unexpected_charge_detected', $listener, 10, 3 );
+		$this->spy_on_unexpected_charge_detected();
 
-		try {
-			$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
+		$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
 
-			$this->assertCount( 1, $captured );
-			$this->assertSame( $order->get_id(), $captured[0]['order_id'] );
-			$this->assertSame( 'py_unexpected_xxx', $captured[0]['charge_id'] );
-			$this->assertSame( 'charge.succeeded', $captured[0]['webhook_type'] );
+		$this->assertCount( 1, $this->captured_unexpected_charges );
+		$this->assertSame( $order->get_id(), $this->captured_unexpected_charges[0]['order_id'] );
+		$this->assertSame( 'py_unexpected_xxx', $this->captured_unexpected_charges[0]['charge_id'] );
+		$this->assertSame( 'charge.succeeded', $this->captured_unexpected_charges[0]['webhook_type'] );
 
-			$notes = wc_get_order_notes(
-				[
-					'order_id' => $order->get_id(),
-					'limit'    => 1,
-				]
-			);
-			$this->assertNotEmpty( $notes );
-			$this->assertStringContainsString( $intent_id, $notes[0]->content );
-			$this->assertStringContainsString( 'py_unexpected_xxx', $notes[0]->content );
-		} finally {
-			remove_action( 'wc_stripe_unexpected_charge_detected', $listener, 10 );
-		}
+		$note = $this->get_latest_order_note_content( $order );
+		$this->assertStringContainsString( $intent_id, $note );
+		$this->assertStringContainsString( 'py_unexpected_xxx', $note );
 	}
 
 	/**
@@ -412,41 +486,23 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function test_process_webhook_charge_succeeded_fallback_skips_uncaptured_charge() {
 		$intent_id = 'pi_uncaptured';
 
-		$order = WC_Helper_Order::create_order();
-		$order->set_status( OrderStatus::PROCESSING );
-		$order->set_payment_method( 'cod' );
-		$order->update_meta_data( '_stripe_intent_id', $intent_id );
-		$order->save();
+		// The order must exist so the only reason the charge isn't flagged is the uncaptured guard.
+		$this->create_order_with_intent( 'cod', $intent_id );
+		$notification = $this->build_charge_notification(
+			'charge.succeeded',
+			$intent_id,
+			[
+				'id'                     => 'py_uncaptured',
+				'captured'               => false,
+				'payment_method_details' => (object) [ 'type' => 'sepa_debit' ],
+			]
+		);
 
-		$charge = (object) [
-			'id'                     => 'py_uncaptured',
-			'captured'               => false,
-			'payment_intent'         => $intent_id,
-			'amount'                 => 100,
-			'currency'               => 'usd',
-			'payment_method_details' => (object) [ 'type' => 'sepa_debit' ],
-		];
+		$this->spy_on_unexpected_charge_detected();
 
-		$notification = (object) [
-			'type' => 'charge.succeeded',
-			'data' => (object) [
-				'object' => $charge,
-			],
-		];
+		$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
 
-		$called   = 0;
-		$listener = function () use ( &$called ) {
-			++$called;
-		};
-		add_action( 'wc_stripe_unexpected_charge_detected', $listener );
-
-		try {
-			$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
-
-			$this->assertSame( 0, $called );
-		} finally {
-			remove_action( 'wc_stripe_unexpected_charge_detected', $listener );
-		}
+		$this->assertCount( 0, $this->captured_unexpected_charges );
 	}
 
 	/**
@@ -458,48 +514,25 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function test_process_webhook_charge_succeeded_flags_unexpected_card_charge_via_payment_intent_fallback() {
 		$intent_id = 'pi_card_unexpected';
 
-		$order = WC_Helper_Order::create_order();
-		$order->set_status( OrderStatus::PROCESSING );
-		$order->set_payment_method( 'klarna_payments' );
-		$order->set_payment_method_title( 'Klarna Payments' );
-		$order->set_currency( 'EUR' );
-		$order->update_meta_data( '_stripe_intent_id', $intent_id );
-		$order->save();
+		$order        = $this->create_order_with_intent( 'klarna_payments', $intent_id );
+		$notification = $this->build_charge_notification(
+			'charge.succeeded',
+			$intent_id,
+			[
+				'id'                     => 'ch_card_unexpected',
+				'amount'                 => 5000,
+				'payment_method_details' => (object) [ 'type' => 'card' ],
+			]
+		);
 
-		$charge = (object) [
-			'id'                     => 'ch_card_unexpected',
-			'captured'               => true,
-			'payment_intent'         => $intent_id,
-			'amount'                 => 5000,
-			'currency'               => 'eur',
-			'payment_method_details' => (object) [ 'type' => 'card' ],
-		];
+		$this->spy_on_unexpected_charge_detected();
 
-		$notification = (object) [
-			'type' => 'charge.succeeded',
-			'data' => (object) [ 'object' => $charge ],
-		];
+		$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
 
-		$captured = [];
-		$listener = function ( $hook_order, $hook_charge, $hook_type ) use ( &$captured ) {
-			$captured[] = [
-				'order_id'     => $hook_order instanceof WC_Order ? $hook_order->get_id() : null,
-				'charge_id'    => is_object( $hook_charge ) ? $hook_charge->id : null,
-				'webhook_type' => $hook_type,
-			];
-		};
-		add_action( 'wc_stripe_unexpected_charge_detected', $listener, 10, 3 );
-
-		try {
-			$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
-
-			$this->assertCount( 1, $captured );
-			$this->assertSame( $order->get_id(), $captured[0]['order_id'] );
-			$this->assertSame( 'ch_card_unexpected', $captured[0]['charge_id'] );
-			$this->assertSame( 'charge.succeeded', $captured[0]['webhook_type'] );
-		} finally {
-			remove_action( 'wc_stripe_unexpected_charge_detected', $listener, 10 );
-		}
+		$this->assertCount( 1, $this->captured_unexpected_charges );
+		$this->assertSame( $order->get_id(), $this->captured_unexpected_charges[0]['order_id'] );
+		$this->assertSame( 'ch_card_unexpected', $this->captured_unexpected_charges[0]['charge_id'] );
+		$this->assertSame( 'charge.succeeded', $this->captured_unexpected_charges[0]['webhook_type'] );
 	}
 
 	/**
@@ -509,58 +542,28 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function test_process_webhook_capture_flags_unexpected_charge_via_payment_intent_fallback() {
 		$intent_id = 'pi_capture_unexpected';
 
-		$order = WC_Helper_Order::create_order();
-		$order->set_status( OrderStatus::PROCESSING );
-		$order->set_payment_method( 'klarna_payments' );
-		$order->set_payment_method_title( 'Klarna Payments' );
-		$order->set_currency( 'EUR' );
-		$order->update_meta_data( '_stripe_intent_id', $intent_id );
-		$order->save();
+		$order        = $this->create_order_with_intent( 'klarna_payments', $intent_id );
+		$notification = $this->build_charge_notification(
+			'charge.captured',
+			$intent_id,
+			[
+				'id'     => 'ch_capture_unexpected',
+				'amount' => 8000,
+			]
+		);
 
-		$charge = (object) [
-			'id'                     => 'ch_capture_unexpected',
-			'captured'               => true,
-			'payment_intent'         => $intent_id,
-			'amount'                 => 8000,
-			'currency'               => 'eur',
-			'payment_method_details' => (object) [ 'type' => 'card' ],
-		];
+		$this->spy_on_unexpected_charge_detected();
 
-		$notification = (object) [
-			'type' => 'charge.captured',
-			'data' => (object) [ 'object' => $charge ],
-		];
+		$this->mock_webhook_handler->process_webhook_capture( $notification );
 
-		$captured = [];
-		$listener = function ( $hook_order, $hook_charge, $hook_type ) use ( &$captured ) {
-			$captured[] = [
-				'order_id'     => $hook_order instanceof WC_Order ? $hook_order->get_id() : null,
-				'charge_id'    => is_object( $hook_charge ) ? $hook_charge->id : null,
-				'webhook_type' => $hook_type,
-			];
-		};
-		add_action( 'wc_stripe_unexpected_charge_detected', $listener, 10, 3 );
+		$this->assertCount( 1, $this->captured_unexpected_charges );
+		$this->assertSame( $order->get_id(), $this->captured_unexpected_charges[0]['order_id'] );
+		$this->assertSame( 'ch_capture_unexpected', $this->captured_unexpected_charges[0]['charge_id'] );
+		$this->assertSame( 'charge.captured', $this->captured_unexpected_charges[0]['webhook_type'] );
 
-		try {
-			$this->mock_webhook_handler->process_webhook_capture( $notification );
-
-			$this->assertCount( 1, $captured );
-			$this->assertSame( $order->get_id(), $captured[0]['order_id'] );
-			$this->assertSame( 'ch_capture_unexpected', $captured[0]['charge_id'] );
-			$this->assertSame( 'charge.captured', $captured[0]['webhook_type'] );
-
-			$notes = wc_get_order_notes(
-				[
-					'order_id' => $order->get_id(),
-					'limit'    => 1,
-				]
-			);
-			$this->assertNotEmpty( $notes );
-			$this->assertStringContainsString( $intent_id, $notes[0]->content );
-			$this->assertStringContainsString( 'ch_capture_unexpected', $notes[0]->content );
-		} finally {
-			remove_action( 'wc_stripe_unexpected_charge_detected', $listener, 10 );
-		}
+		$note = $this->get_latest_order_note_content( $order );
+		$this->assertStringContainsString( $intent_id, $note );
+		$this->assertStringContainsString( 'ch_capture_unexpected', $note );
 	}
 
 	/**
@@ -569,36 +572,18 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function test_process_webhook_capture_does_not_flag_when_paid_via_stripe() {
 		$intent_id = 'pi_stripe_capture';
 
-		$order = WC_Helper_Order::create_order();
-		$order->set_status( OrderStatus::PROCESSING );
-		$order->set_payment_method( 'stripe' );
-		$order->update_meta_data( '_stripe_intent_id', $intent_id );
-		$order->save();
+		$this->create_order_with_intent( 'stripe', $intent_id );
+		$notification = $this->build_charge_notification(
+			'charge.captured',
+			$intent_id,
+			[ 'id' => 'ch_stripe_capture' ]
+		);
 
-		$charge = (object) [
-			'id'             => 'ch_stripe_capture',
-			'captured'       => true,
-			'payment_intent' => $intent_id,
-		];
+		$this->spy_on_unexpected_charge_detected();
 
-		$notification = (object) [
-			'type' => 'charge.captured',
-			'data' => (object) [ 'object' => $charge ],
-		];
+		$this->mock_webhook_handler->process_webhook_capture( $notification );
 
-		$called   = 0;
-		$listener = function () use ( &$called ) {
-			++$called;
-		};
-		add_action( 'wc_stripe_unexpected_charge_detected', $listener );
-
-		try {
-			$this->mock_webhook_handler->process_webhook_capture( $notification );
-
-			$this->assertSame( 0, $called );
-		} finally {
-			remove_action( 'wc_stripe_unexpected_charge_detected', $listener );
-		}
+		$this->assertCount( 0, $this->captured_unexpected_charges );
 	}
 
 	/**
@@ -608,62 +593,36 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function test_flag_unexpected_charge_is_idempotent_per_intent() {
 		$intent_id = 'pi_dedup';
 
-		$order = WC_Helper_Order::create_order();
-		$order->set_status( OrderStatus::PROCESSING );
-		$order->set_payment_method( 'klarna_payments' );
-		$order->set_payment_method_title( 'Klarna Payments' );
-		$order->set_currency( 'EUR' );
-		$order->update_meta_data( '_stripe_intent_id', $intent_id );
-		$order->save();
+		$order = $this->create_order_with_intent( 'klarna_payments', $intent_id );
 
-		// First detection via charge.succeeded.
-		$charge              = (object) [
+		// The same charge is detected first via charge.succeeded and then via charge.captured.
+		$charge_overrides     = [
 			'id'                     => 'py_dedup',
-			'captured'               => true,
-			'payment_intent'         => $intent_id,
-			'amount'                 => 1000,
-			'currency'               => 'eur',
 			'payment_method_details' => (object) [ 'type' => 'sepa_debit' ],
 		];
-		$charge_notification = (object) [
-			'type' => 'charge.succeeded',
-			'data' => (object) [ 'object' => $charge ],
-		];
+		$charge_notification  = $this->build_charge_notification( 'charge.succeeded', $intent_id, $charge_overrides );
+		$capture_notification = $this->build_charge_notification( 'charge.captured', $intent_id, $charge_overrides );
 
-		// Second detection via charge.captured for the same PaymentIntent.
-		$capture_notification = (object) [
-			'type' => 'charge.captured',
-			'data' => (object) [ 'object' => $charge ],
-		];
+		$this->spy_on_unexpected_charge_detected();
 
-		$called   = 0;
-		$listener = function () use ( &$called ) {
-			++$called;
-		};
-		add_action( 'wc_stripe_unexpected_charge_detected', $listener );
+		$this->mock_webhook_handler->process_webhook_charge_succeeded( $charge_notification );
+		$this->mock_webhook_handler->process_webhook_capture( $capture_notification );
 
-		try {
-			$this->mock_webhook_handler->process_webhook_charge_succeeded( $charge_notification );
-			$this->mock_webhook_handler->process_webhook_capture( $capture_notification );
+		$this->assertCount( 1, $this->captured_unexpected_charges );
 
-			$this->assertSame( 1, $called );
-
-			$notes            = wc_get_order_notes(
-				[
-					'order_id' => $order->get_id(),
-					'limit'    => 10,
-				]
-			);
-			$unexpected_notes = array_filter(
-				$notes,
-				static function ( $note ) use ( $intent_id ) {
-					return false !== strpos( $note->content, $intent_id ) && false !== strpos( $note->content, 'unexpected' );
-				}
-			);
-			$this->assertCount( 1, $unexpected_notes );
-		} finally {
-			remove_action( 'wc_stripe_unexpected_charge_detected', $listener );
-		}
+		$notes            = wc_get_order_notes(
+			[
+				'order_id' => $order->get_id(),
+				'limit'    => 10,
+			]
+		);
+		$unexpected_notes = array_filter(
+			$notes,
+			static function ( $note ) use ( $intent_id ) {
+				return false !== strpos( $note->content, $intent_id ) && false !== strpos( $note->content, 'unexpected' );
+			}
+		);
+		$this->assertCount( 1, $unexpected_notes );
 	}
 
 	/**
@@ -675,39 +634,17 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function test_unexpected_charge_note_dashboard_url_follows_charge_livemode( $livemode, $expected_url ) {
 		$intent_id = 'pi_unexpected_mode';
 
-		$order = WC_Helper_Order::create_order();
-		$order->set_status( OrderStatus::PROCESSING );
-		$order->set_payment_method( 'cod' );
-		$order->set_currency( 'EUR' );
-		$order->update_meta_data( '_stripe_intent_id', $intent_id );
-		$order->save();
+		$order = $this->create_order_with_intent( 'cod', $intent_id );
 
-		$charge = (object) [
-			'id'             => 'py_unexpected_mode',
-			'captured'       => true,
-			'payment_intent' => $intent_id,
-			'amount'         => 1000,
-			'currency'       => 'eur',
-		];
+		$charge_overrides = [ 'id' => 'py_unexpected_mode' ];
 		if ( null !== $livemode ) {
-			$charge->livemode = $livemode;
+			$charge_overrides['livemode'] = $livemode;
 		}
-
-		$notification = (object) [
-			'type' => 'charge.succeeded',
-			'data' => (object) [ 'object' => $charge ],
-		];
+		$notification = $this->build_charge_notification( 'charge.succeeded', $intent_id, $charge_overrides );
 
 		$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
 
-		$notes = wc_get_order_notes(
-			[
-				'order_id' => $order->get_id(),
-				'limit'    => 1,
-			]
-		);
-		$this->assertNotEmpty( $notes );
-		$this->assertStringContainsString( $expected_url, $notes[0]->content );
+		$this->assertStringContainsString( $expected_url, $this->get_latest_order_note_content( $order ) );
 	}
 
 	/**
