@@ -181,6 +181,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Show Apple Pay / Google Pay branding on saved card tokens in My Account → Payment Methods and at checkout
 * Fix - Use a placeholder billing last name for single-name express checkout payments
 * Fix - Prevent Stripe from rendering an unexpected "Address Line 2" field inside the Payment Element
+* Fix - Incorrect payment method title on the order confirmation page when Optimized Checkout is enabled
 * Fix - Preserve saved card branding when the same card is later used via a wallet, and render multi-word brands (e.g. Cartes Bancaires) correctly
 * Add - Detect Stripe API outages (network failures, timeouts, 5xx responses) and surface a wp-admin notice instead of crashing or showing misleading "couldn't connect" messages
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
