@@ -116,15 +116,12 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_admin_scripts_sets_checkout_sessions_availability_with_country_restrictions(
 		string $account_country,
-		bool $is_checkout_sessions_feature_available,
-		bool $expected_checkout_sessions_availability
+		bool $expected_checkout_sessions_availability,
+		?string $expected_adaptive_pricing_unavailable_reason
 	): void {
 		global $current_tab, $current_section;
 
 		$wp_scripts_backup = $GLOBALS['wp_scripts'];
-		$feature_filter    = static function () use ( $is_checkout_sessions_feature_available ) {
-			return $is_checkout_sessions_feature_available;
-		};
 
 		try {
 			// Avoid stacked `wp_localize_script` output from prior data-provider runs breaking JSON extraction.
@@ -169,8 +166,6 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 			$controller = new WC_Stripe_Settings_Controller( $account, $gateway );
 
-			add_filter( 'wc_stripe_is_checkout_sessions_available', $feature_filter );
-
 			$controller->admin_scripts( 'woocommerce_page_wc-settings' );
 
 			$localized_data = wp_scripts()->get_data( 'woocommerce_stripe_admin', 'data' );
@@ -185,23 +180,23 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			$this->assertIsArray( $params );
 			$expected_cs_param = $expected_checkout_sessions_availability ? '1' : '';
 			$this->assertSame( $expected_cs_param, $params['is_cs_available'] );
+			$this->assertSame( $expected_adaptive_pricing_unavailable_reason, $params['adaptive_pricing_unavailable_reason'] );
 			$this->assertSame( 'accordion', $params['oc_layout'] );
 		} finally {
 			if ( isset( $stripe_singleton_account_backup ) ) {
 				WC_Stripe::get_instance()->account = $stripe_singleton_account_backup;
 			}
 			$GLOBALS['wp_scripts'] = $wp_scripts_backup;
-			remove_filter( 'wc_stripe_is_checkout_sessions_available', $feature_filter );
 			unset( $current_tab, $current_section );
 		}
 	}
 
 	public function provide_test_admin_scripts_checkout_sessions_country_restrictions(): array {
 		return [
-			'US account + feature available'   => [ 'US', true, true ],
-			'IN account + feature available'   => [ 'IN', true, false ],
-			'DE account + feature available'   => [ 'DE', true, true ],
-			'US account + feature unavailable' => [ 'US', false, false ],
+			// [ account country, expected is_cs_available, expected AP unavailable reason ]
+			'US account (supported)'     => [ 'US', true, null ],
+			'DE account (supported)'     => [ 'DE', true, null ],
+			'IN account (not supported)' => [ 'IN', false, 'account-country' ],
 		];
 	}
 }
