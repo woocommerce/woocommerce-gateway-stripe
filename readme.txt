@@ -153,7 +153,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.8.0 - xxxx-xx-xx =
 * Tweak - Drop redundant "Test mode:" label from test payment instructions on Blocks checkout, which already shows a Test Mode badge
-* Fix - Remove console errors on the Blocks checkout page editor caused by accessing wc.wcSettings without declaring the wc-settings dependency and an undefined wc_stripe_upe_params global
+* Fix - Resolve console errors shown when editing the Blocks checkout page
 * Fix - Prevent Stripe from rendering an unexpected "Address Line 2" field inside the Payment Element
 * Update - Ensure payment method restrictions based on account and shopper countries are up to date
 * Fix - Store transaction IDs for orders when we get charges to ensure we can refund correctly
