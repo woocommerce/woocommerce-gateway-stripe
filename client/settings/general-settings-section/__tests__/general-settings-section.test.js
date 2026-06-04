@@ -22,7 +22,6 @@ import {
 	PAYMENT_METHOD_EPS,
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_SEPA,
-	PAYMENT_METHOD_SOFORT,
 	PAYMENT_METHOD_UNAVAILABLE_REASONS,
 } from 'wcstripe/stripe-utils/constants';
 
@@ -199,7 +198,7 @@ describe( 'GeneralSettingsSection', () => {
 		] );
 	} );
 
-	it( 'should show modal to disable a payment method', async () => {
+	it( 'should immediately disable a payment method on uncheck, without a confirmation dialog', async () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
@@ -218,77 +217,16 @@ describe( 'GeneralSettingsSection', () => {
 		} );
 
 		expect( cardCheckbox ).toBeChecked();
+		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
+
+		await userEvent.click( cardCheckbox );
+
+		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [] );
 		expect(
 			screen.queryByRole( 'heading', {
 				name: 'Remove Credit card / debit card from checkout',
 			} )
 		).not.toBeInTheDocument();
-
-		await userEvent.click( cardCheckbox );
-
-		expect(
-			screen.getByRole( 'heading', {
-				name: 'Remove Credit card / debit card from checkout',
-			} )
-		).toBeInTheDocument();
-	} );
-
-	it( 'should not allow to disable a payment method when canceled via modal', async () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_CARD,
-			PAYMENT_METHOD_ALIPAY,
-			PAYMENT_METHOD_SEPA,
-		] );
-		const updateEnabledMethodsMock = jest.fn();
-		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_CARD ],
-			updateEnabledMethodsMock,
-		] );
-
-		render( <GeneralSettingsSection /> );
-
-		const cardCheckbox = screen.getByRole( 'checkbox', {
-			name: /Credit card/,
-		} );
-
-		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
-		expect( cardCheckbox ).toBeChecked();
-
-		await userEvent.click( cardCheckbox );
-		await userEvent.click(
-			screen.getByRole( 'button', { name: 'Cancel' } )
-		);
-
-		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
-	} );
-
-	it( 'should allow to disable a payment method when confirmed via modal', async () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_CARD,
-			PAYMENT_METHOD_ALIPAY,
-			PAYMENT_METHOD_SEPA,
-		] );
-		const updateEnabledMethodsMock = jest.fn();
-		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_CARD ],
-			updateEnabledMethodsMock,
-		] );
-
-		render( <GeneralSettingsSection /> );
-
-		const cardCheckbox = screen.getByRole( 'checkbox', {
-			name: /Credit card/,
-		} );
-
-		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
-		expect( cardCheckbox ).toBeChecked();
-
-		await userEvent.click( cardCheckbox );
-		await userEvent.click(
-			screen.getByRole( 'button', { name: 'Remove' } )
-		);
-
-		expect( updateEnabledMethodsMock ).toHaveBeenCalled();
 	} );
 
 	it( 'does not display the payment method checkbox when currency is not supported', () => {
@@ -385,8 +323,8 @@ describe( 'GeneralSettingsSection', () => {
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
 			PAYMENT_METHOD_SEPA,
-			PAYMENT_METHOD_SOFORT,
 			PAYMENT_METHOD_EPS,
+			PAYMENT_METHOD_AFFIRM,
 		] );
 		useEnabledPaymentMethodIds.mockReturnValue( [
 			[ PAYMENT_METHOD_CARD ],
