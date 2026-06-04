@@ -406,6 +406,16 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
+		// Prevent switching to live mode when no live account is connected.
+		if ( ! $is_test_mode_enabled && ! WC_Stripe_Helper::is_connected( 'live' ) ) {
+			return;
+		}
+
+		// Prevent switching to test mode when no test account is connected.
+		if ( $is_test_mode_enabled && ! WC_Stripe_Helper::is_connected( 'test' ) ) {
+			return;
+		}
+
 		$this->gateway->update_option( 'testmode', $is_test_mode_enabled ? 'yes' : 'no' );
 	}
 
