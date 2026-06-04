@@ -12,34 +12,27 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Helper {
-	const SETTINGS_OPTION              = 'woocommerce_stripe_settings';
-	const LEGACY_META_NAME_FEE         = 'Stripe Fee';
-	const LEGACY_META_NAME_NET         = 'Net Revenue From Stripe';
-	const META_NAME_FEE                = '_stripe_fee';
-	const META_NAME_NET                = '_stripe_net';
-	const META_NAME_STRIPE_CURRENCY    = '_stripe_currency';
-	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
-
-	/**
-	 * First gateway ID from the woocommerce_available_payment_gateways.
-	 *
-	 * @var string|null
-	 */
-	private static $first_gateway_id_from_available_list = null;
+	public const SETTINGS_OPTION              = 'woocommerce_stripe_settings';
+	public const LEGACY_META_NAME_FEE         = 'Stripe Fee';
+	public const LEGACY_META_NAME_NET         = 'Net Revenue From Stripe';
+	public const META_NAME_FEE                = '_stripe_fee';
+	public const META_NAME_NET                = '_stripe_net';
+	public const META_NAME_STRIPE_CURRENCY    = '_stripe_currency';
+	public const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
 	 * The identifier for the official Affirm gateway plugin.
 	 *
 	 * @var string
 	 */
-	const OFFICIAL_PLUGIN_ID_AFFIRM = 'affirm';
+	public const OFFICIAL_PLUGIN_ID_AFFIRM = 'affirm';
 
 	/**
 	 * The identifier for the official Klarna gateway plugin.
 	 *
 	 * @var string
 	 */
-	const OFFICIAL_PLUGIN_ID_KLARNA = 'klarna_payments';
+	public const OFFICIAL_PLUGIN_ID_KLARNA = 'klarna_payments';
 
 	/**
 	 * List of legacy Stripe gateways.
@@ -79,182 +72,6 @@ class WC_Stripe_Helper {
 	 */
 	public static function delete_main_stripe_settings() {
 		delete_option( self::SETTINGS_OPTION );
-	}
-
-	/**
-	 * Gets the Stripe currency for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 * @return string $currency
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_currency()` instead.
-	 */
-	public static function get_stripe_currency( $order = null ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_currency()' );
-
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_NAME_STRIPE_CURRENCY, true );
-	}
-
-	/**
-	 * Updates the Stripe currency for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 * @param string $currency
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_currency()` instead.
-	 */
-	public static function update_stripe_currency( $order, $currency ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_currency()' );
-
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_NAME_STRIPE_CURRENCY, $currency );
-	}
-
-	/**
-	 * Gets the Stripe fee for order. With legacy check.
-	 *
-	 * @since 4.1.0
-	 * @param WC_Order $order
-	 * @return string $amount
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_fee()` instead.
-	 */
-	public static function get_stripe_fee( $order = null ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_fee()' );
-
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$amount = $order->get_meta( self::META_NAME_FEE, true );
-
-		// If not found let's check for legacy name.
-		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( self::LEGACY_META_NAME_FEE, true );
-
-			// If found update to new name.
-			if ( $amount ) {
-				WC_Stripe_Order_Helper::get_instance()->update_stripe_fee( $order, $amount );
-			}
-		}
-
-		return $amount;
-	}
-
-	/**
-	 * Updates the Stripe fee for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 * @param float  $amount
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_fee()` instead.
-	 */
-	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_fee()' );
-
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_NAME_FEE, $amount );
-	}
-
-	/**
-	 * Deletes the Stripe fee for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_fee()` instead.
-	 */
-	public static function delete_stripe_fee( $order = null ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_fee()' );
-
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->delete_meta_data( self::META_NAME_FEE );
-		$order->delete_meta_data( self::LEGACY_META_NAME_FEE );
-	}
-
-	/**
-	 * Gets the Stripe net for order. With legacy check.
-	 *
-	 * @since 4.1.0
-	 * @param WC_Order $order
-	 * @return string $amount
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_net()` instead.
-	 */
-	public static function get_stripe_net( $order = null ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_net()' );
-
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$amount = $order->get_meta( self::META_NAME_NET, true );
-
-		// If not found let's check for legacy name.
-		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( self::LEGACY_META_NAME_NET, true );
-
-			// If found update to new name.
-			if ( $amount ) {
-				WC_Stripe_Order_Helper::get_instance()->update_stripe_net( $order, $amount );
-			}
-		}
-
-		return $amount;
-	}
-
-	/**
-	 * Updates the Stripe net for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 * @param float  $amount
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_net()` instead.
-	 */
-	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_net()' );
-
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_NAME_NET, $amount );
-	}
-
-	/**
-	 * Deletes the Stripe net for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_net()` instead.
-	 */
-	public static function delete_stripe_net( $order = null ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_net()' );
-
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->delete_meta_data( self::META_NAME_NET );
-		$order->delete_meta_data( self::LEGACY_META_NAME_NET );
 	}
 
 	/**
@@ -750,55 +567,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Resets the memoized first gateway ID from the available gateways list.
-	 *
-	 * @return void
-	 */
-	public static function clear_first_available_payment_gateway_record() {
-		self::$first_gateway_id_from_available_list = null;
-	}
-
-	/**
-	 * Memoizes the first gateway ID that is available for checkout, in WooCommerce gateway order.
-	 *
-	 * Uses each gateway's {@see WC_Payment_Gateway::is_available()} so disabled or internal recommended methods are skipped.
-	 *
-	 * @param WC_Payment_Gateways $gateways The WooCommerce Payment Gateways instance.
-	 * @return void
-	 */
-	public static function record_first_gateway_id_from_available_list( WC_Payment_Gateways $gateways ) {
-		if ( null !== self::$first_gateway_id_from_available_list ) {
-			return;
-		}
-
-		$gateways = $gateways->payment_gateways();
-
-		if ( ! is_array( $gateways ) || [] === $gateways ) {
-			return;
-		}
-
-		foreach ( $gateways as $gateway_id => $gateway ) {
-			if ( $gateway instanceof WC_Payment_Gateway && $gateway->is_available() ) {
-				self::$first_gateway_id_from_available_list = $gateway_id;
-				return;
-			}
-		}
-	}
-
-	/**
-	 * Whether the Stripe UPE gateway is first among WooCommerce's currently available payment gateways.
-	 *
-	 * @return bool
-	 */
-	public static function is_stripe_gateway_first_in_available_list(): bool {
-		if ( null === self::$first_gateway_id_from_available_list ) {
-			return false;
-		}
-
-		return WC_Stripe_UPE_Payment_Gateway::ID === self::$first_gateway_id_from_available_list || 0 === strpos( self::$first_gateway_id_from_available_list, 'stripe_' );
-	}
-
-	/**
 	 * Reorders the list of available payment gateways in 'woocommerce_gateway_order' option to include the Stripe methods
 	 * in the order merchants have chosen in the settings.
 	 *
@@ -877,30 +645,34 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Checks whether Stripe is the first gateway in WooCommerce gateway order.
+	 * Checks whether Stripe is the first gateway shown at checkout.
+	 * Disabled non-Stripe gateways are skipped because they don't render at checkout.
 	 *
 	 * @return bool
 	 */
 	public static function is_stripe_in_position_one_in_woocommerce_gateway_order(): bool {
-		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+		$loaded_gateways = WC()->payment_gateways->payment_gateways ?? [];
 
-		// If the gateway order is empty, assume Stripe is in the first position.
-		if ( empty( $gateway_order ) || ! is_array( $gateway_order ) ) {
-			return true;
-		}
+		foreach ( $loaded_gateways as $gateway ) {
+			/**
+			 * Loaded payment gateway instance.
+			 *
+			 * @var WC_Payment_Gateway $gateway
+			 */
+			if ( WC_Stripe_UPE_Payment_Gateway::ID === $gateway->id || 0 === strpos( $gateway->id, 'stripe_' ) ) {
+				return true;
+			}
 
-		asort( $gateway_order );
-		foreach ( array_keys( $gateway_order ) as $gateway_id ) {
-			// Skip internal WooCommerce Payments entries.
-			if ( 0 === strpos( $gateway_id, '_wc_' ) ) {
+			// Disabled non-Stripe gateways don't appear at checkout — skip.
+			if ( 'yes' !== $gateway->enabled ) {
 				continue;
 			}
 
-			// The first non-internal gateway decides position one.
-			return WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id || 0 === strpos( $gateway_id, 'stripe_' );
+			return false;
 		}
 
-		return false;
+		// No loaded gateways or only Stripe gateways — notice should not show.
+		return true;
 	}
 
 	/**
@@ -938,7 +710,6 @@ class WC_Stripe_Helper {
 			$updated_gateway_order[ $gateway_id ] = (string) $index++;
 		}
 
-		self::clear_first_available_payment_gateway_record();
 		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
 	}
 
@@ -1343,14 +1114,56 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Checks if Adaptive Pricing is available for the current Stripe account based on country.
-	 * Adaptive Pricing is not supported by Stripe for accounts based in India (see https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?payment-ui=stripe-hosted#restrictions).
+	 * Checks if Adaptive Pricing is available for the current Stripe account.
+	 * Refer to {@see get_adaptive_pricing_account_unavailable_reason()} for more details.
 	 *
-	 * @return bool True if the account is not in supported countries.
+	 * @return bool True if Adaptive Pricing is available for the current Stripe account, false otherwise.
 	 */
 	public static function is_adaptive_pricing_available_for_account(): bool {
-		$account_country = WC_Stripe::get_instance()->account->get_account_country();
-		return strtoupper( $account_country ) !== WC_Stripe_Country_Code::INDIA;
+		$reason = self::get_adaptive_pricing_account_unavailable_reason();
+		if ( null === $reason ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Returns the reason why adaptive pricing is not available for the current Stripe account.
+	 * Adaptive Pricing is not supported for accounts based in India, as well as for other situations.
+	 *
+	 * @link https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?payment-ui=embedded-components#restrictions
+	 *
+	 * @return string|null The reason why adaptive pricing is not available for the current Stripe account, or null if it is available.
+	 */
+	public static function get_adaptive_pricing_account_unavailable_reason(): ?string {
+		$stripe_account  = WC_Stripe::get_instance()->account;
+		$account_country = $stripe_account->get_account_country();
+
+		if ( WC_Stripe_Country_Code::INDIA === strtoupper( $account_country ) ) {
+			return 'account-country';
+		}
+
+		// If we are in test mode, payout details are often missing and currency-based rules
+		// are not enforced.
+		if ( WC_Stripe_Mode::is_test() ) {
+			return null;
+		}
+
+		// Check that the store currency can be used for settlement.
+		$stripe_settlement_currencies = $stripe_account->get_supported_store_currencies();
+		if ( [] === $stripe_settlement_currencies ) {
+			return 'no-settlement-currencies';
+		}
+
+		// Ensure we have lowercase currency codes.
+		$stripe_settlement_currencies = array_map( 'strtolower', $stripe_settlement_currencies );
+		$store_currency_lower         = strtolower( get_woocommerce_currency() );
+		if ( ! in_array( $store_currency_lower, $stripe_settlement_currencies, true ) ) {
+			return 'store-currency-not-settlement-currency';
+		}
+
+		return null;
 	}
 
 	/**
@@ -1499,35 +1312,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Adds payment intent id and order note to order if payment intent is not already saved
-	 *
-	 * @param $payment_intent_id
-	 * @param $order
-	 *
-	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::add_payment_intent_to_order() instead.
-	 */
-	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::add_payment_intent_to_order()' );
-
-		$order_helper  = WC_Stripe_Order_Helper::get_instance();
-		$old_intent_id = $order_helper->get_stripe_intent_id( $order );
-		if ( $old_intent_id === $payment_intent_id ) {
-			return;
-		}
-
-		$order->add_order_note(
-			sprintf(
-			/* translators: $1%s payment intent ID */
-				__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
-				$payment_intent_id
-			)
-		);
-
-		$order_helper->update_stripe_intent_id( $order, $payment_intent_id );
-		$order->save();
-	}
-
-	/**
 	 * Adds a source or payment method argument to the request array depending on what sort of
 	 * payment method ID is provided. If ID is neither a source or a payment method ID then nothing
 	 * is added.
@@ -1616,27 +1400,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Returns the payment intent or setup intent ID from a given order object.
-	 *
-	 * @param WC_Order $order The order to fetch the Stripe intent from.
-	 *
-	 * @return string|bool  The intent ID if found, false otherwise.
-	 *
-	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::get_intent_id_from_order() instead.
-	 */
-	public static function get_intent_id_from_order( $order ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_intent_id_from_order()' );
-
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$intent_id    = $order_helper->get_stripe_intent_id( $order );
-		if ( ! $intent_id ) {
-			$intent_id = $order_helper->get_stripe_setup_intent_id( $order );
-		}
-
-		return $intent_id ?? false;
-	}
-
-	/**
 	 * Fetches a list of all Stripe gateway IDs.
 	 *
 	 * @return array An array of all Stripe gateway IDs.
@@ -1652,48 +1415,6 @@ class WC_Stripe_Helper {
 		}
 
 		return array_merge( $gateway_ids, wp_list_pluck( $gateways, 'id', 'id' ) );
-	}
-
-	/**
-	 * Adds metadata to the order to indicate that the payment is awaiting action.
-	 *
-	 * This meta is primarily used to prevent orders from being cancelled by WooCommerce's hold stock settings.
-	 *
-	 * @param WC_Order $order The order to add the metadata to.
-	 * @param bool     $save  Whether to save the order after adding the metadata.
-	 *
-	 * @return void
-	 *
-	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::set_payment_awaiting_action() instead.
-	 */
-	public static function set_payment_awaiting_action( $order, $save = true ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::set_payment_awaiting_action()' );
-
-		$order->update_meta_data( self::PAYMENT_AWAITING_ACTION_META, wc_bool_to_string( true ) );
-
-		if ( $save ) {
-			$order->save();
-		}
-	}
-
-	/**
-	 * Removes the metadata from the order that was used to indicate that the payment was awaiting action.
-	 *
-	 * @param WC_Order $order The order to remove the metadata from.
-	 * @param bool     $save  Whether to save the order after removing the metadata.
-	 *
-	 * @return void
-	 *
-	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::remove_payment_awaiting_action() instead.
-	 */
-	public static function remove_payment_awaiting_action( $order, $save = true ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::remove_payment_awaiting_action()' );
-
-		$order->delete_meta_data( self::PAYMENT_AWAITING_ACTION_META );
-
-		if ( $save ) {
-			$order->save();
-		}
 	}
 
 	/**
@@ -2188,7 +1909,7 @@ class WC_Stripe_Helper {
 		$is_valid_payment_type = empty( $selected_payment_type ) || ( ! empty( $intent->payment_method_types ) && in_array( $selected_payment_type, $intent->payment_method_types, true ) );
 		$order_currency        = strtolower( $order->get_currency() );
 		$order_amount          = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-		$order_intent_id       = self::get_intent_id_from_order( $order );
+		$order_intent_id       = WC_Stripe_Order_Helper::get_instance()->get_intent_id_from_order( $order );
 		$intent_currency       = isset( $intent->currency ) ? strtolower( $intent->currency ) : null;
 		$intent_amount         = isset( $intent->amount ) ? (int) $intent->amount : null;
 

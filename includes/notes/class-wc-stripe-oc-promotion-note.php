@@ -19,7 +19,7 @@ final class WC_Stripe_OC_Promotion_Note {
 	/**
 	 * Name of the note for use in the database.
 	 */
-	const NOTE_NAME = 'wc-stripe-oc-promotion-note';
+	public const NOTE_NAME = 'wc-stripe-oc-promotion-note';
 
 	/**
 	 * Link to activate OC in store.

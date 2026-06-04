@@ -125,7 +125,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$is_agentic_hook = 0 === strpos( $event_type, 'v1.delegated_checkout.' );
 
 		$secret = $is_agentic_hook
-			? ( defined( 'AGENTIC_COMMERCE_WEBHOOK_SECRET' ) ? AGENTIC_COMMERCE_WEBHOOK_SECRET : '' )
+			? (string) get_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, '' )
 			: $this->secret;
 
 		// Validate it to make sure it is legit.
@@ -939,10 +939,26 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	public function process_webhook_refund( $notification ) {
 		$refund_object = $this->get_refund_object( $notification );
 		$order         = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
+		$order_helper  = WC_Stripe_Order_Helper::get_instance();
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::debug( 'Could not find order via refund ID: ' . $refund_object->id );
 			$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+		}
+
+		// Fallback for orders missing the stored charge ID: match via the intent ID and back-fill the charge.
+		if ( ! $order && ! empty( $notification->data->object->payment_intent ) ) {
+			$order = WC_Stripe_Helper::get_order_by_intent_id( $notification->data->object->payment_intent );
+
+			if ( $order instanceof WC_Order && $order_helper->is_stripe_gateway_order( $order ) && ! $order->get_transaction_id() ) {
+				$order->set_transaction_id( $notification->data->object->id );
+
+				if ( isset( $notification->data->object->captured ) ) {
+					$order_helper->set_stripe_charge_captured( $order, (bool) $notification->data->object->captured );
+				}
+
+				$order->save();
+			}
 		}
 
 		if ( ! $order ) {
@@ -954,8 +970,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$this->resolved_order = $order;
 
 		$order_id = $order->get_id();
-
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		if ( $order_helper->is_stripe_gateway_order( $order ) ) {
 			$charge     = $order->get_transaction_id();
@@ -1774,11 +1788,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->handle_agentic_checkout_session( $notification );
 			} finally {
 				WC_Stripe_Database_Cache::delete( $lock_key );
-				return;
 			}
-		} else {
-			WC_Stripe_Database_Cache::delete( $lock_key );
+			return;
 		}
+
+		WC_Stripe_Database_Cache::delete( $lock_key );
 
 		/**
 		 * Filters the valid order statuses for payment processing.
@@ -2394,12 +2408,23 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 				 */
 				do_action( 'wc_stripe_agentic_order_created', $order, $session );
-			} catch ( Exception $e ) {
+			} catch ( Throwable $e ) {
+				// Cap trace length to avoid overwhelming log handlers that may
+				// truncate or reject very large context fields.
+				$trace = $e->getTraceAsString();
+				if ( strlen( $trace ) > 4000 ) {
+					$trace = substr( $trace, 0, 4000 ) . '... [truncated]';
+				}
+
 				WC_Stripe_Logger::error(
 					'Failed to create agentic order from checkout session.',
 					[
 						'session_id' => $session->get_id(),
 						'error'      => $e->getMessage(),
+						'exception'  => get_class( $e ),
+						'file'       => $e->getFile(),
+						'line'       => $e->getLine(),
+						'trace'      => $trace,
 					]
 				);
 
@@ -2407,10 +2432,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				 * Fires when agentic commerce order creation fails.
 				 *
 				 * @since 10.6.0
-				 * @param Exception                          $e       The exception that was thrown.
+				 * @param Throwable                          $e       The throwable that was thrown.
 				 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 				 */
 				do_action( 'wc_stripe_agentic_order_creation_failed', $e, $session );
+
+				// Re-throw so Action Scheduler marks the job as failed. The inner
+				// catch exists to log with full context and fire the failure hook;
+				// swallowing here would make AS report the run as complete.
+				throw $e;
 			}
 		} finally {
 			remove_filter( 'wc_stripe_request_headers', $override_version );

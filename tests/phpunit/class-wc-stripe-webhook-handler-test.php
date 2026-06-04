@@ -1001,6 +1001,47 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that a refund webhook finds the order via the intent ID when the charge ID is missing.
+	 */
+	public function test_process_webhook_refund_finds_order_via_intent_when_charge_id_missing() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_intent_1' );
+		$order->save();
+
+		$notification = (object) [
+			'data' => (object) [
+				'object' => (object) [
+					'id'              => 'ch_missing',
+					'object'          => 'charge',
+					'payment_intent'  => 'pi_intent_1',
+					'captured'        => true,
+					'amount'          => 5000,
+					'amount_refunded' => 1000,
+					'currency'        => 'usd',
+					'refunds'         => (object) [
+						'data' => [
+							(object) [
+								'id'                  => 're_xyz',
+								'amount'              => 1000,
+								'balance_transaction' => 'txn_1',
+							],
+						],
+					],
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_refund( $notification );
+
+		$reloaded = wc_get_order( $order->get_id() );
+
+		// Charge ID back-filled and refund synced against the recovered order.
+		$this->assertSame( 'ch_missing', $reloaded->get_transaction_id() );
+		$this->assertSame( 're_xyz', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( $reloaded ) );
+	}
+
+	/**
 	 * Tests for `process_webhook_refund_updated`.
 	 *
 	 * @param string $notification_status The notification status.
@@ -1415,6 +1456,13 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order->save();
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
 		$order->save_meta_data();
+
+		// Defensively clear any leftover session-specific cache entries.
+		// handle_checkout_session_success() returns early without calling schedule_job()
+		// when the per-session lock is present, which caused this test to intermittently
+		// fail in CI under paratest/randomized ordering.
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
 		// Build the mock notification.
 		$notification = (object) [

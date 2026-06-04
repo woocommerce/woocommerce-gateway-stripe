@@ -74,6 +74,17 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		}
 
 		$this->upe_helper = new UPE_Test_Helper();
+
+		// Ensure API keys are present so WC_Stripe_Payment_Method_Configurations::is_enabled()
+		// returns true. Without them, PMC-reliant tests fall back to the legacy DB path.
+		$settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$settings['publishable_key']      = 'pk_live_1234567890';
+		$settings['secret_key']           = 'sk_live_1234567890';
+		$settings['test_publishable_key'] = 'pk_test_1234567890';
+		$settings['test_secret_key']      = 'sk_test_1234567890';
+		$settings['pmc_enabled']          = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
 		$this->controller = new WC_REST_Stripe_Settings_Controller( $this->get_gateway() );
 
 		add_action( 'rest_api_init', [ $this, 'deregister_wc_blocks_rest_api' ], 5 );
@@ -390,7 +401,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$request->set_param( 'enabled_payment_method_ids', [ WC_Stripe_Payment_Methods::CARD ] );
 		$request->set_param( 'is_upe_enabled', true );
 		// Enable Apple Pay and Google Pay.
-		$request->set_param( 'is_payment_request_enabled', true );
+		$request->set_param( 'is_express_checkout_enabled', true );
 
 		$response = $this->controller->update_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
@@ -418,7 +429,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$request->set_param( 'enabled_payment_method_ids', [ WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
 		$request->set_param( 'is_upe_enabled', true );
 		// Enable Apple Pay and Google Pay -- this will be ignored because card is disabled
-		$request->set_param( 'is_payment_request_enabled', true );
+		$request->set_param( 'is_express_checkout_enabled', true );
 
 		$response = $this->controller->update_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
@@ -427,77 +438,129 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	/**
 	 * Tests for the dismiss notice endpoint.
 	 *
-	 * @param array $request_params The request parameters.
-	 * @param array $expected_option The expected option after the request.
+	 * @param array $request_params    The request parameters.
+	 * @param array $expected_options  The expected options to have been updated.
 	 * @param array $expected_response The expected response.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_dismiss_notice
 	 */
-	public function test_dismiss_notice( $request_params, $expected_option, $expected_response ) {
+	public function test_dismiss_notice( array $request_params, array $expected_options, array $expected_response ) {
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE . '/notice' );
 		foreach ( $request_params as $key => $value ) {
 			$request->set_param( $key, $value );
 		}
 
-		$response = rest_do_request( $request );
-		if ( count( $expected_option ) > 0 ) {
-			foreach ( $expected_option as $option_name => $option_value ) {
+		$updated_stripe_options = [];
+
+		$pre_update_filter = function ( $value, $option_name ) use ( &$updated_stripe_options ) {
+			if ( str_starts_with( $option_name, 'wc_stripe_' ) ) {
+				$updated_stripe_options[ $option_name ] = $value;
+			}
+			return $value;
+		};
+		add_filter( 'pre_update_option', $pre_update_filter, 10, 2 );
+
+		try {
+			$response = rest_do_request( $request );
+
+			$this->assertEquals( count( $expected_options ), count( $updated_stripe_options ) );
+
+			foreach ( $expected_options as $option_name => $option_value ) {
 				$notice_option = get_option( $option_name );
 				$this->assertEquals( $option_value, $notice_option );
-			}
-		}
 
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( $expected_response, $response->get_data() );
+				$this->assertArrayHasKey( $option_name, $updated_stripe_options );
+				$this->assertEquals( $option_value, $updated_stripe_options[ $option_name ] );
+			}
+
+			$this->assertEquals( 200, $response->get_status() );
+			$this->assertEquals( $expected_response, $response->get_data() );
+		} finally {
+			remove_filter( 'pre_update_option', $pre_update_filter, 10 );
+		}
 	}
 
 	/**
-	 * Provider for test_dismiss_notice.
+	 * Provider for {@see test_dismiss_notice()}.
 	 *
 	 * @return array
 	 */
 	public function provide_test_dismiss_notice() {
-		return [
-			'empty request'                => [
+		$supported_options = [
+			'wc_stripe_show_customization_notice'       => 'wc_stripe_show_customization_notice',
+			'wc_stripe_show_optimized_checkout_notice'  => 'wc_stripe_show_optimized_checkout_notice',
+			'wc_stripe_show_bnpl_promotion_banner'      => 'wc_stripe_show_bnpl_promotion_banner',
+			'wc_stripe_show_oc_promotion_banner'        => 'wc_stripe_show_oc_promotion_banner',
+			'wc_stripe_show_stripe_first_method_notice' => 'wc_stripe_show_stripe_first_method_notice',
+			'wc_stripe_show_stripe_tax_banner'          => 'wc_stripe_show_stripe_tax_banner',
+		];
+
+		$dismissed_result = [
+			'result' => 'notice dismissed',
+		];
+
+		$test_cases = [
+			'empty request'             => [
 				'request params'    => [],
-				'expected option'   => [],
+				'expected options'  => [],
 				'expected response' => [],
 			],
-			'dismiss customization notice' => [
+			'unsupported request param' => [
 				'request params'    => [
-					'wc_stripe_show_customization_notice' => 'no',
+					'wc_stripe_test_notice' => 'no',
 				],
-				'expected option'   => [
-					'wc_stripe_show_customization_notice' => 'no',
-				],
-				'expected response' => [
-					'result' => 'notice dismissed',
-				],
-			],
-			'dismiss BNPL banner'          => [
-				'request params'    => [
-					'wc_stripe_show_bnpl_promotion_banner' => 'no',
-				],
-				'expected option'   => [
-					'wc_stripe_show_bnpl_promotion_banner' => 'no',
-				],
-				'expected response' => [
-					'result' => 'notice dismissed',
-				],
-			],
-			'dismiss stripe first notice'  => [
-				'request params'    => [
-					'wc_stripe_show_stripe_first_method_notice' => 'no',
-				],
-				'expected option'   => [
-					'wc_stripe_show_stripe_first_method_notice' => 'no',
-				],
-				'expected response' => [
-					'result' => 'notice dismissed',
-				],
+				'expected options'  => [],
+				'expected response' => [],
 			],
 		];
+
+		foreach ( $supported_options as $request_param => $option_name ) {
+			$test_cases[ 'dismiss ' . $request_param . ' notice' ]               = [
+				'request params'    => [ $request_param => 'no' ],
+				'expected options'  => [ $option_name => 'no' ],
+				'expected response' => $dismissed_result,
+			];
+			$test_cases[ 'dismiss ' . $request_param . ' with empty parameter' ] = [
+				'request params'    => [ $request_param => '' ],
+				'expected options'  => [ $option_name => 'no' ],
+				'expected response' => $dismissed_result,
+			];
+		}
+
+		$test_cases['dismiss multiple notices'] = [
+			'request params'    => [
+				'wc_stripe_show_customization_notice'       => 'no',
+				'wc_stripe_show_optimized_checkout_notice'  => 'no',
+				'wc_stripe_show_stripe_first_method_notice' => 'no',
+				'wc_stripe_show_stripe_tax_banner'          => 'no',
+			],
+			'expected options'  => [
+				'wc_stripe_show_customization_notice'       => 'no',
+				'wc_stripe_show_optimized_checkout_notice'  => 'no',
+				'wc_stripe_show_stripe_first_method_notice' => 'no',
+				'wc_stripe_show_stripe_tax_banner'          => 'no',
+			],
+			'expected response' => $dismissed_result,
+		];
+
+		$test_cases['dismiss multiple notices with mixed values'] = [
+			'request params'    => [
+				'wc_stripe_show_customization_notice'       => 'no',
+				'wc_stripe_show_optimized_checkout_notice'  => '',
+				'wc_stripe_show_stripe_first_method_notice' => 'no',
+				'wc_stripe_show_stripe_tax_banner'          => '',
+			],
+			'expected options'  => [
+				'wc_stripe_show_customization_notice'       => 'no',
+				'wc_stripe_show_optimized_checkout_notice'  => 'no',
+				'wc_stripe_show_stripe_first_method_notice' => 'no',
+				'wc_stripe_show_stripe_tax_banner'          => 'no',
+			],
+			'expected response' => $dismissed_result,
+		];
+
+		return $test_cases;
 	}
 
 	/**
@@ -539,9 +602,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
-	 * @dataProvider is_payment_request_enabled_provider
+	 * @dataProvider is_express_checkout_enabled_provider
 	 */
-	public function test_is_payment_request_enabled( $is_enabled, $enabled_payment_method_ids, $disabled_payment_method_ids ) {
+	public function test_is_express_checkout_enabled( $is_enabled, $enabled_payment_method_ids, $disabled_payment_method_ids ) {
 		$this->mock_payment_method_configurations(
 			$enabled_payment_method_ids,
 			$disabled_payment_method_ids
@@ -549,10 +612,10 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$request  = new WP_REST_Request( 'GET', self::SETTINGS_ROUTE );
 		$response = $this->controller->get_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( $is_enabled, $response->get_data()['is_payment_request_enabled'] );
+		$this->assertEquals( $is_enabled, $response->get_data()['is_express_checkout_enabled'] );
 	}
 
-	public function is_payment_request_enabled_provider() {
+	public function is_express_checkout_enabled_provider() {
 		return [
 			[ true, [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::GOOGLE_PAY ], [] ],
 			[ false, [], [ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::AMAZON_PAY ] ],
@@ -595,35 +658,35 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 */
 	public function enum_field_provider() {
 		return [
-			'payment_request_button_theme'     => [
-				'payment_request_button_theme',
+			'express_checkout_button_theme'     => [
+				'express_checkout_button_theme',
 				'express_checkout_button_theme',
 				'dark',
 				'light',
 				'foo',
 			],
-			'payment_request_button_size'      => [
-				'payment_request_button_size',
+			'express_checkout_button_size'      => [
+				'express_checkout_button_size',
 				'express_checkout_button_size',
 				'default',
 				'large',
 				'foo',
 			],
-			'payment_request_button_type'      => [
-				'payment_request_button_type',
+			'express_checkout_button_type'      => [
+				'express_checkout_button_type',
 				'express_checkout_button_type',
 				'buy',
 				'book',
 				'foo',
 			],
-			'payment_request_button_locations' => [
-				'payment_request_button_locations',
+			'express_checkout_button_locations' => [
+				'express_checkout_button_locations',
 				'express_checkout_button_locations',
 				[ 'cart' ],
 				[ 'cart', 'checkout', 'product' ],
 				[ 'foo' ],
 			],
-			'optimized_checkout_layout'        => [
+			'optimized_checkout_layout'         => [
 				'oc_layout',
 				'optimized_checkout_layout',
 				'accordion',

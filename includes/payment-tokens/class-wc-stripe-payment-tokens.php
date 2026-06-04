@@ -27,7 +27,7 @@ class WC_Stripe_Payment_Tokens {
 	 *
 	 * @var array
 	 */
-	const UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD = [
+	public const UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD = [
 		WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID           => WC_Stripe_UPE_Payment_Gateway::ID,
 		WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID,
 		WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID   => WC_Stripe_UPE_Payment_Gateway::ID,
@@ -85,9 +85,16 @@ class WC_Stripe_Payment_Tokens {
 				return 'BECS Direct Debit';
 			case 'sepa iban':
 				return 'SEPA IBAN';
-			default:
-				return $label;
 		}
+
+		// WC's `ucwords` pass on our wrapped brand mangles the inner card name
+		// (the first letter after `(` stays lowercase). Match any inner content
+		// and re-normalize through the label helper.
+		if ( preg_match( '/^(Apple Pay|Google Pay) \(([^)]+)\)$/', $label, $matches ) ) {
+			return $matches[1] . ' (' . wc_get_credit_card_type_label( $matches[2] ) . ')';
+		}
+
+		return $label;
 	}
 
 	/**
@@ -126,7 +133,7 @@ class WC_Stripe_Payment_Tokens {
 			$is_ocs_sub_gateway = WC_Stripe_UPE_Payment_Gateway::ID === $payment_method
 				&& in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true )
 				&& null !== $main_gateway
-				&& $main_gateway->should_use_optimized_checkout_payment_method_layout();
+				&& $main_gateway->is_optimized_checkout_active();
 
 			if ( ! $is_ocs_sub_gateway ) {
 				return null;
@@ -237,7 +244,7 @@ class WC_Stripe_Payment_Tokens {
 				// When OCS is active, is_enabled_at_checkout() handles currency/capability; is_enabled()
 				// ensures explicitly disabled methods are still hidden.
 				// When OCS is not active, use the simple is_enabled() toggle check.
-				if ( $gateway->should_use_optimized_checkout_payment_method_layout() ) {
+				if ( $gateway->is_optimized_checkout_active() ) {
 					if ( ! $method_obj->is_enabled() || ! $method_obj->is_enabled_at_checkout() ) {
 						// Preserve existing tokens in the DB but exclude them from the results.
 						// This avoids deleting tokens that are temporarily unavailable (e.g. currency change).
@@ -279,7 +286,7 @@ class WC_Stripe_Payment_Tokens {
 			// tokens without triggering the sync path. There is no recursion risk because the filter
 			// is absent for the duration of this try block.
 			// Only merge tokens for sub-gateways whose payment method is currently enabled.
-			if ( $gateway->should_use_optimized_checkout_payment_method_layout() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
+			if ( $gateway->is_optimized_checkout_active() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
 				$sub_gateway_to_method_type = [];
 				foreach ( self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD as $method_type => $gw_id ) {
 					if ( WC_Stripe_UPE_Payment_Gateway::ID !== $gw_id ) {
@@ -627,7 +634,7 @@ class WC_Stripe_Payment_Tokens {
 		// (gateway ID 'stripe'). Remap sub-gateway tokens (e.g. stripe_sepa_debit) to the main stripe gateway ID
 		// so that PaymentUtils includes them in the blocks checkout saved methods list.
 		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
-		if ( $main_gateway->should_use_optimized_checkout_payment_method_layout() && WC_Stripe_UPE_Payment_Gateway::ID !== $payment_token->get_gateway_id() ) {
+		if ( $main_gateway->is_optimized_checkout_active() && WC_Stripe_UPE_Payment_Gateway::ID !== $payment_token->get_gateway_id() ) {
 			$item['method']['gateway'] = WC_Stripe_UPE_Payment_Gateway::ID;
 		}
 
@@ -674,6 +681,21 @@ class WC_Stripe_Payment_Tokens {
 			case WC_Stripe_Payment_Methods::KLARNA:
 				$item['method']['brand'] = esc_html__( 'Klarna', 'woocommerce-gateway-stripe' );
 				break;
+		}
+
+		// Wrap Apple Pay / Google Pay branding around the card brand. Link wallet_type
+		// is persisted but not surfaced here (see #5437).
+		if ( $payment_token instanceof WC_Stripe_Payment_Token_CC ) {
+			$wallet_label = $payment_token->get_wallet_brand_label();
+			if ( '' !== $wallet_label ) {
+				$existing_brand = isset( $item['method']['brand'] ) ? trim( (string) $item['method']['brand'] ) : '';
+				if ( '' !== $existing_brand ) {
+					$existing_brand = wc_get_credit_card_type_label( $existing_brand );
+				}
+				$item['method']['brand'] = '' === $existing_brand
+					? $wallet_label
+					: sprintf( '%s (%s)', $wallet_label, $existing_brand );
+			}
 		}
 
 		return $item;
@@ -768,6 +790,18 @@ class WC_Stripe_Payment_Tokens {
 				// Clear cached payment methods.
 				$customer->clear_cache();
 				$found_token->set_token( $payment_method->id );
+
+				// Card fingerprint hashes the card number only, so a fingerprint
+				// match can still carry a different expiry or brand. Refresh the
+				// mutable card metadata so the UI reflects the replacement.
+				// `wallet_type` is left as-is so a later wallet use doesn't re-badge a saved card.
+				if ( WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID === $payment_method_type && $found_token instanceof WC_Stripe_Payment_Token_CC ) {
+					$found_token->set_expiry_month( $payment_method->card->exp_month );
+					$found_token->set_expiry_year( $payment_method->card->exp_year );
+					$found_token->set_card_type( strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand ) );
+					$found_token->set_last4( $payment_method->card->last4 );
+				}
+
 				$found_token->save();
 			}
 			return $found_token;
@@ -784,6 +818,7 @@ class WC_Stripe_Payment_Tokens {
 				$token->set_card_type( strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand ) );
 				$token->set_last4( $payment_method->card->last4 );
 				$token->set_fingerprint( $payment_method->card->fingerprint );
+				$token->set_wallet_type( (string) ( $payment_method->card->wallet->type ?? '' ) );
 				break;
 			case WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID:
 				$token = new WC_Payment_Token_Bacs_Debit();
@@ -1058,7 +1093,7 @@ class WC_Stripe_Payment_Tokens {
 
 		// When OCS is enabled, all reusable payment methods can be used via the consolidated OCS element.
 		// Return all reusable types so existing tokens are verified against Stripe and not incorrectly orphaned.
-		if ( $gateway->should_use_optimized_checkout_payment_method_layout() ) {
+		if ( $gateway->is_optimized_checkout_active() ) {
 			return $reusable_payment_method_types;
 		}
 
@@ -1071,7 +1106,7 @@ class WC_Stripe_Payment_Tokens {
 			$bancontact_tokens_enabled = $gateway->is_sepa_tokens_for_bancontact_enabled();
 
 			if ( ( $ideal_tokens_enabled && in_array( WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID, $active_reusable_payment_method_types, true ) )
-				 || ( $bancontact_tokens_enabled && in_array( WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID, $active_reusable_payment_method_types, true ) ) ) {
+				|| ( $bancontact_tokens_enabled && in_array( WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID, $active_reusable_payment_method_types, true ) ) ) {
 				$active_reusable_payment_method_types[] = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
 			}
 		}

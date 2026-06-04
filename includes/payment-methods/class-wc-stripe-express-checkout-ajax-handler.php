@@ -292,7 +292,13 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 			// Force quantity to 1 if sold individually and check for existing item in cart.
 			if ( $product->is_sold_individually() ) {
-				$qty = apply_filters( 'wc_stripe_payment_request_add_to_cart_sold_individually_quantity', 1, $qty, $product_id, $variation_id );
+				$qty     = apply_filters_deprecated(
+					'wc_stripe_payment_request_add_to_cart_sold_individually_quantity',
+					[ 1, $qty, $product_id, $variation_id ],
+					'10.6.0',
+					'wc_stripe_express_checkout_add_to_cart_sold_individually_quantity'
+				);
+					$qty = apply_filters( 'wc_stripe_express_checkout_add_to_cart_sold_individually_quantity', $qty, $qty, $product_id, $variation_id );
 			}
 
 			if ( ! $product->has_enough_stock( $qty ) ) {
@@ -387,8 +393,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		if ( ! $this->express_checkout_helper->is_express_checkout_context() ) {
 			return $locale;
 		}
-
-		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-express-checkout-button-states.php';
 
 		// For countries that don't have state fields, make the state field optional.
 		foreach ( WC_Stripe_Express_Checkout_Button_States::STATES as $country_code => $states ) {

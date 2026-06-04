@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import AccountDetails from '..';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
+import { useIsPMCEnabled } from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
@@ -8,6 +9,7 @@ jest.mock( 'wcstripe/data/account', () => ( {
 } ) );
 jest.mock( 'wcstripe/data', () => ( {
 	useTestMode: jest.fn().mockReturnValue( [ false ] ),
+	useIsPMCEnabled: jest.fn().mockReturnValue( false ),
 } ) );
 jest.mock( 'wcstripe/data/account-keys', () => ( {
 	useAccountKeysTestWebhookSecret: jest.fn().mockReturnValue( [ '' ] ),
@@ -93,4 +95,28 @@ describe( 'AccountDetails', () => {
 			screen.queryByText( mockedWarningMessage )
 		).toBeInTheDocument();
 	} );
+
+	it.each( [
+		[ true, 'Enabled' ],
+		[ false, 'Disabled' ],
+	] )(
+		'when useIsPMCEnabled returns %s, renders the Sync section as %s',
+		( isPMCEnabled, expectedLabel ) => {
+			useIsPMCEnabled.mockReturnValue( isPMCEnabled );
+			useAccount.mockReturnValue( {
+				data: {
+					account: {
+						settings: { payouts: {} },
+						payouts_enabled: true,
+						charges_enabled: true,
+					},
+				},
+			} );
+			render( <AccountDetails /> );
+
+			const syncLabel = screen.getByText( 'Sync' );
+			const syncRow = syncLabel.closest( 'div' );
+			expect( syncRow ).toHaveTextContent( expectedLabel );
+		}
+	);
 } );
