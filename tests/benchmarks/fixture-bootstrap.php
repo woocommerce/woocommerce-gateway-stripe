@@ -130,8 +130,10 @@ if ( ! class_exists( 'WC_Stripe_Benchmark_Fixture_Bootstrap' ) ) {
 			}
 
 			$locations = (array) ( $stripe_settings['payment_request_button_locations'] ?? [] );
-			if ( ! in_array( 'checkout', $locations, true ) ) {
-				throw new RuntimeException( 'Benchmark fixture setup failed: Stripe express checkout must be enabled for checkout.' );
+			foreach ( (array) $state['ece_locations'] as $location ) {
+				if ( ! in_array( $location, $locations, true ) ) {
+					throw new RuntimeException( sprintf( 'Benchmark fixture setup failed: Stripe express checkout must be enabled for "%s".', $location ) );
+				}
 			}
 
 			$available_gateways = WC()->payment_gateways()->get_available_payment_gateways();
