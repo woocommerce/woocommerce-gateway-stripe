@@ -118,15 +118,15 @@ if ( ! class_exists( 'WC_Stripe_Benchmark_Fixture_Bootstrap' ) ) {
 			}
 
 			$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-			$required        = [ 'enabled', 'testmode', 'test_publishable_key', 'test_secret_key', 'payment_request' ];
+			$required        = [ 'enabled', 'testmode', 'test_publishable_key', 'test_secret_key' ];
 			foreach ( $required as $key ) {
 				if ( empty( $stripe_settings[ $key ] ) ) {
 					throw new RuntimeException( sprintf( 'Benchmark fixture setup failed: Stripe setting "%s" is empty.', $key ) );
 				}
 			}
 
-			if ( 'yes' !== $stripe_settings['enabled'] || 'yes' !== $stripe_settings['testmode'] ) {
-				throw new RuntimeException( 'Benchmark fixture setup failed: Stripe gateway must be enabled in test mode.' );
+			if ( 'yes' !== $stripe_settings['enabled'] || 'yes' !== $stripe_settings['testmode'] || 'yes' !== ( $stripe_settings['payment_request'] ?? '' ) ) {
+				throw new RuntimeException( 'Benchmark fixture setup failed: Stripe gateway and express checkout must be enabled in test mode.' );
 			}
 
 			$locations = (array) ( $stripe_settings['payment_request_button_locations'] ?? [] );
