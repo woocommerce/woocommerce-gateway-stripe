@@ -2,10 +2,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import {
-	getAppearance,
-	getExpandedOptimizedCheckoutRules,
-} from '../styles/upe';
-import {
 	errorTypes,
 	errorCodes,
 	getPaymentMethodsConstants,
@@ -463,9 +459,11 @@ export const getHiddenBillingFields = ( enabledBillingFields ) => {
 			line1: enabledBillingFields.includes( 'billing_address_1' )
 				? 'never'
 				: 'auto',
-			line2: enabledBillingFields.includes( 'billing_address_2' )
-				? 'never'
-				: 'auto',
+			// Line 2 should never be collected by Stripe.
+			// It is not _required_ in any situations, and the are various cases where line 2
+			// is hidden in WooCommerce. When the WooCommerce field has been hidden
+			// by merchants, we don't want Stripe to collect it within the payment element.
+			line2: 'never',
 			city: enabledBillingFields.includes( 'billing_city' )
 				? 'never'
 				: 'auto',
@@ -896,65 +894,6 @@ export const showErrorPaymentMethod = ( errorMessage, containerSelector ) => {
 	$container.find( '.woocommerce-error' ).remove();
 
 	$container.prepend( messageWrapper );
-};
-
-// In-memory cache for computed appearance objects, keyed by checkout type.
-// Avoids redundant getComputedStyle() calls within a single page load.
-const appearanceCache = {};
-
-/**
- * Initializes the appearance of the payment element. Returns a cached value
- * when available, otherwise computes from the current page styles and caches
- * the result for the lifetime of the page.
- *
- * @param {string}  isBlockCheckout               Whether the checkout is being used in a block context.
- * @param {boolean} shouldExpandOptimizedCheckout Whether the Optimized Checkout Suite should be expanded. Only applicable for classic checkout.
- *
- * @return {Object} The appearance object for the UPE.
- */
-export const initializeUPEAppearance = (
-	isBlockCheckout = 'false',
-	shouldExpandOptimizedCheckout = false
-) => {
-	const isBlocks = isBlockCheckout === 'true';
-	const location = isBlocks
-		? 'blocks'
-		: 'classic' + ( shouldExpandOptimizedCheckout ? '_expanded' : '' );
-
-	// Check for custom appearance configuration from the server.
-	const customServerField = isBlocks ? 'blocksAppearance' : 'appearance';
-	const customAppearance = getStripeServerData()?.[ customServerField ];
-	if ( customAppearance ) {
-		if ( ! shouldExpandOptimizedCheckout ) {
-			return customAppearance;
-		}
-
-		return {
-			...customAppearance,
-			rules: getExpandedOptimizedCheckoutRules(
-				customAppearance.rules || {}
-			),
-		};
-	}
-
-	if ( appearanceCache[ location ] ) {
-		return appearanceCache[ location ];
-	}
-
-	const appearance = getAppearance( isBlocks, shouldExpandOptimizedCheckout );
-	appearanceCache[ location ] = appearance;
-	return appearance;
-};
-
-/**
- * Clears the in-memory appearance cache so the next call to
- * initializeUPEAppearance() re-computes from the current page styles.
- * Used after web fonts finish loading to refresh stale font families.
- */
-export const invalidateAppearanceCache = () => {
-	Object.keys( appearanceCache ).forEach(
-		( key ) => delete appearanceCache[ key ]
-	);
 };
 
 /**

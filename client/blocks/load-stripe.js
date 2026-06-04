@@ -1,6 +1,6 @@
 import { loadStripe } from '@stripe/stripe-js';
 import { getApiKey, getBlocksConfiguration } from './utils';
-import { STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT } from 'wcstripe/stripe-utils/constants';
+import { getStripeDevWidgetOptions } from 'wcstripe/stripe-utils';
 
 const stripePromise = () =>
 	new Promise( ( resolve ) => {
@@ -11,7 +11,7 @@ const stripePromise = () =>
 			resolve(
 				loadStripe( getApiKey(), {
 					locale,
-					...STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT,
+					...getStripeDevWidgetOptions(),
 				} )
 			);
 		} catch ( error ) {

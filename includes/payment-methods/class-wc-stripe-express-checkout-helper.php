@@ -43,6 +43,16 @@ class WC_Stripe_Express_Checkout_Helper {
 	private $gateway;
 
 	/**
+	 * Request-scoped cache for `should_show_express_checkout_button()`.
+	 *
+	 * Keys in the array capture specific contexts that may apply within a request.
+	 * Once such case is for handling One Page Checkout, which can affect when we are in checkout via runtime hooks.
+	 *
+	 * @var array<string, bool>
+	 */
+	private $should_show_cache = [];
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -65,6 +75,42 @@ class WC_Stripe_Express_Checkout_Helper {
 			$suffix = " ($suffix)";
 		}
 		return $suffix;
+	}
+
+	/**
+	 * Replaces the subscription's saved payment tokens with the WC token that
+	 * matches the given Stripe payment method ID. The change-payment flow
+	 * updates `_stripe_source_id` / `_payment_method` but not `_payment_tokens`,
+	 * so without this My Account keeps rendering the previously saved card.
+	 *
+	 * @param WC_Order $subscription      The subscription being updated.
+	 * @param string   $payment_method_id The Stripe payment method ID just attached to the subscription.
+	 * @return bool                       Whether a matching token was attached.
+	 */
+	public static function replace_subscription_payment_token( $subscription, $payment_method_id ) {
+		if ( ! $subscription instanceof WC_Order || empty( $payment_method_id ) ) {
+			return false;
+		}
+
+		$user_id = $subscription->get_user_id();
+		if ( ! $user_id ) {
+			return false;
+		}
+
+		$tokens = WC_Payment_Tokens::get_customer_tokens( $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+		foreach ( $tokens as $token ) {
+			if ( $token->get_token() === $payment_method_id ) {
+				// `_payment_tokens` is in WC's internal-meta-keys list, so
+				// `delete_meta_data()` is a no-op on it; `add_payment_token()`
+				// then appends rather than replaces, leaving the stale token
+				// alongside the new one. The data-store API rewrites the list
+				// in one call (and works under both CPT and HPOS).
+				$subscription->get_data_store()->update_payment_token_ids( $subscription, [ $token->get_id() ] ); // @phpstan-ignore-line method.notFound (PHPStan can't follow the generic get_data_store() return type to the order data store that implements update_payment_token_ids().)
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -629,7 +675,77 @@ class WC_Stripe_Express_Checkout_Helper {
 	public function is_page_supported() {
 		return $this->is_product()
 				|| WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
-				|| is_wc_endpoint_url( 'order-pay' );
+				|| is_wc_endpoint_url( 'order-pay' )
+				|| $this->is_change_payment_method_page();
+	}
+
+	/**
+	 * Returns true if the current page is a subscription change payment method page.
+	 *
+	 * @return boolean
+	 */
+	public function is_change_payment_method_page() {
+		return isset( $_GET['change_payment_method'] ) // phpcs:ignore WordPress.Security.NonceVerification
+			&& function_exists( 'wcs_is_subscription' )
+			&& wcs_is_subscription( absint( $_GET['change_payment_method'] ) ); // phpcs:ignore WordPress.Security.NonceVerification
+	}
+
+	/**
+	 * Returns true if ECE should be shown on the subscription change payment method page.
+	 *
+	 * Performs only the basic checks needed (account connected, SSL, gateway available,
+	 * ECE enabled) without cart-dependent validations which don't apply to this flow.
+	 * The location toggle (`change_payment_method`) lets merchants opt out independently
+	 * of the checkout-page setting.
+	 *
+	 * @return boolean
+	 */
+	private function should_show_ece_on_change_payment_method_page() {
+		if ( ! WC_Stripe::get_instance()->connect->is_connected() ) {
+			return false;
+		}
+
+		if ( ! $this->testmode && ! is_ssl() ) {
+			return false;
+		}
+
+		$available_gateways = WC()->payment_gateways()->get_available_payment_gateways();
+		if ( ! isset( $available_gateways['stripe'] ) ) {
+			return false;
+		}
+
+		if ( ! $this->is_express_checkout_enabled() ) {
+			return false;
+		}
+
+		if ( ! $this->should_show_ece_on_change_payment_method_location() ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Returns true if any express checkout buttons are enabled for the subscription
+	 * change payment method location, false otherwise.
+	 *
+	 * @since 10.8.0
+	 * @return boolean
+	 */
+	public function should_show_ece_on_change_payment_method_location() {
+		$should_show = $this->should_show_ece_on_location( 'change_payment_method' );
+
+		/**
+		 * Filters whether Express Checkout buttons should appear on the
+		 * WooCommerce Subscriptions "Change payment method" page.
+		 *
+		 * @since 10.8.0
+		 * @param bool $should_show Whether the buttons should be shown.
+		 */
+		return apply_filters(
+			'wc_stripe_show_express_checkout_on_change_payment_method',
+			$should_show
+		);
 	}
 
 	/**
@@ -639,6 +755,30 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  boolean  True if express checkout elements are supported on current page, false otherwise
 	 */
 	public function should_show_express_checkout_button() {
+		// One Page Checkout can make a page act as a checkout page via runtime hooks.
+		// We need a separate cache key for that case to ensure we enable express checkout.
+		$cache_key = doing_action( 'woocommerce_after_add_to_cart_form' ) ? 'after_add_to_cart' : 'default';
+
+		if ( array_key_exists( $cache_key, $this->should_show_cache ) ) {
+			return $this->should_show_cache[ $cache_key ];
+		}
+
+		$this->should_show_cache[ $cache_key ] = $this->compute_should_show_express_checkout_button();
+		return $this->should_show_cache[ $cache_key ];
+	}
+
+	/**
+	 * Evaluate every guard for showing the Express Checkout button. Do not call directly;
+	 * go through `should_show_express_checkout_button()` so the result is cached.
+	 *
+	 * @return boolean
+	 */
+	protected function compute_should_show_express_checkout_button() {
+		// For subscription change payment method, only check basic requirements.
+		if ( $this->is_change_payment_method_page() ) {
+			return $this->should_show_ece_on_change_payment_method_page();
+		}
+
 		// Bail if account is not connected.
 		if ( ! WC_Stripe::get_instance()->connect->is_connected() ) {
 			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
@@ -1133,8 +1273,6 @@ class WC_Stripe_Express_Checkout_Helper {
 		// @reykjalin: This HK specific sanitazation *should be removed* once Apple Pay fix
 		// the address bug. More info on that in pc4etw-bY-p2.
 		if ( WC_Stripe_Country_Code::HONG_KONG === $billing_country ) {
-			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
-
 			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $billing_state ) ) ) {
 				$billing_postcode = ! empty( $data['billing_address']['postcode'] ) ? wc_clean( wp_unslash( $data['billing_address']['postcode'] ) ) : '';
 				if ( WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $billing_postcode ) ) ) {
@@ -1143,8 +1281,6 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 		if ( WC_Stripe_Country_Code::HONG_KONG === $shipping_country ) {
-			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
-
 			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $shipping_state ) ) ) {
 				$shipping_postcode = ! empty( $data['shipping_address']['postcode'] ) ? wc_clean( wp_unslash( $data['shipping_address']['postcode'] ) ) : '';
 				if ( WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $shipping_postcode ) ) ) {
@@ -1202,7 +1338,6 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function get_normalized_state_from_pr_states( $state, $country ) {
 		// Include Payment Request API State list for compatibility with WC countries/states.
-		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-payment-request-button-states.php';
 		$pr_states = WC_Stripe_Payment_Request_Button_States::STATES;
 
 		if ( ! isset( $pr_states[ $country ] ) ) {
@@ -1682,6 +1817,12 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	private function is_enabled_for_current_context( string $express_checkout_type ): bool {
+		// Subscription change payment method has its own dedicated location toggle so
+		// merchants can opt out independently of the checkout-page setting.
+		if ( $this->is_change_payment_method_page() ) {
+			return $this->is_enabled_for_location( $express_checkout_type, 'change_payment_method' );
+		}
+
 		// One Page Checkout plugin creates checkout functionality on product pages, so we need to check for it and treat it as a checkout page.
 		$is_one_page_checkout = $this->is_one_page_checkout();
 
@@ -1754,18 +1895,6 @@ class WC_Stripe_Express_Checkout_Helper {
 		$is_enabled = WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this->gateway );
 
 		return $is_enabled && $this->is_enabled_for_current_context( 'link' );
-	}
-
-	/**
-	 * Returns whether Stripe express checkout element should use the Blocks API.
-	 *
-	 * @return boolean
-	 *
-	 * @deprecated 9.2.0 Feature flag enable by default.
-	 */
-	public function use_blocks_api() {
-		_deprecated_function( __METHOD__, '9.2.0' );
-		return isset( $this->stripe_settings['express_checkout_use_blocks_api'] ) && 'yes' === $this->stripe_settings['express_checkout_use_blocks_api'];
 	}
 
 	/**
