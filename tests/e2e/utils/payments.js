@@ -731,23 +731,18 @@ export const setupOptimizedCheckout = async (
 			);
 		}
 
-		// Wait for the Stripe iframe
-		await page.waitForSelector( currentSelectors.iframe, {
+		// Stripe may inject a secondary hidden iframe that matches the selector.
+		// Ensure we're looking for the visible frame.
+		const paymentIframe = page
+			.locator( currentSelectors.iframe )
+			.filter( { visible: true } )
+			.first();
+		await paymentIframe.waitFor( {
 			state: 'visible',
 			timeout: options.timeout,
 		} );
 
-		// Get the payment frame
-		const paymentFrame = await page
-			.locator( currentSelectors.iframe )
-			.contentFrame()
-			.first();
-
-		if ( ! paymentFrame ) {
-			throw new Error(
-				`Could not find Stripe payment element frame in ${ currentSelectors.container }`
-			);
-		}
+		const paymentFrame = paymentIframe.contentFrame();
 
 		// Select the card payment method
 		await paymentFrame.getByRole( 'button', { name: 'Card' } ).click();
@@ -919,20 +914,16 @@ export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
 			? '#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]'
 			: '#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]';
 
-	// Wait for the Stripe iframe to be visible
-	await page.waitForSelector( iframeSelector, {
-		state: 'visible',
-		timeout: 10000,
-	} );
-
-	const paymentFrame = await page
+	// Stripe injects a hidden "accessory-target" iframe alongside the real
+	// payment input frame; both match the selector. Target the visible one to
+	// avoid latching onto the hidden frame.
+	const paymentIframe = page
 		.locator( iframeSelector )
-		.contentFrame()
+		.filter( { visible: true } )
 		.first();
+	await paymentIframe.waitFor( { state: 'visible', timeout: 10000 } );
 
-	if ( ! paymentFrame ) {
-		throw new Error( 'Could not find Stripe payment element frame' );
-	}
+	const paymentFrame = paymentIframe.contentFrame();
 
 	// Fill in test card details
 	await paymentFrame.locator( '[name="number"]' ).fill( card.number );
