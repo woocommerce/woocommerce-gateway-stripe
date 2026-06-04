@@ -1478,7 +1478,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( '' === $payment_method ) {
 			return false;
 		}
-		return 'stripe' !== $payment_method && 0 !== strpos( $payment_method, 'stripe_' );
+		return 'stripe' !== $payment_method && ! str_starts_with( $payment_method, 'stripe_' );
 	}
 
 	/**
@@ -1496,7 +1496,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return bool True when an unexpected-charge note was added, false when skipped.
 	 */
-	protected function maybe_flag_unexpected_charge_on_order( $order, $intent_id, $charge, $webhook_type ): bool {
+	protected function maybe_flag_unexpected_charge_on_order( WC_Order $order, string $intent_id, string $charge, string $webhook_type ): bool {
 		if ( ! $this->order_uses_non_stripe_gateway( $order ) ) {
 			return false;
 		}
@@ -1512,7 +1512,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$message = sprintf(
 			/* translators: 1) formatted amount with currency, 2) Stripe PaymentIntent ID, 3) Stripe charge ID, 4) opening anchor tag for the Stripe dashboard link, 5) closing anchor tag. */
-			__( 'Stripe captured a charge of %1$s (PaymentIntent %2$s, charge %3$s) after this order was already paid. This unexpected charge needs to be refunded manually from the %4$sStripe dashboard%5$s.', 'woocommerce-gateway-stripe' ),
+			__( 'Stripe captured a charge of %1$s (PaymentIntent %2$s, charge %3$s) after this order was already paid by another gateway. This unexpected charge needs to be refunded manually from the %4$sStripe dashboard%5$s.', 'woocommerce-gateway-stripe' ),
 			wp_kses_post( $formatted_price ),
 			esc_html( $intent_id ),
 			esc_html( (string) $charge->id ),
