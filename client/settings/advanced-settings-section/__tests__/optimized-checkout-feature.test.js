@@ -116,10 +116,10 @@ describe( 'Optimized Checkout Element feature setting', () => {
 			'Let customers pay in their local currency with Adaptive Pricing'
 		);
 
-		// It should appear unchecked (not stuck "on") and be disabled while OCS is off...
+		// It should appear unchecked (not stuck "on") and be disabled while OCS is off.
 		expect( adaptivePricingCheckbox ).not.toBeChecked();
 		expect( adaptivePricingCheckbox ).toBeDisabled();
-		// ...and we never mutate the saved Adaptive Pricing value, so it can be restored when OCS is re-enabled.
+		// The saved Adaptive Pricing value is not mutated, so it can be restored when OCS is re-enabled.
 		expect( setAdaptivePricingEnabledMock ).not.toHaveBeenCalled();
 	} );
 
@@ -141,6 +141,31 @@ describe( 'Optimized Checkout Element feature setting', () => {
 
 		expect( adaptivePricingCheckbox ).toBeChecked();
 		expect( adaptivePricingCheckbox ).toBeEnabled();
+	} );
+
+	it( 'shows Adaptive Pricing as unchecked and disabled when the account does not support it, even with OCS enabled', () => {
+		global.wc_stripe_settings_params = {
+			is_cs_available: true,
+			adaptive_pricing_unavailable_reason: 'account-country',
+		};
+
+		// OCS enabled and a saved value of true, but the account-level reason blocks Adaptive Pricing.
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+		const setAdaptivePricingEnabledMock = jest.fn();
+		useIsAdaptivePricingEnabled.mockReturnValue( [
+			true,
+			setAdaptivePricingEnabledMock,
+		] );
+
+		render( <OptimizedCheckoutFeature isOCAvailable={ true } /> );
+
+		const adaptivePricingCheckbox = screen.getByLabelText(
+			'Let customers pay in their local currency with Adaptive Pricing'
+		);
+
+		expect( adaptivePricingCheckbox ).not.toBeChecked();
+		expect( adaptivePricingCheckbox ).toBeDisabled();
+		expect( setAdaptivePricingEnabledMock ).not.toHaveBeenCalled();
 	} );
 
 	it( 'triggers the hook when changing the Adaptive Pricing setting', async () => {
