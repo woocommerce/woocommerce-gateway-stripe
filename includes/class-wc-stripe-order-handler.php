@@ -513,7 +513,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order->add_order_note( __( 'This order has already been paid, but its status is still pending. The Stripe gateway prevented it from being auto-cancelled as unpaid; please review and update the status.', 'woocommerce-gateway-stripe' ) );
+		$order->add_order_note( __( 'This order has already been paid, but its status is still pending. The Stripe gateway prevented it from being auto-cancelled as unpaid; please review and update the order status.', 'woocommerce-gateway-stripe' ) );
 		$order->update_meta_data( '_stripe_paid_order_cancellation_prevented', 'yes' );
 		$order->save();
 
