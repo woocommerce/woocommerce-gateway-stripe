@@ -629,8 +629,10 @@ class WC_Stripe {
 			return true;
 		}
 
+		$post_id = absint( $this->get_request_var( 'post' ) );
+
 		// Legacy CPT order edit screen: wp-admin/post.php?post=<id>&action=edit
-		return 'edit' === $action && (bool) absint( $this->get_request_var( 'post' ) );
+		return 'edit' === $action && (bool) $post_id && 'shop_order' === get_post_type( $post_id );
 	}
 
 	/**
