@@ -415,7 +415,11 @@ jQuery( function ( $ ) {
 					)
 						? 'always'
 						: 'never',
-					link: hasExpressPaymentType( 'link' ) ? 'auto' : 'never',
+					link: hasExpressPaymentType(
+						EXPRESS_PAYMENT_METHOD_SETTING_LINK
+					)
+						? 'auto'
+						: 'never',
 				},
 			} );
 

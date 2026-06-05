@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 export const getLinkButton = async ( page, isBlockPage = false ) => {
 	const frameSelector = isBlockPage
 		? '#express-payment-method-express_checkout_element_link iframe[name^="__privateStripeFrame"]'
-		: '#wc-stripe-express-checkout-element-link iframe[name^="__privateStripeFrame"]';
+		: '#wc-stripe-express-checkout-element-wallets-link iframe[name^="__privateStripeFrame"]';
 
 	const frameLocator = page.frameLocator( frameSelector );
 
