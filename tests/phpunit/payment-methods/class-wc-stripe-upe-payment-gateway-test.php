@@ -4275,6 +4275,24 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * With Optimized Checkout enabled, a plain `card` payment must still resolve to the
+	 * CC method's title and ID, not the generic Optimized Checkout fallback.
+	 */
+	public function test_set_payment_method_title_for_order_with_oc_enabled_keeps_card_title() {
+		$init_oc_enabled                = $this->mock_gateway->oc_enabled;
+		$this->mock_gateway->oc_enabled = true;
+
+		$order = WC_Helper_Order::create_order();
+
+		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID );
+
+		$this->assertEquals( 'stripe', $order->get_payment_method() );
+		$this->assertEquals( 'Credit / Debit Card', $order->get_payment_method_title() );
+
+		$this->mock_gateway->oc_enabled = $init_oc_enabled;
+	}
+
+	/**
 	 * Test for `filter_my_account_my_orders_actions`.
 	 *
 	 * @param string $payment_method_title   The payment method title.

@@ -22,6 +22,7 @@ class WC_Stripe_Update_Manager_Test extends WP_UnitTestCase {
 			[ Migrate_Payment_Request_Data_To_Express_Checkout_Data::class, 'maybe_migrate', 'instance' ],
 			[ Sepa_Tokens_For_Other_Methods_Settings_Update::class, 'maybe_migrate', 'instance' ],
 			[ WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update::class, 'maybe_migrate', 'instance' ],
+			[ WC_Stripe_OCS_AP_Default_On_Update::class, 'maybe_migrate', 'instance' ],
 		];
 
 		$this->assertCount( count( $expected_functions ), $result );
@@ -55,10 +56,6 @@ class WC_Stripe_Update_Manager_Test extends WP_UnitTestCase {
 	 * from {@see WC_Stripe_Update_Manager::get_update_functions()}.
 	 */
 	public function test_run_run_update_checks_runs_callbacks_from_get_update_functions(): void {
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-allowed-payment-request-button-types-update.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-sepa-tokens-for-other-methods-settings-update.php';
-
 		$mock_allowed_payment_request_button_types_update = $this->createMock( Allowed_Payment_Request_Button_Types_Update::class );
 
 		$mock_migrate_payment_request_data_to_express_checkout_data = $this->createMock( Migrate_Payment_Request_Data_To_Express_Checkout_Data::class );
