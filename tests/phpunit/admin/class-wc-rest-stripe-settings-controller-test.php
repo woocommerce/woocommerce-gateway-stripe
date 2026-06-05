@@ -192,9 +192,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 		$response = $this->controller->update_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
-  }
+	}
 
-	/*  
+	/**
 	 * Test mode cannot be turned off unless a live account is connected.
 	 *
 	 * @param bool   $live_connected  Whether live API keys are present.
