@@ -50,14 +50,24 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	protected $deferred_webhook_action = 'wc_stripe_deferred_webhook';
 
 	/**
-	 * How long to wait before processing checkout session metadata after a webhook.
+	 * How long to wait before updating the payment intent description and metadata after a webhook.
 	 *
 	 * @var int
 	 */
-	protected $process_checkout_session_metadata_delay = 2 * MINUTE_IN_SECONDS;
+	protected $process_payment_intent_metadata_delay = 2 * MINUTE_IN_SECONDS;
 
 	/**
-	 * The Action Scheduler hook to use when processing checkout session metadata after a webhook.
+	 * The Action Scheduler hook to use when updating the payment intent description and metadata after a webhook.
+	 *
+	 * @var string
+	 */
+	protected $process_payment_intent_metadata_action = 'wc_stripe_process_payment_intent_metadata';
+
+	/**
+	 * The legacy Action Scheduler hook that updated checkout session metadata after a webhook.
+	 * Kept registered so jobs queued before the switch to {@see $process_payment_intent_metadata_action} still drain.
+	 *
+	 * @deprecated 10.8.0 Replaced by {@see $process_payment_intent_metadata_action}.
 	 *
 	 * @var string
 	 */
@@ -93,6 +103,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		WC_Stripe_Webhook_State::get_monitoring_began_at();
 
 		add_action( $this->deferred_webhook_action, [ $this, 'process_deferred_webhook' ], 10, 3 );
+		add_action( $this->process_payment_intent_metadata_action, [ $this, 'process_payment_intent_metadata' ], 10, 2 );
 		add_action( $this->process_checkout_session_metadata_action, [ $this, 'process_checkout_session_metadata' ], 10, 2 );
 	}
 
@@ -1536,13 +1547,57 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Updates a Checkout Session payment intent with the order description and metadata.
+	 *
+	 * @since 10.8.0
+	 *
+	 * @param string $payment_intent_id The payment intent ID.
+	 * @param int    $order_id          The order ID.
+	 * @return void
+	 */
+	public function process_payment_intent_metadata( string $payment_intent_id, int $order_id ): void {
+		$order = wc_get_order( $order_id );
+		if ( ! $order instanceof WC_Order ) {
+			WC_Stripe_Logger::error( 'Could not find order to update payment intent description and metadata.', [ 'order_id' => $order_id ] );
+			return;
+		}
+
+		$request = [
+			/* translators: 1) blog name 2) order number */
+			'description' => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+			'metadata'    => [
+				'order_id'   => $order->get_order_number(),
+				'order_key'  => $order->get_order_key(),
+				'signature'  => $this->get_order_signature( $order ),
+				'tax_amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_total_tax(), strtolower( $order->get_currency() ) ),
+			],
+		];
+
+		try {
+			$response = WC_Stripe_API::request( $request, 'payment_intents/' . $payment_intent_id, 'POST' );
+			if ( ! empty( $response->error->message ) ) {
+				throw new WC_Stripe_Exception( $response->error->message );
+			}
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error( 'Failed to update payment intent description and metadata: ' . $e->getMessage() );
+
+			// This will be caught by Action Scheduler and logged as an error.
+			throw $e;
+		}
+	}
+
+	/**
 	 * Processes the checkout session metadata update event to store additional metadata on the checkout session object.
+	 *
+	 * @deprecated 10.8.0 Replaced by {@see process_payment_intent_metadata()}; kept so jobs queued before the switch still drain.
 	 *
 	 * @param string $checkout_session_id The checkout session ID.
 	 * @param array $metadata The metadata from the checkout session.
 	 * @return void
 	 */
 	public function process_checkout_session_metadata( string $checkout_session_id, array $metadata ): void {
+		wc_deprecated_function( __METHOD__, '10.8.0', 'process_payment_intent_metadata' );
+
 		try {
 			$response = WC_Stripe_API::request( [ 'metadata' => $metadata ], 'checkout/sessions/' . $checkout_session_id, 'POST' );
 			if ( ! empty( $response->error->message ) ) {
@@ -1803,18 +1858,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$charge->is_webhook_response = true;
 			$this->process_response( $charge, $order );
 
-			// Schedule a job to store the remaining metadata to the checkout session.
+			// Schedule a job to store the order description and remaining metadata on the payment intent.
+			// The session is created from the cart before the order exists, so neither could be set at creation.
 			$this->action_scheduler_service->schedule_job(
-				time() + $this->process_checkout_session_metadata_delay,
-				$this->process_checkout_session_metadata_action,
+				time() + $this->process_payment_intent_metadata_delay,
+				$this->process_payment_intent_metadata_action,
 				[
-					'checkout_session_id' => $checkout_session->id,
-					'metadata'            => [
-						'order_id'   => $order->get_order_number(),
-						'order_key'  => $order->get_order_key(),
-						'signature'  => $this->get_order_signature( $order ),
-						'tax_amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_total_tax(), strtolower( $order->get_currency() ) ),
-					],
+					'payment_intent_id' => $intent->id,
+					'order_id'          => $order->get_id(),
 				]
 			);
 		} catch ( Exception $e ) {
