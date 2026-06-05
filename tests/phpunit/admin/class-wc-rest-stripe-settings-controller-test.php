@@ -580,6 +580,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			'wc_stripe_show_optimized_checkout_notice'  => 'wc_stripe_show_optimized_checkout_notice',
 			'wc_stripe_show_bnpl_promotion_banner'      => 'wc_stripe_show_bnpl_promotion_banner',
 			'wc_stripe_show_oc_promotion_banner'        => 'wc_stripe_show_oc_promotion_banner',
+			'wc_stripe_show_ocs_ap_banner'              => 'wc_stripe_show_ocs_ap_banner',
+			'wc_stripe_show_ap_only_banner'             => 'wc_stripe_show_ap_only_banner',
+			'wc_stripe_show_ocs_only_banner'            => 'wc_stripe_show_ocs_only_banner',
 			'wc_stripe_show_stripe_first_method_notice' => 'wc_stripe_show_stripe_first_method_notice',
 			'wc_stripe_show_stripe_tax_banner'          => 'wc_stripe_show_stripe_tax_banner',
 		];
