@@ -166,7 +166,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **Important Fixes and Updates**
 
-* Remove - Remove deprecated code up to version 10.1.0
+* Remove - Remove deprecated code up to version 10.2.0
 * Fix - Send Klarna's preferred locale in the confirmation token (Optimized Checkout) flow so cross-border customers can complete identity verification
 * Update - Improve express checkout load times by preloading the resources
 * Fix - Store transaction IDs for orders when we get charges to ensure we can refund correctly
