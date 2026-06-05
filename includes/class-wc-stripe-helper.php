@@ -1,5 +1,6 @@
 <?php
 
+use Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils;
 use Automattic\WooCommerce\Enums\OrderStatus;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -1114,6 +1115,35 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Whether the express checkout button styles are overridden by the "Apply uniform style"
+	 * option of the Cart & Checkout blocks' Express Checkout section (`showButtonStyles`).
+	 *
+	 * @since 10.9.0
+	 * @return bool
+	 */
+	public static function is_express_checkout_button_style_overridden(): bool {
+		// CartCheckoutUtils is a semi-internal Blocks class; guard in case it is unavailable.
+		if ( ! is_callable( [ CartCheckoutUtils::class, 'find_express_checkout_attributes' ] ) ) {
+			return false;
+		}
+
+		// Cart and Checkout share the same attributes, so an override on either page counts.
+		foreach ( [ 'checkout', 'cart' ] as $page ) {
+			$post = get_post( wc_get_page_id( $page ) );
+			if ( ! $post instanceof WP_Post || ! has_block( 'woocommerce/' . $page, $post ) ) {
+				continue;
+			}
+
+			$attributes = CartCheckoutUtils::find_express_checkout_attributes( $post->post_content, $page );
+			if ( ! empty( $attributes['showButtonStyles'] ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Checks if Adaptive Pricing is available for the current Stripe account.
 	 * Refer to {@see get_adaptive_pricing_account_unavailable_reason()} for more details.
 	 *
@@ -1581,6 +1611,17 @@ class WC_Stripe_Helper {
 		}
 
 		return 'https://dashboard.stripe.com/payments/%s';
+	}
+
+	/**
+	 * Returns the Stripe dashboard payment URL for a given object ID.
+	 *
+	 * @param string $id           The Stripe object ID to link to (PaymentIntent, charge, etc.).
+	 * @param bool   $is_test_mode Whether to link to the test-mode dashboard.
+	 * @return string
+	 */
+	public static function get_transaction_url_for_id( string $id, bool $is_test_mode = false ): string {
+		return sprintf( self::get_transaction_url( $is_test_mode ), $id );
 	}
 
 	/**
