@@ -153,6 +153,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.8.0 - xxxx-xx-xx =
 * Fix - Return an error response when a Payment Method Configuration update fails in settings, so the frontend correctly displays an error instead of a false success notice
+* Fix - Add empty state mapping for Morocco in express checkout
+* Add - Default Optimized Checkout Suite and Adaptive Pricing on for all eligible stores, with in-app notices announcing the change
+* Fix - Prevent saved Link, Cash App Pay, SEPA, Amazon Pay and Bacs Direct Debit payment methods from being duplicated when viewing My Account → Payment methods
 * Fix - Ensure the save-payment-method checkbox is unchecked when a non-reusable payment method is selected in Optimized Checkout
 * Tweak - Drop redundant "Test mode:" label from test payment instructions on Blocks checkout, which already shows a Test Mode badge
 * Fix - Resolve console errors shown when editing the Blocks checkout page
@@ -202,8 +205,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add wc_stripe_agentic_commerce_should_sync_product filter so adapters can exclude products from the Agentic Commerce catalog, inventory, and archive syncs
 * Dev - Move additional classes to autoloader, including email and migration classes
 * Add - Register Stripe gateway capabilities with the WordPress Abilities API for agent access (default off; opt in via the `wc_stripe_abilities_enabled` filter)
+* Fix - Incorrect payment method title on the order confirmation page when Optimized Checkout is enabled
+* Tweak - Remove the confirmation dialog when disabling a payment method in settings
 * Dev - Add e2e tests for subscriptions and Optimized Checkout Suite and support stricter payment confirmation checks
 * Fix - Restore "Refund via Gateway" button and Stripe dashboard transaction link for Amazon Pay orders by keeping Amazon Pay registered in the gateway list on order edit and refund pages
 * Fix - Correct Amazon Pay button preview rendering in the Full Site Editor block cart and checkout pages
+* Fix - Use the order's currency instead of the store base currency on the Pay for Order page for the Express Checkout Element
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

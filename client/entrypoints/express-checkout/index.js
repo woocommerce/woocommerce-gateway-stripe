@@ -542,6 +542,7 @@ jQuery( function ( $ ) {
 
 				const {
 					total: { amount: total },
+					currency,
 					displayItems,
 					order,
 					orderDetails,
@@ -560,6 +561,7 @@ jQuery( function ( $ ) {
 				wcStripeECE.startExpressCheckout( {
 					total,
 					currency:
+						currency ??
 						getExpressCheckoutData( 'checkout' ).currency_code,
 					appearance: getExpressCheckoutButtonAppearance(),
 					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
