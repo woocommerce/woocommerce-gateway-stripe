@@ -295,15 +295,13 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			$this->clear_caches_after_key_update();
 
-			// Runs after the keys are saved: the Adaptive Pricing decision needs the account country.
+			// Runs after the keys are saved: the Adaptive Pricing decision needs the account data.
 			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
-				$account = WC_Stripe::get_instance()->account;
-
 				$options['optimized_checkout_element'] = 'yes';
-				if ( WC_Stripe_Country_Code::INDIA !== strtoupper( $account->get_account_country() ) ) {
+				if ( WC_Stripe_Helper::is_adaptive_pricing_available_for_account() ) {
 					$options['adaptive_pricing'] = 'yes';
 				} else {
-					WC_Stripe_Logger::info( 'OAuth: Not defaulting Adaptive Pricing on; it is not supported for India-based accounts.' );
+					WC_Stripe_Logger::info( 'OAuth: Not defaulting Adaptive Pricing on; it is not available for the connected account.' );
 				}
 				WC_Stripe_Helper::update_main_stripe_settings( $options );
 			}
