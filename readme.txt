@@ -169,6 +169,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Remove - Remove deprecated code up to version 10.1.0
 * Fix - Send Klarna's preferred locale in the confirmation token (Optimized Checkout) flow so cross-border customers can complete identity verification
 * Update - Improve express checkout load times by preloading the resources
+* Fix - Store transaction IDs for orders when we get charges to ensure we can refund correctly
 * Fix - Prevent Stripe API calls from failing due to DNS resolution issues
 * Update - Ensure payment method restrictions based on account and shopper countries are up to date
 * Fix - Recover a missing Stripe charge ID from the order's payment intent so affected orders stay refundable
