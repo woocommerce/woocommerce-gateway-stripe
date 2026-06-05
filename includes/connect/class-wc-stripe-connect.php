@@ -215,13 +215,16 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		}
 
 		/**
-		 * Helper function to clear some important PMC caches after a key update.
+		 * Helper function to clear some important caches after a key update.
 		 */
 		public function clear_caches_after_key_update(): void {
 			// Note that we also need to update the fallback PMC details, but we can't simply wipe that data.
 
 			// Clear PMC cache after key updates.
 			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+
+			// Clear the account cache; the new keys may belong to a different account.
+			WC_Stripe::get_instance()->account->clear_cache();
 		}
 
 		/**
@@ -295,8 +298,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// Runs after the keys are saved: the Adaptive Pricing decision needs the account country.
 			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
 				$account = WC_Stripe::get_instance()->account;
-				// Force refresh to avoid stale data from a previous connection.
-				$account->get_cached_account_data( $mode, true );
 
 				$options['optimized_checkout_element'] = 'yes';
 				if ( WC_Stripe_Country_Code::INDIA !== strtoupper( $account->get_account_country() ) ) {
