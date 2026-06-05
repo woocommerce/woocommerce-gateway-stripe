@@ -273,10 +273,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$should_default_optimized_checkout_on       = get_option( 'wc_stripe_optimized_checkout_default_on' );
 			// Clean up the option.
 			delete_option( 'wc_stripe_optimized_checkout_default_on' );
-			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
-				$options['optimized_checkout_element'] = 'yes';
-				$options['adaptive_pricing']           = 'yes';
-			}
 			if ( 'app' === $type ) {
 				$options[ $prefix . 'refresh_token' ] = $result->refreshToken; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			}
@@ -295,6 +291,21 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', '' );
 
 			$this->clear_caches_after_key_update();
+
+			// Runs after the keys are saved: the Adaptive Pricing decision needs the account country.
+			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
+				$account = WC_Stripe::get_instance()->account;
+				// Force refresh to avoid stale data from a previous connection.
+				$account->get_cached_account_data( $mode, true );
+
+				$options['optimized_checkout_element'] = 'yes';
+				if ( WC_Stripe_Country_Code::INDIA !== strtoupper( $account->get_account_country() ) ) {
+					$options['adaptive_pricing'] = 'yes';
+				} else {
+					WC_Stripe_Logger::info( 'OAuth: Not defaulting Adaptive Pricing on; it is not supported for India-based accounts.' );
+				}
+				WC_Stripe_Helper::update_main_stripe_settings( $options );
+			}
 
 			if ( $is_verbose_debug_mode_enabled ) {
 				WC_Stripe_Logger::debug(
