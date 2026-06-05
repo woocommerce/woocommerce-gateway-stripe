@@ -171,6 +171,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Ensure payment method restrictions based on account and shopper countries are up to date
 * Fix - Send Klarna's preferred locale in the confirmation token (Optimized Checkout) flow so cross-border customers can complete identity verification
 * Fix - Store transaction IDs for orders when we get charges to ensure we can refund correctly
+* Fix - Ensure the bank statement descriptor is included when creating payment intents for alternative payment methods
 * Fix - Prevent Stripe API calls from failing due to DNS resolution issues
 * Fix - Recover a missing Stripe charge ID from the order's payment intent so affected orders stay refundable
 * Fix - Add an order note and call action 'wc_stripe_unexpected_charge_detected' when a Stripe charge is captured for an order that was already paid via a different gateway
@@ -195,6 +196,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Implement wc_stripe_logger_can_log filter to allow for targeted logging on busy sites
 * Fix - Dismissible subscription detached admin notices
 * Fix - Fix admin banner dismissal and display logic
+* Fix - Don't default Adaptive Pricing on when first connecting a Stripe account that is ineligible for Adaptive Pricing
 * Fix - Make the "Update now" link in the account status tooltip clickable and improve its contrast against the tooltip background
 * Fix - Correct Amazon Pay button preview rendering in the Full Site Editor block cart and checkout pages
 * Fix - Require a connected account for the target mode before switching between test and live
