@@ -442,6 +442,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 *
 	 * @param array $enabled_payment_method_ids
 	 * @param array $available_payment_method_ids
+	 * @return true|\WP_Error True on success, WP_Error on failure.
 	 */
 	public static function update_payment_method_configuration( $enabled_payment_method_ids, $available_payment_method_ids ) {
 		$payment_method_configuration         = self::get_primary_configuration();
@@ -451,7 +452,7 @@ class WC_Stripe_Payment_Method_Configurations {
 
 		if ( ! $payment_method_configuration ) {
 			WC_Stripe_Logger::error( 'No primary payment method configuration found while updating payment method configuration' );
-			return;
+			return new WP_Error( 'pmc_not_found', __( 'No primary payment method configuration found.', 'woocommerce-gateway-stripe' ) );
 		}
 
 		foreach ( $available_payment_method_ids as $stripe_id ) {
@@ -485,11 +486,14 @@ class WC_Stripe_Payment_Method_Configurations {
 					'response'      => $response,
 				]
 			);
+			return new WP_Error( 'pmc_update_failed', __( 'Unable to update payment method configuration.', 'woocommerce-gateway-stripe' ) );
 		}
 
 		self::clear_payment_method_configuration_cache();
 
 		self::record_payment_method_settings_event( $newly_enabled_methods, $newly_disabled_methods );
+
+		return true;
 	}
 
 	/**

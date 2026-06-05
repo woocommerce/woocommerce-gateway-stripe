@@ -991,6 +991,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Updates the enabled payment methods.
 	 *
 	 * @param string[] $payment_method_ids_to_enable
+	 * @return true|\WP_Error True on success, WP_Error on failure.
 	 */
 	public function update_enabled_payment_methods( $payment_method_ids_to_enable ) {
 		// If the payment method configurations API is not enabled, we fallback to store the enabled payment methods in the DB.
@@ -1010,7 +1011,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$newly_disabled_methods = array_diff( $currently_enabled_payment_method_ids, $payment_method_ids_to_enable );
 			WC_Stripe_Payment_Method_Configurations::record_payment_method_settings_event( $newly_enabled_methods, $newly_disabled_methods );
 
-			return;
+			return true;
 		}
 
 		$payment_method_ids_to_update = array_merge(
@@ -1018,7 +1019,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
 		);
 
-		WC_Stripe_Payment_Method_Configurations::update_payment_method_configuration(
+		return WC_Stripe_Payment_Method_Configurations::update_payment_method_configuration(
 			$payment_method_ids_to_enable,
 			$payment_method_ids_to_update
 		);

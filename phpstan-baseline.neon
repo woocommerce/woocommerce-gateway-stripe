@@ -2982,11 +2982,6 @@ parameters:
 			count: 1
 			path: includes/class-wc-stripe-payment-method-configurations.php
 
-		-
-			message: '#^Method WC_Stripe_Payment_Method_Configurations\:\:update_payment_method_configuration\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-payment-method-configurations.php
 
 		-
 			message: '#^Static property WC_Stripe_Payment_Method_Configurations\:\:\$primary_configuration \(object\|null\) does not accept array\|object\.$#'
@@ -4722,11 +4717,6 @@ parameters:
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:update_enabled_payment_methods\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:validate_selected_payment_method_type\(\) has no return type specified\.$#'

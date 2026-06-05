@@ -138,6 +138,63 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * Test that a 500 response is returned when the PMC update fails.
+	 *
+	 * When the Stripe API rejects the payment method configuration update, the
+	 * settings endpoint must return a 500 (not 200) so the frontend can show an
+	 * error instead of the misleading "Settings saved." success notice.
+	 */
+	public function test_update_settings_returns_500_when_pmc_update_fails() {
+		// Set up initial state with only card enabled.
+		$this->mock_payment_method_configurations( [ 'card' ], [ 'amazon_pay' ] );
+
+		// Set pmc_enabled to yes to prevent migration.
+		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['pmc_enabled'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		// Mock the API to return a Stripe error on PMC update.
+		$this->stripe_api->expects( $this->once() )
+			->method( 'update_payment_method_configurations' )
+			->willReturn(
+				(object) [
+					'error' => (object) [
+						'type'    => 'invalid_request_error',
+						'message' => 'Invalid configuration.',
+					],
+				]
+			);
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'enabled_payment_method_ids', [ 'amazon_pay', 'card' ] );
+		$request->set_param( 'is_upe_enabled', true );
+
+		$response = $this->controller->update_settings( $request );
+		$this->assertEquals( 500, $response->get_status() );
+		$this->assertEquals( 'Unable to update payment method configuration.', $response->get_data()['message'] );
+	}
+
+	/**
+	 * Test that the PMC update is skipped when enabled_payment_method_ids is absent.
+	 *
+	 * When the request does not include enabled_payment_method_ids, the settings
+	 * endpoint must not call the Stripe PMC API — the param is optional and its
+	 * absence means payment method selection was not part of this save.
+	 */
+	public function test_update_settings_skips_pmc_update_when_payment_method_ids_absent() {
+		// No enabled_payment_method_ids param — PMC update must be skipped entirely.
+		$this->stripe_api->expects( $this->never() )
+			->method( 'update_payment_method_configurations' );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		// Intentionally omit enabled_payment_method_ids.
+
+		$response = $this->controller->update_settings( $request );
+		$this->assertEquals( 200, $response->get_status() );
+	}
+
+	/**
 	 * Test mode cannot be turned off unless a live account is connected.
 	 *
 	 * @param bool   $live_connected  Whether live API keys are present.
