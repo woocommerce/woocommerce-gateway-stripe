@@ -1775,24 +1775,26 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function test_process_payment_intent_metadata_success(): void {
 		$payment_intent_id = 'pi_test_abc123';
 
-		$order = WC_Helper_Order::create_order();
-		$order->save();
-
-		$expected_description = sprintf( '%1$s - Order %2$s', wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() );
+		$request = [
+			'description' => 'Test Blog - Order 100',
+			'metadata'    => [
+				'order_id'   => '100',
+				'order_key'  => 'wc_order_test123',
+				'signature'  => '100:abc123hash',
+				'tax_amount' => 250,
+			],
+		];
 
 		$request_captured = false;
-		$pre_http_filter  = function ( $return_value, $parsed_args, $url ) use ( $payment_intent_id, $order, $expected_description, &$request_captured ) {
+		$pre_http_filter  = function ( $return_value, $parsed_args, $url ) use ( $payment_intent_id, $request, &$request_captured ) {
 			$expected_url = WC_Stripe_API::ENDPOINT . 'payment_intents/' . $payment_intent_id;
 			if ( $url !== $expected_url ) {
 				return $return_value;
 			}
 			$request_captured = true;
 			$this->assertEquals( 'POST', $parsed_args['method'] );
-			$this->assertEquals( $expected_description, $parsed_args['body']['description'] );
-			$this->assertEquals( $order->get_order_number(), $parsed_args['body']['metadata']['order_id'] );
-			$this->assertEquals( $order->get_order_key(), $parsed_args['body']['metadata']['order_key'] );
-			$this->assertNotEmpty( $parsed_args['body']['metadata']['signature'] );
-			$this->assertArrayHasKey( 'tax_amount', $parsed_args['body']['metadata'] );
+			$this->assertEquals( $request['description'], $parsed_args['body']['description'] );
+			$this->assertEquals( $request['metadata'], $parsed_args['body']['metadata'] );
 			return [
 				'headers'  => [],
 				'body'     => wp_json_encode( [ 'id' => $payment_intent_id ] ),
@@ -1808,7 +1810,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
 
 		$handler = new WC_Stripe_Webhook_Handler();
-		$handler->process_payment_intent_metadata( $payment_intent_id, $order->get_id() );
+		$handler->process_payment_intent_metadata( $payment_intent_id, $request );
 
 		remove_filter( 'pre_http_request', $pre_http_filter );
 
@@ -1821,9 +1823,6 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_process_payment_intent_metadata_api_error_response(): void {
-		$order = WC_Helper_Order::create_order();
-		$order->save();
-
 		$error_message   = 'No such payment intent.';
 		$pre_http_filter = function () use ( $error_message ) {
 			return [
@@ -1849,7 +1848,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$handler = new WC_Stripe_Webhook_Handler();
 		$caught  = null;
 		try {
-			$handler->process_payment_intent_metadata( 'pi_test_abc123', $order->get_id() );
+			$handler->process_payment_intent_metadata( 'pi_test_abc123', [ 'metadata' => [ 'order_id' => '100' ] ] );
 		} catch ( Exception $e ) {
 			$caught = $e;
 		}
@@ -1859,28 +1858,6 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->assertNotNull( $caught, 'Expected an exception to be thrown.' );
 		$this->assertInstanceOf( \WC_Stripe_Exception::class, $caught, 'Expected an instance of WC_Stripe_Exception.' );
 		$this->assertSame( $error_message, $caught->getMessage() );
-	}
-
-	/**
-	 * Test that `process_payment_intent_metadata` makes no API request when the order does not exist.
-	 *
-	 * @return void
-	 */
-	public function test_process_payment_intent_metadata_missing_order(): void {
-		$request_captured = false;
-		$pre_http_filter  = function ( $return_value ) use ( &$request_captured ) {
-			$request_captured = true;
-			return $return_value;
-		};
-
-		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
-
-		$handler = new WC_Stripe_Webhook_Handler();
-		$handler->process_payment_intent_metadata( 'pi_test_abc123', 0 );
-
-		remove_filter( 'pre_http_request', $pre_http_filter );
-
-		$this->assertFalse( $request_captured, 'Expected no API request to be made.' );
 	}
 
 	/**
@@ -1934,7 +1911,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				$this->callback(
 					function ( $args ) use ( &$scheduled_args ) {
 						$scheduled_args = $args;
-						return isset( $args['payment_intent_id'] ) && isset( $args['order_id'] );
+						return isset( $args['payment_intent_id'] ) && isset( $args['request'] );
 					}
 				)
 			);
@@ -1960,10 +1937,14 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->mock_webhook_handler->process_checkout_session_success( $notification );
 
-		// Verify the job is scheduled with the intent and order it should update.
+		// Verify the job is scheduled with the intent and the full payload snapshot.
 		$this->assertNotNull( $scheduled_args );
 		$this->assertEquals( 'pi_test_abc', $scheduled_args['payment_intent_id'] );
-		$this->assertEquals( $order->get_id(), $scheduled_args['order_id'] );
+		$this->assertEquals( sprintf( '%1$s - Order %2$s', wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ), $scheduled_args['request']['description'] );
+		$this->assertEquals( $order->get_order_number(), $scheduled_args['request']['metadata']['order_id'] );
+		$this->assertEquals( $order->get_order_key(), $scheduled_args['request']['metadata']['order_key'] );
+		$this->assertNotEmpty( $scheduled_args['request']['metadata']['signature'] );
+		$this->assertIsInt( $scheduled_args['request']['metadata']['tax_amount'] );
 	}
 
 	/**
@@ -2132,7 +2113,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'wc_stripe_process_payment_intent_metadata',
 				$this->callback(
 					function ( $args ) {
-						return isset( $args['payment_intent_id'] ) && isset( $args['order_id'] );
+						return isset( $args['payment_intent_id'] ) && isset( $args['request'] );
 					}
 				)
 			);

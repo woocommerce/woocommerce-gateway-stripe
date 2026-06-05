@@ -1552,27 +1552,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @since 10.8.0
 	 *
 	 * @param string $payment_intent_id The payment intent ID.
-	 * @param int    $order_id          The order ID.
+	 * @param array  $request           The request payload (description and metadata) computed at scheduling time.
 	 * @return void
 	 */
-	public function process_payment_intent_metadata( string $payment_intent_id, int $order_id ): void {
-		$order = wc_get_order( $order_id );
-		if ( ! $order instanceof WC_Order ) {
-			WC_Stripe_Logger::error( 'Could not find order to update payment intent description and metadata.', [ 'order_id' => $order_id ] );
-			return;
-		}
-
-		$request = [
-			/* translators: 1) blog name 2) order number */
-			'description' => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
-			'metadata'    => [
-				'order_id'   => $order->get_order_number(),
-				'order_key'  => $order->get_order_key(),
-				'signature'  => $this->get_order_signature( $order ),
-				'tax_amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_total_tax(), strtolower( $order->get_currency() ) ),
-			],
-		];
-
+	public function process_payment_intent_metadata( string $payment_intent_id, array $request ): void {
 		try {
 			$response = WC_Stripe_API::request( $request, 'payment_intents/' . $payment_intent_id, 'POST' );
 			if ( ! empty( $response->error->message ) ) {
@@ -1866,7 +1849,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$this->process_payment_intent_metadata_action,
 					[
 						'payment_intent_id' => $intent_id,
-						'order_id'          => $order->get_id(),
+						'request'           => [
+							/* translators: 1) blog name 2) order number */
+							'description' => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+							'metadata'    => [
+								'order_id'   => $order->get_order_number(),
+								'order_key'  => $order->get_order_key(),
+								'signature'  => $this->get_order_signature( $order ),
+								'tax_amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_total_tax(), strtolower( $order->get_currency() ) ),
+							],
+						],
 					]
 				);
 			}
