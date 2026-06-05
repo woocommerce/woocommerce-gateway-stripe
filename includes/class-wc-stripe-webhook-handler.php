@@ -1496,7 +1496,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return bool True when an unexpected-charge note was added, false when skipped.
 	 */
-	protected function maybe_flag_unexpected_charge_on_order( WC_Order $order, string $intent_id, string $charge, string $webhook_type ): bool {
+	protected function maybe_flag_unexpected_charge_on_order( WC_Order $order, string $intent_id, object $charge, string $webhook_type ): bool {
 		if ( ! $this->order_uses_non_stripe_gateway( $order ) ) {
 			return false;
 		}
