@@ -8,7 +8,7 @@
  * Version: 10.7.0
  * Requires Plugins: woocommerce
  * Requires at least: 6.7
- * Tested up to: 6.9.4
+ * Tested up to: 7.0
  * WC requires at least: 10.5
  * WC tested up to: 10.7
  * Text Domain: woocommerce-gateway-stripe

@@ -22,6 +22,31 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `get_transaction_url_for_id`.
+	 *
+	 * @param string $id           The Stripe object ID.
+	 * @param bool   $is_test_mode Whether to use the test-mode dashboard.
+	 * @param string $expected     The expected dashboard URL.
+	 * @return void
+	 * @dataProvider provide_get_transaction_url_for_id
+	 */
+	public function test_get_transaction_url_for_id( string $id, bool $is_test_mode, string $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::get_transaction_url_for_id( $id, $is_test_mode ) );
+	}
+
+	/**
+	 * Data provider for `test_get_transaction_url_for_id`.
+	 *
+	 * @return array
+	 */
+	public function provide_get_transaction_url_for_id(): array {
+		return [
+			'live mode' => [ 'pi_123', false, 'https://dashboard.stripe.com/payments/pi_123' ],
+			'test mode' => [ 'ch_456', true, 'https://dashboard.stripe.com/test/payments/ch_456' ],
+		];
+	}
+
+	/**
 	 * Test for `convert_wc_locale_to_stripe_locale`.
 	 *
 	 * @param string $wc_locale     The WooCommerce locale.
@@ -1972,6 +1997,72 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						],
 					],
 				),
+			],
+		];
+	}
+
+	/**
+	 * Test for `is_express_checkout_button_style_overridden`.
+	 *
+	 * @param string $page_content The content of the checkout page.
+	 * @param bool   $expected     Whether an override is expected to be detected.
+	 * @return void
+	 * @dataProvider provide_test_is_express_checkout_button_style_overridden
+	 */
+	public function test_is_express_checkout_button_style_overridden( string $page_content, bool $expected ) {
+		$page_id = self::factory()->post->create(
+			[
+				'post_type'    => 'page',
+				'post_status'  => 'publish',
+				'post_content' => $page_content,
+			]
+		);
+
+		update_option( 'woocommerce_checkout_page_id', $page_id );
+		// Isolate the assertion to the checkout page so an unrelated cart page does not interfere.
+		update_option( 'woocommerce_cart_page_id', 0 );
+
+		$this->assertSame( $expected, WC_Stripe_Helper::is_express_checkout_button_style_overridden() );
+	}
+
+	/**
+	 * Data provider for `test_is_express_checkout_button_style_overridden`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_express_checkout_button_style_overridden() {
+		$with_express_block = function ( $express_block ) {
+			return '<!-- wp:woocommerce/checkout -->'
+				. '<div class="wp-block-woocommerce-checkout">'
+				. '<!-- wp:woocommerce/checkout-fields-block -->'
+				. '<div class="wp-block-woocommerce-checkout-fields-block">'
+				. $express_block
+				. '</div>'
+				. '<!-- /wp:woocommerce/checkout-fields-block -->'
+				. '</div>'
+				. '<!-- /wp:woocommerce/checkout -->';
+		};
+
+		return [
+			'uniform style enabled'                        => [
+				$with_express_block( '<!-- wp:woocommerce/checkout-express-payment-block {"showButtonStyles":true} /-->' ),
+				true,
+			],
+			'uniform style explicitly off'                 => [
+				$with_express_block( '<!-- wp:woocommerce/checkout-express-payment-block {"showButtonStyles":false} /-->' ),
+				false,
+			],
+			'uniform style attribute omitted'              => [
+				$with_express_block( '<!-- wp:woocommerce/checkout-express-payment-block /-->' ),
+				false,
+			],
+			'checkout block without express payment block' => [
+				'<!-- wp:woocommerce/checkout --><div class="wp-block-woocommerce-checkout"></div><!-- /wp:woocommerce/checkout -->',
+				false,
+			],
+			'classic shortcode checkout'                   => [
+				'[woocommerce_checkout]',
+				false,
 			],
 		];
 	}
