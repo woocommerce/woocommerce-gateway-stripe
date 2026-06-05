@@ -183,6 +183,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent Stripe from rendering an unexpected "Address Line 2" field inside the Payment Element
 * Fix - Incorrect payment method title on the order confirmation page when Optimized Checkout is enabled
 * Fix - Preserve saved card branding when the same card is later used via a wallet, and render multi-word brands (e.g. Cartes Bancaires) correctly
+* Fix - Add empty state mapping for Morocco in express checkout
 * Add - Detect Stripe API outages (network failures, timeouts, 5xx responses) and surface a wp-admin notice instead of crashing or showing misleading "couldn't connect" messages
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
 * Remove - Remove giropay from new checkouts (deprecated by Stripe on 2024-06-30); legacy refund and past-order rendering preserved
