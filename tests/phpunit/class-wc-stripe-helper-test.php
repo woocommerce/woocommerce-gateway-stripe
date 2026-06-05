@@ -22,6 +22,31 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `get_transaction_url_for_id`.
+	 *
+	 * @param string $id           The Stripe object ID.
+	 * @param bool   $is_test_mode Whether to use the test-mode dashboard.
+	 * @param string $expected     The expected dashboard URL.
+	 * @return void
+	 * @dataProvider provide_get_transaction_url_for_id
+	 */
+	public function test_get_transaction_url_for_id( string $id, bool $is_test_mode, string $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::get_transaction_url_for_id( $id, $is_test_mode ) );
+	}
+
+	/**
+	 * Data provider for `test_get_transaction_url_for_id`.
+	 *
+	 * @return array
+	 */
+	public function provide_get_transaction_url_for_id(): array {
+		return [
+			'live mode' => [ 'pi_123', false, 'https://dashboard.stripe.com/payments/pi_123' ],
+			'test mode' => [ 'ch_456', true, 'https://dashboard.stripe.com/test/payments/ch_456' ],
+		];
+	}
+
+	/**
 	 * Test for `convert_wc_locale_to_stripe_locale`.
 	 *
 	 * @param string $wc_locale     The WooCommerce locale.
