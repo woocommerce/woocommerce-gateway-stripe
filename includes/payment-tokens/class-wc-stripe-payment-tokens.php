@@ -1072,6 +1072,25 @@ class WC_Stripe_Payment_Tokens {
 		if ( WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID === $type ) {
 			return WC_Payment_Token_Becs_Debit::class;
 		}
+		// WooCommerce derives the token class from the lowercase Stripe type ('WC_Payment_Token_' . $type).
+		// The case-sensitive Composer classmap can't resolve that against these mixed-case class names, so
+		// WC_Payment_Tokens::get() drops the tokens (and the sync then recreates them on every load). Map
+		// each type to its concrete class so the tokens resolve instead of being dropped.
+		if ( WC_Stripe_Payment_Methods::LINK === $type ) {
+			return WC_Payment_Token_Link::class;
+		}
+		if ( WC_Stripe_Payment_Methods::CASHAPP_PAY === $type ) {
+			return WC_Payment_Token_CashApp::class;
+		}
+		if ( WC_Stripe_Payment_Methods::SEPA === $type ) {
+			return WC_Payment_Token_SEPA::class;
+		}
+		if ( WC_Stripe_Payment_Methods::AMAZON_PAY === $type ) {
+			return WC_Payment_Token_Amazon_Pay::class;
+		}
+		if ( WC_Stripe_Payment_Methods::BACS_DEBIT === $type ) {
+			return WC_Payment_Token_Bacs_Debit::class;
+		}
 		// Check for Klarna and make sure we don't override other plugins that may use `klarna` as the token ID.
 		if ( WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID === $type && 'WC_Payment_Token_klarna' === $class ) {
 			return WC_Stripe_Klarna_Payment_Token::class;
