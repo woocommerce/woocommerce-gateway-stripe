@@ -1860,14 +1860,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			// Schedule a job to store the order description and remaining metadata on the payment intent.
 			// The session is created from the cart before the order exists, so neither could be set at creation.
-			$this->action_scheduler_service->schedule_job(
-				time() + $this->process_payment_intent_metadata_delay,
-				$this->process_payment_intent_metadata_action,
-				[
-					'payment_intent_id' => $intent->id,
-					'order_id'          => $order->get_id(),
-				]
-			);
+			if ( ! empty( $intent_id ) ) {
+				$this->action_scheduler_service->schedule_job(
+					time() + $this->process_payment_intent_metadata_delay,
+					$this->process_payment_intent_metadata_action,
+					[
+						'payment_intent_id' => $intent_id,
+						'order_id'          => $order->get_id(),
+					]
+				);
+			}
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error(
 				'Error processing checkout session for order: ' . $order->get_id(),

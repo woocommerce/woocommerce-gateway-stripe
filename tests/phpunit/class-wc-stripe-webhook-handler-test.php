@@ -1962,7 +1962,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Verify the job is scheduled with the intent and order it should update.
 		$this->assertNotNull( $scheduled_args );
-		$this->assertEquals( self::MOCK_PAYMENT_INTENT['id'], $scheduled_args['payment_intent_id'] );
+		$this->assertEquals( 'pi_test_abc', $scheduled_args['payment_intent_id'] );
 		$this->assertEquals( $order->get_id(), $scheduled_args['order_id'] );
 	}
 
