@@ -152,6 +152,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.8.0 - xxxx-xx-xx =
+* Fix - Add empty state mapping for Morocco in express checkout
 * Add - Default Optimized Checkout Suite and Adaptive Pricing on for all eligible stores, with in-app notices announcing the change
 * Fix - Prevent saved Link, Cash App Pay, SEPA, Amazon Pay and Bacs Direct Debit payment methods from being duplicated when viewing My Account → Payment methods
 * Fix - Ensure the save-payment-method checkbox is unchecked when a non-reusable payment method is selected in Optimized Checkout
@@ -208,5 +209,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add e2e tests for subscriptions and Optimized Checkout Suite and support stricter payment confirmation checks
 * Fix - Restore "Refund via Gateway" button and Stripe dashboard transaction link for Amazon Pay orders by keeping Amazon Pay registered in the gateway list on order edit and refund pages
 * Fix - Correct Amazon Pay button preview rendering in the Full Site Editor block cart and checkout pages
+* Fix - Use the order's currency instead of the store base currency on the Pay for Order page for the Express Checkout Element
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
