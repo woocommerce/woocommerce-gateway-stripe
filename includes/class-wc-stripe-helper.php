@@ -1118,7 +1118,7 @@ class WC_Stripe_Helper {
 	 * Whether the express checkout button styles are overridden by the "Apply uniform style"
 	 * option of the Cart & Checkout blocks' Express Checkout section (`showButtonStyles`).
 	 *
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 * @return bool
 	 */
 	public static function is_express_checkout_button_style_overridden(): bool {

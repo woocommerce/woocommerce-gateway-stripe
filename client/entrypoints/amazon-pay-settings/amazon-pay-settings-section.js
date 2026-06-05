@@ -111,8 +111,7 @@ const AmazonPaySettingsSection = () => {
 						{ interpolateComponents( {
 							mixedString: __(
 								'Some appearance settings may be overridden by the express payment section of the ' +
-									'{{checkoutPageLink}}Cart & Checkout blocks{{/checkoutPageLink}}. ' +
-									'Follow the instructions there and check back soon.',
+									'{{checkoutPageLink}}Cart & Checkout blocks{{/checkoutPageLink}}.',
 								'woocommerce-gateway-stripe'
 							),
 							components: {
