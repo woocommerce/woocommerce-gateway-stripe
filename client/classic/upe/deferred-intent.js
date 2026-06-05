@@ -148,6 +148,15 @@ jQuery( function ( $ ) {
 
 	// Pay for Order page submit.
 	$( '#order_review' ).on( 'submit', () => {
+		// ECE populates the hidden fields and drives its own submit, so skip the
+		// inline Payment Element flow here to avoid overwriting its payment method.
+		const isExpressCheckoutSubmission = $( '#order_review' )
+			.find( 'input[name="express_checkout_type"]' )
+			.val();
+		if ( isExpressCheckoutSubmission ) {
+			return;
+		}
+
 		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
 		if ( ! isUsingSavedPaymentMethod( paymentMethodType ) ) {
 			return processPayment(
