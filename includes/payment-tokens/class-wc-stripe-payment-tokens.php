@@ -1060,6 +1060,10 @@ class WC_Stripe_Payment_Tokens {
 	 * @return string
 	 */
 	public function woocommerce_payment_token_class( $class, $type ) {
+		// WooCommerce derives the token class from the lowercase Stripe type ('WC_Payment_Token_' . $type).
+		// The case-sensitive Composer classmap can't resolve that against these mixed-case class names, so
+		// WC_Payment_Tokens::get() drops the tokens (and the sync then recreates them on every load). Map
+		// each type to its concrete class so the tokens resolve instead of being dropped.
 		if ( WC_Payment_Token_CC::class === $class ) {
 			return WC_Stripe_Payment_Token_CC::class;
 		}
@@ -1072,10 +1076,6 @@ class WC_Stripe_Payment_Tokens {
 		if ( WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID === $type ) {
 			return WC_Payment_Token_Becs_Debit::class;
 		}
-		// WooCommerce derives the token class from the lowercase Stripe type ('WC_Payment_Token_' . $type).
-		// The case-sensitive Composer classmap can't resolve that against these mixed-case class names, so
-		// WC_Payment_Tokens::get() drops the tokens (and the sync then recreates them on every load). Map
-		// each type to its concrete class so the tokens resolve instead of being dropped.
 		if ( WC_Stripe_Payment_Methods::LINK === $type ) {
 			return WC_Payment_Token_Link::class;
 		}
