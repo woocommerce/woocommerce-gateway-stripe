@@ -224,6 +224,12 @@ jQuery( function ( $ ) {
 			const areTaxesBasedOnBillingAddress = getExpressCheckoutData(
 				'taxes_based_on_billing'
 			);
+			// Amazon Pay needs a confirmation-token flow that
+			// `handleChangePaymentMethodFlow` does not implement, so it must not
+			// be offered on the subscription change-payment page.
+			const isChangePaymentMethod = getExpressCheckoutData(
+				'is_change_payment_method'
+			);
 
 			// For each supported express payment type, create their own
 			// express checkout element. This is necessary as some express payment types
@@ -236,6 +242,7 @@ jQuery( function ( $ ) {
 					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 				isAmazonPayEnabled &&
 					! areTaxesBasedOnBillingAddress &&
+					! isChangePaymentMethod &&
 					EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			].filter( Boolean );
@@ -953,7 +960,8 @@ jQuery( function ( $ ) {
 	if (
 		getExpressCheckoutData( 'is_product_page' ) ||
 		getExpressCheckoutData( 'is_pay_for_order' ) ||
-		getExpressCheckoutData( 'is_cart_page' )
+		getExpressCheckoutData( 'is_cart_page' ) ||
+		getExpressCheckoutData( 'is_change_payment_method' )
 	) {
 		wcStripeECE.init();
 	}
