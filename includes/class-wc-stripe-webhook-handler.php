@@ -1466,19 +1466,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Returns true when the given order's payment method is something other than a Stripe gateway.
-	 *
-	 * Used to decide whether an asynchronously-captured Stripe charge is unexpected (the order was
-	 * settled via a different payment method).
+	 * Returns true when the order was paid via a Stripe gateway (the main `stripe` gateway or a
+	 * `stripe_*` payment method).
 	 *
 	 * @param WC_Order $order
 	 */
-	protected function order_uses_non_stripe_gateway( $order ): bool {
+	protected function order_uses_stripe_gateway( WC_Order $order ): bool {
 		$payment_method = (string) $order->get_payment_method();
-		if ( '' === $payment_method ) {
-			return false;
-		}
-		return 'stripe' !== $payment_method && ! str_starts_with( $payment_method, 'stripe_' );
+		return 'stripe' === $payment_method || str_starts_with( $payment_method, 'stripe_' );
 	}
 
 	/**
@@ -1497,7 +1492,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return bool True when an unexpected-charge note was added, false when skipped.
 	 */
 	protected function maybe_flag_unexpected_charge_on_order( WC_Order $order, string $intent_id, object $charge, string $webhook_type ): bool {
-		if ( ! $this->order_uses_non_stripe_gateway( $order ) ) {
+		if ( $this->order_uses_stripe_gateway( $order ) ) {
 			return false;
 		}
 		$dedup_meta_key = '_stripe_unexpected_charge_flagged_' . $intent_id;
