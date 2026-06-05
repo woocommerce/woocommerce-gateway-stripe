@@ -167,11 +167,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 **Important Fixes and Updates**
 
 * Remove - Remove deprecated code up to version 10.2.0
-* Fix - Send Klarna's preferred locale in the confirmation token (Optimized Checkout) flow so cross-border customers can complete identity verification
 * Update - Improve express checkout load times by preloading the resources
+* Update - Ensure payment method restrictions based on account and shopper countries are up to date
+* Fix - Send Klarna's preferred locale in the confirmation token (Optimized Checkout) flow so cross-border customers can complete identity verification
 * Fix - Store transaction IDs for orders when we get charges to ensure we can refund correctly
 * Fix - Prevent Stripe API calls from failing due to DNS resolution issues
-* Update - Ensure payment method restrictions based on account and shopper countries are up to date
 * Fix - Recover a missing Stripe charge ID from the order's payment intent so affected orders stay refundable
 * Fix - Restore "Refund via Gateway" button and Stripe dashboard transaction link for Amazon Pay orders by keeping Amazon Pay registered in the gateway list on order edit and refund pages
 * Fix - Don't auto-cancel Stripe orders that have already been paid, preventing paid orders left at pending (e.g. by a checkout/webhook race) from being cancelled as unpaid
@@ -179,28 +179,28 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **Other Fixes and Updates**
 
+* Remove - Remove giropay from new checkouts (deprecated by Stripe on 2024-06-30); legacy refund and past-order rendering preserved
 * Add - Show Apple Pay / Google Pay branding on saved card tokens in My Account → Payment Methods and at checkout
+* Add - Detect Stripe API outages (network failures, timeouts, 5xx responses) and surface a wp-admin notice instead of crashing or showing misleading "couldn't connect" messages
 * Fix - Use a placeholder billing last name for single-name express checkout payments
 * Fix - Prevent Stripe from rendering an unexpected "Address Line 2" field inside the Payment Element
 * Fix - Incorrect payment method title on the order confirmation page when Optimized Checkout is enabled
 * Fix - Preserve saved card branding when the same card is later used via a wallet, and render multi-word brands (e.g. Cartes Bancaires) correctly
 * Fix - Add empty state mapping for Morocco in express checkout
-* Add - Detect Stripe API outages (network failures, timeouts, 5xx responses) and surface a wp-admin notice instead of crashing or showing misleading "couldn't connect" messages
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
-* Remove - Remove giropay from new checkouts (deprecated by Stripe on 2024-06-30); legacy refund and past-order rendering preserved
 * Fix - Ensure the save-payment-method checkbox is unchecked when a non-reusable payment method is selected in Optimized Checkout
 * Add - Add a "Release notes" link to the WooCommerce Stripe row on the Plugins page that opens the changelog modal
 * Add - Append a "what's new" changelog link to the Updated! message after manually updating the plugin from the Plugins page
+* Add - Implement wc_stripe_logger_can_log filter to allow for targeted logging on busy sites
 * Fix - Dismissible subscription detached admin notices
 * Fix - Fix admin banner dismissal and display logic
 * Fix - Make the "Update now" link in the account status tooltip clickable and improve its contrast against the tooltip background
-* Dev - Memoize the Express Checkout button visibility check within a request
 * Fix - Correct Amazon Pay button preview rendering in the Full Site Editor block cart and checkout pages
 * Fix - Require a connected account for the target mode before switching between test and live
-* Add - Implement wc_stripe_logger_can_log filter to allow for targeted logging on busy sites
 * Fix - Show better message when express checkout preview is not available
 * Fix - Add guards against invalid values for webhook state timestamps
 * Fix - Resolve console errors shown when editing the Blocks checkout page
+* Dev - Memoize the Express Checkout button visibility check within a request
 * Tweak - Drop redundant "Test mode:" label from test payment instructions on Blocks checkout, which already shows a Test Mode badge
 * Tweak - Remove the confirmation dialog when disabling a payment method in settings
 
