@@ -36,8 +36,8 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 The following items note specific versions that include important changes, features, or deprecations.
 
 * 10.8.0
-   - Optimized Checkout Suite enabled by default for existing stores
-   - Adaptive Pricing enabled by default for existing stores
+   - Optimized Checkout Suite enabled by default for eligible existing stores
+   - Adaptive Pricing enabled by default for eligible existing stores
    - Removed deprecated code and constants from 10.2.0 and before - [Full list - PR #5294](https://github.com/woocommerce/woocommerce-gateway-stripe/pull/5294)
 * 10.7.0
    - Optimized Checkout Suite re-enabled by default for new installs
