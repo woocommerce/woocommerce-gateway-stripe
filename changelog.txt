@@ -47,7 +47,7 @@ xxxx-xx-xx - version 10.8.0
 * Update - Improve express checkout load times by preloading the resources
 * Tweak - Reduce JS bundle sizes by using native browser features instead of polyfills
 * Dev - Memoize the Express Checkout button visibility check within a request
-* Fix - Don't default Adaptive Pricing on when connecting a Stripe account it is unavailable for (e.g. India-based accounts)
+* Fix - Don't default Adaptive Pricing on when first connecting a Stripe account that is ineligible for Adaptive Pricing
 * Fix - Fix admin banner dismissal and display logic
 * Add - Detect Stripe API outages (network failures, timeouts, 5xx responses) and surface a wp-admin notice instead of crashing or showing misleading "couldn't connect" messages
 * Fix - Require a connected account for the target mode before switching between test and live
