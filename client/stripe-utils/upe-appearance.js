@@ -15,17 +15,22 @@ const appearanceCache = {};
  *
  * @param {string}  isBlockCheckout               Whether the checkout is being used in a block context.
  * @param {boolean} shouldExpandOptimizedCheckout Whether the Optimized Checkout Suite should be expanded. Only applicable for classic checkout.
+ * @param {boolean} isEditor                      Whether the appearance is being computed in the block editor (Site/Full Site Editor) preview.
  *
  * @return {Object} The appearance object for the UPE.
  */
 export const initializeUPEAppearance = (
 	isBlockCheckout = 'false',
-	shouldExpandOptimizedCheckout = false
+	shouldExpandOptimizedCheckout = false,
+	isEditor = false
 ) => {
 	const isBlocks = isBlockCheckout === 'true';
-	const location = isBlocks
-		? 'blocks'
-		: 'classic' + ( shouldExpandOptimizedCheckout ? '_expanded' : '' );
+	const location =
+		( isBlocks
+			? 'blocks'
+			: 'classic' +
+			  ( shouldExpandOptimizedCheckout ? '_expanded' : '' ) ) +
+		( isEditor ? '_editor' : '' );
 
 	// Check for custom appearance configuration from the server.
 	const customServerField = isBlocks ? 'blocksAppearance' : 'appearance';
@@ -47,7 +52,11 @@ export const initializeUPEAppearance = (
 		return appearanceCache[ location ];
 	}
 
-	const appearance = getAppearance( isBlocks, shouldExpandOptimizedCheckout );
+	const appearance = getAppearance(
+		isBlocks,
+		shouldExpandOptimizedCheckout,
+		isEditor
+	);
 	appearanceCache[ location ] = appearance;
 	return appearance;
 };

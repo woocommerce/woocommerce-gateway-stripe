@@ -298,7 +298,11 @@ describe( 'utils', () => {
 
 				initializeUPEAppearance( 'true' );
 
-				expect( getAppearance ).toHaveBeenCalledWith( true, false );
+				expect( getAppearance ).toHaveBeenCalledWith(
+					true,
+					false,
+					false
+				);
 			} );
 
 			it( 'falls through to computed appearance when server appearance is falsy', () => {
@@ -307,7 +311,11 @@ describe( 'utils', () => {
 
 				initializeUPEAppearance( 'false' );
 
-				expect( getAppearance ).toHaveBeenCalledWith( false, false );
+				expect( getAppearance ).toHaveBeenCalledWith(
+					false,
+					false,
+					false
+				);
 			} );
 
 			it( 'does not use server blocks appearance when isBlockCheckout is false', () => {
@@ -318,7 +326,11 @@ describe( 'utils', () => {
 
 				initializeUPEAppearance( 'false' );
 
-				expect( getAppearance ).toHaveBeenCalledWith( false, false );
+				expect( getAppearance ).toHaveBeenCalledWith(
+					false,
+					false,
+					false
+				);
 			} );
 		} );
 
@@ -341,6 +353,7 @@ describe( 'utils', () => {
 
 					expect( mockGetAppearance ).toHaveBeenCalledWith(
 						false,
+						false,
 						false
 					);
 					expect( result ).toEqual( { theme: 'classic' } );
@@ -361,6 +374,7 @@ describe( 'utils', () => {
 
 					expect( mockGetAppearance ).toHaveBeenCalledWith(
 						true,
+						false,
 						false
 					);
 					expect( result ).toEqual( { theme: 'blocks' } );
@@ -380,6 +394,7 @@ describe( 'utils', () => {
 					init();
 
 					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						false,
 						false,
 						false
 					);
@@ -458,6 +473,7 @@ describe( 'utils', () => {
 
 					expect( mockGetAppearance ).toHaveBeenCalledWith(
 						false,
+						false,
 						false
 					);
 				} );
@@ -483,6 +499,54 @@ describe( 'utils', () => {
 
 					expect( classicResult ).toBe( classicAppearance );
 					expect( blocksResult ).toBe( blocksAppearance );
+					expect( mockGetAppearance ).toHaveBeenCalledTimes( 2 );
+				} );
+			} );
+
+			it( 'passes the editor flag through to getAppearance', () => {
+				jest.isolateModules( () => {
+					const {
+						initializeUPEAppearance: init,
+					} = require( '../upe-appearance' );
+					const {
+						getAppearance: mockGetAppearance,
+					} = require( '../../styles/upe' );
+					mockGetAppearance.mockReturnValue( { theme: 'stripe' } );
+					mockGetAppearance.mockClear();
+
+					init( 'true', false, true );
+
+					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						true,
+						false,
+						true
+					);
+				} );
+			} );
+
+			it( 'maintains separate caches for editor and storefront blocks checkout', () => {
+				jest.isolateModules( () => {
+					const storefrontAppearance = { theme: 'night' };
+					const editorAppearance = { theme: 'stripe' };
+					const {
+						initializeUPEAppearance: init,
+					} = require( '../upe-appearance' );
+					const {
+						getAppearance: mockGetAppearance,
+					} = require( '../../styles/upe' );
+					mockGetAppearance.mockClear();
+					mockGetAppearance
+						.mockReturnValueOnce( storefrontAppearance )
+						.mockReturnValueOnce( editorAppearance );
+
+					const storefrontResult = init( 'true', false, false );
+					const editorResult = init( 'true', false, true );
+					// Subsequent calls hit each location's cache.
+					init( 'true', false, false );
+					init( 'true', false, true );
+
+					expect( storefrontResult ).toBe( storefrontAppearance );
+					expect( editorResult ).toBe( editorAppearance );
 					expect( mockGetAppearance ).toHaveBeenCalledTimes( 2 );
 				} );
 			} );
