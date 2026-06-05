@@ -173,6 +173,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Store transaction IDs for orders when we get charges to ensure we can refund correctly
 * Fix - Prevent Stripe API calls from failing due to DNS resolution issues
 * Fix - Recover a missing Stripe charge ID from the order's payment intent so affected orders stay refundable
+* Fix - Add an order note and call action 'wc_stripe_unexpected_charge_detected' when a Stripe charge is captured for an order that was already paid via a different gateway
 * Fix - Restore "Refund via Gateway" button and Stripe dashboard transaction link for Amazon Pay orders by keeping Amazon Pay registered in the gateway list on order edit and refund pages
 * Fix - Don't auto-cancel Stripe orders that have already been paid, preventing paid orders left at pending (e.g. by a checkout/webhook race) from being cancelled as unpaid
 * Fix - Add an order note when a paid-but-pending Stripe order is kept from being auto-cancelled, so stores can review and reconcile the stuck status
@@ -199,6 +200,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Require a connected account for the target mode before switching between test and live
 * Fix - Show better message when express checkout preview is not available
 * Fix - Add guards against invalid values for webhook state timestamps
+* Fix - Prevent saved Link, Cash App Pay, SEPA, Amazon Pay and Bacs Direct Debit payment methods from being duplicated when viewing My Account → Payment methods
 * Fix - Resolve console errors shown when editing the Blocks checkout page
 * Dev - Memoize the Express Checkout button visibility check within a request
 * Tweak - Drop redundant "Test mode:" label from test payment instructions on Blocks checkout, which already shows a Test Mode badge

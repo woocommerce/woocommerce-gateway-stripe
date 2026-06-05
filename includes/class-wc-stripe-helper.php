@@ -1584,6 +1584,17 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Returns the Stripe dashboard payment URL for a given object ID.
+	 *
+	 * @param string $id           The Stripe object ID to link to (PaymentIntent, charge, etc.).
+	 * @param bool   $is_test_mode Whether to link to the test-mode dashboard.
+	 * @return string
+	 */
+	public static function get_transaction_url_for_id( string $id, bool $is_test_mode = false ): string {
+		return sprintf( self::get_transaction_url( $is_test_mode ), $id );
+	}
+
+	/**
 	 * Returns a supported locale for setting Klarna's "preferred_locale".
 	 * While Stripe allows for localization of Klarna's payments page, it still
 	 * limits the locale to the billing country's set of supported locales. For example,
