@@ -154,9 +154,9 @@ jQuery( function ( $ ) {
 			wcStripeECE.getButtonSeparator().hide();
 		},
 
-		renderButton: ( eceButton, expressPaymentType ) => {
+		renderButton: ( eceButton, expressPaymentGroupId ) => {
 			if ( $( '#wc-stripe-express-checkout-element' ).length ) {
-				const containerName = `wc-stripe-express-checkout-element-${ expressPaymentType }`;
+				const containerName = `wc-stripe-express-checkout-element-${ expressPaymentGroupId }`;
 				if ( ! $( `#${ containerName }` ).length ) {
 					$( '#wc-stripe-express-checkout-element' ).append(
 						`<div id="${ containerName }"></div>`
@@ -231,31 +231,41 @@ jQuery( function ( $ ) {
 				'is_change_payment_method'
 			);
 
-			// For each supported express payment type, create their own
-			// express checkout element. This is necessary as some express payment types
-			// may require different options or configurations, e.g. Amazon Pay
+			// Apple Pay, Google Pay, and Link share the same Elements options and can
+			// use one Express Checkout Element. Keep Amazon Pay isolated because it
 			// does not support paymentMethodCreation: 'manual'.
-			const expressPaymentTypes = [
-				isExpressCheckoutEnabled &&
-					EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
-				isExpressCheckoutEnabled &&
-					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
-				isAmazonPayEnabled &&
-					! areTaxesBasedOnBillingAddress &&
-					! isChangePaymentMethod &&
-					EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
-				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
-			].filter( Boolean );
+			const expressPaymentGroups = [
+				{
+					id: 'wallets-link',
+					types: [
+						isExpressCheckoutEnabled &&
+							EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+						isExpressCheckoutEnabled &&
+							EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+						isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
+					].filter( Boolean ),
+				},
+				{
+					id: EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+					types: [
+						isAmazonPayEnabled &&
+							! areTaxesBasedOnBillingAddress &&
+							! isChangePaymentMethod &&
+							EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+					].filter( Boolean ),
+				},
+			].filter( ( group ) => group.types.length > 0 );
 
-			expressPaymentTypes.forEach( ( expressPaymentType ) => {
-				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {
+			expressPaymentGroups.forEach( ( expressPaymentGroup ) => {
+				wcStripeECE.createExpressCheckoutElement( expressPaymentGroup, {
 					...options,
 					shippingRates,
 				} );
 			} );
 		},
 
-		createExpressCheckoutElement: ( expressPaymentType, options ) => {
+		createExpressCheckoutElement: ( expressPaymentGroup, options ) => {
+			const expressPaymentTypes = expressPaymentGroup.types;
 			const handleProductPageECEButtonClick = async (
 				event,
 				clickOptions
@@ -345,6 +355,15 @@ jQuery( function ( $ ) {
 				return;
 			}
 
+			const hasExpressPaymentType = ( expressPaymentType ) =>
+				expressPaymentTypes.includes( expressPaymentType );
+			const paymentMethodTypes = Array.from(
+				new Set(
+					expressPaymentTypes.flatMap(
+						getPaymentMethodTypesForExpressMethod
+					)
+				)
+			);
 			const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
 			const isChangePaymentMethod = getExpressCheckoutData(
 				'is_change_payment_method'
@@ -365,41 +384,42 @@ jQuery( function ( $ ) {
 					amount: options.total,
 				} ),
 				currency: options.currency,
-				...( isManualPaymentMethodCreation(
-					expressPaymentType,
-					isChangePaymentMethod || hasFreeTrial
+				...( expressPaymentTypes.some( ( expressPaymentType ) =>
+					isManualPaymentMethodCreation(
+						expressPaymentType,
+						isChangePaymentMethod || hasFreeTrial
+					)
 				) && {
 					paymentMethodCreation: 'manual',
 				} ),
 				appearance: getExpressCheckoutButtonAppearance(),
 				locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
-				paymentMethodTypes:
-					getPaymentMethodTypesForExpressMethod( expressPaymentType ),
+				paymentMethodTypes,
 			} );
 
 			const eceButton = wcStripeECE.createButton( elements, {
 				...getExpressCheckoutButtonStyleSettings(),
 				paymentMethods: {
-					amazonPay:
-						expressPaymentType ===
+					amazonPay: hasExpressPaymentType(
 						EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY
-							? 'auto'
-							: 'never',
-					googlePay:
-						expressPaymentType ===
+					)
+						? 'auto'
+						: 'never',
+					googlePay: hasExpressPaymentType(
 						EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY
-							? 'always'
-							: 'never',
-					applePay:
-						expressPaymentType ===
+					)
+						? 'always'
+						: 'never',
+					applePay: hasExpressPaymentType(
 						EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY
-							? 'always'
-							: 'never',
-					link: expressPaymentType === 'link' ? 'auto' : 'never',
+					)
+						? 'always'
+						: 'never',
+					link: hasExpressPaymentType( 'link' ) ? 'auto' : 'never',
 				},
 			} );
 
-			wcStripeECE.renderButton( eceButton, expressPaymentType );
+			wcStripeECE.renderButton( eceButton, expressPaymentGroup.id );
 
 			eceButton.on( 'click', async function ( event ) {
 				// If login is required for checkout, display redirect confirmation dialog.
