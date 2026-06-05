@@ -6146,4 +6146,51 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->assertStringNotContainsString( $ecb_needle, $output );
 		}
 	}
+
+	/**
+	 * Tests that get_address_data_for_payment_request includes the shipping phone, so it reaches
+	 * the payment intent shipping object for risk decisioning (STRIPE-973).
+	 *
+	 * @dataProvider provide_test_get_address_data_for_payment_request_phone_cases
+	 *
+	 * @param string $phone        The order shipping phone.
+	 * @param bool   $expect_phone Whether the shipping phone is expected in the address data.
+	 */
+	public function test_get_address_data_for_payment_request_includes_shipping_phone( string $phone, bool $expect_phone ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_shipping_first_name( 'Jane' );
+		$order->set_shipping_last_name( 'Doe' );
+		$order->set_shipping_address_1( '123 Ship St' );
+		$order->set_shipping_city( 'Shipville' );
+		$order->set_shipping_state( 'CA' );
+		$order->set_shipping_postcode( '90210' );
+		$order->set_shipping_country( 'US' );
+		$order->set_shipping_phone( $phone );
+		$order->save();
+
+		$reflection = new \ReflectionClass( WC_Stripe_UPE_Payment_Gateway::class );
+		$method     = $reflection->getMethod( 'get_address_data_for_payment_request' );
+		$method->setAccessible( true );
+
+		$address_data = $method->invoke( $this->mock_gateway, $order );
+
+		if ( $expect_phone ) {
+			$this->assertArrayHasKey( 'phone', $address_data, 'Shipping address data should include the shipping phone' );
+			$this->assertEquals( $phone, $address_data['phone'], 'Shipping phone should match the order shipping phone' );
+		} else {
+			$this->assertArrayNotHasKey( 'phone', $address_data, 'Shipping address data should omit an empty phone' );
+		}
+	}
+
+	/**
+	 * Data provider for test_get_address_data_for_payment_request_includes_shipping_phone.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_address_data_for_payment_request_phone_cases(): array {
+		return [
+			'phone present' => [ '+1 555-333-4444', true ],
+			'phone empty'   => [ '', false ],
+		];
+	}
 }

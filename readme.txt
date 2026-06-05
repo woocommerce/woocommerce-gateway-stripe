@@ -153,7 +153,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.8.0 - xxxx-xx-xx =
 * Fix - Add an order note and call action 'wc_stripe_unexpected_charge_detected' when a Stripe charge is captured for an order that was already paid via a different gateway
+* Fix - Add empty state mapping for Morocco in express checkout
 * Add - Default Optimized Checkout Suite and Adaptive Pricing on for all eligible stores, with in-app notices announcing the change
+* Fix - Prevent saved Link, Cash App Pay, SEPA, Amazon Pay and Bacs Direct Debit payment methods from being duplicated when viewing My Account → Payment methods
 * Fix - Ensure the save-payment-method checkbox is unchecked when a non-reusable payment method is selected in Optimized Checkout
 * Tweak - Drop redundant "Test mode:" label from test payment instructions on Blocks checkout, which already shows a Test Mode badge
 * Fix - Resolve console errors shown when editing the Blocks checkout page
@@ -165,6 +167,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Add an order note when a paid-but-pending Stripe order is kept from being auto-cancelled, so stores can review and reconcile the stuck status
 * Fix - Send Klarna's preferred locale in the confirmation token (Optimized Checkout) flow so cross-border customers can complete identity verification
 * Fix - Preserve saved card branding when the same card is later used via a wallet, and render multi-word brands (e.g. Cartes Bancaires) correctly
+* Add - Send the billing and shipping phone number to Stripe (payment intent shipping object and customer object) to improve fraud and risk decisioning
 * Add - Show Apple Pay / Google Pay branding on saved card tokens in My Account → Payment Methods and at checkout
 * Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Link)
 * Add - Add a setting to control whether Express Checkout is shown on the WooCommerce Subscriptions change payment method page
@@ -203,10 +206,13 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add wc_stripe_agentic_commerce_should_sync_product filter so adapters can exclude products from the Agentic Commerce catalog, inventory, and archive syncs
 * Dev - Move additional classes to autoloader, including email and migration classes
 * Add - Register Stripe gateway capabilities with the WordPress Abilities API for agent access (default off; opt in via the `wc_stripe_abilities_enabled` filter)
+* Fix - Only show the "appearance settings may be overridden" notice on Express Checkout and Amazon Pay settings when the uniform style option is actually enabled
+* Fix - Render the Payment Element with a light appearance in the Site Editor preview instead of a dark/black one
 * Fix - Incorrect payment method title on the order confirmation page when Optimized Checkout is enabled
 * Tweak - Remove the confirmation dialog when disabling a payment method in settings
 * Dev - Add e2e tests for subscriptions and Optimized Checkout Suite and support stricter payment confirmation checks
 * Fix - Restore "Refund via Gateway" button and Stripe dashboard transaction link for Amazon Pay orders by keeping Amazon Pay registered in the gateway list on order edit and refund pages
 * Fix - Correct Amazon Pay button preview rendering in the Full Site Editor block cart and checkout pages
+* Fix - Use the order's currency instead of the store base currency on the Pay for Order page for the Express Checkout Element
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
