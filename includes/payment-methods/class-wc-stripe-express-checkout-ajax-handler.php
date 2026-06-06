@@ -93,10 +93,14 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 			// Use wc_stock_amount() rather than absint() so stores that allow decimal
 			// quantities (e.g. selling fabric by the metre) keep fractional values like
-			// 0.25 instead of having them truncated to an integer. This mirrors how
-			// WooCommerce core parses the add-to-cart quantity. max() keeps it
-			// non-negative, preserving the previous absint() behaviour.
-			$qty = ! isset( $_POST['qty'] ) ? 1 : max( 0, wc_stock_amount( (float) wc_clean( wp_unslash( $_POST['qty'] ) ) ) );
+			// 0.25 instead of having them truncated to an integer. wc_format_decimal()
+			// first normalises localised decimal separators (e.g. "0,25") so the float
+			// cast can't zero them; max() keeps the result non-negative.
+			$qty         = 1;
+			$cleaned_qty = isset( $_POST['qty'] ) ? wc_clean( wp_unslash( $_POST['qty'] ) ) : 1;
+			if ( is_string( $cleaned_qty ) ) {
+				$qty = max( 0, wc_stock_amount( (float) wc_format_decimal( $cleaned_qty ) ) );
+			}
 
 			$product = wc_get_product( $product_id );
 
@@ -270,10 +274,15 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 		try {
 			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-			// Preserve decimal quantities (see ajax_add_to_cart above) by parsing with
-			// wc_stock_amount() instead of absint() before applying the core filter.
-			// max() keeps it non-negative so it can't produce a negative preview total.
-			$qty = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', max( 0, wc_stock_amount( (float) wc_clean( wp_unslash( $_POST['qty'] ) ) ) ), $product_id );
+			// Preserve decimal quantities (see ajax_add_to_cart above): wc_format_decimal()
+			// normalises localised decimal separators before the cast, and max() keeps it
+			// non-negative so it can't produce a negative preview total.
+			$qty         = 1;
+			$cleaned_qty = isset( $_POST['qty'] ) ? wc_clean( wp_unslash( $_POST['qty'] ) ) : 1;
+			if ( is_string( $cleaned_qty ) ) {
+				$qty = max( 0, wc_stock_amount( (float) wc_format_decimal( $cleaned_qty ) ) );
+			}
+			$qty = apply_filters( 'woocommerce_add_to_cart_quantity', $qty, $product_id );
 
 			$addon_value     = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
 			$product         = wc_get_product( $product_id );
