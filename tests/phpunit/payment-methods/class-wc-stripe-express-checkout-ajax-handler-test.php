@@ -211,11 +211,11 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 	public function test_ajax_add_to_cart_preserves_decimal_quantity() {
 		Ajax_Test_Helper::init_hooks();
 
-		// Simulate a decimal-quantity plugin allowing fractional stock amounts.
-		$allow_decimal_quantity = function ( $qty ) {
-			return (float) $qty;
-		};
-		add_filter( 'woocommerce_stock_amount', $allow_decimal_quantity );
+		// Simulate a decimal-quantity plugin: swap the default integer stock-amount
+		// filter for a float one. This mirrors what such plugins actually do
+		// (remove_filter intval / add_filter floatval).
+		remove_filter( 'woocommerce_stock_amount', 'intval' );
+		add_filter( 'woocommerce_stock_amount', 'floatval' );
 
 		$product = WC_Helper_Product::create_simple_product();
 
@@ -237,6 +237,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 
 		$cart_quantity = null;
 		$cart_count    = 0;
+		$output        = '';
 
 		try {
 			$security_nonce       = wp_create_nonce( 'wc-stripe-add-to-cart' );
@@ -250,20 +251,21 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 
 			ob_start();
 			$this->ajax_handler->ajax_add_to_cart();
-			ob_get_clean();
+			$output = ob_get_clean();
 
 			$cart_items    = WC()->cart->get_cart();
 			$cart_count    = count( $cart_items );
 			$first_item    = reset( $cart_items );
 			$cart_quantity = $first_item ? $first_item['quantity'] : null;
 		} finally {
-			remove_filter( 'woocommerce_stock_amount', $allow_decimal_quantity );
+			remove_filter( 'woocommerce_stock_amount', 'floatval' );
+			add_filter( 'woocommerce_stock_amount', 'intval' );
 			WC()->cart->empty_cart();
 			Ajax_Test_Helper::remove_hooks();
 			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
 		}
 
-		$this->assertSame( 1, $cart_count, 'Exactly one item should be added to the cart.' );
+		$this->assertSame( 1, $cart_count, 'Exactly one item should be added to the cart. Handler output: ' . $output );
 		$this->assertEqualsWithDelta( 0.25, $cart_quantity, 0.0001, 'Decimal quantity should be preserved, not truncated to an integer.' );
 	}
 
@@ -320,10 +322,9 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 	public function test_ajax_get_selected_product_data_preserves_decimal_quantity() {
 		Ajax_Test_Helper::init_hooks();
 
-		$allow_decimal_quantity = function ( $qty ) {
-			return (float) $qty;
-		};
-		add_filter( 'woocommerce_stock_amount', $allow_decimal_quantity );
+		// Simulate a decimal-quantity plugin (see note in the add-to-cart test above).
+		remove_filter( 'woocommerce_stock_amount', 'intval' );
+		add_filter( 'woocommerce_stock_amount', 'floatval' );
 
 		$product = WC_Helper_Product::create_simple_product();
 
@@ -347,14 +348,15 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 
 			$response = json_decode( $output, true );
 		} finally {
-			remove_filter( 'woocommerce_stock_amount', $allow_decimal_quantity );
+			remove_filter( 'woocommerce_stock_amount', 'floatval' );
+			add_filter( 'woocommerce_stock_amount', 'intval' );
 			Ajax_Test_Helper::remove_hooks();
 			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
 		}
 
 		// 0.25 x $10 = $2.50 = 250 minor units; a truncated quantity would yield 0.
 		$this->assertIsArray( $response );
-		$this->assertArrayHasKey( 'displayItems', $response );
+		$this->assertArrayHasKey( 'displayItems', $response, 'response: ' . wp_json_encode( $response ) );
 		$this->assertSame( 250, $response['displayItems'][0]['amount'] );
 	}
 
