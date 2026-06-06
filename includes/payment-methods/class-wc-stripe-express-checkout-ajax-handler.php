@@ -95,7 +95,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			// quantities (e.g. selling fabric by the metre) keep fractional values like
 			// 0.25 instead of having them truncated to an integer. This mirrors how
 			// WooCommerce core parses the add-to-cart quantity.
-			$qty     = ! isset( $_POST['qty'] ) ? 1 : wc_stock_amount( wp_unslash( $_POST['qty'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$qty     = ! isset( $_POST['qty'] ) ? 1 : wc_stock_amount( wc_clean( wp_unslash( $_POST['qty'] ) ) );
 			$product = wc_get_product( $product_id );
 
 			if ( ! $product || ! is_a( $product, 'WC_Product' ) ) {
@@ -268,7 +268,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			$product_id      = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 			// Preserve decimal quantities (see ajax_add_to_cart above) by parsing with
 			// wc_stock_amount() instead of absint() before applying the core filter.
-			$qty             = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', wc_stock_amount( wp_unslash( $_POST['qty'] ) ), $product_id ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$qty             = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', wc_stock_amount( wc_clean( wp_unslash( $_POST['qty'] ) ) ), $product_id );
 			$addon_value     = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
 			$product         = wc_get_product( $product_id );
 			$variation_id    = null;
