@@ -196,4 +196,71 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 		$this->assertSame( $display_items['displayItems'], $response['displayItems'] );
 		$this->assertSame( $display_items['total'], $response['total'] );
 	}
+
+	/**
+	 * Test ajax_add_to_cart preserves decimal quantities on stores that allow them.
+	 *
+	 * Stores that sell by fractional units (e.g. fabric by the metre) enable decimal
+	 * quantities by filtering `woocommerce_stock_amount`. The express checkout
+	 * add-to-cart handler must route the posted quantity through wc_stock_amount()
+	 * so those fractional values are kept rather than truncated to an integer.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_add_to_cart_preserves_decimal_quantity() {
+		Ajax_Test_Helper::init_hooks();
+
+		// Simulate a decimal-quantity plugin allowing fractional stock amounts.
+		$allow_decimal_quantity = function ( $qty ) {
+			return (float) $qty;
+		};
+		add_filter( 'woocommerce_stock_amount', $allow_decimal_quantity );
+
+		$product = WC_Helper_Product::create_simple_product();
+
+		$this->express_checkout_helper->expects( $this->once() )
+			->method( 'supported_product_types' )
+			->willReturn( [ ProductType::SIMPLE ] );
+
+		$this->express_checkout_helper->expects( $this->once() )
+			->method( 'build_display_items' )
+			->willReturn(
+				[
+					'displayItems' => [],
+					'total'        => [
+						'label'  => 'Total',
+						'amount' => 0,
+					],
+				]
+			);
+
+		$cart_quantity = null;
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-add-to-cart' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = '0.25';
+
+			WC()->session->init();
+			WC()->cart->empty_cart();
+
+			ob_start();
+			$this->ajax_handler->ajax_add_to_cart();
+			ob_get_clean();
+
+			foreach ( WC()->cart->get_cart() as $cart_item ) {
+				$cart_quantity = $cart_item['quantity'];
+			}
+		} finally {
+			remove_filter( 'woocommerce_stock_amount', $allow_decimal_quantity );
+			WC()->cart->empty_cart();
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		$this->assertSame( 0.25, $cart_quantity, 'Decimal quantity should be preserved, not truncated to an integer.' );
+	}
 }
