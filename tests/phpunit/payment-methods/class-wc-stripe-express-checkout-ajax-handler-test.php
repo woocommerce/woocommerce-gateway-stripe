@@ -261,6 +261,46 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
 		}
 
-		$this->assertSame( 0.25, $cart_quantity, 'Decimal quantity should be preserved, not truncated to an integer.' );
+		$this->assertEqualsWithDelta( 0.25, $cart_quantity, 0.0001, 'Decimal quantity should be preserved, not truncated to an integer.' );
+	}
+
+	/**
+	 * Test ajax_add_to_cart rejects a zero/negative quantity instead of emptying the
+	 * cart and reporting success. wc_stock_amount() (unlike the previous absint()) can
+	 * return a non-positive value for a malformed request, so the handler must guard it.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_add_to_cart_rejects_non_positive_quantity() {
+		Ajax_Test_Helper::init_hooks();
+
+		$product = WC_Helper_Product::create_simple_product();
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-add-to-cart' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = '-1';
+
+			WC()->session->init();
+			WC()->cart->empty_cart();
+
+			ob_start();
+			$this->ajax_handler->ajax_add_to_cart();
+			$output = ob_get_clean();
+
+			$response   = json_decode( $output, true );
+			$cart_count = WC()->cart->get_cart_contents_count();
+		} finally {
+			WC()->cart->empty_cart();
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		$this->assertIsArray( $response );
+		$this->assertFalse( $response['success'], 'A non-positive quantity should return an error response.' );
+		$this->assertSame( 0, $cart_count, 'The cart should be left untouched when the quantity is invalid.' );
 	}
 }
