@@ -275,14 +275,17 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		try {
 			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 			// Preserve decimal quantities (see ajax_add_to_cart above): wc_format_decimal()
-			// normalises localised decimal separators before the cast, and max() keeps it
-			// non-negative so it can't produce a negative preview total.
+			// normalises localised decimal separators before the cast.
 			$qty         = 1;
 			$cleaned_qty = isset( $_POST['qty'] ) ? wc_clean( wp_unslash( $_POST['qty'] ) ) : 1;
 			if ( is_string( $cleaned_qty ) ) {
 				$qty = max( 0, wc_stock_amount( (float) wc_format_decimal( $cleaned_qty ) ) );
 			}
-			$qty = apply_filters( 'woocommerce_add_to_cart_quantity', $qty, $product_id );
+
+			// Re-clamp after the add-to-cart-quantity filter (a third-party callback could
+			// return a negative or non-numeric value) so the preview total can't go negative.
+			$filtered_qty = apply_filters( 'woocommerce_add_to_cart_quantity', $qty, $product_id );
+			$qty          = is_numeric( $filtered_qty ) ? max( 0, wc_stock_amount( (float) $filtered_qty ) ) : 0;
 
 			$addon_value     = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
 			$product         = wc_get_product( $product_id );
