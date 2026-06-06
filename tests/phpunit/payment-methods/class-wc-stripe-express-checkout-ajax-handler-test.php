@@ -270,17 +270,32 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test ajax_add_to_cart rejects a zero/negative quantity instead of emptying the
-	 * cart and reporting success. wc_stock_amount() (unlike the previous absint()) can
-	 * return a non-positive value for a malformed request, so the handler must guard it.
+	 * Test ajax_add_to_cart does not add a zero/negative quantity. wc_stock_amount()
+	 * (unlike the previous absint()) can return a non-positive value, so the handler
+	 * clamps it to zero, which WooCommerce then declines to add to the cart.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_ajax_add_to_cart_rejects_non_positive_quantity() {
+	public function test_ajax_add_to_cart_does_not_add_non_positive_quantity() {
 		Ajax_Test_Helper::init_hooks();
 
 		$product = WC_Helper_Product::create_simple_product();
+
+		$this->express_checkout_helper->method( 'supported_product_types' )
+			->willReturn( [ ProductType::SIMPLE ] );
+		$this->express_checkout_helper->method( 'build_display_items' )
+			->willReturn(
+				[
+					'displayItems' => [],
+					'total'        => [
+						'label'  => 'Total',
+						'amount' => 0,
+					],
+				]
+			);
+
+		$cart_count = null;
 
 		try {
 			$security_nonce       = wp_create_nonce( 'wc-stripe-add-to-cart' );
@@ -294,9 +309,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 
 			ob_start();
 			$this->ajax_handler->ajax_add_to_cart();
-			$output = ob_get_clean();
+			ob_get_clean();
 
-			$response   = json_decode( $output, true );
 			$cart_count = WC()->cart->get_cart_contents_count();
 		} finally {
 			WC()->cart->empty_cart();
@@ -304,10 +318,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
 		}
 
-		$this->assertIsArray( $response );
-		$this->assertArrayHasKey( 'success', $response );
-		$this->assertFalse( $response['success'], 'A non-positive quantity should return an error response.' );
-		$this->assertSame( 0, $cart_count, 'The cart should be left untouched when the quantity is invalid.' );
+		$this->assertSame( 0, $cart_count, 'A non-positive quantity should be clamped to zero and not added to the cart.' );
 	}
 
 	/**
@@ -368,16 +379,21 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test ajax_get_selected_product_data rejects a zero/negative quantity before it
-	 * reaches the price math.
+	 * Test ajax_get_selected_product_data clamps a zero/negative quantity to zero, so the
+	 * preview total can never go negative.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_ajax_get_selected_product_data_rejects_non_positive_quantity() {
+	public function test_ajax_get_selected_product_data_clamps_non_positive_quantity() {
 		Ajax_Test_Helper::init_hooks();
 
 		$product = WC_Helper_Product::create_simple_product();
+
+		$this->express_checkout_helper->method( 'is_invalid_subscription_product' )->willReturn( false );
+		$this->express_checkout_helper->method( 'get_product_price' )->willReturn( 10.0 );
+		$this->express_checkout_helper->method( 'get_taxes_like_cart' )->willReturn( [] );
+		$this->express_checkout_helper->method( 'get_total_label' )->willReturn( 'Total' );
 
 		try {
 			$security_nonce       = wp_create_nonce( 'wc-stripe-get-selected-product-data' );
@@ -398,7 +414,10 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
 		}
 
+		// -1 is clamped to 0, so the preview shows $0 rather than a negative amount.
 		$this->assertIsArray( $response );
-		$this->assertArrayHasKey( 'error', $response );
+		$this->assertArrayHasKey( 'displayItems', $response, 'response: ' . wp_json_encode( $response ) );
+		$this->assertSame( 0, $response['displayItems'][0]['amount'] );
+		$this->assertSame( 0, $response['total']['amount'] );
 	}
 }

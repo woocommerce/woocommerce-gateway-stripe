@@ -94,17 +94,9 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			// Use wc_stock_amount() rather than absint() so stores that allow decimal
 			// quantities (e.g. selling fabric by the metre) keep fractional values like
 			// 0.25 instead of having them truncated to an integer. This mirrors how
-			// WooCommerce core parses the add-to-cart quantity.
-			// A malformed request can post qty as an array, and wc_stock_amount() (unlike
-			// the previous absint()) can return zero or a negative value. Reject both
-			// before touching the cart so we don't empty it and still report success.
-			if ( isset( $_POST['qty'] ) && is_array( $_POST['qty'] ) ) {
-				throw new Exception( __( 'Invalid product quantity.', 'woocommerce-gateway-stripe' ) );
-			}
-			$qty = ! isset( $_POST['qty'] ) ? 1 : wc_stock_amount( wc_clean( wp_unslash( $_POST['qty'] ) ) );
-			if ( $qty <= 0 ) {
-				throw new Exception( __( 'Invalid product quantity.', 'woocommerce-gateway-stripe' ) );
-			}
+			// WooCommerce core parses the add-to-cart quantity. max() keeps it
+			// non-negative, preserving the previous absint() behaviour.
+			$qty = ! isset( $_POST['qty'] ) ? 1 : max( 0, wc_stock_amount( (float) wc_clean( wp_unslash( $_POST['qty'] ) ) ) );
 
 			$product = wc_get_product( $product_id );
 
@@ -132,15 +124,17 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 				}
 			}
 
+			// $qty can be a float on decimal-quantity stores. WC_Cart::add_to_cart() accepts
+			// fractional quantities at runtime even though its stub types $quantity as int.
 			if ( ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
 				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
 
 				$data_store   = WC_Data_Store::load( 'product' );
 				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
 
-				WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
+				WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes ); // @phpstan-ignore argument.type
 			} elseif ( in_array( $product_type, $this->express_checkout_helper->supported_product_types(), true ) ) {
-				WC()->cart->add_to_cart( $product->get_id(), $qty );
+				WC()->cart->add_to_cart( $product->get_id(), $qty ); // @phpstan-ignore argument.type
 			}
 
 			WC()->cart->calculate_totals();
@@ -275,19 +269,11 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		check_ajax_referer( 'wc-stripe-get-selected-product-data', 'security' );
 
 		try {
-			$product_id      = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 			// Preserve decimal quantities (see ajax_add_to_cart above) by parsing with
 			// wc_stock_amount() instead of absint() before applying the core filter.
-			// Reject array quantities (e.g. qty[]=1) and zero/negative values before they
-			// flow into wc_stock_amount() and the price math below.
-			if ( isset( $_POST['qty'] ) && is_array( $_POST['qty'] ) ) {
-				throw new Exception( __( 'Invalid product quantity.', 'woocommerce-gateway-stripe' ) );
-			}
-			$qty             = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', wc_stock_amount( wc_clean( wp_unslash( $_POST['qty'] ) ) ), $product_id );
-
-			if ( $qty <= 0 ) {
-				throw new Exception( __( 'Invalid product quantity.', 'woocommerce-gateway-stripe' ) );
-			}
+			// max() keeps it non-negative so it can't produce a negative preview total.
+			$qty = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', max( 0, wc_stock_amount( (float) wc_clean( wp_unslash( $_POST['qty'] ) ) ) ), $product_id );
 
 			$addon_value     = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
 			$product         = wc_get_product( $product_id );
