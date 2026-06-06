@@ -236,6 +236,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 			);
 
 		$cart_quantity = null;
+		$cart_count    = 0;
 
 		try {
 			$security_nonce       = wp_create_nonce( 'wc-stripe-add-to-cart' );
@@ -251,9 +252,10 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 			$this->ajax_handler->ajax_add_to_cart();
 			ob_get_clean();
 
-			foreach ( WC()->cart->get_cart() as $cart_item ) {
-				$cart_quantity = $cart_item['quantity'];
-			}
+			$cart_items    = WC()->cart->get_cart();
+			$cart_count    = count( $cart_items );
+			$first_item    = reset( $cart_items );
+			$cart_quantity = $first_item ? $first_item['quantity'] : null;
 		} finally {
 			remove_filter( 'woocommerce_stock_amount', $allow_decimal_quantity );
 			WC()->cart->empty_cart();
@@ -261,6 +263,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
 		}
 
+		$this->assertSame( 1, $cart_count, 'Exactly one item should be added to the cart.' );
 		$this->assertEqualsWithDelta( 0.25, $cart_quantity, 0.0001, 'Decimal quantity should be preserved, not truncated to an integer.' );
 	}
 
@@ -300,7 +303,93 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 		}
 
 		$this->assertIsArray( $response );
+		$this->assertArrayHasKey( 'success', $response );
 		$this->assertFalse( $response['success'], 'A non-positive quantity should return an error response.' );
 		$this->assertSame( 0, $cart_count, 'The cart should be left untouched when the quantity is invalid.' );
+	}
+
+	/**
+	 * Test ajax_get_selected_product_data keeps a decimal quantity in its price math.
+	 *
+	 * This handler feeds the express-checkout button preview ($total = $qty * $price),
+	 * so a truncated quantity would show the wrong amount.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_get_selected_product_data_preserves_decimal_quantity() {
+		Ajax_Test_Helper::init_hooks();
+
+		$allow_decimal_quantity = function ( $qty ) {
+			return (float) $qty;
+		};
+		add_filter( 'woocommerce_stock_amount', $allow_decimal_quantity );
+
+		$product = WC_Helper_Product::create_simple_product();
+
+		$this->express_checkout_helper->method( 'is_invalid_subscription_product' )->willReturn( false );
+		$this->express_checkout_helper->method( 'get_product_price' )->willReturn( 10.0 );
+		$this->express_checkout_helper->method( 'get_taxes_like_cart' )->willReturn( [] );
+		$this->express_checkout_helper->method( 'get_total_label' )->willReturn( 'Total' );
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-get-selected-product-data' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = '0.25';
+
+			WC()->session->init();
+
+			ob_start();
+			$this->ajax_handler->ajax_get_selected_product_data();
+			$output = ob_get_clean();
+
+			$response = json_decode( $output, true );
+		} finally {
+			remove_filter( 'woocommerce_stock_amount', $allow_decimal_quantity );
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		// 0.25 x $10 = $2.50 = 250 minor units; a truncated quantity would yield 0.
+		$this->assertIsArray( $response );
+		$this->assertArrayHasKey( 'displayItems', $response );
+		$this->assertSame( 250, $response['displayItems'][0]['amount'] );
+	}
+
+	/**
+	 * Test ajax_get_selected_product_data rejects a zero/negative quantity before it
+	 * reaches the price math.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_get_selected_product_data_rejects_non_positive_quantity() {
+		Ajax_Test_Helper::init_hooks();
+
+		$product = WC_Helper_Product::create_simple_product();
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-get-selected-product-data' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = '-1';
+
+			WC()->session->init();
+
+			ob_start();
+			$this->ajax_handler->ajax_get_selected_product_data();
+			$output = ob_get_clean();
+
+			$response = json_decode( $output, true );
+		} finally {
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		$this->assertIsArray( $response );
+		$this->assertArrayHasKey( 'error', $response );
 	}
 }

@@ -95,11 +95,13 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			// quantities (e.g. selling fabric by the metre) keep fractional values like
 			// 0.25 instead of having them truncated to an integer. This mirrors how
 			// WooCommerce core parses the add-to-cart quantity.
-			$qty     = ! isset( $_POST['qty'] ) ? 1 : wc_stock_amount( wc_clean( wp_unslash( $_POST['qty'] ) ) );
-
-			// wc_stock_amount() (unlike the previous absint()) can return zero or a
-			// negative value for a malformed quantity. Reject those before touching the
-			// cart so we don't empty it and still report success.
+			// A malformed request can post qty as an array, and wc_stock_amount() (unlike
+			// the previous absint()) can return zero or a negative value. Reject both
+			// before touching the cart so we don't empty it and still report success.
+			if ( isset( $_POST['qty'] ) && is_array( $_POST['qty'] ) ) {
+				throw new Exception( __( 'Invalid product quantity.', 'woocommerce-gateway-stripe' ) );
+			}
+			$qty = ! isset( $_POST['qty'] ) ? 1 : wc_stock_amount( wc_clean( wp_unslash( $_POST['qty'] ) ) );
 			if ( $qty <= 0 ) {
 				throw new Exception( __( 'Invalid product quantity.', 'woocommerce-gateway-stripe' ) );
 			}
@@ -276,9 +278,13 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			$product_id      = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 			// Preserve decimal quantities (see ajax_add_to_cart above) by parsing with
 			// wc_stock_amount() instead of absint() before applying the core filter.
+			// Reject array quantities (e.g. qty[]=1) and zero/negative values before they
+			// flow into wc_stock_amount() and the price math below.
+			if ( isset( $_POST['qty'] ) && is_array( $_POST['qty'] ) ) {
+				throw new Exception( __( 'Invalid product quantity.', 'woocommerce-gateway-stripe' ) );
+			}
 			$qty             = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', wc_stock_amount( wc_clean( wp_unslash( $_POST['qty'] ) ) ), $product_id );
 
-			// Reject zero/negative quantities so they can't flow into the price math below.
 			if ( $qty <= 0 ) {
 				throw new Exception( __( 'Invalid product quantity.', 'woocommerce-gateway-stripe' ) );
 			}
