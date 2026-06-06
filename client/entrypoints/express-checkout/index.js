@@ -234,8 +234,9 @@ jQuery( function ( $ ) {
 			);
 
 			// Apple Pay, Google Pay, and Link share the same Elements options and can
-			// use one Express Checkout Element. Keep Amazon Pay isolated because it
-			// does not support paymentMethodCreation: 'manual'.
+			// use one Express Checkout Element. Keep Amazon Pay isolated because this
+			// integration routes it through the confirmation-token flow instead of
+			// manual payment method creation.
 			const expressPaymentGroups = [
 				{
 					id: 'wallets-link',
