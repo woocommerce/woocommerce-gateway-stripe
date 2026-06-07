@@ -1850,8 +1850,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					[
 						'payment_intent_id' => $intent_id,
 						'request'           => [
-							/* translators: 1) blog name 2) order number */
-							'description' => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+							'description' => WC_Stripe_Helper::get_payment_intent_description( $order ),
 							'metadata'    => [
 								'order_id'   => $order->get_order_number(),
 								'order_key'  => $order->get_order_key(),

@@ -127,6 +127,18 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Builds the description sent to Stripe for an order's payment or setup intent.
+	 *
+	 * @since 10.8.0
+	 * @param WC_Order $order The order the intent belongs to.
+	 * @return string The intent description. Format: "{blog name} - Order {order number}".
+	 */
+	public static function get_payment_intent_description( $order ): string {
+		/* translators: 1) blog name 2) order number */
+		return sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() );
+	}
+
+	/**
 	 * Converts a Stripe amount (smallest currency unit) to WooCommerce amount.
 	 *
 	 * @param int    $stripe_amount Amount in Stripe's smallest unit (e.g. cents).

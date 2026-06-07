@@ -392,6 +392,16 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `get_payment_intent_description`.
+	 */
+	public function test_get_payment_intent_description(): void {
+		$order = WC_Helper_Order::create_order();
+
+		$expected = sprintf( '%1$s - Order %2$s', wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() );
+		$this->assertSame( $expected, WC_Stripe_Helper::get_payment_intent_description( $order ) );
+	}
+
+	/**
 	 * Test for `get_woocommerce_amount_from_stripe_amount` (Stripe → WooCommerce amount conversion).
 	 *
 	 * @param int|string $stripe_amount Stripe amount in smallest unit (cents, etc.).
