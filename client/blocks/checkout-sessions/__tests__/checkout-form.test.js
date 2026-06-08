@@ -1,11 +1,15 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import {
 	CurrencySelectorElement,
 	PaymentElement,
 	useCheckout,
 } from '@stripe/react-stripe-js/checkout';
 import CheckoutForm from 'wcstripe/blocks/checkout-sessions/checkout-form';
-import { getStripeElementOptions } from 'wcstripe/blocks/utils';
+import {
+	getBlocksConfiguration,
+	getStripeElementOptions,
+} from 'wcstripe/blocks/utils';
+import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
 
 jest.mock( '@stripe/react-stripe-js/checkout', () => ( {
 	CurrencySelectorElement: jest.fn(),
@@ -14,6 +18,7 @@ jest.mock( '@stripe/react-stripe-js/checkout', () => ( {
 } ) );
 
 jest.mock( 'wcstripe/blocks/utils', () => ( {
+	getBlocksConfiguration: jest.fn(),
 	getStripeElementOptions: jest.fn(),
 } ) );
 
@@ -28,6 +33,13 @@ jest.mock(
 	'wcstripe/optimized-checkout/handle-display-of-payment-instructions',
 	() => ( {
 		handleDisplayOfPaymentInstructions: jest.fn(),
+	} )
+);
+
+jest.mock(
+	'wcstripe/optimized-checkout/handle-display-of-saving-checkbox',
+	() => ( {
+		handleDisplayOfSavingCheckbox: jest.fn(),
 	} )
 );
 
@@ -50,8 +62,19 @@ describe( 'CheckoutForm', () => {
 	const emitResponse = {
 		noticeContexts: { PAYMENTS: 'payments' },
 	};
+	const paymentMethodsConfig = {
+		card: {
+			showSaveOptionByMethod: {
+				card: false,
+				ideal: false,
+				sepa_debit: true,
+			},
+		},
+	};
 
 	beforeEach( () => {
+		jest.clearAllMocks();
+		getBlocksConfiguration.mockReturnValue( { paymentMethodsConfig } );
 		CurrencySelectorElement.mockReturnValue(
 			<div>Currency Selector Element</div>
 		);
@@ -144,7 +167,12 @@ describe( 'CheckoutForm', () => {
 		expect( screen.getByText( 'Payment Element' ) ).toBeInTheDocument();
 	} );
 
-	it( 'should render the adaptive pricing disclosure for EEA billing country', () => {
+	/**
+	 * The Adaptive Pricing form renders its own Payment Element rather than
+	 * PaymentProcessor, so it must hide the store-level save checkbox on mount
+	 * (e.g. card with Link enabled), matching the PaymentProcessor path.
+	 */
+	it( 'evaluates the save checkbox on mount with the default card method', () => {
 		useCheckout.mockReturnValue( {
 			type: 'success',
 			checkout: { id: 'test_checkout_id' },
@@ -153,11 +181,6 @@ describe( 'CheckoutForm', () => {
 		render(
 			<CheckoutForm
 				api={ api }
-				billing={ {
-					billingAddress: {
-						country: 'DE',
-					},
-				} }
 				emitResponse={ emitResponse }
 				eventRegistration={ eventRegistration }
 				LoadingMask={ LoadingMask }
@@ -167,14 +190,17 @@ describe( 'CheckoutForm', () => {
 			/>
 		);
 
-		expect(
-			screen.getByText( '(Includes 3.8% conversion service).', {
-				exact: false,
-			} )
-		).toBeInTheDocument();
+		expect( handleDisplayOfSavingCheckbox ).toHaveBeenCalledWith(
+			'card',
+			paymentMethodsConfig
+		);
 	} );
 
-	it( 'should not render the adaptive pricing disclosure for non-EEA billing country', () => {
+	/**
+	 * Switching the Payment Element to a non-reusable sub-method must run the
+	 * shared hide/clear helper so the checkbox does not stay visible/checked.
+	 */
+	it( 'evaluates the save checkbox when the selected method changes', async () => {
 		useCheckout.mockReturnValue( {
 			type: 'success',
 			checkout: { id: 'test_checkout_id' },
@@ -183,11 +209,6 @@ describe( 'CheckoutForm', () => {
 		render(
 			<CheckoutForm
 				api={ api }
-				billing={ {
-					billingAddress: {
-						country: 'US',
-					},
-				} }
 				emitResponse={ emitResponse }
 				eventRegistration={ eventRegistration }
 				LoadingMask={ LoadingMask }
@@ -197,40 +218,16 @@ describe( 'CheckoutForm', () => {
 			/>
 		);
 
-		expect(
-			screen.queryByText( '(Includes 3.8% conversion service).', {
-				exact: false,
-			} )
-		).not.toBeInTheDocument();
-	} );
+		const { onChange } = PaymentElement.mock.calls[ 0 ][ 0 ];
+		handleDisplayOfSavingCheckbox.mockClear();
 
-	it( 'should not render the adaptive pricing disclosure when billing country is absent', () => {
-		useCheckout.mockReturnValue( {
-			type: 'success',
-			checkout: { id: 'test_checkout_id' },
+		await act( async () => {
+			onChange( { value: { type: 'ideal' }, complete: false } );
 		} );
 
-		render(
-			<CheckoutForm
-				api={ api }
-				billing={ {
-					billingAddress: {
-						country: '',
-					},
-				} }
-				emitResponse={ emitResponse }
-				eventRegistration={ eventRegistration }
-				LoadingMask={ LoadingMask }
-				onLoadError={ onLoadError }
-				setShouldLoadStripeElements={ setShouldLoadStripeElements }
-				testingInstructions={ testingInstructions }
-			/>
+		expect( handleDisplayOfSavingCheckbox ).toHaveBeenCalledWith(
+			'ideal',
+			paymentMethodsConfig
 		);
-
-		expect(
-			screen.queryByText( '(Includes 3.8% conversion service).', {
-				exact: false,
-			} )
-		).not.toBeInTheDocument();
 	} );
 } );

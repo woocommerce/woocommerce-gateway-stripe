@@ -1,7 +1,8 @@
-import { isManualPaymentMethodCreation } from './utils';
+import { isManualPaymentMethodCreation, getExpressCheckoutData } from './utils';
 import {
 	handleConfirmationTokenFlow,
 	handleManualPaymentMethodFlow,
+	handleChangePaymentMethodFlow,
 } from './payment-flow';
 import ExpressCheckoutCartApi from './cart-api';
 import { transformStripeShippingAddressForStoreApi } from './transformers/stripe-to-wc';
@@ -115,6 +116,11 @@ export const onConfirmHandler = async ( params ) => {
 	const submitResponse = await elements.submit();
 	if ( submitResponse?.error ) {
 		return abortPayment( event, submitResponse?.error?.message );
+	}
+
+	// For subscription change payment method, create a payment method and submit the form.
+	if ( getExpressCheckoutData( 'is_change_payment_method' ) ) {
+		return handleChangePaymentMethodFlow( params );
 	}
 
 	if (

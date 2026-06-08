@@ -12,7 +12,79 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	use WC_Stripe_Subscriptions_Trait;
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::KLARNA;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::KLARNA;
+
+	/**
+	 * Stripe account countries that may enable Klarna.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [
+		WC_Stripe_Country_Code::AUSTRALIA,
+		WC_Stripe_Country_Code::AUSTRIA,
+		WC_Stripe_Country_Code::BELGIUM,
+		WC_Stripe_Country_Code::CANADA,
+		WC_Stripe_Country_Code::CROATIA,
+		WC_Stripe_Country_Code::CYPRUS,
+		WC_Stripe_Country_Code::CZECH_REPUBLIC,
+		WC_Stripe_Country_Code::DENMARK,
+		WC_Stripe_Country_Code::ESTONIA,
+		WC_Stripe_Country_Code::FINLAND,
+		WC_Stripe_Country_Code::FRANCE,
+		WC_Stripe_Country_Code::GERMANY,
+		WC_Stripe_Country_Code::GREECE,
+		WC_Stripe_Country_Code::IRELAND,
+		WC_Stripe_Country_Code::ITALY,
+		WC_Stripe_Country_Code::LATVIA,
+		WC_Stripe_Country_Code::LITHUANIA,
+		WC_Stripe_Country_Code::LUXEMBOURG,
+		WC_Stripe_Country_Code::MALTA,
+		WC_Stripe_Country_Code::NETHERLANDS,
+		WC_Stripe_Country_Code::NEW_ZEALAND,
+		WC_Stripe_Country_Code::NORWAY,
+		WC_Stripe_Country_Code::POLAND,
+		WC_Stripe_Country_Code::PORTUGAL,
+		WC_Stripe_Country_Code::ROMANIA,
+		WC_Stripe_Country_Code::SLOVAKIA,
+		WC_Stripe_Country_Code::SLOVENIA,
+		WC_Stripe_Country_Code::SPAIN,
+		WC_Stripe_Country_Code::SWEDEN,
+		WC_Stripe_Country_Code::SWITZERLAND,
+		WC_Stripe_Country_Code::UNITED_KINGDOM,
+		WC_Stripe_Country_Code::UNITED_STATES,
+	];
+
+	/**
+	 * Shopper billing countries permitted to use Klarna — union of all billing countries Klarna
+	 * ever accepts. The per-account cross-border matrix is refined in get_available_billing_countries().
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [
+		WC_Stripe_Country_Code::AUSTRIA,
+		WC_Stripe_Country_Code::AUSTRALIA,
+		WC_Stripe_Country_Code::BELGIUM,
+		WC_Stripe_Country_Code::CANADA,
+		WC_Stripe_Country_Code::SWITZERLAND,
+		WC_Stripe_Country_Code::CZECH_REPUBLIC,
+		WC_Stripe_Country_Code::GERMANY,
+		WC_Stripe_Country_Code::DENMARK,
+		WC_Stripe_Country_Code::SPAIN,
+		WC_Stripe_Country_Code::FINLAND,
+		WC_Stripe_Country_Code::FRANCE,
+		WC_Stripe_Country_Code::UNITED_KINGDOM,
+		WC_Stripe_Country_Code::GREECE,
+		WC_Stripe_Country_Code::IRELAND,
+		WC_Stripe_Country_Code::ITALY,
+		WC_Stripe_Country_Code::NETHERLANDS,
+		WC_Stripe_Country_Code::NORWAY,
+		WC_Stripe_Country_Code::NEW_ZEALAND,
+		WC_Stripe_Country_Code::POLAND,
+		WC_Stripe_Country_Code::PORTUGAL,
+		WC_Stripe_Country_Code::ROMANIA,
+		WC_Stripe_Country_Code::SWEDEN,
+		WC_Stripe_Country_Code::UNITED_STATES,
+	];
 
 	/**
 	 * Constructor for Klarna payment method
@@ -38,7 +110,6 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 			WC_Stripe_Currency_Code::SWEDISH_KRONA,
 			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 		];
-		$this->supported_countries  = [ WC_Stripe_Country_Code::AUSTRALIA, WC_Stripe_Country_Code::AUSTRIA, WC_Stripe_Country_Code::BELGIUM, WC_Stripe_Country_Code::CANADA, WC_Stripe_Country_Code::CROATIA, WC_Stripe_Country_Code::CYPRUS, WC_Stripe_Country_Code::CZECH_REPUBLIC, WC_Stripe_Country_Code::DENMARK, WC_Stripe_Country_Code::ESTONIA, WC_Stripe_Country_Code::FINLAND, WC_Stripe_Country_Code::FRANCE, WC_Stripe_Country_Code::GERMANY, WC_Stripe_Country_Code::GREECE, WC_Stripe_Country_Code::IRELAND, WC_Stripe_Country_Code::ITALY, WC_Stripe_Country_Code::LATVIA, WC_Stripe_Country_Code::LITHUANIA, WC_Stripe_Country_Code::LUXEMBOURG, WC_Stripe_Country_Code::MALTA, WC_Stripe_Country_Code::NETHERLANDS, WC_Stripe_Country_Code::NEW_ZEALAND, WC_Stripe_Country_Code::NORWAY, WC_Stripe_Country_Code::POLAND, WC_Stripe_Country_Code::PORTUGAL, WC_Stripe_Country_Code::ROMANIA, WC_Stripe_Country_Code::SLOVAKIA, WC_Stripe_Country_Code::SLOVENIA, WC_Stripe_Country_Code::SPAIN, WC_Stripe_Country_Code::SWEDEN, WC_Stripe_Country_Code::SWITZERLAND, WC_Stripe_Country_Code::UNITED_KINGDOM, WC_Stripe_Country_Code::UNITED_STATES ];
 		$this->label                = __( 'Klarna', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
 			'Allow customers to pay over time with Klarna.',
@@ -153,17 +224,6 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Returns whether the payment method is available for the Stripe account's country.
-	 *
-	 * Klarna is available for the following countries: AU, AT, BE, CA, CZ, DK, FI, FR, GR, DE, IE, IT, NL, NZ, NO, PL, PT, ES, RO, SE, CH, GB, US.
-	 *
-	 * @return bool True if the payment method is available for the account's country, false otherwise.
-	 */
-	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
-	}
-
-	/**
 	 * Returns whether the payment method requires automatic capture.
 	 *
 	 * @inheritDoc
@@ -184,15 +244,6 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		}
 
 		return parent::is_available();
-	}
-
-	/**
-	 * Returns a string representing payment method type to query for when retrieving saved payment methods from Stripe.
-	 *
-	 * @return string The payment method type.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
 	}
 
 	/**

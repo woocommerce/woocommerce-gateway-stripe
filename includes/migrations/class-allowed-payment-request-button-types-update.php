@@ -13,12 +13,6 @@ defined( 'ABSPATH' ) || exit;
  * @since 5.6.0
  */
 class Allowed_Payment_Request_Button_Types_Update {
-	/**
-	 * Allowed_Payment_Request_Button_Types_Update constructor.
-	 */
-	public function __construct() {
-		add_action( 'woocommerce_stripe_updated', [ $this, 'maybe_migrate' ] );
-	}
 
 	/**
 	 * Only execute the migration if not applied yet.

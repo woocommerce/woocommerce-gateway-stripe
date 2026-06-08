@@ -18,6 +18,11 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	private $http_filter;
 
 	/**
+	 * @var callable|null Filter callback that allowlists the agentic `created_via` value for `payment_complete()`.
+	 */
+	private $payment_complete_filter;
+
+	/**
 	 * Set up the test.
 	 */
 	public function set_up() {
@@ -30,6 +35,17 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+
+		// WC 10.8+ blocks payment_complete() unless `created_via` is allowlisted.
+		// In production the integration's register_hooks() wires this up; mirror it here.
+		$this->payment_complete_filter = function ( $allowed ) {
+			if ( ! is_array( $allowed ) ) {
+				$allowed = [];
+			}
+			$allowed[] = WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA;
+			return $allowed;
+		};
+		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', $this->payment_complete_filter );
 	}
 
 	/**
@@ -40,6 +56,10 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			remove_filter( 'pre_http_request', $this->http_filter );
 		}
 		remove_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+		if ( null !== $this->payment_complete_filter ) {
+			remove_filter( 'woocommerce_payment_complete_allowed_created_via_values', $this->payment_complete_filter );
+			$this->payment_complete_filter = null;
+		}
 
 		parent::tear_down();
 	}
@@ -151,11 +171,11 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests that the mapper is called and errors are handled gracefully.
+	 * Tests that the mapper is called, errors fire the failure hook, and the
+	 * exception is re-thrown so Action Scheduler marks the job as failed.
 	 *
 	 * The order mapper will fail because the mock session references
-	 * a non-existent product, and the handler should catch and log
-	 * without crashing.
+	 * a non-existent product.
 	 */
 	public function test_process_checkout_session_completed_handles_mapper_failure() {
 		$failure_action_fired = false;
@@ -175,11 +195,91 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		// Immediate phase: defers the webhook.
 		$this->handler->process_checkout_session_success( $notification );
-		// Deferred phase: mapper fails → fires failure action, does not throw.
-		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
+		// Deferred phase: mapper fails → fires failure action, then rethrows so
+		// Action Scheduler marks the job failed.
+		$rethrown = null;
+		try {
+			$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
+		} catch ( \Throwable $t ) {
+			$rethrown = $t;
+		}
 
 		$this->assertTrue( $failure_action_fired );
 		$this->assertInstanceOf( Exception::class, $captured_exception );
+		$this->assertSame( $captured_exception, $rethrown );
+	}
+
+	/**
+	 * Tests that a PHP Throwable (not just Exception) thrown during order
+	 * mapping is caught, logged, fires the failure hook, and is re-thrown so
+	 * Action Scheduler marks the job as failed rather than silently complete.
+	 */
+	public function test_process_checkout_session_completed_handles_mapper_throwable() {
+		$sku     = 'WEBHOOK-THROWABLE-' . uniqid();
+		$product = WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => '20.00',
+				'price'         => '20.00',
+				'sku'           => $sku,
+			]
+		);
+
+		$failure_action_fired = false;
+		$captured_throwable   = null;
+		add_action(
+			'wc_stripe_agentic_order_creation_failed',
+			function ( $e ) use ( &$failure_action_fired, &$captured_throwable ) {
+				$failure_action_fired = true;
+				$captured_throwable   = $e;
+			}
+		);
+
+		// Force a non-Exception Throwable from inside the mapper's try block.
+		// woocommerce_new_order_item fires during $order->add_product() in
+		// map_line_items(), which runs inside the try/catch(Throwable) that the
+		// mapper's rollback depends on.
+		$throw_action = function () {
+			throw new \TypeError( 'Simulated fatal inside order mapping' );
+		};
+		add_action( 'woocommerce_new_order_item', $throw_action );
+
+		$rethrown = null;
+		try {
+			$session_id   = 'cs_test_throwable';
+			$notification = $this->build_notification( $session_id );
+			$mock_session = $this->build_checkout_session_response( $session_id, true, $sku );
+			$this->mock_stripe_checkout_sessions_response( $mock_session );
+
+			// Immediate phase: defers the webhook.
+			$this->handler->process_checkout_session_success( $notification );
+			// Deferred phase: TypeError is thrown from woocommerce_new_order_item
+			// via the action. The handler must catch it (Throwable, not just
+			// Exception), log it, fire the failure action, and then rethrow so
+			// Action Scheduler sees the job as failed.
+			try {
+				$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
+			} catch ( \Throwable $t ) {
+				$rethrown = $t;
+			}
+		} finally {
+			remove_action( 'woocommerce_new_order_item', $throw_action );
+		}
+
+		$this->assertTrue( $failure_action_fired );
+		$this->assertInstanceOf( \Throwable::class, $captured_throwable );
+		$this->assertInstanceOf( \TypeError::class, $captured_throwable );
+		$this->assertSame( $captured_throwable, $rethrown );
+
+		// The order created by the mapper must be rolled back: the mapper's
+		// inner Throwable catch deletes the order before rethrowing.
+		$orders = wc_get_orders(
+			[
+				'meta_key'   => '_stripe_intent_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+				'meta_value' => 'pi_test_cs_test_throwable', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+			]
+		);
+		$this->assertEmpty( $orders );
 	}
 
 	/**
@@ -191,6 +291,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			[
 				'regular_price' => '20.00',
 				'price'         => '20.00',
+				'sku'           => 'WEBHOOK-HAPPY-' . uniqid(),
 			]
 		);
 
@@ -206,7 +307,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		$session_id   = 'cs_test_happy';
 		$notification = $this->build_notification( $session_id );
-		$mock_session = $this->build_checkout_session_response( $session_id, true, (string) $product->get_id() );
+		$mock_session = $this->build_checkout_session_response( $session_id, true, (string) $product->get_sku() );
 		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
 		// Immediate phase: defers the webhook.
@@ -320,8 +421,17 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		// Immediate phase: defers the webhook.
 		$this->handler->process_checkout_session_success( $notification );
-		// Deferred phase: API retrieve call must include the Stripe-Version override header.
-		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
+		// Deferred phase: API retrieve call must include the Stripe-Version override
+		// header. The stub session references a non-existent product, so the mapper
+		// fails and re-throws — that's fine for this test; we only care that the
+		// override filter was applied before the HTTP call.
+		$mapper_threw = null;
+		try {
+			$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
+		} catch ( \Throwable $t ) {
+			$mapper_threw = $t;
+		}
+		$this->assertInstanceOf( \Throwable::class, $mapper_threw );
 
 		$this->assertNotNull( $captured_headers );
 		$this->assertArrayHasKey( 'Stripe-Version', $captured_headers );
@@ -428,10 +538,10 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	 *
 	 * @param string      $session_id The checkout session ID.
 	 * @param bool        $agentic    Whether to include agentic line items.
-	 * @param string|null $product_id Optional real WC product ID for the external_reference.
+	 * @param string|null $sku        Optional real WC product SKU for the external_reference.
 	 * @return object
 	 */
-	private function build_checkout_session_response( $session_id, $agentic, $product_id = null ) {
+	private function build_checkout_session_response( $session_id, $agentic, $sku = null ) {
 		$line_items_data = [];
 
 		if ( $agentic ) {
@@ -444,7 +554,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 				'amount_tax'      => 0,
 				'price'           => (object) [
 					'unit_amount'        => 2000,
-					'external_reference' => $product_id ?? '99999999',
+					'external_reference' => $sku ?? 'SKU-UNRESOLVABLE-' . uniqid(),
 					'currency'           => 'usd',
 				],
 			];
@@ -476,9 +586,9 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			'id'               => $session_id,
 			'payment_intent'   => (object) [
 				'id'            => 'pi_test_' . $session_id,
-				'agent_details' => (object) [
-					'network_business_profile' => 'nbp_test_123',
-				],
+				'agent_details' => $agentic
+					? (object) [ 'network_business_profile' => 'nbp_test_123' ]
+					: null,
 			],
 			'customer'         => 'cus_test_789',
 			'customer_email'   => 'test@example.com',

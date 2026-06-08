@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *    1. WC provides a dropdown list of states, but there's no state field in Chrome for the following countries:
  *        AO (Angola), BD (Bangladesh), BG (Bulgaria), BJ (Benin), BO (Bolivia), DO (Dominican Republic),
  *        DZ (Algeria), GH (Ghana), GT (Guatemala), HU (Hungary), KE (Kenya), LA (Laos),
- *        LR (Liberia), LT (Lithuania), MD (Moldova), NA (Namibia), NP (Nepal), PK (Pakistan),
+ *        LR (Liberia), LT (Lithuania), MA (Morocco), MD (Moldova), NA (Namibia), NP (Nepal), PK (Pakistan),
  *        PY (Paraguay), RO (Romania), TZ (Tanzania), UG (Uganda), UM (United States Minor Outlying Islands),
  *        ZA (South Africa), ZM (Zambia).
  *    2. Chrome does not provide a dropdown list of states for 161 countries in total, out of the 249 countries WC supports,
@@ -41,7 +41,7 @@ class WC_Stripe_Express_Checkout_Button_States {
 	 *
 	 * @var array
 	 */
-	const STATES = [
+	public const STATES = [
 		// Afghanistan.
 		'AF' => [],
 		// Angola.
@@ -232,43 +232,43 @@ class WC_Stripe_Express_Checkout_Button_States {
 		],
 		// Spain.
 		'ES' => [
-			'C'  => [ 'A Coruña', 'A Coruña', null ],
-			'VI' => [ 'Álava', 'Álava', null ],
+			'C'  => [ 'A Coruña', 'A Coruña', 'La Coruña' ],
+			'VI' => [ 'Álava', 'Álava', 'Araba' ],
 			'AB' => [ 'Albacete', 'Albacete', null ],
-			'A'  => [ 'Alicante', 'Alicante', null ],
+			'A'  => [ 'Alicante', 'Alicante', 'Alacant' ],
 			'AL' => [ 'Almería', 'Almería', null ],
 			'O'  => [ 'Asturias', 'Asturias', null ],
 			'AV' => [ 'Ávila', 'Ávila', null ],
 			'BA' => [ 'Badajoz', 'Badajoz', null ],
-			'PM' => [ 'Balears', 'Balears', null ],
+			'PM' => [ 'Balears', 'Balears', 'Illes Balears' ],
 			'B'  => [ 'Barcelona', 'Barcelona', null ],
 			'BU' => [ 'Burgos', 'Burgos', null ],
 			'CC' => [ 'Cáceres', 'Cáceres', null ],
 			'CA' => [ 'Cádiz', 'Cádiz', null ],
 			'S'  => [ 'Cantabria', 'Cantabria', null ],
-			'CS' => [ 'Castellón', 'Castellón', null ],
+			'CS' => [ 'Castellón', 'Castellón', 'Castelló' ],
 			'CE' => [ 'Ceuta', 'Ceuta', null ],
 			'CR' => [ 'Ciudad Real', 'Ciudad Real', null ],
 			'CO' => [ 'Córdoba', 'Córdoba', null ],
 			'CU' => [ 'Cuenca', 'Cuenca', null ],
-			'GI' => [ 'Girona', 'Girona', null ],
+			'GI' => [ 'Girona', 'Girona', 'Gerona' ],
 			'GR' => [ 'Granada', 'Granada', null ],
 			'GU' => [ 'Guadalajara', 'Guadalajara', null ],
-			'SS' => [ 'Guipúzcoa', 'Guipúzcoa', null ],
+			'SS' => [ 'Guipúzcoa', 'Guipúzcoa', 'Gipuzkoa' ],
 			'H'  => [ 'Huelva', 'Huelva', null ],
-			'HU' => [ 'Huesca', 'Huesca', null ],
+			'HU' => [ 'Huesca', 'Huesca', 'Osca' ],
 			'J'  => [ 'Jaén', 'Jaén', null ],
 			'LO' => [ 'La Rioja', 'La Rioja', null ],
 			'GC' => [ 'Las Palmas', 'Las Palmas', null ],
 			'LE' => [ 'León', 'León', null ],
-			'L'  => [ 'Lleida', 'Lleida', null ],
+			'L'  => [ 'Lleida', 'Lleida', 'Lérida' ],
 			'LU' => [ 'Lugo', 'Lugo', null ],
 			'M'  => [ 'Madrid', 'Madrid', null ],
 			'MA' => [ 'Málaga', 'Málaga', null ],
 			'ML' => [ 'Melilla', 'Melilla', null ],
 			'MU' => [ 'Murcia', 'Murcia', null ],
-			'NA' => [ 'Navarra', 'Navarra', null ],
-			'OR' => [ 'Ourense', 'Ourense', null ],
+			'NA' => [ 'Navarra', 'Navarra', 'Nafarroa' ],
+			'OR' => [ 'Ourense', 'Ourense', 'Orense' ],
 			'P'  => [ 'Palencia', 'Palencia', null ],
 			'PO' => [ 'Pontevedra', 'Pontevedra', null ],
 			'SA' => [ 'Salamanca', 'Salamanca', null ],
@@ -279,9 +279,9 @@ class WC_Stripe_Express_Checkout_Button_States {
 			'T'  => [ 'Tarragona', 'Tarragona', null ],
 			'TE' => [ 'Teruel', 'Teruel', null ],
 			'TO' => [ 'Toledo', 'Toledo', null ],
-			'V'  => [ 'Valencia', 'Valencia', null ],
+			'V'  => [ 'Valencia', 'Valencia', 'València' ],
 			'VA' => [ 'Valladolid', 'Valladolid', null ],
-			'BI' => [ 'Vizcaya', 'Vizcaya', null ],
+			'BI' => [ 'Vizcaya', 'Vizcaya', 'Bizkaia' ],
 			'ZA' => [ 'Zamora', 'Zamora', null ],
 			'Z'  => [ 'Zaragoza', 'Zaragoza', null ],
 		],
@@ -650,6 +650,8 @@ class WC_Stripe_Express_Checkout_Button_States {
 		'LT' => [],
 		// Luxembourg.
 		'LU' => [],
+		// Morocco.
+		'MA' => [],
 		// Moldova.
 		'MD' => [],
 		// Martinique.

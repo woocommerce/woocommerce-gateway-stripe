@@ -17,7 +17,21 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	/**
 	 * The Stripe ID for the payment method.
 	 */
-	const STRIPE_ID = WC_Stripe_Payment_Methods::BACS_DEBIT;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::BACS_DEBIT;
+
+	/**
+	 * Stripe account countries that may enable Bacs Direct Debit.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [ WC_Stripe_Country_Code::UNITED_KINGDOM ];
+
+	/**
+	 * Shopper billing countries permitted to use Bacs Direct Debit.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [ WC_Stripe_Country_Code::UNITED_KINGDOM ];
 
 	/**
 	 * Constructor for Bacs Direct Debit payment method.
@@ -29,7 +43,6 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		$this->title                        = __( 'Bacs Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->is_reusable                  = true;
 		$this->supported_currencies         = [ WC_Stripe_Currency_Code::POUND_STERLING ];
-		$this->supported_countries          = [ WC_Stripe_Country_Code::UNITED_KINGDOM ];
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Bacs Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->description                  = __( 'Bacs Direct Debit enables customers in the UK to pay by providing their bank account details.', 'woocommerce-gateway-stripe' );
@@ -45,30 +58,12 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	}
 
 	/**
-	 * Determines if the Stripe Account country supports Bacs Direct Debit.
-	 *
-	 * @return bool
-	 */
-	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
-	}
-
-	/**
 	 * Returns true if Bacs Direct Debit is available for processing payments.
 	 *
 	 * @return bool
 	 */
 	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
 		return parent::is_enabled_at_checkout( $order_id, $account_domestic_currency );
-	}
-
-	/**
-	 * Returns a string representing payment method type to query for when retrieving saved payment methods from Stripe.
-	 *
-	 * @return string The payment method type.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
 	}
 
 	/**
