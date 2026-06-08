@@ -1742,6 +1742,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order->save();
 
 		$payment_method_details = (object) [
+			'type'               => $payment_method_type,
 			$payment_method_type => (object) [],
 		];
 
@@ -1755,7 +1756,6 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'object' => (object) [
 					'id'                     => $mandate_id,
 					'status'                 => $mandate_status,
-					'payment_method_type'    => $payment_method_type,
 					'payment_method_details' => $payment_method_details,
 				],
 			],
@@ -1785,12 +1785,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_process_webhook_mandate_updated() {
 		return [
-			'mandate revoked (inactive + revocation_reason) cancels order' => [
+			'mandate revoked (inactive + revocation_reason) puts order on hold' => [
 				'order_status'          => OrderStatus::PROCESSING,
 				'mandate_status'        => 'inactive',
 				'payment_method_type'   => 'card',
 				'revocation_reason'     => 'customer_request',
-				'expected_order_status' => OrderStatus::CANCELLED,
+				'expected_order_status' => OrderStatus::ON_HOLD,
 				'expected_note_pattern' => '/revoked by the customer.*Reason: customer_request/',
 			],
 			'mandate paused (inactive, no revocation) puts order on hold'  => [
@@ -1825,13 +1825,13 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected_order_status' => OrderStatus::ON_HOLD,
 				'expected_note_pattern' => null,
 			],
-			'revocation escalates on-hold order to cancelled'              => [
+			'revocation on already on-hold order is skipped (idempotent)'  => [
 				'order_status'          => OrderStatus::ON_HOLD,
 				'mandate_status'        => 'inactive',
 				'payment_method_type'   => 'card',
 				'revocation_reason'     => 'customer_request',
-				'expected_order_status' => OrderStatus::CANCELLED,
-				'expected_note_pattern' => '/revoked by the customer/',
+				'expected_order_status' => OrderStatus::ON_HOLD,
+				'expected_note_pattern' => null,
 			],
 			'unknown mandate status adds generic note without error'       => [
 				'order_status'          => OrderStatus::PROCESSING,
@@ -1854,8 +1854,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'object' => (object) [
 					'id'                     => 'mandate_nonexistent',
 					'status'                 => 'inactive',
-					'payment_method_type'    => 'card',
 					'payment_method_details' => (object) [
+						'type' => 'card',
 						'card' => (object) [],
 					],
 				],
@@ -1906,7 +1906,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function test_process_webhook_mandate_updated_multiple_orders() {
 		$mandate_id = 'mandate_shared_123';
 
-		// Create an older order (completed — should be skipped by query).
+		// Create an older order. It shares the mandate ID but, being older, should not be
+		// the one the query returns (the lookup orders by date DESC and limits to one).
 		$old_order = WC_Helper_Order::create_order();
 		$old_order->set_status( OrderStatus::COMPLETED );
 		$old_order->update_meta_data( '_stripe_mandate_id', $mandate_id );
@@ -1924,8 +1925,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'object' => (object) [
 					'id'                     => $mandate_id,
 					'status'                 => 'inactive',
-					'payment_method_type'    => 'card',
 					'payment_method_details' => (object) [
+						'type' => 'card',
 						'card' => (object) [],
 					],
 				],
@@ -1938,8 +1939,126 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$final_new_order = wc_get_order( $new_order->get_id() );
 		$this->assertSame( OrderStatus::ON_HOLD, $final_new_order->get_status() );
 
-		// The older completed order should remain unchanged.
+		// The older order should remain unchanged.
 		$final_old_order = wc_get_order( $old_order->get_id() );
 		$this->assertSame( OrderStatus::COMPLETED, $final_old_order->get_status() );
+	}
+
+	/**
+	 * Builds a mandate.updated notification for the subscription-sync tests.
+	 *
+	 * @param string      $mandate_id        The Stripe mandate ID.
+	 * @param string      $mandate_status    The mandate status.
+	 * @param string|null $revocation_reason The revocation reason, or null.
+	 * @return object
+	 */
+	private function build_mandate_notification( $mandate_id, $mandate_status, $revocation_reason = null ) {
+		$payment_method_details = (object) [
+			'type' => 'card',
+			'card' => (object) [],
+		];
+
+		if ( $revocation_reason ) {
+			$payment_method_details->card->revocation_reason = $revocation_reason;
+		}
+
+		return (object) [
+			'type' => 'mandate.updated',
+			'data' => (object) [
+				'object' => (object) [
+					'id'                     => $mandate_id,
+					'status'                 => $mandate_status,
+					'payment_method_details' => $payment_method_details,
+				],
+			],
+		];
+	}
+
+	/**
+	 * Test that an inactive mandate pauses (does not cancel) a linked subscription,
+	 * whether or not the mandate carries a revocation reason.
+	 *
+	 * @dataProvider provide_test_mandate_subscription_sync
+	 *
+	 * @param string|null $revocation_reason The revocation reason, or null.
+	 */
+	public function test_process_webhook_mandate_updated_pauses_subscription( $revocation_reason ) {
+		$mandate_id = 'mandate_sub_pause';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->update_meta_data( '_stripe_mandate_id', $mandate_id );
+		$order->save();
+
+		$subscription = new WC_Subscription();
+		$subscription->set_status( 'active' );
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = [ $subscription ];
+
+		$notification = $this->build_mandate_notification( $mandate_id, 'inactive', $revocation_reason );
+		$this->mock_webhook_handler->process_webhook_mandate_updated( $notification );
+
+		// Revocation must put the subscription on hold, not cancel it.
+		$this->assertSame( 'on-hold', $subscription->get_status() );
+
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = null;
+	}
+
+	/**
+	 * Data provider for test_process_webhook_mandate_updated_pauses_subscription.
+	 *
+	 * @return array
+	 */
+	public function provide_test_mandate_subscription_sync() {
+		return [
+			'paused mandate (no revocation)' => [ null ],
+			'revoked mandate'                => [ 'customer_request' ],
+		];
+	}
+
+	/**
+	 * Test that an active mandate reactivates an on-hold subscription.
+	 */
+	public function test_process_webhook_mandate_updated_reactivates_subscription() {
+		$mandate_id = 'mandate_sub_reactivate';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->update_meta_data( '_stripe_mandate_id', $mandate_id );
+		$order->save();
+
+		$subscription = new WC_Subscription();
+		$subscription->set_status( 'on-hold' );
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = [ $subscription ];
+
+		$notification = $this->build_mandate_notification( $mandate_id, 'active' );
+		$this->mock_webhook_handler->process_webhook_mandate_updated( $notification );
+
+		$this->assertSame( 'active', $subscription->get_status() );
+
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = null;
+	}
+
+	/**
+	 * Test that a subscription already in a terminal state is left untouched.
+	 */
+	public function test_process_webhook_mandate_updated_skips_terminal_subscription() {
+		$mandate_id = 'mandate_sub_terminal';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->update_meta_data( '_stripe_mandate_id', $mandate_id );
+		$order->save();
+
+		$subscription = new WC_Subscription();
+		$subscription->set_status( 'cancelled' );
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = [ $subscription ];
+
+		$notification = $this->build_mandate_notification( $mandate_id, 'inactive', 'customer_request' );
+		$this->mock_webhook_handler->process_webhook_mandate_updated( $notification );
+
+		// The cancelled subscription must not be revived or modified.
+		$this->assertSame( 'cancelled', $subscription->get_status() );
+
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = null;
 	}
 }

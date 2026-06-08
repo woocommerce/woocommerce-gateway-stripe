@@ -518,15 +518,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Process webhook for mandate status updates.
 	 *
-	 * Handles mandate cancellation (revocation), pause (inactive), and
-	 * reactivation (active) for Indian recurring payments and other
-	 * mandate-based payment methods.
+	 * An inactive mandate (whether paused or revoked by the customer) puts the order
+	 * and any linked subscription on hold, and an active mandate reactivates an on-hold
+	 * subscription. Order notes are added for every state change so merchants have
+	 * visibility. Used for Indian recurring payments and other mandate-based methods.
 	 *
-	 * @since 10.2.0
+	 * @since 10.9.0
 	 * @param object $notification The webhook notification from Stripe.
 	 * @return void
 	 */
-	public function process_webhook_mandate_updated( $notification ) {
+	public function process_webhook_mandate_updated( $notification ): void {
 		$mandate = $notification->data->object ?? null;
 
 		if ( ! isset( $mandate->id, $mandate->status ) ) {
@@ -537,10 +538,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$mandate_id     = $mandate->id;
 		$mandate_status = $mandate->status;
 
-		WC_Stripe_Logger::info(
-			sprintf( 'Processing mandate.updated webhook for mandate %s with status %s', $mandate_id, $mandate_status )
-		);
-
 		$order = WC_Stripe_Order_Helper::get_instance()->get_order_by_mandate_id( $mandate_id );
 
 		if ( ! $order ) {
@@ -548,44 +545,31 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		WC_Stripe_Logger::info(
+			'Processing mandate.updated webhook.',
+			[
+				'mandate_id'     => $mandate_id,
+				'mandate_status' => $mandate_status,
+				'order_id'       => $order->get_id(),
+			]
+		);
+
 		$this->resolved_order = $order;
 
-		// Determine if this is a revocation by checking payment_method_details.
+		// A revocation reason is only present when the customer has revoked the mandate.
 		$revocation_reason = $this->get_mandate_revocation_reason( $mandate );
 
-		// Compute target order status.
-		$target_order_status = null;
-		if ( 'inactive' === $mandate_status && $revocation_reason ) {
-			$target_order_status = OrderStatus::CANCELLED;
-		} elseif ( 'inactive' === $mandate_status ) {
-			$target_order_status = OrderStatus::ON_HOLD;
-		}
+		// An inactive mandate (whether paused or revoked) can no longer be charged, so the
+		// order is put on hold. A revocation does not cancel the order outright — it only
+		// changes the wording of the note so the merchant can follow up with the customer.
+		$target_order_status = ( 'inactive' === $mandate_status ) ? OrderStatus::ON_HOLD : null;
 
-		// Idempotency guard: skip if order is already in the target status (for actionable states)
-		// or if a non-actionable state webhook is redelivered.
+		// Idempotency guard: skip if the order is already in the target status (e.g. on webhook redelivery).
 		if ( $target_order_status && $order->has_status( $target_order_status ) ) {
 			WC_Stripe_Logger::info(
 				sprintf( 'Order %d already has status %s, skipping mandate update.', $order->get_id(), $target_order_status )
 			);
 			return;
-		}
-
-		// For non-actionable states (active, pending), check if the last order note already
-		// matches this mandate status to avoid duplicate notes on webhook redelivery.
-		if ( ! $target_order_status ) {
-			$existing_notes = wc_get_order_notes(
-				[
-					'order_id' => $order->get_id(),
-					'limit'    => 1,
-				]
-			);
-			$note_preview   = $this->get_mandate_order_note( $mandate_id, $mandate_status, $revocation_reason );
-			if ( ! empty( $existing_notes ) && $existing_notes[0]->content === $note_preview ) {
-				WC_Stripe_Logger::info(
-					sprintf( 'Duplicate mandate.updated webhook for order %d with status %s, skipping.', $order->get_id(), $mandate_status )
-				);
-				return;
-			}
 		}
 
 		// Generate order note for this mandate state change.
@@ -604,13 +588,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$this->update_subscription_for_mandate( $order, $mandate_status, $revocation_reason );
 
 		WC_Stripe_Logger::info(
-			sprintf(
-				'Mandate %s update processed for order %d. Mandate status: %s, payment method type: %s',
-				$mandate_id,
-				$order->get_id(),
-				$mandate_status,
-				$mandate->payment_method_type ?? 'unknown'
-			)
+			'Mandate update processed.',
+			[
+				'mandate_id'          => $mandate_id,
+				'order_id'            => $order->get_id(),
+				'mandate_status'      => $mandate_status,
+				'payment_method_type' => $mandate->payment_method_details->type ?? 'unknown',
+			]
 		);
 	}
 
@@ -620,16 +604,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * The revocation reason is nested under payment_method_details.{type}
 	 * where {type} varies by payment method (e.g., card, au_becs_debit, acss_debit).
 	 *
-	 * @since 10.2.0
+	 * @since 10.9.0
 	 * @param object $mandate The Stripe mandate object.
 	 * @return string|null The revocation reason, or null if not revoked.
 	 */
 	private function get_mandate_revocation_reason( $mandate ): ?string {
-		if ( ! isset( $mandate->payment_method_details, $mandate->payment_method_type ) ) {
+		// The payment method type lives on payment_method_details.type, and the
+		// type-specific hash (e.g. payment_method_details.bacs_debit) carries the
+		// revocation_reason when the mandate has been revoked.
+		if ( ! isset( $mandate->payment_method_details->type ) ) {
 			return null;
 		}
 
-		$type = $mandate->payment_method_type;
+		$type = $mandate->payment_method_details->type;
 
 		if ( isset( $mandate->payment_method_details->$type->revocation_reason ) ) {
 			return sanitize_text_field( $mandate->payment_method_details->$type->revocation_reason );
@@ -641,7 +628,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Generates the order note message for a mandate status change.
 	 *
-	 * @since 10.2.0
+	 * @since 10.9.0
 	 * @param string      $mandate_id        The Stripe mandate ID.
 	 * @param string      $mandate_status    The new mandate status.
 	 * @param string|null $revocation_reason The revocation reason, if applicable.
@@ -687,7 +674,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Only updates if WooCommerce Subscriptions is active and the order
 	 * has associated subscriptions.
 	 *
-	 * @since 10.2.0
+	 * @since 10.9.0
 	 * @param WC_Order    $order             The WooCommerce order.
 	 * @param string      $mandate_status    The new mandate status.
 	 * @param string|null $revocation_reason The revocation reason, if applicable.
@@ -704,12 +691,32 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		foreach ( $subscriptions as $subscription ) {
-			if ( 'inactive' === $mandate_status && $revocation_reason ) {
-				$subscription->update_status( 'cancelled', __( 'Subscription cancelled due to mandate revocation.', 'woocommerce-gateway-stripe' ) );
-			} elseif ( 'inactive' === $mandate_status ) {
-				$subscription->update_status( 'on-hold', __( 'Subscription paused due to mandate becoming inactive.', 'woocommerce-gateway-stripe' ) );
-			} elseif ( 'active' === $mandate_status && $subscription->has_status( 'on-hold' ) ) {
-				$subscription->update_status( 'active', __( 'Subscription reactivated due to mandate becoming active.', 'woocommerce-gateway-stripe' ) );
+			// Never resurrect or mutate subscriptions that have already reached a terminal state.
+			if ( $subscription->has_status( [ 'cancelled', 'expired', 'pending-cancel' ] ) ) {
+				continue;
+			}
+
+			try {
+				if ( 'inactive' === $mandate_status && ! $subscription->has_status( 'on-hold' ) ) {
+					// An inactive mandate can no longer be charged, so the subscription is put on
+					// hold rather than cancelled: a revocation does not necessarily mean the customer
+					// wants to end the subscription, and the merchant can ask them to re-authorize.
+					$note = $revocation_reason
+						? __( 'Subscription put on hold because the customer revoked the Stripe mandate.', 'woocommerce-gateway-stripe' )
+						: __( 'Subscription put on hold because the Stripe mandate became inactive.', 'woocommerce-gateway-stripe' );
+					$subscription->update_status( 'on-hold', $note );
+				} elseif ( 'active' === $mandate_status && $subscription->has_status( 'on-hold' ) ) {
+					$subscription->update_status( 'active', __( 'Subscription reactivated because the Stripe mandate became active.', 'woocommerce-gateway-stripe' ) );
+				}
+			} catch ( Exception $e ) {
+				WC_Stripe_Logger::error(
+					'Failed to update subscription for mandate.updated webhook.',
+					[
+						'order_id'        => $order->get_id(),
+						'subscription_id' => $subscription->get_id(),
+						'error'           => $e->getMessage(),
+					]
+				);
 			}
 		}
 	}

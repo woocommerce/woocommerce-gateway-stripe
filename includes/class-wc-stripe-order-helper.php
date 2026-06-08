@@ -702,7 +702,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Gets the most recent non-terminal order by Stripe mandate ID.
 	 *
-	 * @since 10.2.0
+	 * @since 10.9.0
 	 *
 	 * @param string $mandate_id The Stripe mandate ID.
 	 * @return WC_Order|null The order, or null if not found.
@@ -718,7 +718,7 @@ class WC_Stripe_Order_Helper {
 			$orders = wc_get_orders(
 				[
 					'limit'      => 1,
-					'status'     => [ OrderStatus::PENDING, OrderStatus::PROCESSING, OrderStatus::ON_HOLD ],
+					'status'     => [ OrderStatus::PENDING, OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ],
 					'orderby'    => 'date',
 					'order'      => 'DESC',
 					'meta_query' => [
@@ -739,7 +739,7 @@ class WC_Stripe_Order_Helper {
 
 		$order_id = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s AND posts.post_status IN ('wc-pending', 'wc-processing', 'wc-on-hold') ORDER BY posts.post_date DESC LIMIT 1",
+				"SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s AND posts.post_status IN ('wc-pending', 'wc-processing', 'wc-completed', 'wc-on-hold') ORDER BY posts.post_date DESC LIMIT 1",
 				$mandate_id,
 				self::META_STRIPE_MANDATE_ID
 			)
