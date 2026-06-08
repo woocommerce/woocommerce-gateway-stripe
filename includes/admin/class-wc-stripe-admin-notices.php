@@ -580,7 +580,7 @@ class WC_Stripe_Admin_Notices {
 		if ( $is_oc_enabled && ! $is_ap_enabled && 'yes' === get_option( self::SHOW_OCS_ONLY_BANNER_OPTION, 'no' ) ) {
 			$message = sprintf(
 				/* translators: 1) Image tag 2) HTML strong open tag 3) HTML strong closing tag 4) HTML line break tag */
-				__( "%1\$s%2\$sStripe Optimized Checkout is now active%3\$s%4\$sYour checkout is optimized for sales by dynamically displaying the most relevant payment methods you've enabled for each customer.%4\$s*Data is from Stripe global holdback study conducted in 2024", 'woocommerce-gateway-stripe' ),
+				__( "%1\$s%2\$sStripe Optimized Checkout is now active%3\$s%4\$sYour checkout is optimized for sales by dynamically displaying the most relevant payment methods you've enabled for each customer.", 'woocommerce-gateway-stripe' ),
 				$stripe_logo_image,
 				'<strong>',
 				'</strong>',
