@@ -642,12 +642,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'GB country, redacted' => [
 				'postal code' => 'SW1A',
 				'country'     => 'GB',
-				'expected'    => 'SW1A ***',
+				'expected'    => 'SW1A 000',
 			],
 			'CA country'           => [
 				'postal code' => 'K1A   ',
 				'country'     => 'CA',
-				'expected'    => 'K1A***',
+				'expected'    => 'K1A000',
 			],
 			'US country'           => [
 				'postal code' => '12345',
