@@ -68,15 +68,17 @@ class WC_Stripe_Admin_Notices {
 	 * @param string $message     The notice message.
 	 * @param bool   $dismissible Whether the notice is dismissible.
 	 * @param array  $actions     Optional action buttons.
+	 * @param array  $css_rules   Optional CSS rules.
 	 *
 	 * @return void
 	 */
-	public function add_admin_notice( $slug, $class, $message, $dismissible = false, $actions = [] ) {
+	public function add_admin_notice( $slug, $class, $message, $dismissible = false, $actions = [], array $css_rules = [] ) {
 		$this->notices[ $slug ] = [
 			'class'       => $class,
 			'message'     => $message,
 			'dismissible' => $dismissible,
 			'actions'     => $actions,
+			'css_rules'   => $css_rules,
 		];
 	}
 
@@ -123,6 +125,13 @@ class WC_Stripe_Admin_Notices {
 			if ( $has_actions ) {
 				// If there are actions, we need to make sure the div can contain them.
 				$div_style .= 'overflow: auto;';
+			}
+			if ( is_array( $notice['css_rules'] ?? null ) && [] !== $notice['css_rules'] ) {
+				echo '<style type="text/css">';
+				foreach ( $notice['css_rules'] as $css_rule ) {
+					echo esc_html( $css_rule ) . PHP_EOL;
+				}
+				echo '</style>';
 			}
 
 			echo '<div class="' . esc_attr( $notice['class'] ) . '" style="' . esc_attr( $div_style ) . '">';
@@ -535,6 +544,11 @@ class WC_Stripe_Admin_Notices {
 		$is_ap_enabled = 'yes' === $gateway->get_option( 'adaptive_pricing' );
 		$is_india      = 'IN' === WC_Stripe::get_instance()->account->get_account_country();
 
+		$css_rules    = [
+			'.notice.wc-stripe-ocs-ap-notice p { padding-top: 1.25em; }',
+		];
+		$notice_class = 'notice notice-info wc-stripe-ocs-ap-notice';
+
 		$stripe_logo_image = '<img src="' . esc_url( WC_STRIPE_PLUGIN_URL . '/assets/images/stripe-logo.svg' ) . '" alt="' . esc_attr__( 'Stripe logo', 'woocommerce-gateway-stripe' ) . '" style="float: right;" />';
 
 		$learn_more_action = sprintf(
@@ -560,7 +574,7 @@ class WC_Stripe_Admin_Notices {
 				'</strong>',
 				'<br><br>'
 			);
-			$this->add_admin_notice( 'ocs_ap_banner', 'notice notice-info', $message, true, $actions );
+			$this->add_admin_notice( 'ocs_ap_banner', $notice_class, $message, true, $actions, $css_rules );
 			return;
 		}
 
@@ -573,7 +587,7 @@ class WC_Stripe_Admin_Notices {
 				'</strong>',
 				'<br><br>'
 			);
-			$this->add_admin_notice( 'ap_only_banner', 'notice notice-info', $message, true, $actions );
+			$this->add_admin_notice( 'ap_only_banner', $notice_class, $message, true, $actions, $css_rules );
 			return;
 		}
 
@@ -586,7 +600,7 @@ class WC_Stripe_Admin_Notices {
 				'</strong>',
 				'<br><br>'
 			);
-			$this->add_admin_notice( 'ocs_only_banner', 'notice notice-info', $message, true, $actions );
+			$this->add_admin_notice( 'ocs_only_banner', $notice_class, $message, true, $actions, $css_rules );
 			return;
 		}
 	}
