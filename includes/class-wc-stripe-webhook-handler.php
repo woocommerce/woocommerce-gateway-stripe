@@ -1860,6 +1860,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						],
 					]
 				);
+			} else {
+				WC_Stripe_Logger::error( 'Empty intent ID, so cannot add order details and metadata.' );
 			}
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error(
