@@ -204,6 +204,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Add guards against invalid values for webhook state timestamps
 * Fix - Prevent saved Link, Cash App Pay, SEPA, Amazon Pay and Bacs Direct Debit payment methods from being duplicated when viewing My Account → Payment methods
 * Fix - Resolve console errors shown when editing the Blocks checkout page
+* Fix - Update the order description and metadata on the payment intent after an Adaptive Pricing payment completes
 * Dev - Memoize the Express Checkout button visibility check within a request
 * Tweak - Drop redundant "Test mode:" label from test payment instructions on Blocks checkout, which already shows a Test Mode badge
 * Tweak - Remove the confirmation dialog when disabling a payment method in settings
