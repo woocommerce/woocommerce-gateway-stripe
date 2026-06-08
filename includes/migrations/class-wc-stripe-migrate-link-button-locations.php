@@ -1,12 +1,12 @@
 <?php
 /**
- * Class Migrate_Link_Button_Locations
+ * Class WC_Stripe_Migrate_Link_Button_Locations
  */
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Class Migrate_Link_Button_Locations
+ * Class WC_Stripe_Migrate_Link_Button_Locations
  *
  * Before Link had a dedicated `link_button_locations` setting, it inherited its
  * locations from the payment request (Apple Pay / Google Pay) button. This
@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 10.7.0
  */
-class Migrate_Link_Button_Locations {
+class WC_Stripe_Migrate_Link_Button_Locations {
 	/**
 	 * Only execute the migration if not applied yet.
 	 *

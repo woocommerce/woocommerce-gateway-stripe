@@ -1,12 +1,12 @@
 <?php
 
 /**
- * Migrate_Link_Button_Locations unit tests.
+ * WC_Stripe_Migrate_Link_Button_Locations unit tests.
  */
-class Migrate_Link_Button_Locations_Test extends WP_UnitTestCase {
+class WC_Stripe_Migrate_Link_Button_Locations_Test extends WP_UnitTestCase {
 
 	/**
-	 * @var Migrate_Link_Button_Locations
+	 * @var WC_Stripe_Migrate_Link_Button_Locations
 	 */
 	private $migration;
 
@@ -19,7 +19,7 @@ class Migrate_Link_Button_Locations_Test extends WP_UnitTestCase {
 		// and break these assertions.
 		add_option( WC_Stripe_Helper::SETTINGS_OPTION, [] );
 
-		$this->migration = new Migrate_Link_Button_Locations();
+		$this->migration = new WC_Stripe_Migrate_Link_Button_Locations();
 	}
 
 	public function test_copies_payment_request_locations_when_link_setting_is_unset() {
