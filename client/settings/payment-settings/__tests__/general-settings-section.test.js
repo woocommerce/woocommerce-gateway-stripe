@@ -7,6 +7,7 @@ import {
 	useEnabledPaymentMethodIds,
 	useTestMode,
 } from 'wcstripe/data';
+import { useAccount } from 'wcstripe/data/account';
 import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
 import {
 	PAYMENT_METHOD_CARD,
@@ -18,6 +19,10 @@ jest.mock( 'wcstripe/data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn(),
 	useTestMode: jest.fn(),
 	useUpeTitle: jest.fn().mockReturnValue( [] ),
+} ) );
+
+jest.mock( 'wcstripe/data/account', () => ( {
+	useAccount: jest.fn(),
 } ) );
 
 jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
@@ -40,6 +45,17 @@ describe( 'GeneralSettingsSection', () => {
 		useIsStripeEnabled.mockReturnValue( [ false, setIsStripeEnabledMock ] );
 
 		useTestMode.mockReturnValue( [ false, setTestModeMock ] );
+		// A test account must be connected for the "Enable test mode" checkbox to be
+		// interactive; otherwise it is disabled to prevent switching into test mode
+		// without test keys (see TestModeCheckbox).
+		useAccount.mockReturnValue( {
+			data: {
+				oauth_connections: {
+					live: { connected: true },
+					test: { connected: true },
+				},
+			},
+		} );
 		useAccountKeys.mockReturnValue( {
 			accountKeys: {
 				test_publishable_key: 'test_pk',

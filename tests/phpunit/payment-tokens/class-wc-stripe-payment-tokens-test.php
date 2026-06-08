@@ -487,6 +487,33 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 				'expected' => WC_Payment_Token_Becs_Debit::class,
 				'type'     => WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID,
 			],
+			// The cases below pass the lowercase class name WooCommerce derives from the token type
+			// ('WC_Payment_Token_' . $type), which is what triggers the dropped-token duplication bug.
+			'Link from lowercase type'         => [
+				'class'    => 'WC_Payment_Token_link',
+				'expected' => WC_Payment_Token_Link::class,
+				'type'     => WC_Stripe_Payment_Methods::LINK,
+			],
+			'Cash App from lowercase type'     => [
+				'class'    => 'WC_Payment_Token_cashapp',
+				'expected' => WC_Payment_Token_CashApp::class,
+				'type'     => WC_Stripe_Payment_Methods::CASHAPP_PAY,
+			],
+			'SEPA from lowercase type'         => [
+				'class'    => 'WC_Payment_Token_sepa',
+				'expected' => WC_Payment_Token_SEPA::class,
+				'type'     => WC_Stripe_Payment_Methods::SEPA,
+			],
+			'Amazon Pay from lowercase type'   => [
+				'class'    => 'WC_Payment_Token_amazon_pay',
+				'expected' => WC_Payment_Token_Amazon_Pay::class,
+				'type'     => WC_Stripe_Payment_Methods::AMAZON_PAY,
+			],
+			'Bacs Debit from lowercase type'   => [
+				'class'    => 'WC_Payment_Token_bacs_debit',
+				'expected' => WC_Payment_Token_Bacs_Debit::class,
+				'type'     => WC_Stripe_Payment_Methods::BACS_DEBIT,
+			],
 			'Klarna with overridden class'     => [
 				'class'    => 'test_klarna',
 				'expected' => 'test_klarna',

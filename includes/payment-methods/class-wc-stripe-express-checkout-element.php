@@ -296,7 +296,7 @@ class WC_Stripe_Express_Checkout_Element {
 		if ( ! wp_script_is( 'wc_stripe_express_checkout', 'registered' ) ) {
 			$this->register_express_checkout_script();
 		}
-		$currency = get_woocommerce_currency();
+		$currency = $order->get_currency();
 		$data     = [];
 		$items    = [];
 
@@ -379,6 +379,7 @@ class WC_Stripe_Express_Checkout_Element {
 			],
 		];
 		$data['displayItems']   = $items;
+		$data['currency']       = strtolower( $currency );
 		$data['needs_shipping'] = false; // This should be already entered/prepared.
 		$data['total']          = [
 			'label'   => $this->express_checkout_helper->get_total_label(),

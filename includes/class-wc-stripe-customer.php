@@ -229,6 +229,18 @@ class WC_Stripe_Customer {
 		$defaults['metadata']          = apply_filters( 'wc_stripe_customer_metadata', $metadata, $user );
 		$defaults['preferred_locales'] = $this->get_customer_preferred_locale( $user );
 
+		// Add the billing phone, when available. Issuers and Stripe Radar may use it for risk decisioning.
+		$billing_phone = '';
+		if ( $user ) {
+			$billing_phone = get_user_meta( $user->ID, 'billing_phone', true );
+		}
+		if ( empty( $billing_phone ) ) {
+			$billing_phone = $this->get_billing_data_field( 'billing_phone', $order );
+		}
+		if ( ! empty( $billing_phone ) ) {
+			$defaults['phone'] = $billing_phone;
+		}
+
 		// Add customer address default values.
 		$address_fields = [
 			'line1'       => 'billing_address_1',
@@ -372,6 +384,7 @@ class WC_Stripe_Customer {
 			'billing_email',
 			'billing_first_name',
 			'billing_last_name',
+			'billing_phone',
 			'billing_address_1',
 			'billing_address_2',
 			'billing_postcode',
@@ -399,6 +412,8 @@ class WC_Stripe_Customer {
 					return $order->get_billing_first_name();
 				case 'billing_last_name':
 					return $order->get_billing_last_name();
+				case 'billing_phone':
+					return $order->get_billing_phone();
 				case 'billing_address_1':
 					return $order->get_billing_address_1();
 				case 'billing_address_2':
@@ -1192,6 +1207,11 @@ class WC_Stripe_Customer {
 					'country'     => $object_to_parse->get_shipping_country(),
 				],
 			];
+
+			$shipping_phone = $object_to_parse->get_shipping_phone();
+			if ( ! empty( $shipping_phone ) ) {
+				$data['shipping']['phone'] = $shipping_phone;
+			}
 		}
 
 		return $data;

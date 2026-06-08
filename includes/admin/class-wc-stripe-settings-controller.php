@@ -215,6 +215,23 @@ class WC_Stripe_Settings_Controller {
 			// Show the Stripe Tax banner only if OC is enabled
 			&& $is_oc_enabled;
 
+		$is_ap_enabled    = 'yes' === $this->get_gateway()->get_option( 'adaptive_pricing' );
+		$is_india_account = 'IN' === $this->account->get_account_country();
+
+		$show_ocs_ap_banner = $is_oc_enabled
+			&& $is_ap_enabled
+			&& ! $is_india_account
+			&& 'yes' === get_option( 'wc_stripe_show_ocs_ap_banner', 'no' );
+
+		$show_ap_only_banner = $is_oc_enabled
+			&& $is_ap_enabled
+			&& ! $is_india_account
+			&& 'yes' === get_option( 'wc_stripe_show_ap_only_banner', 'no' );
+
+		$show_ocs_only_banner = $is_oc_enabled
+			&& ! $is_ap_enabled
+			&& 'yes' === get_option( 'wc_stripe_show_ocs_only_banner', 'no' );
+
 		$is_checkout_sessions_available      = false;
 		$adaptive_pricing_unavailable_reason = 'disabled';
 		if ( WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
