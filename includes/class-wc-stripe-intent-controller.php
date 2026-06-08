@@ -509,8 +509,7 @@ class WC_Stripe_Intent_Controller {
 		if ( $intent_id ) {
 			$request = [
 				'metadata'    => $gateway->get_metadata_from_order( $order ),
-				/* translators: 1) blog name 2) order number */
-				'description' => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+				'description' => WC_Stripe_Helper::get_payment_intent_description( $order ),
 			];
 
 			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
@@ -893,8 +892,7 @@ class WC_Stripe_Intent_Controller {
 				'confirm'              => 'true',
 				'currency'             => $payment_information['currency'],
 				'customer'             => $payment_information['customer'],
-				/* translators: 1) blog name 2) order number */
-				'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+				'description'          => WC_Stripe_Helper::get_payment_intent_description( $order ),
 				'metadata'             => $payment_information['metadata'],
 				'payment_method_types' => $payment_method_types,
 			]
