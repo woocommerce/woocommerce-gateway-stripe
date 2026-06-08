@@ -552,13 +552,13 @@ class WC_Stripe_Admin_Notices {
 		$stripe_logo_image = '<img src="' . esc_url( WC_STRIPE_PLUGIN_URL . '/assets/images/stripe-logo.svg' ) . '" alt="' . esc_attr__( 'Stripe logo', 'woocommerce-gateway-stripe' ) . '" style="float: right;" />';
 
 		$learn_more_action = sprintf(
-			'<a href="%s" class="button button-secondary" target="_blank" style="margin-top:1em;margin-right:1em;">%s</a>',
+			'<a href="%s" class="button button-secondary" target="_blank" style="margin:1em 1em 0.5em 0;">%s</a>',
 			esc_url( self::OCS_AP_PRODUCT_UPDATE_URL ),
 			esc_html__( 'Learn more ↗', 'woocommerce-gateway-stripe' )
 		);
 
 		$review_action = sprintf(
-			'<a href="%s" class="button button-primary" style="margin-top:1em;margin-right:2em;">%s</a>',
+			'<a href="%s" class="button button-primary" style="margin:1em 2em 0.5em 0;">%s</a>',
 			$this->get_setting_link(),
 			esc_html__( 'Review settings', 'woocommerce-gateway-stripe' )
 		);
