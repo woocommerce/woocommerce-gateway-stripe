@@ -486,26 +486,38 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	/**
 	 * Test that get_checkout_data() emits display_prices_with_tax based on the tax display setting.
 	 *
+	 * @param string $tax_display_cart Tax display cart option value.
+	 * @param bool   $expected         Expected display_prices_with_tax value.
+	 *
 	 * @return void
+	 *
+	 * @dataProvider provide_test_get_checkout_data_display_prices_with_tax
 	 */
-	public function test_get_checkout_data_display_prices_with_tax(): void {
-		$wc_stripe_ece_helper      = new WC_Stripe_Express_Checkout_Helper();
-		$original_tax_display_cart = get_option( 'woocommerce_tax_display_cart' );
+	public function test_get_checkout_data_display_prices_with_tax( string $tax_display_cart, bool $expected ): void {
+		update_option( 'woocommerce_tax_display_cart', $tax_display_cart );
 
-		update_option( 'woocommerce_tax_display_cart', 'incl' );
-		$checkout_data = $wc_stripe_ece_helper->get_checkout_data();
-		$this->assertTrue( $checkout_data['display_prices_with_tax'] );
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+		$checkout_data        = $wc_stripe_ece_helper->get_checkout_data();
 
-		update_option( 'woocommerce_tax_display_cart', 'excl' );
-		$checkout_data = $wc_stripe_ece_helper->get_checkout_data();
-		$this->assertFalse( $checkout_data['display_prices_with_tax'] );
+		$this->assertSame( $expected, $checkout_data['display_prices_with_tax'] );
+	}
 
-		// Restore original option value.
-		if ( false === $original_tax_display_cart ) {
-			delete_option( 'woocommerce_tax_display_cart' );
-		} else {
-			update_option( 'woocommerce_tax_display_cart', $original_tax_display_cart );
-		}
+	/**
+	 * Provider for test_get_checkout_data_display_prices_with_tax.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_checkout_data_display_prices_with_tax(): array {
+		return [
+			'prices displayed including tax' => [
+				'tax display cart' => 'incl',
+				'expected'         => true,
+			],
+			'prices displayed excluding tax' => [
+				'tax display cart' => 'excl',
+				'expected'         => false,
+			],
+		];
 	}
 
 	/**
