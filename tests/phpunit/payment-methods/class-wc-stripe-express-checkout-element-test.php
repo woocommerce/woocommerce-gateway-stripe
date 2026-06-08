@@ -918,4 +918,78 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * The Pay for Order page must localize the express checkout payload using the order's
+	 * currency, not the store base currency. Otherwise the Apple Pay / Google Pay wallet
+	 * sheet shows the wrong currency (and, for zero-decimal currencies, the wrong amount)
+	 * whenever the order currency differs from the store base. See STRIPE-1195.
+	 *
+	 * @param string $store_currency  Store base currency option value.
+	 * @param string $order_currency  The order's currency.
+	 * @param int    $expected_amount Expected `total.amount` in Stripe's smallest unit.
+	 *
+	 * @return void
+	 * @dataProvider provide_test_localize_pay_for_order_uses_order_currency
+	 */
+	public function test_localize_pay_for_order_uses_order_currency( $store_currency, $order_currency, $expected_amount ) {
+		// Start from a clean script registration so we read only this call's localized data.
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		update_option( 'woocommerce_currency', $store_currency );
+
+		// Order total is 50 from the helper; give it a currency that may differ from the store base.
+		$order = WC_Helper_Order::create_order( 1, null, [ 'currency' => $order_currency ] );
+
+		$this->element->localize_pay_for_order_page_scripts( $order );
+
+		$params = $this->get_localized_pay_for_order_params();
+
+		$this->assertSame( strtolower( $order_currency ), $params['currency'] );
+		$this->assertSame( $expected_amount, $params['total']['amount'] );
+	}
+
+	/**
+	 * Data provider for `test_localize_pay_for_order_uses_order_currency`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_localize_pay_for_order_uses_order_currency() {
+		return [
+			// Order total 50, two-decimal currency differing from store base -> 5000 (cents).
+			'order currency differs from store base' => [
+				'store_currency'  => 'GBP',
+				'order_currency'  => 'AUD',
+				'expected_amount' => 5000,
+			],
+			// Zero-decimal order currency on a two-decimal store: amount must stay 50, not 5000.
+			'zero-decimal order currency'            => [
+				'store_currency'  => 'GBP',
+				'order_currency'  => 'JPY',
+				'expected_amount' => 50,
+			],
+			// Control: order currency equal to store base still works.
+			'order currency equals store base'       => [
+				'store_currency'  => 'USD',
+				'order_currency'  => 'USD',
+				'expected_amount' => 5000,
+			],
+		];
+	}
+
+	/**
+	 * Decode the localized `wcStripeExpressCheckoutPayForOrderParams` payload back into an array.
+	 *
+	 * `wp_localize_script` stores it as `var wcStripeExpressCheckoutPayForOrderParams = {json};`.
+	 *
+	 * @return array
+	 */
+	private function get_localized_pay_for_order_params() {
+		$data  = wp_scripts()->get_data( 'wc_stripe_express_checkout', 'data' );
+		$start = strpos( $data, '{' );
+		$end   = strrpos( $data, '}' );
+		$json  = substr( $data, $start, $end - $start + 1 );
+
+		return json_decode( $json, true );
+	}
 }
