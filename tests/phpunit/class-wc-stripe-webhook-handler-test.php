@@ -1673,8 +1673,6 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_process_checkout_session_metadata_success(): void {
-		$this->setExpectedDeprecated( 'WC_Stripe_Webhook_Handler::process_checkout_session_metadata' );
-
 		$checkout_session_id = 'cs_test_abc123';
 		$metadata            = [
 			'order_id'   => '100',
@@ -1720,8 +1718,6 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_process_checkout_session_metadata_api_error_response(): void {
-		$this->setExpectedDeprecated( 'WC_Stripe_Webhook_Handler::process_checkout_session_metadata' );
-
 		$checkout_session_id = 'cs_test_abc123';
 		$metadata            = [
 			'order_id'   => '100',
@@ -1793,6 +1789,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			}
 			$request_captured = true;
 			$this->assertEquals( 'POST', $parsed_args['method'] );
+			$this->assertIsArray( $parsed_args['body'] );
+			$this->assertArrayHasKey( 'description', $parsed_args['body'] );
+			$this->assertArrayHasKey( 'metadata', $parsed_args['body'] );
 			$this->assertEquals( $request['description'], $parsed_args['body']['description'] );
 			$this->assertEquals( $request['metadata'], $parsed_args['body']['metadata'] );
 			return [
@@ -1893,6 +1892,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			],
 		];
 
+		// Capture a fixed baseline before scheduling so the timestamp assertion can't race a 1-second rollover.
+		$scheduled_at = time();
+
 		// Mock the action scheduler service.
 		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
 		$scheduled_args = null;
@@ -1900,9 +1902,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->method( 'schedule_job' )
 			->with(
 				$this->callback(
-					function ( $timestamp ) {
+					function ( $timestamp ) use ( $scheduled_at ) {
 						$this->assertIsInt( $timestamp, 'Expected timestamp to be an integer.' );
-						$this->assertGreaterThanOrEqual( time() + 2 * MINUTE_IN_SECONDS, $timestamp, 'Expected timestamp to be in the future.' );
+						$this->assertGreaterThanOrEqual( $scheduled_at + 2 * MINUTE_IN_SECONDS, $timestamp, 'Expected timestamp to be in the future.' );
 
 						return true;
 					}
@@ -1911,7 +1913,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				$this->callback(
 					function ( $args ) use ( &$scheduled_args ) {
 						$scheduled_args = $args;
-						return isset( $args['payment_intent_id'] ) && isset( $args['request'] );
+						return isset( $args['payment_intent_id'] ) && isset( $args['request'] ) && is_array( $args['request'] );
 					}
 				)
 			);
@@ -2113,7 +2115,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'wc_stripe_process_payment_intent_metadata',
 				$this->callback(
 					function ( $args ) {
-						return isset( $args['payment_intent_id'] ) && isset( $args['request'] );
+						return isset( $args['payment_intent_id'] ) && isset( $args['request'] ) && is_array( $args['request'] );
 					}
 				)
 			);

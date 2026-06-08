@@ -65,7 +65,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * The legacy Action Scheduler hook that updated checkout session metadata after a webhook.
-	 * Kept registered so jobs queued before the switch to {@see $process_payment_intent_metadata_action} still drain.
+	 * Kept registered so jobs queued before the switch to {@see $process_payment_intent_metadata_action} still run to completion.
 	 *
 	 * @deprecated 10.8.0 Replaced by {@see $process_payment_intent_metadata_action}.
 	 *
@@ -1572,15 +1572,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Processes the checkout session metadata update event to store additional metadata on the checkout session object.
 	 *
-	 * @deprecated 10.8.0 Replaced by {@see process_payment_intent_metadata()}; kept so jobs queued before the switch still drain.
+	 * @deprecated 10.8.0 Replaced by {@see process_payment_intent_metadata()}; kept so jobs queued before the switch still run to completion.
 	 *
 	 * @param string $checkout_session_id The checkout session ID.
 	 * @param array $metadata The metadata from the checkout session.
 	 * @return void
 	 */
 	public function process_checkout_session_metadata( string $checkout_session_id, array $metadata ): void {
-		wc_deprecated_function( __METHOD__, '10.8.0', 'process_payment_intent_metadata' );
-
+		// No runtime deprecation notice yet: legacy jobs queued before the 10.8.0 switch can still run in this
+		// release, and we don't want to emit notices for those. The notice will be added in a future release.
 		try {
 			$response = WC_Stripe_API::request( [ 'metadata' => $metadata ], 'checkout/sessions/' . $checkout_session_id, 'POST' );
 			if ( ! empty( $response->error->message ) ) {
