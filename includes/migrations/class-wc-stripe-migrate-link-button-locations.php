@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
  * migration copies those locations into the new setting on upgrade so existing
  * merchants keep their configured Link placement.
  *
- * @since 10.7.0
+ * @since 10.9.0
  */
 class WC_Stripe_Migrate_Link_Button_Locations {
 	/**
