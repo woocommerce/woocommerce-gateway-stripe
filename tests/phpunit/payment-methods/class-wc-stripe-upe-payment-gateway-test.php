@@ -1576,10 +1576,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @dataProvider provider_handle_saving_payment_method_preserves_wallet_type
 	 *
 	 * @param string $initial_wallet_type wallet_type already stored on the saved token.
-	 * @param string $new_wallet_type     wallet_type on the incoming payment method ('' for a plain card).
-	 * @param string $expected            wallet_type expected on the token after reuse (always the initial value).
+	 * @param string $new_wallet_type      wallet_type on the incoming payment method ('' for a plain card).
+	 * @param string $expected_wallet_type wallet_type expected on the token after reuse (always the initial value).
 	 */
-	public function test_handle_saving_payment_method_preserves_wallet_type_on_reused_token( $initial_wallet_type, $new_wallet_type, $expected ) {
+	public function test_handle_saving_payment_method_preserves_wallet_type_on_reused_token( $initial_wallet_type, $new_wallet_type, $expected_wallet_type ) {
 		$this->mock_gateway->oc_enabled = true;
 
 		$user_id = $this->factory()->user->create();
@@ -1630,7 +1630,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$refreshed = WC_Payment_Tokens::get( $existing->get_id() );
 		$this->assertInstanceOf( WC_Stripe_Payment_Token_CC::class, $refreshed );
 		// The reused token keeps its create-time wallet branding; only the Stripe id refreshes.
-		$this->assertSame( $expected, $refreshed->get_wallet_type() );
+		$this->assertSame( $expected_wallet_type, $refreshed->get_wallet_type() );
 		$this->assertSame( 'pm_reused', $refreshed->get_token() );
 	}
 
