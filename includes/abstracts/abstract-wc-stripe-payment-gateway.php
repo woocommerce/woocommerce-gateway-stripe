@@ -71,9 +71,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Replaces the main Stripe gateway settings option.
 	 *
-	 * The cache is not written here on purpose: the option-change hooks
-	 * registered by the main gateway invalidate it, so the next read reloads the
-	 * persisted value regardless of which write path ran.
+	 * Invalidates the shared cache itself so this mutator is self-contained and
+	 * never serves stale settings, even when the main gateway's option-change
+	 * hooks are not yet registered for the current request.
 	 *
 	 * @since 10.9.0
 	 *
@@ -81,7 +81,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool Whether the option was actually written (matches `update_option`).
 	 */
 	public function update_settings( array $settings ): bool {
-		return WC_Stripe::write_settings_option( $settings );
+		$updated = WC_Stripe::write_settings_option( $settings );
+		$this->refresh_settings_cache();
+		return $updated;
 	}
 
 	/**

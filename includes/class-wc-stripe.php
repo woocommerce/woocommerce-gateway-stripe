@@ -316,7 +316,7 @@ class WC_Stripe {
 
 		if ( self::$instance === $this ) {
 			add_filter( 'woocommerce_payment_gateways', [ $this, 'add_gateways' ] );
-			add_filter( 'pre_update_option_woocommerce_stripe_settings', [ $this, 'gateway_settings_update' ], 10, 2 );
+			add_filter( 'pre_update_option_' . self::SETTINGS_OPTION_NAME, [ $this, 'gateway_settings_update' ], 10, 2 );
 			add_filter( 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), [ $this, 'plugin_action_links' ] );
 			add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
 			add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
@@ -359,7 +359,7 @@ class WC_Stripe {
 			add_action( 'wc_payment_gateways_initialized', [ $this, 'maybe_toggle_payment_methods' ] );
 
 			// Reconfigure webhooks when Adaptive Pricing is enabled in the settings.
-			add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
+			add_action( 'update_option_' . self::SETTINGS_OPTION_NAME, [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
 
 			add_action( WC_Stripe_Database_Cache::ASYNC_CLEANUP_ACTION, [ WC_Stripe_Database_Cache::class, 'delete_all_stale_entries_async' ], 10, 2 );
 			add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ], 10, 0 );

@@ -45,6 +45,11 @@ class WC_Stripe_Express_Checkout_Controller_Test extends WP_UnitTestCase {
 		$this->assertTrue( wp_script_is( 'wc-stripe-express-checkout-settings', 'enqueued' ) );
 		$this->assertTrue( wp_style_is( 'wc-stripe-express-checkout-settings', 'registered' ) );
 		$this->assertTrue( wp_style_is( 'wc-stripe-express-checkout-settings', 'enqueued' ) );
+
+		// The seeded keys must reach the localized params via the gateway-backed settings path.
+		$localized_data = wp_scripts()->get_data( 'wc-stripe-express-checkout-settings', 'data' );
+		$expected_key   = WC_Stripe_Mode::is_test() ? 'original-test-key-9999' : 'original-live-key-9999';
+		$this->assertStringContainsString( $expected_key, $localized_data );
 	}
 
 	/**
