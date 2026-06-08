@@ -52,7 +52,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @var string
 	 * @since 10.8.0
 	 */
-	public const IMMEDIATE_SYNC_ACTION = 'wc_stripe_agentic_commerce_sync_feed_now';
+	protected const IMMEDIATE_SYNC_ACTION = 'wc_stripe_agentic_commerce_sync_feed_now';
 
 	/**
 	 * Option name to track whether the sync is scheduled.
