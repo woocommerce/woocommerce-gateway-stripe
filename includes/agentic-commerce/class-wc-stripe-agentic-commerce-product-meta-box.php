@@ -6,35 +6,45 @@
  * Commerce sync. Hidden when WC AI Storefront is active, since that plugin owns
  * product selection through the same `wc_stripe_agentic_commerce_should_sync_product` filter.
  *
+ * Admin UI only: the flag's read/write contract lives in
+ * {@see WC_Stripe_Agentic_Commerce_Product_Exclusion}.
+ *
+ * @internal Not part of the plugin's public API; may change without notice.
  * @package WooCommerce_Stripe
  * @since 10.8.0
  */
 
 declare(strict_types=1);
 
+use Automattic\WooCommerce\Enums\ProductType;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Per-product exclude toggle for Agentic Commerce sync.
+ * Per-product exclude toggle for Agentic Commerce sync (editor UI).
  *
+ * @internal
  * @since 10.8.0
  */
 class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 
 	/**
-	 * Hidden post meta key for the exclude flag ('yes' = excluded; 'no'/unset = synced).
+	 * Product types the toggle renders for, and the only types `save_meta()`
+	 * persists. The feed syncs `simple` and `variation`; a variation's parent is
+	 * `variable`, which is where the checkbox lives.
 	 */
-	public const META_KEY = '_wc_stripe_agentic_commerce_exclude';
+	private const SUPPORTED_TYPES = [ ProductType::SIMPLE, ProductType::VARIABLE ];
 
 	/**
-	 * Register hooks. The filter runs in every context (cron/CLI included) so
-	 * sync honors the flag; the editor UI hooks are admin-only.
+	 * Register the editor UI hooks. Admin-only — the should-sync filter that
+	 * enforces the flag during a feed run lives in the exclusion storage class.
+	 *
+	 * @since 10.8.0
+	 * @return void
 	 */
 	public function init(): void {
-		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', [ $this, 'filter_should_sync_product' ], 10, 2 );
-
 		if ( ! is_admin() ) {
 			return;
 		}
@@ -44,54 +54,11 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 	}
 
 	/**
-	 * Whether the product is excluded from Agentic Commerce sync. The parent's
-	 * flag is authoritative for variations (the checkbox lives on the parent).
-	 *
-	 * @since 10.8.0
-	 * @param int $product_id Product post ID.
-	 * @return bool
-	 */
-	public static function is_excluded( int $product_id ): bool {
-		if ( $product_id <= 0 ) {
-			return false;
-		}
-
-		$product = wc_get_product( $product_id );
-		if ( ! $product instanceof WC_Product ) {
-			return false;
-		}
-
-		$effective_id = $product->get_parent_id() > 0 ? $product->get_parent_id() : $product->get_id();
-
-		return 'yes' === get_post_meta( $effective_id, self::META_KEY, true );
-	}
-
-	/**
-	 * Filter callback: vote false when the product is excluded, without
-	 * resurrecting one another callback already excluded.
-	 *
-	 * @since 10.8.0
-	 * @param bool        $should_sync Whether to include the product.
-	 * @param \WC_Product $product     Product being evaluated.
-	 * @return bool
-	 */
-	public function filter_should_sync_product( bool $should_sync, \WC_Product $product ): bool {
-		if ( ! $should_sync ) {
-			return false;
-		}
-
-		return ! self::is_excluded( $product->get_id() );
-	}
-
-	/**
-	 * Product types the feed walks, and the only types the toggle renders for.
-	 * The feed syncs `simple` and `variation`; a variation's parent is `variable`.
-	 */
-	private const SUPPORTED_TYPES = [ 'simple', 'variable' ];
-
-	/**
 	 * Render the exclude checkbox. Gated on the merchant having Agentic Commerce
 	 * enabled and the product being a supported type, so it never dangles.
+	 *
+	 * @since 10.8.0
+	 * @return void
 	 */
 	public function render_checkbox(): void {
 		if ( ! function_exists( 'woocommerce_wp_checkbox' ) ) {
@@ -110,7 +77,7 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 
 		woocommerce_wp_checkbox(
 			[
-				'id'          => self::META_KEY,
+				'id'          => WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY,
 				'label'       => __( 'Agentic Commerce', 'woocommerce-gateway-stripe' ),
 				'description' => __( 'Exclude from the Stripe Agentic Commerce catalog sync', 'woocommerce-gateway-stripe' ),
 				'desc_tip'    => false,
@@ -122,7 +89,9 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 	 * Persist the checkbox state on product save. Re-verifies the nonce since
 	 * `woocommerce_process_product_meta` is public and callable directly.
 	 *
+	 * @since 10.8.0
 	 * @param int $product_id Product post ID.
+	 * @return void
 	 */
 	public function save_meta( int $product_id ): void {
 		if ( $product_id <= 0 ) {
@@ -148,20 +117,14 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$posted_value = isset( $_POST[ self::META_KEY ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::META_KEY ] ) ) : '';
-		$value        = 'yes' === $posted_value ? 'yes' : 'no';
+		$posted_value = isset( $_POST[ WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY ] ) ? sanitize_text_field( wp_unslash( $_POST[ WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY ] ) ) : '';
+		$excluded     = 'yes' === $posted_value;
 
-		// Treat missing meta as 'no' so the first opt-in counts as a change.
-		$previous_value = get_post_meta( $product_id, self::META_KEY, true );
-		if ( '' === $previous_value ) {
-			$previous_value = 'no';
-		}
-
-		update_post_meta( $product_id, self::META_KEY, $value );
+		$changed = WC_Stripe_Agentic_Commerce_Product_Exclusion::set_excluded( $product_id, $excluded );
 
 		// Converge Stripe now instead of waiting for the next scheduled sync.
-		if ( $previous_value !== $value ) {
-			do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' );
+		if ( $changed ) {
+			( new WC_Stripe_Agentic_Commerce_Integration() )->schedule_full_resync_now();
 		}
 	}
 }

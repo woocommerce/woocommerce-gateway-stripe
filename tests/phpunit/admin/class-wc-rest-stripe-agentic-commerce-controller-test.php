@@ -1391,11 +1391,18 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		};
 		add_filter( 'pre_http_request', $http_stub, 10, 3 );
 
+		// IMMEDIATE_SYNC_ACTION is protected; resolve it for scheduling assertions.
+		$immediate_sync_action = WC_Stripe_Test_Helper::get_class_const_value(
+			WC_Stripe_Agentic_Commerce_Integration::class,
+			'IMMEDIATE_SYNC_ACTION',
+			'string'
+		);
+
 		// Seed a pending adapter-fired one-off resync, as schedule_full_resync_now() would.
-		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
-		as_enqueue_async_action( WC_Stripe_Agentic_Commerce_Integration::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
+		as_unschedule_all_actions( $immediate_sync_action, [], 'wc-stripe' );
+		as_enqueue_async_action( $immediate_sync_action, [], 'wc-stripe' );
 		$this->assertNotFalse(
-			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::IMMEDIATE_SYNC_ACTION ),
+			as_has_scheduled_action( $immediate_sync_action ),
 			'Sanity: a one-off resync must be pending before the manual sync.'
 		);
 
@@ -1405,7 +1412,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 			$this->assertEquals( 200, $response->get_status() );
 			$this->assertFalse(
-				as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::IMMEDIATE_SYNC_ACTION ),
+				as_has_scheduled_action( $immediate_sync_action ),
 				'A successful manual sync must clear the pending one-off resync.'
 			);
 		} finally {
@@ -1416,7 +1423,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 			if ( function_exists( 'as_unschedule_all_actions' ) ) {
 				as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
-				as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
+				as_unschedule_all_actions( $immediate_sync_action, [], 'wc-stripe' );
 			}
 		}
 	}
