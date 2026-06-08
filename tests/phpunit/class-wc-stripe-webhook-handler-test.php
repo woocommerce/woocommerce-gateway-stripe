@@ -1893,7 +1893,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		// Capture a fixed baseline before scheduling so the timestamp assertion can't race a 1-second rollover.
-		$scheduled_at = time();
+		$test_start_time = time();
 
 		// Mock the action scheduler service.
 		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
@@ -1902,9 +1902,14 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->method( 'schedule_job' )
 			->with(
 				$this->callback(
-					function ( $timestamp ) use ( $scheduled_at ) {
+					function ( $timestamp ) use ( $test_start_time ) {
 						$this->assertIsInt( $timestamp, 'Expected timestamp to be an integer.' );
-						$this->assertGreaterThanOrEqual( $scheduled_at + 2 * MINUTE_IN_SECONDS, $timestamp, 'Expected timestamp to be in the future.' );
+
+						// The timestamp is captured between the test's start and now, so bound it on both sides
+						// to assert it lands exactly 2 minutes out rather than some arbitrary point after.
+						$current_time = time();
+						$this->assertGreaterThanOrEqual( $test_start_time + 2 * MINUTE_IN_SECONDS, $timestamp, 'Expected timestamp to be at least 2 minutes in the future.' );
+						$this->assertLessThanOrEqual( $current_time + 2 * MINUTE_IN_SECONDS, $timestamp, 'Expected timestamp to be at most 2 minutes in the future.' );
 
 						return true;
 					}
