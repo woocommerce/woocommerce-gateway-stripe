@@ -18,6 +18,11 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	private $http_filter;
 
 	/**
+	 * @var callable|null Filter callback that allowlists the agentic `created_via` value for `payment_complete()`.
+	 */
+	private $payment_complete_filter;
+
+	/**
 	 * Set up the test.
 	 */
 	public function set_up() {
@@ -30,6 +35,17 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+
+		// WC 10.8+ blocks payment_complete() unless `created_via` is allowlisted.
+		// In production the integration's register_hooks() wires this up; mirror it here.
+		$this->payment_complete_filter = function ( $allowed ) {
+			if ( ! is_array( $allowed ) ) {
+				$allowed = [];
+			}
+			$allowed[] = WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA;
+			return $allowed;
+		};
+		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', $this->payment_complete_filter );
 	}
 
 	/**
@@ -40,6 +56,10 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			remove_filter( 'pre_http_request', $this->http_filter );
 		}
 		remove_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+		if ( null !== $this->payment_complete_filter ) {
+			remove_filter( 'woocommerce_payment_complete_allowed_created_via_values', $this->payment_complete_filter );
+			$this->payment_complete_filter = null;
+		}
 
 		parent::tear_down();
 	}

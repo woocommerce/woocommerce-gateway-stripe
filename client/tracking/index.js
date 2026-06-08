@@ -50,15 +50,19 @@ export function recordEvent( eventName, eventProperties ) {
 			return;
 		}
 
-		// Add default properties to every event.
-		Object.assign( eventProperties, {
-			// The value for test mode is localized from the server on page load,
-			// thus it will only be updated after reloading the page.
+		// Only localized on Stripe admin screens; guard so callers elsewhere
+		// (e.g. plugins page) don't throw ReferenceError.
+		const settingsParams =
 			// eslint-disable-next-line camelcase
-			is_test_mode: wc_stripe_settings_params.is_test_mode ? 'yes' : 'no',
-			// eslint-disable-next-line camelcase
-			stripe_version: wc_stripe_settings_params.plugin_version,
-		} );
+			typeof wc_stripe_settings_params !== 'undefined'
+				? wc_stripe_settings_params // eslint-disable-line camelcase
+				: null;
+		if ( settingsParams ) {
+			Object.assign( eventProperties, {
+				is_test_mode: settingsParams.is_test_mode ? 'yes' : 'no',
+				stripe_version: settingsParams.plugin_version,
+			} );
+		}
 
 		getLibrary().recordEvent( eventName, eventProperties );
 	} );

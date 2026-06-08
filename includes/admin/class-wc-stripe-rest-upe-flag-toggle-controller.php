@@ -6,7 +6,10 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * REST controller for UPE feature flag.
+ * REST controller for the legacy UPE feature flag.
+ *
+ * This class is fully deprecated, but is being kept in the code for backwards compatibility.
+ * It will be fully removed in an upcoming release.
  *
  * @deprecated 10.2.0 UPE is generally available and this endpoint will be removed in a future release.
  */
@@ -54,11 +57,13 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Base_Cont
 	/**
 	 * Retrieve flag status.
 	 *
-	 * @return WP_REST_Response
-	 *
 	 * @deprecated 10.2.0 UPE is generally available and this endpoint will be removed in a future release.
+	 *
+	 * @return WP_REST_Response
 	 */
 	public function get_flag() {
+		wc_deprecated_function( __METHOD__, '10.2.0' );
+
 		return new WP_REST_Response(
 			[
 				'is_upe_enabled' => true,
@@ -67,25 +72,16 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Base_Cont
 	}
 
 	/**
-	 * Update the data.
+	 * Deprecated no-op. Kept in the code for backwards compatibility.
 	 *
-	 * @param WP_REST_Request $request Full data about the request.
+	 * @param WP_REST_Request<array<string, mixed>> $request Full data about the request.
 	 *
 	 * @deprecated 10.2.0 UPE is generally available and this endpoint will be removed in a future release.
 	 *
 	 * @return WP_REST_Response
 	 */
 	public function set_flag( WP_REST_Request $request ) {
-		// including the class again because otherwise it's not present.
-		if ( WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
-			WC_Stripe_UPE_Availability_Note::possibly_delete_note();
-
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
-			WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
-		}
-
-		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
+		wc_deprecated_function( __METHOD__, '10.2.0' );
 
 		return new WP_REST_Response( [ 'result' => 'success' ], 200 );
 	}

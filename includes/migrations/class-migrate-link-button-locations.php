@@ -17,13 +17,6 @@ defined( 'ABSPATH' ) || exit;
  */
 class Migrate_Link_Button_Locations {
 	/**
-	 * Migrate_Link_Button_Locations constructor.
-	 */
-	public function __construct() {
-		add_action( 'woocommerce_stripe_updated', [ $this, 'maybe_migrate' ] );
-	}
-
-	/**
 	 * Only execute the migration if not applied yet.
 	 *
 	 * @return void

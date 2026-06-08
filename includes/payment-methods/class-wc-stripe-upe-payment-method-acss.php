@@ -12,7 +12,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 	use WC_Stripe_Subscriptions_Trait;
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::ACSS_DEBIT;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::ACSS_DEBIT;
+
+	/**
+	 * Stripe account countries that may enable ACSS Debit.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [
+		WC_Stripe_Country_Code::CANADA,
+		WC_Stripe_Country_Code::UNITED_STATES,
+	];
+
+	/**
+	 * Shopper billing countries permitted to use ACSS Debit.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [ WC_Stripe_Country_Code::CANADA ];
 
 	/**
 	 * Constructor for ACSS Debit payment method
@@ -23,7 +40,6 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 		$this->title                    = __( 'Pre-Authorized Debit', 'woocommerce-gateway-stripe' );
 		$this->is_reusable              = true;
 		$this->supported_currencies     = [ WC_Stripe_Currency_Code::CANADIAN_DOLLAR ]; // The US dollar is also supported, but has a high risk of failure since only a few Canadian bank accounts support it.
-		$this->supported_countries      = [ WC_Stripe_Country_Code::CANADA ];
 		$this->label                    = __( 'Pre-Authorized Debit', 'woocommerce-gateway-stripe' );
 		$this->description              = __(
 			'Canadian Pre-Authorized Debit is a payment method that allows customers to pay using their Canadian bank account.',
@@ -94,14 +110,6 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 			</div>
 			<?php
 		}
-	}
-
-	/**
-	 * Returns string representing payment method type
-	 * to query to retrieve saved payment methods from Stripe.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
 	}
 
 	/**

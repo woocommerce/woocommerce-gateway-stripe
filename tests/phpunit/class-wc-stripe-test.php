@@ -352,57 +352,86 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Tests the {@see WC_Stripe::add_gateways()} method.
 	 *
-	 * @param array $payment_methods The payment methods to add.
+	 * @param array $payment_methods   The payment methods to add.
 	 * @param array $expected_gateways The expected gateways.
-	 * @param bool $is_admin Whether the test is running in the admin.
-	 * @param bool $oc_enabled Whether the optimized checkout is enabled.
+	 * @param bool  $is_admin          Whether the test is running in the admin.
+	 * @param bool  $oc_enabled        Whether the optimized checkout is enabled.
+	 * @param array $request_vars      The request variables.
+	 * @param bool  $disable_hpos      Whether to ensure that HPOS is disabled.
 	 * @return void
 	 * @dataProvider provide_test_add_gateways
 	 */
-	public function test_add_gateways( array $payment_methods, array $expected_gateways, bool $is_admin = false, bool $oc_enabled = false ): void {
-		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
-			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_main_stripe_gateway' ] )
-			->getMock();
-
-		$mock_main_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
-			->disableOriginalConstructor()
-			->getMock();
-
-		$mock_main_gateway->payment_methods = $payment_methods;
-		$mock_main_gateway->method( 'get_option' )
-			->with( 'optimized_checkout_element', 'no' )
-			->willReturn( $oc_enabled ? 'yes' : 'no' );
-
-		$wc_stripe->method( 'get_main_stripe_gateway' )
-			->willReturn( $mock_main_gateway );
-
-		$initial_current_screen = null;
-		$reset_current_screen   = false;
-
-		if ( $is_admin ) {
-			$initial_current_screen = $GLOBALS['current_screen'] ?? null;
-			$reset_current_screen   = true;
-
-			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-			$GLOBALS['current_screen'] = \WP_Screen::get( 'post.php' );
+	public function test_add_gateways( array $payment_methods, array $expected_gateways, bool $is_admin = false, bool $oc_enabled = false, array $request_vars = [], bool $disable_hpos = false ): void {
+		$re_enable_hpos = false;
+		if ( $disable_hpos ) {
+			$hpos_enabled = 'yes' === get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+			if ( $hpos_enabled ) {
+				$re_enable_hpos = true;
+				// Allow HPOS to be toggled regardless of database state.
+				add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+				// Disable HPOS.
+				update_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+			}
 		}
 
-		$gateways = $wc_stripe->add_gateways( [] );
+		try {
+			$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
+				->disableOriginalConstructor()
+				->onlyMethods( [ 'get_main_stripe_gateway', 'get_request_var' ] )
+				->getMock();
 
-		if ( $reset_current_screen ) {
-			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-			$GLOBALS['current_screen'] = $initial_current_screen;
-		}
+			$mock_main_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+				->disableOriginalConstructor()
+				->getMock();
 
-		// First gateway should always be the main stripe gateway.
-		$main_stripe_gateway = array_shift( $gateways );
-		$this->assertEquals( $mock_main_gateway, $main_stripe_gateway );
+			$mock_main_gateway->payment_methods = $payment_methods;
+			$mock_main_gateway->method( 'get_option' )
+				->with( 'optimized_checkout_element', 'no' )
+				->willReturn( $oc_enabled ? 'yes' : 'no' );
 
-		// Remaining gateways should be the expected "other" gateways.
-		$this->assertEquals( count( $expected_gateways ), count( $gateways ) );
-		foreach ( $expected_gateways as $expected_gateway ) {
-			$this->assertContains( $expected_gateway, $gateways );
+			$wc_stripe->method( 'get_main_stripe_gateway' )
+				->willReturn( $mock_main_gateway );
+
+			$wc_stripe->method( 'get_request_var' )
+				->willReturnCallback(
+					function ( string $key, int $input_type = INPUT_GET ) use ( $request_vars ) {
+						$type = INPUT_POST === $input_type ? 'post' : 'get';
+						return $request_vars[ $type ][ $key ] ?? '';
+					}
+				);
+
+			$initial_current_screen = null;
+			$reset_current_screen   = false;
+
+			if ( $is_admin ) {
+				$initial_current_screen = $GLOBALS['current_screen'] ?? null;
+				$reset_current_screen   = true;
+
+				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+				$GLOBALS['current_screen'] = \WP_Screen::get( 'post.php' );
+			}
+
+			$gateways = $wc_stripe->add_gateways( [] );
+
+			if ( $reset_current_screen ) {
+				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+				$GLOBALS['current_screen'] = $initial_current_screen;
+			}
+
+			// First gateway should always be the main stripe gateway.
+			$main_stripe_gateway = array_shift( $gateways );
+			$this->assertEquals( $mock_main_gateway, $main_stripe_gateway );
+
+			// Remaining gateways should be the expected "other" gateways.
+			$this->assertEquals( count( $expected_gateways ), count( $gateways ) );
+			foreach ( $expected_gateways as $expected_gateway ) {
+				$this->assertContains( $expected_gateway, $gateways );
+			}
+		} finally {
+			if ( $re_enable_hpos ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+				remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+			}
 		}
 	}
 
@@ -410,6 +439,23 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * Data provider for {@see test_add_gateways()}.
 	 */
 	public function provide_test_add_gateways(): array {
+		$simple_product = WC_Helper_Product::create_simple_product();
+
+		$hpos_was_enabled = 'yes' === get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		if ( $hpos_was_enabled ) {
+			// Allow HPOS to be toggled regardless of database state.
+			add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+			update_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		}
+		try {
+			$order = WC_Helper_Order::create_order( 1, $simple_product );
+		} finally {
+			if ( $hpos_was_enabled ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+				remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+			}
+		}
+
 		$card_gateway = $this->getMockBuilder( \WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
@@ -488,6 +534,59 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
 				'is_admin'          => true,
+			],
+			'amazon pay included on legacy CPT order edit page'                   => [
+				'payment_methods'   => [
+					'afterpay_clearpay' => $afterpay_clearpay_gateway,
+					'klarna'            => $klarna_gateway,
+					'amazon_pay'        => $amazon_pay_gateway,
+				],
+				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway ],
+				'is_admin'          => true,
+				'oc_enabled'        => false,
+				'request_vars'      => [
+					'get'  => [
+						'action' => 'edit',
+						'post'   => (string) $order->get_id(),
+					],
+					'post' => [],
+				],
+				'disable_hpos'      => true,
+			],
+			// We need to test that the Amazon Pay checks don't impact post types that are not orders.
+			'amazon pay not included on product edit page'                        => [
+				'payment_methods'   => [
+					'afterpay_clearpay' => $afterpay_clearpay_gateway,
+					'klarna'            => $klarna_gateway,
+					'amazon_pay'        => $amazon_pay_gateway,
+				],
+				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
+				'is_admin'          => true,
+				'oc_enabled'        => false,
+				'request_vars'      => [
+					'get'  => [
+						'action' => 'edit',
+						'post'   => (string) $simple_product->get_id(),
+					],
+					'post' => [],
+				],
+			],
+			'amazon pay included on HPOS order edit page'                         => [
+				'payment_methods'   => [
+					'afterpay_clearpay' => $afterpay_clearpay_gateway,
+					'klarna'            => $klarna_gateway,
+					'amazon_pay'        => $amazon_pay_gateway,
+				],
+				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway ],
+				'is_admin'          => true,
+				'oc_enabled'        => false,
+				'request_vars'      => [
+					'get'  => [
+						'page'   => 'wc-orders',
+						'action' => 'edit',
+					],
+					'post' => [],
+				],
 			],
 			'card filtered out; amazon pay and link correctly included non-admin' => [
 				'payment_methods'   => [
@@ -690,5 +789,216 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expect_call' => false,
 			],
 		];
+	}
+
+	/* -----------------------------------------------------------------
+	 * Plugin initialization guards
+	 *
+	 * Cover the `if ( self::$instance === $this )` guard pattern added to
+	 * WC_Stripe::__construct() and WC_Stripe::init() to prevent duplicate
+	 * hook registration and collaborator re-instantiation when WC_Stripe is
+	 * constructed more than once.
+	 * ----------------------------------------------------------------- */
+
+	/**
+	 * The singleton accessor must keep returning the same instance.
+	 */
+	public function test_get_instance_returns_same_singleton_on_repeated_calls(): void {
+		$this->assertSame( WC_Stripe::get_instance(), WC_Stripe::get_instance() );
+	}
+
+	/**
+	 * Constructing a second WC_Stripe via `new` must not replace the singleton.
+	 */
+	public function test_direct_construction_does_not_replace_existing_singleton(): void {
+		$first  = WC_Stripe::get_instance();
+		$second = new WC_Stripe();
+
+		$this->assertSame( $first, WC_Stripe::get_instance() );
+		$this->assertNotSame( $first, $second );
+	}
+
+	/**
+	 * The two admin_init hooks added in __construct()'s guarded block must
+	 * only land on the first instance.
+	 */
+	public function test_admin_init_hooks_registered_only_for_first_instance(): void {
+		$first = WC_Stripe::get_instance();
+
+		$this->assertSame( 10, has_action( 'admin_init', [ $first, 'install' ] ) );
+		$this->assertSame( 15, has_action( 'admin_init', [ $first, 'maybe_redirect_to_stripe_settings' ] ) );
+
+		$second = new WC_Stripe();
+
+		$this->assertFalse( has_action( 'admin_init', [ $second, 'install' ] ) );
+		$this->assertFalse( has_action( 'admin_init', [ $second, 'maybe_redirect_to_stripe_settings' ] ) );
+
+		// First instance's hooks remain at their original priorities.
+		$this->assertSame( 10, has_action( 'admin_init', [ $first, 'install' ] ) );
+		$this->assertSame( 15, has_action( 'admin_init', [ $first, 'maybe_redirect_to_stripe_settings' ] ) );
+	}
+
+	/**
+	 * The rest_api_init guard at the end of __construct() must only register
+	 * register_routes on the first instance.
+	 */
+	public function test_register_routes_hook_registered_only_for_first_instance(): void {
+		$first = WC_Stripe::get_instance();
+
+		$this->assertSame( 10, has_action( 'rest_api_init', [ $first, 'register_routes' ] ) );
+
+		$second = new WC_Stripe();
+
+		$this->assertFalse( has_action( 'rest_api_init', [ $second, 'register_routes' ] ) );
+		$this->assertSame( 10, has_action( 'rest_api_init', [ $first, 'register_routes' ] ) );
+	}
+
+	/**
+	 * Every hook added by the guarded blocks in init() must be registered on
+	 * the first instance and must NOT be registered on a second instance.
+	 *
+	 * Single sweep test — failure messages identify the offending row.
+	 */
+	public function test_init_hooks_registered_only_for_first_instance(): void {
+		$hooks = [
+			[ 'woocommerce_payment_gateways', 'add_gateways', 10 ],
+			[ 'pre_update_option_woocommerce_stripe_settings', 'gateway_settings_update', 10 ],
+			[ 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), 'plugin_action_links', 10 ],
+			[ 'plugin_row_meta', 'plugin_row_meta', 10 ],
+			[ 'update_option_woocommerce_gateway_order', 'set_stripe_gateways_in_list', 10 ],
+			[ 'woocommerce_email_classes', 'add_emails', 20 ],
+			[ 'init', 'init_express_checkout', 11 ],
+			[ 'init', 'initialize_subscriptions_updater', 10 ],
+			[ 'init', 'load_plugin_textdomain', 10 ],
+			[ 'init', 'initialize_status_page', 15 ],
+			[ 'init', 'initialize_apple_pay_registration', 10 ],
+			[ 'woocommerce_init', 'initialize_agentic_commerce', 10 ],
+			[ 'wc_payment_gateways_initialized', 'maybe_toggle_payment_methods', 10 ],
+			[ 'update_option_woocommerce_stripe_settings', 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled', 10 ],
+		];
+
+		$first = WC_Stripe::get_instance();
+
+		foreach ( $hooks as [ $hook, $callback, $priority ] ) {
+			$this->assertSame(
+				$priority,
+				has_filter( $hook, [ $first, $callback ] ),
+				"hook {$hook} -> {$callback} should be registered on the first instance at priority {$priority}"
+			);
+		}
+
+		$second = new WC_Stripe();
+
+		foreach ( $hooks as [ $hook, $callback, $priority ] ) {
+			$this->assertFalse(
+				has_filter( $hook, [ $second, $callback ] ),
+				"hook {$hook} -> {$callback} should NOT be registered on the second instance"
+			);
+			$this->assertSame(
+				$priority,
+				has_filter( $hook, [ $first, $callback ] ),
+				"hook {$hook} -> {$callback} on the first instance should remain at priority {$priority} after second construction"
+			);
+		}
+	}
+
+	/**
+	 * The frontend-only billing-fields filter must follow the same guard.
+	 */
+	public function test_checkout_update_email_field_priority_filter_registered_only_for_first_instance_in_frontend(): void {
+		$initial_screen = $GLOBALS['current_screen'] ?? null;
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$GLOBALS['current_screen'] = \WP_Screen::get( 'post.php' );
+
+		try {
+			$first = WC_Stripe::get_instance();
+
+			$this->assertSame(
+				50,
+				has_filter( 'woocommerce_billing_fields', [ $first, 'checkout_update_email_field_priority' ] )
+			);
+
+			$second = new WC_Stripe();
+
+			$this->assertFalse(
+				has_filter( 'woocommerce_billing_fields', [ $second, 'checkout_update_email_field_priority' ] )
+			);
+			$this->assertSame(
+				50,
+				has_filter( 'woocommerce_billing_fields', [ $first, 'checkout_update_email_field_priority' ] )
+			);
+		} finally {
+			if ( null !== $initial_screen ) {
+				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+				$GLOBALS['current_screen'] = $initial_screen;
+			}
+		}
+	}
+
+	/**
+	 * Collaborator classes that init() instantiates inside guarded blocks must
+	 * not be re-instantiated when a second WC_Stripe is constructed.
+	 *
+	 * Detection: count the callbacks registered on a hook unique to each
+	 * collaborator before and after the second construction. The delta must
+	 * be zero.
+	 */
+	public function test_collaborators_not_reinstantiated_on_second_construction(): void {
+		// Hooks chosen because they are registered ONLY by the collaborator's
+		// constructor / init_hooks() — so a duplicate instance bumps the count
+		// by exactly 1.
+		$collaborators = [
+			'WC_Stripe_Webhook_Handler'                => [ 'woocommerce_api_wc_stripe', 10 ],
+			'WC_Stripe_Order_Handler'                  => [ 'woocommerce_admin_order_totals_after_total', 10 ],
+			'WC_Stripe_Payment_Tokens'                 => [ 'woocommerce_payment_methods_list_item', 10 ],
+			'WC_Stripe_Intent_Controller'              => [ 'wc_ajax_wc_stripe_verify_intent', 10 ],
+			'WC_Stripe_Checkout_Sessions_Ajax_Handler' => [ 'wc_ajax_wc_stripe_create_checkout_session', 10 ],
+		];
+
+		$before = [];
+		foreach ( $collaborators as $class => [ $hook, $priority ] ) {
+			$before[ $class ] = $this->count_hook_callbacks( $hook, $priority );
+		}
+
+		$wc_stripe_reflection = new ReflectionClass( WC_Stripe::class );
+		$instance_reflection  = $wc_stripe_reflection->getProperty( 'instance' );
+		$instance_reflection->setAccessible( true );
+		$instance_reflection->setValue( null, null );
+
+		$first = WC_Stripe::get_instance();
+
+		$after_first = [];
+		foreach ( $collaborators as $class => [ $hook, $priority ] ) {
+			$after_first[ $class ] = $this->count_hook_callbacks( $hook, $priority );
+			$this->assertGreaterThan( $before[ $class ], $after_first[ $class ], "{$class} should have been instantiated on the first instance" );
+		}
+
+		$second = new WC_Stripe();
+
+		foreach ( $collaborators as $class => [ $hook, $priority ] ) {
+			$after = $this->count_hook_callbacks( $hook, $priority );
+			$this->assertSame(
+				$after_first[ $class ] ?? -1,
+				$after,
+				"{$class} appears to have been re-instantiated: callback count on {$hook} (priority {$priority}) changed from {$before[ $class ]} to {$after}"
+			);
+		}
+	}
+
+	/**
+	 * Helper: count callbacks registered on `$hook` at `$priority`.
+	 *
+	 * @param string $hook     Hook name.
+	 * @param int    $priority Priority level.
+	 * @return int Number of registered callbacks at that priority.
+	 */
+	private function count_hook_callbacks( string $hook, int $priority ): int {
+		global $wp_filter;
+
+		if ( ! isset( $wp_filter[ $hook ] ) || ! isset( $wp_filter[ $hook ]->callbacks[ $priority ] ) ) {
+			return 0;
+		}
+
+		return count( $wp_filter[ $hook ]->callbacks[ $priority ] );
 	}
 }
