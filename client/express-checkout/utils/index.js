@@ -120,8 +120,10 @@ export const getExpressCheckoutButtonAppearance = () => {
 
 /**
  * Returns the style settings for the Express Checkout buttons.
+ *
+ * @param {string} [expressPaymentType] The express payment method type.
  */
-export const getExpressCheckoutButtonStyleSettings = () => {
+export const getExpressCheckoutButtonStyleSettings = ( expressPaymentType ) => {
 	const buttonSettings = getExpressCheckoutData( 'button' );
 
 	// Maps the WC Stripe theme from settings to the button theme.
@@ -149,6 +151,14 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 			? 'plain'
 			: buttonSettings?.type ?? 'buy';
 
+	const height =
+		expressPaymentType === EXPRESS_PAYMENT_METHOD_SETTING_LINK
+			? parseInt(
+					getExpressCheckoutData( 'link_button_height' ) ?? '48',
+					10
+			  )
+			: parseInt( buttonSettings?.height ?? '48', 10 );
+
 	return {
 		paymentMethods: {
 			amazonPay: 'auto',
@@ -173,10 +183,7 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 			applePay: buttonMethodType,
 		},
 		// Allowed height must be 40px to 55px.
-		buttonHeight: Math.min(
-			Math.max( parseInt( buttonSettings?.height ?? '48', 10 ), 40 ),
-			55
-		),
+		buttonHeight: Math.min( Math.max( height, 40 ), 55 ),
 	};
 };
 

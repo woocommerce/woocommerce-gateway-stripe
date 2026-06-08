@@ -5,11 +5,13 @@ import { screen, render } from '@testing-library/react';
 import {
 	displayExpressCheckoutNotice,
 	getErrorMessageFromNotice,
+	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
 	getPaymentMethodTypesForExpressMethod,
 } from '..';
 import {
 	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 	PAYMENT_METHOD_AMAZON_PAY,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
@@ -136,6 +138,57 @@ describe( 'Express checkout utils', () => {
 			expect( paymentMethodTypes ).toEqual( [
 				PAYMENT_METHOD_AMAZON_PAY,
 			] );
+		} );
+	} );
+
+	describe( 'getExpressCheckoutButtonStyleSettings', () => {
+		afterEach( () => {
+			delete window.wc_stripe_express_checkout_params;
+		} );
+
+		test( 'uses the shared button height for non-Link methods', () => {
+			window.wc_stripe_express_checkout_params = {
+				button: { height: '48' },
+				link_button_height: '56',
+			};
+
+			expect(
+				getExpressCheckoutButtonStyleSettings(
+					EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY
+				).buttonHeight
+			).toBe( 48 );
+		} );
+
+		test.each( [
+			[ '40', 40 ],
+			[ '48', 48 ],
+			[ '56', 55 ],
+		] )(
+			'uses the Link button height (%s px) for Link, clamped to 40-55',
+			( linkHeight, expected ) => {
+				window.wc_stripe_express_checkout_params = {
+					button: { height: '48' },
+					link_button_height: linkHeight,
+				};
+
+				expect(
+					getExpressCheckoutButtonStyleSettings(
+						EXPRESS_PAYMENT_METHOD_SETTING_LINK
+					).buttonHeight
+				).toBe( expected );
+			}
+		);
+
+		test( 'falls back to 48px for Link when no link height is set', () => {
+			window.wc_stripe_express_checkout_params = {
+				button: { height: '40' },
+			};
+
+			expect(
+				getExpressCheckoutButtonStyleSettings(
+					EXPRESS_PAYMENT_METHOD_SETTING_LINK
+				).buttonHeight
+			).toBe( 48 );
 		} );
 	} );
 } );

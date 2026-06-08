@@ -25,11 +25,13 @@ export const useExpressCheckout = ( {
 	onClick,
 	onClose,
 	setExpressPaymentError,
+	expressPaymentMethod,
 } ) => {
 	const stripe = useStripe();
 	const elements = useElements();
 
-	const buttonOptions = getExpressCheckoutButtonStyleSettings();
+	const buttonOptions =
+		getExpressCheckoutButtonStyleSettings( expressPaymentMethod );
 	const transformAmountForStripe = useCallback(
 		( amount ) =>
 			transformPriceWithMinorUnits( amount, billing.currency.minorUnit ),
