@@ -79,9 +79,7 @@ const ExpressCheckoutPreviewComponent = ( { size } ) => {
 		<InlineNotice icon status="error" isDismissible={ false }>
 			{ __(
 				'Failed to preview the Link by Stripe button. ' +
-					'Ensure your store uses HTTPS on a publicly available domain ' +
-					"and you're viewing this page in a Safari or Chrome browser. " +
-					'Your device must be configured to use Link.',
+					'Ensure your store uses HTTPS on a publicly available domain.',
 				'woocommerce-gateway-stripe'
 			) }
 		</InlineNotice>
