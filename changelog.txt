@@ -1,6 +1,6 @@
 *** Changelog ***
 
-2026-06-08 - version 10.8.0
+xxxx-xx-xx - version 10.8.0
 * Fix - Add an order note and call action 'wc_stripe_unexpected_charge_detected' when a Stripe charge is captured for an order that was already paid via a different gateway
 * Fix - Add empty state mapping for Morocco in express checkout
 * Add - Default Optimized Checkout Suite and Adaptive Pricing on for all eligible stores, with in-app notices announcing the change
