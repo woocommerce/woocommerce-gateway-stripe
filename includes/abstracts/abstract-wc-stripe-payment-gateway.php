@@ -2755,8 +2755,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Returns the default order-identification metadata sent to Stripe for an order's intent.
 	 *
-	 * Centralizes these fields so the code paths that attach metadata to an intent stay in sync
-	 * instead of each computing its own copy and drifting apart.
+	 * @since 10.9.0
 	 *
 	 * @param WC_Order $order The order the intent belongs to.
 	 * @return array The default metadata: order_id, order_key, signature and tax_amount.
