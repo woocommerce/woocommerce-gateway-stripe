@@ -524,11 +524,29 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_capture( $notification ) {
-		$order        = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+		$charge       = $notification->data->object;
+		$order        = WC_Stripe_Helper::get_order_by_charge_id( $charge->id );
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		if ( ! $order ) {
-			WC_Stripe_Logger::warning( 'Could not find order via charge ID: ' . $notification->data->object->id );
+			// Detect an "unexpected charge": this captured charge isn't recorded on any order (the
+			// lookup above found nothing), so recover the order from the charge's parent PaymentIntent
+			// and flag it if the shopper has since settled that order through a different gateway.
+			if ( ! empty( $charge->payment_intent ) ) {
+				$intent_order = WC_Stripe_Helper::get_order_by_intent_id( (string) $charge->payment_intent );
+				if ( $intent_order instanceof WC_Order
+					&& $this->maybe_flag_unexpected_charge_on_order(
+						$intent_order,
+						(string) $charge->payment_intent,
+						$charge,
+						'charge.captured'
+					)
+				) {
+					return;
+				}
+			}
+
+			WC_Stripe_Logger::warning( 'Could not find order via charge ID: ' . $charge->id );
 			return;
 		}
 
@@ -588,6 +606,27 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// https://docs.stripe.com/api/events/types#event_types-charge.succeeded
 		$charge = $notification->data->object;
 
+		$order = WC_Stripe_Helper::get_order_by_charge_id( $charge->id );
+
+		// Detect an "unexpected charge": a Stripe charge that succeeds for an order the shopper has
+		// since settled through a different gateway (e.g. they abandoned the Stripe flow after 3DS,
+		// then paid the same order with another method). The order never stored this charge as its
+		// transaction_id, so the lookup above misses it and we recover the order from the charge's
+		// parent PaymentIntent.
+		if ( ! $order && ! empty( $charge->payment_intent ) && ! empty( $charge->captured ) ) {
+			$intent_order = WC_Stripe_Helper::get_order_by_intent_id( (string) $charge->payment_intent );
+			if ( $intent_order instanceof WC_Order
+				&& $this->maybe_flag_unexpected_charge_on_order(
+					$intent_order,
+					(string) $charge->payment_intent,
+					$charge,
+					'charge.succeeded'
+				)
+			) {
+				return;
+			}
+		}
+
 		// The following payment methods are synchronous so does not need to be handled via webhook.
 		$payment_method_type = $this->get_payment_method_type_from_charge( $charge );
 		$synchronous_methods = [
@@ -599,8 +638,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( in_array( $payment_method_type, $synchronous_methods, true ) ) {
 			return;
 		}
-
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $charge->id );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::debug( 'Could not find order via charge ID: ' . $charge->id );
@@ -1426,6 +1463,76 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// This will be caught by Action Scheduler and logged as an error.
 			throw $e;
 		}
+	}
+
+	/**
+	 * Returns true when the order was paid via a Stripe gateway (the main `stripe` gateway or a
+	 * `stripe_*` payment method).
+	 *
+	 * @param WC_Order $order
+	 */
+	protected function order_uses_stripe_gateway( WC_Order $order ): bool {
+		$payment_method = (string) $order->get_payment_method();
+		return 'stripe' === $payment_method || str_starts_with( $payment_method, 'stripe_' );
+	}
+
+	/**
+	 * Flags an unexpected Stripe charge on an order that was paid via a different gateway.
+	 *
+	 * Adds a visible order note linking to the Stripe dashboard and fires an action so site-specific
+	 * integrations can react (for example, to auto-refund). Idempotent per intent — repeat calls for
+	 * the same PaymentIntent on the same order are no-ops, so it's safe to invoke from every webhook
+	 * path that can detect the unexpected charge (charge.succeeded fallback, charge.captured fallback).
+	 *
+	 * @param WC_Order $order        The order to evaluate.
+	 * @param string   $intent_id    The Stripe PaymentIntent ID.
+	 * @param object   $charge       The Stripe Charge object.
+	 * @param string   $webhook_type The Stripe webhook event type (e.g. 'charge.succeeded' or 'charge.captured').
+	 *
+	 * @return bool True when an unexpected-charge note was added, false when skipped.
+	 */
+	protected function maybe_flag_unexpected_charge_on_order( WC_Order $order, string $intent_id, object $charge, string $webhook_type ): bool {
+		if ( $this->order_uses_stripe_gateway( $order ) ) {
+			return false;
+		}
+		$dedup_meta_key = '_stripe_unexpected_charge_flagged_' . $intent_id;
+		if ( '' !== (string) $order->get_meta( $dedup_meta_key ) ) {
+			return false;
+		}
+
+		$currency        = strtoupper( (string) $charge->currency );
+		$decimal_amount  = WC_Stripe_Helper::convert_from_stripe_amount( (int) $charge->amount, $currency );
+		$formatted_price = wc_price( $decimal_amount, [ 'currency' => $currency ] );
+		$dashboard_url   = WC_Stripe_Helper::get_transaction_url_for_id( $intent_id, empty( $charge->livemode ) );
+
+		$message = sprintf(
+			/* translators: 1) formatted amount with currency, 2) Stripe PaymentIntent ID, 3) Stripe charge ID, 4) opening anchor tag for the Stripe dashboard link, 5) closing anchor tag. */
+			__( 'Stripe captured a charge of %1$s (PaymentIntent %2$s, charge %3$s) after this order was already paid by another gateway. This unexpected charge needs to be refunded manually from the %4$sStripe dashboard%5$s.', 'woocommerce-gateway-stripe' ),
+			wp_kses_post( $formatted_price ),
+			esc_html( $intent_id ),
+			esc_html( (string) $charge->id ),
+			'<a href="' . esc_url( $dashboard_url ) . '" target="_blank" rel="noopener noreferrer">',
+			'</a>'
+		);
+
+		$order->add_order_note( $message );
+		$order->update_meta_data( $dedup_meta_key, current_time( 'mysql' ) );
+		$order->save();
+
+		/**
+		 * Fires when an asynchronously-confirmed Stripe charge is detected on an order that was
+		 * already paid via a different gateway, leaving an unexpected charge that the merchant needs
+		 * to remediate. Triggered at most once per PaymentIntent per order.
+		 *
+		 * @since 10.8.0
+		 *
+		 * @param WC_Order $order        The order paid via a non-Stripe gateway.
+		 * @param object   $charge       The Stripe Charge object.
+		 * @param string   $webhook_type The Stripe webhook event type ('charge.succeeded' or 'charge.captured').
+		 */
+		do_action( 'wc_stripe_unexpected_charge_detected', $order, $charge, $webhook_type );
+
+		return true;
 	}
 
 	/**

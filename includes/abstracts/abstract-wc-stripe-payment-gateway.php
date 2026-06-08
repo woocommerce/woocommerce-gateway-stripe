@@ -514,6 +514,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					'state'       => $order->get_shipping_state(),
 				],
 			];
+
+			// Include the shipping phone, when available, to support risk decisioning.
+			$shipping_phone = $order->get_shipping_phone();
+			if ( ! empty( $shipping_phone ) ) {
+				$post_data['shipping']['phone'] = $shipping_phone;
+			}
 		}
 
 		$post_data['expand[]'] = 'balance_transaction';
