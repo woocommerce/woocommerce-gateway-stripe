@@ -96,7 +96,7 @@ class WC_Stripe_Intent_Controller {
 		// Retrieve the order.
 		$order = wc_get_order( $order_id );
 
-		if ( ! $order ) {
+		if ( ! $order instanceof WC_Order ) {
 			throw new WC_Stripe_Exception( 'missing-order', __( 'Missing order ID for payment confirmation', 'woocommerce-gateway-stripe' ) );
 		}
 

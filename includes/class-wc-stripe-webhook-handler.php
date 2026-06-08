@@ -2150,7 +2150,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			// Try to retrieve from the metadata order ID.
 			if ( isset( $intent->metadata->order_id ) ) {
-				return wc_get_order( absint( $intent->metadata->order_id ) );
+				$order = wc_get_order( absint( $intent->metadata->order_id ) );
+
+				if ( $order instanceof WC_Order ) {
+					return $order;
+				}
+				return false;
 			}
 		}
 
@@ -2158,7 +2163,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( ! empty( $intent->charges ) && is_array( $intent->charges ) ) {
 			$charge   = $intent->charges[0] ?? [];
 			$order_id = $charge->metadata->order_id ?? null;
-			return $order_id ? wc_get_order( $order_id ) : false;
+			if ( $order_id ) {
+				$order = wc_get_order( $order_id );
+
+				if ( $order instanceof WC_Order ) {
+					return $order;
+				}
+			}
+			return false;
 		}
 
 		// Fall back to finding the order via the intent ID.
