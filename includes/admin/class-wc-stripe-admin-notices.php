@@ -563,7 +563,13 @@ class WC_Stripe_Admin_Notices {
 			esc_html__( 'Review settings', 'woocommerce-gateway-stripe' )
 		);
 
-		$actions = [ $review_action, $learn_more_action ];
+		// Don't include Review setting link when on the Stripe settings page.
+		$is_stripe_settings_page = isset( $_GET['page'], $_GET['section'], $_GET['panel'] ) && 'wc-settings' === $_GET['page'] && 'stripe' === $_GET['section'] && 'settings' === $_GET['panel'];
+		if ( $is_stripe_settings_page ) {
+			$actions = [ $learn_more_action ];
+		} else {
+			$actions = [ $review_action, $learn_more_action ];
+		}
 
 		if ( $is_oc_enabled && $is_ap_enabled && ! $is_india && 'yes' === get_option( self::SHOW_OCS_AP_BANNER_OPTION, 'no' ) ) {
 			$message = sprintf(
