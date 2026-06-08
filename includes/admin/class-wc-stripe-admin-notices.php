@@ -24,6 +24,23 @@ class WC_Stripe_Admin_Notices {
 	protected const DETACHED_NOTICE_DISMISSED_META = '_wc_stripe_subscription_detached_notice_dismissed';
 
 	/**
+	 * Product-update URL linked from the OCS/AP 10.8 "now active" notices.
+	 *
+	 * @var string
+	 */
+	private const OCS_AP_PRODUCT_UPDATE_URL = 'https://woocommerce.com/product-update/stripe-for-woocommerce-10-8-0';
+
+	/**
+	 * Server-side visibility flags, written by WC_Stripe_OCS_AP_Default_On_Update,
+	 * that gate the OCS/AP 10.8 "now active" notices.
+	 *
+	 * @var string
+	 */
+	private const SHOW_OCS_AP_BANNER_OPTION   = 'wc_stripe_show_ocs_ap_banner';
+	private const SHOW_AP_ONLY_BANNER_OPTION  = 'wc_stripe_show_ap_only_banner';
+	private const SHOW_OCS_ONLY_BANNER_OPTION = 'wc_stripe_show_ocs_only_banner';
+
+	/**
 	 * Notices (array)
 	 *
 	 * @var array
@@ -90,6 +107,9 @@ class WC_Stripe_Admin_Notices {
 		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4861
 		$this->check_express_checkout_location();
 
+		// "Now active" notices for the OCS + Adaptive Pricing 10.8 default-on rollout.
+		$this->check_ocs_ap_update_notices();
+
 		// Check for subscriptions detached from the customer.
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 			$this->subscription_check_detachment();
@@ -123,6 +143,11 @@ class WC_Stripe_Admin_Notices {
 					],
 					'strong' => [],
 					'br'     => [],
+					'img'    => [
+						'src'   => [],
+						'alt'   => [],
+						'style' => [],
+					],
 				]
 			);
 			echo '</p>';
@@ -133,8 +158,10 @@ class WC_Stripe_Admin_Notices {
 						$action,
 						[
 							'a' => [
-								'href'  => [],
-								'style' => [],
+								'class'  => [],
+								'href'   => [],
+								'style'  => [],
+								'target' => [],
 							],
 						]
 					);
@@ -484,6 +511,87 @@ class WC_Stripe_Admin_Notices {
 	}
 
 	/**
+	 * Surfaces the "now active" notices for the OCS + Adaptive Pricing 10.8
+	 * default-on rollout.
+	 *
+	 * The visibility options are written once by {@see WC_Stripe_OCS_AP_Default_On_Update}
+	 * at upgrade time, which guarantees they are mutually exclusive.
+	 *
+	 * Shown across all WooCommerce admin screens so the message reaches merchants
+	 * who never open the Stripe settings page.
+	 *
+	 * @since 10.8.0
+	 *
+	 * @return void
+	 */
+	public function check_ocs_ap_update_notices(): void {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || ! function_exists( 'wc_get_screen_ids' ) || ! in_array( $screen->id, wc_get_screen_ids(), true ) ) {
+			return;
+		}
+
+		$gateway       = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$is_oc_enabled = $gateway->is_oc_enabled();
+		$is_ap_enabled = 'yes' === $gateway->get_option( 'adaptive_pricing' );
+		$is_india      = 'IN' === WC_Stripe::get_instance()->account->get_account_country();
+
+		$stripe_logo_image = '<img src="' . esc_url( WC_STRIPE_PLUGIN_URL . '/assets/images/stripe-logo.svg' ) . '" alt="Stripe logo" style="float: right;" />';
+
+		$learn_more_action = sprintf(
+			'<a href="%s" class="button button-secondary" target="_blank" style="margin-top:1em;margin-right:1em;">%s</a>',
+			esc_url( self::OCS_AP_PRODUCT_UPDATE_URL ),
+			esc_html__( 'Learn more ↗', 'woocommerce-gateway-stripe' )
+		);
+
+		$review_action = sprintf(
+			'<a href="%s" class="button button-primary" target="_blank" style="margin-top:1em;margin-right:2em;">%s</a>',
+			$this->get_setting_link(),
+			__( 'Review settings', 'woocommerce-gateway-stripe' )
+		);
+
+		$actions = [ $review_action, $learn_more_action ];
+
+		if ( $is_oc_enabled && $is_ap_enabled && ! $is_india && 'yes' === get_option( self::SHOW_OCS_AP_BANNER_OPTION, 'no' ) ) {
+			$message = sprintf(
+				/* translators: 1) Image tag 2) HTML strong open tag 3) HTML strong closing tag 4) HTML line break tag */
+				__( '%1$s%2$sStripe Optimized Checkout Suite and Adaptive Pricing are now active%3$s%4$sYour checkout dynamically displays available payment methods most likely to drive conversions. International shoppers also see prices in their local currency, growing cross-border revenue by an average of 17.8%%.%4$s*Data is from Stripe global holdback study conducted in 2024', 'woocommerce-gateway-stripe' ),
+				$stripe_logo_image,
+				'<strong>',
+				'</strong>',
+				'<br><br>'
+			);
+			$this->add_admin_notice( 'ocs_ap_banner', 'notice notice-info', $message, true, $actions );
+			return;
+		}
+
+		if ( $is_oc_enabled && $is_ap_enabled && ! $is_india && 'yes' === get_option( self::SHOW_AP_ONLY_BANNER_OPTION, 'no' ) ) {
+			$message = sprintf(
+				/* translators: 1) Image tag 2) HTML strong open tag 3) HTML strong closing tag 4) HTML line break tag */
+				__( "%1\$s%2\$sStripe Adaptive Pricing is now active%3\$s%4\$sYour checkout now shows prices in shoppers' local currency across 150+ countries, growing cross-border revenue by an average of 17.8%%. Stripe handles real-time exchange rates with no currency conversion fees.%4\$s*Data is from Stripe global holdback study conducted in 2024", 'woocommerce-gateway-stripe' ),
+				$stripe_logo_image,
+				'<strong>',
+				'</strong>',
+				'<br><br>'
+			);
+			$this->add_admin_notice( 'ap_only_banner', 'notice notice-info', $message, true, $actions );
+			return;
+		}
+
+		if ( $is_oc_enabled && ! $is_ap_enabled && 'yes' === get_option( self::SHOW_OCS_ONLY_BANNER_OPTION, 'no' ) ) {
+			$message = sprintf(
+				/* translators: 1) Image tag 2) HTML strong open tag 3) HTML strong closing tag 4) HTML line break tag */
+				__( "%1\$s%2\$sStripe Optimized Checkout is now active%3\$s%4\$sYour checkout is optimized for sales by dynamically displaying the most relevant payment methods you've enabled for each customer.%4\$s*Data is from Stripe global holdback study conducted in 2024", 'woocommerce-gateway-stripe' ),
+				$stripe_logo_image,
+				'<strong>',
+				'</strong>',
+				'<br><br>'
+			);
+			$this->add_admin_notice( 'ocs_only_banner', 'notice notice-info', $message, true, $actions );
+			return;
+		}
+	}
+
+	/**
 	 * Adds a notice to the subscription details page if we are looking at an active subscription and the payment method has been detached.
 	 *
 	 * @return void
@@ -696,6 +804,15 @@ class WC_Stripe_Admin_Notices {
 					break;
 				case 'ece_location':
 					update_option( 'wc_stripe_show_ece_location_notice', 'no' );
+					break;
+				case 'ocs_ap_banner':
+					update_option( self::SHOW_OCS_AP_BANNER_OPTION, 'no' );
+					break;
+				case 'ap_only_banner':
+					update_option( self::SHOW_AP_ONLY_BANNER_OPTION, 'no' );
+					break;
+				case 'ocs_only_banner':
+					update_option( self::SHOW_OCS_ONLY_BANNER_OPTION, 'no' );
 					break;
 			}
 		}
