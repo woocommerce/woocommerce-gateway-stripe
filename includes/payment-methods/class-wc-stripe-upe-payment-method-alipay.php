@@ -8,7 +8,62 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::ALIPAY;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::ALIPAY;
+
+	/**
+	 * Stripe account countries that may enable Alipay. Differs slightly from the global
+	 * list (includes Malaysia; excludes Poland and Mexico) per Stripe's docs.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [
+		WC_Stripe_Country_Code::AUSTRIA,
+		WC_Stripe_Country_Code::AUSTRALIA,
+		WC_Stripe_Country_Code::BELGIUM,
+		WC_Stripe_Country_Code::BULGARIA,
+		WC_Stripe_Country_Code::CANADA,
+		WC_Stripe_Country_Code::SWITZERLAND,
+		WC_Stripe_Country_Code::CYPRUS,
+		WC_Stripe_Country_Code::CZECH_REPUBLIC,
+		WC_Stripe_Country_Code::GERMANY,
+		WC_Stripe_Country_Code::DENMARK,
+		WC_Stripe_Country_Code::ESTONIA,
+		WC_Stripe_Country_Code::SPAIN,
+		WC_Stripe_Country_Code::FINLAND,
+		WC_Stripe_Country_Code::FRANCE,
+		WC_Stripe_Country_Code::UNITED_KINGDOM,
+		WC_Stripe_Country_Code::GIBRALTAR,
+		WC_Stripe_Country_Code::GREECE,
+		WC_Stripe_Country_Code::HONG_KONG,
+		WC_Stripe_Country_Code::CROATIA,
+		WC_Stripe_Country_Code::HUNGARY,
+		WC_Stripe_Country_Code::IRELAND,
+		WC_Stripe_Country_Code::ITALY,
+		WC_Stripe_Country_Code::JAPAN,
+		WC_Stripe_Country_Code::LIECHTENSTEIN,
+		WC_Stripe_Country_Code::LITHUANIA,
+		WC_Stripe_Country_Code::LUXEMBOURG,
+		WC_Stripe_Country_Code::LATVIA,
+		WC_Stripe_Country_Code::MALTA,
+		WC_Stripe_Country_Code::MALAYSIA,
+		WC_Stripe_Country_Code::NETHERLANDS,
+		WC_Stripe_Country_Code::NORWAY,
+		WC_Stripe_Country_Code::NEW_ZEALAND,
+		WC_Stripe_Country_Code::PORTUGAL,
+		WC_Stripe_Country_Code::ROMANIA,
+		WC_Stripe_Country_Code::SWEDEN,
+		WC_Stripe_Country_Code::SINGAPORE,
+		WC_Stripe_Country_Code::SLOVENIA,
+		WC_Stripe_Country_Code::SLOVAKIA,
+		WC_Stripe_Country_Code::UNITED_STATES,
+	];
+
+	/**
+	 * Buyer eligibility is gated by having an Alipay account, not by country.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [];
 
 	/**
 	 * Constructor for alipay payment method

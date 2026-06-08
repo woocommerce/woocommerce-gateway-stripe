@@ -509,8 +509,7 @@ class WC_Stripe_Intent_Controller {
 		if ( $intent_id ) {
 			$request = [
 				'metadata'    => $gateway->get_metadata_from_order( $order ),
-				/* translators: 1) blog name 2) order number */
-				'description' => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+				'description' => WC_Stripe_Helper::get_payment_intent_description( $order ),
 			];
 
 			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
@@ -893,8 +892,7 @@ class WC_Stripe_Intent_Controller {
 				'confirm'              => 'true',
 				'currency'             => $payment_information['currency'],
 				'customer'             => $payment_information['customer'],
-				/* translators: 1) blog name 2) order number */
-				'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+				'description'          => WC_Stripe_Helper::get_payment_intent_description( $order ),
 				'metadata'             => $payment_information['metadata'],
 				'payment_method_types' => $payment_method_types,
 			]
@@ -902,6 +900,10 @@ class WC_Stripe_Intent_Controller {
 
 		if ( isset( $payment_information['statement_descriptor_suffix'] ) ) {
 			$request['statement_descriptor_suffix'] = $payment_information['statement_descriptor_suffix'];
+		}
+
+		if ( isset( $payment_information['statement_descriptor'] ) ) {
+			$request['statement_descriptor'] = $payment_information['statement_descriptor'];
 		}
 
 		if ( ! empty( $payment_information['payment_method_options'] ) ) {
@@ -1018,6 +1020,10 @@ class WC_Stripe_Intent_Controller {
 		$request = $this->build_base_payment_intent_request_params( $payment_information );
 
 		$order = $payment_information['order'];
+
+		// Note: statement_descriptor and statement_descriptor_suffix are intentionally
+		// NOT forwarded here. The Stripe /confirm endpoint does not accept these
+		// parameters — they can only be set at PaymentIntent creation time.
 
 		// Run the necessary filter to make sure mandate information is added when it's required.
 		$request = apply_filters(
@@ -1448,24 +1454,6 @@ class WC_Stripe_Intent_Controller {
 	 */
 	private function is_delayed_confirmation_required( $payment_methods ) {
 		return ! empty( array_intersect( $payment_methods, [ WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::MULTIBANCO, WC_Stripe_Payment_Methods::CASHAPP_PAY ] ) );
-	}
-
-	/**
-	 * Check for a UPE redirect payment method on order received page or setup intent on payment methods page.
-	 *
-	 * @deprecated 8.3.0
-	 * @since 5.6.0
-	 * @version 5.6.0
-	 *
-	 * @return void
-	 */
-	public function maybe_process_upe_redirect() {
-		wc_deprecated_function( __FUNCTION__, '8.3', 'WC_Stripe_Order_Handler::maybe_process_redirect_order' );
-
-		$gateway = $this->get_gateway();
-		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
-			$gateway->maybe_process_upe_redirect();
-		}
 	}
 
 	/**

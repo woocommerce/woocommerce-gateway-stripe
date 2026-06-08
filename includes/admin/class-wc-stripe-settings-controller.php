@@ -158,7 +158,6 @@ class WC_Stripe_Settings_Controller {
 		// TODO: refactor this to a regex approach, we will need to touch `should_enqueue_in_current_tab_section` to support it
 		if ( ! ( WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe' )
 			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_sepa' )
-			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_giropay' )
 			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_ideal' )
 			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_bancontact' )
 			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_eps' )
@@ -215,6 +214,23 @@ class WC_Stripe_Settings_Controller {
 		$show_stripe_tax_banner = get_option( 'wc_stripe_show_stripe_tax_banner', 'yes' ) === 'yes'
 			// Show the Stripe Tax banner only if OC is enabled
 			&& $is_oc_enabled;
+
+		$is_ap_enabled    = 'yes' === $this->get_gateway()->get_option( 'adaptive_pricing' );
+		$is_india_account = 'IN' === $this->account->get_account_country();
+
+		$show_ocs_ap_banner = $is_oc_enabled
+			&& $is_ap_enabled
+			&& ! $is_india_account
+			&& 'yes' === get_option( 'wc_stripe_show_ocs_ap_banner', 'no' );
+
+		$show_ap_only_banner = $is_oc_enabled
+			&& $is_ap_enabled
+			&& ! $is_india_account
+			&& 'yes' === get_option( 'wc_stripe_show_ap_only_banner', 'no' );
+
+		$show_ocs_only_banner = $is_oc_enabled
+			&& ! $is_ap_enabled
+			&& 'yes' === get_option( 'wc_stripe_show_ocs_only_banner', 'no' );
 
 		$is_checkout_sessions_available      = false;
 		$adaptive_pricing_unavailable_reason = 'disabled';

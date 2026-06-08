@@ -224,6 +224,12 @@ jQuery( function ( $ ) {
 			const areTaxesBasedOnBillingAddress = getExpressCheckoutData(
 				'taxes_based_on_billing'
 			);
+			// Amazon Pay needs a confirmation-token flow that
+			// `handleChangePaymentMethodFlow` does not implement, so it must not
+			// be offered on the subscription change-payment page.
+			const isChangePaymentMethod = getExpressCheckoutData(
+				'is_change_payment_method'
+			);
 
 			// For each supported express payment type, create their own
 			// express checkout element. This is necessary as some express payment types
@@ -236,6 +242,7 @@ jQuery( function ( $ ) {
 					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 				isAmazonPayEnabled &&
 					! areTaxesBasedOnBillingAddress &&
+					! isChangePaymentMethod &&
 					EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			].filter( Boolean );
@@ -339,14 +346,28 @@ jQuery( function ( $ ) {
 			}
 
 			const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
+			const isChangePaymentMethod = getExpressCheckoutData(
+				'is_change_payment_method'
+			);
+
+			let elementsMode;
+			if ( isChangePaymentMethod ) {
+				elementsMode = 'setup';
+			} else if ( hasFreeTrial ) {
+				elementsMode = 'subscription';
+			} else {
+				elementsMode = 'payment';
+			}
 
 			const elements = api.getStripe().elements( {
-				mode: hasFreeTrial ? 'subscription' : 'payment',
-				amount: options.total,
+				mode: elementsMode,
+				...( elementsMode !== 'setup' && {
+					amount: options.total,
+				} ),
 				currency: options.currency,
 				...( isManualPaymentMethodCreation(
 					expressPaymentType,
-					hasFreeTrial
+					isChangePaymentMethod || hasFreeTrial
 				) && {
 					paymentMethodCreation: 'manual',
 				} ),
@@ -505,6 +526,19 @@ jQuery( function ( $ ) {
 		 * Initialize event handlers and UI state
 		 */
 		init: () => {
+			if ( getExpressCheckoutData( 'is_change_payment_method' ) ) {
+				const currency =
+					getExpressCheckoutData( 'checkout' )?.currency_code ??
+					'usd';
+				wcStripeECE.startExpressCheckout( {
+					total: 0,
+					currency,
+					appearance: getExpressCheckoutButtonAppearance(),
+					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
+				} );
+				return;
+			}
+
 			if ( getExpressCheckoutData( 'is_pay_for_order' ) ) {
 				if (
 					typeof wcStripeExpressCheckoutPayForOrderParams ===
@@ -924,7 +958,8 @@ jQuery( function ( $ ) {
 	if (
 		getExpressCheckoutData( 'is_product_page' ) ||
 		getExpressCheckoutData( 'is_pay_for_order' ) ||
-		getExpressCheckoutData( 'is_cart_page' )
+		getExpressCheckoutData( 'is_cart_page' ) ||
+		getExpressCheckoutData( 'is_change_payment_method' )
 	) {
 		wcStripeECE.init();
 	}

@@ -11,13 +11,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 	class WC_Stripe_Connect {
 
 		/**
-		 * The option name for the Stripe gateway settings.
-		 *
-		 * @deprecated 8.7.0
-		 */
-		const SETTINGS_OPTION = 'woocommerce_stripe_settings';
-
-		/**
 		 * Stripe connect api.
 		 *
 		 * @var object $api
@@ -222,13 +215,16 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		}
 
 		/**
-		 * Helper function to clear some important PMC caches after a key update.
+		 * Helper function to clear some important caches after a key update.
 		 */
 		public function clear_caches_after_key_update(): void {
 			// Note that we also need to update the fallback PMC details, but we can't simply wipe that data.
 
 			// Clear PMC cache after key updates.
 			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+
+			// Clear the account cache; the new keys may belong to a different account.
+			WC_Stripe::get_instance()->account->clear_cache();
 		}
 
 		/**
@@ -280,10 +276,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$should_default_optimized_checkout_on       = get_option( 'wc_stripe_optimized_checkout_default_on' );
 			// Clean up the option.
 			delete_option( 'wc_stripe_optimized_checkout_default_on' );
-			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
-				$options['optimized_checkout_element'] = 'yes';
-				$options['adaptive_pricing']           = 'yes';
-			}
 			if ( 'app' === $type ) {
 				$options[ $prefix . 'refresh_token' ] = $result->refreshToken; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			}
@@ -302,6 +294,17 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', '' );
 
 			$this->clear_caches_after_key_update();
+
+			// Runs after the keys are saved: the Adaptive Pricing decision needs the account data.
+			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
+				$options['optimized_checkout_element'] = 'yes';
+				if ( WC_Stripe_Helper::is_adaptive_pricing_available_for_account() ) {
+					$options['adaptive_pricing'] = 'yes';
+				} else {
+					WC_Stripe_Logger::info( 'OAuth: Not defaulting Adaptive Pricing on; it is not available for the connected account.' );
+				}
+				WC_Stripe_Helper::update_main_stripe_settings( $options );
+			}
 
 			if ( $is_verbose_debug_mode_enabled ) {
 				WC_Stripe_Logger::debug(

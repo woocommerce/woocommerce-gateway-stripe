@@ -35,14 +35,29 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 *
 	 * @var string
 	 */
-	const ID = 'stripe-agentic-commerce';
+	public const ID = 'stripe-agentic-commerce';
 
 	/**
 	 * Action Scheduler hook name.
 	 *
 	 * @var string
 	 */
-	const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_feed';
+	public const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_feed';
+
+	/**
+	 * Action Scheduler group for adapter-fired one-off resyncs.
+	 *
+	 * Kept distinct from the recurring `wc-stripe` group so the idempotency
+	 * guard in {@see self::schedule_full_resync_now()} can ask "is another
+	 * adapter-fired resync already pending?" without matching the recurring
+	 * full-feed occurrence — `as_has_scheduled_action()` filters by group,
+	 * so a shared group would make the one-off a no-op whenever the cron
+	 * tick is queued.
+	 *
+	 * @var string
+	 * @since 10.8.0
+	 */
+	private const ASYNC_RESYNC_GROUP = 'wc-stripe-agentic-resync';
 
 	/**
 	 * Option name to track whether the sync is scheduled.
@@ -50,7 +65,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @var string
 	 * @since 10.5.0
 	 */
-	const SCHEDULED_OPTION = 'wc_stripe_agentic_commerce_feed_sync_scheduled';
+	public const SCHEDULED_OPTION = 'wc_stripe_agentic_commerce_feed_sync_scheduled';
 
 	/**
 	 * Option key for the merchant-facing enabled toggle.
@@ -61,7 +76,30 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @var string
 	 * @since 10.6.0
 	 */
-	const ENABLED_OPTION = 'wc_stripe_agentic_commerce_enabled';
+	public const ENABLED_OPTION = 'wc_stripe_agentic_commerce_enabled';
+
+	/**
+	 * Option key storing the content hash, upload timestamp, and Stripe file id
+	 * of the most recent successful full-catalog upload. Used to skip the Stripe
+	 * Files API upload when the regenerated catalog is byte-identical to the
+	 * previously uploaded one.
+	 *
+	 * @var string
+	 * @since 10.8.0
+	 */
+	private const LAST_UPLOAD_OPTION = 'wc_stripe_agentic_commerce_last_feed_upload';
+
+	/**
+	 * Maximum age (in seconds) before a cached feed upload is considered stale
+	 * and the next sync uploads even if the content hash matches. Guards against
+	 * Stripe-side file expiration and against bugs in our hashing logic.
+	 *
+	 * Override via the `wc_stripe_agentic_commerce_feed_cache_ttl` filter.
+	 *
+	 * @var int
+	 * @since 10.8.0
+	 */
+	private const FEED_CACHE_TTL = WEEK_IN_SECONDS;
 
 	/**
 	 * Option key for the Agentic Commerce webhook secret.
@@ -76,14 +114,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @var string
 	 * @since 10.7.0
 	 */
-	const WEBHOOK_SECRET_OPTION = 'wc_stripe_agentic_commerce_webhook_secret';
+	public const WEBHOOK_SECRET_OPTION = 'wc_stripe_agentic_commerce_webhook_secret';
 
 	/**
 	 * Sync interval in seconds.
 	 *
 	 * @var int
 	 */
-	const SYNC_INTERVAL = 15 * MINUTE_IN_SECONDS;
+	public const SYNC_INTERVAL = 15 * MINUTE_IN_SECONDS;
 
 	/**
 	 * Option key for the last sync result.
@@ -116,6 +154,18 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public const SYNC_HISTORY_LIMIT = 50;
 
 	/**
+	 * Cached validator instance for the current sync, so the walker (via
+	 * {@see ProductWalker::from_integration()}) and the post-walk caller in
+	 * {@see self::sync_feed()} share state — specifically, the validator's
+	 * accumulated per-product failures. Reset to null at the start of each
+	 * sync_feed() call so successive syncs in the same request don't pool
+	 * errors across runs.
+	 *
+	 * @var FeedValidatorInterface|null
+	 */
+	protected ?FeedValidatorInterface $feed_validator = null;
+
+	/**
 	 * Get integration ID.
 	 *
 	 * @since 10.5.0
@@ -134,11 +184,62 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public function register_hooks(): void {
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 
+		// Adapter-fired hook for converging Stripe's catalog when the
+		// `wc_stripe_agentic_commerce_should_sync_product` filter outcome changes.
+		// See the filter docblock for the contract — without this, a previously
+		// exported product that becomes excluded would only drop out of Stripe's
+		// catalog on the next scheduled full sync.
+		add_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $this, 'schedule_full_resync_now' ] );
+
 		// WC 10.8+ requires `created_via` to be in an allowlist for `payment_complete()` to run.
 		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $this, 'allow_agentic_payment_complete' ] );
 
 		$inventory_tracker = new WC_Stripe_Agentic_Commerce_Inventory_Tracker();
 		$inventory_tracker->register_hooks();
+	}
+
+	/**
+	 * Enqueue an immediate full-feed sync if one is not already pending.
+	 *
+	 * Idempotent: when a sync is already pending (recurring cron tick or a
+	 * previous call within the same request), this is a no-op. Adapters can
+	 * call it cheaply on every visibility-setting save without worrying about
+	 * stacking Action Scheduler entries.
+	 *
+	 * @since 10.8.0
+	 * @return void
+	 */
+	public function schedule_full_resync_now(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_enqueue_async_action' ) ) {
+			return;
+		}
+
+		if ( as_has_scheduled_action( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP ) ) {
+			return;
+		}
+
+		as_enqueue_async_action( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP );
+	}
+
+	/**
+	 * Cancel any pending adapter-fired one-off resync.
+	 *
+	 * A full sync that has just run — e.g. a manual sync from the settings UI —
+	 * already produces a complete upload reflecting current visibility, so a
+	 * queued {@see self::schedule_full_resync_now()} action would only repeat
+	 * that work. It lives in {@see self::ASYNC_RESYNC_GROUP}, which the manual
+	 * sync's `wc-stripe`-group reschedule does not touch, so it must be cleared
+	 * explicitly. Idempotent: a no-op when nothing is queued.
+	 *
+	 * @since 10.8.0
+	 * @return void
+	 */
+	public function cancel_pending_full_resync(): void {
+		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+
+		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP );
 	}
 
 	/**
@@ -196,7 +297,9 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		}
 
 		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], 'wc-stripe' );
+		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP );
 		delete_option( self::SCHEDULED_OPTION );
+		delete_option( self::LAST_UPLOAD_OPTION );
 
 		WC_Stripe_Logger::info( 'Agentic Commerce: Canceled all scheduled feed syncs' );
 	}
@@ -252,7 +355,10 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return FeedValidatorInterface Feed validator instance.
 	 */
 	public function get_feed_validator(): FeedValidatorInterface {
-		return new WC_Stripe_Agentic_Commerce_Feed_Validator();
+		if ( null === $this->feed_validator ) {
+			$this->feed_validator = new WC_Stripe_Agentic_Commerce_Feed_Validator();
+		}
+		return $this->feed_validator;
 	}
 
 	/**
@@ -294,9 +400,17 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Generates product feed using ProductWalker.
 	 *
 	 * @since 10.5.0
+	 * @param bool $force_upload When true, bypass the content-hash dedup check and always
+	 *                           push the regenerated catalog to Stripe. Used by manual sync
+	 *                           from the UI, where the merchant expects every click to land
+	 *                           an upload regardless of whether the file changed.
 	 * @return bool True on successful delivery, false on early returns or failure.
 	 */
-	public function sync_feed(): bool {
+	public function sync_feed( bool $force_upload = false ): bool {
+		// Drop any validator cached from a previous sync so this run starts
+		// with a clean per-product error accumulator.
+		$this->feed_validator = null;
+
 		if ( ! $this->is_enabled() ) {
 			WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - feature not enabled' );
 			return false;
@@ -320,7 +434,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			$walker = ProductWalker::from_integration( $this, $feed );
 
 			// Walk through products and generate feed.
-			$total_products = $walker->walk(
+			$iterated_products = $walker->walk(
 				function ( WalkerProgress $progress ) {
 					WC_Stripe_Logger::info(
 						'Agentic Commerce: Feed generation progress',
@@ -333,6 +447,23 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					);
 				}
 			);
+
+			// Use the CSV entry count as the authoritative "synced" number — the
+			// walker returns the count of products *iterated*, which includes rows
+			// the validator dropped before they made it into the feed.
+			$total_products = $feed instanceof WC_Stripe_Agentic_Commerce_Csv_Feed
+				? $feed->get_entry_count()
+				: $iterated_products;
+
+			// Separate the two kinds of dropped row the walker can't distinguish:
+			// filter-excluded (a merchant choice) vs. failed validation. Only the
+			// latter warns and triggers "Partial success".
+			$validator      = $this->get_feed_validator();
+			$excluded_count = $validator instanceof WC_Stripe_Agentic_Commerce_Feed_Validator
+				? $validator->get_excluded_count()
+				: 0;
+			$dropped_count  = max( 0, $iterated_products - $total_products );
+			$skipped_count  = max( 0, $dropped_count - $excluded_count );
 
 			if ( 0 === $total_products ) {
 				WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - no products to sync' );
@@ -356,24 +487,83 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			WC_Stripe_Logger::info(
 				'Agentic Commerce: Feed generated successfully',
 				[
-					'total_products'  => $total_products,
-					'generation_time' => round( $generation_time, 2 ) . 's',
-					'file_path'       => $file_path,
-					'file_size_mb'    => round( $file_size / 1024 / 1024, 2 ),
+					'total_products'    => $total_products,
+					'iterated_products' => $iterated_products,
+					'skipped_products'  => $skipped_count,
+					'excluded_products' => $excluded_count,
+					'generation_time'   => round( $generation_time, 2 ) . 's',
+					'file_path'         => $file_path,
+					'file_size_mb'      => round( $file_size / 1024 / 1024, 2 ),
 				]
 			);
 
+			if ( $skipped_count > 0 ) {
+				$collected       = $validator instanceof WC_Stripe_Agentic_Commerce_Feed_Validator
+					? $validator->get_collected_errors()
+					: [
+						'products'  => [],
+						'truncated' => 0,
+					];
+				$logged_products = $collected['products'] ?? [];
+				$truncated       = $collected['truncated'] ?? 0;
+
+				WC_Stripe_Logger::warning(
+					sprintf(
+						/* translators: 1: number of skipped products, 2: number of iterated products */
+						'Agentic Commerce: %1$d of %2$d products were skipped because they failed feed validation.',
+						$skipped_count,
+						$iterated_products
+					),
+					[
+						'products'  => $logged_products,
+						'truncated' => $truncated,
+					]
+				);
+			}
+
+			// Skip upload when the regenerated catalog is byte-identical to the last
+			// successfully uploaded one. Hashing still streams the file so memory
+			// stays bounded per the feed's streaming contract. Manual sync from the
+			// UI passes $force_upload=true so a merchant click always lands an
+			// upload regardless of whether the content changed.
+			$feed_hash = $this->get_feed_hash( (string) $file_path );
+			if ( ! $force_upload && $this->is_feed_unchanged( $feed_hash ) ) {
+				WC_Stripe_Logger::info(
+					'Agentic Commerce: Upload skipped - feed content unchanged since last successful upload',
+					[ 'content_hash' => $feed_hash ]
+				);
+				if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
+					wp_delete_file( $file_path );
+				}
+				// The feed on Stripe is already in sync, so report success rather
+				// than failure — the controller would otherwise treat a no-op as
+				// an error and surface it as a 500 to the manual-sync UI.
+				return true;
+			}
+
 			// Deliver feed to Stripe via Files API.
 			$result = $delivery->deliver( $feed );
+
+			$import_set_id = $result['import_set_id'] ?? '';
+			$status        = self::normalize_delivery_status( $result, $skipped_count );
 
 			WC_Stripe_Logger::info(
 				'Agentic Commerce: Feed delivered to Stripe',
 				[
 					'file_id'       => $result['file_id'] ?? '',
-					'import_set_id' => $result['import_set_id'] ?? '',
-					'status'        => $result['status'] ?? 'unknown',
+					'import_set_id' => $import_set_id,
+					'status'        => $status,
 				]
 			);
+
+			// Only record the dedup hash for runs Stripe actually accepted —
+			// `deliver()` throws on hard upload failure, but a returned import set
+			// with a `failed` status (or a missing ImportSet ID) still means we
+			// can't claim "this catalog is on Stripe". Storing the hash in those
+			// cases would suppress the next upload that could have recovered.
+			if ( ! empty( $feed_hash ) && '' !== $import_set_id && 'failed' !== $status ) {
+				$this->remember_feed_upload( $feed_hash, $result );
+			}
 
 			// Delete the file to prevent accumulation.
 			// Might be removed in favor of a scheduled job to allow debugging.
@@ -384,11 +574,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			// Persist sync result for dashboard display.
 			$this->store_sync_result(
 				[
-					'products'      => $total_products,
-					'status'        => $result['status'] ?? 'unknown',
-					'file_id'       => $result['file_id'] ?? '',
-					'import_set_id' => $result['import_set_id'] ?? '',
-					'error'         => '',
+					'products'         => $total_products,
+					'status'           => $status,
+					'file_id'          => $result['file_id'] ?? '',
+					'import_set_id'    => $import_set_id,
+					'error'            => '',
+					'skipped_products' => $skipped_count,
 				]
 			);
 
@@ -407,11 +598,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			// Persist failure for dashboard display.
 			$this->store_sync_result(
 				[
-					'products'      => 0,
-					'status'        => 'failed',
-					'file_id'       => '',
-					'import_set_id' => '',
-					'error'         => $e->getMessage(),
+					'products'         => 0,
+					'status'           => 'failed',
+					'file_id'          => '',
+					'import_set_id'    => '',
+					'error'            => $e->getMessage(),
+					'skipped_products' => 0,
 				]
 			);
 
@@ -426,11 +618,17 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @param array $result {
 	 *     Sync result data.
 	 *
-	 *     @type int    $products      Number of products synced.
-	 *     @type string $status        Sync status (e.g. "succeeded", "failed").
-	 *     @type string $file_id       Stripe file ID.
-	 *     @type string $import_set_id Stripe ImportSet ID.
-	 *     @type string $error         Error message, if any.
+	 *     @type int    $products         Number of products synced.
+	 *     @type string $status           Sync status (e.g. "succeeded", "failed").
+	 *     @type string $file_id          Stripe file ID.
+	 *     @type string $import_set_id    Stripe ImportSet ID.
+	 *     @type string $error            Error message, if any.
+	 *     @type int    $skipped_products Count of products dropped by the local
+	 *                                    feed validator before the CSV reached
+	 *                                    Stripe. Persisted so the refresh poll
+	 *                                    can upgrade a Stripe-reported `succeeded`
+	 *                                    to `succeeded_with_errors` once the
+	 *                                    ImportSet completes.
 	 * }
 	 * @return void
 	 */
@@ -442,12 +640,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		}
 
 		$entry = [
-			'timestamp'     => time(),
-			'products'      => $result['products'] ?? 0,
-			'status'        => $result['status'] ?? 'unknown',
-			'file_id'       => $result['file_id'] ?? '',
-			'import_set_id' => $result['import_set_id'] ?? '',
-			'error'         => $result['error'] ?? '',
+			'timestamp'        => time(),
+			'products'         => $result['products'] ?? 0,
+			'status'           => $result['status'] ?? 'unknown',
+			'file_id'          => $result['file_id'] ?? '',
+			'import_set_id'    => $result['import_set_id'] ?? '',
+			'error'            => $result['error'] ?? '',
+			'skipped_products' => isset( $result['skipped_products'] ) ? max( 0, (int) $result['skipped_products'] ) : 0,
 		];
 
 		$history[] = $entry;
@@ -499,11 +698,65 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
+	 * Resolve the status to persist from an ImportSet creation response.
+	 *
+	 * When Stripe returns an `import_set_id` but omits a `status` string, the
+	 * ImportSet is in-flight and should be recorded as `pending` so the
+	 * dashboard's non-terminal poll keeps refreshing until Stripe returns a
+	 * terminal state. Falls back to `unknown` only when the delivery failed
+	 * outright (no `import_set_id` returned).
+	 *
+	 * When `$skipped_count` is positive — i.e. the local validator dropped
+	 * some products before they reached the CSV — a Stripe-reported
+	 * `succeeded` is upgraded to `succeeded_with_errors` so the dashboard
+	 * badge ("Partial Success") matches the warning logged for the skips.
+	 *
+	 * @since 10.7.0
+	 * @param array $result        Delivery result from the Files API.
+	 * @param int   $skipped_count Count of products dropped by the local validator.
+	 * @return string Normalized status string.
+	 */
+	private static function normalize_delivery_status( array $result, int $skipped_count = 0 ): string {
+		$status        = $result['status'] ?? '';
+		$import_set_id = $result['import_set_id'] ?? '';
+
+		if ( '' === $status ) {
+			$status = '' !== $import_set_id ? 'pending' : 'unknown';
+		}
+
+		return self::apply_partial_success_rule( $status, $skipped_count );
+	}
+
+	/**
+	 * Upgrade `succeeded` to `succeeded_with_errors` when the local validator
+	 * dropped products at sync time.
+	 *
+	 * Centralizes the upgrade so it runs both at initial sync (via
+	 * {@see self::normalize_delivery_status()}) and at refresh time (via
+	 * {@see self::update_pending_statuses()}). The initial-sync call rarely
+	 * sees `succeeded` directly because Stripe processes the ImportSet
+	 * asynchronously; the refresh path is where the upgrade typically fires.
+	 *
+	 * @since 10.7.0
+	 * @param string $status        Status reported by Stripe (or normalized fallback).
+	 * @param int    $skipped_count Count of products dropped by the local validator
+	 *                              for the corresponding sync.
+	 * @return string Status with the partial-success upgrade applied if applicable.
+	 */
+	private static function apply_partial_success_rule( string $status, int $skipped_count ): string {
+		if ( 'succeeded' === $status && $skipped_count > 0 ) {
+			return 'succeeded_with_errors';
+		}
+
+		return $status;
+	}
+
+	/**
 	 * Apply status updates to non-terminal history entries by import_set_id.
 	 *
 	 * Re-reads the current history at write time and applies the updates to
 	 * matching entries whose stored status is non-terminal (`queued`,
-	 * `validating`, `pending`, `creating_records`, or `unknown`), matching
+	 * `validating_records`, `pending`, `creating_records`, or `unknown`), matching
 	 * the controller's
 	 * {@see WC_REST_Stripe_Agentic_Commerce_Controller::REFRESHABLE_STATUSES}.
 	 * This preserves any entries appended concurrently by
@@ -519,7 +772,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		$non_terminal_statuses = [ 'queued', 'validating', 'pending', 'creating_records', 'unknown' ];
+		$non_terminal_statuses = [ 'queued', 'validating', 'validating_records', 'pending', 'creating_records', 'unknown' ];
 
 		$history = self::get_sync_history();
 		$changed = false;
@@ -534,7 +787,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				continue;
 			}
 
-			$entry['status'] = $status_updates[ $import_set_id ];
+			$skipped_count = isset( $entry['skipped_products'] ) ? (int) $entry['skipped_products'] : 0;
+			$new_status    = self::apply_partial_success_rule( $status_updates[ $import_set_id ], $skipped_count );
+
+			if ( ( $entry['status'] ?? '' ) === $new_status ) {
+				continue;
+			}
+
+			$entry['status'] = $new_status;
 			$changed         = true;
 		}
 		unset( $entry );
@@ -549,6 +809,104 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		if ( is_array( $last ) ) {
 			update_option( self::LAST_SYNC_OPTION, $last, false );
 		}
+	}
+
+	/**
+	 * Compute the content hash of a generated feed file.
+	 *
+	 * Uses `hash_file` so PHP streams the file in chunks — the full catalog
+	 * is never buffered in memory, preserving the streaming feed contract.
+	 *
+	 * @since 10.8.0
+	 * @param string $file_path Absolute path to the generated feed file.
+	 * @return string SHA-256 hex digest, or an empty string if the file cannot be hashed.
+	 */
+	protected function get_feed_hash( string $file_path ): string {
+		if ( empty( $file_path ) || ! is_readable( $file_path ) ) {
+			return '';
+		}
+
+		$hash = hash_file( 'sha256', $file_path );
+		return false === $hash ? '' : $hash;
+	}
+
+	/**
+	 * Decide whether an upload can be skipped because the generated feed matches
+	 * the last successfully uploaded one.
+	 *
+	 * Returns false when dedup is disabled via filter, when the cached record is
+	 * missing/malformed, or when the cached upload has exceeded the cache TTL.
+	 *
+	 * @since 10.8.0
+	 * @param string $current_hash Hash of the feed that was just generated.
+	 * @return bool True if the upload should be skipped.
+	 */
+	protected function is_feed_unchanged( string $current_hash ): bool {
+		if ( empty( $current_hash ) ) {
+			return false;
+		}
+
+		/**
+		 * Filter whether the unchanged-feed deduplication is enabled.
+		 *
+		 * Set to false to force every sync cycle to upload to the Stripe Files API,
+		 * regardless of whether the feed content has changed.
+		 *
+		 * @since 10.8.0
+		 * @param bool $enabled Default true.
+		 */
+		if ( true !== apply_filters( 'wc_stripe_agentic_commerce_feed_dedupe_enabled', true ) ) {
+			return false;
+		}
+
+		$last = get_option( self::LAST_UPLOAD_OPTION, [] );
+		if ( ! is_array( $last ) || empty( $last['hash'] ) || ! is_string( $last['hash'] ) ) {
+			return false;
+		}
+
+		/**
+		 * Filter the max age of the cached upload record before dedup is bypassed.
+		 *
+		 * Defaults to one week. Applied as a safety valve so a stale or lost Stripe
+		 * file id still gets refreshed on a predictable cadence.
+		 *
+		 * @since 10.8.0
+		 * @param int $ttl_seconds Default self::FEED_CACHE_TTL.
+		 */
+		if ( ! isset( $last['uploaded_at'] ) || ! is_numeric( $last['uploaded_at'] ) ) {
+			return false;
+		}
+		$uploaded_at = (int) $last['uploaded_at'];
+		if ( $uploaded_at <= 0 ) {
+			return false;
+		}
+		$max_age = (int) apply_filters( 'wc_stripe_agentic_commerce_feed_cache_ttl', self::FEED_CACHE_TTL );
+		if ( $max_age > 0 && ( time() - $uploaded_at ) > $max_age ) {
+			return false;
+		}
+
+		return hash_equals( $last['hash'], $current_hash );
+	}
+
+	/**
+	 * Record the hash, timestamp, and Stripe file id of a successful upload.
+	 *
+	 * @since 10.8.0
+	 * @param string $hash   SHA-256 hex digest of the uploaded feed content.
+	 * @param array  $result Delivery result array returned by the Files API delivery method.
+	 * @return void
+	 */
+	protected function remember_feed_upload( string $hash, array $result ): void {
+		update_option(
+			self::LAST_UPLOAD_OPTION,
+			[
+				'hash'          => $hash,
+				'uploaded_at'   => time(),
+				'file_id'       => is_string( $result['file_id'] ?? null ) ? $result['file_id'] : '',
+				'import_set_id' => is_string( $result['import_set_id'] ?? null ) ? $result['import_set_id'] : '',
+			],
+			false
+		);
 	}
 
 	/**

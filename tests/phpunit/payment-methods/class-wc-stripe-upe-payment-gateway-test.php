@@ -165,7 +165,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'get_intent_from_order',
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
-					'is_subscriptions_enabled',
 					'update_saved_payment_method',
 				]
 			)
@@ -373,14 +372,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Affirm::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Boleto::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Multibanco::STRIPE_ID,
@@ -394,34 +392,29 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'NON_US',
 				[
 					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Boleto::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 				],
 			],
-			[ // TODO: Fix each payment method's `is_available_for_account_country` function to match supported countries.
+			[
 				'PL',
 				[
 					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Boleto::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Multibanco::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 				],
 			],
 		];
@@ -1518,6 +1511,62 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent_id( $final_order ) );
 		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer_id( $final_order ) );
 		$this->assertEquals( $generated_payment_method_id, $order_helper->get_stripe_source_id( $final_order ) );
+	}
+
+	/**
+	 * handle_saving_payment_method() must enforce the per-method toggle when the resolved type is non-reusable.
+	 *
+	 * @dataProvider provider_handle_saving_payment_method_respects_per_method_toggle
+	 */
+	public function test_handle_saving_payment_method_respects_per_method_toggle( string $sepa_tokens_for_ideal, bool $expected_save ) {
+		$stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['sepa_tokens_for_ideal'] = $sepa_tokens_for_ideal;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		$this->mock_gateway->oc_enabled = true;
+
+		$user_id = $this->factory()->user->create();
+		$order   = WC_Helper_Order::create_order( $user_id );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$payment_method_object = (object) [
+			'id'         => 'pm_ideal_mock',
+			'object'     => 'payment_method',
+			'type'       => WC_Stripe_Payment_Methods::IDEAL,
+			'customer'   => 'cus_mock',
+			'sepa_debit' => (object) [
+				'last4'       => '1234',
+				'fingerprint' => 'fp_mock',
+			],
+		];
+
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		$action_calls = 0;
+		$listener     = function () use ( &$action_calls ) {
+			++$action_calls;
+		};
+		add_action( 'woocommerce_stripe_add_payment_method', $listener );
+
+		try {
+			$this->mock_gateway->handle_saving_payment_method( $order, $payment_method_object, WC_Stripe_Payment_Methods::IDEAL );
+		} finally {
+			remove_action( 'woocommerce_stripe_add_payment_method', $listener );
+		}
+
+		$this->assertSame( $expected_save ? 1 : 0, $action_calls );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: bool}>
+	 */
+	public function provider_handle_saving_payment_method_respects_per_method_toggle(): array {
+		return [
+			'iDEAL save toggle disabled — no token persisted' => [ 'no', false ],
+			'iDEAL save toggle enabled — token persisted'     => [ 'yes', true ],
+		];
 	}
 
 	/**
@@ -3890,6 +3939,199 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Paid statuses for which WC core's payment_complete() skips set_transaction_id().
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_paid_statuses_for_confirmation_token_backfill(): array {
+		return [
+			'processing' => [ OrderStatus::PROCESSING ],
+			'completed'  => [ OrderStatus::COMPLETED ],
+		];
+	}
+
+	/**
+	 * Tests that the confirmation token flow persists the charge ID as the transaction ID even
+	 * when the order is already in a paid status, where payment_complete() would otherwise skip it.
+	 *
+	 * @dataProvider provide_paid_statuses_for_confirmation_token_backfill
+	 */
+	public function test_process_payment_with_confirmation_token_backfills_missing_transaction_id( string $paid_status ) {
+		$order = WC_Helper_Order::create_order();
+		// An already-paid status makes WC core's payment_complete() skip set_transaction_id().
+		$order->set_status( $paid_status );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$_POST['payment_method']               = 'stripe';
+		$_POST['wc-stripe-confirmation-token'] = 'ctoken_mock789';
+		$_POST['wc-stripe-payment-method']     = '';
+		$_POST['express_payment_type']         = WC_Stripe_Payment_Methods::APPLE_PAY;
+
+		$this->mock_gateway->oc_enabled = false;
+
+		$stripe_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+
+		$mock_intent = (object) [
+			'id'                   => 'pi_mock1234567890',
+			'object'               => 'payment_intent',
+			'amount'               => $stripe_amount,
+			'currency'             => strtolower( $order->get_currency() ),
+			'customer'             => 'cus_mock1234567890',
+			'latest_charge'        => 'ch_mock1234567890',
+			'payment_method'       => 'pm_mock1234',
+			'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
+			'status'               => 'succeeded',
+			'created'              => time(),
+		];
+
+		$mock_charge = (object) [
+			'id'       => 'ch_mock1234567890',
+			'captured' => true,
+			'status'   => 'succeeded',
+		];
+
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock1234567890' );
+		$this->mock_gateway->method( 'stripe_request' )->willReturn(
+			(object) [
+				'id'   => 'pm_mock1234',
+				'type' => 'card',
+			]
+		);
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( $mock_charge );
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+
+		// Before processing the order has no transaction ID.
+		$this->assertSame( '', $order->get_transaction_id() );
+
+		$response = $this->mock_gateway->process_payment( $order_id );
+
+		$this->assertEquals( 'success', $response['result'] );
+
+		$reloaded = wc_get_order( $order_id );
+		$this->assertSame( 'ch_mock1234567890', $reloaded->get_transaction_id() );
+	}
+
+	/**
+	 * The confirmation token flow must still send Klarna's preferred_locale, so cross-border
+	 * customers aren't routed through the Stripe account country's identity verification.
+	 */
+	public function test_prepare_payment_information_sets_klarna_preferred_locale_for_confirmation_token() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_billing_country( 'FI' );
+		$order->save();
+
+		$this->mock_gateway->oc_enabled = true;
+
+		$_POST = [
+			'payment_method'               => 'stripe_klarna',
+			'wc-stripe-confirmation-token' => 'ctoken_mock',
+		];
+
+		$locale_filter = static function () {
+			return 'fi_FI';
+		};
+		add_filter( 'locale', $locale_filter );
+
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+
+		$reflection = new \ReflectionClass( WC_Stripe_UPE_Payment_Gateway::class );
+		$method     = $reflection->getMethod( 'prepare_payment_information_from_request' );
+		$method->setAccessible( true );
+
+		try {
+			$payment_information = $method->invoke( $this->mock_gateway, $order );
+		} finally {
+			remove_filter( 'locale', $locale_filter );
+			$_POST = [];
+		}
+
+		$this->assertSame( 'ctoken_mock', $payment_information['confirmation_token'] );
+		$this->assertSame( 'fi-FI', $payment_information['payment_method_options'][ WC_Stripe_Payment_Methods::KLARNA ]['preferred_locale'] );
+	}
+
+	/**
+	 * Under OCS, save_payment_method_to_store must be re-evaluated against the resolved method type, not the OC pseudo-method.
+	 *
+	 * @dataProvider provide_test_prepare_payment_information_oc_drops_save_flag_when_resolved_method_not_reusable
+	 */
+	public function test_prepare_payment_information_oc_drops_save_flag_when_resolved_method_not_reusable( string $resolved_type, bool $is_reusable, bool $expected_save_flag ): void {
+		$order             = WC_Helper_Order::create_order();
+		$payment_method_id = 'pm_test_' . $resolved_type;
+
+		$this->mock_gateway->oc_enabled = true;
+
+		$resolved_method_stub = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'is_reusable' ] )
+			->getMockForAbstractClass();
+		$resolved_method_stub->method( 'is_reusable' )->willReturn( $is_reusable );
+		$this->mock_gateway->payment_methods[ $resolved_type ] = $resolved_method_stub;
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => $payment_method_id,
+			'wc-stripe-new-payment-method' => 'true',
+		];
+
+		$payment_method_pre_http_filter = function ( $result, $args, $url ) use ( $payment_method_id, $resolved_type ) {
+			if ( false !== strpos( $url, 'payment_methods/' . $payment_method_id ) ) {
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'body'     => wp_json_encode(
+						[
+							'id'     => $payment_method_id,
+							'object' => 'payment_method',
+							'type'   => $resolved_type,
+						]
+					),
+				];
+			}
+			return $result;
+		};
+		add_filter( 'pre_http_request', $payment_method_pre_http_filter, 10, 3 );
+
+		$this->mock_gateway
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		$reflection = new \ReflectionClass( WC_Stripe_UPE_Payment_Gateway::class );
+		$method     = $reflection->getMethod( 'prepare_payment_information_from_request' );
+		$method->setAccessible( true );
+
+		try {
+			$payment_information = $method->invoke( $this->mock_gateway, $order );
+		} finally {
+			remove_filter( 'pre_http_request', $payment_method_pre_http_filter, 10 );
+			$_POST = [];
+		}
+
+		$this->assertSame( $resolved_type, $payment_information['selected_payment_type'] );
+		$this->assertSame( $expected_save_flag, $payment_information['save_payment_method_to_store'] );
+	}
+
+	/**
+	 * Provider for `test_prepare_payment_information_oc_drops_save_flag_when_resolved_method_not_reusable`.
+	 *
+	 * @return array<string, array{string, bool, bool}>
+	 */
+	public function provide_test_prepare_payment_information_oc_drops_save_flag_when_resolved_method_not_reusable(): array {
+		return [
+			'iDEAL with per-method toggle disabled (bug)'            => [ WC_Stripe_Payment_Methods::IDEAL, false, false ],
+			'iDEAL with per-method toggle enabled (regression)'      => [ WC_Stripe_Payment_Methods::IDEAL, true, true ],
+			'Bancontact with per-method toggle disabled (bug)'       => [ WC_Stripe_Payment_Methods::BANCONTACT, false, false ],
+			'Bancontact with per-method toggle enabled (regression)' => [ WC_Stripe_Payment_Methods::BANCONTACT, true, true ],
+			'Card via OCS (regression)'                              => [ WC_Stripe_Payment_Methods::CARD, true, true ],
+		];
+	}
+
+	/**
 	 * Test for `filter_saved_payment_methods_list`
 	 *
 	 * @param bool $saved_cards Whether saved cards are enabled.
@@ -3998,7 +4240,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function test_set_payment_method_title_for_order_ECE_title() {
 		$order = WC_Helper_Order::create_order();
-		update_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME, 'yes' );
 
 		// GOOGLE PAY
 		$mock_ece_payment_method = (object) [
@@ -4031,9 +4272,24 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		// No wallet type should default to Credit / Debit Card.
 		$this->assertEquals( 'Credit / Debit Card', $order->get_payment_method_title() );
+	}
 
-		// Unset the feature flag.
-		delete_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME );
+	/**
+	 * With Optimized Checkout enabled, a plain `card` payment must still resolve to the
+	 * CC method's title and ID, not the generic Optimized Checkout fallback.
+	 */
+	public function test_set_payment_method_title_for_order_with_oc_enabled_keeps_card_title() {
+		$init_oc_enabled                = $this->mock_gateway->oc_enabled;
+		$this->mock_gateway->oc_enabled = true;
+
+		$order = WC_Helper_Order::create_order();
+
+		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID );
+
+		$this->assertEquals( 'stripe', $order->get_payment_method() );
+		$this->assertEquals( 'Credit / Debit Card', $order->get_payment_method_title() );
+
+		$this->mock_gateway->oc_enabled = $init_oc_enabled;
 	}
 
 	/**
@@ -5889,5 +6145,440 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		} else {
 			$this->assertStringNotContainsString( $ecb_needle, $output );
 		}
+	}
+
+	/**
+	 * Test that APM payments include the full statement descriptor from local settings.
+	 *
+	 * @dataProvider provide_statement_descriptor_scenarios
+	 *
+	 * @param string $payment_method_post   The POST payment_method value (e.g. 'stripe_sepa_debit').
+	 * @param string $local_descriptor      The locally configured statement descriptor.
+	 * @param array  $account_data          The Stripe account data to mock.
+	 * @param bool   $short_descriptor_on   Whether is_short_statement_descriptor_enabled is 'yes'.
+	 * @param bool   $expect_full           Whether statement_descriptor should be set.
+	 * @param bool   $expect_suffix         Whether statement_descriptor_suffix should be set.
+	 * @param string $expected_value        The expected statement_descriptor value (if applicable).
+	 */
+	public function test_statement_descriptor_for_payment_types(
+		string $payment_method_post,
+		string $local_descriptor,
+		array $account_data,
+		bool $short_descriptor_on,
+		bool $expect_full,
+		bool $expect_suffix,
+		string $expected_value
+	) {
+		$order       = WC_Helper_Order::create_order();
+		$order_id    = $order->get_id();
+		$customer_id = 'cus_mock';
+
+		// SEPA billing-country validation requires a SEPA-zone country; DE works for all payment types.
+		$order->set_billing_country( 'DE' );
+		$order->save();
+
+		// Configure the statement descriptor settings.
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['statement_descriptor'] = $local_descriptor;
+		$stripe_settings['is_short_statement_descriptor_enabled'] = $short_descriptor_on ? 'yes' : 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		// Re-create mock gateway so it picks up updated settings.
+		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods(
+				[
+					'create_and_confirm_intent_for_off_session',
+					'generate_payment_request',
+					'get_latest_charge_from_intent',
+					'get_return_url',
+					'get_stripe_customer_id',
+					'has_subscription',
+					'maybe_process_pre_orders',
+					'mark_order_as_pre_ordered',
+					'is_pre_order_item_in_cart',
+					'is_pre_order_product_charged_upfront',
+					'prepare_order_source',
+					'stripe_request',
+					'get_stripe_customer_from_order',
+					'display_order_fee',
+					'display_order_payout',
+					'get_intent_from_order',
+					'has_pre_order_charged_upon_release',
+					'has_pre_order',
+					'update_saved_payment_method',
+				]
+			)
+			->getMock();
+
+		$this->mock_gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
+
+		$this->mock_gateway->intent_controller = $this->getMockBuilder( WC_Stripe_Intent_Controller::class )
+			->onlyMethods( [ 'create_and_confirm_payment_intent', 'update_and_confirm_payment_intent', 'create_and_confirm_setup_intent' ] )
+			->getMock();
+
+		// Mock account data for fallback scenarios.
+		$this->set_stripe_account_data( $account_data );
+
+		$_POST = [
+			'payment_method'           => $payment_method_post,
+			'wc-stripe-payment-method' => 'pm_mock',
+		];
+
+		$captured_payment_info = null;
+
+		$mock_intent = (object) array_merge(
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE,
+			[
+				'payment_method' => 'pm_mock',
+				'charges'        => (object) [
+					'data' => [
+						(object) [
+							'id'       => 'ch_mock',
+							'captured' => true,
+							'status'   => 'succeeded',
+						],
+					],
+				],
+			]
+		);
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->with(
+				$this->callback(
+					function ( $payment_info ) use ( &$captured_payment_info ) {
+						$captured_payment_info = $payment_info;
+						return true;
+					}
+				)
+			)
+			->willReturn( $mock_intent );
+
+		$this->mock_gateway
+			->method( 'get_stripe_customer_id' )
+			->willReturn( $customer_id );
+
+		$this->mock_gateway
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn(
+				(object) [
+					'id'                     => 'ch_mock',
+					'captured'               => true,
+					'status'                 => 'succeeded',
+					'payment_method_details' => (object) [],
+				]
+			);
+
+		$this->mock_gateway->process_payment( $order_id );
+
+		$this->assertNotNull( $captured_payment_info, 'Payment info should have been captured.' );
+
+		if ( $expect_full ) {
+			$this->assertArrayHasKey( 'statement_descriptor', $captured_payment_info );
+			$this->assertEquals( $expected_value, $captured_payment_info['statement_descriptor'] );
+		} else {
+			$this->assertArrayNotHasKey( 'statement_descriptor', $captured_payment_info );
+		}
+
+		if ( $expect_suffix ) {
+			$this->assertArrayHasKey( 'statement_descriptor_suffix', $captured_payment_info );
+		} else {
+			$this->assertArrayNotHasKey( 'statement_descriptor_suffix', $captured_payment_info );
+		}
+	}
+
+	/**
+	 * Tests that get_address_data_for_payment_request includes the shipping phone, so it reaches
+	 * the payment intent shipping object for risk decisioning (STRIPE-973).
+	 *
+	 * @dataProvider provide_test_get_address_data_for_payment_request_phone_cases
+	 *
+	 * @param string $phone        The order shipping phone.
+	 * @param bool   $expect_phone Whether the shipping phone is expected in the address data.
+	 */
+	public function test_get_address_data_for_payment_request_includes_shipping_phone( string $phone, bool $expect_phone ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_shipping_first_name( 'Jane' );
+		$order->set_shipping_last_name( 'Doe' );
+		$order->set_shipping_address_1( '123 Ship St' );
+		$order->set_shipping_city( 'Shipville' );
+		$order->set_shipping_state( 'CA' );
+		$order->set_shipping_postcode( '90210' );
+		$order->set_shipping_country( 'US' );
+		$order->set_shipping_phone( $phone );
+		$order->save();
+
+		$reflection = new \ReflectionClass( WC_Stripe_UPE_Payment_Gateway::class );
+		$method     = $reflection->getMethod( 'get_address_data_for_payment_request' );
+		$method->setAccessible( true );
+
+		$address_data = $method->invoke( $this->mock_gateway, $order );
+
+		if ( $expect_phone ) {
+			$this->assertArrayHasKey( 'phone', $address_data, 'Shipping address data should include the shipping phone' );
+			$this->assertEquals( $phone, $address_data['phone'], 'Shipping phone should match the order shipping phone' );
+		} else {
+			$this->assertArrayNotHasKey( 'phone', $address_data, 'Shipping address data should omit an empty phone' );
+		}
+	}
+
+	/**
+	 * Test that statement_descriptor is set in payment_information when using the intent update path.
+	 *
+	 * Note: The Stripe /confirm endpoint does not accept statement_descriptor, so the intent
+	 * controller intentionally does not forward it. This test verifies the gateway still sets
+	 * the value in payment_information for the update path.
+	 */
+	public function test_statement_descriptor_set_in_payment_info_on_intent_update() {
+		$order    = WC_Helper_Order::create_order();
+		$order_id = $order->get_id();
+
+		// SEPA billing-country validation requires a SEPA-zone country.
+		$order->set_billing_country( 'DE' );
+		$order->save();
+
+		// Configure a local statement descriptor.
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['statement_descriptor'] = 'MY STORE NAME';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		// Re-create mock gateway to pick up settings.
+		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods(
+				[
+					'create_and_confirm_intent_for_off_session',
+					'generate_payment_request',
+					'get_latest_charge_from_intent',
+					'get_return_url',
+					'get_stripe_customer_id',
+					'has_subscription',
+					'maybe_process_pre_orders',
+					'mark_order_as_pre_ordered',
+					'is_pre_order_item_in_cart',
+					'is_pre_order_product_charged_upfront',
+					'prepare_order_source',
+					'stripe_request',
+					'get_stripe_customer_from_order',
+					'display_order_fee',
+					'display_order_payout',
+					'get_intent_from_order',
+					'has_pre_order_charged_upon_release',
+					'has_pre_order',
+					'update_saved_payment_method',
+				]
+			)
+			->getMock();
+
+		$this->mock_gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
+
+		$this->mock_gateway->intent_controller = $this->getMockBuilder( WC_Stripe_Intent_Controller::class )
+			->onlyMethods( [ 'create_and_confirm_payment_intent', 'update_and_confirm_payment_intent', 'create_and_confirm_setup_intent' ] )
+			->getMock();
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		// Create an existing intent with requires_payment_method status and matching SEPA type/amount
+		// so that get_existing_compatible_payment_intent returns it.
+		$mock_existing_intent = (object) wp_parse_args(
+			[
+				'id'                   => 'pi_existing',
+				'payment_method'       => 'pm_mock',
+				'payment_method_types' => [ WC_Stripe_Payment_Methods::SEPA_DEBIT ],
+				'status'               => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD,
+				'amount'               => $amount,
+				'charges'              => (object) [
+					'data' => [
+						(object) [
+							'id'       => 'ch_mock',
+							'captured' => true,
+							'status'   => 'succeeded',
+						],
+					],
+				],
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$mock_payment_method = (object) self::MOCK_SEPA_PAYMENT_METHOD_TEMPLATE;
+
+		$_POST = [
+			'payment_method'           => 'stripe_sepa_debit',
+			'wc-stripe-payment-method' => 'pm_mock',
+		];
+
+		// Return the existing intent on both calls to get_intent_from_order.
+		$this->mock_gateway
+			->method( 'get_intent_from_order' )
+			->willReturn( $mock_existing_intent );
+
+		// Mock stripe_request for payment method retrieval and intent status check.
+		$this->mock_gateway
+			->method( 'stripe_request' )
+			->willReturnCallback(
+				function ( $path ) use ( $mock_payment_method, $mock_existing_intent ) {
+					if ( strpos( $path, 'payment_methods/' ) === 0 ) {
+						return $mock_payment_method;
+					}
+					if ( strpos( $path, 'payment_intents/' ) === 0 ) {
+						return $mock_existing_intent;
+					}
+					return (object) [];
+				}
+			);
+
+		$this->mock_gateway
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		// The update path should be called (not create), and it should include statement_descriptor.
+		$captured_payment_info = null;
+
+		$mock_result_intent = (object) wp_parse_args(
+			[
+				'status' => WC_Stripe_Intent_Status::SUCCEEDED,
+			],
+			(array) $mock_existing_intent
+		);
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'update_and_confirm_payment_intent' )
+			->with(
+				$this->anything(),
+				$this->callback(
+					function ( $payment_info ) use ( &$captured_payment_info ) {
+						$captured_payment_info = $payment_info;
+						return true;
+					}
+				)
+			)
+			->willReturn( $mock_result_intent );
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+
+		$this->mock_gateway
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn(
+				(object) [
+					'id'                     => 'ch_mock',
+					'captured'               => true,
+					'status'                 => 'succeeded',
+					'payment_method_details' => (object) [],
+				]
+			);
+
+		$this->mock_gateway->process_payment( $order_id );
+
+		$this->assertNotNull( $captured_payment_info, 'Payment info should have been captured via update path.' );
+		$this->assertArrayHasKey( 'statement_descriptor', $captured_payment_info );
+		$this->assertEquals( 'MY STORE NAME', $captured_payment_info['statement_descriptor'] );
+		$this->assertArrayNotHasKey( 'statement_descriptor_suffix', $captured_payment_info );
+	}
+
+	/**
+	 * Data provider for test_statement_descriptor_for_payment_types.
+	 */
+	public function provide_statement_descriptor_scenarios() {
+		$account_with_descriptor    = [
+			'country'  => 'US',
+			'settings' => [
+				'payments' => [
+					'statement_descriptor' => 'ACME FROM STRIPE',
+				],
+			],
+		];
+		$account_without_descriptor = [
+			'country' => 'US',
+		];
+
+		return [
+			'APM with local descriptor'                    => [
+				'payment_method_post' => 'stripe_sepa_debit',
+				'local_descriptor'    => 'MY STORE NAME',
+				'account_data'        => $account_with_descriptor,
+				'short_descriptor_on' => false,
+				'expect_full'         => true,
+				'expect_suffix'       => false,
+				'expected_value'      => 'MY STORE NAME',
+			],
+			'APM falls back to account descriptor'         => [
+				'payment_method_post' => 'stripe_sepa_debit',
+				'local_descriptor'    => '',
+				'account_data'        => $account_with_descriptor,
+				'short_descriptor_on' => false,
+				'expect_full'         => true,
+				'expect_suffix'       => false,
+				'expected_value'      => 'ACME FROM STRIPE',
+			],
+			'APM with no descriptor anywhere'              => [
+				'payment_method_post' => 'stripe_sepa_debit',
+				'local_descriptor'    => '',
+				'account_data'        => $account_without_descriptor,
+				'short_descriptor_on' => false,
+				'expect_full'         => false,
+				'expect_suffix'       => false,
+				'expected_value'      => '',
+			],
+			'Card with short descriptor enabled'           => [
+				'payment_method_post' => 'stripe',
+				'local_descriptor'    => 'MY STORE NAME',
+				'account_data'        => $account_with_descriptor,
+				'short_descriptor_on' => true,
+				'expect_full'         => false,
+				'expect_suffix'       => true,
+				'expected_value'      => '',
+			],
+			'Card without short descriptor enabled'        => [
+				'payment_method_post' => 'stripe',
+				'local_descriptor'    => 'MY STORE NAME',
+				'account_data'        => $account_with_descriptor,
+				'short_descriptor_on' => false,
+				'expect_full'         => false,
+				'expect_suffix'       => false,
+				'expected_value'      => '',
+			],
+			'APM descriptor is sanitized'                  => [
+				'payment_method_post' => 'stripe_sepa_debit',
+				'local_descriptor'    => '<b>MY "STORE"</b>',
+				'account_data'        => $account_without_descriptor,
+				'short_descriptor_on' => false,
+				'expect_full'         => true,
+				'expect_suffix'       => false,
+				'expected_value'      => 'MY STORE',
+			],
+			'APM account fallback descriptor is sanitized' => [
+				'payment_method_post' => 'stripe_sepa_debit',
+				'local_descriptor'    => '',
+				'account_data'        => [
+					'country'  => 'US',
+					'settings' => [
+						'payments' => [
+							'statement_descriptor' => '<script>ACME</script>',
+						],
+					],
+				],
+				'short_descriptor_on' => false,
+				'expect_full'         => true,
+				'expect_suffix'       => false,
+				'expected_value'      => 'ACME',
+			],
+		];
+	}
+
+	/**
+	 * Data provider for test_get_address_data_for_payment_request_includes_shipping_phone.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_address_data_for_payment_request_phone_cases(): array {
+		return [
+			'phone present' => [ '+1 555-333-4444', true ],
+			'phone empty'   => [ '', false ],
+		];
 	}
 }
