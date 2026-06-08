@@ -65,11 +65,11 @@ trait WC_Stripe_Pre_Orders_Trait {
 	 *
 	 * @since 5.8.0
 	 *
-	 * @param  int $order_id
+	 * @param  int|WC_Order $order_or_order_id The order ID or order object.
 	 * @return bool
 	 */
-	public function has_pre_order( $order_id ) {
-		return $this->is_pre_orders_enabled() && class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Order::order_contains_pre_order( $order_id );
+	public function has_pre_order( $order_or_order_id ) {
+		return $this->is_pre_orders_enabled() && class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Order::order_contains_pre_order( $order_or_order_id );
 	}
 
 	/**

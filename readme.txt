@@ -207,6 +207,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Require a connected account for the target mode before switching between test and live
 * Tweak - Move UPE-only appearance helpers out of the shared stripe-utils module
 * Dev - Add wc_stripe_agentic_commerce_should_sync_product filter so adapters can exclude products from the Agentic Commerce catalog, inventory, and archive syncs
+* Dev - Add guards against wc_get_order() returning non-order values in shared methods
 * Dev - Move additional classes to autoloader, including email and migration classes
 * Add - Register Stripe gateway capabilities with the WordPress Abilities API for agent access (default off; opt in via the `wc_stripe_abilities_enabled` filter)
 * Fix - Only show the "appearance settings may be overridden" notice on Express Checkout and Amazon Pay settings when the uniform style option is actually enabled
@@ -217,5 +218,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Restore "Refund via Gateway" button and Stripe dashboard transaction link for Amazon Pay orders by keeping Amazon Pay registered in the gateway list on order edit and refund pages
 * Fix - Correct Amazon Pay button preview rendering in the Full Site Editor block cart and checkout pages
 * Fix - Use the order's currency instead of the store base currency on the Pay for Order page for the Express Checkout Element
+* Fix - Update the order description and metadata on the payment intent after an Adaptive Pricing payment completes
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
