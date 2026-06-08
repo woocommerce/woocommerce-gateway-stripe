@@ -544,7 +544,7 @@ class WC_Stripe_Admin_Notices {
 		);
 
 		$review_action = sprintf(
-			'<a href="%s" class="button button-primary" target="_blank" style="margin-top:1em;margin-right:2em;">%s</a>',
+			'<a href="%s" class="button button-primary" style="margin-top:1em;margin-right:2em;">%s</a>',
 			$this->get_setting_link(),
 			__( 'Review settings', 'woocommerce-gateway-stripe' )
 		);
