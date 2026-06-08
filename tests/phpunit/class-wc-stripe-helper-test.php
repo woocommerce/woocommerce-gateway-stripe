@@ -349,37 +349,37 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'completed legacy order' => [
 				'type'           => 'order',
 				'status'         => OrderStatus::COMPLETED,
-				'use HPOS'       => false,
+				'use_hpos'       => false,
 				'expect_success' => true,
 			],
 			'completed HPOS order'   => [
 				'type'           => 'order',
 				'status'         => OrderStatus::COMPLETED,
-				'use HPOS'       => true,
+				'use_hpos'       => true,
 				'expect_success' => true,
 			],
 			'trashed legacy order'   => [
 				'type'           => 'order',
 				'status'         => OrderStatus::TRASH,
-				'use HPOS'       => false,
+				'use_hpos'       => false,
 				'expect_success' => false,
 			],
 			'trashed HPOS order'     => [
 				'type'           => 'order',
 				'status'         => OrderStatus::TRASH,
-				'use HPOS'       => true,
+				'use_hpos'       => true,
 				'expect_success' => false,
 			],
 			'legacy refund'          => [
 				'type'           => 'refund',
 				'status'         => null,
-				'use HPOS'       => false,
+				'use_hpos'       => false,
 				'expect_success' => false,
 			],
 			'HPOS refund'            => [
 				'type'           => 'refund',
 				'status'         => null,
-				'use HPOS'       => true,
+				'use_hpos'       => true,
 				'expect_success' => false,
 			],
 		];
@@ -455,34 +455,34 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function provide_test_get_order_by_setup_intent_id(): array {
 		return [
 			'SetupIntent matches legacy order'  => [
-				'intent_target' => 'order',
-				'use HPOS'      => false,
-				'success'       => true,
+				'intent_target'  => 'order',
+				'use_hpos'       => false,
+				'expect_success' => true,
 			],
 			'SetupIntent matches HPOS order'    => [
-				'intent_target' => 'order',
-				'use HPOS'      => true,
-				'success'       => true,
+				'intent_target'  => 'order',
+				'use_hpos'       => true,
+				'expect_success' => true,
 			],
 			'SetupIntent matches legacy refund' => [
-				'intent_target' => 'refund',
-				'use HPOS'      => false,
-				'success'       => false,
+				'intent_target'  => 'refund',
+				'use_hpos'       => false,
+				'expect_success' => false,
 			],
 			'SetupIntent matches HPOS refund'   => [
-				'intent_target' => 'refund',
-				'use HPOS'      => true,
-				'success'       => false,
+				'intent_target'  => 'refund',
+				'use_hpos'       => true,
+				'expect_success' => false,
 			],
 			'unknown SetupIntent ID HPOS'       => [
-				'intent_target' => null,
-				'use HPOS'      => true,
-				'success'       => false,
+				'intent_target'  => null,
+				'use_hpos'       => true,
+				'expect_success' => false,
 			],
 			'unknown SetupIntent ID legacy'     => [
-				'intent_target' => null,
-				'use HPOS'      => false,
-				'success'       => false,
+				'intent_target'  => null,
+				'use_hpos'       => false,
+				'expect_success' => false,
 			],
 		];
 	}
