@@ -280,7 +280,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 			}
 		} finally {
 			// Note: Intelephense falsely reports curl_close is deprecated.
-			curl_close( $curl_handle ); // phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
+			curl_close( $curl_handle );
 		}
 
 		$data = json_decode( (string) $response, true );
