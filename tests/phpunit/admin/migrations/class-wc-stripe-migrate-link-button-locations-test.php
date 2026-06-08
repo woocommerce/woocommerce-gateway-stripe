@@ -5,11 +5,6 @@
  */
 class WC_Stripe_Migrate_Link_Button_Locations_Test extends WP_UnitTestCase {
 
-	/**
-	 * @var WC_Stripe_Migrate_Link_Button_Locations
-	 */
-	private $migration;
-
 	public function set_up() {
 		parent::set_up();
 
@@ -18,8 +13,6 @@ class WC_Stripe_Migrate_Link_Button_Locations_Test extends WP_UnitTestCase {
 		// filter, which would otherwise merge in gateway defaults (including link_button_locations)
 		// and break these assertions.
 		add_option( WC_Stripe_Helper::SETTINGS_OPTION, [] );
-
-		$this->migration = new WC_Stripe_Migrate_Link_Button_Locations();
 	}
 
 	public function test_copies_payment_request_locations_when_link_setting_is_unset() {
@@ -27,7 +20,8 @@ class WC_Stripe_Migrate_Link_Button_Locations_Test extends WP_UnitTestCase {
 			[ 'express_checkout_button_locations' => [ 'checkout' ] ]
 		);
 
-		$this->migration->maybe_migrate();
+		$migration = new WC_Stripe_Migrate_Link_Button_Locations();
+		$migration->maybe_migrate();
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( [ 'checkout' ], $settings['link_button_locations'] );
@@ -39,7 +33,8 @@ class WC_Stripe_Migrate_Link_Button_Locations_Test extends WP_UnitTestCase {
 			[ 'express_checkout_button_locations' => '' ]
 		);
 
-		$this->migration->maybe_migrate();
+		$migration = new WC_Stripe_Migrate_Link_Button_Locations();
+		$migration->maybe_migrate();
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( '', $settings['link_button_locations'] );
@@ -53,7 +48,8 @@ class WC_Stripe_Migrate_Link_Button_Locations_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->migration->maybe_migrate();
+		$migration = new WC_Stripe_Migrate_Link_Button_Locations();
+		$migration->maybe_migrate();
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( [ 'cart' ], $settings['link_button_locations'] );
@@ -62,7 +58,8 @@ class WC_Stripe_Migrate_Link_Button_Locations_Test extends WP_UnitTestCase {
 	public function test_skips_when_payment_request_locations_are_unset() {
 		WC_Stripe_Helper::update_main_stripe_settings( [] );
 
-		$this->migration->maybe_migrate();
+		$migration = new WC_Stripe_Migrate_Link_Button_Locations();
+		$migration->maybe_migrate();
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertArrayNotHasKey( 'link_button_locations', $settings );
