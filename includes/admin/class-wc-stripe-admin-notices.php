@@ -535,7 +535,7 @@ class WC_Stripe_Admin_Notices {
 		$is_ap_enabled = 'yes' === $gateway->get_option( 'adaptive_pricing' );
 		$is_india      = 'IN' === WC_Stripe::get_instance()->account->get_account_country();
 
-		$stripe_logo_image = '<img src="' . esc_url( WC_STRIPE_PLUGIN_URL . '/assets/images/stripe-logo.svg' ) . '" alt="Stripe logo" style="float: right;" />';
+		$stripe_logo_image = '<img src="' . esc_url( WC_STRIPE_PLUGIN_URL . '/assets/images/stripe-logo.svg' ) . '" alt="' . esc_attr__( 'Stripe logo', 'woocommerce-gateway-stripe' ) . '" style="float: right;" />';
 
 		$learn_more_action = sprintf(
 			'<a href="%s" class="button button-secondary" target="_blank" style="margin-top:1em;margin-right:1em;">%s</a>',
@@ -546,7 +546,7 @@ class WC_Stripe_Admin_Notices {
 		$review_action = sprintf(
 			'<a href="%s" class="button button-primary" style="margin-top:1em;margin-right:2em;">%s</a>',
 			$this->get_setting_link(),
-			__( 'Review settings', 'woocommerce-gateway-stripe' )
+			esc_html__( 'Review settings', 'woocommerce-gateway-stripe' )
 		);
 
 		$actions = [ $review_action, $learn_more_action ];
