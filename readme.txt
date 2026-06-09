@@ -218,5 +218,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Correct Amazon Pay button preview rendering in the Full Site Editor block cart and checkout pages
 * Fix - Use the order's currency instead of the store base currency on the Pay for Order page for the Express Checkout Element
 * Fix - Update the order description and metadata on the payment intent after an Adaptive Pricing payment completes
+* Fix - Send the billing address to Stripe on the Pay for Order page so payments aren't incorrectly blocked by Stripe Radar rules
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
