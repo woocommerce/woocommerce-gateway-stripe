@@ -157,5 +157,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.9.0 - xxxx-xx-xx =
 * Add - Per-product "Agentic Commerce" exclude toggle on the product editor's Inventory tab (hidden when WC AI Storefront is active)
+* Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
