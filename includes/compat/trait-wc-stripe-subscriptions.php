@@ -47,7 +47,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 	/**
 	 * Maybe register the payment method hooks for subscriptions.
-	 * These should be registered once per payment method.
+	 * These are registered once per payment method.
 	 *
 	 * @param string $payment_method_id The payment method ID to register the hooks for.
 	 * @return void
@@ -63,6 +63,16 @@ trait WC_Stripe_Subscriptions_Trait {
 			return;
 		}
 
+		/*
+		 * The hooks below use the first instance to register for a given payment method ID.
+		 * This is especially important for the 'stripe' ID, which is used by the main gateway
+		 * {@see WC_Stripe_UPE_Payment_Gateway} and the Optimized Checkout payment method
+		 * {@see WC_Stripe_UPE_Payment_Method_OC}.
+		 *
+		 * Note that the main gateway is constructed during WC_Stripe::init(), while the OCS
+		 * payment method is only instantiated lazily during request rendering, after the
+		 * main gateway instance has been constructed.
+		 */
 		add_action( 'woocommerce_scheduled_subscription_payment_' . $payment_method_id, [ $this, 'scheduled_subscription_payment' ], 10, 2 );
 		add_action( 'woocommerce_subscription_failing_payment_method_updated_' . $payment_method_id, [ $this, 'update_failing_payment_method' ], 10, 2 );
 
