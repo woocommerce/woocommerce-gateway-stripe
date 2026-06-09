@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.9.0
+* Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
 
 2026-06-08 - version 10.8.0
 * Fix - Add an order note and call action 'wc_stripe_unexpected_charge_detected' when a Stripe charge is captured for an order that was already paid via a different gateway
