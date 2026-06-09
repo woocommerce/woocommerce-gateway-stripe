@@ -4885,7 +4885,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected_excluded'     => [ WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'expected_not_excluded' => [ 'fpx', 'naver_pay' ],
 			],
-			'Non-deferred-intent methods are excluded' => [
+			'Non-deferred-intent methods are excluded'                           => [
 				'unsupported_methods'   => [],
 				'filter_callback'       => null,
 				'expected_excluded'     => [ WC_Stripe_Payment_Methods::AMAZON_PAY, WC_Stripe_Payment_Methods::BLIK, WC_Stripe_Payment_Methods::ACSS_DEBIT ],

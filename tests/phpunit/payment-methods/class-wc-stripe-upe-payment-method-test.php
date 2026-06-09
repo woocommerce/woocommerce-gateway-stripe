@@ -817,11 +817,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 */
 	public function test_non_deferred_intent_methods_are_available_in_oc_mode( $payment_method_class, $currency ) {
 		// Enable optimized checkout by setting required settings.
-		$stripe_settings                                                    = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['pmc_enabled']                                     = 'yes';
-		$stripe_settings['optimized_checkout_element']                      = 'yes';
-		$stripe_settings['enabled']                                         = 'yes';
-		$stripe_settings['upe_checkout_experience_accepted_payments']       = [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::BLIK, WC_Stripe_Payment_Methods::ACSS_DEBIT ];
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['pmc_enabled']                = 'yes';
+		$stripe_settings['optimized_checkout_element'] = 'yes';
+		$stripe_settings['enabled']                    = 'yes';
+		$stripe_settings['upe_checkout_experience_accepted_payments'] = [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::BLIK, WC_Stripe_Payment_Methods::ACSS_DEBIT ];
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		// Reset the stripe gateway so it re-reads settings.
