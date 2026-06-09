@@ -382,28 +382,9 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests that the wc_stripe_request_headers filter is always removed after processing,
-	 * even when an error occurs before order creation.
+	 * Tests that the Stripe API version header is applied during the retrieve call.
 	 */
-	public function test_request_headers_filter_is_removed_after_processing_failure() {
-		$this->assertFalse( has_filter( 'wc_stripe_request_headers' ) );
-
-		$session_id   = 'cs_test_filter_cleanup';
-		$notification = $this->build_notification( $session_id );
-		$this->mock_stripe_api_error();
-
-		// Immediate phase: defers the webhook.
-		$this->handler->process_checkout_session_success( $notification );
-		// Deferred phase: API error → filter must still be cleaned up.
-		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
-
-		$this->assertFalse( has_filter( 'wc_stripe_request_headers' ) );
-	}
-
-	/**
-	 * Tests that the Stripe API version override header is applied during the retrieve call.
-	 */
-	public function test_api_version_override_applied() {
+	public function test_api_version_header_applied() {
 		$captured_headers  = null;
 		$this->http_filter = function ( $preempt, $parsed_args ) use ( &$captured_headers ) {
 			$captured_headers = $parsed_args['headers'] ?? [];
@@ -421,10 +402,10 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		// Immediate phase: defers the webhook.
 		$this->handler->process_checkout_session_success( $notification );
-		// Deferred phase: API retrieve call must include the Stripe-Version override
-		// header. The stub session references a non-existent product, so the mapper
-		// fails and re-throws — that's fine for this test; we only care that the
-		// override filter was applied before the HTTP call.
+		// Deferred phase: API retrieve call must include the Stripe-Version header.
+		// The stub session references a non-existent product, so the mapper fails and
+		// re-throws — that's fine for this test; we only care that the version header
+		// was sent on the HTTP call.
 		$mapper_threw = null;
 		try {
 			$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
@@ -435,7 +416,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		$this->assertNotNull( $captured_headers );
 		$this->assertArrayHasKey( 'Stripe-Version', $captured_headers );
-		$this->assertEquals( WC_Stripe_API::AGENTIC_COMMERCE_API_VERSION, $captured_headers['Stripe-Version'] );
+		$this->assertEquals( WC_Stripe_API::STRIPE_API_VERSION, $captured_headers['Stripe-Version'] );
 	}
 
 	/**

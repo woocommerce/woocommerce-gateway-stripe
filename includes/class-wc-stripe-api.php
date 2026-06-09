@@ -13,9 +13,8 @@ class WC_Stripe_API {
 	/**
 	 * Stripe API Endpoint
 	 */
-	public const ENDPOINT                     = 'https://api.stripe.com/v1/';
-	public const STRIPE_API_VERSION           = '2025-09-30.clover';
-	public const AGENTIC_COMMERCE_API_VERSION = '2025-12-15.preview';
+	public const ENDPOINT           = 'https://api.stripe.com/v1/';
+	public const STRIPE_API_VERSION = '2025-12-15.preview';
 
 	/**
 	 * The invalid API key error count cache key.
