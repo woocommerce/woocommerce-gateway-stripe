@@ -520,15 +520,6 @@ export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
 };
 
 /**
- * Craft the defaultValues parameter, used to pre-fill
- * user email and phone number for Link in the Payment Element.
- * On order pay and change payment method pages, also preloads all billing details
- * from the customer billing data passed from the server.
- *
- * @param {boolean} forCheckoutSession Whether the default values are for a Checkout Session.
- * @return {Object} The defaultValues object for the Payment Element.
- */
-/**
  * Returns true when the current page is one of the deferred-payment flows
  * (order pay, change payment method, or add payment method).
  *
