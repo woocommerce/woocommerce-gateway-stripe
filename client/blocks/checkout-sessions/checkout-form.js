@@ -62,6 +62,10 @@ const CheckoutForm = ( {
 		useState( false );
 	const [ selectedPaymentType, setSelectedPaymentType ] = useState( '' );
 	const hasLoadErrorRef = useRef( false );
+	// Live mirror of isPaymentElementComplete so an in-flight onPaymentSetup
+	// callback can observe completion updates instead of the stale value
+	// captured when its closure was created. See #5490.
+	const isCompleteRef = useRef( false );
 	const setHasLoadError = ( event ) => {
 		hasLoadErrorRef.current = true;
 		onLoadError( event );
@@ -73,7 +77,8 @@ const CheckoutForm = ( {
 		errorMessage,
 		hasLoadErrorRef,
 		isPaymentElementComplete,
-		selectedPaymentType
+		selectedPaymentType,
+		isCompleteRef
 	);
 	useCheckoutSuccessHandler(
 		checkoutState,
@@ -95,6 +100,7 @@ const CheckoutForm = ( {
 		// Element instead of PaymentProcessor, so it needs this independently.
 		handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );
 		setIsPaymentElementComplete( complete );
+		isCompleteRef.current = complete;
 		setSelectedPaymentType( value?.type ?? '' );
 	};
 

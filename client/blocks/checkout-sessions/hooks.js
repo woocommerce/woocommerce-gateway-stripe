@@ -2,6 +2,7 @@ import { useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { select, useSelect } from '@wordpress/data';
 import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
+import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
 
 /**
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
@@ -10,12 +11,13 @@ import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
 /**
  * Handles the Block Checkout onPaymentSetup event for the Checkout Sessions integration.
  *
- * @param {*}       onPaymentSetup           The onPaymentSetup event, which is triggered when the payment method is being set up during the checkout process.
- * @param {string}  checkoutSessionId        The ID of the checkout session, used to associate the payment method with the session.
- * @param {string}  errorMessage             An error message to display if there was an error loading the checkout session, used to provide feedback to the user.
- * @param {Object}  hasLoadErrorRef          A ref object that indicates whether there was an error loading the checkout session, used to prevent further processing if the session failed to load.
- * @param {boolean} isPaymentElementComplete A boolean that indicates whether the Stripe Payment Element is complete, used to validate that the user has entered all required payment information before allowing them to proceed with the payment.
- * @param {string}  selectedPaymentType      The Stripe payment method type the customer picked inside the Payment Element (e.g. 'ideal'), used so the server can set the order's payment method title to the actual method instead of the OC pseudo-method default.
+ * @param {*}       onPaymentSetup                The onPaymentSetup event, which is triggered when the payment method is being set up during the checkout process.
+ * @param {string}  checkoutSessionId             The ID of the checkout session, used to associate the payment method with the session.
+ * @param {string}  errorMessage                  An error message to display if there was an error loading the checkout session, used to provide feedback to the user.
+ * @param {Object}  hasLoadErrorRef               A ref object that indicates whether there was an error loading the checkout session, used to prevent further processing if the session failed to load.
+ * @param {boolean} isPaymentElementComplete      A boolean that indicates whether the Stripe Payment Element is complete, used to validate that the user has entered all required payment information before allowing them to proceed with the payment.
+ * @param {string}  selectedPaymentType           The Stripe payment method type the customer picked inside the Payment Element (e.g. 'ideal'), used so the server can set the order's payment method title to the actual method instead of the OC pseudo-method default.
+ * @param {Object}  [isPaymentElementCompleteRef] Optional ref whose `.current` mirrors isPaymentElementComplete live. When supplied, a submission landing during an in-flight (re)mount waits briefly for the element to settle before failing. See #5490.
  */
 export const usePaymentSetupHandler = (
 	onPaymentSetup,
@@ -23,7 +25,8 @@ export const usePaymentSetupHandler = (
 	errorMessage,
 	hasLoadErrorRef,
 	isPaymentElementComplete,
-	selectedPaymentType
+	selectedPaymentType,
+	isPaymentElementCompleteRef = null
 ) => {
 	useEffect(
 		() =>
@@ -67,14 +70,31 @@ export const usePaymentSetupHandler = (
 						};
 					}
 
-					if ( ! isPaymentElementComplete ) {
-						return {
-							type: 'error',
-							message: __(
-								'Your payment information is incomplete.',
-								'woocommerce-gateway-stripe'
-							),
-						};
+					// Read completion live from the ref when available, so a
+					// submission that lands while the Payment Element is
+					// mid-(re)mount waits briefly for it to settle instead of
+					// failing outright. Mirrors the classic re-mount race fix.
+					// See #5490.
+					const isComplete = () =>
+						isPaymentElementCompleteRef
+							? isPaymentElementCompleteRef.current
+							: isPaymentElementComplete;
+
+					if ( ! isComplete() ) {
+						if ( isPaymentElementCompleteRef ) {
+							await waitForPaymentElementCompletion(
+								isPaymentElementCompleteRef
+							);
+						}
+						if ( ! isComplete() ) {
+							return {
+								type: 'error',
+								message: __(
+									'Your payment information is incomplete.',
+									'woocommerce-gateway-stripe'
+								),
+							};
+						}
 					}
 
 					return {
@@ -101,6 +121,7 @@ export const usePaymentSetupHandler = (
 			errorMessage,
 			hasLoadErrorRef,
 			isPaymentElementComplete,
+			isPaymentElementCompleteRef,
 			onPaymentSetup,
 			selectedPaymentType,
 		]
