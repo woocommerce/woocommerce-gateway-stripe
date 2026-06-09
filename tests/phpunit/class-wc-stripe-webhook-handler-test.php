@@ -2141,4 +2141,59 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->assertInstanceOf( WC_Order::class, $updated_order );
 		$this->assertTrue( $updated_order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED ] ) );
 	}
+
+	/**
+	 * Guards that the webhook handler only processes events whose Stripe account matches the
+	 * connected account, while failing open when the event carries no account or the connected
+	 * account is unknown. Verified across both live and test modes.
+	 *
+	 * @dataProvider provide_event_belongs_to_connected_account
+	 *
+	 * @param string      $mode              The plugin mode ('yes' for test mode, 'no' for live mode).
+	 * @param string|null $event_account     The `account` field on the event, or null to omit it.
+	 * @param string      $connected_account The account ID the store is connected to.
+	 * @param bool        $expected          Whether the event should be allowed through for processing.
+	 */
+	public function test_event_belongs_to_connected_account( string $mode, $event_account, string $connected_account, bool $expected ) {
+		update_option(
+			'woocommerce_stripe_settings',
+			array_merge( (array) get_option( 'woocommerce_stripe_settings', [] ), [ 'testmode' => $mode ] )
+		);
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_connected_account_id' ] )
+			->getMock();
+		$handler->method( 'get_connected_account_id' )->willReturn( $connected_account );
+
+		$event = (object) [
+			'id'   => 'evt_mock_1234',
+			'type' => 'payment_intent.succeeded',
+		];
+		if ( null !== $event_account ) {
+			$event->account = $event_account;
+		}
+
+		$method = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'event_belongs_to_connected_account' );
+		$method->setAccessible( true );
+
+		$this->assertSame( $expected, $method->invoke( $handler, $event ) );
+	}
+
+	/**
+	 * Provider for `test_event_belongs_to_connected_account`.
+	 *
+	 * @return array
+	 */
+	public function provide_event_belongs_to_connected_account() {
+		return [
+			'live mode, matching account is processed'       => [ 'no', 'acct_connected', 'acct_connected', true ],
+			'live mode, mismatched account is skipped'       => [ 'no', 'acct_other', 'acct_connected', false ],
+			'test mode, matching account is processed'       => [ 'yes', 'acct_connected', 'acct_connected', true ],
+			'test mode, mismatched account is skipped'       => [ 'yes', 'acct_other', 'acct_connected', false ],
+			'event without an account field is processed'    => [ 'no', null, 'acct_connected', true ],
+			'event with an empty account field is processed' => [ 'yes', '', 'acct_connected', true ],
+			'unknown connected account fails open (live)'    => [ 'no', 'acct_other', '', true ],
+			'unknown connected account fails open (test)'    => [ 'yes', 'acct_other', '', true ],
+		];
+	}
 }

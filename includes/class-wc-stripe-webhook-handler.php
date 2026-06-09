@@ -172,6 +172,23 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			exit;
 		}
 
+		// Ignore events that belong to a different Stripe account than the one this store is connected to.
+		// Acting on them could update the wrong orders or trigger mismatched payment/charge lookups.
+		if ( ! $this->event_belongs_to_connected_account( $event ) ) {
+			WC_Stripe_Logger::error(
+				'Webhook ignored: the event\'s Stripe account does not match the connected account.',
+				[
+					'event_id'   => $event->id ?? null,
+					'event_type' => $event_type,
+				]
+			);
+
+			// Acknowledge the event so Stripe does not keep retrying delivery of an event meant for another account.
+			// @see https://docs.stripe.com/webhooks#acknowledge-events-immediately
+			status_header( 200 );
+			exit;
+		}
+
 		if ( $is_agentic_hook ) {
 			$this->process_agentic_hook( $event );
 			return;
@@ -182,6 +199,50 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		WC_Stripe_Webhook_State::set_last_webhook_success_at( $event->created );
 		status_header( 200 );
 		exit;
+	}
+
+	/**
+	 * Determines whether a webhook event originated from the Stripe account this store is connected to.
+	 *
+	 * Connect events carry a top-level `account` field identifying the originating account. When it is
+	 * present, it must match the account connected for the current mode; a mismatch means the event
+	 * belongs to a different or stale account and must not be processed against this store's data.
+	 *
+	 * The check intentionally fails open in two cases so legitimate events are never dropped:
+	 * - The event has no `account` field (typical for direct/keyed-account events), so it cannot be
+	 *   attributed to a specific account from the payload.
+	 * - The connected account ID is unknown (e.g. the account cache is empty or the lookup failed).
+	 *
+	 * @param object $event The decoded webhook event.
+	 * @return bool True when the event may be processed, false when it must be skipped.
+	 */
+	protected function event_belongs_to_connected_account( $event ): bool {
+		$event_account = ( is_object( $event ) && ! empty( $event->account ) ) ? (string) $event->account : '';
+
+		// No account context on the payload: cannot verify, so allow processing to continue.
+		if ( '' === $event_account ) {
+			return true;
+		}
+
+		$connected_account = $this->get_connected_account_id();
+
+		// Connected account is unknown: avoid dropping legitimate events.
+		if ( '' === $connected_account ) {
+			return true;
+		}
+
+		return hash_equals( $connected_account, $event_account );
+	}
+
+	/**
+	 * Returns the Stripe account ID this store is currently connected to for the active mode.
+	 *
+	 * @return string The connected account ID (e.g. `acct_123`), or an empty string when unknown.
+	 */
+	protected function get_connected_account_id(): string {
+		$account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
+
+		return isset( $account_data['id'] ) ? (string) $account_data['id'] : '';
 	}
 
 	/**
