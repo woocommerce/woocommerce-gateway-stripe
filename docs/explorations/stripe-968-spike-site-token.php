@@ -21,7 +21,15 @@
  */
 class Spike_Stripe_968_Site_Token {
 
-	/** Delimiter between the site token and the SKU. Must not appear in valid SKUs. */
+	/**
+	 * Delimiter between the site token and the SKU. Must not appear in valid SKUs.
+	 *
+	 * ⚠️ AT RISK (see STRIPE-968-site-identification.md, Q3): Stripe documents the catalog `id`
+	 * / `external_reference` as type "String (alphanumeric)". A non-alphanumeric delimiter like
+	 * `~` (or `_` / `:`) may be rejected or stripped on the round-trip. If Stripe confirms only
+	 * alphanumerics are allowed, switch to a FIXED-WIDTH alphanumeric token prefix (recover the
+	 * SKU by offset, not by splitting on a separator). Confirm with Stripe before relying on this.
+	 */
 	const DELIMITER = '~';
 
 	/** Option that would store a stable, URL-independent site token, set once at onboarding. */

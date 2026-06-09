@@ -110,26 +110,85 @@ Options considered:
 Leaning toward a **stored random token** generated at agentic onboarding, with `home_url` host
 as a human-readable fallback only. See the spike for a sketch.
 
-## Open questions (must answer before scoping implementation)
+## Research findings (deep-research over Stripe + ACP public docs, 2026-06)
 
-1. **(Blocks everything)** Does Stripe deliver a delegated checkout's events only to the
-   originating endpoint, or broadcast to all endpoints on the shared account? (→ decides C vs A/B)
-2. Can catalog/line-item **metadata** be echoed back on the delegated-checkout event? (→ enables B)
-3. Back-compat: are there live catalogs keyed by bare SKU that a format change to
-   `external_reference` would break mid-flight? What's the migration/transition window?
-4. Where should the comparison live and what's the failure contract — silent skip, logged
-   skip (preferred, mirrors STRIPE-1194), or surfaced for diagnostics?
-5. Staging/clone safety: how do we guarantee a cloned site gets a *different* token so it can't
-   claim prod's checkouts?
+A cited deep-research pass answered most of the gating questions from public documentation.
+High-confidence conclusions (3-0 adversarial verification unless noted):
+
+- **Q1 — delivery is account+type scoped, not feed/session bound.** Stripe webhook delivery is
+  filtered only by account dimension and per-endpoint `enabled_events` (event *type*); there is
+  no documented field that routes a delegated checkout's events to the endpoint/feed that
+  produced it. Stripe staff on the official `api-discuss` list state, for the exact two-sites /
+  one-account case: *"All webhook endpoints will get all those events and it isn't 'per
+  transaction'"* — recommending filter-on-receive.
+  ([webhooks](https://docs.stripe.com/webhooks),
+  [webhook_endpoints API](https://docs.stripe.com/api/webhook_endpoints),
+  [api-discuss thread](https://groups.google.com/a/lists.stripe.com/g/api-discuss/c/8EhZtyXbQu8))
+- **Q1 nuance — sync hooks vs. async events split the risk.** The `customize_checkout` /
+  `finalize_checkout` hooks are **synchronous request/response** hooks configured as a *single*
+  endpoint on the Dashboard Agentic Commerce settings page — effectively one agentic endpoint
+  **per account**, so two sites on one account can't both own it. The order-creating path runs
+  off the **async, broadcast** event system, which fans out to *all* endpoints on the account.
+  **So the duplicate/wrong-site-order risk concentrates on the async order path, not the sync
+  hooks.** (Public docs are silent on whether a second standard endpoint can also subscribe to
+  `v1.delegated_checkout.*` in parallel — confirm with Stripe.)
+  ([for-sellers](https://docs.stripe.com/agentic-commerce/for-sellers),
+  [enable-in-context-selling](https://docs.stripe.com/agentic-commerce/enable-in-context-selling-on-ai-agents))
+- **Q2 — no per-product metadata round-trip (Approach B is a dead end per docs).** The feed
+  exposes only structured fields (`id`/SKU → `price.external_reference`, price, tax codes,
+  GTIN/MPN) plus `custom_label_0…4` (explicitly *"for internal purposes only"*, 100 chars).
+  Nothing — not even custom labels — is **documented as echoing back** onto delegated-checkout
+  events; `line_item_details` echoes only `id, sku_id, name, quantity, unit_amount, amounts,
+  tax_rates`. The ACP feed schema has `metadata` only at the *feed-resource* level, not
+  per-product. → A free-form site identifier cannot ride through the documented round-trip.
+  ([product-catalog](https://docs.stripe.com/agentic-commerce/product-catalog),
+  [ACP schema](https://github.com/agentic-commerce-protocol/agentic-commerce-protocol))
+- **Q3 — `external_reference` is "alphanumeric", ≤100 chars, no namespacing guidance.** The
+  catalog `id` is the unique product identifier (recommended SKU, kept stable, typed *"String
+  (alphanumeric) Maximum 100 characters"*, example `SKU12AB3456`); it surfaces back as
+  `price.external_reference`. No prefixing/namespacing is documented anywhere, and the canonical
+  Price object reference doesn't even list `external_reference`. **The "alphanumeric" label is
+  the key risk for Approach A**: a delimiter like `~` or `_` (and the `~` used in the spike) may
+  be rejected. An alphanumeric-only scheme (e.g. fixed-width token prefix, no separator) plus
+  Stripe confirmation would be required.
+  ([product-catalog](https://docs.stripe.com/agentic-commerce/product-catalog),
+  [Price object](https://docs.stripe.com/api/prices/object))
+
+**Net effect on the options:** B is effectively ruled out by public docs. C is *partially* true
+for the sync hooks (single per-account endpoint) but **false** for the async order events that
+actually create orders. So the live risk = async order events broadcasting to all endpoints on
+a shared account → **A + D remain the viable path**, with A constrained to an alphanumeric-safe
+encoding.
+
+## Open questions (remaining — need Stripe / PAYOPS-1766, not public docs)
+
+1. ~~Are delegated-checkout events bound to the originating endpoint or broadcast?~~ **Answered:**
+   account+type scoped, broadcast to all matching endpoints; no feed/session binding.
+2. ~~Can per-product metadata echo back on the event?~~ **Answered (per public docs): no.** Sub-question
+   left for Stripe: are `custom_label_0…4` *ever* surfaced back on delegated-checkout events?
+   (Docs are silent, not an explicit "no".)
+3. **(Now the key blocker)** Does Stripe permit a non-alphanumeric delimiter in the catalog
+   `id` / `external_reference` (e.g. `~`, `_`, `:`)? If not, confirm an alphanumeric-only
+   namespacing scheme is acceptable and round-trips intact.
+4. For the async order path: confirm whether both sites' standard endpoints on a shared account
+   actually receive each other's order events in practice (the general fan-out rule says yes).
+5. Back-compat: live catalogs keyed by bare SKU — transition window for an `external_reference`
+   format change.
+6. Failure contract: silent skip vs. logged skip (preferred, mirrors STRIPE-1194) vs. surfaced.
+7. Staging/clone safety: guarantee a cloned site gets a *different* token.
 
 ## Recommendation (for discussion, not implementation)
 
-1. **Answer Q1/Q2 with Stripe first.** They collapse the option space.
-2. If events are broadcast and metadata is **not** echoed → pursue **A (namespaced
-   `external_reference`)** + **D (order-creation gate)**, with a back-compat path that accepts
-   both `"{token}:{sku}"` and legacy bare `"{sku}"` during a transition.
-3. If metadata **is** echoed → prefer **B** + **D** (keeps SKUs clean).
-4. If delivery is endpoint-bound (C) → a thin **D** defensive check is likely enough.
+1. **Approach A (namespaced `external_reference`) + D (order-creation gate)** is the path public
+   docs support. B is ruled out (no metadata round-trip); C only covers the sync hooks, not the
+   order-creating async events.
+2. Constrain A to an **alphanumeric-only** encoding (no `~`/`_`/`:` delimiter — the spike's `~`
+   is at risk) pending Stripe confirmation (Open Q3). E.g. a fixed-length alphanumeric site
+   token prefix of known width so the SKU can be recovered by offset, not by separator.
+3. Pair with **D**: an explicit, logged "not my site → no-op" gate before
+   `create_order_from_checkout_session()`, with a back-compat path accepting legacy bare SKUs
+   during transition.
+4. Confirm Open Q3/Q4 with Stripe (PAYOPS-1766) before scoping implementation.
 
 ## Suggested next steps
 
