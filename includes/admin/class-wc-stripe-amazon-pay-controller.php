@@ -41,9 +41,10 @@ class WC_Stripe_Amazon_Pay_Controller {
 
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$params          = [
-			'key'                    => WC_Stripe_Mode::is_test() ? $stripe_settings['test_publishable_key'] : $stripe_settings['publishable_key'],
-			'locale'                 => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-			'taxes_based_on_billing' => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
+			'key'                        => WC_Stripe_Mode::is_test() ? $stripe_settings['test_publishable_key'] : $stripe_settings['publishable_key'],
+			'locale'                     => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+			'taxes_based_on_billing'     => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
+			'is_button_style_overridden' => WC_Stripe_Helper::is_express_checkout_button_style_overridden(),
 		];
 		wp_localize_script(
 			'wc-stripe-amazon-pay-settings',
@@ -69,9 +70,9 @@ class WC_Stripe_Amazon_Pay_Controller {
 	public function admin_options() {
 		global $hide_save_button;
 		$hide_save_button = true;
-		$return_url      = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' );
-		$header          = __( 'Customize express checkouts', 'woocommerce-gateway-stripe' );
-		$return_text     = __( 'Return to Stripe', 'woocommerce-gateway-stripe' );
+		$return_url       = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' );
+		$header           = __( 'Customize express checkouts', 'woocommerce-gateway-stripe' );
+		$return_text      = __( 'Return to Stripe', 'woocommerce-gateway-stripe' );
 
 		WC_Stripe_Helper::render_admin_header( $header, $return_text, $return_url );
 		echo '<div class="wrap"><div id="wc-stripe-amazon-pay-settings-container"></div></div>';

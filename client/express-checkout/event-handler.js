@@ -3,10 +3,12 @@ import {
 	normalizeShippingAddress,
 	normalizeLineItems,
 	isManualPaymentMethodCreation,
+	getExpressCheckoutData,
 } from './utils';
 import {
 	handleConfirmationTokenFlow,
 	handleManualPaymentMethodFlow,
+	handleChangePaymentMethodFlow,
 } from './payment-flow';
 
 /**
@@ -86,9 +88,16 @@ export const shippingRateChangeHandler = async ( api, event, elements ) => {
 export const onConfirmHandler = async ( params ) => {
 	const { abortPayment, elements, event, hasFreeTrial } = params;
 
+	blockUI();
+
 	const submitResponse = await elements.submit();
 	if ( submitResponse?.error ) {
 		return abortPayment( event, submitResponse?.error?.message );
+	}
+
+	// For subscription change payment method, create a payment method and submit the form.
+	if ( getExpressCheckoutData( 'is_change_payment_method' ) ) {
+		return handleChangePaymentMethodFlow( params );
 	}
 
 	if (

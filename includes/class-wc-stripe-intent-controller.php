@@ -96,7 +96,7 @@ class WC_Stripe_Intent_Controller {
 		// Retrieve the order.
 		$order = wc_get_order( $order_id );
 
-		if ( ! $order ) {
+		if ( ! $order instanceof WC_Order ) {
 			throw new WC_Stripe_Exception( 'missing-order', __( 'Missing order ID for payment confirmation', 'woocommerce-gateway-stripe' ) );
 		}
 
@@ -388,18 +388,19 @@ class WC_Stripe_Intent_Controller {
 	 * @return array
 	 */
 	public function create_payment_intent( $order_id = null, $payment_method_type = null ) {
-		$amount = WC()->cart->get_total( false );
-		$order  = wc_get_order( $order_id );
+		$amount   = WC()->cart->get_total( false );
+		$currency = get_woocommerce_currency();
+		$order    = wc_get_order( $order_id );
 		if ( is_a( $order, 'WC_Order' ) ) {
-			$amount = $order->get_total();
+			$amount   = $order->get_total();
+			$currency = $order->get_currency();
 		}
 
 		$gateway                 = $this->get_upe_gateway();
 		$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
 
-		$currency = get_woocommerce_currency();
-		$capture  = $gateway->is_automatic_capture_enabled();
-		$request  = [
+		$capture = $gateway->is_automatic_capture_enabled();
+		$request = [
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 			'currency'             => strtolower( $currency ),
 			'payment_method_types' => $enabled_payment_methods,
@@ -508,8 +509,7 @@ class WC_Stripe_Intent_Controller {
 		if ( $intent_id ) {
 			$request = [
 				'metadata'    => $gateway->get_metadata_from_order( $order ),
-				/* translators: 1) blog name 2) order number */
-				'description' => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+				'description' => WC_Stripe_Helper::get_payment_intent_description( $order ),
 			];
 
 			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
@@ -548,7 +548,7 @@ class WC_Stripe_Intent_Controller {
 
 			// Use "setup_intents" endpoint if `$intent_id` starts with `seti_`.
 			$endpoint = $is_setup_intent ? 'setup_intents' : 'payment_intents';
-			$result = WC_Stripe_API::request_with_level3_data(
+			$result   = WC_Stripe_API::request_with_level3_data(
 				$request,
 				"{$endpoint}/{$intent_id}",
 				$level3_data,
@@ -560,9 +560,9 @@ class WC_Stripe_Intent_Controller {
 					WC_Stripe_Logger::critical(
 						'Error: Failed to update intent due to invalid operation',
 						[
-							'intent_id'   => $intent_id,
-							'order_id'    => $order_id,
-							'error'       => $result->error,
+							'intent_id' => $intent_id,
+							'order_id'  => $order_id,
+							'error'     => $result->error,
 						]
 					);
 
@@ -696,7 +696,7 @@ class WC_Stripe_Intent_Controller {
 				throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$order    = wc_get_order( $order_id );
+			$order = wc_get_order( $order_id );
 			if ( ! $order ) {
 				throw new WC_Stripe_Exception( 'order_not_found', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
@@ -721,6 +721,24 @@ class WC_Stripe_Intent_Controller {
 					'return_url' => $gateway->get_return_url( $order ),
 				],
 				200
+			);
+		} catch ( WC_Stripe_Payment_Cancelled_Exception $e ) {
+			if ( $order instanceof WC_Order ) {
+				$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
+				$order_helper->remove_payment_awaiting_action( $order );
+			}
+
+			// Customer-initiated cancellation (e.g. closed Klarna popup). Do not fail the
+			// order — leave it retryable and return an error so the frontend can notify the customer.
+			WC_Stripe_Logger::info(
+				'Payment cancelled by customer via AJAX for order: ' . $order_id . '. Reason: ' . $e->getMessage()
+			);
+			wp_send_json_error(
+				[
+					'error' => [
+						'message' => __( 'Your payment was cancelled. Please try again or use a different payment method.', 'woocommerce-gateway-stripe' ),
+					],
+				]
 			);
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
@@ -769,7 +787,7 @@ class WC_Stripe_Intent_Controller {
 				throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$order     = wc_get_order( $order_id );
+			$order = wc_get_order( $order_id );
 
 			$order_from_payment = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
 			if ( ! $order_from_payment || $order_from_payment->get_id() !== $order_id ) {
@@ -874,8 +892,7 @@ class WC_Stripe_Intent_Controller {
 				'confirm'              => 'true',
 				'currency'             => $payment_information['currency'],
 				'customer'             => $payment_information['customer'],
-				/* translators: 1) blog name 2) order number */
-				'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+				'description'          => WC_Stripe_Helper::get_payment_intent_description( $order ),
 				'metadata'             => $payment_information['metadata'],
 				'payment_method_types' => $payment_method_types,
 			]
@@ -883,6 +900,10 @@ class WC_Stripe_Intent_Controller {
 
 		if ( isset( $payment_information['statement_descriptor_suffix'] ) ) {
 			$request['statement_descriptor_suffix'] = $payment_information['statement_descriptor_suffix'];
+		}
+
+		if ( isset( $payment_information['statement_descriptor'] ) ) {
+			$request['statement_descriptor'] = $payment_information['statement_descriptor'];
 		}
 
 		if ( ! empty( $payment_information['payment_method_options'] ) ) {
@@ -999,6 +1020,10 @@ class WC_Stripe_Intent_Controller {
 		$request = $this->build_base_payment_intent_request_params( $payment_information );
 
 		$order = $payment_information['order'];
+
+		// Note: statement_descriptor and statement_descriptor_suffix are intentionally
+		// NOT forwarded here. The Stripe /confirm endpoint does not accept these
+		// parameters — they can only be set at PaymentIntent creation time.
 
 		// Run the necessary filter to make sure mandate information is added when it's required.
 		$request = apply_filters(
@@ -1429,24 +1454,6 @@ class WC_Stripe_Intent_Controller {
 	 */
 	private function is_delayed_confirmation_required( $payment_methods ) {
 		return ! empty( array_intersect( $payment_methods, [ WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::MULTIBANCO, WC_Stripe_Payment_Methods::CASHAPP_PAY ] ) );
-	}
-
-	/**
-	 * Check for a UPE redirect payment method on order received page or setup intent on payment methods page.
-	 *
-	 * @deprecated 8.3.0
-	 * @since 5.6.0
-	 * @version 5.6.0
-	 *
-	 * @return void
-	 */
-	public function maybe_process_upe_redirect() {
-		wc_deprecated_function( __FUNCTION__, '8.3', 'WC_Stripe_Order_Handler::maybe_process_redirect_order' );
-
-		$gateway = $this->get_gateway();
-		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
-			$gateway->maybe_process_upe_redirect();
-		}
 	}
 
 	/**

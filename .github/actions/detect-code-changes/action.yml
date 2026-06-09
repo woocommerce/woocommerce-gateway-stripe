@@ -1,0 +1,41 @@
+name: Detect code changes
+description: |
+  Reports whether a PR contains code changes (anything outside docs and
+  release-notes files). Workflows can gate jobs on the `code` output to skip CI
+  on docs-only PRs — skipped jobs still post a status check, so workflows wired
+  in as required checks stay satisfied.
+
+outputs:
+  code:
+    description: 'true when at least one changed file is not docs/release-notes; true outside pull_request events'
+    value: ${{ steps.filter.outputs.code }}
+
+runs:
+  using: composite
+  steps:
+    - id: filter
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPO: ${{ github.repository }}
+      run: |
+        if [ -z "$PR_NUMBER" ]; then
+          # Non-PR event (workflow_dispatch, push, etc.) — don't gate, just run.
+          echo "No PR number defined; assuming we have code to check"
+          echo "code=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        FILES=$(gh api "repos/$REPO/pulls/$PR_NUMBER/files" --paginate --jq '.[].filename')
+
+        CODE=false
+        while IFS= read -r f; do
+          [ -z "$f" ] && continue
+          case "$f" in
+            *.md|docs/*|.github/ISSUE_TEMPLATE/*|LICENSE.txt|changelog.txt|readme.txt) ;;
+            *) CODE=true; break ;;
+          esac
+        done <<< "$FILES"
+
+        echo "code=$CODE" >> "$GITHUB_OUTPUT"

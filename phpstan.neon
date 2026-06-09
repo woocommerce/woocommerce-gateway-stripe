@@ -15,9 +15,23 @@ parameters:
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php
 	scanDirectories:
 		- phpstan-stubs
+		- tests/phpunit/helpers
 	treatPhpDocTypesAsCertain: false
 	parallel:
 		maximumNumberOfProcesses: 4
 	ignoreErrors:
 		-
 			identifier: missingType.iterableValue
+		# WCS_Retry / WCS_Retry_Manager are provided by the WooCommerce Subscriptions plugin,
+		# which is an optional runtime dependency. The phpstan-stubs/ and tests/phpunit/helpers/
+		# stand-ins declare these methods so PHPStan can resolve the calls, but the defensive
+		# method_exists() guards still have to run at runtime in case an older Subscriptions
+		# release is installed without the methods.
+		-
+			message: '#^Call to function method_exists\(\) with WCS_Retry and ''get_time'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			path: includes/compat/class-wc-stripe-email-failed-authentication-retry.php
+		-
+			message: '#^Call to function method_exists\(\) with ''WCS_Retry_Manager'' and ''(is_retry_enabled|store)'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			path: includes/compat/trait-wc-stripe-subscriptions.php

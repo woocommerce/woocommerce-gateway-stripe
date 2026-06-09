@@ -15,28 +15,28 @@ class WC_Stripe_Account {
 	 *
 	 * @var string
 	 */
-	const ACCOUNT_CACHE_KEY = 'account_data';
+	public const ACCOUNT_CACHE_KEY = 'account_data';
 
 	/**
 	 * The Account Data cache expiration (TTL).
 	 *
 	 * @var int
 	 */
-	const ACCOUNT_CACHE_EXPIRATION = 2 * HOUR_IN_SECONDS;
+	public const ACCOUNT_CACHE_EXPIRATION = 2 * HOUR_IN_SECONDS;
 
-	const LIVE_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_live';
-	const TEST_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_test';
+	public const LIVE_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_live';
+	public const TEST_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_test';
 
-	const STATUS_COMPLETE        = 'complete';
-	const STATUS_NO_ACCOUNT      = 'NOACCOUNT';
-	const STATUS_RESTRICTED_SOON = 'restricted_soon';
-	const STATUS_RESTRICTED      = 'restricted';
+	public const STATUS_COMPLETE        = 'complete';
+	public const STATUS_NO_ACCOUNT      = 'NOACCOUNT';
+	public const STATUS_RESTRICTED_SOON = 'restricted_soon';
+	public const STATUS_RESTRICTED      = 'restricted';
 
 	/**
 	 * List of webhook events that this plugin listens to.
 	 * Based on WC_Stripe_Webhook_Handler::process_webhook()
 	 */
-	const WEBHOOK_EVENTS = [
+	public const WEBHOOK_EVENTS = [
 		'account.updated',
 		'source.chargeable',
 		'source.canceled',
@@ -294,7 +294,7 @@ class WC_Stripe_Account {
 		$request = [
 			'enabled_events' => self::WEBHOOK_EVENTS,
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
-			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
+			'api_version'    => self::get_webhooks_api_version(),
 		];
 
 		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
@@ -428,6 +428,37 @@ class WC_Stripe_Account {
 	}
 
 	/**
+	 * Checks if the API version of an existing webhook differs from our desired API version.
+	 *
+	 * @param object $existing_webhook The existing webhook object from Stripe.
+	 * @return bool True if API version differs, false if they match.
+	 */
+	private function does_webhooks_api_version_differ( $existing_webhook ): bool {
+		return self::get_webhooks_api_version() !== $existing_webhook->api_version; // @phpstan-ignore property.notFound
+	}
+
+	/**
+	 * Returns the API version for the webhooks.
+	 *
+	 * @return string The API version.
+	 */
+	private static function get_webhooks_api_version(): string {
+		$version = WC_Stripe_API::STRIPE_API_VERSION;
+
+		/**
+		 * Agentic Commerce uses a different API version for webhooks.
+		 *
+		 * This method should be removed once we switch to
+		 * AGENTIC_COMMERCE_API_VERSION or higher.
+		 */
+		if ( WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
+			$version = WC_Stripe_API::AGENTIC_COMMERCE_API_VERSION;
+		}
+
+		return $version;
+	}
+
+	/**
 	 * Gets the existing webhook for the site's URL.
 	 *
 	 * @return object|false The webhook object if found, false otherwise.
@@ -486,7 +517,10 @@ class WC_Stripe_Account {
 				}
 
 				// Check if events differ
-				if ( ! $this->do_webhook_events_differ( $existing_webhook ) ) {
+				if (
+					! $this->do_webhook_events_differ( $existing_webhook )
+					&& ! $this->does_webhooks_api_version_differ( $existing_webhook )
+				) {
 					continue;
 				}
 

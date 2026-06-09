@@ -17,10 +17,117 @@
 	}
 }
 
+#payment .payment_methods li.wc-stripe-optimized-checkout {
+	label[for='payment_method_stripe'] {
+		display: none;
+	}
+	/* Some themes show the radio, while others don't. Make sure it's hidden. */
+	input#payment_method_stripe { // stylelint-disable-line selector-id-pattern
+		display: none;
+	}
+	.payment_box.payment_method_stripe {
+		padding: 0;
+		padding-bottom: inherit;
+
+		> :not( #wc-stripe-upe-form ) {
+			/* Use WooCommerce default padding for other elements in the payment method box.
+			Mainly applies to saved payment method controls and test instructions. */
+			padding-left: 1em;
+			padding-right: 1em;
+		}
+
+		.wc-stripe-payment-method-instruction {
+			padding-top: 0.5em;
+			padding-bottom: 0.5em;
+		}
+
+		ul.wc-saved-payment-methods[data-count='0'] {
+			display: none;
+		}
+
+		> fieldset {
+			border-width: 0;
+			margin: 0;
+			padding: 0;
+		}
+
+		#wc-stripe-upe-form .wc-stripe-upe-element iframe {
+			max-width: none;
+		}
+	}
+}
+
+// Typography/sizing matches Stripe's Payment Element redirect notice so ACSS
+// looks consistent with other redirect-based methods (e.g. Afterpay).
+.wc-stripe-redirect-notice {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 0;
+	padding: 24px 9px 8px;
+	border: 0;
+	min-inline-size: 0;
+	color: rgb(43, 45, 47);
+	font-family: 'Source Sans Pro', 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', 'Helvetica', 'Arial', 'Lucida Grande', sans-serif;
+	font-size: 16px;
+	font-weight: 400;
+	line-height: 25px;
+	letter-spacing: normal;
+	text-decoration: none;
+	text-shadow: none;
+	text-transform: none;
+	transition: none;
+	-webkit-font-smoothing: auto;
+}
+
+.wc-stripe-redirect-notice__icon {
+	flex-shrink: 0;
+	width: 3em;
+	height: 3em;
+}
+
+.wc-stripe-redirect-notice__text {
+	margin: 0;
+	padding: 0;
+}
+
+// Block themes (detected via the core `.wp-site-blocks` wrapper, which classic
+// themes do not emit) don't provide the same visual framing that classic themes
+// like Storefront give to the checkout payment area. Show the fieldset border so
+// the notice doesn't appear to float in empty space.
+//
+// Scoped to `form.woocommerce-checkout` so the override only applies to the
+// classic/shortcode checkout form — this stylesheet (upe-classic.css) is also
+// enqueued on the Blocks checkout page, and Blocks doesn't render this form.
+body:has( > .wp-site-blocks ) form.woocommerce-checkout .wc-stripe-redirect-notice {
+	min-inline-size: min-content;
+	margin-inline: 2px;
+	border-width: 2px;
+	border-style: groove;
+	border-color: threedface;
+	border-image: initial;
+	padding-block: 1.35em 1.625em;
+	padding-inline: 1.75em;
+}
+
+// stylelint-disable-next-line selector-id-pattern
+body:has( > .wp-site-blocks ) form.woocommerce-checkout #wc-stripe_acss_debit-upe-form {
+	display: none;
+}
+
+
 .woocommerce-checkout #payment ul.payment_methods li img.stripe-multibanco-icon {
 	max-height: 30px;
 }
 
 .woocommerce-checkout #payment ul.payment_methods li img.stripe-alipay-icon {
 	max-width: 50px;
+}
+
+/*
+ * Hide the classic save-card checkbox when Stripe Link handles save consent.
+ * Toggled via document.body class from handleDisplayOfSavingCheckbox().
+ */
+body.wc-stripe-hide-save-checkbox .woocommerce-SavedPaymentMethods-saveNew {
+	display: none !important;
 }

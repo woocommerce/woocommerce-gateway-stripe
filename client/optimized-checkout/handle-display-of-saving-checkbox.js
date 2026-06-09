@@ -1,18 +1,149 @@
 import { NON_REUSABLE_METHODS } from 'wcstripe/stripe-utils/constants';
-import { getStripeServerData } from 'wcstripe/stripe-utils';
+import { getStripeServerData, isLinkEnabled } from 'wcstripe/stripe-utils';
 
-export const handleDisplayOfSavingCheckbox = ( method ) => {
-	// For block checkout
-	const saveCardInfoContainerBlocks = document.querySelector(
-		'.wc-block-components-payment-methods__save-card-info'
+/**
+ * Determines whether the store-level save checkbox should be hidden.
+ *
+ * For classic checkout (non-OC), this checks Link status client-side.
+ * For block/OC checkout, prefer shouldHideSaveCheckboxFromConfig() which
+ * reads the server-provided showSaveOptionByMethod map.
+ *
+ * @param {string} method The selected payment method type.
+ * @return {boolean}      True if the checkbox should be hidden.
+ */
+const shouldHideSaveCheckbox = ( method ) => {
+	if ( NON_REUSABLE_METHODS.includes( method ) ) {
+		return true;
+	}
+
+	// Hide for both 'card' and 'link' when Link is enabled — the PE may
+	// fire a change event with type 'link' when Link fields appear.
+	if ( method === 'card' || method === 'link' ) {
+		try {
+			return isLinkEnabled();
+		} catch ( e ) {
+			return false;
+		}
+	}
+
+	return false;
+};
+
+/**
+ * Determines whether the save checkbox should be hidden using the
+ * server-provided per-method map (OC / block checkout).
+ *
+ * showSaveOptionByMethod is populated in PHP by calling
+ * should_upe_payment_method_show_save_option() for each original method
+ * inside the OC container. This keeps the business rule in PHP (single
+ * source of truth) and the frontend as a dumb lookup.
+ *
+ * @param {string} method               The selected payment method type.
+ * @param {Object} paymentMethodsConfig The payment methods configuration.
+ * @return {boolean}                    True if the checkbox should be hidden.
+ */
+const shouldHideSaveCheckboxFromConfig = ( method, paymentMethodsConfig ) => {
+	if ( NON_REUSABLE_METHODS.includes( method ) ) {
+		return true;
+	}
+
+	const byMethod = paymentMethodsConfig?.card?.showSaveOptionByMethod;
+	if ( byMethod && method in byMethod ) {
+		return ! byMethod[ method ];
+	}
+
+	// Fallback: method not in the map (e.g. newly added), show checkbox.
+	return false;
+};
+
+/**
+ * CSS class added to document.body to hide the blocks save checkbox.
+ *
+ * A body class + stylesheet rule is used instead of inline style.display
+ * because WooCommerce Blocks can unmount/remount the checkbox element
+ * (e.g. when a signed-in user toggles between saved tokens and a new
+ * payment method), which would lose any inline style set directly on
+ * the DOM node. A CSS rule targets by selector, so it applies regardless
+ * of React re-renders. The matching rule lives in blocks/upe/styles.scss.
+ */
+const HIDE_SAVE_CHECKBOX_CLASS = 'wc-stripe-hide-save-checkbox';
+
+/**
+ * Clear the save-checkbox state from both the classic DOM input and the
+ * Blocks payment store.
+ *
+ * This ensures that we don't include a stale value for the "save payment method"
+ * input field when the field has been hidden due to a payment method change.
+ */
+const clearSaveCheckboxState = () => {
+	// Classic: the form input WC reads on submit.
+	const classicInput = document.getElementById(
+		'wc-stripe-new-payment-method'
 	);
-	if ( saveCardInfoContainerBlocks ) {
-		saveCardInfoContainerBlocks.style.display =
-			NON_REUSABLE_METHODS.includes( method ) ? 'none' : 'block';
+	if ( classicInput instanceof HTMLInputElement ) {
+		classicInput.checked = false;
 		return;
 	}
 
-	// For classic checkout
+	// Blocks: WC Blocks renders the save checkbox from its own paymentStore
+	// state, so clearing the DOM input would be ineffective. The public
+	// dispatch is wc/store/payment#__internalSetShouldSavePaymentMethod.
+	if ( typeof window?.wp?.data?.dispatch === 'function' ) {
+		try {
+			const paymentStore = window.wp.data.dispatch( 'wc/store/payment' );
+			if (
+				paymentStore &&
+				typeof paymentStore.__internalSetShouldSavePaymentMethod ===
+					'function'
+			) {
+				paymentStore.__internalSetShouldSavePaymentMethod( false );
+			}
+		} catch ( e ) {
+			// Store unavailable — classic-only contexts don't ship wp.data,
+			// and the DOM clear above is the right action there.
+		}
+	}
+};
+
+export const handleDisplayOfSavingCheckbox = (
+	method,
+	paymentMethodsConfig
+) => {
+	// For block checkout — toggle a body class so the stylesheet rule in
+	// blocks/upe/styles.scss hides the checkbox. Uses the PHP-provided
+	// per-method map as the single source of truth.
+	const isBlockCheckout = document.querySelector(
+		'.wc-block-components-payment-methods__save-card-info, .wc-block-checkout'
+	);
+	if ( isBlockCheckout ) {
+		const shouldHide = shouldHideSaveCheckboxFromConfig(
+			method,
+			paymentMethodsConfig
+		);
+		document.body.classList.toggle( HIDE_SAVE_CHECKBOX_CLASS, shouldHide );
+		if ( shouldHide ) {
+			clearSaveCheckboxState();
+		}
+		return;
+	}
+
+	// For classic checkout with OC — use body class toggle (same as blocks)
+	// when the per-method config map is available. The matching CSS rule
+	// lives in classic/upe/style.scss.
+	if ( paymentMethodsConfig?.card?.showSaveOptionByMethod ) {
+		const shouldHide = shouldHideSaveCheckboxFromConfig(
+			method,
+			paymentMethodsConfig
+		);
+		document.body.classList.toggle( HIDE_SAVE_CHECKBOX_CLASS, shouldHide );
+		if ( shouldHide ) {
+			clearSaveCheckboxState();
+		}
+		return;
+	}
+
+	// For classic checkout without OC — inline style toggle with
+	// client-side Link detection as fallback.
 	const saveCardInfoContainerClassic = document.querySelector(
 		'.woocommerce-SavedPaymentMethods-saveNew'
 	);
@@ -29,7 +160,7 @@ export const handleDisplayOfSavingCheckbox = ( method ) => {
 		if (
 			( getStripeServerData()?.isLoggedIn || signupSelected ) &&
 			! hasSavedPaymentMethodSelected &&
-			! NON_REUSABLE_METHODS.includes( method )
+			! shouldHideSaveCheckbox( method )
 		) {
 			saveCardInfoContainerClassic.style.display = 'block';
 		} else {

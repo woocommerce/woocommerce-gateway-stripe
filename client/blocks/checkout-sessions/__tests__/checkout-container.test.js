@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { render } from '@testing-library/react';
 import { CheckoutProvider } from '@stripe/react-stripe-js/checkout';
 import { CheckoutContainer } from 'wcstripe/blocks/checkout-sessions/checkout-container';
-import { initializeUPEAppearance } from 'wcstripe/stripe-utils';
+import { initializeUPEAppearance } from 'wcstripe/stripe-utils/upe-appearance';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
 
 jest.mock( 'react', () => ( {
@@ -28,10 +28,16 @@ jest.mock( 'wcstripe/blocks/checkout-sessions/checkout-form' );
 
 jest.mock( 'wcstripe/stripe-utils' );
 
+jest.mock( 'wcstripe/stripe-utils/upe-appearance' );
+
 jest.mock( 'wcstripe/styles/upe' );
 
 jest.mock( 'wcstripe/blocks/load-stripe', () => ( {
 	loadStripe: jest.fn( () => Promise.resolve( true ) ),
+} ) );
+
+jest.mock( 'wcstripe/blocks/utils', () => ( {
+	getBlocksConfiguration: jest.fn( () => ( { isAdmin: false } ) ),
 } ) );
 
 describe( 'CheckoutSessionsContainer', () => {
@@ -59,7 +65,14 @@ describe( 'CheckoutSessionsContainer', () => {
 		expect( CheckoutProvider ).toHaveBeenCalledWith(
 			expect.objectContaining( {
 				stripe: expect.any( Promise ),
-				options: expect.any( Object ),
+				options: expect.objectContaining( {
+					elementsOptions: expect.objectContaining( {
+						savedPaymentMethod: {
+							enableRedisplay: 'never',
+							enableSave: 'never',
+						},
+					} ),
+				} ),
 			} ),
 			{}
 		);

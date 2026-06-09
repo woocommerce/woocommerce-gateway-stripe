@@ -3,8 +3,8 @@ import '@testing-library/jest-dom/extend-expect';
 import PaymentMethodIcon from '..';
 
 describe( 'PaymentMethodIcon', () => {
-	test( 'renders giropay payment method icon', () => {
-		const { container } = render( <PaymentMethodIcon name="giropay" /> );
+	test( 'renders Bancontact payment method icon', () => {
+		const { container } = render( <PaymentMethodIcon name="bancontact" /> );
 		expect( container.querySelector( 'img' ).src ).toContain(
 			'test-file-stub'
 		);
@@ -24,10 +24,10 @@ describe( 'PaymentMethodIcon', () => {
 		);
 	} );
 
-	test( 'renders giropay payment method icon and label', () => {
-		render( <PaymentMethodIcon name="giropay" showName /> );
+	test( 'renders Bancontact payment method icon and label', () => {
+		render( <PaymentMethodIcon name="bancontact" showName /> );
 
-		const label = screen.queryByText( 'giropay' );
+		const label = screen.queryByText( 'Bancontact' );
 		expect( label ).toBeInTheDocument();
 	} );
 
