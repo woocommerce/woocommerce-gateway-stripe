@@ -15,6 +15,7 @@ import {
 	confirmWalletPayment,
 	createAndConfirmSetupIntent,
 	getMountedUPEComponent,
+	hasEmptyRequiredFields,
 	initializeUPEComponents,
 	maybeUpdateAdaptivePricingCheckoutSession,
 	mountStripePaymentElement,
@@ -100,7 +101,21 @@ jQuery( function ( $ ) {
 	}
 
 	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
-		return processPaymentIfNotUsingSavedMethod( $( this ) );
+		const $form = $( this );
+
+		// Don't create a Stripe payment method if required checkout fields are empty.
+		// This prevents unnecessary Stripe API calls before WC's server-side validation.
+		// jQuery :visible filters out fields hidden by conditional checkout logic
+		// (e.g. shipping fields when "Ship to different address" is unchecked).
+		if (
+			hasEmptyRequiredFields(
+				$form.find( '.validate-required:visible' ).toArray()
+			)
+		) {
+			return;
+		}
+
+		return processPaymentIfNotUsingSavedMethod( $form );
 	} );
 
 	// Mount the Stripe Payment Elements onto the Add Payment Method page and Pay for Order page.
