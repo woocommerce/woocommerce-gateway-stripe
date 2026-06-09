@@ -17,6 +17,13 @@ class WC_Stripe_API {
 	public const STRIPE_API_VERSION = '2025-12-15.preview';
 
 	/**
+	 * Stripe API version previously used only for Agentic Commerce requests.
+	 *
+	 * @deprecated 10.9.0 The plugin now uses a single API version everywhere; use STRIPE_API_VERSION instead.
+	 */
+	public const AGENTIC_COMMERCE_API_VERSION = self::STRIPE_API_VERSION;
+
+	/**
 	 * The invalid API key error count cache key.
 	 *
 	 * @var string
