@@ -1,10 +1,16 @@
 *** Changelog ***
 
-xxxx-xx-xx - version 10.8.0
+xxxx-xx-xx - version 10.9.0
+
+2026-06-08 - version 10.8.0
+* Fix - Add an order note and call action 'wc_stripe_unexpected_charge_detected' when a Stripe charge is captured for an order that was already paid via a different gateway
+* Fix - Add empty state mapping for Morocco in express checkout
 * Add - Default Optimized Checkout Suite and Adaptive Pricing on for all eligible stores, with in-app notices announcing the change
+* Fix - Prevent saved Link, Cash App Pay, SEPA, Amazon Pay and Bacs Direct Debit payment methods from being duplicated when viewing My Account → Payment methods
 * Fix - Ensure the save-payment-method checkbox is unchecked when a non-reusable payment method is selected in Optimized Checkout
 * Tweak - Drop redundant "Test mode:" label from test payment instructions on Blocks checkout, which already shows a Test Mode badge
 * Fix - Resolve console errors shown when editing the Blocks checkout page
+* Fix - Ensure the bank statement descriptor is included when creating payment intents for alternative payment methods
 * Fix - Prevent Stripe from rendering an unexpected "Address Line 2" field inside the Payment Element
 * Update - Ensure payment method restrictions based on account and shopper countries are up to date
 * Fix - Store transaction IDs for orders when we get charges to ensure we can refund correctly
@@ -36,7 +42,7 @@ xxxx-xx-xx - version 10.8.0
 * Dev - Move some independent classes into autoloader
 * Dev - Require explicit visibility for class constants
 * Dev - Add payment token classes to autoloader
-* Remove - Remove deprecated code up to version 10.1.0
+* Remove - Remove deprecated code up to version 10.2.0
 * Dev - Add Jest tests for ECE payment flow
 * Fix - Respect the iDEAL/Wero and Bancontact save toggle when Optimized Checkout is enabled
 * Fix - Use a placeholder billing last name for single-name express checkout payments
@@ -44,6 +50,7 @@ xxxx-xx-xx - version 10.8.0
 * Update - Improve express checkout load times by preloading the resources
 * Tweak - Reduce JS bundle sizes by using native browser features instead of polyfills
 * Dev - Memoize the Express Checkout button visibility check within a request
+* Fix - Don't default Adaptive Pricing on when first connecting a Stripe account that is ineligible for Adaptive Pricing
 * Fix - Fix admin banner dismissal and display logic
 * Add - Detect Stripe API outages (network failures, timeouts, 5xx responses) and surface a wp-admin notice instead of crashing or showing misleading "couldn't connect" messages
 * Fix - Require a connected account for the target mode before switching between test and live
@@ -56,6 +63,7 @@ xxxx-xx-xx - version 10.8.0
 * Dev - Add e2e tests for subscriptions and Optimized Checkout Suite and support stricter payment confirmation checks
 * Fix - Restore "Refund via Gateway" button and Stripe dashboard transaction link for Amazon Pay orders by keeping Amazon Pay registered in the gateway list on order edit and refund pages
 * Fix - Correct Amazon Pay button preview rendering in the Full Site Editor block cart and checkout pages
+* Fix - Update the order description and metadata on the payment intent after an Adaptive Pricing payment completes
 
 2026-05-12 - version 10.7.0
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled

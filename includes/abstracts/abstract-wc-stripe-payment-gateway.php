@@ -485,8 +485,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$post_data['currency']                 = strtolower( $order->get_currency() );
 		$post_data['amount']                   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $post_data['currency'] );
 
-		/* translators: 1) blog name 2) order number */
-		$post_data['description'] = sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() );
+		$post_data['description'] = WC_Stripe_Helper::get_payment_intent_description( $order );
 		$billing_email            = $order->get_billing_email();
 		$billing_first_name       = $order->get_billing_first_name();
 		$billing_last_name        = $order->get_billing_last_name();
@@ -514,6 +513,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					'state'       => $order->get_shipping_state(),
 				],
 			];
+
+			// Include the shipping phone, when available, to support risk decisioning.
+			$shipping_phone = $order->get_shipping_phone();
+			if ( ! empty( $shipping_phone ) ) {
+				$post_data['shipping']['phone'] = $shipping_phone;
+			}
 		}
 
 		$post_data['expand[]'] = 'balance_transaction';

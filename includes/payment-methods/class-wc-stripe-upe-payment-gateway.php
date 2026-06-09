@@ -3075,7 +3075,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return array
 	 */
 	private function get_address_data_for_payment_request( $order ) {
-		return [
+		$address_data = [
 			'name'    => trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() ),
 			'address' => [
 				'line1'       => $order->get_shipping_address_1(),
@@ -3086,6 +3086,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				'state'       => $order->get_shipping_state(),
 			],
 		];
+
+		// Include the shipping phone, when available, to support risk decisioning.
+		$shipping_phone = $order->get_shipping_phone();
+		if ( ! empty( $shipping_phone ) ) {
+			$address_data['phone'] = $shipping_phone;
+		}
+
+		return $address_data;
 	}
 
 	/**
@@ -3332,9 +3340,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
+		// For APMs, always use the full bank statement descriptor.
 		$is_short_statement_descriptor_enabled = 'yes' === $this->get_option( 'is_short_statement_descriptor_enabled', 'no' );
 		if ( WC_Stripe_Payment_Methods::CARD === $selected_payment_type && $is_short_statement_descriptor_enabled ) {
 			$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
+		} elseif ( WC_Stripe_Payment_Methods::CARD !== $selected_payment_type ) {
+			// Use the locally configured statement descriptor, falling back to the Stripe account-level descriptor.
+			$full_statement_descriptor = WC_Stripe_Helper::clean_statement_descriptor( (string) $this->statement_descriptor );
+			if ( empty( $full_statement_descriptor ) ) {
+				$account_data              = WC_Stripe::get_instance()->account->get_cached_account_data();
+				$full_statement_descriptor = WC_Stripe_Helper::clean_statement_descriptor( $account_data['settings']['payments']['statement_descriptor'] ?? '' );
+			}
+			if ( ! empty( $full_statement_descriptor ) ) {
+				$payment_information['statement_descriptor'] = $full_statement_descriptor;
+			}
 		}
 
 		if ( empty( $payment_method_id ) && ! empty( $_POST['wc-stripe-confirmation-token'] ) ) {
