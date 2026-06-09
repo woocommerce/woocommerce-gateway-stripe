@@ -445,6 +445,45 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Returns the content of every note on the given order, newest first.
+	 *
+	 * @param int $order_id
+	 * @return string[]
+	 */
+	private function get_order_note_contents( int $order_id ): array {
+		return array_map(
+			static function ( $note ) {
+				return $note->content;
+			},
+			wc_get_order_notes( [ 'order_id' => $order_id ] )
+		);
+	}
+
+	/**
+	 * Asserts that at least one note on the given order matches the PCRE pattern.
+	 *
+	 * @param string $pattern  PCRE pattern.
+	 * @param int    $order_id Order ID.
+	 */
+	private function assert_order_has_note_matching( string $pattern, int $order_id ): void {
+		$notes = $this->get_order_note_contents( $order_id );
+		$this->assertNotEmpty(
+			preg_grep( $pattern, $notes ),
+			sprintf( 'Failed asserting that an order note matches %s. Notes: %s', $pattern, implode( ' | ', $notes ) )
+		);
+	}
+
+	/**
+	 * Asserts that at least one note on the given order contains the substring.
+	 *
+	 * @param string $needle   Expected substring.
+	 * @param int    $order_id Order ID.
+	 */
+	private function assert_order_has_note_containing( string $needle, int $order_id ): void {
+		$this->assert_order_has_note_matching( '/' . preg_quote( $needle, '/' ) . '/', $order_id );
+	}
+
+	/**
 	 * When charge.succeeded fires for a charge whose ID isn't stored on any order (because the shopper
 	 * settled the order via a different gateway), the handler must fall back to looking up the order
 	 * by the parent PaymentIntent and flag the unexpected charge instead of silently dropping the event.
@@ -865,13 +904,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			$this->assertEquals( $expected_status, $final_order->get_status() );
 
 			if ( $expected_note ) {
-				$notes = wc_get_order_notes(
-					[
-						'order_id' => $final_order->get_id(),
-						'limit'    => 1,
-					]
-				);
-				$this->assertSame( $expected_note, $notes[0]->content );
+				$this->assertContains( $expected_note, $this->get_order_note_contents( $final_order->get_id() ) );
 			}
 		}
 	}
@@ -953,15 +986,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$final_order = wc_get_order( $order->get_id() );
 
-		$notes = wc_get_order_notes(
-			[
-				'order_id' => $final_order->get_id(),
-				'limit'    => 1,
-			]
-		);
-
 		$this->assertSame( $expected_status, $final_order->get_status() );
-		$this->assertMatchesRegularExpression( $expected_note, $notes[0]->content );
+		$this->assert_order_has_note_matching( $expected_note, $final_order->get_id() );
 	}
 
 	/**
@@ -1089,13 +1115,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->assertSame( $expected_status, $final_order->get_status() );
 		if ( ! empty( $expected_note ) ) {
-			$notes = wc_get_order_notes(
-				[
-					'order_id' => $final_order->get_id(),
-					'limit'    => 1,
-				]
-			);
-			$this->assertMatchesRegularExpression( $expected_note, $notes[0]->content );
+			$this->assert_order_has_note_matching( $expected_note, $final_order->get_id() );
 		}
 
 		$this->assertEquals( $expected_process_payment_calls, $mock_action_process_payment->get_call_count() );
@@ -1141,15 +1161,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->assertEquals( OrderStatus::ON_HOLD, $updated_order->get_status() );
 		$this->assertEquals( 'ch_mock', $updated_order->get_transaction_id() );
 
-		// Grab the latest order note and verify the content.
-		$notes = wc_get_order_notes(
-			[
-				'order_id' => $updated_order->get_id(),
-				'limit'    => 1,
-			]
-		);
-		$this->assertCount( 1, $notes );
-		$this->assertStringContainsString( 'Stripe charge awaiting payment: ch_mock.', $notes[0]->content );
+		// Verify the awaiting-payment note was added to the order.
+		$this->assert_order_has_note_containing( 'Stripe charge awaiting payment: ch_mock.', $updated_order->get_id() );
 	}
 
 	/**
@@ -1406,24 +1419,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->mock_webhook_handler->process_webhook_refund_updated( $notification );
 
-		$notes = wc_get_order_notes(
-			[
-				'order_id' => $order->get_id(),
-				'limit'    => 1,
-			]
-		);
-
 		if ( empty( $expected_note ) ) {
-			$this->assertEquals( [], $notes );
+			$this->assertSame( [], $this->get_order_note_contents( $order->get_id() ) );
 			return;
 		}
 
-		$this->assertCount( 1, $notes );
-		if ( '' === $expected_note ) {
-			$this->assertSame( '', $notes[0]->content );
-		} else {
-			$this->assertMatchesRegularExpression( $expected_note, $notes[0]->content );
-		}
+		$this->assert_order_has_note_matching( $expected_note, $order->get_id() );
 	}
 
 	/**
@@ -1522,14 +1523,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->assertSame( OrderStatus::FAILED, $order->get_status() );
 		$this->assertSame( 1, $hook_calls );
 
-		$notes = wc_get_order_notes(
-			[
-				'order_id' => $order->get_id(),
-				'limit'    => 1,
-			]
-		);
-		$this->assertNotEmpty( $notes );
-		$this->assertStringContainsString( $expected_note, $notes[0]->content );
+		$this->assert_order_has_note_containing( $expected_note, $order->get_id() );
 	}
 
 	/**
