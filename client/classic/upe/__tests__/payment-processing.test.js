@@ -92,7 +92,7 @@ afterEach( () => {
 
 // Flush the fire-and-forget async IIFE inside processPayment.
 const flushPromises = async () => {
-	for ( let i = 0; i < 10; i++ ) {
+	for ( let i = 0; i < 20; i++ ) {
 		// eslint-disable-next-line no-await-in-loop
 		await Promise.resolve();
 	}
@@ -1284,19 +1284,6 @@ describe( 'ensureUPEElementMounted (STRIPE-1186)', () => {
 		return el;
 	};
 
-	it( 'clears component.mountPromise once the mount settles', async () => {
-		const api = createMockApi( createMockElements() );
-		const dom = document.createElement( 'div' );
-		dom.dataset.paymentMethodType = 'card';
-
-		const component = await paymentProcessing.mountStripePaymentElement(
-			api,
-			dom
-		);
-
-		expect( component.mountPromise ).toBeNull();
-	} );
-
 	it( 'resolves without mounting when there is no payment element on the page', async () => {
 		const api = createMockApi( createMockElements() );
 
@@ -1320,22 +1307,21 @@ describe( 'ensureUPEElementMounted (STRIPE-1186)', () => {
 
 	it( 'awaits an in-flight (re)mount before resolving', async () => {
 		const api = createMockApi( createMockElements() );
-		// Establish the component, then simulate a re-mount in progress.
+		// Establish the component (its mount settles immediately).
 		const dom = document.createElement( 'div' );
 		dom.dataset.paymentMethodType = 'card';
-		const component = await paymentProcessing.mountStripePaymentElement(
-			api,
-			dom
-		);
+		await paymentProcessing.mountStripePaymentElement( api, dom );
 
 		// Element is present and mounted, so ensure won't trigger a new mount —
-		// it should only wait on the in-flight promise.
+		// it should only wait on the in-flight tracker.
 		addOnPageElement( { mounted: true } );
 
 		let resolveMount;
-		component.mountPromise = new Promise( ( resolve ) => {
-			resolveMount = resolve;
-		} );
+		paymentProcessing.trackMountInProgress(
+			new Promise( ( resolve ) => {
+				resolveMount = resolve;
+			} )
+		);
 
 		let resolved = false;
 		const ensurePromise = paymentProcessing
