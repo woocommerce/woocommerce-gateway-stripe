@@ -55,6 +55,9 @@ trait WC_Stripe_Subscriptions_Trait {
 	private function maybe_register_payment_method_hooks( string $payment_method_id ): void {
 		// Ensure we register the subscription hooks only once per payment method.
 		$hook_manager = WC_Stripe_Hook_Manager::get_instance();
+		if ( ! $hook_manager->is_valid_payment_method_id( $payment_method_id ) ) {
+			return;
+		}
 
 		if ( $hook_manager->are_payment_method_hooks_registered( $payment_method_id, WC_Stripe_Hook_Categories::SUBSCRIPTIONS ) ) {
 			return;

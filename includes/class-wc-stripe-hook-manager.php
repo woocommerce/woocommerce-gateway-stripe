@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * General hook manager.
  *
- * @since 10.8.0
+ * @since 10.9.0
  */
 class WC_Stripe_Hook_Manager {
 
@@ -84,6 +84,16 @@ class WC_Stripe_Hook_Manager {
 	}
 
 	/**
+	 * Check if the payment method ID is valid.
+	 *
+	 * @param string $payment_method_id The payment method ID to check.
+	 * @return bool True if the payment method ID is valid, false otherwise.
+	 */
+	public function is_valid_payment_method_id( string $payment_method_id ): bool {
+		return 'stripe' === $payment_method_id || str_starts_with( $payment_method_id, 'stripe_' );
+	}
+
+	/**
 	 * Check if the payment method hooks are registered for a given hook category.
 	 *
 	 * @param string $payment_method_id The payment method ID to check.
@@ -91,7 +101,7 @@ class WC_Stripe_Hook_Manager {
 	 * @return bool True if the payment method hooks for the hook category are registered, false otherwise.
 	 */
 	public function are_payment_method_hooks_registered( string $payment_method_id, string $hook_category ): bool {
-		if ( '' === $payment_method_id || '' === $hook_category ) {
+		if ( '' === $hook_category || ! $this->is_valid_payment_method_id( $payment_method_id ) ) {
 			return false;
 		}
 
@@ -106,7 +116,7 @@ class WC_Stripe_Hook_Manager {
 	 * @return bool True if the payment method hooks for the hook category are registered, false otherwise.
 	 */
 	public function register_payment_method_hooks( string $payment_method_id, string $hook_category ): bool {
-		if ( '' === $payment_method_id || '' === $hook_category ) {
+		if ( '' === $hook_category || ! $this->is_valid_payment_method_id( $payment_method_id ) ) {
 			return false;
 		}
 

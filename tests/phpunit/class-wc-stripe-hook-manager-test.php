@@ -112,6 +112,36 @@ class WC_Stripe_Hook_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests for {@see WC_Stripe_Hook_Manager::is_valid_payment_method_id()}.
+	 *
+	 * @param string $payment_method_id The payment method ID to check.
+	 * @param bool   $expected          The expected result.
+	 * @dataProvider provide_payment_method_ids
+	 */
+	public function test_is_valid_payment_method_id( string $payment_method_id, bool $expected ): void {
+		$manager = WC_Stripe_Hook_Manager::get_instance();
+
+		$this->assertEquals( $expected, $manager->is_valid_payment_method_id( $payment_method_id ) );
+	}
+
+	/**
+	 * Data provider for {@see test_is_valid_payment_method_id()}.
+	 *
+	 * @return array
+	 */
+	public function provide_payment_method_ids(): array {
+		return [
+			'stripe'      => [ 'stripe', true ],
+			'stripe_sepa' => [ 'stripe_sepa', true ],
+			'stripe_card' => [ 'stripe_card', true ],
+			'other'       => [ 'other', false ],
+			'stripebad'   => [ 'stripebad', false ],
+			'empty'       => [ '', false ],
+			'0'           => [ '0', false ],
+		];
+	}
+
+	/**
 	 * Payment method hooks are not registered until they are explicitly registered.
 	 *
 	 * @return void
