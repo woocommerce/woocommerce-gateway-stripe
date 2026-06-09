@@ -2192,4 +2192,26 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'unknown connected account fails open (test, agentic)' => [ 'yes', 'context', 'acct_other', '', true ],
 		];
 	}
+
+	/**
+	 * Locks in that a real agentic `v1.delegated_checkout.*` payload is matched against the
+	 * connected account via its top-level `context` field, processing on a match and skipping
+	 * on a mismatch. Uses the committed sample event so reviewers can replay the same body.
+	 */
+	public function test_event_belongs_to_connected_account_reads_context_from_real_agentic_event() {
+		$event         = json_decode( file_get_contents( __DIR__ . '/dummy-data/agentic_customize_checkout_event.json' ) );
+		$event_account = 'acct_sample_connected'; // The `context` value in the fixture.
+		$reflection    = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'event_belongs_to_connected_account' );
+		$reflection->setAccessible( true );
+
+		$this->assertSame( $event_account, $event->context, 'Fixture is expected to carry the account in `context`.' );
+
+		$matching = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )->setMethods( [ 'get_connected_account_id' ] )->getMock();
+		$matching->method( 'get_connected_account_id' )->willReturn( $event_account );
+		$this->assertTrue( $reflection->invoke( $matching, $event ) );
+
+		$mismatched = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )->setMethods( [ 'get_connected_account_id' ] )->getMock();
+		$mismatched->method( 'get_connected_account_id' )->willReturn( 'acct_someone_else' );
+		$this->assertFalse( $reflection->invoke( $mismatched, $event ) );
+	}
 }

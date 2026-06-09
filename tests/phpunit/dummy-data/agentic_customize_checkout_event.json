@@ -1,0 +1,129 @@
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "type": "v1.delegated_checkout.customize_checkout",
+  "livemode": false,
+  "context": "acct_sample_connected",
+  "data": {
+    "line_item_details": [
+      {
+        "name": "Sample Product",
+        "amount_total": 2499,
+        "amount_subtotal": 2499,
+        "unit_amount": 2499,
+        "tax_rates": [],
+        "sku_id": "SKU0029",
+        "id": "li_sample_0000000000",
+        "amount_tax": 0,
+        "quantity": 1,
+        "amount_discount": 0
+      }
+    ],
+    "discounts": [],
+    "amount_subtotal": 2499,
+    "amount_total": 3498,
+    "checkout_session": "cs_test_sample_0000000000",
+    "total_details": {
+      "amount_tax": 0,
+      "amount_discount": 0,
+      "amount_shipping": 999
+    },
+    "currency": "usd",
+    "automatic_tax": {
+      "enabled": false
+    },
+    "shipping_details": {
+      "shipping_rates": [
+        {
+          "delivery_estimate": {
+            "maximum": {
+              "unit": "day",
+              "value": 3
+            },
+            "minimum": {
+              "unit": "day",
+              "value": 2
+            }
+          },
+          "fixed_amount": {
+            "currency": "usd",
+            "amount": 999,
+            "currency_options": {
+              "usd": {
+                "tax_behavior": "exclusive",
+                "amount": 999
+              }
+            }
+          },
+          "tax_code": "txcd_92010001",
+          "display_name": "Expedited",
+          "tax_behavior": "exclusive",
+          "id": "shr_sample_expedited",
+          "metadata": {}
+        },
+        {
+          "delivery_estimate": {
+            "maximum": {
+              "unit": "day",
+              "value": 2
+            },
+            "minimum": {
+              "unit": "day",
+              "value": 1
+            }
+          },
+          "fixed_amount": {
+            "currency": "usd",
+            "amount": 1499,
+            "currency_options": {
+              "usd": {
+                "tax_behavior": "exclusive",
+                "amount": 1499
+              }
+            }
+          },
+          "tax_code": "txcd_92010001",
+          "display_name": "Express",
+          "tax_behavior": "exclusive",
+          "id": "shr_sample_express",
+          "metadata": {}
+        }
+      ],
+      "shipping_rate": {
+        "delivery_estimate": {
+          "maximum": {
+            "unit": "day",
+            "value": 3
+          },
+          "minimum": {
+            "unit": "day",
+            "value": 2
+          }
+        },
+        "fixed_amount": {
+          "currency": "usd",
+          "amount": 999,
+          "currency_options": {
+            "usd": {
+              "tax_behavior": "exclusive",
+              "amount": 999
+            }
+          }
+        },
+        "tax_code": "txcd_92010001",
+        "display_name": "Expedited",
+        "tax_behavior": "exclusive",
+        "id": "shr_sample_expedited",
+        "metadata": {}
+      },
+      "address": {
+        "line2": "",
+        "postal_code": "94000",
+        "city": "Testville",
+        "state": "CA",
+        "line1": "123 Test Street",
+        "country": "US"
+      }
+    },
+    "metadata": {}
+  }
+}
