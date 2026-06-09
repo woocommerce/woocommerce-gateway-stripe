@@ -156,6 +156,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.9.0 - xxxx-xx-xx =
+* Fix - When changing a subscription's payment method, reflect the new card and its Apple Pay/Google Pay branding on My Account and clarify the admin order note
 * Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
