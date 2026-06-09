@@ -1,6 +1,8 @@
 import * as paymentProcessing from '../payment-processing';
 import * as stripeUtils from 'wcstripe/stripe-utils';
 
+const { hasEmptyRequiredFields } = paymentProcessing;
+
 jest.mock( 'wcstripe/stripe-utils', () => ( {
 	appendCheckoutSessionIdToForm: jest.fn(),
 	appendPaymentIntentIdToForm: jest.fn(),
@@ -1156,6 +1158,101 @@ describe( 'payment-processing', () => {
 			expect(
 				paymentElementOptions.layout.spacedAccordionItems
 			).toBeUndefined();
+		} );
+	} );
+
+	describe( 'hasEmptyRequiredFields', () => {
+		let form;
+
+		beforeEach( () => {
+			document.body.innerHTML = '';
+			form = document.createElement( 'form' );
+			form.className = 'checkout';
+			document.body.appendChild( form );
+		} );
+
+		const getWrappers = () => form.querySelectorAll( '.validate-required' );
+
+		it( 'returns false when there are no required fields', () => {
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+		} );
+
+		it( 'returns true when a required text input is empty', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="text" class="input-text" value="" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+		} );
+
+		it( 'returns true when a required text input has only whitespace', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="text" class="input-text" value="   " />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+		} );
+
+		it( 'returns false when all required text inputs have values', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="text" class="input-text" value="John" />' +
+				'</p>' +
+				'<p class="validate-required">' +
+				'<input type="text" class="input-text" value="john@example.com" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+		} );
+
+		it( 'returns true when a required select has no value', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select><option value="">Select...</option><option value="US">US</option></select>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+		} );
+
+		it( 'returns false when a required select has a value', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select><option value="">Select...</option><option value="US" selected>US</option></select>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+		} );
+
+		it( 'returns true when a required checkbox is unchecked', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="checkbox" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+		} );
+
+		it( 'returns false when a required checkbox is checked', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="checkbox" checked />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+		} );
+
+		it( 'returns true if any one of multiple fields is empty', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="text" class="input-text" value="John" />' +
+				'</p>' +
+				'<p class="validate-required">' +
+				'<input type="text" class="input-text" value="" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+		} );
+
+		it( 'skips validate-required wrappers with no matching input', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<span>No input here</span>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
 		} );
 	} );
 } );
