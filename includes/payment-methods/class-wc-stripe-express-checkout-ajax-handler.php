@@ -127,13 +127,13 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	/**
 	 * Get cart details.
 	 *
-	 * @deprecated 10.6.0 Cart details are now fetched via Store API.
+	 * @deprecated 10.9.0 Cart details are now fetched via Store API.
 	 *
 	 * @return void
 	 */
 	public function ajax_get_cart_details() {
 		check_ajax_referer( 'wc-stripe-get-cart-details', 'security' );
-		_deprecated_function( __METHOD__, '10.6.0' );
+		_deprecated_function( __METHOD__, '10.9.0' );
 
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
@@ -282,7 +282,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	/**
 	 * Get shipping options.
 	 *
-	 * @deprecated 10.6.0 Shipping options are now fetched via Store API.
+	 * @deprecated 10.9.0 Shipping options are now fetched via Store API.
 	 *
 	 * @see WC_Cart::get_shipping_packages().
 	 * @see WC_Shipping::calculate_shipping().
@@ -292,7 +292,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	 */
 	public function ajax_get_shipping_options() {
 		check_ajax_referer( 'wc-stripe-express-checkout-shipping', 'security' );
-		_deprecated_function( __METHOD__, '10.6.0' );
+		_deprecated_function( __METHOD__, '10.9.0' );
 
 		$shipping_address          = filter_input_array(
 			INPUT_POST,
@@ -315,13 +315,13 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	/**
 	 * Update shipping method.
 	 *
-	 * @deprecated 10.6.0 Shipping method updates now use Store API.
+	 * @deprecated 10.9.0 Shipping method updates now use Store API.
 	 *
 	 * @return void
 	 */
 	public function ajax_update_shipping_method() {
 		check_ajax_referer( 'wc-stripe-update-shipping-method', 'security' );
-		_deprecated_function( __METHOD__, '10.6.0' );
+		_deprecated_function( __METHOD__, '10.9.0' );
 
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
