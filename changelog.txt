@@ -2,6 +2,7 @@
 
 xxxx-xx-xx - version 10.9.0
 * Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
+* Fix - Send the billing address to Stripe on the Pay for Order page so payments aren't incorrectly blocked by Stripe Radar rules
 
 2026-06-08 - version 10.8.0
 * Fix - Add an order note and call action 'wc_stripe_unexpected_charge_detected' when a Stripe charge is captured for an order that was already paid via a different gateway
@@ -65,7 +66,6 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Restore "Refund via Gateway" button and Stripe dashboard transaction link for Amazon Pay orders by keeping Amazon Pay registered in the gateway list on order edit and refund pages
 * Fix - Correct Amazon Pay button preview rendering in the Full Site Editor block cart and checkout pages
 * Fix - Update the order description and metadata on the payment intent after an Adaptive Pricing payment completes
-* Fix - Send the billing address to Stripe on the Pay for Order page so payments aren't incorrectly blocked by Stripe Radar rules
 
 2026-05-12 - version 10.7.0
 * Fix - Hide the "move Stripe to the top" Optimized Checkout notice when all payment methods above Stripe are disabled
