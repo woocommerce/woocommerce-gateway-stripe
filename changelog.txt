@@ -2,6 +2,7 @@
 
 xxxx-xx-xx - version 10.9.0
 * Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
+* Update - Replace shipping AJAX endpoints with Store API calls for Express Checkout Element
 
 2026-06-08 - version 10.8.0
 * Fix - Add an order note and call action 'wc_stripe_unexpected_charge_detected' when a Stripe charge is captured for an order that was already paid via a different gateway
@@ -171,7 +172,6 @@ xxxx-xx-xx - version 10.9.0
 * Add - Allow customers to save payment methods during checkout with adaptive pricing
 * Fix - Restrict Checkout Session saved payment method options to logged-in customers so guest checkout session creation succeeds
 * Add - Add an admin notice and one-click action to move Stripe payment methods to the top of WooCommerce payment gateway order for Optimized Checkout
-* Update - Replace shipping AJAX endpoints with Store API calls for Express Checkout Element
 * Update - Allow Adaptive Pricing for merchant accounts based in EEA countries
 * Add - Show ECB interbank rate conversion fee notice to EEA-based shoppers on the order received page and in customer order confirmation emails
 * Fix - Confirm checkout session with user data in classic checkout for guest user
