@@ -2143,16 +2143,15 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Guards that the webhook handler only processes events whose Stripe account matches the
-	 * connected account, while failing open when the event carries no account or the connected
-	 * account is unknown. Verified across both live and test modes.
+	 * Guards that events are processed only when their Stripe account matches the connected
+	 * account, failing open on a missing or unknown account, in both live and test modes.
 	 *
 	 * @dataProvider provide_event_belongs_to_connected_account
 	 *
-	 * @param string      $mode              The plugin mode ('yes' for test mode, 'no' for live mode).
-	 * @param string|null $event_account     The `account` field on the event, or null to omit it.
-	 * @param string      $connected_account The account ID the store is connected to.
-	 * @param bool        $expected          Whether the event should be allowed through for processing.
+	 * @param string      $mode              Plugin mode ('yes' test, 'no' live).
+	 * @param string|null $event_account     The event's `account` field, or null to omit it.
+	 * @param string      $connected_account The connected account ID.
+	 * @param bool        $expected          Whether the event should be allowed through.
 	 */
 	public function test_event_belongs_to_connected_account( string $mode, $event_account, string $connected_account, bool $expected ) {
 		update_option(

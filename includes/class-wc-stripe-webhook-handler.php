@@ -202,16 +202,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Determines whether a webhook event originated from the Stripe account this store is connected to.
+	 * Whether the event's Stripe account matches the connected account.
 	 *
-	 * Connect events carry a top-level `account` field identifying the originating account. When it is
-	 * present, it must match the account connected for the current mode; a mismatch means the event
-	 * belongs to a different or stale account and must not be processed against this store's data.
-	 *
-	 * The check intentionally fails open in two cases so legitimate events are never dropped:
-	 * - The event has no `account` field (typical for direct/keyed-account events), so it cannot be
-	 *   attributed to a specific account from the payload.
-	 * - The connected account ID is unknown (e.g. the account cache is empty or the lookup failed).
+	 * Fails open when the event has no `account` field or the connected account is unknown.
 	 *
 	 * @param object $event The decoded webhook event.
 	 * @return bool True when the event may be processed, false when it must be skipped.
@@ -235,9 +228,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Returns the Stripe account ID this store is currently connected to for the active mode.
+	 * The connected Stripe account ID for the active mode.
 	 *
-	 * @return string The connected account ID (e.g. `acct_123`), or an empty string when unknown.
+	 * @return string Account ID (e.g. `acct_123`), or an empty string when unknown.
 	 */
 	protected function get_connected_account_id(): string {
 		$account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
