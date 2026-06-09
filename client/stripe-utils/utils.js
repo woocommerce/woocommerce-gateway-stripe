@@ -1,4 +1,5 @@
-/* global wc_stripe_upe_params, wc, wc_stripe_express_checkout_params */
+/* global wc_stripe_upe_params, wc_stripe_express_checkout_params */
+import { getSetting } from '@woocommerce/settings';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -30,12 +31,9 @@ const getStripeServerData = () => {
 	// eslint-disable-next-line camelcase
 	if ( typeof wc_stripe_upe_params !== 'undefined' ) {
 		data = wc_stripe_upe_params; // eslint-disable-line camelcase
-	} else if (
-		typeof wc === 'object' &&
-		typeof wc.wcSettings !== 'undefined'
-	) {
-		// 'getSetting' has this data value on block checkout only.
-		data = wc.wcSettings?.getSetting( 'stripe_data' ) || null;
+	} else {
+		// 'stripe_data' is available via wc-settings on block checkout only.
+		data = getSetting( 'stripe_data', null );
 	}
 
 	if ( ! data ) {
