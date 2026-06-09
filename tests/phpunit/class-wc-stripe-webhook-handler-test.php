@@ -2149,11 +2149,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_event_belongs_to_connected_account
 	 *
 	 * @param string      $mode              Plugin mode ('yes' test, 'no' live).
-	 * @param string|null $event_account     The event's `account` field, or null to omit it.
+	 * @param string      $field             Event field carrying the account ('account' for Connect, 'context' for agentic).
+	 * @param string|null $event_account     The account ID to place on the event, or null to omit it.
 	 * @param string      $connected_account The connected account ID.
 	 * @param bool        $expected          Whether the event should be allowed through.
 	 */
-	public function test_event_belongs_to_connected_account( string $mode, $event_account, string $connected_account, bool $expected ) {
+	public function test_event_belongs_to_connected_account( string $mode, string $field, $event_account, string $connected_account, bool $expected ) {
 		update_option(
 			'woocommerce_stripe_settings',
 			array_merge( (array) get_option( 'woocommerce_stripe_settings', [] ), [ 'testmode' => $mode ] )
@@ -2169,7 +2170,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'type' => 'payment_intent.succeeded',
 		];
 		if ( null !== $event_account ) {
-			$event->account = $event_account;
+			$event->$field = $event_account;
 		}
 
 		$method = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'event_belongs_to_connected_account' );
@@ -2185,14 +2186,16 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 */
 	public function provide_event_belongs_to_connected_account() {
 		return [
-			'live mode, matching account is processed'       => [ 'no', 'acct_connected', 'acct_connected', true ],
-			'live mode, mismatched account is skipped'       => [ 'no', 'acct_other', 'acct_connected', false ],
-			'test mode, matching account is processed'       => [ 'yes', 'acct_connected', 'acct_connected', true ],
-			'test mode, mismatched account is skipped'       => [ 'yes', 'acct_other', 'acct_connected', false ],
-			'event without an account field is processed'    => [ 'no', null, 'acct_connected', true ],
-			'event with an empty account field is processed' => [ 'yes', '', 'acct_connected', true ],
-			'unknown connected account fails open (live)'    => [ 'no', 'acct_other', '', true ],
-			'unknown connected account fails open (test)'    => [ 'yes', 'acct_other', '', true ],
+			'Connect: live mode, matching account is processed'    => [ 'no', 'account', 'acct_connected', 'acct_connected', true ],
+			'Connect: live mode, mismatched account is skipped'    => [ 'no', 'account', 'acct_other', 'acct_connected', false ],
+			'Connect: test mode, matching account is processed'    => [ 'yes', 'account', 'acct_connected', 'acct_connected', true ],
+			'Connect: test mode, mismatched account is skipped'    => [ 'yes', 'account', 'acct_other', 'acct_connected', false ],
+			'Agentic: matching context account is processed'       => [ 'yes', 'context', 'acct_connected', 'acct_connected', true ],
+			'Agentic: mismatched context account is skipped'       => [ 'yes', 'context', 'acct_other', 'acct_connected', false ],
+			'event without an account field is processed'          => [ 'no', 'account', null, 'acct_connected', true ],
+			'event with an empty account field is processed'       => [ 'yes', 'account', '', 'acct_connected', true ],
+			'unknown connected account fails open (live)'          => [ 'no', 'account', 'acct_other', '', true ],
+			'unknown connected account fails open (test, agentic)' => [ 'yes', 'context', 'acct_other', '', true ],
 		];
 	}
 }

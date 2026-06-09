@@ -204,13 +204,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Whether the event's Stripe account matches the connected account.
 	 *
-	 * Fails open when the event has no `account` field or the connected account is unknown.
+	 * Fails open when the event carries no account or the connected account is unknown.
 	 *
 	 * @param object $event The decoded webhook event.
 	 * @return bool True when the event may be processed, false when it must be skipped.
 	 */
 	protected function event_belongs_to_connected_account( $event ): bool {
-		$event_account = ( is_object( $event ) && ! empty( $event->account ) ) ? (string) $event->account : '';
+		$event_account = $this->get_event_account_id( $event );
 
 		// No account context on the payload: cannot verify, so allow processing to continue.
 		if ( '' === $event_account ) {
@@ -225,6 +225,28 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		return hash_equals( $connected_account, $event_account );
+	}
+
+	/**
+	 * The Stripe account an event originated from.
+	 *
+	 * Connect events expose it as `account`; agentic delegated-checkout events use `context`.
+	 *
+	 * @param object $event The decoded webhook event.
+	 * @return string Account ID (e.g. `acct_123`), or an empty string when absent.
+	 */
+	protected function get_event_account_id( $event ): string {
+		if ( ! is_object( $event ) ) {
+			return '';
+		}
+
+		foreach ( [ 'account', 'context' ] as $field ) {
+			if ( ! empty( $event->$field ) ) {
+				return (string) $event->$field;
+			}
+		}
+
+		return '';
 	}
 
 	/**
