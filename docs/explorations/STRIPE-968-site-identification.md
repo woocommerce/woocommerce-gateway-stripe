@@ -83,6 +83,32 @@ endpoints registered on the shared account, A or B is required.
   endpoints on one account. This single answer decides whether STRIPE-968 needs A/B at all or
   just a lightweight defensive check.
 
+### F. Claim sessions via the sole agentic endpoint, gate order creation  ⭐ (enabled by the single-endpoint constraint)
+
+Stripe allows **only one agentic-commerce endpoint per account** for the synchronous
+`customize_checkout` / `finalize_checkout` hooks (confirmed by Stripe). That endpoint is the
+*only* site Stripe calls for those hooks — i.e. it is an authoritative "this checkout is mine"
+signal. **But order creation does not run on that endpoint:** it runs on the **standard,
+broadcast** `checkout.session.completed` event (`WC_Stripe_Account::WEBHOOK_EVENTS`), which
+every connected site's standard endpoint receives. So the single-agentic-endpoint rule does
+**not** prevent duplicate orders by itself.
+
+Approach: the owning site **records each `checkout_session` id it sees in a sync agentic hook**,
+then in `handle_agentic_checkout_session()` only creates an order for a session it previously
+**claimed**. Sites that aren't the agentic endpoint never see the hook → never claim → skip.
+
+- **Pros:** uses a signal we already receive; no change to `external_reference` (sidesteps the
+  "alphanumeric" delimiter risk entirely); self-contained per site; degrades to "no order"
+  rather than "wrong/duplicate order" on a miss.
+- **Cons / open dependency:** requires that **every** agentic checkout triggers a sync hook on
+  the owning endpoint *before* `checkout.session.completed` — otherwise the owning site never
+  claims it and **no** site creates the order (false negative). Whether `customize_checkout`
+  fires for every checkout (e.g. tax/shipping not needed) and the claim's TTL/ordering vs. the
+  completion event need confirmation. Concurrency/ordering: the claim must be durable and
+  readable when the completion webhook arrives.
+- **Touch points:** record claim in `process_agentic_customization_hook()` /
+  `process_agentic_finalize_checkout_hook()`; check it in `handle_agentic_checkout_session()`.
+
 ### D. Defensive site check at order creation (necessary backstop, insufficient alone)
 
 Regardless of A–C, add an explicit "does this checkout belong to this site?" gate before
@@ -154,41 +180,57 @@ High-confidence conclusions (3-0 adversarial verification unless noted):
   ([product-catalog](https://docs.stripe.com/agentic-commerce/product-catalog),
   [Price object](https://docs.stripe.com/api/prices/object))
 
-**Net effect on the options:** B is effectively ruled out by public docs. C is *partially* true
-for the sync hooks (single per-account endpoint) but **false** for the async order events that
-actually create orders. So the live risk = async order events broadcasting to all endpoints on
-a shared account → **A + D remain the viable path**, with A constrained to an alphanumeric-safe
-encoding.
+**Confirmed by Stripe (2026-06):** an account may have **only one** agentic-commerce endpoint
+for the `customize_checkout` / `finalize_checkout` hooks. This does **not** close STRIPE-968,
+because order creation runs on the **standard** `checkout.session.completed` event
+(`WC_Stripe_Account::WEBHOOK_EVENTS`), a normal broadcast webhook with no one-per-account limit —
+so every connected site's standard endpoint receives it and attempts order creation (verified in
+`process_checkout_session_success()` → `handle_agentic_checkout_session()`). The single agentic
+endpoint *is*, however, an authoritative per-site ownership signal we can exploit (Approach F).
+
+**Net effect on the options:** B is ruled out by public docs (no metadata round-trip). C is true
+only for the sync hooks, not the order-creating async event. The live risk = the standard
+`checkout.session.completed` broadcast reaching every site on the shared account. Two viable
+paths remain:
+- **F (claim-by-sync-hook) + D** — leading candidate; no `external_reference` change, sidesteps
+  the "alphanumeric" delimiter risk. Depends on every agentic checkout firing a sync hook on the
+  owning endpoint before completion (open question).
+- **A (namespaced `external_reference`, alphanumeric-only) + D** — fallback if F's
+  always-fires-a-hook assumption doesn't hold; carries the delimiter-encoding constraint.
 
 ## Open questions (remaining — need Stripe / PAYOPS-1766, not public docs)
 
 1. ~~Are delegated-checkout events bound to the originating endpoint or broadcast?~~ **Answered:**
-   account+type scoped, broadcast to all matching endpoints; no feed/session binding.
-2. ~~Can per-product metadata echo back on the event?~~ **Answered (per public docs): no.** Sub-question
-   left for Stripe: are `custom_label_0…4` *ever* surfaced back on delegated-checkout events?
-   (Docs are silent, not an explicit "no".)
-3. **(Now the key blocker)** Does Stripe permit a non-alphanumeric delimiter in the catalog
-   `id` / `external_reference` (e.g. `~`, `_`, `:`)? If not, confirm an alphanumeric-only
-   namespacing scheme is acceptable and round-trips intact.
-4. For the async order path: confirm whether both sites' standard endpoints on a shared account
-   actually receive each other's order events in practice (the general fan-out rule says yes).
-5. Back-compat: live catalogs keyed by bare SKU — transition window for an `external_reference`
-   format change.
-6. Failure contract: silent skip vs. logged skip (preferred, mirrors STRIPE-1194) vs. surfaced.
-7. Staging/clone safety: guarantee a cloned site gets a *different* token.
+   account+type scoped; no feed/session binding.
+2. ~~Can per-product metadata echo back on the event?~~ **Answered (public docs): no.**
+3. ~~Can an account have multiple agentic-commerce endpoints?~~ **Answered (Stripe): no — one per
+   account for the sync hooks.** (But order creation runs on the standard broadcast webhook, so
+   this doesn't close the issue.)
+4. **(Approach F key blocker)** Does **every** agentic checkout trigger a `customize_checkout`
+   (or `finalize_checkout`) hook on the owning endpoint **before** `checkout.session.completed`?
+   If some checkouts skip the sync hooks, F would leave those orders unclaimed → uncreated. Also:
+   recommended claim TTL and ordering guarantees vs. the completion event.
+5. *(Approach A fallback only)* Does Stripe permit a non-alphanumeric delimiter in
+   `external_reference` (`~`/`_`/`:`)? If not, confirm a fixed-width alphanumeric prefix
+   round-trips intact.
+6. *(Internal)* Back-compat window if `external_reference` format changes (A only); failure
+   contract — logged skip preferred (mirrors STRIPE-1194); staging/clone safety for any per-site
+   token.
 
 ## Recommendation (for discussion, not implementation)
 
-1. **Approach A (namespaced `external_reference`) + D (order-creation gate)** is the path public
-   docs support. B is ruled out (no metadata round-trip); C only covers the sync hooks, not the
-   order-creating async events.
-2. Constrain A to an **alphanumeric-only** encoding (no `~`/`_`/`:` delimiter — the spike's `~`
-   is at risk) pending Stripe confirmation (Open Q3). E.g. a fixed-length alphanumeric site
-   token prefix of known width so the SKU can be recovered by offset, not by separator.
-3. Pair with **D**: an explicit, logged "not my site → no-op" gate before
-   `create_order_from_checkout_session()`, with a back-compat path accepting legacy bare SKUs
-   during transition.
-4. Confirm Open Q3/Q4 with Stripe (PAYOPS-1766) before scoping implementation.
+1. **Prefer Approach F (claim-by-sync-hook) + D (order-creation gate).** It exploits the
+   confirmed single-agentic-endpoint constraint as a per-site ownership signal, needs no
+   `external_reference` change, and sidesteps the "alphanumeric" delimiter risk. Gate order
+   creation in `handle_agentic_checkout_session()` on a session the site previously claimed in a
+   sync hook; log + no-op otherwise.
+2. **Hold Approach A (namespaced `external_reference`, alphanumeric-only) as the fallback** if F's
+   "every agentic checkout fires a sync hook on the owning endpoint before completion" assumption
+   doesn't hold. If used, constrain to a fixed-width alphanumeric prefix (recover SKU by offset,
+   no separator) pending Stripe confirmation.
+3. Either way pair with **D**: an explicit, logged "not my session → no-op" gate before
+   `create_order_from_checkout_session()`.
+4. Confirm the remaining Stripe questions (see Open questions) before scoping implementation.
 
 ## Suggested next steps
 
