@@ -1525,9 +1525,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Sets setup_future_usage on the session so Stripe mints a reusable SEPA mandate for redirect-based
-	 * APMs (Bancontact, iDEAL, Sofort). Best-effort — failures are logged and swallowed so they cannot
-	 * block checkout.
+	 * Sets `setup_future_usage` to `off_session` for the checkout session, which will
+	 * ensure the payment method is saved. This is necessary for payment methods that "convert"
+	 * to SEPA debits when saved, including Bancontact and iDEAL/Wero.
+	 * Note that failures are logged and ignored so we don't prevent any other processing.
 	 *
 	 * @param string $checkout_session_id The Stripe Checkout Session ID.
 	 * @param string $payment_method_type The Stripe payment method type (e.g. 'bancontact').
