@@ -38,12 +38,32 @@ const shouldHideSaveCheckbox = ( method ) => {
  * inside the OC container. This keeps the business rule in PHP (single
  * source of truth) and the frontend as a dumb lookup.
  *
- * @param {string} method               The selected payment method type.
- * @param {Object} paymentMethodsConfig The payment methods configuration.
- * @return {boolean}                    True if the checkbox should be hidden.
+ * @param {string}  method                The selected payment method type.
+ * @param {Object}  paymentMethodsConfig  The payment methods configuration.
+ * @param {boolean} isCheckoutSessionFlow Whether the Checkout Sessions (Adaptive Pricing) flow is active.
+ * @return {boolean}                      True if the checkbox should be hidden.
  */
-const shouldHideSaveCheckboxFromConfig = ( method, paymentMethodsConfig ) => {
+const shouldHideSaveCheckboxFromConfig = (
+	method,
+	paymentMethodsConfig,
+	isCheckoutSessionFlow = false
+) => {
 	if ( NON_REUSABLE_METHODS.includes( method ) ) {
+		return true;
+	}
+
+	// Methods saved as a different type (e.g. Bancontact → SEPA) cannot be
+	// saved through Checkout Sessions: Stripe provides no way to request
+	// `setup_future_usage` for them in that flow, so no reusable method is
+	// ever generated. Hide the checkbox rather than promise a save that
+	// silently never happens. The deferred-intent flow saves them fine, so
+	// this only applies when the Checkout Sessions flow is active.
+	if (
+		isCheckoutSessionFlow &&
+		paymentMethodsConfig?.card?.savedAsDifferentTypeMethods?.includes(
+			method
+		)
+	) {
 		return true;
 	}
 
@@ -107,7 +127,8 @@ const clearSaveCheckboxState = () => {
 
 export const handleDisplayOfSavingCheckbox = (
 	method,
-	paymentMethodsConfig
+	paymentMethodsConfig,
+	isCheckoutSessionFlow = false
 ) => {
 	// For block checkout — toggle a body class so the stylesheet rule in
 	// blocks/upe/styles.scss hides the checkbox. Uses the PHP-provided
@@ -118,7 +139,8 @@ export const handleDisplayOfSavingCheckbox = (
 	if ( isBlockCheckout ) {
 		const shouldHide = shouldHideSaveCheckboxFromConfig(
 			method,
-			paymentMethodsConfig
+			paymentMethodsConfig,
+			isCheckoutSessionFlow
 		);
 		document.body.classList.toggle( HIDE_SAVE_CHECKBOX_CLASS, shouldHide );
 		if ( shouldHide ) {
@@ -133,7 +155,8 @@ export const handleDisplayOfSavingCheckbox = (
 	if ( paymentMethodsConfig?.card?.showSaveOptionByMethod ) {
 		const shouldHide = shouldHideSaveCheckboxFromConfig(
 			method,
-			paymentMethodsConfig
+			paymentMethodsConfig,
+			isCheckoutSessionFlow
 		);
 		document.body.classList.toggle( HIDE_SAVE_CHECKBOX_CLASS, shouldHide );
 		if ( shouldHide ) {

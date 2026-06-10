@@ -930,12 +930,22 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// For OC, compute per-method showSaveOption so the frontend can
 		// dynamically show/hide the save checkbox as the selected method
-		// changes inside the Payment Element.
-		$show_save_option_by_method = [];
+		// changes inside the Payment Element. Methods saved as a different
+		// type (e.g. Bancontact/iDEAL/Sofort → SEPA) are also listed: the
+		// Checkout Sessions (Adaptive Pricing) flow cannot request
+		// `setup_future_usage` for them, so the frontend hides the save
+		// checkbox in that flow only.
+		$show_save_option_by_method      = [];
+		$saved_as_different_type_methods = [];
 		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
 			foreach ( $original_method_ids as $method_id ) {
 				if ( isset( $this->payment_methods[ $method_id ] ) ) {
-					$show_save_option_by_method[ $method_id ] = $this->should_upe_payment_method_show_save_option( $this->payment_methods[ $method_id ] );
+					$payment_method                           = $this->payment_methods[ $method_id ];
+					$show_save_option_by_method[ $method_id ] = $this->should_upe_payment_method_show_save_option( $payment_method );
+
+					if ( $payment_method->is_reusable() && $payment_method->get_id() !== $payment_method->get_retrievable_type() ) {
+						$saved_as_different_type_methods[] = $method_id;
+					}
 				}
 			}
 		}
@@ -955,7 +965,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			];
 
 			if ( ! empty( $show_save_option_by_method ) && $payment_method instanceof WC_Stripe_UPE_Payment_Method_OC ) {
-				$settings[ $payment_method_id ]['showSaveOptionByMethod'] = $show_save_option_by_method;
+				$settings[ $payment_method_id ]['showSaveOptionByMethod']      = $show_save_option_by_method;
+				$settings[ $payment_method_id ]['savedAsDifferentTypeMethods'] = $saved_as_different_type_methods;
 			}
 		}
 

@@ -673,13 +673,20 @@ export async function mountStripePaymentElement( api, domElement ) {
 			// If the OC is enabled, we need to handle the display of the saving checkbox.
 			handleDisplayOfPaymentInstructions( value.type, 'classic' );
 
+			// When paying via Adaptive Pricing / Checkout Sessions, methods
+			// saved as a different type (Bancontact/iDEAL/Sofort → SEPA)
+			// cannot be saved, so the checkbox is hidden for them too.
+			const isCheckoutSessionFlow =
+				!! gatewayUPEComponents[ paymentMethodType ]?.checkoutSessionId;
+
 			// Bind the create account checkbox to the save card info container display function.
 			const createAccountCheckbox =
 				document.getElementById( 'createaccount' );
 			const updateCheckboxListener = () => {
 				handleDisplayOfSavingCheckbox(
 					value.type,
-					paymentMethodsConfig
+					paymentMethodsConfig,
+					isCheckoutSessionFlow
 				);
 			};
 			if ( createAccountCheckbox ) {
@@ -692,7 +699,11 @@ export async function mountStripePaymentElement( api, domElement ) {
 					updateCheckboxListener
 				);
 			}
-			handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );
+			handleDisplayOfSavingCheckbox(
+				value.type,
+				paymentMethodsConfig,
+				isCheckoutSessionFlow
+			);
 		} );
 	}
 

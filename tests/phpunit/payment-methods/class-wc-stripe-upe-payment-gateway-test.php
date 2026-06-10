@@ -637,6 +637,84 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * get_enabled_payment_method_config() must list reusable methods saved as a
+	 * different Stripe type (Bancontact/iDEAL → SEPA) under the OC entry's
+	 * savedAsDifferentTypeMethods, so the frontend can hide the save checkbox in
+	 * the Checkout Sessions flow, where Stripe cannot mint the SEPA mandate.
+	 *
+	 * @dataProvider provide_enabled_payment_method_config_saved_as_different_type
+	 *
+	 * @param bool       $oc_enabled          Whether the Optimized Checkout Suite is enabled.
+	 * @param bool       $sepa_tokens_enabled Whether SEPA tokens are enabled for Bancontact/iDEAL.
+	 * @param array|null $expected            Expected savedAsDifferentTypeMethods list, or null when the key must be absent.
+	 */
+	public function test_enabled_payment_method_config_lists_methods_saved_as_different_type(
+		bool $oc_enabled,
+		bool $sepa_tokens_enabled,
+		?array $expected
+	): void {
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['sepa_tokens_for_ideal']      = $sepa_tokens_enabled ? 'yes' : 'no';
+		$stripe_settings['sepa_tokens_for_bancontact'] = $sepa_tokens_enabled ? 'yes' : 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'is_valid_optimized_checkout_page', 'get_upe_enabled_at_checkout_payment_method_ids' ] )
+			->getMock();
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( true );
+		$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn(
+			[
+				WC_Stripe_Payment_Methods::CARD,
+				WC_Stripe_Payment_Methods::BANCONTACT,
+				WC_Stripe_Payment_Methods::IDEAL,
+				WC_Stripe_Payment_Methods::SEPA_DEBIT,
+			]
+		);
+		$gateway->oc_enabled = $oc_enabled;
+
+		$get_config = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'get_enabled_payment_method_config' );
+		$get_config->setAccessible( true );
+		$config = $get_config->invoke( $gateway );
+
+		if ( null === $expected ) {
+			$this->assertArrayNotHasKey( 'savedAsDifferentTypeMethods', $config[ WC_Stripe_Payment_Methods::CARD ] );
+			return;
+		}
+
+		$this->assertSame( $expected, $config[ WC_Stripe_Payment_Methods::CARD ]['savedAsDifferentTypeMethods'] );
+		$this->assertArrayHasKey( 'showSaveOptionByMethod', $config[ WC_Stripe_Payment_Methods::CARD ] );
+	}
+
+	/**
+	 * Data provider for test_enabled_payment_method_config_lists_methods_saved_as_different_type.
+	 *
+	 * @return array[]
+	 */
+	public function provide_enabled_payment_method_config_saved_as_different_type(): array {
+		return [
+			'OC enabled, SEPA tokens on: converting methods listed'      => [
+				'oc_enabled'          => true,
+				'sepa_tokens_enabled' => true,
+				'expected'            => [
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+				],
+			],
+			'OC enabled, SEPA tokens off: non-reusable methods excluded' => [
+				'oc_enabled'          => true,
+				'sepa_tokens_enabled' => false,
+				'expected'            => [],
+			],
+			'OC disabled: key absent'                                    => [
+				'oc_enabled'          => false,
+				'sepa_tokens_enabled' => true,
+				'expected'            => null,
+			],
+		];
+	}
+
+	/**
 	 * Test that payment_scripts registers the wc-stripe-upe-classic script with the correct version and dependencies.
 	 *
 	 * Because build/upe-classic.asset.php may not be present in test environments, we have conditional logic as follows:
