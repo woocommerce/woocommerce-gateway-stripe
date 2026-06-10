@@ -1851,12 +1851,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						'payment_intent_id' => $intent_id,
 						'request'           => [
 							'description' => WC_Stripe_Helper::get_payment_intent_description( $order ),
-							'metadata'    => [
-								'order_id'   => $order->get_order_number(),
-								'order_key'  => $order->get_order_key(),
-								'signature'  => $this->get_order_signature( $order ),
-								'tax_amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_total_tax(), strtolower( $order->get_currency() ) ),
-							],
+							'metadata'    => $this->get_order_metadata( $order ),
 						],
 					]
 				);
