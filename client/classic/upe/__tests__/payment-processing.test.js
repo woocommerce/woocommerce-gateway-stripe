@@ -1404,4 +1404,127 @@ describe( 'ensureUPEElementMounted', () => {
 		expect( createdEl.mount ).toHaveBeenCalledTimes( 1 );
 		expect( first ).toBe( second );
 	} );
+
+	it( 'processPayment waits for a pending mountPromise before creating the payment method', async () => {
+		const api = createMockApi( createMockElements() );
+		api._stripe.elements.mockReturnValue( api._standardElements );
+
+		const dom = document.createElement( 'div' );
+		dom.dataset.paymentMethodType = 'card';
+		const component = await paymentProcessing.mountStripePaymentElement(
+			api,
+			dom
+		);
+
+		// A mounted element is on the page, and a remount is still in flight.
+		addOnPageElement( { mounted: true } );
+		let resolveMount;
+		component.mountPromise = new Promise( ( resolve ) => {
+			resolveMount = resolve;
+		} );
+
+		const form = createMockForm();
+		paymentProcessing.processPayment( api, form, 'card' );
+		await flushPromises();
+
+		// Mount still pending → must not have created/submitted anything yet.
+		expect( api._standardElements.submit ).not.toHaveBeenCalled();
+		expect(
+			stripeUtils.appendPaymentMethodIdToForm
+		).not.toHaveBeenCalled();
+
+		resolveMount( component );
+		await flushPromises();
+
+		// Once the mount settles, the submit path proceeds.
+		expect( api._standardElements.submit ).toHaveBeenCalled();
+		expect( stripeUtils.appendPaymentMethodIdToForm ).toHaveBeenCalledWith(
+			form,
+			'pm_test_123'
+		);
+	} );
+
+	it( 'clears a prior hasLoadError when a new mount starts', async () => {
+		const api = createMockApi( createMockElements() );
+		const dom = document.createElement( 'div' );
+		dom.dataset.paymentMethodType = 'card';
+		const component = await paymentProcessing.mountStripePaymentElement(
+			api,
+			dom
+		);
+
+		// Simulate a transient load failure left over from an earlier mount.
+		component.hasLoadError = true;
+
+		const dom2 = document.createElement( 'div' );
+		dom2.dataset.paymentMethodType = 'card';
+		await paymentProcessing.mountStripePaymentElement( api, dom2 );
+
+		expect( component.hasLoadError ).toBe( false );
+	} );
+
+	it( 'wires the element listeners once across remounts', async () => {
+		const api = createMockApi( createMockElements() );
+		const dom1 = document.createElement( 'div' );
+		dom1.dataset.paymentMethodType = 'card';
+		await paymentProcessing.mountStripePaymentElement( api, dom1 );
+
+		const createdEl = api._standardElements.create.mock.results[ 0 ].value;
+		const loaderrorCount = () =>
+			createdEl.on.mock.calls.filter(
+				( [ event ] ) => event === 'loaderror'
+			).length;
+		expect( loaderrorCount() ).toBe( 1 );
+
+		// Remount onto a new node, as updated_checkout would.
+		const dom2 = document.createElement( 'div' );
+		dom2.dataset.paymentMethodType = 'card';
+		await paymentProcessing.mountStripePaymentElement( api, dom2 );
+
+		// Element re-mounted, but listeners not re-attached on the cached element.
+		expect( createdEl.mount ).toHaveBeenCalledTimes( 2 );
+		expect( loaderrorCount() ).toBe( 1 );
+	} );
+
+	it( 'fences a superseded mount so its late loadActions cannot set hasLoadError', async () => {
+		stripeUtils.getStripeServerData.mockReturnValue( {
+			...BASE_SERVER_DATA,
+			isAdaptivePricingEnabled: true,
+		} );
+		const checkoutElements = createMockElements();
+		const api = createMockApi( checkoutElements );
+
+		// First (stale) mount's loadActions resolves to an error only after a
+		// newer mount supersedes it; the newer mount succeeds.
+		let resolveStaleLoad;
+		checkoutElements.loadActions
+			.mockReturnValueOnce(
+				new Promise( ( resolve ) => {
+					resolveStaleLoad = resolve;
+				} )
+			)
+			.mockResolvedValue( {
+				type: 'success',
+				actions: checkoutElements.checkoutActions,
+			} );
+
+		const dom1 = document.createElement( 'div' );
+		dom1.dataset.paymentMethodType = 'card';
+		const dom2 = document.createElement( 'div' );
+		dom2.dataset.paymentMethodType = 'card';
+
+		// Mount A reaches its loadActions await…
+		const pA = paymentProcessing.mountStripePaymentElement( api, dom1 );
+		await flushPromises();
+
+		// …then mount B supersedes it and completes successfully.
+		const pB = paymentProcessing.mountStripePaymentElement( api, dom2 );
+		await flushPromises();
+
+		// A's loadActions now resolves with an error, but A is stale.
+		resolveStaleLoad( { type: 'error', error: { message: 'stale' } } );
+		const [ , component ] = await Promise.all( [ pA, pB ] );
+
+		expect( component.hasLoadError ).toBe( false );
+	} );
 } );
