@@ -3752,7 +3752,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_reusable_payment_method_for_saving( stdClass $payment_method_object, $charge ) {
 		$type     = $payment_method_object->type ?? '';
-		$instance = '' !== $type ? $this->get_payment_method_instance( $type ) : null;
+		if ( '' === $type ) {
+			return $payment_method_object;
+		}
+
+		$instance = $this->get_payment_method_instance( $type );
 
 		// No conversion needed when the method is saved under its own type (e.g. card, sepa_debit).
 		if ( ! $instance instanceof WC_Stripe_UPE_Payment_Method || $instance->get_id() === $instance->get_retrievable_type() ) {
