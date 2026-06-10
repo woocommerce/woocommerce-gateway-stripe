@@ -2,6 +2,9 @@
 /**
  * EXPLORATION SPIKE — NOT LOADED, NOT PRODUCTION CODE (STRIPE-968).
  *
+ * FALLBACK approach only. The recommended path is Approach F — see
+ * stripe-968-spike-claim-by-sync-hook.php. This file is kept for the case where F is rejected.
+ *
  * Illustrates Approach A from STRIPE-968-site-identification.md: namespacing the catalog
  * `external_reference` with a stable per-site token so a delegated-checkout event can be
  * attributed to the site that produced the feed.

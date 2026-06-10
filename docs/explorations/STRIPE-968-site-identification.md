@@ -206,31 +206,34 @@ paths remain:
 3. ~~Can an account have multiple agentic-commerce endpoints?~~ **Answered (Stripe): no — one per
    account for the sync hooks.** (But order creation runs on the standard broadcast webhook, so
    this doesn't close the issue.)
-4. **(Approach F key blocker)** Does **every** agentic checkout trigger a `customize_checkout`
-   (or `finalize_checkout`) hook on the owning endpoint **before** `checkout.session.completed`?
-   If some checkouts skip the sync hooks, F would leave those orders unclaimed → uncreated. Also:
-   recommended claim TTL and ordering guarantees vs. the completion event.
-5. *(Approach A fallback only)* Does Stripe permit a non-alphanumeric delimiter in
-   `external_reference` (`~`/`_`/`:`)? If not, confirm a fixed-width alphanumeric prefix
-   round-trips intact.
-6. *(Internal)* Back-compat window if `external_reference` format changes (A only); failure
-   contract — logged skip preferred (mirrors STRIPE-1194); staging/clone safety for any per-site
-   token.
+4. ~~Does every agentic checkout trigger a sync hook on the owning endpoint before
+   `checkout.session.completed`?~~ **Answered (Stripe, 2026-06): yes** — every agentic checkout
+   fires a `customize_checkout`/`finalize_checkout` hook before completion.
+5. ~~Is the `checkout_session` id in the sync hooks the same id as
+   `checkout.session.completed`'s `data.object.id`?~~ **Answered (Stripe): yes** — they
+   correlate, so a claim recorded from a sync hook can be matched at completion.
+6. *(Approach A fallback only — now moot unless F is rejected)* Whether a non-alphanumeric
+   delimiter is allowed in `external_reference`.
+7. *(Internal, for the F implementation)* Claim TTL (must exceed the sync-hook → completion gap;
+   a checkout can sit pending — lean generous, e.g. a day); claim store (mode-scoped
+   `WC_Stripe_Database_Cache` fits); failure contract — logged skip, mirroring STRIPE-1194.
 
 ## Recommendation (for discussion, not implementation)
 
-1. **Prefer Approach F (claim-by-sync-hook) + D (order-creation gate).** It exploits the
-   confirmed single-agentic-endpoint constraint as a per-site ownership signal, needs no
-   `external_reference` change, and sidesteps the "alphanumeric" delimiter risk. Gate order
-   creation in `handle_agentic_checkout_session()` on a session the site previously claimed in a
-   sync hook; log + no-op otherwise.
-2. **Hold Approach A (namespaced `external_reference`, alphanumeric-only) as the fallback** if F's
-   "every agentic checkout fires a sync hook on the owning endpoint before completion" assumption
-   doesn't hold. If used, constrain to a fixed-width alphanumeric prefix (recover SKU by offset,
-   no separator) pending Stripe confirmation.
-3. Either way pair with **D**: an explicit, logged "not my session → no-op" gate before
-   `create_order_from_checkout_session()`.
-4. Confirm the remaining Stripe questions (see Open questions) before scoping implementation.
+**Approach F (claim-by-sync-hook), confirmed viable.** Both gating assumptions were confirmed by
+Stripe (2026-06): every agentic checkout fires a sync hook on the owning endpoint before
+`checkout.session.completed`, and the `checkout_session` id correlates across them. So:
+
+1. **Record a claim** for `event.data.checkout_session` in `process_agentic_customization_hook()`
+   and `process_agentic_finalize_checkout_hook()` (the only site Stripe calls for these).
+2. **Gate order creation** in `handle_agentic_checkout_session()`: if the completing session was
+   **not** claimed by this site, log and no-op (no order side effects); otherwise proceed.
+3. Use a mode-scoped `WC_Stripe_Database_Cache` claim with a generous TTL (≥ a day, to cover
+   pending checkouts). Failure contract = logged skip, mirroring STRIPE-1194.
+
+No `external_reference` change is needed, so the "alphanumeric" delimiter risk is **moot**.
+Approach A is retained in this doc only as a fallback if F is later rejected. See the F spike
+(`stripe-968-spike-claim-by-sync-hook.php`) for a sketch.
 
 ## Suggested next steps
 
