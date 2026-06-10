@@ -192,6 +192,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$notification = $this->build_notification( $session_id );
 		$mock_session = $this->build_checkout_session_response( $session_id, true );
 		$this->mock_stripe_checkout_sessions_response( $mock_session );
+		$this->claim_session( $session_id );
 
 		// Immediate phase: defers the webhook.
 		$this->handler->process_checkout_session_success( $notification );
@@ -250,6 +251,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			$notification = $this->build_notification( $session_id );
 			$mock_session = $this->build_checkout_session_response( $session_id, true, $sku );
 			$this->mock_stripe_checkout_sessions_response( $mock_session );
+			$this->claim_session( $session_id );
 
 			// Immediate phase: defers the webhook.
 			$this->handler->process_checkout_session_success( $notification );
@@ -310,6 +312,9 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$mock_session = $this->build_checkout_session_response( $session_id, true, (string) $product->get_sku() );
 		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
+		// This site received the sync hook for the session, so it owns it.
+		$this->claim_session( $session_id );
+
 		// Immediate phase: defers the webhook.
 		$this->handler->process_checkout_session_success( $notification );
 		// Deferred phase: agentic session → creates order.
@@ -328,6 +333,78 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			}
 			$product->delete( true );
 		}
+	}
+
+	/**
+	 * Tests that an agentic session this site never claimed (i.e. produced by a different site
+	 * connected to the same Stripe account) is skipped without creating an order, even though
+	 * the session is otherwise valid and would map to a local product. Guards STRIPE-968.
+	 */
+	public function test_process_checkout_session_completed_skips_unclaimed_session() {
+		$product = WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => '20.00',
+				'price'         => '20.00',
+				'sku'           => 'WEBHOOK-UNCLAIMED-' . uniqid(),
+			]
+		);
+
+		$success_action_fired = false;
+		add_action(
+			'wc_stripe_agentic_order_created',
+			function () use ( &$success_action_fired ) {
+				$success_action_fired = true;
+			}
+		);
+
+		$session_id   = 'cs_test_unclaimed';
+		$notification = $this->build_notification( $session_id );
+		$mock_session = $this->build_checkout_session_response( $session_id, true, (string) $product->get_sku() );
+		$this->mock_stripe_checkout_sessions_response( $mock_session );
+
+		// Intentionally do NOT claim the session: this site never received the sync hook.
+
+		// Immediate phase: defers the webhook.
+		$this->handler->process_checkout_session_success( $notification );
+		// Deferred phase: unclaimed session → skipped, no order created.
+		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
+
+		try {
+			$this->assertFalse( $success_action_fired );
+
+			$orders = wc_get_orders(
+				[
+					'meta_key'   => '_stripe_intent_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+					'meta_value' => 'pi_test_cs_test_unclaimed', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+				]
+			);
+			$this->assertEmpty( $orders );
+		} finally {
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * Tests the claim round-trip: a claimed session reads back as claimed, an unclaimed or empty
+	 * session id does not, so order creation can be gated on prior ownership.
+	 */
+	public function test_agentic_session_claim_roundtrip() {
+		$claim      = new \ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'claim_agentic_session' );
+		$is_claimed = new \ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'is_agentic_session_claimed' );
+		$claim->setAccessible( true );
+		$is_claimed->setAccessible( true );
+
+		$this->assertFalse( $is_claimed->invoke( $this->handler, 'cs_test_roundtrip' ) );
+
+		$claim->invoke( $this->handler, 'cs_test_roundtrip' );
+
+		$this->assertTrue( $is_claimed->invoke( $this->handler, 'cs_test_roundtrip' ) );
+		$this->assertFalse( $is_claimed->invoke( $this->handler, 'cs_test_other' ) );
+
+		// An empty session id is never claimed and reads back as unclaimed.
+		$claim->invoke( $this->handler, '' );
+		$this->assertFalse( $is_claimed->invoke( $this->handler, '' ) );
 	}
 
 	/**
@@ -366,6 +443,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			],
 		];
 		$this->mock_stripe_checkout_sessions_response( $mock_session );
+		$this->claim_session( $session_id );
 
 		// Immediate phase: defers the webhook.
 		$this->handler->process_checkout_session_success( $notification );
@@ -418,6 +496,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		$session_id   = 'cs_test_version';
 		$notification = $this->build_notification( $session_id );
+		$this->claim_session( $session_id );
 
 		// Immediate phase: defers the webhook.
 		$this->handler->process_checkout_session_success( $notification );
@@ -472,6 +551,19 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	}
 
 	// ---- Helpers ----
+
+	/**
+	 * Marks a checkout session as claimed by this site, simulating the synchronous
+	 * customize/finalize hook that Stripe delivers to the account's single agentic endpoint
+	 * before checkout.session.completed.
+	 *
+	 * @param string $session_id The checkout session ID to claim.
+	 */
+	private function claim_session( string $session_id ): void {
+		$method = new \ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'claim_agentic_session' );
+		$method->setAccessible( true );
+		$method->invoke( $this->handler, $session_id );
+	}
 
 	/**
 	 * Intercepts HTTP requests to the Stripe checkout sessions API and returns a mock response.
