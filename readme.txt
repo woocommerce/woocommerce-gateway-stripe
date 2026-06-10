@@ -157,6 +157,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.9.0 - xxxx-xx-xx =
 * Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
+* Update - Replace shipping AJAX endpoints with Store API calls for Express Checkout Element
 * Tweak - Consolidate the default payment intent metadata fields into a shared method so they stay consistent across payment flows
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
