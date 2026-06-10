@@ -1494,9 +1494,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$resolved_payment_method = $this->payment_methods[ $resolved_payment_type ] ?? null;
 
 		// Persist the 'save-payment-method' flag so the webhook handler can create the token once payment is completed.
-		// Saving itself is requested client-side: the session is created with
-		// `saved_payment_method_options.payment_method_save` enabled and the save checkbox state is
-		// passed to `checkout.confirm()`, which makes Stripe set `setup_future_usage` on the intent.
+		// Saving itself is requested client-side via `checkout.confirm( { savePaymentMethod } )`, which Stripe
+		// only honors for cards: Checkout Sessions cannot request `setup_future_usage` for methods that convert
+		// to SEPA (Bancontact, iDEAL, Sofort), so for those no reusable method is generated and the webhook
+		// skips token creation.
 		if ( $save_payment_method && $resolved_payment_method && $resolved_payment_method->is_reusable() ) {
 			$order_helper->update_should_save_stripe_payment_method( $order, true );
 		}
