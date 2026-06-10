@@ -1,6 +1,6 @@
 <?php
 /**
- * Class WC_REST_Stripe_Payment_Intents_Controller
+ * Class WC_Stripe_REST_Payment_Intents_Controller
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -8,16 +8,16 @@ defined( 'ABSPATH' ) || exit;
 /**
  * REST controller exposing Stripe payment intents data to the admin UI.
  *
- * @since 10.7.0
+ * @since 10.9.0
  */
-class WC_REST_Stripe_Payment_Intents_Controller extends WC_Stripe_REST_Base_Controller {
+class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Controller {
 
 	/**
 	 * Endpoint path.
 	 *
 	 * @var string
 	 */
-	protected $rest_base = 'wc_stripe/transactions';
+	protected $rest_base = 'wc_stripe/payment_intents';
 
 	/**
 	 * Configure REST API routes.
@@ -45,13 +45,13 @@ class WC_REST_Stripe_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => 'rest_validate_request_arg',
+						'validate_callback' => [ static::class, 'validate_payment_id_param' ],
 					],
 					'ending_before'  => [
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => 'rest_validate_request_arg',
+						'validate_callback' => [ static::class, 'validate_payment_id_param' ],
 					],
 				],
 			]
@@ -99,5 +99,9 @@ class WC_REST_Stripe_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 				'has_more' => $response->has_more ?? false,
 			]
 		);
+	}
+
+	public static function validate_payment_id_param( $value, WP_REST_Request $request, string $param ) {
+		return preg_match( '/^pi_[A-Za-z0-9]+$/', $value ) === 1;
 	}
 }
