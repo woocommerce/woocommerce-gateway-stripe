@@ -2052,7 +2052,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$_POST['wc_stripe_checkout_session_id'] = $session_id;
 		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
 		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
-		// Optimized Checkout reports 'card' as the gateway type; the real method is sent separately.
+		// Optimized Checkout reports 'card' as the gateway type; the real method is sent in `wc_stripe_selected_upe_payment_type`.
 		$_POST['wc_stripe_selected_upe_payment_type'] = WC_Stripe_Payment_Methods::BANCONTACT;
 		$_POST['wc-stripe-new-payment-method']        = 'true';
 
