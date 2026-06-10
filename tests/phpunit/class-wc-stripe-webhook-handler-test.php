@@ -445,6 +445,45 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Returns the content of every note on the given order, newest first.
+	 *
+	 * @param int $order_id
+	 * @return string[]
+	 */
+	private function get_order_note_contents( int $order_id ): array {
+		return array_map(
+			static function ( $note ) {
+				return $note->content;
+			},
+			wc_get_order_notes( [ 'order_id' => $order_id ] )
+		);
+	}
+
+	/**
+	 * Asserts that at least one note on the given order matches the PCRE pattern.
+	 *
+	 * @param string $pattern  PCRE pattern.
+	 * @param int    $order_id Order ID.
+	 */
+	private function assert_order_has_note_matching( string $pattern, int $order_id ): void {
+		$notes = $this->get_order_note_contents( $order_id );
+		$this->assertNotEmpty(
+			preg_grep( $pattern, $notes ),
+			sprintf( 'Failed asserting that an order note matches %s. Notes: %s', $pattern, implode( ' | ', $notes ) )
+		);
+	}
+
+	/**
+	 * Asserts that at least one note on the given order contains the substring.
+	 *
+	 * @param string $needle   Expected substring.
+	 * @param int    $order_id Order ID.
+	 */
+	private function assert_order_has_note_containing( string $needle, int $order_id ): void {
+		$this->assert_order_has_note_matching( '/' . preg_quote( $needle, '/' ) . '/', $order_id );
+	}
+
+	/**
 	 * When charge.succeeded fires for a charge whose ID isn't stored on any order (because the shopper
 	 * settled the order via a different gateway), the handler must fall back to looking up the order
 	 * by the parent PaymentIntent and flag the unexpected charge instead of silently dropping the event.
@@ -865,13 +904,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			$this->assertEquals( $expected_status, $final_order->get_status() );
 
 			if ( $expected_note ) {
-				$notes = wc_get_order_notes(
-					[
-						'order_id' => $final_order->get_id(),
-						'limit'    => 1,
-					]
-				);
-				$this->assertSame( $expected_note, $notes[0]->content );
+				$this->assertContains( $expected_note, $this->get_order_note_contents( $final_order->get_id() ) );
 			}
 		}
 	}
@@ -953,15 +986,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$final_order = wc_get_order( $order->get_id() );
 
-		$notes = wc_get_order_notes(
-			[
-				'order_id' => $final_order->get_id(),
-				'limit'    => 1,
-			]
-		);
-
 		$this->assertSame( $expected_status, $final_order->get_status() );
-		$this->assertMatchesRegularExpression( $expected_note, $notes[0]->content );
+		$this->assert_order_has_note_matching( $expected_note, $final_order->get_id() );
 	}
 
 	/**
@@ -1089,13 +1115,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->assertSame( $expected_status, $final_order->get_status() );
 		if ( ! empty( $expected_note ) ) {
-			$notes = wc_get_order_notes(
-				[
-					'order_id' => $final_order->get_id(),
-					'limit'    => 1,
-				]
-			);
-			$this->assertMatchesRegularExpression( $expected_note, $notes[0]->content );
+			$this->assert_order_has_note_matching( $expected_note, $final_order->get_id() );
 		}
 
 		$this->assertEquals( $expected_process_payment_calls, $mock_action_process_payment->get_call_count() );
@@ -1141,15 +1161,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->assertEquals( OrderStatus::ON_HOLD, $updated_order->get_status() );
 		$this->assertEquals( 'ch_mock', $updated_order->get_transaction_id() );
 
-		// Grab the latest order note and verify the content.
-		$notes = wc_get_order_notes(
-			[
-				'order_id' => $updated_order->get_id(),
-				'limit'    => 1,
-			]
-		);
-		$this->assertCount( 1, $notes );
-		$this->assertStringContainsString( 'Stripe charge awaiting payment: ch_mock.', $notes[0]->content );
+		// Verify the awaiting-payment note was added to the order.
+		$this->assert_order_has_note_containing( 'Stripe charge awaiting payment: ch_mock.', $updated_order->get_id() );
 	}
 
 	/**
@@ -1406,24 +1419,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->mock_webhook_handler->process_webhook_refund_updated( $notification );
 
-		$notes = wc_get_order_notes(
-			[
-				'order_id' => $order->get_id(),
-				'limit'    => 1,
-			]
-		);
-
 		if ( empty( $expected_note ) ) {
-			$this->assertEquals( [], $notes );
+			$this->assertSame( [], $this->get_order_note_contents( $order->get_id() ) );
 			return;
 		}
 
-		$this->assertCount( 1, $notes );
-		if ( '' === $expected_note ) {
-			$this->assertSame( '', $notes[0]->content );
-		} else {
-			$this->assertMatchesRegularExpression( $expected_note, $notes[0]->content );
-		}
+		$this->assert_order_has_note_matching( $expected_note, $order->get_id() );
 	}
 
 	/**
@@ -1522,14 +1523,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->assertSame( OrderStatus::FAILED, $order->get_status() );
 		$this->assertSame( 1, $hook_calls );
 
-		$notes = wc_get_order_notes(
-			[
-				'order_id' => $order->get_id(),
-				'limit'    => 1,
-			]
-		);
-		$this->assertNotEmpty( $notes );
-		$this->assertStringContainsString( $expected_note, $notes[0]->content );
+		$this->assert_order_has_note_containing( $expected_note, $order->get_id() );
 	}
 
 	/**
@@ -1657,12 +1651,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'failed refund'         => [
 				'notification status' => 'failed',
 				'email triggered'     => true,
-				'expected note'       => '/Refund failed for <span class="woocommerce-Price-amount amount"><bdi( class="woocommerce-Price-bidi")?><span class="woocommerce-Price-currencySymbol">&#36;<\/span>10.00<\/bdi><\/span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing\./',
+				'expected note'       => '/Refund failed for <span class="woocommerce-Price-amount amount"><bdi( class="woocommerce-Price-bidi")?><span class="woocommerce-Price-currencySymbol"( translate="no")?>&#36;<\/span>10.00<\/bdi><\/span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing\./',
 			],
 			'canceled refund'       => [
 				'notification status' => 'canceled',
 				'email triggered'     => true,
-				'expected note'       => '/Refund canceled for <span class="woocommerce-Price-amount amount"><bdi( class="woocommerce-Price-bidi")?><span class="woocommerce-Price-currencySymbol">&#36;<\/span>10.00<\/bdi><\/span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing\./',
+				'expected note'       => '/Refund canceled for <span class="woocommerce-Price-amount amount"><bdi( class="woocommerce-Price-bidi")?><span class="woocommerce-Price-currencySymbol"( translate="no")?>&#36;<\/span>10.00<\/bdi><\/span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing\./',
 			],
 		];
 	}
@@ -1764,11 +1758,107 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that `process_checkout_session` schedules the metadata job with the correct arguments.
+	 * Test that `process_payment_intent_metadata` updates the intent with the order description and metadata.
 	 *
 	 * @return void
 	 */
-	public function test_process_checkout_session_schedules_metadata_job(): void {
+	public function test_process_payment_intent_metadata_success(): void {
+		$payment_intent_id = 'pi_test_abc123';
+
+		$request = [
+			'description' => 'Test Blog - Order 100',
+			'metadata'    => [
+				'order_id'   => '100',
+				'order_key'  => 'wc_order_test123',
+				'signature'  => '100:abc123hash',
+				'tax_amount' => 250,
+			],
+		];
+
+		$request_captured = false;
+		$pre_http_filter  = function ( $return_value, $parsed_args, $url ) use ( $payment_intent_id, $request, &$request_captured ) {
+			$expected_url = WC_Stripe_API::ENDPOINT . 'payment_intents/' . $payment_intent_id;
+			if ( $url !== $expected_url ) {
+				return $return_value;
+			}
+			$request_captured = true;
+			$this->assertEquals( 'POST', $parsed_args['method'] );
+			$this->assertIsArray( $parsed_args['body'] );
+			$this->assertArrayHasKey( 'description', $parsed_args['body'] );
+			$this->assertArrayHasKey( 'metadata', $parsed_args['body'] );
+			$this->assertEquals( $request['description'], $parsed_args['body']['description'] );
+			$this->assertEquals( $request['metadata'], $parsed_args['body']['metadata'] );
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( [ 'id' => $payment_intent_id ] ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		$handler = new WC_Stripe_Webhook_Handler();
+		$handler->process_payment_intent_metadata( $payment_intent_id, $request );
+
+		remove_filter( 'pre_http_request', $pre_http_filter );
+
+		$this->assertTrue( $request_captured, 'Expected the API request to be made.' );
+	}
+
+	/**
+	 * Test that `process_payment_intent_metadata` throws an exception when the API returns an error response.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_intent_metadata_api_error_response(): void {
+		$error_message   = 'No such payment intent.';
+		$pre_http_filter = function () use ( $error_message ) {
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'error' => [
+							'message' => $error_message,
+						],
+					]
+				),
+				'response' => [
+					'code'    => 404,
+					'message' => 'Not Found',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		$handler = new WC_Stripe_Webhook_Handler();
+		$caught  = null;
+		try {
+			$handler->process_payment_intent_metadata( 'pi_test_abc123', [ 'metadata' => [ 'order_id' => '100' ] ] );
+		} catch ( Exception $e ) {
+			$caught = $e;
+		}
+
+		remove_filter( 'pre_http_request', $pre_http_filter );
+
+		$this->assertNotNull( $caught, 'Expected an exception to be thrown.' );
+		$this->assertInstanceOf( \WC_Stripe_Exception::class, $caught, 'Expected an instance of WC_Stripe_Exception.' );
+		$this->assertSame( $error_message, $caught->getMessage() );
+	}
+
+	/**
+	 * Test that `process_checkout_session` schedules the payment intent metadata job with the correct arguments.
+	 *
+	 * @return void
+	 */
+	public function test_process_checkout_session_schedules_payment_intent_metadata_job(): void {
 		$checkout_session_id = 'cs_test_schedule123';
 
 		// Create an order and associate it with the checkout session.
@@ -1796,6 +1886,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			],
 		];
 
+		// Capture a fixed baseline before scheduling so the timestamp assertion can't race a 1-second rollover.
+		$test_start_time = time();
+
 		// Mock the action scheduler service.
 		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
 		$scheduled_args = null;
@@ -1803,22 +1896,23 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->method( 'schedule_job' )
 			->with(
 				$this->callback(
-					function ( $timestamp ) {
+					function ( $timestamp ) use ( $test_start_time ) {
 						$this->assertIsInt( $timestamp, 'Expected timestamp to be an integer.' );
-						$this->assertGreaterThanOrEqual( time() + 2 * MINUTE_IN_SECONDS, $timestamp, 'Expected timestamp to be in the future.' );
+
+						// The timestamp is captured between the test's start and now, so bound it on both sides
+						// to assert it lands exactly 2 minutes out rather than some arbitrary point after.
+						$current_time = time();
+						$this->assertGreaterThanOrEqual( $test_start_time + 2 * MINUTE_IN_SECONDS, $timestamp, 'Expected timestamp to be at least 2 minutes in the future.' );
+						$this->assertLessThanOrEqual( $current_time + 2 * MINUTE_IN_SECONDS, $timestamp, 'Expected timestamp to be at most 2 minutes in the future.' );
 
 						return true;
 					}
 				),
-				'wc_stripe_process_checkout_session_metadata',
+				'wc_stripe_process_payment_intent_metadata',
 				$this->callback(
-					function ( $args ) use ( $checkout_session_id, &$scheduled_args ) {
+					function ( $args ) use ( &$scheduled_args ) {
 						$scheduled_args = $args;
-						return isset( $args['checkout_session_id'] ) && $args['checkout_session_id'] === $checkout_session_id
-							&& isset( $args['metadata']['order_id'] )
-							&& isset( $args['metadata']['order_key'] )
-							&& isset( $args['metadata']['signature'] )
-							&& isset( $args['metadata']['tax_amount'] );
+						return isset( $args['payment_intent_id'] ) && isset( $args['request'] ) && is_array( $args['request'] );
 					}
 				)
 			);
@@ -1844,13 +1938,14 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->mock_webhook_handler->process_checkout_session_success( $notification );
 
-		// Verify the metadata contains the correct order data.
+		// Verify the job is scheduled with the intent and the full payload snapshot.
 		$this->assertNotNull( $scheduled_args );
-		$this->assertEquals( $checkout_session_id, $scheduled_args['checkout_session_id'] );
-		$this->assertEquals( $order->get_order_number(), $scheduled_args['metadata']['order_id'] );
-		$this->assertEquals( $order->get_order_key(), $scheduled_args['metadata']['order_key'] );
-		$this->assertNotEmpty( $scheduled_args['metadata']['signature'] );
-		$this->assertIsInt( $scheduled_args['metadata']['tax_amount'] );
+		$this->assertEquals( 'pi_test_abc', $scheduled_args['payment_intent_id'] );
+		$this->assertEquals( sprintf( '%1$s - Order %2$s', wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ), $scheduled_args['request']['description'] );
+		$this->assertEquals( $order->get_order_number(), $scheduled_args['request']['metadata']['order_id'] );
+		$this->assertEquals( $order->get_order_key(), $scheduled_args['request']['metadata']['order_key'] );
+		$this->assertNotEmpty( $scheduled_args['request']['metadata']['signature'] );
+		$this->assertIsInt( $scheduled_args['request']['metadata']['tax_amount'] );
 	}
 
 	/**
@@ -2016,10 +2111,10 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->method( 'schedule_job' )
 			->with(
 				$this->isType( 'int' ),
-				'wc_stripe_process_checkout_session_metadata',
+				'wc_stripe_process_payment_intent_metadata',
 				$this->callback(
-					function ( $args ) use ( $checkout_session_id ) {
-						return isset( $args['checkout_session_id'] ) && $checkout_session_id === $args['checkout_session_id'];
+					function ( $args ) {
+						return isset( $args['payment_intent_id'] ) && isset( $args['request'] ) && is_array( $args['request'] );
 					}
 				)
 			);
