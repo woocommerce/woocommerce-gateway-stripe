@@ -101,7 +101,16 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		);
 	}
 
-	public static function validate_payment_id_param( $value, WP_REST_Request $request, string $param ) {
+	/**
+	 * Validate a payment intent id parameter value.
+	 *
+	 * @param string $value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param The parameter name.
+	 *
+	 * @return bool
+	 */
+	public static function validate_payment_id_param( string $value, WP_REST_Request $request, string $param ) {
 		return preg_match( '/^pi_[A-Za-z0-9]+$/', $value ) === 1;
 	}
 }
