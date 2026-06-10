@@ -1494,14 +1494,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$resolved_payment_method = $this->payment_methods[ $resolved_payment_type ] ?? null;
 
 		// Persist the 'save-payment-method' flag so the webhook handler can create the token once payment is completed.
+		// Saving itself is requested client-side: the session is created with
+		// `saved_payment_method_options.payment_method_save` enabled and the save checkbox state is
+		// passed to `checkout.confirm()`, which makes Stripe set `setup_future_usage` on the intent.
 		if ( $save_payment_method && $resolved_payment_method && $resolved_payment_method->is_reusable() ) {
 			$order_helper->update_should_save_stripe_payment_method( $order, true );
-
-			// Payment methods that are saved as a different payment method need to have
-			// `setup_future_usage` specified to request that the payment method be saved.
-			if ( $resolved_payment_method->get_id() !== $resolved_payment_method->get_retrievable_type() ) {
-				$this->set_setup_future_usage_on_checkout_session( $checkout_session_id, $resolved_payment_method->get_id() );
-			}
 		}
 
 		$title_payment_type = $resolved_payment_type;
@@ -1522,34 +1519,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'result'   => 'success',
 			'redirect' => $this->get_return_url_for_checkout_session( $order ),
 		];
-	}
-
-	/**
-	 * Sets `setup_future_usage` to `off_session` for the checkout session, which will
-	 * ensure the payment method is saved. This is necessary for payment methods that "convert"
-	 * to SEPA debits when saved, including Bancontact and iDEAL/Wero.
-	 * Note that failures are logged and ignored so we don't prevent any other processing.
-	 *
-	 * @param string $checkout_session_id The Stripe Checkout Session ID.
-	 * @param string $payment_method_type The Stripe payment method type (e.g. 'bancontact').
-	 */
-	private function set_setup_future_usage_on_checkout_session( string $checkout_session_id, string $payment_method_type ): void {
-		try {
-			$response = WC_Stripe_API::request(
-				[
-					'payment_method_options' => [
-						$payment_method_type => [ 'setup_future_usage' => 'off_session' ],
-					],
-				],
-				"checkout/sessions/$checkout_session_id"
-			);
-
-			if ( ! empty( $response->error ) ) {
-				WC_Stripe_Logger::error( 'Unable to set setup_future_usage on checkout session ' . $checkout_session_id . ': ' . wp_json_encode( $response->error ) );
-			}
-		} catch ( Exception $e ) {
-			WC_Stripe_Logger::error( 'Exception while setting setup_future_usage on checkout session ' . $checkout_session_id . ': ' . $e->getMessage() );
-		}
 	}
 
 	/**
