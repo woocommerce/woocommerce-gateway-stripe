@@ -1492,17 +1492,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Requests a reusable SEPA mandate for the Checkout Session by setting setup_future_usage on the
-	 * selected payment method.
+	 * Sets setup_future_usage on the session so Stripe mints a reusable SEPA mandate for redirect-based
+	 * APMs (Bancontact, iDEAL, Sofort). Best-effort — failures are logged and swallowed so they cannot
+	 * block checkout.
 	 *
-	 * Used for redirect-based APMs that are tokenized as SEPA (Bancontact, iDEAL, Sofort): Stripe only
-	 * mints a `generated_sepa_debit` when the session asks for it. Runs server-side before the client
-	 * confirms the session. Best-effort — any failure is logged and swallowed so it cannot block checkout.
-	 *
-	 * @param string $checkout_session_id   The Stripe Checkout Session ID.
-	 * @param string $payment_method_type   The Stripe payment method type (e.g. 'bancontact').
-	 *
-	 * @return void
+	 * @param string $checkout_session_id The Stripe Checkout Session ID.
+	 * @param string $payment_method_type The Stripe payment method type (e.g. 'bancontact').
 	 */
 	private function set_setup_future_usage_on_checkout_session( string $checkout_session_id, string $payment_method_type ): void {
 		try {
@@ -3710,22 +3705,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Resolves the PaymentMethod object that should be saved as a reusable token.
+	 * Resolves the PaymentMethod to save as a reusable token. Redirect-based APMs saved as SEPA
+	 * (Bancontact, iDEAL, Sofort) are returned as their own type; their reusable mandate lives on the
+	 * charge as `payment_method_details.<type>.generated_sepa_debit`.
 	 *
-	 * Redirect-based APMs whose retrievable type differs from their own type (Bancontact, iDEAL,
-	 * Sofort — all saved as SEPA tokens) are returned by Stripe as their own PaymentMethod type,
-	 * which has no `sepa_debit` child. The reusable mandate is exposed on the charge as
-	 * `payment_method_details.<type>.generated_sepa_debit`. This mirrors the conversion already done
-	 * in the deferred-intent flow (see process_upe_redirect_payment) so the Adaptive Pricing /
-	 * Checkout Sessions webhook path does not pass a non-SEPA-shaped object to a SEPA token.
+	 * @param stdClass           $payment_method_object The PaymentMethod used for the payment.
+	 * @param object|string|null $charge                The latest charge from the intent, if available.
 	 *
-	 * @param stdClass             $payment_method_object The PaymentMethod object used for the payment.
-	 * @param object|string|null   $charge                The latest charge from the intent, if available.
-	 *
-	 * @return stdClass|null The PaymentMethod to save: the generated SEPA debit PM when a conversion
-	 *                       is required and a mandate was generated; the original object when no
-	 *                       conversion is needed; or null when a conversion is required but Stripe did
-	 *                       not generate a reusable mandate (nothing to save).
+	 * @return stdClass|null The generated SEPA debit PM when a conversion is required, the original
+	 *                       object when none is needed, or null when no reusable mandate was generated.
 	 */
 	public function get_reusable_payment_method_for_saving( stdClass $payment_method_object, $charge ) {
 		$type     = $payment_method_object->type ?? '';
