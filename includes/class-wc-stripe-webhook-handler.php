@@ -1812,7 +1812,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order_helper->update_stripe_source_id( $order, $payment_method_id );
 			}
 
-			// Fetch the charge once; reused below to process the response and to resolve any reusable SEPA mandate.
+			// Fetch the charge once; reused below.
 			$charge = $this->get_latest_charge_from_intent( $intent );
 
 			// Save payment method to store if the customer requested it during checkout.
@@ -1821,17 +1821,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				$payment_method_object = is_object( $intent->payment_method ) ? $intent->payment_method : WC_Stripe_API::retrieve( 'payment_methods/' . $payment_method_id );
 				if ( $upe_gateway instanceof WC_Stripe_UPE_Payment_Gateway && ! is_wp_error( $payment_method_object ) && empty( $payment_method_object->error ) && ! empty( $payment_method_object ) ) {
-					// Redirect-based APMs (Bancontact, iDEAL, Sofort) are returned as their own PaymentMethod
-					// type but are saved as SEPA tokens. Convert to the generated SEPA debit PM before saving,
-					// mirroring the deferred-intent flow. Returns null when Stripe did not generate a reusable
-					// mandate, in which case there is nothing to save (and we avoid a fatal on set_fingerprint()).
+					// Redirect APMs saved as SEPA tokens need converting to their generated SEPA debit PM;
+					// null means no reusable mandate was generated, so there is nothing to save.
 					$payment_method_to_save = $upe_gateway->get_reusable_payment_method_for_saving( $payment_method_object, $charge );
 
 					if ( $payment_method_to_save instanceof stdClass && ! empty( $payment_method_to_save->type ) ) {
 						$upe_gateway->handle_saving_payment_method( $order, $payment_method_to_save, $payment_method_to_save->type );
 					}
 
-					// Clear the flag so it does not run again on webhook retries (even when nothing was saved).
+					// Clear the flag so retries don't re-run this, even when nothing was saved.
 					$order_helper->delete_should_save_stripe_payment_method( $order );
 				}
 			}

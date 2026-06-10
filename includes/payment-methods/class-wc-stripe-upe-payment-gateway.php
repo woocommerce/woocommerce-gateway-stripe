@@ -1438,10 +1438,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
 
-		// Resolve the payment method the customer actually picked inside the Stripe Element. For
-		// Optimized Checkout the gateway-derived `$selected_payment_type` is always 'card', so prefer
-		// the type sent via the hidden `wc_stripe_selected_upe_payment_type` input by the Optimized
-		// Checkout JS when it is present and known.
+		// Resolve the method the customer actually picked: for Optimized Checkout the gateway type is
+		// always 'card', so prefer the hidden `wc_stripe_selected_upe_payment_type` input when present.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_upe_payment_type = isset( $_POST['wc_stripe_selected_upe_payment_type'] )
 			? sanitize_text_field( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) )
@@ -1456,21 +1454,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( $save_payment_method && $resolved_payment_method && $resolved_payment_method->is_reusable() ) {
 			$order_helper->update_should_save_stripe_payment_method( $order, true );
 
-			// Redirect-based APMs that are tokenized as SEPA (Bancontact, iDEAL, Sofort) only generate a
-			// reusable SEPA mandate when the Checkout Session asks for it via setup_future_usage. The save
-			// checkbox alone (saved_payment_method_options.payment_method_save) does not mint a
-			// `generated_sepa_debit` for these methods, so the save flag would otherwise be meaningless.
-			// Request it on the session before the client confirms it. Best-effort: a failure must not block
-			// checkout — the order still completes, and the webhook safely skips saving when no mandate exists.
+			// Redirect APMs saved as SEPA tokens only get a reusable mandate when the session requests
+			// setup_future_usage; the save checkbox alone does not. Set it before the client confirms.
 			if ( $resolved_payment_method->get_id() !== $resolved_payment_method->get_retrievable_type() ) {
 				$this->set_setup_future_usage_on_checkout_session( $checkout_session_id, $resolved_payment_method->get_id() );
 			}
 		}
 
-		// Eagerly set the payment method title from the customer's selection so the order reflects the
-		// right method as soon as it lands on the order-received page, even if the
-		// checkout.session.completed webhook is delayed. The webhook handler will reaffirm/refine this
-		// once the actual payment method type is known from the intent.
+		// Eagerly set the title from the customer's selection so the order-received page is correct even
+		// if the checkout.session.completed webhook is delayed; the webhook reaffirms it later.
 		$title_payment_type = $resolved_payment_type;
 
 		if ( isset( $this->payment_methods[ $title_payment_type ] ) ) {
@@ -3724,8 +3716,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $payment_method_object;
 		}
 
-		// Conversion required: locate the generated SEPA debit PM on the charge. If Stripe did not
-		// generate one (e.g. the Checkout Session never set setup_future_usage), there is nothing to save.
+		// Locate the generated SEPA debit PM on the charge; absent it, there is nothing to save.
 		$generated_payment_method_id = is_object( $charge ) ? ( $charge->payment_method_details->{$type}->generated_sepa_debit ?? null ) : null;
 		if ( empty( $generated_payment_method_id ) ) {
 			return null;
