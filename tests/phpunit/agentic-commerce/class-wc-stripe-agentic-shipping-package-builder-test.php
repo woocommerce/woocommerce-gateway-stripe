@@ -107,4 +107,29 @@ class WC_Stripe_Agentic_Shipping_Package_Builder_Test extends WP_UnitTestCase {
 		$shippable->delete( true );
 		$virtual->delete( true );
 	}
+
+	/**
+	 * Test that variation entries split parent/variation IDs like WC core cart
+	 * items (parent ID in product_id, variation ID in variation_id).
+	 */
+	public function test_build_contents_from_order_splits_variation_ids() {
+		$variable  = WC_Helper_Product::create_variation_product();
+		$variation = wc_get_product( $variable->get_children()[0] );
+
+		$order = wc_create_order();
+		$order->add_product( $variation, 2 );
+		$order->save();
+
+		$contents = WC_Stripe_Agentic_Shipping_Package_Builder::build_contents_from_order( $order );
+
+		$this->assertCount( 1, $contents );
+
+		$entry = reset( $contents );
+		$this->assertSame( $variable->get_id(), $entry['product_id'] );
+		$this->assertSame( $variation->get_id(), $entry['variation_id'] );
+		$this->assertSame( 2, $entry['quantity'] );
+
+		$order->delete( true );
+		$variable->delete( true );
+	}
 }
