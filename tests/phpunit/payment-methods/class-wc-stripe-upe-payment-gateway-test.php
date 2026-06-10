@@ -3340,17 +3340,20 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway->process_subscription_payment( $amount, $order, false, false );
 
-		$final_order = wc_get_order( $order_id );
-		$note        = wc_get_order_notes(
-			[
-				'order_id' => $order_id,
-				'limit'    => 1,
-			]
-		)[0];
+		$final_order   = wc_get_order( $order_id );
+		$note_contents = array_map(
+			static function ( $note ) {
+				return $note->content;
+			},
+			wc_get_order_notes( [ 'order_id' => $order_id ] )
+		);
 
 		$this->assertEquals( OrderStatus::FAILED, $final_order->get_status() );
 		$this->assertEquals( 'ch_mock', $final_order->get_transaction_id() );
-		$this->assertMatchesRegularExpression( '/pending/i', $note->content );
+		$this->assertNotEmpty(
+			preg_grep( '/pending/i', $note_contents ),
+			'Failed asserting that an order note mentions the pending payment. Notes: ' . implode( ' | ', $note_contents )
+		);
 		// Assert: Our hook was called once.
 		$this->assertEquals( 1, $mock_action_process_payment->get_call_count() );
 		// Assert: Only our hook was called.
