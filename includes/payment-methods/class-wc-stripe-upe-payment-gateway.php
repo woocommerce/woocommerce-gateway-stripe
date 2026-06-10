@@ -3667,6 +3667,48 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Resolves the PaymentMethod object that should be saved as a reusable token.
+	 *
+	 * Redirect-based APMs whose retrievable type differs from their own type (Bancontact, iDEAL,
+	 * Sofort — all saved as SEPA tokens) are returned by Stripe as their own PaymentMethod type,
+	 * which has no `sepa_debit` child. The reusable mandate is exposed on the charge as
+	 * `payment_method_details.<type>.generated_sepa_debit`. This mirrors the conversion already done
+	 * in the deferred-intent flow (see process_upe_redirect_payment) so the Adaptive Pricing /
+	 * Checkout Sessions webhook path does not pass a non-SEPA-shaped object to a SEPA token.
+	 *
+	 * @param stdClass             $payment_method_object The PaymentMethod object used for the payment.
+	 * @param object|string|null   $charge                The latest charge from the intent, if available.
+	 *
+	 * @return stdClass|null The PaymentMethod to save: the generated SEPA debit PM when a conversion
+	 *                       is required and a mandate was generated; the original object when no
+	 *                       conversion is needed; or null when a conversion is required but Stripe did
+	 *                       not generate a reusable mandate (nothing to save).
+	 */
+	public function get_reusable_payment_method_for_saving( stdClass $payment_method_object, $charge ) {
+		$type     = $payment_method_object->type ?? '';
+		$instance = '' !== $type ? $this->get_payment_method_instance( $type ) : null;
+
+		// No conversion needed when the method is saved under its own type (e.g. card, sepa_debit).
+		if ( ! $instance instanceof WC_Stripe_UPE_Payment_Method || $instance->get_id() === $instance->get_retrievable_type() ) {
+			return $payment_method_object;
+		}
+
+		// Conversion required: locate the generated SEPA debit PM on the charge. If Stripe did not
+		// generate one (e.g. the Checkout Session never set setup_future_usage), there is nothing to save.
+		$generated_payment_method_id = is_object( $charge ) ? ( $charge->payment_method_details->{$type}->generated_sepa_debit ?? null ) : null;
+		if ( empty( $generated_payment_method_id ) ) {
+			return null;
+		}
+
+		$generated_payment_method = WC_Stripe_API::retrieve( 'payment_methods/' . $generated_payment_method_id );
+		if ( is_wp_error( $generated_payment_method ) || ! empty( $generated_payment_method->error ) || empty( $generated_payment_method ) ) {
+			return null;
+		}
+
+		return $generated_payment_method;
+	}
+
+	/**
 	 * Set the payment metadata for payment method id.
 	 *
 	 * @param WC_Order $order The order.

@@ -544,6 +544,17 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return WC_Payment_Token_SEPA
 	 */
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
+		// Guard against non-SEPA-shaped PaymentMethods (e.g. a raw Bancontact/iDEAL/Sofort object reaching
+		// this SEPA token path). Without a SEPA fingerprint there is nothing reusable to tokenize, and
+		// set_fingerprint() would fatal on null. Fail with a catchable exception instead of a TypeError.
+		$sepa_debit = $payment_method->sepa_debit ?? null;
+		if ( ! is_object( $sepa_debit ) || ! isset( $sepa_debit->fingerprint ) ) {
+			throw new WC_Stripe_Exception(
+				sprintf( 'Cannot create a SEPA payment token from payment method %s: missing sepa_debit fingerprint.', $payment_method->id ?? 'unknown' ),
+				__( "We're not able to save this payment method. Please try again.", 'woocommerce-gateway-stripe' )
+			);
+		}
+
 		$token = new WC_Payment_Token_SEPA();
 		$token->set_last4( $payment_method->sepa_debit->last4 );
 		$token->set_gateway_id( $this->id );
