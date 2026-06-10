@@ -660,4 +660,23 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * Tests that maybe_decommission_webhook() returns false and does not raise when the
+	 * Stripe DELETE request fails (e.g. invalid old credentials or a network error), so
+	 * the best-effort cleanup never aborts the (re)connect flow.
+	 */
+	public function test_maybe_decommission_webhook_returns_false_when_deletion_fails() {
+		WC_Helper_Stripe_Api::$request_exception = new Exception( 'Network error' );
+
+		$result = $this->account->maybe_decommission_webhook(
+			[
+				'id'     => 'wh_old',
+				'secret' => 'rk_live_old',
+			],
+			'rk_live_new'
+		);
+
+		$this->assertFalse( $result );
+	}
 }
