@@ -2,6 +2,7 @@
 
 xxxx-xx-xx - version 10.9.0
 * Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
+* Fix - Show BLIK and ACSS payment methods at checkout when Optimized Checkout Suite is enabled
 * Tweak - Consolidate the default payment intent metadata fields into a shared method so they stay consistent across payment flows
 
 2026-06-08 - version 10.8.0
