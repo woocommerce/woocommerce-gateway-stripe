@@ -1163,13 +1163,7 @@ describe( 'payment-processing', () => {
 	} );
 } );
 
-// STRIPE-1186: WooCommerce re-renders the payment box on updated_checkout (e.g.
-// after an address change), which tears down and asynchronously re-mounts the
-// Payment Element. A submission landing in that window posted an empty
-// wc-stripe-payment-method field. ensureUPEElementMounted closes the race by
-// waiting for any in-flight (re)mount and mounting a torn-down element before
-// the payment method is created.
-describe( 'ensureUPEElementMounted (STRIPE-1186)', () => {
+describe( 'ensureUPEElementMounted', () => {
 	beforeEach( () => {
 		stripeUtils.getStripeServerData.mockReturnValue( {
 			...BASE_SERVER_DATA,
@@ -1298,5 +1292,22 @@ describe( 'ensureUPEElementMounted (STRIPE-1186)', () => {
 		await paymentProcessing.ensureUPEElementMounted( api, 'card' );
 
 		expect( createdEl.mount ).not.toHaveBeenCalled();
+	} );
+
+	it( 'dedupes concurrent mounts of the same element to a single mount() call', async () => {
+		const api = createMockApi( createMockElements() );
+		const onPageEl = addOnPageElement( { mounted: false } );
+
+		// Both checkout paths (ensureUPEElementMounted and the updated_checkout
+		// handler) can race to mount the same torn-down element. Fire two mounts
+		// for the same node concurrently.
+		const [ first, second ] = await Promise.all( [
+			paymentProcessing.mountStripePaymentElement( api, onPageEl ),
+			paymentProcessing.mountStripePaymentElement( api, onPageEl ),
+		] );
+
+		const createdEl = api._standardElements.create.mock.results[ 0 ].value;
+		expect( createdEl.mount ).toHaveBeenCalledTimes( 1 );
+		expect( first ).toBe( second );
 	} );
 } );

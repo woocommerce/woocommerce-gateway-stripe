@@ -47,6 +47,7 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
  * @property {boolean}              hasLoadError      Whether the payment element has a load error.
  * @property {Promise<Object|null>} upeElementPromise Promise that resolves to the Stripe payment element.
  * @property {Promise<Object>|null} mountPromise      Promise that resolves once the element is fully (re)mounted, or null when no mount is in flight.
+ * @property {Object|null}          mountTarget       The DOM node the in-flight mount targets, used to dedupe concurrent mounts of the same element.
  */
 
 /**
@@ -70,6 +71,7 @@ export function initializeUPEComponents() {
 			hasLoadError: false,
 			upeElementPromise: null,
 			mountPromise: null,
+			mountTarget: null,
 		};
 	}
 	// Reset so processPayment runs fully when called again (e.g. after re-init or in tests).
@@ -608,6 +610,14 @@ export async function mountStripePaymentElement( api, domElement ) {
 		return;
 	}
 
+	const component = gatewayUPEComponents[ paymentMethodType ];
+
+	// Two callers can race to mount the same element; reuse the in-flight mount
+	// so upeElement.mount() isn't called twice on the same node.
+	if ( component.mountPromise && component.mountTarget === domElement ) {
+		return component.mountPromise;
+	}
+
 	let upeElementPromise =
 		gatewayUPEComponents[ paymentMethodType ]?.upeElementPromise ?? null;
 	if ( ! upeElementPromise ) {
@@ -629,14 +639,8 @@ export async function mountStripePaymentElement( api, domElement ) {
 			upeElementPromise;
 	}
 
-	const component = gatewayUPEComponents[ paymentMethodType ];
-
-	// Track the full (re)mount — element creation through mount, listener wiring
-	// and (for Adaptive Pricing) loadActions — as a single awaitable promise.
-	// processPayment awaits this so a submission that lands while the element is
-	// re-mounting (e.g. after WooCommerce re-renders the payment box on
-	// updated_checkout) waits for the element to be ready instead of posting an
-	// empty wc-stripe-payment-method field. See STRIPE-1186.
+	// Expose the full (re)mount as a single awaitable promise so processPayment
+	// can wait for a re-mounting element instead of posting an empty field.
 	const mountPromise = ( async () => {
 		const upeElement = await upeElementPromise;
 
@@ -739,6 +743,7 @@ export async function mountStripePaymentElement( api, domElement ) {
 	} )();
 
 	component.mountPromise = mountPromise;
+	component.mountTarget = domElement;
 	try {
 		return await mountPromise;
 	} finally {
@@ -746,6 +751,7 @@ export async function mountStripePaymentElement( api, domElement ) {
 		// promise isn't wiped out by an older one settling.
 		if ( component.mountPromise === mountPromise ) {
 			component.mountPromise = null;
+			component.mountTarget = null;
 		}
 	}
 }
@@ -760,7 +766,7 @@ export async function mountStripePaymentElement( api, domElement ) {
  * that window, the element isn't ready and the wc-stripe-payment-method field
  * posts empty, failing the payment. This awaits any in-flight (re)mount and, if
  * the element has been torn down but not yet re-mounted, mounts it before we
- * proceed. See STRIPE-1186.
+ * proceed.
  *
  * @param {Object} api               The API object.
  * @param {string} paymentMethodType The payment method type.
@@ -912,12 +918,8 @@ export const processPayment = (
 
 	( async () => {
 		try {
-			// Wait for any in-flight (re)mount triggered by updated_checkout to
-			// settle — and mount the element if it was torn down but not yet
-			// re-mounted — before reading its Elements instance. Without this,
-			// submitting mid-remount posts an empty wc-stripe-payment-method
-			// field and the payment fails. The form is already blocked above, so
-			// this wait is covered by the spinner. See STRIPE-1186.
+			// The element may be mid-remount; reading its Elements instance now
+			// would post an empty payment method field and fail the payment.
 			await ensureUPEElementMounted( api, paymentMethodType );
 
 			const { elements, hasLoadError } =
