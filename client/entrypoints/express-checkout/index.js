@@ -24,7 +24,6 @@ import {
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
 } from 'wcstripe/express-checkout/event-handler';
-import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import 'wcstripe/express-checkout/compatibility/classic-checkout-custom-fields';
@@ -59,8 +58,13 @@ jQuery( function ( $ ) {
 		return;
 	}
 
+	const stripeParams = getExpressCheckoutData( 'stripe' );
 	const api = new WCStripeAPI(
-		getStripeServerData(),
+		{
+			key: stripeParams.publishable_key,
+			locale: stripeParams.locale,
+			ajax_url: getExpressCheckoutData( 'ajax_url' ),
+		},
 		// A promise-based interface to jQuery.post.
 		( url, args ) => {
 			return new Promise( ( resolve, reject ) => {
