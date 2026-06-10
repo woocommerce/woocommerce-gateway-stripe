@@ -157,6 +157,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.9.0 - xxxx-xx-xx =
 * Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
-* Fix - Prevent classic and Blocks checkout from failing a submission that lands while the Stripe Payment Element is re-mounting after a checkout update (e.g. address or shipping change), which could submit an empty payment method or block the order behind an incomplete-payment error
+* Fix - Prevent classic and Blocks checkout submissions from failing while the Stripe Payment Element is re-mounting after a checkout update
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

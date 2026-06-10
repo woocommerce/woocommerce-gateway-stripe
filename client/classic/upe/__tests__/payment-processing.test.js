@@ -276,8 +276,7 @@ describe( 'payment-processing', () => {
 				dom.dataset.paymentMethodType = 'card';
 				await paymentProcessing.mountStripePaymentElement( api, dom );
 
-				// Simulate a re-mount triggered by `updated_checkout` that has
-				// not finished yet, then submit while it is still in flight.
+				// Submit while an `updated_checkout` re-mount is still in flight.
 				let resolveMount;
 				paymentProcessing.trackMountInProgress(
 					new Promise( ( resolve ) => {
@@ -289,8 +288,7 @@ describe( 'payment-processing', () => {
 				paymentProcessing.processPayment( api, form, 'card' );
 				await flushPromises();
 
-				// Submission is held until the re-mount settles, so the payment
-				// method ID is never created against a detached element.
+				// Submission is held until the re-mount settles.
 				expect( api._standardElements.submit ).not.toHaveBeenCalled();
 				expect(
 					stripeUtils.appendPaymentMethodIdToForm
@@ -335,8 +333,7 @@ describe( 'payment-processing', () => {
 				paymentProcessing.processPayment( api, form, 'card' );
 				await flushPromises();
 
-				// Newer chain resolves first — submission must still be held,
-				// because the older re-mount is still detaching/mounting.
+				// Newer chain resolves first — submission must still be held.
 				resolveNewer();
 				await flushPromises();
 				expect( api._standardElements.submit ).not.toHaveBeenCalled();
@@ -1251,12 +1248,9 @@ describe( 'payment-processing', () => {
 	} );
 } );
 
-// STRIPE-1186: WooCommerce re-renders the payment box on updated_checkout (e.g.
-// after an address change), which tears down and asynchronously re-mounts the
-// Payment Element. A submission landing in that window posted an empty
-// wc-stripe-payment-method field. ensureUPEElementMounted closes the race by
-// waiting for any in-flight (re)mount and mounting a torn-down element before
-// the payment method is created.
+// STRIPE-1186: ensureUPEElementMounted closes the updated_checkout re-mount
+// race by waiting for any in-flight (re)mount and mounting a torn-down
+// element before the payment method is created.
 describe( 'ensureUPEElementMounted (STRIPE-1186)', () => {
 	beforeEach( () => {
 		stripeUtils.getStripeServerData.mockReturnValue( {
@@ -1312,8 +1306,7 @@ describe( 'ensureUPEElementMounted (STRIPE-1186)', () => {
 		dom.dataset.paymentMethodType = 'card';
 		await paymentProcessing.mountStripePaymentElement( api, dom );
 
-		// Element is present and mounted, so ensure won't trigger a new mount —
-		// it should only wait on the in-flight tracker.
+		// Already mounted, so ensure only waits on the in-flight tracker.
 		addOnPageElement( { mounted: true } );
 
 		let resolveMount;
@@ -1349,8 +1342,7 @@ describe( 'ensureUPEElementMounted (STRIPE-1186)', () => {
 		const createdEl = api._standardElements.create.mock.results[ 0 ].value;
 		createdEl.mount.mockClear();
 
-		// Now an empty (torn-down) element appears on the page, as it would after
-		// WooCommerce re-renders the payment box.
+		// An empty (torn-down) element appears, as after a payment-box re-render.
 		const onPageEl = addOnPageElement( { mounted: false } );
 
 		await paymentProcessing.ensureUPEElementMounted( api, 'card' );

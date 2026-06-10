@@ -1,9 +1,7 @@
 import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
 
-// #5490: On Blocks checkout the Payment Element can briefly re-mount (e.g. when
-// a cart update flips the amount mode), resetting its completion state. The
-// helper gives an in-flight (re)mount a short window to settle before a
-// submission is rejected, reading completeness from a live ref.
+// #5490: a re-mount resets the Payment Element's completion state; the helper
+// gives it a short window to settle before a submission is rejected.
 describe( 'waitForPaymentElementCompletion', () => {
 	beforeEach( () => {
 		jest.useFakeTimers();

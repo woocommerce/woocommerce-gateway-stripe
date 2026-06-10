@@ -57,10 +57,8 @@ function _manually_load_plugin() {
 
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 
-// WooCommerce 10.9.0's EmailLogger adds an 'Email "..." sent.' order note after every
-// transactional email, which becomes the order's latest note and breaks tests that
-// assert on the most recent note. Suppress it so note assertions behave consistently
-// across the supported WooCommerce versions.
+// WooCommerce 10.9's EmailLogger adds an 'Email "..." sent.' order note after each
+// transactional email, breaking tests that assert on the latest note. Suppress it.
 tests_add_filter( 'woocommerce_email_log_add_order_note', '__return_false' );
 
 // When paratest runs workers in parallel, each gets a unique TEST_TOKEN.

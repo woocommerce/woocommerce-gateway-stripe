@@ -115,8 +115,7 @@ const PaymentProcessor = ( {
 	const hasLoadErrorRef = useRef( false );
 
 	// Live mirror of isPaymentElementComplete so an in-flight onPaymentSetup
-	// callback can observe completion updates instead of the stale value
-	// captured when its closure was created. See #5490.
+	// callback sees updates, not its stale closure value. See #5490.
 	const isCompleteRef = useRef( false );
 
 	const setHasLoadError = ( event ) => {
@@ -155,10 +154,8 @@ const PaymentProcessor = ( {
 					}
 
 					// BLIK is a special case which is not handled through the Stripe element.
-					// If the Payment Element is mid-(re)mount (e.g. after a cart
-					// update changed the amount mode), wait briefly for it to
-					// settle instead of failing the submission outright. Mirrors
-					// the classic-checkout re-mount race fix. See #5490.
+					// If the element is mid-(re)mount, wait briefly for it to
+					// settle before failing the submission. See #5490.
 					if ( ! ( isCompleteRef.current || isBlikSelected ) ) {
 						await waitForPaymentElementCompletion( isCompleteRef );
 					}

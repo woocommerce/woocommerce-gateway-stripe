@@ -1,19 +1,11 @@
 /**
  * Waits for the Stripe Payment Element to report that it is complete.
  *
- * On Blocks checkout the Payment Element can briefly re-mount — for example
- * when the cart amount crosses the setup/payment `mode` threshold or the
- * Optimized Checkout payment-method configuration changes — which resets its
- * completion state. A submission landing in that window would otherwise fail
- * immediately with "Your payment information is incomplete". This mirrors the
- * classic-checkout re-mount race fix by giving an in-flight (re)mount a short
- * window to settle before the submission is rejected.
- *
- * The completion state is read from a ref (not React state) so an already
- * in-flight `onPaymentSetup` callback observes live updates instead of the
- * value captured when its closure was created.
- *
- * See https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5490.
+ * A re-mount (e.g. a cart update flipping the amount `mode`) briefly resets
+ * the element's completion state; this gives an in-flight (re)mount a short
+ * window to settle before a submission is rejected. Completeness is read from
+ * a ref so an already in-flight `onPaymentSetup` callback sees live updates
+ * rather than its stale closure value. See #5490.
  *
  * @param {{current: boolean}} completeRef          Ref whose `.current` reflects Payment Element completeness.
  * @param {Object}             [options]            Optional tuning.

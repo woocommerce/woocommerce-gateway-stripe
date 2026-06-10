@@ -95,9 +95,8 @@ describe( 'CheckoutSessions hook tests', () => {
 			} );
 		} );
 
-		// #5490: when a completion ref is supplied, a submission landing while
-		// the Payment Element is mid-(re)mount waits for it to settle rather
-		// than failing immediately.
+		// #5490: with a completion ref, a submission landing mid-(re)mount
+		// waits for the element to settle instead of failing immediately.
 		it( 'waits for an in-flight re-mount, then succeeds once the element completes', async () => {
 			const hasLoadErrorRef = { current: false };
 			const completeRef = { current: false };

@@ -2,7 +2,7 @@
 
 xxxx-xx-xx - version 10.9.0
 * Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
-* Fix - Prevent classic and Blocks checkout from failing a submission that lands while the Stripe Payment Element is re-mounting after a checkout update (e.g. address or shipping change), which could submit an empty payment method or block the order behind an incomplete-payment error
+* Fix - Prevent classic and Blocks checkout submissions from failing while the Stripe Payment Element is re-mounting after a checkout update
 
 2026-06-08 - version 10.8.0
 * Fix - Add an order note and call action 'wc_stripe_unexpected_charge_detected' when a Stripe charge is captured for an order that was already paid via a different gateway

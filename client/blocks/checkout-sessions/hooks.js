@@ -17,7 +17,7 @@ import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-paymen
  * @param {Object}  hasLoadErrorRef               A ref object that indicates whether there was an error loading the checkout session, used to prevent further processing if the session failed to load.
  * @param {boolean} isPaymentElementComplete      A boolean that indicates whether the Stripe Payment Element is complete, used to validate that the user has entered all required payment information before allowing them to proceed with the payment.
  * @param {string}  selectedPaymentType           The Stripe payment method type the customer picked inside the Payment Element (e.g. 'ideal'), used so the server can set the order's payment method title to the actual method instead of the OC pseudo-method default.
- * @param {Object}  [isPaymentElementCompleteRef] Optional ref whose `.current` mirrors isPaymentElementComplete live. When supplied, a submission landing during an in-flight (re)mount waits briefly for the element to settle before failing. See #5490.
+ * @param {Object}  [isPaymentElementCompleteRef] Optional ref mirroring isPaymentElementComplete live, letting a submission during an in-flight (re)mount wait for the element to settle. See #5490.
  */
 export const usePaymentSetupHandler = (
 	onPaymentSetup,
@@ -71,10 +71,8 @@ export const usePaymentSetupHandler = (
 					}
 
 					// Read completion live from the ref when available, so a
-					// submission that lands while the Payment Element is
-					// mid-(re)mount waits briefly for it to settle instead of
-					// failing outright. Mirrors the classic re-mount race fix.
-					// See #5490.
+					// submission landing mid-(re)mount can wait for the
+					// element to settle. See #5490.
 					const isComplete = () =>
 						isPaymentElementCompleteRef
 							? isPaymentElementCompleteRef.current

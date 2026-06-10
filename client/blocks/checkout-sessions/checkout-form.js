@@ -63,8 +63,7 @@ const CheckoutForm = ( {
 	const [ selectedPaymentType, setSelectedPaymentType ] = useState( '' );
 	const hasLoadErrorRef = useRef( false );
 	// Live mirror of isPaymentElementComplete so an in-flight onPaymentSetup
-	// callback can observe completion updates instead of the stale value
-	// captured when its closure was created. See #5490.
+	// callback sees updates, not its stale closure value. See #5490.
 	const isCompleteRef = useRef( false );
 	const setHasLoadError = ( event ) => {
 		hasLoadErrorRef.current = true;

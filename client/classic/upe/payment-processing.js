@@ -57,16 +57,10 @@ let hasCheckoutCompleted = false;
 /**
  * Tracks an in-flight Payment Element (re)mount.
  *
- * WooCommerce destroys and re-renders the payment box on every
- * `updated_checkout` (shipping/coupon/address changes). The plugin re-mounts
- * the Stripe Payment Element asynchronously in response. If the customer
- * submits the order during that window, the element is detached and the
- * payment method ID never makes it into the form, so `wc-stripe-payment-method`
- * arrives empty server-side and the order fails.
- *
- * Submissions wait on this promise so they proceed only once the element has
- * finished (re)mounting. See
- * https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5490.
+ * WooCommerce re-renders the payment box on every `updated_checkout`, and the
+ * plugin re-mounts the element asynchronously. A submission landing in that
+ * window posts an empty `wc-stripe-payment-method` field and fails the order,
+ * so submissions wait on this promise. See #5490.
  *
  * @type {Promise<*>|null}
  */
@@ -74,18 +68,13 @@ let mountInProgress = null;
 
 /**
  * Registers a promise that resolves when an in-flight Payment Element
- * (re)mount completes. Submissions wait until every tracked re-mount settles.
- *
- * Composes with any in-flight tracker rather than replacing it: if two
- * `updated_checkout` cycles overlap, a later (faster) chain resolving first
- * must not release submission while the earlier re-mount is still detaching or
- * mounting the element — that would reintroduce the empty payment-method race.
+ * (re)mount completes. Composes with any existing tracker so overlapping
+ * `updated_checkout` cycles all settle before submission proceeds.
  *
  * @param {Promise<*>} promise The mount promise to track.
  */
 export function trackMountInProgress( promise ) {
-	// Swallow rejections here so awaiting it in processPayment never throws;
-	// mount errors are surfaced through their own error handling.
+	// Swallow rejections so awaiting this in processPayment never throws.
 	const trackedPromise = Promise.resolve( promise ).catch( () => {} );
 	mountInProgress = mountInProgress
 		? Promise.allSettled( [ mountInProgress, trackedPromise ] ).then(
@@ -783,15 +772,8 @@ async function mountStripePaymentElementImpl( api, domElement ) {
 
 /**
  * Ensures the Payment Element for the given method is fully mounted before the
- * checkout is submitted.
- *
- * WooCommerce re-renders the payment box on `updated_checkout` (e.g. after an
- * address change recalculates shipping), which tears down the Stripe Payment
- * Element and triggers an asynchronous re-mount. If the customer submits during
- * that window, the element isn't ready and the wc-stripe-payment-method field
- * posts empty, failing the payment. This awaits any in-flight (re)mount and, if
- * the element has been torn down but not yet re-mounted, mounts it before we
- * proceed. See STRIPE-1186.
+ * checkout is submitted: awaits any in-flight (re)mount and, if the element was
+ * torn down but not yet re-mounted, mounts it. See STRIPE-1186.
  *
  * @param {Object} api               The API object.
  * @param {string} paymentMethodType The payment method type.
@@ -803,10 +785,8 @@ export async function ensureUPEElementMounted( api, paymentMethodType ) {
 		return;
 	}
 
-	// A (re)mount — or the broader updated_checkout chain that precedes it, e.g.
-	// the Adaptive Pricing checkout session update — may be in flight. Wait for
-	// it before inspecting the DOM: the payment box can be mid-swap (torn down,
-	// not yet re-rendered) right now, so querying first would miss the element.
+	// Wait for any in-flight updated_checkout chain before inspecting the
+	// DOM — the payment box may be mid-swap right now.
 	if ( mountInProgress ) {
 		await mountInProgress;
 	}
@@ -815,14 +795,12 @@ export async function ensureUPEElementMounted( api, paymentMethodType ) {
 		`.wc-stripe-upe-element[data-payment-method-type="${ paymentMethodType }"]`
 	);
 
-	// No element on the page (e.g. a 100% discount coupon removed the payment
-	// box). Nothing to mount.
+	// No element on the page (e.g. a 100% discount coupon removed the payment box).
 	if ( ! domElement ) {
 		return;
 	}
 
-	// The element was torn down (its iframe removed) but a re-mount hasn't been
-	// kicked off yet. Mount it now and wait, so we don't submit an empty field.
+	// Torn down but no re-mount kicked off yet — mount it now.
 	if ( domElement.children.length === 0 ) {
 		await mountStripePaymentElement( api, domElement );
 	}
@@ -946,17 +924,9 @@ export const processPayment = (
 
 	( async () => {
 		try {
-			// Wait for the Payment Element to be ready before reading its
-			// Elements instance. WooCommerce re-renders the payment box on
-			// `updated_checkout` (e.g. an address change), tearing down and
-			// asynchronously re-mounting the element; a submission landing in
-			// that window would otherwise post an empty wc-stripe-payment-method
-			// field and fail the order. ensureUPEElementMounted waits for any
-			// in-flight (re)mount (and the updated_checkout chain that precedes
-			// it) and actively re-mounts an element that was torn down but not
-			// yet re-mounted. The form is already blocked above, so this wait is
-			// covered by the spinner.
-			// See https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5490.
+			// Wait out any in-flight re-mount before reading the Elements
+			// instance (see #5490). The form is already blocked above, so
+			// this wait is covered by the spinner.
 			await ensureUPEElementMounted( api, paymentMethodType );
 
 			const { elements, hasLoadError } =
