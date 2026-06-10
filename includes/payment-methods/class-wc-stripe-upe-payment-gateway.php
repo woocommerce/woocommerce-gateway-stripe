@@ -1454,15 +1454,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( $save_payment_method && $resolved_payment_method && $resolved_payment_method->is_reusable() ) {
 			$order_helper->update_should_save_stripe_payment_method( $order, true );
 
-			// Redirect APMs saved as SEPA tokens only get a reusable mandate when the session requests
-			// setup_future_usage; the save checkbox alone does not. Set it before the client confirms.
+			// Payment methods that are saved as a different payment method need to have
+			// `setup_future_usage` specified to request that the payment method be saved.
 			if ( $resolved_payment_method->get_id() !== $resolved_payment_method->get_retrievable_type() ) {
 				$this->set_setup_future_usage_on_checkout_session( $checkout_session_id, $resolved_payment_method->get_id() );
 			}
 		}
 
-		// Eagerly set the title from the customer's selection so the order-received page is correct even
-		// if the checkout.session.completed webhook is delayed; the webhook reaffirms it later.
 		$title_payment_type = $resolved_payment_type;
 
 		if ( isset( $this->payment_methods[ $title_payment_type ] ) ) {
@@ -3697,15 +3695,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Resolves the PaymentMethod to save as a reusable token. Redirect-based APMs saved as SEPA
-	 * (Bancontact, iDEAL, Sofort) are returned as their own type; their reusable mandate lives on the
-	 * charge as `payment_method_details.<type>.generated_sepa_debit`.
+	 * Resolves the PaymentMethod that should be saved as a token.
 	 *
-	 * @param stdClass           $payment_method_object The PaymentMethod used for the payment.
+	 * Payment methods that are saved as secondary types need special logic to get the saved payment
+	 * method details. This primarily occurs for Bancontact and iDEAL/Wero, which are saved as SEPA tokens.
+	 *
+	 * @param stdClass           $payment_method_object The PaymentMethod object used for the payment.
 	 * @param object|string|null $charge                The latest charge from the intent, if available.
 	 *
-	 * @return stdClass|null The generated SEPA debit PM when a conversion is required, the original
-	 *                       object when none is needed, or null when no reusable mandate was generated.
+	 * @return stdClass|null The payment method to save, or null. The payment method may need to be
+	 *                       resolved for payment methods that have been converted to SEPA or similar.
 	 */
 	public function get_reusable_payment_method_for_saving( stdClass $payment_method_object, $charge ) {
 		$type     = $payment_method_object->type ?? '';
@@ -3716,14 +3715,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $payment_method_object;
 		}
 
-		// Locate the generated SEPA debit PM on the charge; absent it, there is nothing to save.
-		$generated_payment_method_id = is_object( $charge ) ? ( $charge->payment_method_details->{$type}->generated_sepa_debit ?? null ) : null;
+		// Only SEPA-tokenized methods expose their reusable mandate as `generated_sepa_debit` on the charge.
+		$generated_payment_method_id = null;
+		if ( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $instance->get_retrievable_type() ) {
+			$generated_payment_method_id = is_object( $charge ) ? ( $charge->payment_method_details->{$type}->generated_sepa_debit ?? null ) : null;
+		}
+
 		if ( empty( $generated_payment_method_id ) ) {
 			return null;
 		}
 
 		$generated_payment_method = WC_Stripe_API::retrieve( 'payment_methods/' . $generated_payment_method_id );
-		if ( is_wp_error( $generated_payment_method ) || ! empty( $generated_payment_method->error ) || empty( $generated_payment_method ) ) {
+		if ( empty( $generated_payment_method ) || is_wp_error( $generated_payment_method ) || ! $generated_payment_method instanceof stdClass || ! empty( $generated_payment_method->error ) ) {
 			return null;
 		}
 

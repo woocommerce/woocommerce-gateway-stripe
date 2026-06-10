@@ -1821,11 +1821,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				$payment_method_object = is_object( $intent->payment_method ) ? $intent->payment_method : WC_Stripe_API::retrieve( 'payment_methods/' . $payment_method_id );
 				if ( $upe_gateway instanceof WC_Stripe_UPE_Payment_Gateway && ! is_wp_error( $payment_method_object ) && empty( $payment_method_object->error ) && ! empty( $payment_method_object ) ) {
-					// Redirect APMs saved as SEPA tokens need converting to their generated SEPA debit PM;
-					// null means no reusable mandate was generated, so there is nothing to save.
+					// Get the payment method details that should be saved. That may be different from the
+					// original payment method, e.g. for Bancontact and iDEAL/Wero, which are saved as SEPA.
 					$payment_method_to_save = $upe_gateway->get_reusable_payment_method_for_saving( $payment_method_object, $charge );
 
-					if ( $payment_method_to_save instanceof stdClass && ! empty( $payment_method_to_save->type ) ) {
+					if ( is_object( $payment_method_to_save ) && ! empty( $payment_method_to_save->type ) ) {
 						$upe_gateway->handle_saving_payment_method( $order, $payment_method_to_save, $payment_method_to_save->type );
 					}
 
