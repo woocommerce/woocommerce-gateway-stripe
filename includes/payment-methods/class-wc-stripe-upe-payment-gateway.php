@@ -3683,13 +3683,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Save the selected payment method information to the order and as a payment token for the user.
 	 *
-	 * @param WC_Order $order                 The WC order for which we're saving the payment method.
-	 * @param object   $payment_method_object The payment method object retrieved from Stripe.
-	 * @param string   $payment_method_type   The payment method type, like `card`, `sepa_debit`, etc.
+	 * @param WC_Order $order                  The WC order for which we're saving the payment method.
+	 * @param stdClass $payment_method_object  The payment method object retrieved from Stripe.
+	 * @param string   $payment_method_type    The payment method type, like `card`, `sepa_debit`, etc.
 	 *
 	 * @return void
 	 */
-	public function handle_saving_payment_method( WC_Order $order, object $payment_method_object, string $payment_method_type ): void {
+	public function handle_saving_payment_method( WC_Order $order, stdClass $payment_method_object, string $payment_method_type ): void {
 		$user     = $this->get_user_from_order( $order );
 		$customer = new WC_Stripe_Customer( $user->ID );
 		$customer->clear_cache();
@@ -3747,7 +3747,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param stdClass           $payment_method_object The PaymentMethod object used for the payment.
 	 * @param object|string|null $charge                The latest charge from the intent, if available.
 	 *
-	 * @return object|null The payment method to save, or null. The payment method may need to be
+	 * @return stdClass|null The payment method to save, or null. The payment method may need to be
 	 *                       resolved for payment methods that have been converted to SEPA or similar.
 	 */
 	public function get_reusable_payment_method_for_saving( stdClass $payment_method_object, $charge ) {
