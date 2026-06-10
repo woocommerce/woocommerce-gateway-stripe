@@ -3778,6 +3778,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return null;
 		}
 
+		/**
+		 * Decoded Stripe API JSON objects are always stdClass.
+		 *
+		 * @var stdClass $generated_payment_method
+		 */
 		return $generated_payment_method;
 	}
 
