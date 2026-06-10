@@ -3747,7 +3747,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param stdClass           $payment_method_object The PaymentMethod object used for the payment.
 	 * @param object|string|null $charge                The latest charge from the intent, if available.
 	 *
-	 * @return stdClass|null The payment method to save, or null. The payment method may need to be
+	 * @return object|null The payment method to save, or null. The payment method may need to be
 	 *                       resolved for payment methods that have been converted to SEPA or similar.
 	 */
 	public function get_reusable_payment_method_for_saving( stdClass $payment_method_object, $charge ) {
