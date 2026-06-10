@@ -3751,7 +3751,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *                       resolved for payment methods that have been converted to SEPA or similar.
 	 */
 	public function get_reusable_payment_method_for_saving( stdClass $payment_method_object, $charge ) {
-		$type     = $payment_method_object->type ?? '';
+		$type = $payment_method_object->type ?? '';
 		if ( '' === $type ) {
 			return $payment_method_object;
 		}
@@ -3774,7 +3774,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		$generated_payment_method = WC_Stripe_API::retrieve( 'payment_methods/' . $generated_payment_method_id );
-		if ( empty( $generated_payment_method ) || is_wp_error( $generated_payment_method ) || ! $generated_payment_method instanceof stdClass || ! empty( $generated_payment_method->error ) ) {
+		if ( empty( $generated_payment_method ) || is_wp_error( $generated_payment_method ) || ! is_object( $generated_payment_method ) || ! empty( $generated_payment_method->error ) ) {
 			return null;
 		}
 
