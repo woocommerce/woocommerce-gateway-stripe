@@ -146,10 +146,7 @@ describe( 'handleDisplayOfSavingCheckbox', () => {
 	} );
 
 	describe( 'Checkout Sessions flow (methods saved as a different type)', () => {
-		/**
-		 * Config matching the PHP shape when SEPA-converting methods are
-		 * enabled: savable per the map, but listed as saved-as-different-type.
-		 */
+		// PHP-provided shape: savable per the map, listed as saved-as-different-type.
 		const makeCheckoutSessionConfig = () => ( {
 			card: {
 				showSaveOptionByMethod: {

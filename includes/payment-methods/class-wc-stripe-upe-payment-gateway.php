@@ -931,10 +931,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// For OC, compute per-method showSaveOption so the frontend can
 		// dynamically show/hide the save checkbox as the selected method
 		// changes inside the Payment Element. Methods saved as a different
-		// type (e.g. Bancontact/iDEAL/Sofort → SEPA) are also listed: the
-		// Checkout Sessions (Adaptive Pricing) flow cannot request
-		// `setup_future_usage` for them, so the frontend hides the save
-		// checkbox in that flow only.
+		// type (Bancontact → SEPA) are listed separately, as the Checkout
+		// Sessions flow cannot save them.
 		$show_save_option_by_method      = [];
 		$saved_as_different_type_methods = [];
 		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {

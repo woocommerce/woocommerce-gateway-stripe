@@ -638,9 +638,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * get_enabled_payment_method_config() must list reusable methods saved as a
-	 * different Stripe type (Bancontact/iDEAL → SEPA) under the OC entry's
-	 * savedAsDifferentTypeMethods, so the frontend can hide the save checkbox in
-	 * the Checkout Sessions flow, where Stripe cannot mint the SEPA mandate.
+	 * different Stripe type (Bancontact/iDEAL → SEPA) in savedAsDifferentTypeMethods.
 	 *
 	 * @dataProvider provide_enabled_payment_method_config_saved_as_different_type
 	 *

@@ -673,9 +673,7 @@ export async function mountStripePaymentElement( api, domElement ) {
 			// If the OC is enabled, we need to handle the display of the saving checkbox.
 			handleDisplayOfPaymentInstructions( value.type, 'classic' );
 
-			// When paying via Adaptive Pricing / Checkout Sessions, methods
-			// saved as a different type (Bancontact/iDEAL/Sofort → SEPA)
-			// cannot be saved, so the checkbox is hidden for them too.
+			// In the Checkout Sessions flow, methods saved as a different type (Bancontact → SEPA) cannot be saved.
 			const isCheckoutSessionFlow =
 				!! gatewayUPEComponents[ paymentMethodType ]?.checkoutSessionId;
 

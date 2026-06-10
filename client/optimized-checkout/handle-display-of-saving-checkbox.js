@@ -52,12 +52,8 @@ const shouldHideSaveCheckboxFromConfig = (
 		return true;
 	}
 
-	// Methods saved as a different type (e.g. Bancontact → SEPA) cannot be
-	// saved through Checkout Sessions: Stripe provides no way to request
-	// `setup_future_usage` for them in that flow, so no reusable method is
-	// ever generated. Hide the checkbox rather than promise a save that
-	// silently never happens. The deferred-intent flow saves them fine, so
-	// this only applies when the Checkout Sessions flow is active.
+	// Checkout Sessions cannot request `setup_future_usage` for methods saved
+	// as a different type (Bancontact → SEPA); the deferred-intent flow can.
 	if (
 		isCheckoutSessionFlow &&
 		paymentMethodsConfig?.card?.savedAsDifferentTypeMethods?.includes(
