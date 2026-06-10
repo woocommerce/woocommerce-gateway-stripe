@@ -74,9 +74,9 @@ class WC_REST_Stripe_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 			$query['starting_after'] = $starting_after;
 		}
 
-		$status = $request->get_param( 'status' );
-		if ( ! empty( $status ) ) {
-			$query['status'] = $status;
+		$ending_before = $request->get_param( 'ending_before' );
+		if ( ! empty( $ending_before ) ) {
+			$query['ending_before'] = $ending_before;
 		}
 
 		try {
