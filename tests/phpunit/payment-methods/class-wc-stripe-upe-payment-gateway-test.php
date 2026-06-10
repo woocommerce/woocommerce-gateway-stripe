@@ -1939,6 +1939,132 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * When saving a redirect-based APM that is tokenized as SEPA (Bancontact, iDEAL, Sofort) through the
+	 * Adaptive Pricing / Checkout Sessions flow, the gateway must ask Stripe for a reusable SEPA mandate by
+	 * setting payment_method_options.<method>.setup_future_usage = off_session on the session before the
+	 * client confirms it, and must persist the save-payment-method flag on the order.
+	 *
+	 * Part of STRIPE-1205.
+	 */
+	public function test_process_payment_with_checkout_session_requests_setup_future_usage_for_redirect_apm() {
+		$session_id = 'cs_test_sfu_bancontact';
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+		// Optimized Checkout reports 'card' as the gateway type; the real method is sent separately.
+		$_POST['wc_stripe_selected_upe_payment_type'] = WC_Stripe_Payment_Methods::BANCONTACT;
+		$_POST['wc-stripe-new-payment-method']        = 'true';
+
+		// Saved cards must be enabled for the save-payment-method checkbox to take effect.
+		$this->mock_gateway->saved_cards = true;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$captured_body   = null;
+		$pre_http_filter = function ( $return_value, $parsed_args, $url ) use ( $session_id, &$captured_body ) {
+			if ( WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $session_id !== $url ) {
+				return $return_value;
+			}
+			$captured_body = $parsed_args['body'];
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( [ 'id' => $session_id ] ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		try {
+			$result = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_filter );
+			unset(
+				$_POST['wc_stripe_checkout_session_id'],
+				$_POST['payment_method'],
+				$_POST['wc-stripe-payment-method'],
+				$_POST['wc_stripe_selected_upe_payment_type'],
+				$_POST['wc-stripe-new-payment-method']
+			);
+		}
+
+		$this->assertSame( 'success', $result['result'] );
+
+		// The session must have been updated with setup_future_usage for the selected redirect APM.
+		$this->assertIsArray( $captured_body, 'Expected the checkout session to be updated.' );
+		$this->assertSame(
+			'off_session',
+			$captured_body['payment_method_options'][ WC_Stripe_Payment_Methods::BANCONTACT ]['setup_future_usage'] ?? null
+		);
+
+		// The save flag must be persisted so the webhook can save the generated SEPA mandate.
+		$this->assertTrue(
+			WC_Stripe_Order_Helper::get_instance()->get_should_save_stripe_payment_method( wc_get_order( $order->get_id() ) )
+		);
+	}
+
+	/**
+	 * The setup_future_usage session update must NOT run for methods saved under their own type (e.g.
+	 * card), since they do not need a generated SEPA mandate.
+	 *
+	 * Part of STRIPE-1205.
+	 */
+	public function test_process_payment_with_checkout_session_skips_setup_future_usage_for_card() {
+		$session_id = 'cs_test_sfu_card';
+
+		$_POST['wc_stripe_checkout_session_id']       = $session_id;
+		$_POST['payment_method']                      = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']            = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc_stripe_selected_upe_payment_type'] = WC_Stripe_Payment_Methods::CARD;
+		$_POST['wc-stripe-new-payment-method']        = 'true';
+
+		$this->mock_gateway->saved_cards = true;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$session_update_called = false;
+		$pre_http_filter       = function ( $return_value, $parsed_args, $url ) use ( $session_id, &$session_update_called ) {
+			if ( WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $session_id === $url ) {
+				$session_update_called = true;
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		try {
+			$result = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_filter );
+			unset(
+				$_POST['wc_stripe_checkout_session_id'],
+				$_POST['payment_method'],
+				$_POST['wc-stripe-payment-method'],
+				$_POST['wc_stripe_selected_upe_payment_type'],
+				$_POST['wc-stripe-new-payment-method']
+			);
+		}
+
+		$this->assertSame( 'success', $result['result'] );
+		$this->assertFalse( $session_update_called, 'Card payments must not trigger a setup_future_usage session update.' );
+
+		// The save flag is still persisted for card (reusable, saved under its own type).
+		$this->assertTrue(
+			WC_Stripe_Order_Helper::get_instance()->get_should_save_stripe_payment_method( wc_get_order( $order->get_id() ) )
+		);
+	}
+
+	/**
 	 * Test the success short-circuit: an order already in `processing` status must
 	 * not trigger any Stripe API call and must redirect to the clean order-received
 	 * URL (stripping the disambiguation query args from the address bar).

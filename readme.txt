@@ -159,5 +159,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
 * Tweak - Consolidate the default payment intent metadata fields into a shared method so they stay consistent across payment flows
 * Fix - Prevent a fatal error when saving Bancontact, iDEAL or Sofort payments as SEPA tokens through the Adaptive Pricing checkout, so the order completes normally
+* Fix - Generate and save a reusable SEPA token when a shopper opts to save a Bancontact, iDEAL or Sofort payment through the Adaptive Pricing checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
