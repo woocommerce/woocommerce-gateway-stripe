@@ -597,4 +597,67 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		// Run the update
 		$this->account->maybe_reconfigure_webhooks_on_update();
 	}
+
+	/**
+	 * Tests that maybe_decommission_webhook() only deletes the previously configured
+	 * webhook when the secret key that created it is being removed or replaced.
+	 *
+	 * @param mixed  $webhook_data      The previously stored webhook data.
+	 * @param string $new_secret_key    The secret key about to be saved.
+	 * @param bool   $expected_return   Whether a webhook should be decommissioned.
+	 * @param array  $expected_requests The Stripe API requests expected to be made.
+	 *
+	 * @dataProvider provide_maybe_decommission_webhook
+	 */
+	public function test_maybe_decommission_webhook( $webhook_data, $new_secret_key, $expected_return, $expected_requests ) {
+		WC_Helper_Stripe_Api::$expected_request_call_params = $expected_requests;
+
+		$result = $this->account->maybe_decommission_webhook( $webhook_data, $new_secret_key );
+
+		$this->assertSame( $expected_return, $result );
+		$this->assertEmpty(
+			WC_Helper_Stripe_Api::$expected_request_call_params,
+			'All expected webhook requests should have been made.'
+		);
+	}
+
+	/**
+	 * Data provider for test_maybe_decommission_webhook().
+	 *
+	 * @return array
+	 */
+	public function provide_maybe_decommission_webhook() {
+		$webhook = [
+			'id'     => 'wh_old',
+			'url'    => 'https://example.com',
+			'secret' => 'rk_live_old',
+		];
+
+		return [
+			'changed secret key decommissions the old webhook'              => [
+				$webhook,
+				'rk_live_new',
+				true,
+				[ [ [], 'webhook_endpoints/wh_old', 'DELETE' ] ],
+			],
+			'removed secret key (disconnect) decommissions the old webhook' => [
+				$webhook,
+				'',
+				true,
+				[ [ [], 'webhook_endpoints/wh_old', 'DELETE' ] ],
+			],
+			'unchanged secret key is left untouched'                        => [
+				$webhook,
+				'rk_live_old',
+				false,
+				[],
+			],
+			'missing/invalid webhook data is a no-op'                       => [
+				'',
+				'rk_live_new',
+				false,
+				[],
+			],
+		];
+	}
 }
