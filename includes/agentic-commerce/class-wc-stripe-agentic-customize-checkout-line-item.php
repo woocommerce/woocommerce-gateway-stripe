@@ -83,4 +83,14 @@ class WC_Stripe_Agentic_Customize_Checkout_Line_Item {
 	public function get_name(): string {
 		return (string) ( $this->item->name ?? '' );
 	}
+
+	/**
+	 * Returns the unit amount in the smallest currency unit, or null when absent.
+	 *
+	 * @since 10.9.0
+	 * @return int|null
+	 */
+	public function get_unit_amount(): ?int {
+		return isset( $this->item->unit_amount ) ? (int) $this->item->unit_amount : null;
+	}
 }

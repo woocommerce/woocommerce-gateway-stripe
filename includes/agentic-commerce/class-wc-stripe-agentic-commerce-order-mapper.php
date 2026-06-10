@@ -440,22 +440,11 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 		$address = $session->get_shipping_address() ?? $session->get_billing_address();
 
-		// Populate contents with resolved products for content-dependent
-		// shipping methods (table rate, weight-based). See STRIPE-986.
-		$package = [
-			'contents'        => [],
-			'contents_cost'   => 0,
-			'applied_coupons' => [],
-			'user'            => [ 'ID' => 0 ],
-			'destination'     => [
-				'country'  => $address->get_country() ?? '',
-				'state'    => $address->get_state() ?? '',
-				'postcode' => $address->get_postal_code() ?? '',
-				'city'     => $address->get_city() ?? '',
-				'address'  => '',
-			],
-			'cart_subtotal'   => 0,
-		];
+		$package = WC_Stripe_Agentic_Shipping_Package_Builder::build_package(
+			WC_Stripe_Agentic_Shipping_Package_Builder::build_contents_from_order( $order ),
+			$address,
+			$order->get_customer_id()
+		);
 
 		$wc_shipping = WC()->shipping();
 

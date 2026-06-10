@@ -41,6 +41,11 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 
 		$this->save_wc_options( 'woocommerce_ship_to_countries', 'woocommerce_calc_taxes' );
 
+		// WC_Helper_Order (used elsewhere in the suite) enables WC's legacy
+		// non-zone flat rate, which only produces a rate for packages with
+		// contents. Remove it so single-rate assertions stay deterministic.
+		\WC_Helper_Shipping::delete_simple_flat_rate();
+
 		$this->reset_shipping_cache();
 	}
 
@@ -116,6 +121,181 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 		$this->assertIsInt( $fixed_amount['amount'] );
 		$this->assertGreaterThan( 0, $fixed_amount['amount'] );
 		$this->assertEquals( 'usd', $fixed_amount['currency'] );
+	}
+
+	/**
+	 * Test that a quantity-based flat rate cost expression ('2 * [qty]') sees the
+	 * package contents quantities, proving contents are populated from the event.
+	 */
+	public function test_qty_cost_expression_uses_package_contents() {
+		$product = \WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => '10.00',
+				'price'         => '10.00',
+				'sku'           => 'SHIPCALC-QTY-' . uniqid(),
+			]
+		);
+
+		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', '2 * [qty]' );
+
+		$event = $this->build_event_from_raw_items(
+			[
+				[
+					'id'          => 'li_qty',
+					'sku_id'      => (string) $product->get_sku(),
+					'quantity'    => 3,
+					'unit_amount' => 1000,
+				],
+			]
+		);
+
+		$result = $this->calculator->calculate( $event, 'usd' );
+
+		$this->assertSame( 600, $result['shipping_options'][0]['shipping_rate_data']['fixed_amount']['amount'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test that a '[cost]' expression resolves to the package contents_cost
+	 * derived from the event's unit_amount × quantity.
+	 */
+	public function test_cost_expression_uses_contents_cost_from_unit_amount() {
+		$product = \WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => '99.00',
+				'price'         => '99.00',
+				'sku'           => 'SHIPCALC-COST-' . uniqid(),
+			]
+		);
+
+		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', '[cost]' );
+
+		// 12.34 × 2 = 24.68 contents_cost; catalog price (99.00) must be ignored.
+		$event = $this->build_event_from_raw_items(
+			[
+				[
+					'id'          => 'li_cost',
+					'sku_id'      => (string) $product->get_sku(),
+					'quantity'    => 2,
+					'unit_amount' => 1234,
+				],
+			]
+		);
+
+		$result = $this->calculator->calculate( $event, 'usd' );
+
+		$this->assertSame( 2468, $result['shipping_options'][0]['shipping_rate_data']['fixed_amount']['amount'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test that line items without unit_amount fall back to the catalog price
+	 * when computing contents_cost.
+	 */
+	public function test_contents_cost_falls_back_to_catalog_price_without_unit_amount() {
+		$product = \WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => '10.00',
+				'price'         => '10.00',
+				'sku'           => 'SHIPCALC-FALLBACK-' . uniqid(),
+			]
+		);
+
+		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', '[cost]' );
+
+		$event = $this->build_event_from_raw_items(
+			[
+				[
+					'id'       => 'li_fallback',
+					'sku_id'   => (string) $product->get_sku(),
+					'quantity' => 2,
+				],
+			]
+		);
+
+		$result = $this->calculator->calculate( $event, 'usd' );
+
+		$this->assertSame( 2000, $result['shipping_options'][0]['shipping_rate_data']['fixed_amount']['amount'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test that virtual products are excluded from the package contents, so
+	 * quantity-based expressions only count shippable items.
+	 */
+	public function test_virtual_products_excluded_from_package_contents() {
+		$shippable = \WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => '10.00',
+				'price'         => '10.00',
+				'sku'           => 'SHIPCALC-PHYS-' . uniqid(),
+			]
+		);
+		$virtual   = \WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => '5.00',
+				'price'         => '5.00',
+				'sku'           => 'SHIPCALC-VIRT-' . uniqid(),
+				'virtual'       => true,
+			]
+		);
+
+		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', '[qty]' );
+
+		$event = $this->build_event_from_raw_items(
+			[
+				[
+					'id'          => 'li_phys',
+					'sku_id'      => (string) $shippable->get_sku(),
+					'quantity'    => 2,
+					'unit_amount' => 1000,
+				],
+				[
+					'id'          => 'li_virt',
+					'sku_id'      => (string) $virtual->get_sku(),
+					'quantity'    => 5,
+					'unit_amount' => 500,
+				],
+			]
+		);
+
+		$result = $this->calculator->calculate( $event, 'usd' );
+
+		$this->assertSame( 200, $result['shipping_options'][0]['shipping_rate_data']['fixed_amount']['amount'] );
+
+		$shippable->delete( true );
+		$virtual->delete( true );
+	}
+
+	/**
+	 * Test that an unresolvable sku_id makes the calculator throw instead of
+	 * silently computing rates from an incomplete package.
+	 */
+	public function test_throws_when_line_item_product_cannot_be_resolved() {
+		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', 5.00 );
+
+		$event = $this->build_event_from_raw_items(
+			[
+				[
+					'id'       => 'li_missing',
+					'sku_id'   => 'NON-EXISTENT-SKU-' . uniqid(),
+					'quantity' => 1,
+				],
+			]
+		);
+
+		$this->expectException( \Exception::class );
+		$this->expectExceptionMessage( 'product not found' );
+
+		$this->calculator->calculate( $event, 'usd' );
 	}
 
 	/**
