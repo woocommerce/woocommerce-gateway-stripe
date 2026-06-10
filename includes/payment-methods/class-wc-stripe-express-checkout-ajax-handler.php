@@ -41,15 +41,99 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		add_action( 'wc_ajax_wc_stripe_clear_cart', [ $this, 'ajax_clear_cart' ] );
 		add_action( 'wc_ajax_wc_stripe_log_errors', [ $this, 'ajax_log_errors' ] );
 		add_filter( 'woocommerce_get_country_locale', [ $this, 'modify_country_locale_for_express_checkout' ], 20 );
+		add_filter( 'rest_pre_dispatch', [ $this, 'tokenized_cart_store_api_address_normalization' ], 10, 3 );
+	}
+
+	/**
+	 * Normalizes redacted Google Pay / Apple Pay address data on express checkout
+	 * Store API requests so WooCommerce's validation doesn't reject it.
+	 *
+	 * Wallets send a long-form state and (on shipping-address change) a truncated
+	 * postcode. We normalize the state, and on the `update-customer` route also
+	 * normalize the postcode and relax its validation so shipping zones resolve.
+	 * `select-shipping-rate` needs neither: the location is already set by then.
+	 *
+	 * @param mixed                                  $response Returned unchanged.
+	 * @param \WP_REST_Server                        $server   Server instance.
+	 * @param \WP_REST_Request<array<string, mixed>> $request  The current request.
+	 *
+	 * @return mixed
+	 */
+	public function tokenized_cart_store_api_address_normalization( $response, $server, $request ) {
+		// Only act on verified express checkout Store API requests (header + nonce).
+		if ( ! $this->express_checkout_helper->is_express_checkout_context() ) {
+			return $response;
+		}
+
+		$is_update_customer_route = '/wc/store/v1/cart/update-customer' === $request->get_route();
+		if ( $is_update_customer_route ) {
+			add_filter( 'woocommerce_validate_postcode', [ $this, 'maybe_skip_postcode_validation' ], 10, 3 );
+		}
+
+		// Gather addresses so states (incl. the Apple Pay Hong Kong edge case) normalize together.
+		$data = [];
+		foreach ( [ 'billing_address', 'shipping_address' ] as $key ) {
+			if ( isset( $request[ $key ] ) && is_array( $request[ $key ] ) ) {
+				$data[ $key ] = $request[ $key ];
+			}
+		}
+
+		if ( empty( $data ) ) {
+			return $response;
+		}
+
+		$data = $this->express_checkout_helper->normalize_state( $data );
+
+		foreach ( $data as $key => $address ) {
+			// Pad redacted UK/CA postcodes on update-customer so shipping zones still match.
+			if ( $is_update_customer_route && ! empty( $address['country'] ) && ! empty( $address['postcode'] ) ) {
+				$address['postcode'] = $this->express_checkout_helper->get_normalized_postal_code(
+					$address['postcode'],
+					$address['country']
+				);
+			}
+
+			$request->set_param( $key, $address );
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Lets redacted UK/CA wallet postcodes bypass postcode validation on the Store API.
+	 *
+	 * They're padded with `0` (not `*`) because WC_Validation::is_postcode() rejects
+	 * non-alphanumerics before this filter runs.
+	 *
+	 * @param bool   $valid    Whether the postcode is valid.
+	 * @param string $postcode The postcode in question.
+	 * @param string $country  The country for the postcode.
+	 *
+	 * @return bool
+	 */
+	public function maybe_skip_postcode_validation( $valid, $postcode, $country ) {
+		if ( ! in_array( $country, [ WC_Stripe_Country_Code::UNITED_KINGDOM, WC_Stripe_Country_Code::CANADA ], true ) ) {
+			return $valid;
+		}
+
+		// Padded redacted postcodes end in `0`. Loose, but real UK/CA postcodes ending in `0` are valid anyway.
+		if ( '0' === substr( (string) $postcode, -1 ) ) {
+			return true;
+		}
+
+		return $valid;
 	}
 
 	/**
 	 * Get cart details.
 	 *
+	 * @deprecated 10.9.0 Cart details are now fetched via Store API.
+	 *
 	 * @return void
 	 */
 	public function ajax_get_cart_details() {
 		check_ajax_referer( 'wc-stripe-get-cart-details', 'security' );
+		_deprecated_function( __METHOD__, '10.9.0' );
 
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
@@ -198,6 +282,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	/**
 	 * Get shipping options.
 	 *
+	 * @deprecated 10.9.0 Shipping options are now fetched via Store API.
+	 *
 	 * @see WC_Cart::get_shipping_packages().
 	 * @see WC_Shipping::calculate_shipping().
 	 * @see WC_Shipping::get_packages().
@@ -206,6 +292,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	 */
 	public function ajax_get_shipping_options() {
 		check_ajax_referer( 'wc-stripe-express-checkout-shipping', 'security' );
+		_deprecated_function( __METHOD__, '10.9.0' );
 
 		$shipping_address          = filter_input_array(
 			INPUT_POST,
@@ -228,10 +315,13 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	/**
 	 * Update shipping method.
 	 *
+	 * @deprecated 10.9.0 Shipping method updates now use Store API.
+	 *
 	 * @return void
 	 */
 	public function ajax_update_shipping_method() {
 		check_ajax_referer( 'wc-stripe-update-shipping-method', 'security' );
+		_deprecated_function( __METHOD__, '10.9.0' );
 
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
