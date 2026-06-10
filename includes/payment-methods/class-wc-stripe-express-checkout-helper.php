@@ -386,6 +386,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			'needs_shipping'          => 'no',
 			'needs_payer_phone'       => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
 			'default_shipping_option' => $this->get_default_shipping_option(),
+			'display_prices_with_tax' => 'incl' === get_option( 'woocommerce_tax_display_cart' ),
 		];
 
 		if ( ! is_null( WC()->cart ) && WC()->cart->needs_shipping() ) {
@@ -421,39 +422,22 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return string The normalized postal code.
 	 */
 	public function get_normalized_postal_code( $postcode, $country ) {
-		/**
-		 * Currently, Apple Pay truncates the UK and Canadian postal codes to the first 4 and 3 characters respectively
-		 * Apple Pay also truncates Canadian postal codes to the first 4 characters.
-		 * when passing it back from the shippingcontactselected object. This causes WC to invalidate
-		 * the postal code and not calculate shipping zones correctly.
-		 */
+		// Apple Pay truncates UK/CA postcodes (e.g. `E2L` for `E2L 3C4`), which fails WC validation
+		// and breaks shipping zones. Pad with `0` so it stays valid-looking; `*` would be rejected by
+		// WC_Validation::is_postcode() before the `woocommerce_validate_postcode` bypass can run.
 		if ( WC_Stripe_Country_Code::UNITED_KINGDOM === $country ) {
-			// UK Postcodes returned from Apple Pay can be alpha numeric 2 chars, 3 chars, or 4 chars long will optionally have a trailing space,
-			// depending on whether the customer put a space in their postcode between the outcode and incode part.
-			// See https://assets.publishing.service.gov.uk/media/5a7b997d40f0b62826a049e0/ILRSpecification2013_14Appendix_C_Dec2012_v1.pdf for more details.
-
-			// Here is a table showing the functionality by example:
-			//  Original  | Apple Pay |  Normalized
-			// 'LN10 1AA' |  'LN10 '  |  'LN10 ***'
-			// 'LN101AA'  |  'LN10'   |  'LN10 ***'
-			// 'W10 2AA'  |  'W10 '   |  'W10 ***'
-			// 'W102AA'   |  'W10'    |  'W10 ***'
-			// 'N2 3AA    |  'N2 '    |  'N2 ***'
-			// 'N23AA     |  'N2'     |  'N2 ***'
-
 			$spaceless_postcode = preg_replace( '/\s+/', '', $postcode );
 
 			if ( strlen( $spaceless_postcode ) < 5 ) {
-				// Always reintroduce the space so that Shipping Zones regex like 'N1 *' work to match N1 postcodes like N1 1AA, but don't match N10 postcodes like N10 1AA
-				return $spaceless_postcode . ' ***';
+				// Keep the space so Shipping Zone patterns like 'N1 *' match N1 1AA but not N10 1AA.
+				return $spaceless_postcode . ' 000';
 			}
 
-			return $postcode; // 5 or more chars means it probably wasn't redacted and will likely validate unchanged.
+			return $postcode; // 5+ chars: probably not redacted.
 		}
 
 		if ( WC_Stripe_Country_Code::CANADA === $country ) {
-			// Replaces a redacted string with something like L4Y***.
-			return str_pad( preg_replace( '/\s+/', '', $postcode ), 6, '*' );
+			return str_pad( preg_replace( '/\s+/', '', $postcode ), 6, '0' ); // e.g. L4Y000.
 		}
 
 		return $postcode;
@@ -2056,7 +2040,10 @@ class WC_Stripe_Express_Checkout_Helper {
 		if ( empty( $GLOBALS['wp']->query_vars['rest_route'] ) ) {
 			return false;
 		}
-		return 0 === strpos( $GLOBALS['wp']->query_vars['rest_route'], '/wc/store/v1/checkout' );
+
+		$route = $GLOBALS['wp']->query_vars['rest_route'];
+		return 0 === strpos( $route, '/wc/store/v1/checkout' )
+			|| 0 === strpos( $route, '/wc/store/v1/cart' );
 	}
 
 	/**

@@ -17,6 +17,7 @@ import {
 	validateBlikCode,
 	getExcludedPaymentMethodTypes,
 	getUserDataForCheckoutSession,
+	getBillingDetailsForDeferredFlow,
 } from '../../stripe-utils';
 import {
 	initializeUPEAppearance,
@@ -552,6 +553,16 @@ function createStripePaymentMethod(
 				},
 			},
 		};
+	} else {
+		// On the deferred-payment flows the form is not a checkout form, so billing
+		// fields are not present in the DOM. Forward the order/customer billing
+		// data from the server.
+		const billingDetails = getBillingDetailsForDeferredFlow();
+		if ( billingDetails ) {
+			params = {
+				billing_details: billingDetails,
+			};
+		}
 	}
 
 	// BLIK uses a controlled form instead of Stripe Elements.

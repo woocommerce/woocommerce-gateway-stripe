@@ -703,6 +703,106 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * The billing source for the deferred-payment flows is selected all-or-nothing:
+	 * the order on a validated pay-for-order page (so guests still get full address
+	 * details), otherwise the customer, with a wholesale fallback to the customer when
+	 * the order has no usable billing email.
+	 *
+	 * @dataProvider provide_deferred_flow_billing_data_scenarios
+	 *
+	 * @param bool   $is_pay_for_order Whether the page is the validated pay-for-order endpoint.
+	 * @param bool   $order_has_email  Whether the order carries a billing email.
+	 * @param bool   $with_customer    Whether a customer is available as a source.
+	 * @param string $expected_source  Expected source: 'order', 'customer', or 'none'.
+	 */
+	public function test_get_deferred_flow_billing_data( bool $is_pay_for_order, bool $order_has_email, bool $with_customer, string $expected_source ) {
+		$order_billing    = [
+			'name'    => 'Order Buyer',
+			'email'   => 'order-buyer@example.com',
+			'phone'   => '+15551234567',
+			'address' => [
+				'country'     => 'US',
+				'line1'       => '123 Order St',
+				'line2'       => 'Suite 5',
+				'city'        => 'Orderville',
+				'state'       => 'CA',
+				'postal_code' => '90001',
+			],
+		];
+		$customer_billing = [
+			'name'    => 'Cust Omer',
+			'email'   => 'customer@example.com',
+			'phone'   => '+447700900000',
+			'address' => [
+				'country'     => 'GB',
+				'line1'       => '999 Customer Ave',
+				'line2'       => 'Flat 2',
+				'city'        => 'London',
+				'state'       => 'LND',
+				'postal_code' => 'SW1A 2AA',
+			],
+		];
+
+		// A bare (unsaved) order keeps the test free of the DB and of helper-seeded defaults.
+		$order = new WC_Order();
+		$order->set_billing_first_name( 'Order' );
+		$order->set_billing_last_name( 'Buyer' );
+		$order->set_billing_phone( $order_billing['phone'] );
+		$order->set_billing_country( $order_billing['address']['country'] );
+		$order->set_billing_address_1( $order_billing['address']['line1'] );
+		$order->set_billing_address_2( $order_billing['address']['line2'] );
+		$order->set_billing_city( $order_billing['address']['city'] );
+		$order->set_billing_state( $order_billing['address']['state'] );
+		$order->set_billing_postcode( $order_billing['address']['postal_code'] );
+		if ( $order_has_email ) {
+			$order->set_billing_email( $order_billing['email'] );
+		}
+
+		$customer = null;
+		if ( $with_customer ) {
+			$customer = new WC_Customer();
+			$customer->set_billing_first_name( 'Cust' );
+			$customer->set_billing_last_name( 'Omer' );
+			$customer->set_billing_email( $customer_billing['email'] );
+			$customer->set_billing_phone( $customer_billing['phone'] );
+			$customer->set_billing_country( $customer_billing['address']['country'] );
+			$customer->set_billing_address_1( $customer_billing['address']['line1'] );
+			$customer->set_billing_address_2( $customer_billing['address']['line2'] );
+			$customer->set_billing_city( $customer_billing['address']['city'] );
+			$customer->set_billing_state( $customer_billing['address']['state'] );
+			$customer->set_billing_postcode( $customer_billing['address']['postal_code'] );
+		}
+
+		$result = $this->mock_gateway->get_deferred_flow_billing_data( $is_pay_for_order, $order, $customer );
+
+		switch ( $expected_source ) {
+			case 'order':
+				$this->assertSame( $order_billing, $result );
+				break;
+			case 'customer':
+				// Asserting the whole array proves the fallback is all-or-nothing: no order field leaks in.
+				$this->assertSame( $customer_billing, $result );
+				break;
+			default:
+				$this->assertNull( $result );
+		}
+	}
+
+	/**
+	 * Data provider for test_get_deferred_flow_billing_data.
+	 *
+	 * @return array<string, array{0: bool, 1: bool, 2: bool, 3: string}>
+	 */
+	public function provide_deferred_flow_billing_data_scenarios(): array {
+		return [
+			'pay-for-order uses the order when it has an email'                    => [ true, true, true, 'order' ],
+			'pay-for-order falls back to the customer when the order has no email' => [ true, false, true, 'customer' ],
+			'change/add payment method uses the customer even with an order'       => [ false, true, true, 'customer' ],
+			'returns null when neither order nor customer is usable'               => [ true, false, false, 'none' ],
+		];
+	}
+
+	/**
 	 * Test basic checkout process_payment flow with deferred intent.
 	 *
 	 * @dataProvider provide_process_payment_deferred_intent_returns_valid_response
