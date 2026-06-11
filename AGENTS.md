@@ -137,7 +137,7 @@ Good comments explain intent; they do not restate the code. The CRITICAL rule ab
 **Don't:**
 
 - **Don't document the obvious.** No comments that restate what the code plainly says (`// increment counter`).
-- **Don't comment unchanged code.** Only add or revise comments for code you are actually touching; do not annotate lines a diff leaves alone.
+- **Don't comment unchanged code.** Only add or revise comments for code you are actually touching; do not annotate lines a diff leaves alone. Unless your change makes an existing comment inaccurate — in that case update that comment.".
 - **Don't over-engineer documentation.** No ceremonial docblocks on self-explanatory helpers, no narrating the change history or the conversation that produced the code.
 
 ## Testing Conventions
