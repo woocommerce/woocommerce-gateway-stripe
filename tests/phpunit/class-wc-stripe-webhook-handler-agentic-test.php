@@ -110,6 +110,44 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * An Adaptive Pricing session with no matching order must not be routed to the
+	 * agentic handler — otherwise a paid AP session is silently dropped (and, with
+	 * agentic enabled, wrongly processed as agentic).
+	 */
+	public function test_adaptive_pricing_session_without_order_is_not_treated_as_agentic() {
+		$session_id                           = 'cs_test_adaptive_pricing';
+		$notification                         = $this->build_notification( $session_id );
+		$notification->data->object->metadata = (object) [
+			'checkout_type' => WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE,
+		];
+
+		// Flag (and stub) any agentic retrieval of the session from Stripe. With the
+		// guard in place this must never be reached for an Adaptive Pricing session.
+		$retrieved         = false;
+		$this->http_filter = function ( $preempt, $args, $url ) use ( &$retrieved, $session_id ) {
+			if ( str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions/' ) ) {
+				$retrieved = true;
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'body'     => wp_json_encode( (object) [ 'id' => $session_id ] ),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $this->http_filter, 10, 3 );
+
+		// Immediate phase defers; deferred phase must skip the agentic path.
+		$this->handler->process_checkout_session_success( $notification );
+		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
+
+		$this->assertFalse( $retrieved, 'Adaptive Pricing session must not trigger agentic session retrieval.' );
+		$this->assertNull( $this->get_resolved_order( $this->handler ) );
+	}
+
+	/**
 	 * Tests that a session with empty network_business_profile is skipped.
 	 */
 	public function test_skips_session_with_empty_network_business_profile() {

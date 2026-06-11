@@ -9,6 +9,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	/**
+	 * Checkout session metadata value identifying an Adaptive Pricing checkout.
+	 *
+	 * Set on the session at creation and read back in the webhook handler so a
+	 * completed Adaptive Pricing session is never mistaken for an agentic one.
+	 *
+	 * @var string
+	 */
+	public const ADAPTIVE_PRICING_CHECKOUT_TYPE = 'adaptive_pricing_checkout';
+
+	/**
 	 * Initialize hooks.
 	 *
 	 * @return void
@@ -42,6 +52,9 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				'mode'                          => 'payment',
 				'adaptive_pricing'              => [
 					'enabled' => 'true',
+				],
+				'metadata'                      => [
+					'checkout_type' => self::ADAPTIVE_PRICING_CHECKOUT_TYPE,
 				],
 			];
 
