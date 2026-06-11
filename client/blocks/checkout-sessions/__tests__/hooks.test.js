@@ -1,3 +1,5 @@
+import { useEffect } from '@wordpress/element';
+import { select, useSelect } from '@wordpress/data';
 import { renderHook, waitFor } from '@testing-library/react';
 import {
 	usePaymentSetupHandler,
@@ -5,8 +7,6 @@ import {
 	usePaymentFailHandler,
 	useCheckoutSessionTotalsSync,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
-import { useEffect } from '@wordpress/element';
-import { select, useSelect } from '@wordpress/data';
 
 jest.mock( '@wordpress/element', () => ( {
 	...jest.requireActual( '@wordpress/element' ),

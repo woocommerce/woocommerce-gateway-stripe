@@ -1,9 +1,9 @@
 /* global wc_stripe_settings_params */
+import { __ } from '@wordpress/i18n';
 import styled from '@emotion/styled';
 import React, { useState } from 'react';
 import { info } from '@wordpress/icons';
 import interpolateComponents from '@automattic/interpolate-components';
-import { __ } from '@wordpress/i18n';
 import { Icon, Notice } from '@wordpress/components';
 import { dismissNotice } from 'wcstripe/utils';
 

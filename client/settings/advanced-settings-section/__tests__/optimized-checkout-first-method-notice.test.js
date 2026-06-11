@@ -1,7 +1,7 @@
+import { dispatch } from '@wordpress/data';
 import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { dispatch } from '@wordpress/data';
 import OptimizedCheckoutFirstMethodNotice from 'wcstripe/settings/advanced-settings-section/optimized-checkout-first-method-notice';
 import { dismissNotice, moveStripeToTop } from 'wcstripe/utils';
 

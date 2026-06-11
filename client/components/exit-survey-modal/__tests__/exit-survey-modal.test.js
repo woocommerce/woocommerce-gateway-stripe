@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import ExitSurveyModal, { isCooldownActive, buildSurveyUrl } from '..';
 import apiFetch from '@wordpress/api-fetch';
+import ExitSurveyModal, { isCooldownActive, buildSurveyUrl } from '..';
 
 jest.mock( '@wordpress/api-fetch', () => jest.fn( () => Promise.resolve() ) );
 

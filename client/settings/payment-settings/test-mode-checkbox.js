@@ -1,6 +1,6 @@
+import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
-import { __ } from '@wordpress/i18n';
 import { CheckboxControl } from '@wordpress/components';
 import { useTestMode } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';

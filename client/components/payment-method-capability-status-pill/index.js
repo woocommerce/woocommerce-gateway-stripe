@@ -1,6 +1,6 @@
+import { __, sprintf } from '@wordpress/i18n';
 import React from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
-import { __, sprintf } from '@wordpress/i18n';
 import { useGetCapabilities } from 'wcstripe/data/account';
 import PaymentMethodUnavailablePill, {
 	PaymentMethodPopoverLink,

@@ -1,16 +1,16 @@
 /* global wc_stripe_settings_params */
+import { __ } from '@wordpress/i18n';
+import { useEffect } from '@wordpress/element';
 import React, { useContext, useRef, useState } from 'react';
 import { getQuery, updateQueryString } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
 import { isEmpty } from 'lodash';
+import { TabPanel } from '@wordpress/components';
 import SettingsLayout from '../settings-layout';
 import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';
 import SaveSettingsSection from '../save-settings-section';
 import { useEnabledPaymentMethodIds, useSettings } from '../../data';
-import { TabPanel } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
-import { useEffect } from '@wordpress/element';
 import { useAccount } from 'wcstripe/data/account';
 import OCToggleContext from 'wcstripe/settings/oc-toggle/context';
 import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';

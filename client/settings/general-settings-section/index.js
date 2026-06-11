@@ -1,12 +1,12 @@
+import { __ } from '@wordpress/i18n';
 import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
+import { Card, VisuallyHidden } from '@wordpress/components';
 import LoadableSettingsSection from '../loadable-settings-section';
 import SectionHeading from './section-heading';
 import SectionFooter from './section-footer';
 import PaymentMethodsList from './payment-methods-list';
-import { Card, VisuallyHidden } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
 import { useAccount } from 'wcstripe/data/account';
 import { useGetOrderedPaymentMethodIds, useIsPMCEnabled } from 'wcstripe/data';
 import './styles.scss';

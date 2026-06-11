@@ -1,3 +1,4 @@
+import { __, sprintf } from '@wordpress/i18n';
 import jQuery from 'jquery';
 import {
 	appendPaymentMethodIdToForm,
@@ -25,7 +26,6 @@ import {
 } from '../../stripe-utils/upe-appearance';
 import { getFontRulesFromPage, sampleFontFamily } from '../../styles/upe';
 import { getPaymentMethodRadioStyles } from '../../styles/upe/utils';
-import { __, sprintf } from '@wordpress/i18n';
 import {
 	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,

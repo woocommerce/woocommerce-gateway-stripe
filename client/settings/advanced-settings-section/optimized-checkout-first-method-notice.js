@@ -1,11 +1,11 @@
 /* global wc_stripe_settings_params */
 import { getAdminLink } from '@woocommerce/settings';
+import { __ } from '@wordpress/i18n';
+import { dispatch } from '@wordpress/data';
 import React, { useState } from 'react';
 import GridIcon from 'gridicons';
 import { Notice } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
 import { dismissNotice, moveStripeToTop } from 'wcstripe/utils';
-import { dispatch } from '@wordpress/data';
 import './style.scss';
 
 const PAYMENT_METHODS_CHECKOUT_SETTINGS_PATH =

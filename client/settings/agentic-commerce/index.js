@@ -1,3 +1,4 @@
+import { __, sprintf } from '@wordpress/i18n';
 import React, {
 	useState,
 	useEffect,
@@ -7,12 +8,7 @@ import React, {
 } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import styled from '@emotion/styled';
-import SettingsSection from '../settings-section';
-import CardBody from '../card-body';
-import CopyButton from '../../components/copy-button';
-import AgenticCommerceSyncStatus from './sync-status';
 import apiFetch from '@wordpress/api-fetch';
-import { __, sprintf } from '@wordpress/i18n';
 import {
 	Notice,
 	CheckboxControl,
@@ -20,10 +16,14 @@ import {
 	ExternalLink,
 	Card,
 } from '@wordpress/components';
+import { HorizontalRule } from '@wordpress/primitives';
+import SettingsSection from '../settings-section';
+import CardBody from '../card-body';
+import CopyButton from '../../components/copy-button';
+import AgenticCommerceSyncStatus from './sync-status';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import { useAccount } from 'wcstripe/data/account';
 import { useTestMode } from 'wcstripe/data';
-import { HorizontalRule } from '@wordpress/primitives';
 
 const OnboardingSteps = styled.ol`
 	margin: 12px 0 24px;

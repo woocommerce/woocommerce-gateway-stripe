@@ -57,7 +57,9 @@ const useHideDelay = (
 
 	// listen to other events to hide
 	useEffect( () => {
-		if ( ! isVisible ) return;
+		if ( ! isVisible ) {
+			return;
+		}
 
 		// immediately hide this tooltip if another one opens
 		const handleHideElement = () => {

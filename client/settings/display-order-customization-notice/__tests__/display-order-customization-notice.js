@@ -1,8 +1,8 @@
 import React, { act } from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import DisplayOrderCustomizationNotice from '..';
 import apiFetch from '@wordpress/api-fetch';
+import DisplayOrderCustomizationNotice from '..';
 
 jest.mock( '@wordpress/api-fetch' );
 

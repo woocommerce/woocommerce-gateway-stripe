@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
 import { __ } from '@wordpress/i18n';
+import { useState, useCallback } from 'react';
 import './style.scss';
 
 /**

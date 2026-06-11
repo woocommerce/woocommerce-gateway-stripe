@@ -1,5 +1,5 @@
-import ExpressCheckoutCartApi from '../cart-api';
 import apiFetch from '@wordpress/api-fetch';
+import ExpressCheckoutCartApi from '../cart-api';
 
 jest.mock( '@wordpress/api-fetch' );
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );

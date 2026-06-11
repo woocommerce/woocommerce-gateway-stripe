@@ -2,10 +2,10 @@
  * External dependencies
  */
 import { StoreNotice } from '@woocommerce/blocks-checkout';
-import { Elements } from '@stripe/react-stripe-js';
-import PaymentProcessor from './payment-processor';
 import { __, sprintf } from '@wordpress/i18n';
 import { useEffect, useState } from '@wordpress/element';
+import { Elements } from '@stripe/react-stripe-js';
+import PaymentProcessor from './payment-processor';
 /**
  * Internal dependencies
  */

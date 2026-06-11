@@ -1,7 +1,7 @@
 import { act, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { StripeTaxBanner } from '../stripe-tax-banner';
 import apiFetch from '@wordpress/api-fetch';
+import { StripeTaxBanner } from '../stripe-tax-banner';
 import { recordEvent } from 'wcstripe/tracking';
 
 jest.mock( '@wordpress/api-fetch' );

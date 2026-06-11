@@ -1,9 +1,9 @@
+import { useDispatch } from '@wordpress/data';
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import PromotionalBanner from '..';
-import { useDispatch } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
+import PromotionalBanner from '..';
 import {
 	OC_PROMOTION_BANNER,
 	RECONNECT_BANNER,

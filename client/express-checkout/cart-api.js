@@ -1,8 +1,8 @@
 /**
  * External dependencies
  */
-import { getExpressCheckoutData } from './utils';
 import apiFetch from '@wordpress/api-fetch';
+import { getExpressCheckoutData } from './utils';
 
 export default class ExpressCheckoutCartApi {
 	// Stores headers that are updated from response (e.g., refreshed nonce).

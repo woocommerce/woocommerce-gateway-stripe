@@ -1,10 +1,10 @@
+import { sprintf } from '@wordpress/i18n';
 import interpolateComponents from '@automattic/interpolate-components';
 import PaymentMethodsMap from '../../payment-methods-map';
 import {
 	PAYMENT_METHOD_AFFIRM,
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
 } from 'wcstripe/stripe-utils/constants';
-import { sprintf } from '@wordpress/i18n';
 
 /**
  * Formats the payment method description with the account default currency.

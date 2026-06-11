@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import StripeLogo from './stripe-logo';
-import { Modal, Spinner } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Modal, Spinner } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
+import StripeLogo from './stripe-logo';
 import './style.scss';
 
 const SURVEY_BASE_URL = 'https://woocommerce.survey.fm/stripe-exit-survey';

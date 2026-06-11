@@ -1,9 +1,9 @@
+import { __ } from '@wordpress/i18n';
 import { React, useState, useCallback } from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from '@automattic/interpolate-components';
-import CardBody from '../card-body';
 import { Card } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
+import CardBody from '../card-body';
 import StripeBanner from 'wcstripe/components/stripe-banner';
 import ConnectButton from 'wcstripe/settings/stripe-auth-account/connect-button';
 import ConnectionErrorNotice from 'wcstripe/settings/stripe-auth-account/connection-error-notice';

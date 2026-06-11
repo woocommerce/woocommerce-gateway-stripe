@@ -1,6 +1,6 @@
+import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
-import { __ } from '@wordpress/i18n';
 import { ExternalLink } from '@wordpress/components';
 import InlineNotice from 'wcstripe/components/inline-notice';
 

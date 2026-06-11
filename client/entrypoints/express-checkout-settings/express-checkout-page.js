@@ -1,8 +1,8 @@
+import { __ } from '@wordpress/i18n';
 import React from 'react';
 import PaymentRequestIcon from '../../payment-method-icons/payment-request';
 import ExpressCheckoutEnableSection from './express-checkout-enable-section';
 import ExpressCheckoutSettingsSection from './express-checkout-settings-section';
-import { __ } from '@wordpress/i18n';
 import SettingsSection from 'wcstripe/settings/settings-section';
 import SettingsLayout from 'wcstripe/settings/settings-layout';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';

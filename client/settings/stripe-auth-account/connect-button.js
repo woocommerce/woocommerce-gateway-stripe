@@ -1,7 +1,7 @@
 /* global wc_stripe_settings_params, ajaxurl */
 
-import { React, useState } from 'react';
 import { __ } from '@wordpress/i18n';
+import { React, useState } from 'react';
 import { Button } from '@wordpress/components';
 import { recordEvent } from 'wcstripe/tracking';
 import ConnectionErrorNotice from 'wcstripe/settings/stripe-auth-account/connection-error-notice';

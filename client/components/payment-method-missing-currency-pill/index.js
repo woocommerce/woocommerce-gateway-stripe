@@ -1,6 +1,6 @@
+import { __, sprintf } from '@wordpress/i18n';
 import React from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
-import { __, sprintf } from '@wordpress/i18n';
 import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
 import PaymentMethodUnavailablePill, {
 	PaymentMethodPopoverLink,
@@ -14,7 +14,7 @@ const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 		>
 			{ interpolateComponents( {
 				mixedString: sprintf(
-					/* translators: $1: a payment method name. %2: Currency(ies). */
+					/* translators: %1$s: a payment method name. %2$s: Currency or comma-separated list of currencies. */
 					__(
 						'%1$s requires store currency to be set to %2$s. {{currencySettingsLink}}Set currency{{/currencySettingsLink}}',
 						'woocommerce-gateway-stripe'
