@@ -1,13 +1,20 @@
 import React from 'react';
-import styled from '@emotion/styled';
+import clsx from 'clsx';
 import IconWithShell from '../styles/icon-with-shell';
 import icon from './icon.svg';
+import '../style.scss';
 
-const Wrapper = styled( IconWithShell )`
-	padding-top: 4px;
-	padding-bottom: 4px;
-`;
-
-const AfterpayIcon = ( props ) => <Wrapper { ...props } src={ icon } />;
+const AfterpayIcon = ( { className, ...props } ) => {
+	return (
+		<IconWithShell
+			src={ icon }
+			className={ clsx(
+				'wc-stripe-payment-method-icon__afterpay',
+				className
+			) }
+			{ ...props }
+		/>
+	);
+};
 
 export default AfterpayIcon;

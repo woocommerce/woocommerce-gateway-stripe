@@ -1,0 +1,58 @@
+.wc-stripe-payment-method-icon__afterpay,
+.wc-stripe-payment-method-icon__boleto,
+.wc-stripe-payment-method-icon__clearpay,
+.wc-stripe-payment-method-icon__multibanco,
+.wc-stripe-payment-method-icon__oxxo,
+.wc-stripe-payment-method-icon__wechat-pay {
+	padding-top: 4px;
+	padding-bottom: 4px;
+}
+
+.wc-stripe-payment-method-icon__alipay,
+.wc-stripe-payment-method-icon__klarna {
+	padding: 0;
+	border: none;
+
+	img {
+		outline: 1px solid #ddd;
+	}
+}
+
+.wc-stripe-payment-method-icon__blik {
+	background: #010101;
+}
+
+.wc-stripe-payment-method-icon__cashapp {
+	background: #00d650;
+}
+
+.wc-stripe-payment-method-icon__p24.wc-stripe-payment-method-icon {
+	&.wc-stripe-payment-method-icon__small,
+	&.wc-stripe-payment-method-icon__medium {
+		padding-top: 0;
+		padding-bottom: 0;
+	}
+}
+
+.wc-stripe-payment-method-icon__sepa {
+	background: #10298e;
+}
+
+.wc-stripe-payment-method-icon__sofort {
+	background: #ef809f;
+}
+
+.wc-stripe-payment-method-icon__affirm,
+.wc-stripe-payment-method-icon__amazon-pay,
+.wc-stripe-payment-method-icon__apple-pay,
+.wc-stripe-payment-method-icon__bacs-debit,
+.wc-stripe-payment-method-icon__bancontact,
+.wc-stripe-payment-method-icon__bank-debit,
+.wc-stripe-payment-method-icon__cards,
+.wc-stripe-payment-method-icon__eps,
+.wc-stripe-payment-method-icon__google-pay,
+.wc-stripe-payment-method-icon__ideal,
+.wc-stripe-payment-method-icon__link,
+.wc-stripe-payment-method-icon__payment-request {
+	/* Intentionally empty so we can see no additional rules apply. */
+}

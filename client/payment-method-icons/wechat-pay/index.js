@@ -1,13 +1,20 @@
 import React from 'react';
-import styled from '@emotion/styled';
+import clsx from 'clsx';
 import IconWithShell from '../styles/icon-with-shell';
 import icon from './icon.svg';
+import '../style.scss';
 
-const Wrapper = styled( IconWithShell )`
-	padding-top: 4px;
-	padding-bottom: 4px;
-`;
-
-const WechatPayIcon = ( props ) => <Wrapper { ...props } src={ icon } />;
+const WechatPayIcon = ( { className, ...props } ) => {
+	return (
+		<IconWithShell
+			src={ icon }
+			className={ clsx(
+				'wc-stripe-payment-method-icon__wechat-pay',
+				className
+			) }
+			{ ...props }
+		/>
+	);
+};
 
 export default WechatPayIcon;

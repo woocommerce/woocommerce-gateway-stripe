@@ -23,4 +23,19 @@
 	img {
 		max-width: 100%;
 	}
+
+	&.wc-stripe-payment-method-icon__with-shell {
+		background: #fff;
+		border: 1px solid #ddd;
+		border-radius: 5px;
+		overflow: hidden;
+
+		&.wc-stripe-payment-method-icon__small {
+			padding: 4px;
+		}
+
+		&.wc-stripe-payment-method-icon__medium {
+			padding: 7px;
+		}
+	}
 }

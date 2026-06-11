@@ -1,12 +1,20 @@
 import React from 'react';
-import styled from '@emotion/styled';
+import clsx from 'clsx';
 import IconWithShell from '../styles/icon-with-shell';
 import icon from './icon.svg';
+import '../style.scss';
 
-const Wrapper = styled( IconWithShell )`
-	background: #010101;
-`;
-
-const BlikIcon = ( props ) => <Wrapper { ...props } src={ icon } />;
+const BlikIcon = ( { className, ...props } ) => {
+	return (
+		<IconWithShell
+			src={ icon }
+			className={ clsx(
+				'wc-stripe-payment-method-icon__blik',
+				className
+			) }
+			{ ...props }
+		/>
+	);
+};
 
 export default BlikIcon;

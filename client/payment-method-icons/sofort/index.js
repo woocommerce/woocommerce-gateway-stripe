@@ -1,12 +1,20 @@
 import React from 'react';
-import styled from '@emotion/styled';
+import clsx from 'clsx';
 import IconWithShell from '../styles/icon-with-shell';
 import icon from './icon.svg';
+import '../style.scss';
 
-const Wrapper = styled( IconWithShell )`
-	background: #ef809f;
-`;
-
-const SofortIcon = ( props ) => <Wrapper { ...props } src={ icon } />;
+const SofortIcon = ( { className, ...props } ) => {
+	return (
+		<IconWithShell
+			src={ icon }
+			className={ clsx(
+				'wc-stripe-payment-method-icon__sofort',
+				className
+			) }
+			{ ...props }
+		/>
+	);
+};
 
 export default SofortIcon;

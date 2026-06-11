@@ -1,13 +1,20 @@
 import React from 'react';
-import styled from '@emotion/styled';
+import clsx from 'clsx';
 import IconWithShell from '../styles/icon-with-shell';
 import icon from './icon.svg';
+import '../style.scss';
 
-const Wrapper = styled( IconWithShell )`
-	padding-top: 4px;
-	padding-bottom: 4px;
-`;
-
-const BoletoIcon = ( props ) => <Wrapper { ...props } src={ icon } />;
+const BoletoIcon = ( { className, ...props } ) => {
+	return (
+		<IconWithShell
+			src={ icon }
+			className={ clsx(
+				'wc-stripe-payment-method-icon__boleto',
+				className
+			) }
+			{ ...props }
+		/>
+	);
+};
 
 export default BoletoIcon;
