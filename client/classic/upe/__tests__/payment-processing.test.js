@@ -1372,6 +1372,49 @@ describe( 'ensureUPEElementMounted', () => {
 		expect( createdEl.mount ).toHaveBeenCalledWith( onPageEl );
 	} );
 
+	it( 're-queries the DOM after awaiting so it mounts into the live node, not a detached one', async () => {
+		const api = createMockApi( createMockElements() );
+		// First mount caches the Stripe element on the component.
+		const detachedDom = document.createElement( 'div' );
+		detachedDom.dataset.paymentMethodType = 'card';
+		const component = await paymentProcessing.mountStripePaymentElement(
+			api,
+			detachedDom
+		);
+
+		const createdEl = api._standardElements.create.mock.results[ 0 ].value;
+		createdEl.mount.mockClear();
+
+		// A torn-down element is on the page when the submit starts, and a
+		// re-mount is in flight.
+		const staleEl = addOnPageElement( { mounted: false } );
+		let resolveMount;
+		component.mountPromise = new Promise( ( resolve ) => {
+			resolveMount = resolve;
+		} );
+
+		const ensurePromise = paymentProcessing.ensureUPEElementMounted(
+			api,
+			'card'
+		);
+
+		// While ensure awaits the in-flight mount, updated_checkout swaps the
+		// payment box for a fresh (still empty) node, detaching the stale one.
+		staleEl.remove();
+		const freshEl = addOnPageElement( { mounted: false } );
+		resolveMount( component );
+
+		await ensurePromise;
+
+		// Mounts into the live, in-document node — not the detached stale node.
+		// (Identity, not structural equality: the two empty containers are
+		// otherwise indistinguishable.)
+		const mountedInto = createdEl.mount.mock.calls[ 0 ][ 0 ];
+		expect( mountedInto ).toBe( freshEl );
+		expect( mountedInto ).not.toBe( staleEl );
+		expect( mountedInto.isConnected ).toBe( true );
+	} );
+
 	it( 'does not re-mount an element that is already mounted', async () => {
 		const api = createMockApi( createMockElements() );
 		const detachedDom = document.createElement( 'div' );

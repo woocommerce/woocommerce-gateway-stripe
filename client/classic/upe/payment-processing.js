@@ -815,6 +815,30 @@ export async function mountStripePaymentElement( api, domElement ) {
 }
 
 /**
+ * Queries the on-page UPE container for a payment method type.
+ *
+ * @param {string} paymentMethodType The payment method type.
+ * @return {HTMLElement|null} The container element, or null if not on the page.
+ */
+function getUPEDomElement( paymentMethodType ) {
+	return document.querySelector(
+		`.wc-stripe-upe-element[data-payment-method-type="${ paymentMethodType }"]`
+	);
+}
+
+/**
+ * Whether a UPE container currently holds a mounted element. Stripe appends the
+ * Payment Element's iframe as a child on mount, so an empty container means the
+ * element was torn down (e.g. by an `updated_checkout` re-render).
+ *
+ * @param {HTMLElement|null} domElement The UPE container element.
+ * @return {boolean} True when the element is mounted.
+ */
+function isUPEDomElementMounted( domElement ) {
+	return !! domElement && domElement.children.length > 0;
+}
+
+/**
  * Ensures the Payment Element for the given method is fully mounted before the
  * checkout is submitted.
  *
@@ -836,9 +860,22 @@ export async function ensureUPEElementMounted( api, paymentMethodType ) {
 		return;
 	}
 
-	const domElement = document.querySelector(
-		`.wc-stripe-upe-element[data-payment-method-type="${ paymentMethodType }"]`
-	);
+	// Drain in-flight (re)mounts before touching the DOM. Back-to-back
+	// `updated_checkout` re-renders can each start a new mount, so re-read
+	// mountPromise after every await and keep waiting until none is left.
+	while ( component.mountPromise ) {
+		const inFlight = component.mountPromise;
+		// eslint-disable-next-line no-await-in-loop
+		await inFlight;
+		if ( component.mountPromise === inFlight ) {
+			break;
+		}
+	}
+
+	// Re-query only after the awaits above: a node captured earlier could have
+	// been detached by an `updated_checkout` re-render while we waited, and
+	// mounting into a detached node would bind the iframe outside the document.
+	const domElement = getUPEDomElement( paymentMethodType );
 
 	// No element on the page (e.g. a 100% discount coupon removed the payment
 	// box). Nothing to wait for.
@@ -846,14 +883,9 @@ export async function ensureUPEElementMounted( api, paymentMethodType ) {
 		return;
 	}
 
-	// A (re)mount is already in flight — wait for it to settle.
-	if ( component.mountPromise ) {
-		await component.mountPromise;
-	}
-
 	// The element was torn down (its iframe removed) but a re-mount hasn't been
 	// kicked off yet. Mount it now and wait, so we don't submit an empty field.
-	if ( domElement.children.length === 0 ) {
+	if ( ! isUPEDomElementMounted( domElement ) ) {
 		await mountStripePaymentElement( api, domElement );
 	}
 }
@@ -875,12 +907,8 @@ export function getMountedUPEComponent( paymentMethodType ) {
 		return null;
 	}
 
-	const domElement = document.querySelector(
-		`.wc-stripe-upe-element[data-payment-method-type="${ paymentMethodType }"]`
-	);
-
 	// Only return if the Elements object exists and is mounted.
-	if ( domElement && domElement.children.length > 0 ) {
+	if ( isUPEDomElementMounted( getUPEDomElement( paymentMethodType ) ) ) {
 		return component;
 	}
 
