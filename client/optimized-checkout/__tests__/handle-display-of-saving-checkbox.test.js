@@ -1,9 +1,7 @@
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
 import {
 	PAYMENT_METHOD_ALIPAY,
-	PAYMENT_METHOD_BANCONTACT,
 	PAYMENT_METHOD_CARD,
-	PAYMENT_METHOD_IDEAL,
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_SEPA,
 } from 'wcstripe/stripe-utils/constants';
@@ -142,98 +140,6 @@ describe( 'handleDisplayOfSavingCheckbox', () => {
 
 			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD );
 			expect( isHidden() ).toBe( false );
-		} );
-	} );
-
-	describe( 'Checkout Sessions flow (methods saved as a different type)', () => {
-		// PHP-provided shape: savable per the map, listed as saved-as-different-type.
-		const makeCheckoutSessionConfig = () => ( {
-			card: {
-				showSaveOptionByMethod: {
-					card: true,
-					bancontact: true,
-					ideal: true,
-					sepa_debit: true,
-				},
-				savedAsDifferentTypeMethods: [
-					PAYMENT_METHOD_BANCONTACT,
-					PAYMENT_METHOD_IDEAL,
-				],
-			},
-		} );
-
-		it( 'Hides checkbox for Bancontact when the Checkout Sessions flow is active', () => {
-			setupBlockCheckoutDOM();
-
-			handleDisplayOfSavingCheckbox(
-				PAYMENT_METHOD_BANCONTACT,
-				makeCheckoutSessionConfig(),
-				true
-			);
-			expect( isHidden() ).toBe( true );
-		} );
-
-		it( 'Hides checkbox for iDEAL when the Checkout Sessions flow is active', () => {
-			setupBlockCheckoutDOM();
-
-			handleDisplayOfSavingCheckbox(
-				PAYMENT_METHOD_IDEAL,
-				makeCheckoutSessionConfig(),
-				true
-			);
-			expect( isHidden() ).toBe( true );
-		} );
-
-		it( 'Shows checkbox for Bancontact in the deferred-intent flow (flag false)', () => {
-			setupBlockCheckoutDOM();
-
-			handleDisplayOfSavingCheckbox(
-				PAYMENT_METHOD_BANCONTACT,
-				makeCheckoutSessionConfig(),
-				false
-			);
-			expect( isHidden() ).toBe( false );
-		} );
-
-		it( 'Shows checkbox for methods saved under their own type even in the Checkout Sessions flow', () => {
-			setupBlockCheckoutDOM();
-
-			handleDisplayOfSavingCheckbox(
-				PAYMENT_METHOD_SEPA,
-				makeCheckoutSessionConfig(),
-				true
-			);
-			expect( isHidden() ).toBe( false );
-		} );
-
-		it( 'Hides via body class on classic checkout (no block DOM) when the flow is active', () => {
-			handleDisplayOfSavingCheckbox(
-				PAYMENT_METHOD_BANCONTACT,
-				makeCheckoutSessionConfig(),
-				true
-			);
-			expect( isHidden() ).toBe( true );
-		} );
-
-		it( 'Clears the Blocks save state when hiding for a SEPA-converting method', () => {
-			setupBlockCheckoutDOM();
-			const dispatchSpy = jest.fn();
-			window.wp = {
-				data: {
-					dispatch: jest.fn().mockReturnValue( {
-						__internalSetShouldSavePaymentMethod: dispatchSpy,
-					} ),
-				},
-			};
-
-			handleDisplayOfSavingCheckbox(
-				PAYMENT_METHOD_BANCONTACT,
-				makeCheckoutSessionConfig(),
-				true
-			);
-
-			expect( dispatchSpy ).toHaveBeenCalledWith( false );
-			delete window.wp;
 		} );
 	} );
 

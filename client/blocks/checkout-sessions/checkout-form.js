@@ -93,7 +93,7 @@ const CheckoutForm = ( {
 		// Hide and clear the store-level save checkbox for non-reusable
 		// sub-methods. The Adaptive Pricing form renders its own Payment
 		// Element instead of PaymentProcessor, so it needs this independently.
-		handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig, true );
+		handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );
 		setIsPaymentElementComplete( complete );
 		setSelectedPaymentType( value?.type ?? '' );
 	};
@@ -104,8 +104,7 @@ const CheckoutForm = ( {
 	useEffect( () => {
 		handleDisplayOfSavingCheckbox(
 			selectedPaymentType || PAYMENT_METHOD_CARD,
-			paymentMethodsConfig,
-			true
+			paymentMethodsConfig
 		);
 	}, [ selectedPaymentType, paymentMethodsConfig ] );
 

@@ -637,30 +637,25 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * get_enabled_payment_method_config() must list reusable methods saved as a
-	 * different Stripe type (Bancontact/iDEAL → SEPA) in savedAsDifferentTypeMethods.
+	 * showSaveOptionByMethod must be false for methods saved as a different Stripe
+	 * type (Bancontact/iDEAL → SEPA) when Adaptive Pricing is active, since the
+	 * Checkout Sessions flow cannot save them.
 	 *
-	 * @dataProvider provide_enabled_payment_method_config_saved_as_different_type
+	 * @dataProvider provide_show_save_option_by_method_adaptive_pricing
 	 *
-	 * @param bool       $oc_enabled          Whether the Optimized Checkout Suite is enabled.
-	 * @param bool       $sepa_tokens_enabled Whether SEPA tokens are enabled for Bancontact/iDEAL.
-	 * @param array|null $expected            Expected savedAsDifferentTypeMethods list, or null when the key must be absent.
+	 * @param bool $adaptive_pricing_active Whether Adaptive Pricing is supported.
+	 * @param bool $expected_converting     Expected map value for Bancontact/iDEAL.
 	 */
-	public function test_enabled_payment_method_config_lists_methods_saved_as_different_type(
-		bool $oc_enabled,
-		bool $sepa_tokens_enabled,
-		?array $expected
+	public function test_show_save_option_by_method_hides_converting_methods_with_adaptive_pricing(
+		bool $adaptive_pricing_active,
+		bool $expected_converting
 	): void {
-		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['sepa_tokens_for_ideal']      = $sepa_tokens_enabled ? 'yes' : 'no';
-		$stripe_settings['sepa_tokens_for_bancontact'] = $sepa_tokens_enabled ? 'yes' : 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->setConstructorArgs( [] )
-			->onlyMethods( [ 'is_valid_optimized_checkout_page', 'get_upe_enabled_at_checkout_payment_method_ids' ] )
+			->onlyMethods( [ 'is_valid_optimized_checkout_page', 'is_adaptive_pricing_supported', 'get_upe_enabled_at_checkout_payment_method_ids' ] )
 			->getMock();
 		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( true );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( $adaptive_pricing_active );
 		$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn(
 			[
 				WC_Stripe_Payment_Methods::CARD,
@@ -669,45 +664,33 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				WC_Stripe_Payment_Methods::SEPA_DEBIT,
 			]
 		);
-		$gateway->oc_enabled = $oc_enabled;
+		$gateway->oc_enabled = true;
 
 		$get_config = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'get_enabled_payment_method_config' );
 		$get_config->setAccessible( true );
 		$config = $get_config->invoke( $gateway );
 
-		if ( null === $expected ) {
-			$this->assertArrayNotHasKey( 'savedAsDifferentTypeMethods', $config[ WC_Stripe_Payment_Methods::CARD ] );
-			return;
-		}
-
-		$this->assertSame( $expected, $config[ WC_Stripe_Payment_Methods::CARD ]['savedAsDifferentTypeMethods'] );
-		$this->assertArrayHasKey( 'showSaveOptionByMethod', $config[ WC_Stripe_Payment_Methods::CARD ] );
+		$by_method = $config[ WC_Stripe_Payment_Methods::CARD ]['showSaveOptionByMethod'];
+		$this->assertSame( $expected_converting, $by_method[ WC_Stripe_Payment_Methods::BANCONTACT ] );
+		$this->assertSame( $expected_converting, $by_method[ WC_Stripe_Payment_Methods::IDEAL ] );
+		// Methods saved under their own type are unaffected by Adaptive Pricing.
+		$this->assertTrue( $by_method[ WC_Stripe_Payment_Methods::SEPA_DEBIT ] );
 	}
 
 	/**
-	 * Data provider for test_enabled_payment_method_config_lists_methods_saved_as_different_type.
+	 * Data provider for test_show_save_option_by_method_hides_converting_methods_with_adaptive_pricing.
 	 *
 	 * @return array[]
 	 */
-	public function provide_enabled_payment_method_config_saved_as_different_type(): array {
+	public function provide_show_save_option_by_method_adaptive_pricing(): array {
 		return [
-			'OC enabled, SEPA tokens on: converting methods listed'      => [
-				'oc_enabled'          => true,
-				'sepa_tokens_enabled' => true,
-				'expected'            => [
-					WC_Stripe_Payment_Methods::BANCONTACT,
-					WC_Stripe_Payment_Methods::IDEAL,
-				],
+			'Adaptive Pricing active: converting methods not savable' => [
+				'adaptive_pricing_active' => true,
+				'expected_converting'     => false,
 			],
-			'OC enabled, SEPA tokens off: non-reusable methods excluded' => [
-				'oc_enabled'          => true,
-				'sepa_tokens_enabled' => false,
-				'expected'            => [],
-			],
-			'OC disabled: key absent'                                    => [
-				'oc_enabled'          => false,
-				'sepa_tokens_enabled' => true,
-				'expected'            => null,
+			'Adaptive Pricing inactive: converting methods savable'   => [
+				'adaptive_pricing_active' => false,
+				'expected_converting'     => true,
 			],
 		];
 	}

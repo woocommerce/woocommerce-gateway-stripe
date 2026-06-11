@@ -673,18 +673,13 @@ export async function mountStripePaymentElement( api, domElement ) {
 			// If the OC is enabled, we need to handle the display of the saving checkbox.
 			handleDisplayOfPaymentInstructions( value.type, 'classic' );
 
-			// In the Checkout Sessions flow, methods saved as a different type (Bancontact → SEPA) cannot be saved.
-			const isCheckoutSessionFlow =
-				!! gatewayUPEComponents[ paymentMethodType ]?.checkoutSessionId;
-
 			// Bind the create account checkbox to the save card info container display function.
 			const createAccountCheckbox =
 				document.getElementById( 'createaccount' );
 			const updateCheckboxListener = () => {
 				handleDisplayOfSavingCheckbox(
 					value.type,
-					paymentMethodsConfig,
-					isCheckoutSessionFlow
+					paymentMethodsConfig
 				);
 			};
 			if ( createAccountCheckbox ) {
@@ -697,11 +692,7 @@ export async function mountStripePaymentElement( api, domElement ) {
 					updateCheckboxListener
 				);
 			}
-			handleDisplayOfSavingCheckbox(
-				value.type,
-				paymentMethodsConfig,
-				isCheckoutSessionFlow
-			);
+			handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );
 		} );
 	}
 

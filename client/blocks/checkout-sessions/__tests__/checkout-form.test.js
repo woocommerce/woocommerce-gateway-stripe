@@ -192,8 +192,7 @@ describe( 'CheckoutForm', () => {
 
 		expect( handleDisplayOfSavingCheckbox ).toHaveBeenCalledWith(
 			'card',
-			paymentMethodsConfig,
-			true
+			paymentMethodsConfig
 		);
 	} );
 
@@ -228,8 +227,7 @@ describe( 'CheckoutForm', () => {
 
 		expect( handleDisplayOfSavingCheckbox ).toHaveBeenCalledWith(
 			'ideal',
-			paymentMethodsConfig,
-			true
+			paymentMethodsConfig
 		);
 	} );
 } );
