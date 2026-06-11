@@ -358,6 +358,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 			'<strong>Test mode:</strong> use any 6-digit number.',
 			$blik_method->get_testing_instructions()
 		);
+		$this->assertEquals(
+			'Use any 6-digit number.',
+			$blik_method->get_testing_instructions( false, false )
+		);
 
 		$this->assertEquals( WC_Stripe_Payment_Methods::CARD, $card_method->get_id() );
 		$this->assertEquals( 'Credit / Debit Card', $card_method->get_label() );
@@ -367,6 +371,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertEquals(
 			'<strong>Test mode:</strong> use card <number>4242 4242 4242 4242</number> with any expiry and CVC. <a href="https://docs.stripe.com/testing" target="_blank">More test cards</a>.',
 			$card_method->get_testing_instructions()
+		);
+		$this->assertEquals(
+			'Use card <number>4242 4242 4242 4242</number> with any expiry and CVC. <a href="https://docs.stripe.com/testing" target="_blank">More test cards</a>.',
+			$card_method->get_testing_instructions( false, false )
 		);
 
 		$this->assertEquals( WC_Stripe_Payment_Methods::ALIPAY, $alipay_method->get_id() );
@@ -401,6 +409,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertEquals(
 			'<strong>Test mode:</strong> use account <number>AT611904300234573201</number>. <a href="https://docs.stripe.com/testing?payment-method=sepa-direct-debit#non-card-payments" target="_blank">More test methods</a>.',
 			$sepa_method->get_testing_instructions()
+		);
+		$this->assertEquals(
+			'Use account <number>AT611904300234573201</number>. <a href="https://docs.stripe.com/testing?payment-method=sepa-direct-debit#non-card-payments" target="_blank">More test methods</a>.',
+			$sepa_method->get_testing_instructions( false, false )
 		);
 
 		$this->assertEquals( WC_Stripe_Payment_Methods::SOFORT, $sofort_method->get_id() );
@@ -890,6 +902,29 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 
 			}
 		}
+	}
+
+	/**
+	 * The base SEPA token path must fail safely (catchable exception) instead of fataling with a
+	 * TypeError when handed a non-SEPA-shaped PaymentMethod.
+	 *
+	 * Regression for the Adaptive Pricing / Checkout Sessions webhook crash where a raw Bancontact
+	 * PaymentMethod (no `sepa_debit` child) reached create_payment_token_for_user() and
+	 * set_fingerprint( null ) fataled.
+	 *
+	 * @return void
+	 */
+	public function test_create_payment_token_for_user_throws_on_missing_sepa_fingerprint() {
+		$payment_method = new WC_Stripe_UPE_Payment_Method_Sepa();
+
+		// A raw Bancontact PaymentMethod has no sepa_debit child.
+		$bancontact_payment_method = (object) [
+			'id'   => 'pm_mock_bancontact',
+			'type' => WC_Stripe_Payment_Methods::BANCONTACT,
+		];
+
+		$this->expectException( WC_Stripe_Exception::class );
+		$payment_method->create_payment_token_for_user( 1, $bancontact_payment_method );
 	}
 
 	/**

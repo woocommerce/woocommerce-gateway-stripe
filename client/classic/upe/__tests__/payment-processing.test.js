@@ -1,12 +1,15 @@
 import * as paymentProcessing from '../payment-processing';
 import * as stripeUtils from 'wcstripe/stripe-utils';
 
+const { hasEmptyRequiredFields } = paymentProcessing;
+
 jest.mock( 'wcstripe/stripe-utils', () => ( {
 	appendCheckoutSessionIdToForm: jest.fn(),
 	appendPaymentIntentIdToForm: jest.fn(),
 	appendPaymentMethodIdToForm: jest.fn(),
 	appendSetupIntentToForm: jest.fn(),
 	getAdditionalSetupIntentData: jest.fn().mockReturnValue( {} ),
+	getBillingDetailsForDeferredFlow: jest.fn().mockReturnValue( null ),
 	getDefaultValues: jest.fn().mockReturnValue( {} ),
 	getExcludedPaymentMethodTypes: jest.fn().mockReturnValue( [] ),
 	getPaymentMethodTypes: jest.fn().mockReturnValue( [ 'card' ] ),
@@ -173,14 +176,17 @@ const createMockApi = ( checkoutElements ) => {
 	};
 };
 
-const createMockForm = ( { savePaymentMethodChecked = false } = {} ) => {
+const createMockForm = ( {
+	savePaymentMethodChecked = false,
+	name = 'checkout',
+} = {} ) => {
 	const f = {};
 	f.addClass = jest.fn( () => f );
 	f.removeClass = jest.fn( () => f );
 	f.block = jest.fn( () => f );
 	f.unblock = jest.fn( () => f );
 	f.trigger = jest.fn( () => f );
-	f.attr = jest.fn( () => 'checkout' );
+	f.attr = jest.fn( () => name );
 	f.serialize = jest.fn( () => 'billing_first_name=John' );
 	f.append = jest.fn();
 	f.find = jest.fn( () => ( {
@@ -263,6 +269,96 @@ describe( 'payment-processing', () => {
 					stripeUtils.appendPaymentMethodIdToForm
 				).toHaveBeenCalledWith( form, 'pm_test_123' );
 				expect( form.trigger ).toHaveBeenCalledWith( 'submit' );
+			} );
+
+			it( 'on a deferred flow (non-checkout form), creates the payment method with billing_details from getBillingDetailsForDeferredFlow', async () => {
+				const billingDetails = {
+					name: 'John Doe',
+					email: 'john@example.com',
+					phone: '+1234567890',
+					address: {
+						country: 'US',
+						line1: '123 Main St',
+						city: 'New York',
+						state: 'NY',
+						postal_code: '10001',
+					},
+				};
+				stripeUtils.getBillingDetailsForDeferredFlow.mockReturnValue(
+					billingDetails
+				);
+
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				api._stripe.elements.mockReturnValue( api._standardElements );
+
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				// The pay-for-order form is #order_review, not named 'checkout'.
+				const form = createMockForm( { name: 'order_review' } );
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				expect( api._stripe.createPaymentMethod ).toHaveBeenCalledWith(
+					{
+						elements: api._standardElements,
+						params: { billing_details: billingDetails },
+					}
+				);
+			} );
+
+			it( 'on a deferred flow with no usable billing data, omits billing_details', async () => {
+				stripeUtils.getBillingDetailsForDeferredFlow.mockReturnValue(
+					null
+				);
+
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				api._stripe.elements.mockReturnValue( api._standardElements );
+
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				const form = createMockForm( { name: 'order_review' } );
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				expect( api._stripe.createPaymentMethod ).toHaveBeenCalledWith(
+					{
+						elements: api._standardElements,
+						params: {},
+					}
+				);
+			} );
+
+			it( 'on the checkout form, ignores getBillingDetailsForDeferredFlow', async () => {
+				stripeUtils.getBillingDetailsForDeferredFlow.mockReturnValue( {
+					email: 'deferred@example.com',
+				} );
+
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				api._stripe.elements.mockReturnValue( api._standardElements );
+
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				const form = createMockForm( { name: 'checkout' } );
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				const callArg =
+					api._stripe.createPaymentMethod.mock.calls[ 0 ][ 0 ];
+				// On checkout, billing_details are read from the DOM, not the
+				// deferred-flow helper.
+				expect( callArg.params.billing_details ).toBeDefined();
+				expect( callArg.params.billing_details.email ).not.toBe(
+					'deferred@example.com'
+				);
 			} );
 
 			it( 'shows an error and does not submit when hasLoadError is true', async () => {
@@ -1062,6 +1158,101 @@ describe( 'payment-processing', () => {
 			expect(
 				paymentElementOptions.layout.spacedAccordionItems
 			).toBeUndefined();
+		} );
+	} );
+
+	describe( 'hasEmptyRequiredFields', () => {
+		let form;
+
+		beforeEach( () => {
+			document.body.innerHTML = '';
+			form = document.createElement( 'form' );
+			form.className = 'checkout';
+			document.body.appendChild( form );
+		} );
+
+		const getWrappers = () => form.querySelectorAll( '.validate-required' );
+
+		it( 'returns false when there are no required fields', () => {
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+		} );
+
+		it( 'returns true when a required text input is empty', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="text" class="input-text" value="" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+		} );
+
+		it( 'returns true when a required text input has only whitespace', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="text" class="input-text" value="   " />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+		} );
+
+		it( 'returns false when all required text inputs have values', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="text" class="input-text" value="John" />' +
+				'</p>' +
+				'<p class="validate-required">' +
+				'<input type="text" class="input-text" value="john@example.com" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+		} );
+
+		it( 'returns true when a required select has no value', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select><option value="">Select...</option><option value="US">US</option></select>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+		} );
+
+		it( 'returns false when a required select has a value', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select><option value="">Select...</option><option value="US" selected>US</option></select>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+		} );
+
+		it( 'returns true when a required checkbox is unchecked', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="checkbox" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+		} );
+
+		it( 'returns false when a required checkbox is checked', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="checkbox" checked />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+		} );
+
+		it( 'returns true if any one of multiple fields is empty', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="text" class="input-text" value="John" />' +
+				'</p>' +
+				'<p class="validate-required">' +
+				'<input type="text" class="input-text" value="" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+		} );
+
+		it( 'skips validate-required wrappers with no matching input', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<span>No input here</span>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
 		} );
 	} );
 } );
