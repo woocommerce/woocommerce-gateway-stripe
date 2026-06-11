@@ -1,0 +1,6 @@
+.wc-stripe-unstyled-link a {
+	&:focus,
+	&:visited {
+		box-shadow: none;
+	}
+}

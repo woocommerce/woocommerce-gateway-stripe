@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { Icon, info } from '@wordpress/icons';
 import Pill from 'wcstripe/components/pill';
 import Popover from 'wcstripe/components/popover';
+import UnstyledLink from 'wcstripe/components/unstyled-link';
 import './style.scss';
 
 const IconComponent = ( { children, className, ...props } ) => (
@@ -46,11 +47,8 @@ const PaymentMethodPopoverLink = ( {
 	};
 
 	return (
-		<a
-			className={ clsx(
-				'wc-stripe-payment-method-unavailable-pill__popover-link',
-				className
-			) }
+		<UnstyledLink
+			className={ className }
 			target={ target }
 			href={ href }
 			rel={ rel }
@@ -58,7 +56,7 @@ const PaymentMethodPopoverLink = ( {
 			{ ...props }
 		>
 			{ children }
-		</a>
+		</UnstyledLink>
 	);
 };
 

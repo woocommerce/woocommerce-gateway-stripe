@@ -3,7 +3,6 @@ import { ADMIN_URL, getSetting } from '@woocommerce/settings';
 import React, { useMemo } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import { loadStripe } from '@stripe/stripe-js';
-import styled from '@emotion/styled';
 import ExpressCheckoutPreviewComponent from './express-checkout-preview-component';
 import {
 	Card,
@@ -12,6 +11,7 @@ import {
 	Notice,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import UnstyledLink from 'wcstripe/components/unstyled-link';
 import {
 	useExpressCheckoutEnabledSettings,
 	useExpressCheckoutLocations,
@@ -149,13 +149,6 @@ const ExpressCheckoutSettingsSection = () => {
 		}
 	};
 
-	const StyledLink = styled.a`
-		&:focus,
-		&:visited {
-			box-shadow: none;
-		}
-	`;
-
 	return (
 		<Card className="express-checkout-settings">
 			<CardBody>
@@ -169,7 +162,7 @@ const ExpressCheckoutSettingsSection = () => {
 							),
 							components: {
 								checkoutPageLink: (
-									<StyledLink
+									<UnstyledLink
 										href={ `${ ADMIN_URL }post.php?post=${
 											getSetting( 'storePages' )?.checkout
 												?.id

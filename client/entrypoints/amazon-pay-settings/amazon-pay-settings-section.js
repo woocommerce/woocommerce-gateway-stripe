@@ -3,7 +3,6 @@ import { ADMIN_URL, getSetting } from '@woocommerce/settings';
 import React, { useMemo } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import { loadStripe } from '@stripe/stripe-js';
-import styled from '@emotion/styled';
 import ExpressCheckoutPreviewComponent from './express-checkout-preview-component';
 import {
 	Card,
@@ -18,6 +17,7 @@ import {
 	useAmazonPayButtonSize,
 } from 'wcstripe/data';
 import CardBody from 'wcstripe/settings/card-body';
+import UnstyledLink from 'wcstripe/components/unstyled-link';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 import { useAccount } from 'wcstripe/data/account/hooks';
 import {
@@ -97,12 +97,6 @@ const AmazonPaySettingsSection = () => {
 		}
 	};
 
-	const StyledLink = styled.a`
-		&:focus,
-		&:visited {
-			box-shadow: none;
-		}
-	`;
 	return (
 		<Card className="express-checkout-settings">
 			<CardBody>
@@ -116,7 +110,7 @@ const AmazonPaySettingsSection = () => {
 							),
 							components: {
 								checkoutPageLink: (
-									<StyledLink
+									<UnstyledLink
 										href={ `${ ADMIN_URL }post.php?post=${
 											getSetting( 'storePages' )?.checkout
 												?.id
