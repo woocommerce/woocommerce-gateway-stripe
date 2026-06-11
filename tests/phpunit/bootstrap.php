@@ -46,6 +46,13 @@ function _manually_load_plugin() {
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-base-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
+	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php';
+	// Stub WooCommerce ProductFeed interfaces/classes when running against an older WooCommerce
+	// that does not ship them. Individual tests skip themselves when real implementations are needed.
+	require_once __DIR__ . '/helpers/woocommerce-product-feed-stubs.php';
+	// Agentic Commerce integration classes (needed by the controller).
+	require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php';
+	require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-inventory-tracker.php';
 }
 
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
@@ -84,6 +91,9 @@ require_once __DIR__ . '/helpers/class-wc-subscription.php';
 require_once __DIR__ . '/helpers/class-wc-subscriptions.php';
 require_once __DIR__ . '/helpers/class-wc-subscriptions-cart.php';
 require_once __DIR__ . '/helpers/class-wc-subscriptions-helpers.php';
+require_once __DIR__ . '/helpers/class-wcs-retry.php';
+require_once __DIR__ . '/helpers/class-wcs-retry-store-mock.php';
+require_once __DIR__ . '/helpers/class-wcs-retry-manager.php';
 require_once __DIR__ . '/helpers/class-wc-subscriptions-product.php';
 require_once __DIR__ . '/helpers/class-wc-subscriptions-switcher.php';
 require_once __DIR__ . '/helpers/class-wc-pre-orders-product.php';
@@ -99,6 +109,7 @@ require_once __DIR__ . '/helpers/class-ajax-test-helper.php';
 require_once __DIR__ . '/helpers/class-oc-test-helper.php';
 require_once __DIR__ . '/helpers/class-pmc-test-helper.php';
 require_once __DIR__ . '/helpers/class-upe-test-helper.php';
+require_once __DIR__ . '/helpers/class-wc-stripe-test-helper.php';
 
 // Pre-create HPOS (Custom Orders Table) schema so that parallel workers don't
 // race to create it when tests toggle `woocommerce_custom_orders_table_enabled`.
@@ -108,4 +119,32 @@ if ( class_exists( \Automattic\WooCommerce\Internal\DataStores\Orders\DataSynchr
 		$_data_sync->create_database_tables();
 	}
 	unset( $_data_sync );
+}
+
+// WooCommerce 10.7.0-rc.1 fails to generate woocommerce-placeholder.webp on plugin
+// activation. Tests that create orders or render products then trigger
+// wp_getimagesize() on the missing file, and phpunit.xml.dist's
+// convertWarningsToExceptions="true" turns those "Failed to open stream" warnings
+// into test errors. Seed the file by copying WooCommerce's bundled placeholder
+// asset (per-worker when running under paratest, since UPLOADS is overridden in
+// wp-tests-config.php). Safe to remove once a fixed WooCommerce release is in the
+// compatibility matrix.
+if ( function_exists( 'WC' ) ) {
+	$_uploads_info     = wp_upload_dir( null, false );
+	$_uploads_dir      = $_uploads_info['basedir'];
+	$_placeholder_webp = $_uploads_dir . '/woocommerce-placeholder.webp';
+	if ( ! file_exists( $_placeholder_webp ) ) {
+		if ( ! is_dir( $_uploads_dir ) ) {
+			wp_mkdir_p( $_uploads_dir );
+		}
+		$_wc_assets = WC()->plugin_path() . '/assets/images';
+		foreach ( [ 'placeholder.webp', 'placeholder.png' ] as $_candidate ) {
+			if ( file_exists( $_wc_assets . '/' . $_candidate ) ) {
+				@copy( $_wc_assets . '/' . $_candidate, $_placeholder_webp ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+				break;
+			}
+		}
+		unset( $_wc_assets, $_candidate );
+	}
+	unset( $_uploads_info, $_uploads_dir, $_placeholder_webp );
 }

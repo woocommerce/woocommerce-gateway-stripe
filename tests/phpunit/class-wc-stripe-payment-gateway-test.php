@@ -32,6 +32,23 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Helper to build a mocked successful HTTP response for the Stripe API from a body array.
+	 *
+	 * @param array $body The response body to JSON-encode.
+	 * @return array A pre-empted `pre_http_request` response.
+	 */
+	private function build_response( array $body ) {
+		return [
+			'headers'  => [],
+			'body'     => wp_json_encode( $body ),
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+		];
+	}
+
+	/**
 	 * Tests false is returned if payment intent is not set in the order.
 	 */
 	public function test_default_get_payment_intent_from_order() {
@@ -589,6 +606,129 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
 		$this->assertTrue( $result );
+
+		remove_filter( 'pre_http_request', $callback );
+	}
+
+	/**
+	 * Tests that process_refund recovers a missing charge ID from the stored payment intent.
+	 */
+	public function test_process_refund_recovers_missing_charge_id_from_intent() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		// No transaction ID, but the intent is present.
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_123' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'payment_intents/pi_123' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'            => 'pi_123',
+						'object'        => 'payment_intent',
+						'status'        => 'succeeded',
+						'latest_charge' => 'ch_123',
+					]
+				);
+			}
+			if ( strpos( $url, 'charges/ch_123' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 'ch_123',
+						'object'   => 'charge',
+						'captured' => true,
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 're_123',
+						'object'   => 'refund',
+						'amount'   => 1000,
+						'currency' => 'usd',
+						'charge'   => 'ch_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
+		$this->assertTrue( $result );
+
+		// The recovered charge ID is persisted on the order.
+		$reloaded = wc_get_order( $order_id );
+		$this->assertSame( 'ch_123', $reloaded->get_transaction_id() );
+
+		remove_filter( 'pre_http_request', $callback );
+	}
+
+	/**
+	 * Tests that process_refund returns false when the charge ID can't be recovered.
+	 */
+	public function test_process_refund_returns_false_when_charge_id_unrecoverable() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
+		$this->assertFalse( $result );
+	}
+
+	/**
+	 * Tests that process_refund returns false when the intent is present but the
+	 * charge lookup blows up — `get_latest_charge_from_intent()` throws,
+	 * `recover_charge_id_from_intent()` returns '', and process_refund bails
+	 * gracefully instead of letting the exception escape.
+	 */
+	public function test_process_refund_returns_false_when_intent_charge_lookup_throws() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		// No transaction ID, intent present — triggers the recover path.
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_456' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'payment_intents/pi_456' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'            => 'pi_456',
+						'object'        => 'payment_intent',
+						'status'        => 'succeeded',
+						'latest_charge' => 'ch_456',
+					]
+				);
+			}
+			if ( strpos( $url, 'charges/ch_456' ) !== false ) {
+				// Stripe-style error response — get_charge_object() throws on this.
+				return $this->build_response(
+					[
+						'error' => (object) [
+							'type'    => 'invalid_request_error',
+							'message' => 'No such charge: ch_456',
+						],
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
+		$this->assertFalse( $result );
+
+		// The transaction ID stays empty because the recover path bailed.
+		$reloaded = wc_get_order( $order_id );
+		$this->assertSame( '', (string) $reloaded->get_transaction_id() );
 
 		remove_filter( 'pre_http_request', $callback );
 	}
@@ -1155,6 +1295,56 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected_fee' => 1.00,
 				'expected_net' => 49.00,
 			],
+		];
+	}
+
+	/**
+	 * Tests that generate_payment_request includes the shipping phone in the shipping object so it
+	 * reaches Stripe for risk decisioning (STRIPE-973).
+	 *
+	 * @dataProvider provide_test_generate_payment_request_shipping_phone_cases
+	 *
+	 * @param string $phone        The order shipping phone.
+	 * @param bool   $expect_phone Whether the shipping phone is expected in the request.
+	 */
+	public function test_generate_payment_request_includes_shipping_phone( string $phone, bool $expect_phone ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_shipping_first_name( 'Jane' );
+		$order->set_shipping_last_name( 'Doe' );
+		$order->set_shipping_address_1( '123 Ship St' );
+		$order->set_shipping_city( 'Shipville' );
+		$order->set_shipping_state( 'CA' );
+		$order->set_shipping_postcode( '90210' );
+		$order->set_shipping_country( 'US' );
+		$order->set_shipping_phone( $phone );
+		$order->save();
+
+		$prepared_payment_method = (object) [
+			'customer'       => 'cus_123',
+			'source'         => null,
+			'payment_method' => 'pm_123',
+		];
+
+		$post_data = $this->gateway->generate_payment_request( $order, $prepared_payment_method );
+
+		$this->assertArrayHasKey( 'shipping', $post_data, 'Shipping should be included when a shipping postcode is present' );
+		if ( $expect_phone ) {
+			$this->assertArrayHasKey( 'phone', $post_data['shipping'], 'Shipping object should include the shipping phone' );
+			$this->assertEquals( $phone, $post_data['shipping']['phone'], 'Shipping phone should match the order shipping phone' );
+		} else {
+			$this->assertArrayNotHasKey( 'phone', $post_data['shipping'], 'Shipping object should omit an empty phone' );
+		}
+	}
+
+	/**
+	 * Data provider for test_generate_payment_request_includes_shipping_phone.
+	 *
+	 * @return array
+	 */
+	public function provide_test_generate_payment_request_shipping_phone_cases(): array {
+		return [
+			'phone present' => [ '+1 555-333-4444', true ],
+			'phone empty'   => [ '', false ],
 		];
 	}
 }
