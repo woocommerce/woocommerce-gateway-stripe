@@ -1,7 +1,6 @@
 /* global wcStripeExpressCheckoutPayForOrderParams */
 /* global wc_stripe_express_checkout_params */
 
-import { debounce } from 'lodash';
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
 import { __ } from '@wordpress/i18n';
@@ -26,6 +25,7 @@ import {
 } from 'wcstripe/express-checkout/event-handler';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
+import { debounce } from 'wcstripe/utils/debounce';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import 'wcstripe/express-checkout/compatibility/classic-checkout-custom-fields';
 import 'wcstripe/express-checkout/compatibility/wc-product-page';
