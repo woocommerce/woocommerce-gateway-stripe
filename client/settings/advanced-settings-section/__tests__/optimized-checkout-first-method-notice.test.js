@@ -144,17 +144,7 @@ describe( 'OptimizedCheckoutFirstMethodNotice', () => {
 
 	it( 'does not dispatch success notice when refreshPage is true', async () => {
 		const reloadMock = jest.fn();
-		const locationDescriptor = Object.getOwnPropertyDescriptor(
-			window,
-			'location'
-		);
-		Object.defineProperty( window, 'location', {
-			configurable: true,
-			value: {
-				...window.location,
-				reload: reloadMock,
-			},
-		} );
+		global.__mockWindowLocation( { reload: reloadMock } );
 
 		let resolveMove;
 		moveStripeToTop.mockImplementation(
@@ -164,30 +154,24 @@ describe( 'OptimizedCheckoutFirstMethodNotice', () => {
 				} )
 		);
 
-		try {
-			render(
-				<OptimizedCheckoutFirstMethodNotice
-					isOCEnabled={ true }
-					refreshPage={ true }
-				/>
-			);
+		render(
+			<OptimizedCheckoutFirstMethodNotice
+				isOCEnabled={ true }
+				refreshPage={ true }
+			/>
+		);
 
-			await userEvent.click(
-				screen.getByRole( 'button', { name: 'Move to top' } )
-			);
+		await userEvent.click(
+			screen.getByRole( 'button', { name: 'Move to top' } )
+		);
 
-			await act( async () => {
-				resolveMove();
-				await Promise.resolve();
-			} );
+		await act( async () => {
+			resolveMove();
+			await Promise.resolve();
+		} );
 
-			expect( reloadMock ).toHaveBeenCalled();
-			expect( mockCreateSuccessNotice ).not.toHaveBeenCalled();
-		} finally {
-			if ( locationDescriptor ) {
-				Object.defineProperty( window, 'location', locationDescriptor );
-			}
-		}
+		expect( reloadMock ).toHaveBeenCalled();
+		expect( mockCreateSuccessNotice ).not.toHaveBeenCalled();
 	} );
 
 	it( 'dispatches an error notice when moveStripeToTop rejects', async () => {

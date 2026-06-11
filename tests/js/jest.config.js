@@ -1,5 +1,5 @@
 module.exports = {
-	testEnvironment: 'jsdom',
+	testEnvironment: '<rootDir>/tests/js/jest-environment-jsdom.js',
 	testEnvironmentOptions: {
 		browsers: [ 'chrome', 'firefox', 'safari' ],
 	},

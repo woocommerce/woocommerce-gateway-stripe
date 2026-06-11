@@ -38,11 +38,7 @@ describe( 'ConnectStripeAccount', () => {
 
 	it( 'should render both the "Create or connect an account" and "Create or connect a test account" buttons', () => {
 		// Mock SSL for this test
-		const protocol = window.location.protocol;
-		Object.defineProperty( window, 'location', {
-			value: { ...window.location, protocol: 'https:' },
-			writable: true,
-		} );
+		global.__mockWindowLocation( { protocol: 'https:' } );
 
 		render( <ConnectStripeAccount /> );
 
@@ -55,22 +51,12 @@ describe( 'ConnectStripeAccount', () => {
 		expect(
 			screen.getByText( 'Create or connect a test account' )
 		).toBeInTheDocument();
-
-		// Restore original protocol
-		Object.defineProperty( window, 'location', {
-			value: { ...window.location, protocol },
-			writable: true,
-		} );
 	} );
 
 	it( 'should fetch OAuth URL and redirect when clicking on the "Create or connect an account" button', async () => {
-		// Keep the original function at hand.
-		const assign = window.location.assign;
-		const protocol = window.location.protocol;
-
-		Object.defineProperty( window, 'location', {
-			value: { assign: jest.fn(), protocol: 'https:' },
-			writable: true,
+		global.__mockWindowLocation( {
+			assign: jest.fn(),
+			protocol: 'https:',
 		} );
 
 		const oauthUrl =
@@ -108,21 +94,10 @@ describe( 'ConnectStripeAccount', () => {
 				} ),
 			} )
 		);
-
-		// Set the original function back to keep further tests working as expected.
-		Object.defineProperty( window, 'location', {
-			value: { assign, protocol },
-			writable: true,
-		} );
 	} );
 
 	it( 'should fetch OAuth URL and redirect when clicking on the "Create or connect a test account" button', async () => {
-		// Keep the original function at hand.
-		const assign = window.location.assign;
-
-		Object.defineProperty( window, 'location', {
-			value: { assign: jest.fn() },
-		} );
+		global.__mockWindowLocation( { assign: jest.fn() } );
 
 		const testOauthUrl =
 			'https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_5678&scope=read_write&state=5678';
@@ -161,20 +136,11 @@ describe( 'ConnectStripeAccount', () => {
 				} ),
 			} )
 		);
-
-		// Set the original function back to keep further tests working as expected.
-		Object.defineProperty( window, 'location', {
-			value: { assign },
-		} );
 	} );
 
 	it( 'should disable the live button and show tooltip when SSL is not enabled', async () => {
 		// Mock non-SSL protocol
-		const protocol = window.location.protocol;
-		Object.defineProperty( window, 'location', {
-			value: { ...window.location, protocol: 'http:' },
-			writable: true,
-		} );
+		global.__mockWindowLocation( { protocol: 'http:' } );
 
 		const { container } = render( <ConnectStripeAccount /> );
 
@@ -216,11 +182,5 @@ describe( 'ConnectStripeAccount', () => {
 			'wcstripe_create_or_connect_account_click',
 			{}
 		);
-
-		// Restore original protocol
-		Object.defineProperty( window, 'location', {
-			value: { ...window.location, protocol },
-			writable: true,
-		} );
 	} );
 } );

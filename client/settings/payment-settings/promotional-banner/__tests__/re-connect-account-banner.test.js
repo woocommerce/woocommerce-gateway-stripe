@@ -55,12 +55,7 @@ describe( 'Reconnect banner', () => {
 	} );
 
 	it( 'should fetch OAuth URL and redirect on button click in test mode', async () => {
-		// Keep the original function at hand.
-		const assign = window.location.assign;
-
-		Object.defineProperty( window, 'location', {
-			value: { assign: jest.fn() },
-		} );
+		global.__mockWindowLocation( { assign: jest.fn() } );
 
 		const oauthUrl = 'http://example.com/test-oauth';
 
@@ -102,22 +97,12 @@ describe( 'Reconnect banner', () => {
 				} ),
 			} )
 		);
-
-		// Set the original function back to keep further tests working as expected.
-		Object.defineProperty( window, 'location', {
-			value: { assign },
-		} );
 	} );
 
 	it( 'should fetch OAuth URL and redirect on button click in live mode', async () => {
 		useTestMode.mockReturnValue( [ false, jest.fn() ] );
 
-		// Keep the original function at hand.
-		const assign = window.location.assign;
-
-		Object.defineProperty( window, 'location', {
-			value: { assign: jest.fn() },
-		} );
+		global.__mockWindowLocation( { assign: jest.fn() } );
 
 		const oauthUrl = 'http://example.com/live-oauth';
 
@@ -159,11 +144,6 @@ describe( 'Reconnect banner', () => {
 				} ),
 			} )
 		);
-
-		// Set the original function back to keep further tests working as expected.
-		Object.defineProperty( window, 'location', {
-			value: { assign },
-		} );
 	} );
 
 	it( 'should create error notice when AJAX request fails', async () => {

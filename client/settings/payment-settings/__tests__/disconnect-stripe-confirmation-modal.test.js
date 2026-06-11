@@ -18,7 +18,6 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 } ) );
 
 describe( 'DisconnectStripeConfirmationModal', () => {
-	const windowLocation = window.location;
 	let handleCloseMock, saveAccountKeysMock, setKeepModalContentMock;
 
 	beforeEach( () => {
@@ -34,14 +33,10 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 		} ) );
 		useDispatch.mockReturnValue( {} );
 
-		delete window.location;
-		window.location = {
-			reload: jest.fn(),
-		};
+		global.__mockWindowLocation( { reload: jest.fn() } );
 	} );
 
 	afterEach( () => {
-		window.location = windowLocation;
 		jest.restoreAllMocks();
 	} );
 

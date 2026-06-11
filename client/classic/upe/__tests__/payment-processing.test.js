@@ -667,9 +667,7 @@ describe( 'payment-processing', () => {
 			};
 
 			it( 'submits form via AJAX, then confirms with order-received URL', async () => {
-				const originalLocation = window.location;
-				delete window.location;
-				window.location = { href: '', assign: jest.fn() };
+				global.__mockWindowLocation( { href: '' } );
 
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
@@ -715,13 +713,10 @@ describe( 'payment-processing', () => {
 				} );
 				// After confirm resolves, navigates to the order-received page.
 				expect( window.location.href ).toBe( orderReceivedUrl );
-				window.location = originalLocation;
 			} );
 
 			it( 'passes savePaymentMethod true when logged in and the save card checkbox is checked', async () => {
-				const originalLocation = window.location;
-				delete window.location;
-				window.location = { href: '', assign: jest.fn() };
+				global.__mockWindowLocation( { href: '' } );
 
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
@@ -761,14 +756,10 @@ describe( 'payment-processing', () => {
 					redirect: 'if_required',
 					savePaymentMethod: true,
 				} );
-
-				window.location = originalLocation;
 			} );
 
 			it( 'does not pass savePaymentMethod for guests even when the save card checkbox is checked', async () => {
-				const originalLocation = window.location;
-				delete window.location;
-				window.location = { href: '', assign: jest.fn() };
+				global.__mockWindowLocation( { href: '' } );
 
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
@@ -807,8 +798,6 @@ describe( 'payment-processing', () => {
 					returnUrl: orderReceivedUrl,
 					redirect: 'if_required',
 				} );
-
-				window.location = originalLocation;
 			} );
 
 			it( 'shows error and skips confirm when checkout AJAX fails', async () => {
