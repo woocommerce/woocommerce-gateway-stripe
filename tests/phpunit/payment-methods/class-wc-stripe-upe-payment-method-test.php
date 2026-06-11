@@ -1229,6 +1229,16 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 				'',
 				false,
 			],
+			'empty list permits null country'        => [
+				[],
+				null,
+				true,
+			],
+			'populated list rejects null country'        => [
+				[ 'US', 'CA', 'GB' ],
+				null,
+				false,
+			],
 			'populated list matches'                 => [
 				[ 'US', 'CA' ],
 				'CA',
