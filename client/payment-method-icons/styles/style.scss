@@ -1,0 +1,26 @@
+.wc-stripe-payment-method-icon {
+	box-sizing: border-box;
+	display: inline-flex;
+	justify-content: center;
+
+	/*
+	 * Most icons need a border. Ensuring that the border is part of the icon's size 
+	 * allows for consistent spacing. The default border is transparent, but it's still
+	 * part of the icon's size.
+	 */
+	border: 1px solid transparent;
+
+	&.wc-stripe-payment-method-icon__small {
+		height: 24px;
+		width: 37px;
+	}
+
+	&.wc-stripe-payment-method-icon__medium {
+		height: 40px;
+		width: 65px;
+	}
+
+	img {
+		max-width: 100%;
+	}
+}

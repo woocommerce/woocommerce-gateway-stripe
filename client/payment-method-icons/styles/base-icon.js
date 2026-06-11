@@ -1,39 +1,36 @@
 import React from 'react';
-import styled from '@emotion/styled';
-import { css } from '@emotion/react';
+import clsx from 'clsx';
+import './style.scss';
 
-const IconSizesMap = {
-	small: css`
-		height: 24px;
-		width: 37px;
-	`,
-	medium: css`
-		height: 40px;
-		width: 65px;
-	`,
+/**
+ * Base icon component for payment method icons.
+ *
+ * @param {Object} props
+ * @param {string} props.src       The image URL for the icon.
+ * @param {string} props.children  The children of the icon. Only used when src is not provided.
+ * @param {string} props.alt       The alt text of the icon. Only used when src is provided.
+ * @param {string} props.size      The size of the icon. Defaults to 'small', but can also be 'medium'.
+ * @param {string} props.className The class name of the icon.
+ * @return {JSX.Element} The rendered icon component.
+ */
+const BaseIcon = ( {
+	src,
+	children,
+	alt,
+	size = 'small',
+	className,
+	...restProps
+} ) => {
+	const classes = clsx( 'wc-stripe-payment-method-icon', className, {
+		'wc-stripe-payment-method-icon__small': size === 'small',
+		'wc-stripe-payment-method-icon__medium': size === 'medium',
+	} );
+
+	return (
+		<span className={ classes } { ...restProps }>
+			{ src ? <img src={ src } alt={ alt } /> : children }
+		</span>
+	);
 };
-
-const Wrapper = styled.span`
-	// also accounts for null size
-	${ ( { size } ) => IconSizesMap[ size ] || '' }
-
-	box-sizing: border-box;
-	display: inline-flex;
-	justify-content: center;
-
-	// most icons need a border. Ensuring that the border is part of the icon's size allows for consistent spacing.
-	// in this case, the icon's border is just transparent (but it's still part of the icon's size).
-	border: 1px solid transparent;
-
-	img {
-		max-width: 100%;
-	}
-`;
-
-const BaseIcon = ( { src, children, alt, size = 'small', ...restProps } ) => (
-	<Wrapper { ...restProps } size={ size }>
-		{ src ? <img src={ src } alt={ alt } /> : children }
-	</Wrapper>
-);
 
 export default BaseIcon;
