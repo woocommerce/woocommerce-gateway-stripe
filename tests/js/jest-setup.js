@@ -1,6 +1,12 @@
 import '@testing-library/jest-dom';
 import nock from 'nock';
 
+const resetWindowLocation = () => {
+	if ( typeof global.__resetWindowLocation === 'function' ) {
+		global.__resetWindowLocation();
+	}
+};
+
 beforeAll( () => {
 	// ensures that the tests don't use any real endpoints
 	nock.disableNetConnect();
@@ -14,6 +20,8 @@ beforeEach( () => {
 	if ( ! nock.isActive() ) {
 		nock.activate();
 	}
+
+	resetWindowLocation();
 } );
 
 afterEach( () => {
@@ -22,6 +30,7 @@ afterEach( () => {
 		jest.clearAllTimers();
 		nock.cleanAll();
 		nock.restore();
+		resetWindowLocation();
 	}
 
 	if ( nock.isDone() ) {

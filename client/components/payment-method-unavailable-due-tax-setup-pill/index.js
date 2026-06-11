@@ -1,5 +1,5 @@
-import React from 'react';
 import { __, sprintf } from '@wordpress/i18n';
+import React from 'react';
 import PaymentMethodUnavailablePill from 'wcstripe/components/payment-method-unavailable-pill';
 
 const PaymentMethodUnavailableDueTaxSetupPill = ( { label } ) => {
@@ -11,7 +11,7 @@ const PaymentMethodUnavailableDueTaxSetupPill = ( { label } ) => {
 			) }
 		>
 			{ sprintf(
-				/* translators: $1: a payment method name */
+				/* translators: %1$s: a payment method name */
 				__(
 					"%1$s is unavailable due to the store tax setup being based on the customer's billing address.",
 					'woocommerce-gateway-stripe'

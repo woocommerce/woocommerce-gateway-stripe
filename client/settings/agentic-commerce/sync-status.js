@@ -1,8 +1,9 @@
+import { __, _n, sprintf } from '@wordpress/i18n';
+import { dispatch } from '@wordpress/data';
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from '@emotion/styled';
 import { check, close, help, info, pending, warning } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
-import { __, _n, sprintf } from '@wordpress/i18n';
 import {
 	Button,
 	Card,
@@ -13,7 +14,6 @@ import {
 	Notice,
 	Tooltip,
 } from '@wordpress/components';
-import { dispatch } from '@wordpress/data';
 import CardBody from 'wcstripe/settings/card-body';
 import Pill from 'wcstripe/components/pill';
 import { useTestMode } from 'wcstripe/data';
@@ -288,14 +288,20 @@ const SyncStatusBadge = ( { status } ) => {
 };
 
 const formatTimestamp = ( timestamp ) => {
-	if ( ! timestamp ) return '—';
+	if ( ! timestamp ) {
+		return '—';
+	}
 	return new Date( timestamp * 1000 ).toLocaleString();
 };
 
 const humanTimeDiff = ( timestamp ) => {
-	if ( ! timestamp ) return '';
+	if ( ! timestamp ) {
+		return '';
+	}
 	const diffSec = Math.floor( Date.now() / 1000 ) - timestamp;
-	if ( diffSec < 60 ) return __( 'just now', 'woocommerce-gateway-stripe' );
+	if ( diffSec < 60 ) {
+		return __( 'just now', 'woocommerce-gateway-stripe' );
+	}
 	if ( diffSec < 3600 ) {
 		const m = Math.floor( diffSec / 60 );
 		return sprintf(
@@ -394,13 +400,16 @@ const AgenticCommerceSyncStatus = () => {
 		: 'https://dashboard.stripe.com/data-management/import-sets';
 
 	const computeNextSyncLabel = () => {
-		if ( ! nextSync ) return null;
+		if ( ! nextSync ) {
+			return null;
+		}
 		const secondsUntil = nextSync - Math.floor( Date.now() / 1000 );
-		if ( secondsUntil <= 0 )
+		if ( secondsUntil <= 0 ) {
 			return __(
 				'Next automatic sync: imminent.',
 				'woocommerce-gateway-stripe'
 			);
+		}
 		const minutes = Math.ceil( secondsUntil / 60 );
 		return sprintf(
 			/* translators: %d: number of minutes until next sync */

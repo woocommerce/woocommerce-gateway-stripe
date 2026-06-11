@@ -1,6 +1,6 @@
+import { __ } from '@wordpress/i18n';
 import jQuery from 'jquery';
 import { getErrorMessageFromNotice, normalizeOrderData } from './utils';
-import { __ } from '@wordpress/i18n';
 
 /**
  * Handles exceptions thrown during the payment flow by extracting a human-readable

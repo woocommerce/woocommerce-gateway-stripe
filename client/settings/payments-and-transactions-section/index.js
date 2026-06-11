@@ -1,17 +1,17 @@
+import { __ } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from '@automattic/interpolate-components';
-import CardBody from '../card-body';
-import StatementPreviewsWrapper from './statement-previews-wrapper';
-import StatementPreview from './statement-preview';
-import ManualCaptureControl from './manual-capture-control';
 import {
 	Card,
 	CheckboxControl,
 	TextControl,
 	ExternalLink,
 } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
+import CardBody from '../card-body';
+import StatementPreviewsWrapper from './statement-previews-wrapper';
+import StatementPreview from './statement-preview';
+import ManualCaptureControl from './manual-capture-control';
 import { useAccount } from 'wcstripe/data/account';
 import {
 	useSavedCards,

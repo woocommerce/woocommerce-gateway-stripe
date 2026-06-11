@@ -1,21 +1,21 @@
 /* global wc_stripe_settings_params */
+import { createInterpolateElement } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 import React, { useEffect, useRef, useMemo } from 'react';
 import { getQuery } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
-import {
-	useIsAdaptivePricingEnabled,
-	useIsOCEnabled,
-	useOCLayout,
-} from '../../data';
-import OptimizedCheckoutFirstMethodNotice from './optimized-checkout-first-method-notice';
 import {
 	CheckboxControl,
 	ExternalLink,
 	Notice,
 	RadioControl,
 } from '@wordpress/components';
-import { createInterpolateElement } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import {
+	useIsAdaptivePricingEnabled,
+	useIsOCEnabled,
+	useOCLayout,
+} from '../../data';
+import OptimizedCheckoutFirstMethodNotice from './optimized-checkout-first-method-notice';
 
 import './style.scss';
 

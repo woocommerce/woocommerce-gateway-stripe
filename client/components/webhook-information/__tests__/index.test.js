@@ -8,7 +8,7 @@ describe( 'WebhookInformation', () => {
 
 		expect( container.firstChild ).not.toBeNull();
 		expect( container.firstChild ).toHaveTextContent(
-			'Click the Configure connection button to configure a webhook(opens in a new tab). This will complete your Stripe account connection process.'
+			'Click the Configure connection button to configure a webhook↗. This will complete your Stripe account connection process.'
 		);
 	} );
 } );

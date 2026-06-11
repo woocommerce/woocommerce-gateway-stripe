@@ -1,9 +1,9 @@
+import { useDispatch } from '@wordpress/data';
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import PromotionalBanner from '..';
-import { useDispatch } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
+import PromotionalBanner from '..';
 import {
 	OC_PROMOTION_BANNER,
 	RECONNECT_BANNER,
@@ -37,22 +37,14 @@ useDispatch.mockImplementation( ( storeName ) => {
 const setShowPromotionalBanner = jest.fn();
 
 describe( 'PromotionalBanner', () => {
-	// Keep the original function.
-	const reload = window.location.reload;
 	beforeEach( () => {
-		Object.defineProperty( window, 'location', {
-			value: { reload: jest.fn() },
-		} );
+		global.__mockWindowLocation( { reload: jest.fn() } );
 		apiFetch.mockImplementation(
 			jest.fn( () => Promise.resolve( { data: {} } ) )
 		);
 	} );
 
 	afterEach( () => {
-		// Set the original function back to keep further tests working as expected.
-		Object.defineProperty( window, 'location', {
-			value: { reload },
-		} );
 		jest.restoreAllMocks();
 	} );
 

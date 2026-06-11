@@ -1,5 +1,5 @@
-import { React } from 'react';
 import { __ } from '@wordpress/i18n';
+import { React } from 'react';
 import { ExternalLink } from '@wordpress/components';
 import CardBody from 'wcstripe/settings/card-body';
 import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/default.svg';

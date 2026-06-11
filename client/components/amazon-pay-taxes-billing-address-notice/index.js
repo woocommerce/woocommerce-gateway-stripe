@@ -1,8 +1,8 @@
 import { getAdminLink } from '@woocommerce/settings';
+import { __ } from '@wordpress/i18n';
 import React from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import { Notice } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
 import { useAmazonPayEnabledSettings } from 'wcstripe/data';
 
 import './style.scss';

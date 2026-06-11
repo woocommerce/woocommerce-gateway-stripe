@@ -1,5 +1,5 @@
-import confirmCardPayment from './confirm-card-payment.js';
 import { useEffect } from '@wordpress/element';
+import confirmCardPayment from './confirm-card-payment.js';
 
 /**
  * Handles the Block Checkout onCheckoutSuccess event.

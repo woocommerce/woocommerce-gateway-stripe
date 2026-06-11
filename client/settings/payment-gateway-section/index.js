@@ -1,6 +1,13 @@
+import { __, sprintf } from '@wordpress/i18n';
 import { React } from 'react';
 import { getQuery } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
+import {
+	Card,
+	CheckboxControl,
+	TextControl,
+	Button,
+} from '@wordpress/components';
 import CardBody from '../card-body';
 import { gatewaysInfo } from '../payment-gateway-manager/constants';
 import LoadablePaymentGatewaySection from '../loadable-payment-gateway-section';
@@ -11,13 +18,6 @@ import {
 	usePaymentGatewayName,
 	usePaymentGatewayDescription,
 } from '../../data/payment-gateway/hooks';
-import {
-	Card,
-	CheckboxControl,
-	TextControl,
-	Button,
-} from '@wordpress/components';
-import { __, sprintf } from '@wordpress/i18n';
 import PaymentMethodCapabilityStatusPill from 'wcstripe/components/payment-method-capability-status-pill';
 import { WebhookInformation } from 'wcstripe/components/webhook-information';
 import usePaymentMethodUnavailableReason from 'wcstripe/utils/use-payment-method-unavailable-reason';

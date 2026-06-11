@@ -1,7 +1,7 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import AgenticCommerceSection from '..';
-import apiFetch from '@wordpress/api-fetch';
 import { dispatch } from '@wordpress/data';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import apiFetch from '@wordpress/api-fetch';
+import AgenticCommerceSection from '..';
 import { useTestMode } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
 

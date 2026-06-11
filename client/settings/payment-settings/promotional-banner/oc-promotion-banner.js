@@ -1,8 +1,8 @@
+import { useDispatch } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from '@automattic/interpolate-components';
-import { useDispatch } from '@wordpress/data';
-import { __ } from '@wordpress/i18n';
 import CardBody from 'wcstripe/settings/card-body';
 import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/oc.svg';
 import {

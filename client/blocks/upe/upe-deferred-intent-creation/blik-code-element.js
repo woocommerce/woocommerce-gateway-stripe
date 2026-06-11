@@ -1,6 +1,6 @@
 import { ValidatedTextInput } from '@woocommerce/blocks-checkout';
-import { useState } from 'react';
 import { __ } from '@wordpress/i18n';
+import { useState } from 'react';
 
 const BlikCodeElement = () => {
 	const [ blikCode, setBlikCode ] = useState( '' );

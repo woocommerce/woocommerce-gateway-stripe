@@ -1,5 +1,7 @@
 /* global wc_stripe_upe_params, wc_stripe_express_checkout_params */
 import { getSetting } from '@woocommerce/settings';
+import { __ } from '@wordpress/i18n';
+import { dispatch } from '@wordpress/data';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -9,8 +11,6 @@ import {
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_CARD,
 } from './constants';
-import { __ } from '@wordpress/i18n';
-import { dispatch } from '@wordpress/data';
 import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 
 /**

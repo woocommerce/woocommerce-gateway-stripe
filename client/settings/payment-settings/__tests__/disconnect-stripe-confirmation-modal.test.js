@@ -1,8 +1,8 @@
+import { useDispatch } from '@wordpress/data';
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DisconnectStripeConfirmationModal from '../disconnect-stripe-confirmation-modal';
-import { useDispatch } from '@wordpress/data';
 import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
 
 jest.mock( '@wordpress/data', () => ( {
@@ -18,7 +18,6 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 } ) );
 
 describe( 'DisconnectStripeConfirmationModal', () => {
-	const windowLocation = window.location;
 	let handleCloseMock, saveAccountKeysMock, setKeepModalContentMock;
 
 	beforeEach( () => {
@@ -34,14 +33,10 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 		} ) );
 		useDispatch.mockReturnValue( {} );
 
-		delete window.location;
-		window.location = {
-			reload: jest.fn(),
-		};
+		global.__mockWindowLocation( { reload: jest.fn() } );
 	} );
 
 	afterEach( () => {
-		window.location = windowLocation;
 		jest.restoreAllMocks();
 	} );
 

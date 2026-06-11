@@ -1,9 +1,9 @@
 /* global wc_stripe_settings_params */
+import { __ } from '@wordpress/i18n';
 import styled from '@emotion/styled';
 import React, { useState } from 'react';
 import { info } from '@wordpress/icons';
 import { Icon, Notice } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
 import { dismissNotice } from 'wcstripe/utils';
 
 const NoticeWrapper = styled( Notice )`

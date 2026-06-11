@@ -1,7 +1,7 @@
 /* global wc_stripe_settings_params, ajaxurl */
-import { React, useState } from 'react';
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
+import { React, useState } from 'react';
 import CardBody from 'wcstripe/settings/card-body';
 import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/reconnect.svg';
 import { recordEvent } from 'wcstripe/tracking';

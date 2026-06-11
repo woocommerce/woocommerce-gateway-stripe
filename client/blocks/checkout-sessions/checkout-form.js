@@ -1,10 +1,10 @@
+import { __ } from '@wordpress/i18n';
 import {
 	CurrencySelectorElement,
 	PaymentElement,
 	useCheckout,
 } from '@stripe/react-stripe-js/checkout';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { __ } from '@wordpress/i18n';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
 import {

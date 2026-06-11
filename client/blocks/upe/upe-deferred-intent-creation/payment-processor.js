@@ -2,6 +2,8 @@
  * External dependencies
  */
 import { getPaymentMethods } from '@woocommerce/blocks-registry';
+import { __ } from '@wordpress/i18n';
+import { select } from '@wordpress/data';
 import {
 	PaymentElement,
 	useElements,
@@ -15,8 +17,6 @@ import { useEffect, useState, useRef } from 'react';
 import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
 import RedirectMessageElement from './redirect-message-element';
 import BlikCodeElement from './blik-code-element';
-import { __ } from '@wordpress/i18n';
-import { select } from '@wordpress/data';
 import {
 	getBlocksConfiguration,
 	getStripeElementOptions,

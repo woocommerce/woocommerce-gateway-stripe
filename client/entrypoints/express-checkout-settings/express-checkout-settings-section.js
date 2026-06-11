@@ -1,17 +1,17 @@
 /* global wc_stripe_express_checkout_settings_params */
 import { ADMIN_URL, getSetting } from '@woocommerce/settings';
+import { __ } from '@wordpress/i18n';
 import React, { useMemo } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import { loadStripe } from '@stripe/stripe-js';
 import styled from '@emotion/styled';
-import ExpressCheckoutPreviewComponent from './express-checkout-preview-component';
 import {
 	Card,
 	RadioControl,
 	CheckboxControl,
 	Notice,
 } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
+import ExpressCheckoutPreviewComponent from './express-checkout-preview-component';
 import {
 	useExpressCheckoutEnabledSettings,
 	useExpressCheckoutLocations,

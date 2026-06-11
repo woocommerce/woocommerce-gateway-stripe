@@ -1,3 +1,4 @@
+import { useSelect, useDispatch } from '@wordpress/data';
 import { renderHook, act } from '@testing-library/react';
 import {
 	useEnabledPaymentMethodIds,
@@ -25,7 +26,6 @@ import {
 	useIsAdaptivePricingEnabled,
 } from '../hooks';
 import { STORE_NAME } from '../../constants';
-import { useSelect, useDispatch } from '@wordpress/data';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_EPS,

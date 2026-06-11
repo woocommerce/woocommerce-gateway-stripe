@@ -4,12 +4,8 @@ import { useStripe } from '@stripe/react-stripe-js';
 import ExpressCheckoutButtonPreview from '../express-checkout-button-preview';
 import { shouldUseGooglePayBrand } from '../utils/utils';
 
-// We need to mock the actual module being used by `<Notice />` in the `@wordpress/components` module
-const realPathToA11yModule =
-	'@wordpress/components/node_modules/@wordpress/a11y';
-
-jest.mock( realPathToA11yModule, () => ( {
-	...jest.requireActual( realPathToA11yModule ),
+jest.mock( '@wordpress/a11y', () => ( {
+	...jest.requireActual( '@wordpress/a11y' ),
 	speak: jest.fn(),
 } ) );
 
@@ -17,12 +13,23 @@ jest.mock( '../utils/utils', () => ( {
 	shouldUseGooglePayBrand: jest.fn(),
 } ) );
 
-jest.mock( '@stripe/react-stripe-js', () => ( {
-	PaymentRequestButtonElement: jest
-		.fn()
-		.mockReturnValue( <button type="submit">Stripe button mock</button> ),
-	useStripe: jest.fn(),
-} ) );
+jest.mock( '@stripe/react-stripe-js', () => {
+	// Build the element manually via `React.createElement` as this code
+	// doesn't get processed by the JSX transform.
+	const directReact = require( 'react' );
+	return {
+		PaymentRequestButtonElement: jest
+			.fn()
+			.mockReturnValue(
+				directReact.createElement(
+					'button',
+					{ type: 'submit' },
+					'Stripe button mock'
+				)
+			),
+		useStripe: jest.fn(),
+	};
+} );
 
 jest.mock( 'wcstripe/data', () => ( {
 	useExpressCheckoutButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
