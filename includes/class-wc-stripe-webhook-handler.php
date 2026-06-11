@@ -1812,15 +1812,24 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order_helper->update_stripe_source_id( $order, $payment_method_id );
 			}
 
+			// Fetch the charge once; reused below.
+			$charge = $this->get_latest_charge_from_intent( $intent );
+
 			// Save payment method to store if the customer requested it during checkout.
 			if ( $order_helper->get_should_save_stripe_payment_method( $order ) && ! empty( $payment_method_id ) ) {
 				$upe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
 				$payment_method_object = is_object( $intent->payment_method ) ? $intent->payment_method : WC_Stripe_API::retrieve( 'payment_methods/' . $payment_method_id );
-				if ( ! is_wp_error( $payment_method_object ) && empty( $payment_method_object->error ) && ! empty( $payment_method_object ) ) {
-					$upe_gateway->handle_saving_payment_method( $order, $payment_method_object, $payment_method_object->type );
+				if ( $upe_gateway instanceof WC_Stripe_UPE_Payment_Gateway && ! is_wp_error( $payment_method_object ) && empty( $payment_method_object->error ) && ! empty( $payment_method_object ) ) {
+					// Get the payment method details that should be saved. That may be different from the
+					// original payment method, e.g. for Bancontact and iDEAL/Wero, which are saved as SEPA.
+					$payment_method_to_save = $upe_gateway->get_reusable_payment_method_for_saving( $payment_method_object, $charge );
 
-					// Clear the flag so it does not run again on webhook retries.
+					if ( is_object( $payment_method_to_save ) && ! empty( $payment_method_to_save->type ) ) {
+						$upe_gateway->handle_saving_payment_method( $order, $payment_method_to_save, $payment_method_to_save->type );
+					}
+
+					// Clear the flag so retries don't re-run this, even when nothing was saved.
 					$order_helper->delete_should_save_stripe_payment_method( $order );
 				}
 			}
@@ -1835,8 +1844,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			$order->save();
-
-			$charge = $this->get_latest_charge_from_intent( $intent );
 
 			$charge->is_webhook_response = true;
 			$this->process_response( $charge, $order );
