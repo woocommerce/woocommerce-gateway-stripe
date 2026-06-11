@@ -1481,29 +1481,28 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
 
-		// Persist the 'save-payment-method' flag so the webhook handler can create the token once payment is completed.
-		$upe_payment_method = $this->payment_methods[ $selected_payment_type ] ?? null;
-		if ( $save_payment_method && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
-			$order_helper->update_should_save_stripe_payment_method( $order, true );
-		}
-
-		// Eagerly set the payment method title from the customer's selection so the order
-		// reflects the right method as soon as it lands on the order-received page, even if
-		// the checkout.session.completed webhook is delayed. Prefer the type the customer
-		// actually picked inside the Stripe Element (sent via the hidden
-		// `wc_stripe_selected_upe_payment_type` input by the Optimized Checkout JS) over
-		// the gateway-derived `$selected_payment_type`, which for Optimized Checkout is
-		// always 'card' and would otherwise resolve to the OC pseudo-method's "Stripe"
-		// title. The webhook handler will reaffirm/refine this once the actual payment
-		// method type is known from the intent.
+		// Resolve the method the customer actually picked: for Optimized Checkout the gateway type is
+		// always 'card', so prefer the hidden `wc_stripe_selected_upe_payment_type` input when present.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_upe_payment_type = isset( $_POST['wc_stripe_selected_upe_payment_type'] )
 			? sanitize_text_field( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) )
 			: '';
 
-		$title_payment_type = ( ! empty( $selected_upe_payment_type ) && isset( $this->payment_methods[ $selected_upe_payment_type ] ) )
+		$resolved_payment_type   = ( ! empty( $selected_upe_payment_type ) && isset( $this->payment_methods[ $selected_upe_payment_type ] ) )
 			? $selected_upe_payment_type
 			: $selected_payment_type;
+		$resolved_payment_method = $this->payment_methods[ $resolved_payment_type ] ?? null;
+
+		// Persist the 'save-payment-method' flag so the webhook handler can create the token once payment is completed.
+		// Saving itself is requested client-side via `checkout.confirm( { savePaymentMethod } )`, which Stripe
+		// only honors for cards: Checkout Sessions cannot request `setup_future_usage` for methods that convert
+		// to SEPA (Bancontact, iDEAL, Sofort), so for those no reusable method is generated and the webhook
+		// skips token creation.
+		if ( $save_payment_method && $resolved_payment_method && $resolved_payment_method->is_reusable() ) {
+			$order_helper->update_should_save_stripe_payment_method( $order, true );
+		}
+
+		$title_payment_type = $resolved_payment_type;
 
 		if ( isset( $this->payment_methods[ $title_payment_type ] ) ) {
 			$this->set_payment_method_title_for_order( $order, $title_payment_type );
@@ -3707,6 +3706,54 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$this->maybe_update_source_on_subscription_order( $order, $prepared_payment_method_object, $this->get_upe_gateway_id_for_order( $payment_method_instance ) );
 
 		do_action( 'woocommerce_stripe_add_payment_method', $user->ID, $payment_method_object );
+	}
+
+	/**
+	 * Resolves the PaymentMethod that should be saved as a token.
+	 *
+	 * Payment methods that are saved as secondary types need special logic to get the saved payment
+	 * method details. This primarily occurs for Bancontact and iDEAL/Wero, which are saved as SEPA tokens.
+	 *
+	 * @param stdClass           $payment_method_object The PaymentMethod object used for the payment.
+	 * @param object|string|null $charge                The latest charge from the intent, if available.
+	 *
+	 * @return stdClass|null The payment method to save, or null. The payment method may need to be
+	 *                       resolved for payment methods that have been converted to SEPA or similar.
+	 */
+	public function get_reusable_payment_method_for_saving( stdClass $payment_method_object, $charge ) {
+		$type = $payment_method_object->type ?? '';
+		if ( '' === $type ) {
+			return $payment_method_object;
+		}
+
+		$instance = $this->get_payment_method_instance( $type );
+
+		// No conversion needed when the method is saved under its own type (e.g. card, sepa_debit).
+		if ( ! $instance instanceof WC_Stripe_UPE_Payment_Method || $instance->get_id() === $instance->get_retrievable_type() ) {
+			return $payment_method_object;
+		}
+
+		// Only SEPA-tokenized methods expose their reusable mandate as `generated_sepa_debit` on the charge.
+		$generated_payment_method_id = null;
+		if ( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $instance->get_retrievable_type() ) {
+			$generated_payment_method_id = is_object( $charge ) ? ( $charge->payment_method_details->{$type}->generated_sepa_debit ?? null ) : null;
+		}
+
+		if ( empty( $generated_payment_method_id ) ) {
+			return null;
+		}
+
+		$generated_payment_method = WC_Stripe_API::retrieve( 'payment_methods/' . $generated_payment_method_id );
+		if ( empty( $generated_payment_method ) || is_wp_error( $generated_payment_method ) || ! is_object( $generated_payment_method ) || ! empty( $generated_payment_method->error ) ) {
+			return null;
+		}
+
+		/**
+		 * Decoded Stripe API JSON objects are always stdClass.
+		 *
+		 * @var stdClass $generated_payment_method
+		 */
+		return $generated_payment_method;
 	}
 
 	/**

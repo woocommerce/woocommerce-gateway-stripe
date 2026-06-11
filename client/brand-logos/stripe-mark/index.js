@@ -1,4 +1,4 @@
-import classNames from 'classnames';
+import clsx from 'clsx';
 import mark from './mark.svg';
 import { __ } from '@wordpress/i18n';
 
@@ -13,7 +13,7 @@ import { __ } from '@wordpress/i18n';
  */
 const StripeMark = ( { className, ...restProps } ) => (
 	<img
-		className={ classNames( 'woocommerce-stripe-mark-logo', className ) }
+		className={ clsx( 'woocommerce-stripe-mark-logo', className ) }
 		src={ mark }
 		width="64"
 		height="64"

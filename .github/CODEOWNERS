@@ -1,0 +1,5 @@
+# CODEOWNERS
+# https://docs.github.com/en/repositories/managing-your-repositories-settings-and-features/customizing-your-repository/about-code-owners
+#
+# The Quark team is requested for review on every pull request.
+* @woocommerce/quark

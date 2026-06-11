@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from '@emotion/styled';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import LoadableSettingsSection from '../loadable-settings-section';
 import SectionHeading from './section-heading';
 import SectionFooter from './section-footer';
@@ -75,7 +75,7 @@ const GeneralSettingsSection = ( { onSaveChanges } ) => {
 						</VisuallyHidden>
 					) }
 					<AccountRefreshingOverlay
-						className={ classNames( {
+						className={ clsx( {
 							'has-overlay': isRefreshing,
 						} ) }
 					>

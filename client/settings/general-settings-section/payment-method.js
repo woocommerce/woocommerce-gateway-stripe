@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import classnames from 'classnames';
+import clsx from 'clsx';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethodCheckbox from './payment-method-checkbox';
@@ -86,7 +86,7 @@ const PaymentMethod = ( { method, data } ) => {
 		<div key={ method }>
 			<ListElement
 				key={ method }
-				className={ classnames( {
+				className={ clsx( {
 					'has-overlay':
 						! isAllowingManualCapture && isManualCaptureEnabled,
 				} ) }

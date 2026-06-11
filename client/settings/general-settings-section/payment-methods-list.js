@@ -1,7 +1,7 @@
 import { getSetting } from '@woocommerce/settings';
 import React, { useMemo } from 'react';
 import styled from '@emotion/styled';
-import classnames from 'classnames';
+import clsx from 'clsx';
 import { Icon as IconComponent, dragHandle } from '@wordpress/icons';
 import { Reorder } from 'framer-motion';
 import PaymentMethodsMap from '../../payment-methods-map';
@@ -210,7 +210,7 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 					<DraggableListElement
 						key={ method }
 						value={ method }
-						className={ classnames( {
+						className={ clsx( {
 							'has-overlay':
 								! isAllowingManualCapture &&
 								isManualCaptureEnabled,
