@@ -1209,27 +1209,37 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 
 	public function provide_test_is_available_for_billing_country(): array {
 		return [
-			'empty list permits any country (US)' => [
+			'empty list permits any country (US)'    => [
 				[],
 				'US',
 				true,
 			],
-			'empty list permits any country (ZZ)' => [
+			'empty list permits any country (ZZ)'    => [
 				[],
 				'ZZ',
 				true,
 			],
-			'populated list matches'              => [
+			'empty list permits unknown country'     => [
+				[],
+				'',
+				true,
+			],
+			'populated list rejects unknown country' => [
+				[ 'US', 'CA' ],
+				'',
+				false,
+			],
+			'populated list matches'                 => [
 				[ 'US', 'CA' ],
 				'CA',
 				true,
 			],
-			'populated list rejects miss'         => [
+			'populated list rejects miss'            => [
 				[ 'US', 'CA' ],
 				'GB',
 				false,
 			],
-			'case-sensitive comparison'           => [
+			'case-sensitive comparison'              => [
 				[ 'US' ],
 				'us',
 				true,
