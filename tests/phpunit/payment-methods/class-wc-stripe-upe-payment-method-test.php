@@ -1197,11 +1197,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	/**
 	 * @dataProvider provide_test_is_available_for_billing_country
 	 *
-	 * @param string[] $supported_billing_countries Supported billing countries to seed on the method.
-	 * @param string   $country_code                Billing country to check.
-	 * @param bool     $expected                    Expected return value.
+	 * @param string[]    $supported_billing_countries Supported billing countries to seed on the method.
+	 * @param string|null $country_code                Billing country to check.
+	 * @param bool        $expected                    Expected return value.
 	 */
-	public function test_is_available_for_billing_country( array $supported_billing_countries, string $country_code, bool $expected ): void {
+	public function test_is_available_for_billing_country( array $supported_billing_countries, ?string $country_code, bool $expected ): void {
 		$method = $this->make_method_with_billing_countries( $supported_billing_countries );
 
 		$this->assertSame( $expected, $method->is_available_for_billing_country( $country_code ) );
@@ -1234,7 +1234,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 				null,
 				true,
 			],
-			'populated list rejects null country'        => [
+			'populated list rejects null country'    => [
 				[ 'US', 'CA', 'GB' ],
 				null,
 				false,
