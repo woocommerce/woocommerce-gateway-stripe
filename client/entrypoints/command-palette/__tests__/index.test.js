@@ -13,10 +13,6 @@ jest.mock( '@wordpress/data', () => {
 	};
 } );
 
-jest.mock( '@wordpress/icons', () => ( {
-	payment: 'payment-icon',
-} ) );
-
 jest.mock( '@wordpress/i18n', () => ( {
 	__: ( text ) => text,
 } ) );
@@ -53,14 +49,14 @@ describe( 'command palette registration', () => {
 		] );
 	} );
 
-	it( 'gives each command a Stripe label, icon and a callback that navigates to the Stripe section', () => {
+	it( 'gives each command a Stripe label, the view category and a callback that navigates to the Stripe section', () => {
 		registerStripeCommands();
 
 		registerCommand.mock.calls.forEach( ( [ command ] ) => {
 			expect( command.label ).toEqual(
 				expect.stringContaining( 'Stripe' )
 			);
-			expect( command.icon ).toBe( 'payment-icon' );
+			expect( command.category ).toBe( 'view' );
 
 			delete window.location;
 			window.location = { href: '' };
