@@ -77,7 +77,10 @@ describe( 'BNPL promotional banner', () => {
 				setShowPromotionalBanner={ setShowPromotionalBanner }
 			/>
 		);
-		const link = getByText( 'Learn more' );
+		const linkText = getByText( /Learn more/ );
+
+		// The link text may be wrapped in a span or other element, so we need to find the closest a tag.
+		const link = linkText.closest( 'a' );
 
 		expect( link ).toHaveAttribute(
 			'href',
