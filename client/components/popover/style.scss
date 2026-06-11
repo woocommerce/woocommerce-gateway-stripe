@@ -1,0 +1,16 @@
+.wc-stripe-popover.components-popover {
+	top: -10px !important;
+
+	.components-popover__content {
+		border: 1px solid #ccc;
+		border-radius: 2px;
+		box-shadow: 0 2px 6px 0 rgba( 0, 0, 0, 0.05 );
+		padding: 12px;
+	}
+
+	@media ( min-width: 660px ) {
+		.components-popover__content {
+			width: 250px;
+		}
+	}
+}

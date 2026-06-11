@@ -1,0 +1,32 @@
+@use '../../styles/abstracts/styles';
+
+.wc-stripe-pill.wc-stripe-payment-method-unavailable-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 8px;
+	border: 1px solid styles.$wp-yellow-0;
+	border-radius: 2px;
+	background-color: styles.$wp-yellow-0;
+	color: #674600;
+	font-size: 12px;
+	font-weight: 400;
+	line-height: 16px;
+	width: fit-content;
+
+	.wc-stripe-payment-method-unavailable-pill__icon-wrapper {
+		height: 16px;
+		cursor: pointer;
+	}
+
+	.wc-stripe-payment-method-unavailable-pill__icon {
+		fill: #674600;
+	}
+}
+
+.wc-stripe-payment-method-unavailable-pill__popover-link {
+	&:focus,
+	&:visited {
+		box-shadow: none;
+	}
+}

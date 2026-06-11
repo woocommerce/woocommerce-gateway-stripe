@@ -1,16 +1,17 @@
-import styled from '@emotion/styled';
+import React from 'react';
+import classNames from 'classnames';
+import './style.scss';
 
-const Pill = styled.span`
-	border: 1px solid #757575;
-	border-radius: 28px;
-	color: #757575;
-	display: inline-block;
-	font-size: 12px;
-	font-weight: 400;
-	line-height: 1.4em;
-	padding: 2px 8px;
-	text-align: center;
-	width: fit-content;
-`;
+const Pill = ( { children, ...props } ) => {
+	const { className, ...restProps } = props;
+	return (
+		<span
+			className={ classNames( 'wc-stripe-pill', className ) }
+			{ ...restProps }
+		>
+			{ children }
+		</span>
+	);
+};
 
 export default Pill;
