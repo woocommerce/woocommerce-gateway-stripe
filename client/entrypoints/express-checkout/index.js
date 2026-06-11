@@ -154,12 +154,19 @@ jQuery( function ( $ ) {
 			wcStripeECE.getButtonSeparator().hide();
 		},
 
-		renderButton: ( eceButton, expressPaymentGroupId ) => {
+		renderButton: (
+			eceButton,
+			expressPaymentGroupId,
+			isGrouped = false
+		) => {
 			if ( $( '#wc-stripe-express-checkout-element' ).length ) {
 				const containerName = `wc-stripe-express-checkout-element-${ expressPaymentGroupId }`;
 				if ( ! $( `#${ containerName }` ).length ) {
+					const groupedClass = isGrouped
+						? ' wc-stripe-express-checkout-element__container--grouped'
+						: '';
 					$( '#wc-stripe-express-checkout-element' ).append(
-						`<div id="${ containerName }"></div>`
+						`<div id="${ containerName }" class="wc-stripe-express-checkout-element__container${ groupedClass }"></div>`
 					);
 				}
 
@@ -426,7 +433,11 @@ jQuery( function ( $ ) {
 				},
 			} );
 
-			wcStripeECE.renderButton( eceButton, expressPaymentGroup.id );
+			wcStripeECE.renderButton(
+				eceButton,
+				expressPaymentGroup.id,
+				expressPaymentTypes.length > 1
+			);
 
 			eceButton.on( 'click', async function ( event ) {
 				// If login is required for checkout, display redirect confirmation dialog.
