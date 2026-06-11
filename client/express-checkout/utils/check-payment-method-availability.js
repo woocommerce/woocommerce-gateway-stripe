@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { ExpressCheckoutElement, Elements } from '@stripe/react-stripe-js';
-import { memoize } from 'lodash';
+import memoize from 'memize';
 import {
 	getExpressCheckoutData,
 	getPaymentMethodTypesForExpressMethod,
