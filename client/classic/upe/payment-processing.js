@@ -701,7 +701,20 @@ export async function mountStripePaymentElement( api, domElement ) {
 			if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 				const paymentMethodsConfig =
 					stripeServerData?.paymentMethodsConfig;
+				// Single stable listener that reads the latest selected type
+				// from a shared variable. Using one reference keeps
+				// removeEventListener effective so the checkbox handler never
+				// stacks across change events.
+				let selectedPaymentType;
+				const updateCheckboxListener = () => {
+					handleDisplayOfSavingCheckbox(
+						selectedPaymentType,
+						paymentMethodsConfig
+					);
+				};
 				upeElement.on( 'change', ( { value } ) => {
+					selectedPaymentType = value.type;
+
 					// Mirror the actual selected payment method type into the hidden
 					// input so it's submitted with the form. This lets the server set
 					// the order's payment method title to the actual method (e.g.
@@ -721,12 +734,6 @@ export async function mountStripePaymentElement( api, domElement ) {
 					// Bind the create account checkbox to the save card info container display function.
 					const createAccountCheckbox =
 						document.getElementById( 'createaccount' );
-					const updateCheckboxListener = () => {
-						handleDisplayOfSavingCheckbox(
-							value.type,
-							paymentMethodsConfig
-						);
-					};
 					if ( createAccountCheckbox ) {
 						createAccountCheckbox.removeEventListener(
 							'change',
