@@ -1,0 +1,8 @@
+@use '../../styles/abstracts/styles';
+
+.wc-stripe-webhook-information {
+	.wc-stripe-webhook-information__button-text {
+		padding: 0 2px;
+		background-color: styles.$wp-gray-0;
+	}
+}

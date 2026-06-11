@@ -1,0 +1,12 @@
+// On develop this was `styled( Tooltip )`, whose className flows through to the
+// tooltip popup (`wcstripe-tooltip__tooltip`) — not the wrapper button — so these
+// styled the tooltip bubble. Keep them there to preserve the effective rendering.
+.wcstripe-tooltip__tooltip.wc-stripe-recurring-payment-icon {
+	border-radius: 4px;
+	padding: 5px 10px;
+}
+
+.wc-stripe-recurring-payment-icon__icon {
+	height: 14px;
+	width: 14px;
+}

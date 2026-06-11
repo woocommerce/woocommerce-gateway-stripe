@@ -1,12 +1,9 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import header from './header.svg';
+import './style.scss';
 
-const Image = styled.img`
-	max-width: 100%;
-	width: 100%;
-`;
-
-const StripeBanner = () => <Image src={ header } alt="" />;
+const StripeBanner = () => (
+	<img className="wc-stripe-stripe-banner" src={ header } alt="" />
+);
 
 export default StripeBanner;
