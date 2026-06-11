@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, memo } from 'react';
 import { createPortal } from 'react-dom';
 import classNames from 'classnames';
-import { debounce } from 'wcstripe/utils/debounce';
+import debounce from 'wcstripe/utils/debounce';
 
 import './style.scss';
 
