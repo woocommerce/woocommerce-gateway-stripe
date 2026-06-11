@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { __ } from '@wordpress/i18n';
 import { Button } from '@wordpress/components';
 import { WebhookInformation } from 'wcstripe/components/webhook-information';
@@ -13,7 +13,7 @@ export const WebhookDescription = ( { isWebhookEnabled } ) => {
 	const isWarningMessage = code === 3 || code === 4;
 	const isSuccessMessage = code === 1;
 	const isSuccessMessageWithSecret = isSuccessMessage && isWebhookEnabled;
-	const classes = classNames( 'wc-stripe-webhook-description__content', {
+	const classes = clsx( 'wc-stripe-webhook-description__content', {
 		expanded: isWebhookEnabled,
 		warning: isWarningMessage,
 	} );

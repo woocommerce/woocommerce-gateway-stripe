@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { Icon, info } from '@wordpress/icons';
 import Pill from 'wcstripe/components/pill';
 import Popover from 'wcstripe/components/popover';
@@ -7,7 +7,7 @@ import './style.scss';
 
 const IconComponent = ( { children, className, ...props } ) => (
 	<span
-		className={ classNames(
+		className={ clsx(
 			'wc-stripe-payment-method-unavailable-pill__icon-wrapper',
 			className
 		) }
@@ -47,7 +47,7 @@ const PaymentMethodPopoverLink = ( {
 
 	return (
 		<a
-			className={ classNames(
+			className={ clsx(
 				'wc-stripe-payment-method-unavailable-pill__popover-link',
 				className
 			) }
