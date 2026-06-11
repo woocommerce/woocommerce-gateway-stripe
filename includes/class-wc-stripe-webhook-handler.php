@@ -1731,7 +1731,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
 		if ( ! $order instanceof \WC_Order ) {
 			try {
-				$this->handle_agentic_checkout_session( $notification );
+				if ( WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
+					$this->handle_agentic_checkout_session( $notification );
+				}
 			} finally {
 				WC_Stripe_Database_Cache::delete( $lock_key );
 			}
