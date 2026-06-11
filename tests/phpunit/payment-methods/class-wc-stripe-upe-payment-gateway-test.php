@@ -1939,6 +1939,78 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Saving through the Adaptive Pricing / Checkout Sessions flow must persist the save-payment-method
+	 * flag on the order without any server-side session update: saving is requested client-side via
+	 * `checkout.confirm()`, and the Checkout Session update API does not accept `payment_method_options`.
+	 *
+	 * Part of STRIPE-1205.
+	 *
+	 * @dataProvider provide_checkout_session_save_payment_method_types
+	 *
+	 * @param string $payment_method_type The UPE payment method type selected at checkout.
+	 */
+	public function test_process_payment_with_checkout_session_persists_save_flag_without_session_update( string $payment_method_type ) {
+		$session_id = 'cs_test_save_' . $payment_method_type;
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+		// Optimized Checkout reports 'card' as the gateway type; the real method is sent in `wc_stripe_selected_upe_payment_type`.
+		$_POST['wc_stripe_selected_upe_payment_type'] = $payment_method_type;
+		$_POST['wc-stripe-new-payment-method']        = 'true';
+
+		// Saved cards must be enabled for the save-payment-method checkbox to take effect.
+		$this->mock_gateway->saved_cards = true;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$session_update_called = false;
+		$pre_http_filter       = function ( $return_value, $parsed_args, $url ) use ( $session_id, &$session_update_called ) {
+			if ( WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $session_id === $url ) {
+				$session_update_called = true;
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		try {
+			$result = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_filter );
+			unset(
+				$_POST['wc_stripe_checkout_session_id'],
+				$_POST['payment_method'],
+				$_POST['wc-stripe-payment-method'],
+				$_POST['wc_stripe_selected_upe_payment_type'],
+				$_POST['wc-stripe-new-payment-method']
+			);
+		}
+
+		$this->assertSame( 'success', $result['result'] );
+		$this->assertFalse( $session_update_called, 'Saving a payment method must not trigger a checkout session update.' );
+
+		// The save flag must be persisted so the webhook can save the payment method (or its generated SEPA mandate).
+		$this->assertTrue(
+			WC_Stripe_Order_Helper::get_instance()->get_should_save_stripe_payment_method( wc_get_order( $order->get_id() ) )
+		);
+	}
+
+	/**
+	 * Provides payment method types for the checkout session save-payment-method test.
+	 *
+	 * @return array[]
+	 */
+	public function provide_checkout_session_save_payment_method_types(): array {
+		return [
+			'redirect APM tokenized as SEPA (bancontact)' => [ WC_Stripe_Payment_Methods::BANCONTACT ],
+			'method saved under its own type (card)'      => [ WC_Stripe_Payment_Methods::CARD ],
+		];
+	}
+
+	/**
 	 * Test the success short-circuit: an order already in `processing` status must
 	 * not trigger any Stripe API call and must redirect to the clean order-received
 	 * URL (stripping the disambiguation query args from the address bar).
