@@ -472,7 +472,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		// Methods with no country restriction (e.g. card, Link) are available everywhere,
 		// including when the billing country is unknown — an empty country must not block
 		// them, or checkout fails for orders that carry no billing country.
-		if ( empty( $this->supported_billing_countries ) ) {
+		if ( [] === $this->supported_billing_countries ) {
 			return true;
 		}
 
