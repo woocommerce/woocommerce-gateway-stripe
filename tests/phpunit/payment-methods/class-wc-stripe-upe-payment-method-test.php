@@ -905,6 +905,29 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
+	 * The base SEPA token path must fail safely (catchable exception) instead of fataling with a
+	 * TypeError when handed a non-SEPA-shaped PaymentMethod.
+	 *
+	 * Regression for the Adaptive Pricing / Checkout Sessions webhook crash where a raw Bancontact
+	 * PaymentMethod (no `sepa_debit` child) reached create_payment_token_for_user() and
+	 * set_fingerprint( null ) fataled.
+	 *
+	 * @return void
+	 */
+	public function test_create_payment_token_for_user_throws_on_missing_sepa_fingerprint() {
+		$payment_method = new WC_Stripe_UPE_Payment_Method_Sepa();
+
+		// A raw Bancontact PaymentMethod has no sepa_debit child.
+		$bancontact_payment_method = (object) [
+			'id'   => 'pm_mock_bancontact',
+			'type' => WC_Stripe_Payment_Methods::BANCONTACT,
+		];
+
+		$this->expectException( WC_Stripe_Exception::class );
+		$payment_method->create_payment_token_for_user( 1, $bancontact_payment_method );
+	}
+
+	/**
 	 * Test for `update_payment_token` method.
 	 *
 	 * @return void
