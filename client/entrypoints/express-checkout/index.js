@@ -70,8 +70,6 @@ jQuery( function ( $ ) {
 	);
 
 	let wcStripeECEError = '';
-	let isProductPageInitialInitScheduled = false;
-	let isProductPageInitialInitStarted = false;
 	const defaultErrorMessage = __(
 		'There was an error getting the product information.',
 		'woocommerce-gateway-stripe'
@@ -226,6 +224,7 @@ jQuery( function ( $ ) {
 			const areTaxesBasedOnBillingAddress = getExpressCheckoutData(
 				'taxes_based_on_billing'
 			);
+			const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
 			// Amazon Pay needs a confirmation-token flow that
 			// `handleChangePaymentMethodFlow` does not implement, so it must not
 			// be offered on the subscription change-payment page.
@@ -254,6 +253,7 @@ jQuery( function ( $ ) {
 						isAmazonPayEnabled &&
 							! areTaxesBasedOnBillingAddress &&
 							! isChangePaymentMethod &&
+							! hasFreeTrial &&
 							EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 					].filter( Boolean ),
 				},
@@ -983,66 +983,9 @@ jQuery( function ( $ ) {
 		},
 	};
 
-	const initProductPageExpressCheckout = () => {
-		if ( isProductPageInitialInitStarted ) {
-			return;
-		}
-
-		isProductPageInitialInitStarted = true;
-		wcStripeECE.init();
-	};
-
-	const scheduleProductPageExpressCheckout = () => {
-		if ( isProductPageInitialInitScheduled ) {
-			return;
-		}
-
-		isProductPageInitialInitScheduled = true;
-
-		const container = document.getElementById(
-			'wc-stripe-express-checkout-element'
-		);
-		if ( ! container ) {
-			return;
-		}
-
-		$( 'form.cart' ).one(
-			'change input click',
-			'input, select, textarea, button',
-			initProductPageExpressCheckout
-		);
-
-		const observerTarget =
-			container.closest( 'form.cart' ) ||
-			container.closest( '.summary' ) ||
-			container.parentElement;
-		if ( ! observerTarget ) {
-			initProductPageExpressCheckout();
-			return;
-		}
-
-		if ( 'IntersectionObserver' in window ) {
-			const observer = new IntersectionObserver(
-				( entries ) => {
-					if ( entries.some( ( entry ) => entry.isIntersecting ) ) {
-						observer.disconnect();
-						initProductPageExpressCheckout();
-					}
-				},
-				{ rootMargin: '300px 0px' }
-			);
-
-			observer.observe( observerTarget );
-			return;
-		}
-
-		initProductPageExpressCheckout();
-	};
-
 	// We don't need to initialize ECE on the checkout page now because it will be initialized by updated_checkout event.
-	if ( getExpressCheckoutData( 'is_product_page' ) ) {
-		scheduleProductPageExpressCheckout();
-	} else if (
+	if (
+		getExpressCheckoutData( 'is_product_page' ) ||
 		getExpressCheckoutData( 'is_pay_for_order' ) ||
 		getExpressCheckoutData( 'is_cart_page' ) ||
 		getExpressCheckoutData( 'is_change_payment_method' )
