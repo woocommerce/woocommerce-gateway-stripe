@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.7
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 10.7.0
+Stable tag: 10.8.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -155,7 +155,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 10.8.1 - xxxx-xx-xx =
+= 10.8.1 - 2026-06-11 =
 
 * Fix - Prevent a fatal error when a Bancontact, iDEAL or Sofort payment is placed with SEPA token saving enabled through the Adaptive Pricing checkout, which left the order unpaid
 * Fix - Hide the save payment method checkbox for Bancontact, iDEAL and Sofort in the Adaptive Pricing checkout, where Stripe cannot save them as SEPA Direct Debit tokens
