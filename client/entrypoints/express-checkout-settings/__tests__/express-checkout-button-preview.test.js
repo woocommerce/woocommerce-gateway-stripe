@@ -13,12 +13,23 @@ jest.mock( '../utils/utils', () => ( {
 	shouldUseGooglePayBrand: jest.fn(),
 } ) );
 
-jest.mock( '@stripe/react-stripe-js', () => ( {
-	PaymentRequestButtonElement: jest
-		.fn()
-		.mockReturnValue( <button type="submit">Stripe button mock</button> ),
-	useStripe: jest.fn(),
-} ) );
+jest.mock( '@stripe/react-stripe-js', () => {
+	// Build the element manually via `React.createElement` as this code
+	// doesn't get processed by the JSX transform.
+	const directReact = require( 'react' );
+	return {
+		PaymentRequestButtonElement: jest
+			.fn()
+			.mockReturnValue(
+				directReact.createElement(
+					'button',
+					{ type: 'submit' },
+					'Stripe button mock'
+				)
+			),
+		useStripe: jest.fn(),
+	};
+} );
 
 jest.mock( 'wcstripe/data', () => ( {
 	useExpressCheckoutButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
