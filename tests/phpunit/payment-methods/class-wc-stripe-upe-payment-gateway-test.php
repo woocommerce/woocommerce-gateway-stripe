@@ -637,6 +637,65 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * showSaveOptionByMethod must be false for methods saved as a different Stripe
+	 * type (Bancontact/iDEAL → SEPA) when Adaptive Pricing is active, since the
+	 * Checkout Sessions flow cannot save them.
+	 *
+	 * @dataProvider provide_show_save_option_by_method_adaptive_pricing
+	 *
+	 * @param bool $adaptive_pricing_active Whether Adaptive Pricing is supported.
+	 * @param bool $expected_converting     Expected map value for Bancontact/iDEAL.
+	 */
+	public function test_show_save_option_by_method_hides_converting_methods_with_adaptive_pricing(
+		bool $adaptive_pricing_active,
+		bool $expected_converting
+	): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'is_valid_optimized_checkout_page', 'is_adaptive_pricing_supported', 'get_upe_enabled_at_checkout_payment_method_ids' ] )
+			->getMock();
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( true );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( $adaptive_pricing_active );
+		$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn(
+			[
+				WC_Stripe_Payment_Methods::CARD,
+				WC_Stripe_Payment_Methods::BANCONTACT,
+				WC_Stripe_Payment_Methods::IDEAL,
+				WC_Stripe_Payment_Methods::SEPA_DEBIT,
+			]
+		);
+		$gateway->oc_enabled = true;
+
+		$get_config = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'get_enabled_payment_method_config' );
+		$get_config->setAccessible( true );
+		$config = $get_config->invoke( $gateway );
+
+		$by_method = $config[ WC_Stripe_Payment_Methods::CARD ]['showSaveOptionByMethod'];
+		$this->assertSame( $expected_converting, $by_method[ WC_Stripe_Payment_Methods::BANCONTACT ] );
+		$this->assertSame( $expected_converting, $by_method[ WC_Stripe_Payment_Methods::IDEAL ] );
+		// Methods saved under their own type are unaffected by Adaptive Pricing.
+		$this->assertTrue( $by_method[ WC_Stripe_Payment_Methods::SEPA_DEBIT ] );
+	}
+
+	/**
+	 * Data provider for test_show_save_option_by_method_hides_converting_methods_with_adaptive_pricing.
+	 *
+	 * @return array[]
+	 */
+	public function provide_show_save_option_by_method_adaptive_pricing(): array {
+		return [
+			'Adaptive Pricing active: converting methods not savable' => [
+				'adaptive_pricing_active' => true,
+				'expected_converting'     => false,
+			],
+			'Adaptive Pricing inactive: converting methods savable'   => [
+				'adaptive_pricing_active' => false,
+				'expected_converting'     => true,
+			],
+		];
+	}
+
+	/**
 	 * Test that payment_scripts registers the wc-stripe-upe-classic script with the correct version and dependencies.
 	 *
 	 * Because build/upe-classic.asset.php may not be present in test environments, we have conditional logic as follows:
