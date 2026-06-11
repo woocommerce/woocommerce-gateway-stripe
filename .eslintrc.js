@@ -52,6 +52,12 @@ module.exports = {
 				varsIgnorePattern: 'React',
 			},
 		],
+		'jsdoc/no-undefined-types': [
+			'error',
+			{
+				definedTypes: [ 'JSX' ],
+			},
+		],
 		'@typescript-eslint/no-unused-vars': [
 			'error',
 			{
