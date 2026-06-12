@@ -1073,7 +1073,7 @@ describe( 'payment-processing', () => {
 			} );
 		} );
 
-		it( 'passes accordion layout with radios:false when Optimized Checkout is enabled with default layout', async () => {
+		it( "passes accordion layout with radios:'never' when Optimized Checkout is enabled with default layout", async () => {
 			stripeUtils.getStripeServerData.mockReturnValue( {
 				paymentMethodsConfig: {
 					card: { supportsDeferredIntent: true },
@@ -1096,13 +1096,13 @@ describe( 'payment-processing', () => {
 			const [ , paymentElementOptions ] =
 				mockElements.create.mock.calls[ 0 ];
 			expect( paymentElementOptions.layout.type ).toBe( 'accordion' );
-			expect( paymentElementOptions.layout.radios ).toBe( false );
+			expect( paymentElementOptions.layout.radios ).toBe( 'never' );
 			expect( paymentElementOptions.layout.spacedAccordionItems ).toBe(
 				false
 			);
 		} );
 
-		it( 'passes accordion layout with radios:false when Optimized Checkout is enabled with an explicit layout - accordion', async () => {
+		it( "passes accordion layout with radios:'never' when Optimized Checkout is enabled with an explicit layout - accordion", async () => {
 			stripeUtils.getStripeServerData.mockReturnValue( {
 				paymentMethodsConfig: {
 					card: { supportsDeferredIntent: true },
@@ -1125,7 +1125,7 @@ describe( 'payment-processing', () => {
 			const [ , paymentElementOptions ] =
 				mockElements.create.mock.calls[ 0 ];
 			expect( paymentElementOptions.layout.type ).toBe( 'accordion' );
-			expect( paymentElementOptions.layout.radios ).toBe( false );
+			expect( paymentElementOptions.layout.radios ).toBe( 'never' );
 			expect( paymentElementOptions.layout.spacedAccordionItems ).toBe(
 				false
 			);

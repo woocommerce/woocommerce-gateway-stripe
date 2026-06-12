@@ -412,9 +412,10 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				layout.paymentMethodLogoPosition = 'end';
 				// Ensure all available payment methods are shown.
 				layout.visibleAccordionItemsCount = 0;
-				layout.radios = getPaymentMethodRadioStyles() !== null;
+				layout.radios =
+					getPaymentMethodRadioStyles() !== null ? 'always' : 'never';
 			} else {
-				layout.radios = false;
+				layout.radios = 'never';
 			}
 		}
 		paymentElementOptions = {
