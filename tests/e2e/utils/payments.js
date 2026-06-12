@@ -91,6 +91,23 @@ export async function setupCart(
 }
 
 /**
+ * Get the current cart total from the WooCommerce Store Cart API.
+ *
+ * Must be called before placing the order while the cart still has items.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @returns {Promise<string>} The cart total without currency symbol (e.g. "19.99").
+ */
+export async function getCartTotal( page ) {
+	const response = await page.request.get( '/wp-json/wc/store/v1/cart' );
+	const { total_price: totalPrice, currency_minor_unit: minorUnit } = (
+		await response.json()
+	).totals;
+
+	return ( parseInt( totalPrice, 10 ) / 10 ** minorUnit ).toFixed( 2 );
+}
+
+/**
  * Wait for Stripe iframe to be fully loaded and ready for interaction.
  * This helper addresses common race conditions with Stripe Elements.
  *
