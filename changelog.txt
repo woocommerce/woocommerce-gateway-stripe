@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.9.0
+* Fix - Ignore incoming webhook events whose Stripe account does not match the connected account to avoid acting on another account's data
 * Fix - When changing a subscription's payment method, reflect the new card and its Apple Pay/Google Pay branding on My Account and clarify the admin order note
 * Dev - Use a shared hook manager to prevent duplicate subscription hook registrations
 * Dev - Initial infrastructure for more complex Agentic feed filtering
