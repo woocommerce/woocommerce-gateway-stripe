@@ -306,7 +306,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 			'secret' => 'sk_live_old',
 		];
 
-		WC_Stripe_Helper::update_main_stripe_settings(
+		WC_Stripe::write_settings_option(
 			[
 				'publishable_key' => 'pk_live_old',
 				'secret_key'      => 'sk_live_old',
@@ -331,7 +331,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 
 		$controller->set_account_keys( $request );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe::read_settings_option();
 		$this->assertSame( [], $settings['webhook_data'] );
 		$this->assertSame( '', $settings['webhook_secret'] );
 	}

@@ -314,7 +314,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				} else {
 					WC_Stripe_Logger::info( 'OAuth: Not defaulting Adaptive Pricing on; it is not available for the connected account.' );
 				}
-				WC_Stripe_Helper::update_main_stripe_settings( $options );
+				WC_Stripe::write_settings_option( $options );
 			}
 
 			if ( $is_verbose_debug_mode_enabled ) {
@@ -366,7 +366,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * Otherwise for new connections return 'yes' for `upe_checkout_experience_enabled` field.
 		 */
 		private function get_upe_checkout_experience_enabled() {
-			$existing_stripe_settings = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_settings();
+			// Read the option directly: constructing the gateway here would memoize
+			// it before the new keys are persisted (see save_stripe_keys()).
+			$existing_stripe_settings = WC_Stripe::read_settings_option();
 
 			if ( isset( $existing_stripe_settings['upe_checkout_experience_enabled'] ) ) {
 				return $existing_stripe_settings['upe_checkout_experience_enabled'];

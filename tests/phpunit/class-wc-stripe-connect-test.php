@@ -132,7 +132,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'secret' => 'sk_test_old_account',
 		];
 
-		WC_Stripe_Helper::update_main_stripe_settings(
+		WC_Stripe::write_settings_option(
 			[
 				'testmode'             => 'yes',
 				'test_secret_key'      => 'sk_test_old_account',
@@ -151,7 +151,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->invoke_save_stripe_keys( 'pk_test_123', 'sk_test_123' );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe::read_settings_option();
 		$this->assertSame( [], $settings['test_webhook_data'] );
 		$this->assertSame( '', $settings['test_webhook_secret'] );
 	}

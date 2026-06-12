@@ -149,7 +149,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		// Start in test mode.
 		$this->get_gateway()->update_option( 'testmode', 'yes' );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe::read_settings_option();
 		if ( $live_connected ) {
 			$settings['publishable_key'] = 'pk_live_1234567890';
 			$settings['secret_key']      = 'sk_live_1234567890';
@@ -157,7 +157,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			$settings['publishable_key'] = '';
 			$settings['secret_key']      = '';
 		}
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe::write_settings_option( $settings );
 
 		// Attempt to turn test mode off (switch to live).
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
@@ -193,7 +193,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		// Start in live mode.
 		$this->get_gateway()->update_option( 'testmode', 'no' );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe::read_settings_option();
 		if ( $test_connected ) {
 			$settings['test_publishable_key'] = 'pk_test_1234567890';
 			$settings['test_secret_key']      = 'sk_test_1234567890';
@@ -201,7 +201,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			$settings['test_publishable_key'] = '';
 			$settings['test_secret_key']      = '';
 		}
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe::write_settings_option( $settings );
 
 		// Attempt to turn test mode on (switch to test).
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );

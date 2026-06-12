@@ -45,6 +45,22 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	protected const SETTINGS_CACHE_KEY   = 'main_settings';
 
 	/**
+	 * Registers the settings cache group as non-persistent so the cache stays
+	 * request-scoped even when a persistent object cache (Redis/Memcached) is
+	 * active. Without this, invalidation would depend on the option-change
+	 * hooks being registered in the request that performs the write.
+	 *
+	 * Called once at plugin bootstrap (WC_Stripe::init()).
+	 *
+	 * @since 10.9.0
+	 *
+	 * @return void
+	 */
+	public static function register_settings_cache_group(): void {
+		wp_cache_add_non_persistent_groups( self::SETTINGS_CACHE_GROUP );
+	}
+
+	/**
 	 * Returns the main Stripe gateway settings array.
 	 *
 	 * Caches the raw option in a request-scoped object-cache entry shared by all

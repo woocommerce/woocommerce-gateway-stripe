@@ -6496,10 +6496,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order->save();
 
 		// Configure the statement descriptor settings.
-		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                         = WC_Stripe::read_settings_option();
 		$stripe_settings['statement_descriptor'] = $local_descriptor;
 		$stripe_settings['is_short_statement_descriptor_enabled'] = $short_descriptor_on ? 'yes' : 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe::write_settings_option( $stripe_settings );
 
 		// Re-create mock gateway so it picks up updated settings.
 		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
@@ -6658,9 +6658,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order->save();
 
 		// Configure a local statement descriptor.
-		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                         = WC_Stripe::read_settings_option();
 		$stripe_settings['statement_descriptor'] = 'MY STORE NAME';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe::write_settings_option( $stripe_settings );
 
 		// Re-create mock gateway to pick up settings.
 		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
