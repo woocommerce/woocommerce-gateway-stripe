@@ -776,7 +776,9 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		foreach ( $subscriptions as $subscription ) {
-			$order_helper->update_stripe_customer_id( $subscription, $source->customer );
+			if ( $source->customer ) {
+				$order_helper->update_stripe_customer_id( $subscription, $source->customer );
+			}
 
 			if ( ! empty( $source->payment_method ) ) {
 				$order_helper->update_stripe_source_id( $subscription, $source->payment_method );
