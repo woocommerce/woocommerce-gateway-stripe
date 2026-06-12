@@ -224,7 +224,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return true;
 		}
 
-		return hash_equals( $connected_account, $event_account );
+		return $event_account === $connected_account;
 	}
 
 	/**
