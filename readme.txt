@@ -167,8 +167,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Consolidate the default payment intent metadata fields into a shared method so they stay consistent across payment flows
 * Fix - Prevent a fatal error when a Bancontact, iDEAL or Sofort payment is placed with SEPA token saving enabled through the Adaptive Pricing checkout, which left the order unpaid
 * Fix - Stop treating a completed Adaptive Pricing checkout session as an agentic session in webhook processing, which could drop the payment when agentic commerce is disabled
+* Add - Stripe admin pages to the WordPress Command Palette
+* Fix - Prevent a possible fatal error when saving the payment method on a subscription order
 * Dev - Use clsx library instead of classnames
 * Fix - Append the 3-letter currency code to the Stripe Fee and Stripe Payout amounts in WP Admin order totals when the Stripe account currency differs from the order currency
 * Fix - Only create an agentic commerce order on the site that produced the checkout, preventing duplicate or wrong-site orders when multiple stores share one Stripe account
+* Dev - Add a Code Comment Conventions section to AGENTS.md to standardize agent and contributor comment guidance
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
