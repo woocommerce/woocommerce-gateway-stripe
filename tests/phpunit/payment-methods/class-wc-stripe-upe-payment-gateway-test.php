@@ -637,6 +637,65 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * showSaveOptionByMethod must be false for methods saved as a different Stripe
+	 * type (Bancontact/iDEAL → SEPA) when Adaptive Pricing is active, since the
+	 * Checkout Sessions flow cannot save them.
+	 *
+	 * @dataProvider provide_show_save_option_by_method_adaptive_pricing
+	 *
+	 * @param bool $adaptive_pricing_active Whether Adaptive Pricing is supported.
+	 * @param bool $expected_converting     Expected map value for Bancontact/iDEAL.
+	 */
+	public function test_show_save_option_by_method_hides_converting_methods_with_adaptive_pricing(
+		bool $adaptive_pricing_active,
+		bool $expected_converting
+	): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'is_valid_optimized_checkout_page', 'is_adaptive_pricing_supported', 'get_upe_enabled_at_checkout_payment_method_ids' ] )
+			->getMock();
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( true );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( $adaptive_pricing_active );
+		$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn(
+			[
+				WC_Stripe_Payment_Methods::CARD,
+				WC_Stripe_Payment_Methods::BANCONTACT,
+				WC_Stripe_Payment_Methods::IDEAL,
+				WC_Stripe_Payment_Methods::SEPA_DEBIT,
+			]
+		);
+		$gateway->oc_enabled = true;
+
+		$get_config = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'get_enabled_payment_method_config' );
+		$get_config->setAccessible( true );
+		$config = $get_config->invoke( $gateway );
+
+		$by_method = $config[ WC_Stripe_Payment_Methods::CARD ]['showSaveOptionByMethod'];
+		$this->assertSame( $expected_converting, $by_method[ WC_Stripe_Payment_Methods::BANCONTACT ] );
+		$this->assertSame( $expected_converting, $by_method[ WC_Stripe_Payment_Methods::IDEAL ] );
+		// Methods saved under their own type are unaffected by Adaptive Pricing.
+		$this->assertTrue( $by_method[ WC_Stripe_Payment_Methods::SEPA_DEBIT ] );
+	}
+
+	/**
+	 * Data provider for test_show_save_option_by_method_hides_converting_methods_with_adaptive_pricing.
+	 *
+	 * @return array[]
+	 */
+	public function provide_show_save_option_by_method_adaptive_pricing(): array {
+		return [
+			'Adaptive Pricing active: converting methods not savable' => [
+				'adaptive_pricing_active' => true,
+				'expected_converting'     => false,
+			],
+			'Adaptive Pricing inactive: converting methods savable'   => [
+				'adaptive_pricing_active' => false,
+				'expected_converting'     => true,
+			],
+		];
+	}
+
+	/**
 	 * Test that payment_scripts registers the wc-stripe-upe-classic script with the correct version and dependencies.
 	 *
 	 * Because build/upe-classic.asset.php may not be present in test environments, we have conditional logic as follows:
@@ -2036,6 +2095,78 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		parse_str( is_string( $query_string ) ? $query_string : '', $query );
 		$this->assertSame( '1', $query['wc_stripe_cs'] ?? null );
 		$this->assertSame( 1, wp_verify_nonce( $query['_wpnonce'] ?? '', 'wc_stripe_process_checkout_session_redirect_nonce' ) );
+	}
+
+	/**
+	 * Saving through the Adaptive Pricing / Checkout Sessions flow must persist the save-payment-method
+	 * flag on the order without any server-side session update: saving is requested client-side via
+	 * `checkout.confirm()`, and the Checkout Session update API does not accept `payment_method_options`.
+	 *
+	 * Part of STRIPE-1205.
+	 *
+	 * @dataProvider provide_checkout_session_save_payment_method_types
+	 *
+	 * @param string $payment_method_type The UPE payment method type selected at checkout.
+	 */
+	public function test_process_payment_with_checkout_session_persists_save_flag_without_session_update( string $payment_method_type ) {
+		$session_id = 'cs_test_save_' . $payment_method_type;
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+		// Optimized Checkout reports 'card' as the gateway type; the real method is sent in `wc_stripe_selected_upe_payment_type`.
+		$_POST['wc_stripe_selected_upe_payment_type'] = $payment_method_type;
+		$_POST['wc-stripe-new-payment-method']        = 'true';
+
+		// Saved cards must be enabled for the save-payment-method checkbox to take effect.
+		$this->mock_gateway->saved_cards = true;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$session_update_called = false;
+		$pre_http_filter       = function ( $return_value, $parsed_args, $url ) use ( $session_id, &$session_update_called ) {
+			if ( WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $session_id === $url ) {
+				$session_update_called = true;
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		try {
+			$result = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_filter );
+			unset(
+				$_POST['wc_stripe_checkout_session_id'],
+				$_POST['payment_method'],
+				$_POST['wc-stripe-payment-method'],
+				$_POST['wc_stripe_selected_upe_payment_type'],
+				$_POST['wc-stripe-new-payment-method']
+			);
+		}
+
+		$this->assertSame( 'success', $result['result'] );
+		$this->assertFalse( $session_update_called, 'Saving a payment method must not trigger a checkout session update.' );
+
+		// The save flag must be persisted so the webhook can save the payment method (or its generated SEPA mandate).
+		$this->assertTrue(
+			WC_Stripe_Order_Helper::get_instance()->get_should_save_stripe_payment_method( wc_get_order( $order->get_id() ) )
+		);
+	}
+
+	/**
+	 * Provides payment method types for the checkout session save-payment-method test.
+	 *
+	 * @return array[]
+	 */
+	public function provide_checkout_session_save_payment_method_types(): array {
+		return [
+			'redirect APM tokenized as SEPA (bancontact)' => [ WC_Stripe_Payment_Methods::BANCONTACT ],
+			'method saved under its own type (card)'      => [ WC_Stripe_Payment_Methods::CARD ],
+		];
 	}
 
 	/**
