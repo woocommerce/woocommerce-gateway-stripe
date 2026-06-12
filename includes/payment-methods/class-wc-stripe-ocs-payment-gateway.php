@@ -141,12 +141,20 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		}
 
 		// Compute per-method showSaveOption so the frontend can dynamically toggle the save
-		// checkbox as the customer switches methods inside the Payment Element.
+		// checkbox as the customer switches methods inside the Payment Element. With Adaptive
+		// Pricing, methods saved as a different type (Bancontact → SEPA) are not savable: the
+		// Checkout Sessions flow cannot request `setup_future_usage` for them.
 		$show_save_option_by_method = [];
 		if ( $this->is_valid_optimized_checkout_page() ) {
+			$is_adaptive_pricing_active = $this->is_adaptive_pricing_supported();
 			foreach ( $original_method_ids as $method_id ) {
 				if ( isset( $this->payment_methods[ $method_id ] ) ) {
-					$show_save_option_by_method[ $method_id ] = $this->should_upe_payment_method_show_save_option( $this->payment_methods[ $method_id ] );
+					$payment_method                 = $this->payment_methods[ $method_id ];
+					$is_saved_as_different_type     = $payment_method->get_id() !== $payment_method->get_retrievable_type();
+					$is_blocked_by_adaptive_pricing = $is_adaptive_pricing_active && $is_saved_as_different_type;
+
+					$show_save_option_by_method[ $method_id ] = ! $is_blocked_by_adaptive_pricing
+						&& $this->should_upe_payment_method_show_save_option( $payment_method );
 				}
 			}
 		}

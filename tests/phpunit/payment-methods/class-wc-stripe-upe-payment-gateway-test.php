@@ -647,6 +647,64 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * showSaveOptionByMethod must be false for methods saved as a different Stripe
+	 * type (Bancontact/iDEAL → SEPA) when Adaptive Pricing is active, since the
+	 * Checkout Sessions flow cannot save them.
+	 *
+	 * @dataProvider provide_show_save_option_by_method_adaptive_pricing
+	 *
+	 * @param bool $adaptive_pricing_active Whether Adaptive Pricing is supported.
+	 * @param bool $expected_converting     Expected map value for Bancontact/iDEAL.
+	 */
+	public function test_show_save_option_by_method_hides_converting_methods_with_adaptive_pricing(
+		bool $adaptive_pricing_active,
+		bool $expected_converting
+	): void {
+		// The OC config builder lives on WC_Stripe_OCS_Payment_Gateway.
+		$gateway = $this->getMockBuilder( WC_Stripe_OCS_Payment_Gateway::class )
+			->onlyMethods( [ 'is_valid_optimized_checkout_page', 'is_adaptive_pricing_supported', 'get_upe_enabled_at_checkout_payment_method_ids' ] )
+			->getMock();
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( true );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( $adaptive_pricing_active );
+		$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn(
+			[
+				WC_Stripe_Payment_Methods::CARD,
+				WC_Stripe_Payment_Methods::BANCONTACT,
+				WC_Stripe_Payment_Methods::IDEAL,
+				WC_Stripe_Payment_Methods::SEPA_DEBIT,
+			]
+		);
+
+		$get_config = new ReflectionMethod( WC_Stripe_OCS_Payment_Gateway::class, 'get_enabled_payment_method_config' );
+		$get_config->setAccessible( true );
+		$config = $get_config->invoke( $gateway );
+
+		$by_method = $config[ WC_Stripe_Payment_Methods::CARD ]['showSaveOptionByMethod'];
+		$this->assertSame( $expected_converting, $by_method[ WC_Stripe_Payment_Methods::BANCONTACT ] );
+		$this->assertSame( $expected_converting, $by_method[ WC_Stripe_Payment_Methods::IDEAL ] );
+		// Methods saved under their own type are unaffected by Adaptive Pricing.
+		$this->assertTrue( $by_method[ WC_Stripe_Payment_Methods::SEPA_DEBIT ] );
+	}
+
+	/**
+	 * Data provider for test_show_save_option_by_method_hides_converting_methods_with_adaptive_pricing.
+	 *
+	 * @return array[]
+	 */
+	public function provide_show_save_option_by_method_adaptive_pricing(): array {
+		return [
+			'Adaptive Pricing active: converting methods not savable' => [
+				'adaptive_pricing_active' => true,
+				'expected_converting'     => false,
+			],
+			'Adaptive Pricing inactive: converting methods savable'   => [
+				'adaptive_pricing_active' => false,
+				'expected_converting'     => true,
+			],
+		];
+	}
+
+	/**
 	 * Test that payment_scripts registers the wc-stripe-upe-classic script with the correct version and dependencies.
 	 *
 	 * Because build/upe-classic.asset.php may not be present in test environments, we have conditional logic as follows:
@@ -1683,6 +1741,90 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		return [
 			'iDEAL save toggle disabled — no token persisted' => [ 'no', false ],
 			'iDEAL save toggle enabled — token persisted'     => [ 'yes', true ],
+		];
+	}
+
+	/**
+	 * Reusing a saved card never refreshes its wallet_type (create-time state,
+	 * #5477), so a manually-saved card can't flip to a wallet brand.
+	 *
+	 * @dataProvider provider_handle_saving_payment_method_preserves_wallet_type
+	 *
+	 * @param string $initial_wallet_type wallet_type already stored on the saved token.
+	 * @param string $new_wallet_type      wallet_type on the incoming payment method ('' for a plain card).
+	 * @param string $expected_wallet_type wallet_type expected on the token after reuse (always the initial value).
+	 */
+	public function test_handle_saving_payment_method_preserves_wallet_type_on_reused_token( $initial_wallet_type, $new_wallet_type, $expected_wallet_type ) {
+		$this->mock_gateway->oc_enabled = true;
+
+		$user_id = $this->factory()->user->create();
+		$order   = WC_Helper_Order::create_order( $user_id );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		// An existing saved token for the same card, branded with the initial wallet type.
+		$existing = new WC_Stripe_Payment_Token_CC();
+		$existing->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$existing->set_token( 'pm_existing' );
+		$existing->set_card_type( 'visa' );
+		$existing->set_last4( '4242' );
+		$existing->set_expiry_month( '12' );
+		$existing->set_expiry_year( '2030' );
+		$existing->set_fingerprint( 'fp_match' );
+		$existing->set_wallet_type( $initial_wallet_type );
+		$existing->set_user_id( $user_id );
+		$existing->save();
+
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		$card = [
+			'exp_month'   => 12,
+			'exp_year'    => 2030,
+			'brand'       => 'visa',
+			'last4'       => '4242',
+			'fingerprint' => 'fp_match',
+		];
+		// A plain card carries no wallet object; a wallet payment nests its type under card.wallet.
+		if ( '' !== $new_wallet_type ) {
+			$card['wallet'] = (object) [ 'type' => $new_wallet_type ];
+		}
+
+		// The same card (matching fingerprint) tokenized again through the new method.
+		$payment_method_object = (object) [
+			'id'       => 'pm_reused',
+			'object'   => 'payment_method',
+			'type'     => WC_Stripe_Payment_Methods::CARD,
+			'customer' => 'cus_mock',
+			'card'     => (object) $card,
+		];
+
+		$this->mock_gateway->handle_saving_payment_method( $order, $payment_method_object, WC_Stripe_Payment_Methods::CARD );
+
+		$refreshed = WC_Payment_Tokens::get( $existing->get_id() );
+		$this->assertInstanceOf( WC_Stripe_Payment_Token_CC::class, $refreshed );
+		// The reused token keeps its create-time wallet branding; only the Stripe id refreshes.
+		$this->assertSame( $expected_wallet_type, $refreshed->get_wallet_type() );
+		$this->assertSame( 'pm_reused', $refreshed->get_token() );
+	}
+
+	/**
+	 * Provider: expected wallet_type always equals the initial — the incoming method's is ignored.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: string}>
+	 */
+	public function provider_handle_saving_payment_method_preserves_wallet_type(): array {
+		return [
+			'plain card reused via apple pay stays plain'        => [ '', 'apple_pay', '' ],
+			'plain card reused via google pay stays plain'       => [ '', 'google_pay', '' ],
+			'plain card reused directly stays plain'             => [ '', '', '' ],
+			'apple pay card reused directly stays apple'         => [ 'apple_pay', '', 'apple_pay' ],
+			'apple pay card reused via google pay stays apple'   => [ 'apple_pay', 'google_pay', 'apple_pay' ],
+			'apple pay card reused via apple pay stays apple'    => [ 'apple_pay', 'apple_pay', 'apple_pay' ],
+			'google pay card reused via apple pay stays google'  => [ 'google_pay', 'apple_pay', 'google_pay' ],
+			'google pay card reused directly stays google'       => [ 'google_pay', '', 'google_pay' ],
+			'google pay card reused via google pay stays google' => [ 'google_pay', 'google_pay', 'google_pay' ],
 		];
 	}
 
@@ -5359,12 +5501,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( false );
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
 
-		// Force the OC method's hook-registration flag false so that *any* instantiation would
-		// register its per-id subscription hooks, which we can then detect.
-		$oc_flag = new ReflectionProperty( WC_Stripe_UPE_Payment_Method_OC::class, 'has_attached_integration_hooks' );
-		$oc_flag->setAccessible( true );
-		$previous_flag = $oc_flag->getValue();
-		$oc_flag->setValue( null, false );
+		// Reset the shared hook manager so that *any* OC-method instantiation would register
+		// its per-id subscription hooks, which we can then detect.
+		$manager_prop = new ReflectionProperty( WC_Stripe_Hook_Manager::class, 'instance' );
+		$manager_prop->setAccessible( true );
+		$previous_manager = $manager_prop->getValue();
+		$manager_prop->setValue( null, null );
 
 		$hook         = 'woocommerce_scheduled_subscription_payment_stripe';
 		$count_before = isset( $GLOBALS['wp_filter'][ $hook ] ) ? count( $GLOBALS['wp_filter'][ $hook ]->callbacks[10] ?? [] ) : 0;
@@ -5372,7 +5514,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		try {
 			$title = $gateway->get_title();
 		} finally {
-			$oc_flag->setValue( null, $previous_flag );
+			$manager_prop->setValue( null, $previous_manager );
 			remove_filter( 'woocommerce_is_checkout', '__return_true' );
 		}
 
@@ -5392,16 +5534,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_ocs_gateway_registers_subscription_integration_hooks() {
 		$gateway = new WC_Stripe_OCS_Payment_Gateway();
 
-		// The gateway hierarchy pulls the subscriptions trait in via the abstract base, so its
-		// shared static flag lives on WC_Stripe_Payment_Gateway.
-		$flag = new ReflectionProperty( WC_Stripe_Payment_Gateway::class, 'has_attached_integration_hooks' );
-		$flag->setAccessible( true );
-		$previous_flag = $flag->getValue();
+		// Plugin-level hook registration is tracked by the shared hook manager; reset its
+		// singleton so registration can run again for this gateway instance.
+		$manager_prop = new ReflectionProperty( WC_Stripe_Hook_Manager::class, 'instance' );
+		$manager_prop->setAccessible( true );
+		$previous_manager = $manager_prop->getValue();
+		$manager_prop->setValue( null, null );
 
 		$filter   = 'wc_stripe_generate_create_intent_request';
 		$callback = [ $gateway, 'add_subscription_information_to_intent' ];
 		remove_filter( $filter, $callback );
-		$flag->setValue( null, false );
 
 		try {
 			$gateway->maybe_init_subscriptions();
@@ -5409,7 +5551,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		} finally {
 			remove_filter( $filter, $callback );
 			remove_action( 'woocommerce_scheduled_subscription_payment_stripe', [ $gateway, 'scheduled_subscription_payment' ] );
-			$flag->setValue( null, $previous_flag );
+			$manager_prop->setValue( null, $previous_manager );
 		}
 
 		$this->assertNotFalse( $registered, 'OCS gateway (a UPE subclass) must register the once-global subscription hooks.' );
