@@ -4747,7 +4747,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Resolves the payment-method instance used when creating a saved token from a setup intent.
 	 *
 	 * @param string $payment_method_type    Stripe payment method type key.
-	 * @param mixed  $payment_method_details Payment method details array or object.
+	 * @param array|object $payment_method_details Payment method details array or object.
 	 *
 	 * @return WC_Stripe_UPE_Payment_Method|null
 	 */
