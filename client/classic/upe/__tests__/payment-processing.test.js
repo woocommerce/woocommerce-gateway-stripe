@@ -9,6 +9,7 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 	appendPaymentMethodIdToForm: jest.fn(),
 	appendSetupIntentToForm: jest.fn(),
 	getAdditionalSetupIntentData: jest.fn().mockReturnValue( {} ),
+	getBillingDetailsForDeferredFlow: jest.fn().mockReturnValue( null ),
 	getDefaultValues: jest.fn().mockReturnValue( {} ),
 	getExcludedPaymentMethodTypes: jest.fn().mockReturnValue( [] ),
 	getPaymentMethodTypes: jest.fn().mockReturnValue( [ 'card' ] ),
@@ -175,14 +176,17 @@ const createMockApi = ( checkoutElements ) => {
 	};
 };
 
-const createMockForm = ( { savePaymentMethodChecked = false } = {} ) => {
+const createMockForm = ( {
+	savePaymentMethodChecked = false,
+	name = 'checkout',
+} = {} ) => {
 	const f = {};
 	f.addClass = jest.fn( () => f );
 	f.removeClass = jest.fn( () => f );
 	f.block = jest.fn( () => f );
 	f.unblock = jest.fn( () => f );
 	f.trigger = jest.fn( () => f );
-	f.attr = jest.fn( () => 'checkout' );
+	f.attr = jest.fn( () => name );
 	f.serialize = jest.fn( () => 'billing_first_name=John' );
 	f.append = jest.fn();
 	f.find = jest.fn( () => ( {
@@ -265,6 +269,96 @@ describe( 'payment-processing', () => {
 					stripeUtils.appendPaymentMethodIdToForm
 				).toHaveBeenCalledWith( form, 'pm_test_123' );
 				expect( form.trigger ).toHaveBeenCalledWith( 'submit' );
+			} );
+
+			it( 'on a deferred flow (non-checkout form), creates the payment method with billing_details from getBillingDetailsForDeferredFlow', async () => {
+				const billingDetails = {
+					name: 'John Doe',
+					email: 'john@example.com',
+					phone: '+1234567890',
+					address: {
+						country: 'US',
+						line1: '123 Main St',
+						city: 'New York',
+						state: 'NY',
+						postal_code: '10001',
+					},
+				};
+				stripeUtils.getBillingDetailsForDeferredFlow.mockReturnValue(
+					billingDetails
+				);
+
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				api._stripe.elements.mockReturnValue( api._standardElements );
+
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				// The pay-for-order form is #order_review, not named 'checkout'.
+				const form = createMockForm( { name: 'order_review' } );
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				expect( api._stripe.createPaymentMethod ).toHaveBeenCalledWith(
+					{
+						elements: api._standardElements,
+						params: { billing_details: billingDetails },
+					}
+				);
+			} );
+
+			it( 'on a deferred flow with no usable billing data, omits billing_details', async () => {
+				stripeUtils.getBillingDetailsForDeferredFlow.mockReturnValue(
+					null
+				);
+
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				api._stripe.elements.mockReturnValue( api._standardElements );
+
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				const form = createMockForm( { name: 'order_review' } );
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				expect( api._stripe.createPaymentMethod ).toHaveBeenCalledWith(
+					{
+						elements: api._standardElements,
+						params: {},
+					}
+				);
+			} );
+
+			it( 'on the checkout form, ignores getBillingDetailsForDeferredFlow', async () => {
+				stripeUtils.getBillingDetailsForDeferredFlow.mockReturnValue( {
+					email: 'deferred@example.com',
+				} );
+
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				api._stripe.elements.mockReturnValue( api._standardElements );
+
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				const form = createMockForm( { name: 'checkout' } );
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				const callArg =
+					api._stripe.createPaymentMethod.mock.calls[ 0 ][ 0 ];
+				// On checkout, billing_details are read from the DOM, not the
+				// deferred-flow helper.
+				expect( callArg.params.billing_details ).toBeDefined();
+				expect( callArg.params.billing_details.email ).not.toBe(
+					'deferred@example.com'
+				);
 			} );
 
 			it( 'shows an error and does not submit when hasLoadError is true', async () => {
