@@ -122,8 +122,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	/**
 	 * When the OAuth return URL carries an invalid nonce, the merchant must be
-	 * redirected back to the settings page with an explicit error marker rather
-	 * than the failure being silently swallowed by `admin_init`.
+	 * redirected back to the settings page with an explicit error marker.
 	 */
 	public function test_maybe_handle_redirect_redirects_with_error_on_invalid_nonce(): void {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
