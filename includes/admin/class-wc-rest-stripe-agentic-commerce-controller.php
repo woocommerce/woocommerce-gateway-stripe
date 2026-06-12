@@ -237,6 +237,11 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 					[ 'status' => 500 ]
 				);
 			}
+
+			// This manual sync already produced a full upload, so drop any pending
+			// adapter-fired one-off resync — it lives in a separate Action Scheduler
+			// group the recurring reschedule above does not clear.
+			$integration->cancel_pending_full_resync();
 		} catch ( Exception $e ) {
 			return new WP_Error(
 				'stripe_agentic_commerce_sync_failed',

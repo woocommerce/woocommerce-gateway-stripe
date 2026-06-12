@@ -352,57 +352,86 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Tests the {@see WC_Stripe::add_gateways()} method.
 	 *
-	 * @param array $payment_methods The payment methods to add.
+	 * @param array $payment_methods   The payment methods to add.
 	 * @param array $expected_gateways The expected gateways.
-	 * @param bool $is_admin Whether the test is running in the admin.
-	 * @param bool $oc_enabled Whether the optimized checkout is enabled.
+	 * @param bool  $is_admin          Whether the test is running in the admin.
+	 * @param bool  $oc_enabled        Whether the optimized checkout is enabled.
+	 * @param array $request_vars      The request variables.
+	 * @param bool  $disable_hpos      Whether to ensure that HPOS is disabled.
 	 * @return void
 	 * @dataProvider provide_test_add_gateways
 	 */
-	public function test_add_gateways( array $payment_methods, array $expected_gateways, bool $is_admin = false, bool $oc_enabled = false ): void {
-		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
-			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_main_stripe_gateway' ] )
-			->getMock();
-
-		$mock_main_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
-			->disableOriginalConstructor()
-			->getMock();
-
-		$mock_main_gateway->payment_methods = $payment_methods;
-		$mock_main_gateway->method( 'get_option' )
-			->with( 'optimized_checkout_element', 'no' )
-			->willReturn( $oc_enabled ? 'yes' : 'no' );
-
-		$wc_stripe->method( 'get_main_stripe_gateway' )
-			->willReturn( $mock_main_gateway );
-
-		$initial_current_screen = null;
-		$reset_current_screen   = false;
-
-		if ( $is_admin ) {
-			$initial_current_screen = $GLOBALS['current_screen'] ?? null;
-			$reset_current_screen   = true;
-
-			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-			$GLOBALS['current_screen'] = \WP_Screen::get( 'post.php' );
+	public function test_add_gateways( array $payment_methods, array $expected_gateways, bool $is_admin = false, bool $oc_enabled = false, array $request_vars = [], bool $disable_hpos = false ): void {
+		$re_enable_hpos = false;
+		if ( $disable_hpos ) {
+			$hpos_enabled = 'yes' === get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+			if ( $hpos_enabled ) {
+				$re_enable_hpos = true;
+				// Allow HPOS to be toggled regardless of database state.
+				add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+				// Disable HPOS.
+				update_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+			}
 		}
 
-		$gateways = $wc_stripe->add_gateways( [] );
+		try {
+			$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
+				->disableOriginalConstructor()
+				->onlyMethods( [ 'get_main_stripe_gateway', 'get_request_var' ] )
+				->getMock();
 
-		if ( $reset_current_screen ) {
-			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-			$GLOBALS['current_screen'] = $initial_current_screen;
-		}
+			$mock_main_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+				->disableOriginalConstructor()
+				->getMock();
 
-		// First gateway should always be the main stripe gateway.
-		$main_stripe_gateway = array_shift( $gateways );
-		$this->assertEquals( $mock_main_gateway, $main_stripe_gateway );
+			$mock_main_gateway->payment_methods = $payment_methods;
+			$mock_main_gateway->method( 'get_option' )
+				->with( 'optimized_checkout_element', 'no' )
+				->willReturn( $oc_enabled ? 'yes' : 'no' );
 
-		// Remaining gateways should be the expected "other" gateways.
-		$this->assertEquals( count( $expected_gateways ), count( $gateways ) );
-		foreach ( $expected_gateways as $expected_gateway ) {
-			$this->assertContains( $expected_gateway, $gateways );
+			$wc_stripe->method( 'get_main_stripe_gateway' )
+				->willReturn( $mock_main_gateway );
+
+			$wc_stripe->method( 'get_request_var' )
+				->willReturnCallback(
+					function ( string $key, int $input_type = INPUT_GET ) use ( $request_vars ) {
+						$type = INPUT_POST === $input_type ? 'post' : 'get';
+						return $request_vars[ $type ][ $key ] ?? '';
+					}
+				);
+
+			$initial_current_screen = null;
+			$reset_current_screen   = false;
+
+			if ( $is_admin ) {
+				$initial_current_screen = $GLOBALS['current_screen'] ?? null;
+				$reset_current_screen   = true;
+
+				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+				$GLOBALS['current_screen'] = \WP_Screen::get( 'post.php' );
+			}
+
+			$gateways = $wc_stripe->add_gateways( [] );
+
+			if ( $reset_current_screen ) {
+				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+				$GLOBALS['current_screen'] = $initial_current_screen;
+			}
+
+			// First gateway should always be the main stripe gateway.
+			$main_stripe_gateway = array_shift( $gateways );
+			$this->assertEquals( $mock_main_gateway, $main_stripe_gateway );
+
+			// Remaining gateways should be the expected "other" gateways.
+			$this->assertEquals( count( $expected_gateways ), count( $gateways ) );
+			foreach ( $expected_gateways as $expected_gateway ) {
+				$this->assertContains( $expected_gateway, $gateways );
+			}
+		} finally {
+			if ( $re_enable_hpos ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+				remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+			}
 		}
 	}
 
@@ -410,6 +439,23 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * Data provider for {@see test_add_gateways()}.
 	 */
 	public function provide_test_add_gateways(): array {
+		$simple_product = WC_Helper_Product::create_simple_product();
+
+		$hpos_was_enabled = 'yes' === get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		if ( $hpos_was_enabled ) {
+			// Allow HPOS to be toggled regardless of database state.
+			add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+			update_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		}
+		try {
+			$order = WC_Helper_Order::create_order( 1, $simple_product );
+		} finally {
+			if ( $hpos_was_enabled ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+				remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+			}
+		}
+
 		$card_gateway = $this->getMockBuilder( \WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
@@ -488,6 +534,59 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
 				'is_admin'          => true,
+			],
+			'amazon pay included on legacy CPT order edit page'                   => [
+				'payment_methods'   => [
+					'afterpay_clearpay' => $afterpay_clearpay_gateway,
+					'klarna'            => $klarna_gateway,
+					'amazon_pay'        => $amazon_pay_gateway,
+				],
+				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway ],
+				'is_admin'          => true,
+				'oc_enabled'        => false,
+				'request_vars'      => [
+					'get'  => [
+						'action' => 'edit',
+						'post'   => (string) $order->get_id(),
+					],
+					'post' => [],
+				],
+				'disable_hpos'      => true,
+			],
+			// We need to test that the Amazon Pay checks don't impact post types that are not orders.
+			'amazon pay not included on product edit page'                        => [
+				'payment_methods'   => [
+					'afterpay_clearpay' => $afterpay_clearpay_gateway,
+					'klarna'            => $klarna_gateway,
+					'amazon_pay'        => $amazon_pay_gateway,
+				],
+				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
+				'is_admin'          => true,
+				'oc_enabled'        => false,
+				'request_vars'      => [
+					'get'  => [
+						'action' => 'edit',
+						'post'   => (string) $simple_product->get_id(),
+					],
+					'post' => [],
+				],
+			],
+			'amazon pay included on HPOS order edit page'                         => [
+				'payment_methods'   => [
+					'afterpay_clearpay' => $afterpay_clearpay_gateway,
+					'klarna'            => $klarna_gateway,
+					'amazon_pay'        => $amazon_pay_gateway,
+				],
+				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway ],
+				'is_admin'          => true,
+				'oc_enabled'        => false,
+				'request_vars'      => [
+					'get'  => [
+						'page'   => 'wc-orders',
+						'action' => 'edit',
+					],
+					'post' => [],
+				],
 			],
 			'card filtered out; amazon pay and link correctly included non-admin' => [
 				'payment_methods'   => [

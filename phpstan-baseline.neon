@@ -219,7 +219,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 15
+			count: 16
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -2179,12 +2179,6 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
-			message: '#^Cannot call method get_status\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
 			message: '#^Method WC_Stripe_Helper\:\:add_stripe_methods_in_woocommerce_gateway_order\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -2209,20 +2203,8 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Helper\:\:get_order_by_intent_id\(\) should return bool\|WC_Order but returns WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
 			message: '#^Method WC_Stripe_Helper\:\:get_order_by_refund_id\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:get_order_by_setup_intent_id\(\) should return bool\|WC_Order but returns bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-helper.php
 
@@ -2365,12 +2347,6 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Cannot call method get_id\(\) on WC_Order\|true\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
 			message: '#^Cannot call method is_reusable\(\) on WC_Stripe_UPE_Payment_Method\|null\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -2396,12 +2372,6 @@ parameters:
 
 		-
 			message: '#^Method WC_Stripe_Intent_Controller\:\:create_and_confirm_setup_intent\(\) should return stdClass but returns array\|stdClass\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:get_order_from_request\(\) should return WC_Order but returns WC_Order\|WC_Order_Refund\|true\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
@@ -3007,15 +2977,9 @@ parameters:
 			path: includes/class-wc-stripe-upe-compatibility.php
 
 		-
-			message: '#^@param WC_Order \$order does not accept actual type of parameter\: WC_Order\|true\.$#'
-			identifier: parameter.phpDocType
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$amount\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 4
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3025,15 +2989,21 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$currency\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$data\.$#'
 			identifier: property.notFound
-			count: 45
+			count: 44
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 9
+			count: 10
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3103,37 +3073,7 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Cannot call method add_order_note\(\) on WC_Order\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Cannot call method delete\(\) on WC_Payment_Token\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method get_id\(\) on WC_Order\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method get_status\(\) on WC_Order\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method has_status\(\) on WC_Order\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method payment_complete\(\) on WC_Order\|true\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
@@ -3142,12 +3082,6 @@ parameters:
 			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method update_status\(\) on WC_Order\|true\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3160,18 +3094,6 @@ parameters:
 			message: '#^Method WC_Stripe_Webhook_Handler\:\:defer_webhook_processing\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_Handler\:\:get_order_from_intent\(\) should return WC_Order\|false but returns bool\|WC_Order\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_Handler\:\:get_order_from_intent\(\) should return WC_Order\|false but returns bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: return.type
-			count: 2
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3319,36 +3241,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:is_stripe_status_final\(\) expects WC_Order\|null, WC_Order\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:lock_order_payment\(\) expects WC_Order, WC_Order\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:unlock_order_payment\(\) expects WC_Order, WC_Order\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:mark_order_as_pre_ordered\(\) expects WC_Order, WC_Order\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Parameter \#1 \$order_id of method WC_Stripe_Payment_Gateway\:\:has_pre_order\(\) expects int, WC_Order\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Parameter \#1 \$request_body of method WC_Stripe_Webhook_Handler\:\:process_webhook\(\) expects string, string\|false given\.$#'
 			identifier: argument.type
 			count: 1
@@ -3375,12 +3267,6 @@ parameters:
 		-
 			message: '#^Parameter \#2 \$str of function explode expects string, array\|string given\.$#'
 			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Property WC_Stripe_Webhook_Handler\:\:\$resolved_order \(WC_Order\|null\) does not accept WC_Order\|true\.$#'
-			identifier: assign.propertyType
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 
@@ -4453,12 +4339,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Cannot call method get_id\(\) on WC_Order\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Cannot call method get_id\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 2
@@ -4801,24 +4681,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_currency\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_fee\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_net\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_upe_redirect_processed\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 1
@@ -4993,12 +4855,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#1 \$order_id of method WC_Stripe_Payment_Gateway\:\:has_pre_order\(\) expects int, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Parameter \#1 \$order_id of method WC_Stripe_Payment_Gateway\:\:maybe_process_pre_orders\(\) expects int, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 1
@@ -5020,6 +4876,12 @@ parameters:
 			message: '#^Parameter \#1 \$order_id of method WC_Stripe_UPE_Payment_Gateway\:\:process_upe_redirect_payment\(\) expects int, int\<0, max\>\|string given\.$#'
 			identifier: argument.type
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order_or_order_id of method WC_Stripe_Payment_Gateway\:\:has_pre_order\(\) expects int\|WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-

@@ -4,7 +4,22 @@ on:
   pull_request
 
 jobs:
+  changes:
+    name: Check for code changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.detect.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: detect
+        uses: ./.github/actions/detect-code-changes
+
   get-woocommerce-versions:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-22.04
     outputs:
         woocommerce-versions-json: ${{ steps.get-released-woocommerce-versions.outputs.versions-json }}
@@ -19,6 +34,8 @@ jobs:
           plugin-slug: woocommerce
           version-count: 3
   get-wordpress-versions:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-22.04
     outputs:
       wordpress-versions-json: ${{ steps.get-wordpress-versions.outputs.versions-json }}

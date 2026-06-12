@@ -1,8 +1,10 @@
 import {
 	getFontSizeBase,
 	getDefaultValues,
-	initializeUPEAppearance,
+	getBillingDetailsForDeferredFlow,
+	getHiddenBillingFields,
 } from '../utils';
+import { initializeUPEAppearance } from '../upe-appearance';
 import { getAppearance } from '../../styles/upe';
 
 jest.mock( '../../styles/upe', () => ( {
@@ -254,6 +256,102 @@ describe( 'utils', () => {
 		} );
 	} );
 
+	describe( 'getBillingDetailsForDeferredFlow', () => {
+		const globalValues = global.wc_stripe_upe_params;
+
+		afterEach( () => {
+			global.wc_stripe_upe_params = globalValues;
+		} );
+
+		it.each( [ 'isOrderPay', 'isChangingPayment', 'isAddPaymentMethod' ] )(
+			'returns billing_details from customerBillingData when %s is true',
+			( flag ) => {
+				global.wc_stripe_upe_params = {
+					[ flag ]: true,
+					customerBillingData: {
+						name: 'John Doe',
+						email: 'john@example.com',
+						phone: '+1234567890',
+						address: {
+							country: 'us', // lowercase, should be uppercased
+							line1: '123 Main St',
+							line2: 'Apt 4B',
+							city: 'New York',
+							state: 'NY',
+							postal_code: '10001',
+						},
+					},
+				};
+
+				expect( getBillingDetailsForDeferredFlow() ).toEqual( {
+					name: 'John Doe',
+					email: 'john@example.com',
+					phone: '+1234567890',
+					address: {
+						country: 'US',
+						line1: '123 Main St',
+						line2: 'Apt 4B',
+						city: 'New York',
+						state: 'NY',
+						postal_code: '10001',
+					},
+				} );
+			}
+		);
+
+		it( 'omits empty address fields, trims values, and uppercases the country', () => {
+			global.wc_stripe_upe_params = {
+				isOrderPay: true,
+				customerBillingData: {
+					name: '  John Doe  ',
+					email: '  john@example.com  ',
+					phone: '',
+					address: {
+						country: 'gb',
+						line1: '10 Downing St',
+						line2: '',
+						city: '',
+						state: '',
+						postal_code: 'SW1A 2AA',
+					},
+				},
+			};
+
+			expect( getBillingDetailsForDeferredFlow() ).toEqual( {
+				name: 'John Doe',
+				email: 'john@example.com',
+				address: {
+					country: 'GB',
+					line1: '10 Downing St',
+					postal_code: 'SW1A 2AA',
+				},
+			} );
+		} );
+
+		it( 'returns null on standard checkout', () => {
+			global.wc_stripe_upe_params = {
+				isCheckout: true,
+				customerBillingData: {
+					email: 'john@example.com',
+				},
+			};
+
+			expect( getBillingDetailsForDeferredFlow() ).toBeNull();
+		} );
+
+		it( 'returns null when customer email is missing', () => {
+			global.wc_stripe_upe_params = {
+				isOrderPay: true,
+				customerBillingData: {
+					name: 'John Doe',
+					address: { line1: '123 Main St' },
+				},
+			};
+
+			expect( getBillingDetailsForDeferredFlow() ).toBeNull();
+		} );
+	} );
+
 	describe( 'initializeUPEAppearance', () => {
 		const globalValues = global.wc_stripe_upe_params;
 
@@ -297,7 +395,11 @@ describe( 'utils', () => {
 
 				initializeUPEAppearance( 'true' );
 
-				expect( getAppearance ).toHaveBeenCalledWith( true, false );
+				expect( getAppearance ).toHaveBeenCalledWith(
+					true,
+					false,
+					false
+				);
 			} );
 
 			it( 'falls through to computed appearance when server appearance is falsy', () => {
@@ -306,7 +408,11 @@ describe( 'utils', () => {
 
 				initializeUPEAppearance( 'false' );
 
-				expect( getAppearance ).toHaveBeenCalledWith( false, false );
+				expect( getAppearance ).toHaveBeenCalledWith(
+					false,
+					false,
+					false
+				);
 			} );
 
 			it( 'does not use server blocks appearance when isBlockCheckout is false', () => {
@@ -317,7 +423,11 @@ describe( 'utils', () => {
 
 				initializeUPEAppearance( 'false' );
 
-				expect( getAppearance ).toHaveBeenCalledWith( false, false );
+				expect( getAppearance ).toHaveBeenCalledWith(
+					false,
+					false,
+					false
+				);
 			} );
 		} );
 
@@ -330,7 +440,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -339,6 +449,7 @@ describe( 'utils', () => {
 					const result = init( 'false' );
 
 					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						false,
 						false,
 						false
 					);
@@ -350,7 +461,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -360,6 +471,7 @@ describe( 'utils', () => {
 
 					expect( mockGetAppearance ).toHaveBeenCalledWith(
 						true,
+						false,
 						false
 					);
 					expect( result ).toEqual( { theme: 'blocks' } );
@@ -370,7 +482,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -379,6 +491,7 @@ describe( 'utils', () => {
 					init();
 
 					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						false,
 						false,
 						false
 					);
@@ -389,7 +502,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -409,7 +522,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -427,7 +540,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -447,7 +560,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -456,6 +569,7 @@ describe( 'utils', () => {
 					init( true );
 
 					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						false,
 						false,
 						false
 					);
@@ -468,7 +582,7 @@ describe( 'utils', () => {
 					const blocksAppearance = { theme: 'blocks' };
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -485,6 +599,54 @@ describe( 'utils', () => {
 					expect( mockGetAppearance ).toHaveBeenCalledTimes( 2 );
 				} );
 			} );
+
+			it( 'passes the editor flag through to getAppearance', () => {
+				jest.isolateModules( () => {
+					const {
+						initializeUPEAppearance: init,
+					} = require( '../upe-appearance' );
+					const {
+						getAppearance: mockGetAppearance,
+					} = require( '../../styles/upe' );
+					mockGetAppearance.mockReturnValue( { theme: 'stripe' } );
+					mockGetAppearance.mockClear();
+
+					init( 'true', false, true );
+
+					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						true,
+						false,
+						true
+					);
+				} );
+			} );
+
+			it( 'maintains separate caches for editor and storefront blocks checkout', () => {
+				jest.isolateModules( () => {
+					const storefrontAppearance = { theme: 'night' };
+					const editorAppearance = { theme: 'stripe' };
+					const {
+						initializeUPEAppearance: init,
+					} = require( '../upe-appearance' );
+					const {
+						getAppearance: mockGetAppearance,
+					} = require( '../../styles/upe' );
+					mockGetAppearance.mockClear();
+					mockGetAppearance
+						.mockReturnValueOnce( storefrontAppearance )
+						.mockReturnValueOnce( editorAppearance );
+
+					const storefrontResult = init( 'true', false, false );
+					const editorResult = init( 'true', false, true );
+					// Subsequent calls hit each location's cache.
+					init( 'true', false, false );
+					init( 'true', false, true );
+
+					expect( storefrontResult ).toBe( storefrontAppearance );
+					expect( editorResult ).toBe( editorAppearance );
+					expect( mockGetAppearance ).toHaveBeenCalledTimes( 2 );
+				} );
+			} );
 		} );
 
 		describe( 'server appearance takes priority over cache', () => {
@@ -492,7 +654,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -512,6 +674,46 @@ describe( 'utils', () => {
 					expect( result ).toBe( serverAppearance );
 				} );
 			} );
+		} );
+	} );
+
+	describe( 'getHiddenBillingFields', () => {
+		it( 'should always set address line2 to "never" so Stripe never renders it', () => {
+			// Address line 2 disabled in WooCommerce.
+			expect( getHiddenBillingFields( [] ).address.line2 ).toBe(
+				'never'
+			);
+
+			// Address line 2 enabled in WooCommerce.
+			expect(
+				getHiddenBillingFields( [ 'billing_address_2' ] ).address.line2
+			).toBe( 'never' );
+		} );
+
+		it( 'should set enabled fields to "never" and disabled fields to "auto"', () => {
+			const result = getHiddenBillingFields( [
+				'billing_first_name',
+				'billing_email',
+				'billing_country',
+				'billing_address_1',
+			] );
+
+			expect( result.name ).toBe( 'never' );
+			expect( result.email ).toBe( 'never' );
+			expect( result.address.country ).toBe( 'never' );
+			expect( result.address.line1 ).toBe( 'never' );
+
+			// Not enabled, so Stripe is allowed to collect them.
+			expect( result.address.city ).toBe( 'auto' );
+			expect( result.address.state ).toBe( 'auto' );
+			expect( result.address.postalCode ).toBe( 'auto' );
+		} );
+
+		it( 'should always keep phone as "auto"', () => {
+			expect( getHiddenBillingFields( [] ).phone ).toBe( 'auto' );
+			expect( getHiddenBillingFields( [ 'billing_phone' ] ).phone ).toBe(
+				'auto'
+			);
 		} );
 	} );
 } );

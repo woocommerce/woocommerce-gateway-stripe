@@ -3,7 +3,7 @@
 /**
  * These tests make assertions against class WC_Stripe_UPE_Payment_Method_Klarna.
  */
-class WC_Stripe_UPE_Payment_Method_Klarna_Test extends WP_UnitTestCase {
+class WC_Stripe_UPE_Payment_Method_Klarna_Test extends WC_Stripe_UPE_Payment_Method_Test_Case {
 	/**
 	 * WC_Stripe_UPE_Payment_Method_Klarna instance.
 	 *
@@ -53,5 +53,36 @@ class WC_Stripe_UPE_Payment_Method_Klarna_Test extends WP_UnitTestCase {
 		$this->assertSame( 'pm_123', $token->get_token() );
 		$this->assertSame( 1, $token->get_user_id() );
 		$this->assertSame( '2000-02-01', $token->get_dob() );
+	}
+
+	/**
+	 * Test that {@see WC_Stripe_UPE_Payment_Method_Klarna::is_available_for_account_country()}
+	 * behaves as expected.
+	 *
+	 * @param string $account_country The account country.
+	 * @param bool   $expected_result The expected result.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_is_available_for_account_country
+	 */
+	public function test_is_available_for_account_country( string $account_country, bool $expected_result ): void {
+		$this->run_is_available_for_account_country_test( WC_Stripe_UPE_Payment_Method_Klarna::class, $account_country, $expected_result );
+	}
+
+	/**
+	 * Data provider for {@see test_is_available_for_account_country()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_available_for_account_country(): array {
+		return [
+			'US is supported'     => [ WC_Stripe_Country_Code::UNITED_STATES, true ],
+			'GB is supported'     => [ WC_Stripe_Country_Code::UNITED_KINGDOM, true ],
+			'AU is supported'     => [ WC_Stripe_Country_Code::AUSTRALIA, true ],
+			'DE is supported'     => [ WC_Stripe_Country_Code::GERMANY, true ],
+			'BR is not supported' => [ WC_Stripe_Country_Code::BRAZIL, false ],
+			'JP is not supported' => [ WC_Stripe_Country_Code::JAPAN, false ],
+			'ZZ is not supported' => [ 'ZZ', false ],
+		];
 	}
 }

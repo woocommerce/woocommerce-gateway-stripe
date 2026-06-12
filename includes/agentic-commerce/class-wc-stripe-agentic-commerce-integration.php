@@ -45,6 +45,21 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_feed';
 
 	/**
+	 * Action Scheduler group for adapter-fired one-off resyncs.
+	 *
+	 * Kept distinct from the recurring `wc-stripe` group so the idempotency
+	 * guard in {@see self::schedule_full_resync_now()} can ask "is another
+	 * adapter-fired resync already pending?" without matching the recurring
+	 * full-feed occurrence — `as_has_scheduled_action()` filters by group,
+	 * so a shared group would make the one-off a no-op whenever the cron
+	 * tick is queued.
+	 *
+	 * @var string
+	 * @since 10.8.0
+	 */
+	private const ASYNC_RESYNC_GROUP = 'wc-stripe-agentic-resync';
+
+	/**
 	 * Option name to track whether the sync is scheduled.
 	 *
 	 * @var string
@@ -169,11 +184,62 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public function register_hooks(): void {
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 
+		// Adapter-fired hook for converging Stripe's catalog when the
+		// `wc_stripe_agentic_commerce_should_sync_product` filter outcome changes.
+		// See the filter docblock for the contract — without this, a previously
+		// exported product that becomes excluded would only drop out of Stripe's
+		// catalog on the next scheduled full sync.
+		add_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $this, 'schedule_full_resync_now' ] );
+
 		// WC 10.8+ requires `created_via` to be in an allowlist for `payment_complete()` to run.
 		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $this, 'allow_agentic_payment_complete' ] );
 
 		$inventory_tracker = new WC_Stripe_Agentic_Commerce_Inventory_Tracker();
 		$inventory_tracker->register_hooks();
+	}
+
+	/**
+	 * Enqueue an immediate full-feed sync if one is not already pending.
+	 *
+	 * Idempotent: when a sync is already pending (recurring cron tick or a
+	 * previous call within the same request), this is a no-op. Adapters can
+	 * call it cheaply on every visibility-setting save without worrying about
+	 * stacking Action Scheduler entries.
+	 *
+	 * @since 10.8.0
+	 * @return void
+	 */
+	public function schedule_full_resync_now(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_enqueue_async_action' ) ) {
+			return;
+		}
+
+		if ( as_has_scheduled_action( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP ) ) {
+			return;
+		}
+
+		as_enqueue_async_action( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP );
+	}
+
+	/**
+	 * Cancel any pending adapter-fired one-off resync.
+	 *
+	 * A full sync that has just run — e.g. a manual sync from the settings UI —
+	 * already produces a complete upload reflecting current visibility, so a
+	 * queued {@see self::schedule_full_resync_now()} action would only repeat
+	 * that work. It lives in {@see self::ASYNC_RESYNC_GROUP}, which the manual
+	 * sync's `wc-stripe`-group reschedule does not touch, so it must be cleared
+	 * explicitly. Idempotent: a no-op when nothing is queued.
+	 *
+	 * @since 10.8.0
+	 * @return void
+	 */
+	public function cancel_pending_full_resync(): void {
+		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+
+		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP );
 	}
 
 	/**
@@ -219,6 +285,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		}
 
 		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], 'wc-stripe' );
+		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP );
 		delete_option( self::SCHEDULED_OPTION );
 		delete_option( self::LAST_UPLOAD_OPTION );
 
@@ -311,23 +378,51 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Get product feed query arguments.
 	 *
+	 * Constructs the `wc_get_products()` argument set passed to the walker.
+	 * When a {@see WC_Stripe_Agentic_Commerce_Product_Filter} has been
+	 * configured (via stored options or the
+	 * `wc_stripe_agentic_commerce_product_filter` filter), the query arguments
+	 * are built from those criteria.
+	 * Those parameters can then be modified via the `wc_stripe_agentic_commerce_product_query_args` filter.
+	 *
 	 * @since 10.5.0
 	 * @return array WP_Query arguments for product selection.
 	 */
 	public function get_product_feed_query_args(): array {
+		$args = [
+			'type'   => [
+				\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
+				\Automattic\WooCommerce\Enums\ProductType::VARIATION,
+			],
+			'status' => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+		];
+
+		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		if ( $filter->has_filters() ) {
+			$filter_args = $filter->get_query_args();
+
+			if ( is_array( $filter_args ) && [] !== $filter_args ) {
+				$args = $filter_args;
+			}
+		}
+
 		/**
-		 * Filter product feed query arguments.
+		 * Filter product feed query arguments. Note that complex filters
+		 * may already exist, so care should be taken to ensure that any overrides
+		 * applied via this filter don't clash with the existing values in a way
+		 * that would generate no results.
 		 *
 		 * @since 10.5.0
-		 * @param array $args WP_Query arguments.
+		 * @param array $args WC_Product_Query arguments.
 		 */
-		return apply_filters(
-			'wc_stripe_agentic_commerce_product_query_args',
-			[
-				'type'   => [ 'simple', 'variation' ],
-				'status' => [ 'publish' ],
-			]
-		);
+		$result = apply_filters( 'wc_stripe_agentic_commerce_product_query_args', $args );
+
+		if ( is_array( $result ) ) {
+			return $result;
+		}
+
+		// Invalid filter result, return the arguments from before the filter was applied.
+		return $args;
 	}
 
 	/**
@@ -454,11 +549,20 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 			// Use the CSV entry count as the authoritative "synced" number — the
 			// walker returns the count of products *iterated*, which includes rows
-			// the validator silently dropped before they made it into the feed.
+			// the validator dropped before they made it into the feed.
 			$total_products = $feed instanceof WC_Stripe_Agentic_Commerce_Csv_Feed
 				? $feed->get_entry_count()
 				: $iterated_products;
-			$skipped_count  = max( 0, $iterated_products - $total_products );
+
+			// Separate the two kinds of dropped row the walker can't distinguish:
+			// filter-excluded (a merchant choice) vs. failed validation. Only the
+			// latter warns and triggers "Partial success".
+			$validator      = $this->get_feed_validator();
+			$excluded_count = $validator instanceof WC_Stripe_Agentic_Commerce_Feed_Validator
+				? $validator->get_excluded_count()
+				: 0;
+			$dropped_count  = max( 0, $iterated_products - $total_products );
+			$skipped_count  = max( 0, $dropped_count - $excluded_count );
 
 			if ( 0 === $total_products ) {
 				WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - no products to sync' );
@@ -485,6 +589,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					'total_products'    => $total_products,
 					'iterated_products' => $iterated_products,
 					'skipped_products'  => $skipped_count,
+					'excluded_products' => $excluded_count,
 					'generation_time'   => round( $generation_time, 2 ) . 's',
 					'file_path'         => $file_path,
 					'file_size_mb'      => round( $file_size / 1024 / 1024, 2 ),
@@ -492,7 +597,6 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			);
 
 			if ( $skipped_count > 0 ) {
-				$validator       = $this->get_feed_validator();
 				$collected       = $validator instanceof WC_Stripe_Agentic_Commerce_Feed_Validator
 					? $validator->get_collected_errors()
 					: [
