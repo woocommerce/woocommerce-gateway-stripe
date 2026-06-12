@@ -49,22 +49,91 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		$this->assertSame( 200, $response->get_status() );
 	}
 
-	public static function provide_wrong_format_params(): array {
+	public static function provide_created_param_wrong_format(): array {
 		return [
-			[ 'starting_after', '' ],
-			[ 'starting_after', 'pi_3:TbL9RJlUF0dQbSB00q0FJS2' ],
-			[ 'ending_before', '' ],
-			[ 'ending_before', 'pi_;3TbL9RJlUF0dQbSB00q0FJS2' ],
+			[
+				'created',
+				[
+					'lt3' => '1779802569',
+				],
+			],
+			[
+				'created',
+				[
+					'lt'  => '1779802569',
+					'gt3' => '1779802569',
+				],
+			],
 		];
 	}
 	/**
-	 * @dataProvider provide_wrong_format_params
+	 * @dataProvider provide_created_param_wrong_format
 	*/
-	public function test_wrong_format_params( $param_name, $param_value ) {
+	public function test_created_param_wrong_format( $param_name, $param_value ) {
 		wp_set_current_user( 1 );
 
 		$response = $this->send_request( [ $param_name => $param_value ] );
 
 		$this->assertSame( 400, $response->get_status() );
+	}
+
+	public static function provide_rest_params(): array {
+		return [
+			[
+				[
+					'created'        =>
+						[
+							'lt' => '1779802569',
+						],
+					'starting_after' => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
+					'ending_before'  => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
+			],
+		];
+	}
+	/**
+	 * @dataProvider provide_rest_params
+	*/
+	public function test_pass_rest_params( $rest_params ) {
+		static $controller = null;
+
+		if ( is_null( $controller ) ) {
+			$controller = new WC_Stripe_REST_Payment_Intents_Controller();
+		}
+
+		$request = new WP_REST_Request(
+			WP_REST_Server::READABLE,
+			self::ENDPOINT_URL
+		);
+
+		foreach ( $rest_params as $rest_param_name => $rest_param_value ) {
+			$request->set_param( $rest_param_name, $rest_param_value );
+		}
+
+		$passed_rest_params = $controller->build_http_query_array_from_request( $request );
+
+		$pre_http_request = [];
+
+		add_filter(
+			'pre_http_request',
+			function ( $pre, $parsed_args, $url ) use ( &$pre_http_request ) {
+				$url_components = parse_url( $url );
+
+				parse_str( $url_components['query'], $pre_http_request['search_params'] );
+
+				return $pre;
+			},
+			10,
+			3
+		);
+
+		wp_set_current_user( 1 );
+		rest_get_server()->dispatch( $request );
+
+		$this->assertEquals( $rest_params, $passed_rest_params );
+		$this->assertEquals(
+			$rest_params,
+			array_intersect_key( $pre_http_request['search_params'], $rest_params )
+		);
 	}
 }
