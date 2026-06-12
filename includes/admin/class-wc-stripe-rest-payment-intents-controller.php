@@ -115,7 +115,14 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		return $search_params;
 	}
 
-	public function build_http_query_string_from_request( $request ) {
+	/**
+	 * Given an incoming REST request, build and return a query parameters string to be appended to Stripe API request URL.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request An incoming REST request.
+	 *
+	 * @return array
+	 */
+	public function build_http_query_string_from_request( $request ): string {
 		return http_build_query( $this->build_http_query_array_from_request( $request ) );
 	}
 	/**
