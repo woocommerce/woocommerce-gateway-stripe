@@ -21,6 +21,9 @@ export const applyStyles = () => {
 	const stripeIframe = document.querySelector(
 		'.wcstripe-payment-element iframe'
 	);
-	stripeIframe.style.margin = 0;
-	stripeIframe.style.width = '100%';
+
+	if ( stripeIframe ) {
+		stripeIframe.style.margin = 0;
+		stripeIframe.style.width = '100%';
+	}
 };
