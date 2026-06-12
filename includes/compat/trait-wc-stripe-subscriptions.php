@@ -15,15 +15,6 @@ trait WC_Stripe_Subscriptions_Trait {
 	use WC_Stripe_Subscriptions_Utilities_Trait;
 
 	/**
-	 * Stores a flag to indicate if the subscription integration hooks have been attached.
-	 *
-	 * The callbacks attached as part of maybe_init_subscriptions() only need to be attached once to avoid duplication.
-	 *
-	 * @var bool False by default, true once the callbacks have been attached.
-	 */
-	private static $has_attached_integration_hooks = false;
-
-	/**
 	 * Initialize subscription support and hooks.
 	 *
 	 * @return void
@@ -50,19 +41,50 @@ trait WC_Stripe_Subscriptions_Trait {
 			]
 		);
 
-		/**
-		 * We need to attach the callbacks below once per Gateway (CC, SEPA, etc.), but only once.
-		 * Therefore, we use a static flag at class level to indicate that they have been attached.
-		 */
-		if ( self::$has_attached_integration_hooks ) {
+		$this->maybe_register_payment_method_hooks( $this->id );
+		$this->maybe_register_plugin_hooks();
+	}
+
+	/**
+	 * Maybe register the payment method hooks for subscriptions.
+	 * These are registered once per payment method.
+	 *
+	 * @param string $payment_method_id The payment method ID to register the hooks for.
+	 * @return void
+	 */
+	private function maybe_register_payment_method_hooks( string $payment_method_id ): void {
+		// Ensure we register the subscription hooks only once per payment method.
+		$hook_manager = WC_Stripe_Hook_Manager::get_instance();
+		if ( ! $hook_manager->is_valid_payment_method_id( $payment_method_id ) ) {
+			WC_Stripe_Logger::error(
+				sprintf( "Skipping subscription hook registration: invalid payment method ID '%s'. Renewals will not be processed.", $payment_method_id ),
+				[
+					'payment_method_id' => $payment_method_id,
+					'current_class'     => get_class( $this ),
+				]
+			);
 			return;
 		}
 
-		add_action( 'woocommerce_scheduled_subscription_payment_' . $this->id, [ $this, 'scheduled_subscription_payment' ], 10, 2 );
-		add_action( 'woocommerce_subscription_failing_payment_method_updated_' . $this->id, [ $this, 'update_failing_payment_method' ], 10, 2 );
+		if ( $hook_manager->are_payment_method_hooks_registered( $payment_method_id, WC_Stripe_Hook_Categories::SUBSCRIPTIONS ) ) {
+			return;
+		}
 
-		add_action( 'wc_stripe_payment_fields_' . $this->id, [ $this, 'display_update_subs_payment_checkout' ] );
-		add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', [ $this, 'handle_add_payment_method_success' ], 10, 2 );
+		/*
+		 * The hooks below use the first instance to register for a given payment method ID.
+		 * This is especially important for the 'stripe' ID, which is used by the main gateway
+		 * {@see WC_Stripe_UPE_Payment_Gateway} and the Optimized Checkout payment method
+		 * {@see WC_Stripe_UPE_Payment_Method_OC}.
+		 *
+		 * Note that the main gateway is constructed during WC_Stripe::init(), while the OCS
+		 * payment method is only instantiated lazily during request rendering, after the
+		 * main gateway instance has been constructed.
+		 */
+		add_action( 'woocommerce_scheduled_subscription_payment_' . $payment_method_id, [ $this, 'scheduled_subscription_payment' ], 10, 2 );
+		add_action( 'woocommerce_subscription_failing_payment_method_updated_' . $payment_method_id, [ $this, 'update_failing_payment_method' ], 10, 2 );
+
+		add_action( 'wc_stripe_payment_fields_' . $payment_method_id, [ $this, 'display_update_subs_payment_checkout' ] );
+		add_action( 'wc_stripe_add_payment_method_' . $payment_method_id . '_success', [ $this, 'handle_add_payment_method_success' ], 10, 2 );
 		add_action( 'woocommerce_stripe_add_payment_method', [ $this, 'handle_upe_add_payment_method_success' ], 10, 2 );
 
 		// Display the payment method used for a subscription in the "My Subscriptions" table.
@@ -74,44 +96,22 @@ trait WC_Stripe_Subscriptions_Trait {
 		// Validate the payment method meta data set on a subscription.
 		add_action( 'woocommerce_subscription_validate_payment_meta', [ $this, 'validate_subscription_payment_meta' ], 10, 2 );
 
-		self::$has_attached_integration_hooks = true;
+		$hook_manager->register_payment_method_hooks( $payment_method_id, WC_Stripe_Hook_Categories::SUBSCRIPTIONS );
+	}
 
-		/**
-		 * The callbacks attached below only need to be attached once. We don't need each gateway instance to have its own callback.
-		 * Therefore we only attach them once on the main `stripe` gateway and store a flag to indicate that they have been attached.
-		 */
-		if ( WC_Stripe_UPE_Payment_Gateway::ID !== $this->id ) {
-			return;
+	/**
+	 * Maybe register the plugin-level hooks for subscriptions.
+	 * These should only be registered once for the main gateway instance.
+	 *
+	 * @return bool True if the hooks were registered, false otherwise.
+	 * @since 10.9.0
+	 */
+	private function maybe_register_plugin_hooks(): bool {
+		if ( $this instanceof WC_Stripe_UPE_Payment_Gateway ) {
+			return $this->maybe_register_gateway_subscription_hooks();
 		}
-		// Secondary check to skip registration for the OC payment method, which mimics the Stripe ID.
-		$current_class = get_class( $this );
-		if ( WC_Stripe_UPE_Payment_Gateway::class !== $current_class ) {
-			return;
-		}
 
-		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
-		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
-		// @phpstan-ignore return.void (Callers may be relying on the return value from delete_renewal_meta(), so we are keeping that in place.)
-		add_action( 'wcs_renewal_order_created', [ $this, 'delete_renewal_meta' ], 10 );
-
-		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'display_save_payment_method_checkbox' ] );
-
-		// Add the necessary information to create a mandate to the payment intent.
-		add_filter( 'wc_stripe_generate_create_intent_request', [ $this, 'add_subscription_information_to_intent' ], 10, 4 );
-
-		/*
-		* WC subscriptions hooks into the "template_redirect" hook with priority 100.
-		* If the screen is "Pay for order" and the order is a subscription renewal, it redirects to the plain checkout.
-		* See: https://github.com/woocommerce/woocommerce-subscriptions/blob/99a75687e109b64cbc07af6e5518458a6305f366/includes/class-wcs-cart-renewal.php#L165
-		* If we are in the "You just need to authorize SCA" flow, we don't want that redirection to happen.
-		*/
-		add_action( 'template_redirect', [ $this, 'remove_order_pay_var' ], 99 );
-		add_action( 'template_redirect', [ $this, 'restore_order_pay_var' ], 101 );
-
-		// Disable editing for Indian subscriptions with mandates. Those need to be recreated as mandates does not support upgrades (due fixed amounts).
-		add_filter( 'wc_order_is_editable', [ $this, 'disable_subscription_edit_for_india' ], 10, 2 );
-
-		add_filter( 'woocommerce_subscriptions_update_payment_via_pay_shortcode', [ $this, 'update_payment_after_deferred_intent' ], 10, 3 );
+		return false;
 	}
 
 	/**
