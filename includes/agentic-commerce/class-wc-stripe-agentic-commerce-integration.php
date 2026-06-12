@@ -307,23 +307,51 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Get product feed query arguments.
 	 *
+	 * Constructs the `wc_get_products()` argument set passed to the walker.
+	 * When a {@see WC_Stripe_Agentic_Commerce_Product_Filter} has been
+	 * configured (via stored options or the
+	 * `wc_stripe_agentic_commerce_product_filter` filter), the query arguments
+	 * are built from those criteria.
+	 * Those parameters can then be modified via the `wc_stripe_agentic_commerce_product_query_args` filter.
+	 *
 	 * @since 10.5.0
 	 * @return array WP_Query arguments for product selection.
 	 */
 	public function get_product_feed_query_args(): array {
+		$args = [
+			'type'   => [
+				\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
+				\Automattic\WooCommerce\Enums\ProductType::VARIATION,
+			],
+			'status' => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+		];
+
+		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		if ( $filter->has_filters() ) {
+			$filter_args = $filter->get_query_args();
+
+			if ( is_array( $filter_args ) && [] !== $filter_args ) {
+				$args = $filter_args;
+			}
+		}
+
 		/**
-		 * Filter product feed query arguments.
+		 * Filter product feed query arguments. Note that complex filters
+		 * may already exist, so care should be taken to ensure that any overrides
+		 * applied via this filter don't clash with the existing values in a way
+		 * that would generate no results.
 		 *
 		 * @since 10.5.0
-		 * @param array $args WP_Query arguments.
+		 * @param array $args WC_Product_Query arguments.
 		 */
-		return apply_filters(
-			'wc_stripe_agentic_commerce_product_query_args',
-			[
-				'type'   => [ 'simple', 'variation' ],
-				'status' => [ 'publish' ],
-			]
-		);
+		$result = apply_filters( 'wc_stripe_agentic_commerce_product_query_args', $args );
+
+		if ( is_array( $result ) ) {
+			return $result;
+		}
+
+		// Invalid filter result, return the arguments from before the filter was applied.
+		return $args;
 	}
 
 	/**
