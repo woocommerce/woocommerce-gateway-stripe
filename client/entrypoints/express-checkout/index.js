@@ -438,11 +438,7 @@ jQuery( function ( $ ) {
 					);
 				}
 
-				return shippingAddressChangeHandler(
-					api,
-					event,
-					stripeElements
-				);
+				return shippingAddressChangeHandler( event, stripeElements );
 			};
 
 			eceButton.on( 'shippingaddresschange', async ( event ) => {
@@ -452,17 +448,13 @@ jQuery( function ( $ ) {
 						elements
 					);
 				}
-				return await shippingAddressChangeHandler(
-					api,
-					event,
-					elements
-				);
+				return await shippingAddressChangeHandler( event, elements );
 			} );
 
 			eceButton.on(
 				'shippingratechange',
 				async ( event ) =>
-					await shippingRateChangeHandler( api, event, elements )
+					await shippingRateChangeHandler( event, elements )
 			);
 
 			eceButton.on( 'confirm', async ( event ) => {

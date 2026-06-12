@@ -637,6 +637,65 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * showSaveOptionByMethod must be false for methods saved as a different Stripe
+	 * type (Bancontact/iDEAL → SEPA) when Adaptive Pricing is active, since the
+	 * Checkout Sessions flow cannot save them.
+	 *
+	 * @dataProvider provide_show_save_option_by_method_adaptive_pricing
+	 *
+	 * @param bool $adaptive_pricing_active Whether Adaptive Pricing is supported.
+	 * @param bool $expected_converting     Expected map value for Bancontact/iDEAL.
+	 */
+	public function test_show_save_option_by_method_hides_converting_methods_with_adaptive_pricing(
+		bool $adaptive_pricing_active,
+		bool $expected_converting
+	): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'is_valid_optimized_checkout_page', 'is_adaptive_pricing_supported', 'get_upe_enabled_at_checkout_payment_method_ids' ] )
+			->getMock();
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( true );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( $adaptive_pricing_active );
+		$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn(
+			[
+				WC_Stripe_Payment_Methods::CARD,
+				WC_Stripe_Payment_Methods::BANCONTACT,
+				WC_Stripe_Payment_Methods::IDEAL,
+				WC_Stripe_Payment_Methods::SEPA_DEBIT,
+			]
+		);
+		$gateway->oc_enabled = true;
+
+		$get_config = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'get_enabled_payment_method_config' );
+		$get_config->setAccessible( true );
+		$config = $get_config->invoke( $gateway );
+
+		$by_method = $config[ WC_Stripe_Payment_Methods::CARD ]['showSaveOptionByMethod'];
+		$this->assertSame( $expected_converting, $by_method[ WC_Stripe_Payment_Methods::BANCONTACT ] );
+		$this->assertSame( $expected_converting, $by_method[ WC_Stripe_Payment_Methods::IDEAL ] );
+		// Methods saved under their own type are unaffected by Adaptive Pricing.
+		$this->assertTrue( $by_method[ WC_Stripe_Payment_Methods::SEPA_DEBIT ] );
+	}
+
+	/**
+	 * Data provider for test_show_save_option_by_method_hides_converting_methods_with_adaptive_pricing.
+	 *
+	 * @return array[]
+	 */
+	public function provide_show_save_option_by_method_adaptive_pricing(): array {
+		return [
+			'Adaptive Pricing active: converting methods not savable' => [
+				'adaptive_pricing_active' => true,
+				'expected_converting'     => false,
+			],
+			'Adaptive Pricing inactive: converting methods savable'   => [
+				'adaptive_pricing_active' => false,
+				'expected_converting'     => true,
+			],
+		];
+	}
+
+	/**
 	 * Test that payment_scripts registers the wc-stripe-upe-classic script with the correct version and dependencies.
 	 *
 	 * Because build/upe-classic.asset.php may not be present in test environments, we have conditional logic as follows:
@@ -700,6 +759,106 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertNotNull( $registered_script, 'wc-stripe-upe-classic script is not a valid object' );
 		$this->assertSame( $expected_version, $registered_script->ver, 'wc-stripe-upe-classic script version is not the same as the expected version' );
 		$this->assertSame( $expected_dependencies, $registered_script->deps, 'wc-stripe-upe-classic script dependencies are not the same as the expected dependencies' );
+	}
+
+	/**
+	 * The billing source for the deferred-payment flows is selected all-or-nothing:
+	 * the order on a validated pay-for-order page (so guests still get full address
+	 * details), otherwise the customer, with a wholesale fallback to the customer when
+	 * the order has no usable billing email.
+	 *
+	 * @dataProvider provide_deferred_flow_billing_data_scenarios
+	 *
+	 * @param bool   $is_pay_for_order Whether the page is the validated pay-for-order endpoint.
+	 * @param bool   $order_has_email  Whether the order carries a billing email.
+	 * @param bool   $with_customer    Whether a customer is available as a source.
+	 * @param string $expected_source  Expected source: 'order', 'customer', or 'none'.
+	 */
+	public function test_get_deferred_flow_billing_data( bool $is_pay_for_order, bool $order_has_email, bool $with_customer, string $expected_source ) {
+		$order_billing    = [
+			'name'    => 'Order Buyer',
+			'email'   => 'order-buyer@example.com',
+			'phone'   => '+15551234567',
+			'address' => [
+				'country'     => 'US',
+				'line1'       => '123 Order St',
+				'line2'       => 'Suite 5',
+				'city'        => 'Orderville',
+				'state'       => 'CA',
+				'postal_code' => '90001',
+			],
+		];
+		$customer_billing = [
+			'name'    => 'Cust Omer',
+			'email'   => 'customer@example.com',
+			'phone'   => '+447700900000',
+			'address' => [
+				'country'     => 'GB',
+				'line1'       => '999 Customer Ave',
+				'line2'       => 'Flat 2',
+				'city'        => 'London',
+				'state'       => 'LND',
+				'postal_code' => 'SW1A 2AA',
+			],
+		];
+
+		// A bare (unsaved) order keeps the test free of the DB and of helper-seeded defaults.
+		$order = new WC_Order();
+		$order->set_billing_first_name( 'Order' );
+		$order->set_billing_last_name( 'Buyer' );
+		$order->set_billing_phone( $order_billing['phone'] );
+		$order->set_billing_country( $order_billing['address']['country'] );
+		$order->set_billing_address_1( $order_billing['address']['line1'] );
+		$order->set_billing_address_2( $order_billing['address']['line2'] );
+		$order->set_billing_city( $order_billing['address']['city'] );
+		$order->set_billing_state( $order_billing['address']['state'] );
+		$order->set_billing_postcode( $order_billing['address']['postal_code'] );
+		if ( $order_has_email ) {
+			$order->set_billing_email( $order_billing['email'] );
+		}
+
+		$customer = null;
+		if ( $with_customer ) {
+			$customer = new WC_Customer();
+			$customer->set_billing_first_name( 'Cust' );
+			$customer->set_billing_last_name( 'Omer' );
+			$customer->set_billing_email( $customer_billing['email'] );
+			$customer->set_billing_phone( $customer_billing['phone'] );
+			$customer->set_billing_country( $customer_billing['address']['country'] );
+			$customer->set_billing_address_1( $customer_billing['address']['line1'] );
+			$customer->set_billing_address_2( $customer_billing['address']['line2'] );
+			$customer->set_billing_city( $customer_billing['address']['city'] );
+			$customer->set_billing_state( $customer_billing['address']['state'] );
+			$customer->set_billing_postcode( $customer_billing['address']['postal_code'] );
+		}
+
+		$result = $this->mock_gateway->get_deferred_flow_billing_data( $is_pay_for_order, $order, $customer );
+
+		switch ( $expected_source ) {
+			case 'order':
+				$this->assertSame( $order_billing, $result );
+				break;
+			case 'customer':
+				// Asserting the whole array proves the fallback is all-or-nothing: no order field leaks in.
+				$this->assertSame( $customer_billing, $result );
+				break;
+			default:
+				$this->assertNull( $result );
+		}
+	}
+
+	/**
+	 * Data provider for test_get_deferred_flow_billing_data.
+	 *
+	 * @return array<string, array{0: bool, 1: bool, 2: bool, 3: string}>
+	 */
+	public function provide_deferred_flow_billing_data_scenarios(): array {
+		return [
+			'pay-for-order uses the order when it has an email'                    => [ true, true, true, 'order' ],
+			'pay-for-order falls back to the customer when the order has no email' => [ true, false, true, 'customer' ],
+			'change/add payment method uses the customer even with an order'       => [ false, true, true, 'customer' ],
+			'returns null when neither order nor customer is usable'               => [ true, false, false, 'none' ],
+		];
 	}
 
 	/**
@@ -1570,6 +1729,90 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Reusing a saved card never refreshes its wallet_type (create-time state,
+	 * #5477), so a manually-saved card can't flip to a wallet brand.
+	 *
+	 * @dataProvider provider_handle_saving_payment_method_preserves_wallet_type
+	 *
+	 * @param string $initial_wallet_type wallet_type already stored on the saved token.
+	 * @param string $new_wallet_type      wallet_type on the incoming payment method ('' for a plain card).
+	 * @param string $expected_wallet_type wallet_type expected on the token after reuse (always the initial value).
+	 */
+	public function test_handle_saving_payment_method_preserves_wallet_type_on_reused_token( $initial_wallet_type, $new_wallet_type, $expected_wallet_type ) {
+		$this->mock_gateway->oc_enabled = true;
+
+		$user_id = $this->factory()->user->create();
+		$order   = WC_Helper_Order::create_order( $user_id );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		// An existing saved token for the same card, branded with the initial wallet type.
+		$existing = new WC_Stripe_Payment_Token_CC();
+		$existing->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$existing->set_token( 'pm_existing' );
+		$existing->set_card_type( 'visa' );
+		$existing->set_last4( '4242' );
+		$existing->set_expiry_month( '12' );
+		$existing->set_expiry_year( '2030' );
+		$existing->set_fingerprint( 'fp_match' );
+		$existing->set_wallet_type( $initial_wallet_type );
+		$existing->set_user_id( $user_id );
+		$existing->save();
+
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		$card = [
+			'exp_month'   => 12,
+			'exp_year'    => 2030,
+			'brand'       => 'visa',
+			'last4'       => '4242',
+			'fingerprint' => 'fp_match',
+		];
+		// A plain card carries no wallet object; a wallet payment nests its type under card.wallet.
+		if ( '' !== $new_wallet_type ) {
+			$card['wallet'] = (object) [ 'type' => $new_wallet_type ];
+		}
+
+		// The same card (matching fingerprint) tokenized again through the new method.
+		$payment_method_object = (object) [
+			'id'       => 'pm_reused',
+			'object'   => 'payment_method',
+			'type'     => WC_Stripe_Payment_Methods::CARD,
+			'customer' => 'cus_mock',
+			'card'     => (object) $card,
+		];
+
+		$this->mock_gateway->handle_saving_payment_method( $order, $payment_method_object, WC_Stripe_Payment_Methods::CARD );
+
+		$refreshed = WC_Payment_Tokens::get( $existing->get_id() );
+		$this->assertInstanceOf( WC_Stripe_Payment_Token_CC::class, $refreshed );
+		// The reused token keeps its create-time wallet branding; only the Stripe id refreshes.
+		$this->assertSame( $expected_wallet_type, $refreshed->get_wallet_type() );
+		$this->assertSame( 'pm_reused', $refreshed->get_token() );
+	}
+
+	/**
+	 * Provider: expected wallet_type always equals the initial — the incoming method's is ignored.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: string}>
+	 */
+	public function provider_handle_saving_payment_method_preserves_wallet_type(): array {
+		return [
+			'plain card reused via apple pay stays plain'        => [ '', 'apple_pay', '' ],
+			'plain card reused via google pay stays plain'       => [ '', 'google_pay', '' ],
+			'plain card reused directly stays plain'             => [ '', '', '' ],
+			'apple pay card reused directly stays apple'         => [ 'apple_pay', '', 'apple_pay' ],
+			'apple pay card reused via google pay stays apple'   => [ 'apple_pay', 'google_pay', 'apple_pay' ],
+			'apple pay card reused via apple pay stays apple'    => [ 'apple_pay', 'apple_pay', 'apple_pay' ],
+			'google pay card reused via apple pay stays google'  => [ 'google_pay', 'apple_pay', 'google_pay' ],
+			'google pay card reused directly stays google'       => [ 'google_pay', '', 'google_pay' ],
+			'google pay card reused via google pay stays google' => [ 'google_pay', 'google_pay', 'google_pay' ],
+		];
+	}
+
+	/**
 	 * Test checkout flow while saving payment method with SEPA generated payment method AND setup intents.
 	 */
 	public function test_setup_intent_checkout_saves_sepa_generated_payment_method_to_order() {
@@ -1936,6 +2179,78 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		parse_str( is_string( $query_string ) ? $query_string : '', $query );
 		$this->assertSame( '1', $query['wc_stripe_cs'] ?? null );
 		$this->assertSame( 1, wp_verify_nonce( $query['_wpnonce'] ?? '', 'wc_stripe_process_checkout_session_redirect_nonce' ) );
+	}
+
+	/**
+	 * Saving through the Adaptive Pricing / Checkout Sessions flow must persist the save-payment-method
+	 * flag on the order without any server-side session update: saving is requested client-side via
+	 * `checkout.confirm()`, and the Checkout Session update API does not accept `payment_method_options`.
+	 *
+	 * Part of STRIPE-1205.
+	 *
+	 * @dataProvider provide_checkout_session_save_payment_method_types
+	 *
+	 * @param string $payment_method_type The UPE payment method type selected at checkout.
+	 */
+	public function test_process_payment_with_checkout_session_persists_save_flag_without_session_update( string $payment_method_type ) {
+		$session_id = 'cs_test_save_' . $payment_method_type;
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+		// Optimized Checkout reports 'card' as the gateway type; the real method is sent in `wc_stripe_selected_upe_payment_type`.
+		$_POST['wc_stripe_selected_upe_payment_type'] = $payment_method_type;
+		$_POST['wc-stripe-new-payment-method']        = 'true';
+
+		// Saved cards must be enabled for the save-payment-method checkbox to take effect.
+		$this->mock_gateway->saved_cards = true;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$session_update_called = false;
+		$pre_http_filter       = function ( $return_value, $parsed_args, $url ) use ( $session_id, &$session_update_called ) {
+			if ( WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $session_id === $url ) {
+				$session_update_called = true;
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		try {
+			$result = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_filter );
+			unset(
+				$_POST['wc_stripe_checkout_session_id'],
+				$_POST['payment_method'],
+				$_POST['wc-stripe-payment-method'],
+				$_POST['wc_stripe_selected_upe_payment_type'],
+				$_POST['wc-stripe-new-payment-method']
+			);
+		}
+
+		$this->assertSame( 'success', $result['result'] );
+		$this->assertFalse( $session_update_called, 'Saving a payment method must not trigger a checkout session update.' );
+
+		// The save flag must be persisted so the webhook can save the payment method (or its generated SEPA mandate).
+		$this->assertTrue(
+			WC_Stripe_Order_Helper::get_instance()->get_should_save_stripe_payment_method( wc_get_order( $order->get_id() ) )
+		);
+	}
+
+	/**
+	 * Provides payment method types for the checkout session save-payment-method test.
+	 *
+	 * @return array[]
+	 */
+	public function provide_checkout_session_save_payment_method_types(): array {
+		return [
+			'redirect APM tokenized as SEPA (bancontact)' => [ WC_Stripe_Payment_Methods::BANCONTACT ],
+			'method saved under its own type (card)'      => [ WC_Stripe_Payment_Methods::CARD ],
+		];
 	}
 
 	/**

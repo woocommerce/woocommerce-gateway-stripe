@@ -2082,6 +2082,144 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Redirect-based APMs that are saved as SEPA tokens (Bancontact, iDEAL, Sofort) must not fatal in
+	 * the Adaptive Pricing / Checkout Sessions webhook when the save-payment-method flag is set.
+	 *
+	 * Stripe returns the APM PaymentMethod (no `sepa_debit` child). The handler must convert it to the
+	 * charge's `generated_sepa_debit` PaymentMethod before saving — and skip saving entirely when Stripe
+	 * did not generate a reusable mandate — instead of passing a non-SEPA object to set_fingerprint().
+	 *
+	 * Regression for STRIPE-1205.
+	 *
+	 * @dataProvider provider_checkout_session_apm_sepa_save
+	 *
+	 * @param string  $payment_method_type   Redirect APM type (e.g. 'bancontact', 'ideal', 'sofort').
+	 * @param ?string $generated_sepa_debit  The generated SEPA debit PM id on the charge, or null.
+	 * @param bool    $expect_token_saved    Whether a SEPA token should be saved for the user.
+	 * @return void
+	 */
+	public function test_process_checkout_session_success_saves_apm_as_sepa_token( string $payment_method_type, ?string $generated_sepa_debit, bool $expect_token_saved ): void {
+		$checkout_session_id = 'cs_test_apm_' . $payment_method_type;
+		$generated_pm_id     = 'pm_generated_sepa_' . $payment_method_type;
+
+		$user_id = self::factory()->user->create();
+
+		$order = WC_Helper_Order::create_order( $user_id );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order_helper->update_should_save_stripe_payment_method( $order, true );
+		$order->save_meta_data();
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_' . $payment_method_type,
+				],
+			],
+		];
+
+		// The APM PaymentMethod as Stripe returns it: its own type, no sepa_debit child.
+		$payment_method_object = (object) [
+			'id'   => 'pm_mock_' . $payment_method_type,
+			'type' => $payment_method_type,
+		];
+
+		// The charge exposes the reusable mandate (or null) via payment_method_details.<type>.generated_sepa_debit.
+		$charge = (object) [
+			'id'                     => 'ch_mock_' . $payment_method_type,
+			'captured'               => true,
+			'status'                 => 'succeeded',
+			'payment_method_details' => (object) [
+				$payment_method_type => (object) [
+					'generated_sepa_debit' => $generated_sepa_debit,
+				],
+			],
+		];
+
+		// Intercept the generated SEPA PaymentMethod retrieval and return a SEPA-shaped object.
+		$pre_http_filter = function ( $return_value, $parsed_args, $url ) use ( $generated_pm_id ) {
+			if ( WC_Stripe_API::ENDPOINT . 'payment_methods/' . $generated_pm_id !== $url ) {
+				return $return_value;
+			}
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'id'         => $generated_pm_id,
+						'type'       => WC_Stripe_Payment_Methods::SEPA_DEBIT,
+						'customer'   => 'cus_mock_apm',
+						'sepa_debit' => [
+							'last4'       => '7061',
+							'fingerprint' => 'Fxxxxxxxxxxxxxxx',
+						],
+					]
+				),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )->method( 'schedule_job' );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+
+		$handler->method( 'get_intent_from_order' )
+			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => $payment_method_object ] ) );
+		$handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+		$handler->method( 'process_response' );
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		// Must not fatal.
+		$handler->process_checkout_session_success( $notification );
+
+		remove_filter( 'pre_http_request', $pre_http_filter );
+
+		// The save flag is always cleared so webhook retries do not loop.
+		$this->assertFalse( $order_helper->get_should_save_stripe_payment_method( wc_get_order( $order->get_id() ) ) );
+
+		$tokens = WC_Payment_Tokens::get_customer_tokens( $user_id );
+		if ( $expect_token_saved ) {
+			$this->assertCount( 1, $tokens );
+			$token = array_shift( $tokens );
+			$this->assertInstanceOf( WC_Payment_Token_SEPA::class, $token );
+			$this->assertSame( $generated_pm_id, $token->get_token() );
+			$this->assertSame( '7061', $token->get_last4() );
+		} else {
+			$this->assertCount( 0, $tokens );
+		}
+	}
+
+	/**
+	 * Data provider for `test_process_checkout_session_success_saves_apm_as_sepa_token`.
+	 *
+	 * @return array[]
+	 */
+	public function provider_checkout_session_apm_sepa_save(): array {
+		return [
+			'bancontact with generated mandate' => [ WC_Stripe_Payment_Methods::BANCONTACT, 'pm_generated_sepa_bancontact', true ],
+			'ideal with generated mandate'      => [ WC_Stripe_Payment_Methods::IDEAL, 'pm_generated_sepa_ideal', true ],
+			'sofort with generated mandate'     => [ WC_Stripe_Payment_Methods::SOFORT, 'pm_generated_sepa_sofort', true ],
+			'bancontact without mandate'        => [ WC_Stripe_Payment_Methods::BANCONTACT, null, false ],
+		];
+	}
+
+	/**
 	 * Test that `checkout.session.async_payment_succeeded` processes on-hold orders.
 	 *
 	 * @return void
@@ -2134,5 +2272,84 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$updated_order = wc_get_order( $order->get_id() );
 		$this->assertInstanceOf( WC_Order::class, $updated_order );
 		$this->assertTrue( $updated_order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED ] ) );
+	}
+
+	/**
+	 * Guards that events are processed only when their Stripe account matches the connected
+	 * account, failing open on a missing or unknown account, in both live and test modes.
+	 *
+	 * @dataProvider provide_event_belongs_to_connected_account
+	 *
+	 * @param string      $mode              Plugin mode ('yes' test, 'no' live).
+	 * @param string      $field             Event field carrying the account ('account' for Connect, 'context' for agentic).
+	 * @param string|null $event_account     The account ID to place on the event, or null to omit it.
+	 * @param string      $connected_account The connected account ID.
+	 * @param bool        $expected          Whether the event should be allowed through.
+	 */
+	public function test_event_belongs_to_connected_account( string $mode, string $field, $event_account, string $connected_account, bool $expected ) {
+		update_option(
+			'woocommerce_stripe_settings',
+			array_merge( (array) get_option( 'woocommerce_stripe_settings', [] ), [ 'testmode' => $mode ] )
+		);
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_connected_account_id' ] )
+			->getMock();
+		$handler->method( 'get_connected_account_id' )->willReturn( $connected_account );
+
+		$event = (object) [
+			'id'   => 'evt_mock_1234',
+			'type' => 'payment_intent.succeeded',
+		];
+		if ( null !== $event_account ) {
+			$event->$field = $event_account;
+		}
+
+		$method = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'event_belongs_to_connected_account' );
+		$method->setAccessible( true );
+
+		$this->assertSame( $expected, $method->invoke( $handler, $event ) );
+	}
+
+	/**
+	 * Provider for `test_event_belongs_to_connected_account`.
+	 *
+	 * @return array
+	 */
+	public function provide_event_belongs_to_connected_account() {
+		return [
+			'Connect: live mode, matching account is processed'    => [ 'no', 'account', 'acct_connected', 'acct_connected', true ],
+			'Connect: live mode, mismatched account is skipped'    => [ 'no', 'account', 'acct_other', 'acct_connected', false ],
+			'Connect: test mode, matching account is processed'    => [ 'yes', 'account', 'acct_connected', 'acct_connected', true ],
+			'Connect: test mode, mismatched account is skipped'    => [ 'yes', 'account', 'acct_other', 'acct_connected', false ],
+			'Agentic: matching context account is processed'       => [ 'yes', 'context', 'acct_connected', 'acct_connected', true ],
+			'Agentic: mismatched context account is skipped'       => [ 'yes', 'context', 'acct_other', 'acct_connected', false ],
+			'event without an account field is processed'          => [ 'no', 'account', null, 'acct_connected', true ],
+			'event with an empty account field is processed'       => [ 'yes', 'account', '', 'acct_connected', true ],
+			'unknown connected account fails open (live)'          => [ 'no', 'account', 'acct_other', '', true ],
+			'unknown connected account fails open (test, agentic)' => [ 'yes', 'context', 'acct_other', '', true ],
+		];
+	}
+
+	/**
+	 * Locks in that a real agentic `v1.delegated_checkout.*` payload is matched against the
+	 * connected account via its top-level `context` field, processing on a match and skipping
+	 * on a mismatch. Uses the committed sample event so reviewers can replay the same body.
+	 */
+	public function test_event_belongs_to_connected_account_reads_context_from_real_agentic_event() {
+		$event         = json_decode( file_get_contents( __DIR__ . '/dummy-data/agentic_customize_checkout_event.json' ) );
+		$event_account = 'acct_sample_connected'; // The `context` value in the fixture.
+		$reflection    = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'event_belongs_to_connected_account' );
+		$reflection->setAccessible( true );
+
+		$this->assertSame( $event_account, $event->context, 'Fixture is expected to carry the account in `context`.' );
+
+		$matching = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )->setMethods( [ 'get_connected_account_id' ] )->getMock();
+		$matching->method( 'get_connected_account_id' )->willReturn( $event_account );
+		$this->assertTrue( $reflection->invoke( $matching, $event ) );
+
+		$mismatched = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )->setMethods( [ 'get_connected_account_id' ] )->getMock();
+		$mismatched->method( 'get_connected_account_id' )->willReturn( 'acct_someone_else' );
+		$this->assertFalse( $reflection->invoke( $mismatched, $event ) );
 	}
 }
