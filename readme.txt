@@ -164,5 +164,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Consolidate the default payment intent metadata fields into a shared method so they stay consistent across payment flows
 * Dev - Use clsx library instead of classnames
 * Fix - Append the 3-letter currency code to the Stripe Fee and Stripe Payout amounts in WP Admin order totals when the Stripe account currency differs from the order currency
+* Dev - Add more robust purchase checks in e2e tests
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
