@@ -1729,6 +1729,90 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Reusing a saved card never refreshes its wallet_type (create-time state,
+	 * #5477), so a manually-saved card can't flip to a wallet brand.
+	 *
+	 * @dataProvider provider_handle_saving_payment_method_preserves_wallet_type
+	 *
+	 * @param string $initial_wallet_type wallet_type already stored on the saved token.
+	 * @param string $new_wallet_type      wallet_type on the incoming payment method ('' for a plain card).
+	 * @param string $expected_wallet_type wallet_type expected on the token after reuse (always the initial value).
+	 */
+	public function test_handle_saving_payment_method_preserves_wallet_type_on_reused_token( $initial_wallet_type, $new_wallet_type, $expected_wallet_type ) {
+		$this->mock_gateway->oc_enabled = true;
+
+		$user_id = $this->factory()->user->create();
+		$order   = WC_Helper_Order::create_order( $user_id );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		// An existing saved token for the same card, branded with the initial wallet type.
+		$existing = new WC_Stripe_Payment_Token_CC();
+		$existing->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$existing->set_token( 'pm_existing' );
+		$existing->set_card_type( 'visa' );
+		$existing->set_last4( '4242' );
+		$existing->set_expiry_month( '12' );
+		$existing->set_expiry_year( '2030' );
+		$existing->set_fingerprint( 'fp_match' );
+		$existing->set_wallet_type( $initial_wallet_type );
+		$existing->set_user_id( $user_id );
+		$existing->save();
+
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		$card = [
+			'exp_month'   => 12,
+			'exp_year'    => 2030,
+			'brand'       => 'visa',
+			'last4'       => '4242',
+			'fingerprint' => 'fp_match',
+		];
+		// A plain card carries no wallet object; a wallet payment nests its type under card.wallet.
+		if ( '' !== $new_wallet_type ) {
+			$card['wallet'] = (object) [ 'type' => $new_wallet_type ];
+		}
+
+		// The same card (matching fingerprint) tokenized again through the new method.
+		$payment_method_object = (object) [
+			'id'       => 'pm_reused',
+			'object'   => 'payment_method',
+			'type'     => WC_Stripe_Payment_Methods::CARD,
+			'customer' => 'cus_mock',
+			'card'     => (object) $card,
+		];
+
+		$this->mock_gateway->handle_saving_payment_method( $order, $payment_method_object, WC_Stripe_Payment_Methods::CARD );
+
+		$refreshed = WC_Payment_Tokens::get( $existing->get_id() );
+		$this->assertInstanceOf( WC_Stripe_Payment_Token_CC::class, $refreshed );
+		// The reused token keeps its create-time wallet branding; only the Stripe id refreshes.
+		$this->assertSame( $expected_wallet_type, $refreshed->get_wallet_type() );
+		$this->assertSame( 'pm_reused', $refreshed->get_token() );
+	}
+
+	/**
+	 * Provider: expected wallet_type always equals the initial — the incoming method's is ignored.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: string}>
+	 */
+	public function provider_handle_saving_payment_method_preserves_wallet_type(): array {
+		return [
+			'plain card reused via apple pay stays plain'        => [ '', 'apple_pay', '' ],
+			'plain card reused via google pay stays plain'       => [ '', 'google_pay', '' ],
+			'plain card reused directly stays plain'             => [ '', '', '' ],
+			'apple pay card reused directly stays apple'         => [ 'apple_pay', '', 'apple_pay' ],
+			'apple pay card reused via google pay stays apple'   => [ 'apple_pay', 'google_pay', 'apple_pay' ],
+			'apple pay card reused via apple pay stays apple'    => [ 'apple_pay', 'apple_pay', 'apple_pay' ],
+			'google pay card reused via apple pay stays google'  => [ 'google_pay', 'apple_pay', 'google_pay' ],
+			'google pay card reused directly stays google'       => [ 'google_pay', '', 'google_pay' ],
+			'google pay card reused via google pay stays google' => [ 'google_pay', 'google_pay', 'google_pay' ],
+		];
+	}
+
+	/**
 	 * Test checkout flow while saving payment method with SEPA generated payment method AND setup intents.
 	 */
 	public function test_setup_intent_checkout_saves_sepa_generated_payment_method_to_order() {
