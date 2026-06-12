@@ -736,4 +736,52 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		WC_Subscriptions::set_wcs_get_subscription( null );
 		Ajax_Test_Helper::remove_hooks();
 	}
+
+	public function test_confirm_change_payment_succeeds_when_token_relink_finds_no_match() {
+		Ajax_Test_Helper::init_hooks();
+
+		$owner        = $this->factory->user->create( [ 'role' => 'customer' ] );
+		$subscription = $this->create_mock_subscription( $owner );
+		wp_set_current_user( $owner );
+
+		// A confirmed token whose Stripe id is deliberately NOT among the user's
+		// saved tokens, so replace_subscription_payment_token() finds no match.
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( 'pm_unsaved' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'create_token_from_setup_intent' ] )
+			->getMock();
+		$gateway->expects( $this->once() )
+			->method( 'create_token_from_setup_intent' )
+			->willReturn( $token );
+
+		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_upe_gateway' ] )
+			->getMock();
+		$controller->expects( $this->any() )
+			->method( 'get_upe_gateway' )
+			->willReturn( $gateway );
+
+		$_POST['order_id']       = $subscription->get_id();
+		$_POST['intent_id']      = 'seti_mock_123';
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$controller->confirm_change_payment_from_setup_intent_ajax();
+		$output   = ob_get_clean();
+		$response = json_decode( $output, true );
+
+		$this->assertTrue( $response['success'], 'A display-only token-relink miss must not fail an authenticated change.' );
+
+		WC_Subscriptions::set_wcs_get_subscription( null );
+		Ajax_Test_Helper::remove_hooks();
+	}
 }
