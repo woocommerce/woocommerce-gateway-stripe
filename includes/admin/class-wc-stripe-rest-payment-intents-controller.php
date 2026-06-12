@@ -8,6 +8,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * REST controller exposing Stripe payment intents data to the admin UI.
  *
+ * The controller acts as a proxy that forwards the received parameters to the remote Stripe API and returns the received response.
+ *
  * @since 10.9.0
  */
 class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Controller {
