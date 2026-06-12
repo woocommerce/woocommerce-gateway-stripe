@@ -120,7 +120,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request An incoming REST request.
 	 *
-	 * @return array
+	 * @return string
 	 */
 	public function build_http_query_string_from_request( $request ): string {
 		return http_build_query( $this->build_http_query_array_from_request( $request ) );
