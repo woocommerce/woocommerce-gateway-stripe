@@ -178,8 +178,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::error(
 				'Webhook ignored: the event\'s Stripe account does not match the connected account.',
 				[
-					'event_id'   => $event->id ?? null,
-					'event_type' => $event_type,
+					'event_id'          => $event->id ?? null,
+					'event_type'        => $event_type,
+					'event_account'     => $this->get_event_account_id( $event ),
+					'connected_account' => $this->get_connected_account_id(),
 				]
 			);
 
