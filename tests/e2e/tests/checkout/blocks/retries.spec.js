@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments } from '../../../utils';
+import { admin, payments } from '../../../utils';
 
 const {
 	emptyCart,
@@ -10,6 +10,7 @@ const {
 	handleCheckout3DSChallenge,
 	clickPlaceOrder,
 	handleCheckoutCashAppPay,
+	getCartTotal,
 } = payments;
 
 test.beforeAll( 'enable Cash App Pay', async ( { browser } ) => {
@@ -44,7 +45,10 @@ test.beforeEach( async ( { page } ) => {
  */
 test( 'customer can retry payment, with a different card @smoke', async ( {
 	page,
+	browser,
 } ) => {
+	const expectedTotal = await getCartTotal( page );
+
 	await fillCreditCardDetails( page, config.get( 'cards.declined' ) );
 	await clickPlaceOrder( page );
 
@@ -62,6 +66,9 @@ test( 'customer can retry payment, with a different card @smoke', async ( {
 	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 		'Order received'
 	);
+
+	const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
+	await admin.verifyOrderChargedAmount( browser, orderId, expectedTotal );
 } );
 
 /**
@@ -72,7 +79,10 @@ test( 'customer can retry payment, with a different card @smoke', async ( {
  */
 test( 'customer can retry payment, with changed billing details @smoke', async ( {
 	page,
+	browser,
 } ) => {
+	const expectedTotal = await getCartTotal( page );
+
 	await fillCreditCardDetails( page, config.get( 'cards.3ds' ) );
 	await clickPlaceOrder( page );
 
@@ -95,6 +105,9 @@ test( 'customer can retry payment, with changed billing details @smoke', async (
 	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 		'Order received'
 	);
+
+	const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
+	await admin.verifyOrderChargedAmount( browser, orderId, expectedTotal );
 } );
 
 /**
@@ -120,4 +133,7 @@ test( 'customer can retry payment, using a different payment method @smoke', asy
 	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 		'Order received'
 	);
+
+	// No charged-amount verification here: Cash App Pay is not a synchronous
+	// card capture, so the order has no "Paid"/Stripe Fee/Payout rows to check.
 } );

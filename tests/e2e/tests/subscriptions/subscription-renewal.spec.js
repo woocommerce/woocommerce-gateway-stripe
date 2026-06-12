@@ -1,12 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
-import { api, payments, products, user } from '../../utils';
+import { admin, api, payments, products, user } from '../../utils';
 
 const {
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
 	clickAddToCartButton,
+	getCartTotal,
 } = payments;
 
 let productId;
@@ -36,7 +37,10 @@ test.afterAll( async () => {
 
 test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 	page,
+	browser,
 } ) => {
+	let purchaseOrderId, renewalOrderId, purchaseTotal, renewalTotal;
+
 	await test.step( 'customer login', async () => {
 		await user.login(
 			page,
@@ -55,11 +59,15 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 			config.get( 'cards.basic' )
 		);
 
+		purchaseTotal = await getCartTotal( page );
+
 		await page.locator( 'text=Place order' ).click();
 
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
 		);
+
+		purchaseOrderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
 	} );
 
 	await test.step( 'customer renews the subscription', async () => {
@@ -73,6 +81,10 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 
 		await page.click( 'text=Renew now' );
 		await page.waitForURL( '**/checkout/' );
+
+		// Capture the renewal total shown to the shopper before renewing.
+		renewalTotal = await getCartTotal( page );
+
 		await page.click(
 			'input[id^="radio-control-wc-payment-method-saved-tokens-"]'
 		);
@@ -82,6 +94,8 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
 		);
+
+		renewalOrderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
 	} );
 
 	await test.step( 'check for new entry in the related orders table', async () => {
@@ -92,5 +106,18 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 		await expect(
 			page.locator( '.woocommerce-orders-table--orders tbody tr' )
 		).toHaveCount( 2 );
+	} );
+
+	await test.step( 'admin confirms the expected amounts were charged', async () => {
+		await admin.verifyOrderChargedAmount(
+			browser,
+			purchaseOrderId,
+			purchaseTotal
+		);
+		await admin.verifyOrderChargedAmount(
+			browser,
+			renewalOrderId,
+			renewalTotal
+		);
 	} );
 } );

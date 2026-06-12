@@ -9,12 +9,10 @@ const {
 	setupOptimizedCheckout,
 	fillOCDetails,
 	clickPlaceOrder,
+	getCartTotal,
 } = payments;
 
 let productId;
-
-// Subscription product ($9.99) + flat-rate shipping ($10.00).
-const EXPECTED_ORDER_TOTAL = '19.99';
 
 test.describe( 'Optimized Checkout subscription purchase tests @subscriptions', () => {
 	test.beforeAll( async () => {
@@ -70,6 +68,8 @@ test.describe( 'Optimized Checkout subscription purchase tests @subscriptions', 
 		} );
 		await fillOCDetails( page, config.get( 'cards.basic' ), checkoutType );
 
+		const expectedTotal = await getCartTotal( page );
+
 		await clickPlaceOrder( page );
 		await page.waitForURL( '**/checkout/order-received/**' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
@@ -78,11 +78,7 @@ test.describe( 'Optimized Checkout subscription purchase tests @subscriptions', 
 
 		// As the admin, confirm the order was charged the expected amount.
 		const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
-		await admin.verifyOrderChargedAmount(
-			browser,
-			orderId,
-			EXPECTED_ORDER_TOTAL
-		);
+		await admin.verifyOrderChargedAmount( browser, orderId, expectedTotal );
 	}
 
 	test( 'customer can purchase a subscription with Optimized Checkout @smoke @blocks', async ( {

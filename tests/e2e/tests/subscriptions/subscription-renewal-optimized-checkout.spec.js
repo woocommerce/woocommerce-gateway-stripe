@@ -9,12 +9,10 @@ const {
 	setupOptimizedCheckout,
 	fillOCDetails,
 	clickPlaceOrder,
+	getCartTotal,
 } = payments;
 
 let productId;
-
-// Subscription product ($9.99) + flat-rate shipping ($10.00).
-const EXPECTED_ORDER_TOTAL = '19.99';
 
 const relatedOrdersRow = '.woocommerce-orders-table--orders tbody tr';
 
@@ -100,7 +98,7 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 			username,
 		} );
 
-		let purchaseOrderId, renewalOrderId;
+		let purchaseOrderId, renewalOrderId, purchaseTotal, renewalTotal;
 
 		await test.step( 'customer login', async () => {
 			await user.login(
@@ -126,6 +124,8 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 				config.get( 'cards.basic' ),
 				checkoutType
 			);
+
+			purchaseTotal = await getCartTotal( page );
 
 			await clickPlaceOrder( page );
 			await page.waitForURL( '**/checkout/order-received/**' );
@@ -154,6 +154,9 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 				await page.goto( '/checkout-shortcode/' );
 			}
 
+			// Capture the renewal total shown to the shopper before renewing.
+			renewalTotal = await getCartTotal( page );
+
 			renewalOrderId = await completeRenewal( page, checkoutType );
 		} );
 
@@ -169,12 +172,12 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 			await admin.verifyOrderChargedAmount(
 				browser,
 				purchaseOrderId,
-				EXPECTED_ORDER_TOTAL
+				purchaseTotal
 			);
 			await admin.verifyOrderChargedAmount(
 				browser,
 				renewalOrderId,
-				EXPECTED_ORDER_TOTAL
+				renewalTotal
 			);
 		} );
 	}

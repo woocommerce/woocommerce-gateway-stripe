@@ -10,6 +10,7 @@ const {
 	setupBlocksCheckout,
 	fillOCDetails,
 	clickPlaceOrder,
+	getCartTotal,
 } = payments;
 
 test.describe( 'Optimized Checkout payment tests @blocks', () => {
@@ -38,14 +39,21 @@ test.describe( 'Optimized Checkout payment tests @blocks', () => {
 
 	test( 'customer can pay with Optimized Checkout @smoke', async ( {
 		page,
+		browser,
 	} ) => {
 		await setupOptimizedCheckout( page, 'blocks' );
 		await fillOCDetails( page, config.get( 'cards.basic' ) );
+
+		const expectedTotal = await getCartTotal( page );
+
 		await clickPlaceOrder( page );
 		await page.waitForURL( '**/checkout/order-received/**' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
 		);
+
+		const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
+		await admin.verifyOrderChargedAmount( browser, orderId, expectedTotal );
 	} );
 
 	test( 'customer can save and reuse Optimized Checkout payment method @smoke', async ( {
@@ -68,10 +76,22 @@ test.describe( 'Optimized Checkout payment tests @blocks', () => {
 				await setupOptimizedCheckout( page, 'blocks' );
 				await page.getByLabel( 'Save payment information' ).click();
 				await fillOCDetails( page, config.get( 'cards.basic' ) );
+
+				const expectedTotal = await getCartTotal( page );
+
 				await clickPlaceOrder( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 					'Order received'
+				);
+
+				const orderId = admin.getOrderIdFromOrderReceivedUrl(
+					page.url()
+				);
+				await admin.verifyOrderChargedAmount(
+					browser,
+					orderId,
+					expectedTotal
 				);
 			} );
 
@@ -87,10 +107,22 @@ test.describe( 'Optimized Checkout payment tests @blocks', () => {
 					.locator( 'label' )
 					.filter( { hasText: 'Visa ending in 4242 (expires' } )
 					.click();
+
+				const expectedTotal = await getCartTotal( page );
+
 				await clickPlaceOrder( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 					'Order received'
+				);
+
+				const orderId = admin.getOrderIdFromOrderReceivedUrl(
+					page.url()
+				);
+				await admin.verifyOrderChargedAmount(
+					browser,
+					orderId,
+					expectedTotal
 				);
 			} );
 		} finally {

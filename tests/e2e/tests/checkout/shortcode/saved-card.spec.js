@@ -8,6 +8,7 @@ const {
 	setupCart,
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
+	getCartTotal,
 } = payments;
 
 let username, userEmail;
@@ -57,11 +58,20 @@ test( 'customer can checkout with a saved card @smoke', async ( {
 			// check box to save payment method.
 			await page.locator( '#wc-stripe-new-payment-method' ).click();
 
+			const expectedTotal = await getCartTotal( page );
+
 			await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
 
 			await page.waitForNavigation();
 			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 				'Order received'
+			);
+
+			const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
+			await admin.verifyOrderChargedAmount(
+				browser,
+				orderId,
+				expectedTotal
 			);
 		} );
 
@@ -77,11 +87,20 @@ test( 'customer can checkout with a saved card @smoke', async ( {
 				)
 			).toHaveCount( 1 );
 
+			const expectedTotal = await getCartTotal( page );
+
 			await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
 
 			await page.waitForNavigation();
 			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 				'Order received'
+			);
+
+			const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
+			await admin.verifyOrderChargedAmount(
+				browser,
+				orderId,
+				expectedTotal
 			);
 		} );
 	} finally {

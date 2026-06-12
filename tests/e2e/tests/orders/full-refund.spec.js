@@ -1,13 +1,14 @@
 import stripe from 'stripe';
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { api, payments } from '../../utils';
+import { admin, api, payments } from '../../utils';
 
 const {
 	emptyCart,
 	setupCart,
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
+	getCartTotal,
 } = payments;
 
 test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
@@ -33,6 +34,9 @@ test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
 			userPage,
 			config.get( 'cards.basic' )
 		);
+
+		const expectedTotal = await getCartTotal( userPage );
+
 		await userPage.locator( 'text=Place order' ).dispatchEvent( 'click' );
 		await userPage.waitForURL( '**/checkout/order-received/**' );
 
@@ -40,10 +44,12 @@ test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
 			'Order received'
 		);
 
-		const orderUrl = await userPage.url();
-		orderId = orderUrl.split( 'order-received/' )[ 1 ].split( '/?' )[ 0 ];
+		orderId = admin.getOrderIdFromOrderReceivedUrl( userPage.url() );
 
 		await userPage.close();
+
+		// Confirm the order was charged the expected amount before refunding.
+		await admin.verifyOrderChargedAmount( browser, orderId, expectedTotal );
 	} );
 
 	await test.step( 'merchant issue a full refund in the dashboard', async () => {
