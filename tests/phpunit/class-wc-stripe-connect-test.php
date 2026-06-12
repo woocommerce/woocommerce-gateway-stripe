@@ -119,4 +119,48 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 	}
+
+	/**
+	 * When the OAuth return URL carries an invalid nonce, the merchant must be
+	 * redirected back to the settings page with an explicit error marker rather
+	 * than the failure being silently swallowed by `admin_init`.
+	 */
+	public function test_maybe_handle_redirect_redirects_with_error_on_invalid_nonce(): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		set_current_screen( 'dashboard' ); // Makes is_admin() return true.
+
+		$_GET['wcs_stripe_code']  = 'ac_123';
+		$_GET['wcs_stripe_state'] = 'state_123';
+		$_GET['wcs_stripe_mode']  = 'live';
+		$_GET['_wpnonce']         = 'invalid-nonce';
+		$_SERVER['REQUEST_URI']   = '/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&wcs_stripe_code=ac_123&wcs_stripe_state=state_123&wcs_stripe_mode=live&_wpnonce=invalid-nonce';
+
+		$redirected_to      = '';
+		$wp_redirect_filter = function ( string $url ) use ( &$redirected_to ) {
+			$redirected_to = $url;
+
+			// Throw to prevent exit() from being called after wp_safe_redirect().
+			throw new \Exception();
+		};
+		add_filter( 'wp_redirect', $wp_redirect_filter );
+
+		try {
+			$this->connect->maybe_handle_redirect();
+		} catch ( \Exception $e ) {
+			unset( $e );
+		}
+
+		remove_filter( 'wp_redirect', $wp_redirect_filter );
+
+		$this->assertStringContainsString( 'wc_stripe_connect_error=expired_nonce', $redirected_to );
+		$this->assertStringNotContainsString( 'wcs_stripe_code', $redirected_to );
+		$this->assertStringNotContainsString( 'wcs_stripe_state', $redirected_to );
+
+		unset(
+			$_GET['wcs_stripe_code'],
+			$_GET['wcs_stripe_state'],
+			$_GET['wcs_stripe_mode'],
+			$_GET['_wpnonce']
+		);
+	}
 }
