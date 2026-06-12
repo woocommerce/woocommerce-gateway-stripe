@@ -13,13 +13,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 
 	/**
-	 * Layout used when the store hasn't configured the OCS layout option.
-	 *
-	 * @var string
-	 */
-	public const DEFAULT_LAYOUT = 'accordion';
-
-	/**
 	 * Constructor.
 	 *
 	 * Marks this gateway instance as the Optimized Checkout variant.
@@ -106,7 +99,7 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		$stripe_params['isAdaptivePricingEnabled']      = $should_show_optimized_checkout && $this->is_adaptive_pricing_supported();
 
 		if ( $should_show_optimized_checkout ) {
-			$stripe_params['OCLayout']                      = $this->get_option( 'optimized_checkout_layout', self::DEFAULT_LAYOUT );
+			$stripe_params['OCLayout']                      = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
 			$stripe_params['paymentMethodConfigurationId']  = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
 			$stripe_params['excludedPaymentMethodTypes']    = $this->get_excluded_payment_method_types();
 			$stripe_params['optimizedCheckoutClassicTitle'] = WC_Stripe_UPE_Payment_Method_OC::get_classic_title();
@@ -182,68 +175,56 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 	}
 
 	/**
-	 * Renders the consolidated OC payment form on checkout pages.
+	 * Renders the test-mode testing-instructions block inside payment_fields().
+	 *
+	 * The OC instructions are per-method `<div>` blocks toggled client-side as the customer
+	 * switches methods inside the Payment Element, so they can't live inside the base `<p>` wrapper.
 	 *
 	 * @return void
 	 */
-	public function payment_fields(): void {
+	protected function render_testing_instructions(): void {
 		if ( ! $this->is_valid_optimized_checkout_page() ) {
-			parent::payment_fields();
+			parent::render_testing_instructions();
 			return;
 		}
 
-		try {
-			$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
+		echo wp_kses(
+			self::expand_copy_button_markup( $this->get_testing_instructions_payment_method()->get_testing_instructions() ),
+			$this->get_testing_instructions_allowed_tags()
+		);
+	}
 
-			?>
-			<?php if ( ! empty( $this->get_description() ) ) : ?>
-				<p><?php echo wp_kses_post( $this->get_description() ); ?></p>
-			<?php endif; ?>
-
-			<?php
-			if ( $this->testmode ) :
-				echo wp_kses(
-					self::expand_copy_button_markup( ( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions() ),
-					array_merge(
-						[
-							'div' => [
-								'id'    => [],
-								'class' => [],
-								'style' => [],
-							],
-						],
-						$this->get_testing_instructions_allowed_tags()
-					)
-				);
-			endif;
-			?>
-
-			<?php $this->render_payment_fields_above_element( $display_tokenization ); ?>
-
-			<fieldset id="wc-stripe-upe-form" class="wc-upe-form wc-payment-form">
-				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ); ?>"></div>
-				<div id="wc-stripe-upe-errors" role="alert"></div>
-				<input id="wc-stripe-payment-method-upe" type="hidden" name="wc-stripe-payment-method-upe" />
-				<input id="wc_stripe_selected_upe_payment_type" type="hidden" name="wc_stripe_selected_upe_payment_type" />
-				<?php // Hidden input for appearance style extraction on non-checkout pages (Add Payment Method, Order Pay). ?>
-				<input type="text" id="wc-stripe-hidden-style-input" class="input-text" aria-hidden="true" tabindex="-1" autocomplete="off" style="position:absolute!important;opacity:0!important;pointer-events:none!important;" />
-			</fieldset>
-			<?php
-			$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
-			if ( $this->is_saved_cards_enabled() && ! empty( $methods_enabled_for_saved_payments ) ) {
-				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page() || WC_Stripe_Helper::should_force_save_payment_method();
-				$this->save_payment_method_checkbox( $force_save_payment );
-			}
-
-			do_action( 'wc_stripe_payment_fields_' . $this->id, $this->id );
-		} catch ( Exception $e ) {
-			WC_Stripe_Logger::error( 'Error in OCS payment fields.', [ 'error_message' => $e->getMessage() ] );
-			?>
-			<div>
-				<?php echo esc_html__( 'An error was encountered when preparing the payment form. Please try again later.', 'woocommerce-gateway-stripe' ); ?>
-			</div>
-			<?php
+	/**
+	 * The payment method whose testing instructions render in test mode.
+	 *
+	 * @return WC_Stripe_UPE_Payment_Method
+	 */
+	protected function get_testing_instructions_payment_method(): WC_Stripe_UPE_Payment_Method {
+		if ( $this->is_valid_optimized_checkout_page() ) {
+			return new WC_Stripe_UPE_Payment_Method_OC();
 		}
+		return parent::get_testing_instructions_payment_method();
+	}
+
+	/**
+	 * Allowed HTML tags for testing-instruction output.
+	 *
+	 * Adds the `div` wrappers used by the per-method OC instruction blocks.
+	 *
+	 * @return array
+	 */
+	protected function get_testing_instructions_allowed_tags(): array {
+		$allowed_tags = parent::get_testing_instructions_allowed_tags();
+
+		if ( $this->is_valid_optimized_checkout_page() ) {
+			$allowed_tags['div'] = [
+				'id'    => [],
+				'class' => [],
+				'style' => [],
+			];
+		}
+
+		return $allowed_tags;
 	}
 
 	/**
@@ -375,8 +356,8 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 	 *
 	 * Under OCS the setup intent's payment_method_details->type is authoritative.
 	 *
-	 * @param string $payment_method_type    Stripe payment method type key.
-	 * @param mixed  $payment_method_details Payment method details array or object.
+	 * @param string             $payment_method_type    Stripe payment method type key.
+	 * @param array|object|false $payment_method_details Payment method details array or object (false when unavailable).
 	 *
 	 * @return WC_Stripe_UPE_Payment_Method|null
 	 */
@@ -412,7 +393,7 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 	 *
 	 * @return array{ selected_payment_type: string, payment_method_types: string[], save_payment_method_to_store: bool }
 	 */
-	protected function resolve_intent_payment_method_types( string $selected_payment_type, $payment_method_id, $payment_method_details, $order, $express_payment_type, bool $save_payment_method_to_store = false ): array {
+	protected function resolve_intent_payment_method_types( string $selected_payment_type, ?string $payment_method_id, object $payment_method_details, WC_Order $order, ?string $express_payment_type, bool $save_payment_method_to_store = false ): array {
 		if ( empty( $payment_method_id ) || empty( $payment_method_details->type ) ) {
 			// Express paths won't have a payment method created yet; fall back to the express type.
 			if ( '' === $selected_payment_type && null !== $express_payment_type ) {
@@ -463,7 +444,7 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 	 * @param string $payment_method_type   Payment method type currently in scope.
 	 * @param object $payment_method_object Payment method object from Stripe.
 	 *
-	 * @return array{0: string, 1: WC_Stripe_UPE_Payment_Method}
+	 * @return array{0: string, 1: WC_Stripe_UPE_Payment_Method|null}
 	 */
 	protected function resolve_payment_method_for_saved_token( string $payment_method_type, $payment_method_object ): array {
 		if ( isset( $payment_method_object->type ) ) {

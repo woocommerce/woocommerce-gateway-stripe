@@ -4251,7 +4251,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$object\.$#'
 			identifier: property.notFound
-			count: 2
+			count: 3
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -4300,6 +4300,12 @@ parameters:
 			message: '#^Call to function method_exists\(\) with WC_Order and ''get_shipping…'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Cannot access offset string on array\|object\|false\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -4395,12 +4401,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:clear_appearance_transients_block_theme\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_payment_method_data_from_intent\(\) has parameter \$intent with no type specified\.$#'
-			identifier: missingType.parameter
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
@@ -4600,12 +4600,6 @@ parameters:
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:validate_selected_payment_method_type\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Offset string does not exist on string\.$#'
-			identifier: offsetAccess.notFound
-			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-

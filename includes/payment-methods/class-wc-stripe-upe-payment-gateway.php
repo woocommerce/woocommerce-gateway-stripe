@@ -850,6 +850,22 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Checks if we are on a page where the optimized checkout can be shown.
+	 *
+	 * @return bool True if we are on a page where the optimized checkout can be shown, false otherwise.
+	 * @deprecated 10.9.0 Use {@see WC_Stripe_OCS_Payment_Gateway::is_valid_optimized_checkout_page()}; the base UPE gateway is never the OCS variant.
+	 */
+	public function is_valid_optimized_checkout_page(): bool {
+		wc_deprecated_function( __METHOD__, '10.9.0', 'WC_Stripe_OCS_Payment_Gateway::is_valid_optimized_checkout_page' );
+
+		if ( $this->is_on_add_payment_method_page() || $this->is_changing_payment_method_for_subscription() ) {
+			return false;
+		}
+
+		return is_checkout();
+	}
+
+	/**
 	 * Gets payment method settings to pass to client scripts
 	 *
 	 * @return array
@@ -1030,17 +1046,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			<?php
 			if ( $this->testmode ) :
-				$cc_method = new WC_Stripe_UPE_Payment_Method_CC();
-				?>
-				<p class="testmode-info">
-					<?php
-					echo wp_kses(
-						self::expand_copy_button_markup( $cc_method->get_testing_instructions() ),
-						$this->get_testing_instructions_allowed_tags()
-					);
-					?>
-				</p>
-				<?php
+				$this->render_testing_instructions();
 			endif;
 			?>
 
@@ -1075,6 +1081,33 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			</div>
 			<?php
 		}
+	}
+
+	/**
+	 * Renders the test-mode testing-instructions block inside payment_fields().
+	 *
+	 * @return void
+	 */
+	protected function render_testing_instructions(): void {
+		?>
+		<p class="testmode-info">
+			<?php
+			echo wp_kses(
+				self::expand_copy_button_markup( $this->get_testing_instructions_payment_method()->get_testing_instructions() ),
+				$this->get_testing_instructions_allowed_tags()
+			);
+			?>
+		</p>
+		<?php
+	}
+
+	/**
+	 * The payment method whose testing instructions render in test mode.
+	 *
+	 * @return WC_Stripe_UPE_Payment_Method
+	 */
+	protected function get_testing_instructions_payment_method(): WC_Stripe_UPE_Payment_Method {
+		return new WC_Stripe_UPE_Payment_Method_CC();
 	}
 
 	/**
@@ -2893,8 +2926,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Extacts the Stripe intent's payment_method_type and payment_method_details values.
 	 *
-	 * @param $intent   Stripe's intent response.
-	 * @return string[] List with 2 values: payment_method_type and payment_method_details.
+	 * @param object $intent Stripe's intent response.
+	 * @return array{0: string, 1: array|object|false} The payment_method_type and payment_method_details (false when unavailable).
 	 */
 	private function get_payment_method_data_from_intent( $intent ) {
 		$payment_method_type    = '';
@@ -3272,12 +3305,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
 
-		$payment_method_details = ! empty( $payment_method_id ) ? WC_Stripe_API::get_payment_method( $payment_method_id ) : (object) [];
+		$payment_method_details = ! empty( $payment_method_id ) ? WC_Stripe_API::get_payment_method( $payment_method_id ) : null;
+		// Normalize to an object: the API helper can yield null/non-object responses on failure.
+		if ( ! is_object( $payment_method_details ) ) {
+			$payment_method_details = (object) [];
+		}
 
-		$intent_selection             = $this->resolve_intent_payment_method_types( $selected_payment_type, $payment_method_id, $payment_method_details, $order, $express_payment_type, $save_payment_method_to_store );
-		$selected_payment_type        = $intent_selection['selected_payment_type'];
-		$payment_method_types         = $intent_selection['payment_method_types'];
-		$save_payment_method_to_store = $intent_selection['save_payment_method_to_store'];
+		[
+			'selected_payment_type'        => $selected_payment_type,
+			'payment_method_types'         => $payment_method_types,
+			'save_payment_method_to_store' => $save_payment_method_to_store,
+		] = $this->resolve_intent_payment_method_types( $selected_payment_type, $payment_method_id, $payment_method_details, $order, $express_payment_type, $save_payment_method_to_store );
 
 		$payment_information = [
 			'amount'                        => $amount,
@@ -4746,8 +4784,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Resolves the payment-method instance used when creating a saved token from a setup intent.
 	 *
-	 * @param string $payment_method_type    Stripe payment method type key.
-	 * @param array|object $payment_method_details Payment method details array or object.
+	 * @param string             $payment_method_type    Stripe payment method type key.
+	 * @param array|object|false $payment_method_details Payment method details array or object (false when unavailable).
 	 *
 	 * @return WC_Stripe_UPE_Payment_Method|null
 	 */
@@ -4766,12 +4804,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param bool        $save_payment_method_to_store  Whether the payment method should be saved.
 	 *
 	 * @return array{
-	 *     @type string   $selected_payment_type        The selected payment type.
-	 *     @type string[] $payment_method_types         The payment method types to send to Stripe.
-	 *     @type bool     $save_payment_method_to_store Whether to save the payment method.
-	 * }
+	 *     selected_payment_type: string,
+	 *     payment_method_types: string[],
+	 *     save_payment_method_to_store: bool
+	 * } The selected payment type, the payment method types to send to Stripe, and whether to save the payment method.
 	 */
-	protected function resolve_intent_payment_method_types( string $selected_payment_type, $payment_method_id, $payment_method_details, $order, $express_payment_type, bool $save_payment_method_to_store = false ): array {
+	protected function resolve_intent_payment_method_types( string $selected_payment_type, ?string $payment_method_id, object $payment_method_details, WC_Order $order, ?string $express_payment_type, bool $save_payment_method_to_store = false ): array {
 		return [
 			'selected_payment_type'        => $selected_payment_type,
 			'payment_method_types'         => $this->get_payment_method_types_for_intent_creation(
@@ -4801,10 +4839,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string $payment_method_type   Payment method type currently in scope.
 	 * @param object $payment_method_object Payment method object from Stripe.
 	 *
-	 * @return array{0: string, 1: WC_Stripe_UPE_Payment_Method}
+	 * @return array{0: string, 1: WC_Stripe_UPE_Payment_Method|null}
 	 */
 	protected function resolve_payment_method_for_saved_token( string $payment_method_type, $payment_method_object ): array {
-		return [ $payment_method_type, $this->payment_methods[ $payment_method_type ] ];
+		// The type may not map to a registered method instance (e.g. a type unsupported by this store); callers null-check.
+		return [ $payment_method_type, $this->payment_methods[ $payment_method_type ] ?? null ];
 	}
 
 	/**
