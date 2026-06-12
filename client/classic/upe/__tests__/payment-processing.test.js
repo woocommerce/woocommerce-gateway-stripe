@@ -432,6 +432,23 @@ describe( 'payment-processing', () => {
 				expect( api._stripe.elements ).not.toHaveBeenCalled();
 			} );
 
+			it( 'skips Adaptive Pricing and loads standard elements when initCheckout is unavailable (dahlia+)', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				// Newer Stripe.js removed initCheckout(); the gateway must degrade
+				// to the standard elements flow instead of crashing checkout.
+				delete api._stripe.initCheckout;
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				expect(
+					api.checkoutSessionsCreateSession
+				).not.toHaveBeenCalled();
+				expect( api._stripe.elements ).toHaveBeenCalled();
+			} );
+
 			it( 'uses createPaymentElement (not create) when using initCheckout', async () => {
 				const checkoutElements = createMockElements();
 				checkoutElements.loadActions.mockResolvedValue( {
