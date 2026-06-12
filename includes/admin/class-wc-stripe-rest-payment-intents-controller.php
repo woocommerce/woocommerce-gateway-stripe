@@ -81,7 +81,12 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		);
 	}
 
-	public function get_payment_intents_route_args() {
+	/**
+	 * Return route args.
+	 *
+	 * @return array
+	 */
+	public function get_payment_intents_route_args(): array {
 		return $this->rest_args;
 	}
 
