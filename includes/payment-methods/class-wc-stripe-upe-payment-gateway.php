@@ -4765,7 +4765,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string|null $express_payment_type         Express checkout type if applicable.
 	 * @param bool        $save_payment_method_to_store  Whether the payment method should be saved.
 	 *
-	 * @return array{ selected_payment_type: string, payment_method_types: string[], save_payment_method_to_store: bool }
+	 * @return array{
+	 *     @type string   $selected_payment_type        The selected payment type.
+	 *     @type string[] $payment_method_types         The payment method types to send to Stripe.
+	 *     @type bool     $save_payment_method_to_store Whether to save the payment method.
+	 * }
 	 */
 	protected function resolve_intent_payment_method_types( string $selected_payment_type, $payment_method_id, $payment_method_details, $order, $express_payment_type, bool $save_payment_method_to_store = false ): array {
 		return [
