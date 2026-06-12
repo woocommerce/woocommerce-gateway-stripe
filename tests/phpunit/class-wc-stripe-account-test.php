@@ -597,4 +597,86 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		// Run the update
 		$this->account->maybe_reconfigure_webhooks_on_update();
 	}
+
+	/**
+	 * Tests that maybe_decommission_webhook() only deletes the previously configured
+	 * webhook when the secret key that created it is being removed or replaced.
+	 *
+	 * @param mixed  $webhook_data      The previously stored webhook data.
+	 * @param string $new_secret_key    The secret key about to be saved.
+	 * @param bool   $expected_return   Whether a webhook should be decommissioned.
+	 * @param array  $expected_requests The Stripe API requests expected to be made.
+	 *
+	 * @dataProvider provide_maybe_decommission_webhook
+	 */
+	public function test_maybe_decommission_webhook( $webhook_data, $new_secret_key, $expected_return, $expected_requests ) {
+		WC_Helper_Stripe_Api::$expected_request_call_params = $expected_requests;
+
+		$result = $this->account->maybe_decommission_webhook( $webhook_data, $new_secret_key );
+
+		$this->assertSame( $expected_return, $result );
+		$this->assertEmpty(
+			WC_Helper_Stripe_Api::$expected_request_call_params,
+			'All expected webhook requests should have been made.'
+		);
+	}
+
+	/**
+	 * Data provider for test_maybe_decommission_webhook().
+	 *
+	 * @return array
+	 */
+	public function provide_maybe_decommission_webhook() {
+		$webhook = [
+			'id'     => 'wh_old',
+			'url'    => 'https://example.com',
+			'secret' => 'rk_live_old',
+		];
+
+		return [
+			'changed secret key decommissions the old webhook'              => [
+				$webhook,
+				'rk_live_new',
+				true,
+				[ [ [], 'webhook_endpoints/wh_old', 'DELETE' ] ],
+			],
+			'removed secret key (disconnect) decommissions the old webhook' => [
+				$webhook,
+				'',
+				true,
+				[ [ [], 'webhook_endpoints/wh_old', 'DELETE' ] ],
+			],
+			'unchanged secret key is left untouched'                        => [
+				$webhook,
+				'rk_live_old',
+				false,
+				[],
+			],
+			'missing/invalid webhook data is a no-op'                       => [
+				'',
+				'rk_live_new',
+				false,
+				[],
+			],
+		];
+	}
+
+	/**
+	 * Tests that maybe_decommission_webhook() returns false and does not raise when the
+	 * Stripe DELETE request fails (e.g. invalid old credentials or a network error), so
+	 * the best-effort cleanup never aborts the (re)connect flow.
+	 */
+	public function test_maybe_decommission_webhook_returns_false_when_deletion_fails() {
+		WC_Helper_Stripe_Api::$request_exception = new Exception( 'Network error' );
+
+		$result = $this->account->maybe_decommission_webhook(
+			[
+				'id'     => 'wh_old',
+				'secret' => 'rk_live_old',
+			],
+			'rk_live_new'
+		);
+
+		$this->assertFalse( $result );
+	}
 }
