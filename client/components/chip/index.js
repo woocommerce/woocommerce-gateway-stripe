@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import './styles.scss';
 
 /**
@@ -19,10 +19,7 @@ import './styles.scss';
 const Chip = ( { text, color = 'gray', icon, iconPosition = 'right' } ) => {
 	return (
 		<span
-			className={ classNames(
-				'wcstripe-chip',
-				`wc-stripe-chip-${ color }`
-			) }
+			className={ clsx( 'wcstripe-chip', `wc-stripe-chip-${ color }` ) }
 		>
 			{ iconPosition === 'left' && icon && <>{ icon }</> }
 			{ text }

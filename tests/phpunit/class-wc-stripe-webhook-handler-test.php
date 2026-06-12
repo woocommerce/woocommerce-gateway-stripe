@@ -2273,4 +2273,83 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->assertInstanceOf( WC_Order::class, $updated_order );
 		$this->assertTrue( $updated_order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED ] ) );
 	}
+
+	/**
+	 * Guards that events are processed only when their Stripe account matches the connected
+	 * account, failing open on a missing or unknown account, in both live and test modes.
+	 *
+	 * @dataProvider provide_event_belongs_to_connected_account
+	 *
+	 * @param string      $mode              Plugin mode ('yes' test, 'no' live).
+	 * @param string      $field             Event field carrying the account ('account' for Connect, 'context' for agentic).
+	 * @param string|null $event_account     The account ID to place on the event, or null to omit it.
+	 * @param string      $connected_account The connected account ID.
+	 * @param bool        $expected          Whether the event should be allowed through.
+	 */
+	public function test_event_belongs_to_connected_account( string $mode, string $field, $event_account, string $connected_account, bool $expected ) {
+		update_option(
+			'woocommerce_stripe_settings',
+			array_merge( (array) get_option( 'woocommerce_stripe_settings', [] ), [ 'testmode' => $mode ] )
+		);
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_connected_account_id' ] )
+			->getMock();
+		$handler->method( 'get_connected_account_id' )->willReturn( $connected_account );
+
+		$event = (object) [
+			'id'   => 'evt_mock_1234',
+			'type' => 'payment_intent.succeeded',
+		];
+		if ( null !== $event_account ) {
+			$event->$field = $event_account;
+		}
+
+		$method = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'event_belongs_to_connected_account' );
+		$method->setAccessible( true );
+
+		$this->assertSame( $expected, $method->invoke( $handler, $event ) );
+	}
+
+	/**
+	 * Provider for `test_event_belongs_to_connected_account`.
+	 *
+	 * @return array
+	 */
+	public function provide_event_belongs_to_connected_account() {
+		return [
+			'Connect: live mode, matching account is processed'    => [ 'no', 'account', 'acct_connected', 'acct_connected', true ],
+			'Connect: live mode, mismatched account is skipped'    => [ 'no', 'account', 'acct_other', 'acct_connected', false ],
+			'Connect: test mode, matching account is processed'    => [ 'yes', 'account', 'acct_connected', 'acct_connected', true ],
+			'Connect: test mode, mismatched account is skipped'    => [ 'yes', 'account', 'acct_other', 'acct_connected', false ],
+			'Agentic: matching context account is processed'       => [ 'yes', 'context', 'acct_connected', 'acct_connected', true ],
+			'Agentic: mismatched context account is skipped'       => [ 'yes', 'context', 'acct_other', 'acct_connected', false ],
+			'event without an account field is processed'          => [ 'no', 'account', null, 'acct_connected', true ],
+			'event with an empty account field is processed'       => [ 'yes', 'account', '', 'acct_connected', true ],
+			'unknown connected account fails open (live)'          => [ 'no', 'account', 'acct_other', '', true ],
+			'unknown connected account fails open (test, agentic)' => [ 'yes', 'context', 'acct_other', '', true ],
+		];
+	}
+
+	/**
+	 * Locks in that a real agentic `v1.delegated_checkout.*` payload is matched against the
+	 * connected account via its top-level `context` field, processing on a match and skipping
+	 * on a mismatch. Uses the committed sample event so reviewers can replay the same body.
+	 */
+	public function test_event_belongs_to_connected_account_reads_context_from_real_agentic_event() {
+		$event         = json_decode( file_get_contents( __DIR__ . '/dummy-data/agentic_customize_checkout_event.json' ) );
+		$event_account = 'acct_sample_connected'; // The `context` value in the fixture.
+		$reflection    = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'event_belongs_to_connected_account' );
+		$reflection->setAccessible( true );
+
+		$this->assertSame( $event_account, $event->context, 'Fixture is expected to carry the account in `context`.' );
+
+		$matching = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )->setMethods( [ 'get_connected_account_id' ] )->getMock();
+		$matching->method( 'get_connected_account_id' )->willReturn( $event_account );
+		$this->assertTrue( $reflection->invoke( $matching, $event ) );
+
+		$mismatched = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )->setMethods( [ 'get_connected_account_id' ] )->getMock();
+		$mismatched->method( 'get_connected_account_id' )->willReturn( 'acct_someone_else' );
+		$this->assertFalse( $reflection->invoke( $mismatched, $event ) );
+	}
 }
