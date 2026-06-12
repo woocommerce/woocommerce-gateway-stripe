@@ -2068,6 +2068,103 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Happy path: when the user has a stripe-gateway token whose `token` matches
+	 * the new payment method ID, it gets attached to the subscription.
+	 *
+	 * @return void
+	 */
+	public function test_replace_subscription_payment_token_attaches_matching_token(): void {
+		$user_id = $this->factory->user->create( [ 'role' => 'customer' ] );
+		$token   = WC_Helper_Token::create_token( 'pm_new_card_123', $user_id );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $user_id );
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->save();
+
+		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_new_card_123' );
+
+		$this->assertTrue( $result );
+		$attached_ids = array_values( $subscription->get_payment_tokens() );
+		$this->assertSame( [ $token->get_id() ], $attached_ids );
+	}
+
+	/**
+	 * Stale tokens left attached to the subscription by the previous payment method
+	 * are cleared so My Account renders only the new card.
+	 *
+	 * @return void
+	 */
+	public function test_replace_subscription_payment_token_drops_stale_tokens(): void {
+		$user_id   = $this->factory->user->create( [ 'role' => 'customer' ] );
+		$old_token = WC_Helper_Token::create_token( 'pm_old_visa', $user_id );
+		$new_token = WC_Helper_Token::create_token( 'pm_new_card_456', $user_id );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $user_id );
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->save();
+		// Attach the stale token after save() so the data store has a valid
+		// post ID to write `_payment_tokens` against.
+		$subscription->add_payment_token( $old_token );
+
+		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_new_card_456' );
+
+		$this->assertTrue( $result );
+		$attached_ids = array_values( $subscription->get_payment_tokens() );
+		$this->assertSame( [ $new_token->get_id() ], $attached_ids );
+	}
+
+	/**
+	 * When no user token matches the payment method ID, the subscription is left
+	 * untouched and the helper returns false.
+	 *
+	 * @return void
+	 */
+	public function test_replace_subscription_payment_token_returns_false_when_no_match(): void {
+		$user_id   = $this->factory->user->create( [ 'role' => 'customer' ] );
+		$old_token = WC_Helper_Token::create_token( 'pm_old_visa', $user_id );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $user_id );
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->save();
+		$subscription->add_payment_token( $old_token );
+
+		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_unknown' );
+
+		$this->assertFalse( $result );
+		$attached_ids = array_values( $subscription->get_payment_tokens() );
+		$this->assertSame( [ $old_token->get_id() ], $attached_ids );
+	}
+
+	/**
+	 * Guard cases: empty payment method ID, missing user, non-WC_Order argument.
+	 *
+	 * @return void
+	 */
+	public function test_replace_subscription_payment_token_noop_for_invalid_input(): void {
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( 0 );
+		$subscription->save();
+
+		// Empty payment method ID.
+		$this->assertFalse(
+			WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, '' )
+		);
+
+		// Subscription with no user.
+		$this->assertFalse(
+			WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_anything' )
+		);
+
+		// Non-WC_Order argument.
+		$this->assertFalse(
+			WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( null, 'pm_anything' )
+		);
+	}
+
+	/**
 	 * Helper to attach a Stripe CC token to a user.
 	 */
 	private function attach_stripe_token( int $user_id, string $pm_id ): WC_Payment_Token_CC {
