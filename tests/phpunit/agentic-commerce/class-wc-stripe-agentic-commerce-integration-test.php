@@ -30,6 +30,15 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	private string $immediate_sync_action;
 
 	/**
+	 * Resolved value of the protected OPTION_NAME constant on the product filter,
+	 * cached so include-injection tests can seed input state directly without
+	 * exposing the constant publicly.
+	 *
+	 * @var string
+	 */
+	private string $product_filter_option;
+
+	/**
 	 * Setup test environment before each test.
 	 *
 	 * @return void
@@ -45,14 +54,15 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
 		}
 
-		$this->last_upload_option = ( new \ReflectionClass( \WC_Stripe_Agentic_Commerce_Integration::class ) )
-			->getConstant( 'LAST_UPLOAD_OPTION' );
+		$this->last_upload_option = WC_Stripe_Test_Helper::get_class_const_value( \WC_Stripe_Agentic_Commerce_Integration::class, 'LAST_UPLOAD_OPTION', 'string' );
 
 		$this->immediate_sync_action = WC_Stripe_Test_Helper::get_class_const_value(
 			\WC_Stripe_Agentic_Commerce_Integration::class,
 			'IMMEDIATE_SYNC_ACTION',
 			'string'
 		);
+
+		$this->product_filter_option = WC_Stripe_Test_Helper::get_class_const_value( \WC_Stripe_Agentic_Commerce_Product_Filter::class, 'OPTION_NAME', 'string' );
 	}
 
 	/**
@@ -63,7 +73,10 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 */
 	public function tearDown(): void {
 		delete_option( $this->last_upload_option );
+		delete_option( $this->product_filter_option );
 		remove_all_filters( 'wc_stripe_agentic_commerce_feed_dedupe_enabled' );
+		remove_all_filters( 'wc_stripe_agentic_commerce_product_filter' );
+		remove_all_filters( 'wc_stripe_agentic_commerce_product_query_args' );
 		parent::tearDown();
 	}
 
@@ -111,8 +124,45 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$args        = $integration->get_product_feed_query_args();
 
 		$this->assertEquals( [ 'simple' ], $args['type'] );
+	}
 
-		remove_all_filters( 'wc_stripe_agentic_commerce_product_query_args' );
+	/**
+	 * No product-filter option set means no `include` key — the walker should
+	 * iterate every published simple/variation product as it did before the
+	 * filter abstraction landed.
+	 *
+	 * @return void
+	 */
+	public function test_get_product_feed_query_args_omits_include_when_filter_not_configured() {
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+		$args        = $integration->get_product_feed_query_args();
+
+		$this->assertArrayNotHasKey( 'include', $args );
+	}
+
+	public function test_query_args_filter_runs(): void {
+		update_option(
+			$this->product_filter_option,
+			[
+				'category_ids' => [ 999999999 ],
+			]
+		);
+
+		$observed_tax_query = null;
+		add_filter(
+			'wc_stripe_agentic_commerce_product_query_args',
+			function ( $args ) use ( &$observed_tax_query ) {
+				$observed_tax_query = $args['tax_query'] ?? null;
+				$args['include']    = [ 42 ];
+				return $args;
+			}
+		);
+
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+		$args        = $integration->get_product_feed_query_args();
+
+		$this->assertIsArray( $observed_tax_query, 'A taxonomy query should be present in the query args.' );
+		$this->assertSame( [ 42 ], $args['include'], 'Filter overrides the "include" query argument.' );
 	}
 
 	/**
