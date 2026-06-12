@@ -561,9 +561,7 @@ class WC_Stripe {
 	public function add_gateways( $methods ) {
 		$main_gateway = $this->get_main_stripe_gateway();
 		$methods[]    = $main_gateway;
-		// Key the filtering off the instantiated gateway class so admin/editor filtering can't
-		// treat OCS as on while the classic gateway is actually selected (e.g. when the feature
-		// is unavailable but the setting is still 'yes'). Selection happens in get_main_stripe_gateway().
+		// Use the type of the gateway instance to determine whether OCS is enabled.
 		$is_oc_enabled = $main_gateway instanceof WC_Stripe_OCS_Payment_Gateway;
 
 		// The $main_gateway represents the card gateway so we don't want to include it in the list of UPE gateways.
