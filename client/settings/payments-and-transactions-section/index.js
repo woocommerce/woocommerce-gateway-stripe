@@ -88,7 +88,7 @@ const PaymentsAndTransactionsSection = () => {
 						'woocommerce-gateway-stripe'
 					) }
 					help={ __(
-						'If enabled, returning customers can check out using payment details securely stored by Stripe. No payment information is stored on your store.',
+						'If enabled, returning customers can check out using payment details securely stored by Stripe. No payment information is stored on your store. When Link by Stripe is enabled, Stripe collects save consent in the payment form instead of a separate checkbox.',
 						'woocommerce-gateway-stripe'
 					) }
 				/>

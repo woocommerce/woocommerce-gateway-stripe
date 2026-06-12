@@ -168,5 +168,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Use clsx library instead of classnames
 * Fix - Append the 3-letter currency code to the Stripe Fee and Stripe Payout amounts in WP Admin order totals when the Stripe account currency differs from the order currency
 * Fix - Only create an agentic commerce order on the site that produced the checkout, preventing duplicate or wrong-site orders when multiple stores share one Stripe account
+* Tweak - Clarify in the saved payment methods setting that Link by Stripe collects save consent in the payment form instead of a separate checkbox
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
