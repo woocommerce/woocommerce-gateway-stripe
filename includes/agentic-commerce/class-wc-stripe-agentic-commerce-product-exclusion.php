@@ -101,12 +101,15 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion {
 	 * @return bool
 	 */
 	public function filter_should_sync_product( $should_sync, $product ): bool {
+		// Normalize before branching: a raw truthiness check would treat a prior
+		// callback's 'false'/'0' string vote as true and resurrect the product.
+		$should_sync = wp_validate_boolean( $should_sync );
 		if ( ! $should_sync ) {
 			return false;
 		}
 
 		if ( ! $product instanceof WC_Product ) {
-			return (bool) $should_sync;
+			return true;
 		}
 
 		return ! self::is_excluded( $product->get_id() );

@@ -125,12 +125,34 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion_Test extends WP_UnitTestCase 
 	}
 
 	/**
-	 * A non-WC_Product payload preserves the incoming vote instead of fataling.
+	 * A non-WC_Product payload preserves the incoming vote instead of fataling,
+	 * normalizing mixed hook input so a prior false vote is never revived.
+	 *
+	 * @dataProvider provide_mixed_should_sync_votes
+	 * @param mixed $vote     Raw value a prior filter callback may have returned.
+	 * @param bool  $expected Expected normalized result.
 	 */
-	public function test_filter_callback_tolerates_non_product_payload(): void {
+	public function test_filter_callback_tolerates_non_product_payload( $vote, bool $expected ): void {
 		$exclusion = new WC_Stripe_Agentic_Commerce_Product_Exclusion();
 
-		$this->assertTrue( $exclusion->filter_should_sync_product( true, null ) );
-		$this->assertFalse( $exclusion->filter_should_sync_product( false, null ) );
+		$this->assertSame( $expected, $exclusion->filter_should_sync_product( $vote, null ) );
+	}
+
+	/**
+	 * Mixed hook-input votes and their normalized boolean results.
+	 *
+	 * @return array<string, array{0: mixed, 1: bool}>
+	 */
+	public function provide_mixed_should_sync_votes(): array {
+		return [
+			'bool true'      => [ true, true ],
+			'bool false'     => [ false, false ],
+			'string "false"' => [ 'false', false ],
+			'string "0"'     => [ '0', false ],
+			'int 0'          => [ 0, false ],
+			'empty string'   => [ '', false ],
+			'string "1"'     => [ '1', true ],
+			'int 1'          => [ 1, true ],
+		];
 	}
 }
