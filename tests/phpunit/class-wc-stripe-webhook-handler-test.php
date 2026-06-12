@@ -445,6 +445,45 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Returns the content of every note on the given order, newest first.
+	 *
+	 * @param int $order_id
+	 * @return string[]
+	 */
+	private function get_order_note_contents( int $order_id ): array {
+		return array_map(
+			static function ( $note ) {
+				return $note->content;
+			},
+			wc_get_order_notes( [ 'order_id' => $order_id ] )
+		);
+	}
+
+	/**
+	 * Asserts that at least one note on the given order matches the PCRE pattern.
+	 *
+	 * @param string $pattern  PCRE pattern.
+	 * @param int    $order_id Order ID.
+	 */
+	private function assert_order_has_note_matching( string $pattern, int $order_id ): void {
+		$notes = $this->get_order_note_contents( $order_id );
+		$this->assertNotEmpty(
+			preg_grep( $pattern, $notes ),
+			sprintf( 'Failed asserting that an order note matches %s. Notes: %s', $pattern, implode( ' | ', $notes ) )
+		);
+	}
+
+	/**
+	 * Asserts that at least one note on the given order contains the substring.
+	 *
+	 * @param string $needle   Expected substring.
+	 * @param int    $order_id Order ID.
+	 */
+	private function assert_order_has_note_containing( string $needle, int $order_id ): void {
+		$this->assert_order_has_note_matching( '/' . preg_quote( $needle, '/' ) . '/', $order_id );
+	}
+
+	/**
 	 * When charge.succeeded fires for a charge whose ID isn't stored on any order (because the shopper
 	 * settled the order via a different gateway), the handler must fall back to looking up the order
 	 * by the parent PaymentIntent and flag the unexpected charge instead of silently dropping the event.
@@ -865,13 +904,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			$this->assertEquals( $expected_status, $final_order->get_status() );
 
 			if ( $expected_note ) {
-				$notes = wc_get_order_notes(
-					[
-						'order_id' => $final_order->get_id(),
-						'limit'    => 1,
-					]
-				);
-				$this->assertSame( $expected_note, $notes[0]->content );
+				$this->assertContains( $expected_note, $this->get_order_note_contents( $final_order->get_id() ) );
 			}
 		}
 	}
@@ -953,15 +986,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$final_order = wc_get_order( $order->get_id() );
 
-		$notes = wc_get_order_notes(
-			[
-				'order_id' => $final_order->get_id(),
-				'limit'    => 1,
-			]
-		);
-
 		$this->assertSame( $expected_status, $final_order->get_status() );
-		$this->assertMatchesRegularExpression( $expected_note, $notes[0]->content );
+		$this->assert_order_has_note_matching( $expected_note, $final_order->get_id() );
 	}
 
 	/**
@@ -1089,13 +1115,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->assertSame( $expected_status, $final_order->get_status() );
 		if ( ! empty( $expected_note ) ) {
-			$notes = wc_get_order_notes(
-				[
-					'order_id' => $final_order->get_id(),
-					'limit'    => 1,
-				]
-			);
-			$this->assertMatchesRegularExpression( $expected_note, $notes[0]->content );
+			$this->assert_order_has_note_matching( $expected_note, $final_order->get_id() );
 		}
 
 		$this->assertEquals( $expected_process_payment_calls, $mock_action_process_payment->get_call_count() );
@@ -1141,15 +1161,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->assertEquals( OrderStatus::ON_HOLD, $updated_order->get_status() );
 		$this->assertEquals( 'ch_mock', $updated_order->get_transaction_id() );
 
-		// Grab the latest order note and verify the content.
-		$notes = wc_get_order_notes(
-			[
-				'order_id' => $updated_order->get_id(),
-				'limit'    => 1,
-			]
-		);
-		$this->assertCount( 1, $notes );
-		$this->assertStringContainsString( 'Stripe charge awaiting payment: ch_mock.', $notes[0]->content );
+		// Verify the awaiting-payment note was added to the order.
+		$this->assert_order_has_note_containing( 'Stripe charge awaiting payment: ch_mock.', $updated_order->get_id() );
 	}
 
 	/**
@@ -1406,24 +1419,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->mock_webhook_handler->process_webhook_refund_updated( $notification );
 
-		$notes = wc_get_order_notes(
-			[
-				'order_id' => $order->get_id(),
-				'limit'    => 1,
-			]
-		);
-
 		if ( empty( $expected_note ) ) {
-			$this->assertEquals( [], $notes );
+			$this->assertSame( [], $this->get_order_note_contents( $order->get_id() ) );
 			return;
 		}
 
-		$this->assertCount( 1, $notes );
-		if ( '' === $expected_note ) {
-			$this->assertSame( '', $notes[0]->content );
-		} else {
-			$this->assertMatchesRegularExpression( $expected_note, $notes[0]->content );
-		}
+		$this->assert_order_has_note_matching( $expected_note, $order->get_id() );
 	}
 
 	/**
@@ -1522,14 +1523,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->assertSame( OrderStatus::FAILED, $order->get_status() );
 		$this->assertSame( 1, $hook_calls );
 
-		$notes = wc_get_order_notes(
-			[
-				'order_id' => $order->get_id(),
-				'limit'    => 1,
-			]
-		);
-		$this->assertNotEmpty( $notes );
-		$this->assertStringContainsString( $expected_note, $notes[0]->content );
+		$this->assert_order_has_note_containing( $expected_note, $order->get_id() );
 	}
 
 	/**
@@ -2084,6 +2078,144 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'card payment'   => [ WC_Stripe_Payment_Methods::CARD, 'Credit / Debit Card' ],
 			'klarna payment' => [ WC_Stripe_Payment_Methods::KLARNA, 'Klarna' ],
 			'ideal payment'  => [ WC_Stripe_Payment_Methods::IDEAL, 'iDEAL | Wero' ],
+		];
+	}
+
+	/**
+	 * Redirect-based APMs that are saved as SEPA tokens (Bancontact, iDEAL, Sofort) must not fatal in
+	 * the Adaptive Pricing / Checkout Sessions webhook when the save-payment-method flag is set.
+	 *
+	 * Stripe returns the APM PaymentMethod (no `sepa_debit` child). The handler must convert it to the
+	 * charge's `generated_sepa_debit` PaymentMethod before saving — and skip saving entirely when Stripe
+	 * did not generate a reusable mandate — instead of passing a non-SEPA object to set_fingerprint().
+	 *
+	 * Regression for STRIPE-1205.
+	 *
+	 * @dataProvider provider_checkout_session_apm_sepa_save
+	 *
+	 * @param string  $payment_method_type   Redirect APM type (e.g. 'bancontact', 'ideal', 'sofort').
+	 * @param ?string $generated_sepa_debit  The generated SEPA debit PM id on the charge, or null.
+	 * @param bool    $expect_token_saved    Whether a SEPA token should be saved for the user.
+	 * @return void
+	 */
+	public function test_process_checkout_session_success_saves_apm_as_sepa_token( string $payment_method_type, ?string $generated_sepa_debit, bool $expect_token_saved ): void {
+		$checkout_session_id = 'cs_test_apm_' . $payment_method_type;
+		$generated_pm_id     = 'pm_generated_sepa_' . $payment_method_type;
+
+		$user_id = self::factory()->user->create();
+
+		$order = WC_Helper_Order::create_order( $user_id );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order_helper->update_should_save_stripe_payment_method( $order, true );
+		$order->save_meta_data();
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_' . $payment_method_type,
+				],
+			],
+		];
+
+		// The APM PaymentMethod as Stripe returns it: its own type, no sepa_debit child.
+		$payment_method_object = (object) [
+			'id'   => 'pm_mock_' . $payment_method_type,
+			'type' => $payment_method_type,
+		];
+
+		// The charge exposes the reusable mandate (or null) via payment_method_details.<type>.generated_sepa_debit.
+		$charge = (object) [
+			'id'                     => 'ch_mock_' . $payment_method_type,
+			'captured'               => true,
+			'status'                 => 'succeeded',
+			'payment_method_details' => (object) [
+				$payment_method_type => (object) [
+					'generated_sepa_debit' => $generated_sepa_debit,
+				],
+			],
+		];
+
+		// Intercept the generated SEPA PaymentMethod retrieval and return a SEPA-shaped object.
+		$pre_http_filter = function ( $return_value, $parsed_args, $url ) use ( $generated_pm_id ) {
+			if ( WC_Stripe_API::ENDPOINT . 'payment_methods/' . $generated_pm_id !== $url ) {
+				return $return_value;
+			}
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'id'         => $generated_pm_id,
+						'type'       => WC_Stripe_Payment_Methods::SEPA_DEBIT,
+						'customer'   => 'cus_mock_apm',
+						'sepa_debit' => [
+							'last4'       => '7061',
+							'fingerprint' => 'Fxxxxxxxxxxxxxxx',
+						],
+					]
+				),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )->method( 'schedule_job' );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+
+		$handler->method( 'get_intent_from_order' )
+			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => $payment_method_object ] ) );
+		$handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+		$handler->method( 'process_response' );
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		// Must not fatal.
+		$handler->process_checkout_session_success( $notification );
+
+		remove_filter( 'pre_http_request', $pre_http_filter );
+
+		// The save flag is always cleared so webhook retries do not loop.
+		$this->assertFalse( $order_helper->get_should_save_stripe_payment_method( wc_get_order( $order->get_id() ) ) );
+
+		$tokens = WC_Payment_Tokens::get_customer_tokens( $user_id );
+		if ( $expect_token_saved ) {
+			$this->assertCount( 1, $tokens );
+			$token = array_shift( $tokens );
+			$this->assertInstanceOf( WC_Payment_Token_SEPA::class, $token );
+			$this->assertSame( $generated_pm_id, $token->get_token() );
+			$this->assertSame( '7061', $token->get_last4() );
+		} else {
+			$this->assertCount( 0, $tokens );
+		}
+	}
+
+	/**
+	 * Data provider for `test_process_checkout_session_success_saves_apm_as_sepa_token`.
+	 *
+	 * @return array[]
+	 */
+	public function provider_checkout_session_apm_sepa_save(): array {
+		return [
+			'bancontact with generated mandate' => [ WC_Stripe_Payment_Methods::BANCONTACT, 'pm_generated_sepa_bancontact', true ],
+			'ideal with generated mandate'      => [ WC_Stripe_Payment_Methods::IDEAL, 'pm_generated_sepa_ideal', true ],
+			'sofort with generated mandate'     => [ WC_Stripe_Payment_Methods::SOFORT, 'pm_generated_sepa_sofort', true ],
+			'bancontact without mandate'        => [ WC_Stripe_Payment_Methods::BANCONTACT, null, false ],
 		];
 	}
 

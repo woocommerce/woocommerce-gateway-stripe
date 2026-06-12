@@ -666,24 +666,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$is_pay_for_order = parent::is_valid_pay_for_order_endpoint();
 
-		// Pass billing details from user's customer data for preloading Payment Element fields in Pay for Order, Change Payment Method, and Add Payment Method pages.
+		// Pass billing details for preloading Payment Element fields and for Radar AVS
+		// checks on the Pay for Order, Change Payment Method, and Add Payment Method pages.
 		if ( is_wc_endpoint_url( 'add-payment-method' ) || $is_pay_for_order || $is_change_payment_method ) {
-			// Get billing details from the current user's customer data instead of the order.
-			$customer = WC()->customer;
-			if ( $customer ) {
-				$stripe_params['customerBillingData'] = [
-					'name'    => trim( $customer->get_billing_first_name() . ' ' . $customer->get_billing_last_name() ),
-					'email'   => $customer->get_billing_email(),
-					'phone'   => $customer->get_billing_phone(),
-					'address' => [
-						'country'     => $customer->get_billing_country(),
-						'line1'       => $customer->get_billing_address_1(),
-						'line2'       => $customer->get_billing_address_2(),
-						'city'        => $customer->get_billing_city(),
-						'state'       => $customer->get_billing_state(),
-						'postal_code' => $customer->get_billing_postcode(),
-					],
-				];
+			// On the pay-for-order page, the order (loaded only for the order-key-validated
+			// endpoint) is the billing source; elsewhere the logged-in customer is.
+			$pay_for_order_order = null;
+			if ( $is_pay_for_order ) {
+				$order               = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
+				$pay_for_order_order = $order instanceof WC_Order ? $order : null;
+			}
+
+			$customer     = WC()->customer instanceof WC_Customer ? WC()->customer : null;
+			$billing_data = $this->get_deferred_flow_billing_data( $is_pay_for_order, $pay_for_order_order, $customer );
+			if ( null !== $billing_data ) {
+				$stripe_params['customerBillingData'] = $billing_data;
 			}
 		}
 
@@ -745,6 +742,52 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
+	}
+
+	/**
+	 * Resolves the billing data to localize for the deferred-payment flows (pay for order,
+	 * change payment method, add payment method).
+	 *
+	 * On the pay-for order page, we try to source the billing data from the order, as it's likely the merchant has pre-filled them.
+	 * Failing that, we fall back to the customer data, which may be available for the logged in users.
+	 *
+	 * @param bool             $is_pay_for_order Whether the current page is the validated pay-for-order endpoint.
+	 * @param WC_Order|null    $order            The order being paid, or null when not pay-for-order/unavailable.
+	 * @param WC_Customer|null $customer         The current customer, or null when unavailable.
+	 * @return array|null The billing data array, or null when no usable source exists.
+	 */
+	public function get_deferred_flow_billing_data( bool $is_pay_for_order, ?WC_Order $order, ?WC_Customer $customer ): ?array {
+		if ( $is_pay_for_order && $order instanceof WC_Order && '' !== trim( (string) $order->get_billing_email() ) ) {
+			return $this->build_billing_data_from_source( $order );
+		}
+
+		if ( $customer instanceof WC_Customer ) {
+			return $this->build_billing_data_from_source( $customer );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Builds the billing data array from a billing source.
+	 *
+	 * @param WC_Order|WC_Customer $source The object to read billing details from.
+	 * @return array The billing data array.
+	 */
+	private function build_billing_data_from_source( $source ): array {
+		return [
+			'name'    => trim( $source->get_billing_first_name() . ' ' . $source->get_billing_last_name() ),
+			'email'   => $source->get_billing_email(),
+			'phone'   => $source->get_billing_phone(),
+			'address' => [
+				'country'     => $source->get_billing_country(),
+				'line1'       => $source->get_billing_address_1(),
+				'line2'       => $source->get_billing_address_2(),
+				'city'        => $source->get_billing_city(),
+				'state'       => $source->get_billing_state(),
+				'postal_code' => $source->get_billing_postcode(),
+			],
+		];
 	}
 
 	/**
@@ -1438,29 +1481,28 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
 
-		// Persist the 'save-payment-method' flag so the webhook handler can create the token once payment is completed.
-		$upe_payment_method = $this->payment_methods[ $selected_payment_type ] ?? null;
-		if ( $save_payment_method && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
-			$order_helper->update_should_save_stripe_payment_method( $order, true );
-		}
-
-		// Eagerly set the payment method title from the customer's selection so the order
-		// reflects the right method as soon as it lands on the order-received page, even if
-		// the checkout.session.completed webhook is delayed. Prefer the type the customer
-		// actually picked inside the Stripe Element (sent via the hidden
-		// `wc_stripe_selected_upe_payment_type` input by the Optimized Checkout JS) over
-		// the gateway-derived `$selected_payment_type`, which for Optimized Checkout is
-		// always 'card' and would otherwise resolve to the OC pseudo-method's "Stripe"
-		// title. The webhook handler will reaffirm/refine this once the actual payment
-		// method type is known from the intent.
+		// Resolve the method the customer actually picked: for Optimized Checkout the gateway type is
+		// always 'card', so prefer the hidden `wc_stripe_selected_upe_payment_type` input when present.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_upe_payment_type = isset( $_POST['wc_stripe_selected_upe_payment_type'] )
 			? sanitize_text_field( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) )
 			: '';
 
-		$title_payment_type = ( ! empty( $selected_upe_payment_type ) && isset( $this->payment_methods[ $selected_upe_payment_type ] ) )
+		$resolved_payment_type   = ( ! empty( $selected_upe_payment_type ) && isset( $this->payment_methods[ $selected_upe_payment_type ] ) )
 			? $selected_upe_payment_type
 			: $selected_payment_type;
+		$resolved_payment_method = $this->payment_methods[ $resolved_payment_type ] ?? null;
+
+		// Persist the 'save-payment-method' flag so the webhook handler can create the token once payment is completed.
+		// Saving itself is requested client-side via `checkout.confirm( { savePaymentMethod } )`, which Stripe
+		// only honors for cards: Checkout Sessions cannot request `setup_future_usage` for methods that convert
+		// to SEPA (Bancontact, iDEAL, Sofort), so for those no reusable method is generated and the webhook
+		// skips token creation.
+		if ( $save_payment_method && $resolved_payment_method && $resolved_payment_method->is_reusable() ) {
+			$order_helper->update_should_save_stripe_payment_method( $order, true );
+		}
+
+		$title_payment_type = $resolved_payment_type;
 
 		if ( isset( $this->payment_methods[ $title_payment_type ] ) ) {
 			$this->set_payment_method_title_for_order( $order, $title_payment_type );
@@ -2930,16 +2972,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$name         = trim( sanitize_text_field( $order->get_billing_first_name() ) . ' ' . sanitize_text_field( $order->get_billing_last_name() ) );
 		$email        = sanitize_email( $order->get_billing_email() );
 
-		$metadata = [
-			'customer_name'  => $name,
-			'customer_email' => $email,
-			'site_url'       => esc_url( get_site_url() ),
-			'order_id'       => $order->get_order_number(),
-			'order_key'      => $order->get_order_key(),
-			'payment_type'   => $payment_type,
-			'signature'      => $this->get_order_signature( $order ),
-			'tax_amount'     => WC_Stripe_Helper::get_stripe_amount( $order->get_total_tax(), strtolower( $order->get_currency() ) ),
-		];
+		$metadata = array_merge(
+			[
+				'customer_name'  => $name,
+				'customer_email' => $email,
+				'site_url'       => esc_url( get_site_url() ),
+				'payment_type'   => $payment_type,
+			],
+			$this->get_order_metadata( $order )
+		);
 
 		return apply_filters( 'wc_stripe_intent_metadata', $metadata, $order );
 	}
@@ -3665,6 +3706,54 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$this->maybe_update_source_on_subscription_order( $order, $prepared_payment_method_object, $this->get_upe_gateway_id_for_order( $payment_method_instance ) );
 
 		do_action( 'woocommerce_stripe_add_payment_method', $user->ID, $payment_method_object );
+	}
+
+	/**
+	 * Resolves the PaymentMethod that should be saved as a token.
+	 *
+	 * Payment methods that are saved as secondary types need special logic to get the saved payment
+	 * method details. This primarily occurs for Bancontact and iDEAL/Wero, which are saved as SEPA tokens.
+	 *
+	 * @param stdClass           $payment_method_object The PaymentMethod object used for the payment.
+	 * @param object|string|null $charge                The latest charge from the intent, if available.
+	 *
+	 * @return stdClass|null The payment method to save, or null. The payment method may need to be
+	 *                       resolved for payment methods that have been converted to SEPA or similar.
+	 */
+	public function get_reusable_payment_method_for_saving( stdClass $payment_method_object, $charge ) {
+		$type = $payment_method_object->type ?? '';
+		if ( '' === $type ) {
+			return $payment_method_object;
+		}
+
+		$instance = $this->get_payment_method_instance( $type );
+
+		// No conversion needed when the method is saved under its own type (e.g. card, sepa_debit).
+		if ( ! $instance instanceof WC_Stripe_UPE_Payment_Method || $instance->get_id() === $instance->get_retrievable_type() ) {
+			return $payment_method_object;
+		}
+
+		// Only SEPA-tokenized methods expose their reusable mandate as `generated_sepa_debit` on the charge.
+		$generated_payment_method_id = null;
+		if ( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $instance->get_retrievable_type() ) {
+			$generated_payment_method_id = is_object( $charge ) ? ( $charge->payment_method_details->{$type}->generated_sepa_debit ?? null ) : null;
+		}
+
+		if ( empty( $generated_payment_method_id ) ) {
+			return null;
+		}
+
+		$generated_payment_method = WC_Stripe_API::retrieve( 'payment_methods/' . $generated_payment_method_id );
+		if ( empty( $generated_payment_method ) || is_wp_error( $generated_payment_method ) || ! is_object( $generated_payment_method ) || ! empty( $generated_payment_method->error ) ) {
+			return null;
+		}
+
+		/**
+		 * Decoded Stripe API JSON objects are always stdClass.
+		 *
+		 * @var stdClass $generated_payment_method
+		 */
+		return $generated_payment_method;
 	}
 
 	/**

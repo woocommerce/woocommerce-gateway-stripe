@@ -703,6 +703,106 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * The billing source for the deferred-payment flows is selected all-or-nothing:
+	 * the order on a validated pay-for-order page (so guests still get full address
+	 * details), otherwise the customer, with a wholesale fallback to the customer when
+	 * the order has no usable billing email.
+	 *
+	 * @dataProvider provide_deferred_flow_billing_data_scenarios
+	 *
+	 * @param bool   $is_pay_for_order Whether the page is the validated pay-for-order endpoint.
+	 * @param bool   $order_has_email  Whether the order carries a billing email.
+	 * @param bool   $with_customer    Whether a customer is available as a source.
+	 * @param string $expected_source  Expected source: 'order', 'customer', or 'none'.
+	 */
+	public function test_get_deferred_flow_billing_data( bool $is_pay_for_order, bool $order_has_email, bool $with_customer, string $expected_source ) {
+		$order_billing    = [
+			'name'    => 'Order Buyer',
+			'email'   => 'order-buyer@example.com',
+			'phone'   => '+15551234567',
+			'address' => [
+				'country'     => 'US',
+				'line1'       => '123 Order St',
+				'line2'       => 'Suite 5',
+				'city'        => 'Orderville',
+				'state'       => 'CA',
+				'postal_code' => '90001',
+			],
+		];
+		$customer_billing = [
+			'name'    => 'Cust Omer',
+			'email'   => 'customer@example.com',
+			'phone'   => '+447700900000',
+			'address' => [
+				'country'     => 'GB',
+				'line1'       => '999 Customer Ave',
+				'line2'       => 'Flat 2',
+				'city'        => 'London',
+				'state'       => 'LND',
+				'postal_code' => 'SW1A 2AA',
+			],
+		];
+
+		// A bare (unsaved) order keeps the test free of the DB and of helper-seeded defaults.
+		$order = new WC_Order();
+		$order->set_billing_first_name( 'Order' );
+		$order->set_billing_last_name( 'Buyer' );
+		$order->set_billing_phone( $order_billing['phone'] );
+		$order->set_billing_country( $order_billing['address']['country'] );
+		$order->set_billing_address_1( $order_billing['address']['line1'] );
+		$order->set_billing_address_2( $order_billing['address']['line2'] );
+		$order->set_billing_city( $order_billing['address']['city'] );
+		$order->set_billing_state( $order_billing['address']['state'] );
+		$order->set_billing_postcode( $order_billing['address']['postal_code'] );
+		if ( $order_has_email ) {
+			$order->set_billing_email( $order_billing['email'] );
+		}
+
+		$customer = null;
+		if ( $with_customer ) {
+			$customer = new WC_Customer();
+			$customer->set_billing_first_name( 'Cust' );
+			$customer->set_billing_last_name( 'Omer' );
+			$customer->set_billing_email( $customer_billing['email'] );
+			$customer->set_billing_phone( $customer_billing['phone'] );
+			$customer->set_billing_country( $customer_billing['address']['country'] );
+			$customer->set_billing_address_1( $customer_billing['address']['line1'] );
+			$customer->set_billing_address_2( $customer_billing['address']['line2'] );
+			$customer->set_billing_city( $customer_billing['address']['city'] );
+			$customer->set_billing_state( $customer_billing['address']['state'] );
+			$customer->set_billing_postcode( $customer_billing['address']['postal_code'] );
+		}
+
+		$result = $this->mock_gateway->get_deferred_flow_billing_data( $is_pay_for_order, $order, $customer );
+
+		switch ( $expected_source ) {
+			case 'order':
+				$this->assertSame( $order_billing, $result );
+				break;
+			case 'customer':
+				// Asserting the whole array proves the fallback is all-or-nothing: no order field leaks in.
+				$this->assertSame( $customer_billing, $result );
+				break;
+			default:
+				$this->assertNull( $result );
+		}
+	}
+
+	/**
+	 * Data provider for test_get_deferred_flow_billing_data.
+	 *
+	 * @return array<string, array{0: bool, 1: bool, 2: bool, 3: string}>
+	 */
+	public function provide_deferred_flow_billing_data_scenarios(): array {
+		return [
+			'pay-for-order uses the order when it has an email'                    => [ true, true, true, 'order' ],
+			'pay-for-order falls back to the customer when the order has no email' => [ true, false, true, 'customer' ],
+			'change/add payment method uses the customer even with an order'       => [ false, true, true, 'customer' ],
+			'returns null when neither order nor customer is usable'               => [ true, false, false, 'none' ],
+		];
+	}
+
+	/**
 	 * Test basic checkout process_payment flow with deferred intent.
 	 *
 	 * @dataProvider provide_process_payment_deferred_intent_returns_valid_response
@@ -1936,6 +2036,78 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		parse_str( is_string( $query_string ) ? $query_string : '', $query );
 		$this->assertSame( '1', $query['wc_stripe_cs'] ?? null );
 		$this->assertSame( 1, wp_verify_nonce( $query['_wpnonce'] ?? '', 'wc_stripe_process_checkout_session_redirect_nonce' ) );
+	}
+
+	/**
+	 * Saving through the Adaptive Pricing / Checkout Sessions flow must persist the save-payment-method
+	 * flag on the order without any server-side session update: saving is requested client-side via
+	 * `checkout.confirm()`, and the Checkout Session update API does not accept `payment_method_options`.
+	 *
+	 * Part of STRIPE-1205.
+	 *
+	 * @dataProvider provide_checkout_session_save_payment_method_types
+	 *
+	 * @param string $payment_method_type The UPE payment method type selected at checkout.
+	 */
+	public function test_process_payment_with_checkout_session_persists_save_flag_without_session_update( string $payment_method_type ) {
+		$session_id = 'cs_test_save_' . $payment_method_type;
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+		// Optimized Checkout reports 'card' as the gateway type; the real method is sent in `wc_stripe_selected_upe_payment_type`.
+		$_POST['wc_stripe_selected_upe_payment_type'] = $payment_method_type;
+		$_POST['wc-stripe-new-payment-method']        = 'true';
+
+		// Saved cards must be enabled for the save-payment-method checkbox to take effect.
+		$this->mock_gateway->saved_cards = true;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$session_update_called = false;
+		$pre_http_filter       = function ( $return_value, $parsed_args, $url ) use ( $session_id, &$session_update_called ) {
+			if ( WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $session_id === $url ) {
+				$session_update_called = true;
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		try {
+			$result = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_filter );
+			unset(
+				$_POST['wc_stripe_checkout_session_id'],
+				$_POST['payment_method'],
+				$_POST['wc-stripe-payment-method'],
+				$_POST['wc_stripe_selected_upe_payment_type'],
+				$_POST['wc-stripe-new-payment-method']
+			);
+		}
+
+		$this->assertSame( 'success', $result['result'] );
+		$this->assertFalse( $session_update_called, 'Saving a payment method must not trigger a checkout session update.' );
+
+		// The save flag must be persisted so the webhook can save the payment method (or its generated SEPA mandate).
+		$this->assertTrue(
+			WC_Stripe_Order_Helper::get_instance()->get_should_save_stripe_payment_method( wc_get_order( $order->get_id() ) )
+		);
+	}
+
+	/**
+	 * Provides payment method types for the checkout session save-payment-method test.
+	 *
+	 * @return array[]
+	 */
+	public function provide_checkout_session_save_payment_method_types(): array {
+		return [
+			'redirect APM tokenized as SEPA (bancontact)' => [ WC_Stripe_Payment_Methods::BANCONTACT ],
+			'method saved under its own type (card)'      => [ WC_Stripe_Payment_Methods::CARD ],
+		];
 	}
 
 	/**
@@ -3240,17 +3412,20 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway->process_subscription_payment( $amount, $order, false, false );
 
-		$final_order = wc_get_order( $order_id );
-		$note        = wc_get_order_notes(
-			[
-				'order_id' => $order_id,
-				'limit'    => 1,
-			]
-		)[0];
+		$final_order   = wc_get_order( $order_id );
+		$note_contents = array_map(
+			static function ( $note ) {
+				return $note->content;
+			},
+			wc_get_order_notes( [ 'order_id' => $order_id ] )
+		);
 
 		$this->assertEquals( OrderStatus::FAILED, $final_order->get_status() );
 		$this->assertEquals( 'ch_mock', $final_order->get_transaction_id() );
-		$this->assertMatchesRegularExpression( '/pending/i', $note->content );
+		$this->assertNotEmpty(
+			preg_grep( '/pending/i', $note_contents ),
+			'Failed asserting that an order note mentions the pending payment. Notes: ' . implode( ' | ', $note_contents )
+		);
 		// Assert: Our hook was called once.
 		$this->assertEquals( 1, $mock_action_process_payment->get_call_count() );
 		// Assert: Only our hook was called.

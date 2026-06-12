@@ -2751,4 +2751,21 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		return sprintf( '%d:%s', $order->get_id(), md5( implode( '-', $signature ) ) );
 	}
+
+	/**
+	 * Returns the default order-identification metadata sent to Stripe for an order's intent.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order $order The order the intent belongs to.
+	 * @return array The default metadata: order_id, order_key, signature and tax_amount.
+	 */
+	protected function get_order_metadata( $order ) {
+		return [
+			'order_id'   => $order->get_order_number(),
+			'order_key'  => $order->get_order_key(),
+			'signature'  => $this->get_order_signature( $order ),
+			'tax_amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_total_tax(), strtolower( $order->get_currency() ) ),
+		];
+	}
 }
