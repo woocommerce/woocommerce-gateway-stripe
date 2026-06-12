@@ -1409,4 +1409,54 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->assertEmpty( $output );
 	}
+
+	/**
+	 * Tests that generate_payment_request includes the shipping phone in the shipping object so it
+	 * reaches Stripe for risk decisioning (STRIPE-973).
+	 *
+	 * @dataProvider provide_test_generate_payment_request_shipping_phone_cases
+	 *
+	 * @param string $phone        The order shipping phone.
+	 * @param bool   $expect_phone Whether the shipping phone is expected in the request.
+	 */
+	public function test_generate_payment_request_includes_shipping_phone( string $phone, bool $expect_phone ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_shipping_first_name( 'Jane' );
+		$order->set_shipping_last_name( 'Doe' );
+		$order->set_shipping_address_1( '123 Ship St' );
+		$order->set_shipping_city( 'Shipville' );
+		$order->set_shipping_state( 'CA' );
+		$order->set_shipping_postcode( '90210' );
+		$order->set_shipping_country( 'US' );
+		$order->set_shipping_phone( $phone );
+		$order->save();
+
+		$prepared_payment_method = (object) [
+			'customer'       => 'cus_123',
+			'source'         => null,
+			'payment_method' => 'pm_123',
+		];
+
+		$post_data = $this->gateway->generate_payment_request( $order, $prepared_payment_method );
+
+		$this->assertArrayHasKey( 'shipping', $post_data, 'Shipping should be included when a shipping postcode is present' );
+		if ( $expect_phone ) {
+			$this->assertArrayHasKey( 'phone', $post_data['shipping'], 'Shipping object should include the shipping phone' );
+			$this->assertEquals( $phone, $post_data['shipping']['phone'], 'Shipping phone should match the order shipping phone' );
+		} else {
+			$this->assertArrayNotHasKey( 'phone', $post_data['shipping'], 'Shipping object should omit an empty phone' );
+		}
+	}
+
+	/**
+	 * Data provider for test_generate_payment_request_includes_shipping_phone.
+	 *
+	 * @return array
+	 */
+	public function provide_test_generate_payment_request_shipping_phone_cases(): array {
+		return [
+			'phone present' => [ '+1 555-333-4444', true ],
+			'phone empty'   => [ '', false ],
+		];
+	}
 }

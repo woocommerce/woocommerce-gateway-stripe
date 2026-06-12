@@ -101,9 +101,11 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
 	 * @param bool $show_optimized_checkout_instruction Deprecated. Whether to show optimized checkout instructions.
+	 * @param bool $include_test_mode_label Whether to include the "Test mode:" label prefix. Pass false for
+	 *                                      Blocks checkout, which already displays a Test Mode badge.
 	 * @return string
 	 */
-	public function get_testing_instructions( $show_optimized_checkout_instruction = false ) {
+	public function get_testing_instructions( bool $show_optimized_checkout_instruction = false, bool $include_test_mode_label = true ) {
 		if ( false !== $show_optimized_checkout_instruction ) {
 			_deprecated_argument(
 				__FUNCTION__,
@@ -111,11 +113,22 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 			);
 		}
 
+		if ( $include_test_mode_label ) {
+			return sprintf(
+				/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) number open tag 4) number closing tag 5) HTML anchor open tag 6) HTML anchor closing tag */
+				esc_html__( '%1$sTest mode:%2$s use account %3$sAT611904300234573201%4$s. %5$sMore test methods%6$s.', 'woocommerce-gateway-stripe' ),
+				'<strong>',
+				'</strong>',
+				'<number>',
+				'</number>',
+				'<a href="https://docs.stripe.com/testing?payment-method=sepa-direct-debit#non-card-payments" target="_blank">',
+				'</a>'
+			);
+		}
+
 		return sprintf(
-			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) number open tag 4) number closing tag 5) HTML anchor open tag 6) HTML anchor closing tag */
-			esc_html__( '%1$sTest mode:%2$s use account %3$sAT611904300234573201%4$s. %5$sMore test methods%6$s.', 'woocommerce-gateway-stripe' ),
-			'<strong>',
-			'</strong>',
+			/* translators: 1) number open tag 2) number closing tag 3) HTML anchor open tag 4) HTML anchor closing tag */
+			esc_html__( 'Use account %1$sAT611904300234573201%2$s. %3$sMore test methods%4$s.', 'woocommerce-gateway-stripe' ),
 			'<number>',
 			'</number>',
 			'<a href="https://docs.stripe.com/testing?payment-method=sepa-direct-debit#non-card-payments" target="_blank">',

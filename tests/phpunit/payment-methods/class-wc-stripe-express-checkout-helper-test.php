@@ -480,6 +480,44 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'id', $checkout_data['default_shipping_option'] );
 		$this->assertArrayHasKey( 'displayName', $checkout_data['default_shipping_option'] );
 		$this->assertArrayHasKey( 'amount', $checkout_data['default_shipping_option'] );
+		$this->assertArrayHasKey( 'display_prices_with_tax', $checkout_data );
+	}
+
+	/**
+	 * Test that get_checkout_data() emits display_prices_with_tax based on the tax display setting.
+	 *
+	 * @param string $tax_display_cart Tax display cart option value.
+	 * @param bool   $expected         Expected display_prices_with_tax value.
+	 *
+	 * @return void
+	 *
+	 * @dataProvider provide_test_get_checkout_data_display_prices_with_tax
+	 */
+	public function test_get_checkout_data_display_prices_with_tax( string $tax_display_cart, bool $expected ): void {
+		update_option( 'woocommerce_tax_display_cart', $tax_display_cart );
+
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+		$checkout_data        = $wc_stripe_ece_helper->get_checkout_data();
+
+		$this->assertSame( $expected, $checkout_data['display_prices_with_tax'] );
+	}
+
+	/**
+	 * Provider for test_get_checkout_data_display_prices_with_tax.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_checkout_data_display_prices_with_tax(): array {
+		return [
+			'prices displayed including tax' => [
+				'tax display cart' => 'incl',
+				'expected'         => true,
+			],
+			'prices displayed excluding tax' => [
+				'tax display cart' => 'excl',
+				'expected'         => false,
+			],
+		];
 	}
 
 	/**
@@ -616,12 +654,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'GB country, redacted' => [
 				'postal code' => 'SW1A',
 				'country'     => 'GB',
-				'expected'    => 'SW1A ***',
+				'expected'    => 'SW1A 000',
 			],
 			'CA country'           => [
 				'postal code' => 'K1A   ',
 				'country'     => 'CA',
-				'expected'    => 'K1A***',
+				'expected'    => 'K1A000',
 			],
 			'US country'           => [
 				'postal code' => '12345',
@@ -768,19 +806,23 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_request_to_store_api(): array {
 		return [
-			'No rest_route set'         => [
+			'No rest_route set'        => [
 				'rest_route' => '',
 				'expected'   => false,
 			],
-			'Store API checkout route'  => [
+			'Store API checkout route' => [
 				'rest_route' => '/wc/store/v1/checkout',
 				'expected'   => true,
 			],
-			'Different Store API route' => [
+			'Store API cart route'     => [
 				'rest_route' => '/wc/store/v1/cart',
-				'expected'   => false,
+				'expected'   => true,
 			],
-			'Non-Store API route'       => [
+			'Store API cart sub-route' => [
+				'rest_route' => '/wc/store/v1/cart/update-customer',
+				'expected'   => true,
+			],
+			'Non-Store API route'      => [
 				'rest_route' => '/wp/v2/posts',
 				'expected'   => false,
 			],

@@ -469,16 +469,20 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool True when no restriction is set or the country is in the supported list.
 	 */
 	public function is_available_for_billing_country( $country_code ): bool {
+		// Methods with no country restriction (e.g. card, Link) are available everywhere,
+		// including when the billing country is unknown — an empty country must not block
+		// them, or checkout fails for orders that carry no billing country.
+		if ( [] === $this->supported_billing_countries ) {
+			return true;
+		}
+
+		// A restricted method can't be confirmed available without knowing the country.
 		$country_code = is_string( $country_code ) ? strtoupper( $country_code ) : '';
 		if ( '' === $country_code ) {
 			return false;
 		}
 
-		if ( ! empty( $this->supported_billing_countries ) ) {
-			return in_array( $country_code, $this->supported_billing_countries, true );
-		}
-
-		return true;
+		return in_array( $country_code, $this->supported_billing_countries, true );
 	}
 
 	/**
@@ -544,6 +548,16 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return WC_Payment_Token_SEPA
 	 */
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
+		// Guard against non-SEPA-shaped PaymentMethods so set_fingerprint() throws a catchable exception
+		// instead of fataling on null.
+		$sepa_debit = $payment_method->sepa_debit ?? null;
+		if ( ! is_object( $sepa_debit ) || ! isset( $sepa_debit->fingerprint ) ) {
+			throw new WC_Stripe_Exception(
+				sprintf( 'Cannot create a SEPA payment token from payment method %s: missing sepa_debit fingerprint.', $payment_method->id ?? 'unknown' ),
+				__( "We're not able to save this payment method. Please try again.", 'woocommerce-gateway-stripe' )
+			);
+		}
+
 		$token = new WC_Payment_Token_SEPA();
 		$token->set_last4( $payment_method->sepa_debit->last4 );
 		$token->set_gateway_id( $this->id );
@@ -658,9 +672,12 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 *
 	 * @see WC_Stripe_UPE_Payment_Gateway::expand_copy_button_markup()
 	 *
+	 * @param bool $show_optimized_checkout_instruction Deprecated. Whether to show optimized checkout instructions.
+	 * @param bool $include_test_mode_label Whether to include the "Test mode:" label prefix. Pass false for
+	 *                                      Blocks checkout, which already displays a Test Mode badge.
 	 * @return string
 	 */
-	public function get_testing_instructions( bool $show_optimized_checkout_instruction = false ) {
+	public function get_testing_instructions( bool $show_optimized_checkout_instruction = false, bool $include_test_mode_label = true ) {
 		if ( $show_optimized_checkout_instruction ) {
 			_deprecated_argument(
 				__FUNCTION__,

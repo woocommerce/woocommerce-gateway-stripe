@@ -334,6 +334,14 @@ const PaymentProcessor = ( {
 			return;
 		}
 
+		// In the block editor preview the appearance is a static, editor-safe
+		// object that does not depend on page fonts. Recomputing here would
+		// sample the editor DOM and reintroduce the dark appearance. See
+		// STRIPE-1061.
+		if ( stripeServerData?.isAdmin ) {
+			return;
+		}
+
 		let cancelled = false;
 		document.fonts?.ready?.then( () => {
 			if ( cancelled ) {
@@ -359,7 +367,7 @@ const PaymentProcessor = ( {
 		return () => {
 			cancelled = true;
 		};
-	}, [ elements ] );
+	}, [ elements, stripeServerData ] );
 
 	usePaymentCompleteHandler(
 		api,

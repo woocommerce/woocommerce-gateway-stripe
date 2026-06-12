@@ -36,6 +36,10 @@ jest.mock( 'wcstripe/blocks/load-stripe', () => ( {
 	loadStripe: jest.fn( () => Promise.resolve( true ) ),
 } ) );
 
+jest.mock( 'wcstripe/blocks/utils', () => ( {
+	getBlocksConfiguration: jest.fn( () => ( { isAdmin: false } ) ),
+} ) );
+
 describe( 'CheckoutSessionsContainer', () => {
 	const api = {
 		checkoutSessionsCreateSession: jest.fn().mockResolvedValue( {
