@@ -80,11 +80,10 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 		 */
 		$filtered = apply_filters( 'wc_stripe_agentic_commerce_product_filter', $filters );
 
-		if ( is_array( $filtered ) ) {
-			$this->filters = $this->normalize_filter_data( $filtered );
-		} else {
-			$this->filters = [];
-		}
+		$filtered = is_array( $filtered ) ? $filtered : [];
+
+		// Ensure we have normalized filter data.
+		$this->filters = $this->normalize_filter_data( $filtered );
 
 		return $this->filters;
 	}
