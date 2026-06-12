@@ -2750,6 +2750,45 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Register the subscription hooks for the gateway.
+	 *
+	 * @return bool True if the hooks were registered, false otherwise.
+	 */
+	public function maybe_register_gateway_subscription_hooks(): bool {
+		$hook_manager = WC_Stripe_Hook_Manager::get_instance();
+
+		if ( $hook_manager->are_plugin_hooks_registered( WC_Stripe_Hook_Categories::SUBSCRIPTIONS ) ) {
+			return false;
+		}
+
+		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
+		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
+		// @phpstan-ignore return.void (Callers may be relying on the return value from delete_renewal_meta(), so we are keeping that in place.)
+		add_action( 'wcs_renewal_order_created', [ $this, 'delete_renewal_meta' ], 10 );
+
+		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'display_save_payment_method_checkbox' ] );
+
+		// Add the necessary information to create a mandate to the payment intent.
+		add_filter( 'wc_stripe_generate_create_intent_request', [ $this, 'add_subscription_information_to_intent' ], 10, 4 );
+
+		/*
+		* WC subscriptions hooks into the "template_redirect" hook with priority 100.
+		* If the screen is "Pay for order" and the order is a subscription renewal, it redirects to the plain checkout.
+		* See: https://github.com/woocommerce/woocommerce-subscriptions/blob/99a75687e109b64cbc07af6e5518458a6305f366/includes/class-wcs-cart-renewal.php#L165
+		* If we are in the "You just need to authorize SCA" flow, we don't want that redirection to happen.
+		*/
+		add_action( 'template_redirect', [ $this, 'remove_order_pay_var' ], 99 );
+		add_action( 'template_redirect', [ $this, 'restore_order_pay_var' ], 101 );
+
+		// Disable editing for Indian subscriptions with mandates. Those need to be recreated as mandates does not support upgrades (due fixed amounts).
+		add_filter( 'wc_order_is_editable', [ $this, 'disable_subscription_edit_for_india' ], 10, 2 );
+
+		add_filter( 'woocommerce_subscriptions_update_payment_via_pay_shortcode', [ $this, 'update_payment_after_deferred_intent' ], 10, 3 );
+
+		return $hook_manager->register_plugin_hooks( WC_Stripe_Hook_Categories::SUBSCRIPTIONS );
+	}
+
+	/**
 	 * Validates the UPE checkout experience accepted payments field.
 	 *
 	 * @param string $key   Field key.
@@ -4394,12 +4433,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$order = wc_get_order( $order_id );
 
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$fee          = $order_helper->get_stripe_fee( $order );
 		$currency     = $order_helper->get_stripe_currency( $order );
 
 		if ( ! $fee || ! $currency ) {
 			return;
+		}
+
+		$formatted_fee = wc_price( $fee, [ 'currency' => $currency ] );
+		if ( strtoupper( $order->get_currency() ) !== strtoupper( $currency ) ) {
+			$formatted_fee .= ' ' . esc_html( strtoupper( $currency ) );
 		}
 
 		?>
@@ -4411,7 +4459,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			</td>
 			<td width="1%"></td>
 			<td class="total">
-				-<?php echo wc_price( $fee, [ 'currency' => $currency ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				-<?php echo $formatted_fee; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</td>
 		</tr>
 
@@ -4433,12 +4481,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$order = wc_get_order( $order_id );
 
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$net          = $order_helper->get_stripe_net( $order );
 		$currency     = $order_helper->get_stripe_currency( $order );
 
 		if ( ! $net || ! $currency ) {
 			return;
+		}
+
+		$formatted_net = wc_price( $net, [ 'currency' => $currency ] );
+		if ( strtoupper( $order->get_currency() ) !== strtoupper( $currency ) ) {
+			$formatted_net .= ' ' . esc_html( strtoupper( $currency ) );
 		}
 
 		?>
@@ -4450,7 +4507,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			</td>
 			<td width="1%"></td>
 			<td class="total">
-				<?php echo wc_price( $net, [ 'currency' => $currency ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<?php echo $formatted_net; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</td>
 		</tr>
 
