@@ -194,9 +194,12 @@ export async function retryWithBackoff( fn, options = {} ) {
  * @param {Object} card The CC info in the format provided on the test-data.
  */
 export async function fillCreditCardDetails( page, card ) {
-	const form = await page.frameLocator(
-		'.wcstripe-payment-element iframe[name^="__privateStripeFrame"]'
-	);
+	// Get first frame, as Stripe can include a secondary bank search iframe.
+	const form = await page
+		.frameLocator(
+			'.wcstripe-payment-element iframe[name^="__privateStripeFrame"]'
+		)
+		.first();
 
 	await form.locator( '[name="number"]' ).fill( card.number );
 
