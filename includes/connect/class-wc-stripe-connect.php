@@ -288,6 +288,14 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			unset( $options['account_id'] );
 			unset( $options['test_account_id'] );
 
+			// Before saving the new keys, decommission any webhook configured on the
+			// previously connected account.
+			$previous_webhook_data = $options[ $prefix . 'webhook_data' ] ?? '';
+			if ( WC_Stripe::get_instance()->account->maybe_decommission_webhook( $previous_webhook_data, $secret_key ) ) {
+				$options[ $prefix . 'webhook_data' ]   = [];
+				$options[ $prefix . 'webhook_secret' ] = '';
+			}
+
 			WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 			WC_Stripe::write_settings_option( $options );
 
