@@ -62,6 +62,7 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 		purchaseTotal = await getCartTotal( page );
 
 		await page.locator( 'text=Place order' ).click();
+		await page.waitForURL( '**/checkout/order-received/**' );
 
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
@@ -91,6 +92,7 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 		await page
 			.locator( 'text=Renew subscription' )
 			.dispatchEvent( 'click' );
+		await page.waitForURL( '**/order-received/**' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
 		);
