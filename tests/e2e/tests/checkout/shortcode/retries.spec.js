@@ -82,8 +82,6 @@ test( 'customer can retry payment, with changed billing details @smoke', async (
 	page,
 	browser,
 } ) => {
-	const expectedTotal = await getCartTotal( page );
-
 	await fillCreditCardDetailsShortcode( page, config.get( 'cards.3ds' ) );
 	await clickPlaceOrder( page );
 
@@ -92,6 +90,9 @@ test( 'customer can retry payment, with changed billing details @smoke', async (
 
 	// Change billing details
 	await page.fill( '#billing_postcode', '12345' );
+
+	// Get cart total after changing the zip/post code.
+	const expectedTotal = await getCartTotal( page );
 
 	// Retry the payment
 	await clickPlaceOrder( page );
