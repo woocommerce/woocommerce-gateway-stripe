@@ -100,6 +100,13 @@ export async function setupCart(
  */
 export async function getCartTotal( page ) {
 	const response = await page.request.get( '/wp-json/wc/store/v1/cart' );
+	if ( ! response.ok() ) {
+		const responseText = await response.text();
+		throw new Error(
+			`Failed to fetch cart total: ${ response.status() } ${ response.statusText() } -- ${ responseText }`
+		);
+	}
+
 	const { total_price: totalPrice, currency_minor_unit: minorUnit } = (
 		await response.json()
 	).totals;
