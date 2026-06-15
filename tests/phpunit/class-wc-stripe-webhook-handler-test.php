@@ -797,7 +797,10 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				$this->callback(
 					function ( $timestamp ) use ( $start ) {
 						$this->assertIsInt( $timestamp );
-						$this->assertGreaterThanOrEqual( $start + 2 * MINUTE_IN_SECONDS, $timestamp );
+						// The lock clears in ~1s, so the retry uses a short dedicated backoff rather than
+						// the 2-minute deferred delay — the order must not sit pending that long.
+						$this->assertGreaterThanOrEqual( $start + 10, $timestamp );
+						$this->assertLessThan( $start + MINUTE_IN_SECONDS, $timestamp );
 
 						return true;
 					}
@@ -820,6 +823,63 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Settlement is deferred to the retry, so the order must still be unsettled.
 		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+	}
+
+	/**
+	 * Regression: when the order is locked and settlement is re-queued, process_webhook must NOT fire
+	 * wc_stripe_webhook_received on this live pass. Settlement hasn't happened yet; the action fires
+	 * once from the retry. Firing here would double-dispatch and run before the payment settles.
+	 *
+	 * @return void
+	 */
+	public function test_process_webhook_skips_received_action_when_order_payment_locked(): void {
+		$checkout_session_id = 'cs_test_locked_no_action';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+		$order_helper->method( 'lock_order_payment' )->willReturn( true );
+		$order_helper->method( 'unlock_order_payment' );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_locked_no_action',
+				],
+			],
+		];
+
+		$handler = new WC_Stripe_Webhook_Handler();
+		$prop    = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $this->createMock( WC_Stripe_Action_Scheduler_Service::class ) );
+
+		$fired    = 0;
+		$listener = function () use ( &$fired ) {
+			++$fired;
+		};
+		add_action( 'wc_stripe_webhook_received', $listener );
+
+		try {
+			$handler->process_webhook( wp_json_encode( $notification ) );
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $listener );
+		}
+
+		$this->assertSame( 0, $fired, 'wc_stripe_webhook_received must not fire while settlement is deferred.' );
 	}
 
 	/**
