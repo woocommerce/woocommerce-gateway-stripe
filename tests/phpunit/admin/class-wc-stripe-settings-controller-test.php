@@ -145,6 +145,9 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				->disableOriginalConstructor()
 				->getMock();
 			$account->method( 'get_account_country' )->willReturn( $account_country );
+			// Adaptive Pricing availability now also depends on webhooks; enable them so this test
+			// isolates the country-restriction logic it covers.
+			$account->method( 'is_webhook_enabled' )->willReturn( true );
 
 			$stripe_singleton_account_backup   = WC_Stripe::get_instance()->account;
 			WC_Stripe::get_instance()->account = $account;
