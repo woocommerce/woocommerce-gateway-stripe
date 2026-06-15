@@ -751,6 +751,78 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Regression: when the order is found but its payment lock is held by a concurrent process
+	 * (e.g. the order-received redirect handler holding it across a Stripe API call), settlement
+	 * must be re-queued, otherwise the paid order is left stuck pending.
+	 *
+	 * @return void
+	 */
+	public function test_handle_checkout_session_success_requeues_when_order_payment_locked(): void {
+		$checkout_session_id = 'cs_test_locked_requeue';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		// Clear per-session caches so the handler doesn't short-circuit on a stale lock entry.
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		// Simulate a concurrent process holding the order payment lock.
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+		$order_helper->method( 'lock_order_payment' )->willReturn( true );
+		$order_helper->method( 'unlock_order_payment' );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_locked',
+				],
+			],
+		];
+
+		$start          = time();
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->callback(
+					function ( $timestamp ) use ( $start ) {
+						$this->assertIsInt( $timestamp );
+						$this->assertGreaterThanOrEqual( $start + 2 * MINUTE_IN_SECONDS, $timestamp );
+
+						return true;
+					}
+				),
+				'wc_stripe_deferred_webhook',
+				$this->callback(
+					function ( $args ) use ( $checkout_session_id ) {
+						return 'checkout.session.completed' === ( $args['type'] ?? '' )
+							&& ( $args['data']['session_id'] ?? '' ) === $checkout_session_id;
+					}
+				)
+			);
+
+		$handler = new WC_Stripe_Webhook_Handler();
+		$prop    = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		$handler->process_checkout_session_success( $notification );
+
+		// Settlement is deferred to the retry, so the order must still be unsettled.
+		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+	}
+
+	/**
 	 * Deferred checkout session success events should run handle_checkout_session_success when the job executes.
 	 *
 	 * @param string $event_type Stripe event type.

@@ -1861,8 +1861,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
-		// Lock the order
+		// Lock the order. The order-received redirect handler briefly holds this same lock across a
+		// Stripe API call without settling; dropping the event here would leave a paid order stuck
+		// pending. Re-queue instead so settlement runs once the lock is released — the lock's 5-minute
+		// TTL guarantees a wedged holder clears, so the retry terminates.
 		if ( $order_helper->lock_order_payment( $order ) ) {
+			$this->defer_webhook_processing( $notification, [ 'session_id' => $session_id ] );
 			return;
 		}
 

@@ -18,6 +18,7 @@ xxxx-xx-xx - version 10.9.0
 * Dev - Add a Code Comment Conventions section to AGENTS.md to standardize agent and contributor comment guidance
 * Fix - Disable Adaptive Pricing when webhooks are disabled
 * Fix - Run the woocommerce_gateway_description filter for Stripe payment methods so third parties can add or replace their checkout descriptions
+* Fix - Prevent Adaptive Pricing orders from being stuck in pending after a successful payment
 
 2026-06-11 - version 10.8.1
 * Fix - Prevent a fatal error when a Bancontact, iDEAL or Sofort payment is placed with SEPA token saving enabled through the Adaptive Pricing checkout, which left the order unpaid
