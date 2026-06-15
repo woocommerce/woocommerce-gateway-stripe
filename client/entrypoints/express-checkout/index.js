@@ -421,7 +421,7 @@ jQuery( function ( $ ) {
 					layout: {
 						maxColumns: expressPaymentTypes.length,
 						maxRows: 1,
-						overflow: 'never',
+						overflow: 'auto',
 					},
 				} ),
 				paymentMethods: {
