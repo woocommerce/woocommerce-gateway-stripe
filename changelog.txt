@@ -16,7 +16,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Append the 3-letter currency code to the Stripe Fee and Stripe Payout amounts in WP Admin order totals when the Stripe account currency differs from the order currency
 * Fix - Only create an agentic commerce order on the site that produced the checkout, preventing duplicate or wrong-site orders when multiple stores share one Stripe account
 * Dev - Add a Code Comment Conventions section to AGENTS.md to standardize agent and contributor comment guidance
-* Fix - Disable Adaptive Pricing when webhooks are disable
+* Fix - Disable Adaptive Pricing when webhooks are disabled
 
 2026-06-11 - version 10.8.1
 * Fix - Prevent a fatal error when a Bancontact, iDEAL or Sofort payment is placed with SEPA token saving enabled through the Adaptive Pricing checkout, which left the order unpaid
