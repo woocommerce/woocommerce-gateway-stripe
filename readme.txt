@@ -160,6 +160,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fall back to standard checkout when Adaptive Pricing can't initialize against a conflicting Stripe.js version
 * Fix - Correctly distinguish Adaptive Pricing checkout sessions from agentic ones in webhooks so their payments aren't dropped
 * Fix - Prevent classic checkout from submitting an empty payment method while the Stripe Payment Element is re-mounting after a checkout update
+* Fix - Prevent Adaptive Pricing orders from being stuck in pending after a successful payment
 
 = 10.8.1 - 2026-06-11 =
 
