@@ -1255,6 +1255,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$intent = $notification->data->object;
 		$order  = $this->get_order_from_intent( $intent );
 
+		$checkout_type = $intent->metadata->checkout_type ?? '';
+
+		// For AP, attempt to find the order via the checkout session.
+		if ( ! $order
+			&& 'payment_intent.payment_failed' === $notification->type
+			&& WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE === $checkout_type ) {
+			$order = $this->get_order_by_intent_checkout_session( isset( $intent->id ) ? (string) $intent->id : '' );
+		}
+
 		if ( ! $order ) {
 			WC_Stripe_Logger::warning( 'Could not find order via intent ID: ' . $intent->id );
 			return;
@@ -2291,6 +2300,34 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Fall back to finding the order via the intent ID.
 		return WC_Stripe_Helper::get_order_by_intent_id( $intent->id );
+	}
+
+	/**
+	 * Resolves the order behind a PaymentIntent via its Checkout Session.
+	 *
+	 * @param string $intent_id PaymentIntent ID from the failed event.
+	 * @return WC_Order|null
+	 */
+	private function get_order_by_intent_checkout_session( string $intent_id ): ?WC_Order {
+		if ( '' === $intent_id ) {
+			return null;
+		}
+
+		try {
+			$sessions   = WC_Stripe_API::request( [], 'checkout/sessions?payment_intent=' . $intent_id . '&limit=1', 'GET' );
+			$session    = $sessions->data[0] ?? null;
+			$session_id = isset( $session->id ) ? (string) $session->id : '';
+			if ( '' === $session_id ) {
+				WC_Stripe_Logger::warning( 'No checkout session found for intent ' . $intent_id . '; order left unresolved.' );
+				return null;
+			}
+
+			$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $session_id );
+			return $order instanceof WC_Order ? $order : null;
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::warning( 'Unable to resolve order from checkout session for intent ' . $intent_id . ': ' . $e->getMessage() );
+			return null;
+		}
 	}
 
 	/**
