@@ -298,12 +298,17 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		}
 	}
 
+	const stripe = api.getStripe();
 	let elements;
 	let shouldLoadStripeElements = true;
 	// If Adaptive Pricing is enabled, use the Checkout Session API to load the elements.
+	// dahlia+ keeps initCheckout() as a throwing stub, so detect the replacement method and
+	// skip AP before creating a Checkout Session instead of falling back after it throws.
 	if (
 		stripeServerData?.isAdaptivePricingEnabled &&
-		supportsDeferredIntent
+		supportsDeferredIntent &&
+		typeof stripe?.initCheckout === 'function' &&
+		typeof stripe?.initCheckoutElementsSdk !== 'function'
 	) {
 		try {
 			const response = await api.checkoutSessionsCreateSession();
@@ -322,7 +327,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId =
 				sessionId;
 
-			elements = await api.getStripe().initCheckout( {
+			elements = await stripe.initCheckout( {
 				clientSecret,
 				elementsOptions: {
 					appearance: options.appearance,
@@ -352,7 +357,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	// load the Stripe elements as fallback.
 	if ( shouldLoadStripeElements ) {
 		gatewayUPEComponents[ paymentMethodType ].checkoutSessionId = null;
-		elements = api.getStripe().elements( options );
+		elements = stripe.elements( options );
 	}
 
 	// After web fonts finish loading, re-compute appearance with correct
@@ -411,9 +416,10 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				layout.paymentMethodLogoPosition = 'end';
 				// Ensure all available payment methods are shown.
 				layout.visibleAccordionItemsCount = 0;
-				layout.radios = getPaymentMethodRadioStyles() !== null;
+				layout.radios =
+					getPaymentMethodRadioStyles() !== null ? 'always' : 'never';
 			} else {
-				layout.radios = false;
+				layout.radios = 'never';
 			}
 		}
 		paymentElementOptions = {
