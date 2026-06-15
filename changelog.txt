@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.8.2
+* Fix - Disable Adaptive Pricing when webhooks are disabled
 
 2026-06-11 - version 10.8.1
 * Fix - Prevent a fatal error when a Bancontact, iDEAL or Sofort payment is placed with SEPA token saving enabled through the Adaptive Pricing checkout, which left the order unpaid

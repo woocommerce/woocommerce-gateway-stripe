@@ -156,6 +156,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.8.2 - xxxx-xx-xx =
+* Fix - Disable Adaptive Pricing when webhooks are disabled
 
 = 10.8.1 - 2026-06-11 =
 
