@@ -1051,6 +1051,148 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Builds a pre_http_request stub for the "list Checkout Sessions by PaymentIntent" lookup.
+	 *
+	 * @param string      $intent_id           PaymentIntent the failed event references.
+	 * @param string|null $checkout_session_id Session to return, or null to simulate no match.
+	 * @param bool        $called              Set to true when the lookup endpoint is hit.
+	 * @return callable
+	 */
+	private function stub_checkout_session_lookup( string $intent_id, ?string $checkout_session_id, &$called = false ) {
+		return function ( $return_value, $parsed_args, $url ) use ( $intent_id, $checkout_session_id, &$called ) {
+			$expected_url = WC_Stripe_API::ENDPOINT . 'checkout/sessions?payment_intent=' . $intent_id . '&limit=1';
+			if ( $url !== $expected_url ) {
+				return $return_value;
+			}
+			$called = true;
+			$data   = null === $checkout_session_id ? [] : [
+				[
+					'id'             => $checkout_session_id,
+					'payment_intent' => $intent_id,
+				],
+			];
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'object' => 'list',
+						'data'   => $data,
+					]
+				),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+	}
+
+	/**
+	 * Adaptive Pricing declines leave the order linked only to its Checkout Session — the failed
+	 * intent carries no order metadata and the intent ID isn't stored on the order. The handler runs
+	 * the (extra) session lookup only for intents flagged as Checkout Session intents, and marks the
+	 * order failed when the session resolves it.
+	 *
+	 * @dataProvider provide_process_payment_intent_checkout_session_fallback
+	 *
+	 * @param bool   $has_marker       Whether the failed intent carries the Adaptive Pricing checkout_type.
+	 * @param bool   $session_resolves Whether Stripe returns the order's Checkout Session for the intent.
+	 * @param bool   $expect_lookup    Whether the session lookup should be attempted.
+	 * @param string $expected_status  The order status after processing.
+	 */
+	public function test_process_payment_intent_checkout_session_fallback(
+		bool $has_marker,
+		bool $session_resolves,
+		bool $expect_lookup,
+		string $expected_status
+	): void {
+		$checkout_session_id = 'cs_test_pi_fallback';
+		$intent_id           = 'pi_test_pi_fallback';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		$lookup_called   = false;
+		$pre_http_filter = $this->stub_checkout_session_lookup( $intent_id, $session_resolves ? $checkout_session_id : null, $lookup_called );
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		$intent = [
+			'id'                 => $intent_id,
+			'last_payment_error' => (object) [ 'message' => 'Your card was declined.' ],
+		];
+		if ( $has_marker ) {
+			$intent['metadata'] = (object) [ 'checkout_type' => WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE ];
+		}
+
+		$notification = (object) [
+			'type' => 'payment_intent.payment_failed',
+			'data' => (object) [
+				'object' => (object) $intent,
+			],
+		];
+
+		$this->mock_webhook_handler->process_payment_intent( $notification );
+		remove_filter( 'pre_http_request', $pre_http_filter );
+
+		$this->assertSame( $expect_lookup, $lookup_called );
+		$this->assertSame( $expected_status, wc_get_order( $order->get_id() )->get_status() );
+	}
+
+	/**
+	 * Data provider for `test_process_payment_intent_checkout_session_fallback`.
+	 *
+	 * @return array<string, array{0: bool, 1: bool, 2: bool, 3: string}>
+	 */
+	public function provide_process_payment_intent_checkout_session_fallback(): array {
+		return [
+			'flagged intent, session resolves -> order failed'       => [ true, true, true, OrderStatus::FAILED ],
+			'flagged intent, no matching session -> order untouched' => [ true, false, true, OrderStatus::PENDING ],
+			'unflagged intent -> lookup skipped, order untouched'    => [ false, true, false, OrderStatus::PENDING ],
+		];
+	}
+
+	/**
+	 * charge.failed is intentionally not used to resolve declined Adaptive Pricing orders — the
+	 * paired payment_intent.payment_failed event handles that — so it must not run the session lookup.
+	 */
+	public function test_process_webhook_charge_failed_does_not_resolve_declined_adaptive_pricing_order_via_checkout_session() {
+		$checkout_session_id = 'cs_test_charge_no_resolve';
+		$intent_id           = 'pi_test_charge_no_resolve';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		$lookup_called   = false;
+		$pre_http_filter = $this->stub_checkout_session_lookup( $intent_id, $checkout_session_id, $lookup_called );
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		$notification = (object) [
+			'type' => 'charge.failed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => 'ch_test_no_resolve',
+					'payment_intent' => $intent_id,
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_charge_failed( $notification );
+		remove_filter( 'pre_http_request', $pre_http_filter );
+
+		$this->assertFalse( $lookup_called, 'charge.failed must not trigger the Checkout Session lookup.' );
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::PENDING, $final_order->get_status() );
+	}
+
+	/**
 	 * Test for `process_webhook_dispute`.
 	 *
 	 * @param bool $order_status_final Whether the order status is final.
