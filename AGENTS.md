@@ -13,6 +13,7 @@ WooCommerce Stripe Payment Gateway is the official plugin for accepting Stripe p
 - **CRITICAL:** Do not edit WordPress core or WooCommerce core files in `docker/wordpress/` or `docker/wordpress_xdebug/`. Only edit plugin source in this repository.
 - **CRITICAL:** Do not commit credentials, API keys, webhook secrets, or `.env` values.
 - **CRITICAL:** Keep changes scoped. Do not perform broad refactors unless explicitly requested.
+- **CRITICAL:** Code comments MUST explain *why the code is the way it is* for someone reading it cold — the non-obvious constraint, race, or edge case the code guards against — not *what* the code does. Do NOT narrate the change history, the conversation that produced it, or what the diff did. Keep ticket keys (e.g. `STRIPE-123`) out of code comments; put them in the commit message or PR instead. See [Code Comment Conventions](#code-comment-conventions) for the full guidance.
 - **CRITICAL:** If you change runtime behavior, run the smallest relevant test suite before claiming completion.
 - **CRITICAL:** Bugfixes for fatals, checkout failures, and payment regressions MUST include or update targeted automated tests; code review alone is not enough.
 - **CRITICAL:** If you update `phpstan-baseline.neon`, run `npm run phpstan` first, fix legitimate issues, then baseline only unavoidable items.
@@ -120,6 +121,24 @@ Traits:
 3. Add constants to `WC_Stripe_Payment_Methods`.
 4. Add icon in `client/payment-method-icons/`.
 5. Add Blocks support in `client/blocks/upe/`.
+
+## Code Comment Conventions
+
+Good comments explain intent; they do not restate the code. The CRITICAL rule above is the gate — this section is the full guidance.
+
+**Do:**
+
+- **Explain WHY, not WHAT.** Comment on intent, constraints, edge cases, and non-obvious decisions — the reason a line exists, not a paraphrase of it.
+- **Explain genuinely complex logic.** When the approach is non-trivial (a race, an ordering constraint, a workaround for upstream behavior), describe the approach and the constraints it satisfies, inline or in a docblock.
+- **Document limitations, assumptions, and edge-case handling** — what the code deliberately does *not* cover, what it assumes about its inputs or callers, and why an edge case is handled the way it is.
+- **Prefer descriptive names over comments.** A well-named function or variable that removes the need for a comment is better than the comment.
+- **Keep it concise, relevant, and professional.** Write for the next developer (including future you) trying to understand intent.
+
+**Don't:**
+
+- **Don't document the obvious.** No comments that restate what the code plainly says (`// increment counter`).
+- **Don't comment unchanged code.** Only add or revise comments for code you are actually touching; do not annotate lines a diff leaves alone. Unless your change makes an existing comment inaccurate — in that case update that comment.".
+- **Don't over-engineer documentation.** No ceremonial docblocks on self-explanatory helpers, no narrating the change history or the conversation that produced the code.
 
 ## Testing Conventions
 
