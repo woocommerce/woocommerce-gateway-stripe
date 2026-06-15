@@ -1730,6 +1730,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// Look for an order. If one does not exists, this is probably an agentic hook.
 		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
 		if ( ! $order instanceof \WC_Order ) {
+			// An Adaptive Pricing session is tagged at creation. It is never agentic,
+			// so don't route it into the agentic handler — that would silently drop a
+			// paid session whenever agentic commerce is disabled.
+			$checkout_type = $checkout_session->metadata->checkout_type ?? '';
+			if ( WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE === $checkout_type ) {
+				WC_Stripe_Logger::warning(
+					'Completed Adaptive Pricing checkout session has no matching order: ' . $checkout_session->id
+				);
+				WC_Stripe_Database_Cache::delete( $lock_key );
+				return;
+			}
+
 			try {
 				$this->handle_agentic_checkout_session( $notification );
 			} finally {
