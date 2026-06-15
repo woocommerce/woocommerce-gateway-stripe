@@ -1609,3 +1609,318 @@ describe( 'ensureUPEElementMounted', () => {
 		expect( component.hasLoadError ).toBe( false );
 	} );
 } );
+
+describe( 'ensureUPEElementMounted', () => {
+	beforeEach( () => {
+		stripeUtils.getStripeServerData.mockReturnValue( {
+			...BASE_SERVER_DATA,
+			isAdaptivePricingEnabled: false,
+		} );
+		paymentProcessing.initializeUPEComponents();
+		document.body.innerHTML = '';
+	} );
+
+	afterEach( () => {
+		jest.clearAllMocks();
+		document.body.innerHTML = '';
+	} );
+
+	const addOnPageElement = ( { mounted } = { mounted: false } ) => {
+		const el = document.createElement( 'div' );
+		el.className = 'wc-stripe-upe-element';
+		el.dataset.paymentMethodType = 'card';
+		if ( mounted ) {
+			// A mounted element has the Stripe iframe as a child.
+			el.appendChild( document.createElement( 'iframe' ) );
+		}
+		document.body.appendChild( el );
+		return el;
+	};
+
+	it( 'clears component.mountPromise once the mount settles', async () => {
+		const api = createMockApi( createMockElements() );
+		const dom = document.createElement( 'div' );
+		dom.dataset.paymentMethodType = 'card';
+
+		const component = await paymentProcessing.mountStripePaymentElement(
+			api,
+			dom
+		);
+
+		expect( component.mountPromise ).toBeNull();
+	} );
+
+	it( 'resolves without mounting when there is no payment element on the page', async () => {
+		const api = createMockApi( createMockElements() );
+
+		await expect(
+			paymentProcessing.ensureUPEElementMounted( api, 'card' )
+		).resolves.toBeUndefined();
+		expect( api._standardElements.create ).not.toHaveBeenCalled();
+	} );
+
+	it( 'resolves without error for an unknown payment method', async () => {
+		const api = createMockApi( createMockElements() );
+		addOnPageElement( { mounted: true } );
+
+		await expect(
+			paymentProcessing.ensureUPEElementMounted(
+				api,
+				'not-a-stripe-method'
+			)
+		).resolves.toBeUndefined();
+	} );
+
+	it( 'awaits an in-flight (re)mount before resolving', async () => {
+		const api = createMockApi( createMockElements() );
+		// Establish the component, then simulate a re-mount in progress.
+		const dom = document.createElement( 'div' );
+		dom.dataset.paymentMethodType = 'card';
+		const component = await paymentProcessing.mountStripePaymentElement(
+			api,
+			dom
+		);
+
+		// Element is present and mounted, so ensure won't trigger a new mount —
+		// it should only wait on the in-flight promise.
+		addOnPageElement( { mounted: true } );
+
+		let resolveMount;
+		component.mountPromise = new Promise( ( resolve ) => {
+			resolveMount = resolve;
+		} );
+
+		let resolved = false;
+		const ensurePromise = paymentProcessing
+			.ensureUPEElementMounted( api, 'card' )
+			.then( () => {
+				resolved = true;
+			} );
+
+		// Mount still pending → ensure must not have resolved yet.
+		await Promise.resolve();
+		expect( resolved ).toBe( false );
+
+		resolveMount();
+		await ensurePromise;
+		expect( resolved ).toBe( true );
+	} );
+
+	it( 'mounts the element when it was torn down but not yet re-mounted', async () => {
+		const api = createMockApi( createMockElements() );
+		// First mount creates and caches the Stripe element on the component.
+		const detachedDom = document.createElement( 'div' );
+		detachedDom.dataset.paymentMethodType = 'card';
+		await paymentProcessing.mountStripePaymentElement( api, detachedDom );
+
+		const createdEl = api._standardElements.create.mock.results[ 0 ].value;
+		createdEl.mount.mockClear();
+
+		// Now an empty (torn-down) element appears on the page, as it would after
+		// WooCommerce re-renders the payment box.
+		const onPageEl = addOnPageElement( { mounted: false } );
+
+		await paymentProcessing.ensureUPEElementMounted( api, 'card' );
+
+		expect( createdEl.mount ).toHaveBeenCalledWith( onPageEl );
+	} );
+
+	it( 're-queries the DOM after awaiting so it mounts into the live node, not a detached one', async () => {
+		const api = createMockApi( createMockElements() );
+		// First mount caches the Stripe element on the component.
+		const detachedDom = document.createElement( 'div' );
+		detachedDom.dataset.paymentMethodType = 'card';
+		const component = await paymentProcessing.mountStripePaymentElement(
+			api,
+			detachedDom
+		);
+
+		const createdEl = api._standardElements.create.mock.results[ 0 ].value;
+		createdEl.mount.mockClear();
+
+		// A torn-down element is on the page when the submit starts, and a
+		// re-mount is in flight.
+		const staleEl = addOnPageElement( { mounted: false } );
+		let resolveMount;
+		component.mountPromise = new Promise( ( resolve ) => {
+			resolveMount = resolve;
+		} );
+
+		const ensurePromise = paymentProcessing.ensureUPEElementMounted(
+			api,
+			'card'
+		);
+
+		// While ensure awaits the in-flight mount, updated_checkout swaps the
+		// payment box for a fresh (still empty) node, detaching the stale one.
+		staleEl.remove();
+		const freshEl = addOnPageElement( { mounted: false } );
+		resolveMount( component );
+
+		await ensurePromise;
+
+		// Mounts into the live, in-document node — not the detached stale node.
+		// (Identity, not structural equality: the two empty containers are
+		// otherwise indistinguishable.)
+		const mountedInto = createdEl.mount.mock.calls[ 0 ][ 0 ];
+		expect( mountedInto ).toBe( freshEl );
+		expect( mountedInto ).not.toBe( staleEl );
+		expect( mountedInto.isConnected ).toBe( true );
+	} );
+
+	it( 'does not re-mount an element that is already mounted', async () => {
+		const api = createMockApi( createMockElements() );
+		const detachedDom = document.createElement( 'div' );
+		detachedDom.dataset.paymentMethodType = 'card';
+		await paymentProcessing.mountStripePaymentElement( api, detachedDom );
+
+		const createdEl = api._standardElements.create.mock.results[ 0 ].value;
+		createdEl.mount.mockClear();
+
+		addOnPageElement( { mounted: true } );
+
+		await paymentProcessing.ensureUPEElementMounted( api, 'card' );
+
+		expect( createdEl.mount ).not.toHaveBeenCalled();
+	} );
+
+	it( 'dedupes concurrent mounts of the same element to a single mount() call', async () => {
+		const api = createMockApi( createMockElements() );
+		const onPageEl = addOnPageElement( { mounted: false } );
+
+		// Both checkout paths (ensureUPEElementMounted and the updated_checkout
+		// handler) can race to mount the same torn-down element. Fire two mounts
+		// for the same node concurrently.
+		const [ first, second ] = await Promise.all( [
+			paymentProcessing.mountStripePaymentElement( api, onPageEl ),
+			paymentProcessing.mountStripePaymentElement( api, onPageEl ),
+		] );
+
+		const createdEl = api._standardElements.create.mock.results[ 0 ].value;
+		expect( createdEl.mount ).toHaveBeenCalledTimes( 1 );
+		expect( first ).toBe( second );
+	} );
+
+	it( 'processPayment waits for a pending mountPromise before creating the payment method', async () => {
+		const api = createMockApi( createMockElements() );
+		api._stripe.elements.mockReturnValue( api._standardElements );
+
+		const dom = document.createElement( 'div' );
+		dom.dataset.paymentMethodType = 'card';
+		const component = await paymentProcessing.mountStripePaymentElement(
+			api,
+			dom
+		);
+
+		// A mounted element is on the page, and a remount is still in flight.
+		addOnPageElement( { mounted: true } );
+		let resolveMount;
+		component.mountPromise = new Promise( ( resolve ) => {
+			resolveMount = resolve;
+		} );
+
+		const form = createMockForm();
+		paymentProcessing.processPayment( api, form, 'card' );
+		await flushPromises();
+
+		// Mount still pending → must not have created/submitted anything yet.
+		expect( api._standardElements.submit ).not.toHaveBeenCalled();
+		expect(
+			stripeUtils.appendPaymentMethodIdToForm
+		).not.toHaveBeenCalled();
+
+		resolveMount( component );
+		await flushPromises();
+
+		// Once the mount settles, the submit path proceeds.
+		expect( api._standardElements.submit ).toHaveBeenCalled();
+		expect( stripeUtils.appendPaymentMethodIdToForm ).toHaveBeenCalledWith(
+			form,
+			'pm_test_123'
+		);
+	} );
+
+	it( 'clears a prior hasLoadError when a new mount starts', async () => {
+		const api = createMockApi( createMockElements() );
+		const dom = document.createElement( 'div' );
+		dom.dataset.paymentMethodType = 'card';
+		const component = await paymentProcessing.mountStripePaymentElement(
+			api,
+			dom
+		);
+
+		// Simulate a transient load failure left over from an earlier mount.
+		component.hasLoadError = true;
+
+		const dom2 = document.createElement( 'div' );
+		dom2.dataset.paymentMethodType = 'card';
+		await paymentProcessing.mountStripePaymentElement( api, dom2 );
+
+		expect( component.hasLoadError ).toBe( false );
+	} );
+
+	it( 'wires the element listeners once across remounts', async () => {
+		const api = createMockApi( createMockElements() );
+		const dom1 = document.createElement( 'div' );
+		dom1.dataset.paymentMethodType = 'card';
+		await paymentProcessing.mountStripePaymentElement( api, dom1 );
+
+		const createdEl = api._standardElements.create.mock.results[ 0 ].value;
+		const loaderrorCount = () =>
+			createdEl.on.mock.calls.filter(
+				( [ event ] ) => event === 'loaderror'
+			).length;
+		expect( loaderrorCount() ).toBe( 1 );
+
+		// Remount onto a new node, as updated_checkout would.
+		const dom2 = document.createElement( 'div' );
+		dom2.dataset.paymentMethodType = 'card';
+		await paymentProcessing.mountStripePaymentElement( api, dom2 );
+
+		// Element re-mounted, but listeners not re-attached on the cached element.
+		expect( createdEl.mount ).toHaveBeenCalledTimes( 2 );
+		expect( loaderrorCount() ).toBe( 1 );
+	} );
+
+	it( 'fences a superseded mount so its late loadActions cannot set hasLoadError', async () => {
+		stripeUtils.getStripeServerData.mockReturnValue( {
+			...BASE_SERVER_DATA,
+			isAdaptivePricingEnabled: true,
+		} );
+		const checkoutElements = createMockElements();
+		const api = createMockApi( checkoutElements );
+
+		// First (stale) mount's loadActions resolves to an error only after a
+		// newer mount supersedes it; the newer mount succeeds.
+		let resolveStaleLoad;
+		checkoutElements.loadActions
+			.mockReturnValueOnce(
+				new Promise( ( resolve ) => {
+					resolveStaleLoad = resolve;
+				} )
+			)
+			.mockResolvedValue( {
+				type: 'success',
+				actions: checkoutElements.checkoutActions,
+			} );
+
+		const dom1 = document.createElement( 'div' );
+		dom1.dataset.paymentMethodType = 'card';
+		const dom2 = document.createElement( 'div' );
+		dom2.dataset.paymentMethodType = 'card';
+
+		// Mount A reaches its loadActions await…
+		const pA = paymentProcessing.mountStripePaymentElement( api, dom1 );
+		await flushPromises();
+
+		// …then mount B supersedes it and completes successfully.
+		const pB = paymentProcessing.mountStripePaymentElement( api, dom2 );
+		await flushPromises();
+
+		// A's loadActions now resolves with an error, but A is stale.
+		resolveStaleLoad( { type: 'error', error: { message: 'stale' } } );
+		const [ , component ] = await Promise.all( [ pA, pB ] );
+
+		expect( component.hasLoadError ).toBe( false );
+	} );
+} );
