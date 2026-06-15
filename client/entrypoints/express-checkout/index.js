@@ -161,13 +161,15 @@ jQuery( function ( $ ) {
 		) => {
 			if ( $( '#wc-stripe-express-checkout-element' ).length ) {
 				const containerName = `wc-stripe-express-checkout-element-${ expressPaymentGroupId }`;
+				const groupedClass =
+					'wc-stripe-express-checkout-element__container--grouped';
 				if ( ! $( `#${ containerName }` ).length ) {
-					const groupedClass = isGrouped
-						? ' wc-stripe-express-checkout-element__container--grouped'
-						: '';
 					$( '#wc-stripe-express-checkout-element' ).append(
-						`<div id="${ containerName }" class="wc-stripe-express-checkout-element__container${ groupedClass }"></div>`
+						`<div id="${ containerName }" class="wc-stripe-express-checkout-element__container"></div>`
 					);
+				}
+				if ( isGrouped ) {
+					$( `#${ containerName }` ).addClass( groupedClass );
 				}
 
 				eceButton.mount( `#${ containerName }` );
