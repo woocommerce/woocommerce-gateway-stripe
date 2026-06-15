@@ -180,8 +180,9 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	private function build_payment_intent_data(): array {
 		$data     = [];
 		$metadata = [
-			'site_url'     => esc_url_raw( get_site_url() ),
-			'payment_type' => 'single',
+			'site_url'      => esc_url_raw( get_site_url() ),
+			'payment_type'  => 'single',
+			'checkout_type' => self::ADAPTIVE_PRICING_CHECKOUT_TYPE,
 		];
 
 		/** Documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php */
