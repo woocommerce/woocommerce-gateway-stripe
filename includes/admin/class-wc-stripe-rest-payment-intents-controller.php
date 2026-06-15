@@ -101,11 +101,11 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @return array
 	 */
 	public function build_http_query_array_from_request( $request ): array {
-		$route_args = $this->get_payment_intents_route_args();
+		$rest_args = $this->get_payment_intents_route_args();
 
 		$search_params = [];
 
-		foreach ( $this->rest_args as $search_param_name => $search_param_definition ) {
+		foreach ( $rest_args as $search_param_name => $search_param_definition ) {
 			/**
 			 * Search parameter value.
 			 *
