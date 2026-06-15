@@ -11,7 +11,6 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	/**
 	 * Checkout session metadata value identifying an Adaptive Pricing checkout.
 	 *
-	 *
 	 * @var string
 	 */
 	public const ADAPTIVE_PRICING_CHECKOUT_TYPE = 'adaptive_pricing_checkout';
