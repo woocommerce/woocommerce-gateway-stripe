@@ -1,6 +1,14 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
+NULL_SHA="0000000000000000000000000000000000000000"
+
+# Skip for fresh worktrees (dependencies won't be installed yet).
+if [ "$1" = "$NULL_SHA" ]; then
+    echo "Fresh worktree detected, skipping post-checkout hooks (run npm install)"
+    exit 0
+fi
+
 # using `--no-install` just in case it's the first time a person is checking out the repo and doesn't have yarnhook installed
 npx --no-install yarnhook
 

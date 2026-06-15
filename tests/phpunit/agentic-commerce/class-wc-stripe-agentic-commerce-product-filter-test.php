@@ -70,12 +70,12 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	// has_filters / get_filters / save_filters round-tripping
 	// -----------------------------------------------------------------------
 
-	public function test_has_filters_is_false_when_no_option_set() {
+	public function test_has_filters_is_false_when_no_option_set(): void {
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 		$this->assertFalse( $filter->has_filters() );
 	}
 
-	public function test_get_filters_returns_empty_shape_by_default() {
+	public function test_get_filters_returns_empty_shape_by_default(): void {
 		$filter  = new WC_Stripe_Agentic_Commerce_Product_Filter();
 		$filters = $filter->get_filters();
 
@@ -91,20 +91,30 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		);
 	}
 
-	public function test_save_filters_stores_normalized_shape() {
-		$cat   = $this->create_term( 'shoes', 'product_cat' );
-		$tag   = $this->create_term( 'on-sale', 'product_tag' );
-		$brand = $this->create_term( 'nike', 'product_brand' );
+	public function test_save_filters_stores_validated_shape(): void {
+		$cat = $this->create_term( 'shoes', 'product_cat' );
+		$tag = $this->create_term( 'on-sale', 'product_tag' );
+
+		$simple_product   = $this->create_simple_product();
+		$variable_product = $this->create_variable_product();
+
+		$expected_brand_ids = [];
+		$brands_input       = [];
+		if ( taxonomy_exists( 'product_brand' ) ) {
+			$brand              = $this->create_term( 'nike', 'product_brand' );
+			$expected_brand_ids = [ $brand['term_id'] ];
+			$brands_input       = [ $brand['slug'] ];
+		}
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 		$this->assertTrue(
 			$filter->save_filters(
 				[
-					'product_ids'          => [ 123, '456', 0, -1, 'abc' ],
+					'product_ids'          => [ 123, '456', 0, -1, 'abc', $simple_product->get_id(), $variable_product->get_id() ],
 					'categories'           => [ $cat['term_id'], 'shoes', '' ],
 					'tags'                 => [ $tag['slug'], $tag['term_id'] ],
-					'brands'               => [ $brand['slug'] ],
-					'variable_product_ids' => [ '345', 567, -1, 'test', 0.0 ],
+					'brands'               => $brands_input,
+					'variable_product_ids' => [ '345', 567, -1, 'test', 0.0, $simple_product->get_id(), $variable_product->get_id() ],
 				]
 			)
 		);
@@ -112,17 +122,45 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$stored = get_option( $this->option_name );
 		$this->assertSame(
 			[
-				'product_ids'          => [ 123, 456 ],
+				'product_ids'          => [ $simple_product->get_id() ],
 				'category_ids'         => [ $cat['term_id'] ],
 				'tag_ids'              => [ $tag['term_id'] ],
-				'brand_ids'            => [ $brand['term_id'] ],
-				'variable_product_ids' => [ 345, 567 ],
+				'brand_ids'            => $expected_brand_ids,
+				'variable_product_ids' => [ $variable_product->get_id() ],
 			],
 			$stored
 		);
 	}
 
-	public function test_save_filters_drops_unknown_terms_silently() {
+	public function test_save_filters_updates_filter_cache(): void {
+		$simple_product = $this->create_simple_product();
+
+		$default_filters = [
+			'product_ids'          => [],
+			'category_ids'         => [],
+			'tag_ids'              => [],
+			'brand_ids'            => [],
+			'variable_product_ids' => [],
+		];
+
+		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
+
+		$filters = $filter->get_filters();
+		$this->assertSame( $default_filters, $filters );
+
+		$filter->save_filters(
+			[
+				'product_ids' => [ $simple_product->get_id() ],
+			]
+		);
+
+		$filters = $filter->get_filters();
+		$this->assertNotSame( $default_filters, $filters );
+		$this->assertArrayHasKey( 'product_ids', $filters );
+		$this->assertSame( [ $simple_product->get_id() ], $filters['product_ids'] );
+	}
+
+	public function test_save_filters_drops_unknown_terms_silently(): void {
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 		$filter->save_filters(
 			[
@@ -136,7 +174,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$this->assertSame( [], $stored['tag_ids'] );
 	}
 
-	public function test_save_filters_silently_drops_brands_when_taxonomy_missing() {
+	public function test_save_filters_silently_drops_brands_when_taxonomy_missing(): void {
 		if ( taxonomy_exists( 'product_brand' ) ) {
 			$this->markTestSkipped( 'product_brand taxonomy is registered on this environment.' );
 		}
@@ -211,7 +249,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		];
 	}
 
-	public function test_get_filters_only_calls_filter_once() {
+	public function test_get_filters_only_calls_filter_once(): void {
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 
 		$call_count     = 0;
@@ -243,7 +281,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	 * @param array $stored_shape Shape persisted in the option (already in slug form).
 	 * @param bool  $expected
 	 */
-	public function test_has_filters( array $stored_shape, bool $expected ) {
+	public function test_has_filters( array $stored_shape, bool $expected ): void {
 		update_option( $this->option_name, $stored_shape );
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
@@ -668,16 +706,20 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 					$normal_product_args,
 					[
 						'tax_query' => [
-							[
-								'relation' => 'OR',
+							// Note that we use array_merge() so we can cleanly handle
+							// the case where the product brand taxonomy does not exist.
+							array_merge(
+								$product_brand_exists ? [ 'relation' => 'OR' ] : [],
 								[
-									'taxonomy'         => 'product_cat',
-									'field'            => 'term_id',
-									'terms'            => [ 321, 654 ],
-									'operator'         => 'IN',
-									'include_children' => false,
+									[
+										'taxonomy'         => 'product_cat',
+										'field'            => 'term_id',
+										'terms'            => [ 321, 654 ],
+										'operator'         => 'IN',
+										'include_children' => false,
+									],
 								],
-								...( $product_brand_exists ? [
+								$product_brand_exists ? [
 									[
 										'taxonomy'         => 'product_brand',
 										'field'            => 'term_id',
@@ -685,8 +727,8 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 										'operator'         => 'IN',
 										'include_children' => false,
 									],
-								] : [] ),
-							],
+								] : []
+							),
 						],
 					]
 				),
@@ -879,7 +921,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	 * @param string $filter_key     The key to use in the filter option data.
 	 * @param string $setter_method  The method to set the taxonomy IDs on the product.
 	 */
-	public function test_taxonomy_query_returns_simple_products( string $taxonomy, string $filter_key, string $setter_method ) {
+	public function test_taxonomy_query_returns_simple_products( string $taxonomy, string $filter_key, string $setter_method ): void {
 		$term = $this->create_term( 'test-test-test', $taxonomy );
 
 		$simple_product_1 = $this->create_simple_product();
@@ -995,7 +1037,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	// Override filter hook
 	// -----------------------------------------------------------------------
 
-	public function test_override_filter_replaces_option_derived_inputs() {
+	public function test_override_filter_replaces_option_derived_inputs(): void {
 		update_option(
 			$this->option_name,
 			[
@@ -1027,7 +1069,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$this->assertEquals( [ $simple->get_id() ], $query_results );
 	}
 
-	public function test_override_filter_return_is_normalized_to_expected_shape() {
+	public function test_override_filter_return_is_normalized_to_expected_shape(): void {
 		$simple = $this->create_simple_product();
 
 		add_filter(
@@ -1051,6 +1093,51 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$this->assertSame( [], $filters['tag_ids'] );
 		$this->assertSame( [], $filters['brand_ids'] );
 		$this->assertSame( [ 999 ], $filters['variable_product_ids'] );
+	}
+
+	/**
+	 * @dataProvider provide_bad_filter_return_scenarios
+	 *
+	 * @param mixed $bad_filter_return The bad filter return value to test.
+	 */
+	public function test_override_filter_return_is_normalized_for_bad_filter( $bad_filter_return ): void {
+		add_filter(
+			'wc_stripe_agentic_commerce_product_filter',
+			function () use ( $bad_filter_return ) {
+				return $bad_filter_return;
+			}
+		);
+
+		$filter  = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		$filters = $filter->get_filters();
+
+		$expected_values = [
+			'product_ids'          => [],
+			'category_ids'         => [],
+			'tag_ids'              => [],
+			'brand_ids'            => [],
+			'variable_product_ids' => [],
+		];
+
+		foreach ( $expected_values as $key => $value ) {
+			$this->assertArrayHasKey( $key, $filters );
+			$this->assertSame( $value, $filters[ $key ] );
+		}
+		$this->assertCount( count( $expected_values ), $filters );
+	}
+
+	/**
+	 * Data provider for {@see test_override_filter_return_is_normalized_for_bad_filter()}.
+	 *
+	 * @return array
+	 */
+	public function provide_bad_filter_return_scenarios(): array {
+		return [
+			'object'  => [ (object) [ 'product_ids' => [ 1234 ] ] ],
+			'string'  => [ 'not-an-array' ],
+			'number'  => [ 1234 ],
+			'boolean' => [ true ],
+		];
 	}
 
 	// -----------------------------------------------------------------------

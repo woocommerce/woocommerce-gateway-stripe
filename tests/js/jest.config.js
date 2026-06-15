@@ -55,4 +55,5 @@ module.exports = {
 		'<rootDir>/docker/',
 		'<rootDir>/tests',
 	],
+	modulePathIgnorePatterns: [ '<rootDir>/docker/' ],
 };

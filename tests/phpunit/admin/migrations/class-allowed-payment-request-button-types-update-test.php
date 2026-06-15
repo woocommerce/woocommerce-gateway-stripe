@@ -21,11 +21,6 @@ class Allowed_Payment_Request_Button_Types_Update_Test extends WP_UnitTestCase {
 	 */
 	private $migration;
 
-	public static function set_up_before_class() {
-		parent::set_up_before_class();
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-allowed-payment-request-button-types-update.php';
-	}
-
 	public function set_up() {
 		parent::set_up();
 

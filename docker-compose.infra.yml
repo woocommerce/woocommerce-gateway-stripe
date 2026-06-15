@@ -1,0 +1,60 @@
+networks:
+  wcstripe-network:
+    name: wcstripe-network
+
+volumes:
+  wcstripe-plugins:
+    name: wcstripe-plugins
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${WCSTRIPE_SHARED_WP_PATH}/wp-content/plugins
+  wcstripe-themes:
+    name: wcstripe-themes
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${WCSTRIPE_SHARED_WP_PATH}/wp-content/themes
+  wcstripe-uploads:
+    name: wcstripe-uploads
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${WCSTRIPE_SHARED_WP_PATH}/wp-content/uploads
+  wcstripe-mu-plugins:
+    name: wcstripe-mu-plugins
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${WCSTRIPE_SHARED_WP_PATH}/wp-content/mu-plugins
+
+services:
+  db:
+    container_name: wcstripe_db
+    image: mariadb:11.8
+    restart: unless-stopped
+    ports:
+      - "5668:3306"
+    env_file:
+      - default.env
+    volumes:
+      - ${WCSTRIPE_DB_DATA_PATH}:/var/lib/mysql
+    networks:
+      - wcstripe-network
+
+  phpmyadmin:
+    container_name: wcstripe_phpmyadmin
+    image: phpmyadmin/phpmyadmin:latest
+    restart: unless-stopped
+    ports:
+      - "8073:80"
+    env_file:
+      - default.env
+    depends_on:
+      - db
+    networks:
+      - wcstripe-network

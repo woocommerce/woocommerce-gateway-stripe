@@ -71,22 +71,16 @@ class WC_Stripe_Update_Manager {
 	 * @return callable[]
 	 */
 	protected function get_update_functions(): array {
-		$functions = [];
-
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
 
-		$functions[] = [ WC_Stripe_Admin_Notices::class, 'check_update_notices' ];
-
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-allowed-payment-request-button-types-update.php';
-		$functions[] = [ new Allowed_Payment_Request_Button_Types_Update(), 'maybe_migrate' ];
-
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php';
-		$functions[] = [ new Migrate_Payment_Request_Data_To_Express_Checkout_Data(), 'maybe_migrate' ];
-
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-sepa-tokens-for-other-methods-settings-update.php';
-		$functions[] = [ new Sepa_Tokens_For_Other_Methods_Settings_Update(), 'maybe_migrate' ];
-
-		$functions[] = [ new WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update(), 'maybe_migrate' ];
+		$functions = [
+			[ WC_Stripe_Admin_Notices::class, 'check_update_notices' ],
+			[ new Allowed_Payment_Request_Button_Types_Update(), 'maybe_migrate' ],
+			[ new Migrate_Payment_Request_Data_To_Express_Checkout_Data(), 'maybe_migrate' ],
+			[ new Sepa_Tokens_For_Other_Methods_Settings_Update(), 'maybe_migrate' ],
+			[ new WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update(), 'maybe_migrate' ],
+			[ new WC_Stripe_OCS_AP_Default_On_Update(), 'maybe_migrate' ],
+		];
 
 		return $functions;
 	}

@@ -22,6 +22,31 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `get_transaction_url_for_id`.
+	 *
+	 * @param string $id           The Stripe object ID.
+	 * @param bool   $is_test_mode Whether to use the test-mode dashboard.
+	 * @param string $expected     The expected dashboard URL.
+	 * @return void
+	 * @dataProvider provide_get_transaction_url_for_id
+	 */
+	public function test_get_transaction_url_for_id( string $id, bool $is_test_mode, string $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::get_transaction_url_for_id( $id, $is_test_mode ) );
+	}
+
+	/**
+	 * Data provider for `test_get_transaction_url_for_id`.
+	 *
+	 * @return array
+	 */
+	public function provide_get_transaction_url_for_id(): array {
+		return [
+			'live mode' => [ 'pi_123', false, 'https://dashboard.stripe.com/payments/pi_123' ],
+			'test mode' => [ 'ch_456', true, 'https://dashboard.stripe.com/test/payments/ch_456' ],
+		];
+	}
+
+	/**
 	 * Test for `convert_wc_locale_to_stripe_locale`.
 	 *
 	 * @param string $wc_locale     The WooCommerce locale.
@@ -251,27 +276,66 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Test for `get_order_by_intent_id`
 	 *
-	 * @param string $status              The order status to return.
-	 * @param bool   $success             Whether the order should be found.
+	 * @param string      $type           The order type to return - either 'order' or 'refund'.
+	 * @param string|null $status         The order status to return.
+	 * @param bool        $use_hpos       Whether to use HPOS.
+	 * @param bool        $expect_success Whether the order should be found.
 	 * @return void
 	 * @dataProvider provide_test_get_order_by_intent_id
 	 */
-	public function test_get_order_by_intent_id( $status, $success ) {
-		$order    = WC_Helper_Order::create_order();
-		$order_id = $order->get_id();
+	public function test_get_order_by_intent_id( string $type, ?string $status, bool $use_hpos, bool $expect_success ) {
+		$previous_hpos_setting = get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		$new_hpos_setting      = $use_hpos ? 'yes' : 'no';
 
-		$order = wc_get_order( $order_id );
-		$order->set_status( $status );
+		try {
 
-		$intent_id = 'pi_mock';
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, $intent_id );
-		$order->save_meta_data();
+			// Allow HPOS to be toggled regardless of database state.
+			add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
 
-		$order = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
-		if ( $success ) {
-			$this->assertInstanceOf( WC_Order::class, $order );
-		} else {
-			$this->assertFalse( $order );
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $new_hpos_setting );
+			}
+
+			$order     = WC_Helper_Order::create_order();
+			$order_id  = $order->get_id();
+			$intent_id = 'pi_mock';
+
+			if ( 'order' === $type ) {
+				$order = wc_get_order( $order_id );
+				$order->set_status( $status );
+				$order->save();
+
+				WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, $intent_id );
+				$order->save_meta_data();
+			} elseif ( 'refund' === $type ) {
+				$refund = wc_create_refund(
+					[
+						'amount'   => $order->get_total(),
+						'currency' => $order->get_currency(),
+						'order_id' => $order->get_id(),
+						'reason'   => 'Test refund',
+					]
+				);
+
+				$intent_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_INTENT_ID', 'string' );
+
+				$refund->update_meta_data( $intent_meta_key, $intent_id );
+				$refund->save_meta_data();
+			} else {
+				throw new Exception( 'Invalid order type' );
+			}
+
+			$order = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
+			if ( $expect_success ) {
+				$this->assertInstanceOf( WC_Order::class, $order );
+			} else {
+				$this->assertFalse( $order );
+			}
+		} finally {
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $previous_hpos_setting );
+			}
+			remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
 		}
 	}
 
@@ -282,15 +346,143 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_get_order_by_intent_id(): array {
 		return [
-			'regular table' => [
-				'custom orders table' => false,
-				'status'              => OrderStatus::COMPLETED,
-				'success'             => true,
+			'completed legacy order' => [
+				'type'           => 'order',
+				'status'         => OrderStatus::COMPLETED,
+				'use_hpos'       => false,
+				'expect_success' => true,
 			],
-			'trashed order' => [
-				'custom orders table' => false,
-				'status'              => OrderStatus::TRASH,
-				'success'             => false,
+			'completed HPOS order'   => [
+				'type'           => 'order',
+				'status'         => OrderStatus::COMPLETED,
+				'use_hpos'       => true,
+				'expect_success' => true,
+			],
+			'trashed legacy order'   => [
+				'type'           => 'order',
+				'status'         => OrderStatus::TRASH,
+				'use_hpos'       => false,
+				'expect_success' => false,
+			],
+			'trashed HPOS order'     => [
+				'type'           => 'order',
+				'status'         => OrderStatus::TRASH,
+				'use_hpos'       => true,
+				'expect_success' => false,
+			],
+			'legacy refund'          => [
+				'type'           => 'refund',
+				'status'         => null,
+				'use_hpos'       => false,
+				'expect_success' => false,
+			],
+			'HPOS refund'            => [
+				'type'           => 'refund',
+				'status'         => null,
+				'use_hpos'       => true,
+				'expect_success' => false,
+			],
+		];
+	}
+
+	/**
+	 * Test for `get_order_by_setup_intent_id`.
+	 *
+	 * @param string|null $intent_target  Which object to save the SetupIntent ID on. One of null, 'refund', or 'order'.
+	 * @param bool        $use_hpos       Whether to enable or disable HPOS.
+	 * @param bool        $expect_success Whether an order should be returned.
+	 * @dataProvider provide_test_get_order_by_setup_intent_id
+	 */
+	public function test_get_order_by_setup_intent_id( ?string $intent_target, bool $use_hpos, bool $expect_success ): void {
+		$previous_hpos_setting = get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		$new_hpos_setting      = $use_hpos ? 'yes' : 'no';
+		try {
+			// Allow HPOS to be toggled regardless of database state.
+			add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $new_hpos_setting );
+			}
+
+			$order     = WC_Helper_Order::create_order();
+			$intent_id = 'seti_mock';
+			$lookup_id = $intent_id;
+
+			if ( 'refund' === $intent_target ) {
+				$refund = wc_create_refund(
+					[
+						'amount'   => $order->get_total(),
+						'currency' => $order->get_currency(),
+						'order_id' => $order->get_id(),
+						'reason'   => 'Test refund',
+					]
+				);
+
+				$setup_intent_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_SETUP_INTENT', 'string' );
+
+				$refund->update_meta_data( $setup_intent_meta_key, $intent_id );
+				$refund->save_meta_data();
+			} elseif ( 'order' === $intent_target ) {
+				WC_Stripe_Order_Helper::get_instance()->update_stripe_setup_intent_id( $order, $intent_id );
+				$order->save_meta_data();
+			} elseif ( null === $intent_target ) {
+				$lookup_id = 'seti_unknown';
+			} else {
+				throw new Exception( 'Invalid intent target' );
+			}
+
+			$result = WC_Stripe_Helper::get_order_by_setup_intent_id( $lookup_id );
+
+			if ( $expect_success ) {
+				$this->assertInstanceOf( WC_Order::class, $result );
+				$this->assertSame( $order->get_id(), $result->get_id() );
+			} else {
+				$this->assertFalse( $result );
+			}
+		} finally {
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $previous_hpos_setting );
+			}
+			remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+		}
+	}
+
+	/**
+	 * Data provider for `test_get_order_by_setup_intent_id`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_order_by_setup_intent_id(): array {
+		return [
+			'SetupIntent matches legacy order'  => [
+				'intent_target'  => 'order',
+				'use_hpos'       => false,
+				'expect_success' => true,
+			],
+			'SetupIntent matches HPOS order'    => [
+				'intent_target'  => 'order',
+				'use_hpos'       => true,
+				'expect_success' => true,
+			],
+			'SetupIntent matches legacy refund' => [
+				'intent_target'  => 'refund',
+				'use_hpos'       => false,
+				'expect_success' => false,
+			],
+			'SetupIntent matches HPOS refund'   => [
+				'intent_target'  => 'refund',
+				'use_hpos'       => true,
+				'expect_success' => false,
+			],
+			'unknown SetupIntent ID HPOS'       => [
+				'intent_target'  => null,
+				'use_hpos'       => true,
+				'expect_success' => false,
+			],
+			'unknown SetupIntent ID legacy'     => [
+				'intent_target'  => null,
+				'use_hpos'       => false,
+				'expect_success' => false,
 			],
 		];
 	}
@@ -364,6 +556,16 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function test_convert_from_stripe_amount( int $stripe_amount, string $currency, float $expected ): void {
 		$result = WC_Stripe_Helper::convert_from_stripe_amount( $stripe_amount, $currency );
 		$this->assertSame( $expected, $result );
+	}
+
+	/**
+	 * Test for `get_payment_intent_description`.
+	 */
+	public function test_get_payment_intent_description(): void {
+		$order = WC_Helper_Order::create_order();
+
+		$expected = sprintf( '%1$s - Order %2$s', wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() );
+		$this->assertSame( $expected, WC_Stripe_Helper::get_payment_intent_description( $order ) );
 	}
 
 	/**
@@ -1972,6 +2174,72 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						],
 					],
 				),
+			],
+		];
+	}
+
+	/**
+	 * Test for `is_express_checkout_button_style_overridden`.
+	 *
+	 * @param string $page_content The content of the checkout page.
+	 * @param bool   $expected     Whether an override is expected to be detected.
+	 * @return void
+	 * @dataProvider provide_test_is_express_checkout_button_style_overridden
+	 */
+	public function test_is_express_checkout_button_style_overridden( string $page_content, bool $expected ) {
+		$page_id = self::factory()->post->create(
+			[
+				'post_type'    => 'page',
+				'post_status'  => 'publish',
+				'post_content' => $page_content,
+			]
+		);
+
+		update_option( 'woocommerce_checkout_page_id', $page_id );
+		// Isolate the assertion to the checkout page so an unrelated cart page does not interfere.
+		update_option( 'woocommerce_cart_page_id', 0 );
+
+		$this->assertSame( $expected, WC_Stripe_Helper::is_express_checkout_button_style_overridden() );
+	}
+
+	/**
+	 * Data provider for `test_is_express_checkout_button_style_overridden`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_express_checkout_button_style_overridden() {
+		$with_express_block = function ( $express_block ) {
+			return '<!-- wp:woocommerce/checkout -->'
+				. '<div class="wp-block-woocommerce-checkout">'
+				. '<!-- wp:woocommerce/checkout-fields-block -->'
+				. '<div class="wp-block-woocommerce-checkout-fields-block">'
+				. $express_block
+				. '</div>'
+				. '<!-- /wp:woocommerce/checkout-fields-block -->'
+				. '</div>'
+				. '<!-- /wp:woocommerce/checkout -->';
+		};
+
+		return [
+			'uniform style enabled'                        => [
+				$with_express_block( '<!-- wp:woocommerce/checkout-express-payment-block {"showButtonStyles":true} /-->' ),
+				true,
+			],
+			'uniform style explicitly off'                 => [
+				$with_express_block( '<!-- wp:woocommerce/checkout-express-payment-block {"showButtonStyles":false} /-->' ),
+				false,
+			],
+			'uniform style attribute omitted'              => [
+				$with_express_block( '<!-- wp:woocommerce/checkout-express-payment-block /-->' ),
+				false,
+			],
+			'checkout block without express payment block' => [
+				'<!-- wp:woocommerce/checkout --><div class="wp-block-woocommerce-checkout"></div><!-- /wp:woocommerce/checkout -->',
+				false,
+			],
+			'classic shortcode checkout'                   => [
+				'[woocommerce_checkout]',
+				false,
 			],
 		];
 	}

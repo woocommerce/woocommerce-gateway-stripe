@@ -13,6 +13,7 @@ WooCommerce Stripe Payment Gateway is the official plugin for accepting Stripe p
 - **CRITICAL:** Do not edit WordPress core or WooCommerce core files in `docker/wordpress/` or `docker/wordpress_xdebug/`. Only edit plugin source in this repository.
 - **CRITICAL:** Do not commit credentials, API keys, webhook secrets, or `.env` values.
 - **CRITICAL:** Keep changes scoped. Do not perform broad refactors unless explicitly requested.
+- **CRITICAL:** Code comments MUST explain *why the code is the way it is* for someone reading it cold — the non-obvious constraint, race, or edge case the code guards against — not *what* the code does. Do NOT narrate the change history, the conversation that produced it, or what the diff did. Keep ticket keys (e.g. `STRIPE-123`) out of code comments; put them in the commit message or PR instead. See [Code Comment Conventions](#code-comment-conventions) for the full guidance.
 - **CRITICAL:** If you change runtime behavior, run the smallest relevant test suite before claiming completion.
 - **CRITICAL:** Bugfixes for fatals, checkout failures, and payment regressions MUST include or update targeted automated tests; code review alone is not enough.
 - **CRITICAL:** If you update `phpstan-baseline.neon`, run `npm run phpstan` first, fix legitimate issues, then baseline only unavoidable items.
@@ -33,8 +34,14 @@ Use the smallest command set needed for the task:
 | Task | Command | Notes |
 | --- | --- | --- |
 | Install dependencies | `composer install && npm install` | Runs Composer install and npm install, which then installs all dependencies. |
-| Start local environment | `npm run up` | Docker-based site at `http://localhost:8072`. |
-| Stop local environment | `npm run down` | Preserves local Docker state. |
+| Start local environment (first run / reset) | `npm run up:recreate` | Auto-starts shared infrastructure (db + phpMyAdmin) if not running. Main checkout serves `http://localhost:8072`; worktrees get ports 8170–8189. |
+| Start local environment (subsequent) | `npm run up` | Reuses the existing WP container and shared infra. |
+| Stop local environment | `npm run down` | Stops this worktree's WordPress container only; shared infra keeps running. |
+| Start shared infrastructure | `npm run infra:up` | Run from the main checkout. Brings up shared db + phpMyAdmin + bind volumes. |
+| Stop shared infrastructure | `npm run infra:down` | Stops shared db + phpMyAdmin (volumes preserved). |
+| Configure a worktree | `npm run worktree:setup` | Writes `.env` with `WORKTREE_ID` + an unused `WORDPRESS_PORT`. Called automatically by `npm run up`. |
+| List worktrees | `npm run worktree:status` | Shows port, URL, container state for every worktree; warns about orphan containers. |
+| Clean up a worktree | `npm run worktree:cleanup` | Stops the worktree's container, drops `wcstripe_tests_<id>`, removes `.env`. Run before `git worktree remove`. |
 | Build frontend assets | `npm run build:webpack` | Use when editing client-side sources that ship built assets. |
 | Analyze bundle sizes | `BUNDLE_ANALYZE=true npm run build:webpack` | Writes `bundle-report.html` (gitignored) to the repo root. Open it to see a per-bundle module treemap. |
 | Dev hot reload | `npm start` | Webpack watch/dev mode. |
@@ -52,6 +59,8 @@ Use the smallest command set needed for the task:
 ## Common Pitfalls
 
 - Running PHP tests without Docker: `npm run test:php` fails unless containers are up.
+- Running `npm run infra:up` from a worktree: prefer the main checkout. The script warns interactively if you do it from a worktree.
+- Forgetting `npm run worktree:cleanup` before `git worktree remove`: leaves orphan containers and test databases behind. Run `npm run worktree:status` to find orphans.
 - Missing E2E config: copy `tests/e2e/config/local.env.example` to `tests/e2e/config/local.env`.
 - E2E specs that mutate global store settings (for example currency) MUST run in a dedicated Playwright project and separate CI matrix job, not in `default`.
 - Forgetting payment method registration: adding a `WC_Stripe_UPE_Payment_Method` class is not enough; it must also be registered in `WC_Stripe::init()` and constants updated.
@@ -112,6 +121,24 @@ Traits:
 3. Add constants to `WC_Stripe_Payment_Methods`.
 4. Add icon in `client/payment-method-icons/`.
 5. Add Blocks support in `client/blocks/upe/`.
+
+## Code Comment Conventions
+
+Good comments explain intent; they do not restate the code. The CRITICAL rule above is the gate — this section is the full guidance.
+
+**Do:**
+
+- **Explain WHY, not WHAT.** Comment on intent, constraints, edge cases, and non-obvious decisions — the reason a line exists, not a paraphrase of it.
+- **Explain genuinely complex logic.** When the approach is non-trivial (a race, an ordering constraint, a workaround for upstream behavior), describe the approach and the constraints it satisfies, inline or in a docblock.
+- **Document limitations, assumptions, and edge-case handling** — what the code deliberately does *not* cover, what it assumes about its inputs or callers, and why an edge case is handled the way it is.
+- **Prefer descriptive names over comments.** A well-named function or variable that removes the need for a comment is better than the comment.
+- **Keep it concise, relevant, and professional.** Write for the next developer (including future you) trying to understand intent.
+
+**Don't:**
+
+- **Don't document the obvious.** No comments that restate what the code plainly says (`// increment counter`).
+- **Don't comment unchanged code.** Only add or revise comments for code you are actually touching; do not annotate lines a diff leaves alone. Unless your change makes an existing comment inaccurate — in that case update that comment.".
+- **Don't over-engineer documentation.** No ceremonial docblocks on self-explanatory helpers, no narrating the change history or the conversation that produced the code.
 
 ## Testing Conventions
 

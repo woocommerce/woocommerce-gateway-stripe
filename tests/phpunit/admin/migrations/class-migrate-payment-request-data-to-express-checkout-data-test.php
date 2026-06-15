@@ -21,11 +21,6 @@ class Migrate_Payment_Request_Data_To_Express_Checkout_Data_Test extends WP_Unit
 	 */
 	private $migration;
 
-	public static function set_up_before_class() {
-		parent::set_up_before_class();
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php';
-	}
-
 	public function set_up() {
 		parent::set_up();
 
