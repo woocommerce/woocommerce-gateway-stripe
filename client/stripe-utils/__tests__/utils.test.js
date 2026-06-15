@@ -2,6 +2,7 @@ import { getSetting } from '@woocommerce/settings';
 import {
 	getFontSizeBase,
 	getDefaultValues,
+	getBillingDetailsForDeferredFlow,
 	getHiddenBillingFields,
 	getStripeServerData,
 } from '../utils';
@@ -258,6 +259,102 @@ describe( 'utils', () => {
 					},
 				} );
 			} );
+		} );
+	} );
+
+	describe( 'getBillingDetailsForDeferredFlow', () => {
+		const globalValues = global.wc_stripe_upe_params;
+
+		afterEach( () => {
+			global.wc_stripe_upe_params = globalValues;
+		} );
+
+		it.each( [ 'isOrderPay', 'isChangingPayment', 'isAddPaymentMethod' ] )(
+			'returns billing_details from customerBillingData when %s is true',
+			( flag ) => {
+				global.wc_stripe_upe_params = {
+					[ flag ]: true,
+					customerBillingData: {
+						name: 'John Doe',
+						email: 'john@example.com',
+						phone: '+1234567890',
+						address: {
+							country: 'us', // lowercase, should be uppercased
+							line1: '123 Main St',
+							line2: 'Apt 4B',
+							city: 'New York',
+							state: 'NY',
+							postal_code: '10001',
+						},
+					},
+				};
+
+				expect( getBillingDetailsForDeferredFlow() ).toEqual( {
+					name: 'John Doe',
+					email: 'john@example.com',
+					phone: '+1234567890',
+					address: {
+						country: 'US',
+						line1: '123 Main St',
+						line2: 'Apt 4B',
+						city: 'New York',
+						state: 'NY',
+						postal_code: '10001',
+					},
+				} );
+			}
+		);
+
+		it( 'omits empty address fields, trims values, and uppercases the country', () => {
+			global.wc_stripe_upe_params = {
+				isOrderPay: true,
+				customerBillingData: {
+					name: '  John Doe  ',
+					email: '  john@example.com  ',
+					phone: '',
+					address: {
+						country: 'gb',
+						line1: '10 Downing St',
+						line2: '',
+						city: '',
+						state: '',
+						postal_code: 'SW1A 2AA',
+					},
+				},
+			};
+
+			expect( getBillingDetailsForDeferredFlow() ).toEqual( {
+				name: 'John Doe',
+				email: 'john@example.com',
+				address: {
+					country: 'GB',
+					line1: '10 Downing St',
+					postal_code: 'SW1A 2AA',
+				},
+			} );
+		} );
+
+		it( 'returns null on standard checkout', () => {
+			global.wc_stripe_upe_params = {
+				isCheckout: true,
+				customerBillingData: {
+					email: 'john@example.com',
+				},
+			};
+
+			expect( getBillingDetailsForDeferredFlow() ).toBeNull();
+		} );
+
+		it( 'returns null when customer email is missing', () => {
+			global.wc_stripe_upe_params = {
+				isOrderPay: true,
+				customerBillingData: {
+					name: 'John Doe',
+					address: { line1: '123 Main St' },
+				},
+			};
+
+			expect( getBillingDetailsForDeferredFlow() ).toBeNull();
 		} );
 	} );
 

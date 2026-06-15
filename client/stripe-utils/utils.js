@@ -516,77 +516,93 @@ export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
 };
 
 /**
- * Craft the defaultValues parameter, used to pre-fill
- * user email and phone number for Link in the Payment Element.
- * On order pay and change payment method pages, also preloads all billing details
- * from the customer billing data passed from the server.
+ * Returns true when the current page is one of the deferred-payment flows
+ * (order pay, change payment method, or add payment method).
  *
- * @param {boolean} forCheckoutSession Whether the default values are for a Checkout Session.
- * @return {Object} The defaultValues object for the Payment Element.
+ * @return {boolean} Whether the current page is a deferred-payment flow.
  */
-export const getDefaultValues = ( forCheckoutSession = false ) => {
+const isDeferredPaymentFlow = () => {
 	const stripeServerData = getStripeServerData();
-	const isOrderPay = stripeServerData?.isOrderPay;
-	const isChangingPayment = stripeServerData?.isChangingPayment;
-	const isAddPaymentMethod = stripeServerData?.isAddPaymentMethod;
+	return Boolean(
+		stripeServerData?.isOrderPay ||
+			stripeServerData?.isChangingPayment ||
+			stripeServerData?.isAddPaymentMethod
+	);
+};
 
+/**
+ * Normalizes the server-localized customer billing data into a billing details
+ * object (`{ name, email, phone, address }`) suitable for both the Payment
+ * Element `defaultValues` and the `createPaymentMethod` `billing_details` param.
+ *
+ * @return {Object|null} Normalized billing details, or null when unavailable.
+ */
+const buildCustomerBillingDetails = () => {
+	const billingData = getStripeServerData()?.customerBillingData;
+
+	if ( ! billingData || ! billingData.email?.trim() ) {
+		return null;
+	}
+
+	// Build address object, only including non-empty values.
+	const address = {};
+	const country = billingData.address?.country?.trim();
+	if ( country ) {
+		// Country must be uppercase ISO 3166-1 alpha-2 code for Stripe.
+		address.country = country.toUpperCase();
+	}
+	const line1 = billingData.address?.line1?.trim();
+	if ( line1 ) {
+		address.line1 = line1;
+	}
+	const line2 = billingData.address?.line2?.trim();
+	if ( line2 ) {
+		address.line2 = line2;
+	}
+	const city = billingData.address?.city?.trim();
+	if ( city ) {
+		address.city = city;
+	}
+	const state = billingData.address?.state?.trim();
+	if ( state ) {
+		address.state = state;
+	}
+	const postalCode = billingData.address?.postal_code?.trim();
+	if ( postalCode ) {
+		address.postal_code = postalCode;
+	}
+
+	return {
+		name: billingData.name?.trim() || undefined,
+		email: billingData.email.trim(),
+		phone: billingData.phone?.trim() || undefined,
+		...( Object.keys( address ).length > 0 ? { address } : {} ),
+	};
+};
+
+export const getDefaultValues = ( forCheckoutSession = false ) => {
 	// On order pay, change payment method, and add payment method pages, use billing data from customer.
-	if ( isOrderPay || isChangingPayment || isAddPaymentMethod ) {
-		const billingData = stripeServerData?.customerBillingData;
+	if ( isDeferredPaymentFlow() ) {
+		const billingDetails = buildCustomerBillingDetails();
 
-		if ( billingData && billingData.email?.trim() ) {
-			// Build address object, only including non-empty values
-			const address = {};
-			const country = billingData.address?.country?.trim();
-			if ( country ) {
-				// Country must be uppercase ISO 3166-1 alpha-2 code for Stripe
-				address.country = country.toUpperCase();
-			}
-			const line1 = billingData.address?.line1?.trim();
-			if ( line1 ) {
-				address.line1 = line1;
-			}
-			const line2 = billingData.address?.line2?.trim();
-			if ( line2 ) {
-				address.line2 = line2;
-			}
-			const city = billingData.address?.city?.trim();
-			if ( city ) {
-				address.city = city;
-			}
-			const state = billingData.address?.state?.trim();
-			if ( state ) {
-				address.state = state;
-			}
-			const postalCode = billingData.address?.postal_code?.trim();
-			if ( postalCode ) {
-				address.postal_code = postalCode;
-			}
-
+		if ( billingDetails ) {
 			if ( forCheckoutSession ) {
 				return {
 					defaultValues: {
 						billingAddress: {
-							name: billingData.name?.trim() || undefined,
-							...( Object.keys( address ).length > 0
-								? { address }
+							name: billingDetails.name,
+							...( billingDetails.address
+								? { address: billingDetails.address }
 								: {} ),
 						},
-						phoneNumber: billingData.phone?.trim() || undefined,
+						phoneNumber: billingDetails.phone,
 					},
 				};
 			}
 
 			return {
 				defaultValues: {
-					billingDetails: {
-						name: billingData.name?.trim() || undefined,
-						email: billingData.email.trim(),
-						phone: billingData.phone?.trim() || undefined,
-						...( Object.keys( address ).length > 0
-							? { address }
-							: {} ),
-					},
+					billingDetails,
 				},
 			};
 		}
@@ -614,6 +630,26 @@ export const getDefaultValues = ( forCheckoutSession = false ) => {
 			},
 		},
 	};
+};
+
+/**
+ * Returns the `billing_details` object to pass to Stripe's `createPaymentMethod`
+ * on the deferred-payment flows.
+ *
+ * On these flows the form is not a checkout form, so billing fields are not
+ * present in the DOM. The order/customer billing data is localized server-side
+ * as `customerBillingData`; we forward it explicitly so the full address reaches
+ * the PaymentMethod.
+ *
+ * @return {Object|null} A `billing_details` object, or null when not a deferred
+ *                       flow or when no usable customer billing data exists.
+ */
+export const getBillingDetailsForDeferredFlow = () => {
+	if ( ! isDeferredPaymentFlow() ) {
+		return null;
+	}
+
+	return buildCustomerBillingDetails();
 };
 
 /**
