@@ -105,4 +105,11 @@ describe( 'PaymentElements adaptive pricing selection', () => {
 		expect( CheckoutContainer ).not.toHaveBeenCalled();
 		expect( PaymentProcessor ).toHaveBeenCalled();
 	} );
+
+	it( 'falls back to the standard elements flow when initCheckout is absent (older Stripe.js)', () => {
+		renderFields( buildApi( { elements: jest.fn() } ) );
+
+		expect( CheckoutContainer ).not.toHaveBeenCalled();
+		expect( PaymentProcessor ).toHaveBeenCalled();
+	} );
 } );
