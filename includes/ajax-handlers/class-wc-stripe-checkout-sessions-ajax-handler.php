@@ -11,8 +11,6 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	/**
 	 * Checkout session metadata value identifying an Adaptive Pricing checkout.
 	 *
-	 * Set on the session at creation and read back in the webhook handler so a
-	 * completed Adaptive Pricing session is never mistaken for an agentic one.
 	 *
 	 * @var string
 	 */
