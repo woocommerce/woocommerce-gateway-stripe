@@ -91,7 +91,7 @@ test( 'customer can retry payment, with changed billing details @smoke', async (
 	// Change billing details
 	await page.fill( '#billing_postcode', '12345' );
 
-	// Get cart total after changing the zip/post code.
+	// Get cart total after changing the zip/post code to ensure current taxes and shipping are applied.
 	const expectedTotal = await getCartTotal( page );
 
 	// Retry the payment
