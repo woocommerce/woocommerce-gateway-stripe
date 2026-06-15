@@ -50,7 +50,8 @@ jQuery( function ( $ ) {
 		return;
 	}
 
-	const publishableKey = getExpressCheckoutData( 'stripe' ).publishable_key;
+	const stripeParams = getExpressCheckoutData( 'stripe' );
+	const publishableKey = stripeParams?.publishable_key;
 	const quantityInputSelector = '.quantity .qty[type=number]';
 
 	if ( ! publishableKey ) {
@@ -58,10 +59,9 @@ jQuery( function ( $ ) {
 		return;
 	}
 
-	const stripeParams = getExpressCheckoutData( 'stripe' );
 	const api = new WCStripeAPI(
 		{
-			key: stripeParams.publishable_key,
+			key: publishableKey,
 			locale: stripeParams.locale,
 			ajax_url: getExpressCheckoutData( 'ajax_url' ),
 		},
