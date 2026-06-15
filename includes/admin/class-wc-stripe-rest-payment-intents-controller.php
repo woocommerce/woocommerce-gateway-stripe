@@ -105,11 +105,6 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 
 		$search_params = [];
 
-		/**
-		 * Search parameter value.
-		 *
-		 * @var string $search_param_name
-		*/
 		foreach ( $rest_args as $search_param_name => $search_param_definition ) {
 			$search_param_value = $request->get_param( $search_param_name );
 
