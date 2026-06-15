@@ -43,6 +43,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	protected $deferred_webhook_delay = 2 * MINUTE_IN_SECONDS;
 
 	/**
+	 * How long to wait before retrying a webhook that lost the order-payment lock race.
+	 *
+	 * The order-received redirect handler holds the lock only across a single Stripe API
+	 * call (~1s), so a short backoff settles the order quickly instead of leaving it pending
+	 * for the full deferred delay. Kept well above the typical hold to avoid a busy re-queue loop.
+	 *
+	 * @var int
+	 */
+	protected $locked_order_retry_delay = 10;
+
+	/**
 	 * The Action Scheduler hook to use when retrying a webhook.
 	 *
 	 * @var string
@@ -1159,6 +1170,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$intent = $notification->data->object;
 		$order  = $this->get_order_from_intent( $intent );
 
+		$checkout_type = $intent->metadata->checkout_type ?? '';
+
+		// For AP, attempt to find the order via the checkout session.
+		if ( ! $order
+			&& 'payment_intent.payment_failed' === $notification->type
+			&& WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE === $checkout_type ) {
+			$order = $this->get_order_by_intent_checkout_session( isset( $intent->id ) ? (string) $intent->id : '' );
+		}
+
 		if ( ! $order ) {
 			WC_Stripe_Logger::warning( 'Could not find order via intent ID: ' . $intent->id );
 			return;
@@ -1360,10 +1380,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param stdClass $webhook_notification The webhook payload received from Stripe.
 	 * @param array    $additional_data      Additional data to pass to the scheduled job.
+	 * @param int|null $delay                Seconds to wait before retrying. Defaults to $deferred_webhook_delay.
 	 */
-	protected function defer_webhook_processing( $webhook_notification, $additional_data ) {
+	protected function defer_webhook_processing( $webhook_notification, $additional_data, $delay = null ) {
+		$delay = null === $delay ? $this->deferred_webhook_delay : $delay;
 		$this->action_scheduler_service->schedule_job(
-			time() + $this->deferred_webhook_delay,
+			time() + $delay,
 			$this->deferred_webhook_action,
 			[
 				'type'         => $webhook_notification->type,
@@ -1449,7 +1471,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					break;
 				case 'checkout.session.completed':
 				case 'checkout.session.async_payment_succeeded':
-					$this->handle_checkout_session_success( $notification );
+					// If the order is still locked, this re-queues itself again; don't fire the
+					// action now — the next retry fires it once settlement actually runs.
+					if ( $this->handle_checkout_session_success( $notification ) ) {
+						return;
+					}
 					break;
 				case 'checkout.session.expired':
 				case 'checkout.session.async_payment_failed':
@@ -1696,18 +1722,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return true;
 		}
 
-		// If order exists, process the webhook immediately.
-		$this->handle_checkout_session_success( $notification );
-		return false;
+		// The order exists, so process the webhook immediately — unless it re-queues itself because the
+		// order is locked, in which case propagate that signal so the caller skips firing the
+		// `wc_stripe_webhook_received` action before settlement actually happens.
+		return $this->handle_checkout_session_success( $notification );
 	}
 
 	/**
 	 * Handles a deferred checkout session success event.
 	 *
 	 * @param object        $notification The Stripe notification containing the checkout session data.
-	 * @return void
+	 * @return bool True if the event was re-queued for async processing, false if handled inline.
 	 */
-	protected function handle_checkout_session_success( object $notification ): void {
+	protected function handle_checkout_session_success( object $notification ): bool {
 		$checkout_session = $notification->data->object;
 
 		$session_id = $checkout_session->id;
@@ -1723,19 +1750,31 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				'Checkout session is already being processed.',
 				[ 'session_id' => $session_id ]
 			);
-			return;
+			return false;
 		}
 		WC_Stripe_Database_Cache::set( $lock_key, time(), 5 * MINUTE_IN_SECONDS );
 
 		// Look for an order. If one does not exists, this is probably an agentic hook.
 		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
 		if ( ! $order instanceof \WC_Order ) {
+			// An Adaptive Pricing session is tagged at creation. It is never agentic,
+			// so don't route it into the agentic handler — that would silently drop a
+			// paid session whenever agentic commerce is disabled.
+			$checkout_type = $checkout_session->metadata->checkout_type ?? '';
+			if ( WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE === $checkout_type ) {
+				WC_Stripe_Logger::warning(
+					'Completed Adaptive Pricing checkout session has no matching order: ' . $checkout_session->id
+				);
+				WC_Stripe_Database_Cache::delete( $lock_key );
+				return false;
+			}
+
 			try {
 				$this->handle_agentic_checkout_session( $notification );
 			} finally {
 				WC_Stripe_Database_Cache::delete( $lock_key );
 			}
-			return;
+			return false;
 		}
 
 		WC_Stripe_Database_Cache::delete( $lock_key );
@@ -1755,7 +1794,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		);
 
 		if ( ! $order->has_status( $allowed_payment_processing_statuses ) ) {
-			return;
+			return false;
 		}
 
 		// Set the order being processed for the `wc_stripe_webhook_received` action later.
@@ -1763,9 +1802,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
-		// Lock the order
+		// Lock the order. The order-received redirect handler briefly holds this same lock across a
+		// Stripe API call without settling; dropping the event here would leave a paid order stuck
+		// pending. Re-queue instead so settlement runs once the lock is released — the lock's 5-minute
+		// TTL guarantees a wedged holder clears, so the retry terminates. Return the deferred signal so
+		// the caller skips firing `wc_stripe_webhook_received` now: settlement hasn't happened yet, and
+		// the retry fires the action itself once it does.
 		if ( $order_helper->lock_order_payment( $order ) ) {
-			return;
+			$this->defer_webhook_processing( $notification, [ 'session_id' => $session_id ], $this->locked_order_retry_delay );
+			return true;
 		}
 
 		try {
@@ -1802,7 +1847,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			if ( ! $intent ) {
 				WC_Stripe_Logger::error( 'Could not find intent for order: ' . $order->get_id() );
-				return;
+				return false;
 			}
 
 			$payment_method_id = is_object( $intent->payment_method ) ? $intent->payment_method->id : $intent->payment_method;
@@ -1900,6 +1945,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// Unlock the order
 			$order_helper->unlock_order_payment( $order );
 		}
+
+		return false;
 	}
 
 	/**
@@ -2170,6 +2217,34 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Fall back to finding the order via the intent ID.
 		return WC_Stripe_Helper::get_order_by_intent_id( $intent->id );
+	}
+
+	/**
+	 * Resolves the order behind a PaymentIntent via its Checkout Session.
+	 *
+	 * @param string $intent_id PaymentIntent ID from the failed event.
+	 * @return WC_Order|null
+	 */
+	private function get_order_by_intent_checkout_session( string $intent_id ): ?WC_Order {
+		if ( '' === $intent_id ) {
+			return null;
+		}
+
+		try {
+			$sessions   = WC_Stripe_API::request( [], 'checkout/sessions?payment_intent=' . $intent_id . '&limit=1', 'GET' );
+			$session    = $sessions->data[0] ?? null;
+			$session_id = isset( $session->id ) ? (string) $session->id : '';
+			if ( '' === $session_id ) {
+				WC_Stripe_Logger::warning( 'No checkout session found for intent ' . $intent_id . '; order left unresolved.' );
+				return null;
+			}
+
+			$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $session_id );
+			return $order instanceof WC_Order ? $order : null;
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::warning( 'Unable to resolve order from checkout session for intent ' . $intent_id . ': ' . $e->getMessage() );
+			return null;
+		}
 	}
 
 	/**
