@@ -175,7 +175,13 @@ jQuery( function ( $ ) {
 				// If the express payment type, e.g. Apple Pay, is not available,
 				// remove the container.
 				eceButton.on( 'ready', ( { availablePaymentMethods } ) => {
-					if ( ! availablePaymentMethods ) {
+					const hasAvailablePaymentMethods =
+						availablePaymentMethods &&
+						Object.values( availablePaymentMethods ).some(
+							Boolean
+						);
+
+					if ( ! hasAvailablePaymentMethods ) {
 						$( `#${ containerName }` ).remove();
 					}
 				} );
