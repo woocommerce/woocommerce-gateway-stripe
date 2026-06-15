@@ -8,12 +8,18 @@
 class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	const ENDPOINT_URL = '/wc/v3/wc_stripe/payment_intents';
 
+	/** Initialise REST API */
 	public static function set_up_before_class() {
 		parent::set_up_before_class();
 
 		do_action( 'rest_api_init' );
 	}
 
+	/**
+	 * Send a request to the REST server.
+	 *
+	 * If non-empty, adds the entries from $params to the request object.
+	 */
 	private function send_request( $params = [] ) {
 		$request = new WP_REST_Request(
 			WP_REST_Server::READABLE,
@@ -31,6 +37,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		return $response;
 	}
 
+	/** Test that the REST server rejects requests from non-admin users */
 	public function test_permission_check_denies_unauthorized_call() {
 		$subscriber_id = $this->factory()->user->create( [ 'role' => 'subscriber' ] );
 
@@ -41,6 +48,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		$this->assertSame( 403, $response->get_status() );
 	}
 
+	/** Test that the REST server allows requests from admin users */
 	public function test_permission_check_allows_authorized_call() {
 		wp_set_current_user( 1 );
 
@@ -67,6 +75,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		];
 	}
 	/**
+	 * Test that requests containing malformed created field are rejected.
 	 * @dataProvider provide_created_param_wrong_format
 	*/
 	public function test_created_param_wrong_format( $param_name, $param_value ) {
@@ -88,10 +97,23 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 					'starting_after' => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
 					'ending_before'  => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
+				[
+					'limit'            => 100,
+					'customer'         => 'cus_sad8s6dasd',
+					'customer_account' => 'cus_sad8s6dasdxsa123',
+					'created'          =>
+						[
+							'lt' => '1779802569',
+						],
+					'starting_after'   => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
+					'ending_before'    => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
 			],
 		];
 	}
 	/**
+	 * Test that the received parameters are correctly forwarded to Stripe API.
+	 *
 	 * @dataProvider provide_rest_params
 	*/
 	public function test_pass_rest_params( $rest_params ) {

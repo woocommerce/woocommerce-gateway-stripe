@@ -61,6 +61,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		],
 		'created'          => [
 			'required'          => false,
+			'sanitize_callback' => [ self::class, 'sanitize_created_field' ],
 			'validate_callback' => [ self::class, 'validate_created_field' ],
 		],
 	];
@@ -112,7 +113,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 			*/
 			$search_param_value = $request->get_param( $search_param_name );
 
-			if ( empty( $search_param_value ) ) {
+			if ( is_null( $search_param_value ) ) {
 				continue;
 			}
 
@@ -132,6 +133,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	public function build_http_query_string_from_request( $request ): string {
 		return http_build_query( $this->build_http_query_array_from_request( $request ) );
 	}
+
 	/**
 	 * Retrieve a paginated list of Stripe payment intents.
 	 *
@@ -157,7 +159,26 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	}
 
 	/**
-	 * Validate a created parameter value.
+	 * Sanitize a "created" parameter value.
+	 *
+	 * @param string $value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param The parameter name.
+	 */
+	public static function sanitize_created_field( $value, WP_REST_Request $request, string $param ) {
+		if ( ! is_array( $value ) ) {
+			$value = sanitize_text_field( $value );
+		} else {
+			foreach ( $value as $operator => $operand ) {
+				$value[ $operator ] = sanitize_text_field( $operand );
+			}
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Validate a "created" parameter value.
 	 *
 	 * @param string $value The parameter value.
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
