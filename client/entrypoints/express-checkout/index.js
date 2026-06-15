@@ -412,6 +412,7 @@ jQuery( function ( $ ) {
 				...( expressPaymentTypes.length > 1 && {
 					layout: {
 						maxColumns: expressPaymentTypes.length,
+						maxRows: 1,
 						overflow: 'never',
 					},
 				} ),
