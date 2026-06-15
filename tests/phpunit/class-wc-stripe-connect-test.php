@@ -62,7 +62,14 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			delete_option( 'wc_stripe_optimized_checkout_default_on' );
 		}
 
-		$this->set_stripe_account_data( [ 'country' => $account_country ] );
+		$account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache', 'is_webhook_enabled' ] )
+			->getMock();
+		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => $account_country ] );
+		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
+		$account->method( 'is_webhook_enabled' )->willReturn( true );
+		WC_Stripe::get_instance()->account = $account;
 
 		$result                 = new stdClass();
 		$result->publishableKey = 'pk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
