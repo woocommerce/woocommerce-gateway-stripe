@@ -41,7 +41,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		$this->assertSame( 403, $response->get_status() );
 	}
 
-	public function test_permission_check_denies_authorized_call() {
+	public function test_permission_check_allows_authorized_call() {
 		wp_set_current_user( 1 );
 
 		$response = $this->send_request();
