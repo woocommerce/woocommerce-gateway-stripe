@@ -2299,107 +2299,99 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			exit;
 		}
 
-		$locked = $order_helper->lock_order_payment( $order );
-		if ( $locked ) {
-			WC_Stripe_Logger::info( "Skip processing checkout session redirect for order $order_id, order payment is already being processed (locked)" );
-			return;
-		}
-
-		try {
-			$checkout_session = $this->get_checkout_session_from_order( $order, true, true );
-			if ( null === $checkout_session ) {
-				// Either the order has no session id (defensive) or the Stripe API call failed.
-				// Logged downstream by get_checkout_session_from_order(). Leave the order
-				// untouched and let the webhook take over, but still strip the disambiguation
-				// query args from the address bar so a refresh doesn't loop on the API.
-				$order_helper->unlock_order_payment( $order );
-				wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
-				exit;
-			}
-
-			$status         = isset( $checkout_session->status ) ? $checkout_session->status : '';
-			$payment_intent = isset( $checkout_session->payment_intent ) && is_object( $checkout_session->payment_intent )
-				? $checkout_session->payment_intent
-				: null;
-			$payment_error  = $payment_intent && isset( $payment_intent->last_payment_error ) ? $payment_intent->last_payment_error : null;
-
-			// Success: session is complete (paid OR async-pending unpaid like Boleto).
-			// Mark the handler as having run so a refresh of the order-received page
-			// doesn't fall through into the cancel path while the webhook is still in flight,
-			// then strip the disambiguation query args from the address bar.
-			if ( 'complete' === $status ) {
-				$order_helper->update_stripe_upe_redirect_processed( $order, true );
-				$order->save();
-				$order_helper->unlock_order_payment( $order );
-				wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
-				exit;
-			}
-
-			// Anything else (open / expired) on a non-terminal order means the customer
-			// either cancelled on the redirect provider, the session expired, or there
-			// was a hard failure. Disambiguate via last_payment_error if present.
-			//
-			// NOTE: we intentionally do NOT set `_stripe_upe_redirect_processed` on these
-			// branches. The flag is order-scoped and never cleared, so setting it here
-			// would block a subsequent retry on the same order (the next return would
-			// short-circuit above and skip the bounce/notice logic). Replay protection
-			// for cancel/failure is unnecessary because these paths leave the order in
-			// a non-terminal state that is safe to re-enter.
-			$cancellation_codes = [
-				'payment_method_customer_decline',
-				'payment_intent_payment_attempt_expired',
-			];
-			$error_code         = $payment_error && isset( $payment_error->code ) ? $payment_error->code : '';
-			$error_message      = $payment_error && isset( $payment_error->message ) ? $payment_error->message : '';
-
-			// Hard failure: a real decline/error reported by the upstream payment provider.
-			// An `expired` session (Stripe's own timeout) is never a hard failure — the
-			// customer needs a fresh session to retry, regardless of any stale
-			// last_payment_error left on the intent from an earlier attempt.
-			$is_hard_failure = 'expired' !== $status
-				&& ! empty( $error_code )
-				&& ! in_array( $error_code, $cancellation_codes, true );
-
-			if ( $is_hard_failure ) {
-				WC_Stripe_Logger::error(
-					'Checkout session redirect failed for order: ' . $order_id,
-					[
-						'session_status' => $status,
-						'error_code'     => $error_code,
-						'error_message'  => $error_message,
-					]
-				);
-
-				/* translators: localized Stripe error message */
-				$order->update_status( OrderStatus::FAILED, sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $error_message ) );
-
-				wc_add_notice( $error_message, 'error' );
-			} else {
-				WC_Stripe_Logger::info(
-					'Checkout session redirect cancelled for order: ' . $order_id,
-					[
-						'session_status' => $status,
-						'error_code'     => $error_code,
-						'error_message'  => $error_message,
-					]
-				);
-
-				wc_add_notice(
-					__( 'Your payment was cancelled. Please try again or use a different payment method.', 'woocommerce-gateway-stripe' ),
-					'notice'
-				);
-			}
-
-			// No explicit $order->save() needed here: the hard-failure branch calls
-			// update_status() which persists internally; the cancel branch has no
-			// order mutation.
-			$redirect_url = $is_pay_for_order ? $order->get_checkout_payment_url() : wc_get_checkout_url();
-			$order_helper->unlock_order_payment( $order );
-			wp_safe_redirect( wp_sanitize_redirect( $redirect_url ) );
+		// No payment lock needed: this path only routes the browser and never settles the order,
+		// and duplicate returns are already idempotent via the terminal-status short-circuit and
+		// the `_stripe_upe_redirect_processed` flag above. Taking it also risks harm — if the
+		// checkout.session.* webhook arrives while we hold it across the Stripe call below, the
+		// webhook can't settle the order and a paid order is left stuck pending.
+		$checkout_session = $this->get_checkout_session_from_order( $order, true, true );
+		if ( null === $checkout_session ) {
+			// Either the order has no session id (defensive) or the Stripe API call failed.
+			// Logged downstream by get_checkout_session_from_order(). Leave the order
+			// untouched and let the webhook take over, but still strip the disambiguation
+			// query args from the address bar so a refresh doesn't loop on the API.
+			wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
 			exit;
-		} finally {
-			$order_helper->unlock_order_payment( $order );
 		}
+
+		$status         = isset( $checkout_session->status ) ? $checkout_session->status : '';
+		$payment_intent = isset( $checkout_session->payment_intent ) && is_object( $checkout_session->payment_intent )
+			? $checkout_session->payment_intent
+			: null;
+		$payment_error  = $payment_intent && isset( $payment_intent->last_payment_error ) ? $payment_intent->last_payment_error : null;
+
+		// Success: session is complete (paid OR async-pending unpaid like Boleto).
+		// Mark the handler as having run so a refresh of the order-received page
+		// doesn't fall through into the cancel path while the webhook is still in flight,
+		// then strip the disambiguation query args from the address bar.
+		if ( 'complete' === $status ) {
+			$order_helper->update_stripe_upe_redirect_processed( $order, true );
+			$order->save();
+			wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
+			exit;
+		}
+
+		// Anything else (open / expired) on a non-terminal order means the customer
+		// either cancelled on the redirect provider, the session expired, or there
+		// was a hard failure. Disambiguate via last_payment_error if present.
+		//
+		// NOTE: we intentionally do NOT set `_stripe_upe_redirect_processed` on these
+		// branches. The flag is order-scoped and never cleared, so setting it here
+		// would block a subsequent retry on the same order (the next return would
+		// short-circuit above and skip the bounce/notice logic). Replay protection
+		// for cancel/failure is unnecessary because these paths leave the order in
+		// a non-terminal state that is safe to re-enter.
+		$cancellation_codes = [
+			'payment_method_customer_decline',
+			'payment_intent_payment_attempt_expired',
+		];
+		$error_code         = $payment_error && isset( $payment_error->code ) ? $payment_error->code : '';
+		$error_message      = $payment_error && isset( $payment_error->message ) ? $payment_error->message : '';
+
+		// Hard failure: a real decline/error reported by the upstream payment provider.
+		// An `expired` session (Stripe's own timeout) is never a hard failure — the
+		// customer needs a fresh session to retry, regardless of any stale
+		// last_payment_error left on the intent from an earlier attempt.
+		$is_hard_failure = 'expired' !== $status
+			&& ! empty( $error_code )
+			&& ! in_array( $error_code, $cancellation_codes, true );
+
+		if ( $is_hard_failure ) {
+			WC_Stripe_Logger::error(
+				'Checkout session redirect failed for order: ' . $order_id,
+				[
+					'session_status' => $status,
+					'error_code'     => $error_code,
+					'error_message'  => $error_message,
+				]
+			);
+
+			/* translators: localized Stripe error message */
+			$order->update_status( OrderStatus::FAILED, sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $error_message ) );
+
+			wc_add_notice( $error_message, 'error' );
+		} else {
+			WC_Stripe_Logger::info(
+				'Checkout session redirect cancelled for order: ' . $order_id,
+				[
+					'session_status' => $status,
+					'error_code'     => $error_code,
+					'error_message'  => $error_message,
+				]
+			);
+
+			wc_add_notice(
+				__( 'Your payment was cancelled. Please try again or use a different payment method.', 'woocommerce-gateway-stripe' ),
+				'notice'
+			);
+		}
+
+		// No explicit $order->save() needed here: the hard-failure branch calls
+		// update_status() which persists internally; the cancel branch has no
+		// order mutation.
+		$redirect_url = $is_pay_for_order ? $order->get_checkout_payment_url() : wc_get_checkout_url();
+		wp_safe_redirect( wp_sanitize_redirect( $redirect_url ) );
+		exit;
 	}
 
 	/**
