@@ -2314,6 +2314,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$session    = $sessions->data[0] ?? null;
 			$session_id = isset( $session->id ) ? (string) $session->id : '';
 			if ( '' === $session_id ) {
+				WC_Stripe_Logger::warning( 'No checkout session found for intent ' . $intent_id . '; order left unresolved.' );
 				return null;
 			}
 
