@@ -8,13 +8,14 @@
 class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	const ENDPOINT_URL = '/wc/v3/wc_stripe/payment_intents';
 
-	/** Initialise REST API */
+	/** Initialise REST API, make WC_Stripe_REST_Payment_Intents_Controller instance available for testing*/
 	public static function set_up_before_class() {
 		parent::set_up_before_class();
 
 		do_action( 'rest_api_init' );
 	}
 
+	/** Mock stripe API calls to avoid making real HTTP requests. */
 	protected function mock_http_call() {
 		add_filter(
 			'pre_http_request',
@@ -62,7 +63,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		return $response;
 	}
 
-	/** Test that the REST server rejects requests from non-admin users */
+	/** Create a non-admin user, set it as current user and send an API request. */
 	public function test_permission_check_denies_unauthorized_call() {
 		$subscriber_id = $this->factory()->user->create( [ 'role' => 'subscriber' ] );
 
@@ -73,11 +74,12 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		$this->assertSame( 403, $response->get_status() );
 	}
 
-	/** Test that the REST server allows requests from admin users */
+	/** Create an admin user, set it as current user and send a API request. */
 	public function test_permission_check_allows_authorized_call() {
 		$this->mock_http_call();
 
-		wp_set_current_user( 1 );
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
 
 		$response = $this->send_request();
 
@@ -102,11 +104,13 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		];
 	}
 	/**
-	 * Test that requests containing malformed created field are rejected.
+	 * Create an admin user and send requests containing wrong format args.
+	 *
 	 * @dataProvider provide_created_param_wrong_format
 	*/
 	public function test_created_param_wrong_format( $param_name, $param_value ) {
-		wp_set_current_user( 1 );
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
 
 		$response = $this->send_request( [ $param_name => $param_value ] );
 
@@ -141,7 +145,8 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		];
 	}
 	/**
-	 * Test that the received parameters are correctly forwarded to Stripe API.
+	 * Send requests containing valid parameters and check they are forwarded corectly to the Stripe API
+	 * using a 'pre_http_request' hook.
 	 *
 	 * @dataProvider provide_rest_params
 	*/
@@ -179,7 +184,9 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 			3
 		);
 
-		wp_set_current_user( 1 );
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
 		rest_get_server()->dispatch( $request );
 
 		$this->assertEquals( $rest_params, $passed_rest_params );
