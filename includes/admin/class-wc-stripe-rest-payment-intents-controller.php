@@ -164,6 +164,8 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @param string $value The parameter value.
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
 	 * @param string $param The parameter name.
+	 *
+	 * @return mixed
 	 */
 	public static function sanitize_created_field( $value, WP_REST_Request $request, string $param ) {
 		if ( ! is_array( $value ) ) {
