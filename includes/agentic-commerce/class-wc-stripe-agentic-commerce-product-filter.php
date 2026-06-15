@@ -3,7 +3,7 @@
  * Product filter for the Agentic Commerce feed.
  *
  * @package WooCommerce_Stripe
- * @since 10.8.0
+ * @since 10.9.0
  */
 
 declare(strict_types=1);
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Manages filtering for the Agentic Commerce feed.
  *
- * @since 10.8.0
+ * @since 10.9.0
  */
 class WC_Stripe_Agentic_Commerce_Product_Filter {
 
@@ -23,7 +23,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	 * Single option storing all supported filter values.
 	 *
 	 * @var string
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 */
 	protected const OPTION_NAME = 'wc_stripe_agentic_commerce_product_filters';
 
@@ -37,7 +37,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	/**
 	 * Read the persisted option and apply the override filter.
 	 *
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 * @return array {
 	 *     @type int[] $product_ids             Product IDs.
 	 *     @type int[] $category_ids            Category taxonomy IDs.
@@ -67,7 +67,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 		 * `wc_stripe_agentic_commerce_product_query_args` filter for full
 		 * escape-hatch control over the final `wc_get_products()` arguments.
 		 *
-		 * @since 10.8.0
+		 * @since 10.9.0
 		 * @param array $filters {
 		 *     Normalized filters derived from the persisted option.
 		 *
@@ -80,11 +80,10 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 		 */
 		$filtered = apply_filters( 'wc_stripe_agentic_commerce_product_filter', $filters );
 
-		if ( is_array( $filtered ) ) {
-			$this->filters = $this->normalize_filter_data( $filtered );
-		} else {
-			$this->filters = [];
-		}
+		$filtered = is_array( $filtered ) ? $filtered : [];
+
+		// Ensure we have normalized filter data.
+		$this->filters = $this->normalize_filter_data( $filtered );
 
 		return $this->filters;
 	}
@@ -95,7 +94,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	 * Note that input data is normalized, resolved, and verified before being saved.
 	 * {@see self::get_filters()}.
 	 *
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 * @param array $filters Raw caller-supplied filters. Unknown keys are ignored.
 	 * @return bool True when the option was written successfully.
 	 */
@@ -165,7 +164,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	 * Indicate whether we have any filters defined.
 	 * {@see self::get_filters()}
 	 *
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 * @return bool
 	 */
 	public function has_filters(): bool {
@@ -179,7 +178,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	 * this method indicates which field types will be used to construct the query.
 	 *
 	 * @see get_query_args()
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 * @return string[] Field types that will be used to construct the query.
 	 */
 	public function get_effective_filter_types(): array {
@@ -213,7 +212,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	 * so this method has a hierarchy for applicable criteria.
 	 * Call {@see get_effective_filter_types()} to identify which criteria will be used.
 	 *
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 * @return array|null WC_Product_Query arguments. Null when no filters are specified.
 	 */
 	public function get_query_args(): ?array {
@@ -290,7 +289,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	/**
 	 * Indicate whether the supplied filters are empty.
 	 *
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 * @param array $filters
 	 * @return bool
 	 */
@@ -310,7 +309,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	 * Term slugs are resolved to term IDs via `get_term_by()`,
 	 * and unknown term slugs and term IDs are removed.
 	 *
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 * @param array  $values   Array of taxonomy IDs and/or slugs.
 	 * @param string $taxonomy Taxonomy slug.
 	 * @return int[] List of valid term IDs.
@@ -352,7 +351,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	/**
 	 * Normalize the filter data, which may be stored in the option or provided by a filter.
 	 *
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 * @param array $raw The raw data stored in the option.
 	 * @return array {
 	 *     @type int[] $product_ids             Product IDs.
@@ -388,7 +387,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	/**
 	 * Validate a list of product IDs.
 	 *
-	 * @since 10.8.0
+	* @since 10.9.0
 	 * @param mixed[]  $product_ids           List of product IDs to validate.
 	 * @param string[] $allowed_product_types List of allowed product types.
 	 * @return int[] List of validated product IDs.
@@ -430,7 +429,7 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 	/**
 	 * Normalize a possibly-malformed value to int[] — drop non-numerics and `<= 0`.
 	 *
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 * @param mixed $value
 	 * @return int[]
 	 */

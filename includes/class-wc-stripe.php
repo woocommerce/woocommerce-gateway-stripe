@@ -250,6 +250,11 @@ class WC_Stripe {
 				new WC_Stripe_Plugins_Page_Controller( $this->account );
 			}
 
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-command-palette-controller.php';
+			if ( self::$instance === $this ) {
+				new WC_Stripe_Command_Palette_Controller();
+			}
+
 			if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-subscription-detached-bulk-action.php';
 
@@ -579,7 +584,7 @@ class WC_Stripe {
 		// 3. Filter out UPE payment methods that are not enabled at checkout, as they are not available in the checkout block
 		// and including them in the list results in warnings about block support
 		// when viewing the payment methods block in the editor for the cart and checkout pages.
-		if ( is_admin() ) {
+		if ( is_admin() && ! $this->is_order_management_context() ) {
 			$methods = array_filter(
 				$methods,
 				function ( $method ) use ( $is_oc_enabled ) {
@@ -603,6 +608,51 @@ class WC_Stripe {
 		}
 
 		return $methods;
+	}
+
+	/**
+	 * Determines whether the current request is an order management context
+	 * (order edit page or refund AJAX action).
+	 *
+	 * In these contexts we must keep all payment gateways registered so that
+	 * WooCommerce can find the gateway for refund processing and transaction
+	 * URL generation.
+	 *
+	 * @return bool
+	 */
+	private function is_order_management_context(): bool {
+		// Refund AJAX action — fired when the merchant clicks "Refund via Gateway".
+		if ( 'woocommerce_refund_line_items' === $this->get_request_var( 'action', INPUT_POST ) ) {
+			return true;
+		}
+
+		$page   = $this->get_request_var( 'page' );
+		$action = $this->get_request_var( 'action' );
+
+		// HPOS order edit screen: wp-admin/admin.php?page=wc-orders&action=edit
+		if ( 'wc-orders' === $page && 'edit' === $action ) {
+			return true;
+		}
+
+		$post_id = absint( $this->get_request_var( 'post' ) );
+
+		// Legacy CPT order edit screen: wp-admin/post.php?post=<id>&action=edit
+		return 'edit' === $action && (bool) $post_id && 'shop_order' === get_post_type( $post_id );
+	}
+
+	/**
+	 * Returns a sanitized value from the request input.
+	 *
+	 * Extracted as a protected method so tests can mock it without depending
+	 * on PHP's input stream, following the same convention as get_gateway() in
+	 * WC_Stripe_Intent_Controller.
+	 *
+	 * @param string $key        Request parameter key.
+	 * @param int    $input_type INPUT_GET or INPUT_POST.
+	 * @return string
+	 */
+	protected function get_request_var( string $key, int $input_type = INPUT_GET ): string {
+		return (string) ( filter_input( $input_type, $key, FILTER_SANITIZE_SPECIAL_CHARS ) ?? '' );
 	}
 
 	/**

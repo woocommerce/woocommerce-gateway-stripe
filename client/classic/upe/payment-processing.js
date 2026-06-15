@@ -17,6 +17,7 @@ import {
 	validateBlikCode,
 	getExcludedPaymentMethodTypes,
 	getUserDataForCheckoutSession,
+	getBillingDetailsForDeferredFlow,
 } from '../../stripe-utils';
 import {
 	initializeUPEAppearance,
@@ -552,6 +553,16 @@ function createStripePaymentMethod(
 				},
 			},
 		};
+	} else {
+		// On the deferred-payment flows the form is not a checkout form, so billing
+		// fields are not present in the DOM. Forward the order/customer billing
+		// data from the server.
+		const billingDetails = getBillingDetailsForDeferredFlow();
+		if ( billingDetails ) {
+			params = {
+				billing_details: billingDetails,
+			};
+		}
 	}
 
 	// BLIK uses a controlled form instead of Stripe Elements.
@@ -1311,4 +1322,37 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		unblockBlockCheckout();
 		resetBlockCheckoutPaymentState();
 	}
+};
+
+/**
+ * Checks if any required checkout fields in the given list are empty.
+ * Uses the same field selectors as WC core's checkout validation (checkout.js).
+ * This is a read-only DOM check with no side effects — it does not trigger
+ * validation events or add/remove CSS classes.
+ *
+ * Visibility filtering is handled by the caller (using jQuery :visible in
+ * deferred-intent.js) since jsdom cannot compute element visibility.
+ *
+ * @param {NodeList|Array} requiredWrappers List of .validate-required DOM elements to check.
+ * @return {boolean} True if any required field is empty.
+ */
+export const hasEmptyRequiredFields = ( requiredWrappers ) => {
+	for ( const wrapper of requiredWrappers ) {
+		const input = wrapper.querySelector(
+			'input.input-text, select, input[type="checkbox"]'
+		);
+		if ( ! input ) {
+			continue;
+		}
+
+		if ( input.type === 'checkbox' ) {
+			if ( ! input.checked ) {
+				return true;
+			}
+		} else if ( ! input.value || input.value.trim() === '' ) {
+			return true;
+		}
+	}
+
+	return false;
 };

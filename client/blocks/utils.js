@@ -1,5 +1,4 @@
-/* global wc */
-
+import { getSetting } from '@woocommerce/settings';
 import { isLinkEnabled } from 'wcstripe/stripe-utils';
 import { OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT } from 'wcstripe/stripe-utils/constants';
 
@@ -10,7 +9,7 @@ import { OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT } from 'wcstripe/stripe-utils/constan
  * @return {Object} The Stripe blocks configuration object.
  */
 export const getBlocksConfiguration = () => {
-	const stripeServerData = wc?.wcSettings?.getSetting( 'stripe_data', null );
+	const stripeServerData = getSetting( 'stripe_data', null );
 
 	if ( ! stripeServerData ) {
 		throw new Error( 'Stripe initialization data is not available' );

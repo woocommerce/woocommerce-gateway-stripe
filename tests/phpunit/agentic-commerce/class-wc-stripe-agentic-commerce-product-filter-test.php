@@ -1095,6 +1095,51 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$this->assertSame( [ 999 ], $filters['variable_product_ids'] );
 	}
 
+	/**
+	 * @dataProvider provide_bad_filter_return_scenarios
+	 *
+	 * @param mixed $bad_filter_return The bad filter return value to test.
+	 */
+	public function test_override_filter_return_is_normalized_for_bad_filter( $bad_filter_return ): void {
+		add_filter(
+			'wc_stripe_agentic_commerce_product_filter',
+			function () use ( $bad_filter_return ) {
+				return $bad_filter_return;
+			}
+		);
+
+		$filter  = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		$filters = $filter->get_filters();
+
+		$expected_values = [
+			'product_ids'          => [],
+			'category_ids'         => [],
+			'tag_ids'              => [],
+			'brand_ids'            => [],
+			'variable_product_ids' => [],
+		];
+
+		foreach ( $expected_values as $key => $value ) {
+			$this->assertArrayHasKey( $key, $filters );
+			$this->assertSame( $value, $filters[ $key ] );
+		}
+		$this->assertCount( count( $expected_values ), $filters );
+	}
+
+	/**
+	 * Data provider for {@see test_override_filter_return_is_normalized_for_bad_filter()}.
+	 *
+	 * @return array
+	 */
+	public function provide_bad_filter_return_scenarios(): array {
+		return [
+			'object'  => [ (object) [ 'product_ids' => [ 1234 ] ] ],
+			'string'  => [ 'not-an-array' ],
+			'number'  => [ 1234 ],
+			'boolean' => [ true ],
+		];
+	}
+
 	// -----------------------------------------------------------------------
 	// Helpers
 	// -----------------------------------------------------------------------
