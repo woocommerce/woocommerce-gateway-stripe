@@ -145,7 +145,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		];
 	}
 	/**
-	 * Send requests containing valid parameters and check they are forwarded corectly to the Stripe API
+	 * Send requests containing valid parameters and check they are forwarded correctly to the Stripe API
 	 * using a 'pre_http_request' hook.
 	 *
 	 * @dataProvider provide_rest_params
