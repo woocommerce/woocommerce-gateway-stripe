@@ -1016,24 +1016,14 @@ jQuery( function ( $ ) {
 		}
 		productPageInitScheduled = true;
 
-		const initWhenIdle = () => {
-			const requestIdleCallback = window.requestIdleCallback;
-			if ( typeof requestIdleCallback === 'function' ) {
-				requestIdleCallback( () => wcStripeECE.init(), {
-					timeout: 1500,
-				} );
-				return;
-			}
-
-			setTimeout( () => wcStripeECE.init(), 0 );
-		};
-
 		if ( document.readyState === 'complete' ) {
-			initWhenIdle();
+			wcStripeECE.init();
 			return;
 		}
 
-		window.addEventListener( 'load', initWhenIdle, { once: true } );
+		window.addEventListener( 'load', () => wcStripeECE.init(), {
+			once: true,
+		} );
 	};
 
 	// We don't need to initialize ECE on the checkout page now because it will be initialized by updated_checkout event.
