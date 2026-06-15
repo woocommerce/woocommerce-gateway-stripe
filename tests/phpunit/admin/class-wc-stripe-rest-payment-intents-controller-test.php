@@ -15,6 +15,31 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		do_action( 'rest_api_init' );
 	}
 
+	protected function mock_http_call() {
+		add_filter(
+			'pre_http_request',
+			function ( $preempt, $request_args, $url ) {
+				if ( false === strpos( $url, 'payment_intents' ) ) {
+					return $preempt;
+				}
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'data'     => [],
+							'has_more' => false,
+						]
+					),
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+				];
+			},
+			10,
+			3
+		);
+	}
 	/**
 	 * Send a request to the REST server.
 	 *
@@ -50,6 +75,8 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 
 	/** Test that the REST server allows requests from admin users */
 	public function test_permission_check_allows_authorized_call() {
+		$this->mock_http_call();
+
 		wp_set_current_user( 1 );
 
 		$response = $this->send_request();
@@ -136,6 +163,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 
 		$pre_http_request = [];
 
+		$this->mock_http_call();
 		add_filter(
 			'pre_http_request',
 			function ( $pre, $parsed_args, $url ) use ( &$pre_http_request ) {

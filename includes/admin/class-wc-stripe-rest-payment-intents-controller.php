@@ -105,15 +105,15 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 
 		$search_params = [];
 
+		/**
+		 * Search parameter value.
+		 *
+		 * @var string $search_param_name
+		*/
 		foreach ( $rest_args as $search_param_name => $search_param_definition ) {
-			/**
-			 * Search parameter value.
-			 *
-			 * @var string $search_param_name
-			*/
 			$search_param_value = $request->get_param( $search_param_name );
 
-			if ( is_null( $search_param_value ) ) {
+			if ( '' === $search_param_value || is_null( $search_param_value ) ) {
 				continue;
 			}
 
@@ -147,7 +147,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 			return new WP_Error( 'wc_stripe_payment_intents_error', $exception->getLocalizedMessage(), [ 'status' => 502 ] );
 		}
 
-		if ( ! empty( $response->error ) ) {
+		if ( is_null( $response ) ) {
 			return new WP_Error(
 				'wc_stripe_payment_intents_error',
 				$response->error->message ?? __( 'Unable to retrieve payment intents from Stripe.', 'woocommerce-gateway-stripe' ),
@@ -171,9 +171,13 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		if ( ! is_array( $value ) ) {
 			$value = sanitize_text_field( $value );
 		} else {
+			$sanitized_value = [];
+
 			foreach ( $value as $operator => $operand ) {
-				$value[ $operator ] = sanitize_text_field( $operand );
+				$sanitized_value[ sanitize_key( $operator ) ] = sanitize_text_field( $operand );
 			}
+
+			$value = $sanitized_value;
 		}
 
 		return $value;
