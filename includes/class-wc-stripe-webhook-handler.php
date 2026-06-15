@@ -15,6 +15,24 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
+	 * Cache key prefix marking an agentic checkout session as owned by this site.
+	 *
+	 * Stripe allows a single agentic-commerce endpoint per account, so only the owning site
+	 * receives the synchronous customize/finalize hooks and records a claim under this prefix.
+	 *
+	 * @var string
+	 */
+	protected const AGENTIC_SESSION_CLAIM_CACHE_PREFIX = 'agentic_session_claim_';
+
+	/**
+	 * How long an agentic session claim is retained, long enough to cover the gap between the
+	 * sync hook and the broadcast checkout.session.completed event for a pending checkout.
+	 *
+	 * @var int
+	 */
+	protected const AGENTIC_SESSION_CLAIM_TTL = DAY_IN_SECONDS;
+
+	/**
 	 * Is test mode active?
 	 *
 	 * @var bool
@@ -172,6 +190,25 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			exit;
 		}
 
+		// Ignore events that belong to a different Stripe account than the one this store is connected to.
+		// Acting on them could update the wrong orders or trigger mismatched payment/charge lookups.
+		if ( ! $this->event_belongs_to_connected_account( $event ) ) {
+			WC_Stripe_Logger::error(
+				'Webhook ignored: the event\'s Stripe account does not match the connected account.',
+				[
+					'event_id'          => $event->id ?? null,
+					'event_type'        => $event_type,
+					'event_account'     => $this->get_event_account_id( $event ),
+					'connected_account' => $this->get_connected_account_id(),
+				]
+			);
+
+			// Acknowledge the event so Stripe does not keep retrying delivery of an event meant for another account.
+			// @see https://docs.stripe.com/webhooks#acknowledge-events-immediately
+			status_header( 200 );
+			exit;
+		}
+
 		if ( $is_agentic_hook ) {
 			$this->process_agentic_hook( $event );
 			return;
@@ -182,6 +219,65 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		WC_Stripe_Webhook_State::set_last_webhook_success_at( $event->created );
 		status_header( 200 );
 		exit;
+	}
+
+	/**
+	 * Whether the event's Stripe account matches the connected account.
+	 *
+	 * Fails open when the event carries no account or the connected account is unknown.
+	 *
+	 * @param object $event The decoded webhook event.
+	 * @return bool True when the event may be processed, false when it must be skipped.
+	 */
+	protected function event_belongs_to_connected_account( $event ): bool {
+		$event_account = $this->get_event_account_id( $event );
+
+		// No account context on the payload: cannot verify, so allow processing to continue.
+		if ( '' === $event_account ) {
+			return true;
+		}
+
+		$connected_account = $this->get_connected_account_id();
+
+		// Connected account is unknown: avoid dropping legitimate events.
+		if ( '' === $connected_account ) {
+			return true;
+		}
+
+		return $event_account === $connected_account;
+	}
+
+	/**
+	 * The Stripe account an event originated from.
+	 *
+	 * Connect events expose it as `account`; agentic delegated-checkout events use `context`.
+	 *
+	 * @param object $event The decoded webhook event.
+	 * @return string Account ID (e.g. `acct_123`), or an empty string when absent.
+	 */
+	protected function get_event_account_id( $event ): string {
+		if ( ! is_object( $event ) ) {
+			return '';
+		}
+
+		foreach ( [ 'account', 'context' ] as $field ) {
+			if ( ! empty( $event->$field ) ) {
+				return (string) $event->$field;
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * The connected Stripe account ID for the active mode.
+	 *
+	 * @return string Account ID (e.g. `acct_123`), or an empty string when unknown.
+	 */
+	protected function get_connected_account_id(): string {
+		$account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
+
+		return isset( $account_data['id'] ) ? (string) $account_data['id'] : '';
 	}
 
 	/**
@@ -1731,7 +1827,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
 		if ( ! $order instanceof \WC_Order ) {
 			try {
-				$this->handle_agentic_checkout_session( $notification );
+				if ( WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
+					$this->handle_agentic_checkout_session( $notification );
+				}
 			} finally {
 				WC_Stripe_Database_Cache::delete( $lock_key );
 			}
@@ -2210,12 +2308,20 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	private function process_agentic_hook( stdClass $event ) {
 		$event_type = $event->type ?? 'No event type found';
 
+		// Stripe calls only this site's single agentic endpoint for these synchronous hooks, so
+		// recording the session here marks it as belonging to this site. The order-creating
+		// checkout.session.completed event later broadcasts to every site sharing the account;
+		// the claim lets us skip sessions that originated on a sibling site. See STRIPE-968.
+		$checkout_session_id = isset( $event->data->checkout_session ) ? (string) $event->data->checkout_session : '';
+
 		try {
 			switch ( $event_type ) {
 				case 'v1.delegated_checkout.customize_checkout':
+					$this->claim_agentic_session( $checkout_session_id );
 					$response = $this->process_agentic_customization_hook( $event );
 					break;
 				case 'v1.delegated_checkout.finalize_checkout':
+					$this->claim_agentic_session( $checkout_session_id );
 					$response = $this->process_agentic_finalize_checkout_hook( $event );
 					break;
 				default:
@@ -2284,6 +2390,42 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Records that this site owns an agentic checkout session.
+	 *
+	 * Called from the synchronous customize/finalize hooks, which Stripe delivers only to the
+	 * account's single agentic endpoint — so a claim identifies sessions this site produced.
+	 *
+	 * @since 10.9.0
+	 * @param string $checkout_session_id The `cs_…` id from the sync hook payload.
+	 */
+	protected function claim_agentic_session( string $checkout_session_id ): void {
+		if ( '' === $checkout_session_id ) {
+			return;
+		}
+
+		WC_Stripe_Database_Cache::set(
+			self::AGENTIC_SESSION_CLAIM_CACHE_PREFIX . $checkout_session_id,
+			1,
+			self::AGENTIC_SESSION_CLAIM_TTL
+		);
+	}
+
+	/**
+	 * Whether this site previously claimed the given agentic checkout session via a sync hook.
+	 *
+	 * @since 10.9.0
+	 * @param string $checkout_session_id The `cs_…` id from checkout.session.completed.
+	 * @return bool
+	 */
+	protected function is_agentic_session_claimed( string $checkout_session_id ): bool {
+		if ( '' === $checkout_session_id ) {
+			return false;
+		}
+
+		return null !== WC_Stripe_Database_Cache::get( self::AGENTIC_SESSION_CLAIM_CACHE_PREFIX . $checkout_session_id );
+	}
+
+	/**
 	 * Processes an agentic checkout session after the concurrency lock is acquired.
 	 *
 	 * @since 10.6.0
@@ -2336,6 +2478,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			if ( ! $session->is_agentic() ) {
 				WC_Stripe_Logger::info(
 					'Checkout session is not agentic, skipping agentic processing: ' . $session->get_id()
+				);
+				return;
+			}
+
+			// checkout.session.completed broadcasts to every site connected to the same Stripe
+			// account. Only the site whose agentic endpoint produced this checkout claimed it via
+			// the sync hook; any other site must not create a duplicate/wrong order. See STRIPE-968.
+			if ( ! $this->is_agentic_session_claimed( (string) $session->get_id() ) ) {
+				WC_Stripe_Logger::info(
+					'Agentic checkout session was not claimed by this site; skipping order creation (likely owned by another site on the same Stripe account).',
+					[ 'session_id' => $session->get_id() ]
 				);
 				return;
 			}
