@@ -1009,9 +1009,37 @@ jQuery( function ( $ ) {
 		},
 	};
 
+	let productPageInitScheduled = false;
+	const scheduleProductPageInit = () => {
+		if ( productPageInitScheduled ) {
+			return;
+		}
+		productPageInitScheduled = true;
+
+		const initWhenIdle = () => {
+			const requestIdleCallback = window.requestIdleCallback;
+			if ( typeof requestIdleCallback === 'function' ) {
+				requestIdleCallback( () => wcStripeECE.init(), {
+					timeout: 1500,
+				} );
+				return;
+			}
+
+			setTimeout( () => wcStripeECE.init(), 0 );
+		};
+
+		if ( document.readyState === 'complete' ) {
+			initWhenIdle();
+			return;
+		}
+
+		window.addEventListener( 'load', initWhenIdle, { once: true } );
+	};
+
 	// We don't need to initialize ECE on the checkout page now because it will be initialized by updated_checkout event.
-	if (
-		getExpressCheckoutData( 'is_product_page' ) ||
+	if ( getExpressCheckoutData( 'is_product_page' ) ) {
+		scheduleProductPageInit();
+	} else if (
 		getExpressCheckoutData( 'is_pay_for_order' ) ||
 		getExpressCheckoutData( 'is_cart_page' ) ||
 		getExpressCheckoutData( 'is_change_payment_method' )
