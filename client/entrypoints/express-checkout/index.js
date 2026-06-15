@@ -409,6 +409,12 @@ jQuery( function ( $ ) {
 
 			const eceButton = wcStripeECE.createButton( elements, {
 				...getExpressCheckoutButtonStyleSettings(),
+				...( expressPaymentTypes.length > 1 && {
+					layout: {
+						maxColumns: expressPaymentTypes.length,
+						overflow: 'never',
+					},
+				} ),
 				paymentMethods: {
 					amazonPay: hasExpressPaymentType(
 						EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY
