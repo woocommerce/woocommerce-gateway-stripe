@@ -393,6 +393,33 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_result'       => 'Via Dummy card ending in 0000',
 			],
+			'Google Pay card ending in 4040'          => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand'  => 'visa',
+					'last4'  => '4040',
+					'wallet' => [ 'type' => 'google_pay' ],
+				],
+				'expected_result'       => 'Via Google Pay (Visa) ending in 4040',
+			],
+			'Apple Pay card ending in 4444'           => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand'  => 'mastercard',
+					'last4'  => '4444',
+					'wallet' => [ 'type' => 'apple_pay' ],
+				],
+				'expected_result'       => 'Via Apple Pay (MasterCard) ending in 4444',
+			],
+			'Link wallet card stays bare'             => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand'  => 'visa',
+					'last4'  => '1881',
+					'wallet' => [ 'type' => 'link' ],
+				],
+				'expected_result'       => 'Via Visa card ending in 1881',
+			],
 			'SEPA Debit ending in 1234'               => [
 				'payment_method_type'   => 'sepa_debit',
 				'payment_method_fields' => [
