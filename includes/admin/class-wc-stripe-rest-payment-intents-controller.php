@@ -150,7 +150,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		if ( is_null( $response ) ) {
 			return new WP_Error(
 				'wc_stripe_payment_intents_error',
-				$response->error->message ?? __( 'Unable to retrieve payment intents from Stripe.', 'woocommerce-gateway-stripe' ),
+				__( 'Unable to retrieve payment intents from Stripe.', 'woocommerce-gateway-stripe' ),
 				[ 'status' => 502 ]
 			);
 		}
