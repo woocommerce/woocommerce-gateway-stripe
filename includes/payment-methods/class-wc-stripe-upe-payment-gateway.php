@@ -2419,7 +2419,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		if ( $save_payment_method && $payment_method->is_reusable() ) {
 			$payment_method_object = null;
-			if ( $payment_method->get_id() !== $payment_method->get_retrievable_type() ) {
+			// Redirect methods (e.g. iDEAL/Bancontact) expose their generated SEPA token under the
+			// type key; their details always arrive as the array-cast charge details, so the offset
+			// access is only reached once the array shape is confirmed.
+			if ( $payment_method->get_id() !== $payment_method->get_retrievable_type() && is_array( $payment_method_details ) ) {
 				$generated_payment_method_id = $payment_method_details[ $payment_method_type ]->generated_sepa_debit;
 				$payment_method_object       = $this->stripe_request( "payment_methods/$generated_payment_method_id", [], null, 'GET' );
 
@@ -3051,7 +3054,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
-			if ( $payment_method->get_id() !== $payment_method->get_retrievable_type() ) {
+			// Redirect methods store their generated SEPA token under the type key; the array-cast
+			// charge details are the only shape that carries it, so guard before the offset access.
+			if ( $payment_method->get_id() !== $payment_method->get_retrievable_type() && is_array( $payment_method_details ) ) {
 				$payment_method_id = $payment_method_details[ $payment_method_type ]->generated_sepa_debit;
 			}
 

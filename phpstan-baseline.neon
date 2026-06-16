@@ -4304,12 +4304,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Cannot access offset string on array\|object\|false\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Cannot access property \$payment_method_details on object\|string\.$#'
 			identifier: property.nonObject
 			count: 1

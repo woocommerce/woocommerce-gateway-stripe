@@ -4185,12 +4185,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->getMock();
 		$gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
 
-		$ideal_stub = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method::class )
-			->disableOriginalConstructor()
-			->onlyMethods( [ 'is_reusable' ] )
-			->getMockForAbstractClass();
-		$ideal_stub->method( 'is_reusable' )->willReturn( true );
-		$gateway->payment_methods[ WC_Stripe_Payment_Methods::IDEAL ] = $ideal_stub;
+		// Real iDEAL method: reusable here because set_up() enables sepa_tokens_for_ideal, and its
+		// retrievable type is SEPA — exactly the cross-type case this test exercises.
+		$gateway->payment_methods[ WC_Stripe_Payment_Methods::IDEAL ] = new WC_Stripe_UPE_Payment_Method_Ideal();
 
 		$_POST = [
 			'payment_method'                     => 'stripe_ideal',
