@@ -2,14 +2,12 @@
 /**
  * Per-product Agentic Commerce sync exclusion flag.
  *
- * Owns storage and retrieval of the per-product exclude flag, and votes in the
- * `wc_stripe_agentic_commerce_should_sync_product` filter so the feed honors it
- * in every context (cron/CLI included). Kept separate from the admin meta box so
- * the flag's read/write contract stays decoupled from the editor UI.
+ * Owns storage and retrieval of the per-product exclude flag, and ensures the exclusion flag
+ * is applied through the `wc_stripe_agentic_commerce_should_sync_product` filter.
  *
  * @internal Not part of the plugin's public API; may change without notice.
  * @package WooCommerce_Stripe
- * @since 10.8.0
+ * @since 10.9.0
  */
 
 declare(strict_types=1);
