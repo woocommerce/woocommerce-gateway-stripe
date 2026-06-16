@@ -1393,6 +1393,12 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
+			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_link_settings\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			identifier: missingType.generics
+			count: 1
+			path: includes/admin/class-wc-rest-stripe-settings-controller.php
+
+		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_express_checkout_settings\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
@@ -3255,8 +3261,9 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$webhook_notification of method WC_Stripe_Webhook_Handler\:\:defer_webhook_processing\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 3
 			path: includes/class-wc-stripe-webhook-handler.php
+
 
 		-
 			message: '#^Parameter \#2 \$request_body of method WC_Stripe_Webhook_Handler\:\:validate_request\(\) expects array, string\|false given\.$#'

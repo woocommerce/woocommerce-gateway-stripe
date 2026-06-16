@@ -751,6 +751,138 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Regression: when the order is found but its payment lock is held by a concurrent process
+	 * (e.g. the order-received redirect handler holding it across a Stripe API call), settlement
+	 * must be re-queued, otherwise the paid order is left stuck pending.
+	 *
+	 * @return void
+	 */
+	public function test_handle_checkout_session_success_requeues_when_order_payment_locked(): void {
+		$checkout_session_id = 'cs_test_locked_requeue';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		// Clear per-session caches so the handler doesn't short-circuit on a stale lock entry.
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		// Simulate a concurrent process holding the order payment lock.
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+		$order_helper->method( 'lock_order_payment' )->willReturn( true );
+		$order_helper->method( 'unlock_order_payment' );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_locked',
+				],
+			],
+		];
+
+		$start          = time();
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->callback(
+					function ( $timestamp ) use ( $start ) {
+						$this->assertIsInt( $timestamp );
+						// The lock clears in ~1s, so the retry uses a short dedicated backoff rather than
+						// the 2-minute deferred delay — the order must not sit pending that long.
+						$this->assertGreaterThanOrEqual( $start + 10, $timestamp );
+						$this->assertLessThan( $start + MINUTE_IN_SECONDS, $timestamp );
+
+						return true;
+					}
+				),
+				'wc_stripe_deferred_webhook',
+				$this->callback(
+					function ( $args ) use ( $checkout_session_id ) {
+						return 'checkout.session.completed' === ( $args['type'] ?? '' )
+							&& ( $args['data']['session_id'] ?? '' ) === $checkout_session_id;
+					}
+				)
+			);
+
+		$handler = new WC_Stripe_Webhook_Handler();
+		$prop    = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		$handler->process_checkout_session_success( $notification );
+
+		// Settlement is deferred to the retry, so the order must still be unsettled.
+		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+	}
+
+	/**
+	 * Regression: when the order is locked and settlement is re-queued, process_webhook must NOT fire
+	 * wc_stripe_webhook_received on this live pass. Settlement hasn't happened yet; the action fires
+	 * once from the retry. Firing here would double-dispatch and run before the payment settles.
+	 *
+	 * @return void
+	 */
+	public function test_process_webhook_skips_received_action_when_order_payment_locked(): void {
+		$checkout_session_id = 'cs_test_locked_no_action';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+		$order_helper->method( 'lock_order_payment' )->willReturn( true );
+		$order_helper->method( 'unlock_order_payment' );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_locked_no_action',
+				],
+			],
+		];
+
+		$handler = new WC_Stripe_Webhook_Handler();
+		$prop    = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $this->createMock( WC_Stripe_Action_Scheduler_Service::class ) );
+
+		$fired    = 0;
+		$listener = function () use ( &$fired ) {
+			++$fired;
+		};
+		add_action( 'wc_stripe_webhook_received', $listener );
+
+		try {
+			$handler->process_webhook( wp_json_encode( $notification ) );
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $listener );
+		}
+
+		$this->assertSame( 0, $fired, 'wc_stripe_webhook_received must not fire while settlement is deferred.' );
+	}
+
+	/**
 	 * Deferred checkout session success events should run handle_checkout_session_success when the job executes.
 	 *
 	 * @param string $event_type Stripe event type.
@@ -949,6 +1081,148 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected note'      => 'This payment has expired. Order status changed from On hold to Failed.',
 			],
 		];
+	}
+
+	/**
+	 * Builds a pre_http_request stub for the "list Checkout Sessions by PaymentIntent" lookup.
+	 *
+	 * @param string      $intent_id           PaymentIntent the failed event references.
+	 * @param string|null $checkout_session_id Session to return, or null to simulate no match.
+	 * @param bool        $called              Set to true when the lookup endpoint is hit.
+	 * @return callable
+	 */
+	private function stub_checkout_session_lookup( string $intent_id, ?string $checkout_session_id, &$called = false ) {
+		return function ( $return_value, $parsed_args, $url ) use ( $intent_id, $checkout_session_id, &$called ) {
+			$expected_url = WC_Stripe_API::ENDPOINT . 'checkout/sessions?payment_intent=' . $intent_id . '&limit=1';
+			if ( $url !== $expected_url ) {
+				return $return_value;
+			}
+			$called = true;
+			$data   = null === $checkout_session_id ? [] : [
+				[
+					'id'             => $checkout_session_id,
+					'payment_intent' => $intent_id,
+				],
+			];
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'object' => 'list',
+						'data'   => $data,
+					]
+				),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+	}
+
+	/**
+	 * Adaptive Pricing declines leave the order linked only to its Checkout Session — the failed
+	 * intent carries no order metadata and the intent ID isn't stored on the order. The handler runs
+	 * the (extra) session lookup only for intents flagged as Checkout Session intents, and marks the
+	 * order failed when the session resolves it.
+	 *
+	 * @dataProvider provide_process_payment_intent_checkout_session_fallback
+	 *
+	 * @param bool   $has_marker       Whether the failed intent carries the Adaptive Pricing checkout_type.
+	 * @param bool   $session_resolves Whether Stripe returns the order's Checkout Session for the intent.
+	 * @param bool   $expect_lookup    Whether the session lookup should be attempted.
+	 * @param string $expected_status  The order status after processing.
+	 */
+	public function test_process_payment_intent_checkout_session_fallback(
+		bool $has_marker,
+		bool $session_resolves,
+		bool $expect_lookup,
+		string $expected_status
+	): void {
+		$checkout_session_id = 'cs_test_pi_fallback';
+		$intent_id           = 'pi_test_pi_fallback';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		$lookup_called   = false;
+		$pre_http_filter = $this->stub_checkout_session_lookup( $intent_id, $session_resolves ? $checkout_session_id : null, $lookup_called );
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		$intent = [
+			'id'                 => $intent_id,
+			'last_payment_error' => (object) [ 'message' => 'Your card was declined.' ],
+		];
+		if ( $has_marker ) {
+			$intent['metadata'] = (object) [ 'checkout_type' => WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE ];
+		}
+
+		$notification = (object) [
+			'type' => 'payment_intent.payment_failed',
+			'data' => (object) [
+				'object' => (object) $intent,
+			],
+		];
+
+		$this->mock_webhook_handler->process_payment_intent( $notification );
+		remove_filter( 'pre_http_request', $pre_http_filter );
+
+		$this->assertSame( $expect_lookup, $lookup_called );
+		$this->assertSame( $expected_status, wc_get_order( $order->get_id() )->get_status() );
+	}
+
+	/**
+	 * Data provider for `test_process_payment_intent_checkout_session_fallback`.
+	 *
+	 * @return array<string, array{0: bool, 1: bool, 2: bool, 3: string}>
+	 */
+	public function provide_process_payment_intent_checkout_session_fallback(): array {
+		return [
+			'flagged intent, session resolves -> order failed'       => [ true, true, true, OrderStatus::FAILED ],
+			'flagged intent, no matching session -> order untouched' => [ true, false, true, OrderStatus::PENDING ],
+			'unflagged intent -> lookup skipped, order untouched'    => [ false, true, false, OrderStatus::PENDING ],
+		];
+	}
+
+	/**
+	 * charge.failed is intentionally not used to resolve declined Adaptive Pricing orders — the
+	 * paired payment_intent.payment_failed event handles that — so it must not run the session lookup.
+	 */
+	public function test_process_webhook_charge_failed_does_not_resolve_declined_adaptive_pricing_order_via_checkout_session() {
+		$checkout_session_id = 'cs_test_charge_no_resolve';
+		$intent_id           = 'pi_test_charge_no_resolve';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		$lookup_called   = false;
+		$pre_http_filter = $this->stub_checkout_session_lookup( $intent_id, $checkout_session_id, $lookup_called );
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		$notification = (object) [
+			'type' => 'charge.failed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => 'ch_test_no_resolve',
+					'payment_intent' => $intent_id,
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_charge_failed( $notification );
+		remove_filter( 'pre_http_request', $pre_http_filter );
+
+		$this->assertFalse( $lookup_called, 'charge.failed must not trigger the Checkout Session lookup.' );
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::PENDING, $final_order->get_status() );
 	}
 
 	/**

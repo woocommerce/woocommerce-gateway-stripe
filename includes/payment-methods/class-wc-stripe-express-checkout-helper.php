@@ -185,6 +185,24 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Gets the Link button height.
+	 *
+	 * @return string
+	 */
+	public function get_link_button_height() {
+		$size = isset( $this->stripe_settings['link_button_size'] ) ? $this->stripe_settings['link_button_size'] : 'default';
+		if ( 'small' === $size ) {
+			return '40';
+		}
+
+		if ( 'large' === $size ) {
+			return '56';
+		}
+
+		return '48';
+	}
+
+	/**
 	 * Gets the button radius.
 	 *
 	 * @return string
@@ -1079,7 +1097,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	private function should_show_ece_on_location( string $location ): bool {
 		return $this->is_enabled_for_location( 'payment_request', $location ) ||
-				$this->is_enabled_for_location( 'amazon_pay', $location );
+				$this->is_enabled_for_location( 'amazon_pay', $location ) ||
+				$this->is_enabled_for_location( 'link', $location );
 	}
 
 	/**
@@ -1746,8 +1765,10 @@ class WC_Stripe_Express_Checkout_Helper {
 			case 'amazon_pay':
 				$key = 'amazon_pay_button_locations';
 				break;
+			case 'link':
+				$key = 'link_button_locations';
+				break;
 			case 'payment_request':
-			case 'link': // Link does not yet have its own Customize page. It shares the same location settings as Apple Pay and Google Pay.
 			default:
 				$key = 'express_checkout_button_locations';
 				break;
