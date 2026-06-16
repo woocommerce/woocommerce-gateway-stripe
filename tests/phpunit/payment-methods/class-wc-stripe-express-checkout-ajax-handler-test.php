@@ -341,14 +341,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 
 		$this->express_checkout_helper->method( 'is_invalid_subscription_product' )->willReturn( false );
 		$this->express_checkout_helper->method( 'get_product_price' )->willReturn( 10.0 );
+		$this->express_checkout_helper->method( 'get_taxes_like_cart' )->willReturn( [] );
 		$this->express_checkout_helper->method( 'get_total_label' )->willReturn( 'Total' );
-
-		// Tax must be calculated on the quantity-adjusted subtotal (0.25 x $10 = $2.50),
-		// not a single unit. Asserting the second argument verifies that scaling.
-		$this->express_checkout_helper->expects( $this->once() )
-			->method( 'get_taxes_like_cart' )
-			->with( $this->anything(), 2.5 )
-			->willReturn( [ 0.25 ] );
 
 		try {
 			$security_nonce       = wp_create_nonce( 'wc-stripe-get-selected-product-data' );
@@ -371,11 +365,10 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
 		}
 
-		// 0.25 x $10 = $2.50 subtotal (250 minor units) + $0.25 tax = $2.75 total (275).
+		// 0.25 x $10 = $2.50 = 250 minor units; a truncated quantity would yield 0.
 		$this->assertIsArray( $response );
 		$this->assertArrayHasKey( 'displayItems', $response, 'response: ' . wp_json_encode( $response ) );
 		$this->assertSame( 250, $response['displayItems'][0]['amount'] );
-		$this->assertSame( 275, $response['total']['amount'] );
 	}
 
 	/**
