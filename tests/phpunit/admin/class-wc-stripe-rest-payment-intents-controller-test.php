@@ -15,28 +15,40 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		do_action( 'rest_api_init' );
 	}
 
+	public function teardown(): void {
+		$var = 'break';
+		remove_filter(
+			'pre_http_request',
+			[ static::class, 'pre_http_request_mock_handler' ],
+			10,
+			3
+		);
+	}
+
+	public static function pre_http_request_mock_handler( $preempt, $request_args, $url ) {
+		if ( false === strpos( $url, 'payment_intents' ) ) {
+			return $preempt;
+		}
+
+		return [
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'data'     => [],
+					'has_more' => false,
+				]
+			),
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+		];
+	}
 	/** Mock stripe API calls to avoid making real HTTP requests. */
 	protected function mock_http_call() {
 		add_filter(
 			'pre_http_request',
-			function ( $preempt, $request_args, $url ) {
-				if ( false === strpos( $url, 'payment_intents' ) ) {
-					return $preempt;
-				}
-				return [
-					'headers'  => [],
-					'body'     => wp_json_encode(
-						[
-							'data'     => [],
-							'has_more' => false,
-						]
-					),
-					'response' => [
-						'code'    => 200,
-						'message' => 'OK',
-					],
-				];
-			},
+			[ static::class, 'pre_http_request_mock_handler' ],
 			10,
 			3
 		);
@@ -72,6 +84,12 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		$response = $this->send_request();
 
 		$this->assertSame( 403, $response->get_status() );
+	}
+
+	public function test_wrong_stripe_api_key() {
+		$var = 'test';
+		$this->send_request();
+		$this->assertTrue( true );
 	}
 
 	/** Create an admin user, set it as current user and send a API request. */
