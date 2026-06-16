@@ -8,6 +8,7 @@ const {
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
 	clickAddToCartButton,
+	waitForOrderReceivedPage,
 } = payments;
 
 let productId;
@@ -52,9 +53,5 @@ test( 'customer can purchase a pre-order product @pre-orders', async ( {
 	} );
 	await expect( placePreOrderButton ).toBeEnabled();
 	await placePreOrderButton.dispatchEvent( 'click' );
-	await page.waitForURL( '**/checkout/order-received/**' );
-
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
-	);
+	await waitForOrderReceivedPage( page );
 } );
