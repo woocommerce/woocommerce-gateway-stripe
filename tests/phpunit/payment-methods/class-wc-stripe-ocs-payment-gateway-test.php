@@ -232,6 +232,7 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$get_config->setAccessible( true );
 		$config = $get_config->invoke( $gateway );
 
+		$this->assertIsArray( $config[ WC_Stripe_Payment_Methods::CARD ]['showSaveOptionByMethod'] ?? null );
 		$by_method = $config[ WC_Stripe_Payment_Methods::CARD ]['showSaveOptionByMethod'];
 		$this->assertSame( $expected_converting, $by_method[ WC_Stripe_Payment_Methods::BANCONTACT ] );
 		$this->assertSame( $expected_converting, $by_method[ WC_Stripe_Payment_Methods::IDEAL ] );
