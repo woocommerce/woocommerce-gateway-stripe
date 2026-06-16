@@ -165,6 +165,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Send the billing address to Stripe on the Pay for Order page so payments aren't incorrectly blocked by Stripe Radar rules
 * Update - Replace shipping AJAX endpoints with Store API calls for Express Checkout Element
 * Tweak - Consolidate the default payment intent metadata fields into a shared method so they stay consistent across payment flows
+* Fix - Prevent an uncaught "Stripe initialization data is not available" error on product pages when express checkout loads without the Stripe payment configuration
 * Add - Stripe admin pages to the WordPress Command Palette
 * Fix - Prevent a possible fatal error when saving the payment method on a subscription order
 * Dev - Use clsx library instead of classnames
