@@ -56,7 +56,7 @@ test.describe( 'express checkout and variable products', () => {
 		// before asserting that it is hidden. Immedidately asserting that it is hidden
 		// might cause the test to pass only because the element is not yet loaded.
 		const linkContainer = page.locator(
-			'#wc-stripe-express-checkout-element-link iframe[name^="__privateStripeFrame"]'
+			'#wc-stripe-express-checkout-element-wallets-link iframe[name^="__privateStripeFrame"]'
 		);
 		await expect( linkContainer ).toHaveCount( 1 );
 		await expect( linkContainer ).toBeHidden();
