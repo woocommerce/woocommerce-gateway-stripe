@@ -156,6 +156,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.9.0 - xxxx-xx-xx =
+* Add - Add dedicated settings page for Link with button size and location customization
 * Fix - Ignore incoming webhook events whose Stripe account does not match the connected account to avoid acting on another account's data
 * Fix - When changing a subscription's payment method, reflect the new card and its Apple Pay/Google Pay branding on My Account and clarify the admin order note
 * Dev - Use a shared hook manager to prevent duplicate subscription hook registrations
