@@ -1393,6 +1393,12 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
+			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_link_settings\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			identifier: missingType.generics
+			count: 1
+			path: includes/admin/class-wc-rest-stripe-settings-controller.php
+
+		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_express_checkout_settings\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1

@@ -381,8 +381,11 @@ jQuery( function ( $ ) {
 					getPaymentMethodTypesForExpressMethod( expressPaymentType ),
 			} );
 
+			const buttonStyleSettings =
+				getExpressCheckoutButtonStyleSettings( expressPaymentType );
+
 			const eceButton = wcStripeECE.createButton( elements, {
-				...getExpressCheckoutButtonStyleSettings(),
+				...buttonStyleSettings,
 				paymentMethods: {
 					amazonPay:
 						expressPaymentType ===
