@@ -36,60 +36,24 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	protected $retry_interval = 1;
 
 	/**
-	 * Object-cache key/group for the request-scoped main settings cache.
-	 *
-	 * A single shared cache entry (rather than a per-instance property) so every
-	 * gateway instance reads the same value — no divergent in-memory copies.
-	 */
-	protected const SETTINGS_CACHE_GROUP = 'woocommerce_stripe';
-	protected const SETTINGS_CACHE_KEY   = 'main_settings';
-
-	/**
-	 * Registers the settings cache group as non-persistent so the cache stays
-	 * request-scoped even when a persistent object cache (Redis/Memcached) is
-	 * active. Without this, invalidation would depend on the option-change
-	 * hooks being registered in the request that performs the write.
-	 *
-	 * Called once at plugin bootstrap (WC_Stripe::init()).
-	 *
-	 * @since 10.9.0
-	 *
-	 * @return void
-	 */
-	public static function register_settings_cache_group(): void {
-		wp_cache_add_non_persistent_groups( self::SETTINGS_CACHE_GROUP );
-	}
-
-	/**
 	 * Returns the main Stripe gateway settings array.
 	 *
-	 * Caches the raw option in a request-scoped object-cache entry shared by all
-	 * gateway instances, so repeated reads within a request hit one source of
-	 * truth. Always returns an array, even when the option is missing or stored
-	 * as a non-array value.
+	 * Thin delegate to the co-located, cached accessor on WC_Stripe so callers
+	 * holding a gateway instance share the same single source of truth.
 	 *
 	 * @since 10.9.0
 	 *
 	 * @return array
 	 */
 	public function get_settings(): array {
-		$cached = wp_cache_get( self::SETTINGS_CACHE_KEY, self::SETTINGS_CACHE_GROUP );
-		if ( is_array( $cached ) ) {
-			return $cached;
-		}
-
-		$settings = WC_Stripe::read_settings_option();
-		wp_cache_set( self::SETTINGS_CACHE_KEY, $settings, self::SETTINGS_CACHE_GROUP );
-
-		return $settings;
+		return WC_Stripe::get_instance()->get_settings();
 	}
 
 	/**
 	 * Replaces the main Stripe gateway settings option.
 	 *
-	 * Invalidates the shared cache itself so this mutator is self-contained and
-	 * never serves stale settings, even when the main gateway's option-change
-	 * hooks are not yet registered for the current request.
+	 * Thin delegate to WC_Stripe::update_settings(), which persists and
+	 * invalidates the cache in one place.
 	 *
 	 * @since 10.9.0
 	 *
@@ -97,24 +61,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool Whether the option was actually written (matches `update_option`).
 	 */
 	public function update_settings( array $settings ): bool {
-		$updated = WC_Stripe::write_settings_option( $settings );
-		$this->refresh_settings_cache();
-		return $updated;
+		return WC_Stripe::get_instance()->update_settings( $settings );
 	}
 
 	/**
 	 * Invalidates the cached settings so the next read reloads them.
 	 *
-	 * Hooked to the option-change actions for the main settings option so the
-	 * cache self-heals after any write (our update_settings(), WooCommerce's
-	 * admin save, or a raw update_option()).
-	 *
 	 * @since 10.9.0
 	 *
 	 * @return void
 	 */
-	public function refresh_settings_cache() {
-		wp_cache_delete( self::SETTINGS_CACHE_KEY, self::SETTINGS_CACHE_GROUP );
+	public function refresh_settings_cache(): void {
+		WC_Stripe::get_instance()->refresh_settings_cache();
 	}
 
 	/**

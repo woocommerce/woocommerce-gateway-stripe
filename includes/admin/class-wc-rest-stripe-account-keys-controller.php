@@ -154,7 +154,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 */
 	public function get_account_keys() {
 		$allowed_params  = [ 'publishable_key', 'secret_key', 'webhook_secret', 'test_publishable_key', 'test_secret_key', 'test_webhook_secret' ];
-		$stripe_settings = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_settings();
+		$stripe_settings = WC_Stripe::get_instance()->get_settings();
 		// Filter only the fields we want to return
 		$account_keys = array_intersect_key( $stripe_settings, array_flip( $allowed_params ) );
 
@@ -350,7 +350,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$publishable = wc_clean( wp_unslash( $request->get_param( 'publishable' ) ) );
 		$secret      = wc_clean( wp_unslash( $request->get_param( 'secret' ) ) );
 
-		$settings = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_settings();
+		$settings = WC_Stripe::get_instance()->get_settings();
 
 		if ( $publishable === $this->mask_key_value( $publishable ) ) {
 			$publishable = $settings[ $live_mode ? 'publishable_key' : 'test_publishable_key' ];

@@ -117,7 +117,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function __construct() {
 		$this->retry_interval = 2;
-		$stripe_settings      = WC_Stripe::read_settings_option();
+		$stripe_settings      = WC_Stripe::get_instance()->get_settings();
 		$this->testmode       = WC_Stripe_Mode::is_test();
 		$secret_key           = ( $this->testmode ? 'test_' : '' ) . 'webhook_secret';
 		$this->secret         = ! empty( $stripe_settings[ $secret_key ] ) ? $stripe_settings[ $secret_key ] : false;

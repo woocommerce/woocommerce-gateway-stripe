@@ -50,7 +50,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 */
 	public function get_option( $setting = '', $default_value = '' ) {
 		if ( empty( $this->stripe_settings ) ) {
-			$this->stripe_settings = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_settings();
+			$this->stripe_settings = WC_Stripe::get_instance()->get_settings();
 		}
 
 		if ( ! empty( $this->stripe_settings[ $setting ] ) ) {

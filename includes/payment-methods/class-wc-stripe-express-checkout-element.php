@@ -50,7 +50,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 */
 	public function __construct( WC_Stripe_Express_Checkout_Ajax_Handler $express_checkout_ajax_handler, WC_Stripe_Express_Checkout_Helper $express_checkout_helper ) {
 		self::$_this           = $this;
-		$this->stripe_settings = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_settings();
+		$this->stripe_settings = WC_Stripe::get_instance()->get_settings();
 
 		$this->express_checkout_helper       = $express_checkout_helper;
 		$this->express_checkout_ajax_handler = $express_checkout_ajax_handler;

@@ -211,7 +211,7 @@ class WC_Stripe_Logger {
 			return true;
 		}
 
-		$settings = WC_Stripe::read_settings_option();
+		$settings = WC_Stripe::get_instance()->get_settings();
 
 		if ( 'yes' === ( $settings['logging'] ?? 'no' ) ) {
 			return true;

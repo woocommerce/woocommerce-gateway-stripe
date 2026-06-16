@@ -51,7 +51,7 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update_Test 
 	 * @return void
 	 */
 	private function set_stored_settings( array $settings ): void {
-		WC_Stripe::write_settings_option( $settings );
+		WC_Stripe::get_instance()->update_settings( $settings );
 	}
 
 	/**
@@ -70,7 +70,7 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update_Test 
 
 		$this->build_migration()->maybe_migrate();
 
-		$stored = WC_Stripe::read_settings_option();
+		$stored = WC_Stripe::get_instance()->get_settings();
 		$this->assertSame(
 			[ 'product', 'cart', 'checkout', 'change_payment_method' ],
 			$stored['express_checkout_button_locations']
@@ -92,7 +92,7 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update_Test 
 
 		$this->build_migration()->maybe_migrate();
 
-		$stored = WC_Stripe::read_settings_option();
+		$stored = WC_Stripe::get_instance()->get_settings();
 		$this->assertSame( [ 'checkout' ], $stored['express_checkout_button_locations'] );
 		$this->assertSame( 'yes', get_option( self::MIGRATION_FLAG_OPTION ) );
 	}
@@ -111,7 +111,7 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update_Test 
 
 		$this->build_migration()->maybe_migrate();
 
-		$stored = WC_Stripe::read_settings_option();
+		$stored = WC_Stripe::get_instance()->get_settings();
 		$this->assertSame(
 			[ 'product', 'cart', 'checkout', 'change_payment_method' ],
 			$stored['express_checkout_button_locations']
@@ -134,7 +134,7 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update_Test 
 
 		$this->build_migration()->maybe_migrate();
 
-		$stored = WC_Stripe::read_settings_option();
+		$stored = WC_Stripe::get_instance()->get_settings();
 		$this->assertSame(
 			[ 'product', 'cart', 'checkout' ],
 			$stored['express_checkout_button_locations']
@@ -154,7 +154,7 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update_Test 
 
 		$this->build_migration()->maybe_migrate();
 
-		$stored = WC_Stripe::read_settings_option();
+		$stored = WC_Stripe::get_instance()->get_settings();
 		$this->assertSame( '', $stored['express_checkout_button_locations'] );
 		$this->assertSame( 'yes', get_option( self::MIGRATION_FLAG_OPTION ) );
 	}
@@ -173,7 +173,7 @@ class WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update_Test 
 
 		$this->build_migration( false )->maybe_migrate();
 
-		$stored = WC_Stripe::read_settings_option();
+		$stored = WC_Stripe::get_instance()->get_settings();
 		$this->assertSame(
 			[ 'product', 'cart', 'checkout' ],
 			$stored['express_checkout_button_locations']

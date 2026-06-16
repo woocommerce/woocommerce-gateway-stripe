@@ -421,7 +421,7 @@ class WC_Stripe_Account {
 	 * @return bool
 	 */
 	public function is_webhook_enabled() {
-		$stripe_settings = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_settings();
+		$stripe_settings = WC_Stripe::get_instance()->get_settings();
 		$is_testmode     = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
 		$key             = $is_testmode ? 'test_webhook_data' : 'webhook_data';
 
@@ -536,7 +536,7 @@ class WC_Stripe_Account {
 	 * @return void
 	 */
 	public function maybe_reconfigure_webhooks_on_update( string $update_type = 'plugin' ) {
-		$settings = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_settings();
+		$settings = WC_Stripe::get_instance()->get_settings();
 		$modes    = [ 'live', 'test' ];
 
 		foreach ( $modes as $mode ) {

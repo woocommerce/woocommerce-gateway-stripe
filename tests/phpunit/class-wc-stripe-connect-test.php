@@ -27,7 +27,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->connect = new WC_Stripe_Connect( $api_mock );
 
 		delete_option( 'wc_stripe_optimized_checkout_default_on' );
-		WC_Stripe::write_settings_option( [] );
+		WC_Stripe::get_instance()->update_settings( [] );
 	}
 
 	/**
@@ -35,7 +35,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function tear_down() {
 		delete_option( 'wc_stripe_optimized_checkout_default_on' );
-		WC_Stripe::write_settings_option( [] );
+		WC_Stripe::get_instance()->update_settings( [] );
 
 		parent::tear_down();
 	}
@@ -82,7 +82,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$method->setAccessible( true );
 		$method->invoke( $this->connect, $result, $type, 'test' );
 
-		$settings = WC_Stripe::read_settings_option();
+		$settings = WC_Stripe::get_instance()->get_settings();
 
 		$this->assertSame( $expected_oc, $settings['optimized_checkout_element'] ?? '' );
 		$this->assertSame( $expected_ap, $settings['adaptive_pricing'] ?? '' );
@@ -139,7 +139,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'secret' => 'sk_test_old_account',
 		];
 
-		WC_Stripe::write_settings_option(
+		WC_Stripe::get_instance()->update_settings(
 			[
 				'testmode'             => 'yes',
 				'test_secret_key'      => 'sk_test_old_account',
@@ -158,7 +158,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->invoke_save_stripe_keys( 'pk_test_123', 'sk_test_123' );
 
-		$settings = WC_Stripe::read_settings_option();
+		$settings = WC_Stripe::get_instance()->get_settings();
 		$this->assertSame( [], $settings['test_webhook_data'] );
 		$this->assertSame( '', $settings['test_webhook_secret'] );
 	}

@@ -288,11 +288,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 
-		// Keep the in-memory settings cache in sync with any write to the option.
-		add_action( 'add_option_' . WC_Stripe::SETTINGS_OPTION_NAME, [ $this, 'refresh_settings_cache' ] );
-		add_action( 'update_option_' . WC_Stripe::SETTINGS_OPTION_NAME, [ $this, 'refresh_settings_cache' ] );
-		add_action( 'delete_option_' . WC_Stripe::SETTINGS_OPTION_NAME, [ $this, 'refresh_settings_cache' ] );
-
 		add_action( 'wp_footer', [ $this, 'payment_scripts' ] );
 
 		// Display the correct fees on the order page.

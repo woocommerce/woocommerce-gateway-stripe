@@ -57,7 +57,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_123';
 
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
 			->disableOriginalConstructor()
@@ -88,7 +88,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_123';
 
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
 			->disableOriginalConstructor()

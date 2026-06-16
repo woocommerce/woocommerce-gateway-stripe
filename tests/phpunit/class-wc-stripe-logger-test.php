@@ -14,9 +14,9 @@ class WC_Stripe_Logger_Test extends WP_UnitTestCase {
 	public function test_can_log() {
 		$this->assertFalse( WC_Stripe_Logger::can_log() );
 
-		$stripe_settings            = WC_Stripe::read_settings_option();
+		$stripe_settings            = WC_Stripe::get_instance()->get_settings();
 		$stripe_settings['logging'] = 'yes';
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$this->assertTrue( WC_Stripe_Logger::can_log() );
 	}
@@ -30,9 +30,9 @@ class WC_Stripe_Logger_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_can_log_calls_filter_correctly( ?string $log_level_input = null ): void {
-		$stripe_settings = WC_Stripe::read_settings_option();
+		$stripe_settings = WC_Stripe::get_instance()->get_settings();
 		unset( $stripe_settings['logging'] );
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$captured_can_log          = null;
 		$captured_log_level        = null;
@@ -86,9 +86,9 @@ class WC_Stripe_Logger_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_can_log_normalizes_filter_return_value( ?string $log_level_input, $filter_return_value, bool $expected_result ): void {
-		$stripe_settings = WC_Stripe::read_settings_option();
+		$stripe_settings = WC_Stripe::get_instance()->get_settings();
 		unset( $stripe_settings['logging'] );
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$filter = function ( $can_log ) use ( $filter_return_value ) {
 			return $filter_return_value;
@@ -133,9 +133,9 @@ class WC_Stripe_Logger_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_logger_methods_call_filter_correctly( string $logger_method ): void {
-		$stripe_settings = WC_Stripe::read_settings_option();
+		$stripe_settings = WC_Stripe::get_instance()->get_settings();
 		unset( $stripe_settings['logging'] );
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$captured_can_log          = null;
 		$captured_log_level        = null;

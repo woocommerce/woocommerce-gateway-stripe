@@ -117,9 +117,9 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			OC_Test_Helper::disable_oc();
 		}
 
-		$stripe_settings            = WC_Stripe::read_settings_option();
+		$stripe_settings            = WC_Stripe::get_instance()->get_settings();
 		$stripe_settings['capture'] = $automatic_capture ? 'yes' : 'no';
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		if ( ! empty( $filter_function ) ) {
 			add_filter( 'wc_stripe_is_checkout_sessions_available', $filter_function );
@@ -132,7 +132,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		PMC_Test_Helper::delete_cached_configuration();
 		OC_Test_Helper::disable_oc();
 		$stripe_settings['capture'] = 'yes';
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		if ( ! empty( $filter_function ) ) {
 			remove_filter( 'wc_stripe_is_checkout_sessions_available', $filter_function );

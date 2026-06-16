@@ -225,7 +225,7 @@ class WC_Stripe_Admin_Notices {
 		$changed_keys_notice       = get_option( 'wc_stripe_show_changed_keys_notice' );
 		$legacy_deprecation_notice = get_option( 'wc_stripe_show_legacy_deprecation_notice' );
 		$oauth_required_notice     = get_option( 'wc_stripe_oauth_required' );
-		$options                   = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_settings();
+		$options                   = WC_Stripe::get_instance()->get_settings();
 		$testmode                  = WC_Stripe_Mode::is_test();
 		$test_pub_key              = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
 		$test_secret_key           = isset( $options['test_secret_key'] ) ? $options['test_secret_key'] : '';
@@ -483,7 +483,7 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
-		$options   = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_settings();
+		$options   = WC_Stripe::get_instance()->get_settings();
 		$enabled   = isset( $options['express_checkout'] ) && 'yes' === $options['express_checkout'];
 		$locations = isset( $options['express_checkout_button_locations'] ) ? $options['express_checkout_button_locations'] : [];
 

@@ -57,7 +57,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return void
 	 */
 	public function initialize() {
-		$this->settings = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_settings();
+		$this->settings = WC_Stripe::get_instance()->get_settings();
 	}
 
 	/**

@@ -22,12 +22,12 @@ class WC_Stripe_Express_Checkout_Controller_Test extends WP_UnitTestCase {
 		parent::setUp();
 
 		// Setup existing keys
-		$settings                         = WC_Stripe::read_settings_option();
+		$settings                         = WC_Stripe::get_instance()->get_settings();
 		$settings['publishable_key']      = 'original-live-key-9999';
 		$settings['secret_key']           = '';
 		$settings['test_publishable_key'] = 'original-test-key-9999';
 		$settings['test_secret_key']      = '';
-		WC_Stripe::write_settings_option( $settings );
+		WC_Stripe::get_instance()->update_settings( $settings );
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-express-checkout-controller.php';
 		$this->controller = new WC_Stripe_Express_Checkout_Controller();

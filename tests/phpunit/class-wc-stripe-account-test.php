@@ -23,14 +23,14 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$stripe_settings                         = WC_Stripe::read_settings_option();
+		$stripe_settings                         = WC_Stripe::get_instance()->get_settings();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
 		$stripe_settings['publishable_key']      = '';
 		$stripe_settings['secret_key']           = '';
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$this->mock_connect = $this->getMockBuilder( WC_Stripe_Connect::class )
 								->disableOriginalConstructor()
@@ -379,7 +379,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 * Tests for is_webhook_enabled().
 	 */
 	public function test_is_webhook_enabled() {
-		$stripe_settings = WC_Stripe::read_settings_option();
+		$stripe_settings = WC_Stripe::get_instance()->get_settings();
 
 		// False if webhook secrets are not set.
 		$stripe_settings['testmode']          = 'yes';
@@ -387,17 +387,17 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'id'     => 'wh_123_test',
 			'secret' => '',
 		];
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 		$this->clear_webhook_status_cache();
 		$this->assertFalse( $this->account->is_webhook_enabled() );
 
 		$stripe_settings['test_webhook_data'] = [];
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 		$this->clear_webhook_status_cache();
 		$this->assertFalse( $this->account->is_webhook_enabled() );
 
 		unset( $stripe_settings['test_webhook_data'] );
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 		$this->clear_webhook_status_cache();
 		$this->assertFalse( $this->account->is_webhook_enabled() );
 
@@ -410,7 +410,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'id'     => 'wh_123_test',
 			'secret' => 'wh_secret_123_test',
 		];
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		WC_Helper_Stripe_Api::$expected_request_call_params = [
 			[ [], 'webhook_endpoints/wh_123_test', 'GET' ],
@@ -434,7 +434,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		// Assert that it queries the correct webhook (live).
 		$stripe_settings['testmode'] = 'no';
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 		WC_Helper_Stripe_Api::$expected_request_call_params = [
 			[ [], 'webhook_endpoints/wh_123', 'GET' ],
 		];

@@ -38,11 +38,11 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 		)
 		->getMock();
 
-		$settings                    = WC_Stripe::read_settings_option();
+		$settings                    = WC_Stripe::get_instance()->get_settings();
 		$settings['enabled']         = 'yes';
 		$settings['testmode']        = 'yes';
 		$settings['test_secret_key'] = '123';
-		WC_Stripe::write_settings_option( $settings );
+		WC_Stripe::get_instance()->update_settings( $settings );
 
 		$this->upe_helper = new UPE_Test_Helper();
 	}

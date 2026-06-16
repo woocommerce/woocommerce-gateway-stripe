@@ -138,10 +138,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
 
-		$stripe_settings                               = WC_Stripe::read_settings_option();
+		$stripe_settings                               = WC_Stripe::get_instance()->get_settings();
 		$stripe_settings['sepa_tokens_for_ideal']      = 'yes';
 		$stripe_settings['sepa_tokens_for_bancontact'] = 'yes';
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->setConstructorArgs( [] )
@@ -5047,8 +5047,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @dataProvider provide_test_get_excluded_payment_method_types
 	 */
 	public function test_get_excluded_payment_method_types( array $unsupported_methods, $filter_callback, array $expected_excluded, array $expected_not_excluded ) {
-		$initial_settings = WC_Stripe::read_settings_option();
-		$settings_base    = WC_Stripe::read_settings_option();
+		$initial_settings = WC_Stripe::get_instance()->get_settings();
+		$settings_base    = WC_Stripe::get_instance()->get_settings();
 
 		// Set up settings with PMC enabled and test mode
 		$settings = array_merge(
@@ -5061,7 +5061,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'test_connection_type' => 'connect',
 			]
 		);
-		WC_Stripe::write_settings_option( $settings );
+		WC_Stripe::get_instance()->update_settings( $settings );
 
 		// Build mock API response with unsupported enabled methods
 		$pmc_data = (object) [
@@ -5114,7 +5114,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		if ( null !== $filter_callback ) {
 			remove_filter( 'wc_stripe_ocs_non_excludable_payment_methods', $filter_callback );
 		}
-		WC_Stripe::write_settings_option( $initial_settings );
+		WC_Stripe::get_instance()->update_settings( $initial_settings );
 		$property->setValue( null, null );
 		delete_option( \WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY );
 		\WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
@@ -5315,7 +5315,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 		}
 
-		$original_settings = WC_Stripe::read_settings_option();
+		$original_settings = WC_Stripe::get_instance()->get_settings();
 
 		$stripe_settings                                      = $original_settings;
 		$stripe_settings['enabled']                           = 'yes';
@@ -5323,7 +5323,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$stripe_settings['express_checkout_button_locations'] = $express_checkout_button_locations;
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = $upe_checkout_experience_accepted_payments;
 		$stripe_settings['amazon_pay_button_locations']               = $amazon_pay_button_locations;
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		try {
 			$gateway          = new WC_Stripe_UPE_Payment_Gateway();
@@ -5339,7 +5339,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->assertSame( $expected_stripe, wp_script_is( 'stripe', 'enqueued' ), 'Unexpected enqueue state for stripe JS.' );
 			$this->assertSame( $expected_upe_classic, wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'Unexpected enqueue state for wc-stripe-upe-classic.' );
 		} finally {
-			WC_Stripe::write_settings_option( $original_settings );
+			WC_Stripe::get_instance()->update_settings( $original_settings );
 
 			$this->clean_up_scripts(
 				[ 'stripe', 'wc-stripe-upe-classic' ],
@@ -6496,10 +6496,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order->save();
 
 		// Configure the statement descriptor settings.
-		$stripe_settings                         = WC_Stripe::read_settings_option();
+		$stripe_settings                         = WC_Stripe::get_instance()->get_settings();
 		$stripe_settings['statement_descriptor'] = $local_descriptor;
 		$stripe_settings['is_short_statement_descriptor_enabled'] = $short_descriptor_on ? 'yes' : 'no';
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		// Re-create mock gateway so it picks up updated settings.
 		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
@@ -6658,9 +6658,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order->save();
 
 		// Configure a local statement descriptor.
-		$stripe_settings                         = WC_Stripe::read_settings_option();
+		$stripe_settings                         = WC_Stripe::get_instance()->get_settings();
 		$stripe_settings['statement_descriptor'] = 'MY STORE NAME';
-		WC_Stripe::write_settings_option( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		// Re-create mock gateway to pick up settings.
 		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
