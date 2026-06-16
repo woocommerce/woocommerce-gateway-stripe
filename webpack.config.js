@@ -153,5 +153,6 @@ module.exports = {
 			'./client/entrypoints/amazon-pay-settings/index.js',
 		'link-settings': './client/entrypoints/link-settings/index.js',
 		'plugins-page': './client/entrypoints/plugins-page/index.js',
+		'command-palette': './client/entrypoints/command-palette/index.js',
 	},
 };

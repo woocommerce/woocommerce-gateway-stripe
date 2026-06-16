@@ -393,6 +393,33 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_result'       => 'Via Dummy card ending in 0000',
 			],
+			'Google Pay card ending in 4040'          => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand'  => 'visa',
+					'last4'  => '4040',
+					'wallet' => [ 'type' => 'google_pay' ],
+				],
+				'expected_result'       => 'Via Google Pay (Visa) ending in 4040',
+			],
+			'Apple Pay card ending in 4444'           => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand'  => 'mastercard',
+					'last4'  => '4444',
+					'wallet' => [ 'type' => 'apple_pay' ],
+				],
+				'expected_result'       => 'Via Apple Pay (MasterCard) ending in 4444',
+			],
+			'Link wallet card stays bare'             => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand'  => 'visa',
+					'last4'  => '1881',
+					'wallet' => [ 'type' => 'link' ],
+				],
+				'expected_result'       => 'Via Visa card ending in 1881',
+			],
 			'SEPA Debit ending in 1234'               => [
 				'payment_method_type'   => 'sepa_debit',
 				'payment_method_fields' => [
@@ -1296,6 +1323,96 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected_net' => 49.00,
 			],
 		];
+	}
+
+	/**
+	 * @dataProvider provide_test_display_order_currency_cases
+	 *
+	 * @param string $order_currency                   The order currency.
+	 * @param string $stripe_currency                  The Stripe currency.
+	 * @param bool   $expect_stripe_currency_in_output Whether the Stripe currency is expected in the output.
+	 */
+	public function test_display_order_fee( string $order_currency, string $stripe_currency, bool $expect_stripe_currency_in_output ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( $order_currency );
+		$order->save();
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_fee( $order, '0.59' );
+		$order_helper->update_stripe_currency( $order, $stripe_currency );
+		$order->save();
+
+		ob_start();
+		$this->gateway->display_order_fee( $order->get_id() );
+		$output = ob_get_clean();
+
+		if ( $expect_stripe_currency_in_output ) {
+			$this->assertStringContainsString( ' ' . $stripe_currency, $output );
+		} else {
+			$this->assertStringNotContainsString( $stripe_currency, $output );
+		}
+	}
+
+	/**
+	 * @dataProvider provide_test_display_order_currency_cases
+	 *
+	 * @param string $order_currency                   The order currency.
+	 * @param string $stripe_currency                  The Stripe currency.
+	 * @param bool   $expect_stripe_currency_in_output Whether the Stripe currency is expected in the output.
+	 */
+	public function test_display_order_payout( string $order_currency, string $stripe_currency, bool $expect_stripe_currency_in_output ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( $order_currency );
+		$order->save();
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_net( $order, '19.41' );
+		$order_helper->update_stripe_currency( $order, $stripe_currency );
+		$order->save();
+
+		ob_start();
+		$this->gateway->display_order_payout( $order->get_id() );
+		$output = ob_get_clean();
+
+		if ( $expect_stripe_currency_in_output ) {
+			$this->assertStringContainsString( ' ' . $stripe_currency, $output );
+		} else {
+			$this->assertStringNotContainsString( $stripe_currency, $output );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_display_order_fee()} and {@see test_display_order_payout()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_display_order_currency_cases() {
+		return [
+			'same currency'      => [ 'USD', 'USD', false ],
+			'different currency' => [ 'USD', 'EUR', true ],
+		];
+	}
+
+	/**
+	 * display_order_fee() returns early and outputs nothing when the order does not exist.
+	 */
+	public function test_display_order_fee_invalid_order_returns_early() {
+		ob_start();
+		$this->gateway->display_order_fee( 999999 );
+		$output = ob_get_clean();
+
+		$this->assertEmpty( $output );
+	}
+
+	/**
+	 * display_order_payout() returns early and outputs nothing when the order does not exist.
+	 */
+	public function test_display_order_payout_invalid_order_returns_early() {
+		ob_start();
+		$this->gateway->display_order_payout( 999999 );
+		$output = ob_get_clean();
+
+		$this->assertEmpty( $output );
 	}
 
 	/**

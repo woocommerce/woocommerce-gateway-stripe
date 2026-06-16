@@ -480,6 +480,44 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'id', $checkout_data['default_shipping_option'] );
 		$this->assertArrayHasKey( 'displayName', $checkout_data['default_shipping_option'] );
 		$this->assertArrayHasKey( 'amount', $checkout_data['default_shipping_option'] );
+		$this->assertArrayHasKey( 'display_prices_with_tax', $checkout_data );
+	}
+
+	/**
+	 * Test that get_checkout_data() emits display_prices_with_tax based on the tax display setting.
+	 *
+	 * @param string $tax_display_cart Tax display cart option value.
+	 * @param bool   $expected         Expected display_prices_with_tax value.
+	 *
+	 * @return void
+	 *
+	 * @dataProvider provide_test_get_checkout_data_display_prices_with_tax
+	 */
+	public function test_get_checkout_data_display_prices_with_tax( string $tax_display_cart, bool $expected ): void {
+		update_option( 'woocommerce_tax_display_cart', $tax_display_cart );
+
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+		$checkout_data        = $wc_stripe_ece_helper->get_checkout_data();
+
+		$this->assertSame( $expected, $checkout_data['display_prices_with_tax'] );
+	}
+
+	/**
+	 * Provider for test_get_checkout_data_display_prices_with_tax.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_checkout_data_display_prices_with_tax(): array {
+		return [
+			'prices displayed including tax' => [
+				'tax display cart' => 'incl',
+				'expected'         => true,
+			],
+			'prices displayed excluding tax' => [
+				'tax display cart' => 'excl',
+				'expected'         => false,
+			],
+		];
 	}
 
 	/**
@@ -616,12 +654,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'GB country, redacted' => [
 				'postal code' => 'SW1A',
 				'country'     => 'GB',
-				'expected'    => 'SW1A ***',
+				'expected'    => 'SW1A 000',
 			],
 			'CA country'           => [
 				'postal code' => 'K1A   ',
 				'country'     => 'CA',
-				'expected'    => 'K1A***',
+				'expected'    => 'K1A000',
 			],
 			'US country'           => [
 				'postal code' => '12345',
@@ -768,19 +806,23 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_request_to_store_api(): array {
 		return [
-			'No rest_route set'         => [
+			'No rest_route set'        => [
 				'rest_route' => '',
 				'expected'   => false,
 			],
-			'Store API checkout route'  => [
+			'Store API checkout route' => [
 				'rest_route' => '/wc/store/v1/checkout',
 				'expected'   => true,
 			],
-			'Different Store API route' => [
+			'Store API cart route'     => [
 				'rest_route' => '/wc/store/v1/cart',
-				'expected'   => false,
+				'expected'   => true,
 			],
-			'Non-Store API route'       => [
+			'Store API cart sub-route' => [
+				'rest_route' => '/wc/store/v1/cart/update-customer',
+				'expected'   => true,
+			],
+			'Non-Store API route'      => [
 				'rest_route' => '/wp/v2/posts',
 				'expected'   => false,
 			],
@@ -2071,6 +2113,103 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'expected'                        => false,
 			],
 		];
+	}
+
+	/**
+	 * Happy path: when the user has a stripe-gateway token whose `token` matches
+	 * the new payment method ID, it gets attached to the subscription.
+	 *
+	 * @return void
+	 */
+	public function test_replace_subscription_payment_token_attaches_matching_token(): void {
+		$user_id = $this->factory->user->create( [ 'role' => 'customer' ] );
+		$token   = WC_Helper_Token::create_token( 'pm_new_card_123', $user_id );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $user_id );
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->save();
+
+		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_new_card_123' );
+
+		$this->assertTrue( $result );
+		$attached_ids = array_values( $subscription->get_payment_tokens() );
+		$this->assertSame( [ $token->get_id() ], $attached_ids );
+	}
+
+	/**
+	 * Stale tokens left attached to the subscription by the previous payment method
+	 * are cleared so My Account renders only the new card.
+	 *
+	 * @return void
+	 */
+	public function test_replace_subscription_payment_token_drops_stale_tokens(): void {
+		$user_id   = $this->factory->user->create( [ 'role' => 'customer' ] );
+		$old_token = WC_Helper_Token::create_token( 'pm_old_visa', $user_id );
+		$new_token = WC_Helper_Token::create_token( 'pm_new_card_456', $user_id );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $user_id );
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->save();
+		// Attach the stale token after save() so the data store has a valid
+		// post ID to write `_payment_tokens` against.
+		$subscription->add_payment_token( $old_token );
+
+		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_new_card_456' );
+
+		$this->assertTrue( $result );
+		$attached_ids = array_values( $subscription->get_payment_tokens() );
+		$this->assertSame( [ $new_token->get_id() ], $attached_ids );
+	}
+
+	/**
+	 * When no user token matches the payment method ID, the subscription is left
+	 * untouched and the helper returns false.
+	 *
+	 * @return void
+	 */
+	public function test_replace_subscription_payment_token_returns_false_when_no_match(): void {
+		$user_id   = $this->factory->user->create( [ 'role' => 'customer' ] );
+		$old_token = WC_Helper_Token::create_token( 'pm_old_visa', $user_id );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $user_id );
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->save();
+		$subscription->add_payment_token( $old_token );
+
+		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_unknown' );
+
+		$this->assertFalse( $result );
+		$attached_ids = array_values( $subscription->get_payment_tokens() );
+		$this->assertSame( [ $old_token->get_id() ], $attached_ids );
+	}
+
+	/**
+	 * Guard cases: empty payment method ID, missing user, non-WC_Order argument.
+	 *
+	 * @return void
+	 */
+	public function test_replace_subscription_payment_token_noop_for_invalid_input(): void {
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( 0 );
+		$subscription->save();
+
+		// Empty payment method ID.
+		$this->assertFalse(
+			WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, '' )
+		);
+
+		// Subscription with no user.
+		$this->assertFalse(
+			WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_anything' )
+		);
+
+		// Non-WC_Order argument.
+		$this->assertFalse(
+			WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( null, 'pm_anything' )
+		);
 	}
 
 	/**

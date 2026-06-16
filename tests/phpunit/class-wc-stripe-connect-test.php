@@ -62,7 +62,14 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			delete_option( 'wc_stripe_optimized_checkout_default_on' );
 		}
 
-		$this->set_stripe_account_data( [ 'country' => $account_country ] );
+		$account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache', 'is_webhook_enabled' ] )
+			->getMock();
+		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => $account_country ] );
+		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
+		$account->method( 'is_webhook_enabled' )->willReturn( true );
+		WC_Stripe::get_instance()->account = $account;
 
 		$result                 = new stdClass();
 		$result->publishableKey = 'pk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
@@ -118,5 +125,75 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected_ap'     => '',
 			],
 		];
+	}
+
+	/**
+	 * Asserts that save_stripe_keys() decommissions the webhook configured on the
+	 * previously connected account before saving the new keys, clearing the stored
+	 * webhook data/secret for the connected mode.
+	 */
+	public function test_save_stripe_keys_decommissions_previous_webhook_before_saving() {
+		$previous_webhook_data = [
+			'id'     => 'wh_old',
+			'url'    => 'https://old.example.com',
+			'secret' => 'sk_test_old_account',
+		];
+
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'testmode'             => 'yes',
+				'test_secret_key'      => 'sk_test_old_account',
+				'test_publishable_key' => 'pk_test_old',
+				'test_webhook_data'    => $previous_webhook_data,
+				'test_webhook_secret'  => 'whsec_old',
+				'pmc_enabled'          => 'yes',
+			]
+		);
+
+		$account = $this->mock_stripe_account();
+		$account->expects( $this->once() )
+			->method( 'maybe_decommission_webhook' )
+			->with( $previous_webhook_data, 'sk_test_123' )
+			->willReturn( true );
+
+		$this->invoke_save_stripe_keys( 'pk_test_123', 'sk_test_123' );
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( [], $settings['test_webhook_data'] );
+		$this->assertSame( '', $settings['test_webhook_secret'] );
+	}
+
+	/**
+	 * Builds a WC_Stripe_Account mock with the methods save_stripe_keys() relies on, and
+	 * registers it on the plugin instance.
+	 *
+	 * @return WC_Stripe_Account&\PHPUnit\Framework\MockObject\MockObject
+	 */
+	private function mock_stripe_account() {
+		$account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache' ] )
+			->getMock();
+		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
+
+		WC_Stripe::get_instance()->account = $account;
+
+		return $account;
+	}
+
+	/**
+	 * Invokes the private save_stripe_keys() with a minimal OAuth result for test mode.
+	 *
+	 * @param string $publishable_key The publishable key to save.
+	 * @param string $secret_key      The secret key to save.
+	 */
+	private function invoke_save_stripe_keys( $publishable_key, $secret_key ) {
+		$result                 = new stdClass();
+		$result->publishableKey = $publishable_key; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$result->secretKey      = $secret_key; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+
+		$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_stripe_keys' );
+		$method->setAccessible( true );
+		$method->invoke( $this->connect, $result, 'connect', 'test' );
 	}
 }

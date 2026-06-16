@@ -69,6 +69,11 @@ const getAdaptivePricingUnavailableText = (
 				'Adaptive Pricing is unavailable as your account does not support settlement in your store currency.',
 				'woocommerce-gateway-stripe'
 			);
+		case 'webhooks-disabled':
+			return __(
+				'Adaptive Pricing requires working webhooks. Your Stripe webhooks are currently disabled, so it can’t be enabled.',
+				'woocommerce-gateway-stripe'
+			);
 		default:
 			return __(
 				'Adaptive Pricing is currently unavailable.',
