@@ -68,4 +68,25 @@ describe( 'LinkSettingsSection', () => {
 
 		expect( setButtonSizeMock ).toHaveBeenCalledWith( 'large' );
 	} );
+
+	it( 'hides the appearance override notice by default', () => {
+		const { container } = render( <LinkSettingsSection /> );
+
+		expect(
+			container.querySelector( '.components-notice' )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'shows the appearance override notice when styles are overridden', () => {
+		global.wc_stripe_link_settings_params = {
+			...global.wc_stripe_link_settings_params,
+			is_button_style_overridden: true,
+		};
+
+		const { container } = render( <LinkSettingsSection /> );
+
+		expect(
+			container.querySelector( '.components-notice' )
+		).toHaveTextContent( /Some appearance settings may be overridden/i );
+	} );
 } );

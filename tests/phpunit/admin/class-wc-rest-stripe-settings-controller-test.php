@@ -525,7 +525,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 	/**
 	 * Tests that omitting `enabled_payment_method_ids` from the payload does not
-	 * trigger a runtime error when `is_payment_request_enabled` is also set.
+	 * trigger a runtime error when `is_express_checkout_enabled` is also set.
 	 */
 	public function test_update_settings_accepts_partial_payload_without_enabled_payment_method_ids() {
 		$this->mock_payment_method_configurations(
@@ -535,7 +535,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
 		$request->set_param( 'is_upe_enabled', true );
-		$request->set_param( 'is_payment_request_enabled', true );
+		$request->set_param( 'is_express_checkout_enabled', true );
 
 		$response = $this->controller->update_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
