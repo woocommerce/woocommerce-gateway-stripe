@@ -27,13 +27,23 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion {
 	/**
 	 * Hidden post meta key for the exclude flag ('yes' = excluded; 'no'/unset = synced).
 	 */
-	public const META_KEY = '_wc_stripe_agentic_commerce_exclude';
+	protected const META_KEY = '_wc_stripe_agentic_commerce_exclude';
+
+	/**
+	 * The exclude-flag meta key.
+	 *
+	 * @since 10.9.0
+	 * @return string
+	 */
+	public static function get_meta_key(): string {
+		return self::META_KEY;
+	}
 
 	/**
 	 * Register the should-sync filter. Runs in every context (cron/CLI included)
 	 * so sync honors the flag regardless of how it was triggered.
 	 *
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 * @return void
 	 */
 	public function init(): void {
@@ -44,16 +54,22 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion {
 	 * Whether the product is excluded from Agentic Commerce sync. The parent's
 	 * flag is authoritative for variations (the checkbox lives on the parent).
 	 *
-	 * @since 10.8.0
-	 * @param int $product_id Product post ID.
+	 * Accepts an already-loaded product to avoid a redundant `wc_get_product()`
+	 * when the caller (e.g. the feed's should-sync filter) holds the instance.
+	 *
+	 * @since 10.9.0
+	 * @param WC_Product|int $product Product instance or post ID.
 	 * @return bool
 	 */
-	public static function is_excluded( int $product_id ): bool {
-		if ( $product_id <= 0 ) {
-			return false;
+	public static function is_excluded( $product ): bool {
+		if ( ! $product instanceof WC_Product ) {
+			$product_id = (int) $product;
+			if ( $product_id <= 0 ) {
+				return false;
+			}
+			$product = wc_get_product( $product_id );
 		}
 
-		$product = wc_get_product( $product_id );
 		if ( ! $product instanceof WC_Product ) {
 			return false;
 		}
@@ -66,7 +82,7 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion {
 	/**
 	 * Persist the exclude flag for a product.
 	 *
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 * @param int  $product_id Product post ID.
 	 * @param bool $excluded   Whether the product should be excluded from sync.
 	 * @return bool True when the stored value changed, false on a no-op (or invalid ID).
@@ -93,7 +109,7 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion {
 	 * Filter callback: vote false when the product is excluded, without
 	 * resurrecting one another callback already excluded.
 	 *
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 * @param mixed $should_sync Whether to include the product. Hook input — coerced to bool.
 	 * @param mixed $product     Product being evaluated. Hook input — validated below.
 	 * @return bool
@@ -110,6 +126,7 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion {
 			return true;
 		}
 
-		return ! self::is_excluded( $product->get_id() );
+		// Pass the loaded instance through so is_excluded() doesn't re-fetch it.
+		return ! self::is_excluded( $product );
 	}
 }

@@ -32,10 +32,10 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion_Test extends WP_UnitTestCase 
 			'Default (no meta) must mean the product is included.'
 		);
 
-		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY, 'yes' );
+		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), 'yes' );
 		$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Exclusion::is_excluded( $product->get_id() ) );
 
-		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY, 'no' );
+		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), 'no' );
 		$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Exclusion::is_excluded( $product->get_id() ) );
 
 		$product->delete( true );
@@ -51,11 +51,26 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion_Test extends WP_UnitTestCase 
 	}
 
 	/**
+	 * A loaded WC_Product instance is accepted too, so callers that already hold
+	 * one don't force a redundant wc_get_product() lookup.
+	 */
+	public function test_is_excluded_accepts_product_instance(): void {
+		$product = WC_Helper_Product::create_simple_product();
+
+		$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Exclusion::is_excluded( $product ) );
+
+		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), 'yes' );
+		$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Exclusion::is_excluded( $product ) );
+
+		$product->delete( true );
+	}
+
+	/**
 	 * Variations inherit the parent's flag (the checkbox lives on the parent).
 	 */
 	public function test_is_excluded_for_variation_reads_parent_meta(): void {
 		$parent = WC_Helper_Product::create_variation_product();
-		update_post_meta( $parent->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY, 'yes' );
+		update_post_meta( $parent->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), 'yes' );
 
 		$variation_ids = $parent->get_children();
 		$this->assertNotEmpty( $variation_ids );
@@ -78,14 +93,14 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion_Test extends WP_UnitTestCase 
 
 		// Missing meta → 'yes' counts as a change.
 		$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Exclusion::set_excluded( $product->get_id(), true ) );
-		$this->assertSame( 'yes', get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY, true ) );
+		$this->assertSame( 'yes', get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), true ) );
 
 		// Same value again → no change.
 		$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Exclusion::set_excluded( $product->get_id(), true ) );
 
 		// Flip back off → change.
 		$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Exclusion::set_excluded( $product->get_id(), false ) );
-		$this->assertSame( 'no', get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY, true ) );
+		$this->assertSame( 'no', get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), true ) );
 
 		// Invalid ID is a no-op, not a fatal.
 		$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Exclusion::set_excluded( 0, true ) );
@@ -102,7 +117,7 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion_Test extends WP_UnitTestCase 
 
 		$included = WC_Helper_Product::create_simple_product();
 		$excluded = WC_Helper_Product::create_simple_product();
-		update_post_meta( $excluded->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY, 'yes' );
+		update_post_meta( $excluded->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), 'yes' );
 
 		$this->assertTrue( apply_filters( 'wc_stripe_agentic_commerce_should_sync_product', true, $included ) );
 		$this->assertFalse( apply_filters( 'wc_stripe_agentic_commerce_should_sync_product', true, $excluded ) );

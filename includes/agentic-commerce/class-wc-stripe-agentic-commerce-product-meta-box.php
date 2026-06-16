@@ -3,15 +3,14 @@
  * Per-product "Agentic Commerce" exclude meta box.
  *
  * Adds an Inventory-tab checkbox to opt a product out of the Stripe Agentic
- * Commerce sync. Hidden when WC AI Storefront is active, since that plugin owns
- * product selection through the same `wc_stripe_agentic_commerce_should_sync_product` filter.
+ * Commerce sync.
  *
  * Admin UI only: the flag's read/write contract lives in
  * {@see WC_Stripe_Agentic_Commerce_Product_Exclusion}.
  *
  * @internal Not part of the plugin's public API; may change without notice.
  * @package WooCommerce_Stripe
- * @since 10.8.0
+ * @since 10.9.0
  */
 
 declare(strict_types=1);
@@ -26,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Per-product exclude toggle for Agentic Commerce sync (editor UI).
  *
  * @internal
- * @since 10.8.0
+ * @since 10.9.0
  */
 class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 
@@ -41,11 +40,17 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 	 * Register the editor UI hooks. Admin-only — the should-sync filter that
 	 * enforces the flag during a feed run lives in the exclusion storage class.
 	 *
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 * @return void
 	 */
 	public function init(): void {
 		if ( ! is_admin() ) {
+			return;
+		}
+
+		// Don't register the editor hooks at all when the merchant has Agentic
+		// Commerce disabled — the toggle has nothing to act on in that state.
+		if ( ! WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled() ) {
 			return;
 		}
 
@@ -57,7 +62,7 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 	 * Render the exclude checkbox. Gated on the merchant having Agentic Commerce
 	 * enabled and the product being a supported type, so it never dangles.
 	 *
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 * @return void
 	 */
 	public function render_checkbox(): void {
@@ -65,6 +70,8 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 			return;
 		}
 
+		// Defensive: init() only hooks this when the feature is on, but the
+		// callback is public, so re-check before rendering.
 		if ( ! WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled() ) {
 			return;
 		}
@@ -77,7 +84,7 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 
 		woocommerce_wp_checkbox(
 			[
-				'id'          => WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY,
+				'id'          => WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(),
 				'label'       => __( 'Agentic Commerce', 'woocommerce-gateway-stripe' ),
 				'description' => __( 'Exclude from the Stripe Agentic Commerce catalog sync', 'woocommerce-gateway-stripe' ),
 				'desc_tip'    => false,
@@ -89,7 +96,7 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 	 * Persist the checkbox state on product save. Re-verifies the nonce since
 	 * `woocommerce_process_product_meta` is public and callable directly.
 	 *
-	 * @since 10.8.0
+	 * @since 10.9.0
 	 * @param int $product_id Product post ID.
 	 * @return void
 	 */
@@ -98,8 +105,9 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 			return;
 		}
 
-		// Feature off → checkbox isn't rendered or posted; bail so its absence
-		// doesn't clobber a stored 'yes'.
+		// Defensive: init() only hooks this when the feature is on, but the
+		// callback is public, so re-check before an absent checkbox could clobber
+		// a stored 'yes'.
 		if ( ! WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled() ) {
 			return;
 		}
@@ -117,7 +125,8 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$posted_value = isset( $_POST[ WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY ] ) ? sanitize_text_field( wp_unslash( $_POST[ WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY ] ) ) : '';
+		$meta_key     = WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key();
+		$posted_value = isset( $_POST[ $meta_key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $meta_key ] ) ) : '';
 		$excluded     = 'yes' === $posted_value;
 
 		$changed = WC_Stripe_Agentic_Commerce_Product_Exclusion::set_excluded( $product_id, $excluded );

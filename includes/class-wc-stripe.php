@@ -1026,17 +1026,14 @@ class WC_Stripe {
 			WP_CLI::add_command( 'stripe agentic-commerce', 'WC_Stripe_Agentic_Commerce_CLI' );
 		}
 
-		// Per-product exclude toggle. Skipped when WC AI Storefront is active — it
-		// owns product selection through the same should-sync filter. The exclusion
-		// storage registers the feed filter in every context; the meta box is the
-		// admin-only editor UI on top of it.
-		if ( ! defined( 'WC_AI_STOREFRONT_VERSION' ) ) {
-			if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_Exclusion' ) ) {
-				( new WC_Stripe_Agentic_Commerce_Product_Exclusion() )->init();
-			}
-			if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_Meta_Box' ) ) {
-				( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->init();
-			}
+		// Per-product exclude toggle. The exclusion storage registers the feed
+		// filter in every context; the meta box is the admin-only editor UI on top
+		// of it.
+		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_Exclusion' ) ) {
+			( new WC_Stripe_Agentic_Commerce_Product_Exclusion() )->init();
+		}
+		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_Meta_Box' ) ) {
+			( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->init();
 		}
 
 		/**

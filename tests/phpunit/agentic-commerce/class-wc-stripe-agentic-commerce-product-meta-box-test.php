@@ -47,17 +47,17 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box_Test extends WP_UnitTestCase {
 	 */
 	public function test_save_meta_rejects_missing_nonce(): void {
 		$product = WC_Helper_Product::create_simple_product();
-		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY, 'no' );
+		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), 'no' );
 
 		$_POST = [
-			WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY => 'yes',
+			WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key() => 'yes',
 		];
 
 		( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->save_meta( $product->get_id() );
 
 		$this->assertSame(
 			'no',
-			get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY, true ),
+			get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), true ),
 			'A nonce-less save must not persist any new value.'
 		);
 
@@ -73,26 +73,26 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box_Test extends WP_UnitTestCase {
 		$meta    = new WC_Stripe_Agentic_Commerce_Product_Meta_Box();
 
 		$_POST = [
-			'woocommerce_meta_nonce'                               => wp_create_nonce( 'woocommerce_save_data' ),
-			WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY => 'yes',
+			'woocommerce_meta_nonce'                                     => wp_create_nonce( 'woocommerce_save_data' ),
+			WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key() => 'yes',
 		];
 		$meta->save_meta( $product->get_id() );
-		$this->assertSame( 'yes', get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY, true ) );
+		$this->assertSame( 'yes', get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), true ) );
 
 		// Unchecked checkboxes send no key — the saver must flip the meta back to 'no'.
 		$_POST = [
 			'woocommerce_meta_nonce' => wp_create_nonce( 'woocommerce_save_data' ),
 		];
 		$meta->save_meta( $product->get_id() );
-		$this->assertSame( 'no', get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY, true ) );
+		$this->assertSame( 'no', get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), true ) );
 
 		// Tampered value: anything other than the literal 'yes' must collapse to 'no'.
 		$_POST = [
-			'woocommerce_meta_nonce'                               => wp_create_nonce( 'woocommerce_save_data' ),
-			WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY => 'forged',
+			'woocommerce_meta_nonce'                                     => wp_create_nonce( 'woocommerce_save_data' ),
+			WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key() => 'forged',
 		];
 		$meta->save_meta( $product->get_id() );
-		$this->assertSame( 'no', get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY, true ) );
+		$this->assertSame( 'no', get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), true ) );
 
 		$_POST = [];
 		$product->delete( true );
@@ -114,8 +114,8 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box_Test extends WP_UnitTestCase {
 
 		// First flip on (missing meta → 'yes') must enqueue a resync.
 		$_POST = [
-			'woocommerce_meta_nonce'                               => wp_create_nonce( 'woocommerce_save_data' ),
-			WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY => 'yes',
+			'woocommerce_meta_nonce'                                     => wp_create_nonce( 'woocommerce_save_data' ),
+			WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key() => 'yes',
 		];
 		$meta->save_meta( $product->get_id() );
 		$this->assertNotFalse(
@@ -149,7 +149,7 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box_Test extends WP_UnitTestCase {
 	 */
 	public function test_save_meta_skips_unsupported_product_type(): void {
 		$product = WC_Helper_Product::create_grouped_product();
-		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY, 'yes' );
+		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), 'yes' );
 
 		$immediate = $this->immediate_action();
 		if ( function_exists( 'as_unschedule_all_actions' ) ) {
@@ -162,7 +162,7 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box_Test extends WP_UnitTestCase {
 
 		$this->assertSame(
 			'yes',
-			get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY, true ),
+			get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), true ),
 			'Unsupported type must not clobber existing exclusion meta.'
 		);
 		if ( function_exists( 'as_has_scheduled_action' ) ) {
@@ -205,7 +205,7 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box_Test extends WP_UnitTestCase {
 		( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->render_checkbox();
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY, $output );
+		$this->assertStringContainsString( WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), $output );
 		$this->assertStringContainsString( 'type="checkbox"', $output );
 
 		$thepostid      = null;
@@ -287,7 +287,7 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box_Test extends WP_UnitTestCase {
 		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' );
 
 		$product = WC_Helper_Product::create_simple_product();
-		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY, 'yes' );
+		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), 'yes' );
 
 		// Valid nonce, no key posted (unchecked) — would normally flip to 'no'.
 		$_POST = [ 'woocommerce_meta_nonce' => wp_create_nonce( 'woocommerce_save_data' ) ];
@@ -295,7 +295,7 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box_Test extends WP_UnitTestCase {
 
 		$this->assertSame(
 			'yes',
-			get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::META_KEY, true ),
+			get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), true ),
 			'A save while the feature is off must leave the stored value untouched.'
 		);
 
