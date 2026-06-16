@@ -173,5 +173,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Only create an agentic commerce order on the site that produced the checkout, preventing duplicate or wrong-site orders when multiple stores share one Stripe account
 * Dev - Add a Code Comment Conventions section to AGENTS.md to standardize agent and contributor comment guidance
 * Fix - Run the woocommerce_gateway_description filter for Stripe payment methods so third parties can add or replace their checkout descriptions
+* Update - Deprecate WC_Stripe_Helper::get_stripe_settings() and update_main_stripe_settings() in favor of WC_Stripe::get_instance()->get_settings() and update_settings()
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
