@@ -111,7 +111,9 @@ export async function getCartTotal( page ) {
 		await response.json()
 	).totals;
 
-	return ( parseInt( totalPrice, 10 ) / 10 ** minorUnit ).toFixed( 2 );
+	return ( parseInt( totalPrice, 10 ) / 10 ** minorUnit ).toFixed(
+		minorUnit
+	);
 }
 
 /**
