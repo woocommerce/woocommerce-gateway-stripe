@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 import config from 'config';
-import { admin, payments } from '../../../utils';
+import { payments } from '../../../utils';
 
 const {
 	emptyCart,
@@ -9,6 +9,7 @@ const {
 	fillCreditCardDetailsShortcode,
 	handleCheckout3DSChallenge,
 	getCartTotal,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
 test( 'customer can checkout with a SCA card @smoke', async ( {
@@ -30,13 +31,9 @@ test( 'customer can checkout with a SCA card @smoke', async ( {
 	// Complete the 3DS challenge
 	await handleCheckout3DSChallenge( page );
 
-	await page.waitForURL( '**/checkout/order-received/**' );
-
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
+	await waitForOrderReceivedPageAndConfirmExpectedTotal(
+		browser,
+		page,
+		expectedTotal
 	);
-
-	// As the admin, confirm the order was charged the expected amount.
-	const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
-	await admin.verifyOrderChargedAmount( browser, orderId, expectedTotal );
 } );

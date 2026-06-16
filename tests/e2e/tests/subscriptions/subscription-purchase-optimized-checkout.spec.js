@@ -1,7 +1,7 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
-import { admin, api, payments, products, user } from '../../utils';
+import { api, payments, products, user } from '../../utils';
 
 const {
 	emptyCart,
@@ -10,6 +10,7 @@ const {
 	fillOCDetails,
 	clickPlaceOrder,
 	getCartTotal,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
 let productId;
@@ -71,14 +72,12 @@ test.describe( 'Optimized Checkout subscription purchase tests @subscriptions', 
 		const expectedTotal = await getCartTotal( page );
 
 		await clickPlaceOrder( page );
-		await page.waitForURL( '**/checkout/order-received/**' );
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
 
-		// As the admin, confirm the order was charged the expected amount.
-		const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
-		await admin.verifyOrderChargedAmount( browser, orderId, expectedTotal );
+		await waitForOrderReceivedPageAndConfirmExpectedTotal(
+			browser,
+			page,
+			expectedTotal
+		);
 	}
 
 	test( 'customer can purchase a subscription with Optimized Checkout @smoke @blocks', async ( {

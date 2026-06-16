@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 import config from 'config';
+import { verifyOrderChargedAmount } from './admin';
 
 /**
  * Click the primary add to cart button for the current page.
@@ -1151,5 +1152,41 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 				)
 				.getByTestId( 'next-action-text' )
 		).toBeVisible();
+
+		/**
+		 * Extract the order ID from a WooCommerce "Order received" page URL.
+		 *
+		 * @param {string} url The order-received URL (e.g. `.../order-received/123/?key=...`).
+		 * @returns {string} The order ID.
+		 */
+		export const getOrderIdFromOrderReceivedUrl = ( url ) =>
+			url.split( 'order-received/' )[ 1 ].split( '/' )[ 0 ];
+
+		export const waitForOrderReceivedPage = async ( page ) => {
+			await page.waitForURL( '**/checkout/order-received/**' );
+
+			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
+				'Order received'
+			);
+		};
+
+		/**
+		 * Wait for the order received page to load and optionally confirm the expected total amount was charged.
+		 *
+		 * @param {Browser} browser       Playwright browser fixture.
+		 * @param {Page}    page          Playwright page fixture.
+		 * @param {string}  expectedTotal The expected total amount of the order.
+		 */
+		export const waitForOrderReceivedPageAndConfirmExpectedTotal = async (
+			browser,
+			page,
+			expectedTotal
+		) => {
+			await waitForOrderReceivedPage( page );
+
+			const orderId = getOrderIdFromOrderReceivedUrl( page.url() );
+
+			await verifyOrderChargedAmount( browser, orderId, expectedTotal );
+		};
 	}
 };

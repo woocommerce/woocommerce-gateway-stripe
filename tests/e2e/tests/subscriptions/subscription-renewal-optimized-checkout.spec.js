@@ -10,6 +10,8 @@ const {
 	fillOCDetails,
 	clickPlaceOrder,
 	getCartTotal,
+	getOrderIdFromOrderReceivedUrl,
+	waitForOrderReceivedPage,
 } = payments;
 
 let productId;
@@ -66,12 +68,9 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 			await page.locator( '#place_order' ).click();
 		}
 
-		await page.waitForURL( '**/order-received/**' );
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
+		await waitForOrderReceivedPage( page );
 
-		return admin.getOrderIdFromOrderReceivedUrl( page.url() );
+		return getOrderIdFromOrderReceivedUrl( page.url() );
 	}
 
 	/**
@@ -128,14 +127,9 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 			purchaseTotal = await getCartTotal( page );
 
 			await clickPlaceOrder( page );
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
+			await waitForOrderReceivedPage( page );
 
-			purchaseOrderId = admin.getOrderIdFromOrderReceivedUrl(
-				page.url()
-			);
+			purchaseOrderId = getOrderIdFromOrderReceivedUrl( page.url() );
 		} );
 
 		await test.step( 'customer renews the subscription', async () => {

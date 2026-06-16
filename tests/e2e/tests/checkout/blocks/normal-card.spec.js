@@ -9,6 +9,7 @@ const {
 	setupBlocksCheckout,
 	clickPlaceOrder,
 	getCartTotal,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
 test( 'customer can checkout with a normal credit card @smoke @blocks', async ( {
@@ -27,13 +28,10 @@ test( 'customer can checkout with a normal credit card @smoke @blocks', async ( 
 	const expectedTotal = await getCartTotal( page );
 
 	await clickPlaceOrder( page );
-	await page.waitForURL( '**/checkout/order-received/**' );
 
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
+	await waitForOrderReceivedPageAndConfirmExpectedTotal(
+		browser,
+		page,
+		expectedTotal
 	);
-
-	// As the admin, confirm the order was charged the expected amount.
-	const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
-	await admin.verifyOrderChargedAmount( browser, orderId, expectedTotal );
 } );

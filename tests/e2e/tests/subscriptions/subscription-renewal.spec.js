@@ -8,6 +8,8 @@ const {
 	fillCreditCardDetailsShortcode,
 	clickAddToCartButton,
 	getCartTotal,
+	waitForOrderReceivedPage,
+	getOrderIdFromOrderReceivedUrl,
 } = payments;
 
 let productId;
@@ -62,13 +64,9 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 		purchaseTotal = await getCartTotal( page );
 
 		await page.locator( 'text=Place order' ).click();
-		await page.waitForURL( '**/checkout/order-received/**' );
+		await waitForOrderReceivedPage( page );
 
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
-
-		purchaseOrderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
+		purchaseOrderId = getOrderIdFromOrderReceivedUrl( page.url() );
 	} );
 
 	await test.step( 'customer renews the subscription', async () => {
@@ -92,12 +90,9 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 		await page
 			.locator( 'text=Renew subscription' )
 			.dispatchEvent( 'click' );
-		await page.waitForURL( '**/order-received/**' );
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
+		await waitForOrderReceivedPage( page );
 
-		renewalOrderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
+		renewalOrderId = getOrderIdFromOrderReceivedUrl( page.url() );
 	} );
 
 	await test.step( 'check for new entry in the related orders table', async () => {

@@ -11,6 +11,7 @@ const {
 	clickPlaceOrder,
 	handleCheckoutCashAppPay,
 	getCartTotal,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
 test.beforeAll( 'enable Cash App Pay', async ( { browser } ) => {
@@ -60,15 +61,12 @@ test( 'customer can retry payment, with a different card @smoke', async ( {
 	// Change to a working card
 	await fillCreditCardDetails( page, config.get( 'cards.basic' ) );
 	await clickPlaceOrder( page );
-	await page.waitForURL( '**/order-received/**' );
 
-	// Expect the order to succeed
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
+	await waitForOrderReceivedPageAndConfirmExpectedTotal(
+		browser,
+		page,
+		expectedTotal
 	);
-
-	const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
-	await admin.verifyOrderChargedAmount( browser, orderId, expectedTotal );
 } );
 
 /**
@@ -99,16 +97,11 @@ test( 'customer can retry payment, with changed billing details @smoke', async (
 	// Complete the 3DS challenge
 	await handleCheckout3DSChallenge( page );
 
-	// Expect the order to succeed
-	await page.waitForURL( '**/order-received/**' );
-
-	// Expect the order to succeed
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
+	await waitForOrderReceivedPageAndConfirmExpectedTotal(
+		browser,
+		page,
+		expectedTotal
 	);
-
-	const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
-	await admin.verifyOrderChargedAmount( browser, orderId, expectedTotal );
 } );
 
 /**
@@ -130,10 +123,7 @@ test( 'customer can retry payment, using a different payment method @smoke', asy
 	await handleCheckoutCashAppPay( page, '.wcstripe-payment-element' );
 
 	// Expect the order to succeed
-	await page.waitForURL( '**/order-received/**' );
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
-	);
+	await waitForOrderReceivedPage( page );
 
 	// No charged-amount verification here: Cash App Pay is not a synchronous
 	// card capture, so the order has no "Paid"/Stripe Fee/Payout rows to check.

@@ -9,6 +9,7 @@ const {
 	setupBlocksCheckout,
 	fillCreditCardDetails,
 	getCartTotal,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
 let username, userEmail;
@@ -63,15 +64,9 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 
 			await page.locator( 'text=Place order' ).click();
 
-			await page.waitForNavigation();
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
-
-			const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
-			await admin.verifyOrderChargedAmount(
+			await waitForOrderReceivedPageAndConfirmExpectedTotal(
 				browser,
-				orderId,
+				page,
 				expectedTotal
 			);
 		} );
@@ -98,15 +93,9 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 
 			await page.locator( 'text=Place order' ).click();
 
-			await page.waitForNavigation();
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
-
-			const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
-			await admin.verifyOrderChargedAmount(
+			await waitForOrderReceivedPageAndConfirmExpectedTotal(
 				browser,
-				orderId,
+				page,
 				expectedTotal
 			);
 		} );

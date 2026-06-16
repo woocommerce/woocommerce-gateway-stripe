@@ -1,13 +1,14 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
-import { admin, api, payments, products } from '../../../utils';
+import { api, payments, products } from '../../../utils';
 
 const {
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
 	clickAddToCartButton,
 	getCartTotal,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
 let productId;
@@ -43,13 +44,10 @@ test( 'customer can purchase a subscription product @smoke @subscriptions', asyn
 	const expectedTotal = await getCartTotal( page );
 
 	await page.locator( 'text=Place order' ).click();
-	await page.waitForURL( '**/checkout/order-received/**' );
 
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
+	await waitForOrderReceivedPageAndConfirmExpectedTotal(
+		browser,
+		page,
+		expectedTotal
 	);
-
-	// As the admin, confirm the order was charged the expected amount.
-	const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
-	await admin.verifyOrderChargedAmount( browser, orderId, expectedTotal );
 } );

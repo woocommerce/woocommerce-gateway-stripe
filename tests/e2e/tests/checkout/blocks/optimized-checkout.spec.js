@@ -11,6 +11,7 @@ const {
 	fillOCDetails,
 	clickPlaceOrder,
 	getCartTotal,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
 test.describe( 'Optimized Checkout payment tests @blocks', () => {
@@ -47,13 +48,12 @@ test.describe( 'Optimized Checkout payment tests @blocks', () => {
 		const expectedTotal = await getCartTotal( page );
 
 		await clickPlaceOrder( page );
-		await page.waitForURL( '**/checkout/order-received/**' );
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
 
-		const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
-		await admin.verifyOrderChargedAmount( browser, orderId, expectedTotal );
+		await waitForOrderReceivedPageAndConfirmExpectedTotal(
+			browser,
+			page,
+			expectedTotal
+		);
 	} );
 
 	test( 'customer can save and reuse Optimized Checkout payment method @smoke', async ( {
@@ -80,17 +80,10 @@ test.describe( 'Optimized Checkout payment tests @blocks', () => {
 				const expectedTotal = await getCartTotal( page );
 
 				await clickPlaceOrder( page );
-				await page.waitForURL( '**/checkout/order-received/**' );
-				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-					'Order received'
-				);
 
-				const orderId = admin.getOrderIdFromOrderReceivedUrl(
-					page.url()
-				);
-				await admin.verifyOrderChargedAmount(
+				await waitForOrderReceivedPageAndConfirmExpectedTotal(
 					browser,
-					orderId,
+					page,
 					expectedTotal
 				);
 			} );
@@ -111,17 +104,10 @@ test.describe( 'Optimized Checkout payment tests @blocks', () => {
 				const expectedTotal = await getCartTotal( page );
 
 				await clickPlaceOrder( page );
-				await page.waitForURL( '**/checkout/order-received/**' );
-				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-					'Order received'
-				);
 
-				const orderId = admin.getOrderIdFromOrderReceivedUrl(
-					page.url()
-				);
-				await admin.verifyOrderChargedAmount(
+				await waitForOrderReceivedPageAndConfirmExpectedTotal(
 					browser,
-					orderId,
+					page,
 					expectedTotal
 				);
 			} );
