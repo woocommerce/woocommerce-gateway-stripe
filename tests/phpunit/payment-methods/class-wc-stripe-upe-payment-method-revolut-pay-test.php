@@ -35,4 +35,14 @@ class WC_Stripe_UPE_Payment_Method_Revolut_Pay_Test extends WC_Stripe_UPE_Paymen
 			'ZZ is not supported' => [ 'ZZ', false ],
 		];
 	}
+
+	/**
+	 * Revolut Pay supports separate authorization and capture.
+	 *
+	 * @return void
+	 */
+	public function test_requires_automatic_capture_is_false(): void {
+		$payment_method = new WC_Stripe_UPE_Payment_Method_Revolut_Pay();
+		$this->assertFalse( $payment_method->requires_automatic_capture() );
+	}
 }

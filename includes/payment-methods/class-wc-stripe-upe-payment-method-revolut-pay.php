@@ -81,4 +81,13 @@ class WC_Stripe_UPE_Payment_Method_Revolut_Pay extends WC_Stripe_UPE_Payment_Met
 			'woocommerce-gateway-stripe'
 		);
 	}
+
+	/**
+	 * Revolut Pay supports separate authorization and capture.
+	 *
+	 * @inheritDoc
+	 */
+	public function requires_automatic_capture() {
+		return false;
+	}
 }

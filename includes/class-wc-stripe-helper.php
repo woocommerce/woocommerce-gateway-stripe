@@ -1524,6 +1524,7 @@ class WC_Stripe_Helper {
 				'stripe_klarna',
 				'stripe_afterpay_clearpay',
 				'stripe_amazon_pay',
+				'stripe_revolut_pay',
 			],
 			true
 		);
