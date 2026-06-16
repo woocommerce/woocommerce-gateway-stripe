@@ -1609,3 +1609,88 @@ describe( 'ensureUPEElementMounted', () => {
 		expect( component.hasLoadError ).toBe( false );
 	} );
 } );
+
+describe( 'confirmWalletPayment', () => {
+	const { confirmWalletPayment } = paymentProcessing;
+	const RETURN_URL = 'https://example.com/order-received/123/';
+	let originalLocation;
+	let historySpy;
+
+	const makeForm = () => {
+		const form = {};
+		form.removeClass = jest.fn( () => form );
+		form.addClass = jest.fn( () => form );
+		form.unblock = jest.fn( () => form );
+		form.block = jest.fn( () => form );
+		return form;
+	};
+
+	const setWalletHash = ( paymentMethodType ) => {
+		window.location.href =
+			'http://localhost/checkout#wc-stripe-wallet-123:' +
+			paymentMethodType +
+			':payment_intent:pi_abc_secret_xyz:' +
+			encodeURIComponent( RETURN_URL ) +
+			':nonce123';
+	};
+
+	beforeEach( () => {
+		historySpy = jest
+			.spyOn( window.history, 'replaceState' )
+			.mockImplementation( () => {} );
+		originalLocation = window.location;
+		delete window.location;
+		window.location = { href: '', pathname: '/checkout', search: '' };
+		stripeUtils.getStripeServerData.mockReturnValue( {
+			isOrderPay: false,
+			isChangingPayment: false,
+		} );
+	} );
+
+	afterEach( () => {
+		window.location = originalLocation;
+		historySpy.mockRestore();
+		jest.clearAllMocks();
+	} );
+
+	it( 'confirms Revolut Pay via the generic confirmPayment (no dedicated Stripe.js method exists)', async () => {
+		setWalletHash( 'revolut_pay' );
+
+		const confirmPayment = jest.fn().mockResolvedValue( {
+			paymentIntent: { status: 'succeeded', id: 'pi_abc' },
+		} );
+		const api = {
+			getStripe: () => ( { confirmPayment } ),
+			getAjaxUrl: jest
+				.fn()
+				.mockReturnValue( '/ajax/confirm_change_payment' ),
+			request: jest.fn().mockResolvedValue( {
+				success: true,
+				data: { return_url: RETURN_URL },
+			} ),
+		};
+
+		await confirmWalletPayment( api, makeForm() );
+
+		expect( confirmPayment ).toHaveBeenCalledWith( {
+			clientSecret: 'pi_abc_secret_xyz',
+			confirmParams: { return_url: RETURN_URL },
+			redirect: 'if_required',
+		} );
+		// Revolut Pay must not fall through to the "invalid wallet type" default branch.
+		expect( stripeUtils.showErrorCheckout ).not.toHaveBeenCalled();
+		expect( window.location.href ).toBe( RETURN_URL );
+	} );
+
+	it( 'errors for an unrecognized wallet type instead of confirming', async () => {
+		setWalletHash( 'not_a_wallet' );
+
+		const confirmPayment = jest.fn();
+		const api = { getStripe: () => ( { confirmPayment } ) };
+
+		await confirmWalletPayment( api, makeForm() );
+
+		expect( confirmPayment ).not.toHaveBeenCalled();
+		expect( stripeUtils.showErrorCheckout ).toHaveBeenCalled();
+	} );
+} );

@@ -34,6 +34,7 @@ import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
 	PAYMENT_METHOD_MULTIBANCO,
+	PAYMENT_METHOD_REVOLUT_PAY,
 	PAYMENT_METHOD_WECHAT_PAY,
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
@@ -1437,6 +1438,15 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 							return_url: returnURL,
 						} );
 				}
+				break;
+			case PAYMENT_METHOD_REVOLUT_PAY:
+				confirmPayment = await api.getStripe().confirmPayment( {
+					clientSecret,
+					confirmParams: {
+						return_url: returnURL,
+					},
+					redirect: 'if_required',
+				} );
 				break;
 			default:
 				// eslint-disable-next-line no-console
