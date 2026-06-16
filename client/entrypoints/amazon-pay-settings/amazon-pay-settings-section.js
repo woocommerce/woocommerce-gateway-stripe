@@ -1,3 +1,4 @@
+/* global wc_stripe_amazon_pay_settings_params */
 import { ADMIN_URL, getSetting } from '@woocommerce/settings';
 import React, { useMemo } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
@@ -68,6 +69,8 @@ const AmazonPaySettingsSection = () => {
 	const accountId = useAccount().data?.account?.id;
 	const [ publishableKey ] = useAccountKeysPublishableKey();
 	const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
+	const isButtonStyleOverridden =
+		!! wc_stripe_amazon_pay_settings_params?.is_button_style_overridden; // eslint-disable-line camelcase
 
 	const stripePromise = useMemo( () => {
 		return loadStripe(
@@ -103,31 +106,33 @@ const AmazonPaySettingsSection = () => {
 	return (
 		<Card className="express-checkout-settings">
 			<CardBody>
-				<Notice status="warning" isDismissible={ false }>
-					{ interpolateComponents( {
-						mixedString: __(
-							'Some appearance settings may be overridden by the express payment section of the ' +
-								'{{checkoutPageLink}}Cart & Checkout blocks{{/checkoutPageLink}}. ' +
-								'Follow the instructions there and check back soon.',
-							'woocommerce-gateway-stripe'
-						),
-						components: {
-							checkoutPageLink: (
-								<StyledLink
-									href={ `${ ADMIN_URL }post.php?post=${
-										getSetting( 'storePages' )?.checkout?.id
-									}&action=edit` }
-									target="_blank"
-									rel="noreferrer"
-									onClick={ ( ev ) => {
-										// Stop propagation is necessary so it doesn't trigger the tooltip click event.
-										ev.stopPropagation();
-									} }
-								/>
+				{ isButtonStyleOverridden && (
+					<Notice status="warning" isDismissible={ false }>
+						{ interpolateComponents( {
+							mixedString: __(
+								'Some appearance settings may be overridden by the express payment section of the ' +
+									'{{checkoutPageLink}}Cart & Checkout blocks{{/checkoutPageLink}}.',
+								'woocommerce-gateway-stripe'
 							),
-						},
-					} ) }
-				</Notice>
+							components: {
+								checkoutPageLink: (
+									<StyledLink
+										href={ `${ ADMIN_URL }post.php?post=${
+											getSetting( 'storePages' )?.checkout
+												?.id
+										}&action=edit` }
+										target="_blank"
+										rel="noreferrer"
+										onClick={ ( ev ) => {
+											// Stop propagation is necessary so it doesn't trigger the tooltip click event.
+											ev.stopPropagation();
+										} }
+									/>
+								),
+							},
+						} ) }
+					</Notice>
+				) }
 				<h4>
 					{ __(
 						'Show express checkouts on',

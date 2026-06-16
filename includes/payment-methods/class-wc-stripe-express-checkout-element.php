@@ -296,7 +296,7 @@ class WC_Stripe_Express_Checkout_Element {
 		if ( ! wp_script_is( 'wc_stripe_express_checkout', 'registered' ) ) {
 			$this->register_express_checkout_script();
 		}
-		$currency = get_woocommerce_currency();
+		$currency = $order->get_currency();
 		$data     = [];
 		$items    = [];
 
@@ -379,6 +379,7 @@ class WC_Stripe_Express_Checkout_Element {
 			],
 		];
 		$data['displayItems']   = $items;
+		$data['currency']       = strtolower( $currency );
 		$data['needs_shipping'] = false; // This should be already entered/prepared.
 		$data['total']          = [
 			'label'   => $this->express_checkout_helper->get_total_label(),
@@ -679,6 +680,17 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		$order->set_payment_method_title( $payment_method_title );
+
+		// WC Subscriptions writes a "from X to Credit Card" note before our title
+		// override runs (its label comes from the gateway, not the wallet). Add a
+		// clarifying note so the truth is visible alongside.
+		$order->add_order_note(
+			sprintf(
+				/* translators: %s: Express checkout payment method title, e.g. "Apple Pay (Stripe)". */
+				__( 'Payment method updated to %s.', 'woocommerce-gateway-stripe' ),
+				$payment_method_title
+			)
+		);
 		$order->save();
 		return true;
 	}

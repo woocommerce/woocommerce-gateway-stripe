@@ -68,6 +68,43 @@ const shouldHideSaveCheckboxFromConfig = ( method, paymentMethodsConfig ) => {
  */
 const HIDE_SAVE_CHECKBOX_CLASS = 'wc-stripe-hide-save-checkbox';
 
+/**
+ * Clear the save-checkbox state from both the classic DOM input and the
+ * Blocks payment store.
+ *
+ * This ensures that we don't include a stale value for the "save payment method"
+ * input field when the field has been hidden due to a payment method change.
+ */
+const clearSaveCheckboxState = () => {
+	// Classic: the form input WC reads on submit.
+	const classicInput = document.getElementById(
+		'wc-stripe-new-payment-method'
+	);
+	if ( classicInput instanceof HTMLInputElement ) {
+		classicInput.checked = false;
+		return;
+	}
+
+	// Blocks: WC Blocks renders the save checkbox from its own paymentStore
+	// state, so clearing the DOM input would be ineffective. The public
+	// dispatch is wc/store/payment#__internalSetShouldSavePaymentMethod.
+	if ( typeof window?.wp?.data?.dispatch === 'function' ) {
+		try {
+			const paymentStore = window.wp.data.dispatch( 'wc/store/payment' );
+			if (
+				paymentStore &&
+				typeof paymentStore.__internalSetShouldSavePaymentMethod ===
+					'function'
+			) {
+				paymentStore.__internalSetShouldSavePaymentMethod( false );
+			}
+		} catch ( e ) {
+			// Store unavailable — classic-only contexts don't ship wp.data,
+			// and the DOM clear above is the right action there.
+		}
+	}
+};
+
 export const handleDisplayOfSavingCheckbox = (
 	method,
 	paymentMethodsConfig
@@ -79,10 +116,14 @@ export const handleDisplayOfSavingCheckbox = (
 		'.wc-block-components-payment-methods__save-card-info, .wc-block-checkout'
 	);
 	if ( isBlockCheckout ) {
-		document.body.classList.toggle(
-			HIDE_SAVE_CHECKBOX_CLASS,
-			shouldHideSaveCheckboxFromConfig( method, paymentMethodsConfig )
+		const shouldHide = shouldHideSaveCheckboxFromConfig(
+			method,
+			paymentMethodsConfig
 		);
+		document.body.classList.toggle( HIDE_SAVE_CHECKBOX_CLASS, shouldHide );
+		if ( shouldHide ) {
+			clearSaveCheckboxState();
+		}
 		return;
 	}
 
@@ -90,10 +131,14 @@ export const handleDisplayOfSavingCheckbox = (
 	// when the per-method config map is available. The matching CSS rule
 	// lives in classic/upe/style.scss.
 	if ( paymentMethodsConfig?.card?.showSaveOptionByMethod ) {
-		document.body.classList.toggle(
-			HIDE_SAVE_CHECKBOX_CLASS,
-			shouldHideSaveCheckboxFromConfig( method, paymentMethodsConfig )
+		const shouldHide = shouldHideSaveCheckboxFromConfig(
+			method,
+			paymentMethodsConfig
 		);
+		document.body.classList.toggle( HIDE_SAVE_CHECKBOX_CLASS, shouldHide );
+		if ( shouldHide ) {
+			clearSaveCheckboxState();
+		}
 		return;
 	}
 

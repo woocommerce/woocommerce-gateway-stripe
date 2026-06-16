@@ -24,7 +24,6 @@ import {
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
 } from 'wcstripe/express-checkout/event-handler';
-import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import 'wcstripe/express-checkout/compatibility/classic-checkout-custom-fields';
@@ -51,7 +50,8 @@ jQuery( function ( $ ) {
 		return;
 	}
 
-	const publishableKey = getExpressCheckoutData( 'stripe' ).publishable_key;
+	const stripeParams = getExpressCheckoutData( 'stripe' );
+	const publishableKey = stripeParams?.publishable_key;
 	const quantityInputSelector = '.quantity .qty[type=number]';
 
 	if ( ! publishableKey ) {
@@ -60,7 +60,11 @@ jQuery( function ( $ ) {
 	}
 
 	const api = new WCStripeAPI(
-		getStripeServerData(),
+		{
+			key: publishableKey,
+			locale: stripeParams.locale,
+			ajax_url: getExpressCheckoutData( 'ajax_url' ),
+		},
 		// A promise-based interface to jQuery.post.
 		( url, args ) => {
 			return new Promise( ( resolve, reject ) => {
@@ -224,6 +228,12 @@ jQuery( function ( $ ) {
 			const areTaxesBasedOnBillingAddress = getExpressCheckoutData(
 				'taxes_based_on_billing'
 			);
+			// Amazon Pay needs a confirmation-token flow that
+			// `handleChangePaymentMethodFlow` does not implement, so it must not
+			// be offered on the subscription change-payment page.
+			const isChangePaymentMethod = getExpressCheckoutData(
+				'is_change_payment_method'
+			);
 
 			// For each supported express payment type, create their own
 			// express checkout element. This is necessary as some express payment types
@@ -236,6 +246,7 @@ jQuery( function ( $ ) {
 					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 				isAmazonPayEnabled &&
 					! areTaxesBasedOnBillingAddress &&
+					! isChangePaymentMethod &&
 					EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			].filter( Boolean );
@@ -431,11 +442,7 @@ jQuery( function ( $ ) {
 					);
 				}
 
-				return shippingAddressChangeHandler(
-					api,
-					event,
-					stripeElements
-				);
+				return shippingAddressChangeHandler( event, stripeElements );
 			};
 
 			eceButton.on( 'shippingaddresschange', async ( event ) => {
@@ -445,17 +452,13 @@ jQuery( function ( $ ) {
 						elements
 					);
 				}
-				return await shippingAddressChangeHandler(
-					api,
-					event,
-					elements
-				);
+				return await shippingAddressChangeHandler( event, elements );
 			} );
 
 			eceButton.on(
 				'shippingratechange',
 				async ( event ) =>
-					await shippingRateChangeHandler( api, event, elements )
+					await shippingRateChangeHandler( event, elements )
 			);
 
 			eceButton.on( 'confirm', async ( event ) => {
@@ -542,6 +545,7 @@ jQuery( function ( $ ) {
 
 				const {
 					total: { amount: total },
+					currency,
 					displayItems,
 					order,
 					orderDetails,
@@ -560,6 +564,7 @@ jQuery( function ( $ ) {
 				wcStripeECE.startExpressCheckout( {
 					total,
 					currency:
+						currency ??
 						getExpressCheckoutData( 'checkout' ).currency_code,
 					appearance: getExpressCheckoutButtonAppearance(),
 					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
@@ -951,7 +956,8 @@ jQuery( function ( $ ) {
 	if (
 		getExpressCheckoutData( 'is_product_page' ) ||
 		getExpressCheckoutData( 'is_pay_for_order' ) ||
-		getExpressCheckoutData( 'is_cart_page' )
+		getExpressCheckoutData( 'is_cart_page' ) ||
+		getExpressCheckoutData( 'is_change_payment_method' )
 	) {
 		wcStripeECE.init();
 	}

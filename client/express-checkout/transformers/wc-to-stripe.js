@@ -2,6 +2,7 @@ import { __ } from '@wordpress/i18n';
 import { applyFilters } from '@wordpress/hooks';
 import { decodeEntities } from '@wordpress/html-entities';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
+import { SHIPPING_RATES_UPPER_LIMIT_COUNT } from 'wcstripe/stripe-utils/constants';
 
 /**
  * Stripe expects the prices to be formatted in whole numbers.
@@ -152,4 +153,52 @@ export const transformLabeledDisplayItems = ( displayItems ) => {
 		name: label,
 		amount,
 	} ) );
+};
+
+/**
+ * Transforms WooCommerce Store API shipping rates to the format expected by Stripe ECE.
+ *
+ * @param {Object} cartData Store API Cart response object.
+ * @return {Array} Shipping rates in Stripe ECE format.
+ */
+export const transformCartDataForShippingRates = ( cartData ) => {
+	const displayPriceIncludingTax =
+		getExpressCheckoutData( 'checkout' )?.display_prices_with_tax;
+
+	const shippingRates = cartData?.shipping_rates?.[ 0 ]?.shipping_rates || [];
+
+	if ( shippingRates.length === 0 ) {
+		return [];
+	}
+
+	return [ ...shippingRates ]
+		.sort( ( rateA, rateB ) => {
+			if ( rateA.selected === rateB.selected ) {
+				return 0;
+			}
+			return rateA.selected ? -1 : 1;
+		} )
+		.slice( 0, SHIPPING_RATES_UPPER_LIMIT_COUNT )
+		.map( ( rate ) => ( {
+			id: rate.rate_id,
+			displayName: decodeEntities( rate.name ),
+			amount: transformPrice(
+				displayPriceIncludingTax
+					? parseInt( rate.price, 10 ) +
+							parseInt( rate.taxes || '0', 10 )
+					: parseInt( rate.price, 10 ),
+				rate
+			),
+			deliveryEstimate: [
+				rate.meta_data?.find(
+					( metadata ) => metadata?.key === 'pickup_address'
+				)?.value,
+				rate.meta_data?.find(
+					( metadata ) => metadata?.key === 'pickup_details'
+				)?.value,
+			]
+				.filter( Boolean )
+				.map( decodeEntities )
+				.join( ' - ' ),
+		} ) );
 };
