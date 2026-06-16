@@ -91,11 +91,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		try {
 
 			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-			// Use wc_stock_amount() rather than absint() so stores that allow decimal
-			// quantities (e.g. selling fabric by the metre) keep fractional values like
-			// 0.25 instead of having them truncated to an integer. wc_format_decimal()
-			// first normalises localised decimal separators (e.g. "0,25") so the float
-			// cast can't zero them; max() keeps the result non-negative.
+			// wc_stock_amount() respects the store's decimal-quantity setting; wc_format_decimal()
+			// normalises localised separators ("0,25") before the cast so fractions survive.
 			$qty         = 1;
 			$cleaned_qty = isset( $_POST['qty'] ) ? wc_clean( wp_unslash( $_POST['qty'] ) ) : 1;
 			if ( is_string( $cleaned_qty ) ) {
