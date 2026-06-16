@@ -174,6 +174,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add more robust purchase checks in e2e tests
 * Fix - Only create an agentic commerce order on the site that produced the checkout, preventing duplicate or wrong-site orders when multiple stores share one Stripe account
 * Dev - Add a Code Comment Conventions section to AGENTS.md to standardize agent and contributor comment guidance
+* Fix - Show an error notice when a Stripe OAuth connection attempt fails its security check
 * Fix - Run the woocommerce_gateway_description filter for Stripe payment methods so third parties can add or replace their checkout descriptions
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
