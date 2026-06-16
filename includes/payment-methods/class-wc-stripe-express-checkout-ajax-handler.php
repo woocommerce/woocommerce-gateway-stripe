@@ -125,8 +125,9 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 				}
 			}
 
-			// $qty can be a float on decimal-quantity stores. WC_Cart::add_to_cart() accepts
-			// fractional quantities at runtime even though its stub types $quantity as int.
+			// On the add_to_cart() calls below: $qty can be a float on decimal-quantity stores. 
+			// WC_Cart::add_to_cart() accepts fractional quantities at runtime even though its stub types $quantity as int.
+			// (hence the @phpstan-ignore).
 			if ( ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
 				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
 
