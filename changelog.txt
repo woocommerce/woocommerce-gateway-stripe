@@ -18,6 +18,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Only create an agentic commerce order on the site that produced the checkout, preventing duplicate or wrong-site orders when multiple stores share one Stripe account
 * Dev - Add a Code Comment Conventions section to AGENTS.md to standardize agent and contributor comment guidance
 * Fix - Run the woocommerce_gateway_description filter for Stripe payment methods so third parties can add or replace their checkout descriptions
+* Fix - Calculate the Apple Pay / Google Pay product tax preview on the selected quantity instead of a single unit
 
 2026-06-15 - version 10.8.2
 * Fix - Disable Adaptive Pricing when webhooks are disabled

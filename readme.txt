@@ -170,6 +170,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent a possible fatal error when saving the payment method on a subscription order
 * Dev - Use clsx library instead of classnames
 * Fix - Append the 3-letter currency code to the Stripe Fee and Stripe Payout amounts in WP Admin order totals when the Stripe account currency differs from the order currency
+* Fix - Calculate the Apple Pay / Google Pay product tax preview on the selected quantity instead of a single unit
 * Fix - Only create an agentic commerce order on the site that produced the checkout, preventing duplicate or wrong-site orders when multiple stores share one Stripe account
 * Dev - Add a Code Comment Conventions section to AGENTS.md to standardize agent and contributor comment guidance
 * Fix - Run the woocommerce_gateway_description filter for Stripe payment methods so third parties can add or replace their checkout descriptions

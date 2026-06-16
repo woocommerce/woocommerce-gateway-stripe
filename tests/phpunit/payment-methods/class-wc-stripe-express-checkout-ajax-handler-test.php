@@ -198,6 +198,51 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test ajax_get_selected_product_data calculates taxes from the quantity-adjusted subtotal.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_get_selected_product_data_scales_tax_by_quantity() {
+		Ajax_Test_Helper::init_hooks();
+
+		$product = WC_Helper_Product::create_simple_product();
+
+		$this->express_checkout_helper->method( 'is_invalid_subscription_product' )->willReturn( false );
+		$this->express_checkout_helper->method( 'get_product_price' )->willReturn( 10.0 );
+		$this->express_checkout_helper->method( 'get_total_label' )->willReturn( 'Total' );
+		$this->express_checkout_helper->expects( $this->once() )
+			->method( 'get_taxes_like_cart' )
+			->with( $this->anything(), 30.0 )
+			->willReturn( [ 6.0 ] );
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-get-selected-product-data' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = 3;
+
+			WC()->session->init();
+
+			ob_start();
+			$this->ajax_handler->ajax_get_selected_product_data();
+			$output = ob_get_clean();
+
+			$response = json_decode( $output, true );
+		} finally {
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		$this->assertIsArray( $response );
+		$this->assertArrayHasKey( 'displayItems', $response, 'response: ' . wp_json_encode( $response ) );
+		$this->assertSame( 3000, $response['displayItems'][0]['amount'] );
+		$this->assertSame( 600, $response['displayItems'][1]['amount'] );
+		$this->assertSame( 3600, $response['total']['amount'] );
+	}
+
+	/**
 	 * Builds an ajax handler backed by a helper that only stubs
 	 * is_express_checkout_context(), so the real state/postcode normalization runs.
 	 *

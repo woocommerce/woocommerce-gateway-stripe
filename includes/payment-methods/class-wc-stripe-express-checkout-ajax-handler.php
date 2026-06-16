@@ -396,8 +396,9 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
 			}
 
-			$price = $this->express_checkout_helper->get_product_price( $product, $is_deposit, $deposit_plan_id );
-			$total = $qty * $price + $addon_value;
+			$price         = $this->express_checkout_helper->get_product_price( $product, $is_deposit, $deposit_plan_id );
+			$line_subtotal = $qty * $price;
+			$total         = $line_subtotal + $addon_value;
 
 			$quantity_label = 1 < $qty ? ' (x' . $qty . ')' : '';
 
@@ -414,7 +415,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			];
 
 			$total_tax = 0;
-			foreach ( $this->express_checkout_helper->get_taxes_like_cart( $product, $price ) as $tax ) {
+			foreach ( $this->express_checkout_helper->get_taxes_like_cart( $product, $line_subtotal ) as $tax ) {
 				$total_tax += $tax;
 
 				$items[] = [
