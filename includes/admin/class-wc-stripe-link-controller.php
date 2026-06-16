@@ -41,8 +41,9 @@ class WC_Stripe_Link_Controller {
 
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$params          = [
-			'key'    => WC_Stripe_Mode::is_test() ? ( $stripe_settings['test_publishable_key'] ?? '' ) : ( $stripe_settings['publishable_key'] ?? '' ),
-			'locale' => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+			'key'                        => WC_Stripe_Mode::is_test() ? ( $stripe_settings['test_publishable_key'] ?? '' ) : ( $stripe_settings['publishable_key'] ?? '' ),
+			'locale'                     => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+			'is_button_style_overridden' => WC_Stripe_Helper::is_express_checkout_button_style_overridden(),
 		];
 		wp_localize_script(
 			'wc-stripe-link-settings',
