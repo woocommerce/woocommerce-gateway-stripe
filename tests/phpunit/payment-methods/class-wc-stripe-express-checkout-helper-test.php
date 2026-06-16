@@ -1162,12 +1162,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			],
 			'link, settings exists'                                   => [
 				'express checkout type' => 'link',
-				'settings'              => [ 'express_checkout_button_locations' => [ 'cart' ] ],
+				'settings'              => [ 'link_button_locations' => [ 'cart' ] ],
 				'expected'              => [ 'cart' ],
 			],
 			'link, settings exists, but not a valid array'            => [
 				'express checkout type' => 'link',
-				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
+				'settings'              => [ 'link_button_locations' => 'invalid_value' ],
 				'expected'              => [],
 			],
 			'link, settings do not exist'                             => [
@@ -1912,6 +1912,54 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'CA', $result['billing_address']['state'] );
 		$this->assertEquals( 'NSW', $result['shipping_address']['state'] );
+	}
+
+	/**
+	 * Tests for `get_link_button_height`.
+	 *
+	 * @param array  $settings Settings array.
+	 * @param string $expected Expected height.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_get_link_button_height
+	 */
+	public function test_get_link_button_height( array $settings, string $expected ): void {
+		$helper                  = new WC_Stripe_Express_Checkout_Helper();
+		$helper->stripe_settings = $settings;
+
+		$actual = $helper->get_link_button_height();
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_get_link_button_height`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_link_button_height(): array {
+		return [
+			'small'         => [
+				'settings' => [ 'link_button_size' => 'small' ],
+				'expected' => '40',
+			],
+			'default'       => [
+				'settings' => [ 'link_button_size' => 'default' ],
+				'expected' => '48',
+			],
+			'large'         => [
+				'settings' => [ 'link_button_size' => 'large' ],
+				'expected' => '56',
+			],
+			'not set'       => [
+				'settings' => [],
+				'expected' => '48',
+			],
+			'unknown value' => [
+				'settings' => [ 'link_button_size' => 'unknown' ],
+				'expected' => '48',
+			],
+		];
 	}
 
 	/**

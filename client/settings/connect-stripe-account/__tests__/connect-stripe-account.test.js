@@ -4,12 +4,18 @@ import userEvent from '@testing-library/user-event';
 import ConnectStripeAccount from '..';
 import { recordEvent } from 'wcstripe/tracking';
 
+const mockGetQuery = jest.fn();
+
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
 } ) );
 
 jest.mock( 'wcstripe/tracking', () => ( {
 	recordEvent: jest.fn(),
+} ) );
+
+jest.mock( '@woocommerce/navigation', () => ( {
+	getQuery: ( ...args ) => mockGetQuery( ...args ),
 } ) );
 
 // Mock global variables
@@ -21,6 +27,32 @@ global.ajaxurl = '/wp-admin/admin-ajax.php';
 describe( 'ConnectStripeAccount', () => {
 	beforeEach( () => {
 		jest.clearAllMocks();
+		mockGetQuery.mockReturnValue( {} );
+	} );
+
+	it( 'should show the expired-nonce error notice when the redirect marker is present', () => {
+		mockGetQuery.mockReturnValue( {
+			wc_stripe_connect_error: 'expired_nonce',
+		} );
+
+		const { container } = render( <ConnectStripeAccount /> );
+
+		expect( container ).toHaveTextContent(
+			'Your Stripe connection attempt expired or was interrupted before it could complete. Please try again.'
+		);
+	} );
+
+	it( 'should not show a connection error notice when no redirect marker is present', () => {
+		mockGetQuery.mockReturnValue( {} );
+
+		const { container } = render( <ConnectStripeAccount /> );
+
+		expect( container ).not.toHaveTextContent(
+			'Your Stripe connection attempt expired'
+		);
+		expect( container ).not.toHaveTextContent(
+			'An issue occurred generating a connection to Stripe'
+		);
 	} );
 
 	it( 'should render the information', () => {
