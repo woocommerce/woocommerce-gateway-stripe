@@ -1156,7 +1156,8 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 };
 
 /**
- * Extract the order ID from a WooCommerce "Order received" page URL.
+ * Helper method to extract the order ID from a WooCommerce "Order received" page URL.
+ * This is used to discover a recently purchased order ID from the order-received page URL.
  *
  * @param {string} url The order-received URL (e.g. `.../order-received/123/?key=...`).
  * @returns {string} The order ID.
