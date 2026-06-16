@@ -569,7 +569,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * When a saved token backs the subscription's PaymentMethod, its pinned wallet_type
 	 * is authoritative over the live PaymentMethod's wallet, so the subscription row matches
-	 * the saved-token list (#5543).
+	 * the saved-token list.
 	 *
 	 * @see WC_Stripe_Subscriptions_Trait::maybe_render_subscription_payment_method()
 	 * @dataProvider provide_test_render_subscription_prefers_saved_token_wallet_type
@@ -588,7 +588,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$mock_subscription->update_meta_data( '_stripe_customer_id', 'cus_mock' );
 		$mock_subscription->save();
 
-		// Saved token for the same card, pinned to $token_wallet_type per #5477.
+		// Saved token for the same card, pinned to $token_wallet_type.
 		$token = new WC_Stripe_Payment_Token_CC();
 		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
 		$token->set_token( $payment_method_id );

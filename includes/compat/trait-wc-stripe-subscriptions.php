@@ -1229,9 +1229,9 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Returns the pinned `wallet_type` of the saved token backing a Stripe PaymentMethod.
 	 *
 	 * Fingerprint dedup can repoint a saved card token at a newer (wallet-flavored)
-	 * PaymentMethod while leaving its `wallet_type` pinned (see #5477). The subscription
+	 * PaymentMethod while leaving its `wallet_type` pinned. The subscription
 	 * row must reflect that pinned branding rather than the live PaymentMethod's wallet,
-	 * so the row and the saved-token list agree (see #5543).
+	 * so the row and the saved-token list agree.
 	 *
 	 * @param int    $customer_user     WP user ID owning the subscription.
 	 * @param string $stripe_source_id  Stripe PaymentMethod ID stored on the subscription.
@@ -1261,7 +1261,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 *                                          token, or null when no token matched. When provided
 	 *                                          (including an empty string), it wins over the live
 	 *                                          PaymentMethod's `card->wallet->type` so the row matches
-	 *                                          the saved-token list's pinned branding (see #5543).
+	 *                                          the saved-token list's pinned branding.
 	 * @return string The descriptive text for the payment method or source.
 	 */
 	protected function get_payment_method_to_display_for_payment_method( object $payment_method, ?string $wallet_type_override = null ): string {
@@ -1282,7 +1282,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				// Surface the wallet brand (Apple Pay / Google Pay) used; `link` and manual cards stay bare.
 				// When a saved token matched the PaymentMethod, its pinned `wallet_type` is
-				// authoritative so this row matches the saved-token list (see #5543); otherwise
+				// authoritative so this row matches the saved-token list; otherwise
 				// fall back to the live PaymentMethod's wallet type.
 				$wallet_type  = $wallet_type_override ?? ( isset( $payment_method->card->wallet->type ) ? $payment_method->card->wallet->type : '' );
 				$wallet_label = WC_Stripe_Payment_Methods::EXPRESS_METHODS_LABELS[ $wallet_type ] ?? '';
