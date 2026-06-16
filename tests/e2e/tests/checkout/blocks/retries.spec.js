@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { admin, payments } from '../../../utils';
+import { payments } from '../../../utils';
 
 const {
 	emptyCart,
@@ -11,6 +11,7 @@ const {
 	clickPlaceOrder,
 	handleCheckoutCashAppPay,
 	getCartTotal,
+	waitForOrderReceivedPage,
 	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 

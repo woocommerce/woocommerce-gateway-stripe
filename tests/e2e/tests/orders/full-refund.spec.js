@@ -9,6 +9,7 @@ const {
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
 	getCartTotal,
+	getOrderIdFromOrderReceivedUrl,
 	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
@@ -46,6 +47,8 @@ test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
 			userPage,
 			expectedTotal
 		);
+
+		orderId = getOrderIdFromOrderReceivedUrl( userPage.url() );
 
 		await userPage.close();
 	} );

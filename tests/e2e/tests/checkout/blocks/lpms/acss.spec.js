@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
 import { payments, api, user } from '../../../../utils';
