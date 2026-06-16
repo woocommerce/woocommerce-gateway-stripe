@@ -10,6 +10,8 @@ const {
 	setupOptimizedCheckout,
 	fillOCDetails,
 	clickPlaceOrder,
+	getCartTotal,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
 test.describe( 'Optimized Checkout payment tests @shortcode', () => {
@@ -38,13 +40,19 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 
 	test( 'customer can pay with Optimized Checkout @smoke', async ( {
 		page,
+		browser,
 	} ) => {
 		await setupOptimizedCheckout( page, 'shortcode' );
 		await fillOCDetails( page, config.get( 'cards.basic' ), 'shortcode' );
+
+		const expectedTotal = await getCartTotal( page );
+
 		await clickPlaceOrder( page );
-		await page.waitForURL( '**/checkout/order-received/**' );
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
+
+		await waitForOrderReceivedPageAndConfirmExpectedTotal(
+			browser,
+			page,
+			expectedTotal
 		);
 	} );
 
@@ -81,10 +89,15 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 					config.get( 'cards.basic' ),
 					'shortcode'
 				);
+
+				const expectedTotal = await getCartTotal( page );
+
 				await clickPlaceOrder( page );
-				await page.waitForURL( '**/checkout/order-received/**' );
-				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-					'Order received'
+
+				await waitForOrderReceivedPageAndConfirmExpectedTotal(
+					browser,
+					page,
+					expectedTotal
 				);
 			} );
 
@@ -101,10 +114,15 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 				);
 				await expect( savedTokenRadio ).toBeVisible();
 				await savedTokenRadio.click();
+
+				const expectedTotal = await getCartTotal( page );
+
 				await clickPlaceOrder( page );
-				await page.waitForURL( '**/checkout/order-received/**' );
-				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-					'Order received'
+
+				await waitForOrderReceivedPageAndConfirmExpectedTotal(
+					browser,
+					page,
+					expectedTotal
 				);
 			} );
 		} finally {

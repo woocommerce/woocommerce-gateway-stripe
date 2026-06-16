@@ -1326,93 +1326,71 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * When the Stripe currency matches the order currency, no code is appended to the fee row.
+	 * @dataProvider provide_test_display_order_currency_cases
 	 *
-	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4184
+	 * @param string $order_currency                   The order currency.
+	 * @param string $stripe_currency                  The Stripe currency.
+	 * @param bool   $expect_stripe_currency_in_output Whether the Stripe currency is expected in the output.
 	 */
-	public function test_display_order_fee_same_currency_no_code_appended() {
+	public function test_display_order_fee( string $order_currency, string $stripe_currency, bool $expect_stripe_currency_in_output ): void {
 		$order = WC_Helper_Order::create_order();
-		$order->set_currency( 'USD' );
+		$order->set_currency( $order_currency );
 		$order->save();
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->update_stripe_fee( $order, '0.59' );
-		$order_helper->update_stripe_currency( $order, 'USD' );
+		$order_helper->update_stripe_currency( $order, $stripe_currency );
 		$order->save();
 
 		ob_start();
 		$this->gateway->display_order_fee( $order->get_id() );
 		$output = ob_get_clean();
 
-		// No raw currency code appended when currencies match.
-		$this->assertStringNotContainsString( ' USD', $output );
+		if ( $expect_stripe_currency_in_output ) {
+			$this->assertStringContainsString( ' ' . $stripe_currency, $output );
+		} else {
+			$this->assertStringNotContainsString( $stripe_currency, $output );
+		}
 	}
 
 	/**
-	 * When the Stripe currency differs from the order currency, the code is appended to the fee row.
+	 * @dataProvider provide_test_display_order_currency_cases
 	 *
-	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4184
+	 * @param string $order_currency                   The order currency.
+	 * @param string $stripe_currency                  The Stripe currency.
+	 * @param bool   $expect_stripe_currency_in_output Whether the Stripe currency is expected in the output.
 	 */
-	public function test_display_order_fee_different_currency_appends_code() {
+	public function test_display_order_payout( string $order_currency, string $stripe_currency, bool $expect_stripe_currency_in_output ): void {
 		$order = WC_Helper_Order::create_order();
-		$order->set_currency( 'AUD' );
-		$order->save();
-
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$order_helper->update_stripe_fee( $order, '0.59' );
-		$order_helper->update_stripe_currency( $order, 'USD' );
-		$order->save();
-
-		ob_start();
-		$this->gateway->display_order_fee( $order->get_id() );
-		$output = ob_get_clean();
-
-		$this->assertStringContainsString( ' USD', $output );
-	}
-
-	/**
-	 * When the Stripe currency matches the order currency, no code is appended to the payout row.
-	 *
-	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4184
-	 */
-	public function test_display_order_payout_same_currency_no_code_appended() {
-		$order = WC_Helper_Order::create_order();
-		$order->set_currency( 'USD' );
+		$order->set_currency( $order_currency );
 		$order->save();
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->update_stripe_net( $order, '19.41' );
-		$order_helper->update_stripe_currency( $order, 'USD' );
+		$order_helper->update_stripe_currency( $order, $stripe_currency );
 		$order->save();
 
 		ob_start();
 		$this->gateway->display_order_payout( $order->get_id() );
 		$output = ob_get_clean();
 
-		// No raw currency code appended when currencies match.
-		$this->assertStringNotContainsString( ' USD', $output );
+		if ( $expect_stripe_currency_in_output ) {
+			$this->assertStringContainsString( ' ' . $stripe_currency, $output );
+		} else {
+			$this->assertStringNotContainsString( $stripe_currency, $output );
+		}
 	}
 
 	/**
-	 * When the Stripe currency differs from the order currency, the code is appended to the payout row.
+	 * Data provider for {@see test_display_order_fee()} and {@see test_display_order_payout()}.
 	 *
-	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4184
+	 * @return array
 	 */
-	public function test_display_order_payout_different_currency_appends_code() {
-		$order = WC_Helper_Order::create_order();
-		$order->set_currency( 'AUD' );
-		$order->save();
-
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$order_helper->update_stripe_net( $order, '19.41' );
-		$order_helper->update_stripe_currency( $order, 'USD' );
-		$order->save();
-
-		ob_start();
-		$this->gateway->display_order_payout( $order->get_id() );
-		$output = ob_get_clean();
-
-		$this->assertStringContainsString( ' USD', $output );
+	public function provide_test_display_order_currency_cases() {
+		return [
+			'same currency'      => [ 'USD', 'USD', false ],
+			'different currency' => [ 'USD', 'EUR', true ],
+		];
 	}
 
 	/**
