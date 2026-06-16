@@ -157,7 +157,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Default Optimized Checkout Suite and Adaptive Pricing on for all eligible stores, with in-app notices announcing the change
 * Fix - Prevent saved Link, Cash App Pay, SEPA, Amazon Pay and Bacs Direct Debit payment methods from being duplicated when viewing My Account → Payment methods
 * Fix - Ensure the save-payment-method checkbox is unchecked when a non-reusable payment method is selected in Optimized Checkout
-* Fix - Preserve decimal product quantities for variable products when adding to the cart through Apple Pay / Google Pay express checkout
+* Fix - Preserve decimal product quantities for products when adding to the cart through Apple Pay / Google Pay express checkout
 * Fix - Calculate the Apple Pay / Google Pay product tax preview on the selected quantity instead of a single unit
 * Tweak - Drop redundant "Test mode:" label from test payment instructions on Blocks checkout, which already shows a Test Mode badge
 * Fix - Resolve console errors shown when editing the Blocks checkout page
