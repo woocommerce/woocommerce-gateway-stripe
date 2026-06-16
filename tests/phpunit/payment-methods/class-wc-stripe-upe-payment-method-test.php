@@ -496,6 +496,30 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
+	 * Payment methods have no description by default, but the standard WooCommerce
+	 * `woocommerce_gateway_description` filter must still fire so third parties can add one.
+	 */
+	public function test_get_description_runs_woocommerce_gateway_description_filter() {
+		$sepa_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::SEPA_DEBIT ];
+		$gateway_id  = WC_Stripe_UPE_Payment_Gateway::ID . '_' . $sepa_method->get_id();
+
+		// No filter hooked: the default description is empty.
+		$this->assertSame( '', $sepa_method->get_description() );
+
+		$received_id = null;
+		$filter      = function ( $description, $id ) use ( &$received_id ) {
+			$received_id = $id;
+			return 'SEPA approval can take a few days.';
+		};
+		add_filter( 'woocommerce_gateway_description', $filter, 10, 2 );
+
+		$this->assertSame( 'SEPA approval can take a few days.', $sepa_method->get_description() );
+		$this->assertSame( $gateway_id, $received_id );
+
+		remove_filter( 'woocommerce_gateway_description', $filter, 10 );
+	}
+
+	/**
 	 * Card payment method is always enabled.
 	 */
 	public function test_card_payment_method_capability_is_always_enabled() {

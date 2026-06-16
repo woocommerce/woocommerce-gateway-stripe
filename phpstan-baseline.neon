@@ -3255,8 +3255,9 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$webhook_notification of method WC_Stripe_Webhook_Handler\:\:defer_webhook_processing\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 3
 			path: includes/class-wc-stripe-webhook-handler.php
+
 
 		-
 			message: '#^Parameter \#2 \$request_body of method WC_Stripe_Webhook_Handler\:\:validate_request\(\) expects array, string\|false given\.$#'

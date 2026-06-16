@@ -1194,6 +1194,10 @@ class WC_Stripe_Helper {
 			return 'account-country';
 		}
 
+		if ( ! $stripe_account->is_webhook_enabled() ) {
+			return 'webhooks-disabled';
+		}
+
 		// If we are in test mode, payout details are often missing and currency-based rules
 		// are not enforced.
 		if ( WC_Stripe_Mode::is_test() ) {

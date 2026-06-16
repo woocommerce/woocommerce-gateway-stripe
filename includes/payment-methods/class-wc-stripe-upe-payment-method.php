@@ -344,7 +344,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_description() {
-		return '';
+		return apply_filters( 'woocommerce_gateway_description', '', $this->id );
 	}
 
 	/**

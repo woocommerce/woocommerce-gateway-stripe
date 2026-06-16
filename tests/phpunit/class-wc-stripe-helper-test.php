@@ -1748,17 +1748,37 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param array  $cart_product_types Cart product types (e.g. ['simple'], ['simple','simple'], ['simple','simple','subscription']). Empty or null = empty cart.
 	 * @param bool   $expected           Expected result.
 	 * @param string $account_country    Two-letter ISO country code for the Stripe account. Defaults to 'US'.
+	 * @param bool   $webhook_enabled    Whether the Stripe webhook endpoint is enabled. Defaults to true.
 	 * @return void
 	 * @dataProvider provide_is_adaptive_pricing_supported
 	 */
-	public function test_is_adaptive_pricing_supported( bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected, string $account_country = 'US' ): void {
+	public function test_is_adaptive_pricing_supported( bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected, string $account_country = 'US', bool $webhook_enabled = true ): void {
 		$original_stripe_settings                          = WC_Stripe::read_settings_option();
 		$new_stripe_settings                               = $original_stripe_settings;
 		$new_stripe_settings['adaptive_pricing']           = $adaptive_pricing;
 		$new_stripe_settings['optimized_checkout_element'] = 'yes';
 		$new_stripe_settings['capture']                    = 'yes';
 		$new_stripe_settings['pmc_enabled']                = 'yes';
+		if ( $webhook_enabled ) {
+			$new_stripe_settings['webhook_data']      = [
+				'id'     => 'we_live',
+				'secret' => 'whsec_live',
+			];
+			$new_stripe_settings['test_webhook_data'] = [
+				'id'     => 'we_test',
+				'secret' => 'whsec_test',
+			];
+		}
 		WC_Stripe::write_settings_option( $new_stripe_settings );
+
+		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
+		if ( $webhook_enabled ) {
+			set_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
+			set_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
+		} else {
+			delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
+			delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
+		}
 
 		$is_checkout_filter = function () use ( $is_checkout ) {
 			return $is_checkout;
@@ -1817,6 +1837,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 		WC_Stripe::write_settings_option( $original_stripe_settings );
+		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
+		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
 		\WC_Subscriptions_Product::set_is_subscription( false );
 		\WC_Subscriptions_Product::set_subscription_product_ids( [] );
 		\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
@@ -1934,6 +1956,15 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => true,
 				'account_country'    => 'US',
 			],
+			'webhooks disabled'                         => [
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => false,
+				'account_country'    => 'US',
+				'webhook_enabled'    => false,
+			],
 		];
 	}
 
@@ -1981,6 +2012,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param bool    $test_mode       Whether Stripe test mode is enabled.
 	 * @param string  $store_currency  WooCommerce store currency code.
 	 * @param ?string $expected        Expected return value.
+	 * @param bool    $webhook_enabled Whether the Stripe webhook endpoint is enabled. Defaults to true.
 	 * @return void
 	 * @dataProvider provide_test_get_adaptive_pricing_account_unavailable_reason
 	 */
@@ -1988,12 +2020,32 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		array $account_data,
 		bool $test_mode,
 		string $store_currency,
-		?string $expected
+		?string $expected,
+		bool $webhook_enabled = true
 	): void {
 		$original_settings    = WC_Stripe::read_settings_option();
 		$settings             = $original_settings;
 		$settings['testmode'] = $test_mode ? 'yes' : 'no';
+		if ( $webhook_enabled ) {
+			$settings['webhook_data']      = [
+				'id'     => 'we_live',
+				'secret' => 'whsec_live',
+			];
+			$settings['test_webhook_data'] = [
+				'id'     => 'we_test',
+				'secret' => 'whsec_test',
+			];
+		}
 		WC_Stripe::write_settings_option( $settings );
+
+		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
+		if ( $webhook_enabled ) {
+			set_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
+			set_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
+		} else {
+			delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
+			delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
+		}
 
 		$this->set_stripe_account_data( $account_data );
 
@@ -2005,6 +2057,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		// Cleanup.
 		update_option( 'woocommerce_currency', $original_currency );
 		WC_Stripe::write_settings_option( $original_settings );
+		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
+		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
 
 		$this->assertSame( $expected, $actual );
 	}
@@ -2016,7 +2070,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_get_adaptive_pricing_account_unavailable_reason(): array {
 		return [
-			'India account (uppercase) → account-country'                             => [
+			'India account (uppercase) → account-country'                                   => [
 				'account_data'   => [
 					'country'           => 'IN',
 					'external_accounts' => [
@@ -2029,7 +2083,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'store_currency' => 'USD',
 				'expected'       => 'account-country',
 			],
-			'India account (lowercase) → account-country'                             => [
+			'India account (lowercase) → account-country'                                   => [
 				'account_data'   => [
 					'country'           => 'in',
 					'external_accounts' => [
@@ -2042,7 +2096,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'store_currency' => 'USD',
 				'expected'       => 'account-country',
 			],
-			'India account + test mode → account-country (India checked before mode)' => [
+			'India account + test mode → account-country (India checked before mode)'       => [
 				'account_data'   => [
 					'country'           => 'IN',
 					'external_accounts' => [
@@ -2053,7 +2107,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'store_currency' => 'USD',
 				'expected'       => 'account-country',
 			],
-			'Test mode, no settlement currencies → null (currency check bypassed)'    => [
+			'Test mode, no settlement currencies → null (currency check bypassed)'          => [
 				'account_data'   => [
 					'country'           => 'US',
 					'external_accounts' => [
@@ -2064,7 +2118,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'store_currency' => 'USD',
 				'expected'       => null,
 			],
-			'Test mode, currency mismatch → null (currency check bypassed)'           => [
+			'Test mode, currency mismatch → null (currency check bypassed)'                 => [
 				'account_data'   => [
 					'country'           => 'US',
 					'external_accounts' => [
@@ -2077,7 +2131,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'store_currency' => 'USD',
 				'expected'       => null,
 			],
-			'Live mode, no settlement currencies → no-settlement-currencies'          => [
+			'Live mode, no settlement currencies → no-settlement-currencies'                => [
 				'account_data'   => [
 					'country'           => 'US',
 					'external_accounts' => [
@@ -2101,7 +2155,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'store_currency' => 'USD',
 				'expected'       => 'store-currency-not-settlement-currency',
 			],
-			'Live mode, store currency in settlement → null'                          => [
+			'Live mode, store currency in settlement → null'                                => [
 				'account_data'   => [
 					'country'           => 'US',
 					'external_accounts' => [
@@ -2114,7 +2168,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'store_currency' => 'USD',
 				'expected'       => null,
 			],
-			'Live mode, non-US account, matching currency → null'                     => [
+			'Live mode, non-US account, matching currency → null'                           => [
 				'account_data'   => [
 					'country'           => 'GB',
 					'external_accounts' => [
@@ -2126,6 +2180,32 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'test_mode'      => false,
 				'store_currency' => 'GBP',
 				'expected'       => null,
+			],
+			'Live mode, webhooks disabled → webhooks-disabled'                              => [
+				'account_data'    => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'usd' ],
+						],
+					],
+				],
+				'test_mode'       => false,
+				'store_currency'  => 'USD',
+				'expected'        => 'webhooks-disabled',
+				'webhook_enabled' => false,
+			],
+			'Test mode, webhooks disabled → webhooks-disabled (gate applies in both modes)' => [
+				'account_data'    => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [],
+					],
+				],
+				'test_mode'       => true,
+				'store_currency'  => 'USD',
+				'expected'        => 'webhooks-disabled',
+				'webhook_enabled' => false,
 			],
 		];
 	}
