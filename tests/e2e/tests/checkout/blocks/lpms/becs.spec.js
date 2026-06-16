@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
 import { payments, api, user } from '../../../../utils';
@@ -9,6 +9,7 @@ const {
 	setupBlocksCheckout,
 	setupBECSCheckout,
 	fillBECSDetails,
+	waitForOrderReceivedPage,
 } = payments;
 
 test.describe( 'BECS payment tests @blocks @becs', () => {
@@ -39,10 +40,7 @@ test.describe( 'BECS payment tests @blocks @becs', () => {
 		await setupBECSCheckout( page, 'blocks' );
 		await fillBECSDetails( page );
 		await page.locator( 'text=Place order' ).click();
-		await page.waitForURL( '**/checkout/order-received/**' );
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
+		await waitForOrderReceivedPage( page );
 	} );
 
 	test( 'customer can save and reuse BECS payment method @smoke', async ( {
@@ -59,10 +57,7 @@ test.describe( 'BECS payment tests @blocks @becs', () => {
 			await fillBECSDetails( page );
 			await page.getByLabel( 'Save payment information' ).click();
 			await page.locator( 'text=Place order' ).click();
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
+			await waitForOrderReceivedPage( page );
 		} );
 
 		// Second order - Use saved payment method.
@@ -86,10 +81,7 @@ test.describe( 'BECS payment tests @blocks @becs', () => {
 				.filter( { hasText: 'BECS Direct Debit ending in' } )
 				.click();
 			await page.locator( 'text=Place order' ).click();
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
+			await waitForOrderReceivedPage( page );
 		} );
 	} );
 } );

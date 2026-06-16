@@ -78,6 +78,7 @@ const ExpressCheckoutComponent = ( {
 			onClick,
 			onClose,
 			setExpressPaymentError,
+			expressPaymentMethod,
 		} );
 
 	const onShippingAddressChange = ( event ) =>
