@@ -95,6 +95,9 @@ const PaymentRequestSection = () => {
 			area: 'amazon_pay',
 		}
 	);
+	const customizeLinkAppearanceURL = addQueryArgs( window.location.href, {
+		area: 'link',
+	} );
 
 	const isAmazonPayAvailable =
 		wc_stripe_settings_params.is_amazon_pay_available && // eslint-disable-line camelcase
@@ -261,24 +264,12 @@ const PaymentRequestSection = () => {
 							</div>
 						</div>
 						<div className="express-checkout__link">
-							{
-								/* eslint-disable jsx-a11y/anchor-has-content */
-								interpolateComponents( {
-									mixedString: __(
-										'{{linkDocs}}Read more{{/linkDocs}}',
-										'woocommerce-gateway-stripe'
-									),
-									components: {
-										linkDocs: (
-											<a
-												target="_blank"
-												rel="noreferrer"
-												href="https://woocommerce.com/document/stripe/customer-experience/express-checkouts/#link-by-stripe"
-											/>
-										),
-									},
-								} )
-							}
+							<a href={ customizeLinkAppearanceURL }>
+								{ __(
+									'Customize',
+									'woocommerce-gateway-stripe'
+								) }
+							</a>
 						</div>
 					</li>
 					{ isAmazonPayAvailable && (

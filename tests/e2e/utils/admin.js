@@ -147,15 +147,6 @@ export const initializeOptimizedCheckout = async (
 };
 
 /**
- * Extract the order ID from a WooCommerce "Order received" page URL.
- *
- * @param {string} url The order-received URL (e.g. `.../order-received/123/?key=...`).
- * @returns {string} The order ID.
- */
-export const getOrderIdFromOrderReceivedUrl = ( url ) =>
-	url.split( 'order-received/' )[ 1 ].split( '/' )[ 0 ];
-
-/**
  * Open the admin order edit page for an order and confirm the expected amount
  * was charged.
  *
