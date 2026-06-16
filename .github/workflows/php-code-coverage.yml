@@ -58,7 +58,7 @@ jobs:
         id: number
         uses: bcgov-nr/action-get-pr@3931962bf13b3f4702d0013ec7c836f752ff1a3b # v0.3.0
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run CI tests with coverage report
         if: ${{ steps.get-changed-files.outputs.added_modified }}
