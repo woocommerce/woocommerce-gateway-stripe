@@ -276,27 +276,66 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Test for `get_order_by_intent_id`
 	 *
-	 * @param string $status              The order status to return.
-	 * @param bool   $success             Whether the order should be found.
+	 * @param string      $type           The order type to return - either 'order' or 'refund'.
+	 * @param string|null $status         The order status to return.
+	 * @param bool        $use_hpos       Whether to use HPOS.
+	 * @param bool        $expect_success Whether the order should be found.
 	 * @return void
 	 * @dataProvider provide_test_get_order_by_intent_id
 	 */
-	public function test_get_order_by_intent_id( $status, $success ) {
-		$order    = WC_Helper_Order::create_order();
-		$order_id = $order->get_id();
+	public function test_get_order_by_intent_id( string $type, ?string $status, bool $use_hpos, bool $expect_success ) {
+		$previous_hpos_setting = get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		$new_hpos_setting      = $use_hpos ? 'yes' : 'no';
 
-		$order = wc_get_order( $order_id );
-		$order->set_status( $status );
+		try {
 
-		$intent_id = 'pi_mock';
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, $intent_id );
-		$order->save_meta_data();
+			// Allow HPOS to be toggled regardless of database state.
+			add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
 
-		$order = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
-		if ( $success ) {
-			$this->assertInstanceOf( WC_Order::class, $order );
-		} else {
-			$this->assertFalse( $order );
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $new_hpos_setting );
+			}
+
+			$order     = WC_Helper_Order::create_order();
+			$order_id  = $order->get_id();
+			$intent_id = 'pi_mock';
+
+			if ( 'order' === $type ) {
+				$order = wc_get_order( $order_id );
+				$order->set_status( $status );
+				$order->save();
+
+				WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, $intent_id );
+				$order->save_meta_data();
+			} elseif ( 'refund' === $type ) {
+				$refund = wc_create_refund(
+					[
+						'amount'   => $order->get_total(),
+						'currency' => $order->get_currency(),
+						'order_id' => $order->get_id(),
+						'reason'   => 'Test refund',
+					]
+				);
+
+				$intent_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_INTENT_ID', 'string' );
+
+				$refund->update_meta_data( $intent_meta_key, $intent_id );
+				$refund->save_meta_data();
+			} else {
+				throw new Exception( 'Invalid order type' );
+			}
+
+			$order = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
+			if ( $expect_success ) {
+				$this->assertInstanceOf( WC_Order::class, $order );
+			} else {
+				$this->assertFalse( $order );
+			}
+		} finally {
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $previous_hpos_setting );
+			}
+			remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
 		}
 	}
 
@@ -307,15 +346,143 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_get_order_by_intent_id(): array {
 		return [
-			'regular table' => [
-				'custom orders table' => false,
-				'status'              => OrderStatus::COMPLETED,
-				'success'             => true,
+			'completed legacy order' => [
+				'type'           => 'order',
+				'status'         => OrderStatus::COMPLETED,
+				'use_hpos'       => false,
+				'expect_success' => true,
 			],
-			'trashed order' => [
-				'custom orders table' => false,
-				'status'              => OrderStatus::TRASH,
-				'success'             => false,
+			'completed HPOS order'   => [
+				'type'           => 'order',
+				'status'         => OrderStatus::COMPLETED,
+				'use_hpos'       => true,
+				'expect_success' => true,
+			],
+			'trashed legacy order'   => [
+				'type'           => 'order',
+				'status'         => OrderStatus::TRASH,
+				'use_hpos'       => false,
+				'expect_success' => false,
+			],
+			'trashed HPOS order'     => [
+				'type'           => 'order',
+				'status'         => OrderStatus::TRASH,
+				'use_hpos'       => true,
+				'expect_success' => false,
+			],
+			'legacy refund'          => [
+				'type'           => 'refund',
+				'status'         => null,
+				'use_hpos'       => false,
+				'expect_success' => false,
+			],
+			'HPOS refund'            => [
+				'type'           => 'refund',
+				'status'         => null,
+				'use_hpos'       => true,
+				'expect_success' => false,
+			],
+		];
+	}
+
+	/**
+	 * Test for `get_order_by_setup_intent_id`.
+	 *
+	 * @param string|null $intent_target  Which object to save the SetupIntent ID on. One of null, 'refund', or 'order'.
+	 * @param bool        $use_hpos       Whether to enable or disable HPOS.
+	 * @param bool        $expect_success Whether an order should be returned.
+	 * @dataProvider provide_test_get_order_by_setup_intent_id
+	 */
+	public function test_get_order_by_setup_intent_id( ?string $intent_target, bool $use_hpos, bool $expect_success ): void {
+		$previous_hpos_setting = get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		$new_hpos_setting      = $use_hpos ? 'yes' : 'no';
+		try {
+			// Allow HPOS to be toggled regardless of database state.
+			add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $new_hpos_setting );
+			}
+
+			$order     = WC_Helper_Order::create_order();
+			$intent_id = 'seti_mock';
+			$lookup_id = $intent_id;
+
+			if ( 'refund' === $intent_target ) {
+				$refund = wc_create_refund(
+					[
+						'amount'   => $order->get_total(),
+						'currency' => $order->get_currency(),
+						'order_id' => $order->get_id(),
+						'reason'   => 'Test refund',
+					]
+				);
+
+				$setup_intent_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_SETUP_INTENT', 'string' );
+
+				$refund->update_meta_data( $setup_intent_meta_key, $intent_id );
+				$refund->save_meta_data();
+			} elseif ( 'order' === $intent_target ) {
+				WC_Stripe_Order_Helper::get_instance()->update_stripe_setup_intent_id( $order, $intent_id );
+				$order->save_meta_data();
+			} elseif ( null === $intent_target ) {
+				$lookup_id = 'seti_unknown';
+			} else {
+				throw new Exception( 'Invalid intent target' );
+			}
+
+			$result = WC_Stripe_Helper::get_order_by_setup_intent_id( $lookup_id );
+
+			if ( $expect_success ) {
+				$this->assertInstanceOf( WC_Order::class, $result );
+				$this->assertSame( $order->get_id(), $result->get_id() );
+			} else {
+				$this->assertFalse( $result );
+			}
+		} finally {
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $previous_hpos_setting );
+			}
+			remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+		}
+	}
+
+	/**
+	 * Data provider for `test_get_order_by_setup_intent_id`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_order_by_setup_intent_id(): array {
+		return [
+			'SetupIntent matches legacy order'  => [
+				'intent_target'  => 'order',
+				'use_hpos'       => false,
+				'expect_success' => true,
+			],
+			'SetupIntent matches HPOS order'    => [
+				'intent_target'  => 'order',
+				'use_hpos'       => true,
+				'expect_success' => true,
+			],
+			'SetupIntent matches legacy refund' => [
+				'intent_target'  => 'refund',
+				'use_hpos'       => false,
+				'expect_success' => false,
+			],
+			'SetupIntent matches HPOS refund'   => [
+				'intent_target'  => 'refund',
+				'use_hpos'       => true,
+				'expect_success' => false,
+			],
+			'unknown SetupIntent ID HPOS'       => [
+				'intent_target'  => null,
+				'use_hpos'       => true,
+				'expect_success' => false,
+			],
+			'unknown SetupIntent ID legacy'     => [
+				'intent_target'  => null,
+				'use_hpos'       => false,
+				'expect_success' => false,
 			],
 		];
 	}
@@ -389,6 +556,16 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function test_convert_from_stripe_amount( int $stripe_amount, string $currency, float $expected ): void {
 		$result = WC_Stripe_Helper::convert_from_stripe_amount( $stripe_amount, $currency );
 		$this->assertSame( $expected, $result );
+	}
+
+	/**
+	 * Test for `get_payment_intent_description`.
+	 */
+	public function test_get_payment_intent_description(): void {
+		$order = WC_Helper_Order::create_order();
+
+		$expected = sprintf( '%1$s - Order %2$s', wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() );
+		$this->assertSame( $expected, WC_Stripe_Helper::get_payment_intent_description( $order ) );
 	}
 
 	/**
@@ -1566,17 +1743,37 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param array  $cart_product_types Cart product types (e.g. ['simple'], ['simple','simple'], ['simple','simple','subscription']). Empty or null = empty cart.
 	 * @param bool   $expected           Expected result.
 	 * @param string $account_country    Two-letter ISO country code for the Stripe account. Defaults to 'US'.
+	 * @param bool   $webhook_enabled    Whether the Stripe webhook endpoint is enabled. Defaults to true.
 	 * @return void
 	 * @dataProvider provide_is_adaptive_pricing_supported
 	 */
-	public function test_is_adaptive_pricing_supported( bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected, string $account_country = 'US' ): void {
+	public function test_is_adaptive_pricing_supported( bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected, string $account_country = 'US', bool $webhook_enabled = true ): void {
 		$original_stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
 		$new_stripe_settings                               = $original_stripe_settings;
 		$new_stripe_settings['adaptive_pricing']           = $adaptive_pricing;
 		$new_stripe_settings['optimized_checkout_element'] = 'yes';
 		$new_stripe_settings['capture']                    = 'yes';
 		$new_stripe_settings['pmc_enabled']                = 'yes';
+		if ( $webhook_enabled ) {
+			$new_stripe_settings['webhook_data']      = [
+				'id'     => 'we_live',
+				'secret' => 'whsec_live',
+			];
+			$new_stripe_settings['test_webhook_data'] = [
+				'id'     => 'we_test',
+				'secret' => 'whsec_test',
+			];
+		}
 		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
+
+		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
+		if ( $webhook_enabled ) {
+			set_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
+			set_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
+		} else {
+			delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
+			delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
+		}
 
 		$is_checkout_filter = function () use ( $is_checkout ) {
 			return $is_checkout;
@@ -1635,6 +1832,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 		WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
+		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
+		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
 		\WC_Subscriptions_Product::set_is_subscription( false );
 		\WC_Subscriptions_Product::set_subscription_product_ids( [] );
 		\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
@@ -1752,6 +1951,15 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => true,
 				'account_country'    => 'US',
 			],
+			'webhooks disabled'                         => [
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => false,
+				'account_country'    => 'US',
+				'webhook_enabled'    => false,
+			],
 		];
 	}
 
@@ -1799,6 +2007,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param bool    $test_mode       Whether Stripe test mode is enabled.
 	 * @param string  $store_currency  WooCommerce store currency code.
 	 * @param ?string $expected        Expected return value.
+	 * @param bool    $webhook_enabled Whether the Stripe webhook endpoint is enabled. Defaults to true.
 	 * @return void
 	 * @dataProvider provide_test_get_adaptive_pricing_account_unavailable_reason
 	 */
@@ -1806,12 +2015,32 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		array $account_data,
 		bool $test_mode,
 		string $store_currency,
-		?string $expected
+		?string $expected,
+		bool $webhook_enabled = true
 	): void {
 		$original_settings    = WC_Stripe_Helper::get_stripe_settings();
 		$settings             = $original_settings;
 		$settings['testmode'] = $test_mode ? 'yes' : 'no';
+		if ( $webhook_enabled ) {
+			$settings['webhook_data']      = [
+				'id'     => 'we_live',
+				'secret' => 'whsec_live',
+			];
+			$settings['test_webhook_data'] = [
+				'id'     => 'we_test',
+				'secret' => 'whsec_test',
+			];
+		}
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
+		if ( $webhook_enabled ) {
+			set_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
+			set_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
+		} else {
+			delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
+			delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
+		}
 
 		$this->set_stripe_account_data( $account_data );
 
@@ -1823,6 +2052,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		// Cleanup.
 		update_option( 'woocommerce_currency', $original_currency );
 		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
+		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
 
 		$this->assertSame( $expected, $actual );
 	}
@@ -1834,7 +2065,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_get_adaptive_pricing_account_unavailable_reason(): array {
 		return [
-			'India account (uppercase) → account-country'                             => [
+			'India account (uppercase) → account-country'                                   => [
 				'account_data'   => [
 					'country'           => 'IN',
 					'external_accounts' => [
@@ -1847,7 +2078,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'store_currency' => 'USD',
 				'expected'       => 'account-country',
 			],
-			'India account (lowercase) → account-country'                             => [
+			'India account (lowercase) → account-country'                                   => [
 				'account_data'   => [
 					'country'           => 'in',
 					'external_accounts' => [
@@ -1860,7 +2091,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'store_currency' => 'USD',
 				'expected'       => 'account-country',
 			],
-			'India account + test mode → account-country (India checked before mode)' => [
+			'India account + test mode → account-country (India checked before mode)'       => [
 				'account_data'   => [
 					'country'           => 'IN',
 					'external_accounts' => [
@@ -1871,7 +2102,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'store_currency' => 'USD',
 				'expected'       => 'account-country',
 			],
-			'Test mode, no settlement currencies → null (currency check bypassed)'    => [
+			'Test mode, no settlement currencies → null (currency check bypassed)'          => [
 				'account_data'   => [
 					'country'           => 'US',
 					'external_accounts' => [
@@ -1882,7 +2113,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'store_currency' => 'USD',
 				'expected'       => null,
 			],
-			'Test mode, currency mismatch → null (currency check bypassed)'           => [
+			'Test mode, currency mismatch → null (currency check bypassed)'                 => [
 				'account_data'   => [
 					'country'           => 'US',
 					'external_accounts' => [
@@ -1895,7 +2126,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'store_currency' => 'USD',
 				'expected'       => null,
 			],
-			'Live mode, no settlement currencies → no-settlement-currencies'          => [
+			'Live mode, no settlement currencies → no-settlement-currencies'                => [
 				'account_data'   => [
 					'country'           => 'US',
 					'external_accounts' => [
@@ -1919,7 +2150,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'store_currency' => 'USD',
 				'expected'       => 'store-currency-not-settlement-currency',
 			],
-			'Live mode, store currency in settlement → null'                          => [
+			'Live mode, store currency in settlement → null'                                => [
 				'account_data'   => [
 					'country'           => 'US',
 					'external_accounts' => [
@@ -1932,7 +2163,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'store_currency' => 'USD',
 				'expected'       => null,
 			],
-			'Live mode, non-US account, matching currency → null'                     => [
+			'Live mode, non-US account, matching currency → null'                           => [
 				'account_data'   => [
 					'country'           => 'GB',
 					'external_accounts' => [
@@ -1944,6 +2175,32 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'test_mode'      => false,
 				'store_currency' => 'GBP',
 				'expected'       => null,
+			],
+			'Live mode, webhooks disabled → webhooks-disabled'                              => [
+				'account_data'    => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'usd' ],
+						],
+					],
+				],
+				'test_mode'       => false,
+				'store_currency'  => 'USD',
+				'expected'        => 'webhooks-disabled',
+				'webhook_enabled' => false,
+			],
+			'Test mode, webhooks disabled → webhooks-disabled (gate applies in both modes)' => [
+				'account_data'    => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [],
+					],
+				],
+				'test_mode'       => true,
+				'store_currency'  => 'USD',
+				'expected'        => 'webhooks-disabled',
+				'webhook_enabled' => false,
 			],
 		];
 	}

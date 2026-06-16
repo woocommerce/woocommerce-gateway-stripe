@@ -413,4 +413,171 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 		$this->assertSame( 0, $response['displayItems'][0]['amount'] );
 		$this->assertSame( 0, $response['total']['amount'] );
 	}
+
+	/**
+	 * Builds an ajax handler backed by a helper that only stubs
+	 * is_express_checkout_context(), so the real state/postcode normalization runs.
+	 *
+	 * @param bool $is_express_context Value is_express_checkout_context() should return.
+	 *
+	 * @return WC_Stripe_Express_Checkout_Ajax_Handler
+	 */
+	private function get_ajax_handler_with_real_normalization( $is_express_context ) {
+		$helper = $this->createPartialMock(
+			WC_Stripe_Express_Checkout_Helper::class,
+			[ 'is_express_checkout_context' ]
+		);
+		$helper->method( 'is_express_checkout_context' )->willReturn( $is_express_context );
+
+		return new WC_Stripe_Express_Checkout_Ajax_Handler( $helper );
+	}
+
+	/**
+	 * The update-customer route normalizes a redacted Apple Pay / Google Pay
+	 * shipping address (long state name + truncated postcode) so the Store API
+	 * doesn't reject it, and registers the postcode-validation bypass.
+	 */
+	public function test_tokenized_cart_normalizes_redacted_shipping_address_on_update_customer() {
+		$ajax_handler = $this->get_ajax_handler_with_real_normalization( true );
+
+		$request = new WP_REST_Request( 'POST', '/wc/store/v1/cart/update-customer' );
+		$request->set_param(
+			'shipping_address',
+			[
+				'country'  => 'CA',
+				'state'    => 'Ontario',
+				'postcode' => 'E2L',
+				'city'     => 'Toronto',
+			]
+		);
+
+		try {
+			$result = $ajax_handler->tokenized_cart_store_api_address_normalization( null, null, $request );
+
+			$shipping = $request->get_param( 'shipping_address' );
+
+			$this->assertNull( $result );
+			$this->assertSame( 'ON', $shipping['state'] );
+			// Padded with `0`, not `*`, so it survives WC_Validation::is_postcode()'s char check.
+			$this->assertSame( 'E2L000', $shipping['postcode'] );
+			$this->assertSame(
+				10,
+				has_filter( 'woocommerce_validate_postcode', [ $ajax_handler, 'maybe_skip_postcode_validation' ] )
+			);
+			// Root-cause guard: a `*`-padded value would fail before the bypass filter runs.
+			$this->assertTrue( WC_Validation::is_postcode( $shipping['postcode'], 'CA' ) );
+		} finally {
+			remove_filter( 'woocommerce_validate_postcode', [ $ajax_handler, 'maybe_skip_postcode_validation' ], 10 );
+		}
+	}
+
+	/**
+	 * Outside an express checkout context the request is left untouched and the
+	 * postcode-validation bypass is not registered.
+	 */
+	public function test_tokenized_cart_leaves_request_untouched_when_not_express_context() {
+		$ajax_handler = $this->get_ajax_handler_with_real_normalization( false );
+
+		$address = [
+			'country'  => 'CA',
+			'state'    => 'Ontario',
+			'postcode' => 'E2L',
+		];
+		$request = new WP_REST_Request( 'POST', '/wc/store/v1/cart/update-customer' );
+		$request->set_param( 'shipping_address', $address );
+
+		$result = $ajax_handler->tokenized_cart_store_api_address_normalization( null, null, $request );
+
+		$this->assertNull( $result );
+		$this->assertSame( $address, $request->get_param( 'shipping_address' ) );
+		$this->assertFalse(
+			has_filter( 'woocommerce_validate_postcode', [ $ajax_handler, 'maybe_skip_postcode_validation' ] )
+		);
+	}
+
+	/**
+	 * On routes other than update-customer the postcode is not padded and the
+	 * validation bypass is not registered (the location is already set by then).
+	 */
+	public function test_tokenized_cart_does_not_pad_postcode_on_other_routes() {
+		$ajax_handler = $this->get_ajax_handler_with_real_normalization( true );
+
+		$request = new WP_REST_Request( 'POST', '/wc/store/v1/cart/select-shipping-rate' );
+		$request->set_param(
+			'shipping_address',
+			[
+				'country'  => 'CA',
+				'state'    => 'Ontario',
+				'postcode' => 'E2L',
+			]
+		);
+
+		$ajax_handler->tokenized_cart_store_api_address_normalization( null, null, $request );
+
+		$shipping = $request->get_param( 'shipping_address' );
+
+		// State is still normalized, but the redacted postcode is left as-is.
+		$this->assertSame( 'ON', $shipping['state'] );
+		$this->assertSame( 'E2L', $shipping['postcode'] );
+		$this->assertFalse(
+			has_filter( 'woocommerce_validate_postcode', [ $ajax_handler, 'maybe_skip_postcode_validation' ] )
+		);
+	}
+
+	/**
+	 * Test maybe_skip_postcode_validation.
+	 *
+	 * @param bool   $valid    Incoming validity.
+	 * @param string $postcode Postcode under validation.
+	 * @param string $country  Country code.
+	 * @param bool   $expected Expected validity.
+	 *
+	 * @dataProvider provide_test_maybe_skip_postcode_validation
+	 */
+	public function test_maybe_skip_postcode_validation( $valid, $postcode, $country, $expected ) {
+		$this->assertSame(
+			$expected,
+			$this->ajax_handler->maybe_skip_postcode_validation( $valid, $postcode, $country )
+		);
+	}
+
+	/**
+	 * Data provider for test_maybe_skip_postcode_validation.
+	 *
+	 * @return array
+	 */
+	public function provide_test_maybe_skip_postcode_validation() {
+		return [
+			'CA redacted padded postcode bypasses validation'   => [
+				'valid'    => false,
+				'postcode' => 'E2L000',
+				'country'  => 'CA',
+				'expected' => true,
+			],
+			'GB redacted padded postcode bypasses validation'   => [
+				'valid'    => false,
+				'postcode' => 'N1 000',
+				'country'  => 'GB',
+				'expected' => true,
+			],
+			'CA real postcode keeps original (invalid) result'  => [
+				'valid'    => false,
+				'postcode' => 'K1A 0B1',
+				'country'  => 'CA',
+				'expected' => false,
+			],
+			'CA real postcode keeps original (valid) result'    => [
+				'valid'    => true,
+				'postcode' => 'K1A 0B1',
+				'country'  => 'CA',
+				'expected' => true,
+			],
+			'Other country is unaffected even when ending in 0' => [
+				'valid'    => false,
+				'postcode' => '12340',
+				'country'  => 'US',
+				'expected' => false,
+			],
+		];
+	}
 }

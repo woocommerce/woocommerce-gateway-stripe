@@ -24,7 +24,6 @@ import {
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
 } from 'wcstripe/express-checkout/event-handler';
-import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import 'wcstripe/express-checkout/compatibility/classic-checkout-custom-fields';
@@ -51,7 +50,8 @@ jQuery( function ( $ ) {
 		return;
 	}
 
-	const publishableKey = getExpressCheckoutData( 'stripe' ).publishable_key;
+	const stripeParams = getExpressCheckoutData( 'stripe' );
+	const publishableKey = stripeParams?.publishable_key;
 	const quantityInputSelector = '.quantity .qty[type=number]';
 
 	if ( ! publishableKey ) {
@@ -60,7 +60,11 @@ jQuery( function ( $ ) {
 	}
 
 	const api = new WCStripeAPI(
-		getStripeServerData(),
+		{
+			key: publishableKey,
+			locale: stripeParams.locale,
+			ajax_url: getExpressCheckoutData( 'ajax_url' ),
+		},
 		// A promise-based interface to jQuery.post.
 		( url, args ) => {
 			return new Promise( ( resolve, reject ) => {
@@ -438,11 +442,7 @@ jQuery( function ( $ ) {
 					);
 				}
 
-				return shippingAddressChangeHandler(
-					api,
-					event,
-					stripeElements
-				);
+				return shippingAddressChangeHandler( event, stripeElements );
 			};
 
 			eceButton.on( 'shippingaddresschange', async ( event ) => {
@@ -452,17 +452,13 @@ jQuery( function ( $ ) {
 						elements
 					);
 				}
-				return await shippingAddressChangeHandler(
-					api,
-					event,
-					elements
-				);
+				return await shippingAddressChangeHandler( event, elements );
 			} );
 
 			eceButton.on(
 				'shippingratechange',
 				async ( event ) =>
-					await shippingRateChangeHandler( api, event, elements )
+					await shippingRateChangeHandler( event, elements )
 			);
 
 			eceButton.on( 'confirm', async ( event ) => {

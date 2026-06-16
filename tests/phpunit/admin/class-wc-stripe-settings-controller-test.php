@@ -145,6 +145,9 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				->disableOriginalConstructor()
 				->getMock();
 			$account->method( 'get_account_country' )->willReturn( $account_country );
+			// Adaptive Pricing availability now also depends on webhooks; enable them so this test
+			// isolates the country-restriction logic it covers.
+			$account->method( 'is_webhook_enabled' )->willReturn( true );
 
 			$stripe_singleton_account_backup   = WC_Stripe::get_instance()->account;
 			WC_Stripe::get_instance()->account = $account;
@@ -202,113 +205,6 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			'IN account + feature available'   => [ 'IN', true, false ],
 			'DE account + feature available'   => [ 'DE', true, true ],
 			'US account + feature unavailable' => [ 'US', false, false ],
-		];
-	}
-
-	/**
-	 * Exercise the AND-gate that exposes `show_ocs_ap_banner` and
-	 * `show_ap_only_banner` in `wc_stripe_settings_params`. The server-side
-	 * gate is the same for both banners: per-banner option ='yes' AND OC
-	 * enabled AND AP enabled AND account country !== 'IN'.
-	 *
-	 * @dataProvider provide_test_admin_scripts_exposes_ocs_ap_banner_flags
-	 */
-	public function test_admin_scripts_exposes_ocs_ap_banner_flags(
-		string $banner_option_key,
-		string $banner_option_value,
-		bool $is_oc_enabled,
-		string $adaptive_pricing,
-		string $account_country,
-		bool $expected_visibility
-	): void {
-		global $current_tab, $current_section;
-
-		$wp_scripts_backup = $GLOBALS['wp_scripts'];
-
-		// Ensure no cross-test pollution on the two new options.
-		delete_option( 'wc_stripe_show_ocs_ap_banner' );
-		delete_option( 'wc_stripe_show_ap_only_banner' );
-
-		try {
-			$GLOBALS['wp_scripts'] = new WP_Scripts();
-
-			$current_tab     = 'checkout';
-			$current_section = 'stripe';
-
-			update_option( $banner_option_key, $banner_option_value );
-
-			$account = $this->getMockBuilder( WC_Stripe_Account::class )
-				->disableOriginalConstructor()
-				->getMock();
-			$account->method( 'get_account_country' )->willReturn( $account_country );
-
-			$stripe_singleton_account_backup   = WC_Stripe::get_instance()->account;
-			WC_Stripe::get_instance()->account = $account;
-
-			$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
-				->disableOriginalConstructor()
-				->setMethods(
-					[
-						'get_upe_enabled_payment_method_ids',
-						'is_oc_enabled',
-						'is_in_test_mode',
-						'get_validated_option',
-						'get_option',
-					]
-				)
-				->getMock();
-			$gateway->method( 'get_upe_enabled_payment_method_ids' )->willReturn( [] );
-			$gateway->method( 'is_oc_enabled' )->willReturn( $is_oc_enabled );
-			$gateway->method( 'is_in_test_mode' )->willReturn( false );
-			$gateway->method( 'get_validated_option' )->with( 'optimized_checkout_layout' )->willReturn( 'accordion' );
-			$gateway->method( 'get_option' )->willReturnCallback(
-				static function ( $key ) use ( $adaptive_pricing ) {
-					if ( 'adaptive_pricing' === $key ) {
-						return $adaptive_pricing;
-					}
-					return 'no';
-				}
-			);
-
-			$controller = new WC_Stripe_Settings_Controller( $account, $gateway );
-			$controller->admin_scripts( 'woocommerce_page_wc-settings' );
-
-			$localized_data = wp_scripts()->get_data( 'woocommerce_stripe_admin', 'data' );
-			$this->assertIsString( $localized_data );
-			preg_match( '/wc_stripe_settings_params\s*=\s*(\{.*\});/s', $localized_data, $matches );
-			$this->assertNotEmpty( $matches, 'Could not extract wc_stripe_settings_params JSON.' );
-			$params = json_decode( $matches[1], true );
-			$this->assertIsArray( $params );
-
-			$params_key = 'wc_stripe_show_ocs_ap_banner' === $banner_option_key
-				? 'show_ocs_ap_banner'
-				: 'show_ap_only_banner';
-
-			$this->assertArrayHasKey( $params_key, $params );
-
-			// wp_localize_script encodes booleans as '1' / '' for true / false.
-			$expected = $expected_visibility ? '1' : '';
-			$this->assertSame( $expected, $params[ $params_key ] );
-		} finally {
-			if ( isset( $stripe_singleton_account_backup ) ) {
-				WC_Stripe::get_instance()->account = $stripe_singleton_account_backup;
-			}
-			$GLOBALS['wp_scripts'] = $wp_scripts_backup;
-			delete_option( 'wc_stripe_show_ocs_ap_banner' );
-			delete_option( 'wc_stripe_show_ap_only_banner' );
-			unset( $current_tab, $current_section );
-		}
-	}
-
-	public function provide_test_admin_scripts_exposes_ocs_ap_banner_flags(): array {
-		return [
-			// banner option key, option value, OC enabled, AP value, country, expected visibility.
-			'OCS+AP banner true: option yes + OC + AP + non-IN'  => [ 'wc_stripe_show_ocs_ap_banner', 'yes', true, 'yes', 'US', true ],
-			'OCS+AP banner false: country IN'                    => [ 'wc_stripe_show_ocs_ap_banner', 'yes', true, 'yes', 'IN', false ],
-			'OCS+AP banner false: option no'                     => [ 'wc_stripe_show_ocs_ap_banner', 'no', true, 'yes', 'US', false ],
-			'OCS+AP banner false: OC disabled'                   => [ 'wc_stripe_show_ocs_ap_banner', 'yes', false, 'yes', 'US', false ],
-			'OCS+AP banner false: AP disabled'                   => [ 'wc_stripe_show_ocs_ap_banner', 'yes', true, 'no', 'US', false ],
-			'AP-only banner true: option yes + OC + AP + non-IN' => [ 'wc_stripe_show_ap_only_banner', 'yes', true, 'yes', 'US', true ],
 		];
 	}
 }
