@@ -122,7 +122,7 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 
 		$changed = WC_Stripe_Agentic_Commerce_Product_Exclusion::set_excluded( $product_id, $excluded );
 
-		// Converge Stripe now instead of waiting for the next scheduled sync.
+		// Request immediate sync with Stripe instead of waiting for the next scheduled sync.
 		if ( $changed ) {
 			( new WC_Stripe_Agentic_Commerce_Integration() )->schedule_full_resync_now();
 		}
