@@ -60,6 +60,7 @@ if ( ! defined( 'WC_REMOVE_ALL_DATA' ) || true !== WC_REMOVE_ALL_DATA ) {
 	delete_option( 'woocommerce_stripe_multibanco_settings' );
 	delete_option( 'woocommerce_stripe_oxxo_settings' );
 	delete_option( 'woocommerce_stripe_p24_settings' );
+	delete_option( 'woocommerce_stripe_revolut_pay_settings' );
 	delete_option( 'woocommerce_stripe_sepa_settings' );
 	delete_option( 'woocommerce_stripe_sepa_debit_settings' );
 	delete_option( 'woocommerce_stripe_sofort_settings' );

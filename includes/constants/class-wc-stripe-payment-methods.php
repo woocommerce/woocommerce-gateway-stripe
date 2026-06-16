@@ -29,6 +29,7 @@ class WC_Stripe_Payment_Methods {
 	public const MULTIBANCO        = 'multibanco';
 	public const OXXO              = 'oxxo';
 	public const P24               = 'p24';
+	public const REVOLUT_PAY       = 'revolut_pay';
 	public const SEPA              = 'sepa';
 	public const SEPA_DEBIT        = 'sepa_debit';
 	public const SOFORT            = 'sofort';
