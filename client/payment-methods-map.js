@@ -19,6 +19,7 @@ import {
 	PAYMENT_METHOD_MULTIBANCO,
 	PAYMENT_METHOD_OXXO,
 	PAYMENT_METHOD_P24,
+	PAYMENT_METHOD_REVOLUT_PAY,
 	PAYMENT_METHOD_SEPA,
 	PAYMENT_METHOD_SOFORT,
 	PAYMENT_METHOD_WECHAT_PAY,
@@ -320,6 +321,16 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.blik,
 		currencies: [ 'PLN' ],
+	},
+	revolut_pay: {
+		id: PAYMENT_METHOD_REVOLUT_PAY,
+		label: __( 'Revolut Pay', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Let customers pay with their Revolut account or any major card through Revolut Pay.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.revolut_pay,
+		currencies: [ 'EUR', 'GBP', 'RON', 'HUF', 'PLN', 'DKK' ],
 	},
 };
 

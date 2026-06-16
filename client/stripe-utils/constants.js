@@ -26,6 +26,7 @@ export const PAYMENT_METHOD_ACH = 'us_bank_account';
 export const PAYMENT_METHOD_ACSS = 'acss_debit';
 export const PAYMENT_METHOD_BACS = 'bacs_debit';
 export const PAYMENT_METHOD_BECS = 'au_becs_debit';
+export const PAYMENT_METHOD_REVOLUT_PAY = 'revolut_pay';
 export const PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY = 'apple_pay_google_pay';
 
 /**
@@ -53,6 +54,7 @@ export const PAYMENT_METHOD_STRIPE_CASHAPP = 'stripe_cashapp';
 export const PAYMENT_METHOD_STRIPE_ACSS = 'stripe_acss_debit';
 export const PAYMENT_METHOD_STRIPE_BACS_DEBIT = 'stripe_bacs_debit';
 export const PAYMENT_METHOD_STRIPE_BECS = 'stripe_au_becs_debit';
+export const PAYMENT_METHOD_STRIPE_REVOLUT_PAY = 'stripe_revolut_pay';
 
 export function getPaymentMethodsConstants() {
 	return {
@@ -77,6 +79,7 @@ export function getPaymentMethodsConstants() {
 		cashapp: PAYMENT_METHOD_STRIPE_CASHAPP,
 		acss_debit: PAYMENT_METHOD_STRIPE_ACSS,
 		bacs_debit: PAYMENT_METHOD_STRIPE_BACS_DEBIT,
+		revolut_pay: PAYMENT_METHOD_STRIPE_REVOLUT_PAY,
 	};
 }
 
@@ -160,6 +163,7 @@ export const NON_REUSABLE_METHODS = [
 	PAYMENT_METHOD_P24,
 	PAYMENT_METHOD_OXXO,
 	PAYMENT_METHOD_WECHAT_PAY,
+	PAYMENT_METHOD_REVOLUT_PAY,
 ];
 
 /**

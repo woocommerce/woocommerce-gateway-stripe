@@ -48,6 +48,7 @@ export const initializeCheckoutIcons = ( isAdmin ) => {
 			cashapp: createIconComponent( 'cashapp' ),
 			au_becs_debit: createIconComponent( 'bank-debit' ),
 			acss_debit: createIconComponent( 'bank-debit' ),
+			revolut_pay: createIconComponent( 'revolut-pay' ),
 		};
 
 		// Replace the icons in the payment methods map
