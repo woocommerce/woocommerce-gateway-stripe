@@ -46,10 +46,8 @@ final class WC_Stripe_Whats_New_Note {
 			)
 		);
 		$note->set_content( __( 'You\'re now on the latest version of WooCommerce Stripe. Check the release notes to see the new features and improvements in this update.', 'woocommerce-gateway-stripe' ) );
-		// Must be a type the Inbox renders: its query is limited to
-		// info/marketing/survey/warning, so the semantically-apt "update" type
-		// would be created but never displayed. "info" also avoids the
-		// marketplace-suggestions opt-out that hides "marketing" notes.
+		// The Inbox only renders info/marketing/survey/warning; "update" would
+		// save but never display. "info" also dodges the marketing opt-out.
 		$note->set_type( Note::E_WC_ADMIN_NOTE_INFORMATIONAL );
 		$note->set_name( self::NOTE_NAME );
 		$note->set_source( 'woocommerce-gateway-stripe' );
