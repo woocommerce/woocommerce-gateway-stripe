@@ -414,8 +414,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $total ),
 			];
 
-			// No cart line exists in the preview, so tax the full computed line total
-			// ($total = qty x price + add-ons) — matching what WooCommerce charges.
+			// Tax the full line total ($total = qty x price + add-ons), like the cart does.
 			$total_tax = 0;
 			foreach ( $this->express_checkout_helper->get_taxes_like_cart( $product, $total ) as $tax ) {
 				$total_tax += $tax;
