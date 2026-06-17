@@ -977,12 +977,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$product->save();
 
 		$callback = static fn() => $filtered_value;
-		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
 
 		try {
 			$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
 		} finally {
-			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
 			$product->delete( true );
 		}
 	}
@@ -1002,7 +1002,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$product->save();
 
 		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
-		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
 		try {
 			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
@@ -1010,7 +1010,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 
 			$this->assertSame( [], $result );
 		} finally {
-			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
 			$product->delete( true );
 		}
 	}
@@ -1032,16 +1032,68 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$excluded->save();
 
 		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $excluded->get_id();
-		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
 		try {
 			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
 			$this->assertNotEmpty( $mapper->map_product( $included ) );
 			$this->assertSame( [], $mapper->map_product( $excluded ) );
 		} finally {
-			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
 			$included->delete( true );
 			$excluded->delete( true );
+		}
+	}
+
+	/**
+	 * Test that the deprecated `wc_stripe_agentic_commerce_should_sync_product`
+	 * filter is still honoured for backward compatibility, and that hooking it
+	 * surfaces a deprecation notice pointing adapters at the WooCommerce-core
+	 * prefixed replacement.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_honours_deprecated_filter() {
+		$this->setExpectedDeprecated( 'wc_stripe_agentic_commerce_should_sync_product' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$callback = static fn() => false;
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+
+		try {
+			$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * Test that the canonical filter takes precedence over the deprecated one:
+	 * a value from the new `woocommerce_`-prefixed hook overrides the result the
+	 * deprecated hook seeded as its default.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_new_filter_overrides_deprecated() {
+		$this->setExpectedDeprecated( 'wc_stripe_agentic_commerce_should_sync_product' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$deprecated = static fn() => false;
+		$canonical  = static fn() => true;
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $deprecated );
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $canonical );
+
+		try {
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $deprecated );
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $canonical );
+			$product->delete( true );
 		}
 	}
 }
