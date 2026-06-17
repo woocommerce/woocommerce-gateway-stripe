@@ -22,6 +22,7 @@ jest.mock( 'wcstripe/express-checkout/cart-api', () => {
 		updateCustomer: jest.fn(),
 		selectShippingRate: jest.fn(),
 		getCart: jest.fn(),
+		getStoreApiNonce: jest.fn().mockReturnValue( 'fresh_nonce' ),
 	} ) );
 } );
 
@@ -242,6 +243,11 @@ describe( 'Express checkout event handlers', () => {
 				blockUI: jest.fn(),
 				unblockUI: jest.fn(),
 			};
+			// Earlier describe blocks swap the module-scoped cart API; restore
+			// one that resolves the Store API nonce the order request needs.
+			setCartApiHandler( {
+				getStoreApiNonce: jest.fn().mockReturnValue( 'fresh_nonce' ),
+			} );
 			api = {
 				expressCheckoutNormalizeAddress: jest.fn(),
 				expressCheckoutECECreateOrder: jest.fn(),
@@ -391,7 +397,8 @@ describe( 'Express checkout event handlers', () => {
 				paymentMethodId: 'pm_123',
 			} );
 			expect( api.expressCheckoutECECreateOrder ).toHaveBeenCalledWith(
-				expectedOrderData
+				expectedOrderData,
+				{ Nonce: 'fresh_nonce' }
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
@@ -538,7 +545,8 @@ describe( 'Express checkout event handlers', () => {
 			expect( api.expressCheckoutECEPayForOrder ).toHaveBeenCalledWith(
 				123,
 				{},
-				expectedOrderData
+				expectedOrderData,
+				{ Nonce: 'fresh_nonce' }
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,

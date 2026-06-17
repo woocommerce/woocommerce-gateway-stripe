@@ -606,9 +606,10 @@ export default class WCStripeAPI {
 	 * Creates order based on Express Checkout ECE payment method.
 	 *
 	 * @param {Object} orderData Order data.
+	 * @param {Object} headers   Optional header overrides (e.g. a refreshed `Nonce`).
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutECECreateOrder( orderData ) {
+	expressCheckoutECECreateOrder( orderData, headers = {} ) {
 		return this.postToBlocksAPI(
 			'/wc/store/v1/checkout',
 			{
@@ -620,6 +621,7 @@ export default class WCStripeAPI {
 				'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE':
 					getExpressCheckoutData( 'nonce' )
 						?.wc_store_api_express_checkout,
+				...headers,
 			}
 		);
 	}
@@ -630,15 +632,21 @@ export default class WCStripeAPI {
 	 * @param {number} order        The order ID.
 	 * @param {Object} orderDetails Order details, including order key and billing email.
 	 * @param {Object} paymentData  Order data.
+	 * @param {Object} headers      Optional header overrides (e.g. a refreshed `Nonce`).
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutECEPayForOrder( order, orderDetails, paymentData ) {
+	expressCheckoutECEPayForOrder(
+		order,
+		orderDetails,
+		paymentData,
+		headers = {}
+	) {
 		paymentData.shipping_address = orderDetails.shippingAddress;
 
 		const billingEmail = orderDetails.billingEmail ?? '';
 		const key = orderDetails.orderKey ?? '';
 		const url = `/wc/store/v1/checkout/${ order }?key=${ key }&billing_email=${ billingEmail }`;
-		return this.postToBlocksAPI( url, paymentData );
+		return this.postToBlocksAPI( url, paymentData, headers );
 	}
 
 	/**

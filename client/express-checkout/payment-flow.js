@@ -54,6 +54,7 @@ const handlePaymentFlowException = ( event, exception, abortPayment ) => {
  * @param {string} params.confirmationTokenId The Stripe confirmation token ID (token flow).
  * @param {number} params.order               The WooCommerce order ID when paying for an existing order.
  * @param {Object} params.orderDetails        Additional order details (e.g. order key, billing email).
+ * @param {string} params.storeApiNonce       A freshly resolved Store API nonce for the checkout request.
  * @return {Promise<{result: string, errorMessage: string|undefined, redirect: string}>} The order result.
  */
 const processOrder = async ( {
@@ -63,8 +64,13 @@ const processOrder = async ( {
 	confirmationTokenId,
 	order = 0,
 	orderDetails = {},
+	storeApiNonce,
 } ) => {
 	let orderResponse;
+
+	// The page-localized nonce can be stale/absent on cached guest checkout
+	// pages, so override it with the live one resolved from the cart.
+	const headers = storeApiNonce ? { Nonce: storeApiNonce } : {};
 
 	const normalizedOrderData = normalizeOrderData( {
 		event,
@@ -87,11 +93,14 @@ const processOrder = async ( {
 		orderResponse = await api.expressCheckoutECEPayForOrder(
 			order,
 			orderDetails,
-			normalizedOrderData
+			normalizedOrderData,
+			headers
 		);
 	} else {
-		orderResponse =
-			await api.expressCheckoutECECreateOrder( normalizedOrderData );
+		orderResponse = await api.expressCheckoutECECreateOrder(
+			normalizedOrderData,
+			headers
+		);
 	}
 
 	// Extract redirect URL from payment_details if redirect_url is empty
@@ -127,6 +136,7 @@ const processOrder = async ( {
  * @param {Object}   params.event           The Stripe express checkout event.
  * @param {number}   params.order           The WooCommerce order ID when paying for an existing order.
  * @param {Object}   params.orderDetails    Additional order details.
+ * @param {string}   params.storeApiNonce   A freshly resolved Store API nonce for the checkout request.
  * @return {Promise<void>} Resolves when the payment flow has completed or been aborted.
  */
 export const handleManualPaymentMethodFlow = async ( {
@@ -138,6 +148,7 @@ export const handleManualPaymentMethodFlow = async ( {
 	event,
 	order = 0,
 	orderDetails = {},
+	storeApiNonce,
 } ) => {
 	try {
 		const { paymentMethod, error } = await stripe.createPaymentMethod( {
@@ -155,6 +166,7 @@ export const handleManualPaymentMethodFlow = async ( {
 			paymentMethodId: paymentMethod.id,
 			order,
 			orderDetails,
+			storeApiNonce,
 		} );
 
 		if ( result !== 'success' ) {
@@ -195,6 +207,7 @@ export const handleManualPaymentMethodFlow = async ( {
  * @param {Object}   params.event           The Stripe express checkout event.
  * @param {number}   params.order           The WooCommerce order ID when paying for an existing order.
  * @param {Object}   params.orderDetails    Additional order details.
+ * @param {string}   params.storeApiNonce   A freshly resolved Store API nonce for the checkout request.
  * @return {Promise<void>} Resolves when the payment flow has completed or been aborted.
  */
 export const handleConfirmationTokenFlow = async ( {
@@ -206,6 +219,7 @@ export const handleConfirmationTokenFlow = async ( {
 	event,
 	order = 0,
 	orderDetails = {},
+	storeApiNonce,
 } ) => {
 	try {
 		// Create a ConfirmationToken that we can use later to create and confirm the payment intent.
@@ -228,6 +242,7 @@ export const handleConfirmationTokenFlow = async ( {
 			confirmationTokenId: confirmationToken.id,
 			order,
 			orderDetails,
+			storeApiNonce,
 		} );
 
 		if ( result !== 'success' ) {

@@ -123,16 +123,23 @@ export const onConfirmHandler = async ( params ) => {
 		return handleChangePaymentMethodFlow( params );
 	}
 
+	// Prefer the nonce the cart calls already rotated while the wallet sheet was
+	// open. The page-localized nonce can be stale or absent for guests on
+	// full-page-cached checkout pages, which is what breaks them; reusing the
+	// rotated value avoids that without adding a request to the submit path.
+	const storeApiNonce = cartApi.getStoreApiNonce();
+	const orderParams = { ...params, storeApiNonce };
+
 	if (
 		! isManualPaymentMethodCreation(
 			event.expressPaymentType,
 			hasFreeTrial
 		)
 	) {
-		return handleConfirmationTokenFlow( params );
+		return handleConfirmationTokenFlow( orderParams );
 	}
 
-	return handleManualPaymentMethodFlow( params );
+	return handleManualPaymentMethodFlow( orderParams );
 };
 
 /**
