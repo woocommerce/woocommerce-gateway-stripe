@@ -125,14 +125,15 @@ final class WC_Stripe_Whats_New_Note {
 	/**
 	 * In-admin changelog deep link for the note action.
 	 *
-	 * Omits the thickbox iframe params the Plugins-screen link uses: a note
+	 * Returns a relative admin path, not an absolute URL: the Inbox REST layer
+	 * runs it through admin_url() per request, so the base resolves to the
+	 * store's current address rather than baking one in at creation time.
+	 * Omits the thickbox iframe params the Plugins-screen link uses — a note
 	 * action is a plain navigation, so it must resolve to a full admin page.
 	 *
 	 * @return string
 	 */
 	private static function get_changelog_url(): string {
-		return self_admin_url(
-			'plugin-install.php?tab=plugin-information&plugin=woocommerce-gateway-stripe&section=changelog'
-		);
+		return 'plugin-install.php?tab=plugin-information&plugin=woocommerce-gateway-stripe&section=changelog';
 	}
 }
