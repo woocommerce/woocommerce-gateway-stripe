@@ -258,6 +258,107 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @dataProvider provide_locked_subscription_renewal_payment_methods
+	 */
+	public function test_renewal_returns_without_charging_when_payment_lock_is_held( $gateway_id, $expected_api_endpoint ) {
+		$renewal_order = WC_Helper_Order::create_order();
+		$customer      = 'cus_123abc';
+		$source        = 'src_123abc';
+		$api_requests  = [];
+
+		$renewal_order->set_payment_method( $gateway_id );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe->id = $gateway_id;
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => $customer,
+					'source'         => $source,
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->lock_order_payment( $renewal_order );
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $expected_api_endpoint, &$api_requests ) {
+			if ( 0 !== strpos( $url, $expected_api_endpoint ) ) {
+				return false;
+			}
+
+			$api_requests[] = $url;
+
+			if ( 'https://api.stripe.com/v1/charges' === $expected_api_endpoint ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'                     => 'ch_123abc',
+							'object'                 => 'charge',
+							'captured'               => true,
+							'status'                 => 'succeeded',
+							'payment_method_details' => [
+								'type' => WC_Stripe_Payment_Methods::CARD,
+							],
+						]
+					),
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		$this->assertSame( [], $api_requests );
+		$this->assertGreaterThan( time(), $order_helper->get_order_existing_payment_lock( $renewal_order ) );
+	}
+
+	public function provide_locked_subscription_renewal_payment_methods() {
+		return [
+			'payment intents renewal' => [
+				'stripe',
+				'https://api.stripe.com/v1/payment_intents',
+			],
+			'legacy SEPA renewal'     => [
+				'stripe_sepa',
+				'https://api.stripe.com/v1/charges',
+			],
+		];
+	}
+
+	/**
 	 * Overall this test works like this:
 	 *
 	 * 1. Several things are set up or mocked.

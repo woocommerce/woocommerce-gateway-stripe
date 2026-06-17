@@ -515,6 +515,12 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			$order_helper = WC_Stripe_Order_Helper::get_instance();
 
+			if ( $order_helper->lock_order_payment( $renewal_order ) ) {
+				WC_Stripe_Logger::warning( "Stripe: skipping duplicate renewal attempt for order {$order_id} because the payment lock is already held." );
+				return;
+			}
+			$order_locked = true;
+
 			// If the payment gateway is SEPA, use the charges API.
 			// TODO: Remove when SEPA is migrated to payment intents.
 			if ( 'stripe_sepa' === $this->id ) {
@@ -525,8 +531,6 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				$is_authentication_required = false;
 			} else {
-				$order_helper->lock_order_payment( $renewal_order );
-				$order_locked               = true;
 				$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
 				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
 			}
