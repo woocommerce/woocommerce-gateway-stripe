@@ -4459,12 +4459,69 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @dataProvider provide_test_filter_saved_payment_methods_list
 	 */
 	public function test_filter_saved_payment_methods_list( $saved_cards, $item, $expected ) {
-		$payment_token                   = $this->getMockBuilder( 'WC_Payment_Token_CC' )
-			->disableOriginalConstructor()
-			->getMock();
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_saved_cards_filter', false );
+
+		$mock_http_request = $this->mock_stripe_payment_methods_response(
+			[
+				[
+					'id'   => 'pm_saved_cards_filter',
+					'type' => WC_Stripe_Payment_Methods::CARD,
+					'card' => [
+						'brand'     => 'visa',
+						'exp_month' => '7',
+						'exp_year'  => '2099',
+						'last4'     => '4242',
+					],
+				],
+			]
+		);
+		add_filter( 'pre_http_request', $mock_http_request, 10, 3 );
+
 		$this->mock_gateway->saved_cards = $saved_cards;
-		$list                            = $this->mock_gateway->filter_saved_payment_methods_list( $item, $payment_token );
+
+		try {
+			$list = $this->mock_gateway->filter_saved_payment_methods_list( $item, $user_id );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http_request, 10 );
+		}
+
 		$this->assertSame( $expected, $list );
+	}
+
+	/**
+	 * Saved cards should not be shown when the WooCommerce user has no Stripe customer ID.
+	 */
+	public function test_filter_saved_payment_methods_list_hides_methods_without_customer_id(): void {
+		$user_id = $this->factory->user->create();
+
+		$this->mock_gateway->saved_cards = true;
+
+		$this->assertSame(
+			[],
+			$this->mock_gateway->filter_saved_payment_methods_list( $this->get_saved_card_list_item(), $user_id )
+		);
+	}
+
+	/**
+	 * Saved cards should not be shown when Stripe cannot find the stored customer ID.
+	 */
+	public function test_filter_saved_payment_methods_list_hides_methods_when_customer_is_missing_in_stripe(): void {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_missing_in_stripe', false );
+
+		$mock_http_request = $this->mock_stripe_missing_customer_response();
+		add_filter( 'pre_http_request', $mock_http_request, 10, 3 );
+
+		$this->mock_gateway->saved_cards = true;
+
+		try {
+			$list = $this->mock_gateway->filter_saved_payment_methods_list( $this->get_saved_card_list_item(), $user_id );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http_request, 10 );
+		}
+
+		$this->assertSame( [], $list );
 	}
 
 	/**
@@ -4473,12 +4530,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return array
 	 */
 	public function provide_test_filter_saved_payment_methods_list() {
-		$item = [
-			'brand'     => 'visa',
-			'exp_month' => '7',
-			'exp_year'  => '2099',
-			'last4'     => '4242',
-		];
+		$item = $this->get_saved_card_list_item();
 		return [
 			'Saved cards enabled'  => [
 				'saved cards' => true,
@@ -4491,6 +4543,86 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected'    => [],
 			],
 		];
+	}
+
+	/**
+	 * Returns a minimal saved card list item shaped like WooCommerce's saved methods list.
+	 *
+	 * @return array
+	 */
+	private function get_saved_card_list_item(): array {
+		return [
+			'cc' => [
+				[
+					'method' => [
+						'gateway'   => WC_Stripe_UPE_Payment_Gateway::ID,
+						'brand'     => 'visa',
+						'exp_month' => '7',
+						'exp_year'  => '2099',
+						'last4'     => '4242',
+					],
+				],
+			],
+		];
+	}
+
+	/**
+	 * Returns a mock HTTP callback for a successful Stripe payment methods response.
+	 *
+	 * @param array $payment_methods Stripe payment method response data.
+	 * @return callable
+	 */
+	private function mock_stripe_payment_methods_response( array $payment_methods ): callable {
+		return function ( $preempt, $request_args, $url ) use ( $payment_methods ) {
+			if ( false === strpos( $url, 'payment_methods' ) ) {
+				return $preempt;
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'data'     => $payment_methods,
+						'has_more' => false,
+					]
+				),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+			];
+		};
+	}
+
+	/**
+	 * Returns a mock HTTP callback for Stripe's missing-customer error response.
+	 *
+	 * @return callable
+	 */
+	private function mock_stripe_missing_customer_response(): callable {
+		return function ( $preempt, $request_args, $url ) {
+			if ( false === strpos( $url, 'payment_methods' ) ) {
+				return $preempt;
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'error' => [
+							'code'    => 'resource_missing',
+							'message' => 'No such customer: cus_missing_in_stripe',
+							'param'   => 'customer',
+							'type'    => 'invalid_request_error',
+						],
+					]
+				),
+				'response' => [
+					'code'    => 404,
+					'message' => 'Not Found',
+				],
+			];
+		};
 	}
 
 	/**

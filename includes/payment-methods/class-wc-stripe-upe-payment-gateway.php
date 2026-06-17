@@ -382,10 +382,35 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return array               Filtered list of customers payment methods.
 	 */
 	public function filter_saved_payment_methods_list( $list, $customer_id ) {
-		if ( ! $this->saved_cards ) {
+		if ( ! $this->saved_cards || empty( $list ) ) {
 			return [];
 		}
+
+		if ( ! $this->has_valid_stripe_customer_for_saved_payment_methods( $customer_id ) ) {
+			return [];
+		}
+
 		return $list;
+	}
+
+	/**
+	 * Validates that the saved methods list can be backed by Stripe customer payment methods.
+	 *
+	 * @param int $customer_id The WooCommerce customer ID.
+	 * @return bool Whether saved payment methods can be displayed.
+	 */
+	private function has_valid_stripe_customer_for_saved_payment_methods( $customer_id ): bool {
+		$customer_id = absint( $customer_id );
+		if ( ! $customer_id ) {
+			return false;
+		}
+
+		$customer = new WC_Stripe_Customer( $customer_id );
+		if ( ! $customer->get_id() ) {
+			return false;
+		}
+
+		return ! empty( $customer->get_all_payment_methods( [], 1 ) );
 	}
 
 	/**
