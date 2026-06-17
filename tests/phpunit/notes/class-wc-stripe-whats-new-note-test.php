@@ -41,11 +41,9 @@ class WC_Stripe_Whats_New_Note_Test extends WP_UnitTestCase {
 		list( $action ) = $note->get_actions();
 		$this->assertSame( 'view-whats-new', $action->name );
 		$this->assertSame( 'See what\'s new', $action->label );
-		// Stored as a relative path so the Inbox REST layer resolves the base
-		// via admin_url() per request; an absolute URL would bake in the origin.
-		$this->assertStringContainsString( 'section=changelog', $action->query );
-		$this->assertStringStartsWith( 'plugin-install.php?', $action->query );
-		$this->assertStringNotContainsString( '://', $action->query );
+		// Must stay an external URL: the Inbox only opens links outside the
+		// admin URL in a new tab; an in-admin link would open in the same tab.
+		$this->assertSame( 'https://wordpress.org/plugins/woocommerce-gateway-stripe/#developers', $action->query );
 	}
 
 	/**
