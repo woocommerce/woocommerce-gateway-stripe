@@ -35,7 +35,8 @@ class WC_Stripe_Whats_New_Note_Test extends WP_UnitTestCase {
 		$expected_heading = sprintf( 'WooCommerce Stripe %s: see what\'s new', $marketing );
 
 		$this->assertSame( $expected_heading, $note->get_title() );
-		$this->assertSame( 'update', $note->get_type() );
+		// Inbox only renders info/marketing/survey/warning — not "update".
+		$this->assertSame( 'info', $note->get_type() );
 		$this->assertSame( 'wc-stripe-whats-new-note', $note->get_name() );
 		$this->assertSame( 'woocommerce-gateway-stripe', $note->get_source() );
 
