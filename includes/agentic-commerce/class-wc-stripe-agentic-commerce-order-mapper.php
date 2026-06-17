@@ -63,7 +63,9 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			// Save everything we've got so far.
 			$order->save();
 
-			// Map shipping data and save again.
+			// Must run after map_line_items(): map_shipping() builds the shipping
+			// package from the order's resolved line items, so the items have to be
+			// on the order before shipping is calculated.
 			$this->map_shipping( $order, $session );
 
 			// Confirm everything is right.
