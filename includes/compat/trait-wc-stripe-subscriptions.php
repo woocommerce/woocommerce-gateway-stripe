@@ -470,7 +470,6 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return void
 	 */
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
-		$order_locked = false;
 		$radar_reason = false;
 
 		try {
@@ -513,27 +512,13 @@ trait WC_Stripe_Subscriptions_Trait {
 				$prepared_source->source = '';
 			}
 
-			$order_helper = WC_Stripe_Order_Helper::get_instance();
-
-			if ( $order_helper->lock_order_payment( $renewal_order ) ) {
-				WC_Stripe_Logger::warning( "Stripe: skipping duplicate renewal attempt for order {$order_id} because the payment lock is already held." );
+			$payment_attempt = $this->create_subscription_renewal_payment_response( $amount, $renewal_order, $prepared_source );
+			if ( null === $payment_attempt ) {
 				return;
 			}
-			$order_locked = true;
 
-			// If the payment gateway is SEPA, use the charges API.
-			// TODO: Remove when SEPA is migrated to payment intents.
-			if ( 'stripe_sepa' === $this->id ) {
-				$request            = $this->generate_payment_request( $renewal_order, $prepared_source );
-				$request['capture'] = 'true';
-				$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
-				$response           = WC_Stripe_API::request( $request );
-
-				$is_authentication_required = false;
-			} else {
-				$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
-				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
-			}
+			$response                   = $payment_attempt['response'];
+			$is_authentication_required = $payment_attempt['is_authentication_required'];
 
 			// It's only a failed payment if it's an error and it's not of the type 'authentication_required'.
 			// If it's 'authentication_required', then we should email the user and ask them to authenticate.
@@ -664,11 +649,6 @@ trait WC_Stripe_Subscriptions_Trait {
 				}
 			}
 
-			if ( $order_locked && isset( $order_helper ) ) {
-				$order_helper->unlock_order_payment( $renewal_order );
-				$order_locked = false;
-			}
-
 			return;
 		}
 
@@ -730,8 +710,10 @@ trait WC_Stripe_Subscriptions_Trait {
 				);
 
 				// Use the last charge within the intent or the full response body in case of SEPA.
-				$latest_charge = $this->get_latest_charge_from_intent( $response );
-				$this->process_response( ( ! empty( $latest_charge ) ) ? $latest_charge : $response, $renewal_order );
+				$latest_charge   = $this->get_latest_charge_from_intent( $response );
+				$charge_response = ( ! empty( $latest_charge ) ) ? $latest_charge : $response;
+				/** @var object $charge_response */
+				$this->process_response( $charge_response, $renewal_order );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::error(
@@ -746,8 +728,52 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 		}
+	}
 
-		if ( $order_locked && isset( $order_helper ) ) {
+	/**
+	 * Creates one Stripe payment attempt for a subscription renewal while holding the order payment lock.
+	 *
+	 * @param float    $amount         The amount to charge.
+	 * @param WC_Order $renewal_order  The renewal order.
+	 * @param object   $prepared_source The prepared renewal order source.
+	 * @return array{response: stdClass, is_authentication_required: bool}|null
+	 * @throws WC_Stripe_Exception When the Stripe API request fails.
+	 */
+	private function create_subscription_renewal_payment_response( $amount, WC_Order $renewal_order, $prepared_source ): ?array {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_id     = $renewal_order->get_id();
+
+		if ( $order_helper->lock_order_payment( $renewal_order ) ) {
+			WC_Stripe_Logger::warning( "Stripe: skipping duplicate renewal attempt for order {$order_id} because the payment lock is already held." );
+			return null;
+		}
+
+		try {
+			// If the payment gateway is SEPA, use the charges API.
+			// TODO: Remove when SEPA is migrated to payment intents.
+			if ( 'stripe_sepa' === $this->id ) {
+				$request            = $this->generate_payment_request( $renewal_order, $prepared_source );
+				$request['capture'] = 'true';
+				$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
+				$response           = WC_Stripe_API::request( $request );
+				if ( is_array( $response ) ) {
+					$response = (object) $response;
+				}
+
+				return [
+					'response'                   => $response,
+					'is_authentication_required' => false,
+				];
+			}
+
+			$response = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
+			/** @var stdClass $response */
+
+			return [
+				'response'                   => $response,
+				'is_authentication_required' => $this->is_authentication_required_for_payment( $response ),
+			];
+		} finally {
 			$order_helper->unlock_order_payment( $renewal_order );
 		}
 	}
