@@ -142,4 +142,29 @@ describe( 'ExpressCheckoutCartApi', () => {
 			);
 		} );
 	} );
+
+	describe( 'getStoreApiNonce', () => {
+		// Guests on full-page-cached shortcode checkout get a stale/absent page
+		// nonce, so the checkout POST reuses the nonce the cart calls already
+		// rotated instead.
+		it( 'reuses the nonce rotated by an earlier cart request without making a request', async () => {
+			apiFetch.mockResolvedValue(
+				mockResponse( { totals: {} }, { Nonce: 'refreshed_nonce' } )
+			);
+			await cartApi.updateCustomer( { shipping_address: {} } );
+			apiFetch.mockClear();
+
+			const nonce = cartApi.getStoreApiNonce();
+
+			expect( nonce ).toBe( 'refreshed_nonce' );
+			expect( apiFetch ).not.toHaveBeenCalled();
+		} );
+
+		it( 'falls back to the page nonce when no cart request has rotated one', () => {
+			const nonce = cartApi.getStoreApiNonce();
+
+			expect( nonce ).toBe( 'test_store_api_nonce' );
+			expect( apiFetch ).not.toHaveBeenCalled();
+		} );
+	} );
 } );
