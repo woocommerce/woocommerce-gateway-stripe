@@ -92,8 +92,9 @@ final class WC_Stripe_Whats_New_Note {
 		$last_seen = get_option( self::LAST_SEEN_VERSION_OPTION );
 
 		// No baseline yet: can't tell an upgrade from a fresh install, so stay
-		// silent until record_install_version() seeds it.
-		if ( false === $last_seen || '' === $last_seen ) {
+		// silent until record_install_version() seeds it. Reject non-strings
+		// too — the option is untrusted and version_compare() fatals on arrays.
+		if ( ! is_string( $last_seen ) || '' === $last_seen ) {
 			return false;
 		}
 
@@ -114,6 +115,12 @@ final class WC_Stripe_Whats_New_Note {
 	public static function record_install_version( $previous_version ): void {
 		if ( false === $previous_version ) {
 			update_option( self::LAST_SEEN_VERSION_OPTION, WC_STRIPE_VERSION );
+			return;
+		}
+
+		// `wc_stripe_version` is untrusted; never bank a non-string/empty value
+		// as the baseline (is_upgrade_pending() would reject it anyway).
+		if ( ! is_string( $previous_version ) || '' === $previous_version ) {
 			return;
 		}
 

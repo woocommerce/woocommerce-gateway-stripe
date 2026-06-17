@@ -51,8 +51,8 @@ class WC_Stripe_Whats_New_Note_Test extends WP_UnitTestCase {
 	 *
 	 * @dataProvider provider_is_upgrade_pending
 	 *
-	 * @param string|false $stored   Value to seed the last-seen option with, or false to leave it unset.
-	 * @param bool         $expected Whether the gate should report a pending upgrade.
+	 * @param mixed $stored   Value to seed the last-seen option with, or false to leave it unset.
+	 * @param bool  $expected Whether the gate should report a pending upgrade.
 	 * @return void
 	 */
 	public function test_is_upgrade_pending( $stored, bool $expected ) {
@@ -68,7 +68,7 @@ class WC_Stripe_Whats_New_Note_Test extends WP_UnitTestCase {
 	/**
 	 * Data provider for test_is_upgrade_pending.
 	 *
-	 * @return array<string, array{0: string|false, 1: bool}>
+	 * @return array<string, array{0: mixed, 1: bool}>
 	 */
 	public function provider_is_upgrade_pending(): array {
 		return [
@@ -77,6 +77,7 @@ class WC_Stripe_Whats_New_Note_Test extends WP_UnitTestCase {
 			'older baseline -> upgraded'                    => [ '0.0.1', true ],
 			'same as running version'                       => [ WC_STRIPE_VERSION, false ],
 			'newer than running version'                    => [ '999.0.0', false ],
+			'malformed array payload'                       => [ [ '0.0.1' ], false ],
 		];
 	}
 
@@ -117,6 +118,19 @@ class WC_Stripe_Whats_New_Note_Test extends WP_UnitTestCase {
 		WC_Stripe_Whats_New_Note::record_install_version( '9.0.0' );
 
 		$this->assertSame( '10.0.0', get_option( WC_Stripe_Whats_New_Note::LAST_SEEN_VERSION_OPTION ) );
+	}
+
+	/**
+	 * record_install_version() ignores a malformed previous version and banks nothing.
+	 *
+	 * The stored wc_stripe_version is untrusted, so a non-string must not become the baseline.
+	 *
+	 * @return void
+	 */
+	public function test_record_install_version_ignores_non_string_previous_version() {
+		WC_Stripe_Whats_New_Note::record_install_version( [ '9.0.0' ] );
+
+		$this->assertFalse( get_option( WC_Stripe_Whats_New_Note::LAST_SEEN_VERSION_OPTION ) );
 	}
 
 	/**
