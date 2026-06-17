@@ -417,7 +417,9 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			// Tax the full line total ($total = qty x price + add-ons) like the cart does, and skip tax
 			// entirely for non-taxable products so the preview can't show tax the cart won't charge.
 			$total_tax  = 0;
-			$line_taxes = $product->is_taxable() ? $this->express_checkout_helper->get_taxes_like_cart( $product, $total ) : [];
+			$line_taxes = ( $product instanceof WC_Product && $product->is_taxable() )
+				? $this->express_checkout_helper->get_taxes_like_cart( $product, $total )
+				: [];
 			foreach ( $line_taxes as $tax ) {
 				$total_tax += $tax;
 
