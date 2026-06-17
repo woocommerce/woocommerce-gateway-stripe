@@ -198,12 +198,18 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test ajax_get_selected_product_data calculates taxes from the quantity-adjusted subtotal.
+	 * Test ajax_get_selected_product_data taxes the full computed line total (quantity x price + add-ons).
+	 *
+	 * The preview must tax the same amount it shows as the line item, matching how WooCommerce taxes
+	 * quantity and add-on cost folded into the cart-item price. Taxing a single unit (or excluding
+	 * add-ons) understated the Apple Pay / Google Pay total.
+	 *
+	 * @dataProvider provide_full_line_tax_scenarios
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_ajax_get_selected_product_data_scales_tax_by_quantity() {
+	public function test_ajax_get_selected_product_data_taxes_full_line( $qty, $addon_value, $tax, $expected_tax_base, $expected_item_amount, $expected_tax_amount, $expected_total_amount ) {
 		Ajax_Test_Helper::init_hooks();
 
 		$product = WC_Helper_Product::create_simple_product();
@@ -213,65 +219,16 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 		$this->express_checkout_helper->method( 'get_total_label' )->willReturn( 'Total' );
 		$this->express_checkout_helper->expects( $this->once() )
 			->method( 'get_taxes_like_cart' )
-			->with( $this->anything(), 30.0 )
-			->willReturn( [ 6.0 ] );
+			->with( $this->anything(), $expected_tax_base )
+			->willReturn( [ $tax ] );
 
 		try {
 			$security_nonce       = wp_create_nonce( 'wc-stripe-get-selected-product-data' );
 			$_REQUEST['security'] = $security_nonce;
 			$_POST['security']    = $security_nonce;
 			$_POST['product_id']  = $product->get_id();
-			$_POST['qty']         = 3;
-
-			WC()->session->init();
-
-			ob_start();
-			$this->ajax_handler->ajax_get_selected_product_data();
-			$output = ob_get_clean();
-
-			$response = json_decode( $output, true );
-		} finally {
-			Ajax_Test_Helper::remove_hooks();
-			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
-		}
-
-		$this->assertIsArray( $response );
-		$this->assertArrayHasKey( 'displayItems', $response, 'response: ' . wp_json_encode( $response ) );
-		$this->assertSame( 3000, $response['displayItems'][0]['amount'] );
-		$this->assertSame( 600, $response['displayItems'][1]['amount'] );
-		$this->assertSame( 3600, $response['total']['amount'] );
-	}
-
-	/**
-	 * Test ajax_get_selected_product_data includes the add-on cost in the tax base.
-	 *
-	 * Product Add-Ons folds the selected add-on cost into the taxable cart-item price, so the
-	 * express-checkout preview must tax the product subtotal plus add-ons. Taxing only the product
-	 * subtotal understates the Apple Pay / Google Pay total whenever a taxable add-on is selected.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
-	public function test_ajax_get_selected_product_data_includes_addons_in_tax_base() {
-		Ajax_Test_Helper::init_hooks();
-
-		$product = WC_Helper_Product::create_simple_product();
-
-		$this->express_checkout_helper->method( 'is_invalid_subscription_product' )->willReturn( false );
-		$this->express_checkout_helper->method( 'get_product_price' )->willReturn( 10.0 );
-		$this->express_checkout_helper->method( 'get_total_label' )->willReturn( 'Total' );
-		$this->express_checkout_helper->expects( $this->once() )
-			->method( 'get_taxes_like_cart' )
-			->with( $this->anything(), 15.0 )
-			->willReturn( [ 1.5 ] );
-
-		try {
-			$security_nonce       = wp_create_nonce( 'wc-stripe-get-selected-product-data' );
-			$_REQUEST['security'] = $security_nonce;
-			$_POST['security']    = $security_nonce;
-			$_POST['product_id']  = $product->get_id();
-			$_POST['qty']         = 1;
-			$_POST['addon_value'] = 5;
+			$_POST['qty']         = $qty;
+			$_POST['addon_value'] = $addon_value;
 
 			WC()->session->init();
 
@@ -285,12 +242,27 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 			unset( $_POST['product_id'], $_POST['qty'], $_POST['addon_value'], $_POST['security'], $_REQUEST['security'] );
 		}
 
-		// $10 product + $5 add-on = $15 tax base; with the stubbed $1.50 tax the total is $16.50.
 		$this->assertIsArray( $response );
 		$this->assertArrayHasKey( 'displayItems', $response, 'response: ' . wp_json_encode( $response ) );
-		$this->assertSame( 1500, $response['displayItems'][0]['amount'] );
-		$this->assertSame( 150, $response['displayItems'][1]['amount'] );
-		$this->assertSame( 1650, $response['total']['amount'] );
+		$this->assertSame( $expected_item_amount, $response['displayItems'][0]['amount'] );
+		$this->assertSame( $expected_tax_amount, $response['displayItems'][1]['amount'] );
+		$this->assertSame( $expected_total_amount, $response['total']['amount'] );
+	}
+
+	/**
+	 * Data provider for test_ajax_get_selected_product_data_taxes_full_line.
+	 *
+	 * Product price is stubbed at $10. Columns: quantity, posted add-on value, stubbed tax returned by
+	 * get_taxes_like_cart(), the expected tax base passed to it, then expected line-item / tax / total
+	 * amounts in minor units.
+	 *
+	 * @return array
+	 */
+	public function provide_full_line_tax_scenarios() {
+		return [
+			'multiple quantity, no add-on'        => [ 3, 0, 6.0, 30.0, 3000, 600, 3600 ],
+			'single quantity with taxable add-on' => [ 1, 5, 1.5, 15.0, 1500, 150, 1650 ],
+		];
 	}
 
 	/**
