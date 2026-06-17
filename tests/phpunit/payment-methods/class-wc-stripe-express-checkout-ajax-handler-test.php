@@ -255,8 +255,22 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 		$this->assertIsArray( $response );
 		$this->assertArrayHasKey( 'displayItems', $response, 'response: ' . wp_json_encode( $response ) );
 		$this->assertSame( $expected_item_amount, $response['displayItems'][0]['amount'] );
+
+		// Match the tax line by label rather than position, so this is robust to item ordering and
+		// can assert a non-taxable product shows no tax line at all.
+		$tax_items = array_values(
+			array_filter(
+				$response['displayItems'],
+				static function ( $item ) {
+					return isset( $item['label'] ) && 'Tax' === $item['label'];
+				}
+			)
+		);
 		if ( null !== $expected_tax_amount ) {
-			$this->assertSame( $expected_tax_amount, $response['displayItems'][1]['amount'] );
+			$this->assertCount( 1, $tax_items, 'Exactly one tax line should be shown.' );
+			$this->assertSame( $expected_tax_amount, $tax_items[0]['amount'] );
+		} else {
+			$this->assertCount( 0, $tax_items, 'A non-taxable product must show no tax line.' );
 		}
 		$this->assertSame( $expected_total_amount, $response['total']['amount'] );
 	}
