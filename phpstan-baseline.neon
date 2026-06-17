@@ -3258,7 +3258,6 @@ parameters:
 			count: 3
 			path: includes/class-wc-stripe-webhook-handler.php
 
-
 		-
 			message: '#^Parameter \#2 \$request_body of method WC_Stripe_Webhook_Handler\:\:validate_request\(\) expects array, string\|false given\.$#'
 			identifier: argument.type
@@ -8699,6 +8698,318 @@ parameters:
 			message: '#^Access to an undefined property object\:\:\$acss_debit\.$#'
 			identifier: property.notFound
 			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$au_becs_debit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$bacs_debit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$card\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$cashapp\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$last4\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$link\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$sepa_debit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$us_bank_account\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Order\:\:get_billing_interval\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Order\:\:get_billing_period\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Order\:\:get_related_orders\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:check_source\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:create_and_confirm_intent_for_off_session\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:generate_payment_request\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:get_intent_from_order\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:get_latest_charge_from_intent\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:get_redirect_url\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:get_upe_gateway_id_for_order\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:handle_saving_payment_method\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:is_authentication_required_for_payment\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:is_no_linked_source_error\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:is_no_such_source_error\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:is_retryable_error\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:maybe_disallow_prepaid_card\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:need_update_idempotency_key\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:prepare_order_source\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:prepare_payment_information_from_request\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:prepare_source\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:process_response\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:process_setup_intent_for_order\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:save_source_to_order\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:set_customer_id_for_subscription\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:set_payment_method_id_for_subscription\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:stripe_request\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:validate_selected_payment_method_type\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:is_changing_payment_method_for_subscription\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Payment_Gateway\:\:get_return_url\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_card_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_customer_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Revolut_Pay\), ''change_idempotency…''\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Revolut_Pay\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Parameter \#2 \$source_id of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects string, string\|false\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-revolut-pay.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$acss_debit\.$#'
+			identifier: property.notFound
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
@@ -9612,6 +9923,12 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-tokens/class-wc-stripe-revolut-pay-payment-token.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$type\.$#'
