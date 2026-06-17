@@ -22,6 +22,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Run the woocommerce_gateway_description filter for Stripe payment methods so third parties can add or replace their checkout descriptions
 * Fix - Show an error notice when a Stripe OAuth connection attempt fails its security check
 * Dev - Deprecate the internal WC_Stripe_Feature_Flags::is_amazon_pay_available() helper now that Amazon Pay is permanently enabled
+* Add - Verify that Stripe.js was served from the official Stripe origin before processing checkout payments
 
 2026-06-15 - version 10.8.2
 * Fix - Disable Adaptive Pricing when webhooks are disabled
