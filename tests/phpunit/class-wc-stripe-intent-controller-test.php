@@ -474,10 +474,10 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that Revolut Pay setup intents have delayed confirmation.
+	 * Test that Revolut Pay setup intents are confirmed server-side with a return URL.
 	 *
-	 * Confirming server-side with setup_future_usage fails with "PaymentMethod cannot be attached"
-	 * because Revolut Pay establishes its mandate during the customer's interactive authorization.
+	 * Revolut Pay is a redirect method (like iDEAL/Bancontact): the intent is confirmed immediately
+	 * and Stripe returns a redirect action, so the return URL must be present.
 	 */
 	public function test_create_and_confirm_setup_intent_with_revolut_pay() {
 		$payment_information = [
@@ -491,10 +491,11 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		];
 
 		$test_request = function ( $preempt, $parsed_args, $url ) {
-			// Confirmation is delayed so the mandate is established on the front end.
-			$this->assertEquals( 'false', $parsed_args['body']['confirm'] );
-			// Revolut Pay redirects, so the return URL must be kept.
+			// Redirect method: confirmed server-side with the return URL retained.
+			$this->assertEquals( 'true', $parsed_args['body']['confirm'] );
 			$this->assertEquals( 'https://example.com/return', $parsed_args['body']['return_url'] );
+			// Revolut Pay requires mandate data to set up the saved payment method / subscription mandate.
+			$this->assertEquals( 'online', $parsed_args['body']['mandate_data']['customer_acceptance']['type'] );
 
 			return [
 				'response' => 200,

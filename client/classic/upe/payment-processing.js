@@ -34,7 +34,6 @@ import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
 	PAYMENT_METHOD_MULTIBANCO,
-	PAYMENT_METHOD_REVOLUT_PAY,
 	PAYMENT_METHOD_WECHAT_PAY,
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
@@ -1437,28 +1436,6 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 						.confirmCashappPayment( clientSecret, {
 							return_url: returnURL,
 						} );
-				}
-				break;
-			case PAYMENT_METHOD_REVOLUT_PAY:
-				// Stripe.js has no dedicated confirmRevolutPayPayment method (stripe/stripe-js#694),
-				// so confirm via the generic confirmPayment/confirmSetup. Subscriptions with a free
-				// trial or zero initial total use a setup intent rather than a payment intent.
-				if ( intentType === 'setup_intent' ) {
-					confirmPayment = await api.getStripe().confirmSetup( {
-						clientSecret,
-						confirmParams: {
-							return_url: returnURL,
-						},
-						redirect: 'if_required',
-					} );
-				} else {
-					confirmPayment = await api.getStripe().confirmPayment( {
-						clientSecret,
-						confirmParams: {
-							return_url: returnURL,
-						},
-						redirect: 'if_required',
-					} );
 				}
 				break;
 			default:

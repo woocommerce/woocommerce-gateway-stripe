@@ -94,7 +94,6 @@ class WC_Stripe_Payment_Methods {
 	public const WALLET_PAYMENT_METHODS = [
 		self::CASHAPP_PAY,
 		self::WECHAT_PAY,
-		self::REVOLUT_PAY,
 	];
 
 	/**
