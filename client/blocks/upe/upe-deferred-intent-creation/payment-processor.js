@@ -114,8 +114,12 @@ const PaymentProcessor = ( {
 
 	const hasLoadErrorRef = useRef( false );
 
-	// Live mirror of isPaymentElementComplete so an in-flight onPaymentSetup
-	// callback sees updates, not its stale closure value. See #5490.
+	// onPaymentSetup registers its callback once, so that callback closes over
+	// the initial isPaymentElementComplete (false) and never sees later state
+	// updates. A ref, refreshed in onSelectedPaymentMethodChange, gives the
+	// callback the element's live completion state — letting it tell a
+	// genuinely-incomplete element apart from one still re-mounting after a
+	// checkout update.
 	const isCompleteRef = useRef( false );
 
 	const setHasLoadError = ( event ) => {
