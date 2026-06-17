@@ -23,7 +23,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Show an error notice when a Stripe OAuth connection attempt fails its security check
 * Dev - Deprecate the internal WC_Stripe_Feature_Flags::is_amazon_pay_available() helper now that Amazon Pay is permanently enabled
 * Tweak - Don't show the Stripe API outage notice on local and development sites, where Stripe is often unreachable for benign reasons
-* Update - Add the woocommerce_agentic_commerce_should_sync_product filter for excluding products from Agentic Commerce sync and deprecate the Stripe-prefixed wc_stripe_agentic_commerce_should_sync_product so other plugins can share the hook
+* Update - Deprecate the wc_stripe_agentic_commerce_should_sync_product filter in favor of the shareable woocommerce_agentic_commerce_should_sync_product
 
 2026-06-15 - version 10.8.2
 * Fix - Disable Adaptive Pricing when webhooks are disabled
