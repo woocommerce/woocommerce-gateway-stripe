@@ -254,7 +254,6 @@ class WC_Stripe_Settings_Controller {
 			'plugin_version'                        => WC_STRIPE_VERSION,
 			'account_country'                       => $this->account->get_account_country(),
 			'are_apms_deprecated'                   => false,
-			'is_amazon_pay_available'               => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
 			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
 			'is_oc_enabled'                         => $is_oc_enabled,
 			'is_cs_available'                       => $is_checkout_sessions_available,
