@@ -262,7 +262,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 			array_filter(
 				$response['displayItems'],
 				static function ( $item ) {
-					return isset( $item['label'] ) && 'Tax' === $item['label'];
+					return isset( $item['label'] ) && __( 'Tax', 'woocommerce-gateway-stripe' ) === $item['label'];
 				}
 			)
 		);
