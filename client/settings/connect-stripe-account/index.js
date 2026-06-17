@@ -1,6 +1,7 @@
 import { React, useState, useCallback } from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from '@automattic/interpolate-components';
+import { getQuery } from '@woocommerce/navigation';
 import CardBody from '../card-body';
 import { Card } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
@@ -53,14 +54,26 @@ const ButtonWrapper = styled.div`
 `;
 
 const ConnectStripeAccount = () => {
-	const [ hasError, setHasError ] = useState( false );
+	// eslint-disable-next-line camelcase
+	const { wc_stripe_connect_error: connectError } = getQuery();
 
-	const handleErrorChange = useCallback(
-		( error ) => {
-			setHasError( !! error );
-		},
-		[ setHasError ]
+	const connectErrorMessage =
+		connectError === 'expired_nonce'
+			? __(
+					'Your Stripe connection attempt expired or was interrupted before it could complete. Please try again. For assistance, refer to our {{Link}}documentation{{/Link}}.',
+					'woocommerce-gateway-stripe'
+			  )
+			: undefined;
+
+	const [ hasError, setHasError ] = useState(
+		Boolean( connectErrorMessage )
 	);
+	const [ errorMessage, setErrorMessage ] = useState( connectErrorMessage );
+
+	const handleErrorChange = useCallback( ( error ) => {
+		setHasError( !! error );
+		setErrorMessage( undefined );
+	}, [] );
 
 	return (
 		<CardWrapper>
@@ -104,7 +117,7 @@ const ConnectStripeAccount = () => {
 				</p>
 				{ hasError && (
 					<ErrorContainer>
-						<ConnectionErrorNotice />
+						<ConnectionErrorNotice message={ errorMessage } />
 					</ErrorContainer>
 				) }
 				<ButtonWrapper>
