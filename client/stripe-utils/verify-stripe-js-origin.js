@@ -18,16 +18,21 @@ export const STRIPE_JS_ORIGIN = 'https://js.stripe.com';
  * always takes precedence: `querySelector` on a comma-separated selector
  * returns the first match in document order, so a legitimate js.stripe.com
  * tag inserted earlier in the DOM could otherwise mask a repointed handle.
- * Only when no handle tag exists do we fall back to any script served from
- * the official origin.
+ * The handle match is only honored when it is actually a `<script>` with a
+ * src — an unrelated element that happens to share the `stripe-js` id must not
+ * fail the check closed while a legitimate script is present. Only when no
+ * usable handle tag exists do we fall back to any script served from the
+ * official origin.
  *
  * @param {Document} [doc] The document to inspect. Defaults to the global document.
  * @return {Object} Result object with `ok` (boolean), `detectedSrc` (string|null), and `detectedOrigin` (string|null).
  */
 export const verifyStripeJsOrigin = ( doc = document ) => {
+	const handleTag = doc.querySelector( '#stripe-js' );
 	const tag =
-		doc.querySelector( '#stripe-js' ) ??
-		doc.querySelector( 'script[src^="https://js.stripe.com/"]' );
+		handleTag?.tagName === 'SCRIPT' && handleTag.src
+			? handleTag
+			: doc.querySelector( 'script[src^="https://js.stripe.com/"]' );
 
 	if ( ! tag || ! tag.src ) {
 		return { ok: false, detectedSrc: null, detectedOrigin: null };

@@ -104,6 +104,21 @@ describe( 'verifyStripeJsOrigin', () => {
 		} );
 	} );
 
+	it( 'ignores a non-script element sharing the stripe-js id and falls back to a legitimate script', () => {
+		const doc = document.implementation.createHTMLDocument( 'test' );
+		const collision = doc.createElement( 'div' );
+		collision.id = 'stripe-js';
+		doc.body.appendChild( collision );
+		const script = doc.createElement( 'script' );
+		script.setAttribute( 'src', 'https://js.stripe.com/v3/' );
+		doc.body.appendChild( script );
+
+		expect( verifyStripeJsOrigin( doc ) ).toMatchObject( {
+			ok: true,
+			detectedOrigin: STRIPE_JS_ORIGIN,
+		} );
+	} );
+
 	it( 'fails closed when no Stripe.js tag is present', () => {
 		const doc = createDocumentWithScript();
 
