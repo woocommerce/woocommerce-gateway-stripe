@@ -398,7 +398,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 			$price         = $this->express_checkout_helper->get_product_price( $product, $is_deposit, $deposit_plan_id );
 			$line_subtotal = $qty * $price;
-			$total         = $line_subtotal + $addon_value;
+			$line_total    = $line_subtotal + $addon_value;
 
 			$quantity_label = 1 < $qty ? ' (x' . $qty . ')' : '';
 
@@ -411,14 +411,14 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 			$items[] = [
 				'label'  => $product->get_name() . $quantity_label,
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $total ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $line_total ),
 			];
 
-			// Tax the full line total ($total = qty x price + add-ons) like the cart does, and skip tax
-			// entirely for non-taxable products so the preview can't show tax the cart won't charge.
+			// Tax the full line total ($line_total = qty x price + add-ons) like the cart does, and skip
+			// tax entirely for non-taxable products so the preview can't show tax the cart won't charge.
 			$total_tax  = 0;
 			$line_taxes = ( $product instanceof WC_Product && $product->is_taxable() )
-				? $this->express_checkout_helper->get_taxes_like_cart( $product, $total )
+				? $this->express_checkout_helper->get_taxes_like_cart( $product, $line_total )
 				: [];
 			foreach ( $line_taxes as $tax ) {
 				$total_tax += $tax;
@@ -448,7 +448,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			$data['displayItems'] = $items;
 			$data['total']        = [
 				'label'  => $this->express_checkout_helper->get_total_label(),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $total + $total_tax, $currency ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $line_total + $total_tax, $currency ),
 			];
 
 			wp_send_json( $data );
