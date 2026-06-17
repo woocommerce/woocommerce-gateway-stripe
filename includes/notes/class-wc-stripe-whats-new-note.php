@@ -40,9 +40,9 @@ final class WC_Stripe_Whats_New_Note {
 
 		$note->set_title(
 			sprintf(
-				/* translators: %s: plugin version, e.g. "10.9". */
+				/* translators: %s: plugin version, e.g. "10.8.2". */
 				__( 'WooCommerce Stripe %s: see what\'s new', 'woocommerce-gateway-stripe' ),
-				self::get_marketing_version()
+				WC_STRIPE_VERSION
 			)
 		);
 		$note->set_content( __( 'You\'re now on the latest version of WooCommerce Stripe. Check the release notes to see the new features and improvements in this update.', 'woocommerce-gateway-stripe' ) );
@@ -134,16 +134,5 @@ final class WC_Stripe_Whats_New_Note {
 		return self_admin_url(
 			'plugin-install.php?tab=plugin-information&plugin=woocommerce-gateway-stripe&section=changelog'
 		);
-	}
-
-	/**
-	 * Major.minor of the running version for the headline (e.g. "10.9.2" -> "10.9").
-	 *
-	 * @return string
-	 */
-	private static function get_marketing_version(): string {
-		$parts = explode( '.', WC_STRIPE_VERSION );
-
-		return isset( $parts[1] ) ? $parts[0] . '.' . $parts[1] : WC_STRIPE_VERSION;
 	}
 }

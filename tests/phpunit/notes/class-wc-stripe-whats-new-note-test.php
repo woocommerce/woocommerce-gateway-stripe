@@ -30,9 +30,7 @@ class WC_Stripe_Whats_New_Note_Test extends WP_UnitTestCase {
 	public function test_get_note() {
 		$note = WC_Stripe_Whats_New_Note::get_note();
 
-		$parts            = explode( '.', WC_STRIPE_VERSION );
-		$marketing        = isset( $parts[1] ) ? $parts[0] . '.' . $parts[1] : WC_STRIPE_VERSION;
-		$expected_heading = sprintf( 'WooCommerce Stripe %s: see what\'s new', $marketing );
+		$expected_heading = sprintf( 'WooCommerce Stripe %s: see what\'s new', WC_STRIPE_VERSION );
 
 		$this->assertSame( $expected_heading, $note->get_title() );
 		// Inbox only renders info/marketing/survey/warning — not "update".
