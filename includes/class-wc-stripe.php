@@ -393,7 +393,6 @@ class WC_Stripe {
 		// Seed the version baseline so the "What's new" inbox note fires for
 		// upgraders only — auto-updaters never revisit the Plugins screen, so
 		// this upgrade routine is the reliable place to detect the bump.
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-whats-new-note.php';
 		WC_Stripe_Whats_New_Note::record_install_version( $previous_version );
 
 		add_woocommerce_inbox_variant();

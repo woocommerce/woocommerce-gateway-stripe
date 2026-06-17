@@ -17,8 +17,6 @@ class WC_Stripe_Whats_New_Note_Test extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-whats-new-note.php';
-
 		// Each test runs inside a DB transaction that WP_UnitTestCase rolls back,
 		// so notes/options created here don't leak between tests; we only reset
 		// the baseline option up front for an explicit starting state.
