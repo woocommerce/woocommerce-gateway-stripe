@@ -24,6 +24,7 @@ describe( 'WCStripeAPI', () => {
 		} );
 
 		afterEach( () => {
+			warnSpy.mockRestore();
 			delete global.Stripe;
 			document.getElementById( 'stripe-js' )?.remove();
 		} );
