@@ -386,7 +386,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return [];
 		}
 
-		if ( ! $this->has_valid_stripe_customer_for_saved_payment_methods( $customer_id ) ) {
+		if ( $this->should_hide_saved_payment_methods_list( $customer_id ) ) {
 			return [];
 		}
 
@@ -394,23 +394,55 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Validates that the saved methods list can be backed by Stripe customer payment methods.
+	 * Determines whether the saved payment methods list should be hidden.
 	 *
 	 * @param int $customer_id The WooCommerce customer ID.
-	 * @return bool Whether saved payment methods can be displayed.
+	 * @return bool Whether saved payment methods should be hidden.
 	 */
-	private function has_valid_stripe_customer_for_saved_payment_methods( $customer_id ): bool {
+	private function should_hide_saved_payment_methods_list( $customer_id ): bool {
 		$customer_id = absint( $customer_id );
 		if ( ! $customer_id ) {
-			return false;
+			return true;
 		}
 
 		$customer = new WC_Stripe_Customer( $customer_id );
 		if ( ! $customer->get_id() ) {
+			return true;
+		}
+
+		try {
+			$response = $this->stripe_request(
+				'payment_methods',
+				[
+					'customer' => $customer->get_id(),
+					'limit'    => 1,
+				],
+				null,
+				'GET'
+			);
+		} catch ( WC_Stripe_Exception $e ) {
 			return false;
 		}
 
-		return ! empty( $customer->get_all_payment_methods( [], 1 ) );
+		if ( ! empty( $response->error ) ) {
+			return $this->is_missing_stripe_customer_response( $response );
+		}
+
+		return empty( $response->data );
+	}
+
+	/**
+	 * Checks if Stripe reported that the stored customer no longer exists.
+	 *
+	 * @param object $response The Stripe API response.
+	 * @return bool Whether the response is a missing-customer error.
+	 */
+	private function is_missing_stripe_customer_response( $response ): bool {
+		return (
+			isset( $response->error->param, $response->error->code )
+			&& 'customer' === $response->error->param
+			&& 'resource_missing' === $response->error->code
+		);
 	}
 
 	/**
