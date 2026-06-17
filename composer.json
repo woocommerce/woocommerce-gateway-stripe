@@ -64,6 +64,7 @@
         "includes/payment-tokens/class-wc-stripe-cc-payment-token.php",
         "includes/payment-tokens/class-wc-stripe-klarna-payment-token.php",
         "includes/payment-tokens/class-wc-stripe-link-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-revolut-pay-payment-token.php",
         "includes/payment-tokens/class-wc-stripe-sepa-payment-token.php",
         "includes/payment-tokens/interface-wc-stripe-payment-method-comparison.php",
         "includes/payment-tokens/trait-wc-stripe-fingerprint.php"

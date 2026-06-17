@@ -41,6 +41,7 @@ class WC_Stripe_Payment_Tokens {
 		WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID   => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Revolut_Pay::STRIPE_ID  => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Revolut_Pay::STRIPE_ID,
 	];
 
 	/**
@@ -681,6 +682,9 @@ class WC_Stripe_Payment_Tokens {
 			case WC_Stripe_Payment_Methods::KLARNA:
 				$item['method']['brand'] = esc_html__( 'Klarna', 'woocommerce-gateway-stripe' );
 				break;
+			case WC_Stripe_Payment_Methods::REVOLUT_PAY:
+				$item['method']['brand'] = esc_html__( 'Revolut Pay', 'woocommerce-gateway-stripe' );
+				break;
 		}
 
 		// Wrap Apple Pay / Google Pay branding around the card brand. Link wallet_type
@@ -891,6 +895,9 @@ class WC_Stripe_Payment_Tokens {
 					}
 				}
 				break;
+			case WC_Stripe_UPE_Payment_Method_Revolut_Pay::STRIPE_ID:
+				$token = new WC_Stripe_Revolut_Pay_Payment_Token();
+				break;
 			default:
 				$token = new WC_Payment_Token_SEPA();
 				$token->set_last4( $payment_method->sepa_debit->last4 );
@@ -1085,6 +1092,11 @@ class WC_Stripe_Payment_Tokens {
 		// Check for Klarna and make sure we don't override other plugins that may use `klarna` as the token ID.
 		if ( WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID === $type && 'WC_Payment_Token_klarna' === $class ) {
 			return WC_Stripe_Klarna_Payment_Token::class;
+		}
+
+		// Check for Revolut Pay and make sure we don't override other plugins that may use `revolut_pay` as the token ID.
+		if ( WC_Stripe_UPE_Payment_Method_Revolut_Pay::STRIPE_ID === $type && 'WC_Payment_Token_revolut_pay' === $class ) {
+			return WC_Stripe_Revolut_Pay_Payment_Token::class;
 		}
 
 		return $class;

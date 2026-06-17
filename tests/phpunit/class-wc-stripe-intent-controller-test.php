@@ -474,6 +474,48 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that Revolut Pay setup intents have delayed confirmation.
+	 *
+	 * Confirming server-side with setup_future_usage fails with "PaymentMethod cannot be attached"
+	 * because Revolut Pay establishes its mandate during the customer's interactive authorization.
+	 */
+	public function test_create_and_confirm_setup_intent_with_revolut_pay() {
+		$payment_information = [
+			'payment_method'        => 'pm_mock',
+			'customer'              => 'cus_mock',
+			'selected_payment_type' => WC_Stripe_Payment_Methods::REVOLUT_PAY,
+			'payment_method_types'  => [ WC_Stripe_Payment_Methods::REVOLUT_PAY ],
+			'return_url'            => 'https://example.com/return',
+			'order'                 => $this->order,
+			'use_stripe_sdk'        => 'true',
+		];
+
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			// Confirmation is delayed so the mandate is established on the front end.
+			$this->assertEquals( 'false', $parsed_args['body']['confirm'] );
+			// Revolut Pay redirects, so the return URL must be kept.
+			$this->assertEquals( 'https://example.com/return', $parsed_args['body']['return_url'] );
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode(
+					[
+						'id'            => 'seti_mock',
+						'client_secret' => 'secret_mock',
+						'status'        => 'requires_confirmation',
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+		$result = $this->mock_controller->create_and_confirm_setup_intent( $payment_information );
+
+		$this->assertEquals( 'requires_confirmation', $result->status );
+	}
+
+	/**
 	 * Test error handling in setup intent creation.
 	 */
 	public function test_create_and_confirm_setup_intent_error() {

@@ -332,6 +332,7 @@ const paymentMethodsMap = {
 		Icon: icons.revolut_pay,
 		currencies: [ 'EUR', 'GBP', 'RON', 'HUF', 'PLN', 'DKK' ],
 		allows_manual_capture: true,
+		supportsRecurring: true,
 	},
 };
 

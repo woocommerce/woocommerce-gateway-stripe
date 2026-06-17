@@ -1454,12 +1454,16 @@ class WC_Stripe_Intent_Controller {
 	 * Some payment methods such as CashApp, Boleto, Oxxo and Multibanco require the payment to be confirmed later when
 	 * displaying the voucher or QR code to the customer on the checkout or pay for order page.
 	 *
+	 * Revolut Pay is confirmed on the front end too: confirming server-side with setup_future_usage (subscriptions)
+	 * fails with "PaymentMethod cannot be attached" because the mandate is only established during the customer's
+	 * interactive authorization in confirmWalletPayment().
+	 *
 	 * @param array $payment_methods The list of payment methods used for the processing the payment.
 	 *
 	 * @return boolean
 	 */
 	private function is_delayed_confirmation_required( $payment_methods ) {
-		return ! empty( array_intersect( $payment_methods, [ WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::MULTIBANCO, WC_Stripe_Payment_Methods::CASHAPP_PAY ] ) );
+		return ! empty( array_intersect( $payment_methods, [ WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::MULTIBANCO, WC_Stripe_Payment_Methods::CASHAPP_PAY, WC_Stripe_Payment_Methods::REVOLUT_PAY ] ) );
 	}
 
 	/**

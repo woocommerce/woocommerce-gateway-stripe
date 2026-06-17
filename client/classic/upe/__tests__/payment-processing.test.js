@@ -1682,6 +1682,37 @@ describe( 'confirmWalletPayment', () => {
 		expect( window.location.href ).toBe( RETURN_URL );
 	} );
 
+	it( 'confirms a Revolut Pay subscription setup intent via confirmSetup', async () => {
+		window.location.href =
+			'http://localhost/checkout#wc-stripe-wallet-123:revolut_pay:setup_intent:seti_abc_secret_xyz:' +
+			encodeURIComponent( RETURN_URL ) +
+			':nonce123';
+
+		const confirmSetup = jest.fn().mockResolvedValue( {
+			setupIntent: { status: 'succeeded', id: 'seti_abc' },
+		} );
+		const api = {
+			getStripe: () => ( { confirmSetup } ),
+			getAjaxUrl: jest
+				.fn()
+				.mockReturnValue( '/ajax/confirm_change_payment' ),
+			request: jest.fn().mockResolvedValue( {
+				success: true,
+				data: { return_url: RETURN_URL },
+			} ),
+		};
+
+		await confirmWalletPayment( api, makeForm() );
+
+		expect( confirmSetup ).toHaveBeenCalledWith( {
+			clientSecret: 'seti_abc_secret_xyz',
+			confirmParams: { return_url: RETURN_URL },
+			redirect: 'if_required',
+		} );
+		expect( stripeUtils.showErrorCheckout ).not.toHaveBeenCalled();
+		expect( window.location.href ).toBe( RETURN_URL );
+	} );
+
 	it( 'errors for an unrecognized wallet type instead of confirming', async () => {
 		setWalletHash( 'not_a_wallet' );
 

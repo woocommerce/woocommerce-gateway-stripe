@@ -1440,13 +1440,26 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 				}
 				break;
 			case PAYMENT_METHOD_REVOLUT_PAY:
-				confirmPayment = await api.getStripe().confirmPayment( {
-					clientSecret,
-					confirmParams: {
-						return_url: returnURL,
-					},
-					redirect: 'if_required',
-				} );
+				// Stripe.js has no dedicated confirmRevolutPayPayment method (stripe/stripe-js#694),
+				// so confirm via the generic confirmPayment/confirmSetup. Subscriptions with a free
+				// trial or zero initial total use a setup intent rather than a payment intent.
+				if ( intentType === 'setup_intent' ) {
+					confirmPayment = await api.getStripe().confirmSetup( {
+						clientSecret,
+						confirmParams: {
+							return_url: returnURL,
+						},
+						redirect: 'if_required',
+					} );
+				} else {
+					confirmPayment = await api.getStripe().confirmPayment( {
+						clientSecret,
+						confirmParams: {
+							return_url: returnURL,
+						},
+						redirect: 'if_required',
+					} );
+				}
 				break;
 			default:
 				// eslint-disable-next-line no-console

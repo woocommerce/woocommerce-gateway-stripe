@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -6,10 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * The Revolut Pay Payment Method class extending UPE base class.
  *
- * Revolut Pay is a redirect-based wallet. Stripe supports recurring mandates for it,
- * but this integration ships one-time payments only ($is_reusable = false).
+ * Revolut Pay is a redirect-based wallet that supports recurring payments via Stripe mandates.
  */
 class WC_Stripe_UPE_Payment_Method_Revolut_Pay extends WC_Stripe_UPE_Payment_Method {
+	use WC_Stripe_Subscriptions_Trait;
 
 	public const STRIPE_ID = WC_Stripe_Payment_Methods::REVOLUT_PAY;
 
@@ -66,7 +69,8 @@ class WC_Stripe_UPE_Payment_Method_Revolut_Pay extends WC_Stripe_UPE_Payment_Met
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'Revolut Pay', 'woocommerce-gateway-stripe' );
-		$this->is_reusable          = false;
+		$this->is_reusable          = true;
+		$this->supports[]           = PaymentGatewayFeature::TOKENIZATION;
 		$this->supported_currencies = [
 			WC_Stripe_Currency_Code::EURO,
 			WC_Stripe_Currency_Code::POUND_STERLING,
@@ -80,6 +84,9 @@ class WC_Stripe_UPE_Payment_Method_Revolut_Pay extends WC_Stripe_UPE_Payment_Met
 			'Let customers pay with their Revolut account or any major card through Revolut Pay.',
 			'woocommerce-gateway-stripe'
 		);
+
+		// Init subscription so it can process subscription payments.
+		$this->maybe_init_subscriptions();
 	}
 
 	/**
@@ -89,5 +96,23 @@ class WC_Stripe_UPE_Payment_Method_Revolut_Pay extends WC_Stripe_UPE_Payment_Met
 	 */
 	public function requires_automatic_capture() {
 		return false;
+	}
+
+	/**
+	 * Creates a Revolut Pay payment token for the customer.
+	 *
+	 * @param int      $user_id        The customer ID the payment token is associated with.
+	 * @param stdClass $payment_method The payment method object.
+	 * @return WC_Payment_Token The payment token created.
+	 */
+	public function create_payment_token_for_user( $user_id, $payment_method ) {
+		$token = new WC_Stripe_Revolut_Pay_Payment_Token();
+
+		$token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ self::STRIPE_ID ] );
+		$token->set_token( $payment_method->id );
+		$token->set_user_id( $user_id );
+		$token->save();
+
+		return $token;
 	}
 }
