@@ -330,7 +330,12 @@ const paymentMethodsMap = {
 			'woocommerce-gateway-stripe'
 		),
 		Icon: icons.revolut_pay,
-		currencies: [ 'EUR', 'GBP', 'RON', 'HUF', 'PLN', 'DKK' ],
+		// Revolut Pay charge currencies are gated by the account country: GBP for UK accounts,
+		// EUR/RON/HUF/PLN/DKK for EEA accounts. See get_supported_currencies() on the PHP method.
+		currencies:
+			accountCountry === 'GB'
+				? [ 'GBP' ]
+				: [ 'EUR', 'RON', 'HUF', 'PLN', 'DKK' ],
 		allows_manual_capture: true,
 		supportsRecurring: true,
 	},

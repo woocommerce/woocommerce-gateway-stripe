@@ -72,4 +72,54 @@ class WC_Stripe_UPE_Payment_Method_Revolut_Pay_Test extends WC_Stripe_UPE_Paymen
 		$this->assertSame( 'pm_123', $token->get_token() );
 		$this->assertSame( 1, $token->get_user_id() );
 	}
+
+	/**
+	 * Supported currencies depend on the account country: UK charges GBP, EEA charges EUR/RON/HUF/PLN/DKK.
+	 *
+	 * @param string   $account_country     The Stripe account country.
+	 * @param string[] $expected_currencies The expected supported currencies.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_supported_currencies
+	 */
+	public function test_supported_currencies( string $account_country, array $expected_currencies ): void {
+		$mock_account = $this->createMock( WC_Stripe_Account::class );
+		$mock_account->method( 'get_account_country' )->willReturn( $account_country );
+
+		$stripe_instance          = WC_Stripe::get_instance();
+		$initial_account          = $stripe_instance->account;
+		$stripe_instance->account = $mock_account;
+
+		try {
+			$supported_currencies = ( new WC_Stripe_UPE_Payment_Method_Revolut_Pay() )->get_supported_currencies();
+		} finally {
+			$stripe_instance->account = $initial_account;
+		}
+
+		$this->assertEquals( $expected_currencies, $supported_currencies );
+	}
+
+	/**
+	 * Data provider for {@see test_supported_currencies()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_supported_currencies(): array {
+		$eea = [
+			WC_Stripe_Currency_Code::EURO,
+			WC_Stripe_Currency_Code::ROMANIAN_LEU,
+			WC_Stripe_Currency_Code::HUNGARIAN_FORINT,
+			WC_Stripe_Currency_Code::POLISH_ZLOTY,
+			WC_Stripe_Currency_Code::DANISH_KRONE,
+		];
+
+		return [
+			'UK charges GBP only'           => [ WC_Stripe_Country_Code::UNITED_KINGDOM, [ WC_Stripe_Currency_Code::POUND_STERLING ] ],
+			'FR charges EEA set'            => [ WC_Stripe_Country_Code::FRANCE, $eea ],
+			'DE charges EEA set'            => [ WC_Stripe_Country_Code::GERMANY, $eea ],
+			'PL charges EEA set'            => [ WC_Stripe_Country_Code::POLAND, $eea ],
+			'US (unsupported) charges none' => [ WC_Stripe_Country_Code::UNITED_STATES, [] ],
+			'unknown country charges none'  => [ '', [] ],
+		];
+	}
 }

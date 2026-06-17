@@ -99,6 +99,36 @@ class WC_Stripe_UPE_Payment_Method_Revolut_Pay extends WC_Stripe_UPE_Payment_Met
 	}
 
 	/**
+	 * Returns the currencies this method supports for the Stripe account.
+	 *
+	 * Revolut Pay restricts charge currencies by the merchant's account country: UK accounts
+	 * may charge GBP, while EEA accounts may charge EUR, RON, HUF, PLN, or DKK (never GBP).
+	 * https://docs.stripe.com/payments/revolut-pay#supported-currencies
+	 *
+	 * @return string[]
+	 */
+	public function get_supported_currencies() {
+		$account_country = WC_Stripe::get_instance()->account->get_account_country();
+
+		if ( WC_Stripe_Country_Code::UNITED_KINGDOM === $account_country ) {
+			return [ WC_Stripe_Currency_Code::POUND_STERLING ];
+		}
+
+		// Any other account country must be a supported EEA country to charge these currencies.
+		if ( in_array( $account_country, static::SUPPORTED_ACCOUNT_COUNTRIES, true ) ) {
+			return [
+				WC_Stripe_Currency_Code::EURO,
+				WC_Stripe_Currency_Code::ROMANIAN_LEU,
+				WC_Stripe_Currency_Code::HUNGARIAN_FORINT,
+				WC_Stripe_Currency_Code::POLISH_ZLOTY,
+				WC_Stripe_Currency_Code::DANISH_KRONE,
+			];
+		}
+
+		return [];
+	}
+
+	/**
 	 * Creates a Revolut Pay payment token for the customer.
 	 *
 	 * @param int      $user_id        The customer ID the payment token is associated with.
