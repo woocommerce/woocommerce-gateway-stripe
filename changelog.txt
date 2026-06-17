@@ -1,12 +1,41 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.9.0
+* Add - Add dedicated settings page for Link with button size and location customization
+* Fix - Ignore incoming webhook events whose Stripe account does not match the connected account to avoid acting on another account's data
+* Fix - When changing a subscription's payment method, reflect the new card and its Apple Pay/Google Pay branding on My Account and clarify the admin order note
+* Dev - Use a shared hook manager to prevent duplicate subscription hook registrations
+* Dev - Initial infrastructure for more complex Agentic feed filtering
 * Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
 * Fix - Prevent classic and Blocks checkout submissions from failing while the Stripe Payment Element is re-mounting after a checkout update
+* Fix - Decommission the previously configured webhook before connecting via OAuth so reconnecting to a different Stripe account no longer leaves an orphaned webhook on the old account
 * Fix - Send the billing address to Stripe on the Pay for Order page so payments aren't incorrectly blocked by Stripe Radar rules
 * Update - Replace shipping AJAX endpoints with Store API calls for Express Checkout Element
 * Tweak - Consolidate the default payment intent metadata fields into a shared method so they stay consistent across payment flows
+* Fix - Prevent an uncaught "Stripe initialization data is not available" error on product pages when express checkout loads without the Stripe payment configuration
+* Add - Stripe admin pages to the WordPress Command Palette
+* Fix - Prevent a possible fatal error when saving the payment method on a subscription order
+* Dev - Use clsx library instead of classnames
+* Fix - Append the 3-letter currency code to the Stripe Fee and Stripe Payout amounts in WP Admin order totals when the Stripe account currency differs from the order currency
+* Dev - Add more robust purchase checks in e2e tests
+* Fix - Only create an agentic commerce order on the site that produced the checkout, preventing duplicate or wrong-site orders when multiple stores share one Stripe account
+* Dev - Add a Code Comment Conventions section to AGENTS.md to standardize agent and contributor comment guidance
+* Fix - Run the woocommerce_gateway_description filter for Stripe payment methods so third parties can add or replace their checkout descriptions
+* Fix - Show an error notice when a Stripe OAuth connection attempt fails its security check
+* Dev - Deprecate the internal WC_Stripe_Feature_Flags::is_amazon_pay_available() helper now that Amazon Pay is permanently enabled
+
+2026-06-15 - version 10.8.2
+* Fix - Disable Adaptive Pricing when webhooks are disabled
+* Fix - Fall back to standard checkout when Adaptive Pricing can't initialize against a conflicting Stripe.js version
+* Fix - Correctly distinguish Adaptive Pricing checkout sessions from agentic ones in webhooks so their payments aren't dropped
+* Fix - Prevent classic checkout from submitting an empty payment method while the Stripe Payment Element is re-mounting after a checkout update
+* Fix - Prevent Adaptive Pricing orders from being stuck in pending after a successful payment
+* Fix - Mark Adaptive Pricing orders as failed promptly when a payment is declined, instead of leaving them in Pending Payment
+
+2026-06-11 - version 10.8.1
 * Fix - Prevent a fatal error when a Bancontact, iDEAL or Sofort payment is placed with SEPA token saving enabled through the Adaptive Pricing checkout, which left the order unpaid
+* Fix - Hide the save payment method checkbox for Bancontact, iDEAL and Sofort in the Adaptive Pricing checkout, where Stripe cannot save them as SEPA Direct Debit tokens
+* Fix - Allow card and Link at classic checkout when the order has no billing country, instead of incorrectly blocking the payment as unavailable
 
 2026-06-08 - version 10.8.0
 * Fix - Add an order note and call action 'wc_stripe_unexpected_charge_detected' when a Stripe charge is captured for an order that was already paid via a different gateway

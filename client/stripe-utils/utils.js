@@ -23,7 +23,7 @@ import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 /**
  * Stripe data comes form the server passed on a global object.
  *
- * @return  {StripeServerData} Stripe server data.
+ * @return  {StripeServerData|null} Stripe server data, or null when it isn't localized on the page.
  */
 const getStripeServerData = () => {
 	let data = null;
@@ -36,11 +36,7 @@ const getStripeServerData = () => {
 		data = getSetting( 'stripe_data', null );
 	}
 
-	if ( ! data ) {
-		throw new Error( 'Stripe initialization data is not available' );
-	}
-
-	return data;
+	return data || null;
 };
 
 /**
@@ -812,9 +808,9 @@ export const showErrorCheckout = ( errorMessage ) => {
 	) {
 		if (
 			errorMessage?.code &&
-			getStripeServerData()[ errorMessage?.code ]
+			getStripeServerData()?.[ errorMessage?.code ]
 		) {
-			errorMessage = getStripeServerData()[ errorMessage?.code ];
+			errorMessage = getStripeServerData()?.[ errorMessage?.code ];
 		} else {
 			errorMessage =
 				errorMessage?.message || 'An unknown error occurred.';
@@ -905,8 +901,11 @@ export const showErrorPaymentMethod = ( errorMessage, containerSelector ) => {
 		typeof errorMessage !== 'string' &&
 		! ( errorMessage instanceof String )
 	) {
-		if ( errorMessage.code && getStripeServerData()[ errorMessage.code ] ) {
-			errorMessage = getStripeServerData()[ errorMessage.code ];
+		if (
+			errorMessage.code &&
+			getStripeServerData()?.[ errorMessage.code ]
+		) {
+			errorMessage = getStripeServerData()?.[ errorMessage.code ];
 		} else {
 			errorMessage = errorMessage.message;
 		}

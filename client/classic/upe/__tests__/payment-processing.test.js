@@ -517,6 +517,44 @@ describe( 'payment-processing', () => {
 				expect( api._stripe.elements ).not.toHaveBeenCalled();
 			} );
 
+			it( 'skips Adaptive Pricing and loads standard elements when Stripe.js exposes initCheckoutElementsSdk (dahlia+)', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				// dahlia+ keeps initCheckout() as a throwing stub plus the replacement
+				// method, so AP must be skipped before the stub is ever called.
+				api._stripe.initCheckout = jest.fn( () => {
+					throw new Error( 'stripe.initCheckout() has been removed' );
+				} );
+				api._stripe.initCheckoutElementsSdk = jest.fn();
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				expect(
+					api.checkoutSessionsCreateSession
+				).not.toHaveBeenCalled();
+				expect( api._stripe.initCheckout ).not.toHaveBeenCalled();
+				expect( api._stripe.elements ).toHaveBeenCalled();
+			} );
+
+			it( 'skips Adaptive Pricing and loads standard elements when initCheckout is absent (older Stripe.js)', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				// Older builds predate initCheckout() entirely; the gateway must
+				// degrade to the standard elements flow instead of crashing checkout.
+				delete api._stripe.initCheckout;
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				expect(
+					api.checkoutSessionsCreateSession
+				).not.toHaveBeenCalled();
+				expect( api._stripe.elements ).toHaveBeenCalled();
+			} );
+
 			it( 'uses createPaymentElement (not create) when using initCheckout', async () => {
 				const checkoutElements = createMockElements();
 				checkoutElements.loadActions.mockResolvedValue( {
@@ -1158,7 +1196,7 @@ describe( 'payment-processing', () => {
 			} );
 		} );
 
-		it( 'passes accordion layout with radios:false when Optimized Checkout is enabled with default layout', async () => {
+		it( "passes accordion layout with radios:'never' when Optimized Checkout is enabled with default layout", async () => {
 			stripeUtils.getStripeServerData.mockReturnValue( {
 				paymentMethodsConfig: {
 					card: { supportsDeferredIntent: true },
@@ -1181,13 +1219,13 @@ describe( 'payment-processing', () => {
 			const [ , paymentElementOptions ] =
 				mockElements.create.mock.calls[ 0 ];
 			expect( paymentElementOptions.layout.type ).toBe( 'accordion' );
-			expect( paymentElementOptions.layout.radios ).toBe( false );
+			expect( paymentElementOptions.layout.radios ).toBe( 'never' );
 			expect( paymentElementOptions.layout.spacedAccordionItems ).toBe(
 				false
 			);
 		} );
 
-		it( 'passes accordion layout with radios:false when Optimized Checkout is enabled with an explicit layout - accordion', async () => {
+		it( "passes accordion layout with radios:'never' when Optimized Checkout is enabled with an explicit layout - accordion", async () => {
 			stripeUtils.getStripeServerData.mockReturnValue( {
 				paymentMethodsConfig: {
 					card: { supportsDeferredIntent: true },
@@ -1210,7 +1248,7 @@ describe( 'payment-processing', () => {
 			const [ , paymentElementOptions ] =
 				mockElements.create.mock.calls[ 0 ];
 			expect( paymentElementOptions.layout.type ).toBe( 'accordion' );
-			expect( paymentElementOptions.layout.radios ).toBe( false );
+			expect( paymentElementOptions.layout.radios ).toBe( 'never' );
 			expect( paymentElementOptions.layout.spacedAccordionItems ).toBe(
 				false
 			);
@@ -1342,10 +1380,10 @@ describe( 'payment-processing', () => {
 	} );
 } );
 
-// STRIPE-1186: ensureUPEElementMounted closes the updated_checkout re-mount
-// race by waiting for any in-flight (re)mount and mounting a torn-down
-// element before the payment method is created.
-describe( 'ensureUPEElementMounted (STRIPE-1186)', () => {
+// ensureUPEElementMounted closes the updated_checkout re-mount race by waiting
+// for any in-flight (re)mount and mounting a torn-down element before the
+// payment method is created. See #5490.
+describe( 'ensureUPEElementMounted', () => {
 	beforeEach( () => {
 		stripeUtils.getStripeServerData.mockReturnValue( {
 			...BASE_SERVER_DATA,
