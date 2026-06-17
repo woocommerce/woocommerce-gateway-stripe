@@ -414,8 +414,12 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $total ),
 			];
 
+			// Tax the full taxable line amount shown to the shopper ($total = product subtotal x quantity
+			// plus any add-ons), matching how WooCommerce folds the add-on cost into the taxable
+			// cart-item price. Taxing only the product subtotal understated the wallet total whenever the
+			// quantity was greater than one or a taxable add-on was selected.
 			$total_tax = 0;
-			foreach ( $this->express_checkout_helper->get_taxes_like_cart( $product, $line_subtotal ) as $tax ) {
+			foreach ( $this->express_checkout_helper->get_taxes_like_cart( $product, $total ) as $tax ) {
 				$total_tax += $tax;
 
 				$items[] = [
