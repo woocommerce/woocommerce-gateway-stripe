@@ -111,7 +111,7 @@ const ManualCaptureControl = () => {
 					<WarningList>
 						<WarningListElement>
 							{ __(
-								'Only cards, Affirm, Afterpay, and Klarna support manual capture. When enabled, all other payment methods will be hidden from checkout.',
+								'Only cards, Affirm, Afterpay, Klarna and Revolut Pay support manual capture. When enabled, all other payment methods will be hidden from checkout.',
 								'woocommerce-gateway-stripe'
 							) }
 						</WarningListElement>
