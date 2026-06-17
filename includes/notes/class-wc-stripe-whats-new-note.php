@@ -1,10 +1,9 @@
 <?php
 /**
- * Surfaces a "What's new" inbox note after a plugin upgrade.
+ * "What's new" inbox note shown after a plugin upgrade.
  *
- * The Plugins-screen "what's new" surfaces only fire on `plugins.php`, which
- * stores on auto-update never revisit. This note reaches those merchants on
- * their next wp-admin visit regardless of how the plugin was updated.
+ * Reaches auto-updaters, who never revisit `plugins.php` where the other
+ * "what's new" surfaces fire.
  *
  * @package WooCommerce\Payments\Admin
  */
@@ -26,9 +25,8 @@ final class WC_Stripe_Whats_New_Note {
 	public const NOTE_NAME = 'wc-stripe-whats-new-note';
 
 	/**
-	 * Option recording the plugin version a merchant was last shown the note
-	 * for. It is compared against WC_STRIPE_VERSION so the note fires for
-	 * upgraders only.
+	 * Version a merchant was last shown the note for; compared against
+	 * WC_STRIPE_VERSION so the note fires for upgraders only.
 	 */
 	public const LAST_SEEN_VERSION_OPTION = 'wc_stripe_whats_new_note_version';
 
@@ -73,15 +71,13 @@ final class WC_Stripe_Whats_New_Note {
 			return;
 		}
 
-		// Drop any note left over from an earlier release so a single, current
-		// note surfaces per upgrade; the fixed note name would otherwise block
-		// re-adding it.
+		// Drop any earlier-release note first; the fixed note name would
+		// otherwise block re-adding it.
 		self::possibly_delete_note();
 		self::possibly_add_note();
 
-		// Bank the running version so the note shows once per upgrade. This is
-		// the only writer that advances the baseline to the current version;
-		// record_install_version() never rolls it back below this value.
+		// Only writer that advances the baseline to the current version, so the
+		// note shows once per upgrade; record_install_version() never lowers it.
 		update_option( self::LAST_SEEN_VERSION_OPTION, WC_STRIPE_VERSION );
 	}
 
@@ -93,9 +89,8 @@ final class WC_Stripe_Whats_New_Note {
 	public static function is_upgrade_pending(): bool {
 		$last_seen = get_option( self::LAST_SEEN_VERSION_OPTION );
 
-		// No baseline yet: we cannot tell an upgrade from a fresh install, so
-		// stay silent. record_install_version() seeds the baseline on the
-		// upgrade/activation pass and a later visit will surface the note.
+		// No baseline yet: can't tell an upgrade from a fresh install, so stay
+		// silent until record_install_version() seeds it.
 		if ( false === $last_seen || '' === $last_seen ) {
 			return false;
 		}
@@ -106,13 +101,12 @@ final class WC_Stripe_Whats_New_Note {
 	/**
 	 * Seed the version baseline from the plugin's upgrade routine.
 	 *
-	 * Fresh installs (no previous version) bank the current version so the note
-	 * never fires for them. Upgraders bank the version they came from, but only
-	 * when no baseline exists yet, so we never roll back a value init() has
-	 * already advanced to the current version (the two run on the same
+	 * Fresh installs bank the current version so the note never fires. Upgraders
+	 * bank the version they came from, but only when no baseline exists yet, so
+	 * we never lower a value init() already advanced (both run on the same
 	 * `admin_init` pass in an undefined order).
 	 *
-	 * @param string|false $previous_version Version stored before this upgrade, or false on a fresh install.
+	 * @param string|false $previous_version Version before this upgrade, or false on a fresh install.
 	 * @return void
 	 */
 	public static function record_install_version( $previous_version ): void {
@@ -129,9 +123,8 @@ final class WC_Stripe_Whats_New_Note {
 	/**
 	 * In-admin changelog deep link for the note action.
 	 *
-	 * Unlike the Plugins-screen "Release notes" link, this omits the thickbox
-	 * iframe params: an inbox-note action is a plain navigation, so it must
-	 * resolve to a full admin page rather than a modal that needs thickbox JS.
+	 * Omits the thickbox iframe params the Plugins-screen link uses: a note
+	 * action is a plain navigation, so it must resolve to a full admin page.
 	 *
 	 * @return string
 	 */

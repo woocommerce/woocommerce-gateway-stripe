@@ -390,9 +390,8 @@ class WC_Stripe {
 			update_option( 'wc_stripe_optimized_checkout_default_on', 'yes' );
 		}
 
-		// Seed the version baseline so the "What's new" inbox note fires for
-		// upgraders only — auto-updaters never revisit the Plugins screen, so
-		// this upgrade routine is the reliable place to detect the bump.
+		// Seed the "What's new" note baseline here: this upgrade routine is the
+		// reliable place to detect the bump for auto-updaters.
 		WC_Stripe_Whats_New_Note::record_install_version( $previous_version );
 
 		add_woocommerce_inbox_variant();

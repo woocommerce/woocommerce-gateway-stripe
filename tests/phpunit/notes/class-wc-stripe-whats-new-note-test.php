@@ -17,9 +17,8 @@ class WC_Stripe_Whats_New_Note_Test extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 
-		// Each test runs inside a DB transaction that WP_UnitTestCase rolls back,
-		// so notes/options created here don't leak between tests; we only reset
-		// the baseline option up front for an explicit starting state.
+		// Notes/options created per test are rolled back by WP_UnitTestCase's
+		// transaction; just reset the baseline for an explicit starting state.
 		delete_option( WC_Stripe_Whats_New_Note::LAST_SEEN_VERSION_OPTION );
 	}
 
