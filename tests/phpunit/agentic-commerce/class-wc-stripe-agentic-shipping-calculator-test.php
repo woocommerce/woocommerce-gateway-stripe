@@ -12,6 +12,7 @@ require_once __DIR__ . '/trait-agentic-commerce-test-helpers.php';
 use WP_UnitTestCase;
 use WC_Shipping_Zone;
 use WC_Stripe_Agentic_Shipping_Calculator;
+use WC_Stripe_Agentic_Customize_Checkout_Event;
 
 /**
  * Class WC_Stripe_Agentic_Shipping_Calculator_Test
@@ -316,5 +317,140 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 		} else {
 			$this->assertEmpty( $result );
 		}
+	}
+
+	/**
+	 * Test that the full, realistic customize_checkout webhook payload published in
+	 * the PR description parses end-to-end: its single qty-1 line item resolves to a
+	 * shippable product and a content-dependent '2 * [qty]' flat rate prices the
+	 * populated package (0.00 against an empty package before this change).
+	 */
+	public function test_realistic_customize_checkout_payload_prices_package_contents() {
+		$product = \WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => '24.99',
+				'price'         => '24.99',
+				'sku'           => 'SKU0029',
+			]
+		);
+
+		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', '2 * [qty]' );
+
+		$raw    = $this->realistic_customize_checkout_event();
+		$event  = new WC_Stripe_Agentic_Customize_Checkout_Event( $raw );
+		$result = $this->calculator->calculate( $event, $raw->data->currency );
+
+		$this->assertSame( 200, $result['shipping_options'][0]['shipping_rate_data']['fixed_amount']['amount'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Returns the sanitized customize_checkout event used by the realistic payload
+	 * test. This is the same JSON shared in the PR description so a reviewer can
+	 * replay it against a store; identifiers and the address are placeholders.
+	 *
+	 * @return \stdClass The decoded webhook event.
+	 */
+	private function realistic_customize_checkout_event(): \stdClass {
+		$json = <<<'JSON'
+{
+  "id": "evt_test_customize_checkout",
+  "type": "v1.delegated_checkout.customize_checkout",
+  "livemode": false,
+  "data": {
+    "amount_subtotal": 2499,
+    "amount_total": 3498,
+    "automatic_tax": { "enabled": false },
+    "checkout_session": "cs_test_a1ExampleCheckoutSessionIdForDocsOnly000000000000000000",
+    "currency": "usd",
+    "discounts": [],
+    "line_item_details": [
+      {
+        "id": "li_ExampleLineItem001",
+        "amount_discount": 0,
+        "amount_subtotal": 2499,
+        "amount_tax": 0,
+        "amount_total": 2499,
+        "name": "Sample Product",
+        "quantity": 1,
+        "sku_id": "SKU0029",
+        "tax_rates": [],
+        "unit_amount": 2499
+      }
+    ],
+    "metadata": {},
+    "shipping_details": {
+      "address": {
+        "city": "San Francisco",
+        "country": "US",
+        "line1": "123 Example Street",
+        "line2": "",
+        "postal_code": "94016",
+        "state": "CA"
+      },
+      "discount_details": [],
+      "shipping_rate": {
+        "id": "shr_ExampleExpedited001",
+        "delivery_estimate": {
+          "maximum": { "unit": "day", "value": 3 },
+          "minimum": { "unit": "day", "value": 2 }
+        },
+        "display_name": "Expedited",
+        "fixed_amount": {
+          "amount": 999,
+          "currency": "usd",
+          "currency_options": { "usd": { "amount": 999, "tax_behavior": "exclusive" } }
+        },
+        "metadata": {},
+        "tax_behavior": "exclusive",
+        "tax_code": "txcd_92010001"
+      },
+      "shipping_rates": [
+        {
+          "id": "shr_ExampleExpedited001",
+          "delivery_estimate": {
+            "maximum": { "unit": "day", "value": 3 },
+            "minimum": { "unit": "day", "value": 2 }
+          },
+          "display_name": "Expedited",
+          "fixed_amount": {
+            "amount": 999,
+            "currency": "usd",
+            "currency_options": { "usd": { "amount": 999, "tax_behavior": "exclusive" } }
+          },
+          "metadata": {},
+          "tax_behavior": "exclusive",
+          "tax_code": "txcd_92010001"
+        },
+        {
+          "id": "shr_ExampleExpress001",
+          "delivery_estimate": {
+            "maximum": { "unit": "day", "value": 2 },
+            "minimum": { "unit": "day", "value": 1 }
+          },
+          "display_name": "Express",
+          "fixed_amount": {
+            "amount": 1499,
+            "currency": "usd",
+            "currency_options": { "usd": { "amount": 1499, "tax_behavior": "exclusive" } }
+          },
+          "metadata": {},
+          "tax_behavior": "exclusive",
+          "tax_code": "txcd_92010001"
+        }
+      ]
+    },
+    "total_details": {
+      "amount_discount": 0,
+      "amount_shipping": 999,
+      "amount_tax": 0
+    }
+  }
+}
+JSON;
+
+		return json_decode( $json, false );
 	}
 }
