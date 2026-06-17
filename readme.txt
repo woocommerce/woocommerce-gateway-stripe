@@ -176,6 +176,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add a Code Comment Conventions section to AGENTS.md to standardize agent and contributor comment guidance
 * Fix - Show an error notice when a Stripe OAuth connection attempt fails its security check
 * Fix - Run the woocommerce_gateway_description filter for Stripe payment methods so third parties can add or replace their checkout descriptions
+* Dev - Deprecate the internal WC_Stripe_Feature_Flags::is_amazon_pay_available() helper now that Amazon Pay is permanently enabled
+* Tweak - Don't show the Stripe API outage notice on local and development sites, where Stripe is often unreachable for benign reasons
+* Update - Deprecate the wc_stripe_agentic_commerce_should_sync_product filter in favor of the shareable woocommerce_agentic_commerce_should_sync_product
 * Add - Per-product "Agentic Commerce" exclude toggle on the product editor's Inventory tab
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

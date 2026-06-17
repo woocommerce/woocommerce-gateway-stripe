@@ -232,7 +232,7 @@ class WC_Stripe {
 				if ( self::$instance === $this ) {
 					new WC_Stripe_Express_Checkout_Controller();
 				}
-			} elseif ( 'amazon_pay' === $area && WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
+			} elseif ( 'amazon_pay' === $area ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-amazon-pay-controller.php';
 				if ( self::$instance === $this ) {
 					new WC_Stripe_Amazon_Pay_Controller();
@@ -1078,12 +1078,6 @@ class WC_Stripe {
 			$this->maybe_deactivate_bnpls( $gateways->payment_gateways, $enabled_payment_methods )
 		);
 
-		// Check if Amazon Pay should be deactivated.
-		$payment_method_ids_to_disable = array_merge(
-			$payment_method_ids_to_disable,
-			$this->maybe_deactivate_amazon_pay( $enabled_payment_methods )
-		);
-
 		if ( [] === $payment_method_ids_to_disable ) {
 			return;
 		}
@@ -1123,29 +1117,5 @@ class WC_Stripe {
 		}
 
 		return $payment_method_ids_to_disable;
-	}
-
-	/**
-	 * Deactivate Amazon Pay if it's not available, i.e. unreleased.
-	 *
-	 * TODO: Remove this method once Amazon Pay is released.
-	 *
-	 * @param array $enabled_payment_methods The enabled payment methods.
-	 * @return array Amazon Pay payment method ID, if it should be disabled.
-	 */
-	private function maybe_deactivate_amazon_pay( $enabled_payment_methods ) {
-		// Safety guard only. Ideally, we will remove this method once Amazon Pay is released.
-		if ( WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
-			// Nothing to do if Amazon Pay is already released.
-			return [];
-		}
-
-		if ( ! in_array( WC_Stripe_Payment_Methods::AMAZON_PAY, $enabled_payment_methods, true ) ) {
-			// Nothing to do if Amazon Pay is not enabled.
-			return [];
-		}
-
-		// Disable Amazon Pay.
-		return [ WC_Stripe_Payment_Methods::AMAZON_PAY ];
 	}
 }
