@@ -260,7 +260,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 	 */
 	public function provide_full_line_tax_scenarios() {
 		return [
-			'multiple quantity, no add-on'        => [ 3, 0, 6.0, 30.0, 3000, 600, 3600 ],
+			'multiple quantity, no add-on'        => [ 3, 0, 3.0, 30.0, 3000, 300, 3300 ],
 			'single quantity with taxable add-on' => [ 1, 5, 1.5, 15.0, 1500, 150, 1650 ],
 		];
 	}
