@@ -88,8 +88,7 @@ jQuery( function ( $ ) {
 	// Only attempt to mount the card element once that section of the page has loaded.
 	// We can use the updated_checkout event for this.
 	$( document.body ).on( 'updated_checkout', () => {
-		// Track the whole re-render → re-mount chain so a submission landing
-		// mid-update waits for it to settle. See #5490.
+		// Track the re-render → re-mount chain so a mid-update submission waits.
 		const updateChain = ( async () => {
 			await maybeUpdateAdaptivePricingCheckoutSession( api );
 			await maybeMountStripePaymentElement();

@@ -62,19 +62,17 @@ let hasCheckoutCompleted = false;
 /**
  * Tracks an in-flight Payment Element (re)mount.
  *
- * WooCommerce re-renders the payment box on every `updated_checkout`, and the
- * plugin re-mounts the element asynchronously. A submission landing in that
- * window posts an empty `wc-stripe-payment-method` field and fails the order,
- * so submissions wait on this promise. See #5490.
+ * WooCommerce re-renders the payment box on every `updated_checkout`, remounting
+ * asynchronously. A submission in that window posts an empty
+ * `wc-stripe-payment-method` field and fails, so submissions wait on this.
  *
  * @type {Promise<*>|null}
  */
 let mountInProgress = null;
 
 /**
- * Registers a promise that resolves when an in-flight Payment Element
- * (re)mount completes. Composes with any existing tracker so overlapping
- * `updated_checkout` cycles all settle before submission proceeds.
+ * Registers a (re)mount promise to wait on. Composes with any existing one so
+ * overlapping `updated_checkout` cycles all settle before submission proceeds.
  *
  * @param {Promise<*>} promise The mount promise to track.
  */
@@ -715,10 +713,9 @@ async function mountStripePaymentElementImpl( api, domElement ) {
 			upeElementPromise;
 	}
 
-	// Run the full (re)mount as a single promise so a concurrent mount of the
-	// same node can reuse it (dedupe above) and a newer mount can supersede it
-	// via the token fence. Submission waiting happens through the module-level
-	// tracker in mountStripePaymentElement.
+	// Run the (re)mount as one promise so a concurrent mount of the same node
+	// reuses it (dedupe above) and a newer mount supersedes it via the token
+	// fence. Submission waiting goes through the module-level tracker.
 	const mountPromise = ( async () => {
 		const upeElement = await upeElementPromise;
 
@@ -900,7 +897,7 @@ function isUPEDomElementMounted( domElement ) {
 /**
  * Ensures the Payment Element for the given method is fully mounted before the
  * checkout is submitted: awaits any in-flight (re)mount and, if the element was
- * torn down but not yet re-mounted, mounts it. See #5490.
+ * torn down but not yet re-mounted, mounts it.
  *
  * @param {Object} api               The API object.
  * @param {string} paymentMethodType The payment method type.
@@ -912,10 +909,8 @@ export async function ensureUPEElementMounted( api, paymentMethodType ) {
 		return;
 	}
 
-	// Drain in-flight updated_checkout chains before touching the DOM — the
-	// payment box may be mid-swap right now. Back-to-back re-renders can each
-	// start a new chain, so re-read the tracker after every await and keep
-	// waiting until nothing new started.
+	// Drain in-flight updated_checkout chains before touching the DOM. Back-to-back
+	// re-renders each start a new chain, so re-read the tracker until none is left.
 	while ( mountInProgress ) {
 		const inFlight = mountInProgress;
 		// eslint-disable-next-line no-await-in-loop
@@ -1056,8 +1051,7 @@ export const processPayment = (
 	( async () => {
 		try {
 			// Wait out any in-flight re-mount before reading the Elements
-			// instance (see #5490). The form is already blocked above, so
-			// this wait is covered by the spinner.
+			// instance. The form is already blocked, so the spinner covers it.
 			await ensureUPEElementMounted( api, paymentMethodType );
 
 			const { elements, hasLoadError } =

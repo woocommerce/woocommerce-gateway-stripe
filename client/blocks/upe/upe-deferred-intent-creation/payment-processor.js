@@ -114,12 +114,9 @@ const PaymentProcessor = ( {
 
 	const hasLoadErrorRef = useRef( false );
 
-	// onPaymentSetup registers its callback once, so that callback closes over
-	// the initial isPaymentElementComplete (false) and never sees later state
-	// updates. A ref, refreshed in onSelectedPaymentMethodChange, gives the
-	// callback the element's live completion state — letting it tell a
-	// genuinely-incomplete element apart from one still re-mounting after a
-	// checkout update.
+	// onPaymentSetup's callback is registered once, so it closes over the
+	// initial isPaymentElementComplete and misses later updates. This ref,
+	// refreshed in onSelectedPaymentMethodChange, feeds it the live value.
 	const isCompleteRef = useRef( false );
 
 	const setHasLoadError = ( event ) => {
@@ -158,8 +155,7 @@ const PaymentProcessor = ( {
 					}
 
 					// BLIK is a special case which is not handled through the Stripe element.
-					// If the element is mid-(re)mount, wait briefly for it to
-					// settle before failing the submission. See #5490.
+					// If mid-(re)mount, wait briefly for it to settle first.
 					if ( ! ( isCompleteRef.current || isBlikSelected ) ) {
 						await waitForPaymentElementCompletion( isCompleteRef );
 					}

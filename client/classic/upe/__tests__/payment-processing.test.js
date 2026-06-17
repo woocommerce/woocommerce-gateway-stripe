@@ -1380,9 +1380,8 @@ describe( 'payment-processing', () => {
 	} );
 } );
 
-// ensureUPEElementMounted closes the updated_checkout re-mount race by waiting
-// for any in-flight (re)mount and mounting a torn-down element before the
-// payment method is created. See #5490.
+// Closes the updated_checkout re-mount race: waits for any in-flight (re)mount
+// and mounts a torn-down element before the payment method is created.
 describe( 'ensureUPEElementMounted', () => {
 	beforeEach( () => {
 		stripeUtils.getStripeServerData.mockReturnValue( {
