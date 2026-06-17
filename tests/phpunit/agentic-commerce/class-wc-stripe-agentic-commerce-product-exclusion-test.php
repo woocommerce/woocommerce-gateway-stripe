@@ -119,10 +119,10 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion_Test extends WP_UnitTestCase 
 		$excluded = WC_Helper_Product::create_simple_product();
 		update_post_meta( $excluded->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), 'yes' );
 
-		$this->assertTrue( apply_filters( 'wc_stripe_agentic_commerce_should_sync_product', true, $included ) );
-		$this->assertFalse( apply_filters( 'wc_stripe_agentic_commerce_should_sync_product', true, $excluded ) );
+		$this->assertTrue( apply_filters( 'woocommerce_agentic_commerce_should_sync_product', true, $included ) );
+		$this->assertFalse( apply_filters( 'woocommerce_agentic_commerce_should_sync_product', true, $excluded ) );
 
-		remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', [ $exclusion, 'filter_should_sync_product' ], 10 );
+		remove_filter( 'woocommerce_agentic_commerce_should_sync_product', [ $exclusion, 'filter_should_sync_product' ], 10 );
 		$included->delete( true );
 		$excluded->delete( true );
 	}

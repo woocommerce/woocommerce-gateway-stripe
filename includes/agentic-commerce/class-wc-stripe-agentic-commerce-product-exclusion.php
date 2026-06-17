@@ -3,7 +3,7 @@
  * Per-product Agentic Commerce sync exclusion flag.
  *
  * Owns storage and retrieval of the per-product exclude flag, and ensures the exclusion flag
- * is applied through the `wc_stripe_agentic_commerce_should_sync_product` filter.
+ * is applied through the `woocommerce_agentic_commerce_should_sync_product` filter.
  *
  * @internal Not part of the plugin's public API; may change without notice.
  * @package WooCommerce_Stripe
@@ -47,7 +47,7 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion {
 	 * @return void
 	 */
 	public function init(): void {
-		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', [ $this, 'filter_should_sync_product' ], 10, 2 );
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', [ $this, 'filter_should_sync_product' ], 10, 2 );
 	}
 
 	/**
