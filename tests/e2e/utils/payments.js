@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 import config from 'config';
+import { verifyOrderChargedAmount } from './admin';
 
 /**
  * Click the primary add to cart button for the current page.
@@ -88,6 +89,32 @@ export async function setupCart(
 			);
 		}
 	}
+}
+
+/**
+ * Get the current cart total from the WooCommerce Store Cart API.
+ *
+ * Must be called before placing the order while the cart still has items.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @returns {Promise<string>} The cart total without currency symbol (e.g. "19.99").
+ */
+export async function getCartTotal( page ) {
+	const response = await page.request.get( '/wp-json/wc/store/v1/cart' );
+	if ( ! response.ok() ) {
+		const responseText = await response.text();
+		throw new Error(
+			`Failed to fetch cart total: ${ response.status() } ${ response.statusText() } -- ${ responseText }`
+		);
+	}
+
+	const { total_price: totalPrice, currency_minor_unit: minorUnit } = (
+		await response.json()
+	).totals;
+
+	return ( parseInt( totalPrice, 10 ) / 10 ** minorUnit ).toFixed(
+		minorUnit
+	);
 }
 
 /**
@@ -194,9 +221,17 @@ export async function retryWithBackoff( fn, options = {} ) {
  * @param {Object} card The CC info in the format provided on the test-data.
  */
 export async function fillCreditCardDetails( page, card ) {
-	const form = await page.frameLocator(
-		'.wcstripe-payment-element iframe[name^="__privateStripeFrame"]'
-	);
+	// Stripe may inject a second iframe for bank details, so
+	// we require a visible frame to avoid picking the wrong one.
+	const paymentIframe = page
+		.locator(
+			'.wcstripe-payment-element iframe[name^="__privateStripeFrame"]'
+		)
+		.filter( { visible: true } )
+		.first();
+	await paymentIframe.waitFor( { state: 'visible', timeout: 10000 } );
+
+	const form = paymentIframe.contentFrame();
 
 	await form.locator( '[name="number"]' ).fill( card.number );
 
@@ -1118,4 +1153,41 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 				.getByTestId( 'next-action-text' )
 		).toBeVisible();
 	}
+};
+
+/**
+ * Helper method to extract the order ID from a WooCommerce "Order received" page URL.
+ * This is used to discover a recently purchased order ID from the order-received page URL.
+ *
+ * @param {string} url The order-received URL (e.g. `.../order-received/123/?key=...`).
+ * @returns {string} The order ID.
+ */
+export const getOrderIdFromOrderReceivedUrl = ( url ) =>
+	url.split( 'order-received/' )[ 1 ].split( '/' )[ 0 ];
+
+export const waitForOrderReceivedPage = async ( page ) => {
+	await page.waitForURL( '**/checkout/order-received/**' );
+
+	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
+		'Order received'
+	);
+};
+
+/**
+ * Wait for the order received page to load and optionally confirm the expected total amount was charged.
+ *
+ * @param {Browser} browser       Playwright browser fixture.
+ * @param {Page}    page          Playwright page fixture.
+ * @param {string}  expectedTotal The expected total amount of the order.
+ */
+export const waitForOrderReceivedPageAndConfirmExpectedTotal = async (
+	browser,
+	page,
+	expectedTotal
+) => {
+	await waitForOrderReceivedPage( page );
+
+	const orderId = getOrderIdFromOrderReceivedUrl( page.url() );
+
+	await verifyOrderChargedAmount( browser, orderId, expectedTotal );
 };
