@@ -79,6 +79,11 @@ jQuery( function ( $ ) {
 		'woocommerce-gateway-stripe'
 	);
 
+	// The localised cart snapshot is valid only for the first paint; once consumed,
+	// every re-init reconciles against the live cart via AJAX. See the cart/checkout
+	// branch of init() below.
+	let cartBootstrapConsumed = false;
+
 	/**
 	 * @todo Using the legacy endpoint (non-StoreAPI) and data format when variations are present.
 	 * StoreAPI will support this form correctly only after WC 9.7.0.
@@ -601,6 +606,30 @@ jQuery( function ( $ ) {
 				}
 			} else {
 				// Cart and Checkout page specific initialization.
+				const cartBootstrap = getExpressCheckoutData( 'cart' );
+
+				// First paint: render synchronously from the render-time snapshot so
+				// the button is not gated behind GET /wc/store/v1/cart. Subsequent
+				// re-inits (updated_cart_totals / updated_checkout) fall through to
+				// the AJAX path below, which reflects live cart mutations.
+				if ( cartBootstrap && ! cartBootstrapConsumed ) {
+					cartBootstrapConsumed = true;
+
+					wcStripeECE.startExpressCheckout( {
+						total: cartBootstrap.total,
+						currency: cartBootstrap.currency,
+						requestShipping: cartBootstrap.requestShipping,
+						requestPhone: cartBootstrap.requestPhone,
+						displayItems: transformLabeledDisplayItems(
+							cartBootstrap.displayItems ?? []
+						),
+					} );
+
+					// After initializing a new express checkout button, we need to reset the paymentAborted flag.
+					wcStripeECE.paymentAborted = false;
+					return;
+				}
+
 				api.expressCheckoutGetCartDetails().then( ( cart ) => {
 					const total = transformPrice(
 						parseInt( cart.totals.total_price, 10 ) -

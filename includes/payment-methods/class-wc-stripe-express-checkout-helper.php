@@ -366,6 +366,52 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Render-time cart snapshot used to bootstrap the cart/checkout Express Checkout
+	 * button so its first paint does not have to wait on the initial
+	 * `GET /wc/store/v1/cart` round-trip — mirroring how the product page already
+	 * renders from localised data.
+	 *
+	 * Reuses the same helpers the cart-details AJAX path consumes, so the payload
+	 * matches what the fetch would have returned. Returns null when the button must
+	 * not render (wrong page, no/empty cart, or a zero total without a free trial),
+	 * in which case the client falls back to its existing AJAX hide/fetch path.
+	 *
+	 * The snapshot is a first-paint convenience only: the client reconciles against
+	 * the live cart via AJAX on every subsequent re-init (`updated_cart_totals` /
+	 * `updated_checkout`), so client-side cart mutations are unaffected.
+	 *
+	 * @return array|null
+	 */
+	public function get_cart_render_data() {
+		if ( ! $this->is_cart() && ! $this->is_checkout() ) {
+			return null;
+		}
+
+		if ( is_null( WC()->cart ) || WC()->cart->is_empty() ) {
+			return null;
+		}
+
+		$display_items = $this->build_display_items();
+		$total         = (int) $display_items['total']['amount'];
+
+		// Parity with the client's zero-total guard: nothing to charge means no
+		// button, unless a free trial is present (e.g. $0-now subscription).
+		if ( 0 === $total && ! $this->has_free_trial() ) {
+			return null;
+		}
+
+		$checkout = $this->get_checkout_data();
+
+		return [
+			'total'           => $total,
+			'currency'        => $checkout['currency_code'],
+			'requestShipping' => 'yes' === $checkout['needs_shipping'],
+			'requestPhone'    => (bool) $checkout['needs_payer_phone'],
+			'displayItems'    => $display_items['displayItems'],
+		];
+	}
+
+	/**
 	 * Helper function to return the list of countries that WooCommerce is set up to ship to.
 	 * The data is returned as an array of country codes, and relies on core WooCommerce shipping settings.
 	 *
