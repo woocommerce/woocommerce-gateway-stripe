@@ -207,6 +207,126 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * On a live + connect onboarding, when the Connect server additionally returns the
+	 * account's test keys (testPublishableKey/testSecretKey), save_stripe_keys() must
+	 * persist them under the test_ prefix and configure the test webhook WITHOUT flipping
+	 * testmode. When those fields are absent (old server / test-fetch failed), only the
+	 * live environment is written and no notices are raised.
+	 *
+	 * @param bool $with_test_keys Whether the OAuth result carries the test key fields.
+	 *
+	 * @dataProvider provide_dual_fetch_cases
+	 */
+	public function test_save_stripe_keys_persists_test_keys_alongside_live( bool $with_test_keys ): void {
+		$configured_modes  = [];
+		$keys_at_configure = [];
+
+		$account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache' ] )
+			->getMock();
+		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
+		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
+		// Capture the API secret key active at the moment each webhook is configured.
+		// configure_webhooks() authenticates with whatever key is set on WC_Stripe_API,
+		// so the test webhook must be created with the test key — not the live key that
+		// get_secret_key() would otherwise resolve from testmode ('no').
+		$account->method( 'configure_webhooks' )->willReturnCallback(
+			function ( $mode ) use ( &$configured_modes, &$keys_at_configure ) {
+				$configured_modes[]         = $mode;
+				$keys_at_configure[ $mode ] = WC_Stripe_API::get_secret_key();
+			}
+		);
+		WC_Stripe::get_instance()->account = $account;
+
+		$result                 = new stdClass();
+		$result->publishableKey = 'pk_live_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$result->secretKey      = 'sk_live_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		if ( $with_test_keys ) {
+			$result->testPublishableKey = 'pk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$result->testSecretKey      = 'sk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		}
+
+		$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_stripe_keys' );
+		$method->setAccessible( true );
+		$method->invoke( $this->connect, $result, 'connect', 'live' );
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+
+		// Live is always saved; testmode never flips on a live onboarding.
+		$this->assertSame( 'sk_live_123', $settings['secret_key'] );
+		$this->assertSame( 'no', $settings['testmode'] );
+		$this->assertContains( 'live', $configured_modes );
+
+		if ( $with_test_keys ) {
+			$this->assertSame( 'sk_test_123', $settings['test_secret_key'] );
+			$this->assertSame( 'pk_test_123', $settings['test_publishable_key'] );
+			$this->assertSame( 'connect', $settings['test_connection_type'] );
+			$this->assertContains( 'test', $configured_modes );
+			// The test webhook must be created against the test account, i.e. with the
+			// test secret key active — not the live key.
+			$this->assertSame( 'sk_test_123', $keys_at_configure['test'] );
+		} else {
+			// Default gateway config injects test_secret_key with an empty string, so the
+			// key exists but must not hold a real test key value.
+			$this->assertEmpty( $settings['test_secret_key'] ?? '' );
+			$this->assertNotContains( 'test', $configured_modes );
+		}
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_dual_fetch_cases(): array {
+		return [
+			'server returns test keys'        => [ true ],
+			'server omits test keys (legacy)' => [ false ],
+		];
+	}
+
+	/**
+	 * Test-key persistence must not be coupled to live-webhook success. When
+	 * configure_webhooks('live') throws (e.g. Stripe rejects webhook creation on the
+	 * connected account), save_stripe_keys() still surfaces the webhook WP_Error, but
+	 * the dual-fetched test keys must already be persisted.
+	 */
+	public function test_save_stripe_keys_persists_test_keys_even_when_live_webhook_fails(): void {
+		$account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache' ] )
+			->getMock();
+		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
+		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
+		$account->method( 'configure_webhooks' )->willReturnCallback(
+			function ( $mode ) {
+				if ( 'live' === $mode ) {
+					throw new Exception( 'not permitted to configure webhook endpoints on a connected account' );
+				}
+			}
+		);
+		WC_Stripe::get_instance()->account = $account;
+
+		$result                     = new stdClass();
+		$result->publishableKey     = 'pk_live_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$result->secretKey          = 'sk_live_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$result->testPublishableKey = 'pk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$result->testSecretKey      = 'sk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+
+		$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_stripe_keys' );
+		$method->setAccessible( true );
+		$return = $method->invoke( $this->connect, $result, 'connect', 'live' );
+
+		// The live-webhook failure is still surfaced to the caller.
+		$this->assertInstanceOf( WP_Error::class, $return );
+
+		// ...but the dual-fetched test keys were persisted regardless of it.
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( 'sk_test_123', $settings['test_secret_key'] );
+		$this->assertSame( 'pk_test_123', $settings['test_publishable_key'] );
+		$this->assertSame( 'connect', $settings['test_connection_type'] );
+	}
+
+	/**
 	 * Builds a WC_Stripe_Account mock with the methods save_stripe_keys() relies on, and
 	 * registers it on the plugin instance.
 	 *
