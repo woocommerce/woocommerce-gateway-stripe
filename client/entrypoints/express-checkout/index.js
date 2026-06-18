@@ -79,9 +79,7 @@ jQuery( function ( $ ) {
 		'woocommerce-gateway-stripe'
 	);
 
-	// The localised cart snapshot is valid only for the first paint; once consumed,
-	// every re-init reconciles against the live cart via AJAX. See the cart/checkout
-	// branch of init() below.
+	// Snapshot is first-paint only; re-inits reconcile via AJAX (see init() below).
 	let cartBootstrapConsumed = false;
 
 	/**
@@ -608,10 +606,8 @@ jQuery( function ( $ ) {
 				// Cart and Checkout page specific initialization.
 				const cartBootstrap = getExpressCheckoutData( 'cart' );
 
-				// First paint: render synchronously from the render-time snapshot so
-				// the button is not gated behind GET /wc/store/v1/cart. Subsequent
-				// re-inits (updated_cart_totals / updated_checkout) fall through to
-				// the AJAX path below, which reflects live cart mutations.
+				// First paint renders from the snapshot, skipping GET /wc/store/v1/cart;
+				// re-inits fall through to the AJAX path below for live cart updates.
 				if ( cartBootstrap && ! cartBootstrapConsumed ) {
 					cartBootstrapConsumed = true;
 

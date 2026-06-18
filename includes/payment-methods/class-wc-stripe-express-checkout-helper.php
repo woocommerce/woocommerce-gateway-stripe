@@ -386,8 +386,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$display_items = $this->build_display_items();
 		$total         = (int) $display_items['total']['amount'];
 
-		// Parity with the client's zero-total guard: nothing to charge means no
-		// button, unless a free trial is present (e.g. $0-now subscription).
+		// Mirror the client's zero-total hide; free trials still render.
 		if ( 0 === $total && ! $this->has_free_trial() ) {
 			return null;
 		}
