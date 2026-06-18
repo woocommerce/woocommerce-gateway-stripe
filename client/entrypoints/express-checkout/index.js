@@ -759,6 +759,9 @@ jQuery( function ( $ ) {
 				data.product_id = productId;
 				data.attributes = wcStripeECE.getAttributes().data;
 
+				// Clear the cart first (with the booking id) so prior items don't
+				// skew the total, matching the variable/simple path below.
+				await api.expressCheckoutEmptyCartLegacy( emptyCartParams );
 				return api.expressCheckoutAddToCartLegacy( data );
 			}
 
