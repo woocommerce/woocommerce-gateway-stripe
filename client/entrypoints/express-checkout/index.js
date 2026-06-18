@@ -15,6 +15,7 @@ import {
 	isManualPaymentMethodCreation,
 	normalizeLineItems,
 	transformVariationAttributesForStoreApi,
+	buildBookingConfiguration,
 } from 'wcstripe/express-checkout/utils';
 import {
 	onAbortPaymentHandler,
@@ -752,15 +753,32 @@ jQuery( function ( $ ) {
 				}
 			} );
 
-			// Bookings stay on the legacy endpoint here: migrating them means
-			// sending Bookings' Store API `booking_configuration` param to
-			// cart/add-item instead of the legacy booking form, which is out of
-			// scope for this change.
 			if ( hasBookingForm ) {
-				data.product_id = productId;
-				data.attributes = wcStripeECE.getAttributes().data;
+				// Use the Store API only when Bookings supports it and the booking
+				// maps to a `booking_configuration`; otherwise fall back to legacy.
+				const bookingConfiguration = getExpressCheckoutData(
+					'has_bookings_store_api'
+				)
+					? buildBookingConfiguration(
+							document.querySelector(
+								'.wc-bookings-booking-form'
+							)
+					  )
+					: null;
 
-				return api.expressCheckoutAddToCartLegacy( data );
+				if ( ! bookingConfiguration ) {
+					data.product_id = productId;
+					data.attributes = wcStripeECE.getAttributes().data;
+
+					return api.expressCheckoutAddToCartLegacy( data );
+				}
+
+				data.id = productId;
+				data.booking_configuration = bookingConfiguration;
+
+				await api.expressCheckoutEmptyCartLegacy( emptyCartParams );
+
+				return api.expressCheckoutAddToCart( data );
 			}
 
 			data.id = productId;
