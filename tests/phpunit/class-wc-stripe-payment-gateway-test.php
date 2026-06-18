@@ -567,6 +567,92 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * When a saved token backs the subscription's PaymentMethod, its pinned wallet_type
+	 * is authoritative over the live PaymentMethod's wallet, so the subscription row matches
+	 * the saved-token list.
+	 *
+	 * @see WC_Stripe_Subscriptions_Trait::maybe_render_subscription_payment_method()
+	 * @dataProvider provide_test_render_subscription_prefers_saved_token_wallet_type
+	 *
+	 * @param string $token_wallet_type   wallet_type pinned on the saved token.
+	 * @param string $live_wallet_type    wallet type reported by the live Stripe PaymentMethod.
+	 * @param string $expected_result     Expected rendered row text.
+	 */
+	public function test_render_subscription_prefers_saved_token_wallet_type( string $token_wallet_type, string $live_wallet_type, string $expected_result ) {
+		$user_id           = $this->factory()->user->create();
+		$payment_method_id = 'pm_mock_shared_card';
+
+		$mock_subscription = WC_Helper_Order::create_order( $user_id );
+		$mock_subscription->set_payment_method( 'stripe' );
+		$mock_subscription->update_meta_data( '_stripe_source_id', $payment_method_id );
+		$mock_subscription->update_meta_data( '_stripe_customer_id', 'cus_mock' );
+		$mock_subscription->save();
+
+		// Saved token for the same card, pinned to $token_wallet_type.
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( $payment_method_id );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+		$token->set_wallet_type( $token_wallet_type );
+		$token->set_user_id( $user_id );
+		$token->save();
+
+		$card_fields = [
+			'brand' => 'visa',
+			'last4' => '4242',
+		];
+		if ( '' !== $live_wallet_type ) {
+			$card_fields['wallet'] = [ 'type' => $live_wallet_type ];
+		}
+
+		$mock_payment_method_data = [
+			'id'       => $payment_method_id,
+			'type'     => WC_Stripe_Payment_Methods::CARD,
+			'customer' => 'cus_mock',
+			'card'     => $card_fields,
+		];
+
+		$expected_url            = '/v1/payment_methods/' . $payment_method_id;
+		$mock_payment_method_api = function ( $preempt, $request_args, $url ) use ( $expected_url, $mock_payment_method_data ) {
+			if ( str_ends_with( $url, $expected_url ) ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode( $mock_payment_method_data ),
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+				];
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $mock_payment_method_api, 10, 3 );
+
+		$result = $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription );
+
+		remove_filter( 'pre_http_request', $mock_payment_method_api );
+
+		$this->assertEquals( $expected_result, $result );
+	}
+
+	/**
+	 * Data provider for test_render_subscription_prefers_saved_token_wallet_type.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_render_subscription_prefers_saved_token_wallet_type(): array {
+		return [
+			'pinned bare card wins over live wallet' => [ '', 'google_pay', 'Via Visa card ending in 4242' ],
+			'pinned wallet wins over bare live card' => [ 'google_pay', '', 'Via Google Pay (Visa) ending in 4242' ],
+			'pinned wallet matches live wallet'      => [ 'apple_pay', 'apple_pay', 'Via Apple Pay (Visa) ending in 4242' ],
+		];
+	}
+
+	/**
 	 * Tests zero amount refunds.
 	 */
 	public function test_process_refund_on_zero_amount() {
