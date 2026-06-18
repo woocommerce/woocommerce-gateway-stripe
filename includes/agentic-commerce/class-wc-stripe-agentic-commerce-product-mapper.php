@@ -987,6 +987,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * @return bool
 	 */
 	public static function should_sync_product( \WC_Product $product ): bool {
+		// A variable-subscription's variations share the `product_variation`
+		// post type, so the feed's simple/variation query returns them; left in,
+		// they fail validation and downgrade every sync to a partial success.
+		// Excluded by default, still overridable via the filter below.
+		$default_should_sync = ! $product->is_type( [ 'subscription', 'variable-subscription', 'subscription_variation' ] );
+
 		/**
 		 * Filter whether a product should be included in any Agentic Commerce sync.
 		 *
@@ -1008,12 +1014,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * enqueue an immediate full-catalog sync.
 		 *
 		 * @since 10.8.0
-		 * @param bool        $should_sync Whether to include the product. Default true.
+		 * @param bool        $should_sync Whether to include the product. Default true (false for subscriptions).
 		 * @param \WC_Product $product     Product being evaluated.
 		 */
 		// wp_validate_boolean() rather than a plain (bool) cast: an adapter that
 		// returns the string 'false' would be truthy under a cast and wrongly
 		// sync the product. This still normalises null / 0 / '' to false.
-		return wp_validate_boolean( apply_filters( 'wc_stripe_agentic_commerce_should_sync_product', true, $product ) );
+		return wp_validate_boolean( apply_filters( 'wc_stripe_agentic_commerce_should_sync_product', $default_should_sync, $product ) );
 	}
 }

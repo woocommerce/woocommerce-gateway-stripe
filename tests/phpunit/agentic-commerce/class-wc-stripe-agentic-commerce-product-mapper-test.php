@@ -946,6 +946,78 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * WooCommerce Subscriptions product types that must be excluded from the feed.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_subscription_product_types(): array {
+		return [
+			'simple subscription'    => [ 'subscription' ],
+			'variable subscription'  => [ 'variable-subscription' ],
+			'subscription variation' => [ 'subscription_variation' ],
+		];
+	}
+
+	/**
+	 * Subscription products are excluded by default — otherwise a single one
+	 * fails validation and downgrades every sync to a partial success.
+	 *
+	 * @dataProvider provide_subscription_product_types
+	 * @param string $product_type WooCommerce subscription product type.
+	 * @return void
+	 */
+	public function test_should_sync_product_excludes_subscription_products( string $product_type ) {
+		$product = $this->getMockBuilder( WC_Product::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_type' ] )
+			->getMock();
+		$product->method( 'get_type' )->willReturn( $product_type );
+
+		$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+	}
+
+	/**
+	 * The subscription exclusion is a default, not a hard block: the filter can
+	 * opt them back in.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_filter_can_re_include_subscriptions() {
+		$product = $this->getMockBuilder( WC_Product::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_type' ] )
+			->getMock();
+		$product->method( 'get_type' )->willReturn( 'subscription_variation' );
+
+		$callback = static fn() => true;
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+
+		try {
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+		}
+	}
+
+	/**
+	 * map_product short-circuits subscription products to an empty row, the
+	 * signal the validator treats as a clean exclusion.
+	 *
+	 * @return void
+	 */
+	public function test_map_product_returns_empty_row_for_subscription_products() {
+		$product = $this->getMockBuilder( WC_Product::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_type' ] )
+			->getMock();
+		$product->method( 'get_type' )->willReturn( 'subscription_variation' );
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+
+		$this->assertSame( [], $mapper->map_product( $product ) );
+	}
+
+	/**
 	 * Data provider for falsy adapter return values.
 	 *
 	 * @return array<string, array{0: mixed}>
