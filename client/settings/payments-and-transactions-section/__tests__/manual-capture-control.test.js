@@ -13,6 +13,18 @@ describe( 'ManualCaptureControl', () => {
 		useManualCapture.mockReturnValue( [ false, () => null ] );
 	} );
 
+	it( 'notes that agentic commerce purchases follow the Stripe dashboard capture setting', () => {
+		useManualCapture.mockReturnValue( [ false, () => null ] );
+
+		render( <ManualCaptureControl /> );
+
+		expect(
+			screen.getByText(
+				/Agentic Commerce purchases follow the capture setting in your Stripe agentic commerce dashboard/
+			)
+		).toBeInTheDocument();
+	} );
+
 	it( 'should render the confirmation modal', async () => {
 		const manualCaptureToggleMock = jest.fn();
 		useManualCapture.mockReturnValue( [ false, manualCaptureToggleMock ] );

@@ -182,5 +182,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Show a "What's new" inbox note after the plugin updates, including via auto-update
 * Tweak - Don't show the Stripe API outage notice on local and development sites, where Stripe is often unreachable for benign reasons
 * Dev - Rename internal Blocks API references to Store API in the Express Checkout client for naming consistency
+* Tweak - Clarify on the manual capture setting that Agentic Commerce purchases follow the capture setting in the Stripe agentic commerce dashboard
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

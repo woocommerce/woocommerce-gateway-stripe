@@ -70,7 +70,7 @@ const ManualCaptureControl = () => {
 				) }
 				help={ interpolateComponents( {
 					mixedString: __(
-						'Charge must be captured on the order details screen within 7 days of authorization, otherwise the authorization and order will be canceled. {{learnMoreLink}}Learn more{{/learnMoreLink}}',
+						'Charge must be captured on the order details screen within 7 days of authorization, otherwise the authorization and order will be canceled. {{learnMoreLink}}Learn more{{/learnMoreLink}} Agentic Commerce purchases follow the capture setting in your Stripe agentic commerce dashboard, not this option.',
 						'woocommerce-gateway-stripe'
 					),
 					components: {
