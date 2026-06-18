@@ -158,7 +158,7 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 	}
 
 	/**
-	 * Clears the cached account data, re-evaluates Payment Method Configuration availability, and returns the updated payload.
+	 * Clears the cached account data, re-evaluates Payment Method Configuration availability, and returns the updated account data.
 	 *
 	 * @return WP_REST_Response
 	 */
