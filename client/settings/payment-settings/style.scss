@@ -63,3 +63,9 @@
 	display: block;
 	padding-top: styles.$grid-unit-10;
 }
+
+.wcstripe-test-mode-checkbox--disabled {
+	.components-checkbox-control__input-container {
+		opacity: 0.5;
+	}
+}
