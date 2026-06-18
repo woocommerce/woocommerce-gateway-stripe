@@ -1,6 +1,8 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.9.0
+* Fix - Keep the subscription payment-method row in sync with the saved-card list when a card has been used both directly and through Apple Pay/Google Pay
+* Tweak - Dim the test mode checkbox when it can't be toggled so the disabled state is visible in the UI
 * Add - Add dedicated settings page for Link with button size and location customization
 * Fix - Ignore incoming webhook events whose Stripe account does not match the connected account to avoid acting on another account's data
 * Fix - When changing a subscription's payment method, reflect the new card and its Apple Pay/Google Pay branding on My Account and clarify the admin order note
@@ -21,6 +23,8 @@ xxxx-xx-xx - version 10.9.0
 * Dev - Add a Code Comment Conventions section to AGENTS.md to standardize agent and contributor comment guidance
 * Fix - Run the woocommerce_gateway_description filter for Stripe payment methods so third parties can add or replace their checkout descriptions
 * Fix - Show an error notice when a Stripe OAuth connection attempt fails its security check
+* Dev - Deprecate the internal WC_Stripe_Feature_Flags::is_amazon_pay_available() helper now that Amazon Pay is permanently enabled
+* Tweak - Don't show the Stripe API outage notice on local and development sites, where Stripe is often unreachable for benign reasons
 * Tweak - Clarify in the saved payment methods setting that Link by Stripe collects save consent in the payment form instead of a separate checkbox
 
 2026-06-15 - version 10.8.2
@@ -30,7 +34,6 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Prevent classic checkout from submitting an empty payment method while the Stripe Payment Element is re-mounting after a checkout update
 * Fix - Prevent Adaptive Pricing orders from being stuck in pending after a successful payment
 * Fix - Mark Adaptive Pricing orders as failed promptly when a payment is declined, instead of leaving them in Pending Payment
->>>>>>> develop
 
 2026-06-11 - version 10.8.1
 * Fix - Prevent a fatal error when a Bancontact, iDEAL or Sofort payment is placed with SEPA token saving enabled through the Adaptive Pricing checkout, which left the order unpaid

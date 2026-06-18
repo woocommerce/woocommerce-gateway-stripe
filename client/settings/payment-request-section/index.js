@@ -1,5 +1,3 @@
-/* global wc_stripe_settings_params */
-
 import React from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import PaymentRequestIcon from '../../payment-method-icons/payment-request';
@@ -99,9 +97,9 @@ const PaymentRequestSection = () => {
 		area: 'link',
 	} );
 
-	const isAmazonPayAvailable =
-		wc_stripe_settings_params.is_amazon_pay_available && // eslint-disable-line camelcase
-		availablePaymentMethodIds.includes( PAYMENT_METHOD_AMAZON_PAY );
+	const isAmazonPayAvailable = availablePaymentMethodIds.includes(
+		PAYMENT_METHOD_AMAZON_PAY
+	);
 
 	const isAmazonPayDisabled =
 		amazonPayUnavailableReason !== null &&
