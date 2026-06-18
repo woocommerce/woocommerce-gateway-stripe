@@ -341,6 +341,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				WC_Stripe_Payment_Method_Configurations::maybe_migrate_payment_methods_from_db_to_pmc( true );
 			}
 
+			// A live Standard-OAuth onboarding can also carry the account's test keys
+			if ( 'connect' === $type && 'live' === $mode ) {
+				$this->save_oauth_test_keys_alongside_live( $result );
+			}
+
 			// Configure webhooks last so errors stemming from unreachable test/local sites don't prevent other actions.
 			try {
 				// Automatically configure webhooks for the account now that we have the keys.
@@ -366,6 +371,47 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			}
 
 			return $result;
+		}
+
+		/**
+		 * Persists the test-mode keys returned alongside a live Connect OAuth result.
+		 *
+		 * @param object $result OAuth result that may carry testPublishableKey/testSecretKey.
+		 */
+		private function save_oauth_test_keys_alongside_live( $result ): void {
+			if ( ! $result instanceof stdClass || ! isset( $result->testPublishableKey, $result->testSecretKey ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				return;
+			}
+
+			$settings = WC_Stripe_Helper::get_stripe_settings();
+			$settings = is_array( $settings ) ? $settings : [];
+
+			$test_secret_key                  = $result->testSecretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$settings['test_publishable_key'] = $result->testPublishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$settings['test_secret_key']      = $test_secret_key;
+			$settings['test_connection_type'] = 'connect';
+
+			// Decommission any webhook configured on the previously connected test account.
+			$previous_webhook_data = $settings['test_webhook_data'] ?? '';
+			if ( WC_Stripe::get_instance()->account->maybe_decommission_webhook( $previous_webhook_data, $test_secret_key ) ) {
+				$settings['test_webhook_data']   = [];
+				$settings['test_webhook_secret'] = '';
+			}
+
+			WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+			update_option( 'wc_stripe_test_oauth_updated_at', time() );
+			update_option( 'wc_stripe_test_oauth_failed_attempts', 0 );
+			update_option( 'wc_stripe_test_oauth_last_failed_at', '' );
+
+			WC_Stripe_API::set_secret_key( $test_secret_key );
+			try {
+				WC_Stripe::get_instance()->account->configure_webhooks( 'test' );
+			} catch ( Exception $e ) {
+				WC_Stripe_Logger::error( 'OAuth: Failed to configure test webhooks during dual-fetch: ' . $e->getMessage() );
+			} finally {
+				WC_Stripe_API::set_secret_key( '' );
+			}
 		}
 
 		/**
@@ -561,6 +607,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				'state',
 				'code',
 				'secretKey',
+				'testSecretKey',
 				'refreshToken',
 				'secret_key',
 				'test_secret_key',
