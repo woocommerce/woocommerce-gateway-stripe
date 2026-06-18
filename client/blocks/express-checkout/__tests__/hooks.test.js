@@ -2,9 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { useExpressCheckout } from '../hooks';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
-// react-stripe-js returns the same stripe/elements instances across renders;
-// mirror that with stable singletons so the hook's memoised callbacks (which
-// depend on them) keep a stable reference too.
+// Stable singletons, matching how react-stripe-js returns the same instances.
 const mockStripe = { confirmPayment: jest.fn() };
 const mockElements = { submit: jest.fn() };
 jest.mock( '@stripe/react-stripe-js', () => ( {
@@ -227,9 +225,8 @@ describe( 'useExpressCheckout', () => {
 		);
 	} );
 
-	// WooCommerce Blocks re-renders this subtree with fresh billing/shippingData
-	// object references on every cart tick; the hook must keep its outputs stable
-	// so the Stripe element does not churn when nothing it consumes changed.
+	// Blocks passes fresh billing/shippingData refs each cart tick; memoised
+	// outputs must stay stable so the Stripe element doesn't churn.
 	it( 'keeps memoised outputs referentially stable across a cart-data re-render', () => {
 		const onClick = jest.fn();
 		const onClose = jest.fn();

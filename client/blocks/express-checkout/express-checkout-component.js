@@ -35,9 +35,8 @@ const getPaymentMethodsOverride = ( enabledPaymentMethod ) => {
 	};
 };
 
-// Visual adjustments to horizontally align the buttons. Returns a copy rather than
-// mutating the input: buttonOptions is memoised upstream, so mutating it would
-// corrupt the cached value and re-apply these deltas on every render.
+// Visual adjustments to horizontally align the buttons. Returns a copy — mutating
+// the memoised buttonOptions would re-apply these deltas every render.
 const adjustButtonHeights = ( buttonOptions, expressPaymentMethod ) => {
 	let buttonHeight = buttonOptions.buttonHeight;
 
@@ -112,8 +111,7 @@ const ExpressCheckoutComponent = ( {
 		[ expressPaymentMethod ]
 	);
 
-	// Stable unless the button styling or selected method changes, so the Stripe
-	// element does not re-run its options effect on unrelated cart updates.
+	// Stable across cart ticks; only rebuilds when styling or method changes.
 	const elementOptions = useMemo(
 		() => ( {
 			...adjustButtonHeights( buttonOptions, expressPaymentMethod ),

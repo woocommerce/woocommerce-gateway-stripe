@@ -19,10 +19,8 @@ export const ExpressCheckoutContainer = ( props ) => {
 	);
 	const currency = billing.currency.code.toLowerCase();
 
-	// WooCommerce Blocks re-renders this subtree on every cart/totals tick. Memoise
-	// on the values Stripe actually consumes so <Elements> only sees a new options
-	// reference (and runs elements.update) when the amount/currency truly change —
-	// keeping the live amount accurate without churning on unrelated store updates.
+	// Memoise on the values Stripe consumes so <Elements> only updates when the
+	// amount/currency change, not on every cart tick.
 	const options = useMemo(
 		() => ( {
 			mode: hasFreeTrial ? 'subscription' : 'payment',
