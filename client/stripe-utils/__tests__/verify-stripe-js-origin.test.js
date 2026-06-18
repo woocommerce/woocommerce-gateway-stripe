@@ -139,6 +139,22 @@ describe( 'verifyStripeJsOrigin', () => {
 		} );
 	} );
 
+	it( 'does not fall back when a srcless script#stripe-js shadows a legitimate script', () => {
+		// An attacker-injected srcless handle must not let an unrelated
+		// official-origin script satisfy the check while window.Stripe is loaded
+		// from elsewhere. The handle is authoritative whenever it is a <script>.
+		const doc = createDocumentWithScript(
+			{ id: 'stripe-js' },
+			{ src: 'https://js.stripe.com/v3/' }
+		);
+
+		expect( verifyStripeJsOrigin( doc ) ).toEqual( {
+			ok: false,
+			detectedSrc: null,
+			detectedOrigin: null,
+		} );
+	} );
+
 	it( 'fails closed when the src cannot be parsed as a URL', () => {
 		const doc = {
 			querySelector: () => ( { src: 'https://' } ),
