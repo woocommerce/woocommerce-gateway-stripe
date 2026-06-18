@@ -24,7 +24,6 @@ import {
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
 } from 'wcstripe/express-checkout/event-handler';
-import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import 'wcstripe/express-checkout/compatibility/classic-checkout-custom-fields';
@@ -51,7 +50,8 @@ jQuery( function ( $ ) {
 		return;
 	}
 
-	const publishableKey = getExpressCheckoutData( 'stripe' ).publishable_key;
+	const stripeParams = getExpressCheckoutData( 'stripe' );
+	const publishableKey = stripeParams?.publishable_key;
 	const quantityInputSelector = '.quantity .qty[type=number]';
 
 	if ( ! publishableKey ) {
@@ -60,7 +60,11 @@ jQuery( function ( $ ) {
 	}
 
 	const api = new WCStripeAPI(
-		getStripeServerData(),
+		{
+			key: publishableKey,
+			locale: stripeParams.locale,
+			ajax_url: getExpressCheckoutData( 'ajax_url' ),
+		},
 		// A promise-based interface to jQuery.post.
 		( url, args ) => {
 			return new Promise( ( resolve, reject ) => {
@@ -377,8 +381,11 @@ jQuery( function ( $ ) {
 					getPaymentMethodTypesForExpressMethod( expressPaymentType ),
 			} );
 
+			const buttonStyleSettings =
+				getExpressCheckoutButtonStyleSettings( expressPaymentType );
+
 			const eceButton = wcStripeECE.createButton( elements, {
-				...getExpressCheckoutButtonStyleSettings(),
+				...buttonStyleSettings,
 				paymentMethods: {
 					amazonPay:
 						expressPaymentType ===
@@ -548,7 +555,7 @@ jQuery( function ( $ ) {
 				} = wcStripeExpressCheckoutPayForOrderParams;
 
 				// When paying as guest, the order key and billing email are required by the
-				// Blocks API Pay for Order endpoint, which ECE uses.
+				// Store API Pay for Order endpoint, which ECE uses.
 				// These fields are both present when the user is logged in.
 				if (
 					! orderDetails?.orderKey ||

@@ -15,15 +15,6 @@ trait WC_Stripe_Subscriptions_Trait {
 	use WC_Stripe_Subscriptions_Utilities_Trait;
 
 	/**
-	 * Stores a flag to indicate if the subscription integration hooks have been attached.
-	 *
-	 * The callbacks attached as part of maybe_init_subscriptions() only need to be attached once to avoid duplication.
-	 *
-	 * @var bool False by default, true once the callbacks have been attached.
-	 */
-	private static $has_attached_integration_hooks = false;
-
-	/**
 	 * Initialize subscription support and hooks.
 	 *
 	 * @return void
@@ -50,19 +41,50 @@ trait WC_Stripe_Subscriptions_Trait {
 			]
 		);
 
-		/**
-		 * We need to attach the callbacks below once per Gateway (CC, SEPA, etc.), but only once.
-		 * Therefore, we use a static flag at class level to indicate that they have been attached.
-		 */
-		if ( self::$has_attached_integration_hooks ) {
+		$this->maybe_register_payment_method_hooks( $this->id );
+		$this->maybe_register_plugin_hooks();
+	}
+
+	/**
+	 * Maybe register the payment method hooks for subscriptions.
+	 * These are registered once per payment method.
+	 *
+	 * @param string $payment_method_id The payment method ID to register the hooks for.
+	 * @return void
+	 */
+	private function maybe_register_payment_method_hooks( string $payment_method_id ): void {
+		// Ensure we register the subscription hooks only once per payment method.
+		$hook_manager = WC_Stripe_Hook_Manager::get_instance();
+		if ( ! $hook_manager->is_valid_payment_method_id( $payment_method_id ) ) {
+			WC_Stripe_Logger::error(
+				sprintf( "Skipping subscription hook registration: invalid payment method ID '%s'. Renewals will not be processed.", $payment_method_id ),
+				[
+					'payment_method_id' => $payment_method_id,
+					'current_class'     => get_class( $this ),
+				]
+			);
 			return;
 		}
 
-		add_action( 'woocommerce_scheduled_subscription_payment_' . $this->id, [ $this, 'scheduled_subscription_payment' ], 10, 2 );
-		add_action( 'woocommerce_subscription_failing_payment_method_updated_' . $this->id, [ $this, 'update_failing_payment_method' ], 10, 2 );
+		if ( $hook_manager->are_payment_method_hooks_registered( $payment_method_id, WC_Stripe_Hook_Categories::SUBSCRIPTIONS ) ) {
+			return;
+		}
 
-		add_action( 'wc_stripe_payment_fields_' . $this->id, [ $this, 'display_update_subs_payment_checkout' ] );
-		add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', [ $this, 'handle_add_payment_method_success' ], 10, 2 );
+		/*
+		 * The hooks below use the first instance to register for a given payment method ID.
+		 * This is especially important for the 'stripe' ID, which is used by the main gateway
+		 * {@see WC_Stripe_UPE_Payment_Gateway} and the Optimized Checkout payment method
+		 * {@see WC_Stripe_UPE_Payment_Method_OC}.
+		 *
+		 * Note that the main gateway is constructed during WC_Stripe::init(), while the OCS
+		 * payment method is only instantiated lazily during request rendering, after the
+		 * main gateway instance has been constructed.
+		 */
+		add_action( 'woocommerce_scheduled_subscription_payment_' . $payment_method_id, [ $this, 'scheduled_subscription_payment' ], 10, 2 );
+		add_action( 'woocommerce_subscription_failing_payment_method_updated_' . $payment_method_id, [ $this, 'update_failing_payment_method' ], 10, 2 );
+
+		add_action( 'wc_stripe_payment_fields_' . $payment_method_id, [ $this, 'display_update_subs_payment_checkout' ] );
+		add_action( 'wc_stripe_add_payment_method_' . $payment_method_id . '_success', [ $this, 'handle_add_payment_method_success' ], 10, 2 );
 		add_action( 'woocommerce_stripe_add_payment_method', [ $this, 'handle_upe_add_payment_method_success' ], 10, 2 );
 
 		// Display the payment method used for a subscription in the "My Subscriptions" table.
@@ -74,44 +96,22 @@ trait WC_Stripe_Subscriptions_Trait {
 		// Validate the payment method meta data set on a subscription.
 		add_action( 'woocommerce_subscription_validate_payment_meta', [ $this, 'validate_subscription_payment_meta' ], 10, 2 );
 
-		self::$has_attached_integration_hooks = true;
+		$hook_manager->register_payment_method_hooks( $payment_method_id, WC_Stripe_Hook_Categories::SUBSCRIPTIONS );
+	}
 
-		/**
-		 * The callbacks attached below only need to be attached once. We don't need each gateway instance to have its own callback.
-		 * Therefore we only attach them once on the main `stripe` gateway and store a flag to indicate that they have been attached.
-		 */
-		if ( WC_Stripe_UPE_Payment_Gateway::ID !== $this->id ) {
-			return;
+	/**
+	 * Maybe register the plugin-level hooks for subscriptions.
+	 * These should only be registered once for the main gateway instance.
+	 *
+	 * @return bool True if the hooks were registered, false otherwise.
+	 * @since 10.9.0
+	 */
+	private function maybe_register_plugin_hooks(): bool {
+		if ( $this instanceof WC_Stripe_UPE_Payment_Gateway ) {
+			return $this->maybe_register_gateway_subscription_hooks();
 		}
-		// Secondary check to skip registration for the OC payment method, which mimics the Stripe ID.
-		$current_class = get_class( $this );
-		if ( WC_Stripe_UPE_Payment_Gateway::class !== $current_class ) {
-			return;
-		}
 
-		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
-		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
-		// @phpstan-ignore return.void (Callers may be relying on the return value from delete_renewal_meta(), so we are keeping that in place.)
-		add_action( 'wcs_renewal_order_created', [ $this, 'delete_renewal_meta' ], 10 );
-
-		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'display_save_payment_method_checkbox' ] );
-
-		// Add the necessary information to create a mandate to the payment intent.
-		add_filter( 'wc_stripe_generate_create_intent_request', [ $this, 'add_subscription_information_to_intent' ], 10, 4 );
-
-		/*
-		* WC subscriptions hooks into the "template_redirect" hook with priority 100.
-		* If the screen is "Pay for order" and the order is a subscription renewal, it redirects to the plain checkout.
-		* See: https://github.com/woocommerce/woocommerce-subscriptions/blob/99a75687e109b64cbc07af6e5518458a6305f366/includes/class-wcs-cart-renewal.php#L165
-		* If we are in the "You just need to authorize SCA" flow, we don't want that redirection to happen.
-		*/
-		add_action( 'template_redirect', [ $this, 'remove_order_pay_var' ], 99 );
-		add_action( 'template_redirect', [ $this, 'restore_order_pay_var' ], 101 );
-
-		// Disable editing for Indian subscriptions with mandates. Those need to be recreated as mandates does not support upgrades (due fixed amounts).
-		add_filter( 'wc_order_is_editable', [ $this, 'disable_subscription_edit_for_india' ], 10, 2 );
-
-		add_filter( 'woocommerce_subscriptions_update_payment_via_pay_shortcode', [ $this, 'update_payment_after_deferred_intent' ], 10, 3 );
+		return false;
 	}
 
 	/**
@@ -323,18 +323,13 @@ trait WC_Stripe_Subscriptions_Trait {
 			$payment_intent = $this->process_setup_intent_for_order( $subscription, $payment_information );
 
 			// Handle saving the payment method in the store.
-			if ( $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
+			$saved_payment_method_to_store = $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type();
+			if ( $saved_payment_method_to_store ) {
 				$this->handle_saving_payment_method(
 					$subscription,
 					$payment_information['payment_method_details'],
 					$selected_payment_type
 				);
-
-				// Link the new token to the subscription so My Account renders it.
-				// Scoped to ECE here; tracked for the broader paths in #5382.
-				if ( $is_express_checkout_submission ) {
-					WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $payment_method_id );
-				}
 			}
 
 			$redirect           = $this->get_return_url( $subscription );
@@ -369,6 +364,12 @@ trait WC_Stripe_Subscriptions_Trait {
 				// Attach the new payment method ID and the customer ID to the subscription on success.
 				$this->set_payment_method_id_for_subscription( $subscription, $payment_method_id );
 				$this->set_customer_id_for_subscription( $subscription, $payment_information['customer'] );
+
+				// If we saved a new token, link the saved token to the subscription for display purposes.
+				// Intentionally ignore any failures, as the display update doesn't affect renewals.
+				if ( $saved_payment_method_to_store && ! WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $payment_method_id ) ) {
+					WC_Stripe_Logger::error( 'Could not re-associate the saved token after change-payment for subscription: ' . $subscription_id );
+				}
 
 				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
 				do_action(
@@ -775,7 +776,9 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		foreach ( $subscriptions as $subscription ) {
-			$order_helper->update_stripe_customer_id( $subscription, $source->customer );
+			if ( $source->customer ) {
+				$order_helper->update_stripe_customer_id( $subscription, $source->customer );
+			}
 
 			if ( ! empty( $source->payment_method ) ) {
 				$order_helper->update_stripe_source_id( $subscription, $source->payment_method );
@@ -1211,7 +1214,8 @@ trait WC_Stripe_Subscriptions_Trait {
 			$saved_payment_method = WC_Stripe_Subscriptions_Helper::get_subscription_payment_method_details( $stripe_customer_id, $stripe_source_id );
 
 			if ( null !== $saved_payment_method ) {
-				return $this->get_payment_method_to_display_for_payment_method( $saved_payment_method );
+				$wallet_type_override = $this->get_saved_token_wallet_type( $customer_user, $stripe_source_id );
+				return $this->get_payment_method_to_display_for_payment_method( $saved_payment_method, $wallet_type_override );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
@@ -1222,12 +1226,45 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
+	 * Returns the pinned `wallet_type` of the saved token backing a Stripe PaymentMethod.
+	 *
+	 * Fingerprint dedup can repoint a saved card token at a newer (wallet-flavored)
+	 * PaymentMethod while leaving its `wallet_type` pinned. The subscription
+	 * row must reflect that pinned branding rather than the live PaymentMethod's wallet,
+	 * so the row and the saved-token list agree.
+	 *
+	 * @param int    $customer_user     WP user ID owning the subscription.
+	 * @param string $stripe_source_id  Stripe PaymentMethod ID stored on the subscription.
+	 * @return string|null The token's pinned wallet type (possibly an empty string), or null
+	 *                     when no matching saved token exists (e.g. guest / parent-order lookups).
+	 */
+	protected function get_saved_token_wallet_type( $customer_user, $stripe_source_id ): ?string {
+		if ( ! $customer_user || empty( $stripe_source_id ) ) {
+			return null;
+		}
+
+		$tokens = WC_Payment_Tokens::get_customer_tokens( $customer_user, WC_Stripe_UPE_Payment_Gateway::ID );
+		foreach ( $tokens as $token ) {
+			if ( $token->get_token() === $stripe_source_id && $token instanceof WC_Stripe_Payment_Token_CC ) {
+				return $token->get_wallet_type();
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Helper function to get the descriptive text for a payment method or source.
 	 *
-	 * @param object $payment_method The payment method or source object.
+	 * @param object      $payment_method      The payment method or source object.
+	 * @param string|null $wallet_type_override Authoritative wallet type from the matching saved
+	 *                                          token, or null when no token matched. When provided
+	 *                                          (including an empty string), it wins over the live
+	 *                                          PaymentMethod's `card->wallet->type` so the row matches
+	 *                                          the saved-token list's pinned branding.
 	 * @return string The descriptive text for the payment method or source.
 	 */
-	protected function get_payment_method_to_display_for_payment_method( object $payment_method ): string {
+	protected function get_payment_method_to_display_for_payment_method( object $payment_method, ?string $wallet_type_override = null ): string {
 		// Legacy handling for Stripe Card objects. ref: https://docs.stripe.com/api/cards/object
 		if ( isset( $payment_method->object ) && WC_Stripe_Payment_Methods::CARD === $payment_method->object ) {
 			return sprintf(
@@ -1240,11 +1277,30 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		switch ( $payment_method->type ) {
 			case WC_Stripe_Payment_Methods::CARD:
+				$card_brand = isset( $payment_method->card->brand ) ? wc_get_credit_card_type_label( $payment_method->card->brand ) : __( 'N/A', 'woocommerce-gateway-stripe' );
+				$card_last4 = $payment_method->card->last4;
+
+				// Surface the wallet brand (Apple Pay / Google Pay) used; `link` and manual cards stay bare.
+				// When a saved token matched the PaymentMethod, its pinned `wallet_type` is
+				// authoritative so this row matches the saved-token list; otherwise
+				// fall back to the live PaymentMethod's wallet type.
+				$wallet_type  = $wallet_type_override ?? ( isset( $payment_method->card->wallet->type ) ? $payment_method->card->wallet->type : '' );
+				$wallet_label = WC_Stripe_Payment_Methods::EXPRESS_METHODS_LABELS[ $wallet_type ] ?? '';
+				if ( '' !== $wallet_label ) {
+					return sprintf(
+						/* translators: 1) wallet brand e.g. "Google Pay"; 2) card brand e.g. Visa; 3) last 4 digits */
+						__( 'Via %1$s (%2$s) ending in %3$s', 'woocommerce-gateway-stripe' ),
+						$wallet_label,
+						$card_brand,
+						$card_last4
+					);
+				}
+
 				return sprintf(
 					/* translators: 1) card brand 2) last 4 digits */
 					__( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ),
-					( isset( $payment_method->card->brand ) ? wc_get_credit_card_type_label( $payment_method->card->brand ) : __( 'N/A', 'woocommerce-gateway-stripe' ) ),
-					$payment_method->card->last4
+					$card_brand,
+					$card_last4
 				);
 			case WC_Stripe_Payment_Methods::SEPA_DEBIT:
 				/* translators: 1) last 4 digits of SEPA Direct Debit */
