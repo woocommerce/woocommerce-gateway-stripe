@@ -366,19 +366,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Render-time cart snapshot used to bootstrap the cart/checkout Express Checkout
-	 * button so its first paint does not have to wait on the initial
-	 * `GET /wc/store/v1/cart` round-trip — mirroring how the product page already
-	 * renders from localised data.
-	 *
-	 * Reuses the same helpers the cart-details AJAX path consumes, so the payload
-	 * matches what the fetch would have returned. Returns null when the button must
-	 * not render (wrong page, no/empty cart, or a zero total without a free trial),
-	 * in which case the client falls back to its existing AJAX hide/fetch path.
-	 *
-	 * The snapshot is a first-paint convenience only: the client reconciles against
-	 * the live cart via AJAX on every subsequent re-init (`updated_cart_totals` /
-	 * `updated_checkout`), so client-side cart mutations are unaffected.
+	 * Render-time cart snapshot that lets the cart/checkout Express Checkout button
+	 * paint without the initial `GET /wc/store/v1/cart` fetch. Built from the same
+	 * helpers the AJAX path uses, so it matches what the fetch would return. Returns
+	 * null when the button must not render (wrong page, empty cart, or zero total
+	 * without a free trial); the client then falls back to its AJAX path.
 	 *
 	 * @return array|null
 	 */
