@@ -27,6 +27,7 @@ xxxx-xx-xx - version 10.9.0
 * Add - Show a "What's new" inbox note after the plugin updates, including via auto-update
 * Tweak - Don't show the Stripe API outage notice on local and development sites, where Stripe is often unreachable for benign reasons
 * Update - Replace the legacy add-to-cart AJAX endpoint with a Store API call for variable products in Express Checkout
+* Dev - Rename internal Blocks API references to Store API in the Express Checkout client for naming consistency
 
 2026-06-15 - version 10.8.2
 * Fix - Disable Adaptive Pricing when webhooks are disabled
