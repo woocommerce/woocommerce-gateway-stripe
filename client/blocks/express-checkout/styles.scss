@@ -1,3 +1,5 @@
+@import '../../express-checkout/spinner';
+
 // Cart Block — use flexbox for consistent button spacing across browsers.
 // WooCommerce core uses block layout with padding-bottom on each <li>, which
 // produces inconsistent gaps in Safari. Switching to flex + gap gives explicit
