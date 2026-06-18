@@ -122,36 +122,20 @@ class WC_Stripe_Payment_Method_Configurations {
 	private static function get_payment_method_configuration_from_stripe() {
 		$is_test_mode = WC_Stripe_Mode::is_test();
 
-		/**
-		 * Allows merchants to specify the ID of a Payment Method Configuration to use. This makes it possible for
-		 * merchants to create configurations for specific sites, e.g. when they operate sites in different countries
-		 * with different local payment methods.
-		 *
-		 * @param string|null $preselected_pmc_id The ID of the Payment Method Configuration to use. Null by default, but a string value may be returned.
-		 * @param bool        $is_test_mode       Whether the site is in test mode.
-		 */
-		$preselected_pmc_id = apply_filters( 'wc_stripe_preselect_payment_method_configuration', null, $is_test_mode );
+		$preselected_pmc = self::get_preselected_pmc( $is_test_mode );
 
-		if ( is_string( $preselected_pmc_id ) && str_starts_with( $preselected_pmc_id, 'pmc_' ) ) {
-			$configuration = WC_Stripe_API::retrieve( 'payment_method_configurations/' . $preselected_pmc_id );
-			$error         = null;
-			if ( is_wp_error( $configuration ) ) {
-				$error = $configuration;
-			} elseif ( ! empty( $configuration->error ) ) {
-				$error = $configuration->error;
-			}
-
-			if ( null !== $error ) {
+		if ( null !== $preselected_pmc['pmc_id'] ) {
+			if ( null !== $preselected_pmc['error'] ) {
 				WC_Stripe_Logger::error(
 					'Error retrieving preselected Payment Method Configuration',
 					[
-						'pmc_id' => $preselected_pmc_id,
-						'error'  => $error,
+						'pmc_id' => $preselected_pmc['pmc_id'],
+						'error'  => $preselected_pmc['error'],
 					]
 				);
-			} elseif ( ! empty( $configuration ) ) {
-				self::set_payment_method_configuration_cache( $configuration );
-				return $configuration;
+			} elseif ( ! empty( $preselected_pmc['configuration'] ) ) {
+				self::set_payment_method_configuration_cache( $preselected_pmc['configuration'] );
+				return $preselected_pmc['configuration'];
 			}
 			// If the preselected Payment Method Configuration is not found, we continue with the default logic below.
 		}
@@ -179,6 +163,53 @@ class WC_Stripe_Payment_Method_Configurations {
 
 		self::set_payment_method_configuration_cache( $pmc );
 		return $pmc;
+	}
+
+	/**
+	 * Gets the merchant-selected Payment Method Configuration when the preselect filter is set.
+	 *
+	 * @param bool $is_test_mode Whether the site is in test mode.
+	 * @return array {
+	 *     @type string|null $pmc_id        The preselected Payment Method Configuration ID.
+	 *     @type mixed       $configuration The retrieved Payment Method Configuration, if available.
+	 *     @type mixed       $response      The raw Stripe API response.
+	 *     @type mixed       $error         The normalized retrieval error, if any.
+	 * }
+	 */
+	private static function get_preselected_pmc( bool $is_test_mode ): array {
+		/**
+		 * Allows merchants to specify the ID of a Payment Method Configuration to use. This makes it possible for
+		 * merchants to create configurations for specific sites, e.g. when they operate sites in different countries
+		 * with different local payment methods.
+		 *
+		 * @param string|null $preselected_pmc_id The ID of the Payment Method Configuration to use. Null by default, but a string value may be returned.
+		 * @param bool        $is_test_mode       Whether the site is in test mode.
+		 */
+		$preselected_pmc_id = apply_filters( 'wc_stripe_preselect_payment_method_configuration', null, $is_test_mode );
+
+		if ( ! is_string( $preselected_pmc_id ) || ! str_starts_with( $preselected_pmc_id, 'pmc_' ) ) {
+			return [
+				'pmc_id'        => null,
+				'configuration' => null,
+				'response'      => null,
+				'error'         => null,
+			];
+		}
+
+		$response = WC_Stripe_API::retrieve( 'payment_method_configurations/' . $preselected_pmc_id );
+		$error    = null;
+		if ( is_wp_error( $response ) ) {
+			$error = $response;
+		} elseif ( is_object( $response ) && ! empty( $response->error ) ) {
+			$error = $response->error;
+		}
+
+		return [
+			'pmc_id'        => $preselected_pmc_id,
+			'configuration' => null === $error ? $response : null,
+			'response'      => $response,
+			'error'         => $error,
+		];
 	}
 
 	/**
@@ -614,25 +645,21 @@ class WC_Stripe_Payment_Method_Configurations {
 		$usable_pmc   = null;
 		$is_test_mode = WC_Stripe_Mode::is_test();
 
-		// Honor the `wc_stripe_preselect_payment_method_configuration` filter: a set preselected
-		// PMC takes priority over platform-child / fallback selection. Unlike
-		// `get_payment_method_configuration_from_stripe()`, a failed lookup here is not a
-		// fall-through: the merchant pinned this PMC, so we leave `pmc_enabled` untouched rather
-		// than caching a different PMC or disabling sync over a transient failure.
-		$preselected_pmc_id = apply_filters( 'wc_stripe_preselect_payment_method_configuration', null, $is_test_mode );
-		if ( is_string( $preselected_pmc_id ) && str_starts_with( $preselected_pmc_id, 'pmc_' ) ) {
-			$preselected_configuration = WC_Stripe_API::retrieve( 'payment_method_configurations/' . $preselected_pmc_id );
-			if ( ! is_object( $preselected_configuration ) || is_wp_error( $preselected_configuration ) || ! empty( $preselected_configuration->error ) ) {
+		$preselected_pmc = self::get_preselected_pmc( $is_test_mode );
+		if ( null !== $preselected_pmc['pmc_id'] ) {
+			// A pinned PMC is authoritative during refresh, so lookup failures must not fall
+			// through to a different PMC or the DB-only fallback path.
+			if ( null !== $preselected_pmc['error'] || ! is_object( $preselected_pmc['configuration'] ) ) {
 				WC_Stripe_Logger::warning(
 					'Skipping PMC availability refresh: preselected Payment Method Configuration could not be retrieved',
 					[
-						'pmc_id'   => $preselected_pmc_id,
-						'response' => $preselected_configuration,
+						'pmc_id'   => $preselected_pmc['pmc_id'],
+						'response' => $preselected_pmc['response'],
 					]
 				);
 				return;
 			}
-			$usable_pmc = $preselected_configuration;
+			$usable_pmc = $preselected_pmc['configuration'];
 		}
 
 		if ( null === $usable_pmc ) {
