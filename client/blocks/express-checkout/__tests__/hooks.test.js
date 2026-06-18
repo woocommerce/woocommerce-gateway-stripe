@@ -2,9 +2,14 @@ import { act, renderHook } from '@testing-library/react';
 import { useExpressCheckout } from '../hooks';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
+// react-stripe-js returns the same stripe/elements instances across renders;
+// mirror that with stable singletons so the hook's memoised callbacks (which
+// depend on them) keep a stable reference too.
+const mockStripe = { confirmPayment: jest.fn() };
+const mockElements = { submit: jest.fn() };
 jest.mock( '@stripe/react-stripe-js', () => ( {
-	useStripe: jest.fn( () => ( { confirmPayment: jest.fn() } ) ),
-	useElements: jest.fn( () => ( { submit: jest.fn() } ) ),
+	useStripe: jest.fn( () => mockStripe ),
+	useElements: jest.fn( () => mockElements ),
 } ) );
 
 jest.mock( 'wcstripe/express-checkout/event-handler', () => ( {
@@ -220,5 +225,70 @@ describe( 'useExpressCheckout', () => {
 				phoneNumberRequired: true,
 			} )
 		);
+	} );
+
+	// WooCommerce Blocks re-renders this subtree with fresh billing/shippingData
+	// object references on every cart tick; the hook must keep its outputs stable
+	// so the Stripe element does not churn when nothing it consumes changed.
+	it( 'keeps memoised outputs referentially stable across a cart-data re-render', () => {
+		const onClick = jest.fn();
+		const onClose = jest.fn();
+		const setExpressPaymentError = jest.fn();
+		const api = {};
+
+		const makeProps = () => ( {
+			api,
+			billing: {
+				currency: { minorUnit: 2, code: 'USD' },
+				cartTotal: { value: 7500 },
+				cartTotalItems: [ { name: 'Subtotal', amount: 7500 } ],
+			},
+			shippingData: { needsShipping: true, shippingRates: [] },
+			onClick,
+			onClose,
+			setExpressPaymentError,
+			expressPaymentMethod: 'applePay',
+		} );
+
+		const { result, rerender } = renderHook(
+			( props ) => useExpressCheckout( props ),
+			{ initialProps: makeProps() }
+		);
+
+		const first = result.current;
+
+		// Re-render with brand-new billing/shippingData refs (same values).
+		rerender( makeProps() );
+
+		expect( result.current.buttonOptions ).toBe( first.buttonOptions );
+		expect( result.current.onConfirm ).toBe( first.onConfirm );
+		expect( result.current.onCancel ).toBe( first.onCancel );
+	} );
+
+	it( 'rebuilds buttonOptions when the express payment method changes', () => {
+		const baseProps = {
+			api: {},
+			billing: {
+				currency: { minorUnit: 2, code: 'USD' },
+				cartTotal: { value: 7500 },
+				cartTotalItems: [],
+			},
+			shippingData: { needsShipping: false, shippingRates: [] },
+			onClick: jest.fn(),
+			onClose: jest.fn(),
+			setExpressPaymentError: jest.fn(),
+			expressPaymentMethod: 'applePay',
+		};
+
+		const { result, rerender } = renderHook(
+			( props ) => useExpressCheckout( props ),
+			{ initialProps: baseProps }
+		);
+
+		const first = result.current.buttonOptions;
+
+		rerender( { ...baseProps, expressPaymentMethod: 'googlePay' } );
+
+		expect( result.current.buttonOptions ).not.toBe( first );
 	} );
 } );
