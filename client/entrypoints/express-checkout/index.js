@@ -752,10 +752,9 @@ jQuery( function ( $ ) {
 				}
 			} );
 
-			// Bookings stay on the legacy endpoint here: migrating them means
-			// sending Bookings' Store API `booking_configuration` param to
-			// cart/add-item instead of the legacy booking form, which is out of
-			// scope for this change.
+			// Booking products add through the legacy endpoint: routing them via
+			// the Store API requires translating the booking form into a
+			// `booking_configuration` param, which this path does not build.
 			if ( hasBookingForm ) {
 				data.product_id = productId;
 				data.attributes = wcStripeECE.getAttributes().data;
