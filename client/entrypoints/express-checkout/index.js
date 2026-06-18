@@ -14,6 +14,7 @@ import {
 	getPaymentMethodTypesForExpressMethod,
 	isManualPaymentMethodCreation,
 	normalizeLineItems,
+	transformVariationAttributesForStoreApi,
 } from 'wcstripe/express-checkout/utils';
 import {
 	onAbortPaymentHandler,
@@ -79,17 +80,13 @@ jQuery( function ( $ ) {
 		'woocommerce-gateway-stripe'
 	);
 
-	/**
-	 * @todo Using the legacy endpoint (non-StoreAPI) and data format when variations are present.
-	 * StoreAPI will support this form correctly only after WC 9.7.0.
-	 * See https://github.com/woocommerce/woocommerce-gateway-stripe/pull/3780#issuecomment-2632051359
-	 *
-	 * @todo Using the legacy endpoint (non-StoreAPI) for booking products. Can be
-	 * removed once booking product flows have been fully migrated to StoreAPI.
-	 */
-	const useLegacyCartEndpoints =
-		$( '.variations_form' ).length > 0 ||
-		$( '.wc-bookings-booking-form' ).length > 0;
+	const hasVariationForm = $( '.variations_form' ).length > 0;
+	const hasBookingForm = $( '.wc-bookings-booking-form' ).length > 0;
+
+	// Variable and booking products keep the legacy display-item format: the
+	// product-page preview comes from `get_selected_product_data`, which has no
+	// Store API equivalent. Add-to-cart routing is handled separately in `addToCart()`.
+	const useLegacyCartEndpoints = hasVariationForm || hasBookingForm;
 
 	const resolveClickEvent = ( event, options ) => {
 		const getDefaultShippingRates = () => {
@@ -755,17 +752,26 @@ jQuery( function ( $ ) {
 				}
 			} );
 
-			// Legacy support for variations.
-			if ( useLegacyCartEndpoints ) {
+			// Bookings stay on the legacy endpoint here: migrating them means
+			// sending Bookings' Store API `booking_configuration` param to
+			// cart/add-item instead of the legacy booking form, which is out of
+			// scope for this change.
+			if ( hasBookingForm ) {
 				data.product_id = productId;
 				data.attributes = wcStripeECE.getAttributes().data;
 
 				return api.expressCheckoutAddToCartLegacy( data );
 			}
 
-			// BlocksAPI partial support (lacking support for variations).
 			data.id = productId;
-			data.variation = [];
+
+			// Variable products: `productId` is the parent id, so pass the chosen
+			// attributes for the Store API to resolve the variation (incl. "any" attributes).
+			data.variation = hasVariationForm
+				? transformVariationAttributesForStoreApi(
+						wcStripeECE.getAttributes().data
+				  )
+				: [];
 
 			// Clear the cart, so items that are currently in it
 			//  do not interfere with computed totals.

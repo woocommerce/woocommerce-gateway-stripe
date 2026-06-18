@@ -25,6 +25,23 @@ export const normalizeLineItems = ( displayItems ) => {
 };
 
 /**
+ * Converts selected variation attributes into the `[{ attribute, value }]`
+ * shape the Store API `cart/add-item` endpoint expects.
+ *
+ * @param {Object} attributes Map of attribute field name to chosen value.
+ *
+ * @return {Array<{attribute: string, value: string}>} Store API variation data.
+ */
+export const transformVariationAttributesForStoreApi = ( attributes ) => {
+	return Object.entries( attributes ?? {} ).map(
+		( [ attribute, value ] ) => ( {
+			attribute,
+			value,
+		} )
+	);
+};
+
+/**
  * Builds the payment data for the Blocks API.
  *
  * @param {Object} params
