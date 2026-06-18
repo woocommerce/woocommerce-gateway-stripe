@@ -11,21 +11,22 @@ export const STRIPE_JS_ORIGIN = 'https://js.stripe.com';
  * Verifies that the page's Stripe.js was served from the official Stripe origin.
  *
  * Only the origin is compared, so Stripe.js path/release-train changes do not
- * false-positive. The `#stripe-js` handle (WordPress's id for the `stripe`
- * script) is authoritative whenever it is a `<script>`: a repointed or
- * src-stripped handle must fail closed rather than fall back to another tag,
- * since an earlier official-origin script could otherwise mask it. Only when no
- * handle script exists do we fall back to any script from the official origin.
+ * false-positive. The `script#stripe-js` handle (WordPress's id for the
+ * `stripe` script) is authoritative: a repointed or src-stripped handle must
+ * fail closed rather than fall back to another tag. Selecting `script#stripe-js`
+ * (not `#stripe-js`) keeps the real handle authoritative even when a non-script
+ * element shares the id, which would otherwise divert to the fallback and let an
+ * earlier official-origin script mask the handle. Only when no script handle
+ * exists do we fall back to any script from the official origin.
  *
  * @param {Document} [doc] The document to inspect. Defaults to the global document.
  * @return {Object} Result with `ok` (boolean), `detectedSrc` (string|null), and `detectedOrigin` (string|null).
  */
 export const verifyStripeJsOrigin = ( doc = document ) => {
-	const handleTag = doc.querySelector( '#stripe-js' );
+	const handleTag = doc.querySelector( 'script#stripe-js' );
 	const tag =
-		handleTag?.tagName === 'SCRIPT'
-			? handleTag
-			: doc.querySelector( `script[src^="${ STRIPE_JS_ORIGIN }/"]` );
+		handleTag ??
+		doc.querySelector( `script[src^="${ STRIPE_JS_ORIGIN }/"]` );
 
 	if ( ! tag || ! tag.src ) {
 		return { ok: false, detectedSrc: null, detectedOrigin: null };

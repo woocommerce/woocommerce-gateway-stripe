@@ -104,6 +104,28 @@ describe( 'verifyStripeJsOrigin', () => {
 		} );
 	} );
 
+	it( 'keeps the script handle authoritative when a non-script #stripe-js precedes it', () => {
+		// A non-script id collision injected before the real handle must not
+		// divert to the fallback (where a benign official-origin script could
+		// mask a repointed handle); the real script#stripe-js stays authoritative.
+		const doc = document.implementation.createHTMLDocument( 'test' );
+		const collision = doc.createElement( 'div' );
+		collision.id = 'stripe-js';
+		doc.body.appendChild( collision );
+		const benign = doc.createElement( 'script' );
+		benign.setAttribute( 'src', 'https://js.stripe.com/v3/' );
+		doc.body.appendChild( benign );
+		const handle = doc.createElement( 'script' );
+		handle.id = 'stripe-js';
+		handle.setAttribute( 'src', 'https://js.stripe.com.evil.example/v3/' );
+		doc.body.appendChild( handle );
+
+		expect( verifyStripeJsOrigin( doc ) ).toMatchObject( {
+			ok: false,
+			detectedOrigin: 'https://js.stripe.com.evil.example',
+		} );
+	} );
+
 	it( 'ignores a non-script element sharing the stripe-js id and falls back to a legitimate script', () => {
 		const doc = document.implementation.createHTMLDocument( 'test' );
 		const collision = doc.createElement( 'div' );
