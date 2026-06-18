@@ -156,6 +156,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.9.0 - xxxx-xx-xx =
+* Fix - Keep the subscription payment-method row in sync with the saved-card list when a card has been used both directly and through Apple Pay/Google Pay
+* Tweak - Dim the test mode checkbox when it can't be toggled so the disabled state is visible in the UI
 * Add - Add dedicated settings page for Link with button size and location customization
 * Fix - Ignore incoming webhook events whose Stripe account does not match the connected account to avoid acting on another account's data
 * Fix - When changing a subscription's payment method, reflect the new card and its Apple Pay/Google Pay branding on My Account and clarify the admin order note
@@ -177,6 +179,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Show an error notice when a Stripe OAuth connection attempt fails its security check
 * Fix - Run the woocommerce_gateway_description filter for Stripe payment methods so third parties can add or replace their checkout descriptions
 * Dev - Deprecate the internal WC_Stripe_Feature_Flags::is_amazon_pay_available() helper now that Amazon Pay is permanently enabled
+* Tweak - Don't show the Stripe API outage notice on local and development sites, where Stripe is often unreachable for benign reasons
 * Add - Verify that Stripe.js was served from the official Stripe origin before processing checkout payments
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
