@@ -316,8 +316,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	if (
 		stripeServerData?.isAdaptivePricingEnabled &&
 		supportsDeferredIntent &&
-		typeof stripe?.initCheckout === 'function' &&
-		typeof stripe?.initCheckoutElementsSdk !== 'function'
+		typeof stripe?.initCheckoutElementsSdk === 'function'
 	) {
 		try {
 			const response = await api.checkoutSessionsCreateSession();
@@ -336,7 +335,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId =
 				sessionId;
 
-			elements = await stripe.initCheckout( {
+			elements = await stripe.initCheckoutElementsSdk( {
 				clientSecret,
 				elementsOptions: {
 					appearance: options.appearance,
