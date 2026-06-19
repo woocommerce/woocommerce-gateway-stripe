@@ -1056,6 +1056,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			// After updating payment methods record tracks events.
 			$newly_enabled_methods  = array_diff( $upe_checkout_experience_accepted_payments, $currently_enabled_payment_method_ids );
 			$newly_disabled_methods = array_diff( $currently_enabled_payment_method_ids, $payment_method_ids_to_enable );
+			WC_Stripe_Smart_Payment_Method_Defaults::record_explicitly_enabled_payment_methods( $newly_enabled_methods );
+			WC_Stripe_Smart_Payment_Method_Defaults::record_explicitly_disabled_payment_methods( $newly_disabled_methods );
 			WC_Stripe_Payment_Method_Configurations::record_payment_method_settings_event( $newly_enabled_methods, $newly_disabled_methods );
 
 			return;
@@ -1065,6 +1067,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$this->get_stripe_supported_payment_methods(),
 			[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
 		);
+
+		$currently_enabled_payment_method_ids = WC_Stripe_Payment_Method_Configurations::get_enabled_payment_method_ids_from_configuration();
+		$newly_enabled_methods                = array_diff( $payment_method_ids_to_enable, $currently_enabled_payment_method_ids );
+		$newly_disabled_methods               = array_diff(
+			array_intersect( $currently_enabled_payment_method_ids, $payment_method_ids_to_update ),
+			$payment_method_ids_to_enable
+		);
+		WC_Stripe_Smart_Payment_Method_Defaults::record_explicitly_enabled_payment_methods( $newly_enabled_methods );
+		WC_Stripe_Smart_Payment_Method_Defaults::record_explicitly_disabled_payment_methods( $newly_disabled_methods );
 
 		WC_Stripe_Payment_Method_Configurations::update_payment_method_configuration(
 			$payment_method_ids_to_enable,

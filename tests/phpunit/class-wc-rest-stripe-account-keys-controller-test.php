@@ -21,6 +21,13 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	private $controller;
 
 	/**
+	 * Stripe account mock used by the controller.
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	private $account;
+
+	/**
 	 * Pre-test setup
 	 */
 	public function set_up() {
@@ -37,17 +44,11 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$settings['test_secret_key']      = '';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
-		$mock_account = $this->getMockBuilder( WC_Stripe_Account::class )
-							->disableOriginalConstructor()
-							->getMock();
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+						->disableOriginalConstructor()
+						->getMock();
 
-		$this->controller = new WC_REST_Stripe_Account_Keys_Controller( $mock_account );
-		$this->mock_payment_method_configurations(
-			[
-				WC_Stripe_Payment_Methods::CARD,
-				WC_Stripe_Payment_Methods::LINK,
-			]
-		);
+		$this->controller = new WC_REST_Stripe_Account_Keys_Controller( $this->account );
 	}
 
 	public function test_get_account_keys_returns_status_code_200() {
@@ -155,7 +156,9 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	 */
 	public function test_changing_keys_resets_payment_methods() {
 		// Default options
-		WC_Stripe_Helper::update_main_stripe_settings(
+		WC_Stripe_Helper::delete_main_stripe_settings();
+		add_option(
+			WC_Stripe_Helper::SETTINGS_OPTION,
 			[
 				'publishable_key'                                            => 'pk_live-key',
 				'secret_key'                                                 => 'sk_live-key',
@@ -171,9 +174,23 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$request->set_param( 'publishable_key', 'pk_live-key-updated' );
 
 		// Set initial payment methods
-		$this->set_stripe_account_data( [ 'country' => 'US' ] );
-		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA, WC_Stripe_Payment_Methods::IDEAL ], [] );
-		$this->expect_payment_method_configurations_update( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
+		$current_enabled_methods  = [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA, WC_Stripe_Payment_Methods::IDEAL ];
+		$expected_enabled_methods = [
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::AFFIRM,
+			WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY,
+			WC_Stripe_Payment_Methods::KLARNA,
+			WC_Stripe_Payment_Methods::LINK,
+			WC_Stripe_Payment_Methods::APPLE_PAY,
+			WC_Stripe_Payment_Methods::GOOGLE_PAY,
+			WC_Stripe_Payment_Methods::ACH,
+		];
+		$this->account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
+		$this->mock_payment_method_configurations( $current_enabled_methods, array_diff( $expected_enabled_methods, $current_enabled_methods ) );
+		$this->expect_payment_method_configurations_update(
+			$expected_enabled_methods,
+			[ WC_Stripe_Payment_Methods::IDEAL ]
+		);
 
 		$this->controller->set_account_keys( $request );
 	}

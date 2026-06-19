@@ -281,6 +281,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 */
 	public function set_account_keys( WP_REST_Request $request ) {
 		$settings       = WC_Stripe_Helper::get_stripe_settings();
+		$old_settings   = $settings;
 		$allowed_params = [ 'publishable_key', 'secret_key', 'webhook_secret', 'test_publishable_key', 'test_secret_key', 'test_webhook_secret' ];
 
 		$current_account_keys = array_intersect_key( $settings, array_flip( $allowed_params ) );
@@ -314,15 +315,12 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
-		// Disable all payment methods if all keys are different from the current ones
-		if ( $current_account_keys['publishable_key'] !== $settings['publishable_key']
-			|| $current_account_keys['secret_key'] !== $settings['secret_key']
-			|| $current_account_keys['test_publishable_key'] !== $settings['test_publishable_key']
-			|| $current_account_keys['test_secret_key'] !== $settings['test_secret_key'] ) {
+		$has_account_key_changes = ( $current_account_keys['publishable_key'] ?? '' ) !== ( $settings['publishable_key'] ?? '' )
+			|| ( $current_account_keys['secret_key'] ?? '' ) !== ( $settings['secret_key'] ?? '' )
+			|| ( $current_account_keys['test_publishable_key'] ?? '' ) !== ( $settings['test_publishable_key'] ?? '' )
+			|| ( $current_account_keys['test_secret_key'] ?? '' ) !== ( $settings['test_secret_key'] ?? '' );
 
-			$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
-			$upe_gateway->update_enabled_payment_methods( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
-
+		if ( $has_account_key_changes ) {
 			WC_Stripe::get_instance()->connect->clear_caches_after_key_update();
 		}
 
@@ -330,6 +328,15 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		// Gives an instant reply if the connection was successful or not + rebuild the cache for the next request
 		$account = $this->account->get_cached_account_data();
+
+		if ( $has_account_key_changes && ! $is_deleting_account && ! empty( $account ) ) {
+			( new WC_Stripe_Smart_Payment_Method_Defaults() )->apply_for_account_connection(
+				WC_Stripe_Mode::is_test() ? 'test' : 'live',
+				$old_settings,
+				true,
+				$account
+			);
+		}
 
 		return new WP_REST_Response( $account, 200 );
 	}
