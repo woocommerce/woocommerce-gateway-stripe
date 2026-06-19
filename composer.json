@@ -69,7 +69,8 @@
         "includes/payment-tokens/class-wc-stripe-sepa-payment-token.php",
         "includes/payment-tokens/interface-wc-stripe-payment-method-comparison.php",
         "includes/payment-tokens/trait-wc-stripe-fingerprint.php",
-        "includes/admin/class-wc-stripe-rest-payment-intents-controller.php"
+        "includes/admin/class-wc-stripe-rest-payment-intents-controller.php",
+		"includes/admin/class-wc-stripe-rest-response-filter.php"
       ]
     },
     "autoload-dev": {
