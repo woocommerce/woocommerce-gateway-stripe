@@ -87,7 +87,7 @@ class WC_Stripe_Smart_Payment_Method_Defaults {
 	 */
 	public function maybe_apply_subscriptions_activation_backfill( $plugin ): void {
 		$is_subscriptions_plugin = is_string( $plugin ) && false !== strpos( $plugin, 'woocommerce-subscriptions' );
-		if ( ! $is_subscriptions_plugin && ! $this->is_subscriptions_enabled() ) {
+		if ( ! $is_subscriptions_plugin ) {
 			return;
 		}
 

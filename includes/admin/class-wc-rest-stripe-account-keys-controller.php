@@ -315,10 +315,13 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
-		$has_account_key_changes = ( $current_account_keys['publishable_key'] ?? '' ) !== ( $settings['publishable_key'] ?? '' )
-			|| ( $current_account_keys['secret_key'] ?? '' ) !== ( $settings['secret_key'] ?? '' )
-			|| ( $current_account_keys['test_publishable_key'] ?? '' ) !== ( $settings['test_publishable_key'] ?? '' )
+		$live_keys_changed       = ( $current_account_keys['publishable_key'] ?? '' ) !== ( $settings['publishable_key'] ?? '' )
+			|| ( $current_account_keys['secret_key'] ?? '' ) !== ( $settings['secret_key'] ?? '' );
+		$test_keys_changed       = ( $current_account_keys['test_publishable_key'] ?? '' ) !== ( $settings['test_publishable_key'] ?? '' )
 			|| ( $current_account_keys['test_secret_key'] ?? '' ) !== ( $settings['test_secret_key'] ?? '' );
+		$has_account_key_changes = $live_keys_changed || $test_keys_changed;
+		$is_test_mode            = WC_Stripe_Mode::is_test();
+		$active_keys_changed     = $is_test_mode ? $test_keys_changed : $live_keys_changed;
 
 		if ( $has_account_key_changes ) {
 			WC_Stripe::get_instance()->connect->clear_caches_after_key_update();
@@ -329,9 +332,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// Gives an instant reply if the connection was successful or not + rebuild the cache for the next request
 		$account = $this->account->get_cached_account_data();
 
-		if ( $has_account_key_changes && ! $is_deleting_account && ! empty( $account ) ) {
+		if ( $active_keys_changed && ! $is_deleting_account && ! empty( $account ) ) {
 			( new WC_Stripe_Smart_Payment_Method_Defaults() )->apply_for_account_connection(
-				WC_Stripe_Mode::is_test() ? 'test' : 'live',
+				$is_test_mode ? 'test' : 'live',
 				$old_settings,
 				true,
 				$account

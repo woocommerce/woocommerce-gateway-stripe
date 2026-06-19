@@ -150,6 +150,13 @@ class WC_Stripe_Smart_Payment_Method_Defaults_Test extends WC_Mock_Stripe_API_Un
 		$this->assertSame( [ WC_Stripe_Payment_Methods::ACH ], $result['methods_skipped'] );
 	}
 
+	public function test_subscriptions_activation_backfill_ignores_unrelated_plugin_activation(): void {
+		add_filter( 'wc_stripe_smart_defaults_is_subscriptions_active', '__return_true' );
+		$this->stripe_api->expects( $this->never() )->method( 'get_payment_method_configurations' );
+
+		$this->smart_defaults->maybe_apply_subscriptions_activation_backfill( 'woocommerce/woocommerce.php' );
+	}
+
 	/**
 	 * Sets connected test mode Stripe settings.
 	 *

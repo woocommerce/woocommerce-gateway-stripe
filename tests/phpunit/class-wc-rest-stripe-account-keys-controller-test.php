@@ -174,7 +174,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$request->set_param( 'publishable_key', 'pk_live-key-updated' );
 
 		// Set initial payment methods
-		$current_enabled_methods  = [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA, WC_Stripe_Payment_Methods::IDEAL ];
+		$current_enabled_methods  = [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::IDEAL ];
 		$expected_enabled_methods = [
 			WC_Stripe_Payment_Methods::CARD,
 			WC_Stripe_Payment_Methods::AFFIRM,
@@ -189,8 +189,37 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$this->mock_payment_method_configurations( $current_enabled_methods, array_diff( $expected_enabled_methods, $current_enabled_methods ) );
 		$this->expect_payment_method_configurations_update(
 			$expected_enabled_methods,
-			[ WC_Stripe_Payment_Methods::IDEAL ]
+			[ WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::IDEAL ]
 		);
+
+		$this->controller->set_account_keys( $request );
+	}
+
+	public function test_changing_inactive_mode_keys_does_not_reset_payment_methods(): void {
+		WC_Stripe_Helper::delete_main_stripe_settings();
+		add_option(
+			WC_Stripe_Helper::SETTINGS_OPTION,
+			[
+				'publishable_key'                                            => 'pk_live-key',
+				'secret_key'                                                 => 'sk_live-key',
+				'test_publishable_key'                                       => 'pk_test-key',
+				'test_secret_key'                                            => 'sk_test-key',
+				'testmode'                                                   => 'no',
+				'connection_type'                                            => 'connect',
+				'pmc_enabled'                                                => 'yes',
+				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'yes',
+			]
+		);
+
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( 'test_publishable_key', 'pk_test-key-updated' );
+
+		$this->account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
+		$this->mock_payment_method_configurations(
+			[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ],
+			[ WC_Stripe_Payment_Methods::ACH ]
+		);
+		$this->stripe_api->expects( $this->never() )->method( 'update_payment_method_configurations' );
 
 		$this->controller->set_account_keys( $request );
 	}
