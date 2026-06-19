@@ -66,6 +66,8 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		],
 	];
 
+
+
 	/**
 	 * Configure REST API routes.
 	 *
@@ -141,18 +143,25 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_payment_intents( $request ) {
-		try {
-			$response = WC_Stripe_API::retrieve( 'payment_intents?' . $this->build_http_query_string_from_request( $request ) );
-		} catch ( WC_Stripe_Exception $exception ) {
-			return new WP_Error( 'wc_stripe_payment_intents_error', $exception->getLocalizedMessage(), [ 'status' => 502 ] );
-		}
+		$response = WC_Stripe_API::retrieve( 'payment_intents?' . $this->build_http_query_string_from_request( $request ) );
 
-		if ( is_null( $response ) ) {
+		if ( null === $response ) {
 			return new WP_Error(
 				'wc_stripe_payment_intents_error',
 				__( 'Unable to retrieve payment intents from Stripe.', 'woocommerce-gateway-stripe' ),
-				[ 'status' => 502 ]
+				[ 'status' => 401 ]
 			);
+		}
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		if ( is_object( $response ) && isset( $response->error ) ) {
+			$error_code    = isset( $response->error->code ) ? (string) $response->error->code : 'wc_stripe_api_error';
+			$error_message = isset( $response->error->message ) ? (string) $response->error->message : __( 'Stripe API returned an error.', 'woocommerce-gateway-stripe' );
+
+			return new WP_Error( $error_code, $error_message, [ 'status' => 400 ] );
 		}
 
 		return rest_ensure_response( $response );

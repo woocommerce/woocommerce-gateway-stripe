@@ -16,7 +16,6 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	}
 
 	public function teardown(): void {
-		$var = 'break';
 		remove_filter(
 			'pre_http_request',
 			[ static::class, 'pre_http_request_mock_handler' ],
@@ -87,8 +86,40 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	}
 
 	public function test_wrong_stripe_api_key() {
-		$var = 'test';
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+		$http_code_401_mock = function ( $pre, $parsed_args, $url ) {
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'data'     => [],
+						'has_more' => false,
+					]
+				),
+				'response' => [
+					'code'    => 401,
+					'message' => 'OK',
+				],
+			];
+		};
+
+		add_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
 		$this->send_request();
+
+		remove_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
 		$this->assertTrue( true );
 	}
 
@@ -189,15 +220,16 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		$pre_http_request = [];
 
 		$this->mock_http_call();
-		add_filter(
-			'pre_http_request',
-			function ( $pre, $parsed_args, $url ) use ( &$pre_http_request ) {
+		$http_stub = function ( $pre, $parsed_args, $url ) use ( &$pre_http_request ) {
 				$url_components = parse_url( $url );
 
 				parse_str( $url_components['query'], $pre_http_request['search_params'] );
 
 				return $pre;
-			},
+		};
+		add_filter(
+			'pre_http_request',
+			$http_stub,
 			10,
 			3
 		);
@@ -206,6 +238,13 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		wp_set_current_user( $admin_id );
 
 		rest_get_server()->dispatch( $request );
+
+		remove_filter(
+			'pre_http_request',
+			$http_stub,
+			10,
+			3
+		);
 
 		$this->assertEquals( $rest_params, $passed_rest_params );
 		$this->assertEquals(
