@@ -115,14 +115,14 @@ abstract class WC_Stripe_REST_Response_Filter {
 	}
 
 	/**
-	 * Deep clone an object..
+	 * Deep clone an object.
 	 *
 	 * @param mixed $obj The object.
 	 *
 	 * @return object
 	 */
 	private static function deep_clone( $obj ) {
-		return json_decode( json_encode( $obj ) );
+		return unserialize( serialize( $obj ) );
 	}
 
 	/**
