@@ -1729,8 +1729,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Reusing a saved card never refreshes its wallet_type (create-time state,
-	 * #5477), so a manually-saved card can't flip to a wallet brand.
+	 * Reusing a saved card never refreshes its wallet_type (create-time state),
+	 * so a manually-saved card can't flip to a wallet brand.
 	 *
 	 * @dataProvider provider_handle_saving_payment_method_preserves_wallet_type
 	 *

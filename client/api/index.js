@@ -11,6 +11,7 @@ import {
 	getStripeServerData,
 	getStripeDevWidgetOptions,
 } from 'wcstripe/stripe-utils';
+import { assertStripeJsOrigin } from 'wcstripe/stripe-utils/verify-stripe-js-origin';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_CASHAPP,
@@ -95,6 +96,8 @@ export default class WCStripeAPI {
 	 * @return {Object} The Stripe instance.
 	 */
 	createStripe( key, locale, betas = [] ) {
+		assertStripeJsOrigin();
+
 		const options = {
 			locale,
 			...getStripeDevWidgetOptions(),
@@ -533,16 +536,16 @@ export default class WCStripeAPI {
 		// Rename qty to quantity to match StoreAPI expected parameter.
 		const { qty, ...rest } = productData;
 		const quantity = qty ?? 1;
-		const blocksApiProductData = {
+		const storeApiProductData = {
 			...rest,
 			quantity,
 		};
 
 		const data = applyFilters(
 			'wcstripe.express-checkout.cart-add-item',
-			blocksApiProductData
+			storeApiProductData
 		);
-		return this.postToBlocksAPI( '/wc/store/v1/cart/add-item', data );
+		return this.postToStoreApi( '/wc/store/v1/cart/add-item', data );
 	}
 
 	/**
@@ -576,7 +579,7 @@ export default class WCStripeAPI {
 				},
 			} );
 			const removeItemsPromises = cartData.items.map( ( item ) => {
-				return this.postToBlocksAPI( '/wc/store/v1/cart/remove-item', {
+				return this.postToStoreApi( '/wc/store/v1/cart/remove-item', {
 					key: item.key,
 					booking_id: bookingId,
 				} );
@@ -609,7 +612,7 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECECreateOrder( orderData ) {
-		return this.postToBlocksAPI(
+		return this.postToStoreApi(
 			'/wc/store/v1/checkout',
 			{
 				...orderData,
@@ -638,18 +641,18 @@ export default class WCStripeAPI {
 		const billingEmail = orderDetails.billingEmail ?? '';
 		const key = orderDetails.orderKey ?? '';
 		const url = `/wc/store/v1/checkout/${ order }?key=${ key }&billing_email=${ billingEmail }`;
-		return this.postToBlocksAPI( url, paymentData );
+		return this.postToStoreApi( url, paymentData );
 	}
 
 	/**
-	 * Posts data to the Blocks API.
+	 * Posts data to the Store API.
 	 *
 	 * @param {string} path    The path to post to.
 	 * @param {Object} data    The data to post.
 	 * @param {Object} headers The headers for the request.
 	 * @return {Promise} The promise for the request to the server.
 	 */
-	postToBlocksAPI( path, data, headers = {} ) {
+	postToStoreApi( path, data, headers = {} ) {
 		return apiFetch( {
 			method: 'POST',
 			path,

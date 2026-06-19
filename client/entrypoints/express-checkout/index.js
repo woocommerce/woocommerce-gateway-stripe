@@ -363,7 +363,16 @@ jQuery( function ( $ ) {
 				elementsMode = 'payment';
 			}
 
-			const elements = api.getStripe().elements( {
+			let stripe;
+			try {
+				stripe = api.getStripe();
+			} catch ( error ) {
+				// Stripe.js failed the origin assertion (fail closed): skip
+				// rendering the express checkout button instead of throwing.
+				return;
+			}
+
+			const elements = stripe.elements( {
 				mode: elementsMode,
 				...( elementsMode !== 'setup' && {
 					amount: options.total,
@@ -555,7 +564,7 @@ jQuery( function ( $ ) {
 				} = wcStripeExpressCheckoutPayForOrderParams;
 
 				// When paying as guest, the order key and billing email are required by the
-				// Blocks API Pay for Order endpoint, which ECE uses.
+				// Store API Pay for Order endpoint, which ECE uses.
 				// These fields are both present when the user is logged in.
 				if (
 					! orderDetails?.orderKey ||
