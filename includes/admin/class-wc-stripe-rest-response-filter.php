@@ -32,7 +32,7 @@ abstract class WC_Stripe_REST_Response_Filter {
 		foreach ( $allowed_property_paths as $path_as_string => $format_callback ) {
 			$path = explode( '.', $path_as_string );
 
-			$ref = &$expanded_allowed_properties;
+			$ref = $expanded_allowed_properties;
 
 			foreach ( $path as $property_name ) {
 				if ( ! isset( $ref[ $property_name ] ) ) {
