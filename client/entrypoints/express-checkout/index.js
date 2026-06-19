@@ -381,8 +381,11 @@ jQuery( function ( $ ) {
 					getPaymentMethodTypesForExpressMethod( expressPaymentType ),
 			} );
 
+			const buttonStyleSettings =
+				getExpressCheckoutButtonStyleSettings( expressPaymentType );
+
 			const eceButton = wcStripeECE.createButton( elements, {
-				...getExpressCheckoutButtonStyleSettings(),
+				...buttonStyleSettings,
 				paymentMethods: {
 					amazonPay:
 						expressPaymentType ===
@@ -552,7 +555,7 @@ jQuery( function ( $ ) {
 				} = wcStripeExpressCheckoutPayForOrderParams;
 
 				// When paying as guest, the order key and billing email are required by the
-				// Blocks API Pay for Order endpoint, which ECE uses.
+				// Store API Pay for Order endpoint, which ECE uses.
 				// These fields are both present when the user is logged in.
 				if (
 					! orderDetails?.orderKey ||

@@ -285,6 +285,34 @@ return apply_filters(
 				'large'   => __( 'Large (56px)', 'woocommerce-gateway-stripe' ),
 			],
 		],
+		'link_button_locations'                => [
+			'title'             => __( 'Link Button Locations', 'woocommerce-gateway-stripe' ),
+			'type'              => 'multiselect',
+			'description'       => __( 'Select where you would like Link by Stripe button to be displayed', 'woocommerce-gateway-stripe' ),
+			'desc_tip'          => true,
+			'class'             => 'wc-enhanced-select',
+			'options'           => [
+				'product'  => __( 'Product', 'woocommerce-gateway-stripe' ),
+				'cart'     => __( 'Cart', 'woocommerce-gateway-stripe' ),
+				'checkout' => __( 'Checkout', 'woocommerce-gateway-stripe' ),
+			],
+			'default'           => $wc_stripe_default_express_checkout_locations,
+			'custom_attributes' => [
+				'data-placeholder' => __( 'Select pages', 'woocommerce-gateway-stripe' ),
+			],
+		],
+		'link_button_size'                     => [
+			'title'       => __( 'Link Button Size', 'woocommerce-gateway-stripe' ),
+			'type'        => 'select',
+			'description' => __( 'Select the size of the button.', 'woocommerce-gateway-stripe' ),
+			'default'     => 'default',
+			'desc_tip'    => true,
+			'options'     => [
+				'small'   => __( 'Small (40px)', 'woocommerce-gateway-stripe' ),
+				'default' => __( 'Default (48px)', 'woocommerce-gateway-stripe' ),
+				'large'   => __( 'Large (56px)', 'woocommerce-gateway-stripe' ),
+			],
+		],
 		'optimized_checkout_layout'            => [
 			'title'       => __( 'Optimized Checkout Layout', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
