@@ -158,6 +158,152 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The intent amount must include tax that a tax extension applies on the
+	 * `woocommerce_order_after_calculate_totals` hook (e.g. TaxJar), even when
+	 * the order total had not been recalculated since.
+	 *
+	 * Reproduces the Optimized Checkout undercharge where the grand total was
+	 * read before the tax was folded in, so the customer was charged the order
+	 * subtotal while `tax_amount` metadata reported a tax that was never collected.
+	 *
+	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5582
+	 */
+	public function test_create_payment_intent_includes_tax_applied_after_calculate_totals() {
+		$tax = 9.0;
+
+		// Stand in for a tax extension that applies tax on the after-calculate
+		// hook and folds it into the grand total. Uses absolute values so it is
+		// idempotent across repeated recalculations.
+		$apply_tax = function ( $and_taxes, $order ) use ( $tax ) {
+			$taxed_total = (float) $order->get_subtotal() + (float) $order->get_shipping_total() + $tax;
+			$order->set_cart_tax( $tax );
+			$order->set_total( $taxed_total );
+		};
+		add_action( 'woocommerce_order_after_calculate_totals', $apply_tax, 10, 2 );
+
+		// Put the order into the pre-tax state the OCS flow would read: a grand
+		// total that excludes the tax the extension will later apply.
+		$stale_total = (float) $this->order->get_subtotal() + (float) $this->order->get_shipping_total();
+		$this->order->set_cart_tax( 0 );
+		$this->order->set_total( $stale_total );
+		$this->order->save();
+
+		$expected_amount = WC_Stripe_Helper::get_stripe_amount(
+			$stale_total + $tax,
+			strtolower( $this->order->get_currency() )
+		);
+
+		$test_request = function ( $preempt, $parsed_args, $url ) use ( $expected_amount ) {
+			$this->assertEquals( $expected_amount, $parsed_args['body']['amount'] );
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode(
+					[
+						'id'            => 1,
+						'client_secret' => '123',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_payment_intent( $this->order->get_id() );
+
+		remove_filter( 'pre_http_request', $test_request, 10 );
+		remove_action( 'woocommerce_order_after_calculate_totals', $apply_tax, 10 );
+	}
+
+	/**
+	 * The same fix must hold on the update path: the amount sent when updating a
+	 * PaymentIntent must include tax applied on `woocommerce_order_after_calculate_totals`.
+	 *
+	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5582
+	 */
+	public function test_update_intent_includes_tax_applied_after_calculate_totals() {
+		$tax = 9.0;
+
+		// Give the current user an existing Stripe customer id so the flow takes
+		// the customer-retrieve path instead of creating one.
+		$user_id = self::factory()->user->create( [ 'role' => 'customer' ] );
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_mock', false );
+		wp_set_current_user( $user_id );
+
+		$apply_tax = function ( $and_taxes, $order ) use ( $tax ) {
+			$taxed_total = (float) $order->get_subtotal() + (float) $order->get_shipping_total() + $tax;
+			$order->set_cart_tax( $tax );
+			$order->set_total( $taxed_total );
+		};
+		add_action( 'woocommerce_order_after_calculate_totals', $apply_tax, 10, 2 );
+
+		// Pre-tax state the OCS flow reads. The intent retrieval below must match
+		// this total so validate_intent_for_order() passes.
+		$stale_total = (float) $this->order->get_subtotal() + (float) $this->order->get_shipping_total();
+		$this->order->set_cart_tax( 0 );
+		$this->order->set_total( $stale_total );
+		$this->order->save();
+
+		$currency     = strtolower( $this->order->get_currency() );
+		$stale_amount = WC_Stripe_Helper::get_stripe_amount( $stale_total, $currency );
+		$taxed_amount = WC_Stripe_Helper::get_stripe_amount( $stale_total + $tax, $currency );
+
+		$respond = function ( $data ) {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( $data ),
+			];
+		};
+
+		$update_asserted = false;
+		$test_request    = function ( $preempt, $parsed_args, $url ) use ( $currency, $stale_amount, $taxed_amount, $respond, &$update_asserted ) {
+			$method = $parsed_args['method'] ?? 'GET';
+
+			// Customer creation from maybe_create_customer().
+			if ( false !== strpos( $url, '/customers' ) ) {
+				return $respond( [ 'id' => 'cus_mock' ] );
+			}
+
+			// Intent retrieval for validation — matches the pre-tax order total.
+			if ( false !== strpos( $url, '/payment_intents/pi_mock' ) && 'POST' !== $method ) {
+				return $respond(
+					[
+						'id'                   => 'pi_mock',
+						'object'               => 'payment_intent',
+						'currency'             => $currency,
+						'amount'               => $stale_amount,
+						'status'               => 'requires_payment_method',
+						'payment_method_types' => [ 'card' ],
+					]
+				);
+			}
+
+			// The update request — amount must now include the tax.
+			if ( false !== strpos( $url, '/payment_intents/pi_mock' ) && 'POST' === $method ) {
+				$this->assertEquals( $taxed_amount, $parsed_args['body']['amount'] );
+				$update_asserted = true;
+				return $respond(
+					[
+						'id'     => 'pi_mock',
+						'object' => 'payment_intent',
+					]
+				);
+			}
+
+			return $respond( [ 'id' => 'pi_mock' ] );
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->update_intent( 'pi_mock', $this->order->get_id(), false, '' );
+
+		remove_filter( 'pre_http_request', $test_request, 10 );
+		remove_action( 'woocommerce_order_after_calculate_totals', $apply_tax, 10 );
+
+		$this->assertTrue( $update_asserted, 'The PaymentIntent update request was never sent.' );
+	}
+
+	/**
 	 * Test for `update_and_confirm_payment_intent` method.
 	 *
 	 * @param array $payment_information Payment information.
