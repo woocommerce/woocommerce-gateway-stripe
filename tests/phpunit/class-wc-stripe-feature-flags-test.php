@@ -20,6 +20,16 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * `is_amazon_pay_available()` is deprecated but must keep returning true so any
+	 * lingering third-party callers continue to treat Amazon Pay as permanently enabled.
+	 */
+	public function test_is_amazon_pay_available_is_deprecated(): void {
+		$this->setExpectedDeprecated( 'WC_Stripe_Feature_Flags::is_amazon_pay_available' );
+
+		$this->assertTrue( WC_Stripe_Feature_Flags::is_amazon_pay_available() );
+	}
+
+	/**
 	 * Test for `is_oc_available`.
 	 *
 	 * @param bool $pmc_enabled Whether the Payment Method Configuration API is enabled.

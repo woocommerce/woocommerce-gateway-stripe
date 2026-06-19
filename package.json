@@ -10,7 +10,7 @@
   },
   "devDependencies": {
     "@automattic/color-studio": "^2.5.0",
-    "@babel/core": "7.28.3",
+    "@babel/core": "7.29.6",
     "@babel/eslint-parser": "^7.23.3",
     "@babel/plugin-transform-nullish-coalescing-operator": "^7.26.6",
     "@babel/plugin-transform-optional-chaining": "^7.25.9",
