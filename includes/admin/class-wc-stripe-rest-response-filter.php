@@ -35,7 +35,7 @@ abstract class WC_Stripe_REST_Response_Filter {
 			$ref = &$expanded_allowed_properties;
 
 			foreach ( $path as $property_name ) {
-				if ( ! array_key_exists( $property_name, $ref ) ) {
+				if ( ! isset( $ref[ $property_name ] ) ) {
 					$ref[ $property_name ] = [];
 				}
 
@@ -51,7 +51,7 @@ abstract class WC_Stripe_REST_Response_Filter {
 	/**
 	 * Filter an object by a given allowed property list.
 	 *
-	 * @param object $obj The object.
+	 * @param object|array $obj The object.
 	 * @param array $allowed_properties The property white list.
 	 *
 	 * @return object|array
@@ -84,22 +84,6 @@ abstract class WC_Stripe_REST_Response_Filter {
 				static fn ( $item ) => static::filter_object( $item, $allowed_properties ),
 				$obj
 			);
-
-			$filtered_object = [];
-
-			foreach ( $allowed_properties as $property => $rule ) {
-				if ( ! array_key_exists( $property, $obj ) ) {
-					continue;
-				}
-
-				$property_value = $obj[ $property ];
-
-				$filtered_object[ $property ] = true === $rule
-					? $property_value
-					: static::filter_object( $property_value, $rule );
-			}
-
-			return $filtered_object;
 		}
 
 		return $obj;
