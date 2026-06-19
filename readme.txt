@@ -181,6 +181,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Deprecate the internal WC_Stripe_Feature_Flags::is_amazon_pay_available() helper now that Amazon Pay is permanently enabled
 * Add - Show a "What's new" inbox note after the plugin updates, including via auto-update
 * Tweak - Don't show the Stripe API outage notice on local and development sites, where Stripe is often unreachable for benign reasons
+* Dev - Rename internal Blocks API references to Store API in the Express Checkout client for naming consistency
 * Add - Verify that Stripe.js was served from the official Stripe origin before processing checkout payments
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
