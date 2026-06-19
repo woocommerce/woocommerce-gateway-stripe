@@ -224,6 +224,23 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 					'disabled_methods' => [ WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::IDEAL ],
 				],
 			],
+			'active test key change resets payment methods'           => [
+				'settings'                   => array_merge(
+					$base_settings,
+					[
+						'test_publishable_key' => 'pk_test-key',
+						'test_secret_key'      => 'sk_test-key',
+						'testmode'             => 'yes',
+					]
+				),
+				'request_params'             => [ 'test_publishable_key' => 'pk_test-key-updated' ],
+				'current_enabled_methods'    => $current_live_methods,
+				'available_disabled_methods' => array_diff( $expected_us_default_methods, $current_live_methods ),
+				'expected_update'            => [
+					'enabled_methods'  => $expected_us_default_methods,
+					'disabled_methods' => [ WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::IDEAL ],
+				],
+			],
 			'inactive test key change does not reset payment methods' => [
 				'settings'                   => array_merge(
 					$base_settings,
