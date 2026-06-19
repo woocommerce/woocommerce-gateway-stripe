@@ -1,7 +1,4 @@
 <?php
-/**
- * Class WC_Stripe_REST_Response_Filter
- */
 
 defined( 'ABSPATH' ) || exit;
 

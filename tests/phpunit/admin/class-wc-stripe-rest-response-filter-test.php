@@ -1,7 +1,4 @@
 <?php
-/**
- * Class WC_Stripe_REST_Response_Filter_Test
- */
 class WC_Stripe_REST_Response_Filter_Test extends WP_UnitTestCase {
 	public static function provide_test_data(): array {
 		$default_response_as_string = '{
@@ -39,7 +36,7 @@ class WC_Stripe_REST_Response_Filter_Test extends WP_UnitTestCase {
 			]
 		}';
 		return [
-			[
+			'filters_nested_payment_details' => [
 				$default_response_as_string,
 				[
 					'object'                               => '',
@@ -58,7 +55,7 @@ class WC_Stripe_REST_Response_Filter_Test extends WP_UnitTestCase {
 					]
 				}',
 			],
-			[
+			'includes_allowed_array_leaf'    => [
 				$default_response_as_string,
 				[
 					'object'                               => '',
@@ -83,7 +80,7 @@ class WC_Stripe_REST_Response_Filter_Test extends WP_UnitTestCase {
 				}',
 			],
 			// Test format callback
-			[
+			'applies_money_format_callback'  => [
 				'{"object": "list", "data": [{"id": "pi_123", "amount": 2460}]}',
 				[
 					'object'      => '',
@@ -94,7 +91,7 @@ class WC_Stripe_REST_Response_Filter_Test extends WP_UnitTestCase {
 			],
 
 			// Test null property value handling
-			[
+			'preserves_allowed_null_leaf'    => [
 				'{"object": "list", "data": [{"id": "pi_123", "payment_method": null}]}',
 				[
 					'object'              => '',
