@@ -93,8 +93,10 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 				'headers'  => [],
 				'body'     => wp_json_encode(
 					[
-						'data'     => [],
-						'has_more' => false,
+						'error' => [
+							'code'    => 'invalid_request_error',
+							'message' => 'Invalid API Key provided',
+						],
 					]
 				),
 				'response' => [
@@ -120,7 +122,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 			3
 		);
 
-		$this->assertEquals( 401, $response->status );
+		$this->assertSame( 401, $response->get_status() );
 	}
 
 	/** Create an admin user, set it as current user and send a API request. */
@@ -200,11 +202,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_rest_params
 	*/
 	public function test_pass_rest_params( $rest_params ) {
-		static $controller = null;
-
-		if ( is_null( $controller ) ) {
-			$controller = new WC_Stripe_REST_Payment_Intents_Controller();
-		}
+		$controller = new WC_Stripe_REST_Payment_Intents_Controller();
 
 		$request = new WP_REST_Request(
 			WP_REST_Server::READABLE,

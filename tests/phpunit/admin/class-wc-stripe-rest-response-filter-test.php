@@ -1,9 +1,6 @@
 <?php
 /**
  * Class WC_Stripe_REST_Response_Filter_Test
- *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class WC_Stripe_REST_Response_Filter_Test extends WP_UnitTestCase {
 	public static function provide_test_data(): array {

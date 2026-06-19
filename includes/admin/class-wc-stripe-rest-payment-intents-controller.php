@@ -234,7 +234,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 				return false;
 			}
 
-			if ( preg_match( '/' . $unix_timestamp_pattern . '/', $operand ) !== 1 ) {
+			if ( ! is_scalar( $operand ) || preg_match( '/' . $unix_timestamp_pattern . '/', (string) $operand ) !== 1 ) {
 				return false;
 			}
 		}
