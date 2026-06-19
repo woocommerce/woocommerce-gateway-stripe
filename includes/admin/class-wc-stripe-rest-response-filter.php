@@ -122,17 +122,17 @@ abstract class WC_Stripe_REST_Response_Filter {
 	 * @return object
 	 */
 	private static function deep_clone( $obj ) {
-		return unserialize( serialize( $obj ) );
+		return json_decode( json_encode( $obj ) );
 	}
 
 	/**
 	 * Format a money amount
 	 *
-	 * @param float $value The object.
+	 * @param int|float $value The amount in cents.
 	 *
 	 * @return string
 	 */
 	public static function money_format( $value ) {
-		return number_format( $value / 100, 2 );
+		return number_format( round( $value / 100, 2 ), 2 );
 	}
 }

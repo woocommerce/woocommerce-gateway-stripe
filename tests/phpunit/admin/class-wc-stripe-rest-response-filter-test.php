@@ -85,13 +85,34 @@ class WC_Stripe_REST_Response_Filter_Test extends WP_UnitTestCase {
 					]
 				}',
 			],
+			// Test format callback
+			[
+				'{"object": "list", "data": [{"id": "pi_123", "amount": 2460}]}',
+				[
+					'object'      => '',
+					'data.id'     => '',
+					'data.amount' => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
+				],
+				'{"object": "list", "data": [{"id": "pi_123", "amount": "24.60"}]}',
+			],
+
+			// Test null property value handling
+			[
+				'{"object": "list", "data": [{"id": "pi_123", "payment_method": null}]}',
+				[
+					'object'              => '',
+					'data.id'             => '',
+					'data.payment_method' => '',
+				],
+				'{"object": "list", "data": [{"id": "pi_123", "payment_method": null}]}',
+			],
 		];
 	}
 
 	/**
 	 * @dataProvider provide_test_data
 	*/
-	public function test_pass_rest_params( $response_as_json, $allowed_properties, $expected_response_as_json ) {
+	public function test_filter_response( $response_as_json, $allowed_properties, $expected_response_as_json ) {
 		$response          = json_decode( $response_as_json );
 		$expected_response = json_decode( $expected_response_as_json );
 

@@ -111,7 +111,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 			3
 		);
 
-		$this->send_request();
+		$response = $this->send_request();
 
 		remove_filter(
 			'pre_http_request',
@@ -120,7 +120,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 			3
 		);
 
-		$this->assertTrue( true );
+		$this->assertEquals( 401, $response->status );
 	}
 
 	/** Create an admin user, set it as current user and send a API request. */
