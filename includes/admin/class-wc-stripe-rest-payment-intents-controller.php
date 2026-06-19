@@ -66,7 +66,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		],
 	];
 
-	protected $stripe_response_allowed_fields = [
+	protected array $stripe_response_allowed_fields = [
 		'object'                               => '',
 		'has_more'                             => '',
 		'data.id'                              => '',

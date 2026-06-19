@@ -52,12 +52,12 @@ abstract class WC_Stripe_REST_Response_Filter {
 	}
 
 	/**
-	 * Filter an object by a given allowed property list.
+	 * Filter a value by a given allowed property list.
 	 *
-	 * @param object|array $obj The object.
+	 * @param mixed $value The object.
 	 * @param array $allowed_properties The property white list.
 	 *
-	 * @return object|array
+	 * @return mixed
 	 */
 	protected static function filter_value( $value, array $allowed_properties ) {
 		if ( is_object( $value ) ) {
@@ -68,7 +68,7 @@ abstract class WC_Stripe_REST_Response_Filter {
 				if ( is_callable( $format_callback ) ) {
 					$filtered_object = $format_callback( $value );
 				} else {
-					$filtered_object = static::deep_clone( $value );
+					$filtered_object = self::deep_clone( $value );
 				}
 			} else {
 				$filtered_object = new stdClass();
@@ -87,7 +87,7 @@ abstract class WC_Stripe_REST_Response_Filter {
 
 				if ( ! isset( $rule[ static::IDX_PATH ] ) || ! is_array( $rule[ static::IDX_PATH ] ) ) {
 					if ( is_object( $property_value ) ) {
-						$property_value = static::deep_clone( $property_value );
+						$property_value = self::deep_clone( $property_value );
 					}
 
 					if ( is_callable( $rule[ static::IDX_FORMAT_CALLBACK ] ) ) {
@@ -114,10 +114,24 @@ abstract class WC_Stripe_REST_Response_Filter {
 		return $value;
 	}
 
+	/**
+	 * Deep clone an object..
+	 *
+	 * @param mixed $obj The object.
+	 *
+	 * @return object
+	 */
 	private static function deep_clone( $obj ) {
 		return unserialize( serialize( $obj ) );
 	}
 
+	/**
+	 * Format a money amount
+	 *
+	 * @param float $value The object.
+	 *
+	 * @return string
+	 */
 	public static function money_format( $value ) {
 		return number_format( $value / 100, 2 );
 	}
