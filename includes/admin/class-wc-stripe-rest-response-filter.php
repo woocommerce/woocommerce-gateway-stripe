@@ -12,13 +12,13 @@ defined( 'ABSPATH' ) || exit;
  */
 abstract class WC_Stripe_REST_Response_Filter {
 
-	public static function filter_response( $response, array $allowed_properties ) {
+	public static function filter_response( $response, array $allowed_properties ): object {
 		$expanded_allowed_properties = static::expand_allowed_property_paths( $allowed_properties );
 
 		return static::filter_object( $response, $expanded_allowed_properties );
 	}
 
-	protected static function expand_allowed_property_paths( $allowed_property_paths ) {
+	protected static function expand_allowed_property_paths( $allowed_property_paths ): array {
 		$expanded_allowed_properties = [];
 
 		foreach ( $allowed_property_paths as $path_as_string => $format_callback ) {
@@ -40,7 +40,7 @@ abstract class WC_Stripe_REST_Response_Filter {
 		return $expanded_allowed_properties;
 	}
 
-	protected static function filter_object( $obj, array $allowed_properties ) {
+	protected static function filter_object( $obj, array $allowed_properties ): object {
 		if ( $obj instanceof stdClass ) {
 			$filtered_object = new stdClass();
 
@@ -64,12 +64,10 @@ abstract class WC_Stripe_REST_Response_Filter {
 		}
 
 		if ( is_array( $obj ) ) {
-			if ( is_list_array( $obj ) ) {
-				return array_map(
-					static fn ( $item ) => static::filter_object( $item, $allowed_properties ),
-					$obj
-				);
-			}
+			return array_map(
+				static fn ( $item ) => static::filter_object( $item, $allowed_properties ),
+				$obj
+			);
 
 			$filtered_object = [];
 
