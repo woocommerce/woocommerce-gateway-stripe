@@ -125,7 +125,11 @@ const ExpressCheckoutPreview = ( {
 	if ( canRenderButtons ) {
 		return (
 			<div
-				key={ `${ buttonType }-${ theme }` }
+				key={
+					buttonType && theme
+						? `${ buttonType }-${ theme }`
+						: undefined
+				}
 				style={ { minHeight: `${ height }px`, width: '100%' } }
 			>
 				<Elements stripe={ stripePromise } options={ options }>
