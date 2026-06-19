@@ -28,6 +28,7 @@ xxxx-xx-xx - version 10.9.0
 * Tweak - Don't show the Stripe API outage notice on local and development sites, where Stripe is often unreachable for benign reasons
 * Dev - Rename internal Blocks API references to Store API in the Express Checkout client for naming consistency
 * Add - Verify that Stripe.js was served from the official Stripe origin before processing checkout payments
+* Fix - Use Stripe.js's initCheckoutElementsSdk method to load Adaptive Pricing at checkout, so it is no longer wrongly hidden
 
 2026-06-15 - version 10.8.2
 * Fix - Disable Adaptive Pricing when webhooks are disabled
