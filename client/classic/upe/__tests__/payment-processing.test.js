@@ -432,33 +432,12 @@ describe( 'payment-processing', () => {
 				expect( api._stripe.elements ).not.toHaveBeenCalled();
 			} );
 
-			it( 'skips Adaptive Pricing and loads standard elements when Stripe.js exposes initCheckoutElementsSdk (dahlia+)', async () => {
+			it( 'skips Adaptive Pricing and loads standard elements when initCheckoutElementsSdk is absent (older Stripe.js)', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
-				// dahlia+ keeps initCheckout() as a throwing stub plus the replacement
-				// method, so AP must be skipped before the stub is ever called.
-				api._stripe.initCheckout = jest.fn( () => {
-					throw new Error( 'stripe.initCheckout() has been removed' );
-				} );
-				api._stripe.initCheckoutElementsSdk = jest.fn();
-				const dom = document.createElement( 'div' );
-				dom.dataset.paymentMethodType = 'card';
-
-				await paymentProcessing.mountStripePaymentElement( api, dom );
-
-				expect(
-					api.checkoutSessionsCreateSession
-				).not.toHaveBeenCalled();
-				expect( api._stripe.initCheckout ).not.toHaveBeenCalled();
-				expect( api._stripe.elements ).toHaveBeenCalled();
-			} );
-
-			it( 'skips Adaptive Pricing and loads standard elements when initCheckout is absent (older Stripe.js)', async () => {
-				const checkoutElements = createMockElements();
-				const api = createMockApi( checkoutElements );
-				// Older builds predate initCheckout() entirely; the gateway must
+				// Older builds predate initCheckoutElementsSdk() entirely; the gateway must
 				// degrade to the standard elements flow instead of crashing checkout.
-				delete api._stripe.initCheckout;
+				delete api._stripe.initCheckoutElementsSdk;
 				const dom = document.createElement( 'div' );
 				dom.dataset.paymentMethodType = 'card';
 
