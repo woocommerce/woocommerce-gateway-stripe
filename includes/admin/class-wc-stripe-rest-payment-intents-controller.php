@@ -66,7 +66,16 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		],
 	];
 
-
+	protected $stripe_response_allowed_fields = [
+		'object'                               => '',
+		'has_more'                             => '',
+		'data.id'                              => '',
+		'data.amount'                          => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
+		'data.amount_received'                 => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
+		'data.currency'                        => 'strtoupper',
+		'data.payment_details.order_reference' => '',
+		'data.status'                          => '',
+	];
 
 	/**
 	 * Configure REST API routes.
@@ -164,7 +173,9 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 			return new WP_Error( $error_code, $error_message, [ 'status' => 400 ] );
 		}
 
-		return rest_ensure_response( $response );
+		$filtered_response = WC_Stripe_REST_Response_Filter::filter_response( $response, $this->stripe_response_allowed_fields );
+
+		return rest_ensure_response( $filtered_response );
 	}
 
 	/**
