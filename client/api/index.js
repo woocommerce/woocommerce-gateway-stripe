@@ -11,6 +11,7 @@ import {
 	getStripeServerData,
 	getStripeDevWidgetOptions,
 } from 'wcstripe/stripe-utils';
+import { assertStripeJsOrigin } from 'wcstripe/stripe-utils/verify-stripe-js-origin';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_CASHAPP,
@@ -95,6 +96,8 @@ export default class WCStripeAPI {
 	 * @return {Object} The Stripe instance.
 	 */
 	createStripe( key, locale, betas = [] ) {
+		assertStripeJsOrigin();
+
 		const options = {
 			locale,
 			...getStripeDevWidgetOptions(),
