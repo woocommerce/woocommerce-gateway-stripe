@@ -56,7 +56,7 @@ abstract class WC_Stripe_REST_Response_Filter {
 	 *
 	 * @return object|array
 	 */
-	protected static function filter_object( object $obj, array $allowed_properties ) {
+	protected static function filter_object( $obj, array $allowed_properties ) {
 		if ( $obj instanceof stdClass ) {
 			$filtered_object = new stdClass();
 
