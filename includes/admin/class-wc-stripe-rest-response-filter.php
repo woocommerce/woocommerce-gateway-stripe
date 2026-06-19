@@ -12,7 +12,15 @@ defined( 'ABSPATH' ) || exit;
  */
 abstract class WC_Stripe_REST_Response_Filter {
 
-	public static function filter_response( object $response, array $allowed_properties ): object {
+	/**
+	 * Filter a API response by a given allowed property list.
+	 *
+	 * @param object $response The response object.
+	 * @param array $allowed_properties The property white list.
+	 *
+	 * @return object|array
+	 */
+	public static function filter_response( object $response, array $allowed_properties ) {
 		$expanded_allowed_properties = static::expand_allowed_property_paths( $allowed_properties );
 
 		return static::filter_object( $response, $expanded_allowed_properties );
