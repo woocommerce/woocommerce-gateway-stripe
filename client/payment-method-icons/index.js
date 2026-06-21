@@ -42,4 +42,5 @@ export default {
 	bacs_debit: BacsDebitIcon,
 	acss_debit: BankDebitIcon,
 	au_becs_debit: BankDebitIcon,
+	pay_by_bank: BankDebitIcon,
 };
