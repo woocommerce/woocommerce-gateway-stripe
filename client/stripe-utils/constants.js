@@ -28,6 +28,7 @@ export const PAYMENT_METHOD_BACS = 'bacs_debit';
 export const PAYMENT_METHOD_BECS = 'au_becs_debit';
 export const PAYMENT_METHOD_PAY_BY_BANK = 'pay_by_bank';
 export const PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY = 'apple_pay_google_pay';
+export const PAYMENT_METHOD_STRIPE_PAY_BY_BANK = 'stripe_pay_by_bank';
 
 /**
  * Payment method names constants with the `stripe` prefix
@@ -78,6 +79,7 @@ export function getPaymentMethodsConstants() {
 		cashapp: PAYMENT_METHOD_STRIPE_CASHAPP,
 		acss_debit: PAYMENT_METHOD_STRIPE_ACSS,
 		bacs_debit: PAYMENT_METHOD_STRIPE_BACS_DEBIT,
+		pay_by_bank: PAYMENT_METHOD_STRIPE_PAY_BY_BANK,
 	};
 }
 
