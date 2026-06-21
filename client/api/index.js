@@ -353,7 +353,9 @@ export default class WCStripeAPI {
 		const confirmArgs = {
 			clientSecret,
 			redirect: 'if_required',
-			return_url: this.options?.return_url,
+			confirmParams: {
+				return_url: this.options?.return_url,
+			},
 		};
 
 		const confirmAction = isSetupIntent
