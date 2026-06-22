@@ -185,8 +185,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Don't show the Stripe API outage notice on local and development sites, where Stripe is often unreachable for benign reasons
 * Update - Deprecate the wc_stripe_agentic_commerce_should_sync_product filter in favor of the shareable woocommerce_agentic_commerce_should_sync_product
 * Update - Replace the legacy add-to-cart AJAX endpoint with a Store API call for variable products in Express Checkout
+* Update - Add booking products to the cart via the Store API in Express Checkout when WooCommerce Bookings supports it
 * Dev - Rename internal Blocks API references to Store API in the Express Checkout client for naming consistency
+* Fix - Show the card decline error message on classic-shortcode checkout pages instead of silently failing
 * Add - Verify that Stripe.js was served from the official Stripe origin before processing checkout payments
+* Fix - Ensure Adaptive Pricing appears on the checkout page when enabled
 * Fix - Exclude WooCommerce Subscriptions products from the Agentic Commerce product feed so they no longer make every sync report a partial success
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
