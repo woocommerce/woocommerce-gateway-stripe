@@ -760,6 +760,10 @@ trait WC_Stripe_Subscriptions_Trait {
 				$request['capture'] = 'true';
 				$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
 				$response           = WC_Stripe_API::request( $request );
+
+				// WC_Stripe_API::request() returns the decoded response body, which is not
+				// guaranteed to be an object; the renewal flow below and process_response()
+				// read the charge via object property access, so normalize the shape here.
 				if ( is_array( $response ) ) {
 					$response = (object) $response;
 				}

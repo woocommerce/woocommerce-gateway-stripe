@@ -289,6 +289,21 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->lock_order_payment( $renewal_order );
 
+		// Enable logging and spy on the logger so we can assert the duplicate-attempt
+		// warning is emitted; production relies on it to observe the short-circuit.
+		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['logging'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$logged_warnings = [];
+		$logger          = $this->getMockBuilder( WC_Logger::class )->disableOriginalConstructor()->getMock();
+		$logger->method( 'warning' )->willReturnCallback(
+			function ( $message ) use ( &$logged_warnings ) {
+				$logged_warnings[] = $message;
+			}
+		);
+		WC_Stripe_Logger::$logger = $logger;
+
 		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $expected_api_endpoint, &$api_requests ) {
 			if ( 0 !== strpos( $url, $expected_api_endpoint ) ) {
 				return false;
@@ -337,12 +352,22 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
 		} finally {
 			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			WC_Stripe_Logger::$logger = null;
 		}
 
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
 
 		$this->assertSame( [], $api_requests );
 		$this->assertGreaterThan( time(), $order_helper->get_order_existing_payment_lock( $renewal_order ) );
+
+		$order_id          = (string) $renewal_order->get_id();
+		$matching_warnings = array_filter(
+			$logged_warnings,
+			function ( $message ) use ( $order_id ) {
+				return false !== strpos( $message, $order_id );
+			}
+		);
+		$this->assertNotEmpty( $matching_warnings, 'Expected a duplicate-attempt warning mentioning the order id.' );
 	}
 
 	public function provide_locked_subscription_renewal_payment_methods() {
