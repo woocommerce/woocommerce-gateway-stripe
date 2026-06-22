@@ -46,10 +46,31 @@ class WC_Stripe_UPE_Payment_Method_Pay_By_Bank_Test extends WC_Stripe_UPE_Paymen
 
 	public function provide_test_is_available_for_account_country(): array {
 		return [
-			'US is supported'  => [ WC_Stripe_Country_Code::UNITED_STATES, true ],
-			'GB is supported'  => [ WC_Stripe_Country_Code::UNITED_KINGDOM, true ],
-			'DE is supported'  => [ WC_Stripe_Country_Code::GERMANY, true ],
-			'FR is supported'  => [ WC_Stripe_Country_Code::FRANCE, true ],
+			'US is supported' => [ WC_Stripe_Country_Code::UNITED_STATES, true ],
+			'GB is supported' => [ WC_Stripe_Country_Code::UNITED_KINGDOM, true ],
+			'DE is supported' => [ WC_Stripe_Country_Code::GERMANY, true ],
+			'FR is supported' => [ WC_Stripe_Country_Code::FRANCE, true ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_test_is_available_for_billing_country
+	 */
+	public function test_is_available_for_billing_country( string $billing_country, bool $expected ): void {
+		$this->assertSame( $expected, $this->method->is_available_for_billing_country( $billing_country ) );
+	}
+
+	public function provide_test_is_available_for_billing_country(): array {
+		return [
+			'DE is allowed'    => [ WC_Stripe_Country_Code::GERMANY, true ],
+			'FI is allowed'    => [ WC_Stripe_Country_Code::FINLAND, true ],
+			'FR is allowed'    => [ WC_Stripe_Country_Code::FRANCE, true ],
+			'GB is allowed'    => [ WC_Stripe_Country_Code::UNITED_KINGDOM, true ],
+			'IE is allowed'    => [ WC_Stripe_Country_Code::IRELAND, true ],
+			'US is blocked'    => [ WC_Stripe_Country_Code::UNITED_STATES, false ],
+			'CA is blocked'    => [ WC_Stripe_Country_Code::CANADA, false ],
+			'AU is blocked'    => [ WC_Stripe_Country_Code::AUSTRALIA, false ],
+			'empty is blocked' => [ '', false ],
 		];
 	}
 }

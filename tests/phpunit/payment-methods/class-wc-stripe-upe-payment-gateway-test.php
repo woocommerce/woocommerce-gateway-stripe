@@ -386,6 +386,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					WC_Stripe_UPE_Payment_Method_Wechat_Pay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Pay_By_Bank::STRIPE_ID,
 				],
 			],
 			[
@@ -399,6 +400,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Pay_By_Bank::STRIPE_ID,
 				],
 			],
 			[
@@ -415,6 +417,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Multibanco::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Pay_By_Bank::STRIPE_ID,
 				],
 			],
 		];
