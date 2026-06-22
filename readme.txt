@@ -185,5 +185,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Replace the legacy add-to-cart AJAX endpoint with a Store API call for variable products in Express Checkout
 * Dev - Rename internal Blocks API references to Store API in the Express Checkout client for naming consistency
 * Add - Verify that Stripe.js was served from the official Stripe origin before processing checkout payments
+* Fix - Exclude WooCommerce Subscriptions products from the Agentic Commerce product feed so they no longer make every sync report a partial success
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
