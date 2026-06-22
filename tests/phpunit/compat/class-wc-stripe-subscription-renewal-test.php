@@ -295,10 +295,11 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$stripe_settings['logging'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
+		$previous_logger = WC_Stripe_Logger::$logger;
 		$logged_warnings = [];
 		$logger          = $this->getMockBuilder( WC_Logger::class )->disableOriginalConstructor()->getMock();
 		$logger->method( 'warning' )->willReturnCallback(
-			function ( $message ) use ( &$logged_warnings ) {
+			function ( $message, $context = [] ) use ( &$logged_warnings ) {
 				$logged_warnings[] = $message;
 			}
 		);
@@ -352,7 +353,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
 		} finally {
 			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
-			WC_Stripe_Logger::$logger = null;
+			WC_Stripe_Logger::$logger = $previous_logger;
 		}
 
 		$renewal_order = wc_get_order( $renewal_order->get_id() );

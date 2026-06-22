@@ -747,7 +747,10 @@ trait WC_Stripe_Subscriptions_Trait {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_id     = $renewal_order->get_id();
 
-		if ( $order_helper->lock_order_payment( $renewal_order ) ) {
+		// lock_order_payment() returns true when the lock is already held (another renewal
+		// attempt is in flight) and false when this process just acquired it.
+		$lock_already_held = $order_helper->lock_order_payment( $renewal_order );
+		if ( $lock_already_held ) {
 			WC_Stripe_Logger::warning( "Stripe: skipping duplicate renewal attempt for order {$order_id} because the payment lock is already held." );
 			return null;
 		}
@@ -763,9 +766,11 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				// WC_Stripe_API::request() returns the decoded response body, which is not
 				// guaranteed to be an object; the renewal flow below and process_response()
-				// read the charge via object property access, so normalize the shape here.
+				// read the charge (including nested members) via object property access, so
+				// normalize arrays to objects at every level before returning.
 				if ( is_array( $response ) ) {
-					$response = (object) $response;
+					$decoded_response = json_decode( wp_json_encode( $response ) );
+					$response         = $decoded_response instanceof stdClass ? $decoded_response : (object) $response;
 				}
 
 				return [
