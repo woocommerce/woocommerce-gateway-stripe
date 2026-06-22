@@ -257,6 +257,9 @@ class WC_Stripe_Express_Checkout_Element {
 			'custom_checkout_fields'     => ( new WC_Stripe_Express_Checkout_Custom_Fields() )->get_custom_checkout_fields(),
 			'has_free_trial'             => $this->express_checkout_helper->has_free_trial(),
 			'is_change_payment_method'   => $this->express_checkout_helper->is_change_payment_method_page(),
+			// Bookings can only be added via the Store API cart route when its
+			// Store API integration is present (WC Bookings 3.0.0+).
+			'has_bookings_store_api'     => class_exists( 'WC_Bookings_Cart_Store_API' ),
 		];
 	}
 
