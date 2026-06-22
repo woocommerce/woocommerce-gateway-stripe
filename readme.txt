@@ -183,5 +183,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Don't show the Stripe API outage notice on local and development sites, where Stripe is often unreachable for benign reasons
 * Dev - Rename internal Blocks API references to Store API in the Express Checkout client for naming consistency
 * Add - Verify that Stripe.js was served from the official Stripe origin before processing checkout payments
+* Fix - Ensure Adaptive Pricing appears on the checkout page when enabled
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
