@@ -15,7 +15,7 @@ describe( 'ManualCaptureControl', () => {
 	beforeEach( () => {
 		useManualCapture.mockReturnValue( [ false, () => null ] );
 		global.wc_stripe_settings_params = {
-			is_agentic_commerce_enabled: false,
+			is_agentic_commerce_merchant_enabled: false,
 		};
 	} );
 
@@ -24,7 +24,7 @@ describe( 'ManualCaptureControl', () => {
 	} );
 
 	it( 'notes in the confirmation modal that agentic purchases follow the Stripe dashboard capture setting when agentic commerce is enabled', async () => {
-		global.wc_stripe_settings_params.is_agentic_commerce_enabled = true;
+		global.wc_stripe_settings_params.is_agentic_commerce_merchant_enabled = true;
 		useManualCapture.mockReturnValue( [ false, jest.fn() ] );
 
 		render( <ManualCaptureControl /> );
@@ -42,7 +42,7 @@ describe( 'ManualCaptureControl', () => {
 	} );
 
 	it( 'omits the agentic capture note when agentic commerce is disabled', async () => {
-		global.wc_stripe_settings_params.is_agentic_commerce_enabled = false;
+		global.wc_stripe_settings_params.is_agentic_commerce_merchant_enabled = false;
 		useManualCapture.mockReturnValue( [ false, jest.fn() ] );
 
 		render( <ManualCaptureControl /> );

@@ -42,9 +42,11 @@ const ManualCaptureControl = () => {
 		useState( false );
 
 	// Agentic Commerce capture is configured in the Stripe dashboard, not by this
-	// plugin setting, so only flag the divergence to merchants who actually use it.
+	// plugin setting, so only flag the divergence to merchants who have actually
+	// enabled Agentic Commerce — gate on the merchant toggle, not the feature flag.
 	const isAgenticCommerceEnabled =
-		!! window.wc_stripe_settings_params?.is_agentic_commerce_enabled;
+		!! window.wc_stripe_settings_params
+			?.is_agentic_commerce_merchant_enabled;
 
 	const handleCheckboxToggle = ( isChecked ) => {
 		// toggling from "manual" capture to "automatic" capture - no need to show the modal.
