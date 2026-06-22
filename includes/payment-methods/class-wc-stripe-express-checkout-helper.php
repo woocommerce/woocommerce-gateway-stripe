@@ -203,6 +203,24 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Gets the Amazon Pay button height.
+	 *
+	 * @return string
+	 */
+	public function get_amazon_pay_button_height() {
+		$size = isset( $this->stripe_settings['amazon_pay_button_size'] ) ? $this->stripe_settings['amazon_pay_button_size'] : 'default';
+		if ( 'small' === $size ) {
+			return '40';
+		}
+
+		if ( 'large' === $size ) {
+			return '56';
+		}
+
+		return '48';
+	}
+
+	/**
 	 * Gets the button radius.
 	 *
 	 * @return string
