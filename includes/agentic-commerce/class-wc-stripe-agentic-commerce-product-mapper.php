@@ -990,11 +990,26 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		// A variable-subscription's variations share the `product_variation`
 		// post type, so the feed's simple/variation query returns them; left in,
 		// they fail validation and downgrade every sync to a partial success.
-		// Excluded by default, still overridable via the filter below.
+		// Excluded by default, still overridable via the filters below.
 		$default_should_sync = ! $product->is_type( [ 'subscription', 'variable-subscription', 'subscription_variation' ] );
+
+		// The Stripe-prefixed filter is retained for backward compatibility. Its
+		// result seeds the default for the canonical filter below, so existing
+		// adapters keep working while a hook on the new name still takes precedence.
+		$should_sync = apply_filters_deprecated(
+			'wc_stripe_agentic_commerce_should_sync_product',
+			[ $default_should_sync, $product ],
+			'10.9.0',
+			'woocommerce_agentic_commerce_should_sync_product',
+			'The wc_stripe_agentic_commerce_should_sync_product filter is deprecated since WooCommerce Stripe Gateway 10.9.0. Use woocommerce_agentic_commerce_should_sync_product instead.'
+		);
 
 		/**
 		 * Filter whether a product should be included in any Agentic Commerce sync.
+		 *
+		 * Uses the WooCommerce core `woocommerce_` prefix rather than `wc_stripe_`
+		 * so the same hook can be shared by other Agentic Commerce integrations
+		 * that are not Stripe-specific.
 		 *
 		 * Applied per product at three entry points: the full-feed mapper, the
 		 * inventory-change tracker, and the archive tracker. Returning false from
@@ -1013,13 +1028,13 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * `do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' )` to
 		 * enqueue an immediate full-catalog sync.
 		 *
-		 * @since 10.8.0
+		 * @since 10.9.0
 		 * @param bool        $should_sync Whether to include the product. Default true (false for subscriptions).
 		 * @param \WC_Product $product     Product being evaluated.
 		 */
 		// wp_validate_boolean() rather than a plain (bool) cast: an adapter that
 		// returns the string 'false' would be truthy under a cast and wrongly
 		// sync the product. This still normalises null / 0 / '' to false.
-		return wp_validate_boolean( apply_filters( 'wc_stripe_agentic_commerce_should_sync_product', $default_should_sync, $product ) );
+		return wp_validate_boolean( apply_filters( 'woocommerce_agentic_commerce_should_sync_product', $should_sync, $product ) );
 	}
 }
