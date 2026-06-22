@@ -712,11 +712,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				// Use the last charge within the intent or the full response body in case of SEPA.
 				$latest_charge   = $this->get_latest_charge_from_intent( $response );
 				$charge_response = ( ! empty( $latest_charge ) ) ? $latest_charge : $response;
-				/**
-				 * Charge response passed to process_response().
-				 *
-				 * @var object $charge_response
-				 */
+				/** @var object $charge_response */
 				$this->process_response( $charge_response, $renewal_order );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
@@ -780,11 +776,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 
 			$response = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
-			/**
-			 * Renewal payment intent response.
-			 *
-			 * @var stdClass $response
-			 */
+			/** @var stdClass $response */
 
 			return [
 				'response'                   => $response,
