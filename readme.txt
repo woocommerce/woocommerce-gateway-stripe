@@ -156,6 +156,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.8.3 - xxxx-xx-xx =
+* Fix - Ensure Adaptive Pricing appears on the checkout page when enabled
 
 = 10.8.2 - 2026-06-15 =
 * Fix - Disable Adaptive Pricing when webhooks are disabled

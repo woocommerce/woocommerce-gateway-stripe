@@ -310,13 +310,9 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	let elements;
 	let shouldLoadStripeElements = true;
 	// If Adaptive Pricing is enabled, use the Checkout Session API to load the elements.
-	// dahlia+ keeps initCheckout() as a throwing stub, so detect the replacement method and
-	// skip AP before creating a Checkout Session instead of falling back after it throws.
 	if (
 		stripeServerData?.isAdaptivePricingEnabled &&
-		supportsDeferredIntent &&
-		typeof stripe?.initCheckout === 'function' &&
-		typeof stripe?.initCheckoutElementsSdk !== 'function'
+		supportsDeferredIntent
 	) {
 		try {
 			const response = await api.checkoutSessionsCreateSession();
