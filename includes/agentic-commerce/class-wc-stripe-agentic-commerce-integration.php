@@ -180,8 +180,11 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 		add_action( self::IMMEDIATE_SYNC_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 
-		// Adapter-fired hook to converge Stripe's catalog when a product's
-		// `should_sync` outcome changes, instead of waiting for the next full sync.
+		// Adapter-fired hook for converging Stripe's catalog when the
+		// `woocommerce_agentic_commerce_should_sync_product` filter outcome changes.
+		// See the filter docblock for the contract — without this, a previously
+		// exported product that becomes excluded would only drop out of Stripe's
+		// catalog on the next scheduled full sync.
 		add_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $this, 'schedule_full_resync_now' ] );
 
 		// WC 10.8+ requires `created_via` to be in an allowlist for `payment_complete()` to run.
