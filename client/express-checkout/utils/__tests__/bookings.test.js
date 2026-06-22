@@ -106,6 +106,20 @@ describe( 'buildBookingConfiguration', () => {
 			[ 'wc_bookings_field_start_date_month', '7' ],
 			[ 'wc_bookings_field_start_date_day', '1' ],
 			[ 'wc_bookings_field_start_date_to_year', '2026' ],
+			[ 'wc_bookings_field_duration', '3' ],
+		] );
+
+		expect( buildBookingConfiguration( form ) ).toBeNull();
+	} );
+
+	test( 'returns null for customer-defined-duration (nights) bookings without a range picker', () => {
+		// "N nights" bookings render `wc_bookings_field_duration` but no
+		// `_to_year`, so the duration field is what flags the legacy fallback.
+		const form = makeForm( [
+			[ 'wc_bookings_field_start_date_year', '2026' ],
+			[ 'wc_bookings_field_start_date_month', '7' ],
+			[ 'wc_bookings_field_start_date_day', '1' ],
+			[ 'wc_bookings_field_duration', '2' ],
 		] );
 
 		expect( buildBookingConfiguration( form ) ).toBeNull();

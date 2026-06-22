@@ -37,9 +37,12 @@ export const buildBookingConfiguration = ( form ) => {
 		form.querySelector( `[name="${ name }"]` )?.value?.trim() ?? '';
 
 	// Persons / customer-defined-duration bookings can't be represented; legacy.
+	// `wc_bookings_field_duration` is rendered for every customer-defined-duration
+	// unit (nights, hours, weeks, range picker, …), so it covers the whole set the
+	// endpoint can't express — `_to_year` only caught the range-picker subset.
 	if (
 		form.querySelector( '[name^="wc_bookings_field_persons"]' ) ||
-		form.querySelector( '[name$="_to_year"]' )
+		form.querySelector( '[name="wc_bookings_field_duration"]' )
 	) {
 		return null;
 	}
