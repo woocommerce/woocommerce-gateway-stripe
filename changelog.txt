@@ -1,5 +1,8 @@
 *** Changelog ***
 
+2026-06-22 - version 10.8.3
+* Fix - Ensure Adaptive Pricing appears on the checkout page when enabled
+
 2026-06-15 - version 10.8.2
 * Fix - Disable Adaptive Pricing when webhooks are disabled
 * Fix - Fall back to standard checkout when Adaptive Pricing can't initialize against a conflicting Stripe.js version

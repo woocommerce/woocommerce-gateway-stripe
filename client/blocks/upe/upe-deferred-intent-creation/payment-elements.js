@@ -205,16 +205,8 @@ const PaymentElements = ( {
 	...props
 } ) => {
 	const stripeServerData = getBlocksConfiguration();
-	// Adaptive Pricing renders <CheckoutProvider>, which calls initCheckout() on mount. Newer
-	// Stripe.js (dahlia+) turns that into a stub that throws, so detect it via the
-	// replacement method and fall back before the provider mounts.
-	const stripe = api.getStripe();
-	const stripeSupportsInitCheckout =
-		typeof stripe?.initCheckout === 'function' &&
-		typeof stripe?.initCheckoutElementsSdk !== 'function';
 	const isAdaptivePricingSupported =
-		stripeServerData?.isAdaptivePricingEnabled &&
-		stripeSupportsInitCheckout;
+		stripeServerData?.isAdaptivePricingEnabled;
 
 	const [ errorMessage, setErrorMessage ] = useState( null );
 	const [
