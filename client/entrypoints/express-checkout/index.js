@@ -121,18 +121,32 @@ jQuery( function ( $ ) {
 		return event.resolve( clickOptions );
 	};
 
+	const getFormElementFromEvent = ( evt ) => {
+		if ( ! evt?.target ) {
+			return null;
+		}
+		if ( evt.target.nodeName === 'FORM' ) {
+			return evt.target;
+		}
+		if ( evt.target.form?.nodeName === 'FORM' ) {
+			return evt.target.form;
+		}
+		return null;
+	};
+
 	// Check if the product is waiting for a variation to be selected.
-	const isVariationSelectionNeeded = () => {
+	const isVariationSelectionNeeded = ( formElement = null ) => {
 		// This check only makes sense on the product page.
 		const isProductPage = getExpressCheckoutData( 'is_product_page' );
 		if ( ! isProductPage ) {
 			return false;
 		}
 
-		const isVariationProduct = document.querySelector(
+		const parentElement = formElement ? formElement : document;
+		const isVariationProduct = parentElement.querySelector(
 			'.single_variation_wrap'
 		);
-		const variationId = document.querySelector(
+		const variationId = parentElement.querySelector(
 			'input[name="variation_id"]'
 		)?.value;
 		const variationSelected = variationId && variationId !== '0';
@@ -156,28 +170,32 @@ jQuery( function ( $ ) {
 		},
 
 		renderButton: ( eceButton, expressPaymentType ) => {
-			if ( $( '#wc-stripe-express-checkout-element' ).length ) {
-				const containerName = `wc-stripe-express-checkout-element-${ expressPaymentType }`;
-				if ( ! $( `#${ containerName }` ).length ) {
-					$( '#wc-stripe-express-checkout-element' ).append(
-						`<div id="${ containerName }"></div>`
-					);
-				}
-
-				eceButton.mount( `#${ containerName }` );
-
-				// If the express payment type, e.g. Apple Pay, is not available,
-				// remove the container.
-				eceButton.on( 'ready', ( { availablePaymentMethods } ) => {
-					if ( ! availablePaymentMethods ) {
-						$( `#${ containerName }` ).remove();
-					}
-				} );
-
-				eceButton.on( 'loaderror', () => {
-					$( `#${ containerName }` ).remove();
-				} );
+			if ( $( '#wc-stripe-express-checkout-element' ).length === 0 ) {
+				return null;
 			}
+
+			const containerName = `wc-stripe-express-checkout-element-${ expressPaymentType }`;
+			if ( ! $( `#${ containerName }` ).length ) {
+				$( '#wc-stripe-express-checkout-element' ).append(
+					`<div id="${ containerName }"></div>`
+				);
+			}
+
+			eceButton.mount( `#${ containerName }` );
+
+			// If the express payment type, e.g. Apple Pay, is not available,
+			// remove the container.
+			eceButton.on( 'ready', ( { availablePaymentMethods } ) => {
+				if ( ! availablePaymentMethods ) {
+					$( `#${ containerName }` ).remove();
+				}
+			} );
+
+			eceButton.on( 'loaderror', () => {
+				$( `#${ containerName }` ).remove();
+			} );
+
+			return document.getElementById( containerName );
 		},
 
 		productHasDepositOption() {
@@ -257,11 +275,21 @@ jQuery( function ( $ ) {
 		},
 
 		createExpressCheckoutElement: ( expressPaymentType, options ) => {
+			let htmlElement = null;
+
 			const handleProductPageECEButtonClick = async (
 				event,
 				clickOptions
 			) => {
-				const addToCartButton = document.querySelector(
+				// The express checkout elements are rendered via the `woocommerce_after_add_to_cart_form`
+				// hook, so the ECE container element (the parent of the specific button) should be a sibling
+				// element of the product form.
+				const formElement =
+					htmlElement?.parentElement?.parentElement?.querySelector(
+						'form'
+					) ?? null;
+				const container = formElement ? formElement : document;
+				const addToCartButton = container.querySelector(
 					'.single_add_to_cart_button'
 				);
 
@@ -302,7 +330,7 @@ jQuery( function ( $ ) {
 				// Here, we enforce a timeout for the addToCart operation. If the operation
 				// takes longer, we will call event.resolve() immediately,
 				// and wait for the addToCart operation to finish after.
-				const addToCartPromise = wcStripeECE.addToCart();
+				const addToCartPromise = wcStripeECE.addToCart( formElement );
 				const timeout = new Promise( ( resolve ) =>
 					setTimeout( () => {
 						resolve( 'timeout' );
@@ -412,7 +440,10 @@ jQuery( function ( $ ) {
 				},
 			} );
 
-			wcStripeECE.renderButton( eceButton, expressPaymentType );
+			htmlElement = wcStripeECE.renderButton(
+				eceButton,
+				expressPaymentType
+			);
 
 			eceButton.on( 'click', async function ( event ) {
 				// If login is required for checkout, display redirect confirmation dialog.
@@ -639,8 +670,11 @@ jQuery( function ( $ ) {
 			wcStripeECE.paymentAborted = false;
 		},
 
-		getAttributes: () => {
-			const select = $( '.variations_form' ).find( '.variations select' );
+		getAttributes: ( formElement = null ) => {
+			const $formElement = formElement
+				? $( formElement )
+				: $( '.variations_form' ).first();
+			const select = $formElement.find( '.variations select' );
 			const data = {};
 			let count = 0;
 			let chosen = 0;
@@ -666,18 +700,32 @@ jQuery( function ( $ ) {
 			};
 		},
 
-		getSelectedProductData: () => {
-			let productId = $( '.single_add_to_cart_button' ).val();
+		getSelectedProductData: ( formElement = null ) => {
+			const $parentElement = formElement
+				? $( formElement )
+				: $( document );
+			let productId = $parentElement
+				.find( '.single_add_to_cart_button' )
+				.first()
+				.val();
 
 			// Check if product is a variable product.
-			if ( $( '.single_variation_wrap' ).length ) {
-				productId = $( '.single_variation_wrap' )
-					.find( 'input[name="product_id"]' )
+			if ( $parentElement.find( '.single_variation_wrap' ).length ) {
+				productId = $parentElement
+					.find( '.single_variation_wrap' )
+					.find( 'input[name="variation_id"]' )
 					.val();
+
+				if ( ! productId ) {
+					productId = $parentElement
+						.find( '.single_variation_wrap' )
+						.find( 'input[name="product_id"]' )
+						.val();
+				}
 			}
 
 			// WC Bookings Support.
-			if ( $( '.wc-bookings-booking-form' ).length ) {
+			if ( $parentElement.find( '.wc-bookings-booking-form' ).length ) {
 				productId = $( '.wc-booking-product-id' ).val();
 			}
 
@@ -690,22 +738,35 @@ jQuery( function ( $ ) {
 
 			// WC Deposits Support.
 			const depositObject = {};
-			if ( $( 'input[name=wc_deposit_option]' ).length ) {
+			if (
+				$parentElement.find( 'input[name=wc_deposit_option]' ).length
+			) {
 				depositObject.wc_deposit_option = $(
-					'input[name=wc_deposit_option]:checked'
+					$parentElement.find(
+						'input[name=wc_deposit_option]:checked'
+					)
 				).val();
 			}
-			if ( $( 'input[name=wc_deposit_payment_plan]' ).length ) {
+			if (
+				$parentElement.find( 'input[name=wc_deposit_payment_plan]' )
+					.length
+			) {
 				depositObject.wc_deposit_payment_plan = $(
-					'input[name=wc_deposit_payment_plan]:checked'
+					$parentElement.find(
+						'input[name=wc_deposit_payment_plan]:checked'
+					)
 				).val();
 			}
 
+			const isVariationForm = formElement
+				? formElement?.classList?.contains( '.variations_form' )
+				: $( '.variations_form' ).length;
+
 			const data = {
 				product_id: productId,
-				qty: $( quantityInputSelector ).val(),
-				attributes: $( '.variations_form' ).length
-					? wcStripeECE.getAttributes().data
+				qty: $parentElement.find( quantityInputSelector ).val(),
+				attributes: isVariationForm
+					? wcStripeECE.getAttributes( formElement ).data
 					: [],
 				addon_value: addonValue,
 				...depositObject,
@@ -717,24 +778,36 @@ jQuery( function ( $ ) {
 		/**
 		 * Adds the item to the cart and return cart details.
 		 *
+		 * @param {HTMLElement|null} formElement - The form element for the product details.
 		 * @return {Promise} Promise for the request to the server.
 		 */
-		addToCart: async () => {
-			let productId = $( '.single_add_to_cart_button' ).val();
+		addToCart: async ( formElement = null ) => {
+			const $container = formElement ? $( formElement ) : $( document );
+			let productId = $container
+				.find( '.single_add_to_cart_button' )
+				.val();
 			let emptyCartParams = {};
 
 			const data = {
-				qty: $( quantityInputSelector ).val(),
+				qty: $container.find( quantityInputSelector ).val(),
 			};
 
 			// Check if product is a variable product.
-			if ( $( '.single_variation_wrap' ).length ) {
-				productId = $( '.single_variation_wrap' )
-					.find( 'input[name="product_id"]' )
+			if ( $container.find( '.single_variation_wrap' ).length ) {
+				productId = $container
+					.find( '.single_variation_wrap' )
+					.find( 'input[name="variation_id"]' )
 					.val();
+
+				if ( ! productId ) {
+					productId = $container
+						.find( '.single_variation_wrap' )
+						.find( 'input[name="product_id"]' )
+						.val();
+				}
 			}
 
-			if ( $( '.wc-bookings-booking-form' ).length ) {
+			if ( $container.find( '.wc-bookings-booking-form' ).length ) {
 				productId = $( '.wc-booking-product-id' ).val();
 				emptyCartParams = {
 					bookingId: productId,
@@ -742,7 +815,10 @@ jQuery( function ( $ ) {
 			}
 
 			// Add extension data to the POST body
-			const formData = $( 'form.cart' ).serializeArray();
+			const $formElement = formElement
+				? $( formElement )
+				: $( 'form.cart' );
+			const formData = $formElement.serializeArray();
 			$.each( formData, ( i, field ) => {
 				if ( /^(addon-|wc_)/.test( field.name ) ) {
 					if ( /\[\]$/.test( field.name ) ) {
@@ -766,7 +842,7 @@ jQuery( function ( $ ) {
 			// `booking_configuration` param, which this path does not build.
 			if ( hasBookingForm ) {
 				data.product_id = productId;
-				data.attributes = wcStripeECE.getAttributes().data;
+				data.attributes = wcStripeECE.getAttributes( formElement ).data;
 
 				// Clear the cart first (with the booking id) so prior items don't
 				// skew the total, matching the variable/simple path below.
@@ -837,15 +913,16 @@ jQuery( function ( $ ) {
 
 			$( document.body )
 				.off( 'woocommerce_variation_has_changed' )
-				.on( 'woocommerce_variation_has_changed', () => {
-					if ( isVariationSelectionNeeded() ) {
+				.on( 'woocommerce_variation_has_changed', ( evt ) => {
+					const formElement = getFormElementFromEvent( evt );
+					if ( isVariationSelectionNeeded( formElement ) ) {
 						wcStripeECE.hide();
 						return;
 					}
 
 					wcStripeECE.blockExpressCheckoutButton();
 
-					$.when( wcStripeECE.getSelectedProductData() )
+					$.when( wcStripeECE.getSelectedProductData( formElement ) )
 						.then( ( response ) => {
 							if ( response.error ) {
 								wcStripeECE.hide();
@@ -888,8 +965,9 @@ jQuery( function ( $ ) {
 
 			$( document.body )
 				.off( 'woocommerce_update_variation_values' )
-				.on( 'woocommerce_update_variation_values', () => {
-					if ( isVariationSelectionNeeded() ) {
+				.on( 'woocommerce_update_variation_values', ( evt ) => {
+					const formElement = getFormElementFromEvent( evt );
+					if ( isVariationSelectionNeeded( formElement ) ) {
 						wcStripeECE.hide();
 					}
 				} );
@@ -899,11 +977,15 @@ jQuery( function ( $ ) {
 				.on(
 					'input',
 					'.qty',
-					debounce( () => {
+					debounce( ( evt ) => {
 						wcStripeECE.blockExpressCheckoutButton();
 						wcStripeECEError = '';
 
-						$.when( wcStripeECE.getSelectedProductData() )
+						const formElement = getFormElementFromEvent( evt );
+
+						$.when(
+							wcStripeECE.getSelectedProductData( formElement )
+						)
 							.then(
 								( response ) => {
 									// In case the server returns an unexpected response
