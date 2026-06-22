@@ -25,7 +25,24 @@ export const normalizeLineItems = ( displayItems ) => {
 };
 
 /**
- * Builds the payment data for the Blocks API.
+ * Converts selected variation attributes into the `[{ attribute, value }]`
+ * shape the Store API `cart/add-item` endpoint expects.
+ *
+ * @param {Object} attributes Map of attribute field name to chosen value.
+ *
+ * @return {Array<{attribute: string, value: string}>} Store API variation data.
+ */
+export const transformVariationAttributesForStoreApi = ( attributes ) => {
+	return Object.entries( attributes ?? {} ).map(
+		( [ attribute, value ] ) => ( {
+			attribute,
+			value,
+		} )
+	);
+};
+
+/**
+ * Builds the payment data for the Store API.
  *
  * @param {Object} params
  * @param {string} params.expressPaymentType  The express payment type.
@@ -34,7 +51,7 @@ export const normalizeLineItems = ( displayItems ) => {
  *
  * @return {Array} The payment data.
  */
-const buildBlocksAPIPaymentData = ( {
+const buildStoreApiPaymentData = ( {
 	expressPaymentType,
 	paymentMethodId = '',
 	confirmationTokenId = '',
@@ -404,7 +421,7 @@ const getShippingAddressData = ( event ) => {
 };
 
 /**
- * Normalize order data from Stripe's object to the expected format for WC (when using the Blocks API).
+ * Normalize order data from Stripe's object to the expected format for WC (when using the Store API).
  *
  * @param {Object} params
  * @param {Object} params.event               Stripe's event object.
@@ -422,7 +439,7 @@ export const normalizeOrderData = ( {
 		billing_address: getBillingAddressData( event ),
 		shipping_address: getShippingAddressData( event ),
 		payment_method: 'stripe',
-		payment_data: buildBlocksAPIPaymentData( {
+		payment_data: buildStoreApiPaymentData( {
 			expressPaymentType: event?.expressPaymentType,
 			paymentMethodId,
 			confirmationTokenId,
