@@ -155,6 +155,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
+= 10.8.3 - xxxx-xx-xx =
+
 = 10.8.2 - 2026-06-15 =
 * Fix - Disable Adaptive Pricing when webhooks are disabled
 * Fix - Fall back to standard checkout when Adaptive Pricing can't initialize against a conflicting Stripe.js version
