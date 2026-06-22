@@ -1256,7 +1256,8 @@ trait WC_Stripe_Subscriptions_Trait {
 			$saved_payment_method = WC_Stripe_Subscriptions_Helper::get_subscription_payment_method_details( $stripe_customer_id, $stripe_source_id );
 
 			if ( null !== $saved_payment_method ) {
-				return $this->get_payment_method_to_display_for_payment_method( $saved_payment_method );
+				$wallet_type_override = $this->get_saved_token_wallet_type( $customer_user, $stripe_source_id );
+				return $this->get_payment_method_to_display_for_payment_method( $saved_payment_method, $wallet_type_override );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
@@ -1267,12 +1268,45 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
+	 * Returns the pinned `wallet_type` of the saved token backing a Stripe PaymentMethod.
+	 *
+	 * Fingerprint dedup can repoint a saved card token at a newer (wallet-flavored)
+	 * PaymentMethod while leaving its `wallet_type` pinned. The subscription
+	 * row must reflect that pinned branding rather than the live PaymentMethod's wallet,
+	 * so the row and the saved-token list agree.
+	 *
+	 * @param int    $customer_user     WP user ID owning the subscription.
+	 * @param string $stripe_source_id  Stripe PaymentMethod ID stored on the subscription.
+	 * @return string|null The token's pinned wallet type (possibly an empty string), or null
+	 *                     when no matching saved token exists (e.g. guest / parent-order lookups).
+	 */
+	protected function get_saved_token_wallet_type( $customer_user, $stripe_source_id ): ?string {
+		if ( ! $customer_user || empty( $stripe_source_id ) ) {
+			return null;
+		}
+
+		$tokens = WC_Payment_Tokens::get_customer_tokens( $customer_user, WC_Stripe_UPE_Payment_Gateway::ID );
+		foreach ( $tokens as $token ) {
+			if ( $token->get_token() === $stripe_source_id && $token instanceof WC_Stripe_Payment_Token_CC ) {
+				return $token->get_wallet_type();
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Helper function to get the descriptive text for a payment method or source.
 	 *
-	 * @param object $payment_method The payment method or source object.
+	 * @param object      $payment_method      The payment method or source object.
+	 * @param string|null $wallet_type_override Authoritative wallet type from the matching saved
+	 *                                          token, or null when no token matched. When provided
+	 *                                          (including an empty string), it wins over the live
+	 *                                          PaymentMethod's `card->wallet->type` so the row matches
+	 *                                          the saved-token list's pinned branding.
 	 * @return string The descriptive text for the payment method or source.
 	 */
-	protected function get_payment_method_to_display_for_payment_method( object $payment_method ): string {
+	protected function get_payment_method_to_display_for_payment_method( object $payment_method, ?string $wallet_type_override = null ): string {
 		// Legacy handling for Stripe Card objects. ref: https://docs.stripe.com/api/cards/object
 		if ( isset( $payment_method->object ) && WC_Stripe_Payment_Methods::CARD === $payment_method->object ) {
 			return sprintf(
@@ -1289,7 +1323,10 @@ trait WC_Stripe_Subscriptions_Trait {
 				$card_last4 = $payment_method->card->last4;
 
 				// Surface the wallet brand (Apple Pay / Google Pay) used; `link` and manual cards stay bare.
-				$wallet_type  = isset( $payment_method->card->wallet->type ) ? $payment_method->card->wallet->type : '';
+				// When a saved token matched the PaymentMethod, its pinned `wallet_type` is
+				// authoritative so this row matches the saved-token list; otherwise
+				// fall back to the live PaymentMethod's wallet type.
+				$wallet_type  = $wallet_type_override ?? ( isset( $payment_method->card->wallet->type ) ? $payment_method->card->wallet->type : '' );
 				$wallet_label = WC_Stripe_Payment_Methods::EXPRESS_METHODS_LABELS[ $wallet_type ] ?? '';
 				if ( '' !== $wallet_label ) {
 					return sprintf(
