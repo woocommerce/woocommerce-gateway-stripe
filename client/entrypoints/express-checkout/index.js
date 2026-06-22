@@ -83,10 +83,10 @@ jQuery( function ( $ ) {
 	const hasVariationForm = $( '.variations_form' ).length > 0;
 	const hasBookingForm = $( '.wc-bookings-booking-form' ).length > 0;
 
-	// Variable and booking products keep the legacy display-item format: the
+	// Variable and booking products keep the legacy display-item format: their
 	// product-page preview comes from `get_selected_product_data`, which has no
-	// Store API equivalent. Add-to-cart routing is handled separately in `addToCart()`.
-	const useLegacyCartEndpoints = hasVariationForm || hasBookingForm;
+	// Store API equivalent.
+	const useLegacyDisplayItems = hasVariationForm || hasBookingForm;
 
 	const resolveClickEvent = ( event, options ) => {
 		const getDefaultShippingRates = () => {
@@ -100,7 +100,7 @@ jQuery( function ( $ ) {
 		);
 
 		const clickOptions = {
-			lineItems: useLegacyCartEndpoints
+			lineItems: useLegacyDisplayItems
 				? normalizeLineItems( options.displayItems )
 				: options.displayItems,
 			emailRequired: true,
@@ -206,7 +206,7 @@ jQuery( function ( $ ) {
 					.map( ( i ) => ( {
 						id: 'rate-shipping',
 						amount: i.amount,
-						displayName: useLegacyCartEndpoints
+						displayName: useLegacyDisplayItems
 							? i.label ?? i.name
 							: i.name,
 					} ) );
@@ -600,7 +600,7 @@ jQuery( function ( $ ) {
 						requestPhone:
 							getExpressCheckoutData( 'checkout' )
 								?.needs_payer_phone ?? false,
-						displayItems: useLegacyCartEndpoints
+						displayItems: useLegacyDisplayItems
 							? displayItems
 							: transformLabeledDisplayItems( displayItems ),
 					} );
