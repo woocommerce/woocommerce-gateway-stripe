@@ -360,7 +360,16 @@ jQuery( function ( $ ) {
 				elementsMode = 'payment';
 			}
 
-			const elements = api.getStripe().elements( {
+			let stripe;
+			try {
+				stripe = api.getStripe();
+			} catch ( error ) {
+				// Stripe.js failed the origin assertion (fail closed): skip
+				// rendering the express checkout button instead of throwing.
+				return;
+			}
+
+			const elements = stripe.elements( {
 				mode: elementsMode,
 				...( elementsMode !== 'setup' && {
 					amount: options.total,
