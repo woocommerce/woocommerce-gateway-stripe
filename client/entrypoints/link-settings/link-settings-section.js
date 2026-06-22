@@ -3,7 +3,7 @@ import { ADMIN_URL, getSetting } from '@woocommerce/settings';
 import React from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import styled from '@emotion/styled';
-import ExpressCheckoutPreviewComponent from './express-checkout-preview-component';
+import ExpressCheckoutPreview from 'wcstripe/settings/express-checkout-preview';
 import {
 	Card,
 	RadioControl,
@@ -93,6 +93,8 @@ const LinkSettingsSection = () => {
 
 	const isButtonStyleOverridden =
 		!! wc_stripe_link_settings_params?.is_button_style_overridden; // eslint-disable-line camelcase
+	// eslint-disable-next-line camelcase
+	const previewParams = wc_stripe_link_settings_params;
 
 	return (
 		<Card className="express-checkout-settings">
@@ -206,7 +208,23 @@ const LinkSettingsSection = () => {
 				/>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
-					<ExpressCheckoutPreviewComponent size={ size } />
+					<ExpressCheckoutPreview
+						params={ previewParams }
+						paymentMethodTypes={ [ PAYMENT_METHOD_LINK, 'card' ] }
+						paymentMethods={ {
+							link: 'auto',
+							amazonPay: 'never',
+							googlePay: 'never',
+							applePay: 'never',
+							klarna: 'never',
+						} }
+						size={ size }
+						errorMessage={ __(
+							'Failed to preview the Link by Stripe button. ' +
+								'Ensure your store uses HTTPS on a publicly available domain.',
+							'woocommerce-gateway-stripe'
+						) }
+					/>
 				</LoadableAccountSection>
 			</CardBody>
 		</Card>
