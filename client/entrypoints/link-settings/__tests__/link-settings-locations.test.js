@@ -120,4 +120,42 @@ describe( 'LinkSettingsSection locations', () => {
 			'checkout',
 		] );
 	} );
+
+	it( 'should not render the change payment method location when Subscriptions is inactive', () => {
+		global.wc_stripe_link_settings_params.is_subscriptions_active = false;
+
+		render( <LinkSettingsSection /> );
+
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: /change payment method/i,
+			} )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'should render and toggle the change payment method location when Subscriptions is active', async () => {
+		global.wc_stripe_link_settings_params.is_subscriptions_active = true;
+
+		const updateLinkLocationsHandler = jest.fn();
+		useLinkLocations.mockReturnValue( [
+			[ 'checkout' ],
+			updateLinkLocationsHandler,
+		] );
+
+		render( <LinkSettingsSection /> );
+
+		const changePaymentMethodCheckbox = screen.getByRole( 'checkbox', {
+			name: /change payment method/i,
+		} );
+
+		expect( changePaymentMethodCheckbox ).not.toBeDisabled();
+		expect( changePaymentMethodCheckbox ).not.toBeChecked();
+
+		await userEvent.click( changePaymentMethodCheckbox );
+
+		expect( updateLinkLocationsHandler ).toHaveBeenLastCalledWith( [
+			'checkout',
+			'change_payment_method',
+		] );
+	} );
 } );

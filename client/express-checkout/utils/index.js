@@ -13,6 +13,7 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 
 export * from './normalize';
+export * from './bookings';
 
 /**
  * Get error messages from WooCommerce notice.
