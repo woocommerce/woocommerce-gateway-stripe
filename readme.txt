@@ -188,6 +188,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Rename internal Blocks API references to Store API in the Express Checkout client for naming consistency
 * Add - Verify that Stripe.js was served from the official Stripe origin before processing checkout payments
 * Fix - Exclude WooCommerce Subscriptions products from the Agentic Commerce product feed so they no longer make every sync report a partial success
-* Fix - Don't offer a payment method at checkout when Stripe reports it as unavailable in the payment method configuration, which caused an empty Payment Element and failed orders (e.g. iDEAL)
+* Fix - Skip payment methods that Stripe reports as unavailable in the payment method configuration, fixing empty iDEAL checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

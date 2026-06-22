@@ -1014,9 +1014,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	}
 
 	/**
-	 * A method toggled on but reported `available: false` by Stripe must not be
-	 * treated as available; one with the flag absent or true must be. Guards the
-	 * empty-Payment-Element checkout failure (STRIPE-1233).
+	 * Only `available: false` makes a method unavailable; flag absent or true is available.
 	 *
 	 * @param array  $settings          Stripe settings to apply.
 	 * @param object $mock_api_response Mock `get_payment_method_configurations` response.
