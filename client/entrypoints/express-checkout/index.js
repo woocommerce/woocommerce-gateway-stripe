@@ -14,6 +14,8 @@ import {
 	getPaymentMethodTypesForExpressMethod,
 	isManualPaymentMethodCreation,
 	normalizeLineItems,
+	transformVariationAttributesForStoreApi,
+	buildBookingConfiguration,
 } from 'wcstripe/express-checkout/utils';
 import {
 	onAbortPaymentHandler,
@@ -79,17 +81,13 @@ jQuery( function ( $ ) {
 		'woocommerce-gateway-stripe'
 	);
 
-	/**
-	 * @todo Using the legacy endpoint (non-StoreAPI) and data format when variations are present.
-	 * StoreAPI will support this form correctly only after WC 9.7.0.
-	 * See https://github.com/woocommerce/woocommerce-gateway-stripe/pull/3780#issuecomment-2632051359
-	 *
-	 * @todo Using the legacy endpoint (non-StoreAPI) for booking products. Can be
-	 * removed once booking product flows have been fully migrated to StoreAPI.
-	 */
-	const useLegacyCartEndpoints =
-		$( '.variations_form' ).length > 0 ||
-		$( '.wc-bookings-booking-form' ).length > 0;
+	const hasVariationForm = $( '.variations_form' ).length > 0;
+	const hasBookingForm = $( '.wc-bookings-booking-form' ).length > 0;
+
+	// Variable and booking products keep the legacy display-item format: their
+	// product-page preview comes from `get_selected_product_data`, which has no
+	// Store API equivalent. Add-to-cart routing is handled separately in `addToCart()`.
+	const useLegacyDisplayItems = hasVariationForm || hasBookingForm;
 
 	const resolveClickEvent = ( event, options ) => {
 		const getDefaultShippingRates = () => {
@@ -103,7 +101,7 @@ jQuery( function ( $ ) {
 		);
 
 		const clickOptions = {
-			lineItems: useLegacyCartEndpoints
+			lineItems: useLegacyDisplayItems
 				? normalizeLineItems( options.displayItems )
 				: options.displayItems,
 			emailRequired: true,
@@ -209,7 +207,7 @@ jQuery( function ( $ ) {
 					.map( ( i ) => ( {
 						id: 'rate-shipping',
 						amount: i.amount,
-						displayName: useLegacyCartEndpoints
+						displayName: useLegacyDisplayItems
 							? i.label ?? i.name
 							: i.name,
 					} ) );
@@ -363,7 +361,16 @@ jQuery( function ( $ ) {
 				elementsMode = 'payment';
 			}
 
-			const elements = api.getStripe().elements( {
+			let stripe;
+			try {
+				stripe = api.getStripe();
+			} catch ( error ) {
+				// Stripe.js failed the origin assertion (fail closed): skip
+				// rendering the express checkout button instead of throwing.
+				return;
+			}
+
+			const elements = stripe.elements( {
 				mode: elementsMode,
 				...( elementsMode !== 'setup' && {
 					amount: options.total,
@@ -594,7 +601,7 @@ jQuery( function ( $ ) {
 						requestPhone:
 							getExpressCheckoutData( 'checkout' )
 								?.needs_payer_phone ?? false,
-						displayItems: useLegacyCartEndpoints
+						displayItems: useLegacyDisplayItems
 							? displayItems
 							: transformLabeledDisplayItems( displayItems ),
 					} );
@@ -755,17 +762,45 @@ jQuery( function ( $ ) {
 				}
 			} );
 
-			// Legacy support for variations.
-			if ( useLegacyCartEndpoints ) {
-				data.product_id = productId;
-				data.attributes = wcStripeECE.getAttributes().data;
+			if ( hasBookingForm ) {
+				// Use the Store API only when Bookings supports it and the booking
+				// maps to a `booking_configuration`; otherwise fall back to legacy.
+				const bookingConfiguration = getExpressCheckoutData(
+					'has_bookings_store_api'
+				)
+					? buildBookingConfiguration(
+							document.querySelector(
+								'.wc-bookings-booking-form'
+							)
+					  )
+					: null;
 
-				return api.expressCheckoutAddToCartLegacy( data );
+				// Clear the cart first (with the booking id) so prior items don't
+				// skew the total, matching the variable/simple path below.
+				await api.expressCheckoutEmptyCartLegacy( emptyCartParams );
+
+				if ( ! bookingConfiguration ) {
+					data.product_id = productId;
+					data.attributes = wcStripeECE.getAttributes().data;
+
+					return api.expressCheckoutAddToCartLegacy( data );
+				}
+
+				data.id = productId;
+				data.booking_configuration = bookingConfiguration;
+
+				return api.expressCheckoutAddToCart( data );
 			}
 
-			// BlocksAPI partial support (lacking support for variations).
 			data.id = productId;
-			data.variation = [];
+
+			// Variable products: `productId` is the parent id, so pass the chosen
+			// attributes for the Store API to resolve the variation (incl. "any" attributes).
+			data.variation = hasVariationForm
+				? transformVariationAttributesForStoreApi(
+						wcStripeECE.getAttributes().data
+				  )
+				: [];
 
 			// Clear the cart, so items that are currently in it
 			//  do not interfere with computed totals.
