@@ -185,7 +185,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 
 		// Adapter-fired hook for converging Stripe's catalog when the
-		// `wc_stripe_agentic_commerce_should_sync_product` filter outcome changes.
+		// `woocommerce_agentic_commerce_should_sync_product` filter outcome changes.
 		// See the filter docblock for the contract — without this, a previously
 		// exported product that becomes excluded would only drop out of Stripe's
 		// catalog on the next scheduled full sync.
