@@ -229,6 +229,28 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	}
 
 	/**
+	 * Whether to exclude this product from in-agent checkout (feed-only / redirect).
+	 *
+	 * @since 10.9.0
+	 * @param \WC_Product      $product        Product object.
+	 * @param \WC_Product|null $parent_product Parent product for variations.
+	 * @return bool
+	 */
+	protected function get_disable_checkout( \WC_Product $product, ?\WC_Product $parent_product = null ): bool {
+		$disabled = WC_Stripe_Agentic_Commerce_Integration::is_checkout_disabled();
+
+		/**
+		 * Filter whether a product is excluded from in-agent checkout (redirect to its `link`).
+		 *
+		 * @since 10.9.0
+		 * @param bool             $disabled       Store-wide default.
+		 * @param \WC_Product      $product        Product object.
+		 * @param \WC_Product|null $parent_product Parent product for variations.
+		 */
+		return (bool) apply_filters( 'wc_stripe_agentic_commerce_disable_checkout', $disabled, $product, $parent_product );
+	}
+
+	/**
 	 * Get product GTIN.
 	 *
 	 * @since 10.5.0

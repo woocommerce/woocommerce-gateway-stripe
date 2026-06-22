@@ -121,12 +121,17 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 					'callback'            => [ $this, 'update_agentic_settings' ],
 					'permission_callback' => [ $this, 'check_permission' ],
 					'args'                => [
-						'is_enabled'     => [
+						'is_enabled'       => [
 							'description'       => __( 'Whether Agentic Commerce is enabled.', 'woocommerce-gateway-stripe' ),
 							'type'              => 'boolean',
 							'validate_callback' => 'rest_validate_request_arg',
 						],
-						'webhook_secret' => [
+						'disable_checkout' => [
+							'description'       => __( 'Whether to redirect shoppers to the store to check out instead of completing checkout in the agent.', 'woocommerce-gateway-stripe' ),
+							'type'              => 'boolean',
+							'validate_callback' => 'rest_validate_request_arg',
+						],
+						'webhook_secret'   => [
 							'description'       => __( 'Webhook signing secret for Agentic Commerce delegated checkout events.', 'woocommerce-gateway-stripe' ),
 							'type'              => 'string',
 							'validate_callback' => 'rest_validate_request_arg',
@@ -282,11 +287,12 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		$secret = (string) get_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, '' );
 		return rest_ensure_response(
 			[
-				'is_enabled'     => 'yes' === get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' ),
+				'is_enabled'       => 'yes' === get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' ),
+				'disable_checkout' => WC_Stripe_Agentic_Commerce_Integration::is_checkout_disabled(),
 				// Never expose the real secret. Return a Stripe-style `whsec_`
 				// prefixed mask when one is stored so the field looks familiar
 				// without round-tripping the value to the client.
-				'webhook_secret' => '' !== $secret ? self::MASKED_WEBHOOK_SECRET : '',
+				'webhook_secret'   => '' !== $secret ? self::MASKED_WEBHOOK_SECRET : '',
 			]
 		);
 	}
@@ -302,6 +308,11 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		if ( $request->has_param( 'is_enabled' ) ) {
 			$value = $request->get_param( 'is_enabled' ) ? 'yes' : 'no';
 			update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, $value );
+		}
+
+		if ( $request->has_param( 'disable_checkout' ) ) {
+			$value = $request->get_param( 'disable_checkout' ) ? 'yes' : 'no';
+			update_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION, $value );
 		}
 
 		if ( $request->has_param( 'webhook_secret' ) ) {
