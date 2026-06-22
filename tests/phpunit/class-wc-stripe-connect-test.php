@@ -64,10 +64,9 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache', 'is_webhook_enabled' ] )
+			->onlyMethods( [ 'get_cached_account_data', 'configure_webhooks', 'clear_cache', 'is_webhook_enabled' ] )
 			->getMock();
 		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => $account_country ] );
-		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
 		$account->method( 'is_webhook_enabled' )->willReturn( true );
 		WC_Stripe::get_instance()->account = $account;
 
