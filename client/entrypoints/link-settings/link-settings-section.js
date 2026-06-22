@@ -169,6 +169,29 @@ const LinkSettingsSection = () => {
 							label={ __( 'Cart', 'woocommerce-gateway-stripe' ) }
 						/>
 					</li>
+					{
+						// eslint-disable-next-line camelcase
+						wc_stripe_link_settings_params?.is_subscriptions_active && (
+							<li>
+								<CheckboxControl
+									disabled={ ! isLinkEnabled }
+									checked={
+										isLinkEnabled &&
+										linkLocations.includes(
+											'change_payment_method'
+										)
+									}
+									onChange={ makeLocationChangeHandler(
+										'change_payment_method'
+									) }
+									label={ __(
+										'Change payment method for WooCommerce Subscriptions',
+										'woocommerce-gateway-stripe'
+									) }
+								/>
+							</li>
+						)
+					}
 				</ul>
 				<h4>{ __( 'Appearance', 'woocommerce-gateway-stripe' ) }</h4>
 				<RadioControl
