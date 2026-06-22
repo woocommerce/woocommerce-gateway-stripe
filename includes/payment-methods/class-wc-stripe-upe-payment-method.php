@@ -381,6 +381,14 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			return false;
 		}
 
+		// A method can be toggled on in the Payment Method Configuration yet still be
+		// unavailable for rendering (Stripe reports `available: false`). Offering it
+		// would produce an empty Payment Element and a failed checkout, so gate on the
+		// PMC's availability for this method.
+		if ( ! WC_Stripe_Payment_Method_Configurations::is_payment_method_available( $this->stripe_id ) ) {
+			return false;
+		}
+
 		// Check currency compatibility. On the pay for order page, check the order currency.
 		// Otherwise, check the store currency.
 		$current_store_currency = $this->get_woocommerce_currency();

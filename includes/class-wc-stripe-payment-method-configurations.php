@@ -406,6 +406,36 @@ class WC_Stripe_Payment_Method_Configurations {
 	}
 
 	/**
+	 * Whether a payment method is renderable in the active Payment Method Configuration.
+	 *
+	 * Stripe can report a method as `available: false` even while its
+	 * `display_preference` is 'on' (e.g. the account capability or eligibility for
+	 * that method is not active for this configuration). Offering such a method at
+	 * checkout makes Stripe.js render an empty Payment Element and order placement
+	 * fails with "...make sure the Element you are attempting to use has a payment
+	 * method selection." Treat a method as available unless the PMC explicitly says
+	 * otherwise, so accounts whose PMC omits the flag are unaffected.
+	 *
+	 * @param string $payment_method_id Stripe payment method ID (e.g. 'ideal').
+	 * @return bool
+	 */
+	public static function is_payment_method_available( string $payment_method_id ): bool {
+		// No PMC in use means there is nothing to gate on; defer to the other checks.
+		if ( ! self::is_enabled() ) {
+			return true;
+		}
+
+		$configuration = self::get_primary_configuration();
+		if ( ! $configuration || ! isset( $configuration->$payment_method_id ) ) {
+			return true;
+		}
+
+		$payment_method = $configuration->$payment_method_id;
+
+		return ! ( isset( $payment_method->available ) && false === $payment_method->available );
+	}
+
+	/**
 	 * Get the UPE enabled payment method IDs.
 	 *
 	 * @param bool $force_refresh Whether to force a refresh of the payment method configuration from Stripe.

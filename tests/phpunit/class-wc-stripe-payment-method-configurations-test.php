@@ -1012,4 +1012,127 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 			],
 		];
 	}
+
+	/**
+	 * A method toggled on but reported `available: false` by Stripe must not be
+	 * treated as available; one with the flag absent or true must be. Guards the
+	 * empty-Payment-Element checkout failure (STRIPE-1233).
+	 *
+	 * @param array  $settings          Stripe settings to apply.
+	 * @param object $mock_api_response Mock `get_payment_method_configurations` response.
+	 * @param string $payment_method_id Method ID under test.
+	 * @param bool   $expected          Expected availability.
+	 * @return void
+	 * @dataProvider provide_is_payment_method_available
+	 */
+	public function test_is_payment_method_available( array $settings, $mock_api_response, string $payment_method_id, bool $expected ) {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$mock_api = $this->getMockBuilder( \WC_Stripe_API::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$mock_api->method( 'get_payment_method_configurations' )->willReturn( $mock_api_response );
+
+		$reflection = new ReflectionClass( \WC_Stripe_API::class );
+		$property   = $reflection->getProperty( 'instance' );
+		$property->setAccessible( true );
+		$property->setValue( null, $mock_api );
+
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		delete_option( WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY );
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+
+		$result = WC_Stripe_Payment_Method_Configurations::is_payment_method_available( $payment_method_id );
+
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		$property->setValue( null, null );
+		delete_option( WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY );
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+
+		$this->assertSame( $expected, $result );
+	}
+
+	/**
+	 * Data provider for `test_is_payment_method_available`.
+	 *
+	 * @return array
+	 */
+	public function provide_is_payment_method_available(): array {
+		$settings_base = WC_Stripe_Helper::get_stripe_settings();
+		$connected     = array_merge(
+			$settings_base,
+			[
+				'pmc_enabled'          => 'yes',
+				'testmode'             => 'yes',
+				'test_publishable_key' => 'pk_test_1234567890',
+				'test_secret_key'      => 'sk_test_1234567890',
+				'test_connection_type' => 'connect',
+			]
+		);
+		$pmc           = function ( array $ideal ) {
+			return (object) [
+				'data' => [
+					(object) array_merge(
+						[
+							'id'       => 'pmc_test',
+							'parent'   => WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
+							'active'   => true,
+							'livemode' => false,
+							'card'     => (object) [ 'display_preference' => (object) [ 'value' => 'on' ] ],
+						],
+						$ideal
+					),
+				],
+			];
+		};
+
+		return [
+			'available false -> unavailable'      => [
+				'settings'          => $connected,
+				'mock_api_response' => $pmc(
+					[
+						'ideal' => (object) [
+							'available'          => false,
+							'display_preference' => (object) [ 'value' => 'on' ],
+						],
+					]
+				),
+				'payment_method_id' => 'ideal',
+				'expected'          => false,
+			],
+			'available true -> available'         => [
+				'settings'          => $connected,
+				'mock_api_response' => $pmc(
+					[
+						'ideal' => (object) [
+							'available'          => true,
+							'display_preference' => (object) [ 'value' => 'on' ],
+						],
+					]
+				),
+				'payment_method_id' => 'ideal',
+				'expected'          => true,
+			],
+			'flag absent -> available'            => [
+				'settings'          => $connected,
+				'mock_api_response' => $pmc(
+					[ 'ideal' => (object) [ 'display_preference' => (object) [ 'value' => 'on' ] ] ]
+				),
+				'payment_method_id' => 'ideal',
+				'expected'          => true,
+			],
+			'method absent from PMC -> available' => [
+				'settings'          => $connected,
+				'mock_api_response' => $pmc( [] ),
+				'payment_method_id' => 'ideal',
+				'expected'          => true,
+			],
+			'PMC disabled -> available'           => [
+				'settings'          => array_merge( $settings_base, [ 'pmc_enabled' => 'no' ] ),
+				'mock_api_response' => (object) [ 'data' => [] ],
+				'payment_method_id' => 'ideal',
+				'expected'          => true,
+			],
+		];
+	}
 }
