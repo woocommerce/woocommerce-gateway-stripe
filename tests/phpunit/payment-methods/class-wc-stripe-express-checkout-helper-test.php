@@ -2379,6 +2379,34 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The bootstrapped total must round, not truncate, a non-integer minor-unit
+	 * value handed back by the `wc_stripe_calculated_total` filter; a bare (int)
+	 * cast would drop a minor unit and undercharge the first-paint preview.
+	 *
+	 * @return void
+	 */
+	public function test_get_cart_render_data_rounds_fractional_total(): void {
+		add_filter( 'woocommerce_is_cart', '__return_true' );
+		$fractional_total = static function () {
+			return 1500.6;
+		};
+		add_filter( 'wc_stripe_calculated_total', $fractional_total );
+
+		WC()->cart->empty_cart();
+		WC()->cart->add_to_cart( WC_Helper_Product::create_simple_product()->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$data   = $helper->get_cart_render_data();
+
+		remove_filter( 'wc_stripe_calculated_total', $fractional_total );
+		remove_filter( 'woocommerce_is_cart', '__return_true' );
+		WC()->cart->empty_cart();
+
+		$this->assertSame( 1501, $data['total'] );
+	}
+
+	/**
 	 * A zero total with no free trial means nothing to charge now, so the snapshot
 	 * is withheld — matching the client's zero-total hide. A virtual product avoids
 	 * any shipping cost that would otherwise lift the total above zero.

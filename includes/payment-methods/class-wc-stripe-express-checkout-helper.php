@@ -384,7 +384,10 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		$display_items = $this->build_display_items();
-		$total         = (int) $display_items['total']['amount'];
+		// Round before casting: the total passes through the `wc_stripe_calculated_total`
+		// filter, which can hand back a non-integer minor-unit value. A bare (int) cast
+		// would truncate it and drop a minor unit from the first-paint total.
+		$total = (int) round( (float) $display_items['total']['amount'] );
 
 		// Mirror the client's zero-total hide; free trials still render.
 		if ( 0 === $total && ! $this->has_free_trial() ) {
