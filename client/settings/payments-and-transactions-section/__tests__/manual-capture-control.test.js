@@ -20,7 +20,7 @@ describe( 'ManualCaptureControl', () => {
 
 		expect(
 			screen.getByText(
-				/Agentic Commerce purchases follow the capture setting in your Stripe agentic commerce dashboard/
+				/Agentic Commerce purchases follow the capture setting in your Stripe agentic commerce dashboard, not this option\./
 			)
 		).toBeInTheDocument();
 	} );
