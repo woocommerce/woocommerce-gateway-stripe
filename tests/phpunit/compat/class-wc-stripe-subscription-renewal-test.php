@@ -465,6 +465,74 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $renewal_order ) );
 	}
 
+	public function test_renewal_holds_payment_lock_until_response_is_processed() {
+		$renewal_order = WC_Helper_Order::create_order();
+		$customer      = 'cus_123abc';
+		$source        = 'src_123abc';
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => $customer,
+					'source'         => $source,
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
+				return $preempt;
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		// process_response() fires wc_gateway_stripe_process_payment_charge while the renewal
+		// response is being recorded. Capture the lock state at that moment to prove it is
+		// still held until processing completes (guards the duplicate-charge window).
+		$order_helper           = WC_Stripe_Order_Helper::get_instance();
+		$lock_during_processing = null;
+		$capture_lock           = function () use ( $order_helper, $renewal_order, &$lock_during_processing ) {
+			$lock_during_processing = $order_helper->get_order_existing_payment_lock( wc_get_order( $renewal_order->get_id() ) );
+		};
+		add_action( 'wc_gateway_stripe_process_payment_charge', $capture_lock );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			remove_action( 'wc_gateway_stripe_process_payment_charge', $capture_lock );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		// The lock must still be held while the successful charge is processed...
+		$this->assertGreaterThan( time(), $lock_during_processing );
+		// ...and released once processing has completed.
+		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $renewal_order ) );
+		// Sanity: the renewal actually succeeded.
+		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
+	}
+
 	private function set_gateway_retry_interval( $retry_interval ) {
 		$reflection = new ReflectionProperty( WC_Stripe_Payment_Gateway::class, 'retry_interval' );
 		$reflection->setAccessible( true );
