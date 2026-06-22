@@ -125,7 +125,7 @@ export const onConfirmHandler = async ( params ) => {
 
 	// Reuse the live nonce the cart calls rotated; the page nonce is stale for
 	// guests on cached checkout. See ExpressCheckoutCartApi#getStoreApiNonce.
-	const storeApiNonce = cartApi.getStoreApiNonce();
+	const storeApiNonce = await cartApi.getStoreApiNonce();
 	const orderParams = { ...params, storeApiNonce };
 
 	if (

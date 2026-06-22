@@ -43,16 +43,21 @@ export default class ExpressCheckoutCartApi {
 	}
 
 	/**
-	 * Returns the freshest Store API nonce we already hold, without a request.
+	 * Resolves a live Store API nonce for the checkout request.
 	 *
-	 * The page-localized nonce can be stale or absent for guests on full-page-cached
-	 * checkout (logged-in users bypass the cache, so only guests hit the nonce error).
-	 * Every cart response rotates the `Nonce` header, which `updateCustomer` /
-	 * `selectShippingRate` store here; prefer that over the page nonce.
+	 * The page nonce is stale for guests on full-page-cached checkout, so prefer the
+	 * one a cart call rotated. With no shipping step nothing rotated it, so fetch the
+	 * cart (a GET needs no nonce yet returns a fresh one); fall back to the page nonce.
 	 *
-	 * @return {string|undefined} The freshest Store API nonce available.
+	 * @return {Promise<string|undefined>} The freshest Store API nonce available.
 	 */
-	getStoreApiNonce() {
+	async getStoreApiNonce() {
+		if ( ! this.cartRequestHeaders.Nonce ) {
+			try {
+				await this.getCart();
+			} catch ( e ) {}
+		}
+
 		return (
 			this.cartRequestHeaders.Nonce ||
 			getExpressCheckoutData( 'nonce' )?.wc_store_api

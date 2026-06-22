@@ -154,17 +154,44 @@ describe( 'ExpressCheckoutCartApi', () => {
 			await cartApi.updateCustomer( { shipping_address: {} } );
 			apiFetch.mockClear();
 
-			const nonce = cartApi.getStoreApiNonce();
+			const nonce = await cartApi.getStoreApiNonce();
 
 			expect( nonce ).toBe( 'refreshed_nonce' );
 			expect( apiFetch ).not.toHaveBeenCalled();
 		} );
 
-		it( 'falls back to the page nonce when no cart request has rotated one', () => {
-			const nonce = cartApi.getStoreApiNonce();
+		// Virtual/downloadable carts skip the shipping step, so no cart call has
+		// rotated a nonce — fetch the cart (no nonce required on GET) to harvest one.
+		it( 'fetches the cart to harvest a fresh nonce when none has been rotated', async () => {
+			apiFetch.mockResolvedValue(
+				mockResponse( {}, { Nonce: 'fetched_nonce' } )
+			);
+
+			const nonce = await cartApi.getStoreApiNonce();
+
+			expect( apiFetch ).toHaveBeenCalledWith(
+				expect.objectContaining( {
+					method: 'GET',
+					path: '/wc/store/v1/cart',
+				} )
+			);
+			expect( nonce ).toBe( 'fetched_nonce' );
+		} );
+
+		it( 'falls back to the page nonce when the cart fetch yields no nonce', async () => {
+			apiFetch.mockResolvedValue( mockResponse( {} ) );
+
+			const nonce = await cartApi.getStoreApiNonce();
 
 			expect( nonce ).toBe( 'test_store_api_nonce' );
-			expect( apiFetch ).not.toHaveBeenCalled();
+		} );
+
+		it( 'falls back to the page nonce when the cart fetch fails', async () => {
+			apiFetch.mockRejectedValue( new Error( 'network' ) );
+
+			const nonce = await cartApi.getStoreApiNonce();
+
+			expect( nonce ).toBe( 'test_store_api_nonce' );
 		} );
 	} );
 } );
