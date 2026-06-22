@@ -668,6 +668,16 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 
 			return;
+		} catch ( \Throwable $e ) {
+			// Release the payment lock even if an unexpected (non-Stripe) error interrupts the
+			// attempt, so a leaked lock cannot block retries until its TTL expires. The error is
+			// re-thrown to preserve the existing failure handling.
+			if ( $order_locked ) {
+				$order_helper->unlock_order_payment( $renewal_order );
+				$order_locked = false;
+			}
+
+			throw $e;
 		}
 
 		try {

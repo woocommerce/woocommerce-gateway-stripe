@@ -533,6 +533,52 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
 	}
 
+	public function test_renewal_releases_lock_on_unexpected_error() {
+		$renewal_order = WC_Helper_Order::create_order();
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		// Throw a non-WC_Stripe_Exception from within the charge, after the lock is acquired.
+		$thrower = function ( $preempt, $request_args, $url ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' === $url ) {
+				throw new RuntimeException( 'Unexpected failure during the renewal charge.' );
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $thrower, 10, 3 );
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$caught       = null;
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} catch ( \Throwable $e ) {
+			$caught = $e;
+		} finally {
+			remove_filter( 'pre_http_request', $thrower, 10 );
+		}
+
+		// The unexpected error is re-thrown so existing failure handling is preserved...
+		$this->assertInstanceOf( RuntimeException::class, $caught );
+		// ...and the payment lock is released, so a later retry is not blocked.
+		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( wc_get_order( $renewal_order->get_id() ) ) );
+	}
+
 	private function set_gateway_retry_interval( $retry_interval ) {
 		$reflection = new ReflectionProperty( WC_Stripe_Payment_Gateway::class, 'retry_interval' );
 		$reflection->setAccessible( true );
