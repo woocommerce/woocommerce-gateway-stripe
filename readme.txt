@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.7
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 10.8.2
+Stable tag: 10.8.3
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -188,7 +188,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Rename internal Blocks API references to Store API in the Express Checkout client for naming consistency
 * Fix - Show the card decline error message on classic-shortcode checkout pages instead of silently failing
 * Add - Verify that Stripe.js was served from the official Stripe origin before processing checkout payments
-* Fix - Ensure Adaptive Pricing appears on the checkout page when enabled
 * Fix - Exclude WooCommerce Subscriptions products from the Agentic Commerce product feed so they no longer make every sync report a partial success
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
