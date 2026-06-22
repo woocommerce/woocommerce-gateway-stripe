@@ -1,4 +1,3 @@
-/* global wc_stripe_settings_params */
 import styled from '@emotion/styled';
 import interpolateComponents from '@automattic/interpolate-components';
 import React, { useState } from 'react';
@@ -45,7 +44,7 @@ const ManualCaptureControl = () => {
 	// Agentic Commerce capture is configured in the Stripe dashboard, not by this
 	// plugin setting, so only flag the divergence to merchants who actually use it.
 	const isAgenticCommerceEnabled =
-		!! wc_stripe_settings_params?.is_agentic_commerce_enabled; // eslint-disable-line camelcase
+		!! window.wc_stripe_settings_params?.is_agentic_commerce_enabled;
 
 	const handleCheckboxToggle = ( isChecked ) => {
 		// toggling from "manual" capture to "automatic" capture - no need to show the modal.
