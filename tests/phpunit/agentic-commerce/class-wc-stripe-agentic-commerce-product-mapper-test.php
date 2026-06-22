@@ -946,6 +946,78 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * WooCommerce Subscriptions product types that must be excluded from the feed.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_subscription_product_types(): array {
+		return [
+			'simple subscription'    => [ 'subscription' ],
+			'variable subscription'  => [ 'variable-subscription' ],
+			'subscription variation' => [ 'subscription_variation' ],
+		];
+	}
+
+	/**
+	 * Subscription products are excluded by default — otherwise a single one
+	 * fails validation and downgrades every sync to a partial success.
+	 *
+	 * @dataProvider provide_subscription_product_types
+	 * @param string $product_type WooCommerce subscription product type.
+	 * @return void
+	 */
+	public function test_should_sync_product_excludes_subscription_products( string $product_type ) {
+		$product = $this->getMockBuilder( WC_Product::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_type' ] )
+			->getMock();
+		$product->method( 'get_type' )->willReturn( $product_type );
+
+		$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+	}
+
+	/**
+	 * The subscription exclusion is a default, not a hard block: the filter can
+	 * opt them back in.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_filter_can_re_include_subscriptions() {
+		$product = $this->getMockBuilder( WC_Product::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_type' ] )
+			->getMock();
+		$product->method( 'get_type' )->willReturn( 'subscription_variation' );
+
+		$callback = static fn() => true;
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
+
+		try {
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
+		}
+	}
+
+	/**
+	 * map_product short-circuits subscription products to an empty row, the
+	 * signal the validator treats as a clean exclusion.
+	 *
+	 * @return void
+	 */
+	public function test_map_product_returns_empty_row_for_subscription_products() {
+		$product = $this->getMockBuilder( WC_Product::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_type' ] )
+			->getMock();
+		$product->method( 'get_type' )->willReturn( 'subscription_variation' );
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+
+		$this->assertSame( [], $mapper->map_product( $product ) );
+	}
+
+	/**
 	 * Data provider for falsy adapter return values.
 	 *
 	 * @return array<string, array{0: mixed}>
@@ -977,12 +1049,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$product->save();
 
 		$callback = static fn() => $filtered_value;
-		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
 
 		try {
 			$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
 		} finally {
-			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
 			$product->delete( true );
 		}
 	}
@@ -1002,7 +1074,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$product->save();
 
 		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
-		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
 		try {
 			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
@@ -1010,7 +1082,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 
 			$this->assertSame( [], $result );
 		} finally {
-			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
 			$product->delete( true );
 		}
 	}
@@ -1032,16 +1104,68 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$excluded->save();
 
 		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $excluded->get_id();
-		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
 		try {
 			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
 			$this->assertNotEmpty( $mapper->map_product( $included ) );
 			$this->assertSame( [], $mapper->map_product( $excluded ) );
 		} finally {
-			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
 			$included->delete( true );
 			$excluded->delete( true );
+		}
+	}
+
+	/**
+	 * Test that the deprecated `wc_stripe_agentic_commerce_should_sync_product`
+	 * filter is still honoured for backward compatibility, and that hooking it
+	 * surfaces a deprecation notice pointing adapters at the WooCommerce-core
+	 * prefixed replacement.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_honours_deprecated_filter() {
+		$this->setExpectedDeprecated( 'wc_stripe_agentic_commerce_should_sync_product' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$callback = static fn() => false;
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+
+		try {
+			$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * Test that the canonical filter takes precedence over the deprecated one:
+	 * a value from the new `woocommerce_`-prefixed hook overrides the result the
+	 * deprecated hook seeded as its default.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_new_filter_overrides_deprecated() {
+		$this->setExpectedDeprecated( 'wc_stripe_agentic_commerce_should_sync_product' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$deprecated = static fn() => false;
+		$canonical  = static fn() => true;
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $deprecated );
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $canonical );
+
+		try {
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $deprecated );
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $canonical );
+			$product->delete( true );
 		}
 	}
 }
