@@ -123,10 +123,8 @@ export const onConfirmHandler = async ( params ) => {
 		return handleChangePaymentMethodFlow( params );
 	}
 
-	// Prefer the nonce the cart calls already rotated while the wallet sheet was
-	// open. The page-localized nonce can be stale or absent for guests on
-	// full-page-cached checkout pages, which is what breaks them; reusing the
-	// rotated value avoids that without adding a request to the submit path.
+	// Reuse the live nonce the cart calls rotated; the page nonce is stale for
+	// guests on cached checkout. See ExpressCheckoutCartApi#getStoreApiNonce.
 	const storeApiNonce = cartApi.getStoreApiNonce();
 	const orderParams = { ...params, storeApiNonce };
 

@@ -45,14 +45,10 @@ export default class ExpressCheckoutCartApi {
 	/**
 	 * Returns the freshest Store API nonce we already hold, without a request.
 	 *
-	 * The nonce localized into the page can be stale or absent for guests when
-	 * the checkout page is served from full-page cache (logged-in users bypass
-	 * the cache, which is why only guests hit `woocommerce_rest_missing_nonce`).
-	 * Every Store API cart response rotates the `Nonce` header, which the cart
-	 * calls made while the wallet sheet is open (`updateCustomer` /
-	 * `selectShippingRate`) store here — prefer that over the page nonce. This
-	 * deliberately makes no request of its own so it adds no latency to the
-	 * express checkout submit path; it only reuses a value already fetched.
+	 * The page-localized nonce can be stale or absent for guests on full-page-cached
+	 * checkout (logged-in users bypass the cache, so only guests hit the nonce error).
+	 * Every cart response rotates the `Nonce` header, which `updateCustomer` /
+	 * `selectShippingRate` store here; prefer that over the page nonce.
 	 *
 	 * @return {string|undefined} The freshest Store API nonce available.
 	 */

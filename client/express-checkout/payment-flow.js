@@ -68,8 +68,7 @@ const processOrder = async ( {
 } ) => {
 	let orderResponse;
 
-	// The page-localized nonce can be stale/absent on cached guest checkout
-	// pages, so override it with the live one resolved from the cart.
+	// Override the stale page nonce with the live one resolved from the cart.
 	const headers = storeApiNonce ? { Nonce: storeApiNonce } : {};
 
 	const normalizedOrderData = normalizeOrderData( {
