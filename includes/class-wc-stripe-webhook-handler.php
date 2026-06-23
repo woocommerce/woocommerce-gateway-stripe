@@ -1563,7 +1563,24 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						return;
 					}
 
-					$this->handle_deferred_payment_intent_succeeded( $order, $intent_id );
+					$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+					// Serialize against the order-received redirect handler, which holds this same lock
+					// across its own Stripe call. For async methods both paths can otherwise reach
+					// payment_complete() concurrently; whichever runs second finds the order already paid
+					// and no-ops, so the initial pending/on-hold -> processing transition (and its admin
+					// New Order / customer Processing emails) is never dispatched. Re-queue while locked so
+					// settlement runs once, after the lock clears. The lock's 5-minute TTL bounds the retry.
+					if ( $order_helper->lock_order_payment( $order ) ) {
+						$this->defer_webhook_processing( $notification, $additional_data, $this->locked_order_retry_delay );
+						return;
+					}
+
+					try {
+						$this->handle_deferred_payment_intent_succeeded( $order, $intent_id );
+					} finally {
+						$order_helper->unlock_order_payment( $order );
+					}
 					break;
 				case 'checkout.session.completed':
 				case 'checkout.session.async_payment_succeeded':
