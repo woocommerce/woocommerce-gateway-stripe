@@ -352,15 +352,16 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Tests the {@see WC_Stripe::add_gateways()} method.
 	 *
-	 * @param array $payment_methods   The payment methods to add.
-	 * @param array $expected_gateways The expected gateways.
-	 * @param bool  $is_admin          Whether the test is running in the admin.
-	 * @param bool  $oc_enabled        Whether the optimized checkout is enabled.
-	 * @param bool  $is_block_editor   Whether the current admin screen is the block editor.
+	 * @param array  $payment_methods    The payment methods to add.
+	 * @param array  $expected_gateways  The expected gateways.
+	 * @param bool   $is_admin           Whether the test is running in the admin.
+	 * @param bool   $oc_enabled         Whether the optimized checkout is enabled.
+	 * @param string $edited_post_block  Block the edited post hosts: 'checkout', 'cart', 'none' (a non-Stripe post),
+	 *                                   or '' for no edited post at all (e.g. the refund AJAX action).
 	 * @return void
 	 * @dataProvider provide_test_add_gateways
 	 */
-	public function test_add_gateways( array $payment_methods, array $expected_gateways, bool $is_admin = false, bool $oc_enabled = false, bool $is_block_editor = false ): void {
+	public function test_add_gateways( array $payment_methods, array $expected_gateways, bool $is_admin = false, bool $oc_enabled = false, string $edited_post_block = '' ): void {
 		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
 			->disableOriginalConstructor()
 			->onlyMethods( [ 'get_main_stripe_gateway' ] )
@@ -378,24 +379,29 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$wc_stripe->method( 'get_main_stripe_gateway' )
 			->willReturn( $mock_main_gateway );
 
-		$initial_current_screen = null;
-		$reset_current_screen   = false;
+		// The filter keys on the edited post ID in $_GET['post']. '' means no post is being edited.
+		$post_content = [
+			'checkout' => '<!-- wp:woocommerce/checkout /-->',
+			'cart'     => '<!-- wp:woocommerce/cart /-->',
+			'none'     => '<!-- wp:paragraph --><p>No Stripe blocks here.</p><!-- /wp:paragraph -->',
+		];
+		$initial_get  = $_GET;
+		if ( '' !== $edited_post_block ) {
+			$_GET['post'] = (string) self::factory()->post->create( [ 'post_content' => $post_content[ $edited_post_block ] ] );
+		}
 
+		// is_admin() reads the current screen; set an admin screen so the admin branch is exercised.
+		$initial_current_screen = $GLOBALS['current_screen'] ?? null;
 		if ( $is_admin ) {
-			$initial_current_screen = $GLOBALS['current_screen'] ?? null;
-			$reset_current_screen   = true;
-
-			$screen = \WP_Screen::get( 'post.php' );
-			$screen->is_block_editor( $is_block_editor );
-
 			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-			$GLOBALS['current_screen'] = $screen;
+			$GLOBALS['current_screen'] = \WP_Screen::get( 'post.php' );
 		}
 
 		try {
 			$gateways = $wc_stripe->add_gateways( [] );
 		} finally {
-			if ( $reset_current_screen ) {
+			$_GET = $initial_get;
+			if ( $is_admin ) {
 				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 				$GLOBALS['current_screen'] = $initial_current_screen;
 			}
@@ -440,37 +446,48 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			->getMock();
 		$sepa_gateway->method( 'is_enabled_at_checkout' )->willReturn( false );
 
+		// All non-card methods, used by the regression guards that assert nothing is filtered.
+		$all_methods  = [
+			'card'              => $card_gateway,
+			'afterpay_clearpay' => $afterpay_clearpay_gateway,
+			'klarna'            => $klarna_gateway,
+			'amazon_pay'        => $amazon_pay_gateway,
+			'link'              => $link_gateway,
+			'sepa_debit'        => $sepa_gateway,
+		];
+		$all_non_card = [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway, $link_gateway, $sepa_gateway ];
+
 		return [
-			'none active'                                                            => [
+			'none active'                                                              => [
 				'payment_methods'   => [],
 				'expected_gateways' => [],
 			],
-			'none active admin'                                                      => [
+			'none active admin'                                                        => [
 				'payment_methods'   => [],
 				'expected_gateways' => [],
 				'is_admin'          => true,
 			],
-			'card only non-admin is filtered out'                                    => [
+			'card only non-admin is filtered out'                                      => [
 				'payment_methods'   => [
 					'card' => $card_gateway,
 				],
 				'expected_gateways' => [],
 			],
-			'card only admin is filtered out'                                        => [
+			'card only admin is filtered out'                                          => [
 				'payment_methods'   => [
 					'card' => $card_gateway,
 				],
 				'expected_gateways' => [],
 				'is_admin'          => true,
 			],
-			'link correctly included non-admin'                                      => [
+			'link correctly included non-admin'                                        => [
 				'payment_methods'   => [
 					'klarna' => $klarna_gateway,
 					'link'   => $link_gateway,
 				],
 				'expected_gateways' => [ $klarna_gateway, $link_gateway ],
 			],
-			'link correctly filtered out in block editor'                            => [
+			'link filtered out when editing the checkout page'                         => [
 				'payment_methods'   => [
 					'klarna' => $klarna_gateway,
 					'link'   => $link_gateway,
@@ -478,9 +495,9 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected_gateways' => [ $klarna_gateway ],
 				'is_admin'          => true,
 				'oc_enabled'        => false,
-				'is_block_editor'   => true,
+				'edited_post_block' => 'checkout',
 			],
-			'amazon pay correctly included non-admin'                                => [
+			'amazon pay correctly included non-admin'                                  => [
 				'payment_methods'   => [
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
 					'klarna'            => $klarna_gateway,
@@ -488,7 +505,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway ],
 			],
-			'amazon pay correctly filtered out in block editor'                      => [
+			'amazon pay filtered out when editing the cart page'                       => [
 				'payment_methods'   => [
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
 					'klarna'            => $klarna_gateway,
@@ -497,22 +514,9 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
 				'is_admin'          => true,
 				'oc_enabled'        => false,
-				'is_block_editor'   => true,
+				'edited_post_block' => 'cart',
 			],
-			// Non-block-editor admin pages must keep the full gateway list, including Link and Amazon Pay.
-			'link and amazon pay kept in non-block-editor admin'                     => [
-				'payment_methods'   => [
-					'afterpay_clearpay' => $afterpay_clearpay_gateway,
-					'klarna'            => $klarna_gateway,
-					'amazon_pay'        => $amazon_pay_gateway,
-					'link'              => $link_gateway,
-				],
-				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway, $link_gateway ],
-				'is_admin'          => true,
-				'oc_enabled'        => false,
-				'is_block_editor'   => false,
-			],
-			'card filtered out; amazon pay and link correctly included non-admin'    => [
+			'card filtered out; amazon pay and link correctly included non-admin'      => [
 				'payment_methods'   => [
 					'card'              => $card_gateway,
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
@@ -522,7 +526,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway, $link_gateway ],
 			],
-			'card, amazon pay, and link filtered out in block editor'                => [
+			'card, amazon pay, and link filtered out when editing the checkout page'   => [
 				'payment_methods'   => [
 					'card'              => $card_gateway,
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
@@ -533,9 +537,9 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
 				'is_admin'          => true,
 				'oc_enabled'        => false,
-				'is_block_editor'   => true,
+				'edited_post_block' => 'checkout',
 			],
-			'disabled at checkout payment methods are filtered out in block editor'  => [
+			'disabled-at-checkout methods filtered out when editing the checkout page' => [
 				'payment_methods'   => [
 					'card'              => $card_gateway,
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
@@ -548,9 +552,9 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
 				'is_admin'          => true,
 				'oc_enabled'        => false,
-				'is_block_editor'   => true,
+				'edited_post_block' => 'checkout',
 			],
-			'optimized checkout enabled in block editor'                             => [
+			'optimized checkout enabled when editing the checkout page'                => [
 				'payment_methods'   => [
 					'card'              => $card_gateway,
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
@@ -561,12 +565,12 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected_gateways' => [],
 				'is_admin'          => true,
 				'oc_enabled'        => true,
-				'is_block_editor'   => true,
+				'edited_post_block' => 'checkout',
 			],
-			// With OCS on, a non-block-editor admin page must still expose every non-card method.
-			'optimized checkout enabled keeps UPE methods in non-block-editor admin' => [
+			// Regression guard (STRIPE-1230): a too-broad admin filter once hid non-card methods from
+			// extensions reading the gateway list. Editing a non-Stripe post must keep them all.
+			'link and amazon pay kept when editing a non-Stripe post'                  => [
 				'payment_methods'   => [
-					'card'              => $card_gateway,
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
 					'klarna'            => $klarna_gateway,
 					'amazon_pay'        => $amazon_pay_gateway,
@@ -574,8 +578,35 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway, $link_gateway ],
 				'is_admin'          => true,
+				'oc_enabled'        => false,
+				'edited_post_block' => 'none',
+			],
+			// Regression guard (OCS variant): with OCS on, editing a non-Stripe post must still expose
+			// every non-card method to extensions reading the gateway list.
+			'optimized checkout keeps UPE methods when editing a non-Stripe post'      => [
+				'payment_methods'   => $all_methods,
+				'expected_gateways' => $all_non_card,
+				'is_admin'          => true,
 				'oc_enabled'        => true,
-				'is_block_editor'   => false,
+				'edited_post_block' => 'none',
+			],
+			// Regression guard: order-edit screens must never drop a gateway, or WooCommerce can't find the
+			// gateway for refund processing. An order is a post without the Cart/Checkout block.
+			'order edit screen keeps all gateways'                                     => [
+				'payment_methods'   => $all_methods,
+				'expected_gateways' => $all_non_card,
+				'is_admin'          => true,
+				'oc_enabled'        => true,
+				'edited_post_block' => 'none',
+			],
+			// Regression guard: the refund AJAX action runs without an edited post; the full gateway list
+			// must survive there too.
+			'refund AJAX without an edited post keeps all gateways'                    => [
+				'payment_methods'   => $all_methods,
+				'expected_gateways' => $all_non_card,
+				'is_admin'          => true,
+				'oc_enabled'        => true,
+				'edited_post_block' => '',
 			],
 		];
 	}
