@@ -1,6 +1,7 @@
 import { ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import { useExpressCheckout } from './hooks';
 import { PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT } from './constants';
+import { useCallback, useMemo } from '@wordpress/element';
 import {
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
@@ -34,15 +35,17 @@ const getPaymentMethodsOverride = ( enabledPaymentMethod ) => {
 	};
 };
 
-// Visual adjustments to horizontally align the buttons.
+// Visual adjustments to horizontally align the buttons. Returns a copy — mutating
+// the memoised buttonOptions would re-apply these deltas every render.
 const adjustButtonHeights = ( buttonOptions, expressPaymentMethod ) => {
+	let buttonHeight = buttonOptions.buttonHeight;
+
 	// Apple Pay has a nearly imperceptible height difference. We increase it by 1px here.
-	if ( buttonOptions.buttonTheme.applePay === 'black' ) {
-		if (
-			expressPaymentMethod === EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY
-		) {
-			buttonOptions.buttonHeight = buttonOptions.buttonHeight + 0.4;
-		}
+	if (
+		buttonOptions.buttonTheme.applePay === 'black' &&
+		expressPaymentMethod === EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY
+	) {
+		buttonHeight = buttonHeight + 0.4;
 	}
 
 	// GooglePay with the white theme has a 2px height difference due to its border.
@@ -50,15 +53,14 @@ const adjustButtonHeights = ( buttonOptions, expressPaymentMethod ) => {
 		expressPaymentMethod === EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY &&
 		buttonOptions.buttonTheme.googlePay === 'white'
 	) {
-		buttonOptions.buttonHeight = buttonOptions.buttonHeight - 2;
+		buttonHeight = buttonHeight - 2;
 	}
 
-	// Clamp the button height to the allowed range 40px to 55px.
-	buttonOptions.buttonHeight = Math.max(
-		40,
-		Math.min( buttonOptions.buttonHeight, 55 )
-	);
-	return buttonOptions;
+	return {
+		...buttonOptions,
+		// Clamp the button height to the allowed range 40px to 55px.
+		buttonHeight: Math.max( 40, Math.min( buttonHeight, 55 ) ),
+	};
 };
 
 const ExpressCheckoutComponent = ( {
@@ -78,35 +80,49 @@ const ExpressCheckoutComponent = ( {
 			onClick,
 			onClose,
 			setExpressPaymentError,
+			expressPaymentMethod,
 		} );
 
-	const onShippingAddressChange = ( event ) =>
-		shippingAddressChangeHandler( event, elements );
+	const onShippingAddressChange = useCallback(
+		( event ) => shippingAddressChangeHandler( event, elements ),
+		[ elements ]
+	);
 
-	const onShippingRateChange = ( event ) =>
-		shippingRateChangeHandler( event, elements );
+	const onShippingRateChange = useCallback(
+		( event ) => shippingRateChangeHandler( event, elements ),
+		[ elements ]
+	);
 
-	const onElementsReady = ( event ) => {
-		const paymentMethodContainer = document.getElementById(
-			`express-payment-method-${ PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT }_${ expressPaymentMethod }`
-		);
+	const onElementsReady = useCallback(
+		( event ) => {
+			const paymentMethodContainer = document.getElementById(
+				`express-payment-method-${ PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT }_${ expressPaymentMethod }`
+			);
 
-		const availablePaymentMethods = event.availablePaymentMethods || {};
+			const availablePaymentMethods = event.availablePaymentMethods || {};
 
-		if (
-			paymentMethodContainer &&
-			! availablePaymentMethods[ expressPaymentMethod ]
-		) {
-			paymentMethodContainer.remove();
-		}
-	};
+			if (
+				paymentMethodContainer &&
+				! availablePaymentMethods[ expressPaymentMethod ]
+			) {
+				paymentMethodContainer.remove();
+			}
+		},
+		[ expressPaymentMethod ]
+	);
+
+	// Stable across cart ticks; only rebuilds when styling or method changes.
+	const elementOptions = useMemo(
+		() => ( {
+			...adjustButtonHeights( buttonOptions, expressPaymentMethod ),
+			...getPaymentMethodsOverride( expressPaymentMethod ),
+		} ),
+		[ buttonOptions, expressPaymentMethod ]
+	);
 
 	return (
 		<ExpressCheckoutElement
-			options={ {
-				...adjustButtonHeights( buttonOptions, expressPaymentMethod ),
-				...getPaymentMethodsOverride( expressPaymentMethod ),
-			} }
+			options={ elementOptions }
 			onClick={ onButtonClick }
 			onConfirm={ onConfirm }
 			onReady={ onElementsReady }

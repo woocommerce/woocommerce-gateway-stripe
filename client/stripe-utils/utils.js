@@ -23,7 +23,7 @@ import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 /**
  * Stripe data comes form the server passed on a global object.
  *
- * @return  {StripeServerData} Stripe server data.
+ * @return  {StripeServerData|null} Stripe server data, or null when it isn't localized on the page.
  */
 const getStripeServerData = () => {
 	let data = null;
@@ -36,11 +36,7 @@ const getStripeServerData = () => {
 		data = getSetting( 'stripe_data', null );
 	}
 
-	if ( ! data ) {
-		throw new Error( 'Stripe initialization data is not available' );
-	}
-
-	return data;
+	return data || null;
 };
 
 /**
@@ -812,33 +808,33 @@ export const showErrorCheckout = ( errorMessage ) => {
 	) {
 		if (
 			errorMessage?.code &&
-			getStripeServerData()[ errorMessage?.code ]
+			getStripeServerData()?.[ errorMessage?.code ]
 		) {
-			errorMessage = getStripeServerData()[ errorMessage?.code ];
+			errorMessage = getStripeServerData()?.[ errorMessage?.code ];
 		} else {
 			errorMessage =
 				errorMessage?.message || 'An unknown error occurred.';
 		}
 	}
 
-	// Use the WC Blocks API to show the error notice if we're in a block context.
-	if (
-		typeof wcSettings !== 'undefined' &&
-		wcSettings.wcBlocksConfig &&
-		! isMyAccountPage
-	) {
-		dispatch( 'core/notices' ).createErrorNotice( errorMessage, {
+	// wcSettings.wcBlocksConfig is also truthy on woocommerce/classic-shortcode pages, but
+	// there the checkout notices store isn't mounted (dispatch() returns null) and
+	// StoreNotice may be absent — guard both so a failed payment falls through to the
+	// classic notice below instead of throwing and silently dropping the message.
+	const inBlockContext =
+		typeof wcSettings !== 'undefined' && wcSettings.wcBlocksConfig;
+	const noticesStore = inBlockContext ? dispatch( 'core/notices' ) : null;
+
+	if ( noticesStore?.createErrorNotice && ! isMyAccountPage ) {
+		noticesStore.createErrorNotice( errorMessage, {
 			context: 'wc/checkout/payments', // Display the notice in the payments context.
 		} );
 		return;
 	}
 
 	let messageWrapper = '';
-	if ( typeof wcSettings !== 'undefined' && wcSettings.wcBlocksConfig ) {
-		const StoreNotice = window.wc?.blocksCheckout?.StoreNotice;
-		if ( ! StoreNotice ) {
-			return;
-		}
+	const StoreNotice = window.wc?.blocksCheckout?.StoreNotice;
+	if ( inBlockContext && StoreNotice ) {
 		const NoticeComponent = () => (
 			<StoreNotice status="error" isDismissible={ true }>
 				{ errorMessage }
@@ -905,8 +901,11 @@ export const showErrorPaymentMethod = ( errorMessage, containerSelector ) => {
 		typeof errorMessage !== 'string' &&
 		! ( errorMessage instanceof String )
 	) {
-		if ( errorMessage.code && getStripeServerData()[ errorMessage.code ] ) {
-			errorMessage = getStripeServerData()[ errorMessage.code ];
+		if (
+			errorMessage.code &&
+			getStripeServerData()?.[ errorMessage.code ]
+		) {
+			errorMessage = getStripeServerData()?.[ errorMessage.code ];
 		} else {
 			errorMessage = errorMessage.message;
 		}

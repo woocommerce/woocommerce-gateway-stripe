@@ -244,6 +244,7 @@ class WC_Stripe_Express_Checkout_Element {
 			],
 			'checkout'                   => $this->express_checkout_helper->get_checkout_data(),
 			'button'                     => $this->express_checkout_helper->get_button_settings(),
+			'link_button_height'         => $this->express_checkout_helper->get_link_button_height(),
 			'is_pay_for_order'           => $this->express_checkout_helper->is_pay_for_order_page(),
 			'has_block'                  => has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ),
 			'login_confirmation'         => $this->express_checkout_helper->get_login_confirmation_settings(),
@@ -256,6 +257,9 @@ class WC_Stripe_Express_Checkout_Element {
 			'custom_checkout_fields'     => ( new WC_Stripe_Express_Checkout_Custom_Fields() )->get_custom_checkout_fields(),
 			'has_free_trial'             => $this->express_checkout_helper->has_free_trial(),
 			'is_change_payment_method'   => $this->express_checkout_helper->is_change_payment_method_page(),
+			// Bookings can only be added via the Store API cart route when its
+			// Store API integration is present (WC Bookings 3.0.0+).
+			'has_bookings_store_api'     => class_exists( 'WC_Bookings_Cart_Store_API' ),
 		];
 	}
 
@@ -680,6 +684,17 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		$order->set_payment_method_title( $payment_method_title );
+
+		// WC Subscriptions writes a "from X to Credit Card" note before our title
+		// override runs (its label comes from the gateway, not the wallet). Add a
+		// clarifying note so the truth is visible alongside.
+		$order->add_order_note(
+			sprintf(
+				/* translators: %s: Express checkout payment method title, e.g. "Apple Pay (Stripe)". */
+				__( 'Payment method updated to %s.', 'woocommerce-gateway-stripe' ),
+				$payment_method_title
+			)
+		);
 		$order->save();
 		return true;
 	}

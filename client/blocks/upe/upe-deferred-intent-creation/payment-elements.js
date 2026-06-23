@@ -219,7 +219,7 @@ const PaymentElements = ( {
 		setPaymentProcessorLoadErrorMessage,
 	] = useState( null );
 	const [ shouldLoadStripeElements, setShouldLoadStripeElements ] = useState(
-		! stripeServerData?.isAdaptivePricingEnabled
+		! isAdaptivePricingSupported
 	);
 
 	if ( errorMessage ) {

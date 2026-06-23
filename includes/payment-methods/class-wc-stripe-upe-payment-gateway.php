@@ -593,9 +593,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		// Amazon Pay feature flag.
-		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
-
 		/**
 		 * Filters the list of permitted font domains for the Stripe Payment Element.
 		 * These host names will be used in the client Javascript to identify additional domains
@@ -3732,9 +3729,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$found_token = WC_Stripe_Payment_Tokens::get_duplicate_token( $payment_method_object, $customer->get_user_id(), $this->id );
 
 		if ( $found_token ) {
-			// `wallet_type` is intentionally not refreshed — it reflects how the
-			// token was created and must not flip when the same card is reused
-			// through a wallet sheet.
+			// `wallet_type` is create-time state — not refreshed on reuse, so a saved
+			// card never flips to a wallet brand (#5477). The subscription row reads the live PM instead.
 			$payment_method_instance->update_payment_token( $found_token, $payment_method_object->id );
 		} else {
 			// Create a payment token for the user in the store.

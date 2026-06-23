@@ -1,15 +1,28 @@
+import { getSetting } from '@woocommerce/settings';
 import {
 	getFontSizeBase,
 	getDefaultValues,
 	getBillingDetailsForDeferredFlow,
 	getHiddenBillingFields,
+	getStripeServerData,
+	showErrorCheckout,
 } from '../utils';
 import { initializeUPEAppearance } from '../upe-appearance';
 import { getAppearance } from '../../styles/upe';
+import { dispatch } from '@wordpress/data';
 
 jest.mock( '../../styles/upe', () => ( {
 	getAppearance: jest.fn(),
 	getExpandedOptimizedCheckoutRules: jest.fn( ( rules ) => rules ),
+} ) );
+
+jest.mock( '@woocommerce/settings', () => ( {
+	getSetting: jest.fn(),
+} ) );
+
+jest.mock( '@wordpress/data', () => ( {
+	...jest.requireActual( '@wordpress/data' ),
+	dispatch: jest.fn(),
 } ) );
 
 describe( 'utils', () => {
@@ -715,5 +728,120 @@ describe( 'utils', () => {
 				'auto'
 			);
 		} );
+	} );
+
+	describe( 'getStripeServerData', () => {
+		const globalValues = global.wc_stripe_upe_params;
+
+		afterEach( () => {
+			global.wc_stripe_upe_params = globalValues;
+			getSetting.mockReset();
+		} );
+
+		it( 'returns the UPE params global when present', () => {
+			global.wc_stripe_upe_params = { key: 'pk_test_123' };
+
+			expect( getStripeServerData() ).toEqual( { key: 'pk_test_123' } );
+		} );
+
+		it( 'falls back to the Blocks stripe_data setting', () => {
+			global.wc_stripe_upe_params = undefined;
+			getSetting.mockReturnValue( { key: 'pk_test_blocks' } );
+
+			expect( getStripeServerData() ).toEqual( {
+				key: 'pk_test_blocks',
+			} );
+		} );
+
+		it( 'returns null when no data is localized', () => {
+			global.wc_stripe_upe_params = undefined;
+			getSetting.mockReturnValue( null );
+
+			expect( () => getStripeServerData() ).not.toThrow();
+			expect( getStripeServerData() ).toBeNull();
+		} );
+	} );
+} );
+
+describe( 'showErrorCheckout', () => {
+	let container;
+	const originalJQuery = global.jQuery;
+	const originalWcSettings = global.wcSettings;
+	const originalWc = global.wc;
+
+	beforeEach( () => {
+		container = {
+			length: 1,
+			find: jest.fn().mockReturnThis(),
+			remove: jest.fn().mockReturnThis(),
+			prepend: jest.fn().mockReturnThis(),
+		};
+
+		const jQueryMock = jest.fn( ( selector ) => {
+			if ( selector === '.woocommerce-notices-wrapper' ) {
+				return { first: () => container };
+			}
+			if ( selector === '.woocommerce-MyAccount-content' ) {
+				return { length: 0 };
+			}
+			if ( selector === 'form.checkout' ) {
+				return { find: () => ( { length: 0 } ) };
+			}
+			return { trigger: jest.fn().mockReturnThis(), each: jest.fn() };
+		} );
+		jQueryMock.scroll_to_notices = jest.fn();
+		global.jQuery = jQueryMock;
+
+		// A classic-shortcode page never mounts the Blocks checkout StoreNotice helper.
+		delete global.wc;
+	} );
+
+	afterEach( () => {
+		global.jQuery = originalJQuery;
+		global.wcSettings = originalWcSettings;
+		global.wc = originalWc;
+		dispatch.mockReset();
+	} );
+
+	it( 'uses the WC Blocks notices store when it is registered', () => {
+		const createErrorNotice = jest.fn();
+		dispatch.mockReturnValue( { createErrorNotice } );
+		global.wcSettings = { wcBlocksConfig: { foo: true } };
+
+		showErrorCheckout( 'Your card was declined.' );
+
+		expect( createErrorNotice ).toHaveBeenCalledWith(
+			'Your card was declined.',
+			{ context: 'wc/checkout/payments' }
+		);
+		// The classic notice markup must not also be prepended.
+		expect( container.prepend ).not.toHaveBeenCalled();
+	} );
+
+	// Regression: on a woocommerce/classic-shortcode page wcBlocksConfig is truthy but the
+	// core/notices store isn't registered, so dispatch() returns null. The error must not be
+	// silently dropped via an uncaught TypeError.
+	it( 'falls back to the classic notice when core/notices is not registered', () => {
+		dispatch.mockReturnValue( null );
+		global.wcSettings = { wcBlocksConfig: { foo: true } };
+
+		expect( () =>
+			showErrorCheckout( 'Your card was declined.' )
+		).not.toThrow();
+
+		expect( container.prepend ).toHaveBeenCalledWith(
+			expect.stringContaining( 'woocommerce-error' )
+		);
+	} );
+
+	it( 'renders the classic notice when not in a block context', () => {
+		dispatch.mockReturnValue( null );
+		global.wcSettings = { wcBlocksConfig: false };
+
+		showErrorCheckout( 'Your card was declined.' );
+
+		expect( container.prepend ).toHaveBeenCalledWith(
+			expect.stringContaining( 'Your card was declined.' )
+		);
 	} );
 } );

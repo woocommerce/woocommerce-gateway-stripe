@@ -254,7 +254,6 @@ class WC_Stripe_Settings_Controller {
 			'plugin_version'                        => WC_STRIPE_VERSION,
 			'account_country'                       => $this->account->get_account_country(),
 			'are_apms_deprecated'                   => false,
-			'is_amazon_pay_available'               => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
 			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
 			'is_oc_enabled'                         => $is_oc_enabled,
 			'is_cs_available'                       => $is_checkout_sessions_available,
@@ -270,6 +269,7 @@ class WC_Stripe_Settings_Controller {
 			'taxes_based_on_billing'                => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
 			'is_card_method_enabled'                => in_array( WC_Stripe_Payment_Methods::CARD, $enabled_payment_methods, true ),
 			'is_agentic_commerce_enabled'           => WC_Stripe_Feature_Flags::is_agentic_commerce_enabled(),
+			'is_agentic_commerce_merchant_enabled'  => WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled(),
 			'agentic_commerce_import_sets_url'      => $this->get_gateway()->is_in_test_mode()
 				? 'https://dashboard.stripe.com/test/data-management/import-sets'
 				: 'https://dashboard.stripe.com/data-management/import-sets',
