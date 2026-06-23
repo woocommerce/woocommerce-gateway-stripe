@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 'Validate milestone'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const prNumber = context.payload.pull_request.number;
