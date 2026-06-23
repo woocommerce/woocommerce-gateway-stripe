@@ -571,7 +571,7 @@ class WC_Stripe {
 
 		$methods = array_merge( $methods, $upe_payment_methods );
 
-		// When we are in an admin context,
+		// When editing a post that hosts the Cart or Checkout block in the editor,
 		// 1. Filter out Link and Amazon Pay, as they are only available as express checkout methods,
 		// and including them in the list results in warnings about block support
 		// when viewing the Express Checkout block in the editor for the cart and checkout pages.
@@ -581,7 +581,7 @@ class WC_Stripe {
 		// 3. Filter out UPE payment methods that are not enabled at checkout, as they are not available in the checkout block
 		// and including them in the list results in warnings about block support
 		// when viewing the payment methods block in the editor for the cart and checkout pages.
-		if ( is_admin() && ! $this->is_order_management_context() ) {
+		if ( is_admin() && $this->is_editing_cart_or_checkout_block() ) {
 			$methods = array_filter(
 				$methods,
 				function ( $method ) use ( $is_oc_enabled ) {
@@ -608,48 +608,28 @@ class WC_Stripe {
 	}
 
 	/**
-	 * Determines whether the current request is an order management context
-	 * (order edit page or refund AJAX action).
+	 * Whether the request is editing a post that hosts the Cart or Checkout block.
 	 *
-	 * In these contexts we must keep all payment gateways registered so that
-	 * WooCommerce can find the gateway for refund processing and transaction
-	 * URL generation.
+	 * ECE and OCS render as inner blocks of those, so either parent's presence on the edited
+	 * post is what {@see add_gateways()} keys on to suppress block-support warnings — and only there.
+	 *
+	 * The post ID is read from the request rather than the global $post because this filter runs
+	 * during the editor page load before $post is populated.
 	 *
 	 * @return bool
 	 */
-	private function is_order_management_context(): bool {
-		// Refund AJAX action — fired when the merchant clicks "Refund via Gateway".
-		if ( 'woocommerce_refund_line_items' === $this->get_request_var( 'action', INPUT_POST ) ) {
-			return true;
+	private function is_editing_cart_or_checkout_block(): bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only check, no state change.
+		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+
+		if ( ! $post_id ) {
+			return false;
 		}
 
-		$page   = $this->get_request_var( 'page' );
-		$action = $this->get_request_var( 'action' );
+		$post = get_post( $post_id );
 
-		// HPOS order edit screen: wp-admin/admin.php?page=wc-orders&action=edit
-		if ( 'wc-orders' === $page && 'edit' === $action ) {
-			return true;
-		}
-
-		$post_id = absint( $this->get_request_var( 'post' ) );
-
-		// Legacy CPT order edit screen: wp-admin/post.php?post=<id>&action=edit
-		return 'edit' === $action && (bool) $post_id && 'shop_order' === get_post_type( $post_id );
-	}
-
-	/**
-	 * Returns a sanitized value from the request input.
-	 *
-	 * Extracted as a protected method so tests can mock it without depending
-	 * on PHP's input stream, following the same convention as get_gateway() in
-	 * WC_Stripe_Intent_Controller.
-	 *
-	 * @param string $key        Request parameter key.
-	 * @param int    $input_type INPUT_GET or INPUT_POST.
-	 * @return string
-	 */
-	protected function get_request_var( string $key, int $input_type = INPUT_GET ): string {
-		return (string) ( filter_input( $input_type, $key, FILTER_SANITIZE_SPECIAL_CHARS ) ?? '' );
+		return $post instanceof WP_Post
+			&& ( has_block( 'woocommerce/checkout', $post ) || has_block( 'woocommerce/cart', $post ) );
 	}
 
 	/**
