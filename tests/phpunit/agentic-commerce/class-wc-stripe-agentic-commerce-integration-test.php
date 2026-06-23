@@ -265,7 +265,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 
 		$excluded_id = $excluded->get_id();
 		$filter      = static fn( $sync, $candidate ) => $candidate->get_id() !== $excluded_id;
-		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $filter, 10, 2 );
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $filter, 10, 2 );
 
 		// Scope the walk to these two products so other tests' leftovers don't
 		// skew the counts.
@@ -306,7 +306,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			$this->assertSame( 1, (int) $last_sync['products'], 'Only the kept product belongs in the feed; the excluded one is dropped.' );
 			$this->assertNotSame( 'succeeded_with_errors', $last_sync['status'], 'A pure exclusion must not flip the sync to Partial success.' );
 		} finally {
-			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $filter, 10 );
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $filter, 10 );
 			remove_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
 			remove_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10 );
 			remove_filter( 'pre_http_request', $http_stub, 10 );
