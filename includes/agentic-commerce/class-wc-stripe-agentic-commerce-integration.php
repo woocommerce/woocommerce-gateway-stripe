@@ -295,8 +295,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Schedule the recurring feed sync.
 	 *
-	 * @since 10.7.0
-	 * @param int|null $start_time The time to start the sync. Defaults to the current time when null is supplied.
+	 * @since 10.9.0
+	 * @param int|null $start_time The timestamp to start the sync. Defaults to the current time when null is supplied.
 	 * @return bool True if the sync was scheduled, false otherwise.
 	 */
 	public function schedule_recurring_feed_sync( ?int $start_time = null ): bool {
@@ -308,7 +308,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			$start_time = time();
 		}
 
-		if ( ! as_has_scheduled_action( self::SCHEDULED_ACTION ) ) {
+		if ( ! as_has_scheduled_action( self::SCHEDULED_ACTION, null, 'wc-stripe' ) ) {
 			$sync_interval = $this->get_feed_sync_interval();
 
 			as_schedule_recurring_action(
@@ -330,7 +330,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Reschedule the next feed sync.
 	 *
-	 * @since 10.7.0
+	 * @since 10.9.0
+	 * @param int|null $start_time The start timestamp to use when computing the next sync time. Defaults to the current item time.
 	 * @return bool True if the sync was rescheduled, false otherwise.
 	 */
 	public function reschedule_next_feed_sync( ?int $start_time = null ): bool {
@@ -353,7 +354,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Get the feed sync interval in seconds.
 	 *
-	 * @since 10.7.0
+	 * @since 10.9.0
 	 * @return int Feed sync interval in seconds.
 	 */
 	public function get_feed_sync_interval(): int {
