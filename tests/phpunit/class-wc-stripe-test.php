@@ -567,8 +567,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'oc_enabled'        => true,
 				'edited_post_block' => 'checkout',
 			],
-			// Regression guard (STRIPE-1230): a too-broad admin filter once hid non-card methods from
-			// extensions reading the gateway list. Editing a non-Stripe post must keep them all.
+			// Editing a non-Stripe post must not filter the gateway list; extensions reading it need every method.
 			'link and amazon pay kept when editing a non-Stripe post'                  => [
 				'payment_methods'   => [
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
@@ -581,8 +580,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'oc_enabled'        => false,
 				'edited_post_block' => 'none',
 			],
-			// Regression guard (OCS variant): with OCS on, editing a non-Stripe post must still expose
-			// every non-card method to extensions reading the gateway list.
+			// With OCS on, editing a non-Stripe post must still expose every non-card method to extensions.
 			'optimized checkout keeps UPE methods when editing a non-Stripe post'      => [
 				'payment_methods'   => $all_methods,
 				'expected_gateways' => $all_non_card,
