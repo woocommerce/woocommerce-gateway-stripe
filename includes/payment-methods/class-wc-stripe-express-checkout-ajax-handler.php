@@ -418,8 +418,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
 			}
 
-			$price = $this->express_checkout_helper->get_product_price( $product, $is_deposit, $deposit_plan_id );
-			$total = $qty * $price + $addon_value;
+			$price      = $this->express_checkout_helper->get_product_price( $product, $is_deposit, $deposit_plan_id );
+			$line_total = $qty * $price + $addon_value;
 
 			$quantity_label = 1 < $qty ? ' (x' . $qty . ')' : '';
 
@@ -432,11 +432,16 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 			$items[] = [
 				'label'  => $product->get_name() . $quantity_label,
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $total ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $line_total, $currency ),
 			];
 
-			$total_tax = 0;
-			foreach ( $this->express_checkout_helper->get_taxes_like_cart( $product, $price ) as $tax ) {
+			// Tax the full line total ($line_total = qty x price + add-ons) like the cart does, and skip
+			// tax entirely for non-taxable products so the preview can't show tax the cart won't charge.
+			$total_tax  = 0;
+			$line_taxes = ( $product instanceof WC_Product && $product->is_taxable() )
+				? $this->express_checkout_helper->get_taxes_like_cart( $product, $line_total )
+				: [];
+			foreach ( $line_taxes as $tax ) {
 				$total_tax += $tax;
 
 				$items[] = [
@@ -464,7 +469,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			$data['displayItems'] = $items;
 			$data['total']        = [
 				'label'  => $this->express_checkout_helper->get_total_label(),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $total + $total_tax, $currency ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $line_total + $total_tax, $currency ),
 			];
 
 			wp_send_json( $data );
