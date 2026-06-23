@@ -128,7 +128,7 @@ return apply_filters(
 			'title'       => __( 'Capture', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Capture charge immediately', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
-			'description' => __( 'Whether or not to immediately capture the charge. When unchecked, the charge issues an authorization and will need to be captured later. Uncaptured charges expire in 7 days.', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Whether or not to immediately capture the charge. When unchecked, the charge issues an authorization and will need to be captured later. Uncaptured charges expire in 7 days. Agentic Commerce purchases follow the capture setting in your Stripe agentic commerce dashboard, not this option.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		],
