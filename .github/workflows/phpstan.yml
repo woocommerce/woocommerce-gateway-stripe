@@ -33,7 +33,7 @@ jobs:
         name: 'PHPStan Analysis'
         runs-on: ubuntu-latest
         steps:
-            - uses: 'actions/checkout@v6'
+            - uses: 'actions/checkout@v6.0.3'
               name: 'Checkout'
 
             - name: Setup PHP

@@ -198,6 +198,319 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test ajax_get_selected_product_data taxes the full computed line total (quantity x price + add-ons),
+	 * and shows no tax for a non-taxable product.
+	 *
+	 * The preview must tax the same amount it shows as the line item, matching how WooCommerce taxes
+	 * quantity and add-on cost folded into the cart-item price; a tax-exempt product must show no tax.
+	 *
+	 * @dataProvider provide_full_line_tax_scenarios
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_get_selected_product_data_taxes_full_line( $qty, $addon_value, $taxable, $expected_tax_base, $stubbed_tax, $expected_item_amount, $expected_tax_amount, $expected_total_amount ) {
+		Ajax_Test_Helper::init_hooks();
+		update_option( 'woocommerce_calc_taxes', 'yes' ); // WC_Product::is_taxable() requires taxes enabled.
+
+		$product = WC_Helper_Product::create_simple_product();
+		if ( ! $taxable ) {
+			$product->set_tax_status( 'none' );
+			$product->save();
+		}
+
+		$this->express_checkout_helper->method( 'is_invalid_subscription_product' )->willReturn( false );
+		$this->express_checkout_helper->method( 'get_product_price' )->willReturn( 10.0 );
+		$this->express_checkout_helper->method( 'get_total_label' )->willReturn( 'Total' );
+
+		if ( $taxable ) {
+			$this->express_checkout_helper->expects( $this->once() )
+				->method( 'get_taxes_like_cart' )
+				->with( $this->anything(), $expected_tax_base )
+				->willReturn( [ $stubbed_tax ] );
+		} else {
+			$this->express_checkout_helper->expects( $this->never() )->method( 'get_taxes_like_cart' );
+		}
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-get-selected-product-data' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = $qty;
+			$_POST['addon_value'] = $addon_value;
+
+			WC()->session->init();
+
+			ob_start();
+			$this->ajax_handler->ajax_get_selected_product_data();
+			$output = ob_get_clean();
+
+			$response = json_decode( $output, true );
+		} finally {
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['addon_value'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		$this->assertIsArray( $response );
+		$this->assertArrayHasKey( 'displayItems', $response, 'response: ' . wp_json_encode( $response ) );
+		$this->assertSame( $expected_item_amount, $response['displayItems'][0]['amount'] );
+
+		// Match the tax line by label rather than position, so this is robust to item ordering and
+		// can assert a non-taxable product shows no tax line at all.
+		$tax_items = array_values(
+			array_filter(
+				$response['displayItems'],
+				static function ( $item ) {
+					return isset( $item['label'] ) && __( 'Tax', 'woocommerce-gateway-stripe' ) === $item['label'];
+				}
+			)
+		);
+		if ( null !== $expected_tax_amount ) {
+			$this->assertCount( 1, $tax_items, 'Exactly one tax line should be shown.' );
+			$this->assertSame( $expected_tax_amount, $tax_items[0]['amount'] );
+		} else {
+			$this->assertCount( 0, $tax_items, 'A non-taxable product must show no tax line.' );
+		}
+		$this->assertSame( $expected_total_amount, $response['total']['amount'] );
+	}
+
+	/**
+	 * Data provider for test_ajax_get_selected_product_data_taxes_full_line.
+	 *
+	 * Product price is stubbed at $10. Columns: quantity, posted add-on value, whether the product is
+	 * taxable, expected tax base passed to get_taxes_like_cart() (null when it is skipped), the stubbed
+	 * tax it returns (null when skipped), then expected line-item / tax / total amounts in minor units.
+	 * A null expected tax means no tax line should be shown.
+	 *
+	 * @return array
+	 */
+	public function provide_full_line_tax_scenarios() {
+		return [
+			'multiple quantity, no add-on'        => [ 3, 0, true, 30.0, 3.0, 3000, 300, 3300 ],
+			'single quantity with taxable add-on' => [ 1, 5, true, 15.0, 1.5, 1500, 150, 1650 ],
+			'non-taxable product shows no tax'    => [ 1, 5, false, null, null, 1500, null, 1500 ],
+		];
+	}
+
+	/**
+	 * Test ajax_add_to_cart preserves decimal quantities on stores that allow them.
+	 *
+	 * Stores that sell by fractional units (e.g. fabric by the metre) enable decimal
+	 * quantities by filtering `woocommerce_stock_amount`. The express checkout
+	 * add-to-cart handler must route the posted quantity through wc_stock_amount()
+	 * so those fractional values are kept rather than truncated to an integer.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_add_to_cart_preserves_decimal_quantity() {
+		Ajax_Test_Helper::init_hooks();
+
+		// Simulate a decimal-quantity plugin: swap the default integer stock-amount
+		// filter for a float one. This mirrors what such plugins actually do
+		// (remove_filter intval / add_filter floatval).
+		remove_filter( 'woocommerce_stock_amount', 'intval' );
+		add_filter( 'woocommerce_stock_amount', 'floatval' );
+
+		$product = WC_Helper_Product::create_simple_product();
+
+		$this->express_checkout_helper->expects( $this->once() )
+			->method( 'supported_product_types' )
+			->willReturn( [ ProductType::SIMPLE ] );
+
+		$this->express_checkout_helper->expects( $this->once() )
+			->method( 'build_display_items' )
+			->willReturn(
+				[
+					'displayItems' => [],
+					'total'        => [
+						'label'  => 'Total',
+						'amount' => 0,
+					],
+				]
+			);
+
+		$cart_quantity = null;
+		$cart_count    = 0;
+		$output        = '';
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-add-to-cart' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = '0.25';
+
+			WC()->session->init();
+			WC()->cart->empty_cart();
+
+			ob_start();
+			$this->ajax_handler->ajax_add_to_cart();
+			$output = ob_get_clean();
+
+			$cart_items    = WC()->cart->get_cart();
+			$cart_count    = count( $cart_items );
+			$first_item    = reset( $cart_items );
+			$cart_quantity = $first_item ? $first_item['quantity'] : null;
+		} finally {
+			remove_filter( 'woocommerce_stock_amount', 'floatval' );
+			add_filter( 'woocommerce_stock_amount', 'intval' );
+			WC()->cart->empty_cart();
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		$this->assertSame( 1, $cart_count, 'Exactly one item should be added to the cart. Handler output: ' . $output );
+		$this->assertEqualsWithDelta( 0.25, $cart_quantity, 0.0001, 'Decimal quantity should be preserved, not truncated to an integer.' );
+	}
+
+	/**
+	 * Test ajax_add_to_cart does not add a zero/negative quantity. wc_stock_amount()
+	 * (unlike the previous absint()) can return a non-positive value, so the handler
+	 * clamps it to zero, which WooCommerce then declines to add to the cart.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_add_to_cart_does_not_add_non_positive_quantity() {
+		Ajax_Test_Helper::init_hooks();
+
+		$product = WC_Helper_Product::create_simple_product();
+
+		$this->express_checkout_helper->method( 'supported_product_types' )
+			->willReturn( [ ProductType::SIMPLE ] );
+		$this->express_checkout_helper->method( 'build_display_items' )
+			->willReturn(
+				[
+					'displayItems' => [],
+					'total'        => [
+						'label'  => 'Total',
+						'amount' => 0,
+					],
+				]
+			);
+
+		$cart_count = null;
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-add-to-cart' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = '-1';
+
+			WC()->session->init();
+			WC()->cart->empty_cart();
+
+			ob_start();
+			$this->ajax_handler->ajax_add_to_cart();
+			ob_get_clean();
+
+			$cart_count = WC()->cart->get_cart_contents_count();
+		} finally {
+			WC()->cart->empty_cart();
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		$this->assertSame( 0, $cart_count, 'A non-positive quantity should be clamped to zero and not added to the cart.' );
+	}
+
+	/**
+	 * Test ajax_get_selected_product_data keeps a decimal quantity in its price math.
+	 *
+	 * This handler feeds the express-checkout button preview ($total = $qty * $price),
+	 * so a truncated quantity would show the wrong amount.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_get_selected_product_data_preserves_decimal_quantity() {
+		Ajax_Test_Helper::init_hooks();
+
+		// Simulate a decimal-quantity plugin (see note in the add-to-cart test above).
+		remove_filter( 'woocommerce_stock_amount', 'intval' );
+		add_filter( 'woocommerce_stock_amount', 'floatval' );
+
+		$product = WC_Helper_Product::create_simple_product();
+
+		$this->express_checkout_helper->method( 'is_invalid_subscription_product' )->willReturn( false );
+		$this->express_checkout_helper->method( 'get_product_price' )->willReturn( 10.0 );
+		$this->express_checkout_helper->method( 'get_taxes_like_cart' )->willReturn( [] );
+		$this->express_checkout_helper->method( 'get_total_label' )->willReturn( 'Total' );
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-get-selected-product-data' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = '0.25';
+
+			WC()->session->init();
+
+			ob_start();
+			$this->ajax_handler->ajax_get_selected_product_data();
+			$output = ob_get_clean();
+
+			$response = json_decode( $output, true );
+		} finally {
+			remove_filter( 'woocommerce_stock_amount', 'floatval' );
+			add_filter( 'woocommerce_stock_amount', 'intval' );
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		// 0.25 x $10 = $2.50 = 250 minor units; a truncated quantity would yield 0.
+		$this->assertIsArray( $response );
+		$this->assertArrayHasKey( 'displayItems', $response, 'response: ' . wp_json_encode( $response ) );
+		$this->assertSame( 250, $response['displayItems'][0]['amount'] );
+	}
+
+	/**
+	 * Test ajax_get_selected_product_data clamps a zero/negative quantity to zero, so the
+	 * preview total can never go negative.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_get_selected_product_data_clamps_non_positive_quantity() {
+		Ajax_Test_Helper::init_hooks();
+
+		$product = WC_Helper_Product::create_simple_product();
+
+		$this->express_checkout_helper->method( 'is_invalid_subscription_product' )->willReturn( false );
+		$this->express_checkout_helper->method( 'get_product_price' )->willReturn( 10.0 );
+		$this->express_checkout_helper->method( 'get_taxes_like_cart' )->willReturn( [] );
+		$this->express_checkout_helper->method( 'get_total_label' )->willReturn( 'Total' );
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-get-selected-product-data' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = '-1';
+
+			WC()->session->init();
+
+			ob_start();
+			$this->ajax_handler->ajax_get_selected_product_data();
+			$output = ob_get_clean();
+
+			$response = json_decode( $output, true );
+		} finally {
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		// -1 is clamped to 0, so the preview shows $0 rather than a negative amount.
+		$this->assertIsArray( $response );
+		$this->assertArrayHasKey( 'displayItems', $response, 'response: ' . wp_json_encode( $response ) );
+		$this->assertSame( 0, $response['displayItems'][0]['amount'] );
+		$this->assertSame( 0, $response['total']['amount'] );
+	}
+
+	/**
 	 * Builds an ajax handler backed by a helper that only stubs
 	 * is_express_checkout_context(), so the real state/postcode normalization runs.
 	 *
