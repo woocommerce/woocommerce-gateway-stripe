@@ -198,6 +198,102 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test ajax_get_selected_product_data taxes the full computed line total (quantity x price + add-ons),
+	 * and shows no tax for a non-taxable product.
+	 *
+	 * The preview must tax the same amount it shows as the line item, matching how WooCommerce taxes
+	 * quantity and add-on cost folded into the cart-item price; a tax-exempt product must show no tax.
+	 *
+	 * @dataProvider provide_full_line_tax_scenarios
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_get_selected_product_data_taxes_full_line( $qty, $addon_value, $taxable, $expected_tax_base, $stubbed_tax, $expected_item_amount, $expected_tax_amount, $expected_total_amount ) {
+		Ajax_Test_Helper::init_hooks();
+		update_option( 'woocommerce_calc_taxes', 'yes' ); // WC_Product::is_taxable() requires taxes enabled.
+
+		$product = WC_Helper_Product::create_simple_product();
+		if ( ! $taxable ) {
+			$product->set_tax_status( 'none' );
+			$product->save();
+		}
+
+		$this->express_checkout_helper->method( 'is_invalid_subscription_product' )->willReturn( false );
+		$this->express_checkout_helper->method( 'get_product_price' )->willReturn( 10.0 );
+		$this->express_checkout_helper->method( 'get_total_label' )->willReturn( 'Total' );
+
+		if ( $taxable ) {
+			$this->express_checkout_helper->expects( $this->once() )
+				->method( 'get_taxes_like_cart' )
+				->with( $this->anything(), $expected_tax_base )
+				->willReturn( [ $stubbed_tax ] );
+		} else {
+			$this->express_checkout_helper->expects( $this->never() )->method( 'get_taxes_like_cart' );
+		}
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-get-selected-product-data' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = $qty;
+			$_POST['addon_value'] = $addon_value;
+
+			WC()->session->init();
+
+			ob_start();
+			$this->ajax_handler->ajax_get_selected_product_data();
+			$output = ob_get_clean();
+
+			$response = json_decode( $output, true );
+		} finally {
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['addon_value'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		$this->assertIsArray( $response );
+		$this->assertArrayHasKey( 'displayItems', $response, 'response: ' . wp_json_encode( $response ) );
+		$this->assertSame( $expected_item_amount, $response['displayItems'][0]['amount'] );
+
+		// Match the tax line by label rather than position, so this is robust to item ordering and
+		// can assert a non-taxable product shows no tax line at all.
+		$tax_items = array_values(
+			array_filter(
+				$response['displayItems'],
+				static function ( $item ) {
+					return isset( $item['label'] ) && __( 'Tax', 'woocommerce-gateway-stripe' ) === $item['label'];
+				}
+			)
+		);
+		if ( null !== $expected_tax_amount ) {
+			$this->assertCount( 1, $tax_items, 'Exactly one tax line should be shown.' );
+			$this->assertSame( $expected_tax_amount, $tax_items[0]['amount'] );
+		} else {
+			$this->assertCount( 0, $tax_items, 'A non-taxable product must show no tax line.' );
+		}
+		$this->assertSame( $expected_total_amount, $response['total']['amount'] );
+	}
+
+	/**
+	 * Data provider for test_ajax_get_selected_product_data_taxes_full_line.
+	 *
+	 * Product price is stubbed at $10. Columns: quantity, posted add-on value, whether the product is
+	 * taxable, expected tax base passed to get_taxes_like_cart() (null when it is skipped), the stubbed
+	 * tax it returns (null when skipped), then expected line-item / tax / total amounts in minor units.
+	 * A null expected tax means no tax line should be shown.
+	 *
+	 * @return array
+	 */
+	public function provide_full_line_tax_scenarios() {
+		return [
+			'multiple quantity, no add-on'        => [ 3, 0, true, 30.0, 3.0, 3000, 300, 3300 ],
+			'single quantity with taxable add-on' => [ 1, 5, true, 15.0, 1.5, 1500, 150, 1650 ],
+			'non-taxable product shows no tax'    => [ 1, 5, false, null, null, 1500, null, 1500 ],
+		];
+	}
+
+	/**
 	 * Test ajax_add_to_cart preserves decimal quantities on stores that allow them.
 	 *
 	 * Stores that sell by fractional units (e.g. fabric by the metre) enable decimal
