@@ -15,6 +15,7 @@ import {
 	isManualPaymentMethodCreation,
 	normalizeLineItems,
 	transformVariationAttributesForStoreApi,
+	buildBookingConfiguration,
 } from 'wcstripe/express-checkout/utils';
 import {
 	onAbortPaymentHandler,
@@ -85,7 +86,7 @@ jQuery( function ( $ ) {
 
 	// Variable and booking products keep the legacy display-item format: their
 	// product-page preview comes from `get_selected_product_data`, which has no
-	// Store API equivalent.
+	// Store API equivalent. Add-to-cart routing is handled separately in `addToCart()`.
 	const useLegacyDisplayItems = hasVariationForm || hasBookingForm;
 
 	const resolveClickEvent = ( event, options ) => {
@@ -761,17 +762,34 @@ jQuery( function ( $ ) {
 				}
 			} );
 
-			// Booking products add through the legacy endpoint: routing them via
-			// the Store API requires translating the booking form into a
-			// `booking_configuration` param, which this path does not build.
 			if ( hasBookingForm ) {
-				data.product_id = productId;
-				data.attributes = wcStripeECE.getAttributes().data;
+				// Use the Store API only when Bookings supports it and the booking
+				// maps to a `booking_configuration`; otherwise fall back to legacy.
+				const bookingConfiguration = getExpressCheckoutData(
+					'has_bookings_store_api'
+				)
+					? buildBookingConfiguration(
+							document.querySelector(
+								'.wc-bookings-booking-form'
+							)
+					  )
+					: null;
 
 				// Clear the cart first (with the booking id) so prior items don't
 				// skew the total, matching the variable/simple path below.
 				await api.expressCheckoutEmptyCartLegacy( emptyCartParams );
-				return api.expressCheckoutAddToCartLegacy( data );
+
+				if ( ! bookingConfiguration ) {
+					data.product_id = productId;
+					data.attributes = wcStripeECE.getAttributes().data;
+
+					return api.expressCheckoutAddToCartLegacy( data );
+				}
+
+				data.id = productId;
+				data.booking_configuration = bookingConfiguration;
+
+				return api.expressCheckoutAddToCart( data );
 			}
 
 			data.id = productId;

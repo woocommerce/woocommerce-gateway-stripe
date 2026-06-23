@@ -551,8 +551,9 @@ export default class WCStripeAPI {
 	/**
 	 * Add product to cart from product page (legacy version, non-StoreAPI).
 	 *
-	 * Used for booking products, whose add-to-cart is not routed through the
-	 * Store API (see `expressCheckoutAddToCart` for the Store API path).
+	 * Fallback for booking products that can't be expressed as a Store API
+	 * `booking_configuration` (persons / customer-defined duration); the
+	 * representable ones go through `expressCheckoutAddToCart`.
 	 *
 	 * @param {Object} productData Product data.
 	 * @return {Promise} Promise for the request to the server.
