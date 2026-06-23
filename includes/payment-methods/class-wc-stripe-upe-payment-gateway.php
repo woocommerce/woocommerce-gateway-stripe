@@ -1443,6 +1443,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return array An array with the result of the payment processing, and a redirect URL on success.
 	 */
 	private function process_payment_with_deferred_intent( int $order_id ) {
+		// These charges read the total off the order downstream, bypassing the intent-controller
+		// recalc, so fold in any late-applied tax here. Scoped to this dispatcher to skip the
+		// subscription change-payment flow; is_payment_needed() avoids resurrecting a zero total.
+		$order = wc_get_order( $order_id );
+		if ( $order instanceof WC_Order && $this->is_payment_needed( $order_id ) ) {
+			WC_Stripe_Helper::recalculate_order_total( $order );
+		}
+
 		if ( ! empty( $_POST['wc-stripe-confirmation-token'] ) ) {
 			return $this->process_payment_with_confirmation_token( $order_id );
 		}

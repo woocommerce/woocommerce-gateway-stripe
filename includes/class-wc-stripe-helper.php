@@ -103,6 +103,21 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Recalculates an order's totals (saving it) and returns the grand total including taxes.
+	 *
+	 * Folds in tax an extension applied on `woocommerce_order_after_calculate_totals` after the
+	 * total was last summed (otherwise `get_total()` stays pre-tax and the charge undercharges).
+	 * `false` re-sums stored tax rather than re-deriving from store rates, which would clobber an
+	 * extension's API-applied tax; safe to repeat.
+	 *
+	 * @param WC_Order $order The order being paid.
+	 * @return float The recalculated grand total, including taxes.
+	 */
+	public static function recalculate_order_total( $order ) {
+		return $order->calculate_totals( false );
+	}
+
+	/**
 	 * Converts a Stripe amount (in smallest currency unit) to a WooCommerce decimal amount.
 	 *
 	 * This is the inverse of `get_stripe_amount()`.

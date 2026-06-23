@@ -379,36 +379,6 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
-	 * Recalculates the order totals and returns the resulting grand total.
-	 *
-	 * Side effect: this recomputes the totals and saves the order. It is not a
-	 * pure getter — call it only where the recalculated grand total is the value
-	 * being charged.
-	 *
-	 * Some tax extensions (e.g. TaxJar) apply their tax on the
-	 * `woocommerce_order_after_calculate_totals` hook, which only fires when the
-	 * order totals are (re)calculated. The Optimized Checkout payment flow reads
-	 * the order total before that fold-in has happened, so `get_total()` returns
-	 * a grand total that excludes the tax while the `tax_amount` metadata —
-	 * sourced from `get_total_tax()` — already reflects it, and the customer is
-	 * undercharged by exactly the tax amount.
-	 *
-	 * Recalculating fires that hook and folds the tax back into the grand total,
-	 * matching the legacy create-and-confirm path. We pass `false` so existing
-	 * tax line items are summed into the total rather than re-derived from store
-	 * tax rates — that avoids clobbering taxes a third-party extension has
-	 * already applied. Repeated calls are safe: the `after_calculate_totals`
-	 * contract WooCommerce core relies on (it recalculates totals several times
-	 * per request) requires handlers to set absolute values, not increment.
-	 *
-	 * @param WC_Order $order The order being paid.
-	 * @return float The recalculated order grand total including taxes.
-	 */
-	private function recalculate_order_total( $order ) {
-		return $order->calculate_totals( false );
-	}
-
-	/**
 	 * Creates payment intent using current cart or order and store details.
 	 *
 	 * @param int|null    $order_id The id of the order if intent created from Order.
@@ -422,7 +392,7 @@ class WC_Stripe_Intent_Controller {
 		$currency = get_woocommerce_currency();
 		$order    = wc_get_order( $order_id );
 		if ( is_a( $order, 'WC_Order' ) ) {
-			$amount   = $this->recalculate_order_total( $order );
+			$amount   = WC_Stripe_Helper::recalculate_order_total( $order );
 			$currency = $order->get_currency();
 		}
 
@@ -545,7 +515,7 @@ class WC_Stripe_Intent_Controller {
 			if ( ! $is_setup_intent ) {
 				// These parameters are only supported for payment intents. Setup
 				// intents carry no amount, so the recalculation is scoped here.
-				$request['amount']   = WC_Stripe_Helper::get_stripe_amount( $this->recalculate_order_total( $order ), strtolower( $currency ) );
+				$request['amount']   = WC_Stripe_Helper::get_stripe_amount( WC_Stripe_Helper::recalculate_order_total( $order ), strtolower( $currency ) );
 				$request['currency'] = strtolower( $currency );
 			}
 

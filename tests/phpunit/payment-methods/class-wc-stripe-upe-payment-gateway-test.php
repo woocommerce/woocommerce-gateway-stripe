@@ -933,6 +933,70 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * The deferred-intent charge must include tax left on the order with a stale (pre-tax) grand
+	 * total — the #5582 undercharge. Reproduces TaxJar's persisted state (tax recorded, total stale,
+	 * no active hook) so it exercises the `calculate_totals( false )` re-sum, not a hook fold-in.
+	 *
+	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5582
+	 */
+	public function test_process_payment_deferred_intent_includes_tax_applied_after_totals_summed() {
+		$tax      = 9.0;
+		$order    = WC_Helper_Order::create_order();
+		$currency = strtolower( $order->get_currency() );
+
+		// Buggy persisted state: tax recorded on the order, grand total stale (pre-tax).
+		$net = (float) $order->get_subtotal() + (float) $order->get_shipping_total();
+		$order->set_cart_tax( $tax );
+		$order->set_shipping_tax( 0 );
+		$order->set_total( $net );
+		$order->save();
+
+		$expected_amount = WC_Stripe_Helper::get_stripe_amount( $net + $tax, $currency );
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => '',
+			'wc-stripe-confirmation-token' => 'ctoken_mock',
+		];
+
+		$mock_intent = (object) wp_parse_args(
+			[
+				'payment_method' => 'pm_mock',
+				'charges'        => (object) [
+					'data' => [
+						(object) [
+							'id'       => $order->get_id(),
+							'captured' => 'yes',
+							'status'   => 'succeeded',
+						],
+					],
+				],
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$captured_amount = null;
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturnCallback(
+				function ( $payment_information ) use ( &$captured_amount, $mock_intent ) {
+					$captured_amount = $payment_information['amount'];
+					return $mock_intent;
+				}
+			);
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		$this->mock_gateway->process_payment( $order->get_id() );
+
+		$this->assertEquals( $expected_amount, $captured_amount );
+	}
+
+	/**
 	 * Test SCA/3DS checkout process_payment flow with deferred intent.
 	 */
 	public function test_process_payment_deferred_intent_with_required_action_returns_valid_response() {
