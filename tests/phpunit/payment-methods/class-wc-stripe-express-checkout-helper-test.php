@@ -1963,6 +1963,54 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests for `get_amazon_pay_button_height`.
+	 *
+	 * @param array  $settings Settings array.
+	 * @param string $expected Expected height.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_get_amazon_pay_button_height
+	 */
+	public function test_get_amazon_pay_button_height( array $settings, string $expected ): void {
+		$helper                  = new WC_Stripe_Express_Checkout_Helper();
+		$helper->stripe_settings = $settings;
+
+		$actual = $helper->get_amazon_pay_button_height();
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_get_amazon_pay_button_height`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_amazon_pay_button_height(): array {
+		return [
+			'small'         => [
+				'settings' => [ 'amazon_pay_button_size' => 'small' ],
+				'expected' => '40',
+			],
+			'default'       => [
+				'settings' => [ 'amazon_pay_button_size' => 'default' ],
+				'expected' => '48',
+			],
+			'large'         => [
+				'settings' => [ 'amazon_pay_button_size' => 'large' ],
+				'expected' => '56',
+			],
+			'not set'       => [
+				'settings' => [],
+				'expected' => '48',
+			],
+			'unknown value' => [
+				'settings' => [ 'amazon_pay_button_size' => 'unknown' ],
+				'expected' => '48',
+			],
+		];
+	}
+
+	/**
 	 * Test for `is_change_payment_method_page`.
 	 *
 	 * @param int|null $query_arg            Value of $_GET['change_payment_method'] (null = unset).
