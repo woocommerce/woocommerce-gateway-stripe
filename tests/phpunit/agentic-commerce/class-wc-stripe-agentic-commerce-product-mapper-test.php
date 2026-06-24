@@ -1168,4 +1168,112 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 			$product->delete( true );
 		}
 	}
+
+	/**
+	 * Default (embedded) mode emits `disable_checkout=false`.
+	 *
+	 * @return void
+	 */
+	public function test_disable_checkout_defaults_to_false() {
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertSame( 'false', $result['disable_checkout'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * The store-wide redirect setting flips every row to `disable_checkout=true`.
+	 *
+	 * @return void
+	 */
+	public function test_disable_checkout_follows_store_wide_setting() {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION, 'yes' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$result = $mapper->map_product( $product );
+
+			$this->assertSame( 'true', $result['disable_checkout'] );
+		} finally {
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * The `wc_stripe_agentic_commerce_disable_checkout` filter overrides the store-wide default.
+	 *
+	 * @return void
+	 */
+	public function test_disable_checkout_filter_overrides_store_wide_default() {
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$callback = static fn() => true;
+		add_filter( 'wc_stripe_agentic_commerce_disable_checkout', $callback );
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$result = $mapper->map_product( $product );
+
+			$this->assertSame( 'true', $result['disable_checkout'] );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_disable_checkout', $callback );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * The filter result is normalised with wp_validate_boolean(), so a string
+	 * 'false' (and other falsy strings) returned by a callback must resolve to
+	 * false rather than being truthy under a plain (bool) cast.
+	 *
+	 * @dataProvider provider_disable_checkout_falsy_filter_values
+	 * @param mixed $filter_value Value returned by the filter callback.
+	 * @return void
+	 */
+	public function test_disable_checkout_filter_normalises_falsy_strings( $filter_value ) {
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$callback = static fn() => $filter_value;
+		add_filter( 'wc_stripe_agentic_commerce_disable_checkout', $callback );
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$result = $mapper->map_product( $product );
+
+			$this->assertSame( 'false', $result['disable_checkout'] );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_disable_checkout', $callback );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * Falsy filter return values that a (bool) cast would mishandle.
+	 *
+	 * @return array<string, array{0: mixed}>
+	 */
+	public function provider_disable_checkout_falsy_filter_values() {
+		return [
+			'string false' => [ 'false' ],
+			'string zero'  => [ '0' ],
+			'empty string' => [ '' ],
+		];
+	}
 }
