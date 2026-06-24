@@ -1179,7 +1179,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
 			$integration->schedule_recurring_feed_sync( $start_time );
 
-			$next = as_next_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION );
+			$next = as_next_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 
 			$this->assertNotFalse( $next, 'Expected an action to be scheduled.' );
 			$this->assertEqualsWithDelta( $start_time, $next, 2 );
@@ -1209,12 +1209,12 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
 			$integration->schedule_recurring_feed_sync( $first_start );
 
-			$next_after_first = as_next_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION );
+			$next_after_first = as_next_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 
 			// Second call with a different start_time should not displace the first.
 			$integration->schedule_recurring_feed_sync( $second_start );
 
-			$next_after_second = as_next_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION );
+			$next_after_second = as_next_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 
 			$this->assertEquals(
 				$next_after_first,
@@ -1275,7 +1275,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			$integration->schedule_recurring_feed_sync();
 
 			$this->assertTrue(
-				as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION ),
+				as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' ),
 				'Pre-condition: action should be scheduled before reschedule.'
 			);
 
@@ -1283,7 +1283,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 
 			$this->assertTrue( $result );
 			$this->assertTrue(
-				as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION ),
+				as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' ),
 				'Action should still be scheduled after reschedule.'
 			);
 			$this->assertEquals( 'yes', get_option( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION ) );
@@ -1352,7 +1352,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
 			$integration->reschedule_next_feed_sync();
 
-			$next = as_next_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION );
+			$next = as_next_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 
 			$this->assertNotFalse( $next, 'Expected an action to be scheduled after reschedule.' );
 
