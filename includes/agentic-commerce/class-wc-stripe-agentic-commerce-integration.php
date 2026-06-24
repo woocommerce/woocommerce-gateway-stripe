@@ -313,13 +313,18 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		if ( ! as_has_scheduled_action( self::SCHEDULED_ACTION, null, 'wc-stripe' ) ) {
 			$sync_interval = $this->get_feed_sync_interval();
 
-			as_schedule_recurring_action(
+			$schedule_result = as_schedule_recurring_action(
 				$start_time,
 				$sync_interval,
 				self::SCHEDULED_ACTION,
 				[],
 				'wc-stripe'
 			);
+
+			if ( 0 === $schedule_result ) {
+				WC_Stripe_Logger::error( 'Agentic Commerce: Failed to schedule recurring feed sync' );
+				return false;
+			}
 
 			WC_Stripe_Logger::info( 'Agentic Commerce: Scheduled recurring feed sync every ' . ( $sync_interval / MINUTE_IN_SECONDS ) . ' minutes' );
 		}

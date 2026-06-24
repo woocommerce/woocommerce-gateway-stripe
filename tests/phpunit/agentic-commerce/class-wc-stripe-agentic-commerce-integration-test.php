@@ -1227,6 +1227,32 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		}
 	}
 
+	public function test_schedule_recurring_feed_sync_returns_false_when_failed_to_schedule(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION );
+
+		$return_zero = function () {
+			return 0;
+		};
+
+		try {
+			add_filter( 'pre_as_schedule_recurring_action', $return_zero );
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+			$result      = $integration->schedule_recurring_feed_sync();
+
+			$this->assertFalse( $result );
+			$this->assertFalse( get_option( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION ) );
+		} finally {
+			as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
+			delete_option( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION );
+			remove_filter( 'pre_as_schedule_recurring_action', $return_zero );
+		}
+	}
+
 	// -------------------------------------------------------------------------
 	// reschedule_next_feed_sync
 	// -------------------------------------------------------------------------
