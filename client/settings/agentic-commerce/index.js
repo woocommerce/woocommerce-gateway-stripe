@@ -106,10 +106,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			setIsFeatureEnabled( result.is_enabled );
 			setDisableCheckout( result.disable_checkout ?? false );
 			setWebhookSecret( result.webhook_secret ?? '' );
-			setSettingsNotice( {
-				status: 'success',
-				message: __( 'Settings saved.', 'woocommerce-gateway-stripe' ),
-			} );
+			// No success notice: the global Save changes flow already shows a page-level toast.
 		} catch ( err ) {
 			setSettingsNotice( {
 				status: 'error',
