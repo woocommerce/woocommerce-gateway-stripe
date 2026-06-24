@@ -1,6 +1,6 @@
 import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
 
-// #5490: a re-mount resets the Payment Element's completion state; the helper
+// A re-mount resets the Payment Element's completion state; the helper
 // gives it a short window to settle before a submission is rejected.
 describe( 'waitForPaymentElementCompletion', () => {
 	beforeEach( () => {

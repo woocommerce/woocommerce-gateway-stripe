@@ -271,7 +271,7 @@ describe( 'payment-processing', () => {
 				expect( form.trigger ).toHaveBeenCalledWith( 'submit' );
 			} );
 
-			it( 'waits for an in-flight re-mount before validating and submitting (issue #5490)', async () => {
+			it( 'waits for an in-flight re-mount before validating and submitting', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
 				api._stripe.elements.mockReturnValue( api._standardElements );
@@ -310,7 +310,7 @@ describe( 'payment-processing', () => {
 				expect( form.trigger ).toHaveBeenCalledWith( 'submit' );
 			} );
 
-			it( 'holds submission until all overlapping re-mounts settle, even out of order (issue #5490)', async () => {
+			it( 'holds submission until all overlapping re-mounts settle, even out of order', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
 				api._stripe.elements.mockReturnValue( api._standardElements );
