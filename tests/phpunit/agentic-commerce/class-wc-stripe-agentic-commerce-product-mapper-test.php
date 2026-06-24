@@ -46,6 +46,11 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$product->set_description( 'Test Description' );
 		$product->set_regular_price( '19.99' );
 		$product->set_stock_status( 'instock' );
+		// WC_Helper_Product seeds a shared, non-unique 'DUMMY SKU'; if another
+		// product (e.g. an install fixture) already holds it, set_sku() rejects
+		// the duplicate and the product saves SKU-less. Assign an explicit unique
+		// SKU so this deterministically exercises the SKU-as-id mapping.
+		$product->set_sku( 'agentic-required-fields-sku' );
 		$product->save();
 
 		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
@@ -62,7 +67,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'price', $result );
 
 		// Verify field values.
-		$this->assertEquals( $product->get_sku(), $result['id'] );
+		$this->assertSame( 'agentic-required-fields-sku', $result['id'] );
 		$this->assertEquals( 'Test Product', $result['title'] );
 		$this->assertEquals( 'Test Description', $result['description'] );
 		$this->assertEquals( 'in_stock', $result['availability'] );
