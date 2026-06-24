@@ -1087,10 +1087,10 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	/**
 	 * Tests for {@method WC_Stripe_Agentic_Commerce_Integration::get_feed_sync_interval()}.
 	 *
-	 * @dataProvider provide_get_feed__sync_interval_tests
+	 * @dataProvider provide_get_feed_sync_interval_tests
 	 *
-	 * @param mixed $invalid_value Value returned by the filter.
-	 * @return void
+	 * @param mixed $filter_value      Value returned by the filter.
+	 * @param int   $expected_interval Expected interval in seconds.
 	 */
 	public function test_get_feed_sync_interval( $filter_value, int $expected_interval ): void {
 		$filter_callback = null;
@@ -1119,7 +1119,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 *
 	 * @return array<string, array{0: mixed, 1: int}>
 	 */
-	public function provide_get_feed__sync_interval_tests(): array {
+	public function provide_get_feed_sync_interval_tests(): array {
 		return [
 			'zero'      => [ 0, \WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL ],
 			'negative'  => [ -1, \WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL ],
