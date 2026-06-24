@@ -611,4 +611,153 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator_Test extends WP_UnitTestCase {
 
 		$product->delete( true );
 	}
+
+	/**
+	 * Fresh validator exposes empty collected-errors state so the caller can
+	 * unconditionally read get_collected_errors() after a clean sync.
+	 *
+	 * @return void
+	 */
+	public function test_get_collected_errors_starts_empty() {
+		$validator = new \WC_Stripe_Agentic_Commerce_Feed_Validator();
+
+		$this->assertSame(
+			[
+				'products'  => [],
+				'truncated' => 0,
+			],
+			$validator->get_collected_errors()
+		);
+	}
+
+	/**
+	 * Failing rows accumulate keyed by product ID; passing rows do not show
+	 * up. The accumulator is what lets the caller emit a single rolled-up
+	 * log entry per sync instead of one line per product.
+	 *
+	 * @return void
+	 */
+	public function test_get_collected_errors_accumulates_failing_rows() {
+		$validator = new \WC_Stripe_Agentic_Commerce_Feed_Validator();
+
+		$failing = WC_Helper_Product::create_simple_product();
+		$passing = WC_Helper_Product::create_simple_product();
+
+		try {
+			$validator->validate_entry(
+				[
+					'id'    => '1',
+					'title' => 'Bad',
+				],
+				$failing
+			);
+			$validator->validate_entry(
+				[
+					'id'               => '2',
+					'title'            => 'Good',
+					'description'      => 'Test',
+					'link'             => 'https://example.com/p',
+					'brand'            => 'Brand',
+					'image_link'       => 'https://example.com/i.jpg',
+					'availability'     => 'in_stock',
+					'price'            => '19.99 USD',
+					'gtin'             => '1234567890123',
+					'product_category' => 'Cat',
+				],
+				$passing
+			);
+
+			$collected = $validator->get_collected_errors();
+
+			$this->assertSame( 0, $collected['truncated'] );
+			$this->assertArrayHasKey( $failing->get_id(), $collected['products'] );
+			$this->assertArrayNotHasKey( $passing->get_id(), $collected['products'] );
+			$this->assertNotEmpty( $collected['products'][ $failing->get_id() ] );
+		} finally {
+			$failing->delete( true );
+			$passing->delete( true );
+		}
+	}
+
+	/**
+	 * Once MAX_COLLECTED_ERRORS detail entries have been retained, additional
+	 * failures bump `truncated` instead of expanding the payload — bounding
+	 * the eventual log entry's size on a catalog with systemic failures.
+	 *
+	 * @return void
+	 */
+	public function test_get_collected_errors_caps_detail_at_max() {
+		$validator = new \WC_Stripe_Agentic_Commerce_Feed_Validator();
+		$max       = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Agentic_Commerce_Feed_Validator::class, 'MAX_COLLECTED_ERRORS', 'int' );
+		$products  = [];
+
+		try {
+			for ( $i = 0; $i < $max + 5; $i++ ) {
+				$product    = WC_Helper_Product::create_simple_product();
+				$products[] = $product;
+				$validator->validate_entry(
+					[
+						'id'    => (string) $i,
+						'title' => 'Bad',
+					],
+					$product
+				);
+			}
+
+			$collected = $validator->get_collected_errors();
+
+			$this->assertCount( $max, $collected['products'] );
+			$this->assertSame( 5, $collected['truncated'] );
+		} finally {
+			foreach ( $products as $product ) {
+				$product->delete( true );
+			}
+		}
+	}
+
+	/**
+	 * An excluded product arrives as an empty row: validate_entry() must drop it
+	 * (non-empty return) without per-field errors, counting it as an exclusion
+	 * rather than a validation failure.
+	 *
+	 * @return void
+	 */
+	public function test_validate_entry_treats_excluded_product_as_silent_skip() {
+		$product = WC_Helper_Product::create_simple_product();
+
+		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
+
+		try {
+			$validator = new \WC_Stripe_Agentic_Commerce_Feed_Validator();
+			$result    = $validator->validate_entry( [], $product );
+
+			$this->assertNotEmpty( $result, 'Return must be non-empty so the walker drops the row from the feed.' );
+			$this->assertSame( 1, $validator->get_excluded_count(), 'The exclusion must be counted.' );
+			$this->assertSame( [], $validator->get_collected_errors()['products'], 'An exclusion must not be recorded as a validation failure.' );
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * An empty row for a NON-excluded product is still a real validation failure:
+	 * collected and counted as such, with excluded_count untouched.
+	 *
+	 * @return void
+	 */
+	public function test_validate_entry_empty_row_without_exclusion_is_a_failure() {
+		$product = WC_Helper_Product::create_simple_product();
+
+		$validator = new \WC_Stripe_Agentic_Commerce_Feed_Validator();
+		$errors    = $validator->validate_entry( [], $product );
+
+		$this->assertNotEmpty( $errors, 'An empty row for a non-excluded product is a validation failure.' );
+		$this->assertGreaterThan( 1, count( $errors ), 'Missing required fields should produce multiple errors.' );
+		$this->assertSame( 0, $validator->get_excluded_count(), 'A real failure must not be counted as an exclusion.' );
+		$this->assertArrayHasKey( $product->get_id(), $validator->get_collected_errors()['products'], 'A real failure must be collected.' );
+
+		$product->delete( true );
+	}
 }

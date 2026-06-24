@@ -55,17 +55,93 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Guards that `create_payment_token_for_user()` persists `wallet_type` when the
+	 * Stripe PaymentMethod was tokenized via a digital wallet (Apple Pay / Google Pay
+	 * / Link). The saved-methods list relies on this meta to surface wallet branding
+	 * instead of just the underlying card.
+	 *
+	 * @param string|null $wallet_input Stripe `card.wallet.type` value, or null to omit.
+	 * @param string      $expected     Expected token wallet_type after save.
+	 * @return void
+	 * @dataProvider provide_test_create_payment_token_for_user_wallet_type
+	 */
+	public function test_create_payment_token_for_user_wallet_type( $wallet_input, $expected ) {
+		$user_id = wp_insert_user(
+			[
+				'user_login' => 'wallet_tester_' . wp_generate_password( 6, false ),
+				'user_pass'  => 'password',
+				'user_email' => 'wallet_' . wp_generate_password( 6, false ) . '@example.com',
+			]
+		);
+
+		$card = [
+			'brand'         => 'visa',
+			'display_brand' => 'visa',
+			'exp_month'     => 12,
+			'exp_year'      => 2030,
+			'last4'         => '4242',
+			'fingerprint'   => 'F_wallet_' . wp_generate_password( 6, false ),
+		];
+		if ( null !== $wallet_input ) {
+			$card['wallet'] = [ 'type' => $wallet_input ];
+		}
+
+		$payment_method = json_decode(
+			wp_json_encode(
+				[
+					'id'   => 'pm_test_' . wp_generate_password( 6, false ),
+					'type' => WC_Stripe_Payment_Methods::CARD,
+					'card' => $card,
+				]
+			)
+		);
+
+		$method = new WC_Stripe_UPE_Payment_Method_CC();
+		$token  = $method->create_payment_token_for_user( $user_id, $payment_method );
+
+		$this->assertInstanceOf( WC_Stripe_Payment_Token_CC::class, $token );
+		$this->assertSame( $expected, $token->get_wallet_type() );
+
+		$reloaded = WC_Payment_Tokens::get( $token->get_id() );
+		$this->assertSame( $expected, $reloaded->get_wallet_type(), 'wallet_type must round-trip through storage.' );
+	}
+
+	/**
+	 * Data provider for `test_create_payment_token_for_user_wallet_type`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_create_payment_token_for_user_wallet_type() {
+		return [
+			'Apple Pay'                     => [ 'apple_pay', 'apple_pay' ],
+			'Google Pay'                    => [ 'google_pay', 'google_pay' ],
+			'Link-wrapped'                  => [ 'link', 'link' ],
+			'No wallet (manual card entry)' => [ null, '' ],
+		];
+	}
+
+	/**
 	 * Test for `get_testing_instructions`.
 	 *
+	 * @dataProvider provider_get_testing_instructions
 	 * @return void
 	 */
-	public function test_get_testing_instructions() {
-		$expected = '<strong>Test mode:</strong> use card <number>4242 4242 4242 4242</number> with any expiry and CVC. <a href="https://docs.stripe.com/testing" target="_blank">More test cards</a>.';
-
+	public function test_get_testing_instructions( bool $include_test_mode_label, string $expected ) {
 		$payment_method = new WC_Stripe_UPE_Payment_Method_CC();
-		$actual         = $payment_method->get_testing_instructions();
+		$this->assertEquals( $expected, $payment_method->get_testing_instructions( false, $include_test_mode_label ) );
+	}
 
-		$this->assertEquals( $expected, $actual );
+	public function provider_get_testing_instructions(): array {
+		return [
+			'with label (classic checkout)'   => [
+				true,
+				'<strong>Test mode:</strong> use card <number>4242 4242 4242 4242</number> with any expiry and CVC. <a href="https://docs.stripe.com/testing" target="_blank">More test cards</a>.',
+			],
+			'without label (blocks checkout)' => [
+				false,
+				'Use card <number>4242 4242 4242 4242</number> with any expiry and CVC. <a href="https://docs.stripe.com/testing" target="_blank">More test cards</a>.',
+			],
+		];
 	}
 
 	/**

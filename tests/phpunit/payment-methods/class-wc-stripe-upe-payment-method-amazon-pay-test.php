@@ -3,7 +3,7 @@
 /**
  * These tests make assertions against class WC_Stripe_UPE_Payment_Method_Amazon_Pay.
  */
-class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends \WP_UnitTestCase {
+class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends WC_Stripe_UPE_Payment_Method_Test_Case {
 
 	/**
 	 * Provide test data for {@see test_supported_currencies()}.
@@ -121,6 +121,7 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends \WP_UnitTestCase {
 			'ZA is not available' => [ 'ZA', false ],
 			'CA is not available' => [ 'CA', false ],
 			'GR is not available' => [ 'GR', false ],
+			'ZZ is not available' => [ 'ZZ', false ],
 		];
 	}
 
@@ -132,21 +133,7 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends \WP_UnitTestCase {
 	 * @dataProvider provide_test_is_available_for_account_country
 	 */
 	public function test_is_available_for_account_country( string $account_country, bool $expected_availability ): void {
-		$mock_account = $this->createMock( \WC_Stripe_Account::class );
-		$mock_account->method( 'get_account_country' )
-			->willReturn( $account_country );
-
-		$stripe_instance          = \WC_Stripe::get_instance();
-		$initial_account          = $stripe_instance->account;
-		$stripe_instance->account = $mock_account;
-
-		$amazon_pay   = new \WC_Stripe_UPE_Payment_Method_Amazon_Pay();
-		$is_available = $amazon_pay->is_available_for_account_country();
-
-		// Reset account before asserting.
-		$stripe_instance->account = $initial_account;
-
-		$this->assertEquals( $expected_availability, $is_available );
+		$this->run_is_available_for_account_country_test( WC_Stripe_UPE_Payment_Method_Amazon_Pay::class, $account_country, $expected_availability );
 	}
 
 	/**

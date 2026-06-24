@@ -288,16 +288,15 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			[
 				[
-					'woocommerce_stripe_settings'    => [
+					'woocommerce_stripe_settings' => [
 						'enabled'         => 'yes',
 						'testmode'        => 'no',
 						'publishable_key' => 'pk_live_valid_test_key',
 						'secret_key'      => 'sk_live_valid_test_key',
 					],
-					'wc_stripe_show_style_notice'    => 'no',
-					'wc_stripe_show_sca_notice'      => 'no',
-					'_wcstripe_feature_upe_settings' => 'yes',
-					'home'                           => 'https://...',
+					'wc_stripe_show_style_notice' => 'no',
+					'wc_stripe_show_sca_notice'   => 'no',
+					'home'                        => 'https://...',
 				],
 				'is oauth connected' => true,
 				[],
@@ -309,13 +308,12 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			[
 				[
-					'woocommerce_stripe_settings'    => [
+					'woocommerce_stripe_settings' => [
 						'enabled' => 'yes',
 					],
-					'wc_stripe_show_style_notice'    => 'no',
-					'wc_stripe_show_sca_notice'      => 'no',
-					'_wcstripe_feature_upe_settings' => 'yes',
-					'home'                           => 'https://...',
+					'wc_stripe_show_style_notice' => 'no',
+					'wc_stripe_show_sca_notice'   => 'no',
+					'home'                        => 'https://...',
 				],
 				'is oauth connected' => true,
 				[
@@ -577,13 +575,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 *
 	 * @return void
 	 */
-	public function test_currency_notice_is_shown_for_upe_methods() {
-		add_filter(
-			'pre_option__wcstripe_feature_upe',
-			function () {
-				return 'yes';
-			}
-		);
+	public function test_currency_notice_is_shown_for_upe_methods(): void {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
 
 		$this->mock_payment_method_configurations(
@@ -798,6 +790,222 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test that subscription_detached notice is not shown when dismissed via post meta.
+	 *
+	 * @return void
+	 */
+	public function test_subscription_check_detachment_not_shown_when_dismissed() {
+		$source_id    = 'src_123_dismissed';
+		$meta_key     = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Admin_Notices::class, 'DETACHED_NOTICE_DISMISSED_META', 'string' );
+		$subscription = new WC_Subscription();
+
+		$subscription->set_id( 124 );
+		$subscription->set_status( 'active' );
+		$subscription->set_payment_method( 'stripe_klarna' );
+		$subscription->save();
+		$subscription->update_meta_data( '_stripe_source_id', $source_id );
+		$subscription->update_meta_data( $meta_key, 'yes' );
+		$subscription->save_meta_data();
+
+		// Ensure HPOS is enabled so is_subscription_edit_page() recognises the request params.
+		$cot_ctrl = wc_get_container()->get( \Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController::class );
+		remove_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999 );
+		update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+		add_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999, 3 );
+
+		$_REQUEST = [
+			'page' => 'wc-orders--shop_subscription',
+			'id'   => $subscription->get_id(),
+		];
+
+		global $theorder;
+		$original_order = $theorder;
+		$theorder       = $subscription;
+
+		$test_request = function () {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'customer' => null,
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->subscription_check_detachment();
+
+		remove_filter( 'pre_http_request', $test_request, 10, 3 );
+		unset( $_REQUEST );
+		$theorder = $original_order;
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_id );
+
+		$this->assertArrayNotHasKey( 'subscription_detached', $notices->notices );
+		$this->assertSame( 'yes', $subscription->get_meta( $meta_key ) );
+	}
+
+	/**
+	 * Test that the dismissed subscription_detached notice meta is cleared when the payment method is no longer detached.
+	 *
+	 * @return void
+	 */
+	public function test_subscription_check_detachment_clears_dismissed_meta_when_not_detached() {
+		$source_id    = 'src_123_attached';
+		$meta_key     = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Admin_Notices::class, 'DETACHED_NOTICE_DISMISSED_META', 'string' );
+		$subscription = new WC_Subscription();
+
+		$subscription->set_id( 125 );
+		$subscription->set_status( 'active' );
+		$subscription->set_payment_method( 'stripe_klarna' );
+		$subscription->save();
+		$subscription->update_meta_data( '_stripe_source_id', $source_id );
+		$subscription->update_meta_data( $meta_key, 'yes' );
+		$subscription->save_meta_data();
+
+		WC_Stripe_Database_Cache::set(
+			'payment_method_for_source_' . $source_id,
+			(object) [ 'customer' => 'cus_123' ],
+			HOUR_IN_SECONDS
+		);
+
+		// Ensure HPOS is enabled so is_subscription_edit_page() recognises the request params.
+		$cot_ctrl = wc_get_container()->get( \Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController::class );
+		remove_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999 );
+		update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+		add_filter( 'pre_update_option', [ $cot_ctrl, 'process_pre_update_option' ], 999, 3 );
+
+		$_REQUEST = [
+			'page' => 'wc-orders--shop_subscription',
+			'id'   => $subscription->get_id(),
+		];
+
+		global $theorder;
+		$original_order = $theorder;
+		$theorder       = $subscription;
+
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->subscription_check_detachment();
+
+		unset( $_REQUEST );
+		$theorder = $original_order;
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_id );
+
+		$this->assertArrayNotHasKey( 'subscription_detached', $notices->notices );
+		$this->assertSame( '', $subscription->get_meta( $meta_key ) );
+	}
+
+	/**
+	 * Test that dismissing the subscription_detached notice sets the post meta.
+	 *
+	 * @param string $request_param The request parameter key for the subscription ID.
+	 * @return void
+	 * @dataProvider provide_hide_notices_subscription_detached_paths
+	 */
+	public function test_hide_notices_dismisses_subscription_detached_notice( $request_param ) {
+		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_user );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_status( 'active' );
+		$subscription->save();
+
+		WC_Subscriptions::set_wcs_get_subscription(
+			function ( $id ) use ( $subscription ) {
+				return $subscription;
+			}
+		);
+
+		$_GET['wc-stripe-hide-notice']   = 'subscription_detached';
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+		$_REQUEST[ $request_param ]      = $subscription->get_id();
+
+		$notices = $this->create_admin_notices_instance();
+		$notices->hide_notices();
+
+		$meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Admin_Notices::class, 'DETACHED_NOTICE_DISMISSED_META', 'string' );
+
+		try {
+			$this->assertEquals( 'yes', $subscription->get_meta( $meta_key ) );
+		} finally {
+			WC_Subscriptions::$wcs_get_subscription = null;
+			unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST[ $request_param ] );
+		}
+	}
+
+	/**
+	 * Data provider for test_hide_notices_dismisses_subscription_detached_notice.
+	 *
+	 * @return array
+	 */
+	public function provide_hide_notices_subscription_detached_paths() {
+		return [
+			'HPOS path'     => [ 'id' ],
+			'non-HPOS path' => [ 'post' ],
+		];
+	}
+
+	/**
+	 * Test that hide_notices does nothing for subscription_detached when no subscription ID param is present.
+	 *
+	 * @return void
+	 */
+	public function test_hide_notices_subscription_detached_no_param_does_nothing() {
+		unset( $_REQUEST['post'], $_REQUEST['id'] );
+		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_user );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_status( 'active' );
+		$subscription->save();
+
+		$_GET['wc-stripe-hide-notice']   = 'subscription_detached';
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		$notices = $this->create_admin_notices_instance();
+		$notices->hide_notices();
+
+		try {
+			$meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Admin_Notices::class, 'DETACHED_NOTICE_DISMISSED_META', 'string' );
+			$this->assertEmpty( $subscription->get_meta( $meta_key ) );
+		} finally {
+			unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['post'], $_REQUEST['id'] );
+		}
+	}
+
+	/**
+	 * Test that hide_notices for subscription_detached with a non-existent subscription ID is a no-op.
+	 *
+	 * @return void
+	 */
+	public function test_hide_notices_subscription_detached_nonexistent_id_does_nothing() {
+		unset( $_REQUEST['post'] );
+		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_user );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_status( 'active' );
+		$subscription->save();
+
+		$_GET['wc-stripe-hide-notice']   = 'subscription_detached';
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+		$_REQUEST['id']                  = 999999; // Non-existent subscription.
+
+		$notices = $this->create_admin_notices_instance();
+		$notices->hide_notices();
+
+		try {
+			$meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Admin_Notices::class, 'DETACHED_NOTICE_DISMISSED_META', 'string' );
+			$this->assertEmpty( $subscription->get_meta( $meta_key ) );
+		} finally {
+			unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'], $_REQUEST['post'], $_REQUEST['id'] );
+		}
+	}
+
+	/**
 	 * Tests for `subscription_check_detachment_bulk_action`.
 	 *
 	 * @param array|null $request_params Request parameters to simulate.
@@ -883,15 +1091,15 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Test that stripe_updated() sets the ECE location notice flag correctly based on the previous version.
+	 * Test that {@see WC_Stripe_Admin_Notices::check_update_notices()} sets the ECE location notice flag correctly based on the previous version.
 	 *
-	 * @param string|null $previous_version  Version to set as previous, or null to delete.
-	 * @param string|null $initial_flag      Initial value for the notice option, or null to delete.
-	 * @param string|false $expected         Expected option value after stripe_updated().
+	 * @param string|null $previous_version Version to set as previous, or null to delete.
+	 * @param string|null $initial_flag     Initial value for the notice option, or null to delete.
+	 * @param string|false $expected        Expected option value after stripe_updated().
 	 *
 	 * @dataProvider provide_ece_location_flag_scenarios
 	 */
-	public function test_stripe_updated_sets_ece_location_flag( $previous_version, $initial_flag, $expected ) {
+	public function test_check_update_notices_sets_ece_location_flag( $previous_version, $initial_flag, $expected ) {
 		if ( null === $previous_version ) {
 			delete_option( 'wc_stripe_version' );
 		} else {
@@ -904,8 +1112,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			update_option( 'wc_stripe_show_ece_location_notice', $initial_flag );
 		}
 
-		$notices = $this->create_admin_notices_instance();
-		$notices->stripe_updated();
+		WC_Stripe_Admin_Notices::check_update_notices( $previous_version );
 
 		$this->assertSame( $expected, get_option( 'wc_stripe_show_ece_location_notice' ) );
 	}
@@ -1022,5 +1229,355 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
 
 		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+	}
+
+	/**
+	 * The outage notice should be shown when WC_Stripe_API_Outage_Status flags an outage.
+	 */
+	public function test_api_outage_notice_is_shown_when_in_outage() {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		WC_Stripe_API_Outage_Status::record_outage();
+
+		$notices = new WC_Stripe_Admin_Notices();
+		ob_start();
+		$notices->admin_notices();
+		ob_end_clean();
+
+		$this->assertArrayHasKey( 'api_outage', $notices->notices );
+		$this->assertMatchesRegularExpression( '/Stripe is temporarily unreachable/', $notices->notices['api_outage']['message'] );
+
+		WC_Stripe_API_Outage_Status::record_success();
+	}
+
+	/**
+	 * No outage notice when the flag isn't set.
+	 */
+	public function test_api_outage_notice_is_not_shown_when_no_outage() {
+		WC_Stripe_API_Outage_Status::record_success();
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
+		$notices = new WC_Stripe_Admin_Notices();
+		ob_start();
+		$notices->admin_notices();
+		ob_end_clean();
+
+		$this->assertArrayNotHasKey( 'api_outage', $notices->notices );
+	}
+
+	/**
+	 * The "couldn't connect" notice should be suppressed during an outage to
+	 * avoid contradicting the outage notice.
+	 */
+	public function test_couldnt_connect_notice_is_suppressed_during_outage() {
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_cached_account_data' ] )
+			->getMock();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( null );
+
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'enabled'         => 'yes',
+				'testmode'        => 'no',
+				'publishable_key' => 'pk_live_valid_key',
+				'secret_key'      => 'sk_live_valid_key',
+			]
+		);
+		update_option( 'wc_stripe_show_style_notice', 'no' );
+		update_option( 'wc_stripe_show_sca_notice', 'no' );
+		update_option( 'wc_stripe_show_legacy_deprecation_notice', 'no' );
+
+		WC_Stripe_API_Outage_Status::record_outage();
+
+		$notices = new WC_Stripe_Admin_Notices();
+		ob_start();
+		$notices->admin_notices();
+		ob_end_clean();
+
+		$this->assertArrayHasKey( 'api_outage', $notices->notices );
+		// The "couldn't connect" notice uses the 'keys' slug — make sure it's not present.
+		if ( isset( $notices->notices['keys'] ) ) {
+			$this->assertDoesNotMatchRegularExpression(
+				'/Your customers cannot use Stripe on checkout/',
+				$notices->notices['keys']['message']
+			);
+		}
+
+		WC_Stripe_API_Outage_Status::record_success();
+	}
+
+	/**
+	 * The outage notice is suppressed on local/development but kept on staging
+	 * and production.
+	 *
+	 * @dataProvider provide_outage_notice_environment_gating
+	 *
+	 * @param string $environment_type Value returned by wp_get_environment_type().
+	 * @param bool   $expect_notice    Whether the outage notice should be added.
+	 */
+	public function test_api_outage_notice_is_gated_by_environment( string $environment_type, bool $expect_notice ) {
+		WC_Stripe_API_Outage_Status::record_outage();
+
+		$notices = $this->getMockBuilder( WC_Stripe_Admin_Notices::class )
+			->setMethods( [ 'get_environment_type' ] )
+			->getMock();
+		$notices->method( 'get_environment_type' )->willReturn( $environment_type );
+
+		$notices->check_api_outage();
+
+		$this->assertSame( $expect_notice, isset( $notices->notices['api_outage'] ) );
+
+		WC_Stripe_API_Outage_Status::record_success();
+	}
+
+	/**
+	 * @return array[] environment type => whether the notice should display.
+	 */
+	public function provide_outage_notice_environment_gating(): array {
+		return [
+			'local environment suppresses notice'       => [ 'local', false ],
+			'development environment suppresses notice' => [ 'development', false ],
+			'staging environment shows notice'          => [ 'staging', true ],
+			'production environment shows notice'       => [ 'production', true ],
+		];
+	}
+
+	/**
+	 * Injects a (possibly mocked) main Stripe gateway into the singleton so
+	 * check_ocs_ap_update_notices() reads our controlled OC/AP state.
+	 *
+	 * @param WC_Stripe_UPE_Payment_Gateway|null $gateway The gateway to inject, or null to reset.
+	 *
+	 * @return void
+	 */
+	private function set_main_stripe_gateway( $gateway ): void {
+		$closure = Closure::bind(
+			function () use ( $gateway ) {
+				$this->stripe_gateway = $gateway;
+			},
+			woocommerce_gateway_stripe(),
+			WC_Stripe::class
+		);
+		$closure();
+	}
+
+	/**
+	 * The OCS/AP banner visibility options written by the 10.8 migration.
+	 *
+	 * @return string[]
+	 */
+	private function ocs_ap_banner_options(): array {
+		return [
+			'wc_stripe_show_ocs_ap_banner',
+			'wc_stripe_show_ap_only_banner',
+			'wc_stripe_show_ocs_only_banner',
+		];
+	}
+
+	/**
+	 * The OCS/AP "now active" notices show exactly one banner on a WooCommerce
+	 * admin screen, gated by the per-banner option plus the OC/AP/India state,
+	 * in priority order (OCS+AP > AP-only > OCS-only).
+	 *
+	 * @param bool        $is_oc_enabled    Whether Optimized Checkout is enabled.
+	 * @param string      $adaptive_pricing The adaptive_pricing gateway option value.
+	 * @param string      $account_country  The connected account country.
+	 * @param array       $options          Banner visibility options to set.
+	 * @param string|null $expected_slug    The notice slug expected, or null for none.
+	 *
+	 * @dataProvider provide_ocs_ap_update_notices
+	 *
+	 * @return void
+	 */
+	public function test_ocs_ap_update_notices_display(
+		bool $is_oc_enabled,
+		string $adaptive_pricing,
+		string $account_country,
+		array $options,
+		$expected_slug
+	): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		set_current_screen( 'woocommerce_page_wc-settings' );
+
+		foreach ( $this->ocs_ap_banner_options() as $option ) {
+			delete_option( $option );
+		}
+		foreach ( $options as $option => $value ) {
+			update_option( $option, $value );
+		}
+
+		$account_backup = WC_Stripe::get_instance()->account;
+
+		$account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$account->method( 'get_account_country' )->willReturn( $account_country );
+		WC_Stripe::get_instance()->account = $account;
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->setMethods( [ 'is_oc_enabled', 'get_option' ] )
+			->getMock();
+		$gateway->method( 'is_oc_enabled' )->willReturn( $is_oc_enabled );
+		$gateway->method( 'get_option' )->willReturnCallback(
+			static function ( $key ) use ( $adaptive_pricing ) {
+				return 'adaptive_pricing' === $key ? $adaptive_pricing : 'no';
+			}
+		);
+		$this->set_main_stripe_gateway( $gateway );
+
+		try {
+			$notices = new WC_Stripe_Admin_Notices();
+			$notices->check_ocs_ap_update_notices();
+
+			if ( null === $expected_slug ) {
+				$this->assertCount( 0, $notices->notices );
+			} else {
+				$expected_notice_fragment = WC_Stripe_Admin_Notices_Test::get_expected_notice_fragment( $expected_slug );
+				$this->assertCount( 1, $notices->notices );
+				$this->assertArrayHasKey( $expected_slug, $notices->notices );
+				$this->assertStringContainsString(
+					$expected_notice_fragment,
+					$notices->notices[ $expected_slug ]['message']
+				);
+				$this->assertTrue( $notices->notices[ $expected_slug ]['dismissible'] );
+			}
+		} finally {
+			WC_Stripe::get_instance()->account = $account_backup;
+			$this->set_main_stripe_gateway( null );
+			foreach ( $this->ocs_ap_banner_options() as $option ) {
+				delete_option( $option );
+			}
+		}
+	}
+
+	/**
+	 * Get distinctive copy fragment for each OCS/AP notice slug.
+	 *
+	 * @param string $slug The notice slug.
+	 *
+	 * @return string The distinctive copy fragment.
+	 */
+	private static function get_expected_notice_fragment( string $slug ): string {
+		$fragments = [
+			'ocs_ap_banner'   => 'Stripe Optimized Checkout Suite and Adaptive Pricing are now active',
+			'ap_only_banner'  => 'Stripe Adaptive Pricing is now active',
+			'ocs_only_banner' => 'Stripe Optimized Checkout is now active',
+		];
+		if ( isset( $fragments[ $slug ] ) ) {
+			return $fragments[ $slug ];
+		}
+		return '';
+	}
+
+	/**
+	 * Data provider for `test_ocs_ap_update_notices_display`.
+	 *
+	 * @return array
+	 */
+	public function provide_ocs_ap_update_notices(): array {
+		return [
+			'OCS+AP: option yes + OC + AP + non-IN'   => [ true, 'yes', 'US', [ 'wc_stripe_show_ocs_ap_banner' => 'yes' ], 'ocs_ap_banner' ],
+			'OCS+AP suppressed for IN account'        => [ true, 'yes', 'IN', [ 'wc_stripe_show_ocs_ap_banner' => 'yes' ], null ],
+			'OCS+AP suppressed when OC disabled'      => [ false, 'yes', 'US', [ 'wc_stripe_show_ocs_ap_banner' => 'yes' ], null ],
+			'OCS+AP suppressed when AP disabled'      => [ true, 'no', 'US', [ 'wc_stripe_show_ocs_ap_banner' => 'yes' ], null ],
+			'OCS+AP suppressed when option no'        => [ true, 'yes', 'US', [ 'wc_stripe_show_ocs_ap_banner' => 'no' ], null ],
+			'AP-only: option yes + OC + AP + non-IN'  => [ true, 'yes', 'US', [ 'wc_stripe_show_ap_only_banner' => 'yes' ], 'ap_only_banner' ],
+			'AP-only suppressed for IN account'       => [ true, 'yes', 'IN', [ 'wc_stripe_show_ap_only_banner' => 'yes' ], null ],
+			'OCS-only: option yes + OC + AP disabled' => [ true, 'no', 'US', [ 'wc_stripe_show_ocs_only_banner' => 'yes' ], 'ocs_only_banner' ],
+			'OCS-only suppressed when AP enabled'     => [ true, 'yes', 'US', [ 'wc_stripe_show_ocs_only_banner' => 'yes' ], null ],
+			'OCS-only suppressed when OC disabled'    => [ false, 'no', 'US', [ 'wc_stripe_show_ocs_only_banner' => 'yes' ], null ],
+			'no banner when no option set'            => [ true, 'yes', 'US', [], null ],
+			'priority: OCS+AP wins over AP-only'      => [
+				true,
+				'yes',
+				'US',
+				[
+					'wc_stripe_show_ocs_ap_banner'  => 'yes',
+					'wc_stripe_show_ap_only_banner' => 'yes',
+				],
+				'ocs_ap_banner',
+			],
+		];
+	}
+
+	/**
+	 * The OCS/AP notices are not shown outside WooCommerce admin screens.
+	 *
+	 * @return void
+	 */
+	public function test_ocs_ap_update_notices_not_shown_off_wc_screens(): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		set_current_screen( 'dashboard' );
+
+		update_option( 'wc_stripe_show_ocs_ap_banner', 'yes' );
+
+		$account_backup = WC_Stripe::get_instance()->account;
+
+		$account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$account->method( 'get_account_country' )->willReturn( 'US' );
+		WC_Stripe::get_instance()->account = $account;
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->setMethods( [ 'is_oc_enabled', 'get_option' ] )
+			->getMock();
+		$gateway->method( 'is_oc_enabled' )->willReturn( true );
+		$gateway->method( 'get_option' )->willReturn( 'yes' );
+		$this->set_main_stripe_gateway( $gateway );
+
+		try {
+			$notices = new WC_Stripe_Admin_Notices();
+			$notices->check_ocs_ap_update_notices();
+			$this->assertCount( 0, $notices->notices );
+		} finally {
+			WC_Stripe::get_instance()->account = $account_backup;
+			$this->set_main_stripe_gateway( null );
+			delete_option( 'wc_stripe_show_ocs_ap_banner' );
+		}
+	}
+
+	/**
+	 * Dismissing an OCS/AP notice flips its visibility option to 'no'.
+	 *
+	 * @param string $slug   The notice slug passed to the dismissal handler.
+	 * @param string $option The option expected to be set to 'no'.
+	 *
+	 * @dataProvider provide_ocs_ap_dismissals
+	 *
+	 * @return void
+	 */
+	public function test_hide_notices_dismisses_ocs_ap_banners( string $slug, string $option ): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
+		update_option( $option, 'yes' );
+
+		$_GET['wc-stripe-hide-notice']   = $slug;
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		try {
+			$notices = new WC_Stripe_Admin_Notices();
+			$notices->hide_notices();
+			$this->assertSame( 'no', get_option( $option ) );
+		} finally {
+			unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+			delete_option( $option );
+		}
+	}
+
+	/**
+	 * Data provider for `test_hide_notices_dismisses_ocs_ap_banners`.
+	 *
+	 * @return array
+	 */
+	public function provide_ocs_ap_dismissals(): array {
+		return [
+			'OCS+AP'   => [ 'ocs_ap_banner', 'wc_stripe_show_ocs_ap_banner' ],
+			'AP-only'  => [ 'ap_only_banner', 'wc_stripe_show_ap_only_banner' ],
+			'OCS-only' => [ 'ocs_only_banner', 'wc_stripe_show_ocs_only_banner' ],
+		];
 	}
 }

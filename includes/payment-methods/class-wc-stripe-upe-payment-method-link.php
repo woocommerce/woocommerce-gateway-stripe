@@ -8,7 +8,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::LINK;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::LINK;
+
+	/**
+	 * Stripe account countries where Link is not available.
+	 *
+	 * @var string[]
+	 */
+	protected const UNSUPPORTED_ACCOUNT_COUNTRIES = [
+		WC_Stripe_Country_Code::BRAZIL,
+		WC_Stripe_Country_Code::THAILAND,
+	];
 
 	/**
 	 * Constructor for Link payment method
@@ -55,14 +65,6 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Returns string representing payment method type
-	 * to query to retrieve saved payment methods from Stripe.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
-	}
-
-	/**
 	 * Create new WC payment token and add to user.
 	 *
 	 * @param int $user_id        WP_User ID
@@ -79,23 +81,6 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 		$token->set_user_id( $user_id );
 		$token->save();
 		return $token;
-	}
-
-	/**
-	 * Determines if the Stripe Account country this UPE method supports.
-	 *
-	 * @return bool
-	 */
-	public function is_available_for_account_country() {
-		// If merchant is outside US, Link payment method should not be available.
-		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
-		$account_country     = $cached_account_data['country'] ?? null;
-
-		// List of available countries for each PM:
-		// https://docs.stripe.com/payments/payment-methods/integration-options#country-currency-support
-		$country_availablity = [ WC_Stripe_Country_Code::UNITED_ARAB_EMIRATES, WC_Stripe_Country_Code::AUSTRIA, WC_Stripe_Country_Code::AUSTRALIA, WC_Stripe_Country_Code::BELGIUM, WC_Stripe_Country_Code::BULGARIA, WC_Stripe_Country_Code::CANADA, WC_Stripe_Country_Code::SWITZERLAND, WC_Stripe_Country_Code::CYPRUS, WC_Stripe_Country_Code::CZECH_REPUBLIC, WC_Stripe_Country_Code::GERMANY, WC_Stripe_Country_Code::DENMARK, WC_Stripe_Country_Code::ESTONIA, WC_Stripe_Country_Code::SPAIN, WC_Stripe_Country_Code::FINLAND, WC_Stripe_Country_Code::FRANCE, WC_Stripe_Country_Code::UNITED_KINGDOM, WC_Stripe_Country_Code::GIBRALTAR, WC_Stripe_Country_Code::GREECE, WC_Stripe_Country_Code::HONG_KONG, WC_Stripe_Country_Code::CROATIA, WC_Stripe_Country_Code::HUNGARY, WC_Stripe_Country_Code::IRELAND, WC_Stripe_Country_Code::ITALY, WC_Stripe_Country_Code::JAPAN, WC_Stripe_Country_Code::LIECHTENSTEIN, WC_Stripe_Country_Code::LITHUANIA, WC_Stripe_Country_Code::LUXEMBOURG, WC_Stripe_Country_Code::LATVIA, WC_Stripe_Country_Code::MALTA, WC_Stripe_Country_Code::MEXICO, WC_Stripe_Country_Code::MALAYSIA, WC_Stripe_Country_Code::NETHERLANDS, WC_Stripe_Country_Code::NORWAY, WC_Stripe_Country_Code::NEW_ZEALAND, WC_Stripe_Country_Code::POLAND, WC_Stripe_Country_Code::PORTUGAL, WC_Stripe_Country_Code::ROMANIA, WC_Stripe_Country_Code::SWEDEN, WC_Stripe_Country_Code::SINGAPORE, WC_Stripe_Country_Code::SLOVENIA, WC_Stripe_Country_Code::SLOVAKIA, WC_Stripe_Country_Code::UNITED_STATES ];
-
-		return in_array( $account_country, $country_availablity, true );
 	}
 
 	/**

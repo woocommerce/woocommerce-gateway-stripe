@@ -91,10 +91,13 @@ class WC_Stripe_Agentic_Line_Item {
 	}
 
 	/**
-	 * Returns the WooCommerce product ID from the price's external_reference.
+	 * Returns the WooCommerce product ID resolved from the price's external_reference.
 	 *
-	 * Returns 0 if the price object is missing, external_reference is absent,
-	 * or the value is not a valid nonzero integer.
+	 * Tries the merchant SKU first (current sync contract), then falls back to
+	 * a numeric product-ID lookup so catalogs synced under the legacy
+	 * "external_reference = product_id" contract — and products without a SKU —
+	 * keep resolving instead of failing the checkout. Returns 0 when neither
+	 * path matches a real product.
 	 *
 	 * @since 10.6.0
 	 * @return int
@@ -104,7 +107,12 @@ class WC_Stripe_Agentic_Line_Item {
 			return 0;
 		}
 
-		return intval( $this->item->price->external_reference ?? '' );
+		$external_reference = $this->item->price->external_reference ?? '';
+		if ( ! is_string( $external_reference ) ) {
+			return 0;
+		}
+
+		return WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product_id_by_external_reference( $external_reference );
 	}
 
 	/**

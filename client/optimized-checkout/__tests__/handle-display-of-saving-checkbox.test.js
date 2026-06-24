@@ -189,6 +189,77 @@ describe( 'handleDisplayOfSavingCheckbox', () => {
 		} );
 	} );
 
+	describe( 'Clearing the underlying save state when hiding (OC)', () => {
+		afterEach( () => {
+			delete window.wp;
+		} );
+
+		it( 'Unchecks the classic save input so wc-stripe-new-payment-method is not sent', () => {
+			const input = document.createElement( 'input' );
+			input.id = 'wc-stripe-new-payment-method';
+			input.type = 'checkbox';
+			input.checked = true;
+			document.body.appendChild( input );
+
+			const config = makeOCConfig( { card: true, alipay: true } );
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_ALIPAY, config );
+
+			expect( input.checked ).toBe( false );
+		} );
+
+		it( 'Dispatches __internalSetShouldSavePaymentMethod(false) on the Blocks payment store when present', () => {
+			setupBlockCheckoutDOM();
+			const dispatchSpy = jest.fn();
+			window.wp = {
+				data: {
+					dispatch: jest.fn().mockReturnValue( {
+						__internalSetShouldSavePaymentMethod: dispatchSpy,
+					} ),
+				},
+			};
+
+			const config = makeOCConfig( { card: true, alipay: true } );
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_ALIPAY, config );
+
+			expect( window.wp.data.dispatch ).toHaveBeenCalledWith(
+				'wc/store/payment'
+			);
+			expect( dispatchSpy ).toHaveBeenCalledWith( false );
+		} );
+
+		it( 'Does not dispatch when the method is reusable and the checkbox stays visible', () => {
+			setupBlockCheckoutDOM();
+			const dispatchSpy = jest.fn();
+			window.wp = {
+				data: {
+					dispatch: jest.fn().mockReturnValue( {
+						__internalSetShouldSavePaymentMethod: dispatchSpy,
+					} ),
+				},
+			};
+
+			// SEPA is reusable; with showSaveOption true, the checkbox stays
+			// visible and we must not silently clear a value the shopper set.
+			const config = makeOCConfig( { card: true, sepa_debit: true } );
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_SEPA, config );
+
+			expect( dispatchSpy ).not.toHaveBeenCalled();
+		} );
+
+		it( 'No-ops cleanly when neither the classic input nor wp.data is present', () => {
+			setupBlockCheckoutDOM();
+			const config = makeOCConfig( { card: true, alipay: true } );
+
+			expect( () =>
+				handleDisplayOfSavingCheckbox( PAYMENT_METHOD_ALIPAY, config )
+			).not.toThrow();
+			expect( isHidden() ).toBe( true );
+		} );
+	} );
+
 	describe( 'shouldHideSaveCheckbox error handling', () => {
 		const globalValues = global.wc_stripe_upe_params;
 

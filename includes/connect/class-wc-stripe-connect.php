@@ -11,13 +11,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 	class WC_Stripe_Connect {
 
 		/**
-		 * The option name for the Stripe gateway settings.
-		 *
-		 * @deprecated 8.7.0
-		 */
-		const SETTINGS_OPTION = 'woocommerce_stripe_settings';
-
-		/**
 		 * Stripe connect api.
 		 *
 		 * @var object $api
@@ -174,18 +167,21 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				}
 
 				if ( ! wp_verify_nonce( $nonce, 'wcs_stripe_connected' ) ) {
-					if ( $is_verbose_debug_mode_enabled ) {
-						WC_Stripe_Logger::error(
-							'OAuth: Invalid nonce received from the WCC server',
-							[
-								'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
-								'connect_mode'           => $mode,
-								'connect_type'           => $type,
-								'nonce'                  => self::redact_string( $nonce ),
-							]
-						);
-					}
-					return new WP_Error( 'Invalid nonce received from the WCC server' );
+					WC_Stripe_Logger::error(
+						'OAuth: Invalid nonce received from the WCC server',
+						[
+							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+							'connect_mode'           => $mode,
+							'connect_type'           => $type,
+							'nonce'                  => self::redact_string( $nonce ),
+						]
+					);
+
+					$redirect_url = remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_type', 'wcs_stripe_mode' ] );
+					$redirect_url = add_query_arg( [ 'wc_stripe_connect_error' => 'expired_nonce' ], $redirect_url );
+
+					wp_safe_redirect( esc_url_raw( $redirect_url ) );
+					exit;
 				}
 
 				$response = $this->connect_oauth( $state, $code, $type, $mode );
@@ -222,13 +218,16 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		}
 
 		/**
-		 * Helper function to clear some important PMC caches after a key update.
+		 * Helper function to clear some important caches after a key update.
 		 */
 		public function clear_caches_after_key_update(): void {
 			// Note that we also need to update the fallback PMC details, but we can't simply wipe that data.
 
 			// Clear PMC cache after key updates.
 			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+
+			// Clear the account cache; the new keys may belong to a different account.
+			WC_Stripe::get_instance()->account->clear_cache();
 		}
 
 		/**
@@ -280,9 +279,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$should_default_optimized_checkout_on       = get_option( 'wc_stripe_optimized_checkout_default_on' );
 			// Clean up the option.
 			delete_option( 'wc_stripe_optimized_checkout_default_on' );
-			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
-				$options['optimized_checkout_element'] = 'yes';
-			}
 			if ( 'app' === $type ) {
 				$options[ $prefix . 'refresh_token' ] = $result->refreshToken; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			}
@@ -291,6 +287,14 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// test_account_id if present.
 			unset( $options['account_id'] );
 			unset( $options['test_account_id'] );
+
+			// Before saving the new keys, decommission any webhook configured on the
+			// previously connected account.
+			$previous_webhook_data = $options[ $prefix . 'webhook_data' ] ?? '';
+			if ( WC_Stripe::get_instance()->account->maybe_decommission_webhook( $previous_webhook_data, $secret_key ) ) {
+				$options[ $prefix . 'webhook_data' ]   = [];
+				$options[ $prefix . 'webhook_secret' ] = '';
+			}
 
 			WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 			WC_Stripe_Helper::update_main_stripe_settings( $options );
@@ -301,6 +305,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', '' );
 
 			$this->clear_caches_after_key_update();
+
+			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
+				$options['optimized_checkout_element'] = 'yes';
+				WC_Stripe_Helper::update_main_stripe_settings( $options );
+			}
 
 			if ( $is_verbose_debug_mode_enabled ) {
 				WC_Stripe_Logger::debug(
@@ -341,6 +350,19 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			} finally {
 				// Ensure we reset the key before we do anything else.
 				WC_Stripe_API::set_secret_key( '' );
+			}
+
+			// Default Adaptive Pricing on for first-time connections, now that webhooks have been
+			// configured above. AP requires a working webhook endpoint, so this decision must run after
+			// configure_webhooks()
+			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
+				if ( WC_Stripe_Helper::is_adaptive_pricing_available_for_account() ) {
+					$settings                     = WC_Stripe_Helper::get_stripe_settings();
+					$settings['adaptive_pricing'] = 'yes';
+					WC_Stripe_Helper::update_main_stripe_settings( $settings );
+				} else {
+					WC_Stripe_Logger::info( 'OAuth: Not defaulting Adaptive Pricing on; it is not available for the connected account.' );
+				}
 			}
 
 			return $result;

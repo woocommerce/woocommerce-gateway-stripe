@@ -45,6 +45,20 @@ class WC_Subscription extends WC_Order {
 	private $status = 'pending';
 
 	/**
+	 * Subscription dates keyed by date type (e.g. 'payment_retry').
+	 *
+	 * @var array<string, int>
+	 */
+	private $dates = [];
+
+	/**
+	 * Notes captured via add_order_note().
+	 *
+	 * @var string[]
+	 */
+	private $captured_notes = [];
+
+	/**
 	 * Initializes a specific subscription if the ID is passed, otherwise a new and empty instance of a subscription.
 	 *
 	 * This class should NOT be instantiated, instead the functions wcs_create_subscription() and wcs_get_subscription()
@@ -158,5 +172,59 @@ class WC_Subscription extends WC_Order {
 	 */
 	public function get_status( $context = 'view' ) {
 		return $this->status;
+	}
+
+	/**
+	 * Mock for WC_Subscription::get_date().
+	 *
+	 * @param string $date_type Date type (e.g. 'payment_retry').
+	 * @param string $timezone  Timezone (ignored by the mock).
+	 * @return int Timestamp, or 0 when not set.
+	 */
+	public function get_date( $date_type, $timezone = 'gmt' ) {
+		return $this->dates[ $date_type ] ?? 0;
+	}
+
+	/**
+	 * Test-only helper to seed a date that get_date() will return.
+	 *
+	 * Not part of the real WC_Subscription interface — production code uses
+	 * update_dates() to mutate dates. Prefixed with `mock_` to make the
+	 * distinction explicit at call sites.
+	 *
+	 * @param string $date_type Date type.
+	 * @param int    $timestamp Timestamp.
+	 * @return void
+	 */
+	public function set_mock_date( $date_type, $timestamp ) {
+		$this->dates[ $date_type ] = (int) $timestamp;
+	}
+
+	/**
+	 * Mock for WC_Subscription::delete_date().
+	 *
+	 * @param string $date_type Date type.
+	 * @return void
+	 */
+	public function delete_date( $date_type ) {
+		unset( $this->dates[ $date_type ] );
+	}
+
+	/**
+	 * @inheritDoc
+	 * @return int
+	 */
+	public function add_order_note( $note, $is_customer_note = 0, $added_by_user = false, $meta_data = [] ) {
+		$this->captured_notes[] = (string) $note;
+		return 0;
+	}
+
+	/**
+	 * Test helper to inspect notes attached via add_order_note().
+	 *
+	 * @return string[]
+	 */
+	public function get_captured_notes() {
+		return $this->captured_notes;
 	}
 }

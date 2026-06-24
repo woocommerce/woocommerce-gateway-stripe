@@ -14,6 +14,7 @@ sftp-config.json
 vendor
 release/
 build/
+bundle-report.html
 woocommerce-gateway-stripe.zip
 languages/woocommerce-gateway-stripe.pot
 *.env

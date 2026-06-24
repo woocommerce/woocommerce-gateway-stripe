@@ -8,7 +8,27 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::AFFIRM;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::AFFIRM;
+
+	/**
+	 * Stripe account countries that may enable Affirm.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [
+		WC_Stripe_Country_Code::UNITED_STATES,
+		WC_Stripe_Country_Code::CANADA,
+	];
+
+	/**
+	 * Shopper billing countries permitted to use Affirm (Affirm is domestic-only, so same as account).
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [
+		WC_Stripe_Country_Code::UNITED_STATES,
+		WC_Stripe_Country_Code::CANADA,
+	];
 
 	/**
 	 * Constructor for Affirm payment method
@@ -19,7 +39,6 @@ class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 		$this->title                        = __( 'Affirm', 'woocommerce-gateway-stripe' );
 		$this->is_reusable                  = false;
 		$this->supported_currencies         = [ WC_Stripe_Currency_Code::CANADIAN_DOLLAR, WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
-		$this->supported_countries          = [ WC_Stripe_Country_Code::UNITED_STATES, WC_Stripe_Country_Code::CANADA ];
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Affirm', 'woocommerce-gateway-stripe' );
 		$this->description                  = __(
@@ -40,17 +59,6 @@ class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 				], // Represents USD 35 - 30,000 USD.
 			],
 		];
-	}
-
-	/**
-	 * Returns whether the payment method is available for the Stripe account's country.
-	 *
-	 * Affirm is only available domestic transactions in the United States or Canada.
-	 *
-	 * @return bool True if the payment method is available for the account's country, false otherwise.
-	 */
-	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
 	}
 
 	/**

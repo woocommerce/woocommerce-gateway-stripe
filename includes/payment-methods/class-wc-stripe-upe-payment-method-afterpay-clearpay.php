@@ -8,7 +8,33 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY;
+
+	/**
+	 * Stripe account countries that may enable Clearpay / Afterpay.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [
+		WC_Stripe_Country_Code::AUSTRALIA,
+		WC_Stripe_Country_Code::CANADA,
+		WC_Stripe_Country_Code::UNITED_KINGDOM,
+		WC_Stripe_Country_Code::NEW_ZEALAND,
+		WC_Stripe_Country_Code::UNITED_STATES,
+	];
+
+	/**
+	 * Shopper billing countries permitted to use Clearpay / Afterpay (domestic-only, so same as account).
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [
+		WC_Stripe_Country_Code::AUSTRALIA,
+		WC_Stripe_Country_Code::CANADA,
+		WC_Stripe_Country_Code::UNITED_KINGDOM,
+		WC_Stripe_Country_Code::NEW_ZEALAND,
+		WC_Stripe_Country_Code::UNITED_STATES,
+	];
 
 	/**
 	 * Constructor for afterpay / clearpay payment method
@@ -25,13 +51,6 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 			WC_Stripe_Currency_Code::POUND_STERLING,
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
 			WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR,
-		];
-		$this->supported_countries          = [
-			WC_Stripe_Country_Code::AUSTRALIA,
-			WC_Stripe_Country_Code::CANADA,
-			WC_Stripe_Country_Code::UNITED_KINGDOM,
-			WC_Stripe_Country_Code::NEW_ZEALAND,
-			WC_Stripe_Country_Code::UNITED_STATES,
 		];
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Clearpay / Afterpay', 'woocommerce-gateway-stripe' );
@@ -126,16 +145,5 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
 		$account_country     = $cached_account_data['country'] ?? null;
 		return WC_Stripe_Country_Code::UNITED_KINGDOM === $account_country;
-	}
-
-	/**
-	 * Returns whether the payment method is available for the Stripe account's country.
-	 *
-	 * Afterpay / Clearpay is available for the following countries: AU, CA, GB, NZ, US.
-	 *
-	 * @return bool True if the payment method is available for the account's country, false otherwise.
-	 */
-	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
 	}
 }

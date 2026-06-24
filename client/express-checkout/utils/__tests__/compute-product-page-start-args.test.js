@@ -30,7 +30,7 @@ describe( 'computeProductPageStartArgs', () => {
 			getResolvedCurrency: jest.fn(),
 			getSelectedProductData: jest.fn(),
 			transformLabeledDisplayItems: passthroughTransform,
-			useLegacyCartEndpoints: false,
+			useLegacyDisplayItems: false,
 		};
 
 		const result = await computeProductPageStartArgs( deps );
@@ -50,7 +50,7 @@ describe( 'computeProductPageStartArgs', () => {
 			getResolvedCurrency: jest.fn().mockReturnValue( 'usd' ),
 			getSelectedProductData,
 			transformLabeledDisplayItems: passthroughTransform,
-			useLegacyCartEndpoints: false,
+			useLegacyDisplayItems: false,
 		};
 
 		const result = await computeProductPageStartArgs( deps );
@@ -79,7 +79,7 @@ describe( 'computeProductPageStartArgs', () => {
 			getResolvedCurrency: jest.fn().mockReturnValue( 'eur' ),
 			getSelectedProductData: jest.fn().mockResolvedValue( fresh ),
 			transformLabeledDisplayItems: passthroughTransform,
-			useLegacyCartEndpoints: false,
+			useLegacyDisplayItems: false,
 		};
 
 		const result = await computeProductPageStartArgs( deps );
@@ -103,7 +103,7 @@ describe( 'computeProductPageStartArgs', () => {
 			getResolvedCurrency: jest.fn().mockReturnValue( 'usd' ),
 			getSelectedProductData: jest.fn(),
 			transformLabeledDisplayItems: passthroughTransform,
-			useLegacyCartEndpoints: true,
+			useLegacyDisplayItems: true,
 		};
 
 		const result = await computeProductPageStartArgs( deps );
@@ -124,7 +124,7 @@ describe( 'computeProductPageStartArgs', () => {
 				.fn()
 				.mockRejectedValue( new Error( 'network' ) ),
 			transformLabeledDisplayItems: passthroughTransform,
-			useLegacyCartEndpoints: false,
+			useLegacyDisplayItems: false,
 		};
 
 		const result = await computeProductPageStartArgs( deps );
@@ -145,7 +145,7 @@ describe( 'computeProductPageStartArgs', () => {
 				.fn()
 				.mockResolvedValue( { error: 'nope' } ),
 			transformLabeledDisplayItems: passthroughTransform,
-			useLegacyCartEndpoints: false,
+			useLegacyDisplayItems: false,
 		};
 
 		const result = await computeProductPageStartArgs( deps );
@@ -164,7 +164,7 @@ describe( 'computeProductPageStartArgs', () => {
 			getResolvedCurrency: jest.fn().mockReturnValue( 'usd' ),
 			getSelectedProductData: jest.fn(),
 			transformLabeledDisplayItems: passthroughTransform,
-			useLegacyCartEndpoints: false,
+			useLegacyDisplayItems: false,
 		};
 
 		const result = await computeProductPageStartArgs( deps );

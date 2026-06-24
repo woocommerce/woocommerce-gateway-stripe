@@ -115,6 +115,35 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test get_entry_count reflects only rows written to the CSV, not header rows.
+	 *
+	 * @return void
+	 */
+	public function test_get_entry_count_tracks_written_rows() {
+		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+		$feed->set_columns( [ 'id', 'title' ] );
+
+		// Before start — no entries.
+		$this->assertSame( 0, $feed->get_entry_count() );
+
+		$feed->start();
+
+		// start() writes a header row but should not count it as an entry.
+		$this->assertSame( 0, $feed->get_entry_count() );
+
+		$feed->add_entry( [ '1', 'Product 1' ] );
+		$feed->add_entry( [ '2', 'Product 2' ] );
+		$feed->add_entry( [ '3', 'Product 3' ] );
+
+		$this->assertSame( 3, $feed->get_entry_count() );
+
+		$feed->end();
+
+		// end() must not change the entry count.
+		$this->assertSame( 3, $feed->get_entry_count() );
+	}
+
+	/**
 	 * Test set_columns rejects invalid header values.
 	 *
 	 * @return void

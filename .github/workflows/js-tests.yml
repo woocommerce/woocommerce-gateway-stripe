@@ -4,18 +4,33 @@ on:
   pull_request
 
 jobs:
+  changes:
+    name: Check for code changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.detect.outputs.code }}
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - id: detect
+        uses: ./.github/actions/detect-code-changes
+
   test:
     name:    JS testing
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       # clone the repository
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6.0.3
       # use the node version defined in nvmrc
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
       # enable dependencies caching
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ~/.npm/
           key:  ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}

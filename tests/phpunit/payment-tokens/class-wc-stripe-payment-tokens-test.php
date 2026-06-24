@@ -326,6 +326,119 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * When a new card is saved whose fingerprint matches an existing saved card,
+	 * `add_token_to_user` must refresh the mutable card metadata (expiry, brand,
+	 * last4) on the reused token. Otherwise the UI keeps showing the old expiry
+	 * even though the Stripe PaymentMethod id was replaced.
+	 *
+	 * Reproduces STRIPE-1082.
+	 *
+	 * @return void
+	 */
+	public function test_add_token_to_user_refreshes_cc_metadata_on_fingerprint_match() {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_test_stripe_1082', false );
+
+		$seed_token = new WC_Stripe_Payment_Token_CC();
+		$seed_token->set_token( 'pm_old' );
+		$seed_token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$seed_token->set_user_id( $user_id );
+		$seed_token->set_expiry_month( '01' );
+		$seed_token->set_expiry_year( '2027' );
+		$seed_token->set_card_type( 'visa' );
+		$seed_token->set_last4( '4242' );
+		$seed_token->set_fingerprint( 'F_abc' );
+		$seed_token->save();
+		$seed_token_id = $seed_token->get_id();
+
+		$incoming_pm = (object) [
+			'id'                            => 'pm_new',
+			'type'                          => WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::CARD => (object) [
+				'brand'         => 'visa',
+				'display_brand' => 'visa',
+				'exp_month'     => 2,
+				'exp_year'      => 2028,
+				'last4'         => '4242',
+				'fingerprint'   => 'F_abc',
+			],
+		];
+
+		$customer = new WC_Stripe_Customer( $user_id );
+
+		$reflection = new ReflectionMethod( WC_Stripe_Payment_Tokens::class, 'add_token_to_user' );
+		$reflection->setAccessible( true );
+		$result = $reflection->invoke( $this->stripe_payment_tokens, $incoming_pm, $customer, [] );
+
+		$this->assertSame( $seed_token_id, $result->get_id(), 'Duplicate-matched token should be reused, not recreated.' );
+		$this->assertSame( 'pm_new', $result->get_token() );
+		$this->assertEquals( '02', $result->get_expiry_month() );
+		$this->assertEquals( '2028', $result->get_expiry_year() );
+		$this->assertSame( 'visa', $result->get_card_type() );
+		$this->assertSame( '4242', $result->get_last4() );
+
+		$reloaded = WC_Payment_Tokens::get( $seed_token_id );
+		$this->assertSame( 'pm_new', $reloaded->get_token(), 'Refreshed PM id must be persisted.' );
+		$this->assertEquals( '02', $reloaded->get_expiry_month(), 'Refreshed expiry_month must be persisted.' );
+		$this->assertEquals( '2028', $reloaded->get_expiry_year(), 'Refreshed expiry_year must be persisted.' );
+	}
+
+	/**
+	 * `add_token_to_user`'s duplicate-match path must not overwrite the
+	 * original `wallet_type` when the same card is later used via a wallet —
+	 * otherwise a saved plain card flips to "Google Pay (Visa)" in My Account.
+	 *
+	 * @return void
+	 */
+	public function test_add_token_to_user_preserves_wallet_type_on_refresh() {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_test_wallet', false );
+
+		$seed_token = new WC_Stripe_Payment_Token_CC();
+		$seed_token->set_token( 'pm_old' );
+		$seed_token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$seed_token->set_user_id( $user_id );
+		$seed_token->set_expiry_month( '01' );
+		$seed_token->set_expiry_year( '2027' );
+		$seed_token->set_card_type( 'visa' );
+		$seed_token->set_last4( '4242' );
+		$seed_token->set_fingerprint( 'F_wallet' );
+		// Saved as a plain card — no wallet branding.
+		$seed_token->save();
+		$seed_token_id = $seed_token->get_id();
+
+		$incoming_pm = (object) [
+			'id'                            => 'pm_new_apple',
+			'type'                          => WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::CARD => (object) [
+				'brand'         => 'visa',
+				'display_brand' => 'visa',
+				'exp_month'     => 2,
+				'exp_year'      => 2028,
+				'last4'         => '4242',
+				'fingerprint'   => 'F_wallet',
+				// Same card paid via Apple Pay this time — must not flip wallet_type.
+				'wallet'        => (object) [ 'type' => 'apple_pay' ],
+			],
+		];
+
+		$customer = new WC_Stripe_Customer( $user_id );
+
+		$reflection = new ReflectionMethod( WC_Stripe_Payment_Tokens::class, 'add_token_to_user' );
+		$reflection->setAccessible( true );
+		$result = $reflection->invoke( $this->stripe_payment_tokens, $incoming_pm, $customer, [] );
+
+		$this->assertSame( $seed_token_id, $result->get_id() );
+		$this->assertSame( '', $result->get_wallet_type(), 'wallet_type must be preserved on duplicate-match.' );
+		// Other mutable card metadata still refreshes.
+		$this->assertEquals( '02', $result->get_expiry_month() );
+		$this->assertEquals( '2028', $result->get_expiry_year() );
+
+		$reloaded = WC_Payment_Tokens::get( $seed_token_id );
+		$this->assertSame( '', $reloaded->get_wallet_type(), 'preserved wallet_type must be persisted.' );
+	}
+
+	/**
 	 * Test for `woocommerce_payment_token_class`.
 	 *
 	 * @return void
@@ -374,6 +487,33 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 				'expected' => WC_Payment_Token_Becs_Debit::class,
 				'type'     => WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID,
 			],
+			// The cases below pass the lowercase class name WooCommerce derives from the token type
+			// ('WC_Payment_Token_' . $type), which is what triggers the dropped-token duplication bug.
+			'Link from lowercase type'         => [
+				'class'    => 'WC_Payment_Token_link',
+				'expected' => WC_Payment_Token_Link::class,
+				'type'     => WC_Stripe_Payment_Methods::LINK,
+			],
+			'Cash App from lowercase type'     => [
+				'class'    => 'WC_Payment_Token_cashapp',
+				'expected' => WC_Payment_Token_CashApp::class,
+				'type'     => WC_Stripe_Payment_Methods::CASHAPP_PAY,
+			],
+			'SEPA from lowercase type'         => [
+				'class'    => 'WC_Payment_Token_sepa',
+				'expected' => WC_Payment_Token_SEPA::class,
+				'type'     => WC_Stripe_Payment_Methods::SEPA,
+			],
+			'Amazon Pay from lowercase type'   => [
+				'class'    => 'WC_Payment_Token_amazon_pay',
+				'expected' => WC_Payment_Token_Amazon_Pay::class,
+				'type'     => WC_Stripe_Payment_Methods::AMAZON_PAY,
+			],
+			'Bacs Debit from lowercase type'   => [
+				'class'    => 'WC_Payment_Token_bacs_debit',
+				'expected' => WC_Payment_Token_Bacs_Debit::class,
+				'type'     => WC_Stripe_Payment_Methods::BACS_DEBIT,
+			],
 			'Klarna with overridden class'     => [
 				'class'    => 'test_klarna',
 				'expected' => 'test_klarna',
@@ -420,73 +560,166 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		$amazon_pay_token = new \WC_Payment_Token_Amazon_Pay();
 		$amazon_pay_token->set_email( 'amazon.test@example.com' );
 
+		$apple_pay_cc_token = new \WC_Stripe_Payment_Token_CC();
+		$apple_pay_cc_token->set_wallet_type( 'apple_pay' );
+
+		$google_pay_cc_token = new \WC_Stripe_Payment_Token_CC();
+		$google_pay_cc_token->set_wallet_type( 'google_pay' );
+
+		$link_wrapped_cc_token = new \WC_Stripe_Payment_Token_CC();
+		$link_wrapped_cc_token->set_wallet_type( 'link' );
+
 		return [
-			'Non-Stripe payment token'                          => [
+			'Non-Stripe payment token'                             => [
 				'payment_token'   => new \WC_Payment_Token_CC(),
 				'expected_result' => [],
 			],
-			'Non-Stripe payment token with SEPA type collision' => [
+			'Non-Stripe payment token with SEPA type collision'    => [
 				'payment_token'   => $mock_sepa_collision_token,
 				'expected_result' => [],
 			],
-			'Stripe payment token with unhandled type'          => [
+			'Stripe payment token with unhandled type'             => [
 				'payment_token'   => new \WC_Stripe_Payment_Token_CC(),
 				'expected_result' => [],
 			],
-			'SEPA token'                                        => [
+			'Apple Pay-tokenized CC (no underlying brand seeded)'  => [
+				'payment_token'   => $apple_pay_cc_token,
+				'expected_result' => [
+					'brand' => 'Apple Pay',
+				],
+			],
+			'Google Pay-tokenized CC (no underlying brand seeded)' => [
+				'payment_token'   => $google_pay_cc_token,
+				'expected_result' => [
+					'brand' => 'Google Pay',
+				],
+			],
+			'Link-wrapped CC: persisted but not surfaced'          => [
+				// Link `card.wallet.type` is stored on the token but intentionally not
+				// surfaced in the saved-methods list yet (separate UX decision; #5437).
+				'payment_token'   => $link_wrapped_cc_token,
+				'expected_result' => [],
+			],
+			'SEPA token'                                           => [
 				'payment_token'   => $sepa_token,
 				'expected_result' => [
 					'last4' => '1234',
 					'brand' => 'SEPA IBAN',
 				],
 			],
-			'BACS Debit token'                                  => [
+			'BACS Debit token'                                     => [
 				'payment_token'   => $bacs_debit_token,
 				'expected_result' => [
 					'last4' => '2345',
 					'brand' => 'Bacs Direct Debit',
 				],
 			],
-			'CashApp token'                                     => [
+			'CashApp token'                                        => [
 				'payment_token'   => new \WC_Payment_Token_CashApp(),
 				'expected_result' => [
 					'brand' => 'Cash App Pay',
 				],
 			],
-			'ACH token'                                         => [
+			'ACH token'                                            => [
 				'payment_token'   => $ach_token,
 				'expected_result' => [
 					'last4' => '3456',
 					'brand' => 'Test ACH Bank',
 				],
 			],
-			'ACSS token'                                        => [
+			'ACSS token'                                           => [
 				'payment_token'   => $acss_token,
 				'expected_result' => [
 					'last4' => '4567',
 					'brand' => 'Test ACSS Bank',
 				],
 			],
-			'BECS Debit token'                                  => [
+			'BECS Debit token'                                     => [
 				'payment_token'   => $becs_debit_token,
 				'expected_result' => [
 					'last4' => '5678',
 					'brand' => 'BECS Direct Debit',
 				],
 			],
-			'Link token'                                        => [
+			'Link token'                                           => [
 				'payment_token'   => $link_token,
 				'expected_result' => [
 					'brand' => 'Stripe Link (link.test@example.com)',
 				],
 			],
-			'Amazon Pay token'                                  => [
+			'Amazon Pay token'                                     => [
 				'payment_token'   => $amazon_pay_token,
 				'expected_result' => [
 					'brand' => 'Amazon Pay (amazon.test@example.com)',
 				],
 			],
 		];
+	}
+
+	/**
+	 * Guards that `normalize_payment_method_label` restores the inner card brand label
+	 * when the My Account template re-applies `wc_get_credit_card_type_label` to our
+	 * wallet-wrapped value. Without this repair, "Google Pay (Visa)" arrives at the
+	 * filter as "Google Pay (visa)" (because `ucwords` doesn't treat `(` as a word
+	 * boundary, so the inner `v` never gets re-capitalized).
+	 *
+	 * @param string $input    Label produced by `wc_get_credit_card_type_label`'s internal pass.
+	 * @param string $expected Final label after our filter repair.
+	 * @return void
+	 * @dataProvider provide_test_normalize_payment_method_label_wallet_pattern
+	 */
+	public function test_normalize_payment_method_label_repairs_wallet_pattern( $input, $expected ) {
+		$this->assertSame( $expected, $this->stripe_payment_tokens->normalize_payment_method_label( $input ) );
+	}
+
+	/**
+	 * Data provider for `test_normalize_payment_method_label_repairs_wallet_pattern`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_normalize_payment_method_label_wallet_pattern() {
+		return [
+			'Apple Pay + visa'                           => [ 'Apple Pay (visa)', 'Apple Pay (Visa)' ],
+			'Google Pay + visa'                          => [ 'Google Pay (visa)', 'Google Pay (Visa)' ],
+			'Google Pay + mastercard'                    => [ 'Google Pay (mastercard)', 'Google Pay (MasterCard)' ],
+			'Apple Pay + amex'                           => [ 'Apple Pay (american express)', 'Apple Pay (American Express)' ],
+			// Multi-word brands: ucwords leaves the first inner letter lowercase
+			// (because `(` isn't a word boundary) but capitalizes the second word.
+			'Apple Pay + cartes_bancaires post-ucwords'  => [ 'Apple Pay (cartes Bancaires)', 'Apple Pay (Cartes Bancaires)' ],
+			'Google Pay + cartes_bancaires post-ucwords' => [ 'Google Pay (cartes Bancaires)', 'Google Pay (Cartes Bancaires)' ],
+			'Bare Visa (pass-through)'                   => [ 'Visa', 'Visa' ],
+			'BECS still normalized'                      => [ 'becs direct debit', 'BECS Direct Debit' ],
+		];
+	}
+
+	/**
+	 * Guards that when the saved-methods list item already carries the underlying
+	 * card brand (the production shape), the wallet branding wraps it in parens
+	 * instead of replacing it, and that the inner brand is normalized through
+	 * `wc_get_credit_card_type_label` so it stays consistent with non-wallet rendering
+	 * (e.g. `visa` → `Visa`). Otherwise our wrapping sidesteps the WC template
+	 * normalization and the shopper sees the raw lowercase value.
+	 *
+	 * @return void
+	 */
+	public function test_get_account_saved_payment_methods_list_item_wraps_existing_brand_for_wallet_cc(): void {
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_wallet_type( 'google_pay' );
+
+		$initial_item = [
+			'method' => [
+				// Tokens persist `card_type` as lowercase (per token-create paths), which
+				// is what arrives in this filter callback before WC's template
+				// applies its own normalization.
+				'brand' => 'visa',
+				'last4' => '4242',
+			],
+		];
+
+		$result = $this->stripe_payment_tokens->get_account_saved_payment_methods_list_item( $initial_item, $token );
+
+		$this->assertSame( 'Google Pay (Visa)', $result['method']['brand'] );
+		$this->assertSame( '4242', $result['method']['last4'], 'last4 must be preserved untouched.' );
 	}
 
 	/**

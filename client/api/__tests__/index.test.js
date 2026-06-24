@@ -1,31 +1,66 @@
-const mockStripeConstructor = jest.fn( () => ( {} ) );
+import WCStripeAPI from '..';
 
-global.Stripe = mockStripeConstructor;
-
-import WCStripeAPI from 'wcstripe/api';
+jest.mock( 'wcstripe/stripe-utils', () => ( {
+	getStripeServerData: jest.fn(),
+	getStripeDevWidgetOptions: jest.fn( () => ( {} ) ),
+} ) );
 
 describe( 'WCStripeAPI', () => {
-	beforeEach( () => {
-		mockStripeConstructor.mockReturnValue( {} );
-		mockStripeConstructor.mockClear();
-	} );
+	describe( 'getStripe', () => {
+		let warnSpy;
 
-	it( 'initializes Stripe.js with testing assistant disabled', () => {
-		const api = new WCStripeAPI(
-			{ key: 'pk_test_abc', locale: 'auto' },
-			jest.fn()
-		);
-		api.getStripe();
-		expect( mockStripeConstructor ).toHaveBeenCalledWith(
-			'pk_test_abc',
-			expect.objectContaining( {
-				locale: 'auto',
-				developerTools: {
-					assistant: {
-						enabled: false,
-					},
-				},
-			} )
-		);
+		const addStripeScriptTag = ( src ) => {
+			const script = document.createElement( 'script' );
+			script.id = 'stripe-js';
+			script.setAttribute( 'src', src );
+			document.body.appendChild( script );
+		};
+
+		beforeEach( () => {
+			global.Stripe = jest.fn( () => ( {} ) );
+			warnSpy = jest
+				.spyOn( console, 'warn' )
+				.mockImplementation( () => {} );
+		} );
+
+		afterEach( () => {
+			warnSpy.mockRestore();
+			delete global.Stripe;
+			document.getElementById( 'stripe-js' )?.remove();
+		} );
+
+		it( 'instantiates Stripe when Stripe.js was loaded from the official origin', () => {
+			addStripeScriptTag( 'https://js.stripe.com/clover/stripe.js' );
+			const api = new WCStripeAPI( { key: 'pk_test_123', locale: 'en' } );
+
+			expect( api.getStripe() ).toBeTruthy();
+			expect( global.Stripe ).toHaveBeenCalledWith( 'pk_test_123', {
+				locale: 'en',
+			} );
+			expect( warnSpy ).not.toHaveBeenCalled();
+		} );
+
+		it( 'warns and blocks when Stripe.js was loaded from an unexpected origin', () => {
+			addStripeScriptTag(
+				'https://js.stripe.com.evil.example/clover/stripe.js'
+			);
+			const api = new WCStripeAPI( { key: 'pk_test_123', locale: 'en' } );
+
+			expect( () => api.getStripe() ).toThrow(
+				/provenance check failed/
+			);
+			expect( global.Stripe ).not.toHaveBeenCalled();
+			expect( warnSpy ).toHaveBeenCalled();
+		} );
+
+		it( 'warns and blocks when no Stripe.js tag is present', () => {
+			const api = new WCStripeAPI( { key: 'pk_test_123', locale: 'en' } );
+
+			expect( () => api.getStripe() ).toThrow(
+				/provenance check failed/
+			);
+			expect( global.Stripe ).not.toHaveBeenCalled();
+			expect( warnSpy ).toHaveBeenCalled();
+		} );
 	} );
 } );

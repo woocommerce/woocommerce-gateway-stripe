@@ -11,49 +11,34 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 5.0.0
  */
 class WC_Stripe_Webhook_State {
-	const OPTION_LIVE_MONITORING_BEGAN_AT = 'wc_stripe_wh_monitor_began_at';
-	const OPTION_LIVE_LAST_SUCCESS_AT     = 'wc_stripe_wh_last_success_at';
-	const OPTION_LIVE_LAST_FAILURE_AT     = 'wc_stripe_wh_last_failure_at';
-	const OPTION_LIVE_LAST_ERROR          = 'wc_stripe_wh_last_error';
-	const OPTION_LIVE_PENDING_WEBHOOKS    = 'wc_stripe_wh_live_pending_webhooks';
+	public const OPTION_LIVE_MONITORING_BEGAN_AT = 'wc_stripe_wh_monitor_began_at';
+	public const OPTION_LIVE_LAST_SUCCESS_AT     = 'wc_stripe_wh_last_success_at';
+	public const OPTION_LIVE_LAST_FAILURE_AT     = 'wc_stripe_wh_last_failure_at';
+	public const OPTION_LIVE_LAST_ERROR          = 'wc_stripe_wh_last_error';
+	public const OPTION_LIVE_PENDING_WEBHOOKS    = 'wc_stripe_wh_live_pending_webhooks';
 
-	const OPTION_TEST_MONITORING_BEGAN_AT = 'wc_stripe_wh_test_monitor_began_at';
-	const OPTION_TEST_LAST_SUCCESS_AT     = 'wc_stripe_wh_test_last_success_at';
-	const OPTION_TEST_LAST_FAILURE_AT     = 'wc_stripe_wh_test_last_failure_at';
-	const OPTION_TEST_LAST_ERROR          = 'wc_stripe_wh_test_last_error';
-	const OPTION_TEST_PENDING_WEBHOOKS    = 'wc_stripe_wh_test_pending_webhooks';
+	public const OPTION_TEST_MONITORING_BEGAN_AT = 'wc_stripe_wh_test_monitor_began_at';
+	public const OPTION_TEST_LAST_SUCCESS_AT     = 'wc_stripe_wh_test_last_success_at';
+	public const OPTION_TEST_LAST_FAILURE_AT     = 'wc_stripe_wh_test_last_failure_at';
+	public const OPTION_TEST_LAST_ERROR          = 'wc_stripe_wh_test_last_error';
+	public const OPTION_TEST_PENDING_WEBHOOKS    = 'wc_stripe_wh_test_pending_webhooks';
 
-	const VALIDATION_SUCCEEDED                 = 'validation_succeeded';
-	const VALIDATION_FAILED_EMPTY_HEADERS      = 'empty_headers';
-	const VALIDATION_FAILED_EMPTY_BODY         = 'empty_body';
-	const VALIDATION_FAILED_EMPTY_SECRET       = 'empty_secret';
-	const VALIDATION_FAILED_USER_AGENT_INVALID = 'user_agent_invalid';
-	const VALIDATION_FAILED_SIGNATURE_INVALID  = 'signature_invalid';
-	const VALIDATION_FAILED_DUPLICATE_WEBHOOKS = 'duplicate_webhooks';
-	const VALIDATION_FAILED_TIMESTAMP_MISMATCH = 'timestamp_out_of_range';
-	const VALIDATION_FAILED_SIGNATURE_MISMATCH = 'signature_mismatch';
-
-	/**
-	 * Gets whether Stripe is in test mode or not
-	 *
-	 * @since 5.0.0
-	 * @return bool
-	 *
-	 * @deprecated 8.9.0
-	 */
-	public static function get_testmode() {
-		wc_deprecated_function( __METHOD__, '8.9.0', 'WC_Stripe_Mode::is_test()' );
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		return ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
-	}
+	public const VALIDATION_SUCCEEDED                 = 'validation_succeeded';
+	public const VALIDATION_FAILED_EMPTY_HEADERS      = 'empty_headers';
+	public const VALIDATION_FAILED_EMPTY_BODY         = 'empty_body';
+	public const VALIDATION_FAILED_EMPTY_SECRET       = 'empty_secret';
+	public const VALIDATION_FAILED_USER_AGENT_INVALID = 'user_agent_invalid';
+	public const VALIDATION_FAILED_SIGNATURE_INVALID  = 'signature_invalid';
+	public const VALIDATION_FAILED_DUPLICATE_WEBHOOKS = 'duplicate_webhooks';
+	public const VALIDATION_FAILED_TIMESTAMP_MISMATCH = 'timestamp_out_of_range';
+	public const VALIDATION_FAILED_SIGNATURE_MISMATCH = 'signature_mismatch';
 
 	/**
 	 * Clears the webhook state.
 	 *
 	 * @param string $mode Optional. The mode to clear the webhook state for. Can be 'all', 'live', or 'test'. Default is 'all'.
 	 */
-	public static function clear_state( $mode = 'all' ) {
+	public static function clear_state( $mode = 'all' ): void {
 		if ( 'all' === $mode || 'live' === $mode ) {
 			delete_option( self::OPTION_LIVE_MONITORING_BEGAN_AT );
 			delete_option( self::OPTION_LIVE_LAST_SUCCESS_AT );
@@ -76,11 +61,11 @@ class WC_Stripe_Webhook_State {
 	 * started tracking webhook failure and successes.
 	 *
 	 * @since 5.0.0
-	 * @return integer UTC seconds since 1970.
+	 * @return int UTC seconds since 1970.
 	 */
 	public static function get_monitoring_began_at() {
 		$option              = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_MONITORING_BEGAN_AT : self::OPTION_LIVE_MONITORING_BEGAN_AT;
-		$monitoring_began_at = get_option( $option, 0 );
+		$monitoring_began_at = self::get_int_option( $option );
 		if ( 0 == $monitoring_began_at ) {
 			$monitoring_began_at = time();
 			update_option( $option, $monitoring_began_at );
@@ -99,9 +84,9 @@ class WC_Stripe_Webhook_State {
 	 * Sets the timestamp of the last successfully processed webhook.
 	 *
 	 * @since 5.0.0
-	 * @param integer UTC seconds since 1970.
+	 * @param int $timestamp UTC seconds since 1970.
 	 */
-	public static function set_last_webhook_success_at( $timestamp ) {
+	public static function set_last_webhook_success_at( $timestamp ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_SUCCESS_AT;
 		update_option( $option, $timestamp );
 	}
@@ -111,20 +96,20 @@ class WC_Stripe_Webhook_State {
 	 * or returns 0 if no webhook has ever been successfully processed.
 	 *
 	 * @since 5.0.0
-	 * @return integer UTC seconds since 1970 | 0.
+	 * @return int UTC seconds since 1970 | 0.
 	 */
 	public static function get_last_webhook_success_at() {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_SUCCESS_AT;
-		return get_option( $option, 0 );
+		return self::get_int_option( $option );
 	}
 
 	/**
 	 * Sets the timestamp of the last failed webhook.
 	 *
 	 * @since 5.0.0
-	 * @param integer UTC seconds since 1970.
+	 * @param int $timestamp UTC seconds since 1970.
 	 */
-	public static function set_last_webhook_failure_at( $timestamp ) {
+	public static function set_last_webhook_failure_at( $timestamp ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
 		update_option( $option, $timestamp );
 	}
@@ -134,20 +119,20 @@ class WC_Stripe_Webhook_State {
 	 * or returns 0 if no webhook has ever failed to process.
 	 *
 	 * @since 5.0.0
-	 * @return integer UTC seconds since 1970 | 0.
+	 * @return int UTC seconds since 1970 | 0.
 	 */
 	public static function get_last_webhook_failure_at() {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
-		return get_option( $option, 0 );
+		return self::get_int_option( $option );
 	}
 
 	/**
 	 * Sets the reason for the last failed webhook.
 	 *
 	 * @since 5.0.0
-	 * @param string Reason code.
+	 * @param string $reason Reason code.
 	 */
-	public static function set_last_error_reason( $reason ) {
+	public static function set_last_error_reason( $reason ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
 		update_option( $option, $reason );
 	}
@@ -238,7 +223,7 @@ class WC_Stripe_Webhook_State {
 	 *
 	 * @param int $pending_webhooks The number of pending webhooks.
 	 */
-	public static function set_pending_webhooks_count( $pending_webhooks ) {
+	public static function set_pending_webhooks_count( $pending_webhooks ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_PENDING_WEBHOOKS : self::OPTION_LIVE_PENDING_WEBHOOKS;
 		update_option( $option, $pending_webhooks );
 	}
@@ -252,7 +237,7 @@ class WC_Stripe_Webhook_State {
 	 */
 	public static function get_pending_webhooks_count() {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_PENDING_WEBHOOKS : self::OPTION_LIVE_PENDING_WEBHOOKS;
-		return get_option( $option, 0 );
+		return self::get_int_option( $option );
 	}
 
 	/**
@@ -363,5 +348,22 @@ class WC_Stripe_Webhook_State {
 			'live' => empty( $live_webhook['url'] ) ? null : rawurlencode( $live_webhook['url'] ),
 			'test' => empty( $test_webhook['url'] ) ? null : rawurlencode( $test_webhook['url'] ),
 		];
+	}
+
+	/**
+	 * Gets an option value that must be an integer. Stringified integers will be cast to int,
+	 * but other non-integer values will be returned as 0.
+	 *
+	 * @since 10.8.0
+	 * @param string $option_name The name of the option to get.
+	 * @return int The integer value of the option, or 0 if the option is not an integer.
+	 */
+	protected static function get_int_option( string $option_name ): int {
+		$option_value = get_option( $option_name, 0 );
+		if ( ! ctype_digit( (string) $option_value ) ) {
+			return 0;
+		}
+
+		return (int) $option_value;
 	}
 }

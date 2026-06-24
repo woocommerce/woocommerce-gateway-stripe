@@ -1,13 +1,28 @@
+import { getSetting } from '@woocommerce/settings';
 import {
 	getFontSizeBase,
 	getDefaultValues,
-	initializeUPEAppearance,
+	getBillingDetailsForDeferredFlow,
+	getHiddenBillingFields,
+	getStripeServerData,
+	showErrorCheckout,
 } from '../utils';
+import { initializeUPEAppearance } from '../upe-appearance';
 import { getAppearance } from '../../styles/upe';
+import { dispatch } from '@wordpress/data';
 
 jest.mock( '../../styles/upe', () => ( {
 	getAppearance: jest.fn(),
 	getExpandedOptimizedCheckoutRules: jest.fn( ( rules ) => rules ),
+} ) );
+
+jest.mock( '@woocommerce/settings', () => ( {
+	getSetting: jest.fn(),
+} ) );
+
+jest.mock( '@wordpress/data', () => ( {
+	...jest.requireActual( '@wordpress/data' ),
+	dispatch: jest.fn(),
 } ) );
 
 describe( 'utils', () => {
@@ -254,6 +269,102 @@ describe( 'utils', () => {
 		} );
 	} );
 
+	describe( 'getBillingDetailsForDeferredFlow', () => {
+		const globalValues = global.wc_stripe_upe_params;
+
+		afterEach( () => {
+			global.wc_stripe_upe_params = globalValues;
+		} );
+
+		it.each( [ 'isOrderPay', 'isChangingPayment', 'isAddPaymentMethod' ] )(
+			'returns billing_details from customerBillingData when %s is true',
+			( flag ) => {
+				global.wc_stripe_upe_params = {
+					[ flag ]: true,
+					customerBillingData: {
+						name: 'John Doe',
+						email: 'john@example.com',
+						phone: '+1234567890',
+						address: {
+							country: 'us', // lowercase, should be uppercased
+							line1: '123 Main St',
+							line2: 'Apt 4B',
+							city: 'New York',
+							state: 'NY',
+							postal_code: '10001',
+						},
+					},
+				};
+
+				expect( getBillingDetailsForDeferredFlow() ).toEqual( {
+					name: 'John Doe',
+					email: 'john@example.com',
+					phone: '+1234567890',
+					address: {
+						country: 'US',
+						line1: '123 Main St',
+						line2: 'Apt 4B',
+						city: 'New York',
+						state: 'NY',
+						postal_code: '10001',
+					},
+				} );
+			}
+		);
+
+		it( 'omits empty address fields, trims values, and uppercases the country', () => {
+			global.wc_stripe_upe_params = {
+				isOrderPay: true,
+				customerBillingData: {
+					name: '  John Doe  ',
+					email: '  john@example.com  ',
+					phone: '',
+					address: {
+						country: 'gb',
+						line1: '10 Downing St',
+						line2: '',
+						city: '',
+						state: '',
+						postal_code: 'SW1A 2AA',
+					},
+				},
+			};
+
+			expect( getBillingDetailsForDeferredFlow() ).toEqual( {
+				name: 'John Doe',
+				email: 'john@example.com',
+				address: {
+					country: 'GB',
+					line1: '10 Downing St',
+					postal_code: 'SW1A 2AA',
+				},
+			} );
+		} );
+
+		it( 'returns null on standard checkout', () => {
+			global.wc_stripe_upe_params = {
+				isCheckout: true,
+				customerBillingData: {
+					email: 'john@example.com',
+				},
+			};
+
+			expect( getBillingDetailsForDeferredFlow() ).toBeNull();
+		} );
+
+		it( 'returns null when customer email is missing', () => {
+			global.wc_stripe_upe_params = {
+				isOrderPay: true,
+				customerBillingData: {
+					name: 'John Doe',
+					address: { line1: '123 Main St' },
+				},
+			};
+
+			expect( getBillingDetailsForDeferredFlow() ).toBeNull();
+		} );
+	} );
+
 	describe( 'initializeUPEAppearance', () => {
 		const globalValues = global.wc_stripe_upe_params;
 
@@ -297,7 +408,11 @@ describe( 'utils', () => {
 
 				initializeUPEAppearance( 'true' );
 
-				expect( getAppearance ).toHaveBeenCalledWith( true, false );
+				expect( getAppearance ).toHaveBeenCalledWith(
+					true,
+					false,
+					false
+				);
 			} );
 
 			it( 'falls through to computed appearance when server appearance is falsy', () => {
@@ -306,7 +421,11 @@ describe( 'utils', () => {
 
 				initializeUPEAppearance( 'false' );
 
-				expect( getAppearance ).toHaveBeenCalledWith( false, false );
+				expect( getAppearance ).toHaveBeenCalledWith(
+					false,
+					false,
+					false
+				);
 			} );
 
 			it( 'does not use server blocks appearance when isBlockCheckout is false', () => {
@@ -317,7 +436,11 @@ describe( 'utils', () => {
 
 				initializeUPEAppearance( 'false' );
 
-				expect( getAppearance ).toHaveBeenCalledWith( false, false );
+				expect( getAppearance ).toHaveBeenCalledWith(
+					false,
+					false,
+					false
+				);
 			} );
 		} );
 
@@ -330,7 +453,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -339,6 +462,7 @@ describe( 'utils', () => {
 					const result = init( 'false' );
 
 					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						false,
 						false,
 						false
 					);
@@ -350,7 +474,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -360,6 +484,7 @@ describe( 'utils', () => {
 
 					expect( mockGetAppearance ).toHaveBeenCalledWith(
 						true,
+						false,
 						false
 					);
 					expect( result ).toEqual( { theme: 'blocks' } );
@@ -370,7 +495,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -379,6 +504,7 @@ describe( 'utils', () => {
 					init();
 
 					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						false,
 						false,
 						false
 					);
@@ -389,7 +515,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -409,7 +535,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -427,7 +553,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -447,7 +573,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -456,6 +582,7 @@ describe( 'utils', () => {
 					init( true );
 
 					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						false,
 						false,
 						false
 					);
@@ -468,7 +595,7 @@ describe( 'utils', () => {
 					const blocksAppearance = { theme: 'blocks' };
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -485,6 +612,54 @@ describe( 'utils', () => {
 					expect( mockGetAppearance ).toHaveBeenCalledTimes( 2 );
 				} );
 			} );
+
+			it( 'passes the editor flag through to getAppearance', () => {
+				jest.isolateModules( () => {
+					const {
+						initializeUPEAppearance: init,
+					} = require( '../upe-appearance' );
+					const {
+						getAppearance: mockGetAppearance,
+					} = require( '../../styles/upe' );
+					mockGetAppearance.mockReturnValue( { theme: 'stripe' } );
+					mockGetAppearance.mockClear();
+
+					init( 'true', false, true );
+
+					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						true,
+						false,
+						true
+					);
+				} );
+			} );
+
+			it( 'maintains separate caches for editor and storefront blocks checkout', () => {
+				jest.isolateModules( () => {
+					const storefrontAppearance = { theme: 'night' };
+					const editorAppearance = { theme: 'stripe' };
+					const {
+						initializeUPEAppearance: init,
+					} = require( '../upe-appearance' );
+					const {
+						getAppearance: mockGetAppearance,
+					} = require( '../../styles/upe' );
+					mockGetAppearance.mockClear();
+					mockGetAppearance
+						.mockReturnValueOnce( storefrontAppearance )
+						.mockReturnValueOnce( editorAppearance );
+
+					const storefrontResult = init( 'true', false, false );
+					const editorResult = init( 'true', false, true );
+					// Subsequent calls hit each location's cache.
+					init( 'true', false, false );
+					init( 'true', false, true );
+
+					expect( storefrontResult ).toBe( storefrontAppearance );
+					expect( editorResult ).toBe( editorAppearance );
+					expect( mockGetAppearance ).toHaveBeenCalledTimes( 2 );
+				} );
+			} );
 		} );
 
 		describe( 'server appearance takes priority over cache', () => {
@@ -492,7 +667,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -513,5 +688,160 @@ describe( 'utils', () => {
 				} );
 			} );
 		} );
+	} );
+
+	describe( 'getHiddenBillingFields', () => {
+		it( 'should always set address line2 to "never" so Stripe never renders it', () => {
+			// Address line 2 disabled in WooCommerce.
+			expect( getHiddenBillingFields( [] ).address.line2 ).toBe(
+				'never'
+			);
+
+			// Address line 2 enabled in WooCommerce.
+			expect(
+				getHiddenBillingFields( [ 'billing_address_2' ] ).address.line2
+			).toBe( 'never' );
+		} );
+
+		it( 'should set enabled fields to "never" and disabled fields to "auto"', () => {
+			const result = getHiddenBillingFields( [
+				'billing_first_name',
+				'billing_email',
+				'billing_country',
+				'billing_address_1',
+			] );
+
+			expect( result.name ).toBe( 'never' );
+			expect( result.email ).toBe( 'never' );
+			expect( result.address.country ).toBe( 'never' );
+			expect( result.address.line1 ).toBe( 'never' );
+
+			// Not enabled, so Stripe is allowed to collect them.
+			expect( result.address.city ).toBe( 'auto' );
+			expect( result.address.state ).toBe( 'auto' );
+			expect( result.address.postalCode ).toBe( 'auto' );
+		} );
+
+		it( 'should always keep phone as "auto"', () => {
+			expect( getHiddenBillingFields( [] ).phone ).toBe( 'auto' );
+			expect( getHiddenBillingFields( [ 'billing_phone' ] ).phone ).toBe(
+				'auto'
+			);
+		} );
+	} );
+
+	describe( 'getStripeServerData', () => {
+		const globalValues = global.wc_stripe_upe_params;
+
+		afterEach( () => {
+			global.wc_stripe_upe_params = globalValues;
+			getSetting.mockReset();
+		} );
+
+		it( 'returns the UPE params global when present', () => {
+			global.wc_stripe_upe_params = { key: 'pk_test_123' };
+
+			expect( getStripeServerData() ).toEqual( { key: 'pk_test_123' } );
+		} );
+
+		it( 'falls back to the Blocks stripe_data setting', () => {
+			global.wc_stripe_upe_params = undefined;
+			getSetting.mockReturnValue( { key: 'pk_test_blocks' } );
+
+			expect( getStripeServerData() ).toEqual( {
+				key: 'pk_test_blocks',
+			} );
+		} );
+
+		it( 'returns null when no data is localized', () => {
+			global.wc_stripe_upe_params = undefined;
+			getSetting.mockReturnValue( null );
+
+			expect( () => getStripeServerData() ).not.toThrow();
+			expect( getStripeServerData() ).toBeNull();
+		} );
+	} );
+} );
+
+describe( 'showErrorCheckout', () => {
+	let container;
+	const originalJQuery = global.jQuery;
+	const originalWcSettings = global.wcSettings;
+	const originalWc = global.wc;
+
+	beforeEach( () => {
+		container = {
+			length: 1,
+			find: jest.fn().mockReturnThis(),
+			remove: jest.fn().mockReturnThis(),
+			prepend: jest.fn().mockReturnThis(),
+		};
+
+		const jQueryMock = jest.fn( ( selector ) => {
+			if ( selector === '.woocommerce-notices-wrapper' ) {
+				return { first: () => container };
+			}
+			if ( selector === '.woocommerce-MyAccount-content' ) {
+				return { length: 0 };
+			}
+			if ( selector === 'form.checkout' ) {
+				return { find: () => ( { length: 0 } ) };
+			}
+			return { trigger: jest.fn().mockReturnThis(), each: jest.fn() };
+		} );
+		jQueryMock.scroll_to_notices = jest.fn();
+		global.jQuery = jQueryMock;
+
+		// A classic-shortcode page never mounts the Blocks checkout StoreNotice helper.
+		delete global.wc;
+	} );
+
+	afterEach( () => {
+		global.jQuery = originalJQuery;
+		global.wcSettings = originalWcSettings;
+		global.wc = originalWc;
+		dispatch.mockReset();
+	} );
+
+	it( 'uses the WC Blocks notices store when it is registered', () => {
+		const createErrorNotice = jest.fn();
+		dispatch.mockReturnValue( { createErrorNotice } );
+		global.wcSettings = { wcBlocksConfig: { foo: true } };
+
+		showErrorCheckout( 'Your card was declined.' );
+
+		expect( createErrorNotice ).toHaveBeenCalledWith(
+			'Your card was declined.',
+			{ context: 'wc/checkout/payments' }
+		);
+		// The classic notice markup must not also be prepended.
+		expect( container.prepend ).not.toHaveBeenCalled();
+	} );
+
+	// Regression: on a woocommerce/classic-shortcode page wcBlocksConfig is truthy but the
+	// core/notices store isn't registered, so dispatch() returns null. The error must not be
+	// silently dropped via an uncaught TypeError.
+	it( 'falls back to the classic notice when core/notices is not registered', () => {
+		dispatch.mockReturnValue( null );
+		global.wcSettings = { wcBlocksConfig: { foo: true } };
+
+		expect( () =>
+			showErrorCheckout( 'Your card was declined.' )
+		).not.toThrow();
+
+		expect( container.prepend ).toHaveBeenCalledWith(
+			expect.stringContaining( 'woocommerce-error' )
+		);
+	} );
+
+	it( 'renders the classic notice when not in a block context', () => {
+		dispatch.mockReturnValue( null );
+		global.wcSettings = { wcBlocksConfig: false };
+
+		showErrorCheckout( 'Your card was declined.' );
+
+		expect( container.prepend ).toHaveBeenCalledWith(
+			expect.stringContaining( 'Your card was declined.' )
+		);
 	} );
 } );

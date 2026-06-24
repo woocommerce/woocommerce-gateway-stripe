@@ -33,7 +33,11 @@ wp() {
 	if [ ! -f $TMPDIR/wp-cli.phar ]; then
 		download https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar  "$TMPDIR/wp-cli.phar"
 	fi
-	php "$TMPDIR/wp-cli.phar" $@
+
+	# wp-cli runs under the container's php CLI memory_limit (128M), which is too
+	# low for its Extractor to unpack a current WordPress core archive.
+	# So, we remove the cap for the setup commands in this script.
+	php -d memory_limit=-1 "$TMPDIR/wp-cli.phar" $@
 
 	cd "$WORKING_DIR"
 }
@@ -105,15 +109,42 @@ fi
 set -e
 
 install_wp() {
-	if [ -d $WP_CORE_DIR ]; then
+	# Only treat the install as present when WP core files actually exist.
+	if [ -f "$WP_CORE_DIR/wp-load.php" ]; then
+		patch_ixr_casts
 		return;
 	fi
 
-	mkdir -p $WP_CORE_DIR
+	# Start from a clean directory so a partial/aborted download don't trigger a files are already present error.
+	rm -rf "$WP_CORE_DIR"
+	mkdir -p "$WP_CORE_DIR"
 
 	wp core download --version=$WP_VERSION
 
 	download https://raw.github.com/markoheijnen/wp-mysqli/master/db.php $WP_CORE_DIR/wp-content/db.php
+
+	patch_ixr_casts
+}
+
+# Replace pre-PHP-8.5 (double)/(boolean) casts in WP core's IXR XML-RPC
+# parser with their canonical (float)/(bool) equivalents. WP <= 6.8 ships
+# the non-canonical form; PHP 8.5 emits E_DEPRECATED on every call, which
+# paratest captures as 25 spurious test errors across the REST/ECE Ajax
+# suites. Idempotent: when the file already uses canonical casts (WP >= 6.9
+# or a previously-patched cache), sed is a no-op. Remove once the matrix's
+# WP=L version reliably ships the upstream fix in cached builds.
+patch_ixr_casts() {
+	local ixr_file="$WP_CORE_DIR/wp-includes/IXR/class-IXR-message.php"
+	if [ ! -f "$ixr_file" ]; then
+		return
+	fi
+	if [[ $(uname -s) == 'Darwin' ]]; then
+		local ioption='-i.bak'
+	else
+		local ioption='-i'
+	fi
+	sed $ioption -e 's/(double)trim/(float)trim/g' -e 's/(boolean)trim/(bool)trim/g' "$ixr_file"
+	rm -f "${ixr_file}.bak"
 }
 
 configure_wp() {
@@ -154,6 +185,18 @@ install_test_suite() {
 		sed $ioption "s/yourusernamehere/$DB_USER/" "$WP_TESTS_DIR"/wp-tests-config.php
 		sed $ioption "s/yourpasswordhere/$DB_PASS/" "$WP_TESTS_DIR"/wp-tests-config.php
 		sed $ioption "s|localhost|${DB_HOST}|" "$WP_TESTS_DIR"/wp-tests-config.php
+
+		# Isolate wp-content/uploads per paratest worker. Without this, workers share
+		# /tmp/wordpress/wp-content/uploads and race against WP_UnitTestCase::remove_added_uploads()
+		# (which rmdirs the entire uploads tree in tearDown), producing flaky failures
+		# like "chmod: No such file or directory" in WP_Image_Editor_Imagick::save()
+		# and "exif_imagetype: failed to open stream" from wp_getimagesize().
+		cat >> "$WP_TESTS_DIR"/wp-tests-config.php <<'PHP'
+
+if ( getenv( 'TEST_TOKEN' ) !== false ) {
+	define( 'UPLOADS', 'wp-content/uploads-' . getenv( 'TEST_TOKEN' ) );
+}
+PHP
 	fi
 
 }

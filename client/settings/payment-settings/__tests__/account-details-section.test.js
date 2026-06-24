@@ -19,6 +19,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn(),
 	useTestMode: jest.fn(),
 	useUpeTitle: jest.fn().mockReturnValue( [] ),
+	useIsPMCEnabled: jest.fn().mockReturnValue( false ),
 } ) );
 
 jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
@@ -199,6 +200,38 @@ describe( 'AccountDetailsSection', () => {
 
 		const stripeAccountId = screen.getByText( /acct_123/i );
 		expect( stripeAccountId ).toBeInTheDocument();
+	} );
+
+	it( 'should show account display name above account ID when available', () => {
+		useAccount.mockReturnValue( {
+			data: {
+				webhook_url: 'example.com',
+				account: {
+					id: 'acct_123',
+					email: 'test@example.com',
+					settings: {
+						dashboard: {
+							display_name: 'My Test Store',
+						},
+					},
+					testmode: false,
+				},
+				configured_webhook_urls: {
+					live: 'example.com',
+					test: 'example.com',
+				},
+				oauth_connections: {
+					live: { connected: true },
+					test: { connected: true },
+				},
+			},
+		} );
+		useTestMode.mockReturnValue( [ false, jest.fn() ] );
+
+		render( <AccountDetailsSection setModalType={ setModalTypeMock } /> );
+
+		expect( screen.getByText( /acct_123/i ) ).toBeInTheDocument();
+		expect( screen.getByText( /My Test Store/i ) ).toBeInTheDocument();
 	} );
 
 	describe( 'Refresh account functionality', () => {

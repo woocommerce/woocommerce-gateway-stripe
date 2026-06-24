@@ -108,31 +108,46 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_payment_request_enabled'            => [
+					'link_button_size'                      => [
+						'description'       => __( 'Link by Stripe button size.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'enum'              => array_keys( $form_fields['link_button_size']['options'] ?? [] ),
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'link_button_locations'                 => [
+						'description'       => __( 'Link by Stripe button locations that should be enabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'array',
+						'items'             => [
+							'type' => 'string',
+							'enum' => array_keys( $form_fields['link_button_locations']['options'] ?? [] ),
+						],
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'is_express_checkout_enabled'           => [
 						'description'       => __( 'If Stripe express checkouts should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'payment_request_button_type'           => [
+					'express_checkout_button_type'          => [
 						'description'       => __( 'Express checkout button types.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'enum'              => array_keys( $form_fields['express_checkout_button_type']['options'] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'payment_request_button_theme'          => [
+					'express_checkout_button_theme'         => [
 						'description'       => __( 'Express checkout button themes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'enum'              => array_keys( $form_fields['express_checkout_button_theme']['options'] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'payment_request_button_size'           => [
+					'express_checkout_button_size'          => [
 						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						// it can happen that `$form_fields['express_checkout_button_size']` is empty (in tests) - fixing temporarily.
 						'enum'              => array_keys( isset( $form_fields['express_checkout_button_size']['options'] ) ? $form_fields['express_checkout_button_size']['options'] : [] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'payment_request_button_locations'      => [
+					'express_checkout_button_locations'     => [
 						'description'       => __( 'Express checkout locations that should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
 						'items'             => [
@@ -251,11 +266,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > Express checkouts */
 				'amazon_pay_button_size'                => $this->gateway->get_validated_option( 'amazon_pay_button_size' ),
 				'amazon_pay_button_locations'           => $this->gateway->get_validated_option( 'amazon_pay_button_locations' ),
-				'is_payment_request_enabled'            => $this->gateway->is_payment_request_enabled(),
-				'payment_request_button_type'           => $this->gateway->get_validated_option( 'express_checkout_button_type' ),
-				'payment_request_button_theme'          => $this->gateway->get_validated_option( 'express_checkout_button_theme' ),
-				'payment_request_button_size'           => $this->gateway->get_validated_option( 'express_checkout_button_size' ),
-				'payment_request_button_locations'      => $this->gateway->get_validated_option( 'express_checkout_button_locations' ),
+				'link_button_size'                      => $this->gateway->get_validated_option( 'link_button_size' ),
+				'link_button_locations'                 => $this->gateway->get_validated_option( 'link_button_locations' ),
+				'is_express_checkout_enabled'           => $this->gateway->is_express_checkout_enabled(),
+				'express_checkout_button_type'          => $this->gateway->get_validated_option( 'express_checkout_button_type' ),
+				'express_checkout_button_theme'         => $this->gateway->get_validated_option( 'express_checkout_button_theme' ),
+				'express_checkout_button_size'          => $this->gateway->get_validated_option( 'express_checkout_button_size' ),
+				'express_checkout_button_locations'     => $this->gateway->get_validated_option( 'express_checkout_button_locations' ),
 
 				/* Settings > Payments & transactions */
 				'is_manual_capture_enabled'             => ! $this->gateway->is_automatic_capture_enabled(),
@@ -294,10 +311,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
 		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 			// We need to update a separate setting for legacy checkout.
-			$this->update_is_payment_request_enabled_for_legacy_checkout( $request );
+			$this->update_is_express_checkout_enabled_for_legacy_checkout( $request );
 		}
-		$this->update_payment_request_settings( $request );
+		$this->update_express_checkout_settings( $request );
 		$this->update_amazon_pay_settings( $request );
+		$this->update_link_settings( $request );
 
 		/* Settings > Payments & transactions */
 		$this->update_is_manual_capture_enabled( $request );
@@ -324,11 +342,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	private function get_payment_method_ids_to_enable( WP_REST_Request $request ) {
 		$payment_method_ids_to_enable = $request->get_param( 'enabled_payment_method_ids' );
 		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
-		$is_payment_request_enabled   = $request->get_param( 'is_payment_request_enabled' );
+		$is_express_checkout_enabled  = $request->get_param( 'is_express_checkout_enabled' );
 
 		// Card is required for Apple Pay and Google Pay.
 		if ( $is_upe_enabled &&
-			$is_payment_request_enabled &&
+			$is_express_checkout_enabled &&
+			is_array( $payment_method_ids_to_enable ) &&
 			in_array( WC_Stripe_Payment_Methods::CARD, $payment_method_ids_to_enable, true )
 		) {
 			$payment_method_ids_to_enable = array_merge(
@@ -406,6 +425,16 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
+		// Prevent switching to live mode when no live account is connected.
+		if ( ! $is_test_mode_enabled && ! WC_Stripe_Helper::is_connected( 'live' ) ) {
+			return;
+		}
+
+		// Prevent switching to test mode when no test account is connected.
+		if ( $is_test_mode_enabled && ! WC_Stripe_Helper::is_connected( 'test' ) ) {
+			return;
+		}
+
 		$this->gateway->update_option( 'testmode', $is_test_mode_enabled ? 'yes' : 'no' );
 	}
 
@@ -416,14 +445,14 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 *
 	 * @return void
 	 */
-	private function update_is_payment_request_enabled_for_legacy_checkout( WP_REST_Request $request ) {
-		$is_payment_request_enabled = $request->get_param( 'is_payment_request_enabled' );
+	private function update_is_express_checkout_enabled_for_legacy_checkout( WP_REST_Request $request ) {
+		$is_express_checkout_enabled = $request->get_param( 'is_express_checkout_enabled' );
 
-		if ( null === $is_payment_request_enabled ) {
+		if ( null === $is_express_checkout_enabled ) {
 			return;
 		}
 
-		$this->gateway->update_option( 'payment_request', $is_payment_request_enabled ? 'yes' : 'no' );
+		$this->gateway->update_option( 'express_checkout', $is_express_checkout_enabled ? 'yes' : 'no' );
 	}
 
 	/**
@@ -553,18 +582,33 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return void
 	 */
 	private function update_amazon_pay_settings( WP_REST_Request $request ) {
-		$attributes = [
-			'amazon_pay_button_size'      => 'amazon_pay_button_size',
-			'amazon_pay_button_locations' => 'amazon_pay_button_locations',
-		];
+		$attributes = [ 'amazon_pay_button_size', 'amazon_pay_button_locations' ];
 
-		foreach ( $attributes as $request_key => $attribute ) {
-			if ( null === $request->get_param( $request_key ) ) {
+		foreach ( $attributes as $attribute ) {
+			if ( null === $request->get_param( $attribute ) ) {
 				continue;
 			}
 
-			$value = $request->get_param( $request_key );
-			$this->gateway->update_validated_option( $attribute, $value );
+			$this->gateway->update_validated_option( $attribute, $request->get_param( $attribute ) );
+		}
+	}
+
+	/**
+	 * Updates appearance attributes of the Link by Stripe button.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 *
+	 * @return void
+	 */
+	private function update_link_settings( WP_REST_Request $request ) {
+		$attributes = [ 'link_button_size', 'link_button_locations' ];
+
+		foreach ( $attributes as $attribute ) {
+			if ( null === $request->get_param( $attribute ) ) {
+				continue;
+			}
+
+			$this->gateway->update_validated_option( $attribute, $request->get_param( $attribute ) );
 		}
 	}
 
@@ -575,12 +619,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 *
 	 * @return void
 	 */
-	private function update_payment_request_settings( WP_REST_Request $request ) {
+	private function update_express_checkout_settings( WP_REST_Request $request ) {
 		$attributes = [
-			'payment_request_button_type'      => 'express_checkout_button_type',
-			'payment_request_button_size'      => 'express_checkout_button_size',
-			'payment_request_button_theme'     => 'express_checkout_button_theme',
-			'payment_request_button_locations' => 'express_checkout_button_locations',
+			'express_checkout_button_type'      => 'express_checkout_button_type',
+			'express_checkout_button_size'      => 'express_checkout_button_size',
+			'express_checkout_button_theme'     => 'express_checkout_button_theme',
+			'express_checkout_button_locations' => 'express_checkout_button_locations',
 		];
 
 		foreach ( $attributes as $request_key => $attribute ) {
@@ -675,35 +719,36 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function dismiss_notice( WP_REST_Request $request ) {
-		if ( null === $request->get_param( 'wc_stripe_show_customization_notice' )
-			&& null === $request->get_param( 'wc_stripe_show_optimized_checkout_notice' )
-			&& null === $request->get_param( 'wc_stripe_show_bnpl_promotion_banner' )
-			&& null === $request->get_param( 'wc_stripe_show_oc_promotion_banner' )
-			&& null === $request->get_param( 'wc_stripe_show_stripe_first_method_notice' ) ) {
-			return new WP_REST_Response( [], 200 );
+		// Map of supported request parameters to the corresponding option names.
+		// For now, parameters map directly to option names, but we should decouple them in the future.
+		$notice_parameters = [
+			'wc_stripe_show_ap_only_banner'             => 'wc_stripe_show_ap_only_banner',
+			'wc_stripe_show_bnpl_promotion_banner'      => 'wc_stripe_show_bnpl_promotion_banner',
+			'wc_stripe_show_customization_notice'       => 'wc_stripe_show_customization_notice',
+			'wc_stripe_show_oc_promotion_banner'        => 'wc_stripe_show_oc_promotion_banner',
+			'wc_stripe_show_ocs_ap_banner'              => 'wc_stripe_show_ocs_ap_banner',
+			'wc_stripe_show_ocs_only_banner'            => 'wc_stripe_show_ocs_only_banner',
+			'wc_stripe_show_optimized_checkout_notice'  => 'wc_stripe_show_optimized_checkout_notice',
+			'wc_stripe_show_stripe_first_method_notice' => 'wc_stripe_show_stripe_first_method_notice',
+			'wc_stripe_show_stripe_tax_banner'          => 'wc_stripe_show_stripe_tax_banner',
+		];
+
+		// Loop through the supported request parameters once and perform any requested updates.
+		$has_any_parameter = false;
+		foreach ( $notice_parameters as $parameter_name => $option_name ) {
+			if ( $request->has_param( $parameter_name ) ) {
+				$has_any_parameter = true;
+
+				update_option( $option_name, 'no' );
+			}
 		}
 
-		if ( null !== $request->get_param( 'wc_stripe_show_customization_notice' ) ) {
-			update_option( 'wc_stripe_show_customization_notice', 'no' );
+		$response = [];
+		if ( $has_any_parameter ) {
+			$response['result'] = 'notice dismissed';
 		}
 
-		if ( null !== $request->get_param( 'wc_stripe_show_optimized_checkout_notice' ) ) {
-			update_option( 'wc_stripe_show_optimized_checkout_notice', 'no' );
-		}
-
-		if ( null !== $request->get_param( 'wc_stripe_show_bnpl_promotion_banner' ) ) {
-			update_option( 'wc_stripe_show_bnpl_promotion_banner', 'no' );
-		}
-
-		if ( null !== $request->get_param( 'wc_stripe_show_oc_promotion_banner' ) ) {
-			update_option( 'wc_stripe_show_oc_promotion_banner', 'no' );
-		}
-
-		if ( null !== $request->get_param( 'wc_stripe_show_stripe_first_method_notice' ) ) {
-			update_option( 'wc_stripe_show_stripe_first_method_notice', 'no' );
-		}
-
-		return new WP_REST_Response( [ 'result' => 'notice dismissed' ], 200 );
+		return new WP_REST_Response( $response, 200 );
 	}
 
 	/**

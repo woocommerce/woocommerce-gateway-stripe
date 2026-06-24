@@ -62,7 +62,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'price', $result );
 
 		// Verify field values.
-		$this->assertEquals( (string) $product->get_id(), $result['id'] );
+		$this->assertEquals( $product->get_sku(), $result['id'] );
 		$this->assertEquals( 'Test Product', $result['title'] );
 		$this->assertEquals( 'Test Description', $result['description'] );
 		$this->assertEquals( 'in_stock', $result['availability'] );
@@ -70,6 +70,40 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( '19.99', $result['price'] );
 
 		// Cleanup.
+		$product->delete( true );
+	}
+
+	/**
+	 * The catalog row's `id` must be the merchant SKU when the product has one,
+	 * so it shows up in Stripe's UI and the round-trip lookup can resolve via
+	 * `wc_get_product_id_by_sku()`.
+	 */
+	public function test_id_uses_sku_when_present() {
+		$product = WC_Helper_Product::create_simple_product(
+			true,
+			[ 'sku' => 'MAPPER-SKU-' . uniqid() ]
+		);
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertSame( $product->get_sku(), $result['id'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Falls back to the product ID when the product has no SKU, so SKU-less
+	 * catalogs keep working under the legacy contract.
+	 */
+	public function test_id_falls_back_to_product_id_when_no_sku() {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'sku' => '' ] );
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertSame( (string) $product->get_id(), $result['id'] );
+
 		$product->delete( true );
 	}
 
@@ -892,5 +926,354 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$this->assertNull( $result['delete'], 'delete field should always be null for products in the feed' );
 
 		$product->delete( true );
+	}
+
+	/**
+	 * Test that `should_sync_product` returns true by default for any product.
+	 *
+	 * Guards the contract that the visibility hook is opt-in for adapters: with
+	 * no filter registered, every product flows through to the feed.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_defaults_to_true() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * WooCommerce Subscriptions product types that must be excluded from the feed.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_subscription_product_types(): array {
+		return [
+			'simple subscription'    => [ 'subscription' ],
+			'variable subscription'  => [ 'variable-subscription' ],
+			'subscription variation' => [ 'subscription_variation' ],
+		];
+	}
+
+	/**
+	 * Subscription products are excluded by default — otherwise a single one
+	 * fails validation and downgrades every sync to a partial success.
+	 *
+	 * @dataProvider provide_subscription_product_types
+	 * @param string $product_type WooCommerce subscription product type.
+	 * @return void
+	 */
+	public function test_should_sync_product_excludes_subscription_products( string $product_type ) {
+		$product = $this->getMockBuilder( WC_Product::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_type' ] )
+			->getMock();
+		$product->method( 'get_type' )->willReturn( $product_type );
+
+		$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+	}
+
+	/**
+	 * The subscription exclusion is a default, not a hard block: the filter can
+	 * opt them back in.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_filter_can_re_include_subscriptions() {
+		$product = $this->getMockBuilder( WC_Product::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_type' ] )
+			->getMock();
+		$product->method( 'get_type' )->willReturn( 'subscription_variation' );
+
+		$callback = static fn() => true;
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
+
+		try {
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
+		}
+	}
+
+	/**
+	 * map_product short-circuits subscription products to an empty row, the
+	 * signal the validator treats as a clean exclusion.
+	 *
+	 * @return void
+	 */
+	public function test_map_product_returns_empty_row_for_subscription_products() {
+		$product = $this->getMockBuilder( WC_Product::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_type' ] )
+			->getMock();
+		$product->method( 'get_type' )->willReturn( 'subscription_variation' );
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+
+		$this->assertSame( [], $mapper->map_product( $product ) );
+	}
+
+	/**
+	 * Data provider for falsy adapter return values.
+	 *
+	 * @return array<string, array{0: mixed}>
+	 */
+	public function provide_falsy_filter_values(): array {
+		return [
+			'false'              => [ false ],
+			'zero int'           => [ 0 ],
+			'empty string'       => [ '' ],
+			'null'               => [ null ],
+			'string false'       => [ 'false' ],
+			'string False mixed' => [ 'False' ],
+		];
+	}
+
+	/**
+	 * Test that any falsy adapter return suppresses the product. The contract is
+	 * "false-y, not literal false" — the wrapper runs the return through
+	 * wp_validate_boolean(), so null, 0, and '' all normalise to false, and the
+	 * string 'false' (any case) is treated as false rather than as a truthy
+	 * non-empty string the way a plain (bool) cast would.
+	 *
+	 * @dataProvider provide_falsy_filter_values
+	 * @param mixed $filtered_value Value the adapter returns from the filter.
+	 * @return void
+	 */
+	public function test_should_sync_product_treats_any_falsy_filter_return_as_exclude( $filtered_value ) {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$callback = static fn() => $filtered_value;
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
+
+		try {
+			$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * Test that `map_product` short-circuits to an empty row when the visibility
+	 * hook excludes the product. An empty row is the agreed signal the feed
+	 * validator's required-field check rejects, so the walker skips the entry
+	 * without polluting the validator's per-product error accumulator with
+	 * intentional exclusions.
+	 *
+	 * @return void
+	 */
+	public function test_map_product_returns_empty_row_when_filter_excludes_product() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_regular_price( '9.99' );
+		$product->save();
+
+		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$result = $mapper->map_product( $product );
+
+			$this->assertSame( [], $result );
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * Test that products other than the excluded one still map normally — the
+	 * filter receives the specific product instance and a per-product decision
+	 * doesn't bleed across the catalog.
+	 *
+	 * @return void
+	 */
+	public function test_map_product_still_maps_other_products_when_filter_excludes_one() {
+		$included = WC_Helper_Product::create_simple_product();
+		$included->set_regular_price( '5.00' );
+		$included->save();
+
+		$excluded = WC_Helper_Product::create_simple_product();
+		$excluded->set_regular_price( '7.00' );
+		$excluded->save();
+
+		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $excluded->get_id();
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$this->assertNotEmpty( $mapper->map_product( $included ) );
+			$this->assertSame( [], $mapper->map_product( $excluded ) );
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
+			$included->delete( true );
+			$excluded->delete( true );
+		}
+	}
+
+	/**
+	 * Test that the deprecated `wc_stripe_agentic_commerce_should_sync_product`
+	 * filter is still honoured for backward compatibility, and that hooking it
+	 * surfaces a deprecation notice pointing adapters at the WooCommerce-core
+	 * prefixed replacement.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_honours_deprecated_filter() {
+		$this->setExpectedDeprecated( 'wc_stripe_agentic_commerce_should_sync_product' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$callback = static fn() => false;
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+
+		try {
+			$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * Test that the canonical filter takes precedence over the deprecated one:
+	 * a value from the new `woocommerce_`-prefixed hook overrides the result the
+	 * deprecated hook seeded as its default.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_new_filter_overrides_deprecated() {
+		$this->setExpectedDeprecated( 'wc_stripe_agentic_commerce_should_sync_product' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$deprecated = static fn() => false;
+		$canonical  = static fn() => true;
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $deprecated );
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $canonical );
+
+		try {
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $deprecated );
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $canonical );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * Default (embedded) mode emits `disable_checkout=false`.
+	 *
+	 * @return void
+	 */
+	public function test_disable_checkout_defaults_to_false() {
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertSame( 'false', $result['disable_checkout'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * The store-wide redirect setting flips every row to `disable_checkout=true`.
+	 *
+	 * @return void
+	 */
+	public function test_disable_checkout_follows_store_wide_setting() {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION, 'yes' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$result = $mapper->map_product( $product );
+
+			$this->assertSame( 'true', $result['disable_checkout'] );
+		} finally {
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * The `wc_stripe_agentic_commerce_disable_checkout` filter overrides the store-wide default.
+	 *
+	 * @return void
+	 */
+	public function test_disable_checkout_filter_overrides_store_wide_default() {
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$callback = static fn() => true;
+		add_filter( 'wc_stripe_agentic_commerce_disable_checkout', $callback );
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$result = $mapper->map_product( $product );
+
+			$this->assertSame( 'true', $result['disable_checkout'] );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_disable_checkout', $callback );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * The filter result is normalised with wp_validate_boolean(), so a string
+	 * 'false' (and other falsy strings) returned by a callback must resolve to
+	 * false rather than being truthy under a plain (bool) cast.
+	 *
+	 * @dataProvider provider_disable_checkout_falsy_filter_values
+	 * @param mixed $filter_value Value returned by the filter callback.
+	 * @return void
+	 */
+	public function test_disable_checkout_filter_normalises_falsy_strings( $filter_value ) {
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$callback = static fn() => $filter_value;
+		add_filter( 'wc_stripe_agentic_commerce_disable_checkout', $callback );
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$result = $mapper->map_product( $product );
+
+			$this->assertSame( 'false', $result['disable_checkout'] );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_disable_checkout', $callback );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * Falsy filter return values that a (bool) cast would mishandle.
+	 *
+	 * @return array<string, array{0: mixed}>
+	 */
+	public function provider_disable_checkout_falsy_filter_values() {
+		return [
+			'string false' => [ 'false' ],
+			'string zero'  => [ '0' ],
+			'empty string' => [ '' ],
+		];
 	}
 }

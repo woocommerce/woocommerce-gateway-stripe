@@ -12,7 +12,7 @@
  * @param {Function} deps.getResolvedCurrency            Reads the cached resolved currency post-resolve.
  * @param {Function} deps.getSelectedProductData         AJAX call that re-fetches product totals in the resolved currency.
  * @param {Function} deps.transformLabeledDisplayItems   Stripe transformer for non-legacy display items.
- * @param {boolean}  deps.useLegacyCartEndpoints         True for variations/bookings; skips the transform.
+ * @param {boolean}  deps.useLegacyDisplayItems          True for variations/bookings; skips the transform.
  * @return {Promise<Object|null>} Args for `startExpressCheckout`, or `null` to skip.
  */
 export async function computeProductPageStartArgs( {
@@ -21,7 +21,7 @@ export async function computeProductPageStartArgs( {
 	getResolvedCurrency,
 	getSelectedProductData,
 	transformLabeledDisplayItems,
-	useLegacyCartEndpoints,
+	useLegacyDisplayItems,
 } ) {
 	const isProductSupported =
 		getExpressCheckoutData( 'product' )?.validVariationSelected ?? true;
@@ -70,7 +70,7 @@ export async function computeProductPageStartArgs( {
 		requestShipping,
 		requestPhone:
 			getExpressCheckoutData( 'checkout' )?.needs_payer_phone ?? false,
-		displayItems: useLegacyCartEndpoints
+		displayItems: useLegacyDisplayItems
 			? displayItems
 			: transformLabeledDisplayItems( displayItems ),
 	};

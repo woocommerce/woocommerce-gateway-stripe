@@ -10,6 +10,7 @@ const {
 	setupShortcodeCheckout,
 	setupACSSCheckout,
 	fillACSSDetails,
+	waitForOrderReceivedPage,
 } = payments;
 
 test.describe( 'ACSS payment tests @shortcode @acss', () => {
@@ -38,12 +39,14 @@ test.describe( 'ACSS payment tests @shortcode @acss', () => {
 
 	test( 'customer can pay with ACSS @smoke', async ( { page } ) => {
 		await setupACSSCheckout( page, 'shortcode' );
+		await expect(
+			page.getByText(
+				'After submission, you will need to authorize the payment with your bank.'
+			)
+		).toBeVisible();
 		await clickPlaceOrder( page );
 		await fillACSSDetails( page );
-		await page.waitForURL( '**/checkout/order-received/**' );
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
+		await waitForOrderReceivedPage( page );
 	} );
 
 	test( 'customer can save and reuse ACSS payment method @smoke', async ( {
@@ -64,10 +67,7 @@ test.describe( 'ACSS payment tests @shortcode @acss', () => {
 				.dispatchEvent( 'click' );
 			await clickPlaceOrder( page );
 			await fillACSSDetails( page );
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
+			await waitForOrderReceivedPage( page );
 		} );
 
 		// Second order - Use saved payment method.
@@ -89,10 +89,7 @@ test.describe( 'ACSS payment tests @shortcode @acss', () => {
 				.first()
 				.dispatchEvent( 'click' );
 			await clickPlaceOrder( page );
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
+			await waitForOrderReceivedPage( page );
 		} );
 	} );
 } );
