@@ -84,13 +84,23 @@ const ExpressCheckoutComponent = ( {
 		} );
 
 	const onShippingAddressChange = useCallback(
-		( event ) => shippingAddressChangeHandler( event, elements ),
-		[ elements ]
+		( event ) =>
+			shippingAddressChangeHandler(
+				event,
+				elements,
+				setExpressPaymentError
+			),
+		[ elements, setExpressPaymentError ]
 	);
 
 	const onShippingRateChange = useCallback(
-		( event ) => shippingRateChangeHandler( event, elements ),
-		[ elements ]
+		( event ) =>
+			shippingRateChangeHandler(
+				event,
+				elements,
+				setExpressPaymentError
+			),
+		[ elements, setExpressPaymentError ]
 	);
 
 	const onElementsReady = useCallback(

@@ -469,6 +469,9 @@ jQuery( function ( $ ) {
 				return await handleProductPageECEButtonClick( event, options );
 			} );
 
+			const onShippingError = ( message ) =>
+				displayExpressCheckoutNotice( message, 'error' );
+
 			const handleProductPageShippingAddressChange = async (
 				event,
 				stripeElements
@@ -480,7 +483,11 @@ jQuery( function ( $ ) {
 					);
 				}
 
-				return shippingAddressChangeHandler( event, stripeElements );
+				return shippingAddressChangeHandler(
+					event,
+					stripeElements,
+					onShippingError
+				);
 			};
 
 			eceButton.on( 'shippingaddresschange', async ( event ) => {
@@ -490,13 +497,21 @@ jQuery( function ( $ ) {
 						elements
 					);
 				}
-				return await shippingAddressChangeHandler( event, elements );
+				return await shippingAddressChangeHandler(
+					event,
+					elements,
+					onShippingError
+				);
 			} );
 
 			eceButton.on(
 				'shippingratechange',
 				async ( event ) =>
-					await shippingRateChangeHandler( event, elements )
+					await shippingRateChangeHandler(
+						event,
+						elements,
+						onShippingError
+					)
 			);
 
 			eceButton.on( 'confirm', async ( event ) => {
