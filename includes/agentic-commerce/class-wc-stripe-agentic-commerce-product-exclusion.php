@@ -110,13 +110,12 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion {
 	 * resurrecting one another callback already excluded.
 	 *
 	 * @since 10.9.0
-	 * @param mixed $should_sync Whether to include the product. Hook input — coerced to bool.
-	 * @param mixed $product     Product being evaluated. Hook input — validated below.
+	 * @param bool       $should_sync Whether to include the product.
+	 * @param WC_Product $product     Product being evaluated.
 	 * @return bool
 	 */
 	public function filter_should_sync_product( $should_sync, $product ): bool {
-		// Normalize before branching: a raw truthiness check would treat a prior
-		// callback's 'false'/'0' string vote as true and resurrect the product.
+		// Use broad check for $should_sync to handle other filter outputs.
 		$should_sync = wp_validate_boolean( $should_sync );
 		if ( ! $should_sync ) {
 			return false;
