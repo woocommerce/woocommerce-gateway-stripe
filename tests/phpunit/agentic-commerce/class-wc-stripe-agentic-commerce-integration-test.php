@@ -1268,6 +1268,47 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * reschedule_next_feed_sync() must recreate the recurring schedule even when
+	 * a one-off resync action is pending. The two actions share a hook name but
+	 * live in different groups -- we need to ignore the action in the other group.
+	 */
+	public function test_reschedule_next_feed_sync_schedules_recurring_action_when_async_resync_is_pending(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) || ! function_exists( 'as_unschedule_all_actions' ) || ! function_exists( 'as_enqueue_async_action' ) || ! function_exists( 'did_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' );
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION );
+
+		try {
+			as_enqueue_async_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' );
+
+			$this->assertNotFalse(
+				as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' ),
+				'Sanity: the one-off resync must be pending before rescheduling.'
+			);
+			$this->assertFalse(
+				as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' ),
+				'Sanity: no recurring action should exist before rescheduling.'
+			);
+
+			$result = ( new \WC_Stripe_Agentic_Commerce_Integration() )->reschedule_next_feed_sync();
+
+			$this->assertTrue( $result );
+			$this->assertNotFalse(
+				as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' ),
+				'The recurring wc-stripe schedule must be created even when an async resync is pending.'
+			);
+			$this->assertEquals( 'yes', get_option( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION ) );
+		} finally {
+			as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
+			as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' );
+			delete_option( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION );
+		}
+	}
+
+	/**
 	 * reschedule_next_feed_sync schedules the next run approximately one sync interval in the future.
 	 *
 	 * @return void
