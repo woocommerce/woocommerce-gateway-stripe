@@ -1182,7 +1182,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			$next = as_next_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION );
 
 			$this->assertNotFalse( $next, 'Expected an action to be scheduled.' );
-			$this->assertEquals( $start_time, $next, '', 2 );
+			$this->assertEqualsWithDelta( $start_time, $next, 2 );
 		} finally {
 			as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 			delete_option( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION );
