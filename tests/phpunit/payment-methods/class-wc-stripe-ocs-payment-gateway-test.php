@@ -470,6 +470,21 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'is_changing_payment_method' => true,
 				'expected'                   => false,
 			],
+			// Redundant under the current base/OCS split (the base gateway hard-wires false and
+			// never consults the page flags), but they pin the "disabled wins regardless of page
+			// context" contract so a future collapse of the two classes would fail loudly here.
+			'OCS disabled, add payment method page'       => [
+				'oc_enabled'                 => false,
+				'is_add_payment_method'      => true,
+				'is_changing_payment_method' => false,
+				'expected'                   => false,
+			],
+			'OCS disabled, change payment method'         => [
+				'oc_enabled'                 => false,
+				'is_add_payment_method'      => false,
+				'is_changing_payment_method' => true,
+				'expected'                   => false,
+			],
 		];
 	}
 
