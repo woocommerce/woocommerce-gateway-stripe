@@ -2305,4 +2305,132 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * The cart snapshot is for bootstrapping the cart/checkout button render only;
+	 * outside those pages there is no button to render, so it must be absent.
+	 *
+	 * @return void
+	 */
+	public function test_get_cart_render_data_returns_null_when_not_cart_or_checkout(): void {
+		WC()->cart->empty_cart();
+		WC()->cart->add_to_cart( WC_Helper_Product::create_simple_product()->get_id(), 1 );
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+
+		$this->assertNull( $helper->get_cart_render_data() );
+
+		WC()->cart->empty_cart();
+	}
+
+	/**
+	 * An empty cart has nothing to charge, so no snapshot is emitted and the client
+	 * keeps its existing AJAX fallback rather than rendering a stale button.
+	 *
+	 * @return void
+	 */
+	public function test_get_cart_render_data_returns_null_for_empty_cart(): void {
+		add_filter( 'woocommerce_is_cart', '__return_true' );
+		WC()->cart->empty_cart();
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$data   = $helper->get_cart_render_data();
+
+		remove_filter( 'woocommerce_is_cart', '__return_true' );
+
+		$this->assertNull( $data );
+	}
+
+	/**
+	 * A populated cart on a cart/checkout page bootstraps the render payload so the
+	 * button can paint without the initial cart-details fetch. The total must match
+	 * the live cart total the AJAX path would have returned.
+	 *
+	 * @return void
+	 */
+	public function test_get_cart_render_data_returns_snapshot_for_populated_cart(): void {
+		update_option( 'woocommerce_currency', 'USD' );
+		update_option( 'woocommerce_checkout_phone_field', 'required' );
+		add_filter( 'woocommerce_is_cart', '__return_true' );
+
+		WC()->cart->empty_cart();
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_regular_price( 25 );
+		$product->set_price( 25 );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 2 );
+		WC()->cart->calculate_totals();
+
+		$expected_total = (int) WC_Stripe_Helper::get_stripe_amount( WC()->cart->get_total( false ) );
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$data   = $helper->get_cart_render_data();
+
+		remove_filter( 'woocommerce_is_cart', '__return_true' );
+		WC()->cart->empty_cart();
+
+		$this->assertIsArray( $data );
+		$this->assertGreaterThan( 0, $data['total'] );
+		$this->assertSame( $expected_total, $data['total'] );
+		$this->assertSame( 'usd', $data['currency'] );
+		$this->assertTrue( $data['requestPhone'] );
+		$this->assertIsBool( $data['requestShipping'] );
+		$this->assertIsArray( $data['displayItems'] );
+	}
+
+	/**
+	 * The bootstrapped total must round, not truncate, a non-integer minor-unit
+	 * value handed back by the `wc_stripe_calculated_total` filter; a bare (int)
+	 * cast would drop a minor unit and undercharge the first-paint preview.
+	 *
+	 * @return void
+	 */
+	public function test_get_cart_render_data_rounds_fractional_total(): void {
+		add_filter( 'woocommerce_is_cart', '__return_true' );
+		$fractional_total = static function () {
+			return 1500.6;
+		};
+		add_filter( 'wc_stripe_calculated_total', $fractional_total );
+
+		WC()->cart->empty_cart();
+		WC()->cart->add_to_cart( WC_Helper_Product::create_simple_product()->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$data   = $helper->get_cart_render_data();
+
+		remove_filter( 'wc_stripe_calculated_total', $fractional_total );
+		remove_filter( 'woocommerce_is_cart', '__return_true' );
+		WC()->cart->empty_cart();
+
+		$this->assertSame( 1501, $data['total'] );
+	}
+
+	/**
+	 * A zero total with no free trial means nothing to charge now, so the snapshot
+	 * is withheld — matching the client's zero-total hide. A virtual product avoids
+	 * any shipping cost that would otherwise lift the total above zero.
+	 *
+	 * @return void
+	 */
+	public function test_get_cart_render_data_returns_null_for_zero_total_without_free_trial(): void {
+		add_filter( 'woocommerce_is_cart', '__return_true' );
+
+		WC()->cart->empty_cart();
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_virtual( true );
+		$product->set_regular_price( 0 );
+		$product->set_price( 0 );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$data   = $helper->get_cart_render_data();
+
+		remove_filter( 'woocommerce_is_cart', '__return_true' );
+		WC()->cart->empty_cart();
+
+		$this->assertNull( $data );
+	}
 }
