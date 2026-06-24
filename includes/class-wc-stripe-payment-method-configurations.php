@@ -182,6 +182,8 @@ class WC_Stripe_Payment_Method_Configurations {
 		 * merchants to create configurations for specific sites, e.g. when they operate sites in different countries
 		 * with different local payment methods.
 		 *
+		 * @since 10.1.0
+		 *
 		 * @param string|null $preselected_pmc_id The ID of the Payment Method Configuration to use. Null by default, but a string value may be returned.
 		 * @param bool        $is_test_mode       Whether the site is in test mode.
 		 */
