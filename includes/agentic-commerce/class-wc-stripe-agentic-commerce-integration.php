@@ -300,7 +300,9 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return bool True if the sync was scheduled, false otherwise.
 	 */
 	public function schedule_recurring_feed_sync( ?int $start_time = null ): bool {
-		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {
+		// NOTE: All new/changed function calls in this method MUST be added to the guards in can_schedule_recurring_feed_sync(),
+		// as we need to be able to check for any exit conditions from reschedule_next_feed_sync().
+		if ( ! $this->can_schedule_recurring_feed_sync() ) {
 			return false;
 		}
 
@@ -328,6 +330,15 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
+	 * Check if the integration can schedule a recurring feed sync.
+	 *
+	 * @return bool True if the integration can schedule a recurring feed sync, false otherwise.
+	 */
+	private function can_schedule_recurring_feed_sync(): bool {
+		return did_action( 'action_scheduler_init' ) && function_exists( 'as_has_scheduled_action' ) && function_exists( 'as_schedule_recurring_action' );
+	}
+
+	/**
 	 * Reschedule the next feed sync.
 	 *
 	 * @since 10.9.0
@@ -335,7 +346,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return bool True if the sync was rescheduled, false otherwise.
 	 */
 	public function reschedule_next_feed_sync( ?int $start_time = null ): bool {
-		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
+		// Note that we bail early if we can't reschedule the recurring sync from the current context.
+		if ( ! function_exists( 'as_unschedule_all_actions' ) || ! $this->can_schedule_recurring_feed_sync() ) {
 			return false;
 		}
 
