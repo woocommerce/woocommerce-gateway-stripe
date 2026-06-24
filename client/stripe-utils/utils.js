@@ -246,6 +246,24 @@ export const isAmazonPayEnabled = () => {
 };
 
 /**
+ * Check whether Amazon Pay supports a given currency on this account.
+ *
+ * Lets the express checkout flow keep Amazon Pay when a currency resolved
+ * after page render is still in the account's supported set, rather than
+ * dropping it on any currency change.
+ *
+ * @param {string} currency ISO currency code (case-insensitive).
+ * @return {boolean} True if Amazon Pay supports the currency; false otherwise.
+ */
+export const isAmazonPaySupportedForCurrency = ( currency ) => {
+	const supported =
+		// eslint-disable-next-line camelcase, no-undef
+		wc_stripe_express_checkout_params?.stripe
+			?.amazon_pay_supported_currencies ?? [];
+	return supported.includes( ( currency || '' ).toLowerCase() );
+};
+
+/**
  * Get array of payment method types to use with intent.
  *
  * @todo Make paymentMethodType required when Split is implemented.

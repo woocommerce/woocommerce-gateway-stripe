@@ -35,6 +35,7 @@ import { resolveExpressCheckoutCurrency } from 'wcstripe/express-checkout/utils/
 import { getResolvedCurrency } from 'wcstripe/express-checkout/utils/resolved-currency-cache';
 import { setElementCurrency } from 'wcstripe/express-checkout/utils/element-currency-cache';
 import { computeProductPageStartArgs } from 'wcstripe/express-checkout/utils/compute-product-page-start-args';
+import { isAmazonPaySupportedForCurrency } from 'wcstripe/stripe-utils';
 import './styles.scss';
 import {
 	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
@@ -248,11 +249,15 @@ jQuery( function ( $ ) {
 			).toLowerCase();
 
 			// is_amazon_pay_enabled() is currency-aware server-side, but on product
-			// pages it reflects the rendered base currency, not the changed one.
-			// dropping amazon_pay client-side avoids the all-or-nothing rejection
-			// from Stripe when the changed currency isn't in the supported set.
-			const hasCurrencyChanged =
-				getResolvedCurrency( localizedCurrency ) !== localizedCurrency;
+			// pages it reflects the rendered base currency, not the one resolved
+			// after render. When the currency changed, re-check it against the
+			// supported set: a currency Amazon Pay can't take would make Stripe
+			// reject the whole element, while a supported one keeps it offered.
+			const resolvedCurrency = getResolvedCurrency( localizedCurrency );
+			const hasCurrencyChanged = resolvedCurrency !== localizedCurrency;
+			const amazonPaySupportsCurrency =
+				! hasCurrencyChanged ||
+				isAmazonPaySupportedForCurrency( resolvedCurrency );
 
 			// For each supported express payment type, create their own
 			// express checkout element. This is necessary as some express payment types
@@ -264,7 +269,7 @@ jQuery( function ( $ ) {
 				isExpressCheckoutEnabled &&
 					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 				isAmazonPayEnabled &&
-					! hasCurrencyChanged &&
+					amazonPaySupportsCurrency &&
 					! areTaxesBasedOnBillingAddress &&
 					! isChangePaymentMethod &&
 					EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
