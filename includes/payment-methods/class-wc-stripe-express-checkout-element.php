@@ -216,6 +216,9 @@ class WC_Stripe_Express_Checkout_Element {
 			'ajax_url'                   => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'                     => [
 				'publishable_key'             => $publishable_key,
+				/**
+				 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
+				 */
 				'allow_prepaid_card'          => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				'locale'                      => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 				'is_link_enabled'             => $this->express_checkout_helper->is_link_enabled(),
@@ -311,6 +314,9 @@ class WC_Stripe_Express_Checkout_Element {
 			'10.6.0',
 			'wc_stripe_express_checkout_hide_itemization'
 		);
+		/**
+		 * This filter is documented in includes/payment-methods/class-wc-stripe-express-checkout-helper.php.
+		 */
 		$hide_itemization = apply_filters( 'wc_stripe_express_checkout_hide_itemization', $hide_itemization );
 		if ( $hide_itemization ) {
 			$items[] = [
@@ -550,6 +556,9 @@ class WC_Stripe_Express_Checkout_Element {
 		wp_localize_script(
 			'wc_stripe_express_checkout',
 			'wc_stripe_express_checkout_params',
+			/**
+			 * This filter is documented in includes/class-wc-stripe-blocks-support.php.
+			 */
 			apply_filters(
 				'wc_stripe_express_checkout_params',
 				$this->javascript_params()

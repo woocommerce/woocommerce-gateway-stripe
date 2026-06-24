@@ -228,6 +228,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::error( 'Error processing redirect payment for order: ' . $order_id, [ 'error_message' => $e->getMessage() ] );
 
+			/**
+			 * Fires after redirect payment processing fails.
+			 *
+			 * @param WC_Stripe_Exception $exception The exception raised during redirect payment processing.
+			 * @param WC_Order            $order     The order that failed payment processing.
+			 */
 			do_action( 'wc_gateway_stripe_process_redirect_payment_error', $e, $order );
 
 			/* translators: error message */
@@ -386,6 +392,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				}
 
 				// This hook fires when admin manually changes order status to processing or completed.
+				/**
+				 * Fires after a manually captured Stripe charge is processed.
+				 *
+				 * @param WC_Order $order  Order associated with the manual capture.
+				 * @param object   $result Stripe capture response.
+				 */
 				do_action( 'woocommerce_stripe_process_manual_capture', $order, $result );
 				return $result;
 			}
@@ -411,6 +423,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			// This hook fires when admin manually changes order status to cancel.
+			/**
+			 * Fires after a manually canceled Stripe pre-authorization is processed.
+			 *
+			 * @param WC_Order $order Order associated with the manual cancellation.
+			 */
 			do_action( 'woocommerce_stripe_process_manual_cancel', $order );
 		}
 	}

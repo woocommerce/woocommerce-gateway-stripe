@@ -213,6 +213,12 @@ class WC_Stripe_API {
 	public static function request( $request, $api = 'charges', $method = 'POST', $with_headers = false ) {
 		$headers = self::get_headers();
 
+		/**
+		 * Filters the idempotency key sent with a Stripe API request.
+		 *
+		 * @param string $idempotency_key Generated idempotency key.
+		 * @param array  $request         Stripe API request body.
+		 */
 		$idempotency_key = apply_filters( 'wc_stripe_idempotency_key', self::get_idempotency_key( $api, $method, $request ), $request );
 		if ( $idempotency_key ) {
 			$headers['Idempotency-Key'] = $idempotency_key;

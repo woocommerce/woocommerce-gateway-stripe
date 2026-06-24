@@ -166,6 +166,11 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_localized_messages() {
+		/**
+		 * Filters the localized Stripe error messages exposed to checkout JavaScript.
+		 *
+		 * @param array $messages Stripe error code to localized message map.
+		 */
 		return apply_filters(
 			'wc_stripe_localized_messages',
 			[
@@ -1321,6 +1326,11 @@ class WC_Stripe_Helper {
 			return true;
 		}
 
+		/**
+		 * Filters whether Stripe scripts load on product pages when payment request buttons are disabled.
+		 *
+		 * @param bool $should_load Whether Stripe scripts should load.
+		 */
 		return apply_filters( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', true );
 	}
 
@@ -1338,6 +1348,11 @@ class WC_Stripe_Helper {
 			return true;
 		}
 
+		/**
+		 * Filters whether Stripe scripts load on cart pages when payment request buttons are disabled.
+		 *
+		 * @param bool $should_load Whether Stripe scripts should load.
+		 */
 		return apply_filters( 'wc_stripe_load_scripts_on_cart_page_when_prbs_disabled', true );
 	}
 
@@ -1849,9 +1864,7 @@ class WC_Stripe_Helper {
 		 *
 		 * @param bool   $force_save Whether the payment method must be saved.
 		 * @param string $order_id   Order ID.
-		 *
-		 * @return bool Whether the payment method must be saved in all situations.
-		*/
+		 */
 		$force_save_payment_method = apply_filters( 'wc_stripe_force_save_payment_method', $force_save_payment_method, $order_id );
 
 		return $force_save_payment_method;
@@ -2054,9 +2067,7 @@ class WC_Stripe_Helper {
 		 * @since 10.1.0
 		 *
 		 * @param bool $enabled True if enabled, false otherwise.
-		 *
-		 * @return bool True if enabled, false otherwise.
-		*/
+		 */
 		return apply_filters( 'wc_stripe_is_verbose_debug_mode_enabled', false );
 	}
 
