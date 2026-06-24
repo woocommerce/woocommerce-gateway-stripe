@@ -11,7 +11,7 @@
     },
     "scripts": {
         "generate:json": "vendor/bin/wp-hooks-generator --input=../../includes --output=tmp --ignore-hooks=woocommerce_cart_item_product,woocommerce_refund_deleted,wc-booking-remove-inactive-cart,woocommerce_is_email_preview,woocommerce_payment_complete_order_status,woocommerce_valid_order_statuses_for_payment_complete,woocommerce_add_to_cart_quantity,woocommerce_cart_shipping_packages,woocommerce_gateway_icon,woocommerce_gateway_description",
-        "generate:markdown": "php generate-markdown.php --ref=$(git rev-parse --abbrev-ref HEAD) --commit=$(git rev-parse HEAD)",
+        "generate:markdown": "php class-hook-markdown-generator.php --ref=$(git rev-parse --abbrev-ref HEAD) --commit=$(git rev-parse HEAD)",
         "generate": [
             "@generate:json",
             "@generate:markdown"
