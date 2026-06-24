@@ -13,8 +13,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * REST base path.
 	 */
-	const REST_BASE    = '/wc/v3/wc_stripe/agentic-commerce';
-	const STATUS_ROUTE = self::REST_BASE . '/status';
+	const REST_BASE     = '/wc/v3/wc_stripe/agentic-commerce';
+	const STATUS_ROUTE  = self::REST_BASE . '/status';
+	const FILTERS_ROUTE = self::REST_BASE . '/filters';
 
 	/**
 	 * Controller under test.
@@ -29,6 +30,13 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * @var WP_REST_Server
 	 */
 	private $server;
+
+	/**
+	 * The option that stores product filter configuration.
+	 *
+	 * @var string
+	 */
+	private $filter_option;
 
 	/**
 	 * Set up before each test.
@@ -50,6 +58,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		// the disabled-feature gate. Tests that exercise the disabled path
 		// override this explicitly.
 		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+
+		$this->filter_option = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Agentic_Commerce_Product_Filter::class, 'OPTION_NAME', 'string' );
 
 		$this->controller = new WC_REST_Stripe_Agentic_Commerce_Controller();
 		add_action( 'rest_api_init', [ $this->controller, 'register_routes' ] );
@@ -89,6 +99,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		// Controller's SYNC_LOCK_OPTION is private; keep the literal in sync by hand if it is renamed.
 		delete_option( 'wc_stripe_agentic_sync_lock' );
 		delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+		delete_option( $this->filter_option );
 		parent::tear_down();
 	}
 
@@ -1421,5 +1432,246 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 				as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' );
 			}
 		}
+	}
+
+	// -------------------------------------------------------------------------
+	// GET /wc/v3/wc_stripe/agentic-commerce/filters
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Create a published simple product and return its ID.
+	 *
+	 * @param string $name Product name.
+	 * @return int
+	 */
+	private function create_simple_product( string $name ): int {
+		$product = new WC_Product_Simple();
+		$product->set_name( $name );
+		$product->set_regular_price( '10.00' );
+		$product->set_status( 'publish' );
+		return $product->save();
+	}
+
+	/**
+	 * GET /filters returns empty groups when nothing is stored.
+	 */
+	public function test_get_filters_returns_empty_defaults(): void {
+		$request  = new WP_REST_Request( 'GET', self::FILTERS_ROUTE );
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( [], $data['product_ids'] );
+		$this->assertSame( [], $data['variable_product_ids'] );
+		$this->assertSame( [], $data['category_ids'] );
+		$this->assertSame( [], $data['tag_ids'] );
+		$this->assertSame( [], $data['brand_ids'] );
+		$this->assertSame( [], $data['products'] );
+		$this->assertSame( [], $data['variable_products'] );
+		$this->assertArrayHasKey( 'brand_taxonomy_available', $data );
+		$this->assertEquals( taxonomy_exists( 'product_brand' ), $data['brand_taxonomy_available'] );
+	}
+
+	/**
+	 * GET /filters resolves selected product IDs to `{ id, name }` labels.
+	 */
+	public function test_get_filters_resolves_product_labels(): void {
+		$product_id = $this->create_simple_product( 'Resolved Product' );
+		update_option( $this->filter_option, [ 'product_ids' => [ $product_id ] ] );
+
+		$request  = new WP_REST_Request( 'GET', self::FILTERS_ROUTE );
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( [ $product_id ], $data['product_ids'] );
+		$this->assertSame(
+			[
+				[
+					'id'   => $product_id,
+					'name' => 'Resolved Product',
+				],
+			],
+			$data['products']
+		);
+	}
+
+	/**
+	 * brand_taxonomy_available reflects whether the product_brand taxonomy is registered.
+	 */
+	public function test_get_filters_reports_brand_taxonomy_availability(): void {
+		// Only register/unregister when the taxonomy isn't already present, so
+		// this test never mutates global taxonomy state that other test classes
+		// (e.g. the product-filter test's brand scenarios) rely on.
+		$was_registered = taxonomy_exists( 'product_brand' );
+		if ( ! $was_registered ) {
+			register_taxonomy( 'product_brand', 'product' );
+		}
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::FILTERS_ROUTE );
+			$response = rest_do_request( $request );
+			$this->assertTrue( $response->get_data()['brand_taxonomy_available'] );
+		} finally {
+			if ( ! $was_registered ) {
+				unregister_taxonomy( 'product_brand' );
+			}
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// POST /wc/v3/wc_stripe/agentic-commerce/filters
+	// -------------------------------------------------------------------------
+
+	/**
+	 * POST /filters persists the supplied product IDs and echoes them back.
+	 */
+	public function test_update_filters_persists_product_ids(): void {
+		$product_id = $this->create_simple_product( 'Saved Product' );
+
+		$request = new WP_REST_Request( 'POST', self::FILTERS_ROUTE );
+		$request->set_body( wp_json_encode( [ 'product_ids' => [ $product_id ] ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( [ $product_id ], $response->get_data()['product_ids'] );
+
+		$stored = get_option( $this->filter_option );
+		$this->assertSame( [ $product_id ], $stored['product_ids'] );
+	}
+
+	/**
+	 * POST /filters persists category, tag, and brand term IDs.
+	 */
+	public function test_update_filters_persists_taxonomy_terms(): void {
+		$category = self::factory()->term->create( [ 'taxonomy' => 'product_cat' ] );
+		$tag      = self::factory()->term->create( [ 'taxonomy' => 'product_tag' ] );
+
+		$request = new WP_REST_Request( 'POST', self::FILTERS_ROUTE );
+		$request->set_body(
+			wp_json_encode(
+				[
+					'category_ids' => [ $category ],
+					'tag_ids'      => [ $tag ],
+				]
+			)
+		);
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( [ $category ], $response->get_data()['category_ids'] );
+		$this->assertSame( [ $tag ], $response->get_data()['tag_ids'] );
+	}
+
+	/**
+	 * Switching mode — sending one group populated and the others empty —
+	 * clears the previously stored group.
+	 */
+	public function test_update_filters_clears_previous_group_on_mode_switch(): void {
+		$product_id = $this->create_simple_product( 'First Product' );
+		$category   = self::factory()->term->create( [ 'taxonomy' => 'product_cat' ] );
+
+		// First save: product mode.
+		update_option( $this->filter_option, [ 'product_ids' => [ $product_id ] ] );
+
+		// Second save: switch to taxonomy mode, sending product_ids empty.
+		$request = new WP_REST_Request( 'POST', self::FILTERS_ROUTE );
+		$request->set_body(
+			wp_json_encode(
+				[
+					'product_ids'  => [],
+					'category_ids' => [ $category ],
+				]
+			)
+		);
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( [], $response->get_data()['product_ids'] );
+		$this->assertSame( [ $category ], $response->get_data()['category_ids'] );
+
+		$stored = get_option( $this->filter_option );
+		$this->assertSame( [], $stored['product_ids'] );
+		$this->assertSame( [ $category ], $stored['category_ids'] );
+	}
+
+	/**
+	 * Unknown taxonomy term IDs are dropped because the filter resolves them
+	 * against the term tables.
+	 *
+	 * @dataProvider invalid_term_payload_provider
+	 * @param array  $payload  Request body for the filters POST.
+	 * @param string $key      Filter group key to assert is empty.
+	 */
+	public function test_update_filters_drops_unknown_terms( array $payload, string $key ): void {
+		$request = new WP_REST_Request( 'POST', self::FILTERS_ROUTE );
+		$request->set_body( wp_json_encode( $payload ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( [], $response->get_data()[ $key ] );
+	}
+
+	/**
+	 * Data provider for unknown-term normalization.
+	 *
+	 * @return array
+	 */
+	public static function invalid_term_payload_provider(): array {
+		return [
+			'unknown category IDs dropped' => [
+				[ 'category_ids' => [ 888888 ] ],
+				'category_ids',
+			],
+			'unknown tag IDs dropped'      => [
+				[ 'tag_ids' => [ 777777 ] ],
+				'tag_ids',
+			],
+		];
+	}
+
+	/**
+	 * Unauthenticated requests to the filters routes are refused.
+	 *
+	 * @dataProvider filters_route_method_provider
+	 * @param string $method HTTP method.
+	 */
+	public function test_filters_routes_require_auth( string $method ): void {
+		wp_set_current_user( 0 );
+
+		$response = rest_do_request( new WP_REST_Request( $method, self::FILTERS_ROUTE ) );
+
+		$this->assertEquals( 401, $response->get_status() );
+	}
+
+	/**
+	 * Authenticated-but-unauthorized users (subscriber) are refused.
+	 *
+	 * @dataProvider filters_route_method_provider
+	 * @param string $method HTTP method.
+	 */
+	public function test_filters_routes_forbidden_for_subscriber( string $method ): void {
+		$user_id = self::factory()->user->create( [ 'role' => 'subscriber' ] );
+		wp_set_current_user( $user_id );
+
+		$response = rest_do_request( new WP_REST_Request( $method, self::FILTERS_ROUTE ) );
+
+		$this->assertEquals( 403, $response->get_status() );
+	}
+
+	/**
+	 * Data provider listing the filters route methods.
+	 *
+	 * @return array
+	 */
+	public static function filters_route_method_provider(): array {
+		return [
+			'GET'  => [ 'GET' ],
+			'POST' => [ 'POST' ],
+		];
 	}
 }
