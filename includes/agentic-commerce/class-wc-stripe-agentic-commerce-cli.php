@@ -111,6 +111,64 @@ class WC_Stripe_Agentic_Commerce_CLI extends WP_CLI_Command {
 	}
 
 	/**
+	 * Preview what the next sync would include, exclude, and reject — without
+	 * generating a CSV or uploading anything to Stripe.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--limit=<number>]
+	 * : Maximum number of invalid products to list with their errors.
+	 * ---
+	 * default: 50
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp stripe agentic-commerce preview
+	 *     wp stripe agentic-commerce preview --limit=100
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 * @return void
+	 */
+	public function preview( $args, $assoc_args ): void {
+		$limit = (int) ( $assoc_args['limit'] ?? WC_Stripe_Agentic_Commerce_Feed_Preview::DEFAULT_DETAIL_LIMIT );
+
+		WP_CLI::log( 'Building feed preview...' );
+
+		try {
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate( $limit );
+		} catch ( Exception $e ) {
+			WP_CLI::error( 'Preview failed: ' . $e->getMessage() );
+			return; // Never reached — error() exits.
+		}
+
+		WP_CLI::success( 'Preview complete.' );
+		WP_CLI::log( sprintf( '  Products scanned: %d', $preview['total_count'] ) );
+		WP_CLI::log( sprintf( '  Included:         %d', $preview['included_count'] ) );
+		WP_CLI::log( sprintf( '  Excluded (filter):%d', $preview['excluded_count'] ) );
+		WP_CLI::log( sprintf( '  Invalid:          %d', $preview['invalid_count'] ) );
+
+		if ( empty( $preview['validation_errors'] ) ) {
+			return;
+		}
+
+		WP_CLI::log( '' );
+		WP_CLI::log( 'Products with validation errors:' );
+		foreach ( $preview['validation_errors'] as $entry ) {
+			WP_CLI::log( sprintf( '--- #%d %s ---', $entry['product_id'], $entry['product_name'] ) );
+			foreach ( $entry['errors'] as $message ) {
+				WP_CLI::log( sprintf( '  - %s', $message ) );
+			}
+		}
+
+		if ( $preview['truncated'] > 0 ) {
+			WP_CLI::log( '' );
+			WP_CLI::log( sprintf( '... and %d more invalid product(s) not shown (raise --limit to see them).', $preview['truncated'] ) );
+		}
+	}
+
+	/**
 	 * Check the status of an ImportSet.
 	 *
 	 * ## OPTIONS
