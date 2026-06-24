@@ -717,8 +717,8 @@ trait WC_Stripe_Subscriptions_Trait {
 				/**
 				 * Fires when a Stripe payment requires customer authentication.
 				 *
-				 * @param WC_Order    $order    The order that requires authentication.
-				 * @param object|null $response Stripe API response.
+				 * @param WC_Order          $order    The order that requires authentication.
+				 * @param object|array|null $response Stripe API response.
 				 */
 				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order, $response );
 
@@ -765,8 +765,8 @@ trait WC_Stripe_Subscriptions_Trait {
 				/**
 				 * Fires when a subscription charge attempt is delayed by Stripe.
 				 *
-				 * @param object   $response      Stripe API response.
-				 * @param WC_Order $renewal_order Renewal order associated with the charge attempt.
+				 * @param object|array $response      Stripe API response.
+				 * @param WC_Order     $renewal_order Renewal order associated with the charge attempt.
 				 */
 				do_action( 'wc_gateway_stripe_process_payment_subscription_charge_attempt_delayed', $response, $renewal_order );
 			} else {

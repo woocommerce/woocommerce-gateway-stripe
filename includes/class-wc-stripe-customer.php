@@ -546,8 +546,8 @@ class WC_Stripe_Customer {
 		/**
 		 * Fires after a Stripe customer is created.
 		 *
-		 * @param array  $args     Arguments sent to the Stripe Customers API.
-		 * @param object $response Stripe customer response.
+		 * @param array          $args     Arguments sent to the Stripe Customers API.
+		 * @param stdClass|array $response Stripe customer response.
 		 */
 		do_action( 'woocommerce_stripe_add_customer', $args, $response );
 
@@ -599,8 +599,8 @@ class WC_Stripe_Customer {
 		/**
 		 * Fires after a Stripe customer is updated.
 		 *
-		 * @param array  $args     Arguments sent to the Stripe Customers API.
-		 * @param object $response Stripe customer response.
+		 * @param array          $args     Arguments sent to the Stripe Customers API.
+		 * @param stdClass|array $response Stripe customer response.
 		 */
 		do_action( 'woocommerce_stripe_update_customer', $args, $response );
 
@@ -747,7 +747,7 @@ class WC_Stripe_Customer {
 		 *
 		 * @param string                  $customer_id Stripe customer ID.
 		 * @param WC_Payment_Token|false  $wc_token    WooCommerce payment token, or false when no token was saved.
-		 * @param object                  $response    Stripe source or payment method response.
+		 * @param stdClass|array          $response    Stripe source or payment method response.
 		 * @param string                  $source_id   Stripe source or payment method ID.
 		 */
 		do_action( 'woocommerce_stripe_add_source', $this->get_id(), $wc_token, $response, $source_id );
@@ -976,8 +976,8 @@ class WC_Stripe_Customer {
 			/**
 			 * Fires after a source is detached from a Stripe customer.
 			 *
-			 * @param string $customer_id Stripe customer ID.
-			 * @param object $response    Stripe API response.
+			 * @param string         $customer_id Stripe customer ID.
+			 * @param stdClass|array $response    Stripe API response.
 			 */
 			do_action( 'wc_stripe_delete_source', $this->get_id(), $response );
 
@@ -1004,8 +1004,8 @@ class WC_Stripe_Customer {
 			/**
 			 * Fires after a payment method is detached from a Stripe customer.
 			 *
-			 * @param string $customer_id Stripe customer ID.
-			 * @param object $response    Stripe API response.
+			 * @param string         $customer_id Stripe customer ID.
+			 * @param stdClass|array $response    Stripe API response.
 			 */
 			do_action( 'wc_stripe_detach_payment_method', $this->get_id(), $response );
 
@@ -1038,8 +1038,8 @@ class WC_Stripe_Customer {
 			/**
 			 * Fires after a customer's default source is updated in Stripe.
 			 *
-			 * @param string $customer_id Stripe customer ID.
-			 * @param object $response    Stripe API response.
+			 * @param string         $customer_id Stripe customer ID.
+			 * @param stdClass|array $response    Stripe API response.
 			 */
 			do_action( 'wc_stripe_set_default_source', $this->get_id(), $response );
 
@@ -1074,8 +1074,8 @@ class WC_Stripe_Customer {
 			/**
 			 * Fires after a customer's default payment method is updated in Stripe.
 			 *
-			 * @param string $customer_id Stripe customer ID.
-			 * @param object $response    Stripe API response.
+			 * @param string         $customer_id Stripe customer ID.
+			 * @param stdClass|array $response    Stripe API response.
 			 */
 			do_action( 'wc_stripe_set_default_payment_method', $this->get_id(), $response );
 

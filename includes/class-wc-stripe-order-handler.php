@@ -89,6 +89,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param mix  $previous_error Any error message from previous request.
 	 */
 	public function process_redirect_payment( $order_id, $retry = true, $previous_error = false ) {
+		$order = null;
 		try {
 			$source = isset( $_GET['source'] ) ? wc_clean( wp_unslash( $_GET['source'] ) ) : '';
 
@@ -102,7 +103,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			$order = wc_get_order( $order_id );
 
-			if ( ! is_object( $order ) ) {
+			if ( ! $order instanceof WC_Order ) {
 				return;
 			}
 
@@ -413,6 +414,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function cancel_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
+
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$captured = WC_Stripe_Order_Helper::get_instance()->is_stripe_charge_captured( $order );

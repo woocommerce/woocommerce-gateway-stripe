@@ -1260,7 +1260,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function process_refund( $order_id, $amount = null, $reason = '' ) {
 		$order = wc_get_order( $order_id );
 
-		if ( ! $order ) {
+		if ( ! $order instanceof WC_Order ) {
 			return false;
 		}
 
@@ -1271,7 +1271,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$charge_id      = $order->get_transaction_id();
 
 		// Card payments have no webhook that back-fills a lost charge ID, so recover it from the intent.
-		if ( ! $charge_id && $order instanceof WC_Order ) {
+		if ( ! $charge_id ) {
 			$charge_id = $this->recover_charge_id_from_intent( $order );
 		}
 
@@ -1512,6 +1512,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		$payment_method_id = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : '';
+		$payment_method_id = is_string( $payment_method_id ) ? $payment_method_id : '';
 
 		/**
 		 * Fires after adding a payment method succeeds.

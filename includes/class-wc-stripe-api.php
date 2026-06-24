@@ -216,8 +216,8 @@ class WC_Stripe_API {
 		/**
 		 * Filters the idempotency key sent with a Stripe API request.
 		 *
-		 * @param string $idempotency_key Generated idempotency key.
-		 * @param array  $request         Stripe API request body.
+		 * @param string|null $idempotency_key Generated idempotency key.
+		 * @param array       $request         Stripe API request body.
 		 */
 		$idempotency_key = apply_filters( 'wc_stripe_idempotency_key', self::get_idempotency_key( $api, $method, $request ), $request );
 		if ( $idempotency_key ) {
