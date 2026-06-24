@@ -384,6 +384,46 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Render-time cart snapshot that lets the cart/checkout Express Checkout button
+	 * paint without the initial `GET /wc/store/v1/cart` fetch. Built from the same
+	 * helpers the AJAX path uses, so it matches what the fetch would return. Returns
+	 * null when the button must not render (wrong page, empty cart, or zero total
+	 * without a free trial); the client then falls back to its AJAX path.
+	 *
+	 * @return array|null
+	 */
+	public function get_cart_render_data() {
+		if ( ! $this->is_cart() && ! $this->is_checkout() ) {
+			return null;
+		}
+
+		if ( is_null( WC()->cart ) || WC()->cart->is_empty() ) {
+			return null;
+		}
+
+		$display_items = $this->build_display_items();
+		// Round before casting: the total passes through the `wc_stripe_calculated_total`
+		// filter, which can hand back a non-integer minor-unit value. A bare (int) cast
+		// would truncate it and drop a minor unit from the first-paint total.
+		$total = (int) round( (float) $display_items['total']['amount'] );
+
+		// Mirror the client's zero-total hide; free trials still render.
+		if ( 0 === $total && ! $this->has_free_trial() ) {
+			return null;
+		}
+
+		$checkout = $this->get_checkout_data();
+
+		return [
+			'total'           => $total,
+			'currency'        => $checkout['currency_code'],
+			'requestShipping' => 'yes' === $checkout['needs_shipping'],
+			'requestPhone'    => (bool) $checkout['needs_payer_phone'],
+			'displayItems'    => $display_items['displayItems'],
+		];
+	}
+
+	/**
 	 * Helper function to return the list of countries that WooCommerce is set up to ship to.
 	 * The data is returned as an array of country codes, and relies on core WooCommerce shipping settings.
 	 *
