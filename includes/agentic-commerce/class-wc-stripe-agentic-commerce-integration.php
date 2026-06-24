@@ -300,8 +300,9 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return bool True if the sync was scheduled, false otherwise.
 	 */
 	public function schedule_recurring_feed_sync( ?int $start_time = null ): bool {
-		// NOTE: All new/changed function calls in this method MUST be added to the guards in can_schedule_recurring_feed_sync(),
-		// as we need to be able to check for any exit conditions from reschedule_next_feed_sync().
+		// NOTE: The checks in this function MUST be added to can_schedule_recurring_feed_sync(),
+		// as we need to be able to check for any exit conditions from reschedule_next_feed_sync()
+		// so we can prevent situations where we remove the recurring sync but won't reschedule it.
 		if ( ! $this->can_schedule_recurring_feed_sync() ) {
 			return false;
 		}
