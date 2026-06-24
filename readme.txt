@@ -156,6 +156,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.9.0 - xxxx-xx-xx =
+* Fix - Show the Stripe payment block as supported in the Checkout block editor when Optimized Checkout is enabled and only non-card methods (e.g. Cash App Pay) are active
 * Fix - Scope admin gateway filter to block cart and checkout editors only
 * Tweak - Memoize the Blocks Express Checkout button so it no longer re-renders the Stripe element on unrelated cart updates
 * Fix - Keep the subscription payment-method row in sync with the saved-card list when a card has been used both directly and through Apple Pay/Google Pay

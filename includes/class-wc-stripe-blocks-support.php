@@ -78,6 +78,12 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			return true;
 		}
 
+		// With OC the single OC element stands in for the gateway, so the per-method checks below don't
+		// apply. Needed in the block editor where those methods may all be unavailable (e.g. no cart).
+		if ( $stripe_gateway->should_render_optimized_checkout_for_blocks() ) {
+			return true;
+		}
+
 		// This payment method is active if there is at least 1 UPE method available.
 		foreach ( $stripe_gateway->payment_methods as $upe_method ) {
 			if ( $upe_method->is_enabled() && $upe_method->is_available() ) {
