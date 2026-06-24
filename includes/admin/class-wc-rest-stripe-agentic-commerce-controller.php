@@ -232,8 +232,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			// the standard sync interval and doesn't run shortly after a manual sync.
 			if ( ! $integration->reschedule_next_feed_sync( $sync_start_time + $integration->get_feed_sync_interval() ) ) {
 				return new WP_Error(
-					'stripe_agentic_commerce_sync_failed',
-					__( 'Failed to reschedule the next feed sync.', 'woocommerce-gateway-stripe' ),
+					'stripe_agentic_commerce_sync_reschedule_failed',
+					__( 'Feed upload succeeded, but the next feed sync was not scheduled.', 'woocommerce-gateway-stripe' ),
 					[ 'status' => 500 ]
 				);
 			}
