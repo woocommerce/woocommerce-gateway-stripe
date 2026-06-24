@@ -195,31 +195,64 @@ final class Hook_Markdown_Generator {
 			$lines[] = '';
 		}
 
+		$grouped_actions = $this->group_hooks_by_name( $actions );
+		$grouped_filters = $this->group_hooks_by_name( $filters );
+
+		$lines[] = '## Contents';
+		$lines[] = '';
+		$lines[] = ' * [Actions](#actions)';
+		foreach ( array_keys( $grouped_actions ) as $action_name ) {
+			$lines[] = $this->render_index_entry( $action_name );
+		}
+		$lines[] = ' * [Filters](#filters)';
+		foreach ( array_keys( $grouped_filters ) as $filter_name ) {
+			$lines[] = $this->render_index_entry( $filter_name );
+		}
+		$lines[] = '';
+
 		$lines = array_merge(
 			$lines,
-			$this->render_section( 'Actions', $actions ),
+			$this->render_section( 'Actions', $grouped_actions ),
 			[ '' ],
-			$this->render_section( 'Filters', $filters )
+			$this->render_section( 'Filters', $grouped_filters )
 		);
 
 		return rtrim( implode( "\n", $lines ) ) . "\n";
 	}
 
 	/**
+	 * Renders an index entry for a given name.
+	 *
+	 * @param string $name The name to render.
+	 * @return string The markdown line of the index entry.
+	 */
+	private function render_index_entry( string $name ): string {
+		$markdown_name   = $this->escape_markdown_inline( $name );
+		$markdown_anchor = strtr(
+			strtolower( $markdown_name ),
+			[
+				'$' => '',
+				'{' => '',
+				'}' => '',
+			]
+		);
+		return sprintf( '   - [%s](#%s)', $markdown_name, $markdown_anchor );
+	}
+
+	/**
 	 * Renders a section of the document for a given title and hooks.
 	 *
 	 * @param string $title The title of the section.
-	 * @param array<int,array<string,mixed>> $hooks The hooks to render.
+	 * @param array<string,array<int,array<string,mixed>>> $grouped_hooks The grouped hooks to render.
 	 * @return string[] The markdown lines of the section, including the title and empty lines.
 	 */
-	private function render_section( string $title, array $hooks ): array {
-		$groups = $this->group_hooks_by_name( $hooks );
-		$lines  = [
+	private function render_section( string $title, array $grouped_hooks ): array {
+		$lines = [
 			"## {$title}",
 			'',
 		];
 
-		foreach ( $groups as $name => $entries ) {
+		foreach ( $grouped_hooks as $name => $entries ) {
 			$canonical = $this->select_canonical_hook( $entries );
 			$doc       = $canonical['doc'];
 
