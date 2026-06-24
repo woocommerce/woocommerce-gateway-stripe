@@ -210,7 +210,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		if ( as_has_scheduled_action( self::IMMEDIATE_SYNC_ACTION ) ) {
+		if ( as_has_scheduled_action( self::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' ) ) {
 			return;
 		}
 
