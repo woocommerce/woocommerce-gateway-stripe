@@ -106,8 +106,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			setIsFeatureEnabled( result.is_enabled );
 			setDisableCheckout( result.disable_checkout ?? false );
 			setWebhookSecret( result.webhook_secret ?? '' );
-			// No success notice here: the global Save changes flow already shows
-			// a page-level success toast, so an in-container one is redundant.
+			// No success notice: the global Save changes flow already shows a page-level toast.
 		} catch ( err ) {
 			setSettingsNotice( {
 				status: 'error',
