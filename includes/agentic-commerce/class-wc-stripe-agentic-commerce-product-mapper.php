@@ -247,7 +247,10 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * @param \WC_Product      $product        Product object.
 		 * @param \WC_Product|null $parent_product Parent product for variations.
 		 */
-		return (bool) apply_filters( 'wc_stripe_agentic_commerce_disable_checkout', $disabled, $product, $parent_product );
+		// wp_validate_boolean() rather than a plain (bool) cast: a callback that
+		// returns the string 'false' would be truthy under a cast and wrongly
+		// enable redirect mode. This still normalises null / 0 / '' to false.
+		return wp_validate_boolean( apply_filters( 'wc_stripe_agentic_commerce_disable_checkout', $disabled, $product, $parent_product ) );
 	}
 
 	/**
