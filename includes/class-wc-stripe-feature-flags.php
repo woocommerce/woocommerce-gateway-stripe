@@ -88,9 +88,10 @@ class WC_Stripe_Feature_Flags {
 	 * Feature flag to control Amazon Pay feature availability.
 	 *
 	 * @return bool
-	 * @deprecated This method will be removed in a future version. Amazon Pay is permanently enabled as of version 10.4.0.
+	 * @deprecated 10.9.0 Amazon Pay is permanently enabled as of version 10.4.0.
 	 */
 	public static function is_amazon_pay_available() {
+		wc_deprecated_function( __METHOD__, '10.9.0' );
 		return true;
 	}
 

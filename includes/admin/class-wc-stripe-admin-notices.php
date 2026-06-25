@@ -424,6 +424,13 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
+		// Suppress on local/development clones, where Stripe is often unreachable
+		// for benign reasons and this non-dismissible notice would stick forever.
+		// Staging is kept: those sites usually have internet, so an outage is real.
+		if ( in_array( $this->get_environment_type(), [ 'local', 'development' ], true ) ) {
+			return;
+		}
+
 		$message = sprintf(
 			/* translators: 1) HTML strong open tag 2) HTML strong closing tag */
 			__( '%1$sStripe is temporarily unreachable.%2$s Payments and account updates may not go through until the connection is restored. This notice will clear automatically once requests start succeeding again.', 'woocommerce-gateway-stripe' ),
@@ -432,6 +439,18 @@ class WC_Stripe_Admin_Notices {
 		);
 
 		$this->add_admin_notice( 'api_outage', 'notice notice-warning', $message );
+	}
+
+	/**
+	 * Wrapper around wp_get_environment_type().
+	 *
+	 * A test seam: wp_get_environment_type() memoizes in a static and can't be
+	 * varied between test cases.
+	 *
+	 * @return string One of 'local', 'development', 'staging', 'production'.
+	 */
+	protected function get_environment_type(): string {
+		return wp_get_environment_type();
 	}
 
 	/**

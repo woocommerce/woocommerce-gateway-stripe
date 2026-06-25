@@ -1308,6 +1308,42 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * The outage notice is suppressed on local/development but kept on staging
+	 * and production.
+	 *
+	 * @dataProvider provide_outage_notice_environment_gating
+	 *
+	 * @param string $environment_type Value returned by wp_get_environment_type().
+	 * @param bool   $expect_notice    Whether the outage notice should be added.
+	 */
+	public function test_api_outage_notice_is_gated_by_environment( string $environment_type, bool $expect_notice ) {
+		WC_Stripe_API_Outage_Status::record_outage();
+
+		$notices = $this->getMockBuilder( WC_Stripe_Admin_Notices::class )
+			->setMethods( [ 'get_environment_type' ] )
+			->getMock();
+		$notices->method( 'get_environment_type' )->willReturn( $environment_type );
+
+		$notices->check_api_outage();
+
+		$this->assertSame( $expect_notice, isset( $notices->notices['api_outage'] ) );
+
+		WC_Stripe_API_Outage_Status::record_success();
+	}
+
+	/**
+	 * @return array[] environment type => whether the notice should display.
+	 */
+	public function provide_outage_notice_environment_gating(): array {
+		return [
+			'local environment suppresses notice'       => [ 'local', false ],
+			'development environment suppresses notice' => [ 'development', false ],
+			'staging environment shows notice'          => [ 'staging', true ],
+			'production environment shows notice'       => [ 'production', true ],
+		];
+	}
+
+	/**
 	 * Injects a (possibly mocked) main Stripe gateway into the singleton so
 	 * check_ocs_ap_update_notices() reads our controlled OC/AP state.
 	 *

@@ -7,6 +7,7 @@ import {
 } from 'wcstripe/blocks/checkout-sessions/hooks';
 import { useEffect } from '@wordpress/element';
 import { select, useSelect } from '@wordpress/data';
+import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
 
 jest.mock( '@wordpress/element', () => ( {
 	...jest.requireActual( '@wordpress/element' ),
@@ -16,6 +17,10 @@ jest.mock( '@wordpress/element', () => ( {
 jest.mock( '@wordpress/data', () => ( {
 	select: jest.fn(),
 	useSelect: jest.fn( () => '' ),
+} ) );
+
+jest.mock( 'wcstripe/blocks/wait-for-payment-element-completion', () => ( {
+	waitForPaymentElementCompletion: jest.fn(),
 } ) );
 
 describe( 'CheckoutSessions hook tests', () => {
@@ -84,6 +89,59 @@ describe( 'CheckoutSessions hook tests', () => {
 				false
 			);
 			const result = await onPaymentSetupResultPromise;
+			expect( result ).toEqual( {
+				type: 'error',
+				message: 'Your payment information is incomplete.',
+			} );
+		} );
+
+		// With a completion ref, a submission landing mid-(re)mount
+		// waits for the element to settle instead of failing immediately.
+		it( 'waits for an in-flight re-mount, then succeeds once the element completes', async () => {
+			const hasLoadErrorRef = { current: false };
+			const completeRef = { current: false };
+			// The element finishes re-mounting while we wait.
+			waitForPaymentElementCompletion.mockImplementation( () => {
+				completeRef.current = true;
+				return Promise.resolve( true );
+			} );
+
+			usePaymentSetupHandler(
+				onPaymentSetup,
+				checkoutSessionId,
+				null,
+				hasLoadErrorRef,
+				false,
+				'',
+				completeRef
+			);
+			const result = await onPaymentSetupResultPromise;
+
+			expect( waitForPaymentElementCompletion ).toHaveBeenCalledWith(
+				completeRef
+			);
+			expect( result.type ).toBe( 'success' );
+		} );
+
+		it( 'returns the incomplete error when the element never completes within the wait', async () => {
+			const hasLoadErrorRef = { current: false };
+			const completeRef = { current: false };
+			waitForPaymentElementCompletion.mockResolvedValue( false );
+
+			usePaymentSetupHandler(
+				onPaymentSetup,
+				checkoutSessionId,
+				null,
+				hasLoadErrorRef,
+				false,
+				'',
+				completeRef
+			);
+			const result = await onPaymentSetupResultPromise;
+
+			expect( waitForPaymentElementCompletion ).toHaveBeenCalledWith(
+				completeRef
+			);
 			expect( result ).toEqual( {
 				type: 'error',
 				message: 'Your payment information is incomplete.',

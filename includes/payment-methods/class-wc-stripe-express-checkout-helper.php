@@ -185,6 +185,42 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Gets the Link button height.
+	 *
+	 * @return string
+	 */
+	public function get_link_button_height() {
+		$size = isset( $this->stripe_settings['link_button_size'] ) ? $this->stripe_settings['link_button_size'] : 'default';
+		if ( 'small' === $size ) {
+			return '40';
+		}
+
+		if ( 'large' === $size ) {
+			return '56';
+		}
+
+		return '48';
+	}
+
+	/**
+	 * Gets the Amazon Pay button height.
+	 *
+	 * @return string
+	 */
+	public function get_amazon_pay_button_height() {
+		$size = isset( $this->stripe_settings['amazon_pay_button_size'] ) ? $this->stripe_settings['amazon_pay_button_size'] : 'default';
+		if ( 'small' === $size ) {
+			return '40';
+		}
+
+		if ( 'large' === $size ) {
+			return '56';
+		}
+
+		return '48';
+	}
+
+	/**
 	 * Gets the button radius.
 	 *
 	 * @return string
@@ -345,6 +381,46 @@ class WC_Stripe_Express_Checkout_Helper {
 		$data['validVariationSelected'] = ! empty( $variation_id ) ? $this->is_product_supported( $product ) : true;
 
 		return apply_filters( 'wc_stripe_payment_request_product_data', $data, $product );
+	}
+
+	/**
+	 * Render-time cart snapshot that lets the cart/checkout Express Checkout button
+	 * paint without the initial `GET /wc/store/v1/cart` fetch. Built from the same
+	 * helpers the AJAX path uses, so it matches what the fetch would return. Returns
+	 * null when the button must not render (wrong page, empty cart, or zero total
+	 * without a free trial); the client then falls back to its AJAX path.
+	 *
+	 * @return array|null
+	 */
+	public function get_cart_render_data() {
+		if ( ! $this->is_cart() && ! $this->is_checkout() ) {
+			return null;
+		}
+
+		if ( is_null( WC()->cart ) || WC()->cart->is_empty() ) {
+			return null;
+		}
+
+		$display_items = $this->build_display_items();
+		// Round before casting: the total passes through the `wc_stripe_calculated_total`
+		// filter, which can hand back a non-integer minor-unit value. A bare (int) cast
+		// would truncate it and drop a minor unit from the first-paint total.
+		$total = (int) round( (float) $display_items['total']['amount'] );
+
+		// Mirror the client's zero-total hide; free trials still render.
+		if ( 0 === $total && ! $this->has_free_trial() ) {
+			return null;
+		}
+
+		$checkout = $this->get_checkout_data();
+
+		return [
+			'total'           => $total,
+			'currency'        => $checkout['currency_code'],
+			'requestShipping' => 'yes' === $checkout['needs_shipping'],
+			'requestPhone'    => (bool) $checkout['needs_payer_phone'],
+			'displayItems'    => $display_items['displayItems'],
+		];
 	}
 
 	/**
@@ -1079,7 +1155,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	private function should_show_ece_on_location( string $location ): bool {
 		return $this->is_enabled_for_location( 'payment_request', $location ) ||
-				$this->is_enabled_for_location( 'amazon_pay', $location );
+				$this->is_enabled_for_location( 'amazon_pay', $location ) ||
+				$this->is_enabled_for_location( 'link', $location );
 	}
 
 	/**
@@ -1746,8 +1823,10 @@ class WC_Stripe_Express_Checkout_Helper {
 			case 'amazon_pay':
 				$key = 'amazon_pay_button_locations';
 				break;
+			case 'link':
+				$key = 'link_button_locations';
+				break;
 			case 'payment_request':
-			case 'link': // Link does not yet have its own Customize page. It shares the same location settings as Apple Pay and Google Pay.
 			default:
 				$key = 'express_checkout_button_locations';
 				break;

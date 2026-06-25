@@ -167,18 +167,21 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				}
 
 				if ( ! wp_verify_nonce( $nonce, 'wcs_stripe_connected' ) ) {
-					if ( $is_verbose_debug_mode_enabled ) {
-						WC_Stripe_Logger::error(
-							'OAuth: Invalid nonce received from the WCC server',
-							[
-								'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
-								'connect_mode'           => $mode,
-								'connect_type'           => $type,
-								'nonce'                  => self::redact_string( $nonce ),
-							]
-						);
-					}
-					return new WP_Error( 'Invalid nonce received from the WCC server' );
+					WC_Stripe_Logger::error(
+						'OAuth: Invalid nonce received from the WCC server',
+						[
+							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+							'connect_mode'           => $mode,
+							'connect_type'           => $type,
+							'nonce'                  => self::redact_string( $nonce ),
+						]
+					);
+
+					$redirect_url = remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_type', 'wcs_stripe_mode' ] );
+					$redirect_url = add_query_arg( [ 'wc_stripe_connect_error' => 'expired_nonce' ], $redirect_url );
+
+					wp_safe_redirect( esc_url_raw( $redirect_url ) );
+					exit;
 				}
 
 				$response = $this->connect_oauth( $state, $code, $type, $mode );

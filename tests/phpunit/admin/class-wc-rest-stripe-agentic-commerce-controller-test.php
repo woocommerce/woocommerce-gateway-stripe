@@ -1008,6 +1008,18 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * GET /settings reports the checkout mode, defaulting to embedded (false).
+	 */
+	public function test_get_settings_reflects_disable_checkout(): void {
+		$request = new WP_REST_Request( 'GET', self::REST_BASE . '/settings' );
+		$this->assertArrayHasKey( 'disable_checkout', rest_do_request( $request )->get_data() );
+		$this->assertFalse( rest_do_request( $request )->get_data()['disable_checkout'] );
+
+		update_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION, 'yes' );
+		$this->assertTrue( rest_do_request( $request )->get_data()['disable_checkout'] );
+	}
+
+	/**
 	 * Unauthenticated GET /settings requests should be refused.
 	 */
 	public function test_get_settings_requires_auth(): void {
@@ -1035,6 +1047,28 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertTrue( $response->get_data()['is_enabled'] );
 		$this->assertSame( 'yes', get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION ) );
+	}
+
+	/**
+	 * POST /settings persists the checkout mode toggle to its option.
+	 */
+	public function test_update_settings_persists_disable_checkout(): void {
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'disable_checkout' => true ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertTrue( $response->get_data()['disable_checkout'] );
+		$this->assertSame( 'yes', get_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION ) );
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'disable_checkout' => false ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertFalse( $response->get_data()['disable_checkout'] );
+		$this->assertSame( 'no', get_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION ) );
 	}
 
 	/**

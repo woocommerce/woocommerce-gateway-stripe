@@ -79,6 +79,15 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public const ENABLED_OPTION = 'wc_stripe_agentic_commerce_enabled';
 
 	/**
+	 * Option key for the store-wide checkout mode. `yes` emits
+	 * `disable_checkout=true` for every product so agents redirect to the store.
+	 *
+	 * @var string
+	 * @since 10.9.0
+	 */
+	public const DISABLE_CHECKOUT_OPTION = 'wc_stripe_agentic_commerce_disable_checkout';
+
+	/**
 	 * Option key storing the content hash, upload timestamp, and Stripe file id
 	 * of the most recent successful full-catalog upload. Used to skip the Stripe
 	 * Files API upload when the regenerated catalog is byte-identical to the
@@ -185,7 +194,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 
 		// Adapter-fired hook for converging Stripe's catalog when the
-		// `wc_stripe_agentic_commerce_should_sync_product` filter outcome changes.
+		// `woocommerce_agentic_commerce_should_sync_product` filter outcome changes.
 		// See the filter docblock for the contract — without this, a previously
 		// exported product that becomes excluded would only drop out of Stripe's
 		// catalog on the next scheduled full sync.
@@ -270,19 +279,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		if ( ! as_has_scheduled_action( self::SCHEDULED_ACTION ) ) {
-			as_schedule_recurring_action(
-				time(),
-				self::SYNC_INTERVAL,
-				self::SCHEDULED_ACTION,
-				[],
-				'wc-stripe'
-			);
-
-			WC_Stripe_Logger::info( 'Agentic Commerce: Scheduled recurring feed sync every ' . ( self::SYNC_INTERVAL / MINUTE_IN_SECONDS ) . ' minutes' );
-		}
-
-		update_option( self::SCHEDULED_OPTION, 'yes', true );
+		$this->schedule_recurring_feed_sync();
 	}
 
 	/**
@@ -302,6 +299,108 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		delete_option( self::LAST_UPLOAD_OPTION );
 
 		WC_Stripe_Logger::info( 'Agentic Commerce: Canceled all scheduled feed syncs' );
+	}
+
+	/**
+	 * Schedule the recurring feed sync.
+	 *
+	 * @since 10.9.0
+	 * @param int|null $start_time The timestamp to start the sync. Defaults to the current time when null is supplied.
+	 * @return bool True if the sync was scheduled, false otherwise.
+	 */
+	public function schedule_recurring_feed_sync( ?int $start_time = null ): bool {
+		// NOTE: The checks in this function MUST be added to can_schedule_recurring_feed_sync(),
+		// as we need to be able to check for any exit conditions from reschedule_next_feed_sync()
+		// so we can prevent situations where we remove the recurring sync but won't reschedule it.
+		if ( ! $this->can_schedule_recurring_feed_sync() ) {
+			return false;
+		}
+
+		if ( null === $start_time ) {
+			$start_time = time();
+		}
+
+		if ( ! as_has_scheduled_action( self::SCHEDULED_ACTION, null, 'wc-stripe' ) ) {
+			$sync_interval = $this->get_feed_sync_interval();
+
+			$schedule_result = as_schedule_recurring_action(
+				$start_time,
+				$sync_interval,
+				self::SCHEDULED_ACTION,
+				[],
+				'wc-stripe'
+			);
+
+			if ( 0 === $schedule_result ) {
+				WC_Stripe_Logger::error( 'Agentic Commerce: Failed to schedule recurring feed sync' );
+				return false;
+			}
+
+			WC_Stripe_Logger::info( 'Agentic Commerce: Scheduled recurring feed sync every ' . ( $sync_interval / MINUTE_IN_SECONDS ) . ' minutes' );
+		}
+
+		update_option( self::SCHEDULED_OPTION, 'yes', true );
+
+		return true;
+	}
+
+	/**
+	 * Check if the integration can schedule a recurring feed sync.
+	 *
+	 * @return bool True if the integration can schedule a recurring feed sync, false otherwise.
+	 */
+	private function can_schedule_recurring_feed_sync(): bool {
+		return did_action( 'action_scheduler_init' ) && function_exists( 'as_has_scheduled_action' ) && function_exists( 'as_schedule_recurring_action' );
+	}
+
+	/**
+	 * Reschedule the next feed sync.
+	 *
+	 * @since 10.9.0
+	 * @param int|null $start_time The start timestamp to use when computing the next sync time. Defaults to the current item time.
+	 * @return bool True if the sync was rescheduled, false otherwise.
+	 */
+	public function reschedule_next_feed_sync( ?int $start_time = null ): bool {
+		// Note that we bail early if we can't reschedule the recurring sync from the current context.
+		if ( ! function_exists( 'as_unschedule_all_actions' ) || ! $this->can_schedule_recurring_feed_sync() ) {
+			return false;
+		}
+
+		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], 'wc-stripe' );
+		delete_option( self::SCHEDULED_OPTION );
+
+		$current_time  = time();
+		$sync_interval = $this->get_feed_sync_interval();
+		if ( null === $start_time || $start_time <= $current_time ) {
+			$start_time = $current_time + $sync_interval;
+		}
+
+		return $this->schedule_recurring_feed_sync( $start_time );
+	}
+
+	/**
+	 * Get the feed sync interval in seconds.
+	 *
+	 * @since 10.9.0
+	 * @return int Feed sync interval in seconds.
+	 */
+	public function get_feed_sync_interval(): int {
+		/**
+		 * Filter the recurring sync interval (in seconds) used when scheduling
+		 * or rescheduling Agentic Commerce product synchronization.
+		 *
+		 * @since 10.7.0
+		 * @param int $sync_interval Default sync interval in seconds.
+		 */
+		$sync_interval = apply_filters(
+			'wc_stripe_agentic_commerce_feed_sync_interval',
+			self::SYNC_INTERVAL
+		);
+		if ( ! is_int( $sync_interval ) || $sync_interval <= 0 ) {
+			$sync_interval = self::SYNC_INTERVAL;
+		}
+
+		return $sync_interval;
 	}
 
 	/**
@@ -420,6 +519,17 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 */
 	public static function is_merchant_enabled(): bool {
 		return 'yes' === get_option( self::ENABLED_OPTION, 'no' );
+	}
+
+	/**
+	 * Whether the store-wide default disables in-agent checkout (feed-only / redirect).
+	 * Per-product overrides live in the mapper's filter.
+	 *
+	 * @since 10.9.0
+	 * @return bool
+	 */
+	public static function is_checkout_disabled(): bool {
+		return 'yes' === get_option( self::DISABLE_CHECKOUT_OPTION, 'no' );
 	}
 
 	/**
