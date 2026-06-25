@@ -228,6 +228,40 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The scan limit caps how many products the synchronous preview walks and
+	 * flags the result as partial, so a large catalog can't run past the request
+	 * time limit. Products beyond the cap are never counted.
+	 *
+	 * @return void
+	 */
+	public function test_scan_limit_caps_the_walk_and_flags_partial_result(): void {
+		$ids = [];
+		for ( $i = 0; $i < 3; $i++ ) {
+			$ids[] = $this->create_valid_product()->get_id();
+		}
+
+		$this->scope_to( $ids );
+
+		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate( WC_Stripe_Agentic_Commerce_Feed_Preview::DEFAULT_DETAIL_LIMIT, 2 );
+
+		$this->assertSame( 2, $preview['total_count'] );
+		$this->assertTrue( $preview['scan_limited'] );
+	}
+
+	/**
+	 * A walk that finishes within the scan limit reports a complete result.
+	 *
+	 * @return void
+	 */
+	public function test_complete_walk_is_not_flagged_as_partial(): void {
+		$this->scope_to( [ $this->create_valid_product()->get_id() ] );
+
+		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+
+		$this->assertFalse( $preview['scan_limited'] );
+	}
+
+	/**
 	 * A failing variation links to its parent product's edit screen, since
 	 * variations are edited there rather than on their own post.
 	 *

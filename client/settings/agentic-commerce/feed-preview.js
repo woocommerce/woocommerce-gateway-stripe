@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import styled from '@emotion/styled';
 import apiFetch from '@wordpress/api-fetch';
+import { createInterpolateElement } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import {
 	Button,
@@ -112,11 +113,13 @@ const AgenticCommerceFeedPreview = () => {
 	}, [] );
 
 	const {
+		total_count: totalCount,
 		included_count: includedCount,
 		excluded_count: excludedCount,
 		invalid_count: invalidCount,
 		validation_errors: validationErrors,
 		truncated,
+		scan_limited: scanLimited,
 	} = data ?? {};
 
 	return (
@@ -129,22 +132,42 @@ const AgenticCommerceFeedPreview = () => {
 			<CardBody>
 				<IntroDescription>
 					{ __(
-						'Check which products will be made available to AI agents on the next sync, and which would be skipped because of missing or invalid data — without uploading anything.',
+						'Check which products will be made available to AI agents on the next sync, and which would be skipped because of missing or invalid data, without uploading anything.',
 						'woocommerce-gateway-stripe'
 					) }
 				</IntroDescription>
 
 				{ hasError && (
 					<Notice status="error" isDismissible={ false }>
-						{ __(
-							'Could not build the feed preview. Check the WooCommerce logs for details.',
-							'woocommerce-gateway-stripe'
+						{ createInterpolateElement(
+							__(
+								'Could not build the feed preview. Check the <logsLink>WooCommerce logs</logsLink> for details.',
+								'woocommerce-gateway-stripe'
+							),
+							{
+								logsLink: (
+									<ExternalLink href="/wp-admin/admin.php?page=wc-status&tab=logs" />
+								),
+							}
 						) }
 					</Notice>
 				) }
 
 				{ data && (
 					<>
+						{ scanLimited && (
+							<Notice status="warning" isDismissible={ false }>
+								{ sprintf(
+									/* translators: %s: number of products checked. */
+									__(
+										'This preview covers the first %s products. The full sync still processes your entire catalog.',
+										'woocommerce-gateway-stripe'
+									),
+									totalCount.toLocaleString()
+								) }
+							</Notice>
+						) }
+
 						<SummaryRow justify="flex-start">
 							<SummaryStat className="is-included">
 								<span className="wc-stripe-agentic-preview__stat-value">

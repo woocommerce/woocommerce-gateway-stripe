@@ -1,4 +1,10 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import {
+	render,
+	screen,
+	waitFor,
+	fireEvent,
+	within,
+} from '@testing-library/react';
 import AgenticCommerceFeedPreview from '../feed-preview';
 import apiFetch from '@wordpress/api-fetch';
 
@@ -146,6 +152,66 @@ describe( 'AgenticCommerceFeedPreview', () => {
 			expect(
 				screen.getByText( /and 52 more products with errors/i )
 			).toBeInTheDocument();
+		} );
+	} );
+
+	it( 'warns that the preview is partial when the scan was capped', async () => {
+		apiFetch.mockResolvedValue( {
+			...PREVIEW_RESPONSE,
+			total_count: 2000,
+			scan_limited: true,
+		} );
+
+		const { container } = render( <AgenticCommerceFeedPreview /> );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /Preview feed/i } )
+		);
+
+		// Scope to the component output: @wordpress/a11y appends a duplicate
+		// speak region to document.body that lingers across tests.
+		await waitFor( () => {
+			expect(
+				within( container ).getByText(
+					/This preview covers the first/i
+				)
+			).toBeInTheDocument();
+		} );
+	} );
+
+	it( 'does not warn about a partial preview when the scan completed', async () => {
+		apiFetch.mockResolvedValue( {
+			...PREVIEW_RESPONSE,
+			scan_limited: false,
+		} );
+
+		const { container } = render( <AgenticCommerceFeedPreview /> );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /Preview feed/i } )
+		);
+
+		await waitFor( () => {
+			expect( screen.getByText( 'Included' ) ).toBeInTheDocument();
+		} );
+		expect(
+			within( container ).queryByText( /This preview covers the first/i )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'links the WooCommerce logs from the error notice', async () => {
+		apiFetch.mockRejectedValue( { message: 'boom' } );
+
+		render( <AgenticCommerceFeedPreview /> );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /Preview feed/i } )
+		);
+
+		await waitFor( () => {
+			expect(
+				screen.getByText( 'WooCommerce logs' ).closest( 'a' )
+			).toHaveAttribute(
+				'href',
+				'/wp-admin/admin.php?page=wc-status&tab=logs'
+			);
 		} );
 	} );
 

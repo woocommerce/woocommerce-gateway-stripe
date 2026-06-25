@@ -49,6 +49,21 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 	public const DEFAULT_DETAIL_LIMIT = 50;
 
 	/**
+	 * Default cap on the number of products the preview walks.
+	 *
+	 * The preview runs synchronously inside a single REST request (the merchant
+	 * clicks "Preview feed" and waits), unlike the real sync which streams the
+	 * full catalog in background batches under a scheduled action. Walking an
+	 * unbounded catalog one-shot would blow past `max_execution_time` and 504 on
+	 * large stores, so the scan stops at this many products and flags the result
+	 * as partial via `scan_limited`.
+	 *
+	 * @var int
+	 * @since 10.9.0
+	 */
+	public const DEFAULT_SCAN_LIMIT = 2000;
+
+	/**
 	 * Integration whose query args, mapper, and validator drive the preview.
 	 *
 	 * @var WC_Stripe_Agentic_Commerce_Integration
@@ -77,17 +92,21 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 	 *
 	 * @since 10.9.0
 	 * @param int $detail_limit Maximum number of invalid products to return with full detail.
+	 * @param int $scan_limit   Maximum number of products to walk before stopping; the
+	 *                          result is flagged `scan_limited` when the cap is hit.
 	 * @return array{
 	 *     total_count: int,
 	 *     included_count: int,
 	 *     excluded_count: int,
 	 *     invalid_count: int,
 	 *     validation_errors: array<int, array{product_id:int, product_name:string, edit_link:string, errors:string[]}>,
-	 *     truncated: int
+	 *     truncated: int,
+	 *     scan_limited: bool
 	 * }
 	 */
-	public function generate( int $detail_limit = self::DEFAULT_DETAIL_LIMIT ): array {
+	public function generate( int $detail_limit = self::DEFAULT_DETAIL_LIMIT, int $scan_limit = self::DEFAULT_SCAN_LIMIT ): array {
 		$detail_limit = max( 0, $detail_limit );
+		$scan_limit   = max( 1, $scan_limit );
 
 		$mapper    = $this->integration->get_product_mapper();
 		$validator = $this->integration->get_feed_validator();
@@ -115,6 +134,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 		$excluded_count    = 0;
 		$invalid_count     = 0;
 		$truncated         = 0;
+		$scan_limited      = false;
 		$validation_errors = [];
 
 		$page = 1;
@@ -137,6 +157,14 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 			foreach ( $products as $product ) {
 				if ( ! $product instanceof WC_Product ) {
 					continue;
+				}
+
+				// Stop once the scan cap is reached so a synchronous preview on a
+				// large catalog can't run past the request time limit. break 2
+				// exits the batch loop and the pagination loop together.
+				if ( $total_count >= $scan_limit ) {
+					$scan_limited = true;
+					break 2;
 				}
 
 				++$total_count;
@@ -182,6 +210,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 			'invalid_count'     => $invalid_count,
 			'validation_errors' => $validation_errors,
 			'truncated'         => $truncated,
+			'scan_limited'      => $scan_limited,
 		];
 	}
 
