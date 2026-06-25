@@ -139,7 +139,7 @@ class WC_Stripe_Agentic_Commerce_CLI extends WP_CLI_Command {
 		try {
 			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate( $limit );
 		} catch ( Exception $e ) {
-			WP_CLI::error( 'Preview failed: ' . $e->getMessage() );
+			WP_CLI::error( 'Preview generation failed: ' . $e->getMessage() );
 			return; // Never reached — error() exits.
 		}
 
