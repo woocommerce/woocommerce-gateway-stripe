@@ -1,0 +1,76 @@
+import {
+	registerPaymentMethod,
+	registerExpressPaymentMethod,
+} from '@woocommerce/blocks-registry';
+import {
+	PAYMENT_METHOD_AFFIRM,
+	PAYMENT_METHOD_AMAZON_PAY,
+	PAYMENT_METHOD_KLARNA,
+	PAYMENT_METHOD_LINK,
+} from '../../stripe-utils/constants';
+import { updateTokenLabelsWhenLoaded } from './token-label-updater.js';
+import {
+	expressCheckoutElementAmazonPay,
+	expressCheckoutElementApplePay,
+	expressCheckoutElementGooglePay,
+	expressCheckoutElementStripeLink,
+} from 'wcstripe/blocks/express-checkout';
+import WCStripeAPI from 'wcstripe/api';
+import {
+	addOrderAttributionInputsIfNotExists,
+	getBlocksConfiguration,
+	populateOrderAttributionInputs,
+} from 'wcstripe/blocks/utils';
+// The entry stylesheets are imported by the bootstrap (./index.js) so they ship
+// in upe-blocks.css rather than in this async init chunk.
+import { upeElement } from 'wcstripe/blocks/upe/upe-element';
+
+const api = new WCStripeAPI(
+	getBlocksConfiguration(),
+	// A promise-based interface to jQuery.post.
+	( url, args ) => {
+		return new Promise( ( resolve, reject ) => {
+			jQuery.post( url, args ).then( resolve ).fail( reject );
+		} );
+	}
+);
+
+const paymentMethodsConfig =
+	getBlocksConfiguration()?.paymentMethodsConfig ?? {};
+
+const methodsToFilter = [ PAYMENT_METHOD_AMAZON_PAY, PAYMENT_METHOD_LINK ];
+
+// Filter out some BNPLs when other official extensions are present.
+if ( getBlocksConfiguration()?.hasAffirmGatewayPlugin ) {
+	methodsToFilter.push( PAYMENT_METHOD_AFFIRM );
+}
+if ( getBlocksConfiguration()?.hasKlarnaGatewayPlugin ) {
+	methodsToFilter.push( PAYMENT_METHOD_KLARNA );
+}
+
+Object.entries( paymentMethodsConfig )
+	.filter( ( [ method ] ) => ! methodsToFilter.includes( method ) )
+	.forEach( ( [ method, config ] ) => {
+		registerPaymentMethod( upeElement( method, api, config ) );
+	} );
+
+// Register Express Checkout Elements.
+if ( getBlocksConfiguration()?.isAmazonPayEnabled ) {
+	registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
+}
+if ( getBlocksConfiguration()?.isExpressCheckoutEnabled ) {
+	registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
+	registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
+}
+if ( getBlocksConfiguration()?.isLinkEnabled ) {
+	registerExpressPaymentMethod( expressCheckoutElementStripeLink( api ) );
+}
+
+// Update token labels when the checkout form is loaded.
+updateTokenLabelsWhenLoaded();
+
+// Add order attribution inputs to the page.
+addOrderAttributionInputsIfNotExists();
+
+// Populate order attribution inputs with order tracking data.
+populateOrderAttributionInputs();
