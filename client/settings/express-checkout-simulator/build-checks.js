@@ -3,6 +3,7 @@ import getReasonText from './get-reason-text';
 import { __, sprintf } from '@wordpress/i18n';
 import { getPaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
 import { PAYMENT_METHOD_UNAVAILABLE_REASONS } from 'wcstripe/stripe-utils/constants';
+import { getExpressCheckoutLocationDefinitions } from 'wcstripe/settings/express-checkout-customize/locations';
 
 /**
  * Status values for a simulator eligibility check.
@@ -18,31 +19,21 @@ export const STATUS = {
 };
 
 /**
- * Human labels for the button locations, keyed by the same setting values the customize tabs
- * store (and that `WC_Stripe_Express_Checkout_Helper::get_button_locations()` reads).
- *
- * @return {Object<string,string>} Location key → translated label.
- */
-const getLocationLabels = () => ( {
-	checkout: __( 'Checkout', 'woocommerce-gateway-stripe' ),
-	product: __( 'Product page', 'woocommerce-gateway-stripe' ),
-	cart: __( 'Cart', 'woocommerce-gateway-stripe' ),
-	change_payment_method: __(
-		'Change payment method (subscriptions)',
-		'woocommerce-gateway-stripe'
-	),
-} );
-
-/**
- * Maps the location keys a tab supports to `{ key, label, enabled }` rows for the simulator,
- * where `enabled` reflects the tab's current (reactive) location toggles.
+ * Maps the location keys a tab supports to `{ key, label, enabled }` rows for the simulator, where
+ * `enabled` reflects the tab's current (reactive) location toggles. Labels come from the shared
+ * location definitions so the simulator and the location checkboxes stay in sync.
  *
  * @param {string[]} keys             Location keys this tab supports, in display order.
  * @param {string[]} enabledLocations The currently enabled location keys.
  * @return {Array<Object>} Location rows for `<ExpressCheckoutSimulator locations />`.
  */
 export const buildLocations = ( keys, enabledLocations ) => {
-	const labels = getLocationLabels();
+	const labels = Object.fromEntries(
+		getExpressCheckoutLocationDefinitions().map( ( location ) => [
+			location.key,
+			location.label,
+		] )
+	);
 	return keys.map( ( key ) => ( {
 		key,
 		label: labels[ key ],
