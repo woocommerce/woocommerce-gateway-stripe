@@ -12,6 +12,7 @@ import {
 	buildLocations,
 } from 'wcstripe/settings/express-checkout-simulator/build-checks';
 import getReasonText from 'wcstripe/settings/express-checkout-simulator/get-reason-text';
+import { isAmazonPayAccountCountrySupported } from 'utils/use-payment-method-currencies';
 import {
 	Card,
 	RadioControl,
@@ -84,10 +85,7 @@ const AmazonPaySettingsSection = () => {
 
 	const methodLabel = __( 'Amazon Pay', 'woocommerce-gateway-stripe' );
 
-	// eslint-disable-next-line camelcase
-	const isAccountCountrySupported = Boolean(
-		previewParams?.is_account_country_supported
-	);
+	const isAccountCountrySupported = isAmazonPayAccountCountrySupported();
 	// eslint-disable-next-line camelcase
 	const isTaxBasedOnBilling = Boolean(
 		previewParams?.taxes_based_on_billing

@@ -255,6 +255,41 @@ const getAmazonPayCurrencies = () => {
 };
 
 /**
+ * Stripe account countries that may enable Amazon Pay. Mirrors
+ * `WC_Stripe_UPE_Payment_Method_Amazon_Pay::SUPPORTED_ACCOUNT_COUNTRIES`.
+ *
+ * @type {string[]}
+ */
+const SUPPORTED_AMAZON_PAY_ACCOUNT_COUNTRIES = [
+	'AT',
+	'BE',
+	'CY',
+	'DK',
+	'FR',
+	'DE',
+	'HU',
+	'IE',
+	'IT',
+	'LU',
+	'NL',
+	'PT',
+	'ES',
+	'SE',
+	'CH',
+	'GB',
+	'US',
+];
+
+/**
+ * Whether the connected Stripe account's country can use Amazon Pay. Derived client-side from the
+ * localized account country, so callers don't need a separate server-side flag.
+ *
+ * @return {boolean} True when the account country supports Amazon Pay.
+ */
+export const isAmazonPayAccountCountrySupported = () =>
+	SUPPORTED_AMAZON_PAY_ACCOUNT_COUNTRIES.includes( accountCountry );
+
+/**
  * Returns the currencies supported by a payment method.
  * Note that [] is returned for payment methods that support all currencies.
  *
