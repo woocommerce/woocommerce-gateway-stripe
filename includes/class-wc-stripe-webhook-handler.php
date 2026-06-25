@@ -1266,13 +1266,24 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$intent = $notification->data->object;
 		$order  = $this->get_order_from_intent( $intent );
 
-		$checkout_type = $intent->metadata->checkout_type ?? '';
+		$checkout_type                       = $intent->metadata->checkout_type ?? '';
+		$resolved_order_via_checkout_session = false;
+		$checkout_session_intent_event_types = [
+			'payment_intent.payment_failed',
+			'payment_intent.succeeded',
+			'payment_intent.amount_capturable_updated',
+		];
+		$is_adaptive_pricing_checkout_intent = WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE === $checkout_type;
+		$should_resolve_via_checkout_session = ! $order
+			&& $is_adaptive_pricing_checkout_intent
+			&& in_array( $notification->type, $checkout_session_intent_event_types, true );
+		$checkout_session_order_reference    = $intent->payment_details->order_reference ?? '';
+		$checkout_session_order_reference    = is_string( $checkout_session_order_reference ) ? $checkout_session_order_reference : '';
 
-		// For AP, attempt to find the order via the checkout session.
-		if ( ! $order
-			&& 'payment_intent.payment_failed' === $notification->type
-			&& WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE === $checkout_type ) {
-			$order = $this->get_order_by_intent_checkout_session( isset( $intent->id ) ? (string) $intent->id : '' );
+		// Checkout Session PaymentIntents can arrive without order metadata; the session remains the durable order link.
+		if ( $should_resolve_via_checkout_session ) {
+			$order                               = $this->get_order_by_intent_checkout_session( isset( $intent->id ) ? (string) $intent->id : '', $checkout_session_order_reference );
+			$resolved_order_via_checkout_session = $order instanceof WC_Order;
 		}
 
 		if ( ! $order ) {
@@ -1297,6 +1308,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( $order_helper->lock_order_payment( $order ) ) {
 			return;
+		}
+
+		if (
+			$resolved_order_via_checkout_session
+			&& isset( $intent->id )
+			&& in_array( $notification->type, [ 'payment_intent.succeeded', 'payment_intent.amount_capturable_updated' ], true )
+		) {
+			$order_helper->add_payment_intent_to_order( (string) $intent->id, $order );
 		}
 
 		$order_id           = $order->get_id();
@@ -2327,10 +2346,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Resolves the order behind a PaymentIntent via its Checkout Session.
 	 *
-	 * @param string $intent_id PaymentIntent ID from the failed event.
+	 * @param string $intent_id           PaymentIntent ID from the event.
+	 * @param string $checkout_session_id Checkout Session ID from the event, when available.
 	 * @return WC_Order|null
 	 */
-	private function get_order_by_intent_checkout_session( string $intent_id ): ?WC_Order {
+	private function get_order_by_intent_checkout_session( string $intent_id, string $checkout_session_id = '' ): ?WC_Order {
+		if ( '' !== $checkout_session_id ) {
+			$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session_id );
+			if ( $order instanceof WC_Order ) {
+				return $order;
+			}
+		}
+
 		if ( '' === $intent_id ) {
 			return null;
 		}
