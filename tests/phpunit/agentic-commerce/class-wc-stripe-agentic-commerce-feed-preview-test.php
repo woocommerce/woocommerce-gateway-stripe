@@ -5,6 +5,8 @@
  * @package WooCommerce\Stripe\Tests
  */
 
+// phpcs:disable Generic.Files.OneObjectStructurePerFile.MultipleFound -- Subscription-variation fixture colocated with the test that uses it.
+
 /**
  * Class WC_Stripe_Agentic_Commerce_Feed_Preview_Test
  *
@@ -60,8 +62,38 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	 */
 	public function tearDown(): void {
 		remove_filter( 'wc_stripe_agentic_commerce_product_query_args', [ $this, 'restrict_query' ] );
+		remove_filter( 'woocommerce_product_class', [ $this, 'map_variation_to_subscription' ] );
+		remove_filter( 'woocommerce_data_stores', [ $this, 'register_subscription_variation_store' ] );
 		remove_all_filters( 'woocommerce_agentic_commerce_should_sync_product' );
 		parent::tearDown();
+	}
+
+	/**
+	 * Make scoped variations load as a subscription-variation type so the preview
+	 * classifies them as subscriptions, without needing the WooCommerce
+	 * Subscriptions plugin. is_type() reads the object's get_type(), so the class
+	 * itself (not just the type string) has to change — pair this with
+	 * {@see self::register_subscription_variation_store()}, since WC_Product loads
+	 * its data store by type and an unregistered type aborts construction.
+	 *
+	 * @param string $classname    Resolved product class.
+	 * @param string $product_type Product type slug being instantiated.
+	 * @return string
+	 */
+	public function map_variation_to_subscription( $classname, $product_type ): string {
+		return 'variation' === $product_type ? WC_Stripe_Test_Subscription_Variation::class : $classname;
+	}
+
+	/**
+	 * Point the synthetic `product-subscription_variation` data store at the core
+	 * variation store so the faked subscription variations can be read.
+	 *
+	 * @param array $stores Registered data stores.
+	 * @return array
+	 */
+	public function register_subscription_variation_store( $stores ): array {
+		$stores['product-subscription_variation'] = 'WC_Product_Variation_Data_Store_CPT';
+		return $stores;
 	}
 
 	/**
@@ -228,6 +260,52 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Subscription products are bucketed under the `subscriptions` exclusion
+	 * reason, separating the built-in "agents can't buy subscriptions" default
+	 * from a merchant-driven exclusion.
+	 *
+	 * @return void
+	 */
+	public function test_excluded_breakdown_counts_subscriptions(): void {
+		if ( ! class_exists( 'WC_Helper_Product' ) || ! method_exists( 'WC_Helper_Product', 'create_variation_product' ) ) {
+			$this->markTestSkipped( 'WC_Helper_Product::create_variation_product not available' );
+		}
+
+		$variable      = WC_Helper_Product::create_variation_product();
+		$variation_ids = $variable->get_children();
+		$this->assertNotEmpty( $variation_ids );
+
+		add_filter( 'woocommerce_data_stores', [ $this, 'register_subscription_variation_store' ] );
+		add_filter( 'woocommerce_product_class', [ $this, 'map_variation_to_subscription' ], 10, 2 );
+		$this->scope_to( $variation_ids );
+
+		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+
+		$this->assertSame( count( $variation_ids ), $preview['excluded_count'] );
+		$this->assertSame( count( $variation_ids ), $preview['excluded_breakdown']['subscriptions'] );
+		$this->assertSame( 0, $preview['excluded_breakdown']['filtered'] );
+	}
+
+	/**
+	 * A non-subscription product excluded via the visibility filter is bucketed
+	 * under `filtered`, not `subscriptions`.
+	 *
+	 * @return void
+	 */
+	public function test_excluded_breakdown_counts_filtered_products(): void {
+		$excluded = $this->create_valid_product();
+
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', '__return_false' );
+		$this->scope_to( [ $excluded->get_id() ] );
+
+		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+
+		$this->assertSame( 1, $preview['excluded_count'] );
+		$this->assertSame( 1, $preview['excluded_breakdown']['filtered'] );
+		$this->assertSame( 0, $preview['excluded_breakdown']['subscriptions'] );
+	}
+
+	/**
 	 * The scan limit caps how many products the synchronous preview walks and
 	 * flags the result as partial, so a large catalog can't run past the request
 	 * time limit. Products beyond the cap are never counted.
@@ -297,5 +375,23 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 				'Variation edit link should point to the parent product.'
 			);
 		}
+	}
+}
+
+/**
+ * Minimal subscription-variation stand-in so the preview can classify a product
+ * as a subscription without the WooCommerce Subscriptions plugin. It shares the
+ * `product_variation` post type the feed query walks and only differs in the
+ * type slug the mapper checks.
+ */
+class WC_Stripe_Test_Subscription_Variation extends WC_Product_Variation {
+
+	/**
+	 * Report the subscription-variation type the feed excludes by default.
+	 *
+	 * @return string
+	 */
+	public function get_type() {
+		return 'subscription_variation';
 	}
 }

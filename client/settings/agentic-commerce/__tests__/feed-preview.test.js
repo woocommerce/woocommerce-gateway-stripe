@@ -16,6 +16,7 @@ const PREVIEW_RESPONSE = {
 	total_count: 5,
 	included_count: 3,
 	excluded_count: 1,
+	excluded_breakdown: { subscriptions: 1, filtered: 0 },
 	invalid_count: 1,
 	truncated: 0,
 	validation_errors: [
@@ -84,6 +85,52 @@ describe( 'AgenticCommerceFeedPreview', () => {
 		expect(
 			screen.getByRole( 'img', { name: /What does Excluded mean/i } )
 		).toBeInTheDocument();
+	} );
+
+	it( 'breaks the excluded count down by reason', async () => {
+		apiFetch.mockResolvedValue( {
+			...PREVIEW_RESPONSE,
+			excluded_count: 14,
+			excluded_breakdown: { subscriptions: 12, filtered: 2 },
+		} );
+
+		render( <AgenticCommerceFeedPreview /> );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /Preview feed/i } )
+		);
+
+		await waitFor( () => {
+			expect(
+				screen.getByText( /12 subscription products/i )
+			).toBeInTheDocument();
+		} );
+		expect(
+			screen.getByText(
+				/2 products hidden by your product visibility settings/i
+			)
+		).toBeInTheDocument();
+	} );
+
+	it( 'omits a breakdown reason whose count is zero', async () => {
+		apiFetch.mockResolvedValue( {
+			...PREVIEW_RESPONSE,
+			excluded_count: 12,
+			excluded_breakdown: { subscriptions: 12, filtered: 0 },
+		} );
+
+		render( <AgenticCommerceFeedPreview /> );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /Preview feed/i } )
+		);
+
+		await waitFor( () => {
+			expect(
+				screen.getByText( /12 subscription products/i )
+			).toBeInTheDocument();
+		} );
+		expect(
+			screen.queryByText( /hidden by your product visibility settings/i )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'lists products with validation errors, linking to the edit screen', async () => {

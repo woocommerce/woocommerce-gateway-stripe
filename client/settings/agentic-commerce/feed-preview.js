@@ -95,6 +95,17 @@ const IntroDescription = styled.p`
 	margin-top: 16px;
 `;
 
+const ExcludedBreakdown = styled.ul`
+	margin: -8px 0 16px;
+	padding-left: 18px;
+	color: #646970;
+	font-size: 12px;
+
+	li {
+		margin: 2px 0;
+	}
+`;
+
 // Focusable, non-interactive anchor for the "Excluded" explanation tooltip.
 // Stays a <span> (not a <button>) because the only action is revealing the
 // wrapping Tooltip on hover/focus — there is nothing to click.
@@ -141,11 +152,15 @@ const AgenticCommerceFeedPreview = () => {
 		total_count: totalCount,
 		included_count: includedCount,
 		excluded_count: excludedCount,
+		excluded_breakdown: excludedBreakdown,
 		invalid_count: invalidCount,
 		validation_errors: validationErrors,
 		truncated,
 		scan_limited: scanLimited,
 	} = data ?? {};
+
+	const excludedSubscriptions = excludedBreakdown?.subscriptions ?? 0;
+	const excludedFiltered = excludedBreakdown?.filtered ?? 0;
 
 	return (
 		<SectionCard>
@@ -245,6 +260,40 @@ const AgenticCommerceFeedPreview = () => {
 								</span>
 							</SummaryStat>
 						</SummaryRow>
+
+						{ ( excludedSubscriptions > 0 ||
+							excludedFiltered > 0 ) && (
+							<ExcludedBreakdown>
+								{ excludedSubscriptions > 0 && (
+									<li>
+										{ sprintf(
+											/* translators: %s: number of subscription products. */
+											_n(
+												'%s subscription product — subscriptions aren’t supported by AI agents.',
+												'%s subscription products — subscriptions aren’t supported by AI agents.',
+												excludedSubscriptions,
+												'woocommerce-gateway-stripe'
+											),
+											excludedSubscriptions.toLocaleString()
+										) }
+									</li>
+								) }
+								{ excludedFiltered > 0 && (
+									<li>
+										{ sprintf(
+											/* translators: %s: number of products hidden by visibility settings. */
+											_n(
+												'%s product hidden by your product visibility settings.',
+												'%s products hidden by your product visibility settings.',
+												excludedFiltered,
+												'woocommerce-gateway-stripe'
+											),
+											excludedFiltered.toLocaleString()
+										) }
+									</li>
+								) }
+							</ExcludedBreakdown>
+						) }
 
 						{ !! validationErrors?.length && (
 							<>

@@ -98,6 +98,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 	 *     total_count: int,
 	 *     included_count: int,
 	 *     excluded_count: int,
+	 *     excluded_breakdown: array{subscriptions:int, filtered:int},
 	 *     invalid_count: int,
 	 *     validation_errors: array<int, array{product_id:int, product_name:string, edit_link:string, errors:string[]}>,
 	 *     truncated: int,
@@ -129,13 +130,15 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 		 */
 		$query_args = apply_filters( 'woocommerce_product_feed_args', $query_args, $this->integration );
 
-		$total_count       = 0;
-		$included_count    = 0;
-		$excluded_count    = 0;
-		$invalid_count     = 0;
-		$truncated         = 0;
-		$scan_limited      = false;
-		$validation_errors = [];
+		$total_count            = 0;
+		$included_count         = 0;
+		$excluded_count         = 0;
+		$excluded_subscriptions = 0;
+		$excluded_filtered      = 0;
+		$invalid_count          = 0;
+		$truncated              = 0;
+		$scan_limited           = false;
+		$validation_errors      = [];
 
 		$page = 1;
 		do {
@@ -188,11 +191,21 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 					continue;
 				}
 
-				// map_product() returns an empty row only for products the
-				// visibility filter excluded — a merchant choice, not a defect.
-				// Everything else with errors is a genuine validation failure.
+				// map_product() returns an empty row only for products
+				// should_sync_product() excluded. Split the count by reason so the
+				// merchant can tell a built-in default (subscriptions, which agents
+				// can't buy) from a product an adapter or visibility setting hid —
+				// the bare "excluded" total reads as a filter the merchant set up
+				// even when it's entirely auto-excluded subscriptions.
 				if ( empty( $row ) ) {
 					++$excluded_count;
+
+					if ( WC_Stripe_Agentic_Commerce_Product_Mapper::is_subscription_product( $product ) ) {
+						++$excluded_subscriptions;
+					} else {
+						++$excluded_filtered;
+					}
+
 					continue;
 				}
 
@@ -204,13 +217,17 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 		} while ( self::PER_PAGE === $batch_iterated && $page <= $max_num_pages );
 
 		return [
-			'total_count'       => $total_count,
-			'included_count'    => $included_count,
-			'excluded_count'    => $excluded_count,
-			'invalid_count'     => $invalid_count,
-			'validation_errors' => $validation_errors,
-			'truncated'         => $truncated,
-			'scan_limited'      => $scan_limited,
+			'total_count'        => $total_count,
+			'included_count'     => $included_count,
+			'excluded_count'     => $excluded_count,
+			'excluded_breakdown' => [
+				'subscriptions' => $excluded_subscriptions,
+				'filtered'      => $excluded_filtered,
+			],
+			'invalid_count'      => $invalid_count,
+			'validation_errors'  => $validation_errors,
+			'truncated'          => $truncated,
+			'scan_limited'       => $scan_limited,
 		];
 	}
 
