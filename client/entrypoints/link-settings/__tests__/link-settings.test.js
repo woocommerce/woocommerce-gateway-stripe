@@ -1,16 +1,13 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import LinkSettingsSection from '../link-settings-section';
-import {
-	useEnabledPaymentMethodIds,
-	useLinkLocations,
-	useLinkButtonSize,
-} from 'wcstripe/data';
+import { useEnabledPaymentMethodIds, useLinkLocations } from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn(),
 	useLinkLocations: jest.fn(),
-	useLinkButtonSize: jest.fn().mockReturnValue( [ 'default', jest.fn() ] ),
+	useExpressCheckoutButtonSize: jest
+		.fn()
+		.mockReturnValue( [ 'default', jest.fn() ] ),
 } ) );
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
@@ -39,34 +36,20 @@ describe( 'LinkSettingsSection', () => {
 		global.wc_stripe_link_settings_params = globalValues;
 	} );
 
-	it( 'renders settings with defaults', () => {
+	it( 'renders the locations section and preview, without a per-method size control', () => {
 		render( <LinkSettingsSection /> );
 
-		// confirm settings headings.
+		// Location checkboxes render.
+		expect(
+			screen.getByRole( 'checkbox', { name: /checkout/i } )
+		).toBeInTheDocument();
+		expect( screen.getByText( 'Preview' ) ).toBeInTheDocument();
+
+		// The size control now lives on the Express Checkout settings page.
 		expect(
 			screen.queryByRole( 'heading', { name: 'Appearance' } )
-		).toBeInTheDocument();
-
-		// confirm radio button groups displayed.
-		const [ sizeRadio ] = screen.queryAllByRole( 'radio' );
-		expect( sizeRadio ).toBeInTheDocument();
-
-		// confirm default values.
-		expect( screen.getByLabelText( 'Default (48 px)' ) ).toBeChecked();
-	} );
-
-	it( 'triggers the hooks when the settings are being interacted with', async () => {
-		const setButtonSizeMock = jest.fn();
-
-		useLinkButtonSize.mockReturnValue( [ 'default', setButtonSizeMock ] );
-
-		render( <LinkSettingsSection /> );
-
-		expect( setButtonSizeMock ).not.toHaveBeenCalled();
-
-		await userEvent.click( screen.getByLabelText( 'Large (56 px)' ) );
-
-		expect( setButtonSizeMock ).toHaveBeenCalledWith( 'large' );
+		).not.toBeInTheDocument();
+		expect( screen.queryAllByRole( 'radio' ) ).toHaveLength( 0 );
 	} );
 
 	it( 'hides the appearance override notice by default', () => {

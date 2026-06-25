@@ -35,6 +35,9 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 10.9.0
+   - Express checkout button locations are stored in a single location-based setting; the per-method location options are migrated automatically
+   - Express checkout buttons (Apple Pay / Google Pay, Link, Amazon Pay) now share one button size; the separate Link and Amazon Pay size settings were removed
 * 10.8.0
    - Optimized Checkout Suite enabled by default for eligible existing stores
    - Adaptive Pricing enabled by default for eligible existing stores
@@ -198,5 +201,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add an Agentic Commerce checkout mode that redirects shoppers to your store to check out instead of completing the purchase in the AI agent
 * Tweak - When enabling manual capture, clarify to agentic commerce merchants that Agentic Commerce purchases follow the capture setting in the Stripe agentic commerce dashboard
 * Dev - Centralize agentic commerce feed scheduling in integration class
+* Update - Unify express checkout button placement into a single location-based setting and apply one shared button size across Apple Pay / Google Pay, Link, and Amazon Pay so buttons shown together always match
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

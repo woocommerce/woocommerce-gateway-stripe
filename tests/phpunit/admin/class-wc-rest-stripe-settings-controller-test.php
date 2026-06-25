@@ -760,55 +760,63 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * The per-method location params collapse into the unified map on update, and
+	 * the GET response exposes each method's flat locations derived from that map.
+	 *
+	 * @return void
+	 */
+	public function test_express_checkout_button_locations_unify_into_map() {
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'express_checkout_button_locations', [ 'product', 'cart' ] );
+		$request->set_param( 'link_button_locations', [ 'product', 'checkout' ] );
+		$request->set_param( 'amazon_pay_button_locations', [ 'product' ] );
+
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+
+		// Storage is a single location => methods map in canonical order.
+		$stored = $this->get_gateway()->get_option( 'express_checkout_button_locations' );
+		$this->assertSame( [ 'amazon_pay', 'link', 'payment_request' ], $stored['product'] );
+		$this->assertSame( [ 'payment_request' ], $stored['cart'] );
+		$this->assertSame( [ 'link' ], $stored['checkout'] );
+
+		// GET exposes each method's flat locations derived from the map.
+		$data = $this->rest_get_settings()->get_data();
+		$this->assertSame( [ 'product', 'cart' ], $data['express_checkout_button_locations'] );
+		$this->assertSame( [ 'product', 'checkout' ], $data['link_button_locations'] );
+		$this->assertSame( [ 'product' ], $data['amazon_pay_button_locations'] );
+	}
+
+	/**
 	 * Data provider for `test_enum_fields`.
 	 *
 	 * @return array
 	 */
 	public function enum_field_provider() {
 		return [
-			'express_checkout_button_theme'     => [
+			'express_checkout_button_theme' => [
 				'express_checkout_button_theme',
 				'express_checkout_button_theme',
 				'dark',
 				'light',
 				'foo',
 			],
-			'express_checkout_button_size'      => [
+			'express_checkout_button_size'  => [
 				'express_checkout_button_size',
 				'express_checkout_button_size',
 				'default',
 				'large',
 				'foo',
 			],
-			'express_checkout_button_type'      => [
+			'express_checkout_button_type'  => [
 				'express_checkout_button_type',
 				'express_checkout_button_type',
 				'buy',
 				'book',
 				'foo',
 			],
-			'express_checkout_button_locations' => [
-				'express_checkout_button_locations',
-				'express_checkout_button_locations',
-				[ 'cart' ],
-				[ 'cart', 'checkout', 'product' ],
-				[ 'foo' ],
-			],
-			'link_button_size'                  => [
-				'link_button_size',
-				'link_button_size',
-				'default',
-				'large',
-				'foo',
-			],
-			'link_button_locations'             => [
-				'link_button_locations',
-				'link_button_locations',
-				[ 'cart' ],
-				[ 'cart', 'checkout', 'product' ],
-				[ 'foo' ],
-			],
-			'optimized_checkout_layout'         => [
+			'optimized_checkout_layout'     => [
 				'oc_layout',
 				'optimized_checkout_layout',
 				'accordion',

@@ -93,12 +93,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'enum'              => array_keys( $form_fields['optimized_checkout_layout']['options'] ?? [] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'amazon_pay_button_size'                => [
-						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'string',
-						'enum'              => array_keys( $form_fields['amazon_pay_button_size']['options'] ?? [] ),
-						'validate_callback' => 'rest_validate_request_arg',
-					],
 					'amazon_pay_button_locations'           => [
 						'description'       => __( 'Express checkout locations that should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
@@ -106,12 +100,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 							'type' => 'string',
 							'enum' => array_keys( $form_fields['amazon_pay_button_locations']['options'] ?? [] ),
 						],
-						'validate_callback' => 'rest_validate_request_arg',
-					],
-					'link_button_size'                      => [
-						'description'       => __( 'Link by Stripe button size.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'string',
-						'enum'              => array_keys( $form_fields['link_button_size']['options'] ?? [] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'link_button_locations'                 => [
@@ -248,6 +236,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$available_payment_method_ids = $this->gateway->get_upe_available_payment_methods();
 		$ordered_payment_method_ids   = WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this->gateway );
 
+		// Per-method button locations are derived from the unified locations map so
+		// the existing per-method settings pages keep their flat-array contract.
+		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
+
 		return new WP_REST_Response(
 			[
 				/* Settings > General */
@@ -264,15 +256,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 					)
 				), // exclude Amazon Pay and Link from this list as they are express methods only.
 				/* Settings > Express checkouts */
-				'amazon_pay_button_size'                => $this->gateway->get_validated_option( 'amazon_pay_button_size' ),
-				'amazon_pay_button_locations'           => $this->gateway->get_validated_option( 'amazon_pay_button_locations' ),
-				'link_button_size'                      => $this->gateway->get_validated_option( 'link_button_size' ),
-				'link_button_locations'                 => $this->gateway->get_validated_option( 'link_button_locations' ),
+				'amazon_pay_button_locations'           => $express_checkout_helper->get_button_locations( 'amazon_pay' ),
+				'link_button_locations'                 => $express_checkout_helper->get_button_locations( 'link' ),
 				'is_express_checkout_enabled'           => $this->gateway->is_express_checkout_enabled(),
 				'express_checkout_button_type'          => $this->gateway->get_validated_option( 'express_checkout_button_type' ),
 				'express_checkout_button_theme'         => $this->gateway->get_validated_option( 'express_checkout_button_theme' ),
 				'express_checkout_button_size'          => $this->gateway->get_validated_option( 'express_checkout_button_size' ),
-				'express_checkout_button_locations'     => $this->gateway->get_validated_option( 'express_checkout_button_locations' ),
+				'express_checkout_button_locations'     => $express_checkout_helper->get_button_locations( 'payment_request' ),
 
 				/* Settings > Payments & transactions */
 				'is_manual_capture_enabled'             => ! $this->gateway->is_automatic_capture_enabled(),
@@ -314,8 +304,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			$this->update_is_express_checkout_enabled_for_legacy_checkout( $request );
 		}
 		$this->update_express_checkout_settings( $request );
-		$this->update_amazon_pay_settings( $request );
-		$this->update_link_settings( $request );
+		$this->update_express_checkout_button_locations( $request );
 
 		/* Settings > Payments & transactions */
 		$this->update_is_manual_capture_enabled( $request );
@@ -575,41 +564,47 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates appearance attributes of the Amazon Pay button.
+	 * Collapses the per-method express checkout button location params into the
+	 * unified location => methods map.
+	 *
+	 * The settings pages still send a flat location array per method; methods
+	 * absent from the request keep their current locations so partial updates are
+	 * non-destructive.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return void
 	 */
-	private function update_amazon_pay_settings( WP_REST_Request $request ) {
-		$attributes = [ 'amazon_pay_button_size', 'amazon_pay_button_locations' ];
+	private function update_express_checkout_button_locations( WP_REST_Request $request ) {
+		$request_keys = [
+			'payment_request' => 'express_checkout_button_locations',
+			'link'            => 'link_button_locations',
+			'amazon_pay'      => 'amazon_pay_button_locations',
+		];
 
-		foreach ( $attributes as $attribute ) {
-			if ( null === $request->get_param( $attribute ) ) {
-				continue;
+		$has_param = false;
+		foreach ( $request_keys as $request_key ) {
+			if ( null !== $request->get_param( $request_key ) ) {
+				$has_param = true;
+				break;
 			}
-
-			$this->gateway->update_validated_option( $attribute, $request->get_param( $attribute ) );
 		}
-	}
 
-	/**
-	 * Updates appearance attributes of the Link by Stripe button.
-	 *
-	 * @param WP_REST_Request $request Request object.
-	 *
-	 * @return void
-	 */
-	private function update_link_settings( WP_REST_Request $request ) {
-		$attributes = [ 'link_button_size', 'link_button_locations' ];
-
-		foreach ( $attributes as $attribute ) {
-			if ( null === $request->get_param( $attribute ) ) {
-				continue;
-			}
-
-			$this->gateway->update_validated_option( $attribute, $request->get_param( $attribute ) );
+		if ( ! $has_param ) {
+			return;
 		}
+
+		$helper        = new WC_Stripe_Express_Checkout_Helper();
+		$legacy_shaped = [];
+		foreach ( $request_keys as $method => $request_key ) {
+			$value                         = $request->get_param( $request_key );
+			$legacy_shaped[ $request_key ] = null !== $value
+				? array_values( (array) $value )
+				: $helper->get_button_locations( $method );
+		}
+
+		$map = WC_Stripe_Express_Checkout_Helper::build_locations_map_from_legacy( $legacy_shaped );
+		$this->gateway->update_option( 'express_checkout_button_locations', $map );
 	}
 
 	/**
@@ -621,10 +616,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	private function update_express_checkout_settings( WP_REST_Request $request ) {
 		$attributes = [
-			'express_checkout_button_type'      => 'express_checkout_button_type',
-			'express_checkout_button_size'      => 'express_checkout_button_size',
-			'express_checkout_button_theme'     => 'express_checkout_button_theme',
-			'express_checkout_button_locations' => 'express_checkout_button_locations',
+			'express_checkout_button_type'  => 'express_checkout_button_type',
+			'express_checkout_button_size'  => 'express_checkout_button_size',
+			'express_checkout_button_theme' => 'express_checkout_button_theme',
 		];
 
 		foreach ( $attributes as $request_key => $attribute ) {

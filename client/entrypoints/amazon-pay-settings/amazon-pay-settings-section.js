@@ -4,63 +4,20 @@ import React from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import styled from '@emotion/styled';
 import ExpressCheckoutPreview from 'wcstripe/settings/express-checkout-preview';
-import {
-	Card,
-	RadioControl,
-	CheckboxControl,
-	Notice,
-} from '@wordpress/components';
+import { Card, CheckboxControl, Notice } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import {
 	useAmazonPayEnabledSettings,
 	useAmazonPayLocations,
-	useAmazonPayButtonSize,
+	useExpressCheckoutButtonSize,
 } from 'wcstripe/data';
 import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 
-const makeButtonSizeText = ( string ) =>
-	interpolateComponents( {
-		mixedString: string,
-		components: {
-			helpText: (
-				<span className="amazon-pay-settings__option-muted-text" />
-			),
-		},
-	} );
-const buttonSizeOptions = [
-	{
-		label: makeButtonSizeText(
-			__(
-				'Small {{helpText}}(40 px){{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
-		),
-		value: 'small',
-	},
-	{
-		label: makeButtonSizeText(
-			__(
-				'Default {{helpText}}(48 px){{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
-		),
-		value: 'default',
-	},
-	{
-		label: makeButtonSizeText(
-			__(
-				'Large {{helpText}}(56 px){{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
-		),
-		value: 'large',
-	},
-];
-
 const AmazonPaySettingsSection = () => {
-	const [ size, setSize ] = useAmazonPayButtonSize();
+	// Express checkout buttons share one size; the preview reflects the global value.
+	const [ size ] = useExpressCheckoutButtonSize();
 	const isButtonStyleOverridden =
 		!! wc_stripe_amazon_pay_settings_params?.is_button_style_overridden; // eslint-disable-line camelcase
 	// eslint-disable-next-line camelcase
@@ -164,17 +121,6 @@ const AmazonPaySettingsSection = () => {
 						/>
 					</li>
 				</ul>
-				<h4>{ __( 'Appearance', 'woocommerce-gateway-stripe' ) }</h4>
-				<RadioControl
-					help={ __(
-						'Note that larger buttons are more suitable for mobile use.',
-						'woocommerce-gateway-stripe'
-					) }
-					label={ __( 'Size', 'woocommerce-gateway-stripe' ) }
-					selected={ size }
-					options={ buttonSizeOptions }
-					onChange={ setSize }
-				/>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
 					<ExpressCheckoutPreview
