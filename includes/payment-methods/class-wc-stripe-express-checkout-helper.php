@@ -15,6 +15,14 @@ class WC_Stripe_Express_Checkout_Helper {
 	use WC_Stripe_Pre_Orders_Trait;
 
 	/**
+	 * Express checkout methods in their canonical display order, exposed via
+	 * get_express_checkout_methods().
+	 *
+	 * @var string[]
+	 */
+	protected const EXPRESS_CHECKOUT_METHODS = [ 'amazon_pay', 'link', 'payment_request' ];
+
+	/**
 	 * Stripe settings.
 	 *
 	 * @var array
@@ -187,37 +195,25 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Gets the Link button height.
 	 *
+	 * All express checkout methods share a single button size so buttons rendered
+	 * together on a page stay visually consistent, so this delegates to the
+	 * unified height. Kept as a named method for the values localized to JS.
+	 *
 	 * @return string
 	 */
 	public function get_link_button_height() {
-		$size = isset( $this->stripe_settings['link_button_size'] ) ? $this->stripe_settings['link_button_size'] : 'default';
-		if ( 'small' === $size ) {
-			return '40';
-		}
-
-		if ( 'large' === $size ) {
-			return '56';
-		}
-
-		return '48';
+		return $this->get_button_height();
 	}
 
 	/**
 	 * Gets the Amazon Pay button height.
 	 *
+	 * Shares the single express checkout button size; see get_link_button_height().
+	 *
 	 * @return string
 	 */
 	public function get_amazon_pay_button_height() {
-		$size = isset( $this->stripe_settings['amazon_pay_button_size'] ) ? $this->stripe_settings['amazon_pay_button_size'] : 'default';
-		if ( 'small' === $size ) {
-			return '40';
-		}
-
-		if ( 'large' === $size ) {
-			return '56';
-		}
-
-		return '48';
+		return $this->get_button_height();
 	}
 
 	/**
@@ -1813,38 +1809,159 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Returns the unified express checkout locations map: location => list of
+	 * methods enabled there, in canonical order.
+	 *
+	 * Migrated installs store this map under `express_checkout_button_locations`.
+	 * It is authoritative even when empty (the merchant disabled every location),
+	 * which is distinguished from a fresh install by the absence of the separate
+	 * legacy `link_button_locations`/`amazon_pay_button_locations` options that the
+	 * migration removes. Before migration the value is still a flat per-method list,
+	 * so the map is derived from the legacy options on the fly — falling back to the
+	 * default placement when nothing is configured — to keep rendering correct
+	 * during the upgrade window.
+	 *
+	 * @return array<string, string[]>
+	 */
+	public function get_express_checkout_locations_map(): array {
+		$stored = $this->stripe_settings['express_checkout_button_locations'] ?? null;
+
+		if ( is_array( $stored ) && self::is_locations_map( $stored ) ) {
+			// A non-empty map is authoritative. An empty one is only authoritative
+			// once the per-method options are gone; otherwise fall through to derive
+			// the map from them (pre-migration).
+			if ( ! empty( $stored ) || ! $this->has_legacy_per_method_locations() ) {
+				return $stored;
+			}
+		}
+
+		if ( $this->has_legacy_location_settings() ) {
+			return self::build_locations_map_from_legacy( $this->stripe_settings );
+		}
+
+		return self::get_default_locations_map();
+	}
+
+	/**
+	 * Default location => methods map used when no placement has been configured,
+	 * preserving the historical default of showing every method on product and cart.
+	 *
+	 * @return array<string, string[]>
+	 */
+	private static function get_default_locations_map(): array {
+		$map = [];
+		foreach ( [ 'product', 'cart' ] as $location ) {
+			$map[ $location ] = self::EXPRESS_CHECKOUT_METHODS;
+		}
+
+		return $map;
+	}
+
+	/**
+	 * Whether any legacy location option (the unified key included) is present.
+	 *
+	 * @return bool
+	 */
+	private function has_legacy_location_settings(): bool {
+		return isset( $this->stripe_settings['express_checkout_button_locations'] )
+			|| $this->has_legacy_per_method_locations();
+	}
+
+	/**
+	 * Whether the per-method location options the migration removes are present.
+	 *
+	 * @return bool
+	 */
+	private function has_legacy_per_method_locations(): bool {
+		return isset( $this->stripe_settings['link_button_locations'] )
+			|| isset( $this->stripe_settings['amazon_pay_button_locations'] );
+	}
+
+	/**
+	 * Whether the stored value is already a unified locations map rather than a
+	 * legacy flat list. An empty array is treated as a (possibly intentionally
+	 * empty) map; a non-empty list with integer keys is legacy flat location data.
+	 *
+	 * @param array $value The stored value.
+	 * @return bool
+	 */
+	private static function is_locations_map( array $value ): bool {
+		foreach ( array_keys( $value ) as $key ) {
+			if ( is_int( $key ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Builds the unified locations map from the legacy per-method options,
+	 * preserving the canonical method order within each location.
+	 *
+	 * Shared by the migration (to persist the map) and the runtime fallback above.
+	 *
+	 * @param array $settings The Stripe settings array.
+	 * @return array<string, string[]>
+	 */
+	public static function build_locations_map_from_legacy( array $settings ): array {
+		$legacy_keys = [
+			'payment_request' => 'express_checkout_button_locations',
+			'link'            => 'link_button_locations',
+			'amazon_pay'      => 'amazon_pay_button_locations',
+		];
+
+		$map = [];
+		foreach ( self::EXPRESS_CHECKOUT_METHODS as $method ) {
+			$locations = $settings[ $legacy_keys[ $method ] ] ?? [];
+			if ( ! is_array( $locations ) ) {
+				continue;
+			}
+
+			foreach ( $locations as $location ) {
+				$map[ $location ][] = $method;
+			}
+		}
+
+		return $map;
+	}
+
+	/**
+	 * Express checkout methods in their canonical display order. Buttons within a
+	 * location render in this order, and only these keys are valid map values.
+	 *
+	 * @return string[]
+	 */
+	public static function get_express_checkout_methods(): array {
+		return self::EXPRESS_CHECKOUT_METHODS;
+	}
+
+	/**
 	 * Pages where the express checkout buttons should be displayed.
+	 *
+	 * With no type, returns every location that has at least one enabled method.
+	 * With a type, returns the locations where that method is enabled.
 	 *
 	 * @param string|null $express_checkout_type The type of express checkout.
 	 * @return array
 	 */
 	public function get_button_locations( ?string $express_checkout_type = null ): array {
-		switch ( $express_checkout_type ) {
-			case 'amazon_pay':
-				$key = 'amazon_pay_button_locations';
-				break;
-			case 'link':
-				$key = 'link_button_locations';
-				break;
-			case 'payment_request':
-			default:
-				$key = 'express_checkout_button_locations';
-				break;
+		$map = $this->get_express_checkout_locations_map();
+
+		if ( null === $express_checkout_type ) {
+			return array_keys( array_filter( $map, static fn( $methods ) => ! empty( $methods ) ) );
 		}
 
-		if ( ! isset( $this->stripe_settings[ $key ] ) ) {
-			// If the locations have not been set/modified, return the default setting.
-			return [ 'product', 'cart' ];
+		$method = self::normalize_express_checkout_method( $express_checkout_type );
+
+		$locations = [];
+		foreach ( $map as $location => $methods ) {
+			if ( in_array( $method, (array) $methods, true ) ) {
+				$locations[] = $location;
+			}
 		}
 
-		if ( ! is_array( $this->stripe_settings[ $key ] ) ) {
-			// If all locations are removed through the settings UI the location config will be set to
-			// an empty string "". If that's the case (and if the settings are not an array for any
-			// other reason) we should return an empty array.
-			return [];
-		}
-
-		return $this->stripe_settings[ $key ];
+		return $locations;
 	}
 
 	/**
@@ -1856,9 +1973,24 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	public function is_enabled_for_location( string $express_checkout_type = 'payment_request', string $location = '' ): bool {
-		$enabled_locations = $this->get_button_locations( $express_checkout_type );
+		return in_array( $location, $this->get_button_locations( $express_checkout_type ), true );
+	}
 
-		return in_array( $location, $enabled_locations, true );
+	/**
+	 * Normalizes a caller-supplied express checkout type to the canonical method
+	 * key used in the locations map. Apple/Google Pay is referred to as both
+	 * `payment_request` and `express_checkout` across the codebase; anything that
+	 * is not Link or Amazon Pay maps to `payment_request`.
+	 *
+	 * @param string $express_checkout_type The type of express checkout.
+	 * @return string
+	 */
+	private static function normalize_express_checkout_method( string $express_checkout_type ): string {
+		if ( in_array( $express_checkout_type, [ 'link', 'amazon_pay' ], true ) ) {
+			return $express_checkout_type;
+		}
+
+		return 'payment_request';
 	}
 
 	/**

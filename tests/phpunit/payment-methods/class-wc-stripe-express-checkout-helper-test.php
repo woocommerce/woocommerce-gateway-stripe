@@ -1144,64 +1144,64 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @return array
 	 */
 	public function provide_test_get_button_locations(): array {
+		$unified_map = [
+			'express_checkout_button_locations' => [
+				'product'  => [ 'amazon_pay', 'link', 'payment_request' ],
+				'cart'     => [ 'payment_request', 'link' ],
+				'checkout' => [ 'link' ],
+			],
+		];
+
 		return [
-			'payment request, settings exists'                        => [
+			// Unified location => methods map (post-migration shape).
+			'map: payment_request locations'                          => [
+				'express checkout type' => 'payment_request',
+				'settings'              => $unified_map,
+				'expected'              => [ 'product', 'cart' ],
+			],
+			'map: link locations'                                     => [
+				'express checkout type' => 'link',
+				'settings'              => $unified_map,
+				'expected'              => [ 'product', 'cart', 'checkout' ],
+			],
+			'map: amazon_pay locations'                               => [
+				'express checkout type' => 'amazon_pay',
+				'settings'              => $unified_map,
+				'expected'              => [ 'product' ],
+			],
+			'map: express_checkout alias resolves to payment_request' => [
+				'express checkout type' => 'express_checkout',
+				'settings'              => $unified_map,
+				'expected'              => [ 'product', 'cart' ],
+			],
+			// Legacy per-method flat options are still honoured before migration.
+			'legacy payment request, settings exists'                 => [
 				'express checkout type' => 'payment_request',
 				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
 				'expected'              => [ 'checkout', 'cart' ],
 			],
-			'payment request, settings exists, but not a valid array' => [
+			'legacy payment request, settings exists, invalid array'  => [
 				'express checkout type' => 'payment_request',
 				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
 				'expected'              => [],
 			],
-			'payment request, settings do not exist'                  => [
+			'legacy payment request, settings do not exist'           => [
 				'express checkout type' => 'payment_request',
 				'settings'              => [],
 				'expected'              => [ 'product', 'cart' ],
 			],
-			'link, settings exists'                                   => [
+			'legacy link, settings exists'                            => [
 				'express checkout type' => 'link',
 				'settings'              => [ 'link_button_locations' => [ 'cart' ] ],
 				'expected'              => [ 'cart' ],
 			],
-			'link, settings exists, but not a valid array'            => [
-				'express checkout type' => 'link',
-				'settings'              => [ 'link_button_locations' => 'invalid_value' ],
-				'expected'              => [],
-			],
-			'link, settings do not exist'                             => [
-				'express checkout type' => 'link',
-				'settings'              => [],
-				'expected'              => [ 'product', 'cart' ],
-			],
-			'amazon pay, settings exists'                             => [
+			'legacy amazon pay, settings exists'                      => [
 				'express checkout type' => 'amazon_pay',
 				'settings'              => [ 'amazon_pay_button_locations' => [ 'checkout' ] ],
 				'expected'              => [ 'checkout' ],
 			],
-			'amazon pay, settings exists, but not a valid array'      => [
-				'express checkout type' => 'amazon_pay',
-				'settings'              => [ 'amazon_pay_button_locations' => 'invalid_value' ],
-				'expected'              => [],
-			],
-			'amazon pay, settings do not exist'                       => [
-				'express checkout type' => 'amazon_pay',
-				'settings'              => [],
-				'expected'              => [ 'product', 'cart' ],
-			],
-			'default, settings exists'                                => [
-				'express checkout type' => 'default',
-				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
-				'expected'              => [ 'checkout', 'cart' ],
-			],
-			'default, settings exists, but not a valid array'         => [
-				'express checkout type' => 'default',
-				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
-				'expected'              => [],
-			],
-			'default, settings do not exist'                          => [
-				'express checkout type' => 'default',
+			'legacy link, settings do not exist'                      => [
+				'express checkout type' => 'link',
 				'settings'              => [],
 				'expected'              => [ 'product', 'cart' ],
 			],
@@ -1938,26 +1938,34 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @return array
 	 */
 	public function provide_test_get_link_button_height(): array {
+		// Link shares the single express checkout button size.
 		return [
-			'small'         => [
-				'settings' => [ 'link_button_size' => 'small' ],
+			'small'                          => [
+				'settings' => [ 'express_checkout_button_size' => 'small' ],
 				'expected' => '40',
 			],
-			'default'       => [
-				'settings' => [ 'link_button_size' => 'default' ],
+			'default'                        => [
+				'settings' => [ 'express_checkout_button_size' => 'default' ],
 				'expected' => '48',
 			],
-			'large'         => [
-				'settings' => [ 'link_button_size' => 'large' ],
+			'large'                          => [
+				'settings' => [ 'express_checkout_button_size' => 'large' ],
 				'expected' => '56',
 			],
-			'not set'       => [
+			'not set'                        => [
 				'settings' => [],
 				'expected' => '48',
 			],
-			'unknown value' => [
-				'settings' => [ 'link_button_size' => 'unknown' ],
+			'unknown value'                  => [
+				'settings' => [ 'express_checkout_button_size' => 'unknown' ],
 				'expected' => '48',
+			],
+			'ignores legacy per-method size' => [
+				'settings' => [
+					'express_checkout_button_size' => 'large',
+					'link_button_size'             => 'small',
+				],
+				'expected' => '56',
 			],
 		];
 	}
@@ -1986,26 +1994,34 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @return array
 	 */
 	public function provide_test_get_amazon_pay_button_height(): array {
+		// Amazon Pay shares the single express checkout button size.
 		return [
-			'small'         => [
-				'settings' => [ 'amazon_pay_button_size' => 'small' ],
+			'small'                          => [
+				'settings' => [ 'express_checkout_button_size' => 'small' ],
 				'expected' => '40',
 			],
-			'default'       => [
-				'settings' => [ 'amazon_pay_button_size' => 'default' ],
+			'default'                        => [
+				'settings' => [ 'express_checkout_button_size' => 'default' ],
 				'expected' => '48',
 			],
-			'large'         => [
-				'settings' => [ 'amazon_pay_button_size' => 'large' ],
+			'large'                          => [
+				'settings' => [ 'express_checkout_button_size' => 'large' ],
 				'expected' => '56',
 			],
-			'not set'       => [
+			'not set'                        => [
 				'settings' => [],
 				'expected' => '48',
 			],
-			'unknown value' => [
-				'settings' => [ 'amazon_pay_button_size' => 'unknown' ],
+			'unknown value'                  => [
+				'settings' => [ 'express_checkout_button_size' => 'unknown' ],
 				'expected' => '48',
+			],
+			'ignores legacy per-method size' => [
+				'settings' => [
+					'express_checkout_button_size' => 'small',
+					'amazon_pay_button_size'       => 'large',
+				],
+				'expected' => '40',
 			],
 		];
 	}
