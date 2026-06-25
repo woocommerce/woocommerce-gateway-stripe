@@ -6,6 +6,7 @@ import {
 	loginAdminAndSaveState,
 	createApiTokens,
 	installPluginFromRepository,
+	enableLegacySubscriptionProductTypes,
 	setupWoo,
 	setupStripe,
 } from '../utils/playwright-setup';
@@ -55,6 +56,8 @@ async function installPlugins( page ) {
 			`woocommerce/${ pluginSlug }`,
 			pluginSlug
 		);
+		await enableLegacySubscriptionProductTypes();
+
 		// Install WooCommerce Pre-Orders.
 		pluginSlug = 'woocommerce-pre-orders';
 		await installPluginFromRepository(

@@ -177,6 +177,13 @@ export const installPluginFromRepository = async (
 	console.log( `\u2714 ${ pluginSlug } plugin installed successfully.` );
 };
 
+export const enableLegacySubscriptionProductTypes = async () => {
+	await sshExecCommands( [
+		'wp option update woocommerce_subscriptions_enable_simple_subscription yes',
+		'wp option update woocommerce_subscriptions_enable_variable_subscription yes',
+	] );
+};
+
 /**
  * Helper function to run an array of commands in a SSH server.
  * @param {Array.<string>} commands The array of commands.
