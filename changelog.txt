@@ -44,6 +44,7 @@ xxxx-xx-xx - version 10.9.0
 * Tweak - When enabling manual capture, clarify to agentic commerce merchants that Agentic Commerce purchases follow the capture setting in the Stripe agentic commerce dashboard
 * Dev - Centralize agentic commerce feed scheduling in integration class
 * Dev - Update subscription E2E fixtures to use WooCommerce Subscriptions product plans
+* Fix - Prevent a fatal checkout error when a third-party integration registers callbacks against the Payment Request class removed in 10.4.0
 
 2026-06-22 - version 10.8.3
 * Fix - Ensure Adaptive Pricing appears on the checkout page when enabled

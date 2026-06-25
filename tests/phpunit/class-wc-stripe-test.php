@@ -23,6 +23,48 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * The `payment_request_configuration` property must expose a valid object whose legacy
+	 * button-rendering methods are callable.
+	 *
+	 * The WC_Stripe_Payment_Request class was removed in 10.4.0. Third-party integrations (e.g.
+	 * Avada's "WooCommerce One Page Checkout" module) still read this property and register its
+	 * methods as hook callbacks. If the property were null those callbacks would resolve to
+	 * `[ null, 'method' ]` and fatal at hook-fire time. A no-op compat shim keeps them safe.
+	 *
+	 * @return void
+	 */
+	public function test_payment_request_configuration_legacy_callbacks_do_not_fatal() {
+		$config = WC_Stripe::get_instance()->payment_request_configuration;
+
+		$this->assertIsObject( $config, 'payment_request_configuration should be an object, not null.' );
+
+		$legacy_methods = [
+			'display_payment_request_button_html',
+			'display_payment_request_button_separator_html',
+		];
+
+		// Simulate a third party registering the removed class's methods as hook callbacks, then
+		// fire the hook the way WooCommerce does on the checkout page. Before the shim this threw an
+		// uncaught TypeError ("first array member is not a valid class name or object").
+		foreach ( $legacy_methods as $method ) {
+			$this->assertTrue(
+				is_callable( [ $config, $method ] ),
+				"[ \$payment_request_configuration, '{$method}' ] should be a valid callback."
+			);
+			add_action( 'woocommerce_review_order_before_submit', [ $config, $method ] );
+		}
+
+		do_action( 'woocommerce_review_order_before_submit' );
+
+		// Reaching this point means no TypeError was thrown when the hook fired.
+		$this->assertTrue( true );
+
+		foreach ( $legacy_methods as $method ) {
+			remove_action( 'woocommerce_review_order_before_submit', [ $config, $method ] );
+		}
+	}
+
+	/**
 	 * Tests for `maybe_toggle_payment_methods`.
 	 *
 	 * @param array $active_gateways The active payment gateways.

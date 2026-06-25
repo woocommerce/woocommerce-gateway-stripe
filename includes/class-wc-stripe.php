@@ -45,7 +45,11 @@ class WC_Stripe {
 	/**
 	 * Stripe Payment Request configurations.
 	 *
-	 * @var null
+	 * Holds a WC_Stripe_Payment_Request_Compat no-op shim. The real WC_Stripe_Payment_Request class
+	 * was removed in 10.4.0; the shim only exists so third-party callers that still reference this
+	 * property and register its methods as hook callbacks do not fatal.
+	 *
+	 * @var WC_Stripe_Payment_Request_Compat
 	 *
 	 * @deprecated 10.4.0 Use express_checkout_configuration instead. This will be removed in a future release.
 	 */
@@ -200,10 +204,17 @@ class WC_Stripe {
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-payment-request-compat.php';
 
 		$this->api     = new WC_Stripe_Connect_API();
 		$this->connect = new WC_Stripe_Connect( $this->api );
 		$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+
+		// Backward-compatibility shim: third-party integrations (e.g. Avada's "WooCommerce One Page
+		// Checkout" module) still read this property and register its methods as hook callbacks. The
+		// underlying WC_Stripe_Payment_Request class was removed in 10.4.0, leaving this property null
+		// and causing a fatal TypeError when those callbacks fire. Point it at a no-op shim instead.
+		$this->payment_request_configuration = new WC_Stripe_Payment_Request_Compat();
 
 		if ( self::$instance === $this ) {
 			// Initialize Express Checkout after translations are loaded
