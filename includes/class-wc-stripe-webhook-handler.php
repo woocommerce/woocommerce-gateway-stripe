@@ -1304,14 +1304,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper                 = WC_Stripe_Order_Helper::get_instance();
+		$is_recoverable_success_event = $resolved_order_via_checkout_session
+			&& isset( $intent->id )
+			&& in_array( $notification->type, [ 'payment_intent.succeeded', 'payment_intent.amount_capturable_updated' ], true );
 
 		if ( $order_helper->lock_order_payment( $order ) ) {
-			if (
-				$resolved_order_via_checkout_session
-				&& isset( $intent->id )
-				&& in_array( $notification->type, [ 'payment_intent.succeeded', 'payment_intent.amount_capturable_updated' ], true )
-			) {
+			if ( $is_recoverable_success_event ) {
 				$this->defer_webhook_processing(
 					$notification,
 					[
@@ -1326,11 +1325,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if (
-			$resolved_order_via_checkout_session
-			&& isset( $intent->id )
-			&& in_array( $notification->type, [ 'payment_intent.succeeded', 'payment_intent.amount_capturable_updated' ], true )
-		) {
+		if ( $is_recoverable_success_event ) {
 			$order_helper->add_payment_intent_to_order( (string) $intent->id, $order );
 		}
 
