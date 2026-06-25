@@ -43,11 +43,7 @@ class WC_Stripe {
 	public $connect;
 
 	/**
-	 * Stripe Payment Request configurations.
-	 *
-	 * Holds a WC_Stripe_Payment_Request_Compat no-op shim. The real WC_Stripe_Payment_Request class
-	 * was removed in 10.4.0; the shim only exists so third-party callers that still reference this
-	 * property and register its methods as hook callbacks do not fatal.
+	 * Stripe Payment Request configurations. Holds a WC_Stripe_Payment_Request_Compat no-op shim.
 	 *
 	 * @var WC_Stripe_Payment_Request_Compat
 	 *
@@ -210,10 +206,8 @@ class WC_Stripe {
 		$this->connect = new WC_Stripe_Connect( $this->api );
 		$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
-		// Backward-compatibility shim: third-party integrations (e.g. Avada's "WooCommerce One Page
-		// Checkout" module) still read this property and register its methods as hook callbacks. The
-		// underlying WC_Stripe_Payment_Request class was removed in 10.4.0, leaving this property null
-		// and causing a fatal TypeError when those callbacks fire. Point it at a no-op shim instead.
+		// No-op shim so third parties that register the removed WC_Stripe_Payment_Request methods as
+		// hook callbacks via this property don't fatal on a null callback. See the compat class.
 		$this->payment_request_configuration = new WC_Stripe_Payment_Request_Compat();
 
 		if ( self::$instance === $this ) {
