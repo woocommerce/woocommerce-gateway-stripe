@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import styled from '@emotion/styled';
+import { info } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
 import { createInterpolateElement } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
@@ -9,7 +10,9 @@ import {
 	CardHeader,
 	ExternalLink,
 	Flex,
+	Icon,
 	Notice,
+	Tooltip,
 } from '@wordpress/components';
 import CardBody from 'wcstripe/settings/card-body';
 
@@ -90,6 +93,28 @@ const ErrorsTable = styled.table`
 
 const IntroDescription = styled.p`
 	margin-top: 16px;
+`;
+
+// Focusable, non-interactive anchor for the "Excluded" explanation tooltip.
+// Stays a <span> (not a <button>) because the only action is revealing the
+// wrapping Tooltip on hover/focus — there is nothing to click.
+const StatInfoTarget = styled.span`
+	display: inline-flex;
+	align-items: center;
+	margin-left: 4px;
+	color: #646970;
+	cursor: help;
+	vertical-align: middle;
+
+	&:focus-visible {
+		outline: 2px solid #2271b1;
+		outline-offset: 1px;
+		border-radius: 2px;
+	}
+
+	svg {
+		fill: currentColor;
+	}
 `;
 
 const AgenticCommerceFeedPreview = () => {
@@ -197,9 +222,26 @@ const AgenticCommerceFeedPreview = () => {
 								</span>
 								<span className="wc-stripe-agentic-preview__stat-label">
 									{ __(
-										'Excluded by filters',
+										'Excluded',
 										'woocommerce-gateway-stripe'
 									) }
+									<Tooltip
+										text={ __(
+											'Products not sent to AI agents — including subscription products, which aren’t supported, and anything hidden by your store’s product visibility settings. These aren’t validation errors.',
+											'woocommerce-gateway-stripe'
+										) }
+									>
+										<StatInfoTarget
+											tabIndex={ 0 }
+											role="img"
+											aria-label={ __(
+												'What does Excluded mean?',
+												'woocommerce-gateway-stripe'
+											) }
+										>
+											<Icon icon={ info } size={ 16 } />
+										</StatInfoTarget>
+									</Tooltip>
 								</span>
 							</SummaryStat>
 						</SummaryRow>

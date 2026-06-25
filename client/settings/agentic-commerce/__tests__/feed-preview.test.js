@@ -60,8 +60,30 @@ describe( 'AgenticCommerceFeedPreview', () => {
 
 		expect( screen.getByText( 'Included' ) ).toBeInTheDocument();
 		expect( screen.getByText( 'With errors' ) ).toBeInTheDocument();
-		expect( screen.getByText( 'Excluded by filters' ) ).toBeInTheDocument();
+		expect( screen.getByText( 'Excluded' ) ).toBeInTheDocument();
 		expect( screen.getByText( '3' ) ).toBeInTheDocument(); // included count
+	} );
+
+	it( 'explains what "Excluded" means via a tooltip target', async () => {
+		apiFetch.mockResolvedValue( PREVIEW_RESPONSE );
+
+		render( <AgenticCommerceFeedPreview /> );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /Preview feed/i } )
+		);
+
+		// The label drops the misleading "by filters" wording; the explanation
+		// (subscriptions are the common cause) lives in an accessible tooltip
+		// anchor instead.
+		await waitFor( () => {
+			expect( screen.getByText( 'Excluded' ) ).toBeInTheDocument();
+		} );
+		expect(
+			screen.queryByText( 'Excluded by filters' )
+		).not.toBeInTheDocument();
+		expect(
+			screen.getByRole( 'img', { name: /What does Excluded mean/i } )
+		).toBeInTheDocument();
 	} );
 
 	it( 'lists products with validation errors, linking to the edit screen', async () => {
