@@ -1307,6 +1307,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		if ( $order_helper->lock_order_payment( $order ) ) {
+			if (
+				$resolved_order_via_checkout_session
+				&& isset( $intent->id )
+				&& in_array( $notification->type, [ 'payment_intent.succeeded', 'payment_intent.amount_capturable_updated' ], true )
+			) {
+				$this->defer_webhook_processing(
+					$notification,
+					[
+						'order_id'                     => $order->get_id(),
+						'intent_id'                    => (string) $intent->id,
+						'retry_process_payment_intent' => true,
+					],
+					$this->locked_order_retry_delay
+				);
+			}
+
 			return;
 		}
 
@@ -1562,6 +1578,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			switch ( $webhook_type ) {
 				case 'payment_intent.succeeded':
 				case 'payment_intent.amount_capturable_updated':
+					if ( ! empty( $additional_data['retry_process_payment_intent'] ) ) {
+						if ( $notification instanceof stdClass ) {
+							$this->process_payment_intent( $notification );
+						}
+
+						return;
+					}
+
 					$order     = isset( $additional_data['order_id'] ) ? wc_get_order( $additional_data['order_id'] ) : null;
 					$intent_id = $additional_data['intent_id'] ?? '';
 
