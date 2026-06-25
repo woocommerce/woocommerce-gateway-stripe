@@ -7,6 +7,7 @@ const {
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
 	clickAddToCartButton,
+	selectSubscriptionOption,
 	getCartTotal,
 	waitForOrderReceivedPage,
 	getOrderIdFromOrderReceivedUrl,
@@ -53,7 +54,8 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 
 	await test.step( 'customer purchase a subscription product', async () => {
 		await page.goto( `?p=${ productId }` );
-		await clickAddToCartButton( page );
+		await selectSubscriptionOption( page );
+		await clickAddToCartButton( page, 'Sign up' );
 
 		await setupShortcodeCheckout( page );
 		await fillCreditCardDetailsShortcode(
