@@ -51,6 +51,9 @@ class WC_Stripe_Express_Checkout_Controller {
 			'is_ece_enabled'             => WC_Stripe_Feature_Flags::is_stripe_ece_enabled(),
 			'is_subscriptions_active'    => WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled(),
 			'is_button_style_overridden' => WC_Stripe_Helper::is_express_checkout_button_style_overridden(),
+			'is_account_connected'       => WC_Stripe_Helper::is_connected(),
+			'is_https'                   => is_ssl(),
+			'is_test_mode'               => WC_Stripe_Mode::is_test(),
 		];
 		wp_localize_script(
 			'wc-stripe-express-checkout-settings',

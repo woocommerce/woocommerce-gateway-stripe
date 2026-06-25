@@ -41,10 +41,14 @@ class WC_Stripe_Amazon_Pay_Controller {
 
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$params          = [
-			'key'                        => WC_Stripe_Mode::is_test() ? $stripe_settings['test_publishable_key'] : $stripe_settings['publishable_key'],
-			'locale'                     => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-			'taxes_based_on_billing'     => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
-			'is_button_style_overridden' => WC_Stripe_Helper::is_express_checkout_button_style_overridden(),
+			'key'                          => WC_Stripe_Mode::is_test() ? $stripe_settings['test_publishable_key'] : $stripe_settings['publishable_key'],
+			'locale'                       => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+			'taxes_based_on_billing'       => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
+			'is_button_style_overridden'   => WC_Stripe_Helper::is_express_checkout_button_style_overridden(),
+			'is_account_connected'         => WC_Stripe_Helper::is_connected(),
+			'is_https'                     => is_ssl(),
+			'is_test_mode'                 => WC_Stripe_Mode::is_test(),
+			'is_account_country_supported' => WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_available_for_account_country(),
 		];
 		wp_localize_script(
 			'wc-stripe-amazon-pay-settings',

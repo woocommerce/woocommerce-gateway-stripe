@@ -45,6 +45,9 @@ class WC_Stripe_Link_Controller {
 			'locale'                     => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 			'is_button_style_overridden' => WC_Stripe_Helper::is_express_checkout_button_style_overridden(),
 			'is_subscriptions_active'    => WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled(),
+			'is_account_connected'       => WC_Stripe_Helper::is_connected(),
+			'is_https'                   => is_ssl(),
+			'is_test_mode'               => WC_Stripe_Mode::is_test(),
 		];
 		wp_localize_script(
 			'wc-stripe-link-settings',

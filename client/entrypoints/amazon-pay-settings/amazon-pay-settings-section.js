@@ -4,6 +4,14 @@ import React from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import styled from '@emotion/styled';
 import ExpressCheckoutPreview from 'wcstripe/settings/express-checkout-preview';
+import ExpressCheckoutSimulator from 'wcstripe/settings/express-checkout-simulator';
+import {
+	STATUS,
+	buildBaseChecks,
+	buildCurrencyCheck,
+	buildLocations,
+} from 'wcstripe/settings/express-checkout-simulator/build-checks';
+import getReasonText from 'wcstripe/settings/express-checkout-simulator/get-reason-text';
 import {
 	Card,
 	RadioControl,
@@ -16,7 +24,10 @@ import {
 	useAmazonPayLocations,
 	useAmazonPayButtonSize,
 } from 'wcstripe/data';
-import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
+import {
+	PAYMENT_METHOD_AMAZON_PAY,
+	PAYMENT_METHOD_UNAVAILABLE_REASONS,
+} from 'wcstripe/stripe-utils/constants';
 import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 
@@ -70,6 +81,57 @@ const AmazonPaySettingsSection = () => {
 
 	const [ amazonPayLocations, updateAmazonPayLocations ] =
 		useAmazonPayLocations();
+
+	const methodLabel = __( 'Amazon Pay', 'woocommerce-gateway-stripe' );
+
+	// eslint-disable-next-line camelcase
+	const isAccountCountrySupported = Boolean(
+		previewParams?.is_account_country_supported
+	);
+	// eslint-disable-next-line camelcase
+	const isTaxBasedOnBilling = Boolean(
+		previewParams?.taxes_based_on_billing
+	);
+
+	const simulatorChecks = [
+		...buildBaseChecks( {
+			params: previewParams,
+			methodEnabled: isAmazonPayEnabled,
+			methodLabel,
+		} ),
+		{
+			key: 'account-country',
+			label: __(
+				'Account country supported',
+				'woocommerce-gateway-stripe'
+			),
+			status: isAccountCountrySupported ? STATUS.PASS : STATUS.FAIL,
+			detail: '',
+			blockingText: __(
+				"Amazon Pay isn't supported for your Stripe account's country.",
+				'woocommerce-gateway-stripe'
+			),
+		},
+		buildCurrencyCheck( {
+			methodId: PAYMENT_METHOD_AMAZON_PAY,
+			methodLabel,
+		} ),
+		{
+			key: 'tax-setup',
+			label: __( 'Compatible tax setup', 'woocommerce-gateway-stripe' ),
+			status: isTaxBasedOnBilling ? STATUS.FAIL : STATUS.PASS,
+			detail: '',
+			blockingText: getReasonText(
+				PAYMENT_METHOD_UNAVAILABLE_REASONS.TAX_BASED_ON_BILLING_ADDRESS,
+				methodLabel
+			),
+		},
+	].filter( Boolean );
+
+	const simulatorLocations = buildLocations(
+		[ 'product', 'cart', 'checkout' ],
+		amazonPayLocations
+	);
 
 	const makeLocationChangeHandler = ( location ) => ( isChecked ) => {
 		if ( isChecked ) {
@@ -197,6 +259,10 @@ const AmazonPaySettingsSection = () => {
 						) }
 					/>
 				</LoadableAccountSection>
+				<ExpressCheckoutSimulator
+					checks={ simulatorChecks }
+					locations={ simulatorLocations }
+				/>
 			</CardBody>
 		</Card>
 	);

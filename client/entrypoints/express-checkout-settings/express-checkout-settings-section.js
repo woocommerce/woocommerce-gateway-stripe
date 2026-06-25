@@ -4,6 +4,12 @@ import React from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import styled from '@emotion/styled';
 import ExpressCheckoutPreview from 'wcstripe/settings/express-checkout-preview';
+import ExpressCheckoutSimulator from 'wcstripe/settings/express-checkout-simulator';
+import {
+	buildBaseChecks,
+	buildCardMethodCheck,
+	buildLocations,
+} from 'wcstripe/settings/express-checkout-simulator/build-checks';
 import {
 	Card,
 	RadioControl,
@@ -17,6 +23,7 @@ import {
 	useExpressCheckoutButtonType,
 	useExpressCheckoutButtonSize,
 	useExpressCheckoutButtonTheme,
+	useEnabledPaymentMethodIds,
 } from 'wcstripe/data';
 import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
 import CardBody from 'wcstripe/settings/card-body';
@@ -119,6 +126,36 @@ const ExpressCheckoutSettingsSection = () => {
 
 	const [ expressCheckoutLocations, updateExpressCheckoutLocations ] =
 		useExpressCheckoutLocations();
+
+	const [ enabledMethodIds ] = useEnabledPaymentMethodIds();
+
+	const methodLabel = __(
+		'Apple Pay / Google Pay',
+		'woocommerce-gateway-stripe'
+	);
+	const simulatorChecks = [
+		...buildBaseChecks( {
+			params: previewParams,
+			methodEnabled: isExpressCheckoutEnabled,
+			methodLabel,
+		} ),
+		buildCardMethodCheck( {
+			isCardEnabled: enabledMethodIds.includes( PAYMENT_METHOD_CARD ),
+			methodLabel,
+		} ),
+	];
+	const simulatorLocations = buildLocations(
+		[
+			'product',
+			'cart',
+			'checkout',
+			// eslint-disable-next-line camelcase
+			...( previewParams?.is_subscriptions_active
+				? [ 'change_payment_method' ]
+				: [] ),
+		],
+		expressCheckoutLocations
+	);
 
 	const makeLocationChangeHandler = ( location ) => ( isChecked ) => {
 		if ( isChecked ) {
@@ -301,6 +338,10 @@ const ExpressCheckoutSettingsSection = () => {
 						) }
 					/>
 				</LoadableAccountSection>
+				<ExpressCheckoutSimulator
+					checks={ simulatorChecks }
+					locations={ simulatorLocations }
+				/>
 			</CardBody>
 		</Card>
 	);
