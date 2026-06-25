@@ -13,11 +13,10 @@ use Automattic\WooCommerce\StoreApi\Exceptions\RouteException;
  */
 class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 	/**
-	 * Builds the class under test with a helper stubbed to report whether the
-	 * request is an express checkout context, since that depends on request
-	 * globals/headers not present in unit tests.
+	 * Builds the class under test with the express-checkout-context check stubbed,
+	 * since it depends on request globals absent in unit tests.
 	 *
-	 * @param bool $is_express_checkout_context Value returned by the stubbed helper.
+	 * @param bool $is_express_checkout_context Value the stubbed helper returns.
 	 * @return WC_Stripe_Express_Checkout_Custom_Fields
 	 */
 	private function get_custom_fields_support( bool $is_express_checkout_context = true ) {
@@ -177,8 +176,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 			$this->fail( 'Expected no exceptions to be thrown, but got: ' . $e->getMessage() );
 		}
 
-		// The entered value is saved on the order so it is not lost when no
-		// third-party plugin hooks the stand-in action.
+		// The entered value is saved on the order, not lost.
 		$this->assertSame( 'test', $order->get_meta( 'billing_custom_field1' ) );
 
 		// Remove filters and reset checkout fields.
@@ -301,8 +299,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 		$order                 = WC_Helper_Order::create_order();
 		$custom_fields_support = $this->get_custom_fields_support( false );
 
-		// The required field is missing, but because this is not an express checkout
-		// request the order must not be blocked.
+		// Required field missing, but a non-express request must not be blocked.
 		try {
 			$custom_fields_support->process_custom_checkout_data( $order, $request );
 			$this->assertTrue( true );

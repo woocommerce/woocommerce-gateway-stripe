@@ -123,9 +123,7 @@ class WC_Stripe_Express_Checkout_Element {
 
 		/**
 		 * Determines whether express checkout orders should process or ignore
-		 * custom, classic checkout fields. Enabled by default so required custom
-		 * fields are validated and entered values are saved on the order; return
-		 * false to opt out.
+		 * custom, classic checkout fields. Enabled by default; return false to opt out.
 		 *
 		 * @since 9.7.0
 		 */

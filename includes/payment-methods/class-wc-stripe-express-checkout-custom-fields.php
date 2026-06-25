@@ -13,8 +13,7 @@ use Automattic\WooCommerce\StoreApi\Exceptions\RouteException;
 
 class WC_Stripe_Express_Checkout_Custom_Fields {
 	/**
-	 * Express checkout helper, used to confirm a request actually originated from
-	 * the express checkout flow before processing custom field data.
+	 * Express checkout helper, used to gate processing to express checkout requests.
 	 *
 	 * @var WC_Stripe_Express_Checkout_Helper
 	 */
@@ -23,7 +22,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 	/**
 	 * Constructor.
 	 *
-	 * @param WC_Stripe_Express_Checkout_Helper|null $express_checkout_helper Optional helper; created on demand when omitted.
+	 * @param WC_Stripe_Express_Checkout_Helper|null $express_checkout_helper Helper; created on demand when omitted.
 	 */
 	public function __construct( $express_checkout_helper = null ) {
 		$this->express_checkout_helper = $express_checkout_helper ?? new WC_Stripe_Express_Checkout_Helper();
@@ -66,10 +65,8 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 	 * @return void
 	 */
 	public function process_custom_checkout_data( $order, $request ) {
-		// This hook fires for every Store API checkout, including normal block and
-		// classic checkout. Only act on genuine express checkout requests; otherwise
-		// required classic custom fields would wrongly block orders that never went
-		// through express checkout (the custom field data is sent only by the ECE flow).
+		// This hook fires for every Store API checkout, so skip non-express requests;
+		// otherwise required custom fields would block normal block/classic orders.
 		if ( ! $this->express_checkout_helper->is_express_checkout_context() ) {
 			return;
 		}
@@ -112,12 +109,9 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 			throw new RouteException( 'wc_stripe_express_checkout_invalid_data', $error_messages, 400 );
 		}
 
-		// Persist the entered values on the order keyed by field ID, so the data is
-		// saved even when no third-party plugin hooks the action below. Mirrors how
-		// block-checkout additional fields are stored in
-		// WC_Stripe_Express_Checkout_Element::add_order_meta(). Runs before the action
-		// so third-party handlers can still override these values. The Store API saves
-		// the order after this hook fires, so no explicit save is needed here.
+		// Persist entered values keyed by field ID so data is saved without a
+		// third-party plugin hooking the action below; runs first so those handlers
+		// can still override. The Store API saves the order after this hook.
 		foreach ( $custom_checkout_data as $key => $value ) {
 			$order->update_meta_data( $key, $value );
 		}
