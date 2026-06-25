@@ -146,7 +146,7 @@ class WC_Stripe_Agentic_Commerce_CLI extends WP_CLI_Command {
 		WP_CLI::success( 'Preview generation complete.' );
 		WP_CLI::log( sprintf( '  Products scanned: %d', $preview['total_count'] ) );
 		WP_CLI::log( sprintf( '  Included:         %d', $preview['included_count'] ) );
-		WP_CLI::log( sprintf( '  Excluded (filter):%d', $preview['excluded_count'] ) );
+		WP_CLI::log( sprintf( '  Excluded (filter): %d', $preview['excluded_count'] ) );
 		WP_CLI::log( sprintf( '  Invalid:          %d', $preview['invalid_count'] ) );
 
 		if ( empty( $preview['validation_errors'] ) ) {
