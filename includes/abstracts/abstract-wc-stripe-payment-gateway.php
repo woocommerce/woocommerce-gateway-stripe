@@ -38,8 +38,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Returns the main Stripe gateway settings array.
 	 *
-	 * Thin delegate to the co-located, cached accessor on WC_Stripe so callers
-	 * holding a gateway instance share the same single source of truth.
+	 * Thin delegate to the co-located accessor on WC_Stripe so callers holding a
+	 * gateway instance share the same single source of truth.
 	 *
 	 * @since 10.9.0
 	 *
@@ -52,8 +52,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Replaces the main Stripe gateway settings option.
 	 *
-	 * Thin delegate to WC_Stripe::update_settings(), which persists and
-	 * invalidates the cache in one place.
+	 * Thin delegate to WC_Stripe::update_settings().
 	 *
 	 * @since 10.9.0
 	 *
@@ -62,17 +61,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function update_settings( array $settings ): bool {
 		return WC_Stripe::get_instance()->update_settings( $settings );
-	}
-
-	/**
-	 * Invalidates the cached settings so the next read reloads them.
-	 *
-	 * @since 10.9.0
-	 *
-	 * @return void
-	 */
-	public function refresh_settings_cache(): void {
-		WC_Stripe::get_instance()->refresh_settings_cache();
 	}
 
 	/**

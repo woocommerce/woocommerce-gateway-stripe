@@ -49,13 +49,12 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * get_settings() returns the stored option as an array, served from the shared request-scoped cache.
+	 * get_settings() returns the stored option as an array.
 	 *
 	 * @return void
 	 */
 	public function test_get_settings_returns_stored_option(): void {
 		update_option( WC_Stripe::SETTINGS_OPTION_NAME, [ 'enabled' => 'yes' ] );
-		$this->gateway->refresh_settings_cache();
 
 		$this->assertSame( 'yes', $this->gateway->get_settings()['enabled'] );
 	}
@@ -72,7 +71,6 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		add_filter( 'option_' . WC_Stripe::SETTINGS_OPTION_NAME, $force_scalar );
 
 		try {
-			$this->gateway->refresh_settings_cache();
 			$this->assertSame( [], WC_Stripe::get_instance()->get_settings() );
 			$this->assertSame( [], $this->gateway->get_settings() );
 		} finally {
@@ -81,11 +79,11 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * update_settings() persists the option and subsequent reads reflect the new value (cache self-heals).
+	 * update_settings() persists the option and subsequent reads reflect the new value.
 	 *
 	 * @return void
 	 */
-	public function test_update_settings_persists_and_refreshes_cache(): void {
+	public function test_update_settings_persists_option(): void {
 		$this->gateway->update_settings( [ 'enabled' => 'yes' ] );
 		$this->assertSame( 'yes', $this->gateway->get_settings()['enabled'] );
 
@@ -94,11 +92,11 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * A raw update_option() write bypassing update_settings() still invalidates the cache via the option-change hook.
+	 * get_settings() reflects a raw update_option() write that bypasses update_settings().
 	 *
 	 * @return void
 	 */
-	public function test_raw_option_write_self_heals_cache(): void {
+	public function test_get_settings_reflects_raw_option_write(): void {
 		$this->gateway->update_settings( [ 'enabled' => 'yes' ] );
 		$this->assertSame( 'yes', $this->gateway->get_settings()['enabled'] );
 

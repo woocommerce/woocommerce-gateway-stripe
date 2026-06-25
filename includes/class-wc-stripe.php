@@ -37,9 +37,7 @@ class WC_Stripe {
 	/**
 	 * Writes the raw main Stripe settings option directly.
 	 *
-	 * Low-level storage primitive backing update_settings(). The option-change
-	 * hooks registered in register_settings_cache() invalidate the cache after
-	 * this write, so the cache self-heals even on this path.
+	 * Low-level storage primitive backing update_settings().
 	 *
 	 * @since 10.9.0
 	 *
@@ -51,42 +49,20 @@ class WC_Stripe {
 	}
 
 	/**
-	 * Object-cache key/group for the request-scoped main settings cache.
-	 *
-	 * Registered as a non-persistent group so the cache stays request-scoped even
-	 * when a persistent object cache (Redis/Memcached) is active, and so it is
-	 * flushed between PHPUnit tests — a DB rollback restores the option but does
-	 * not re-fire the option-change hooks, which would leave a static copy stale.
-	 */
-	private const SETTINGS_CACHE_GROUP = 'woocommerce_stripe';
-	private const SETTINGS_CACHE_KEY   = 'main_settings';
-
-	/**
-	 * Returns the main Stripe settings, caching the option in a request-scoped
-	 * object-cache entry so repeated reads within a request hit a single source of
-	 * truth. This is the preferred read path; the static read_settings_option()
-	 * stays available for the rare bootstrap caller that must bypass the cache.
+	 * Returns the main Stripe settings array. Reads straight from the option;
+	 * WordPress already caches options per request, so no extra caching layer is
+	 * warranted here.
 	 *
 	 * @since 10.9.0
 	 *
 	 * @return array
 	 */
 	public function get_settings(): array {
-		$cached = wp_cache_get( self::SETTINGS_CACHE_KEY, self::SETTINGS_CACHE_GROUP );
-		if ( is_array( $cached ) ) {
-			return $cached;
-		}
-
-		$settings = self::read_settings_option();
-		wp_cache_set( self::SETTINGS_CACHE_KEY, $settings, self::SETTINGS_CACHE_GROUP );
-
-		return $settings;
+		return self::read_settings_option();
 	}
 
 	/**
-	 * Persists the main Stripe settings and invalidates the cache itself, so the
-	 * mutator is self-contained and never serves a stale copy even when the
-	 * option-change hooks are not registered for the current request.
+	 * Persists the main Stripe settings.
 	 *
 	 * @since 10.9.0
 	 *
@@ -94,40 +70,7 @@ class WC_Stripe {
 	 * @return bool Whether the option was actually written (matches update_option).
 	 */
 	public function update_settings( array $settings ): bool {
-		$updated = self::write_settings_option( $settings );
-		$this->refresh_settings_cache();
-		return $updated;
-	}
-
-	/**
-	 * Invalidates the cached settings so the next read reloads them. Hooked to the
-	 * option-change actions for the main settings option so the cache self-heals
-	 * after any write (our update_settings(), WooCommerce's admin save, or a raw
-	 * update_option()).
-	 *
-	 * @since 10.9.0
-	 *
-	 * @return void
-	 */
-	public function refresh_settings_cache(): void {
-		wp_cache_delete( self::SETTINGS_CACHE_KEY, self::SETTINGS_CACHE_GROUP );
-	}
-
-	/**
-	 * Registers the settings cache group and wires the option-change invalidation
-	 * hooks. Called once at bootstrap so external writes to the option flush our
-	 * cache without each caller having to remember to.
-	 *
-	 * @since 10.9.0
-	 *
-	 * @return void
-	 */
-	protected function register_settings_cache(): void {
-		wp_cache_add_non_persistent_groups( self::SETTINGS_CACHE_GROUP );
-
-		add_action( 'add_option_' . self::SETTINGS_OPTION_NAME, [ $this, 'refresh_settings_cache' ] );
-		add_action( 'update_option_' . self::SETTINGS_OPTION_NAME, [ $this, 'refresh_settings_cache' ] );
-		add_action( 'delete_option_' . self::SETTINGS_OPTION_NAME, [ $this, 'refresh_settings_cache' ] );
+		return self::write_settings_option( $settings );
 	}
 
 	/**
@@ -274,9 +217,6 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/trait-wc-stripe-pre-orders.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php';
-		if ( self::$instance === $this ) {
-			$this->register_settings_cache();
-		}
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-state.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-handler.php';
