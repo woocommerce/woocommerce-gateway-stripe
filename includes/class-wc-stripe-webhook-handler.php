@@ -1278,7 +1278,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			&& $is_adaptive_pricing_checkout_intent
 			&& in_array( $notification->type, $checkout_session_intent_event_types, true );
 		$checkout_session_order_reference    = $intent->payment_details->order_reference ?? '';
-		$checkout_session_order_reference    = is_string( $checkout_session_order_reference ) ? $checkout_session_order_reference : '';
+		$checkout_session_order_reference    = is_string( $checkout_session_order_reference ) && 0 === strpos( $checkout_session_order_reference, 'cs_' )
+			? $checkout_session_order_reference
+			: '';
 
 		// Checkout Session PaymentIntents can arrive without order metadata; the session remains the durable order link.
 		if ( $should_resolve_via_checkout_session ) {
@@ -1528,22 +1530,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * object-shaped payload.
 	 *
 	 * @param array|object $notification Raw notification from the scheduled job.
-	 * @return object      The normalized notification object.
+	 * @return stdClass    The normalized notification object.
 	 * @throws Exception When the payload cannot be normalized.
 	 */
 	private function normalize_deferred_webhook_notification_to_object( $notification ) {
-		if ( is_object( $notification ) ) {
+		if ( $notification instanceof stdClass ) {
 			return $notification;
 		}
 
-		if ( is_array( $notification ) ) {
+		if ( is_array( $notification ) || is_object( $notification ) ) {
 			$json = wp_json_encode( $notification );
 			if ( false === $json ) {
 				throw new Exception( 'Failed to encode deferred webhook notification for object restoration.' );
 			}
 
 			$object = json_decode( $json );
-			if ( ! is_object( $object ) ) {
+			if ( ! $object instanceof stdClass ) {
 				throw new Exception( 'Failed to restore deferred webhook notification to an object.' );
 			}
 
@@ -1574,10 +1576,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				case 'payment_intent.succeeded':
 				case 'payment_intent.amount_capturable_updated':
 					if ( ! empty( $additional_data['retry_process_payment_intent'] ) ) {
-						if ( $notification instanceof stdClass ) {
-							$this->process_payment_intent( $notification );
-						}
-
+						$this->process_payment_intent( $notification );
 						return;
 					}
 
