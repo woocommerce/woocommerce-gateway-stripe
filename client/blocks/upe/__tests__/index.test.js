@@ -1,15 +1,7 @@
-/**
- * Tests for the Blocks-checkout UPE bootstrap.
- *
- * The bootstrap exists so a host "defer render-blocking JS" optimizer can't make
- * our bundle evaluate (and register payment methods) before
- * window.wp.data / window.wp.i18n / window.wc.wcSettings / window.wc.wcBlocksRegistry
- * exist — which throws and breaks the whole Checkout Block. It must wait for those
- * globals before loading the real init chunk. See STRIPE-1236.
- */
+// The bootstrap must wait for the WP/WC globals before loading the real init
+// chunk, so a defer-all optimizer can't make it throw. See STRIPE-1236.
 
-// Mock the real init module so importing the bootstrap doesn't pull the whole
-// Blocks graph; count how many times it's loaded.
+// Mock init so importing the bootstrap doesn't pull the Blocks graph; count loads.
 jest.mock(
 	'../init',
 	() => {

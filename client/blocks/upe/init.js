@@ -21,8 +21,7 @@ import {
 	getBlocksConfiguration,
 	populateOrderAttributionInputs,
 } from 'wcstripe/blocks/utils';
-// The entry stylesheets are imported by the bootstrap (./index.js) so they ship
-// in upe-blocks.css rather than in this async init chunk.
+// Stylesheets are imported by the bootstrap (./index.js), not this async chunk.
 import { upeElement } from 'wcstripe/blocks/upe/upe-element';
 
 const api = new WCStripeAPI(

@@ -145,11 +145,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			'wc-stripe-blocks-integration',
 			'woocommerce-gateway-stripe'
 		);
-		// Base URL for the Blocks UPE bundle's async init chunk. The JS bootstrap
-		// pins webpack's publicPath to this so the chunk loads from the plugin even
-		// when a host optimizer serves the entry script from a rewritten path. Kept
-		// on a tiny dedicated global (not wcSettings, which is itself deferred) so it
-		// is available before the deferred bundle executes.
+		// Base URL the JS bootstrap pins webpack's publicPath to, so the async init
+		// chunk loads from the plugin even when an optimizer rewrites the entry path.
 		wp_localize_script(
 			'wc-stripe-blocks-integration',
 			'wc_stripe_upe_blocks_params',
