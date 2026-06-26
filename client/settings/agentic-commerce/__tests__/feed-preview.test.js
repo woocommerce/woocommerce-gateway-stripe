@@ -73,8 +73,7 @@ describe( 'AgenticCommerceFeedPreview', () => {
 			screen.getByRole( 'button', { name: /Preview feed/i } )
 		);
 
-		// The label drops the misleading "by filters" wording; the per-reason
-		// breakdown stays hidden behind a Details toggle rather than always on.
+		// "by filters" wording is gone; the breakdown hides behind a Details toggle.
 		await waitFor( () => {
 			expect( screen.getByText( 'Excluded' ) ).toBeInTheDocument();
 		} );

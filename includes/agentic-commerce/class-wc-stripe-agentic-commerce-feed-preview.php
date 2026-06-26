@@ -85,12 +85,10 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 	 * and reject.
 	 *
 	 * The walk mirrors {@see \Automattic\WooCommerce\Internal\ProductFeed\Feed\ProductWalker::from_integration()}
-	 * — same base query args and the same `woocommerce_product_feed_args` filter —
-	 * then additionally walks standalone subscription products, which the sync
-	 * drops at the query for efficiency. They're reported as excluded rather than
-	 * silently omitted, so a merchant isn't left wondering why their catalog count
-	 * doesn't match the feed. Each product is mapped and validated exactly as it
-	 * would be during a sync; nothing is written to disk or uploaded.
+	 * — same base query args and `woocommerce_product_feed_args` filter — plus
+	 * standalone subscription products, which the sync drops at the query but the
+	 * preview reports as excluded so the catalog count is explained. Nothing is
+	 * written or uploaded.
 	 *
 	 * @since 10.9.0
 	 * @param int $detail_limit Maximum number of invalid products to return with full detail.
@@ -132,14 +130,10 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 		 */
 		$query_args = apply_filters( 'woocommerce_product_feed_args', $query_args, $this->integration );
 
-		// The sync query drops standalone subscription products by type, so they
-		// never reach should_sync_product() and would be missing from the preview
-		// with no explanation. Widen the walk to include them — they're still
-		// counted as excluded subscriptions. Only `subscription` is added:
-		// variable-subscription variations already arrive via the `variation`
-		// (product_variation) query, so adding the parent type would double-count.
-		// An unrestricted query already returns every type, so only extend an
-		// existing restriction.
+		// The sync drops standalone subscriptions by type; widen the preview walk
+		// to count them as excluded. Only `subscription` is added — `variation`
+		// already returns variable-subscription variations, so the parent type
+		// would double-count. Skip when no type restriction exists.
 		if ( ! empty( $query_args['type'] ) ) {
 			$query_args['type'] = array_values(
 				array_unique( array_merge( (array) $query_args['type'], [ 'subscription' ] ) )
@@ -207,9 +201,8 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 					continue;
 				}
 
-				// An empty row means should_sync_product() excluded it. Split the
-				// count so auto-excluded subscriptions aren't mistaken for a
-				// merchant-configured filter.
+				// An empty row means should_sync_product() excluded it; split the
+				// count so auto-excluded subscriptions aren't mistaken for a filter.
 				if ( empty( $row ) ) {
 					++$excluded_count;
 

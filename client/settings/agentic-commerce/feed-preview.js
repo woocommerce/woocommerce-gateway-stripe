@@ -79,8 +79,7 @@ const ErrorsTable = styled.table`
 		border-bottom: none;
 	}
 
-	// Drop the bullet indent so a single issue lines up with the "Issues"
-	// column header instead of sitting in from it.
+	// Drop the bullet indent so a single issue aligns with the "Issues" header.
 	ul {
 		margin: 0;
 		padding-left: 0;

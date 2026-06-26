@@ -176,8 +176,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * GET returns history entries in reverse-chronological order, capped at the
-	 * 5 most recent so the dashboard table stays compact.
+	 * GET returns history newest-first, capped at the 5 most recent.
 	 */
 	public function test_get_status_returns_history_newest_first_capped_at_5(): void {
 		// Store 25 entries oldest-first.

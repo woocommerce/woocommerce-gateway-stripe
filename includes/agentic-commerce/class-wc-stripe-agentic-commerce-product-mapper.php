@@ -1003,9 +1003,8 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Whether the product is a subscription type the feed excludes by default.
 	 *
-	 * Exposed so callers reporting why a product was excluded (e.g. the feed
-	 * preview) can identify this built-in default without duplicating the type
-	 * list.
+	 * Exposed so callers can report the exclusion reason without duplicating the
+	 * type list.
 	 *
 	 * @since 10.9.0
 	 * @param \WC_Product $product Product to check.
