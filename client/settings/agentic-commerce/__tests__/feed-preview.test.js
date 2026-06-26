@@ -65,7 +65,7 @@ describe( 'AgenticCommerceFeedPreview', () => {
 		expect( screen.getByText( '3' ) ).toBeInTheDocument(); // included count
 	} );
 
-	it( 'explains what "Excluded" means via a tooltip target', async () => {
+	it( 'keeps the excluded breakdown collapsed until Details is opened', async () => {
 		apiFetch.mockResolvedValue( PREVIEW_RESPONSE );
 
 		render( <AgenticCommerceFeedPreview /> );
@@ -73,9 +73,8 @@ describe( 'AgenticCommerceFeedPreview', () => {
 			screen.getByRole( 'button', { name: /Preview feed/i } )
 		);
 
-		// The label drops the misleading "by filters" wording; the explanation
-		// (subscriptions are the common cause) lives in an accessible tooltip
-		// anchor instead.
+		// The label drops the misleading "by filters" wording; the per-reason
+		// breakdown stays hidden behind a Details toggle rather than always on.
 		await waitFor( () => {
 			expect( screen.getByText( 'Excluded' ) ).toBeInTheDocument();
 		} );
@@ -83,7 +82,13 @@ describe( 'AgenticCommerceFeedPreview', () => {
 			screen.queryByText( 'Excluded by filters' )
 		).not.toBeInTheDocument();
 		expect(
-			screen.getByRole( 'img', { name: /What does Excluded mean/i } )
+			screen.queryByText( /subscription product/i )
+		).not.toBeInTheDocument();
+
+		fireEvent.click( screen.getByRole( 'button', { name: /Details/i } ) );
+
+		expect(
+			screen.getByText( /1 subscription product/i )
 		).toBeInTheDocument();
 	} );
 
@@ -101,9 +106,14 @@ describe( 'AgenticCommerceFeedPreview', () => {
 
 		await waitFor( () => {
 			expect(
-				screen.getByText( /12 subscription products/i )
+				screen.getByRole( 'button', { name: /Details/i } )
 			).toBeInTheDocument();
 		} );
+		fireEvent.click( screen.getByRole( 'button', { name: /Details/i } ) );
+
+		expect(
+			screen.getByText( /12 subscription products/i )
+		).toBeInTheDocument();
 		expect(
 			screen.getByText(
 				/2 products hidden by your product visibility settings/i
@@ -125,9 +135,14 @@ describe( 'AgenticCommerceFeedPreview', () => {
 
 		await waitFor( () => {
 			expect(
-				screen.getByText( /12 subscription products/i )
+				screen.getByRole( 'button', { name: /Details/i } )
 			).toBeInTheDocument();
 		} );
+		fireEvent.click( screen.getByRole( 'button', { name: /Details/i } ) );
+
+		expect(
+			screen.getByText( /12 subscription products/i )
+		).toBeInTheDocument();
 		expect(
 			screen.queryByText( /hidden by your product visibility settings/i )
 		).not.toBeInTheDocument();

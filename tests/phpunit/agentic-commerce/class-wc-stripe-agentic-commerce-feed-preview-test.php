@@ -31,6 +31,13 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	private $scoped_ids = [];
 
 	/**
+	 * Product ID the faked `subscription` type override applies to.
+	 *
+	 * @var int
+	 */
+	private $subscription_product_id = 0;
+
+	/**
 	 * Set up before each test.
 	 *
 	 * @return void
@@ -63,6 +70,8 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	public function tearDown(): void {
 		remove_filter( 'wc_stripe_agentic_commerce_product_query_args', [ $this, 'restrict_query' ] );
 		remove_filter( 'woocommerce_product_class', [ $this, 'map_variation_to_subscription' ] );
+		remove_filter( 'woocommerce_product_class', [ $this, 'map_simple_to_subscription' ] );
+		remove_filter( 'woocommerce_product_type_query', [ $this, 'force_subscription_type' ] );
 		remove_filter( 'woocommerce_data_stores', [ $this, 'register_subscription_variation_store' ] );
 		remove_all_filters( 'woocommerce_agentic_commerce_should_sync_product' );
 		parent::tearDown();
@@ -82,6 +91,32 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	 */
 	public function map_variation_to_subscription( $classname, $product_type ): string {
 		return 'variation' === $product_type ? WC_Stripe_Test_Subscription_Variation::class : $classname;
+	}
+
+	/**
+	 * Load `subscription`-typed products as a stand-in class so a faked
+	 * standalone subscription reports the type the preview buckets on, without
+	 * the WooCommerce Subscriptions plugin.
+	 *
+	 * @param string $classname    Resolved product class.
+	 * @param string $product_type Product type slug being instantiated.
+	 * @return string
+	 */
+	public function map_simple_to_subscription( $classname, $product_type ): string {
+		return 'subscription' === $product_type ? WC_Stripe_Test_Subscription::class : $classname;
+	}
+
+	/**
+	 * Force the faked product to resolve as the `subscription` type, bypassing
+	 * the data store's term lookup (which defaults an unregistered type to
+	 * `simple`).
+	 *
+	 * @param string|false $override   Existing override, if any.
+	 * @param int          $product_id Product being resolved.
+	 * @return string|false
+	 */
+	public function force_subscription_type( $override, $product_id ) {
+		return $product_id === $this->subscription_product_id ? 'subscription' : $override;
 	}
 
 	/**
@@ -287,6 +322,38 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A standalone subscription product (type `subscription`) is dropped from the
+	 * real sync query by type, so the preview must widen its walk to include it
+	 * and still bucket it under `subscriptions` rather than omit it silently.
+	 *
+	 * @return void
+	 */
+	public function test_excluded_breakdown_counts_standalone_subscriptions(): void {
+		// Fake a standalone subscription without the WooCommerce Subscriptions
+		// plugin. The `subscription` product_type term is what makes the preview's
+		// *widened* type query return the product (the default simple/variation
+		// query would not), so this also exercises the widening itself. The
+		// `woocommerce_product_type_query` filter then forces the loaded object's
+		// type — the data store otherwise resolves an unregistered term to
+		// `simple` — and `woocommerce_product_class` gives it a backing class.
+		wp_insert_term( 'subscription', 'product_type' );
+		add_filter( 'woocommerce_product_type_query', [ $this, 'force_subscription_type' ], 10, 2 );
+		add_filter( 'woocommerce_product_class', [ $this, 'map_simple_to_subscription' ], 10, 2 );
+
+		$product                       = $this->create_valid_product();
+		$this->subscription_product_id = $product->get_id();
+		wp_set_object_terms( $product->get_id(), 'subscription', 'product_type' );
+
+		$this->scope_to( [ $product->get_id() ] );
+
+		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+
+		$this->assertSame( 1, $preview['excluded_count'] );
+		$this->assertSame( 1, $preview['excluded_breakdown']['subscriptions'] );
+		$this->assertSame( 0, $preview['excluded_breakdown']['filtered'] );
+	}
+
+	/**
 	 * A non-subscription product excluded via the visibility filter is bucketed
 	 * under `filtered`, not `subscriptions`.
 	 *
@@ -393,5 +460,23 @@ class WC_Stripe_Test_Subscription_Variation extends WC_Product_Variation {
 	 */
 	public function get_type() {
 		return 'subscription_variation';
+	}
+}
+
+/**
+ * Minimal standalone-subscription stand-in so the preview can classify a simple
+ * product as a subscription without the WooCommerce Subscriptions plugin. The
+ * preview's widened query returns it by its `subscription` product_type term;
+ * this class only differs from a simple product in the type slug it reports.
+ */
+class WC_Stripe_Test_Subscription extends WC_Product_Simple {
+
+	/**
+	 * Report the standalone subscription type the feed excludes by default.
+	 *
+	 * @return string
+	 */
+	public function get_type() {
+		return 'subscription';
 	}
 }

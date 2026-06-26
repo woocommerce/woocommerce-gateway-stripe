@@ -86,9 +86,11 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 	 *
 	 * The walk mirrors {@see \Automattic\WooCommerce\Internal\ProductFeed\Feed\ProductWalker::from_integration()}
 	 * — same base query args and the same `woocommerce_product_feed_args` filter —
-	 * so the counts match the products a real sync would select. Each product is
-	 * mapped and validated exactly as it would be during a sync; nothing is
-	 * written to disk or uploaded.
+	 * then additionally walks standalone subscription products, which the sync
+	 * drops at the query for efficiency. They're reported as excluded rather than
+	 * silently omitted, so a merchant isn't left wondering why their catalog count
+	 * doesn't match the feed. Each product is mapped and validated exactly as it
+	 * would be during a sync; nothing is written to disk or uploaded.
 	 *
 	 * @since 10.9.0
 	 * @param int $detail_limit Maximum number of invalid products to return with full detail.
@@ -129,6 +131,20 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 		 * @param WC_Stripe_Agentic_Commerce_Integration $integration The integration the query belongs to.
 		 */
 		$query_args = apply_filters( 'woocommerce_product_feed_args', $query_args, $this->integration );
+
+		// The sync query drops standalone subscription products by type, so they
+		// never reach should_sync_product() and would be missing from the preview
+		// with no explanation. Widen the walk to include them — they're still
+		// counted as excluded subscriptions. Only `subscription` is added:
+		// variable-subscription variations already arrive via the `variation`
+		// (product_variation) query, so adding the parent type would double-count.
+		// An unrestricted query already returns every type, so only extend an
+		// existing restriction.
+		if ( ! empty( $query_args['type'] ) ) {
+			$query_args['type'] = array_values(
+				array_unique( array_merge( (array) $query_args['type'], [ 'subscription' ] ) )
+			);
+		}
 
 		$total_count            = 0;
 		$included_count         = 0;
