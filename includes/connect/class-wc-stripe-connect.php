@@ -267,9 +267,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$is_test         = 'live' !== $mode;
 			$prefix          = $is_test ? 'test_' : '';
 			$default_options = $this->get_default_stripe_config();
-			// Read/write the option directly (not via the gateway instance) so the
-			// gateway's first construction — and its PMC migration — still happens
-			// below, after the new keys are persisted.
 			$current_options                            = WC_Stripe::get_instance()->get_settings();
 			$options                                    = array_merge( $default_options, $current_options );
 			$options['enabled']                         = 'yes';
