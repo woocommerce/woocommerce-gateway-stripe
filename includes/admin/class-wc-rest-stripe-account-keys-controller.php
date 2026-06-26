@@ -280,8 +280,8 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * @return WP_REST_Response
 	 */
 	public function set_account_keys( WP_REST_Request $request ) {
-		$gateway        = WC_Stripe::get_instance()->get_main_stripe_gateway();
-		$settings       = $gateway->get_settings();
+		$wc_stripe      = WC_Stripe::get_instance();
+		$settings       = $wc_stripe->get_settings();
 		$allowed_params = [ 'publishable_key', 'secret_key', 'webhook_secret', 'test_publishable_key', 'test_secret_key', 'test_webhook_secret' ];
 
 		$current_account_keys = array_intersect_key( $settings, array_flip( $allowed_params ) );
