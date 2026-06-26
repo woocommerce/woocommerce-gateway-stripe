@@ -165,8 +165,6 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * Reproduces the Optimized Checkout undercharge where the grand total was
 	 * read before the tax was folded in, so the customer was charged the order
 	 * subtotal while `tax_amount` metadata reported a tax that was never collected.
-	 *
-	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5582
 	 */
 	public function test_create_payment_intent_includes_tax_applied_after_calculate_totals() {
 		$tax = 9.0;
@@ -218,8 +216,6 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * The same fix must hold on the update path: the amount sent when updating a
 	 * PaymentIntent must include tax applied on `woocommerce_order_after_calculate_totals`.
-	 *
-	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5582
 	 */
 	public function test_update_intent_includes_tax_applied_after_calculate_totals() {
 		$tax = 9.0;
@@ -301,6 +297,108 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		remove_action( 'woocommerce_order_after_calculate_totals', $apply_tax, 10 );
 
 		$this->assertTrue( $update_asserted, 'The PaymentIntent update request was never sent.' );
+	}
+
+	/**
+	 * A first update that recalculates and persists the tax-inclusive total but then fails at Stripe
+	 * leaves the order ahead of the (still pre-tax) intent. The retry must not be rejected by the
+	 * order-vs-intent amount validation; it must revalidate, re-push the tax-inclusive amount, and
+	 * succeed. update_intent re-sets the amount from the order, so this transient gap is expected,
+	 * not an anomaly that should wedge checkout.
+	 */
+	public function test_update_intent_retry_succeeds_when_order_total_ahead_of_intent() {
+		$tax = 9.0;
+
+		$user_id = self::factory()->user->create( [ 'role' => 'customer' ] );
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_mock', false );
+		wp_set_current_user( $user_id );
+
+		// Post-failed-attempt state: the order already carries the tax-inclusive total (recalculated
+		// and saved by the first update), while the intent is still at the pre-tax amount because
+		// that first Stripe update failed before it landed.
+		$net         = (float) $this->order->get_subtotal() + (float) $this->order->get_shipping_total();
+		$taxed_total = $net + $tax;
+		$this->order->set_cart_tax( $tax );
+		$this->order->set_shipping_tax( 0 );
+		$this->order->set_total( $taxed_total );
+		$this->order->save();
+
+		$currency     = strtolower( $this->order->get_currency() );
+		$stale_amount = WC_Stripe_Helper::get_stripe_amount( $net, $currency );
+		$taxed_amount = WC_Stripe_Helper::get_stripe_amount( $taxed_total, $currency );
+
+		$respond = function ( $data ) {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( $data ),
+			];
+		};
+
+		// First update attempt fails at Stripe; the retry succeeds. The intent retrieval keeps
+		// returning the pre-tax amount throughout, since the failed update never moved it.
+		$attempt         = 0;
+		$update_asserted = false;
+		$test_request    = function ( $preempt, $parsed_args, $url ) use ( $currency, $stale_amount, $taxed_amount, $respond, &$attempt, &$update_asserted ) {
+			$method = $parsed_args['method'] ?? 'GET';
+
+			if ( false !== strpos( $url, '/customers' ) ) {
+				return $respond( [ 'id' => 'cus_mock' ] );
+			}
+
+			// Intent retrieval for validation — still at the pre-tax amount, ahead of which the
+			// order now sits. Without the scoped amount-check skip this is where the retry throws.
+			if ( false !== strpos( $url, '/payment_intents/pi_mock' ) && 'POST' !== $method ) {
+				return $respond(
+					[
+						'id'                   => 'pi_mock',
+						'object'               => 'payment_intent',
+						'currency'             => $currency,
+						'amount'               => $stale_amount,
+						'status'               => 'requires_payment_method',
+						'payment_method_types' => [ 'card' ],
+					]
+				);
+			}
+
+			if ( false !== strpos( $url, '/payment_intents/pi_mock' ) && 'POST' === $method ) {
+				$this->assertEquals( $taxed_amount, $parsed_args['body']['amount'] );
+				++$attempt;
+				if ( 1 === $attempt ) {
+					return $respond(
+						[
+							'error' => [
+								'code'    => 'api_error',
+								'message' => 'Network error',
+							],
+						]
+					);
+				}
+				$update_asserted = true;
+				return $respond(
+					[
+						'id'     => 'pi_mock',
+						'object' => 'payment_intent',
+					]
+				);
+			}
+
+			return $respond( [ 'id' => 'pi_mock' ] );
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		// First attempt: a failed Stripe update, surfaced as an error result (not a thrown
+		// validation exception).
+		$first = $this->mock_controller->update_intent( 'pi_mock', $this->order->get_id(), false, '' );
+		$this->assertIsArray( $first );
+		$this->assertFalse( $first['success'] );
+
+		// Retry: the order total is ahead of the intent, yet validation must let it through.
+		$this->mock_controller->update_intent( 'pi_mock', $this->order->get_id(), false, '' );
+
+		remove_filter( 'pre_http_request', $test_request, 10 );
+
+		$this->assertTrue( $update_asserted, 'The retry update request was never sent.' );
 	}
 
 	/**

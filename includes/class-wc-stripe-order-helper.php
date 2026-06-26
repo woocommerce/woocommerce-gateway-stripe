@@ -1107,10 +1107,16 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order      $order                 The order to check.
 	 * @param object|string $intent                The payment intent to check, can either be an object or an intent ID.
 	 * @param string|null   $selected_payment_type The selected payment type, which is generally applicable for updates. If null, we will use the stored payment type for the order.
+	 * @param bool          $skip_amount_check     Skip the order-total vs intent-amount comparison. Only callers that
+	 *                                             authoritatively re-set the intent amount from the order immediately
+	 *                                             after (e.g. update_intent) may pass true: there an order ahead of the
+	 *                                             intent is the expected pre-reconciliation state, not an anomaly, and a
+	 *                                             late tax recalculation would otherwise wedge a retry. Charge/confirm
+	 *                                             paths must leave this false so the amount stays strictly validated.
 	 *
 	 * @throws Exception Throws an exception if the intent is not valid for the order.
 	 */
-	public function validate_intent_for_order( WC_Order $order, $intent, ?string $selected_payment_type = null ): void {
+	public function validate_intent_for_order( WC_Order $order, $intent, ?string $selected_payment_type = null, bool $skip_amount_check = false ): void {
 		$intent_id = null;
 		if ( is_string( $intent ) ) {
 			$intent_id       = $intent;
@@ -1152,10 +1158,12 @@ class WC_Stripe_Order_Helper {
 		$order_amount          = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
 		$order_intent_id       = self::get_intent_id_from_order( $order );
 
+		$amount_matches = $skip_amount_check || $order_amount === $intent->amount;
+
 		if ( 'payment_intent' === $intent->object ) {
 			$is_valid = $order_currency === $intent->currency
 				&& $is_valid_payment_type
-				&& $order_amount === $intent->amount
+				&& $amount_matches
 				&& ( ! $order_intent_id || $order_intent_id === $intent->id );
 		} else {
 			// Setup intents don't have an amount or currency.

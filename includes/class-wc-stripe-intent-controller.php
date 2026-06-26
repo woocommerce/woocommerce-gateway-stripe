@@ -498,7 +498,10 @@ class WC_Stripe_Intent_Controller {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		$selected_payment_type = '' !== $selected_upe_payment_type && is_string( $selected_upe_payment_type ) ? $selected_upe_payment_type : null;
-		$order_helper->validate_intent_for_order( $order, $intent_id, $selected_payment_type );
+		// Skip the amount check: this method re-sets the intent amount from the order total below, so
+		// an order total that has moved ahead of the intent (e.g. tax recalculated late) is the
+		// expected state to reconcile here, not a mismatch that should abort and wedge a retry.
+		$order_helper->validate_intent_for_order( $order, $intent_id, $selected_payment_type, true );
 
 		$gateway  = $this->get_upe_gateway();
 		$currency = $order->get_currency();
