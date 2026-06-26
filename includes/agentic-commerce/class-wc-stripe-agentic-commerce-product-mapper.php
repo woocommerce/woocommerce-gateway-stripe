@@ -1003,12 +1003,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Whether the product is a subscription type the feed excludes by default.
 	 *
-	 * Agentic Commerce checkout can't handle recurring billing, so subscription
-	 * products are dropped from the feed unless an adapter overrides
-	 * {@see self::should_sync_product()}. Exposed so callers that report *why* a
-	 * product was excluded (e.g. the feed preview) can distinguish this built-in
-	 * default from an adapter- or merchant-driven exclusion without duplicating
-	 * the type list.
+	 * Exposed so callers reporting why a product was excluded (e.g. the feed
+	 * preview) can identify this built-in default without duplicating the type
+	 * list.
 	 *
 	 * @since 10.9.0
 	 * @param \WC_Product $product Product to check.

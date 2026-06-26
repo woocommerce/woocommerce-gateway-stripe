@@ -191,12 +191,9 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 					continue;
 				}
 
-				// map_product() returns an empty row only for products
-				// should_sync_product() excluded. Split the count by reason so the
-				// merchant can tell a built-in default (subscriptions, which agents
-				// can't buy) from a product an adapter or visibility setting hid —
-				// the bare "excluded" total reads as a filter the merchant set up
-				// even when it's entirely auto-excluded subscriptions.
+				// An empty row means should_sync_product() excluded it. Split the
+				// count so auto-excluded subscriptions aren't mistaken for a
+				// merchant-configured filter.
 				if ( empty( $row ) ) {
 					++$excluded_count;
 
