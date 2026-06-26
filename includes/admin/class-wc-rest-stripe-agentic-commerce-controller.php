@@ -109,6 +109,16 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 
 		register_rest_route(
 			$this->namespace,
+			'/' . $this->rest_base . '/preview',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_preview' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
+
+		register_rest_route(
+			$this->namespace,
 			'/' . $this->rest_base . '/settings',
 			[
 				[
@@ -180,6 +190,39 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				'next_sync' => $next_sync,
 			]
 		);
+	}
+
+	/**
+	 * Return an upload-free preview of the next sync: how many products would be
+	 * included vs. excluded, plus the products the feed validator would reject
+	 * and why.
+	 *
+	 * Read-only and gated only on the developer feature flag (not the merchant
+	 * toggle) so merchants can inspect feed health before enabling the feature.
+	 *
+	 * @since 10.9.0
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_preview() {
+		if ( ! $this->is_available() ) {
+			return $this->get_unavailable_error();
+		}
+
+		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Feed_Preview' ) ) {
+			return $this->get_unavailable_error();
+		}
+
+		try {
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+		} catch ( Exception $e ) {
+			return new WP_Error(
+				'stripe_agentic_commerce_preview_failed',
+				$e->getMessage(),
+				[ 'status' => 500 ]
+			);
+		}
+
+		return rest_ensure_response( $preview );
 	}
 
 	/**
