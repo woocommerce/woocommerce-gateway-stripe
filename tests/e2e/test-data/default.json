@@ -21,7 +21,7 @@
 		},
 		"subscription": {
 			"name": "Subscription Product",
-			"type": "subscription"
+			"type": "simple"
 		},
 		"pre-order": {
 			"name": "Pre-Order Product",
