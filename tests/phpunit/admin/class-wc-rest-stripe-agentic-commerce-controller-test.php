@@ -176,9 +176,10 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * GET returns history entries in reverse-chronological order, capped at 20.
+	 * GET returns history entries in reverse-chronological order, capped at the
+	 * 5 most recent so the dashboard table stays compact.
 	 */
-	public function test_get_status_returns_history_newest_first_capped_at_20(): void {
+	public function test_get_status_returns_history_newest_first_capped_at_5(): void {
 		// Store 25 entries oldest-first.
 		$history = [];
 		for ( $i = 1; $i <= 25; $i++ ) {
@@ -198,12 +199,12 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 		$returned = $response->get_data()['history'];
 
-		// Only the 20 most recent entries should be returned.
-		$this->assertCount( 20, $returned );
+		// Only the 5 most recent entries should be returned.
+		$this->assertCount( 5, $returned );
 
-		// Newest first: entry 25 should be at index 0, entry 6 at index 19.
+		// Newest first: entry 25 should be at index 0, entry 21 at index 4.
 		$this->assertEquals( 'impset_25', $returned[0]['import_set_id'] );
-		$this->assertEquals( 'impset_6', $returned[19]['import_set_id'] );
+		$this->assertEquals( 'impset_21', $returned[4]['import_set_id'] );
 	}
 
 	/**
