@@ -5207,6 +5207,43 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * A country-restricted method (iDEAL) must be excluded from the OCS Payment Element when the
+	 * billing country can't use it, so confirmation never rejects it with "not available in the
+	 * selected country"; unrestricted methods (card) must always remain available.
+	 *
+	 * @param string   $billing_country  Billing country supplied to the gateway.
+	 * @param string[] $enabled_methods  Enabled-at-checkout method IDs.
+	 * @param string[] $expected         Expected excluded method IDs for the country.
+	 * @return void
+	 * @dataProvider provide_test_get_country_restricted_excluded_payment_method_types
+	 */
+	public function test_get_country_restricted_excluded_payment_method_types( string $billing_country, array $enabled_methods, array $expected ) {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'get_upe_enabled_at_checkout_payment_method_ids' ] )
+			->getMock();
+		$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( $enabled_methods );
+
+		$method = new ReflectionMethod( $gateway, 'get_country_restricted_excluded_payment_method_types' );
+		$method->setAccessible( true );
+
+		$this->assertSame( $expected, array_values( $method->invoke( $gateway, $billing_country ) ) );
+	}
+
+	/**
+	 * Data provider for `test_get_country_restricted_excluded_payment_method_types`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_country_restricted_excluded_payment_method_types(): array {
+		return [
+			'iDEAL excluded outside NL'      => [ 'US', [ 'card', 'ideal' ], [ 'ideal' ] ],
+			'iDEAL kept in NL'               => [ 'NL', [ 'card', 'ideal' ], [] ],
+			'unknown country excludes iDEAL' => [ '', [ 'card', 'ideal' ], [ 'ideal' ] ],
+			'card never excluded'            => [ 'US', [ 'card' ], [] ],
+		];
+	}
+
+	/**
 	 * Data provider for test_payment_scripts_enqueues_correct_assets.
 	 *
 	 * @return array[]

@@ -26,7 +26,10 @@ import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
-import { validateBlikCode } from 'wcstripe/stripe-utils';
+import {
+	validateBlikCode,
+	getExcludedPaymentMethodTypesForBillingCountry,
+} from 'wcstripe/stripe-utils';
 import {
 	invalidateAppearanceCache,
 	initializeUPEAppearance,
@@ -336,6 +339,29 @@ const PaymentProcessor = ( {
 		stripeServerData,
 		paymentMethodsConfig,
 	] );
+
+	// Keep the Optimized Checkout element's country-restricted exclusions in sync
+	// when the shopper changes the billing country in-place. The server seeds the
+	// list from the country known at page load; without this the element keeps
+	// offering a method (e.g. iDEAL outside NL) that confirmation would reject.
+	// Adaptive Pricing uses initCheckout(), whose object has no update(), so it is
+	// covered by the server load-time exclusion only.
+	useEffect( () => {
+		if (
+			! stripeServerData?.shouldShowOptimizedCheckout ||
+			! elements ||
+			typeof elements.update !== 'function'
+		) {
+			return;
+		}
+
+		elements.update( {
+			excludedPaymentMethodTypes:
+				getExcludedPaymentMethodTypesForBillingCountry(
+					billing?.billingAddress?.country || ''
+				),
+		} );
+	}, [ elements, billing?.billingAddress?.country, stripeServerData ] );
 
 	// After web fonts finish loading, re-compute the appearance so the PE
 	// uses the correct font families instead of fallback generics.

@@ -12,6 +12,10 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 	getBillingDetailsForDeferredFlow: jest.fn().mockReturnValue( null ),
 	getDefaultValues: jest.fn().mockReturnValue( {} ),
 	getExcludedPaymentMethodTypes: jest.fn().mockReturnValue( [] ),
+	getExcludedPaymentMethodTypesForBillingCountry: jest
+		.fn()
+		.mockReturnValue( [] ),
+	getCurrentBillingCountry: jest.fn().mockReturnValue( '' ),
 	getPaymentMethodTypes: jest.fn().mockReturnValue( [ 'card' ] ),
 	getUserDataForCheckoutSession: jest.fn().mockReturnValue( {} ),
 	getStripeServerData: jest.fn().mockReturnValue( {

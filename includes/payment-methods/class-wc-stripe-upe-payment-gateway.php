@@ -822,12 +822,61 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		);
 
+		// Exclude methods the shopper's billing country can't use, so the Payment Element doesn't
+		// surface a method (e.g. iDEAL outside NL) that confirmation would later reject with
+		// "not available in the selected country". This reflects only the country known at page
+		// load; the frontend recomputes the exclusion when the billing country changes in-page.
+		$country_excluded_methods = array_filter(
+			$this->get_country_restricted_excluded_payment_method_types( $this->get_billing_country_for_checkout() ),
+			function ( $method ) use ( $non_excludable_methods ) {
+				return ! in_array( $method, $non_excludable_methods, true );
+			}
+		);
+		$excluded_methods         = array_merge( $excluded_methods, $country_excluded_methods );
+
 		// Always exclude Amazon Pay, as it is shown via Express Checkout and not in the standard Payment Element.
 		if ( ! in_array( WC_Stripe_Payment_Methods::AMAZON_PAY, $excluded_methods, true ) ) {
 			$excluded_methods[] = WC_Stripe_Payment_Methods::AMAZON_PAY;
 		}
 
 		return array_values( array_unique( $excluded_methods ) );
+	}
+
+	/**
+	 * Returns enabled-at-checkout payment methods that are unavailable for the given billing country.
+	 *
+	 * Methods with no country restriction (card, Link, etc.) are always available and never returned.
+	 * When the country is empty (unknown at page load), restricted methods are treated as unavailable;
+	 * the frontend re-includes them once the shopper enters a supported country.
+	 *
+	 * @param string $billing_country Two-letter ISO billing country, or empty when unknown.
+	 * @return string[] Payment method types unavailable in the given country.
+	 */
+	protected function get_country_restricted_excluded_payment_method_types( string $billing_country ): array {
+		$excluded = [];
+
+		foreach ( $this->get_upe_enabled_at_checkout_payment_method_ids() as $method_id ) {
+			$payment_method = $this->payment_methods[ $method_id ] ?? null;
+
+			if ( $payment_method instanceof WC_Stripe_UPE_Payment_Method && ! $payment_method->is_available_for_billing_country( $billing_country ) ) {
+				$excluded[] = $method_id;
+			}
+		}
+
+		return $excluded;
+	}
+
+	/**
+	 * Returns the shopper's billing country for checkout-time payment method gating.
+	 *
+	 * Extracted as a protected method so tests can supply a deterministic country.
+	 *
+	 * @return string Two-letter ISO billing country, or empty when unknown.
+	 */
+	protected function get_billing_country_for_checkout(): string {
+		$customer = WC()->customer;
+
+		return $customer instanceof WC_Customer ? (string) $customer->get_billing_country() : '';
 	}
 
 	/**
@@ -931,6 +980,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// saved as a different type (Bancontact → SEPA) are not savable: the
 		// Checkout Sessions flow cannot request `setup_future_usage` for them.
 		$show_save_option_by_method = [];
+
+		// For OC, the methods rendered inside the Payment Element are collapsed into the single
+		// `oc` config entry, so the per-method `countries` exposed below is unavailable to the
+		// frontend. Surface a method => supported-countries map for the country-restricted methods
+		// so the frontend can recompute `excludedPaymentMethodTypes` when the billing country
+		// changes in-page (the server value reflects only the country known at page load).
+		$countries_by_method = [];
 		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
 			$is_adaptive_pricing_active = $this->is_adaptive_pricing_supported();
 			foreach ( $original_method_ids as $method_id ) {
@@ -941,6 +997,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 					$show_save_option_by_method[ $method_id ] = ! $is_blocked_by_adaptive_pricing
 						&& $this->should_upe_payment_method_show_save_option( $payment_method );
+
+					$method_countries = $payment_method->get_available_billing_countries();
+					if ( ! empty( $method_countries ) ) {
+						$countries_by_method[ $method_id ] = $method_countries;
+					}
 				}
 			}
 		}
@@ -959,8 +1020,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				'enabledPaymentMethods'  => $original_method_ids,
 			];
 
-			if ( ! empty( $show_save_option_by_method ) && $payment_method instanceof WC_Stripe_UPE_Payment_Method_OC ) {
-				$settings[ $payment_method_id ]['showSaveOptionByMethod'] = $show_save_option_by_method;
+			if ( $payment_method instanceof WC_Stripe_UPE_Payment_Method_OC ) {
+				if ( ! empty( $show_save_option_by_method ) ) {
+					$settings[ $payment_method_id ]['showSaveOptionByMethod'] = $show_save_option_by_method;
+				}
+
+				if ( ! empty( $countries_by_method ) ) {
+					$settings[ $payment_method_id ]['countriesByMethod'] = $countries_by_method;
+				}
 			}
 		}
 

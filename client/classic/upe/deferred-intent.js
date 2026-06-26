@@ -18,6 +18,7 @@ import {
 	hasEmptyRequiredFields,
 	initializeUPEComponents,
 	maybeUpdateAdaptivePricingCheckoutSession,
+	maybeUpdateOptimizedCheckoutExclusions,
 	mountStripePaymentElement,
 	processPayment,
 	trackMountInProgress,
@@ -92,6 +93,10 @@ jQuery( function ( $ ) {
 		const updateChain = ( async () => {
 			await maybeUpdateAdaptivePricingCheckoutSession( api );
 			await maybeMountStripePaymentElement();
+			// A billing-country change recalculates the checkout (firing this event)
+			// but leaves the already-mounted Optimized Checkout element in place, so
+			// refresh its country-restricted exclusions here.
+			maybeUpdateOptimizedCheckoutExclusions();
 		} )();
 		trackMountInProgress( updateChain );
 		void updateChain;

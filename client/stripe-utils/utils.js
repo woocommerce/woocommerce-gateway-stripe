@@ -788,6 +788,42 @@ export const getExcludedPaymentMethodTypes = () => {
 };
 
 /**
+ * Returns the Optimized Checkout excluded payment method types for a billing country.
+ *
+ * The server-provided `excludedPaymentMethodTypes` reflects only the country known at page
+ * load. As the shopper changes the billing country in-page, recompute the exclusion so the
+ * Payment Element never surfaces a method (e.g. iDEAL outside NL) that confirmation would
+ * reject with "not available in the selected country". Mirrors the server-side
+ * `get_excluded_payment_method_types()` country logic using the per-method country map that
+ * Optimized Checkout exposes on its config entry (`countriesByMethod`).
+ *
+ * @param {string} billingCountry Two-letter ISO billing country (may be empty when unknown).
+ * @return {Array<string>} Array of payment method types to exclude for the country.
+ */
+export const getExcludedPaymentMethodTypesForBillingCountry = (
+	billingCountry
+) => {
+	const excluded = [ ...getExcludedPaymentMethodTypes() ];
+	const countriesByMethod =
+		getStripeServerData()?.paymentMethodsConfig?.[ PAYMENT_METHOD_CARD ]
+			?.countriesByMethod || {};
+
+	Object.entries( countriesByMethod ).forEach( ( [ method, countries ] ) => {
+		// An empty list means no country restriction. A non-empty list that omits the
+		// billing country — including an unknown/empty country — can't be confirmed.
+		if (
+			Array.isArray( countries ) &&
+			countries.length > 0 &&
+			! countries.includes( billingCountry )
+		) {
+			excluded.push( method );
+		}
+	} );
+
+	return [ ...new Set( excluded ) ];
+};
+
+/**
  * Show error notice at top of checkout form.
  * Will try to use a translatable message using the message code if available.
  *
@@ -956,6 +992,19 @@ export const paymentMethodSupportsDeferredIntent = ( upeElement ) => {
 };
 
 /**
+ * Returns the shopper's current billing country for classic checkout.
+ *
+ * Reads the live billing field first; on "pay for order" there is no billing
+ * input, so it falls back to the server-provided customer data.
+ *
+ * @return {string} Two-letter ISO billing country, or empty when unknown.
+ */
+export const getCurrentBillingCountry = () =>
+	document.getElementById( 'billing_country' )?.value ||
+	getStripeServerData()?.customerData?.billing_country ||
+	'';
+
+/**
  * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
  */
 export const togglePaymentMethodForCountry = ( upeElement ) => {
@@ -965,11 +1014,7 @@ export const togglePaymentMethodForCountry = ( upeElement ) => {
 	const supportedCountries =
 		paymentMethodsConfig[ paymentMethodType ].countries;
 
-	// in the case of "pay for order", there is no "billing country" input, so we need to rely on backend data.
-	const billingCountry =
-		document.getElementById( 'billing_country' )?.value ||
-		getStripeServerData()?.customerData?.billing_country ||
-		'';
+	const billingCountry = getCurrentBillingCountry();
 
 	const upeContainer = document.querySelector(
 		'.payment_method_stripe_' + paymentMethodType

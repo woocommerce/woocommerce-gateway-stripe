@@ -6,6 +6,7 @@ import {
 	getHiddenBillingFields,
 	getStripeServerData,
 	showErrorCheckout,
+	getExcludedPaymentMethodTypesForBillingCountry,
 } from '../utils';
 import { initializeUPEAppearance } from '../upe-appearance';
 import { getAppearance } from '../../styles/upe';
@@ -843,5 +844,69 @@ describe( 'showErrorCheckout', () => {
 		expect( container.prepend ).toHaveBeenCalledWith(
 			expect.stringContaining( 'Your card was declined.' )
 		);
+	} );
+
+	describe( 'getExcludedPaymentMethodTypesForBillingCountry', () => {
+		const globalValues = global.wc_stripe_upe_params;
+
+		afterEach( () => {
+			global.wc_stripe_upe_params = globalValues;
+		} );
+
+		const setServerData = (
+			countriesByMethod,
+			excludedPaymentMethodTypes
+		) => {
+			global.wc_stripe_upe_params = {
+				excludedPaymentMethodTypes,
+				paymentMethodsConfig: {
+					card: { countriesByMethod },
+				},
+			};
+		};
+
+		it( 'excludes a country-restricted method when the billing country is unsupported', () => {
+			setServerData( { ideal: [ 'NL' ] }, [ 'amazon_pay' ] );
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( 'US' )
+			).toEqual( expect.arrayContaining( [ 'amazon_pay', 'ideal' ] ) );
+		} );
+
+		it( 'keeps a country-restricted method when the billing country is supported', () => {
+			setServerData( { ideal: [ 'NL' ] }, [ 'amazon_pay' ] );
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( 'NL' )
+			).not.toContain( 'ideal' );
+		} );
+
+		it( 'excludes country-restricted methods when the billing country is unknown', () => {
+			setServerData( { ideal: [ 'NL' ] }, [ 'amazon_pay' ] );
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( '' )
+			).toContain( 'ideal' );
+		} );
+
+		it( 'preserves the server-provided exclusions and de-duplicates', () => {
+			setServerData( { ideal: [ 'NL' ] }, [ 'amazon_pay', 'ideal' ] );
+
+			const excluded =
+				getExcludedPaymentMethodTypesForBillingCountry( 'US' );
+
+			expect(
+				excluded.filter( ( type ) => type === 'ideal' )
+			).toHaveLength( 1 );
+			expect( excluded ).toContain( 'amazon_pay' );
+		} );
+
+		it( 'falls back to the Amazon Pay exclusion when no country map is present', () => {
+			global.wc_stripe_upe_params = {};
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( 'US' )
+			).toEqual( [ 'amazon_pay' ] );
+		} );
 	} );
 } );

@@ -15,7 +15,8 @@ import {
 	resetBlockCheckoutPaymentState,
 	getAdditionalSetupIntentData,
 	validateBlikCode,
-	getExcludedPaymentMethodTypes,
+	getExcludedPaymentMethodTypesForBillingCountry,
+	getCurrentBillingCountry,
 	getUserDataForCheckoutSession,
 	getBillingDetailsForDeferredFlow,
 } from '../../stripe-utils';
@@ -314,8 +315,14 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				...options,
 				paymentMethodConfiguration:
 					stripeServerData?.paymentMethodConfigurationId,
-				// Exclude unsupported payment methods - calculated dynamically on server side
-				excludedPaymentMethodTypes: getExcludedPaymentMethodTypes(),
+				// Exclude unsupported methods (server-computed) plus any method the current
+				// billing country can't use, so the element never surfaces a method that
+				// confirmation would reject. Kept in sync on billing-country changes via
+				// maybeUpdateOptimizedCheckoutExclusions().
+				excludedPaymentMethodTypes:
+					getExcludedPaymentMethodTypesForBillingCountry(
+						getCurrentBillingCountry()
+					),
 			};
 
 			const setupFutureUsage =
@@ -955,6 +962,34 @@ export function getMountedUPEComponent( paymentMethodType ) {
 	}
 
 	return null;
+}
+
+/**
+ * Recomputes the Optimized Checkout Payment Element's excluded methods for the
+ * current billing country and pushes the change to the live Elements instance.
+ *
+ * The server seeds `excludedPaymentMethodTypes` from the country known at page
+ * load; this keeps it correct after an in-page country change so the element
+ * never surfaces a method (e.g. iDEAL outside NL) that confirmation rejects.
+ * No-op outside Optimized Checkout and on the Adaptive Pricing (Checkout
+ * Sessions) flow, whose `initCheckout` object exposes no `update()`.
+ */
+export function maybeUpdateOptimizedCheckoutExclusions() {
+	if ( ! getStripeServerData()?.shouldShowOptimizedCheckout ) {
+		return;
+	}
+
+	const elements = gatewayUPEComponents[ PAYMENT_METHOD_CARD ]?.elements;
+	if ( ! elements || typeof elements.update !== 'function' ) {
+		return;
+	}
+
+	elements.update( {
+		excludedPaymentMethodTypes:
+			getExcludedPaymentMethodTypesForBillingCountry(
+				getCurrentBillingCountry()
+			),
+	} );
 }
 
 /**
