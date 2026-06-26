@@ -934,10 +934,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * The deferred-intent charge must include tax left on the order with a stale (pre-tax) grand
-	 * total — the #5582 undercharge. Reproduces TaxJar's persisted state (tax recorded, total stale,
-	 * no active hook) so it exercises the `calculate_totals( false )` re-sum, not a hook fold-in.
-	 *
-	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5582
+	 * total — the undercharge condition. Reproduces TaxJar's persisted state (tax recorded, total
+	 * stale, no active hook) so it exercises the `calculate_totals( false )` re-sum, not a hook fold-in.
 	 */
 	public function test_process_payment_deferred_intent_includes_tax_applied_after_totals_summed() {
 		$tax      = 9.0;

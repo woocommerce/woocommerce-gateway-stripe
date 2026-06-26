@@ -569,6 +569,40 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Tax recorded on the order but left out of a stale (pre-tax) grand total must be folded back in,
+	 * and the corrected total persisted so the charge and the stored order stay consistent.
+	 */
+	public function test_recalculate_order_total_folds_in_stale_tax(): void {
+		$tax   = 9.0;
+		$order = WC_Helper_Order::create_order();
+		$net   = (float) $order->get_subtotal() + (float) $order->get_shipping_total();
+
+		// Buggy persisted state: tax recorded on the order, grand total stale (pre-tax).
+		$order->set_cart_tax( $tax );
+		$order->set_shipping_tax( 0 );
+		$order->set_total( $net );
+		$order->save();
+
+		$result = WC_Stripe_Helper::recalculate_order_total( $order );
+
+		$this->assertSame( $net + $tax, $result );
+		// Persisted, so a later read of the order reflects the tax-inclusive total.
+		$this->assertSame( $net + $tax, (float) wc_get_order( $order->get_id() )->get_total() );
+	}
+
+	/**
+	 * An order whose total already matches its line items must be returned unchanged — re-summing
+	 * stored tax must not double-count it.
+	 */
+	public function test_recalculate_order_total_is_idempotent_for_correct_order(): void {
+		$order    = WC_Helper_Order::create_order();
+		$expected = (float) $order->get_total();
+
+		$this->assertSame( $expected, WC_Stripe_Helper::recalculate_order_total( $order ) );
+		$this->assertSame( $expected, WC_Stripe_Helper::recalculate_order_total( $order ) );
+	}
+
+	/**
 	 * Test for `get_woocommerce_amount_from_stripe_amount` (Stripe → WooCommerce amount conversion).
 	 *
 	 * @param int|string $stripe_amount Stripe amount in smallest unit (cents, etc.).

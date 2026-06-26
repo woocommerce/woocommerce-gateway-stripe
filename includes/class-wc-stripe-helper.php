@@ -113,8 +113,8 @@ class WC_Stripe_Helper {
 	 * @param WC_Order $order The order being paid.
 	 * @return float The recalculated grand total, including taxes.
 	 */
-	public static function recalculate_order_total( $order ) {
-		return $order->calculate_totals( false );
+	public static function recalculate_order_total( WC_Order $order ): float {
+		return (float) $order->calculate_totals( false );
 	}
 
 	/**
