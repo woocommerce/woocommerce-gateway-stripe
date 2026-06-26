@@ -81,6 +81,9 @@ jQuery( function ( $ ) {
 		'woocommerce-gateway-stripe'
 	);
 
+	// Snapshot is first-paint only; re-inits reconcile via AJAX (see init() below).
+	let cartBootstrapConsumed = false;
+
 	const hasVariationForm = $( '.variations_form' ).length > 0;
 	const hasBookingForm = $( '.wc-bookings-booking-form' ).length > 0;
 
@@ -608,6 +611,28 @@ jQuery( function ( $ ) {
 				}
 			} else {
 				// Cart and Checkout page specific initialization.
+				const cartBootstrap = getExpressCheckoutData( 'cart' );
+
+				// First paint renders from the snapshot, skipping GET /wc/store/v1/cart;
+				// re-inits fall through to the AJAX path below for live cart updates.
+				if ( cartBootstrap && ! cartBootstrapConsumed ) {
+					cartBootstrapConsumed = true;
+
+					wcStripeECE.startExpressCheckout( {
+						total: cartBootstrap.total,
+						currency: cartBootstrap.currency,
+						requestShipping: cartBootstrap.requestShipping,
+						requestPhone: cartBootstrap.requestPhone,
+						displayItems: transformLabeledDisplayItems(
+							cartBootstrap.displayItems ?? []
+						),
+					} );
+
+					// After initializing a new express checkout button, we need to reset the paymentAborted flag.
+					wcStripeECE.paymentAborted = false;
+					return;
+				}
+
 				api.expressCheckoutGetCartDetails().then( ( cart ) => {
 					const total = transformPrice(
 						parseInt( cart.totals.total_price, 10 ) -
