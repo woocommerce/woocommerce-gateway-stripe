@@ -199,5 +199,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - When enabling manual capture, clarify to agentic commerce merchants that Agentic Commerce purchases follow the capture setting in the Stripe agentic commerce dashboard
 * Dev - Centralize agentic commerce feed scheduling in integration class
 * Update - Deprecate WC_Stripe_Helper::get_stripe_settings() and update_main_stripe_settings() in favor of WC_Stripe::get_instance()->get_settings() and update_settings()
+* Dev - Update subscription E2E fixtures to use WooCommerce Subscriptions product plans
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
