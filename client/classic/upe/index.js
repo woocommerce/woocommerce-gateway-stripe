@@ -44,8 +44,23 @@ const dependenciesReady = () =>
 	!! ( window.wp && window.wp.i18n ) &&
 	!! ( window.wc && window.wc.wcSettings );
 
-const loadInit = () =>
-	import( /* webpackChunkName: "upe-classic-init" */ './init' );
+// A chunk load can fail transiently (network blip, optimizer still racing the
+// request), so retry once before giving up. A hard failure is logged rather
+// than left as an unhandled rejection; we deliberately don't surface UI from
+// here to keep the bootstrap free of WordPress/WooCommerce externals.
+const loadInit = ( retriesLeft = 1 ) =>
+	import( /* webpackChunkName: "upe-classic-init" */ './init' ).catch(
+		( error ) => {
+			if ( retriesLeft > 0 ) {
+				return loadInit( retriesLeft - 1 );
+			}
+			// eslint-disable-next-line no-console
+			console.error(
+				'WooCommerce Stripe: failed to load the classic checkout init chunk.',
+				error
+			);
+		}
+	);
 
 if ( dependenciesReady() ) {
 	loadInit();

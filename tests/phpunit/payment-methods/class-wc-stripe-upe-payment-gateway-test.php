@@ -762,6 +762,18 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * The classic UPE bootstrap pins webpack's publicPath to `pluginBuildUrl` so its
+	 * async init chunk resolves against the plugin build dir even when a host optimizer
+	 * relocates the entry script. Guard that PHP→JS contract key here.
+	 */
+	public function test_javascript_params_exposes_plugin_build_url(): void {
+		$params = $this->mock_gateway->javascript_params();
+
+		$this->assertArrayHasKey( 'pluginBuildUrl', $params );
+		$this->assertSame( trailingslashit( WC_STRIPE_PLUGIN_URL ) . 'build/', $params['pluginBuildUrl'] );
+	}
+
+	/**
 	 * The billing source for the deferred-payment flows is selected all-or-nothing:
 	 * the order on a validated pay-for-order page (so guests still get full address
 	 * details), otherwise the customer, with a wholesale fallback to the customer when
