@@ -36,34 +36,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	protected $retry_interval = 1;
 
 	/**
-	 * Returns the main Stripe gateway settings array.
-	 *
-	 * Thin delegate to the co-located accessor on WC_Stripe so callers holding a
-	 * gateway instance share the same single source of truth.
-	 *
-	 * @since 10.9.0
-	 *
-	 * @return array
-	 */
-	public function get_settings(): array {
-		return WC_Stripe::get_instance()->get_settings();
-	}
-
-	/**
-	 * Replaces the main Stripe gateway settings option.
-	 *
-	 * Thin delegate to WC_Stripe::update_settings().
-	 *
-	 * @since 10.9.0
-	 *
-	 * @param array $settings The settings to persist.
-	 * @return bool Whether the option was actually written (matches `update_option`).
-	 */
-	public function update_settings( array $settings ): bool {
-		return WC_Stripe::get_instance()->update_settings( $settings );
-	}
-
-	/**
 	 * Fallback method to be inherited by all payment methods. Stripe UPE will override it.
 	 *
 	 * @return string[]
@@ -506,7 +478,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return array()
 	 */
 	public function generate_payment_request( $order, $prepared_payment_method ) {
-		$settings                              = $this->get_settings();
+		$settings                              = WC_Stripe::get_instance()->get_settings();
 		$is_short_statement_descriptor_enabled = ! empty( $settings['is_short_statement_descriptor_enabled'] ) && 'yes' === $settings['is_short_statement_descriptor_enabled'];
 		$capture                               = ! empty( $settings['capture'] ) && 'yes' === $settings['capture'] ? true : false;
 		$post_data                             = [];

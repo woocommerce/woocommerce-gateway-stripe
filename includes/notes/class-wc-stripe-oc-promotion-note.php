@@ -73,7 +73,7 @@ final class WC_Stripe_OC_Promotion_Note {
 			return;
 		}
 
-		$stripe_settings = $gateway->get_settings();
+		$stripe_settings = WC_Stripe::get_instance()->get_settings();
 		$stripe_enabled  = isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
 		if ( ! $stripe_enabled ) {
 			return;

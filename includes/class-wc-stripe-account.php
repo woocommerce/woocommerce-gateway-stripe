@@ -311,8 +311,7 @@ class WC_Stripe_Account {
 		// Delete any previously configured webhooks. Exclude the current webhook ID from the deletion.
 		$this->delete_previously_configured_webhooks( $response->id );
 
-		$gateway  = WC_Stripe::get_instance()->get_main_stripe_gateway();
-		$settings = $gateway->get_settings();
+		$settings = WC_Stripe::get_instance()->get_settings();
 
 		$webhook_secret_setting = 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret';
 		$webhook_data_setting   = 'live' === $mode ? 'webhook_data' : 'test_webhook_data';
@@ -325,7 +324,7 @@ class WC_Stripe_Account {
 			'secret' => WC_Stripe_API::get_secret_key(),
 		];
 
-		$gateway->update_settings( $settings );
+		WC_Stripe::get_instance()->update_settings( $settings );
 
 		// After reconfiguring webhooks, clear the webhook state.
 		WC_Stripe_Webhook_State::clear_state();

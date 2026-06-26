@@ -313,7 +313,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// Before saving the settings, decommission any previously automatically configured webhook endpoint.
 		$settings = $this->decommission_configured_webhook_after_key_update( $settings, $current_account_keys );
 
-		$wc_stripe->get_main_stripe_gateway()->update_settings( $settings );
+		$wc_stripe->update_settings( $settings );
 
 		// Disable all payment methods if all keys are different from the current ones
 		if ( $current_account_keys['publishable_key'] !== $settings['publishable_key']

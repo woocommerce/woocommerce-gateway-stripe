@@ -107,20 +107,19 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$mock_gateway = $this->createMock( WC_Stripe_UPE_Payment_Gateway::class );
 		$mock_gateway->expects( $this->any() )
-			->method( 'get_settings' )
-			->willReturn( [ 'enabled' => 'yes' ] );
-		$mock_gateway->expects( $this->any() )
 			->method( 'get_upe_available_payment_methods' )
 			->willReturn( [ WC_Stripe_Payment_Methods::KLARNA ] );
 		$mock_gateway->expects( $this->any() )
 			->method( 'get_upe_enabled_payment_method_ids' )
 			->willReturn( [ WC_Stripe_Payment_Methods::KLARNA ] );
 
-			//get_upe_enabled_payment_method_ids
 		$mock_wc_stripe = $this->createMock( WC_Stripe::class );
 		$mock_wc_stripe->expects( $this->once() )
 			->method( 'get_main_stripe_gateway' )
 			->willReturn( $mock_gateway );
+		$mock_wc_stripe->expects( $this->any() )
+			->method( 'get_settings' )
+			->willReturn( [ 'enabled' => 'yes' ] );
 
 		$wc_stripe_instance_reflection = new ReflectionProperty( WC_Stripe::class, 'instance' );
 		$wc_stripe_instance_reflection->setAccessible( true );

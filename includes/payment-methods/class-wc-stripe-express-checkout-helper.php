@@ -57,7 +57,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function __construct() {
 		$this->gateway         = WC_Stripe::get_instance()->get_main_stripe_gateway();
-		$this->stripe_settings = $this->gateway->get_settings();
+		$this->stripe_settings = WC_Stripe::get_instance()->get_settings();
 		$this->testmode        = WC_Stripe_Mode::is_test();
 		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
 

@@ -9,6 +9,72 @@
  */
 class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
+	 * get_settings() returns the stored option as an array.
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_returns_stored_option(): void {
+		update_option( WC_Stripe::SETTINGS_OPTION_NAME, [ 'enabled' => 'yes' ] );
+
+		$this->assertSame( 'yes', WC_Stripe::get_instance()->get_settings()['enabled'] );
+	}
+
+	/**
+	 * get_settings() always returns an array, even when the option holds a non-array value.
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_normalizes_non_array_option(): void {
+		$force_scalar = static function () {
+			return 'not-an-array';
+		};
+		add_filter( 'option_' . WC_Stripe::SETTINGS_OPTION_NAME, $force_scalar );
+
+		try {
+			$this->assertSame( [], WC_Stripe::get_instance()->get_settings() );
+		} finally {
+			remove_filter( 'option_' . WC_Stripe::SETTINGS_OPTION_NAME, $force_scalar );
+		}
+	}
+
+	/**
+	 * update_settings() persists the option and subsequent reads reflect the new value.
+	 *
+	 * @return void
+	 */
+	public function test_update_settings_persists_option(): void {
+		WC_Stripe::get_instance()->update_settings( [ 'enabled' => 'yes' ] );
+		$this->assertSame( 'yes', WC_Stripe::get_instance()->get_settings()['enabled'] );
+
+		WC_Stripe::get_instance()->update_settings( [ 'enabled' => 'no' ] );
+		$this->assertSame( 'no', WC_Stripe::get_instance()->get_settings()['enabled'] );
+	}
+
+	/**
+	 * get_settings() reflects a raw update_option() write that bypasses update_settings().
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_reflects_raw_option_write(): void {
+		WC_Stripe::get_instance()->update_settings( [ 'enabled' => 'yes' ] );
+		$this->assertSame( 'yes', WC_Stripe::get_instance()->get_settings()['enabled'] );
+
+		update_option( WC_Stripe::SETTINGS_OPTION_NAME, [ 'enabled' => 'no' ] );
+		$this->assertSame( 'no', WC_Stripe::get_instance()->get_settings()['enabled'] );
+	}
+
+	/**
+	 * The static read_settings_option() reads the raw option without requiring an instance.
+	 *
+	 * @return void
+	 */
+	public function test_read_settings_option_reads_raw_option(): void {
+		WC_Stripe::get_instance()->update_settings( [ 'foo' => 'bar' ] );
+
+		$this->assertSame( 'bar', WC_Stripe::read_settings_option()['foo'] );
+	}
+
+	/**
 	 * Tests that the plugin constants are defined.
 	 *
 	 * @return void
