@@ -279,10 +279,10 @@ const AgenticCommerceFeedPreview = () => {
 											{ excludedFiltered > 0 && (
 												<li>
 													{ sprintf(
-														/* translators: %s: number of products hidden by visibility settings. */
+														/* translators: %s: number of products excluded by a store rule. */
 														_n(
-															'%s product hidden by your product visibility settings.',
-															'%s products hidden by your product visibility settings.',
+															'%s product excluded by your store’s rules.',
+															'%s products excluded by your store’s rules.',
 															excludedFiltered,
 															'woocommerce-gateway-stripe'
 														),

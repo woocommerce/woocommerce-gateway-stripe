@@ -114,9 +114,7 @@ describe( 'AgenticCommerceFeedPreview', () => {
 			screen.getByText( /12 subscription products/i )
 		).toBeInTheDocument();
 		expect(
-			screen.getByText(
-				/2 products hidden by your product visibility settings/i
-			)
+			screen.getByText( /2 products excluded by your store’s rules/i )
 		).toBeInTheDocument();
 	} );
 
@@ -143,7 +141,7 @@ describe( 'AgenticCommerceFeedPreview', () => {
 			screen.getByText( /12 subscription products/i )
 		).toBeInTheDocument();
 		expect(
-			screen.queryByText( /hidden by your product visibility settings/i )
+			screen.queryByText( /excluded by your store’s rules/i )
 		).not.toBeInTheDocument();
 	} );
 

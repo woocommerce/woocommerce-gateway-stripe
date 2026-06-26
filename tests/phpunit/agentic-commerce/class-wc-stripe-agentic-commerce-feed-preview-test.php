@@ -346,7 +346,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A non-subscription product excluded via the visibility filter is bucketed
+	 * A non-subscription product excluded via should_sync_product() is bucketed
 	 * under `filtered`, not `subscriptions`.
 	 *
 	 * @return void
