@@ -109,6 +109,16 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 
 		register_rest_route(
 			$this->namespace,
+			'/' . $this->rest_base . '/preview',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_preview' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
+
+		register_rest_route(
+			$this->namespace,
 			'/' . $this->rest_base . '/settings',
 			[
 				[
@@ -183,6 +193,39 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	}
 
 	/**
+	 * Return an upload-free preview of the next sync: how many products would be
+	 * included vs. excluded, plus the products the feed validator would reject
+	 * and why.
+	 *
+	 * Read-only and gated only on the developer feature flag (not the merchant
+	 * toggle) so merchants can inspect feed health before enabling the feature.
+	 *
+	 * @since 10.9.0
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_preview() {
+		if ( ! $this->is_available() ) {
+			return $this->get_unavailable_error();
+		}
+
+		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Feed_Preview' ) ) {
+			return $this->get_unavailable_error();
+		}
+
+		try {
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+		} catch ( Exception $e ) {
+			return new WP_Error(
+				'stripe_agentic_commerce_preview_failed',
+				$e->getMessage(),
+				[ 'status' => 500 ]
+			);
+		}
+
+		return rest_ensure_response( $preview );
+	}
+
+	/**
 	 * Trigger a manual product feed sync.
 	 *
 	 * On success, the next scheduled recurring sync is rescheduled from the
@@ -213,7 +256,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		}
 
 		try {
-			$integration = new WC_Stripe_Agentic_Commerce_Integration();
+			$sync_start_time = time();
+			$integration     = new WC_Stripe_Agentic_Commerce_Integration();
 			// $force_upload = true so a manual click always lands an upload even
 			// when the catalog hash matches the last successful upload — the
 			// scheduled sync still uses dedup.
@@ -232,31 +276,13 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				);
 			}
 
-			// Reset the automatic sync window so the next scheduled run starts
-			// from now, rather than running again shortly after a manual sync.
-			if ( function_exists( 'as_unschedule_action' ) && function_exists( 'as_schedule_recurring_action' ) ) {
-				/**
-				 * Filter the recurring sync interval (in seconds) used when the
-				 * next scheduled action is rebuilt after a manual sync.
-				 *
-				 * @since 10.7.0
-				 * @param int $sync_interval Default sync interval in seconds.
-				 */
-				$sync_interval = apply_filters(
-					'wc_stripe_agentic_commerce_feed_sync_interval',
-					WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL
-				);
-				if ( ! is_int( $sync_interval ) || $sync_interval <= 0 ) {
-					$sync_interval = WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL;
-				}
-
-				as_unschedule_action( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
-				as_schedule_recurring_action(
-					time() + $sync_interval,
-					$sync_interval,
-					WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION,
-					[],
-					'wc-stripe'
+			// Reset the automatic sync window so the next scheduled run follows
+			// the standard sync interval and doesn't run shortly after a manual sync.
+			if ( ! $integration->reschedule_next_feed_sync( $sync_start_time + $integration->get_feed_sync_interval() ) ) {
+				return new WP_Error(
+					'stripe_agentic_commerce_sync_reschedule_failed',
+					__( 'Feed upload succeeded, but the next feed sync was not scheduled.', 'woocommerce-gateway-stripe' ),
+					[ 'status' => 500 ]
 				);
 			}
 

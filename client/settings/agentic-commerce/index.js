@@ -11,6 +11,7 @@ import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import CopyButton from '../../components/copy-button';
 import AgenticCommerceSyncStatus from './sync-status';
+import AgenticCommerceFeedPreview from './feed-preview';
 import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
 import {
@@ -106,10 +107,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			setIsFeatureEnabled( result.is_enabled );
 			setDisableCheckout( result.disable_checkout ?? false );
 			setWebhookSecret( result.webhook_secret ?? '' );
-			setSettingsNotice( {
-				status: 'success',
-				message: __( 'Settings saved.', 'woocommerce-gateway-stripe' ),
-			} );
+			// No success notice: the global Save changes flow already shows a page-level toast.
 		} catch ( err ) {
 			setSettingsNotice( {
 				status: 'error',
@@ -301,6 +299,8 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			</LoadableSettingsSection>
 
 			{ isFeatureEnabled && <AgenticCommerceSyncStatus /> }
+
+			{ isFeatureEnabled && <AgenticCommerceFeedPreview /> }
 		</SettingsSection>
 	);
 } );
