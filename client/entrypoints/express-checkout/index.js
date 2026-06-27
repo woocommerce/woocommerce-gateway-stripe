@@ -76,6 +76,8 @@ jQuery( function ( $ ) {
 	);
 
 	let wcStripeECEError = '';
+	const productPageReservedSpaceClass =
+		'wc-stripe-express-checkout-element--reserved-space';
 	const defaultErrorMessage = __(
 		'There was an error getting the product information.',
 		'woocommerce-gateway-stripe'
@@ -159,8 +161,35 @@ jQuery( function ( $ ) {
 			wcStripeECE.getButtonSeparator().hide();
 		},
 
+		reserveProductPageSpace: () => {
+			if ( ! getExpressCheckoutData( 'is_product_page' ) ) {
+				return;
+			}
+
+			wcStripeECE
+				.getElements()
+				.addClass( productPageReservedSpaceClass )
+				.show();
+		},
+
+		releaseProductPageSpaceIfEmpty: () => {
+			if ( ! getExpressCheckoutData( 'is_product_page' ) ) {
+				return;
+			}
+
+			const elements = wcStripeECE.getElements();
+			if ( elements.children().length ) {
+				return;
+			}
+
+			elements.removeClass( productPageReservedSpaceClass ).hide();
+			wcStripeECE.getButtonSeparator().hide();
+		},
+
 		renderButton: ( eceButton, expressPaymentType ) => {
 			if ( $( '#wc-stripe-express-checkout-element' ).length ) {
+				wcStripeECE.reserveProductPageSpace();
+
 				const containerName = `wc-stripe-express-checkout-element-${ expressPaymentType }`;
 				if ( ! $( `#${ containerName }` ).length ) {
 					$( '#wc-stripe-express-checkout-element' ).append(
@@ -175,11 +204,13 @@ jQuery( function ( $ ) {
 				eceButton.on( 'ready', ( { availablePaymentMethods } ) => {
 					if ( ! availablePaymentMethods ) {
 						$( `#${ containerName }` ).remove();
+						wcStripeECE.releaseProductPageSpaceIfEmpty();
 					}
 				} );
 
 				eceButton.on( 'loaderror', () => {
 					$( `#${ containerName }` ).remove();
+					wcStripeECE.releaseProductPageSpaceIfEmpty();
 				} );
 			}
 		},
@@ -251,6 +282,10 @@ jQuery( function ( $ ) {
 					EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			].filter( Boolean );
+
+			if ( expressPaymentTypes.length ) {
+				wcStripeECE.reserveProductPageSpace();
+			}
 
 			expressPaymentTypes.forEach( ( expressPaymentType ) => {
 				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {

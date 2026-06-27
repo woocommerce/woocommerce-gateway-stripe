@@ -9,8 +9,13 @@
 	flex-wrap: wrap;
 	justify-content: center;
 
+	&.wc-stripe-express-checkout-element--reserved-space {
+		min-height: 48px;
+	}
+
 	> div {
 		flex: 1;
 		min-width: 260px;
+		min-height: 48px;
 	}
 }
