@@ -47,7 +47,7 @@ jobs:
 
       - name: Cache Composer deps
         id: composer-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.5
         with:
           path: ./vendor
           key: ${{ runner.os }}-vendor-${{ hashFiles('composer.lock') }}
@@ -66,7 +66,7 @@ jobs:
 
       - name: Cache Node deps
         id: node-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.5
         with:
           path: |
             ./node_modules
