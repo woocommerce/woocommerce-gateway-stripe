@@ -245,6 +245,7 @@ class WC_Stripe_Express_Checkout_Element {
 			'checkout'                   => $this->express_checkout_helper->get_checkout_data(),
 			'button'                     => $this->express_checkout_helper->get_button_settings(),
 			'link_button_height'         => $this->express_checkout_helper->get_link_button_height(),
+			'amazon_pay_button_height'   => $this->express_checkout_helper->get_amazon_pay_button_height(),
 			'is_pay_for_order'           => $this->express_checkout_helper->is_pay_for_order_page(),
 			'has_block'                  => has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ),
 			'login_confirmation'         => $this->express_checkout_helper->get_login_confirmation_settings(),
