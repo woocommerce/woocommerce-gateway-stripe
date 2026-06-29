@@ -103,10 +103,19 @@ jQuery( function ( $ ) {
 			'allowed_shipping_countries'
 		);
 
+		// The fast-path on variation/qty change updates only the element amount,
+		// not this click closure, so read the latest items from the store to keep
+		// the wallet breakdown in sync. Legacy (variable/booking) format only.
+		const displayItems =
+			useLegacyDisplayItems && getExpressCheckoutData( 'is_product_page' )
+				? getExpressCheckoutData( 'product' )?.displayItems ??
+				  options.displayItems
+				: options.displayItems;
+
 		const clickOptions = {
 			lineItems: useLegacyDisplayItems
-				? normalizeLineItems( options.displayItems )
-				: options.displayItems,
+				? normalizeLineItems( displayItems )
+				: displayItems,
 			emailRequired: true,
 			shippingAddressRequired: options.requestShipping,
 			phoneNumberRequired: options.requestPhone,
@@ -909,6 +918,12 @@ jQuery( function ( $ ) {
 										response.requestShipping;
 
 								if ( ! isDeposits && needsShipping ) {
+									// Refresh stored items so the click breakdown matches this variation.
+									getExpressCheckoutData( 'product' ).total =
+										response.total;
+									getExpressCheckoutData(
+										'product'
+									).displayItems = response.displayItems;
 									elements.update( {
 										amount: response.total.amount,
 									} );
@@ -960,6 +975,13 @@ jQuery( function ( $ ) {
 											.requestShipping ===
 											response.requestShipping
 									) {
+										// Refresh stored items so the click breakdown matches the new qty.
+										getExpressCheckoutData(
+											'product'
+										).total = response.total;
+										getExpressCheckoutData(
+											'product'
+										).displayItems = response.displayItems;
 										elements.update( {
 											amount: response.total.amount,
 										} );
