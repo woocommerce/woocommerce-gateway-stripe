@@ -47,6 +47,7 @@ xxxx-xx-xx - version 10.9.0
 * Dev - Centralize agentic commerce feed scheduling in integration class
 * Dev - Update subscription E2E fixtures to use WooCommerce Subscriptions product plans
 * Tweak - Cap the Agentic Commerce feed preview scan so it stays responsive on large catalogs instead of timing out
+* Dev - Make the Express Checkout entrypoint bootstrap test deterministic to remove a CI flake
 
 2026-06-22 - version 10.8.3
 * Fix - Ensure Adaptive Pricing appears on the checkout page when enabled
