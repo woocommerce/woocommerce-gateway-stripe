@@ -20,6 +20,7 @@ import {
 	maybeUpdateAdaptivePricingCheckoutSession,
 	mountStripePaymentElement,
 	processPayment,
+	trackMountInProgress,
 } from './payment-processing';
 
 jQuery( function ( $ ) {
@@ -87,10 +88,13 @@ jQuery( function ( $ ) {
 	// Only attempt to mount the card element once that section of the page has loaded.
 	// We can use the updated_checkout event for this.
 	$( document.body ).on( 'updated_checkout', () => {
-		void ( async () => {
+		// Track the re-render → re-mount chain so a mid-update submission waits.
+		const updateChain = ( async () => {
 			await maybeUpdateAdaptivePricingCheckoutSession( api );
 			await maybeMountStripePaymentElement();
 		} )();
+		trackMountInProgress( updateChain );
+		void updateChain;
 	} );
 
 	function processPaymentIfNotUsingSavedMethod( $form ) {

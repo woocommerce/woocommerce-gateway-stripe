@@ -13,6 +13,7 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 
 export * from './normalize';
+export * from './bookings';
 
 /**
  * Get error messages from WooCommerce notice.
@@ -151,13 +152,20 @@ export const getExpressCheckoutButtonStyleSettings = ( expressPaymentType ) => {
 			? 'plain'
 			: buttonSettings?.type ?? 'buy';
 
-	const height =
-		expressPaymentType === EXPRESS_PAYMENT_METHOD_SETTING_LINK
-			? parseInt(
-					getExpressCheckoutData( 'link_button_height' ) ?? '48',
-					10
-			  )
-			: parseInt( buttonSettings?.height ?? '48', 10 );
+	const getButtonHeight = () => {
+		// Link and Amazon Pay each carry their own size setting; every other
+		// method uses the shared Express Checkout (Apple/Google Pay) height.
+		if ( expressPaymentType === EXPRESS_PAYMENT_METHOD_SETTING_LINK ) {
+			return getExpressCheckoutData( 'link_button_height' ) ?? '48';
+		}
+		if (
+			expressPaymentType === EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY
+		) {
+			return getExpressCheckoutData( 'amazon_pay_button_height' ) ?? '48';
+		}
+		return buttonSettings?.height ?? '48';
+	};
+	const height = parseInt( getButtonHeight(), 10 );
 
 	return {
 		paymentMethods: {
