@@ -80,7 +80,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 
 		// With OC the single OC element stands in for the gateway, so the per-method checks below don't
 		// apply. Needed in the block editor where those methods may all be unavailable (e.g. no cart).
-		if ( $stripe_gateway->should_render_optimized_checkout_for_blocks() ) {
+		if ( $stripe_gateway->should_render_optimized_checkout() ) {
 			return true;
 		}
 

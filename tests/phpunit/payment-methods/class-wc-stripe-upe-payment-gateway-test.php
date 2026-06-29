@@ -699,14 +699,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * OC must represent Stripe in the Cart/Checkout block editor, even though is_checkout() (and thus
 	 * is_valid_optimized_checkout_page()) is false there.
 	 *
-	 * @dataProvider provide_should_render_optimized_checkout_for_blocks
+	 * @dataProvider provide_should_render_optimized_checkout
 	 *
 	 * @param bool $oc_enabled      Whether Optimized Checkout is enabled.
 	 * @param bool $valid_oc_page   Whether is_valid_optimized_checkout_page() returns true.
 	 * @param bool $in_block_editor Whether we are editing a post that hosts the Checkout block in admin.
 	 * @param bool $expected        Expected return value.
 	 */
-	public function test_should_render_optimized_checkout_for_blocks(
+	public function test_should_render_optimized_checkout(
 		bool $oc_enabled,
 		bool $valid_oc_page,
 		bool $in_block_editor,
@@ -732,7 +732,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		}
 
 		try {
-			$this->assertSame( $expected, $gateway->should_render_optimized_checkout_for_blocks() );
+			$this->assertSame( $expected, $gateway->should_render_optimized_checkout() );
 		} finally {
 			$_GET = $initial_get;
 			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
@@ -741,11 +741,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Data provider for test_should_render_optimized_checkout_for_blocks.
+	 * Data provider for test_should_render_optimized_checkout.
 	 *
 	 * @return array[]
 	 */
-	public function provide_should_render_optimized_checkout_for_blocks(): array {
+	public function provide_should_render_optimized_checkout(): array {
 		return [
 			'OC disabled is never rendered'                   => [
 				'oc_enabled'      => false,
@@ -781,10 +781,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_get_enabled_payment_method_config_exposes_oc_method_in_block_editor(): void {
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->setConstructorArgs( [] )
-			->onlyMethods( [ 'should_render_optimized_checkout_for_blocks', 'get_upe_enabled_at_checkout_payment_method_ids', 'is_adaptive_pricing_supported' ] )
+			->onlyMethods( [ 'should_render_optimized_checkout', 'get_upe_enabled_at_checkout_payment_method_ids', 'is_adaptive_pricing_supported' ] )
 			->getMock();
 		// Editor context: OC stands in for Stripe even though is_valid_optimized_checkout_page() is false.
-		$gateway->method( 'should_render_optimized_checkout_for_blocks' )->willReturn( true );
+		$gateway->method( 'should_render_optimized_checkout' )->willReturn( true );
 		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( false );
 		// Card disabled; only Cash App Pay enabled.
 		$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( [ WC_Stripe_Payment_Methods::CASHAPP_PAY ] );

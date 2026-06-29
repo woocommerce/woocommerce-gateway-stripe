@@ -636,7 +636,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// True on OC checkout pages and in the Cart/Checkout block editor (where the OC element registers as 'stripe').
-		$should_show_optimized_checkout                 = $this->should_render_optimized_checkout_for_blocks();
+		$should_show_optimized_checkout                 = $this->should_render_optimized_checkout();
 		$stripe_params['isOCEnabled']                   = $should_show_optimized_checkout;
 		$stripe_params['shouldShowOptimizedCheckout']   = $should_show_optimized_checkout;
 		$stripe_params['shouldExpandOptimizedCheckout'] = $should_show_optimized_checkout && WC_Stripe_Feature_Flags::should_expand_ocs_in_legacy_checkout();
@@ -855,16 +855,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Whether the single OC element should represent Stripe when building the Blocks config.
+	 * Whether the single OC element should represent Stripe for the current request.
 	 *
-	 * Covers real OC checkout pages plus the Cart/Checkout block editor, where is_checkout()
-	 * (and thus is_valid_optimized_checkout_page()) is false. Without the editor case the editor
-	 * registers the individual UPE methods instead of the OC element — the only one named 'stripe' —
-	 * so with card disabled nothing maps to the 'stripe' gateway and the block reports it unsupported.
+	 * Covers real OC checkout pages (classic and Blocks) plus the Cart/Checkout block editor,
+	 * where is_checkout() (and thus is_valid_optimized_checkout_page()) is false. Without the
+	 * editor case the editor registers the individual UPE methods instead of the OC element —
+	 * the only one named 'stripe' — so with card disabled nothing maps to the 'stripe' gateway
+	 * and the block reports it unsupported.
 	 *
 	 * @return bool
 	 */
-	public function should_render_optimized_checkout_for_blocks(): bool {
+	public function should_render_optimized_checkout(): bool {
 		if ( ! $this->oc_enabled ) {
 			return false;
 		}
@@ -934,7 +935,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// With OC, return just the OC element (rendered as the 'stripe' method) + express methods; all
 		// methods render inside it. The block editor is included so the OC element registers there too.
-		if ( $this->should_render_optimized_checkout_for_blocks() ) {
+		if ( $this->should_render_optimized_checkout() ) {
 			$oc_method_id                     = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
 			$enabled_express_methods          = array_intersect(
 				$enabled_payment_methods,
@@ -950,7 +951,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// saved as a different type (Bancontact → SEPA) are not savable: the
 		// Checkout Sessions flow cannot request `setup_future_usage` for them.
 		$show_save_option_by_method = [];
-		if ( $this->should_render_optimized_checkout_for_blocks() ) {
+		if ( $this->should_render_optimized_checkout() ) {
 			$is_adaptive_pricing_active = $this->is_adaptive_pricing_supported();
 			foreach ( $original_method_ids as $method_id ) {
 				if ( isset( $this->payment_methods[ $method_id ] ) ) {
