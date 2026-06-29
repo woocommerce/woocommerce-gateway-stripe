@@ -202,5 +202,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Update subscription E2E fixtures to use WooCommerce Subscriptions product plans
 * Tweak - Cap the Agentic Commerce feed preview scan so it stays responsive on large catalogs instead of timing out
 * Dev - Make the Express Checkout entrypoint bootstrap test deterministic to remove a CI flake
+* Fix - Show the selected variation's line items in the Apple Pay/Google Pay payment sheet on variable product pages, instead of the previously selected variation's breakdown
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
