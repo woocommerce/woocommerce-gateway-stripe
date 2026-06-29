@@ -156,6 +156,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.9.0 - xxxx-xx-xx =
+* Fix - Use the Amazon Pay custom button size setting on the product, cart, and checkout pages instead of falling back to the Apple Pay/Google Pay size
+* Tweak - Render the Express Checkout button on the cart and checkout from page-bootstrapped data, removing a cart-details request from the critical path to first button render
 * Fix - Show the Stripe payment block as supported in the Checkout block editor when Optimized Checkout is enabled and only non-card methods (e.g. Cash App Pay) are active
 * Fix - Scope admin gateway filter to block cart and checkout editors only
 * Tweak - Memoize the Blocks Express Checkout button so it no longer re-renders the Stripe element on unrelated cart updates
@@ -167,6 +169,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Use a shared hook manager to prevent duplicate subscription hook registrations
 * Dev - Initial infrastructure for more complex Agentic feed filtering
 * Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
+* Fix - Prevent classic and Blocks checkout submissions from failing while the Stripe Payment Element is re-mounting after a checkout update
 * Fix - Decommission the previously configured webhook before connecting via OAuth so reconnecting to a different Stripe account no longer leaves an orphaned webhook on the old account
 * Fix - Send the billing address to Stripe on the Pay for Order page so payments aren't incorrectly blocked by Stripe Radar rules
 * Update - Replace shipping AJAX endpoints with Store API calls for Express Checkout Element
@@ -193,6 +196,12 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Show the card decline error message on classic-shortcode checkout pages instead of silently failing
 * Add - Verify that Stripe.js was served from the official Stripe origin before processing checkout payments
 * Fix - Exclude WooCommerce Subscriptions products from the Agentic Commerce product feed so they no longer make every sync report a partial success
+* Add - Add an Agentic Commerce checkout mode that redirects shoppers to your store to check out instead of completing the purchase in the AI agent
 * Tweak - When enabling manual capture, clarify to agentic commerce merchants that Agentic Commerce purchases follow the capture setting in the Stripe agentic commerce dashboard
+* Fix - Stop retrying the Stripe App connection refresh when the connection has permanently expired
+* Dev - Centralize agentic commerce feed scheduling in integration class
+* Dev - Update subscription E2E fixtures to use WooCommerce Subscriptions product plans
+* Tweak - Cap the Agentic Commerce feed preview scan so it stays responsive on large catalogs instead of timing out
+* Dev - Make the Express Checkout entrypoint bootstrap test deterministic to remove a CI flake
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
