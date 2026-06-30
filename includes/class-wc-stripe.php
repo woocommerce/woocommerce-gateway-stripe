@@ -639,15 +639,16 @@ class WC_Stripe {
 	/**
 	 * Whether the request is editing a post that hosts the Cart or Checkout block.
 	 *
-	 * ECE and OCS render as inner blocks of those, so either parent's presence on the edited
-	 * post is what {@see add_gateways()} keys on to suppress block-support warnings — and only there.
+	 * ECE and OCS render as inner blocks of those, so either parent's presence on the edited post is
+	 * what {@see add_gateways()} keys on to suppress block-support warnings. The OC Blocks config
+	 * builder keys on the same check so the gateway list and registered Blocks methods stay in lockstep.
 	 *
 	 * The post ID is read from the request rather than the global $post because this filter runs
 	 * during the editor page load before $post is populated.
 	 *
 	 * @return bool
 	 */
-	private function is_editing_cart_or_checkout_block(): bool {
+	public function is_editing_cart_or_checkout_block(): bool {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only check, no state change.
 		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
 

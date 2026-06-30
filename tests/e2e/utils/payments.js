@@ -16,6 +16,22 @@ export async function clickAddToCartButton( page, label = 'Add to cart' ) {
 	await addToCartButton.click();
 }
 
+export async function selectSubscriptionOption( page ) {
+	// WCS 9 plans can coexist with one-time purchases, so these tests choose
+	// the recurring option before adding the product to the cart.
+	const addToCartForm = page.locator( 'form.cart' ).first();
+	const subscriptionOption = addToCartForm.locator(
+		'.wcsatt-options-prompt-label-subscription'
+	);
+	const subscriptionOptionInput = addToCartForm.locator(
+		'input[name="subscribe-to-action-input"][value="yes"]'
+	);
+
+	await expect( subscriptionOption ).toBeVisible();
+	await subscriptionOption.click();
+	await expect( subscriptionOptionInput ).toBeChecked();
+}
+
 /**
  * Empty the WC cart.
  * @param {Page} page Playwright page fixture.

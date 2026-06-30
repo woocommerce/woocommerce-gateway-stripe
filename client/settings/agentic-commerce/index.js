@@ -11,6 +11,7 @@ import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import CopyButton from '../../components/copy-button';
 import AgenticCommerceSyncStatus from './sync-status';
+import AgenticCommerceFeedPreview from './feed-preview';
 import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
 import {
@@ -298,6 +299,8 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			</LoadableSettingsSection>
 
 			{ isFeatureEnabled && <AgenticCommerceSyncStatus /> }
+
+			{ isFeatureEnabled && <AgenticCommerceFeedPreview /> }
 		</SettingsSection>
 	);
 } );
