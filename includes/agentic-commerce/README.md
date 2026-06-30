@@ -353,7 +353,7 @@ The store-wide default is set in **Stripe settings → Agentic commerce → "Red
 
 ```php
 add_filter(
-    'wc_stripe_agentic_commerce_disable_checkout',
+    'woocommerce_agentic_commerce_disable_checkout',
     function ( bool $disabled, WC_Product $product, ?WC_Product $parent ): bool {
         // e.g. redirect only for a specific category.
         return has_term( 'made-to-order', 'product_cat', $product->get_id() ) ? true : $disabled;
@@ -362,3 +362,101 @@ add_filter(
     3
 );
 ```
+
+> The Stripe-prefixed `wc_stripe_agentic_commerce_disable_checkout` filter is **deprecated since 10.9.0** in favour of the shareable `woocommerce_agentic_commerce_disable_checkout` above (mirroring the `woocommerce_agentic_commerce_should_sync_product` migration). Existing hooks on the old name still run — they seed the new filter's default — but emit a deprecation notice.
+
+## Merchant configuration cookbook
+
+Recipes for onboarding catalogs that mix standard SKUs with configurator
+products (WooCommerce Product Add-Ons, TM Extra Product Options, Composite
+Products, individually-priced Bundles) and/or live-rate shipping (e.g.
+ShipStation Live Rates) — without writing custom mu-plugin code.
+
+### Prerequisites (two-step enablement)
+
+Agentic Commerce is gated twice:
+
+1. **Developer feature flag** — `_wcstripe_feature_agentic_commerce` (default
+   **off**); also filterable via `wc_stripe_is_agentic_commerce_enabled`. The
+   feed, REST endpoints, and settings UI do not exist until this is on.
+2. **Merchant toggle** — **Stripe settings → Agentic commerce → "Enable agentic
+   commerce"** (option `wc_stripe_agentic_commerce_enabled`). Required for the
+   catalog to sync.
+
+The merchant's Stripe account must also be on API version **`2025-12-15.preview`**
+or higher (the agentic webhooks use it; see `class-wc-stripe-api.php`).
+
+### Configurator / add-on products: exclude or redirect
+
+Configurator products carry runtime-variable pricing the static feed can't
+represent, and the order-creation path rejects any line whose live price drifts
+from what Stripe charged. Two opt-in toggles (both default **off**) handle them
+without code, under **Stripe settings → Agentic commerce**:
+
+| Toggle | Option key | Effect |
+| --- | --- | --- |
+| **Exclude products with add-ons or configurators from the feed** | `wc_stripe_agentic_commerce_auto_exclude_addons` | Detected products never enter the catalog. Use when configurator SKUs should not appear in agents at all. |
+| **Redirect shoppers to my store for products with add-ons or configurators** | `wc_stripe_agentic_commerce_auto_disable_checkout_addons` | Detected products stay discoverable but agents send shoppers to the store to configure and buy (`disable_checkout=true`). Use to keep discoverability while moving the actual purchase on-site. |
+
+Exclude wins over redirect (an excluded product is never in the feed, so its
+checkout mode is moot). Both are **defaults** — a custom filter still wins.
+
+Detection is per-product postmeta (resolved on the parent for variations).
+Out of the box it covers `_product_addons`, `tm_meta_cpf_options`,
+`composite_data`, and `_wc_pb_priced_individually=yes`. It deliberately does not
+key off `class_exists()` of the plugins, since an active plugin says nothing
+about whether a given product is configured. Extend the detected set without
+forking:
+
+```php
+add_filter(
+    'woocommerce_agentic_commerce_addon_detection_meta_keys',
+    function ( array $meta_keys, WC_Product $product ): array {
+        $meta_keys[] = '_my_configurator_options';
+        return $meta_keys;
+    },
+    10,
+    2
+);
+```
+
+### Per-product redirect without the toggles
+
+To redirect specific products regardless of the toggles, hook the
+`woocommerce_agentic_commerce_disable_checkout` filter shown above. To exclude
+specific products from the feed, hook `woocommerce_agentic_commerce_should_sync_product`:
+
+```php
+add_filter(
+    'woocommerce_agentic_commerce_should_sync_product',
+    function ( bool $should_sync, WC_Product $product ): bool {
+        return get_post_meta( $product->get_id(), '_hide_from_agents', true ) ? false : $should_sync;
+    },
+    10,
+    2
+);
+```
+
+### Live-rate shipping (ShipStation et al.): reading the diagnostics
+
+Only methods with a static numeric cost (flat rate, free shipping) are written
+to the feed's `shipping` column. Live-rate, calculated, and most third-party
+methods price at checkout and are omitted. When that leaves a zone with no
+shipping in the feed, agents see no shipping for that destination.
+
+This is now discoverable two ways:
+
+- **Logs** (WooCommerce → Status → Logs, `wc-stripe` source):
+  - *info* — "shipping method has no flat rate and was omitted from the feed"
+    (with the zone, method id, and method title), once per sync.
+  - *warning* — "shipping zone has no flat-rate method; it contributes no
+    shipping options to the feed" (with the zone name).
+- **Feed preview** (**Stripe settings → Agentic commerce → Preview feed**): the
+  `shipping_warnings` array names every zone with no flat-rate fallback, and the
+  per-product `advisories` list flags excluded products (with the branch that
+  excluded them), redirect-only products (with the source), and SKU-less
+  products.
+
+**Recommended fix:** add a low-cost or representative flat-rate method to each
+live-rate-only zone as a feed fallback, so the catalog advertises a shipping
+price while WooCommerce still computes the real live rate at checkout.

@@ -88,6 +88,32 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public const DISABLE_CHECKOUT_OPTION = 'wc_stripe_agentic_commerce_disable_checkout';
 
 	/**
+	 * Option key for the "auto-exclude add-on / configurator products from the
+	 * feed" toggle. `yes` makes {@see WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product()}
+	 * default to excluding products the add-on detector flags, so configurator
+	 * SKUs (Product Add-Ons, TM Extra Product Options, Composite Products,
+	 * individually-priced Bundles) never enter the catalog. Opt-in; default off.
+	 *
+	 * @var string
+	 * @since 10.9.0
+	 */
+	public const AUTO_EXCLUDE_ADDONS_OPTION = 'wc_stripe_agentic_commerce_auto_exclude_addons';
+
+	/**
+	 * Option key for the "auto-set disable_checkout on add-on / configurator
+	 * products" toggle. `yes` makes the mapper default `disable_checkout=true`
+	 * for detected configurator SKUs so agents redirect shoppers to the
+	 * storefront to configure and buy, while the products still syndicate for
+	 * discovery. Opt-in; default off. Mutually compatible with
+	 * {@see self::AUTO_EXCLUDE_ADDONS_OPTION}, but exclude wins (an excluded
+	 * product is never in the feed, so its checkout mode is moot).
+	 *
+	 * @var string
+	 * @since 10.9.0
+	 */
+	public const AUTO_DISABLE_CHECKOUT_ADDONS_OPTION = 'wc_stripe_agentic_commerce_auto_disable_checkout_addons';
+
+	/**
 	 * Option key storing the content hash, upload timestamp, and Stripe file id
 	 * of the most recent successful full-catalog upload. Used to skip the Stripe
 	 * Files API upload when the regenerated catalog is byte-identical to the
@@ -530,6 +556,32 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 */
 	public static function is_checkout_disabled(): bool {
 		return 'yes' === get_option( self::DISABLE_CHECKOUT_OPTION, 'no' );
+	}
+
+	/**
+	 * Whether the merchant has opted to auto-exclude add-on / configurator
+	 * products from the feed entirely. Drives a default branch in
+	 * {@see WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product()};
+	 * a custom filter still overrides it.
+	 *
+	 * @since 10.9.0
+	 * @return bool
+	 */
+	public static function is_auto_exclude_addons_enabled(): bool {
+		return 'yes' === get_option( self::AUTO_EXCLUDE_ADDONS_OPTION, 'no' );
+	}
+
+	/**
+	 * Whether the merchant has opted to auto-set `disable_checkout` (feed-only /
+	 * redirect) on add-on / configurator products. Drives a default branch in
+	 * {@see WC_Stripe_Agentic_Commerce_Product_Mapper::get_disable_checkout()};
+	 * a custom filter still overrides it.
+	 *
+	 * @since 10.9.0
+	 * @return bool
+	 */
+	public static function is_auto_disable_checkout_addons_enabled(): bool {
+		return 'yes' === get_option( self::AUTO_DISABLE_CHECKOUT_ADDONS_OPTION, 'no' );
 	}
 
 	/**
