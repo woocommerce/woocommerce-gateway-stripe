@@ -61,8 +61,10 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 
 			if ( is_user_logged_in() && WC()->customer instanceof WC_Customer ) {
 				try {
+					// The session is created on page load, before the buyer has entered billing details, so the customer
+					// is built from saved account meta only. Validate minimally (email) — Stripe collects the rest in the form.
 					$stripe_customer = new WC_Stripe_Customer( WC()->customer->get_id() );
-					$stripe_customer->maybe_create_customer();
+					$stripe_customer->maybe_create_customer( WC_Stripe_Customer::CUSTOMER_CONTEXT_CHECKOUT_SESSION );
 				} catch ( Exception $e ) {
 					throw new Exception( __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) );
 				}

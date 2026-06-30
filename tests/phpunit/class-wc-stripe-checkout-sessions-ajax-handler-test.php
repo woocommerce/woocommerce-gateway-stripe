@@ -509,7 +509,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 		];
 
 		return [
-			'invalid nonce'               => [
+			'invalid nonce'                                => [
 				'user is logged-in'         => true,
 				'is valid nonce'            => false,
 				'customer data'             => [],
@@ -522,20 +522,23 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'missing customer data'       => [
+			// The session is created on page load before the buyer enters billing details, so a logged-in customer
+			// with no saved billing address must still be able to create one (Stripe collects the rest in the form).
+			'logged-in user without saved billing address' => [
 				'user is logged-in'         => true,
 				'is valid nonce'            => true,
 				'customer data'             => [],
 				'is cart empty'             => false,
-				'checkout session response' => null,
+				'checkout session response' => $checkout_session_success,
 				'expected response'         => (object) [
-					'success' => false,
+					'success' => true,
 					'data'    => (object) [
-						'message' => 'Unable to create or retrieve Stripe customer.',
+						'client_secret' => $mocked_secret,
+						'session_id'    => $mocked_session_id,
 					],
 				],
 			],
-			'cart is empty'               => [
+			'cart is empty'                                => [
 				'user is logged-in'         => true,
 				'is valid nonce'            => true,
 				'customer data'             => $customer_data,
@@ -548,7 +551,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'error creating session'      => [
+			'error creating session'                       => [
 				'user is logged-in'         => true,
 				'is valid nonce'            => true,
 				'customer data'             => $customer_data,
@@ -561,7 +564,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'session id is missing'       => [
+			'session id is missing'                        => [
 				'user is logged-in'         => true,
 				'is valid nonce'            => true,
 				'customer data'             => $customer_data,
@@ -576,7 +579,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'client secret is missing'    => [
+			'client secret is missing'                     => [
 				'user is logged-in'         => true,
 				'is valid nonce'            => true,
 				'customer data'             => $customer_data,
@@ -589,7 +592,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'successful creation'         => [
+			'successful creation'                          => [
 				'user is logged-in'         => true,
 				'is valid nonce'            => true,
 				'customer data'             => $customer_data,
@@ -603,7 +606,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'successful creation (guest)' => [
+			'successful creation (guest)'                  => [
 				'user is logged-in'         => false,
 				'is valid nonce'            => true,
 				'customer data'             => $customer_data,
