@@ -847,6 +847,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Whether the single OC element should represent Stripe for the current request.
+	 *
+	 * Always false on the base UPE gateway; {@see WC_Stripe_OCS_Payment_Gateway} overrides
+	 * with the real check that also covers the Cart/Checkout block editor.
+	 *
+	 * @return bool
+	 */
+	public function should_render_optimized_checkout(): bool {
+		return false;
+	}
+
+	/**
 	 * Checks if we are on a page where the optimized checkout can be shown.
 	 *
 	 * @return bool True if we are on a page where the optimized checkout can be shown, false otherwise.

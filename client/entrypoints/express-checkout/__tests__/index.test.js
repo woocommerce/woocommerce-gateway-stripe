@@ -9,6 +9,18 @@
 
 const mockGetCartDetails = jest.fn();
 
+// Run jQuery's ready callback synchronously instead of on a `setTimeout` macrotask,
+// which raced the test's flush under CI load and bled into the next test. Other
+// jQuery calls delegate to the real library so `.on()`/`.trigger()` still work.
+jest.mock( 'jquery', () => {
+	const actualJQuery = jest.requireActual( 'jquery' );
+	const syncReadyJQuery = ( arg ) =>
+		typeof arg === 'function'
+			? arg( syncReadyJQuery )
+			: actualJQuery( arg );
+	return Object.assign( syncReadyJQuery, actualJQuery );
+} );
+
 // Stub the API so we can spy on the cart-details fetch without hitting the network.
 jest.mock( '../../../api', () =>
 	jest.fn().mockImplementation( () => ( {
@@ -42,11 +54,6 @@ jest.mock(
 	() => ( {} )
 );
 
-// jQuery resolves its ready Deferred on a macrotask when the document is already
-// loaded; give that chain a couple of timer turns to bind the entrypoint handlers.
-const flushReady = () =>
-	new Promise( ( resolve ) => setTimeout( resolve, 10 ) );
-
 const baseParams = () => ( {
 	has_block: false,
 	is_pay_for_order: false,
@@ -61,6 +68,7 @@ const baseParams = () => ( {
 // Load the entrypoint into the current module registry so the test and the
 // entrypoint share one jQuery instance (jQuery stores event handlers per copy,
 // so triggers must come from the same instance the entrypoint bound them on).
+// With the synchronous-ready mock above, requiring it runs the bootstrap inline.
 const loadEntrypoint = () => {
 	require( '../index.js' );
 };
@@ -86,7 +94,7 @@ describe( 'Express Checkout cart/checkout bootstrap', () => {
 		delete global.wc_stripe_express_checkout_params;
 	} );
 
-	it( 'renders from the localized snapshot and skips the cart-details fetch on first paint', async () => {
+	it( 'renders from the localized snapshot and skips the cart-details fetch on first paint', () => {
 		global.wc_stripe_express_checkout_params = {
 			...baseParams(),
 			cart: {
@@ -99,12 +107,11 @@ describe( 'Express Checkout cart/checkout bootstrap', () => {
 		};
 
 		loadEntrypoint();
-		await flushReady();
 
 		expect( mockGetCartDetails ).not.toHaveBeenCalled();
 	} );
 
-	it( 'falls back to the cart-details fetch on re-init once the snapshot is consumed', async () => {
+	it( 'falls back to the cart-details fetch on re-init once the snapshot is consumed', () => {
 		global.wc_stripe_express_checkout_params = {
 			...baseParams(),
 			cart: {
@@ -117,7 +124,6 @@ describe( 'Express Checkout cart/checkout bootstrap', () => {
 		};
 
 		loadEntrypoint();
-		await flushReady();
 		expect( mockGetCartDetails ).not.toHaveBeenCalled();
 
 		// A live cart mutation re-runs init(); the consume-once flag now routes it
@@ -128,14 +134,13 @@ describe( 'Express Checkout cart/checkout bootstrap', () => {
 		expect( mockGetCartDetails ).toHaveBeenCalledTimes( 1 );
 	} );
 
-	it( 'fetches cart details on first paint when no snapshot is localized (develop parity)', async () => {
+	it( 'fetches cart details on first paint when no snapshot is localized (develop parity)', () => {
 		global.wc_stripe_express_checkout_params = {
 			...baseParams(),
 			cart: null,
 		};
 
 		loadEntrypoint();
-		await flushReady();
 
 		expect( mockGetCartDetails ).toHaveBeenCalledTimes( 1 );
 	} );

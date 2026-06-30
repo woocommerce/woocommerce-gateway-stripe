@@ -49,6 +49,20 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 	}
 
 	/**
+	 * Whether the single OC element should represent Stripe for the current request.
+	 *
+	 * Broader than {@see self::is_valid_optimized_checkout_page()}: it also covers the
+	 * Cart/Checkout block editor, where is_checkout() is false but the OC element must still
+	 * register as 'stripe' so the block reports Stripe as a supported payment method.
+	 *
+	 * @return bool
+	 */
+	public function should_render_optimized_checkout(): bool {
+		return $this->is_valid_optimized_checkout_page()
+			|| ( is_admin() && WC_Stripe::get_instance()->is_editing_cart_or_checkout_block() );
+	}
+
+	/**
 	 * Returns the payment method title.
 	 *
 	 * Uses the OC title on checkout pages, and the order's stored payment-method title on the
@@ -92,7 +106,7 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 	public function javascript_params(): array {
 		$stripe_params = parent::javascript_params();
 
-		$should_show_optimized_checkout                 = $this->is_valid_optimized_checkout_page();
+		$should_show_optimized_checkout                 = $this->should_render_optimized_checkout();
 		$stripe_params['isOCEnabled']                   = $should_show_optimized_checkout;
 		$stripe_params['shouldShowOptimizedCheckout']   = $should_show_optimized_checkout;
 		$stripe_params['shouldExpandOptimizedCheckout'] = $should_show_optimized_checkout && WC_Stripe_Feature_Flags::should_expand_ocs_in_legacy_checkout();
@@ -123,7 +137,7 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		$original_method_ids     = $enabled_payment_methods;
 		$payment_methods         = $this->payment_methods;
 
-		if ( $this->is_valid_optimized_checkout_page() ) {
+		if ( $this->should_render_optimized_checkout() ) {
 			$oc_method_id                     = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
 			$enabled_express_methods          = array_intersect(
 				$enabled_payment_methods,
@@ -138,7 +152,7 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		// Pricing, methods saved as a different type (Bancontact → SEPA) are not savable: the
 		// Checkout Sessions flow cannot request `setup_future_usage` for them.
 		$show_save_option_by_method = [];
-		if ( $this->is_valid_optimized_checkout_page() ) {
+		if ( $this->should_render_optimized_checkout() ) {
 			$is_adaptive_pricing_active = $this->is_adaptive_pricing_supported();
 			foreach ( $original_method_ids as $method_id ) {
 				if ( isset( $this->payment_methods[ $method_id ] ) ) {
