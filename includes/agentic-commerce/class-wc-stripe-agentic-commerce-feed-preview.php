@@ -85,10 +85,10 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 	 * and reject.
 	 *
 	 * The walk mirrors {@see \Automattic\WooCommerce\Internal\ProductFeed\Feed\ProductWalker::from_integration()}
-	 * — same base query args and the same `woocommerce_product_feed_args` filter —
-	 * so the counts match the products a real sync would select. Each product is
-	 * mapped and validated exactly as it would be during a sync; nothing is
-	 * written to disk or uploaded.
+	 * — same base query args and `woocommerce_product_feed_args` filter — plus
+	 * standalone subscription products, which the sync drops at the query but the
+	 * preview reports as excluded so the catalog count is explained. Nothing is
+	 * written or uploaded.
 	 *
 	 * @since 10.9.0
 	 * @param int $detail_limit Maximum number of invalid products to return with full detail.
@@ -98,6 +98,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 	 *     total_count: int,
 	 *     included_count: int,
 	 *     excluded_count: int,
+	 *     excluded_breakdown: array{subscriptions:int, filtered:int},
 	 *     invalid_count: int,
 	 *     validation_errors: array<int, array{product_id:int, product_name:string, edit_link:string, errors:string[]}>,
 	 *     truncated: int,
@@ -129,13 +130,25 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 		 */
 		$query_args = apply_filters( 'woocommerce_product_feed_args', $query_args, $this->integration );
 
-		$total_count       = 0;
-		$included_count    = 0;
-		$excluded_count    = 0;
-		$invalid_count     = 0;
-		$truncated         = 0;
-		$scan_limited      = false;
-		$validation_errors = [];
+		// The sync drops standalone subscriptions by type; widen the preview walk
+		// to count them as excluded. Only `subscription` is added — `variation`
+		// already returns variable-subscription variations, so the parent type
+		// would double-count. Skip when no type restriction exists.
+		if ( ! empty( $query_args['type'] ) ) {
+			$query_args['type'] = array_values(
+				array_unique( array_merge( (array) $query_args['type'], [ 'subscription' ] ) )
+			);
+		}
+
+		$total_count            = 0;
+		$included_count         = 0;
+		$excluded_count         = 0;
+		$excluded_subscriptions = 0;
+		$excluded_filtered      = 0;
+		$invalid_count          = 0;
+		$truncated              = 0;
+		$scan_limited           = false;
+		$validation_errors      = [];
 
 		$page = 1;
 		do {
@@ -188,11 +201,17 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 					continue;
 				}
 
-				// map_product() returns an empty row only for products the
-				// visibility filter excluded — a merchant choice, not a defect.
-				// Everything else with errors is a genuine validation failure.
+				// An empty row means should_sync_product() excluded it; split the
+				// count so auto-excluded subscriptions aren't mistaken for a filter.
 				if ( empty( $row ) ) {
 					++$excluded_count;
+
+					if ( WC_Stripe_Agentic_Commerce_Product_Mapper::is_subscription_product( $product ) ) {
+						++$excluded_subscriptions;
+					} else {
+						++$excluded_filtered;
+					}
+
 					continue;
 				}
 
@@ -204,13 +223,17 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 		} while ( self::PER_PAGE === $batch_iterated && $page <= $max_num_pages );
 
 		return [
-			'total_count'       => $total_count,
-			'included_count'    => $included_count,
-			'excluded_count'    => $excluded_count,
-			'invalid_count'     => $invalid_count,
-			'validation_errors' => $validation_errors,
-			'truncated'         => $truncated,
-			'scan_limited'      => $scan_limited,
+			'total_count'        => $total_count,
+			'included_count'     => $included_count,
+			'excluded_count'     => $excluded_count,
+			'excluded_breakdown' => [
+				'subscriptions' => $excluded_subscriptions,
+				'filtered'      => $excluded_filtered,
+			],
+			'invalid_count'      => $invalid_count,
+			'validation_errors'  => $validation_errors,
+			'truncated'          => $truncated,
+			'scan_limited'       => $scan_limited,
 		];
 	}
 
