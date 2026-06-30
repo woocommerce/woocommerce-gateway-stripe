@@ -858,10 +858,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Whether the single OC element should represent Stripe for the current request.
 	 *
 	 * Covers real OC checkout pages (classic and Blocks) plus the Cart/Checkout block editor,
-	 * where is_checkout() (and thus is_valid_optimized_checkout_page()) is false. Without the
-	 * editor case the editor registers the individual UPE methods instead of the OC element —
-	 * the only one named 'stripe' — so with card disabled nothing maps to the 'stripe' gateway
-	 * and the block reports it unsupported.
+	 * where is_checkout() (and thus is_valid_optimized_checkout_page()) is false.
 	 *
 	 * @return bool
 	 */
