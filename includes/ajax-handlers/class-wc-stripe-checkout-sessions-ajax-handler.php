@@ -73,6 +73,16 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				$request['saved_payment_method_options'] = [
 					'payment_method_save' => 'enabled',
 				];
+
+				// When the buyer has no saved billing address the customer is created without one, so let Stripe
+				// backfill the Customer's name/address from what's entered at checkout.
+				$has_billing_address = '' !== trim( (string) get_user_meta( WC()->customer->get_id(), 'billing_address_1', true ) );
+				if ( ! $has_billing_address ) {
+					$request['customer_update'] = [
+						'address' => 'auto',
+						'name'    => 'auto',
+					];
+				}
 			}
 
 			$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );

@@ -475,6 +475,111 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The Checkout Session request should opt into Stripe backfilling the Customer's address (customer_update)
+	 * only when the logged-in buyer has no saved billing address, to avoid overwriting it on every checkout.
+	 *
+	 * @param bool $has_saved_billing_address Whether the user has a saved billing address.
+	 * @param bool $expect_customer_update    Whether customer_update should be present in the request.
+	 * @dataProvider provide_test_customer_update_based_on_saved_address
+	 */
+	public function test_customer_update_based_on_saved_address(
+		bool $has_saved_billing_address,
+		bool $expect_customer_update
+	): void {
+		Ajax_Test_Helper::init_hooks();
+
+		wp_set_current_user( 1 );
+		WC()->customer = new \WC_Customer( 1 );
+
+		if ( $has_saved_billing_address ) {
+			update_user_meta( 1, 'billing_address_1', '123 Main St' );
+		} else {
+			delete_user_meta( 1, 'billing_address_1' );
+		}
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+
+		$captured_request = null;
+		$capture_body     = static function ( $request, $api ) use ( &$captured_request ) {
+			if ( 'checkout/sessions' === $api ) {
+				$captured_request = $request;
+			}
+			return $request;
+		};
+		add_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+
+		$test_request = static function ( $return_value, $parsed_args, $url ) {
+			if ( strpos( $url, '/v1/customers' ) !== false ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( (object) [ 'id' => 'cus_123' ] ),
+				];
+			}
+			if ( 'https://api.stripe.com/v1/checkout/sessions' === $url ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						(object) [
+							'client_secret' => 'cs_test_secret',
+							'id'            => 'cs_test_123',
+						]
+					),
+				];
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_create_checkout_session_nonce' );
+
+		$ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
+
+		try {
+			ob_start();
+			$ajax_handler->create_checkout_session();
+			ob_end_clean();
+		} finally {
+			remove_filter( 'pre_http_request', $test_request, 10, 3 );
+			remove_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+			delete_user_meta( 1, 'billing_address_1' );
+			Ajax_Test_Helper::remove_hooks();
+		}
+
+		$this->assertIsArray( $captured_request );
+
+		if ( $expect_customer_update ) {
+			$this->assertArrayHasKey( 'customer_update', $captured_request );
+			$this->assertSame( 'auto', $captured_request['customer_update']['address'] );
+		} else {
+			$this->assertArrayNotHasKey( 'customer_update', $captured_request );
+		}
+	}
+
+	/**
+	 * Data provider for `test_customer_update_based_on_saved_address`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_customer_update_based_on_saved_address(): array {
+		return [
+			'no saved billing address'  => [
+				'has_saved_billing_address' => false,
+				'expect_customer_update'    => true,
+			],
+			'has saved billing address' => [
+				'has_saved_billing_address' => true,
+				'expect_customer_update'    => false,
+			],
+		];
+	}
+
+	/**
 	 * Data provider for `test_create_checkout_session`.
 	 *
 	 * @return array
