@@ -47,6 +47,7 @@ xxxx-xx-xx - version 10.9.0
 * Dev - Update subscription E2E fixtures to use WooCommerce Subscriptions product plans
 * Tweak - Cap the Agentic Commerce feed preview scan so it stays responsive on large catalogs instead of timing out
 * Dev - Make the Express Checkout entrypoint bootstrap test deterministic to remove a CI flake
+* Fix - Prevent an error when creating the Adaptive Pricing checkout session for logged-in customers without a saved billing address
 
 2026-06-22 - version 10.8.3
 * Fix - Ensure Adaptive Pricing appears on the checkout page when enabled
