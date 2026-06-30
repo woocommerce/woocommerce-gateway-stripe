@@ -919,11 +919,7 @@ jQuery( function ( $ ) {
 
 								if ( ! isDeposits && needsShipping ) {
 									// Refresh stored items so the click breakdown matches this variation.
-									getExpressCheckoutData( 'product' ).total =
-										response.total;
-									getExpressCheckoutData(
-										'product'
-									).displayItems = response.displayItems;
+									wcStripeECE.refreshTotals( response );
 									elements.update( {
 										amount: response.total.amount,
 									} );
@@ -976,12 +972,7 @@ jQuery( function ( $ ) {
 											response.requestShipping
 									) {
 										// Refresh stored items so the click breakdown matches the new qty.
-										getExpressCheckoutData(
-											'product'
-										).total = response.total;
-										getExpressCheckoutData(
-											'product'
-										).displayItems = response.displayItems;
+										wcStripeECE.refreshTotals( response );
 										elements.update( {
 											amount: response.total.amount,
 										} );
@@ -1010,10 +1001,16 @@ jQuery( function ( $ ) {
 		reInitExpressCheckoutElement: ( response ) => {
 			getExpressCheckoutData( 'product' ).requestShipping =
 				response.requestShipping;
-			getExpressCheckoutData( 'product' ).total = response.total;
-			getExpressCheckoutData( 'product' ).displayItems =
-				response.displayItems;
+			wcStripeECE.refreshTotals( response );
 			wcStripeECE.init();
+		},
+
+		// Keep the cached product breakdown in sync with the latest server response so the
+		// click-time wallet line items match the selected variation/quantity.
+		refreshTotals: ( response ) => {
+			const product = getExpressCheckoutData( 'product' );
+			product.total = response.total;
+			product.displayItems = response.displayItems;
 		},
 
 		blockExpressCheckoutButton: () => {

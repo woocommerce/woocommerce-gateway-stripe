@@ -173,7 +173,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			requestShipping: false,
 			requestPhone: false,
 			// Initial paint: red variation ($10), the default selection.
-			displayItems: [ { label: 'Variable product', amount: 1000 } ],
+			displayItems: [ { label: 'Red variation', amount: 1000 } ],
 		},
 	} );
 
@@ -244,7 +244,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			total: { amount: 2000 },
 			currency: 'usd',
 			requestShipping: false,
-			displayItems: [ { label: 'Variable product', amount: 2000 } ],
+			displayItems: [ { label: 'Blue variation', amount: 2000 } ],
 		} );
 		mockAddToCart.mockResolvedValue( { items_count: 1 } );
 		mockEmptyCartLegacy.mockResolvedValue( {} );
@@ -264,7 +264,46 @@ describe( 'Express Checkout product page variation breakdown', () => {
 
 		expect( event.resolve ).toHaveBeenCalledTimes( 1 );
 		expect( event.resolve.mock.calls[ 0 ][ 0 ].lineItems ).toEqual( [
-			{ name: 'Variable product', amount: 2000 },
+			{ name: 'Blue variation', amount: 2000 },
+		] );
+	} );
+
+	it( 'refreshes the click breakdown when the quantity changes', async () => {
+		// The `.qty` handler is debounced (250ms), so drive timers deterministically.
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+
+		// Bumping qty to 2 doubles the red variation breakdown via the debounced
+		// .qty fast-path, which writes the new total/displayItems back to the cache.
+		mockGetSelectedProductData.mockResolvedValue( {
+			total: { amount: 2000 },
+			currency: 'usd',
+			requestShipping: false,
+			displayItems: [ { label: 'Red variation', amount: 2000 } ],
+		} );
+		mockAddToCart.mockResolvedValue( { items_count: 1 } );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+
+		const handlers = stubStripeButton();
+
+		loadEntrypoint();
+
+		// eslint-disable-next-line global-require
+		const jq = require( 'jquery' );
+		const qtyInput = document.querySelector( '.qty' );
+		qtyInput.value = '2';
+		jq( qtyInput ).trigger( 'input' );
+
+		// Run the debounce and flush the resulting promise chain.
+		await jest.advanceTimersByTimeAsync( 300 );
+		jest.useRealTimers();
+
+		const event = { resolve: jest.fn(), expressPaymentType: 'googlePay' };
+		await handlers.click( event );
+
+		expect( event.resolve ).toHaveBeenCalledTimes( 1 );
+		expect( event.resolve.mock.calls[ 0 ][ 0 ].lineItems ).toEqual( [
+			{ name: 'Red variation', amount: 2000 },
 		] );
 	} );
 } );
