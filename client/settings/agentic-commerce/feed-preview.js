@@ -48,6 +48,13 @@ const SummaryStat = styled.div`
 		font-size: 12px;
 	}
 
+	.wc-stripe-agentic-preview__excluded-details-toggle {
+		height: auto;
+		margin-top: 4px;
+		padding: 0;
+		font-size: 12px;
+	}
+
 	&.is-included .wc-stripe-agentic-preview__stat-value {
 		color: #005c12;
 	}
@@ -234,71 +241,70 @@ const AgenticCommerceFeedPreview = () => {
 										'woocommerce-gateway-stripe'
 									) }
 								</span>
+								{ excludedCount > 0 && (
+									<Button
+										className="wc-stripe-agentic-preview__excluded-details-toggle"
+										variant="link"
+										icon={
+											showExcludedDetails
+												? chevronUp
+												: chevronDown
+										}
+										iconPosition="right"
+										aria-expanded={ showExcludedDetails }
+										onClick={ () =>
+											setShowExcludedDetails(
+												( shown ) => ! shown
+											)
+										}
+									>
+										{ __(
+											'Details',
+											'woocommerce-gateway-stripe'
+										) }
+									</Button>
+								) }
 							</SummaryStat>
 						</SummaryRow>
 
-						{ excludedCount > 0 && (
+						{ excludedCount > 0 && showExcludedDetails && (
 							<ExcludedDetails>
-								<Button
-									variant="link"
-									icon={
-										showExcludedDetails
-											? chevronUp
-											: chevronDown
-									}
-									iconPosition="right"
-									aria-expanded={ showExcludedDetails }
-									onClick={ () =>
-										setShowExcludedDetails(
-											( shown ) => ! shown
-										)
-									}
-								>
+								<ExcludedBreakdown>
+									{ excludedSubscriptions > 0 && (
+										<li>
+											{ sprintf(
+												/* translators: %s: number of subscription products. */
+												_n(
+													'%s subscription product — subscriptions aren’t supported by AI agents.',
+													'%s subscription products — subscriptions aren’t supported by AI agents.',
+													excludedSubscriptions,
+													'woocommerce-gateway-stripe'
+												),
+												excludedSubscriptions.toLocaleString()
+											) }
+										</li>
+									) }
+									{ excludedFiltered > 0 && (
+										<li>
+											{ sprintf(
+												/* translators: %s: number of products excluded by a store rule. */
+												_n(
+													'%s product excluded by your store’s rules.',
+													'%s products excluded by your store’s rules.',
+													excludedFiltered,
+													'woocommerce-gateway-stripe'
+												),
+												excludedFiltered.toLocaleString()
+											) }
+										</li>
+									) }
+								</ExcludedBreakdown>
+								<ExcludedNote>
 									{ __(
-										'Details',
+										'These products aren’t sent to AI agents and aren’t validation errors.',
 										'woocommerce-gateway-stripe'
 									) }
-								</Button>
-								{ showExcludedDetails && (
-									<>
-										<ExcludedBreakdown>
-											{ excludedSubscriptions > 0 && (
-												<li>
-													{ sprintf(
-														/* translators: %s: number of subscription products. */
-														_n(
-															'%s subscription product — subscriptions aren’t supported by AI agents.',
-															'%s subscription products — subscriptions aren’t supported by AI agents.',
-															excludedSubscriptions,
-															'woocommerce-gateway-stripe'
-														),
-														excludedSubscriptions.toLocaleString()
-													) }
-												</li>
-											) }
-											{ excludedFiltered > 0 && (
-												<li>
-													{ sprintf(
-														/* translators: %s: number of products excluded by a store rule. */
-														_n(
-															'%s product excluded by your store’s rules.',
-															'%s products excluded by your store’s rules.',
-															excludedFiltered,
-															'woocommerce-gateway-stripe'
-														),
-														excludedFiltered.toLocaleString()
-													) }
-												</li>
-											) }
-										</ExcludedBreakdown>
-										<ExcludedNote>
-											{ __(
-												'These products aren’t sent to AI agents and aren’t validation errors.',
-												'woocommerce-gateway-stripe'
-											) }
-										</ExcludedNote>
-									</>
-								) }
+								</ExcludedNote>
 							</ExcludedDetails>
 						) }
 
