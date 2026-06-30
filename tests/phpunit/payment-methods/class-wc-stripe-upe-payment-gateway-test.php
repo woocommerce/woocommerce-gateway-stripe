@@ -696,6 +696,111 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * OC must represent Stripe in the Cart/Checkout block editor, even though is_checkout() (and thus
+	 * is_valid_optimized_checkout_page()) is false there.
+	 *
+	 * @dataProvider provide_should_render_optimized_checkout
+	 *
+	 * @param bool $oc_enabled      Whether Optimized Checkout is enabled.
+	 * @param bool $valid_oc_page   Whether is_valid_optimized_checkout_page() returns true.
+	 * @param bool $in_block_editor Whether we are editing a post that hosts the Checkout block in admin.
+	 * @param bool $expected        Expected return value.
+	 */
+	public function test_should_render_optimized_checkout(
+		bool $oc_enabled,
+		bool $valid_oc_page,
+		bool $in_block_editor,
+		bool $expected
+	): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'is_valid_optimized_checkout_page' ] )
+			->getMock();
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( $valid_oc_page );
+		$gateway->oc_enabled = $oc_enabled;
+
+		$initial_get            = $_GET;
+		$initial_current_screen = $GLOBALS['current_screen'] ?? null;
+
+		if ( $in_block_editor ) {
+			$post_id = self::factory()->post->create( [ 'post_content' => '<!-- wp:woocommerce/checkout /-->' ] );
+			// is_editing_cart_or_checkout_block() reads the edited post ID from the request.
+			$_GET['post'] = (string) $post_id;
+			// is_admin() reads the current screen; set an admin screen so the admin branch is exercised.
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$GLOBALS['current_screen'] = WP_Screen::get( 'post.php' );
+		}
+
+		try {
+			$this->assertSame( $expected, $gateway->should_render_optimized_checkout() );
+		} finally {
+			$_GET = $initial_get;
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$GLOBALS['current_screen'] = $initial_current_screen;
+		}
+	}
+
+	/**
+	 * Data provider for test_should_render_optimized_checkout.
+	 *
+	 * @return array[]
+	 */
+	public function provide_should_render_optimized_checkout(): array {
+		return [
+			'OC disabled is never rendered'                   => [
+				'oc_enabled'      => false,
+				'valid_oc_page'   => true,
+				'in_block_editor' => true,
+				'expected'        => false,
+			],
+			'OC enabled on a valid OC checkout page'          => [
+				'oc_enabled'      => true,
+				'valid_oc_page'   => true,
+				'in_block_editor' => false,
+				'expected'        => true,
+			],
+			'OC enabled while editing the Checkout block'     => [
+				'oc_enabled'      => true,
+				'valid_oc_page'   => false,
+				'in_block_editor' => true,
+				'expected'        => true,
+			],
+			'OC enabled but neither checkout page nor editor' => [
+				'oc_enabled'      => true,
+				'valid_oc_page'   => false,
+				'in_block_editor' => false,
+				'expected'        => false,
+			],
+		];
+	}
+
+	/**
+	 * In the block editor with OC enabled, the Blocks config must expose the OC element (keyed under
+	 * the 'card'/OC id, mapped to 'stripe' on the client) even when only Cash App Pay is enabled.
+	 */
+	public function test_get_enabled_payment_method_config_exposes_oc_method_in_block_editor(): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'should_render_optimized_checkout', 'get_upe_enabled_at_checkout_payment_method_ids', 'is_adaptive_pricing_supported' ] )
+			->getMock();
+		// Editor context: OC stands in for Stripe even though is_valid_optimized_checkout_page() is false.
+		$gateway->method( 'should_render_optimized_checkout' )->willReturn( true );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( false );
+		// Card disabled; only Cash App Pay enabled.
+		$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( [ WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
+		$gateway->oc_enabled = true;
+
+		$get_config = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'get_enabled_payment_method_config' );
+		$get_config->setAccessible( true );
+		$config = $get_config->invoke( $gateway );
+
+		// The OC element (id 'card', mapped to 'stripe' client-side) must be present; Cash App Pay
+		// renders inside it rather than as a standalone method.
+		$this->assertArrayHasKey( WC_Stripe_Payment_Methods::OC, $config );
+		$this->assertArrayNotHasKey( WC_Stripe_Payment_Methods::CASHAPP_PAY, $config );
+	}
+
+	/**
 	 * Test that payment_scripts registers the wc-stripe-upe-classic script with the correct version and dependencies.
 	 *
 	 * Because build/upe-classic.asset.php may not be present in test environments, we have conditional logic as follows:
