@@ -822,10 +822,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		);
 
-		// Exclude methods the shopper's billing country can't use, so the Payment Element doesn't
-		// surface a method (e.g. iDEAL outside NL) that confirmation would later reject with
-		// "not available in the selected country". This reflects only the country known at page
-		// load; the frontend recomputes the exclusion when the billing country changes in-page.
+		// Exclude methods the billing country can't use, so the Payment Element doesn't
+		// surface one confirmation would reject. Recomputed on the frontend as country changes.
 		$country_excluded_methods = array_filter(
 			$this->get_country_restricted_excluded_payment_method_types( $this->get_billing_country_for_checkout() ),
 			function ( $method ) use ( $non_excludable_methods ) {
@@ -843,11 +841,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Returns enabled-at-checkout payment methods that are unavailable for the given billing country.
-	 *
-	 * Methods with no country restriction (card, Link, etc.) are always available and never returned.
-	 * When the country is empty (unknown at page load), restricted methods are treated as unavailable;
-	 * the frontend re-includes them once the shopper enters a supported country.
+	 * Returns enabled-at-checkout methods unavailable for the given billing country.
+	 * Unrestricted methods are never returned; an empty country treats restricted
+	 * methods as unavailable until the shopper enters a supported one.
 	 *
 	 * @param string $billing_country Two-letter ISO billing country, or empty when unknown.
 	 * @return string[] Payment method types unavailable in the given country.
@@ -867,9 +863,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Returns the shopper's billing country for checkout-time payment method gating.
-	 *
-	 * Extracted as a protected method so tests can supply a deterministic country.
+	 * Returns the shopper's billing country for checkout-time method gating.
+	 * Protected so tests can supply a deterministic country.
 	 *
 	 * @return string Two-letter ISO billing country, or empty when unknown.
 	 */
@@ -998,11 +993,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Checkout Sessions flow cannot request `setup_future_usage` for them.
 		$show_save_option_by_method = [];
 
-		// For OC, the methods rendered inside the Payment Element are collapsed into the single
-		// `oc` config entry, so the per-method `countries` exposed below is unavailable to the
-		// frontend. Surface a method => supported-countries map for the country-restricted methods
-		// so the frontend can recompute `excludedPaymentMethodTypes` when the billing country
-		// changes in-page (the server value reflects only the country known at page load).
+		// OC collapses per-method config into a single `oc` entry, hiding each method's
+		// `countries` from the frontend. Expose a method => countries map so it can
+		// recompute `excludedPaymentMethodTypes` when the billing country changes in-page.
 		$countries_by_method = [];
 		if ( $this->should_render_optimized_checkout() ) {
 			$is_adaptive_pricing_active = $this->is_adaptive_pricing_supported();

@@ -5312,9 +5312,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * A country-restricted method (iDEAL) must be excluded from the OCS Payment Element when the
-	 * billing country can't use it, so confirmation never rejects it with "not available in the
-	 * selected country"; unrestricted methods (card) must always remain available.
+	 * A country-restricted method (iDEAL) must be excluded when the billing country
+	 * can't use it, while unrestricted methods (card) always remain available.
 	 *
 	 * @param string   $billing_country  Billing country supplied to the gateway.
 	 * @param string[] $enabled_methods  Enabled-at-checkout method IDs.

@@ -788,17 +788,13 @@ export const getExcludedPaymentMethodTypes = () => {
 };
 
 /**
- * Returns the Optimized Checkout excluded payment method types for a billing country.
- *
- * The server-provided `excludedPaymentMethodTypes` reflects only the country known at page
- * load. As the shopper changes the billing country in-page, recompute the exclusion so the
- * Payment Element never surfaces a method (e.g. iDEAL outside NL) that confirmation would
- * reject with "not available in the selected country". Mirrors the server-side
- * `get_excluded_payment_method_types()` country logic using the per-method country map that
- * Optimized Checkout exposes on its config entry (`countriesByMethod`).
+ * Returns the OC excluded payment method types for a billing country, recomputed
+ * as the shopper changes country in-page (the server value reflects only the
+ * page-load country). Mirrors the server `get_excluded_payment_method_types()`
+ * using the per-method `countriesByMethod` map on the OC config entry.
  *
  * @param {string} billingCountry Two-letter ISO billing country (may be empty when unknown).
- * @return {Array<string>} Array of payment method types to exclude for the country.
+ * @return {Array<string>} Payment method types to exclude for the country.
  */
 export const getExcludedPaymentMethodTypesForBillingCountry = (
 	billingCountry
@@ -809,8 +805,8 @@ export const getExcludedPaymentMethodTypesForBillingCountry = (
 			?.countriesByMethod || {};
 
 	Object.entries( countriesByMethod ).forEach( ( [ method, countries ] ) => {
-		// An empty list means no country restriction. A non-empty list that omits the
-		// billing country — including an unknown/empty country — can't be confirmed.
+		// Empty list = no restriction; a non-empty list omitting the billing country
+		// (including unknown/empty) can't be confirmed.
 		if (
 			Array.isArray( countries ) &&
 			countries.length > 0 &&
@@ -992,10 +988,8 @@ export const paymentMethodSupportsDeferredIntent = ( upeElement ) => {
 };
 
 /**
- * Returns the shopper's current billing country for classic checkout.
- *
- * Reads the live billing field first; on "pay for order" there is no billing
- * input, so it falls back to the server-provided customer data.
+ * Returns the shopper's billing country for classic checkout, falling back to
+ * server customer data on "pay for order" (no billing input).
  *
  * @return {string} Two-letter ISO billing country, or empty when unknown.
  */
