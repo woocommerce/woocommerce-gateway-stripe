@@ -1001,6 +1001,20 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	}
 
 	/**
+	 * Whether the product is a subscription type the feed excludes by default.
+	 *
+	 * Exposed so callers can report the exclusion reason without duplicating the
+	 * type list.
+	 *
+	 * @since 10.9.0
+	 * @param \WC_Product $product Product to check.
+	 * @return bool
+	 */
+	public static function is_subscription_product( \WC_Product $product ): bool {
+		return $product->is_type( [ 'subscription', 'variable-subscription', 'subscription_variation' ] );
+	}
+
+	/**
 	 * Whether the given product should be included in any Agentic Commerce sync
 	 * (full feed, inventory updates, archive events).
 	 *
@@ -1016,7 +1030,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		// post type, so the feed's simple/variation query returns them; left in,
 		// they fail validation and downgrade every sync to a partial success.
 		// Excluded by default, still overridable via the filters below.
-		$default_should_sync = ! $product->is_type( [ 'subscription', 'variable-subscription', 'subscription_variation' ] );
+		$default_should_sync = ! self::is_subscription_product( $product );
 
 		// The Stripe-prefixed filter is retained for backward compatibility. Its
 		// result seeds the default for the canonical filter below, so existing
