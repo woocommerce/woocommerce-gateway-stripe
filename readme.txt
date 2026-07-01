@@ -169,8 +169,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - When changing a subscription's payment method, reflect the new card and its Apple Pay/Google Pay branding on My Account and clarify the admin order note
 * Dev - Use a shared hook manager to prevent duplicate subscription hook registrations
 * Dev - Initial infrastructure for more complex Agentic feed filtering
-* Add - Agentic Commerce: add settings to exclude add-on/configurator products from the feed or keep them discoverable while redirecting shoppers to the store to check out, plus feed-preview diagnostics for skipped shipping zones and per-product advisories
-* Dev - Agentic Commerce: add the shareable woocommerce_agentic_commerce_disable_checkout and woocommerce_agentic_commerce_addon_detection_meta_keys filters, deprecating the wc_stripe_-prefixed disable_checkout twin
+* Add - Agentic Commerce: add settings to exclude add-on/configurator products from the feed or keep them discoverable while redirecting shoppers to the store to check out, surface feed-preview diagnostics for skipped shipping zones and per-product advisories, and add the shareable woocommerce_agentic_commerce_disable_checkout and woocommerce_agentic_commerce_addon_detection_meta_keys filters
 * Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
 * Fix - Prevent classic and Blocks checkout submissions from failing while the Stripe Payment Element is re-mounting after a checkout update
 * Fix - Decommission the previously configured webhook before connecting via OAuth so reconnecting to a different Stripe account no longer leaves an orphaned webhook on the old account
