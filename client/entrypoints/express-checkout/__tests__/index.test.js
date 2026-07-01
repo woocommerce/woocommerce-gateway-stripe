@@ -303,9 +303,13 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		qtyInput.value = '2';
 		jq( qtyInput ).trigger( 'input' );
 
-		// Run the debounce and flush the resulting promise chain.
-		await jest.advanceTimersByTimeAsync( 300 );
-		jest.useRealTimers();
+		// Run the debounce and flush the resulting promise chain. Restore real
+		// timers in `finally` so a throw here can't leak fake timers into later tests.
+		try {
+			await jest.advanceTimersByTimeAsync( 300 );
+		} finally {
+			jest.useRealTimers();
+		}
 
 		const event = { resolve: jest.fn(), expressPaymentType: 'googlePay' };
 		await handlers.click( event );
