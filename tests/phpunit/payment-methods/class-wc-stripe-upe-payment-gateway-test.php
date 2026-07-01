@@ -867,10 +867,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * The classic UPE bootstrap gates its async init chunk on the globals its
-	 * build dependencies define, and derives that list from `scriptDependencies`
-	 * so it can't drift from the bundle. Guard that the localized data carries the
-	 * same handles the script was registered with.
+	 * The bootstrap derives its readiness gate from `scriptDependencies`, so the
+	 * localized list must match the script's registered build dependencies.
 	 */
 	public function test_payment_scripts_localizes_script_dependencies(): void {
 		$asset_path            = WC_STRIPE_PLUGIN_PATH . '/build/upe-classic.asset.php';
@@ -909,9 +907,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * The classic UPE bootstrap pins webpack's publicPath to `pluginBuildUrl` so its
-	 * async init chunk resolves against the plugin build dir even when a host optimizer
-	 * relocates the entry script. Guard that PHP→JS contract key here.
+	 * The bootstrap pins webpack's publicPath to `pluginBuildUrl`; guard that
+	 * PHP→JS contract key here.
 	 */
 	public function test_javascript_params_exposes_plugin_build_url(): void {
 		$params = $this->mock_gateway->javascript_params();

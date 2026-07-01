@@ -500,10 +500,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$upe_params = apply_filters( 'wc_stripe_upe_params', $this->javascript_params() );
 
-		// The bootstrap waits for the globals these scripts define before loading
-		// the async init chunk, so a host "defer render-blocking JS" optimizer can't
-		// run our bundle before its dependencies. Sourcing the list from the build's
-		// generated dependencies keeps it in sync with what the bundle imports.
+		// The bootstrap waits for these dependencies' globals before loading the
+		// async init chunk; sourcing the list from the build keeps it in sync.
 		$upe_params['scriptDependencies'] = $dependencies;
 
 		wp_localize_script(
@@ -542,9 +540,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'key'            => $this->publishable_key,
 			'locale'         => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 			'apiVersion'     => WC_Stripe_API::STRIPE_API_VERSION,
-			// Base URL the JS bootstrap pins webpack's publicPath to, so the
-			// classic UPE async init chunk loads from the plugin even when a host
-			// optimizer serves the entry script from a rewritten path.
+			// Base URL the bootstrap pins webpack's publicPath to, so the async init
+			// chunk loads from the plugin even when an optimizer rewrites the path.
 			'pluginBuildUrl' => trailingslashit( WC_STRIPE_PLUGIN_URL ) . 'build/',
 		];
 

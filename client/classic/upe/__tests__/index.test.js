@@ -1,9 +1,7 @@
 /**
- * The bootstrap must wait for the WordPress/WooCommerce globals ./init depends
- * on (window.wp.data, window.wc.wcSettings, ...) before loading the real init
- * chunk, so a "defer render-blocking JS" optimizer can't make ./init throw at
- * load. The list of globals is derived from the build's declared dependencies
- * so it can't drift from what ./init actually imports.
+ * The bootstrap must wait for ./init's WP/WC globals before loading the init
+ * chunk, so a "defer render-blocking JS" optimizer can't make it throw at load.
+ * The global list is derived from the build's declared dependencies.
  */
 
 // Mock ./init so importing the bootstrap doesn't pull the whole checkout graph;
@@ -116,9 +114,8 @@ describe( 'classic UPE bootstrap', () => {
 	} );
 
 	it( 'waits for every global derived from the build dependencies', async () => {
-		// Mirrors build/upe-classic.asset.php: the gate must cover the wp-*
-		// externals (element/hooks/api-fetch included) and wc-settings, not just
-		// the three the fallback list happened to name.
+		// The gate must cover every wp-* external plus wc-settings, not just the
+		// three in the fallback list.
 		global.wc_stripe_upe_params = {
 			scriptDependencies: [
 				'jquery',
@@ -138,7 +135,7 @@ describe( 'classic UPE bootstrap', () => {
 			require( '../index' );
 			await flushPromises();
 
-			// wp.element missing: a dependency the old hard-coded list ignored.
+			// wp.element still missing: stay gated.
 			window.jQuery = {};
 			window.React = {};
 			window.ReactDOM = {};
@@ -170,8 +167,7 @@ describe( 'classic UPE bootstrap', () => {
 			require( '../index' );
 			await flushPromises();
 
-			// Only the real externals need to resolve; the ignored handles never
-			// set a global, so gating on them would hang until the timeout.
+			// Ignored handles set no global; gating on them would hang.
 			window.wp = { data: {} };
 			window.wc = { wcSettings: {} };
 			jest.advanceTimersByTime( 50 );
