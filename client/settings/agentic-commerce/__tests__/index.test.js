@@ -851,4 +851,94 @@ describe( 'AgenticCommerceSection', () => {
 			).toBeChecked();
 		} );
 	} );
+
+	// -------------------------------------------------------------------------
+	// Add-on / configurator auto-handling toggles
+	// -------------------------------------------------------------------------
+
+	it( 'shows the add-on auto-exclude toggle when the feature is enabled', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		await waitFor( () => {
+			expect(
+				screen.getByLabelText(
+					/Exclude products with add-ons or configurators from the feed/i
+				)
+			).toBeInTheDocument();
+		} );
+	} );
+
+	it( 'reflects auto_exclude_addons=true and hides the add-on redirect toggle', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			auto_exclude_addons: true,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		await waitFor( () => {
+			expect(
+				screen.getByLabelText(
+					/Exclude products with add-ons or configurators from the feed/i
+				)
+			).toBeChecked();
+		} );
+
+		// Excluding add-on products makes the add-on redirect control moot, so it
+		// is not rendered while exclude is on.
+		expect(
+			screen.queryByLabelText(
+				/Redirect shoppers to my store for products with add-ons or configurators/i
+			)
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'persists the add-on auto-exclude toggle through a save round-trip', async () => {
+		const ref = { current: null };
+
+		apiFetch.mockImplementation( ( { path, method } ) => {
+			if (
+				method === 'POST' &&
+				path === '/wc/v3/wc_stripe/agentic-commerce/settings'
+			) {
+				return Promise.resolve( {
+					is_enabled: true,
+					auto_exclude_addons: true,
+					webhook_secret: '',
+				} );
+			}
+			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
+				return Promise.resolve( {
+					is_enabled: true,
+					auto_exclude_addons: false,
+					webhook_secret: '',
+				} );
+			}
+			return Promise.resolve( EMPTY_RESPONSE );
+		} );
+
+		render( <AgenticCommerceSection ref={ ref } /> );
+
+		const excludeCheckbox = await screen.findByLabelText(
+			/Exclude products with add-ons or configurators from the feed/i
+		);
+		expect( excludeCheckbox ).not.toBeChecked();
+
+		fireEvent.click( excludeCheckbox );
+		await ref.current.save();
+
+		expect( apiFetch ).toHaveBeenCalledWith(
+			expect.objectContaining( {
+				path: '/wc/v3/wc_stripe/agentic-commerce/settings',
+				method: 'POST',
+				data: expect.objectContaining( { auto_exclude_addons: true } ),
+			} )
+		);
+	} );
 } );

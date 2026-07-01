@@ -1098,6 +1098,26 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * GET /settings reports the add-on auto-handling toggles, defaulting to off.
+	 */
+	public function test_get_settings_reflects_addon_toggles(): void {
+		$request = new WP_REST_Request( 'GET', self::REST_BASE . '/settings' );
+
+		$data = rest_do_request( $request )->get_data();
+		$this->assertArrayHasKey( 'auto_exclude_addons', $data );
+		$this->assertArrayHasKey( 'auto_disable_checkout_addons', $data );
+		$this->assertFalse( $data['auto_exclude_addons'] );
+		$this->assertFalse( $data['auto_disable_checkout_addons'] );
+
+		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION, 'yes' );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_DISABLE_CHECKOUT_ADDONS_OPTION, 'yes' );
+
+		$data = rest_do_request( $request )->get_data();
+		$this->assertTrue( $data['auto_exclude_addons'] );
+		$this->assertTrue( $data['auto_disable_checkout_addons'] );
+	}
+
+	/**
 	 * Unauthenticated GET /settings requests should be refused.
 	 */
 	public function test_get_settings_requires_auth(): void {
@@ -1147,6 +1167,29 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 		$this->assertFalse( $response->get_data()['disable_checkout'] );
 		$this->assertSame( 'no', get_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION ) );
+	}
+
+	/**
+	 * POST /settings persists the add-on auto-handling toggles to their options.
+	 */
+	public function test_update_settings_persists_addon_toggles(): void {
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body(
+			wp_json_encode(
+				[
+					'auto_exclude_addons'          => true,
+					'auto_disable_checkout_addons' => true,
+				]
+			)
+		);
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertTrue( $response->get_data()['auto_exclude_addons'] );
+		$this->assertTrue( $response->get_data()['auto_disable_checkout_addons'] );
+		$this->assertSame( 'yes', get_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION ) );
+		$this->assertSame( 'yes', get_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_DISABLE_CHECKOUT_ADDONS_OPTION ) );
 	}
 
 	/**
