@@ -241,18 +241,11 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	}
 
 	/**
-	 * Resolve the `disable_checkout` (feed-only / redirect) decision for a
-	 * product along with the reason it was reached, for the feed preview.
-	 *
-	 * Layering, lowest precedence first:
-	 *   1. Store-wide option ({@see WC_Stripe_Agentic_Commerce_Integration::is_checkout_disabled()}).
-	 *   2. Add-on auto-default: when the merchant enabled the
-	 *      "auto-redirect configurator products" toggle and the add-on detector
-	 *      flags this product. Skipped when store-wide already disables checkout.
-	 *   3. Filters (below) — a hook always wins, keeping 1 and 2 opt-in defaults.
-	 *
-	 * Applies the `disable_checkout` filters, so callers other than the mapper
-	 * (e.g. the preview) should expect any merchant hook to run here.
+	 * Resolve the `disable_checkout` (feed-only / redirect) decision plus the
+	 * source it came from, for the feed preview. Precedence, lowest first:
+	 * store-wide option, add-on auto-default, then filters (a hook always wins,
+	 * keeping the first two opt-in defaults). Applies the `disable_checkout`
+	 * filters, so any merchant hook runs here.
 	 *
 	 * @since 10.9.0
 	 * @param \WC_Product      $product        Product object.
@@ -263,18 +256,15 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	public function resolve_disable_checkout( \WC_Product $product, ?\WC_Product $parent_product = null ): array {
 		$store_wide = WC_Stripe_Agentic_Commerce_Integration::is_checkout_disabled();
 
-		// Add-on default only matters when the store-wide default has not already
-		// disabled checkout for everything.
+		// Only relevant when store-wide hasn't already disabled checkout.
 		$addon_default = ! $store_wide
 			&& WC_Stripe_Agentic_Commerce_Integration::is_auto_disable_checkout_addons_enabled()
 			&& self::product_has_addons( $product );
 
 		$default = $store_wide || $addon_default;
 
-		// Legacy filter retained for back-compat. Its result seeds the default for
-		// the canonical `woocommerce_`-prefixed filter, so existing hooks keep
-		// working while a hook on the new name takes precedence. Mirrors #5598's
-		// migration of woocommerce_agentic_commerce_should_sync_product.
+		// Legacy filter's result seeds the default for the canonical filter below,
+		// so existing hooks keep working while a hook on the new name wins.
 		$disabled = apply_filters_deprecated(
 			'wc_stripe_agentic_commerce_disable_checkout',
 			[ $default, $product, $parent_product ],
@@ -286,10 +276,8 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		/**
 		 * Filter whether a product is excluded from in-agent checkout (redirect to its `link`).
 		 *
-		 * Uses the WooCommerce core `woocommerce_` prefix rather than `wc_stripe_`
-		 * so the same hook can be shared by other Agentic Commerce integrations
-		 * that are not Stripe-specific. Variations receive the parent product so a
-		 * hook can mirror the parent's value unless it deliberately overrides it.
+		 * Uses the shareable `woocommerce_` prefix so non-Stripe Agentic Commerce
+		 * integrations can hook it too. Variations receive the parent product.
 		 *
 		 * @since 10.9.0
 		 * @param bool             $disabled       Resolved default (store-wide option, plus the add-on auto-default).
@@ -816,9 +804,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 				? (string) $zone['zone_name']
 				: __( '(unnamed zone)', 'woocommerce-gateway-stripe' );
 
-			// Track how many methods in this zone contribute a flat rate, so a
-			// zone served only by live-rate / calculated methods can be surfaced
-			// as a warning below rather than silently producing no shipping.
+			// A zone with zero flat-rate methods is surfaced as a warning below.
 			$methods_with_flat_cost = 0;
 
 			foreach ( $zone['shipping_methods'] as $method ) {
@@ -828,12 +814,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 				$price = $this->method_flat_cost( $method );
 
 				if ( null === $price ) {
-					// A method with no static cost (live-rate, calculated, or
-					// third-party) can't be expressed as a fixed feed value, so it
-					// is dropped from the shipping column. Logging the skip makes
-					// "why is shipping missing for this zone?" diagnosable without
-					// reverse-engineering Stripe's import errors. Runs once per sync
-					// (this result is memoised), not once per product.
+					// A method with no static cost (live-rate / calculated) can't be
+					// a fixed feed value and is dropped; log the skip so missing
+					// shipping is diagnosable. Runs once per sync (memoised result).
 					WC_Stripe_Logger::info(
 						'Agentic Commerce: shipping method has no flat rate and was omitted from the feed.',
 						[
@@ -886,10 +869,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			}
 
 			if ( 0 === $methods_with_flat_cost ) {
-				// Every method in this zone prices at checkout (e.g. ShipStation
-				// Live Rates with no flat-rate fallback), so agents would see no
-				// shipping for this destination. Warn so the merchant can add a
-				// flat-rate fallback method.
+				// Every method here prices at checkout (e.g. ShipStation Live Rates
+				// with no flat-rate fallback), so agents see no shipping for this
+				// destination. Warn so the merchant can add a flat-rate fallback.
 				WC_Stripe_Logger::warning(
 					'Agentic Commerce: shipping zone has no flat-rate method; it contributes no shipping options to the feed.',
 					[ 'zone' => $zone_name ]
@@ -905,11 +887,8 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 
 	/**
 	 * The flat numeric cost a shipping method contributes to the feed's
-	 * `shipping` column, or null when the method has no static cost.
-	 *
-	 * Live-rate, calculated, and most third-party methods (e.g. ShipStation Live
-	 * Rates) compute their price at checkout from the real cart, so they expose
-	 * no fixed `cost` and can't be represented as a feed value.
+	 * `shipping` column, or null when it has no static cost (live-rate /
+	 * calculated methods price at checkout and can't be a fixed feed value).
 	 *
 	 * @since 10.9.0
 	 * @param \WC_Shipping_Method $method Shipping method instance.
@@ -928,10 +907,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	}
 
 	/**
-	 * Structured shipping diagnostics for the feed preview: which configured
-	 * zones contribute no flat-rate shipping to the feed (so agents would see no
-	 * shipping for that destination). Mirrors the skip logic in
-	 * {@see self::get_shipping()} without emitting log lines.
+	 * Shipping diagnostics for the feed preview: zones that contribute no
+	 * flat-rate shipping. Mirrors the skip logic in {@see self::get_shipping()}
+	 * without emitting log lines.
 	 *
 	 * @since 10.9.0
 	 * @return array{zones_without_flat_rate: string[]}
@@ -1185,11 +1163,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		// Excluded by default, still overridable via the filters below.
 		$default_should_sync = ! self::is_subscription_product( $product );
 
-		// Opt-in default: when the merchant enabled "auto-exclude add-on /
-		// configurator products", drop SKUs the detector flags. Configurator
-		// products carry runtime-variable pricing the static feed can't honour,
-		// so excluding them keeps the catalog to fulfillable items. A hook on
-		// either filter below still overrides this, keeping it a default.
+		// Opt-in default: drop detector-flagged configurator products, whose
+		// runtime-variable pricing the static feed can't honour. A filter below
+		// still overrides this.
 		if ( $default_should_sync
 			&& WC_Stripe_Agentic_Commerce_Integration::is_auto_exclude_addons_enabled()
 			&& self::product_has_addons( $product )
@@ -1244,23 +1220,16 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 
 	/**
 	 * Whether a product carries add-on / configurator metadata that makes its
-	 * final price depend on runtime shopper choices, so the static catalog price
-	 * the feed exports can't be honoured at agent checkout.
+	 * price depend on runtime shopper choices the static feed can't honour.
 	 *
-	 * Detection is per-product postmeta, resolved on the parent for variations
-	 * (configurator options live on the parent). It deliberately does NOT key off
-	 * `class_exists()` of the configurator plugins: an active plugin says nothing
-	 * about whether *this* product is configured, so a bare class check would
-	 * flag the entire catalog. The detected meta-key set is filterable so
-	 * merchants can add signals for plugins not covered here.
-	 *
-	 * Covers, out of the box:
-	 *  - WooCommerce Product Add-Ons (`_product_addons`)
-	 *  - TM Extra Product Options (`tm_meta_cpf_options`)
-	 *  - WooCommerce Composite Products (`composite_data`)
-	 *  - WooCommerce Product Bundles, only when priced individually
-	 *    (`_wc_pb_priced_individually` = `yes`) — a fixed-price bundle is a normal
-	 *    static SKU and stays eligible.
+	 * Detection is per-product postmeta (resolved on the parent for variations)
+	 * and deliberately does NOT key off `class_exists()` of the configurator
+	 * plugins — an active plugin says nothing about whether *this* product is
+	 * configured, so a bare class check would flag the whole catalog. Covered:
+	 * Product Add-Ons (`_product_addons`), TM Extra Product Options
+	 * (`tm_meta_cpf_options`), Composite Products (`composite_data`), and Product
+	 * Bundles only when priced individually (`_wc_pb_priced_individually` = `yes`;
+	 * a fixed-price bundle stays eligible). The meta-key set is filterable.
 	 *
 	 * @since 10.9.0
 	 * @param \WC_Product $product Product (or variation) to inspect.
@@ -1278,8 +1247,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 
 		/**
 		 * Meta keys whose non-empty presence marks a product as carrying add-on /
-		 * configurator options. Extend this set to support configurator plugins
-		 * not covered out of the box, without forking the integration.
+		 * configurator options. Extend to support plugins not covered here.
 		 *
 		 * @since 10.9.0
 		 * @param string[]    $meta_keys Meta keys treated as add-on signals.
@@ -1302,9 +1270,8 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			}
 		}
 
-		// Product Bundles only make the price runtime-variable when bundled items
-		// are priced individually; detect only that case, not a bare presence
-		// check (the meta is `no` on fixed-price bundles, which must stay eligible).
+		// Bundles only vary at runtime when priced individually; the meta is `no`
+		// on fixed-price bundles, which must stay eligible.
 		if ( 'yes' === $target->get_meta( '_wc_pb_priced_individually' ) ) {
 			return true;
 		}
@@ -1313,14 +1280,10 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	}
 
 	/**
-	 * Diagnostic companion to {@see self::should_sync_product()}: when a product
-	 * is excluded from the feed, report the most likely cause for the feed
-	 * preview. Returns null when the product would sync.
-	 *
-	 * The branch order matches how {@see self::should_sync_product()} builds its
-	 * default (subscription first, then the add-on auto-exclude), falling through
-	 * to 'filter' when neither built-in default explains the exclusion (i.e. a
-	 * custom hook forced it).
+	 * Diagnostic companion to {@see self::should_sync_product()}: report the most
+	 * likely reason a product is excluded from the feed, or null when it syncs.
+	 * Branch order matches how the default is built (subscription, then add-on
+	 * auto-exclude), falling through to 'filter' when a custom hook forced it.
 	 *
 	 * @since 10.9.0
 	 * @param \WC_Product $product Product to inspect.

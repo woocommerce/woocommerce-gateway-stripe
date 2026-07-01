@@ -88,11 +88,9 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public const DISABLE_CHECKOUT_OPTION = 'wc_stripe_agentic_commerce_disable_checkout';
 
 	/**
-	 * Option key for the "auto-exclude add-on / configurator products from the
-	 * feed" toggle. `yes` makes {@see WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product()}
-	 * default to excluding products the add-on detector flags, so configurator
-	 * SKUs (Product Add-Ons, TM Extra Product Options, Composite Products,
-	 * individually-priced Bundles) never enter the catalog. Opt-in; default off.
+	 * Option key ('yes'/'no', default off) for auto-excluding detector-flagged
+	 * add-on / configurator products from the feed. Drives a default branch in
+	 * {@see WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product()}.
 	 *
 	 * @var string
 	 * @since 10.9.0
@@ -100,13 +98,10 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public const AUTO_EXCLUDE_ADDONS_OPTION = 'wc_stripe_agentic_commerce_auto_exclude_addons';
 
 	/**
-	 * Option key for the "auto-set disable_checkout on add-on / configurator
-	 * products" toggle. `yes` makes the mapper default `disable_checkout=true`
-	 * for detected configurator SKUs so agents redirect shoppers to the
-	 * storefront to configure and buy, while the products still syndicate for
-	 * discovery. Opt-in; default off. Mutually compatible with
-	 * {@see self::AUTO_EXCLUDE_ADDONS_OPTION}, but exclude wins (an excluded
-	 * product is never in the feed, so its checkout mode is moot).
+	 * Option key ('yes'/'no', default off) for defaulting `disable_checkout=true`
+	 * on detected configurator products so agents redirect shoppers to the store
+	 * while the products still syndicate for discovery. Exclude wins over this
+	 * (an excluded product is never in the feed).
 	 *
 	 * @var string
 	 * @since 10.9.0
