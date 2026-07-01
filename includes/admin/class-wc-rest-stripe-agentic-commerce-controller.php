@@ -54,6 +54,14 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	private const REFRESHABLE_STATUSES = [ 'queued', 'validating', 'validating_records', 'pending', 'creating_records', 'unknown' ];
 
 	/**
+	 * Number of most-recent sync history entries the dashboard table shows.
+	 *
+	 * @var int
+	 * @since 10.9.0
+	 */
+	private const RECENT_HISTORY_LIMIT = 5;
+
+	/**
 	 * Endpoint path.
 	 *
 	 * @var string
@@ -179,10 +187,10 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		$last_sync   = WC_Stripe_Agentic_Commerce_Integration::get_last_sync();
 		$history_raw = WC_Stripe_Agentic_Commerce_Integration::get_sync_history();
 
-		// Return the 20 most recent history entries, newest first.
+		// Return the most recent history entries, newest first.
 		$history = array_map(
 			[ $this, 'format_entry' ],
-			array_reverse( array_slice( $history_raw, -20 ) )
+			array_reverse( array_slice( $history_raw, -self::RECENT_HISTORY_LIMIT ) )
 		);
 
 		$next_sync = null;

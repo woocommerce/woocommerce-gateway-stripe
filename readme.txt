@@ -169,9 +169,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - When changing a subscription's payment method, reflect the new card and its Apple Pay/Google Pay branding on My Account and clarify the admin order note
 * Dev - Use a shared hook manager to prevent duplicate subscription hook registrations
 * Dev - Initial infrastructure for more complex Agentic feed filtering
-* Add - Agentic Commerce: add merchant settings to automatically exclude add-on/configurator products (Product Add-Ons, Extra Product Options, Composite Products, individually-priced Bundles) from the feed, or keep them discoverable while redirecting shoppers to the store to check out
-* Tweak - Agentic Commerce: surface skipped non-flat-rate shipping zones and per-product feed advisories (excluded, redirect-only, missing SKU) in the feed preview and logs
-* Dev - Agentic Commerce: add the shareable woocommerce_agentic_commerce_disable_checkout filter (deprecating the wc_stripe_-prefixed twin) and the woocommerce_agentic_commerce_addon_detection_meta_keys filter
+* Add - Agentic Commerce: add settings to exclude add-on/configurator products from the feed or keep them discoverable while redirecting shoppers to the store to check out, plus feed-preview diagnostics for skipped shipping zones and per-product advisories
+* Dev - Agentic Commerce: add the shareable woocommerce_agentic_commerce_disable_checkout and woocommerce_agentic_commerce_addon_detection_meta_keys filters, deprecating the wc_stripe_-prefixed disable_checkout twin
 * Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
 * Fix - Prevent classic and Blocks checkout submissions from failing while the Stripe Payment Element is re-mounting after a checkout update
 * Fix - Decommission the previously configured webhook before connecting via OAuth so reconnecting to a different Stripe account no longer leaves an orphaned webhook on the old account
@@ -207,5 +206,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Update subscription E2E fixtures to use WooCommerce Subscriptions product plans
 * Tweak - Cap the Agentic Commerce feed preview scan so it stays responsive on large catalogs instead of timing out
 * Dev - Make the Express Checkout entrypoint bootstrap test deterministic to remove a CI flake
+* Fix - Prevent an error when creating the Adaptive Pricing checkout session for logged-in customers without a saved billing address
+* Fix - Show the selected variation's line items in the Apple Pay/Google Pay payment sheet on variable product pages, instead of the previously selected variation's breakdown
+* Tweak - Break down the Agentic Commerce feed preview's excluded product count by reason so subscriptions are no longer mistaken for a merchant-configured filter
+* Fix - Render the Express Checkout settings button preview background based on the button color
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
