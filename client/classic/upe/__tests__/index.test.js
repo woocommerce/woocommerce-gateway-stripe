@@ -1,7 +1,9 @@
 /**
- * The bootstrap must wait for window.wp.data / window.wp.i18n /
- * window.wc.wcSettings before loading the real init chunk, so a "defer
- * render-blocking JS" optimizer can't make ./init throw at load.
+ * The bootstrap must wait for the WordPress/WooCommerce globals ./init depends
+ * on (window.wp.data, window.wc.wcSettings, ...) before loading the real init
+ * chunk, so a "defer render-blocking JS" optimizer can't make ./init throw at
+ * load. The list of globals is derived from the build's declared dependencies
+ * so it can't drift from what ./init actually imports.
  */
 
 // Mock ./init so importing the bootstrap doesn't pull the whole checkout graph;
@@ -23,6 +25,10 @@ const setDependenciesReady = () => {
 const clearDependencies = () => {
 	delete window.wp;
 	delete window.wc;
+	delete window.jQuery;
+	delete window.React;
+	delete window.ReactDOM;
+	delete global.wc_stripe_upe_params;
 };
 
 const flushPromises = () => new Promise( ( resolve ) => resolve() );
@@ -107,5 +113,71 @@ describe( 'classic UPE bootstrap', () => {
 		} );
 
 		expect( global.__upeInitLoadCount ).toBe( 1 );
+	} );
+
+	it( 'waits for every global derived from the build dependencies', async () => {
+		// Mirrors build/upe-classic.asset.php: the gate must cover the wp-*
+		// externals (element/hooks/api-fetch included) and wc-settings, not just
+		// the three the fallback list happened to name.
+		global.wc_stripe_upe_params = {
+			scriptDependencies: [
+				'jquery',
+				'react',
+				'react-dom',
+				'wc-settings',
+				'wp-api-fetch',
+				'wp-data',
+				'wp-element',
+				'wp-hooks',
+				'wp-i18n',
+				'wp-polyfill',
+			],
+		};
+
+		await jest.isolateModulesAsync( async () => {
+			require( '../index' );
+			await flushPromises();
+
+			// wp.element missing: a dependency the old hard-coded list ignored.
+			window.jQuery = {};
+			window.React = {};
+			window.ReactDOM = {};
+			window.wp = { data: {}, i18n: {}, hooks: {}, apiFetch: {} };
+			window.wc = { wcSettings: {} };
+			jest.advanceTimersByTime( 50 );
+			await flushPromises();
+			expect( global.__upeInitLoadCount ).toBe( 0 );
+
+			window.wp.element = {};
+			jest.advanceTimersByTime( 50 );
+			await flushPromises();
+			expect( global.__upeInitLoadCount ).toBe( 1 );
+		} );
+	} );
+
+	it( 'does not gate on ignored handles (wp-polyfill/stripe/wc-checkout)', async () => {
+		global.wc_stripe_upe_params = {
+			scriptDependencies: [
+				'stripe',
+				'wc-checkout',
+				'wp-polyfill',
+				'wp-data',
+				'wc-settings',
+			],
+		};
+
+		await jest.isolateModulesAsync( async () => {
+			require( '../index' );
+			await flushPromises();
+
+			// Only the real externals need to resolve; the ignored handles never
+			// set a global, so gating on them would hang until the timeout.
+			window.wp = { data: {} };
+			window.wc = { wcSettings: {} };
+			jest.advanceTimersByTime( 50 );
+			await flushPromises();
+
+			expect( global.__upeInitLoadCount ).toBe( 1 );
+		} );
 	} );
 } );

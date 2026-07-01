@@ -867,6 +867,48 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * The classic UPE bootstrap gates its async init chunk on the globals its
+	 * build dependencies define, and derives that list from `scriptDependencies`
+	 * so it can't drift from the bundle. Guard that the localized data carries the
+	 * same handles the script was registered with.
+	 */
+	public function test_payment_scripts_localizes_script_dependencies(): void {
+		$asset_path            = WC_STRIPE_PLUGIN_PATH . '/build/upe-classic.asset.php';
+		$expected_dependencies = [];
+		if ( file_exists( $asset_path ) ) {
+			$asset = require $asset_path;
+			if ( is_array( $asset ) && isset( $asset['dependencies'] ) && is_array( $asset['dependencies'] ) ) {
+				$expected_dependencies = $asset['dependencies'];
+			}
+		}
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'javascript_params', 'get_return_url' ] )
+			->getMock();
+		$gateway->method( 'javascript_params' )->willReturn( [] );
+		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
+		$gateway->enabled = 'yes';
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+
+		$gateway->payment_scripts();
+		$localized = wp_scripts()->get_data( 'wc-stripe-upe-classic', 'data' );
+
+		remove_filter( 'woocommerce_is_checkout', '__return_true' );
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+
+		$this->assertIsString( $localized, 'wc_stripe_upe_params was not localized' );
+		$this->assertMatchesRegularExpression( '/var wc_stripe_upe_params = (\{.*\});/s', $localized );
+		preg_match( '/var wc_stripe_upe_params = (\{.*\});/s', $localized, $matches );
+		$params = json_decode( $matches[1], true );
+
+		$this->assertArrayHasKey( 'scriptDependencies', $params );
+		$this->assertSame( $expected_dependencies, $params['scriptDependencies'] );
+	}
+
+	/**
 	 * The classic UPE bootstrap pins webpack's publicPath to `pluginBuildUrl` so its
 	 * async init chunk resolves against the plugin build dir even when a host optimizer
 	 * relocates the entry script. Guard that PHP→JS contract key here.

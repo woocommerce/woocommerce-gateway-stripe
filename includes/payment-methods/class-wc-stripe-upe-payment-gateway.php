@@ -498,10 +498,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'woocommerce-gateway-stripe'
 		);
 
+		$upe_params = apply_filters( 'wc_stripe_upe_params', $this->javascript_params() );
+
+		// The bootstrap waits for the globals these scripts define before loading
+		// the async init chunk, so a host "defer render-blocking JS" optimizer can't
+		// run our bundle before its dependencies. Sourcing the list from the build's
+		// generated dependencies keeps it in sync with what the bundle imports.
+		$upe_params['scriptDependencies'] = $dependencies;
+
 		wp_localize_script(
 			'wc-stripe-upe-classic',
 			'wc_stripe_upe_params',
-			apply_filters( 'wc_stripe_upe_params', $this->javascript_params() )
+			$upe_params
 		);
 
 		wp_register_style(
