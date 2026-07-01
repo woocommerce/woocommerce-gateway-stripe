@@ -5,7 +5,6 @@ import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethodCheckbox from './payment-method-checkbox';
 import { useEnabledPaymentMethodIds, useManualCapture } from 'wcstripe/data';
-import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import usePaymentMethodUnavailableReason from 'utils/use-payment-method-unavailable-reason';
 import { getFormattedPaymentMethodDescription } from 'wcstripe/settings/general-settings-section/get-formatted-payment-method-description';
 
@@ -53,10 +52,6 @@ const PaymentMethodWrapper = styled.div`
 		flex-wrap: nowrap;
 		align-items: center;
 	}
-`;
-
-const StyledFees = styled( PaymentMethodFeesPill )`
-	flex: 1 0 auto;
 `;
 
 const PaymentMethod = ( { method, data } ) => {
@@ -108,7 +103,6 @@ const PaymentMethod = ( { method, data } ) => {
 						label={ label }
 						supportsRecurring={ supportsRecurring }
 					/>
-					<StyledFees id={ method } />
 				</PaymentMethodWrapper>
 			</ListElement>
 		</div>
