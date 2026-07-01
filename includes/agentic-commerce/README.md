@@ -364,3 +364,24 @@ add_filter(
 ```
 
 > The Stripe-prefixed `wc_stripe_agentic_commerce_disable_checkout` filter is **deprecated since 10.9.0** in favour of the shareable `woocommerce_agentic_commerce_disable_checkout` above (mirroring the `woocommerce_agentic_commerce_should_sync_product` migration). Existing hooks on the old name still run — they seed the new filter's default — but emit a deprecation notice.
+
+## Shipping diagnostics
+
+Only methods with a static numeric cost (flat rate, free shipping) are written
+to the feed's `shipping` column. Live-rate, calculated, and most third-party
+methods price at checkout and are omitted. When that leaves a zone with no
+shipping in the feed, agents see no shipping for that destination.
+
+This is discoverable two ways:
+
+- **Logs** (WooCommerce → Status → Logs, `wc-stripe` source):
+  - *info* — "shipping method has no flat rate and was omitted from the feed"
+    (with the zone, method id, and method title), once per sync.
+  - *warning* — "shipping zone has no flat-rate method; it contributes no
+    shipping options to the feed" (with the zone name).
+- **Feed preview** (**Stripe settings → Agentic commerce → Preview feed**): the
+  `shipping_warnings` array names every zone with no flat-rate fallback.
+
+**Recommended fix:** add a low-cost or representative flat-rate method to each
+live-rate-only zone as a feed fallback, so the catalog advertises a shipping
+price while WooCommerce still computes the real live rate at checkout.

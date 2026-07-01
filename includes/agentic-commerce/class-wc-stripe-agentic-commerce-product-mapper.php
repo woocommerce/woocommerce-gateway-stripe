@@ -759,22 +759,35 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 
 		foreach ( $zones as $zone ) {
 			$locations = $zone['zone_locations'];
+			$zone_name = isset( $zone['zone_name'] ) && '' !== $zone['zone_name']
+				? (string) $zone['zone_name']
+				: __( '(unnamed zone)', 'woocommerce-gateway-stripe' );
+
+			// A zone with zero flat-rate methods is surfaced as a warning below.
+			$methods_with_flat_cost = 0;
 
 			foreach ( $zone['shipping_methods'] as $method ) {
 				// Escape colons in method title.
 				$method_title = str_replace( ':', '\:', trim( $method->get_title(), ':' ) );
 
-				// Generate the price.
-				$price = '';
-				if ( 'free_shipping' === $method->id ) {
-					$price = '0.00';
-				} elseif ( isset( $method->cost ) && is_numeric( $method->cost ) ) {
-					$price = number_format( (float) $method->cost, 2, '.', '' );
-				}
+				$price = $this->method_flat_cost( $method );
 
-				if ( '' === $price ) {
+				if ( null === $price ) {
+					// A method with no static cost (live-rate / calculated) can't be
+					// a fixed feed value and is dropped; log the skip so missing
+					// shipping is diagnosable. Runs once per sync (memoised result).
+					WC_Stripe_Logger::info(
+						'Agentic Commerce: shipping method has no flat rate and was omitted from the feed.',
+						[
+							'zone'      => $zone_name,
+							'method_id' => $method->id,
+							'method'    => $method->get_title(),
+						]
+					);
 					continue;
 				}
+
+				++$methods_with_flat_cost;
 
 				foreach ( $locations as $location ) {
 					$country = null;
@@ -813,12 +826,75 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 					$shipping_data[] = implode( ':', $parts );
 				}
 			}
+
+			if ( 0 === $methods_with_flat_cost ) {
+				// Every method here prices at checkout (e.g. ShipStation Live Rates
+				// with no flat-rate fallback), so agents see no shipping for this
+				// destination. Warn so the merchant can add a flat-rate fallback.
+				WC_Stripe_Logger::warning(
+					'Agentic Commerce: shipping zone has no flat-rate method; it contributes no shipping options to the feed.',
+					[ 'zone' => $zone_name ]
+				);
+			}
 		}
 
 		$shipping_data              = array_values( array_unique( $shipping_data ) );
 		$this->cached_shipping_data = empty( $shipping_data ) ? null : implode( ',', $shipping_data );
 
 		return $this->cached_shipping_data;
+	}
+
+	/**
+	 * The flat numeric cost a shipping method contributes to the feed's
+	 * `shipping` column, or null when it has no static cost (live-rate /
+	 * calculated methods price at checkout and can't be a fixed feed value).
+	 *
+	 * @since 10.9.0
+	 * @param \WC_Shipping_Method $method Shipping method instance.
+	 * @return string|null Formatted price (e.g. "5.00"), or null when not flat-rate.
+	 */
+	private function method_flat_cost( $method ): ?string {
+		if ( 'free_shipping' === $method->id ) {
+			return '0.00';
+		}
+
+		if ( isset( $method->cost ) && is_numeric( $method->cost ) ) {
+			return number_format( (float) $method->cost, 2, '.', '' );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Shipping diagnostics for the feed preview: zones that contribute no
+	 * flat-rate shipping. Mirrors the skip logic in {@see self::get_shipping()}
+	 * without emitting log lines.
+	 *
+	 * @since 10.9.0
+	 * @return array{zones_without_flat_rate: string[]}
+	 */
+	public function get_shipping_diagnostics(): array {
+		$zones_without_flat_rate = [];
+
+		foreach ( $this->get_cached_shipping_zones() as $zone ) {
+			$zone_name = isset( $zone['zone_name'] ) && '' !== $zone['zone_name']
+				? (string) $zone['zone_name']
+				: __( '(unnamed zone)', 'woocommerce-gateway-stripe' );
+
+			$has_flat_rate = false;
+			foreach ( $zone['shipping_methods'] as $method ) {
+				if ( null !== $this->method_flat_cost( $method ) ) {
+					$has_flat_rate = true;
+					break;
+				}
+			}
+
+			if ( ! $has_flat_rate ) {
+				$zones_without_flat_rate[] = $zone_name;
+			}
+		}
+
+		return [ 'zones_without_flat_rate' => array_values( array_unique( $zones_without_flat_rate ) ) ];
 	}
 
 	/**
@@ -1000,6 +1076,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 
 		$this->cached_shipping_zones = [
 			[
+				'zone_name'        => __( 'Locations not covered by your other zones', 'woocommerce-gateway-stripe' ),
 				'zone_locations'   => [
 					(object) [
 						'type' => 'not_covered',

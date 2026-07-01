@@ -1374,4 +1374,26 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 			$parent->delete( true );
 		}
 	}
+
+	/**
+	 * get_shipping_diagnostics() flags a zone with no flat-rate method as
+	 * contributing no shipping to the feed.
+	 *
+	 * @return void
+	 */
+	public function test_get_shipping_diagnostics_flags_zone_without_flat_rate() {
+		$zone = new WC_Shipping_Zone();
+		$zone->set_zone_name( 'Diagnostics Test Zone' );
+		$zone->save();
+
+		try {
+			$mapper      = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$diagnostics = $mapper->get_shipping_diagnostics();
+
+			$this->assertArrayHasKey( 'zones_without_flat_rate', $diagnostics );
+			$this->assertContains( 'Diagnostics Test Zone', $diagnostics['zones_without_flat_rate'] );
+		} finally {
+			$zone->delete();
+		}
+	}
 }

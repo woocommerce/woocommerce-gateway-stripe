@@ -435,6 +435,29 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 			);
 		}
 	}
+
+	/**
+	 * A configured zone with no flat-rate method surfaces as a shipping warning.
+	 *
+	 * @return void
+	 */
+	public function test_preview_flags_zone_without_flat_rate(): void {
+		$zone = new WC_Shipping_Zone();
+		$zone->set_zone_name( 'Preview No-Flat-Rate Zone' );
+		$zone->save();
+
+		$product = $this->create_valid_product();
+		$this->scope_to( [ $product->get_id() ] );
+
+		try {
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+
+			$joined = implode( "\n", $preview['shipping_warnings'] );
+			$this->assertStringContainsString( 'Preview No-Flat-Rate Zone', $joined );
+		} finally {
+			$zone->delete();
+		}
+	}
 }
 
 /**
