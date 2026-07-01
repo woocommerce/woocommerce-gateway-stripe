@@ -8,6 +8,7 @@ import {
 	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 } from 'wcstripe/stripe-utils/constants';
+import './style.scss';
 
 const buttonSizeToPxMap = {
 	small: 40,
@@ -125,6 +126,8 @@ const ExpressCheckoutPreview = ( {
 	if ( canRenderButtons ) {
 		return (
 			<div
+				className="wcstripe-express-checkout-preview"
+				data-theme={ theme || undefined }
 				key={
 					buttonType && theme
 						? `${ buttonType }-${ theme }`

@@ -635,8 +635,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		// Optimized Checkout feature flag + setting + whether we are on any of the pages that should not show OC.
-		$should_show_optimized_checkout                 = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
+		// True on OC checkout pages and in the Cart/Checkout block editor (where the OC element registers as 'stripe').
+		$should_show_optimized_checkout                 = $this->should_render_optimized_checkout();
 		$stripe_params['isOCEnabled']                   = $should_show_optimized_checkout;
 		$stripe_params['shouldShowOptimizedCheckout']   = $should_show_optimized_checkout;
 		$stripe_params['shouldExpandOptimizedCheckout'] = $should_show_optimized_checkout && WC_Stripe_Feature_Flags::should_expand_ocs_in_legacy_checkout();
@@ -855,6 +855,23 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Whether the single OC element should represent Stripe for the current request.
+	 *
+	 * Covers real OC checkout pages (classic and Blocks) plus the Cart/Checkout block editor,
+	 * where is_checkout() (and thus is_valid_optimized_checkout_page()) is false.
+	 *
+	 * @return bool
+	 */
+	public function should_render_optimized_checkout(): bool {
+		if ( ! $this->oc_enabled ) {
+			return false;
+		}
+
+		return $this->is_valid_optimized_checkout_page()
+			|| ( is_admin() && WC_Stripe::get_instance()->is_editing_cart_or_checkout_block() );
+	}
+
+	/**
 	 * Checks whether Optimized Checkout is the active payment strategy for the current request.
 	 *
 	 * Distinct from {@see self::is_valid_optimized_checkout_page()} which gates *rendering* to
@@ -913,9 +930,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$original_method_ids     = $enabled_payment_methods; // For OC, keep the original methods to control availability
 		$payment_methods         = $this->payment_methods;
 
-		// If the Optimized Checkout is enabled (and we are not in any of the pages that should not show OC), we need to return just the card payment method + express methods.
-		// All payment methods are rendered inside the card container.
-		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
+		// With OC, return just the OC element (rendered as the 'stripe' method) + express methods; all
+		// methods render inside it. The block editor is included so the OC element registers there too.
+		if ( $this->should_render_optimized_checkout() ) {
 			$oc_method_id                     = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
 			$enabled_express_methods          = array_intersect(
 				$enabled_payment_methods,
@@ -931,7 +948,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// saved as a different type (Bancontact → SEPA) are not savable: the
 		// Checkout Sessions flow cannot request `setup_future_usage` for them.
 		$show_save_option_by_method = [];
-		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
+		if ( $this->should_render_optimized_checkout() ) {
 			$is_adaptive_pricing_active = $this->is_adaptive_pricing_supported();
 			foreach ( $original_method_ids as $method_id ) {
 				if ( isset( $this->payment_methods[ $method_id ] ) ) {
