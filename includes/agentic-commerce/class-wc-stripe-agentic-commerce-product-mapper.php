@@ -27,6 +27,26 @@ use Automattic\WooCommerce\Internal\ProductFeed\Utils\StringHelper;
  */
 class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterface {
 	/**
+	 * Reasons a product is excluded from the feed, as reported by
+	 * {@see self::get_sync_exclusion_reason()} and surfaced in the feed preview.
+	 */
+	public const SYNC_EXCLUSION_REASON_SUBSCRIPTION = 'subscription';
+	public const SYNC_EXCLUSION_REASON_ADDONS       = 'addons';
+	public const SYNC_EXCLUSION_REASON_FILTER       = 'filter';
+
+	/**
+	 * Postmeta keys whose non-empty presence marks a product as carrying add-on /
+	 * configurator options. The first three seed the
+	 * `woocommerce_agentic_commerce_addon_detection_meta_keys` filter default;
+	 * the Bundles key is checked separately (only `yes` counts). See
+	 * {@see self::product_has_addons()}.
+	 */
+	public const ADDON_META_PRODUCT_ADDONS             = '_product_addons';
+	public const ADDON_META_EXTRA_PRODUCT_OPTIONS      = 'tm_meta_cpf_options';
+	public const ADDON_META_COMPOSITE                  = 'composite_data';
+	public const ADDON_META_BUNDLE_PRICED_INDIVIDUALLY = '_wc_pb_priced_individually';
+
+	/**
 	 * Stripe feed schema definition.
 	 *
 	 * @var array
@@ -1255,7 +1275,11 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 */
 		$meta_keys = apply_filters(
 			'woocommerce_agentic_commerce_addon_detection_meta_keys',
-			[ '_product_addons', 'tm_meta_cpf_options', 'composite_data' ],
+			[
+				self::ADDON_META_PRODUCT_ADDONS,
+				self::ADDON_META_EXTRA_PRODUCT_OPTIONS,
+				self::ADDON_META_COMPOSITE,
+			],
 			$target
 		);
 
@@ -1272,7 +1296,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 
 		// Bundles only vary at runtime when priced individually; the meta is `no`
 		// on fixed-price bundles, which must stay eligible.
-		if ( 'yes' === $target->get_meta( '_wc_pb_priced_individually' ) ) {
+		if ( 'yes' === $target->get_meta( self::ADDON_META_BUNDLE_PRICED_INDIVIDUALLY ) ) {
 			return true;
 		}
 
@@ -1283,11 +1307,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * Diagnostic companion to {@see self::should_sync_product()}: report the most
 	 * likely reason a product is excluded from the feed, or null when it syncs.
 	 * Branch order matches how the default is built (subscription, then add-on
-	 * auto-exclude), falling through to 'filter' when a custom hook forced it.
+	 * auto-exclude), falling through to the filter reason when a custom hook
+	 * forced it.
 	 *
 	 * @since 10.9.0
 	 * @param \WC_Product $product Product to inspect.
-	 * @return string|null One of 'subscription', 'addons', 'filter', or null.
+	 * @return string|null One of the SYNC_EXCLUSION_REASON_* constants, or null when the product syncs.
 	 */
 	public static function get_sync_exclusion_reason( \WC_Product $product ): ?string {
 		if ( self::should_sync_product( $product ) ) {
@@ -1295,13 +1320,13 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		}
 
 		if ( $product->is_type( [ 'subscription', 'variable-subscription', 'subscription_variation' ] ) ) {
-			return 'subscription';
+			return self::SYNC_EXCLUSION_REASON_SUBSCRIPTION;
 		}
 
 		if ( WC_Stripe_Agentic_Commerce_Integration::is_auto_exclude_addons_enabled() && self::product_has_addons( $product ) ) {
-			return 'addons';
+			return self::SYNC_EXCLUSION_REASON_ADDONS;
 		}
 
-		return 'filter';
+		return self::SYNC_EXCLUSION_REASON_FILTER;
 	}
 }
