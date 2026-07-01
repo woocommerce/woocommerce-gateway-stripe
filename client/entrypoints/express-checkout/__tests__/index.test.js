@@ -178,9 +178,12 @@ describe( 'Express Checkout product page variation breakdown', () => {
 	} );
 
 	// Stripe button stub that captures the bound event handlers so the test can
-	// invoke the click handler directly.
+	// invoke the click handler directly. Each express type (Apple Pay, Google
+	// Pay, …) gets its own Elements group, so `elementsList` collects them all to
+	// assert the amount is pushed to every group.
 	const stubStripeButton = () => {
 		const handlers = {};
+		const elementsList = [];
 		const button = {
 			on: ( evt, cb ) => {
 				handlers[ evt ] = cb;
@@ -188,11 +191,17 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			},
 			mount: jest.fn(),
 		};
-		const elements = { create: jest.fn( () => button ), update: jest.fn() };
 		mockGetStripe.mockReturnValue( {
-			elements: jest.fn( () => elements ),
+			elements: jest.fn( () => {
+				const elements = {
+					create: jest.fn( () => button ),
+					update: jest.fn(),
+				};
+				elementsList.push( elements );
+				return elements;
+			} ),
 		} );
-		return handlers;
+		return { handlers, elementsList };
 	};
 
 	beforeEach( () => {
@@ -249,7 +258,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		mockAddToCart.mockResolvedValue( { items_count: 1 } );
 		mockEmptyCartLegacy.mockResolvedValue( {} );
 
-		const handlers = stubStripeButton();
+		const { handlers } = stubStripeButton();
 
 		loadEntrypoint();
 
@@ -284,7 +293,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		mockAddToCart.mockResolvedValue( { items_count: 1 } );
 		mockEmptyCartLegacy.mockResolvedValue( {} );
 
-		const handlers = stubStripeButton();
+		const { handlers } = stubStripeButton();
 
 		loadEntrypoint();
 
@@ -305,5 +314,37 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		expect( event.resolve.mock.calls[ 0 ][ 0 ].lineItems ).toEqual( [
 			{ name: 'Red variation', amount: 2000 },
 		] );
+	} );
+
+	it( 'pushes the new amount to every mounted express button, not just the last one', async () => {
+		global.wc_stripe_express_checkout_params = productParams();
+
+		mockGetSelectedProductData.mockResolvedValue( {
+			total: { amount: 2000 },
+			currency: 'usd',
+			requestShipping: false,
+			displayItems: [ { label: 'Blue variation', amount: 2000 } ],
+		} );
+		mockAddToCart.mockResolvedValue( { items_count: 1 } );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+
+		const { elementsList } = stubStripeButton();
+
+		loadEntrypoint();
+
+		// Apple Pay and Google Pay each mount their own Elements group.
+		expect( elementsList.length ).toBeGreaterThan( 1 );
+
+		// eslint-disable-next-line global-require
+		require( 'jquery' )( document.body ).trigger(
+			'woocommerce_variation_has_changed'
+		);
+		await flushPromises();
+
+		// The regression updated only the last group, leaving the others below
+		// the refreshed line-item total so their wallet rejected the click.
+		elementsList.forEach( ( elements ) => {
+			expect( elements.update ).toHaveBeenCalledWith( { amount: 2000 } );
+		} );
 	} );
 } );
