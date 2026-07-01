@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import styled from '@emotion/styled';
-import { info } from '@wordpress/icons';
+import { chevronDown, chevronUp } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
 import { createInterpolateElement } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
@@ -10,9 +10,7 @@ import {
 	CardHeader,
 	ExternalLink,
 	Flex,
-	Icon,
 	Notice,
-	Tooltip,
 } from '@wordpress/components';
 import CardBody from 'wcstripe/settings/card-body';
 
@@ -50,6 +48,13 @@ const SummaryStat = styled.div`
 		font-size: 12px;
 	}
 
+	.wc-stripe-agentic-preview__excluded-details-toggle {
+		height: auto;
+		margin-top: 4px;
+		padding: 0;
+		font-size: 12px;
+	}
+
 	&.is-included .wc-stripe-agentic-preview__stat-value {
 		color: #005c12;
 	}
@@ -81,9 +86,15 @@ const ErrorsTable = styled.table`
 		border-bottom: none;
 	}
 
+	// Drop the bullet indent so a single issue aligns with the "Issues" header.
 	ul {
 		margin: 0;
-		padding-left: 18px;
+		padding-left: 0;
+		list-style: none;
+	}
+
+	li + li {
+		margin-top: 4px;
 	}
 
 	.wc-stripe-agentic-preview__product-col {
@@ -95,32 +106,32 @@ const IntroDescription = styled.p`
 	margin-top: 16px;
 `;
 
-// Focusable, non-interactive anchor for the "Excluded" explanation tooltip.
-// Stays a <span> (not a <button>) because the only action is revealing the
-// wrapping Tooltip on hover/focus — there is nothing to click.
-const StatInfoTarget = styled.span`
-	display: inline-flex;
-	align-items: center;
-	margin-left: 4px;
+const ExcludedDetails = styled.div`
+	margin: 8px 0 16px;
+`;
+
+const ExcludedBreakdown = styled.ul`
+	margin: 8px 0 4px;
+	padding-left: 18px;
 	color: #646970;
-	cursor: help;
-	vertical-align: middle;
+	font-size: 12px;
 
-	&:focus-visible {
-		outline: 2px solid #2271b1;
-		outline-offset: 1px;
-		border-radius: 2px;
+	li {
+		margin: 2px 0;
 	}
+`;
 
-	svg {
-		fill: currentColor;
-	}
+const ExcludedNote = styled.p`
+	margin: 0;
+	color: #646970;
+	font-size: 12px;
 `;
 
 const AgenticCommerceFeedPreview = () => {
 	const [ data, setData ] = useState( null );
 	const [ isLoading, setIsLoading ] = useState( false );
 	const [ hasError, setHasError ] = useState( false );
+	const [ showExcludedDetails, setShowExcludedDetails ] = useState( false );
 
 	const fetchPreview = useCallback( async () => {
 		setIsLoading( true );
@@ -141,11 +152,15 @@ const AgenticCommerceFeedPreview = () => {
 		total_count: totalCount,
 		included_count: includedCount,
 		excluded_count: excludedCount,
+		excluded_breakdown: excludedBreakdown,
 		invalid_count: invalidCount,
 		validation_errors: validationErrors,
 		truncated,
 		scan_limited: scanLimited,
 	} = data ?? {};
+
+	const excludedSubscriptions = excludedBreakdown?.subscriptions ?? 0;
+	const excludedFiltered = excludedBreakdown?.filtered ?? 0;
 
 	return (
 		<SectionCard>
@@ -225,26 +240,73 @@ const AgenticCommerceFeedPreview = () => {
 										'Excluded',
 										'woocommerce-gateway-stripe'
 									) }
-									<Tooltip
-										text={ __(
-											'Products not sent to AI agents — including subscription products, which aren’t supported, and anything hidden by your store’s product visibility settings. These aren’t validation errors.',
+								</span>
+								{ excludedCount > 0 && (
+									<Button
+										className="wc-stripe-agentic-preview__excluded-details-toggle"
+										variant="link"
+										icon={
+											showExcludedDetails
+												? chevronUp
+												: chevronDown
+										}
+										iconPosition="right"
+										aria-expanded={ showExcludedDetails }
+										onClick={ () =>
+											setShowExcludedDetails(
+												( shown ) => ! shown
+											)
+										}
+									>
+										{ __(
+											'Details',
 											'woocommerce-gateway-stripe'
 										) }
-									>
-										<StatInfoTarget
-											tabIndex={ 0 }
-											role="img"
-											aria-label={ __(
-												'What does Excluded mean?',
-												'woocommerce-gateway-stripe'
-											) }
-										>
-											<Icon icon={ info } size={ 16 } />
-										</StatInfoTarget>
-									</Tooltip>
-								</span>
+									</Button>
+								) }
 							</SummaryStat>
 						</SummaryRow>
+
+						{ excludedCount > 0 && showExcludedDetails && (
+							<ExcludedDetails>
+								<ExcludedBreakdown>
+									{ excludedSubscriptions > 0 && (
+										<li>
+											{ sprintf(
+												/* translators: %s: number of subscription products. */
+												_n(
+													'%s subscription product — subscriptions aren’t supported by AI agents.',
+													'%s subscription products — subscriptions aren’t supported by AI agents.',
+													excludedSubscriptions,
+													'woocommerce-gateway-stripe'
+												),
+												excludedSubscriptions.toLocaleString()
+											) }
+										</li>
+									) }
+									{ excludedFiltered > 0 && (
+										<li>
+											{ sprintf(
+												/* translators: %s: number of products excluded by a store rule. */
+												_n(
+													'%s product excluded by your store’s rules.',
+													'%s products excluded by your store’s rules.',
+													excludedFiltered,
+													'woocommerce-gateway-stripe'
+												),
+												excludedFiltered.toLocaleString()
+											) }
+										</li>
+									) }
+								</ExcludedBreakdown>
+								<ExcludedNote>
+									{ __(
+										'These products aren’t sent to AI agents and aren’t validation errors.',
+										'woocommerce-gateway-stripe'
+									) }
+								</ExcludedNote>
+							</ExcludedDetails>
+						) }
 
 						{ !! validationErrors?.length && (
 							<>
