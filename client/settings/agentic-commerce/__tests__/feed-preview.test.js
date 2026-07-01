@@ -16,6 +16,7 @@ const PREVIEW_RESPONSE = {
 	total_count: 5,
 	included_count: 3,
 	excluded_count: 1,
+	excluded_breakdown: { subscriptions: 1, filtered: 0 },
 	invalid_count: 1,
 	truncated: 0,
 	validation_errors: [
@@ -64,7 +65,7 @@ describe( 'AgenticCommerceFeedPreview', () => {
 		expect( screen.getByText( '3' ) ).toBeInTheDocument(); // included count
 	} );
 
-	it( 'explains what "Excluded" means via a tooltip target', async () => {
+	it( 'keeps the excluded breakdown collapsed until Details is opened', async () => {
 		apiFetch.mockResolvedValue( PREVIEW_RESPONSE );
 
 		render( <AgenticCommerceFeedPreview /> );
@@ -72,9 +73,7 @@ describe( 'AgenticCommerceFeedPreview', () => {
 			screen.getByRole( 'button', { name: /Preview feed/i } )
 		);
 
-		// The label drops the misleading "by filters" wording; the explanation
-		// (subscriptions are the common cause) lives in an accessible tooltip
-		// anchor instead.
+		// "by filters" wording is gone; the breakdown hides behind a Details toggle.
 		await waitFor( () => {
 			expect( screen.getByText( 'Excluded' ) ).toBeInTheDocument();
 		} );
@@ -82,8 +81,68 @@ describe( 'AgenticCommerceFeedPreview', () => {
 			screen.queryByText( 'Excluded by filters' )
 		).not.toBeInTheDocument();
 		expect(
-			screen.getByRole( 'img', { name: /What does Excluded mean/i } )
+			screen.queryByText( /subscription product/i )
+		).not.toBeInTheDocument();
+
+		fireEvent.click( screen.getByRole( 'button', { name: /Details/i } ) );
+
+		expect(
+			screen.getByText( /1 subscription product/i )
 		).toBeInTheDocument();
+	} );
+
+	it( 'breaks the excluded count down by reason', async () => {
+		apiFetch.mockResolvedValue( {
+			...PREVIEW_RESPONSE,
+			excluded_count: 14,
+			excluded_breakdown: { subscriptions: 12, filtered: 2 },
+		} );
+
+		render( <AgenticCommerceFeedPreview /> );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /Preview feed/i } )
+		);
+
+		await waitFor( () => {
+			expect(
+				screen.getByRole( 'button', { name: /Details/i } )
+			).toBeInTheDocument();
+		} );
+		fireEvent.click( screen.getByRole( 'button', { name: /Details/i } ) );
+
+		expect(
+			screen.getByText( /12 subscription products/i )
+		).toBeInTheDocument();
+		expect(
+			screen.getByText( /2 products excluded by your store’s rules/i )
+		).toBeInTheDocument();
+	} );
+
+	it( 'omits a breakdown reason whose count is zero', async () => {
+		apiFetch.mockResolvedValue( {
+			...PREVIEW_RESPONSE,
+			excluded_count: 12,
+			excluded_breakdown: { subscriptions: 12, filtered: 0 },
+		} );
+
+		render( <AgenticCommerceFeedPreview /> );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /Preview feed/i } )
+		);
+
+		await waitFor( () => {
+			expect(
+				screen.getByRole( 'button', { name: /Details/i } )
+			).toBeInTheDocument();
+		} );
+		fireEvent.click( screen.getByRole( 'button', { name: /Details/i } ) );
+
+		expect(
+			screen.getByText( /12 subscription products/i )
+		).toBeInTheDocument();
+		expect(
+			screen.queryByText( /excluded by your store’s rules/i )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'lists products with validation errors, linking to the edit screen', async () => {
