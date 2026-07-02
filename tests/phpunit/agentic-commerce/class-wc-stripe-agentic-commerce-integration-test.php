@@ -613,9 +613,8 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * With the developer feature flag on but the merchant toggle off, sync_feed()
-	 * must bail before delivery so a scheduled sync can't keep re-uploading a
-	 * checkout-enabled catalog after the merchant switched the feature off.
+	 * sync_feed() must bail before delivery when the feature flag is on but the
+	 * merchant toggle is off.
 	 *
 	 * @return void
 	 */
@@ -623,7 +622,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
 		delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
 
-		// Fail loudly if delivery is attempted — the merchant gate must short-circuit first.
+		// The merchant gate must short-circuit before any delivery.
 		$http_guard = function () {
 			$this->fail( 'sync_feed() must not reach Stripe delivery while the merchant toggle is off.' );
 		};
@@ -641,9 +640,8 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The teardown push must run while the merchant toggle is off (bypassing the
-	 * sync_feed() merchant gate) and force in-agent checkout off for every product
-	 * so already-synced products redirect to the store, then clean up its filter.
+	 * The teardown push must run while the merchant toggle is off, force checkout
+	 * off for every product, and clean up its filter afterward.
 	 *
 	 * @return void
 	 */
@@ -653,10 +651,9 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		}
 
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
-		// Merchant toggle is OFF — the push must still run.
+		// Toggle off (push must still run) and checkout mode default, so a true on
+		// the filter can only come from the push forcing it.
 		delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
-		// Store-wide checkout mode is embedded (default), so a value of true on the
-		// filter can only come from the push forcing it — not from the option.
 		delete_option( \WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
 
 		$settings                    = WC_Stripe_Helper::get_stripe_settings();
@@ -683,9 +680,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		};
 		add_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
 
-		// Observe the checkout flag the mapper resolves for each product. Priority
-		// 20 runs after the push's forcing filter (priority 10) so it sees the
-		// final value.
+		// Priority 20 runs after the push's forcing filter (10), so it sees the final value.
 		$captured = null;
 		$spy      = static function ( $disabled ) use ( &$captured ) {
 			$captured = $disabled;
@@ -739,8 +734,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The teardown push must not run when the whole feature is off — nothing was
-	 * ever synced to Stripe, so there is no catalog to take down.
+	 * The teardown push must no-op when the feature flag is off — nothing was synced.
 	 *
 	 * @return void
 	 */
@@ -763,8 +757,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Scheduling the final-feed push enqueues one async job in its own group and
-	 * is idempotent while a push is already pending.
+	 * Scheduling the final-feed push enqueues one async job and is idempotent while pending.
 	 *
 	 * @return void
 	 */
@@ -810,8 +803,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Canceling clears a pending final-feed push so a re-enable doesn't leave a
-	 * teardown queued to land after the catalog is meant to be live again.
+	 * Canceling clears a pending final-feed push.
 	 *
 	 * @return void
 	 */

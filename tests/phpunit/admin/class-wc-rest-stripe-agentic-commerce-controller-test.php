@@ -1166,8 +1166,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Disabling the feature (yes -> no) must queue the final-feed teardown push so
-	 * already-synced products stop being purchasable in-agent on the Stripe side.
+	 * Disabling (yes -> no) must queue the final-feed teardown push.
 	 */
 	public function test_update_settings_disable_schedules_final_feed_push(): void {
 		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
@@ -1192,8 +1191,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Re-enabling (no -> yes) must cancel a final-feed push queued by a just-prior
-	 * disable so it can't land afterward and disable checkout on a live catalog.
+	 * Re-enabling (no -> yes) must cancel a final-feed push queued by a prior disable.
 	 */
 	public function test_update_settings_enable_cancels_pending_final_feed_push(): void {
 		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
@@ -1219,8 +1217,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Saving while already enabled (yes -> yes) is not a transition and must not
-	 * queue a teardown push.
+	 * A no-op save (yes -> yes) must not queue a teardown push.
 	 */
 	public function test_update_settings_noop_enable_does_not_schedule_final_feed_push(): void {
 		if ( ! function_exists( 'as_has_scheduled_action' ) ) {

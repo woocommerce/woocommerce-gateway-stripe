@@ -346,15 +346,12 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 
 			$integration = new WC_Stripe_Agentic_Commerce_Integration();
 			if ( $was_enabled && 'no' === $value ) {
-				// Stripe has no catalog-delete API, so on disable we push one final
-				// feed with in-agent checkout disabled for every product. Agents then
-				// redirect buyers to the store instead of charging cards for products
-				// that were already synced. sync_feed() now no-ops while disabled, so
-				// the recurring sync won't undo this push.
+				// Stripe has no catalog-delete API; push a checkout-disabled feed so
+				// already-synced products stop accepting in-agent purchases.
 				$integration->schedule_final_checkout_disabled_feed();
 			} elseif ( ! $was_enabled && 'yes' === $value ) {
-				// Drop a teardown push queued by a just-prior disable so it can't land
-				// after re-enabling and disable checkout on a catalog meant to be live.
+				// Drop a teardown queued by a just-prior disable so it can't land on
+				// a catalog meant to be live again.
 				$integration->cancel_pending_final_checkout_disabled_feed();
 			}
 		}

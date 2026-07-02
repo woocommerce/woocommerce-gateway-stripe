@@ -60,12 +60,9 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	private const ASYNC_RESYNC_GROUP = 'wc-stripe-agentic-resync';
 
 	/**
-	 * Action Scheduler hook for the one-off "final feed" push queued when the
-	 * merchant disables the toggle. It re-uploads the existing catalog with
-	 * in-agent checkout disabled for every product so already-synced products
-	 * redirect buyers to the store instead of charging cards after the feature
-	 * is switched off. Stripe exposes no catalog-delete API, so this is how we
-	 * take the catalog out of in-agent purchase on the Stripe side.
+	 * Action Scheduler hook for the one-off checkout-disabled feed pushed on
+	 * disable. Stripe has no catalog-delete API, so this is how already-synced
+	 * products are taken out of in-agent purchase.
 	 *
 	 * @var string
 	 * @since 10.9.0
@@ -73,9 +70,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public const FINAL_FEED_ACTION = 'wc_stripe_agentic_commerce_final_feed';
 
 	/**
-	 * Action Scheduler group for the one-off final-feed push. Distinct from the
-	 * recurring `wc-stripe` group and the adapter resync group so its idempotency
-	 * guard and cancellation only ever match the final-feed action.
+	 * Action Scheduler group for the final-feed push. Kept distinct so its
+	 * idempotency guard and cancellation match only the final-feed action.
 	 *
 	 * @var string
 	 * @since 10.9.0
@@ -278,12 +274,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
-	 * Queue the one-off final-feed push run when the merchant disables the toggle.
-	 *
-	 * Deferred to Action Scheduler rather than run inline in the settings-save
-	 * request because it regenerates and re-uploads the full catalog, which can
-	 * be large. Idempotent: a no-op when a push is already pending so repeated
-	 * saves don't stack actions.
+	 * Queue the final-feed push run on disable. Deferred to Action Scheduler
+	 * because it re-uploads the full catalog. Idempotent while one is pending.
 	 *
 	 * @since 10.9.0
 	 * @return void
@@ -301,12 +293,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
-	 * Cancel any pending final-feed push.
-	 *
-	 * Called when the merchant re-enables the toggle so a teardown push queued
-	 * by a just-prior disable does not land after re-enabling and silently
-	 * disable checkout on a catalog the merchant expects to be live again.
-	 * Idempotent: a no-op when nothing is queued.
+	 * Cancel any pending final-feed push. Called on re-enable so a teardown
+	 * queued by a just-prior disable can't land on a catalog meant to be live.
 	 *
 	 * @since 10.9.0
 	 * @return void
@@ -320,17 +308,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
-	 * Re-upload the existing catalog with in-agent checkout disabled for every
-	 * product, then stop.
+	 * Re-upload the catalog with in-agent checkout disabled for every product.
 	 *
-	 * Runs from the Action Scheduler job queued on toggle-off. Gated on the
-	 * developer feature flag only — it MUST run while the merchant toggle is
-	 * off, which is the whole point — and deliberately bypasses the
-	 * merchant-enabled gate in {@see self::sync_feed()} by calling the core
-	 * sync directly. Forces {@see self::is_checkout_disabled()} to true for the
-	 * duration via the mapper filter so agents redirect buyers to the store
-	 * instead of completing the purchase in-agent. Forces the upload so the
-	 * content-hash dedup can't skip it when the only change is the checkout flag.
+	 * Runs from the toggle-off job. Gated on the feature flag only so it runs
+	 * while the merchant toggle is off, bypassing the sync_feed() merchant gate
+	 * via run_feed_sync(). Forces the disable-checkout filter and the upload so
+	 * dedup can't skip a change that's only the checkout flag.
 	 *
 	 * @since 10.9.0
 	 * @return void
@@ -655,12 +638,9 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return false;
 		}
 
-		// The merchant toggle gates the recurring catalog push. Without this a
-		// scheduled sync would keep re-uploading a checkout-enabled catalog after
-		// the merchant switched the feature off, undoing the final checkout-disabled
-		// feed pushed on disable. The teardown push in
-		// push_final_checkout_disabled_feed() deliberately bypasses this gate by
-		// calling run_feed_sync() directly.
+		// Gate the recurring push on the merchant toggle so a scheduled sync can't
+		// re-upload a checkout-enabled catalog after disable and undo the teardown.
+		// push_final_checkout_disabled_feed() bypasses this via run_feed_sync().
 		if ( ! self::is_merchant_enabled() ) {
 			WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - merchant toggle disabled' );
 			return false;
@@ -672,13 +652,11 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Generate and upload the catalog feed, skipping the enablement gates.
 	 *
-	 * Extracted from {@see self::sync_feed()} so the final-feed teardown push can
-	 * run while the merchant toggle is off. Callers are responsible for the
-	 * enablement checks; this only guards on delivery setup.
+	 * Extracted from sync_feed() so the teardown push can run while the merchant
+	 * toggle is off. Callers own the enablement checks; this guards delivery setup only.
 	 *
 	 * @since 10.9.0
-	 * @param bool $force_upload When true, bypass the content-hash dedup check and
-	 *                           always push the regenerated catalog to Stripe.
+	 * @param bool $force_upload When true, bypass the content-hash dedup and always upload.
 	 * @return bool True on successful delivery, false on early returns or failure.
 	 */
 	private function run_feed_sync( bool $force_upload = false ): bool {
