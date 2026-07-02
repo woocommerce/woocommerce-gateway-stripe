@@ -1,9 +1,9 @@
+import jQuery from 'jquery';
 import {
 	appendPaymentMethodIdToForm,
 	appendPaymentIntentIdToForm,
 	appendCheckoutSessionIdToForm,
 	getPaymentMethodTypes,
-	initializeUPEAppearance,
 	isLinkEnabled,
 	getDefaultValues,
 	getStripeServerData,
@@ -16,8 +16,14 @@ import {
 	getAdditionalSetupIntentData,
 	validateBlikCode,
 	getExcludedPaymentMethodTypes,
+	getUserDataForCheckoutSession,
+	getBillingDetailsForDeferredFlow,
 } from '../../stripe-utils';
-import { getFontRulesFromPage } from '../../styles/upe';
+import {
+	initializeUPEAppearance,
+	invalidateAppearanceCache,
+} from '../../stripe-utils/upe-appearance';
+import { getFontRulesFromPage, sampleFontFamily } from '../../styles/upe';
 import { getPaymentMethodRadioStyles } from '../../styles/upe/utils';
 import { __, sprintf } from '@wordpress/i18n';
 import {
@@ -36,10 +42,15 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
 /**
  * @typedef {Object} UPEComponent
  * @property {string|null}          intentId          The ID of the intent.
+ * @property {string|null}          checkoutSessionId Stripe Checkout Session id (cs_…) from create session; same value passed to initCheckout as clientSecret.
  * @property {Object|null}          elements          The Stripe elements object.
  * @property {Object|null}          upeElement        The Stripe payment element.
  * @property {boolean}              hasLoadError      Whether the payment element has a load error.
  * @property {Promise<Object|null>} upeElementPromise Promise that resolves to the Stripe payment element.
+ * @property {Promise<Object>|null} mountPromise      Promise that resolves once the element is fully (re)mounted, or null when no mount is in flight.
+ * @property {Object|null}          mountTarget       The DOM node the in-flight mount targets, used to dedupe concurrent mounts of the same element.
+ * @property {number}               mountToken        Monotonic id of the latest mount; an older mount whose token no longer matches skips its side-effects.
+ * @property {boolean}              listenersAttached Whether the one-time element listeners (loaderror/change) have been wired, so remounts don't stack duplicates on the cached element.
  */
 
 /**
@@ -47,6 +58,33 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
  */
 const gatewayUPEComponents = {};
 let hasCheckoutCompleted = false;
+
+/**
+ * Tracks an in-flight Payment Element (re)mount.
+ *
+ * WooCommerce re-renders the payment box on every `updated_checkout`, remounting
+ * asynchronously. A submission in that window posts an empty
+ * `wc-stripe-payment-method` field and fails, so submissions wait on this.
+ *
+ * @type {Promise<*>|null}
+ */
+let mountInProgress = null;
+
+/**
+ * Registers a (re)mount promise to wait on. Composes with any existing one so
+ * overlapping `updated_checkout` cycles all settle before submission proceeds.
+ *
+ * @param {Promise<*>} promise The mount promise to track.
+ */
+export function trackMountInProgress( promise ) {
+	// Swallow rejections so awaiting this in processPayment never throws.
+	const trackedPromise = Promise.resolve( promise ).catch( () => {} );
+	mountInProgress = mountInProgress
+		? Promise.allSettled( [ mountInProgress, trackedPromise ] ).then(
+				() => {}
+		  )
+		: trackedPromise;
+}
 
 /**
  * Initialize the UPE components for each payment method type.
@@ -57,14 +95,87 @@ export function initializeUPEComponents() {
 	for ( const paymentMethodType in paymentMethodsConfig ) {
 		gatewayUPEComponents[ paymentMethodType ] = {
 			intentId: null,
+			checkoutSessionId: null,
 			elements: null,
 			upeElement: null,
 			hasLoadError: false,
 			upeElementPromise: null,
+			mountPromise: null,
+			mountTarget: null,
+			mountToken: 0,
+			listenersAttached: false,
 		};
 	}
 	// Reset so processPayment runs fully when called again (e.g. after re-init or in tests).
 	hasCheckoutCompleted = false;
+	mountInProgress = null;
+}
+
+/**
+ * After classic checkout AJAX refresh (e.g. shipping or coupon), sync line items on the Stripe Checkout Session
+ * so the Payment Element amount matches the cart. Uses checkoutSessionId from the create-session response.
+ *
+ * Wraps the server request in Stripe Custom Checkout {@link https://docs.stripe.com/js/custom_checkout/run_server_update runServerUpdate}
+ * when available so the embedded session state stays consistent after the update.
+ *
+ * @param {Object} api WCStripeAPI instance.
+ * @return {Promise<void>}
+ */
+export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
+	if ( ! getStripeServerData()?.isAdaptivePricingEnabled ) {
+		return;
+	}
+
+	const seen = new Set();
+	for ( const paymentMethodType of Object.keys( gatewayUPEComponents ) ) {
+		const component = gatewayUPEComponents[ paymentMethodType ];
+		const sessionId = component?.checkoutSessionId;
+		if ( ! sessionId || seen.has( sessionId ) ) {
+			continue;
+		}
+		seen.add( sessionId );
+
+		const checkout = component?.elements;
+
+		if ( checkout && typeof checkout.loadActions === 'function' ) {
+			try {
+				const loadResult = await checkout.loadActions();
+				if (
+					loadResult.type === 'success' &&
+					typeof loadResult.actions?.runServerUpdate === 'function'
+				) {
+					try {
+						const updateResult =
+							await loadResult.actions.runServerUpdate(
+								async () => {
+									await api.checkoutSessionsUpdateSession(
+										sessionId
+									);
+								}
+							);
+						if ( updateResult.type === 'error' ) {
+							// eslint-disable-next-line no-console
+							console.error( updateResult.error );
+						}
+					} catch ( error ) {
+						// eslint-disable-next-line no-console
+						console.error( error );
+					}
+					continue;
+				}
+			} catch ( error ) {
+				// eslint-disable-next-line no-console
+				console.error( error );
+			}
+		}
+
+		try {
+			await api.checkoutSessionsUpdateSession( sessionId );
+		} catch ( error ) {
+			// eslint-disable-next-line no-console
+			console.error( error );
+		}
+	}
 }
 
 /**
@@ -224,6 +335,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		}
 	}
 
+	const stripe = api.getStripe();
 	let elements;
 	let shouldLoadStripeElements = true;
 	// If Adaptive Pricing is enabled, use the Checkout Session API to load the elements.
@@ -234,30 +346,40 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		try {
 			const response = await api.checkoutSessionsCreateSession();
 			const clientSecret = response?.data?.client_secret;
+			const sessionId = response?.data?.session_id;
 
-			if ( ! clientSecret ) {
+			if ( ! clientSecret || ! sessionId ) {
 				throw new Error(
 					__(
-						'Failed to load payment method due to missing client secret.',
+						'Failed to load payment method due to missing client secret or session id.',
 						'woocommerce-gateway-stripe'
 					)
 				);
 			}
 
-			elements = await api.getStripe().initCheckout( {
+			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId =
+				sessionId;
+
+			elements = await stripe.initCheckout( {
 				clientSecret,
 				elementsOptions: {
 					appearance: options.appearance,
 					fonts: options.fonts,
+					savedPaymentMethod: {
+						// Stripe must not list saved customer payment methods inside the Payment Element; the gateway surfaces the saved payment methods instead.
+						enableRedisplay: 'never',
+						// Stripe must not show the save payment method checkbox in the Payment Element; the gateway has its own save payment method checkbox.
+						enableSave: 'never',
+					},
 				},
 				adaptivePricing: {
 					allowed: true,
 				},
-				...getDefaultValues( true ),
 			} );
 
 			shouldLoadStripeElements = false;
 		} catch ( error ) {
+			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId = null;
 			// eslint-disable-next-line no-console
 			console.error( error );
 			shouldLoadStripeElements = true;
@@ -267,8 +389,32 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	// If Adaptive Pricing is not enabled, or if there was an error loading the AP elements,
 	// load the Stripe elements as fallback.
 	if ( shouldLoadStripeElements ) {
-		elements = api.getStripe().elements( options );
+		gatewayUPEComponents[ paymentMethodType ].checkoutSessionId = null;
+		elements = stripe.elements( options );
 	}
+
+	// After web fonts finish loading, re-compute appearance with correct
+	// font families and update the live Stripe Elements instance.
+	document.fonts?.ready?.then( () => {
+		// Compare the live font with the cached appearance — only
+		// invalidate and recompute if they actually differ.
+		const cachedFont = initializeUPEAppearance(
+			'false',
+			shouldExpandOptimizedCheckout
+		)?.variables?.fontFamily;
+		const liveFont = sampleFontFamily( false );
+		if ( ! liveFont || liveFont === cachedFont ) {
+			return;
+		}
+		invalidateAppearanceCache();
+		const appearance = initializeUPEAppearance(
+			'false',
+			shouldExpandOptimizedCheckout
+		);
+		if ( typeof elements?.update === 'function' ) {
+			elements.update( { appearance } );
+		}
+	} );
 
 	const attachDefaultValuesUpdateEvent = (
 		element,
@@ -303,9 +449,10 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				layout.paymentMethodLogoPosition = 'end';
 				// Ensure all available payment methods are shown.
 				layout.visibleAccordionItemsCount = 0;
-				layout.radios = getPaymentMethodRadioStyles() !== null;
+				layout.radios =
+					getPaymentMethodRadioStyles() !== null ? 'always' : 'never';
 			} else {
-				layout.radios = false;
+				layout.radios = 'never';
 			}
 		}
 		paymentElementOptions = {
@@ -333,6 +480,15 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			paymentElementOptions
 		);
 	} else {
+		const upeSettings = getUpeSettings();
+		// createPaymentElement() (Checkout Sessions API) does not accept terms.link.
+		if ( upeSettings.terms ) {
+			delete upeSettings.terms.link;
+		}
+		paymentElementOptions = {
+			...paymentElementOptions,
+			...upeSettings,
+		};
 		createdStripePaymentElement = elements.createPaymentElement(
 			paymentElementOptions
 		);
@@ -435,6 +591,16 @@ function createStripePaymentMethod(
 				},
 			},
 		};
+	} else {
+		// On the deferred-payment flows the form is not a checkout form, so billing
+		// fields are not present in the DOM. Forward the order/customer billing
+		// data from the server.
+		const billingDetails = getBillingDetailsForDeferredFlow();
+		if ( billingDetails ) {
+			params = {
+				billing_details: billingDetails,
+			};
+		}
 	}
 
 	// BLIK uses a controlled form instead of Stripe Elements.
@@ -467,6 +633,20 @@ function createStripePaymentMethod(
  * @return {Object} An object containing the Stripe Elements object and the Stripe Payment Element.
  */
 export async function mountStripePaymentElement( api, domElement ) {
+	const mountPromise = mountStripePaymentElementImpl( api, domElement );
+	// Track this (re)mount so a concurrent checkout submission waits for it.
+	trackMountInProgress( mountPromise );
+	return mountPromise;
+}
+
+/**
+ * Mounts the Stripe payment element. See {@link mountStripePaymentElement}.
+ *
+ * @param {Object} api        The API object used to create the Stripe payment element.
+ * @param {Object} domElement The DOM element to mount the Stripe payment element on.
+ * @return {Promise<Object|undefined>} The UPE component, or undefined when nothing was mounted.
+ */
+async function mountStripePaymentElementImpl( api, domElement ) {
 	/*
 	 * Trigger this event to ensure the tokenization-form.js init
 	 * is executed.
@@ -489,6 +669,25 @@ export async function mountStripePaymentElement( api, domElement ) {
 		return;
 	}
 
+	const component = gatewayUPEComponents[ paymentMethodType ];
+
+	// Two callers can race to mount the same element; reuse the in-flight mount
+	// so upeElement.mount() isn't called twice on the same node.
+	if ( component.mountPromise && component.mountTarget === domElement ) {
+		return component.mountPromise;
+	}
+
+	// A newer mount supersedes any older in-flight one. The async body captures
+	// this token and skips its side-effects once it no longer matches, so a slow
+	// stale remount can't flip shared state after a newer mount has settled.
+	const mountToken = component.mountToken + 1;
+	component.mountToken = mountToken;
+	const isCurrentMount = () => component.mountToken === mountToken;
+
+	// Clear any prior load error so a successful (re)mount can recover instead of
+	// leaving checkout blocked until a page refresh.
+	component.hasLoadError = false;
+
 	let upeElementPromise =
 		gatewayUPEComponents[ paymentMethodType ]?.upeElementPromise ?? null;
 	if ( ! upeElementPromise ) {
@@ -510,85 +709,227 @@ export async function mountStripePaymentElement( api, domElement ) {
 			upeElementPromise;
 	}
 
-	const upeElement = await upeElementPromise;
+	// Run the (re)mount as one promise so a concurrent mount of the same node
+	// reuses it (dedupe above) and a newer mount supersedes it via the token
+	// fence. Submission waiting goes through the module-level tracker.
+	const mountPromise = ( async () => {
+		const upeElement = await upeElementPromise;
 
-	if ( ! upeElement ) {
-		// Clear cached promise so later attempts can retry creation.
-		gatewayUPEComponents[ paymentMethodType ].upeElementPromise = null;
-		return gatewayUPEComponents[ paymentMethodType ];
-	}
+		// A newer mount started while we awaited element creation; let it win.
+		if ( ! isCurrentMount() ) {
+			return component;
+		}
 
-	upeElement.mount( domElement );
-	upeElement.on( 'loaderror', ( e ) => {
-		showErrorPaymentMethod( e.error.message, domElement );
-		// Setting the flag to true to prevent the form from being submitted.
-		gatewayUPEComponents[ paymentMethodType ].hasLoadError = true;
-	} );
+		if ( ! upeElement ) {
+			// Clear cached promise so later attempts can retry creation.
+			component.upeElementPromise = null;
+			return component;
+		}
 
-	const stripeServerData = getStripeServerData();
-	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
-		upeElement.on( 'change', ( { value } ) => {
-			// If the OC is enabled, we need to handle the display of the saving checkbox.
-			handleDisplayOfPaymentInstructions( value.type, 'classic' );
+		upeElement.mount( domElement );
 
-			// Bind the create account checkbox to the save card info container display function.
-			const createAccountCheckbox =
-				document.getElementById( 'createaccount' );
-			const updateCheckboxListener = () => {
-				handleDisplayOfSavingCheckbox( value.type );
-			};
-			if ( createAccountCheckbox ) {
-				createAccountCheckbox.removeEventListener(
-					'change',
-					updateCheckboxListener
+		// The element is cached and reused across remounts, so wire its listeners
+		// once — re-attaching on every remount stacks duplicate handlers. The
+		// loaderror handler reads the live mount target so it surfaces on the
+		// element currently on the page, not the first node it was bound to.
+		if ( ! component.listenersAttached ) {
+			upeElement.on( 'loaderror', ( e ) => {
+				showErrorPaymentMethod(
+					e.error.message,
+					component.mountTarget ?? domElement
 				);
-				createAccountCheckbox.addEventListener(
-					'change',
-					updateCheckboxListener
-				);
+				// Setting the flag to true to prevent the form from being submitted.
+				component.hasLoadError = true;
+			} );
+
+			const stripeServerData = getStripeServerData();
+			if ( stripeServerData?.shouldShowOptimizedCheckout ) {
+				const paymentMethodsConfig =
+					stripeServerData?.paymentMethodsConfig;
+				// Single stable listener that reads the latest selected type
+				// from a shared variable. Using one reference keeps
+				// removeEventListener effective so the checkbox handler never
+				// stacks across change events.
+				let selectedPaymentType;
+				const updateCheckboxListener = () => {
+					handleDisplayOfSavingCheckbox(
+						selectedPaymentType,
+						paymentMethodsConfig
+					);
+				};
+				upeElement.on( 'change', ( { value } ) => {
+					selectedPaymentType = value.type;
+
+					// Mirror the actual selected payment method type into the hidden
+					// input so it's submitted with the form. This lets the server set
+					// the order's payment method title to the actual method (e.g.
+					// iDEAL) instead of the OC pseudo-method's default ("Stripe") when
+					// paying via Adaptive Pricing / Checkout Sessions, where the
+					// outer form's `payment_method` is just `stripe`.
+					const selectedTypeInput = document.getElementById(
+						'wc_stripe_selected_upe_payment_type'
+					);
+					if ( selectedTypeInput ) {
+						selectedTypeInput.value = value?.type ?? '';
+					}
+
+					// If the OC is enabled, we need to handle the display of the saving checkbox.
+					handleDisplayOfPaymentInstructions( value.type, 'classic' );
+
+					// Bind the create account checkbox to the save card info container display function.
+					const createAccountCheckbox =
+						document.getElementById( 'createaccount' );
+					if ( createAccountCheckbox ) {
+						createAccountCheckbox.removeEventListener(
+							'change',
+							updateCheckboxListener
+						);
+						createAccountCheckbox.addEventListener(
+							'change',
+							updateCheckboxListener
+						);
+					}
+					handleDisplayOfSavingCheckbox(
+						value.type,
+						paymentMethodsConfig
+					);
+				} );
 			}
-			handleDisplayOfSavingCheckbox( value.type );
-		} );
-	}
 
-	const component = gatewayUPEComponents[ paymentMethodType ];
-	const elements = component.elements;
-	const isAdaptivePricingEnabled =
-		getStripeServerData()?.isAdaptivePricingEnabled;
+			component.listenersAttached = true;
+		}
 
-	if (
-		! isAdaptivePricingEnabled ||
-		! elements ||
-		typeof elements.loadActions !== 'function'
-	) {
-		return component;
-	}
+		const elements = component.elements;
+		const isAdaptivePricingEnabled =
+			getStripeServerData()?.isAdaptivePricingEnabled;
 
-	// Call loadActions() after mounting the elements with the Checkout Session API to check if there are any errors.
-	let loadActionsError = null;
-	const genericLoadActionsErrorMessage = __(
-		'Failed to load payment method. Please refresh the page and try again.',
-		'woocommerce-gateway-stripe'
-	);
-	try {
-		const actions = await elements.loadActions();
+		if (
+			! isAdaptivePricingEnabled ||
+			! elements ||
+			typeof elements.loadActions !== 'function'
+		) {
+			return component;
+		}
 
-		if ( actions.type === 'error' ) {
-			loadActionsError =
-				actions?.error?.message ?? genericLoadActionsErrorMessage;
+		// Call loadActions() after mounting the elements with the Checkout Session API to check if there are any errors.
+		let hasLoadActionsError = false;
+		let loadActionsErrorMessage;
+		try {
+			const actions = await elements.loadActions();
+
+			// Superseded by a newer mount while awaiting; don't write shared
+			// state or surface an error for this stale mount.
+			if ( ! isCurrentMount() ) {
+				return component;
+			}
+
+			if ( actions.type === 'error' ) {
+				hasLoadActionsError = true;
+				loadActionsErrorMessage = actions?.error?.message;
+			}
+		} catch ( error ) {
+			if ( ! isCurrentMount() ) {
+				return component;
+			}
+			hasLoadActionsError = true;
+			loadActionsErrorMessage = error?.message;
+		}
+
+		if ( hasLoadActionsError ) {
 			// Setting the flag to true to prevent the form from being submitted.
 			component.hasLoadError = true;
+			showErrorPaymentMethod(
+				loadActionsErrorMessage ??
+					__(
+						'Failed to load payment method. Please refresh the page and try again.',
+						'woocommerce-gateway-stripe'
+					),
+				domElement
+			);
 		}
-	} catch ( error ) {
-		loadActionsError = error?.message ?? genericLoadActionsErrorMessage;
-		component.hasLoadError = true;
+
+		return component;
+	} )();
+
+	component.mountPromise = mountPromise;
+	component.mountTarget = domElement;
+	try {
+		return await mountPromise;
+	} finally {
+		// Clear only if we're still the in-flight mount, so a newer remount's
+		// promise isn't wiped out by an older one settling. mountTarget is left
+		// pointing at the last mounted node so the once-attached loaderror
+		// handler can surface errors on whatever element is currently on the page.
+		if ( component.mountPromise === mountPromise ) {
+			component.mountPromise = null;
+		}
+	}
+}
+
+/**
+ * Queries the on-page UPE container for a payment method type.
+ *
+ * @param {string} paymentMethodType The payment method type.
+ * @return {HTMLElement|null} The container element, or null if not on the page.
+ */
+function getUPEDomElement( paymentMethodType ) {
+	return document.querySelector(
+		`.wc-stripe-upe-element[data-payment-method-type="${ paymentMethodType }"]`
+	);
+}
+
+/**
+ * Whether a UPE container currently holds a mounted element. Stripe appends the
+ * Payment Element's iframe as a child on mount, so an empty container means the
+ * element was torn down (e.g. by an `updated_checkout` re-render).
+ *
+ * @param {HTMLElement|null} domElement The UPE container element.
+ * @return {boolean} True when the element is mounted.
+ */
+function isUPEDomElementMounted( domElement ) {
+	return !! domElement && domElement.children.length > 0;
+}
+
+/**
+ * Ensures the Payment Element for the given method is fully mounted before the
+ * checkout is submitted: awaits any in-flight (re)mount and, if the element was
+ * torn down but not yet re-mounted, mounts it.
+ *
+ * @param {Object} api               The API object.
+ * @param {string} paymentMethodType The payment method type.
+ * @return {Promise<void>}
+ */
+export async function ensureUPEElementMounted( api, paymentMethodType ) {
+	const component = gatewayUPEComponents[ paymentMethodType ];
+	if ( ! component ) {
+		return;
 	}
 
-	if ( loadActionsError ) {
-		showErrorPaymentMethod( loadActionsError, domElement );
+	// Drain in-flight updated_checkout chains before touching the DOM. Back-to-back
+	// re-renders each start a new chain, so re-read the tracker until none is left.
+	while ( mountInProgress ) {
+		const inFlight = mountInProgress;
+		// eslint-disable-next-line no-await-in-loop
+		await inFlight;
+		if ( mountInProgress === inFlight ) {
+			break;
+		}
 	}
 
-	return component;
+	// Re-query only after the awaits above: a node captured earlier could have
+	// been detached by an `updated_checkout` re-render while we waited, and
+	// mounting into a detached node would bind the iframe outside the document.
+	const domElement = getUPEDomElement( paymentMethodType );
+
+	// No element on the page (e.g. a 100% discount coupon removed the payment box).
+	if ( ! domElement ) {
+		return;
+	}
+
+	// Torn down but no re-mount kicked off yet — mount it now.
+	if ( ! isUPEDomElementMounted( domElement ) ) {
+		await mountStripePaymentElement( api, domElement );
+	}
 }
 
 /**
@@ -608,12 +949,8 @@ export function getMountedUPEComponent( paymentMethodType ) {
 		return null;
 	}
 
-	const domElement = document.querySelector(
-		`.wc-stripe-upe-element[data-payment-method-type="${ paymentMethodType }"]`
-	);
-
 	// Only return if the Elements object exists and is mounted.
-	if ( domElement && domElement.children.length > 0 ) {
+	if ( isUPEDomElementMounted( getUPEDomElement( paymentMethodType ) ) ) {
 		return component;
 	}
 
@@ -709,6 +1046,10 @@ export const processPayment = (
 
 	( async () => {
 		try {
+			// Wait out any in-flight re-mount before reading the Elements
+			// instance. The form is already blocked, so the spinner covers it.
+			await ensureUPEElementMounted( api, paymentMethodType );
+
 			const { elements, hasLoadError } =
 				gatewayUPEComponents[ paymentMethodType ];
 
@@ -739,11 +1080,70 @@ export const processPayment = (
 				}
 
 				const { actions } = loadActionsResult;
+				const session = await actions.getSession();
 
-				const confirmResult = await actions.confirm( {
-					returnUrl: window.location.href,
-					redirect: 'if_required',
+				// Get the session ID stored during mount.
+				const sessionId =
+					gatewayUPEComponents[ paymentMethodType ].checkoutSessionId;
+				if ( ! sessionId ) {
+					throw new Error(
+						__(
+							'Payment could not be completed. Please try again.',
+							'woocommerce-gateway-stripe'
+						)
+					);
+				}
+
+				// Append session ID and submit form to create the WC order
+				// BEFORE confirming payment, so the return URL points to the
+				// order-received page (not the checkout page).
+				appendCheckoutSessionIdToForm( jQueryForm, sessionId );
+
+				const checkoutUrl = api.getAjaxUrl( 'checkout', '' );
+				const checkoutResponse = await jQuery.ajax( {
+					type: 'POST',
+					url: checkoutUrl,
+					data: jQueryForm.serialize(),
+					dataType: 'json',
 				} );
+
+				if ( checkoutResponse.result !== 'success' ) {
+					// WC core unblocks in its checkout AJAX complete handler; this path
+					// uses a direct jQuery.ajax call, so we must unblock explicitly.
+					jQueryForm.removeClass( 'processing' ).unblock();
+					const messages = checkoutResponse.messages;
+					if (
+						typeof messages === 'string' &&
+						messages.trim().length > 0
+					) {
+						showErrorCheckout( messages );
+					} else {
+						showErrorCheckout(
+							__(
+								'An error occurred while processing your checkout. Please try again.',
+								'woocommerce-gateway-stripe'
+							)
+						);
+					}
+					return;
+				}
+
+				// Confirm payment with the order-received page as return URL
+				// so redirect-based methods (iDEAL, Bancontact, etc.) return
+				// the customer to the thank-you page instead of checkout.
+				const confirmArgs = {
+					...getUserDataForCheckoutSession( session ),
+					returnUrl: checkoutResponse.redirect,
+					redirect: 'if_required',
+				};
+
+				if ( getStripeServerData()?.isLoggedIn ) {
+					confirmArgs.savePaymentMethod = jQueryForm
+						.find( '#wc-stripe-new-payment-method' )
+						.is( ':checked' );
+				}
+
+				const confirmResult = await actions.confirm( confirmArgs );
 
 				if ( confirmResult.type === 'error' ) {
 					throw new Error(
@@ -755,58 +1155,51 @@ export const processPayment = (
 					);
 				}
 
-				const sessionId = confirmResult?.session?.id;
-				if ( ! sessionId ) {
-					throw new Error(
-						__(
-							'Payment could not be completed. Please try again.',
-							'woocommerce-gateway-stripe'
-						)
-					);
-				}
+				// No redirect occurred (non-redirect payment method).
+				// Navigate to the order-received page.
+				window.location.href = checkoutResponse.redirect;
+				return;
+			}
 
-				appendCheckoutSessionIdToForm( jQueryForm, sessionId );
+			if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
+				validateBlikCode( jQueryForm );
 			} else {
-				if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
-					validateBlikCode( jQueryForm );
-				} else {
-					await validateElements( elements );
-				}
+				await validateElements( elements );
+			}
 
-				const paymentMethodObject = await createStripePaymentMethod(
-					api,
-					elements,
+			const paymentMethodObject = await createStripePaymentMethod(
+				api,
+				elements,
+				jQueryForm,
+				paymentMethodType
+			);
+
+			appendPaymentMethodIdToForm(
+				jQueryForm,
+				paymentMethodObject.paymentMethod.id
+			);
+
+			// Append the intent ID to the form if it was previously created through a non-deferred intent.
+			if ( gatewayUPEComponents[ paymentMethodType ].intentId ) {
+				appendPaymentIntentIdToForm(
 					jQueryForm,
-					paymentMethodType
+					gatewayUPEComponents[ paymentMethodType ].intentId
 				);
+			}
 
-				appendPaymentMethodIdToForm(
-					jQueryForm,
-					paymentMethodObject.paymentMethod.id
-				);
-
-				// Append the intent ID to the form if it was previously created through a non-deferred intent.
-				if ( gatewayUPEComponents[ paymentMethodType ].intentId ) {
-					appendPaymentIntentIdToForm(
-						jQueryForm,
-						gatewayUPEComponents[ paymentMethodType ].intentId
-					);
+			let stopFormSubmission = false;
+			await additionalActionsHandler(
+				paymentMethodObject.paymentMethod,
+				jQueryForm,
+				api,
+				() => {
+					// Provide a callback to flag that a redirect has occurred.
+					stopFormSubmission = true;
 				}
+			);
 
-				let stopFormSubmission = false;
-				await additionalActionsHandler(
-					paymentMethodObject.paymentMethod,
-					jQueryForm,
-					api,
-					() => {
-						// Provide a callback to flag that a redirect has occurred.
-						stopFormSubmission = true;
-					}
-				);
-
-				if ( stopFormSubmission ) {
-					return;
-				}
+			if ( stopFormSubmission ) {
+				return;
 			}
 
 			hasCheckoutCompleted = true;
@@ -1125,4 +1518,37 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		unblockBlockCheckout();
 		resetBlockCheckoutPaymentState();
 	}
+};
+
+/**
+ * Checks if any required checkout fields in the given list are empty.
+ * Uses the same field selectors as WC core's checkout validation (checkout.js).
+ * This is a read-only DOM check with no side effects — it does not trigger
+ * validation events or add/remove CSS classes.
+ *
+ * Visibility filtering is handled by the caller (using jQuery :visible in
+ * deferred-intent.js) since jsdom cannot compute element visibility.
+ *
+ * @param {NodeList|Array} requiredWrappers List of .validate-required DOM elements to check.
+ * @return {boolean} True if any required field is empty.
+ */
+export const hasEmptyRequiredFields = ( requiredWrappers ) => {
+	for ( const wrapper of requiredWrappers ) {
+		const input = wrapper.querySelector(
+			'input.input-text, select, input[type="checkbox"]'
+		);
+		if ( ! input ) {
+			continue;
+		}
+
+		if ( input.type === 'checkbox' ) {
+			if ( ! input.checked ) {
+				return true;
+			}
+		} else if ( ! input.value || input.value.trim() === '' ) {
+			return true;
+		}
+	}
+
+	return false;
 };

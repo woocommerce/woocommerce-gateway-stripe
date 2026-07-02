@@ -2,6 +2,7 @@ import { React, useState } from 'react';
 import SettingsSection from '../settings-section';
 import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
 import AdvancedSettingsSection from '../advanced-settings-section';
+import AgenticCommerceSection from '../agentic-commerce';
 import AccountDetailsSection from './account-details-section';
 import GeneralSettingsSection from './general-settings-section';
 import { AccountKeysModal } from './account-keys-modal';
@@ -71,6 +72,8 @@ const PaymentSettingsPanel = ( {
 	promotionalBannerType,
 	isOCEnabled,
 	setIsOCEnabled,
+	isAgenticCommerceEnabled,
+	agenticSaveRef,
 } ) => {
 	// @todo - deconstruct modalType and setModalType from useModalType custom hook
 	const [ modalType, setModalType ] = useState( '' );
@@ -135,6 +138,9 @@ const PaymentSettingsPanel = ( {
 					<PaymentsAndTransactionsSection />
 				</LoadableSettingsSection>
 			</SettingsSection>
+			{ isAgenticCommerceEnabled && (
+				<AgenticCommerceSection ref={ agenticSaveRef } />
+			) }
 			<AdvancedSettingsSection
 				isOCEnabled={ isOCEnabled }
 				setIsOCEnabled={ setIsOCEnabled }

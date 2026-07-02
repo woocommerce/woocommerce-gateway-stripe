@@ -38,8 +38,8 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
 		$mock_account = $this->getMockBuilder( WC_Stripe_Account::class )
-							 ->disableOriginalConstructor()
-							 ->getMock();
+							->disableOriginalConstructor()
+							->getMock();
 
 		$this->controller = new WC_REST_Stripe_Account_Keys_Controller( $mock_account );
 		$this->mock_payment_method_configurations(
@@ -241,5 +241,98 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 			'test secret: rk_test is valid'        => [ 'validate_test_secret_key', 'test_secret_key', 'rk_test_123123', true ],
 			'test secret: sk_live is invalid'      => [ 'validate_test_secret_key', 'test_secret_key', 'sk_live_123123', $test_sk_error ],
 		];
+	}
+
+	/**
+	 * Regression test for STRIPE-816: test_account_keys() must not use wp_safe_remote_*,
+	 * which would trigger wp_http_validate_url() and fail when the host's DNS is flaky.
+	 */
+	public function test_test_account_keys_does_not_use_safe_remote_http() {
+		$captured_args_by_url = [];
+
+		$capture_filter = function ( $return_value, $parsed_args, $url ) use ( &$captured_args_by_url ) {
+			$captured_args_by_url[ $url ] = $parsed_args;
+
+			$body = 'https://api.stripe.com/v1/tokens' === $url
+				? [ 'id' => 'tok_visa_test' ]
+				: [
+					'id'   => 'tok_visa_test',
+					'type' => 'pii',
+				];
+
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => json_encode( $body ),
+			];
+		};
+		add_filter( 'pre_http_request', $capture_filter, 10, 3 );
+
+		$request = new WP_REST_Request( 'POST', self::ROUTE . '/test' );
+		$request->set_param( 'live_mode', true );
+		$request->set_param( 'publishable', 'pk_live_test_123' );
+		$request->set_param( 'secret', 'sk_live_test_123' );
+
+		try {
+			$this->controller->test_account_keys( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $capture_filter, 10 );
+		}
+
+		$this->assertArrayHasKey( 'https://api.stripe.com/v1/tokens', $captured_args_by_url );
+		$this->assertNotTrue(
+			$captured_args_by_url['https://api.stripe.com/v1/tokens']['reject_unsafe_urls'] ?? false,
+			'POST to https://api.stripe.com/v1/tokens must not set reject_unsafe_urls'
+		);
+
+		$get_url = 'https://api.stripe.com/v1/tokens/tok_visa_test';
+		$this->assertArrayHasKey( $get_url, $captured_args_by_url );
+		$this->assertNotTrue(
+			$captured_args_by_url[ $get_url ]['reject_unsafe_urls'] ?? false,
+			'GET to https://api.stripe.com/v1/tokens/{id} must not set reject_unsafe_urls'
+		);
+	}
+
+	/**
+	 * Asserts that set_account_keys() delegates the webhook decommission to the account
+	 * and clears the stored webhook data and secret for the affected mode when a webhook is decommissioned.
+	 */
+	public function test_set_account_keys_decommissions_previous_webhook_when_secret_changes() {
+		$previous_webhook_data = [
+			'id'     => 'wh_old',
+			'url'    => 'https://example.com',
+			'secret' => 'sk_live_old',
+		];
+
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'publishable_key' => 'pk_live_old',
+				'secret_key'      => 'sk_live_old',
+				'webhook_data'    => $previous_webhook_data,
+				'webhook_secret'  => 'whsec_old',
+				'testmode'        => 'no',
+			]
+		);
+
+		$mock_account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$mock_account->expects( $this->once() )
+			->method( 'maybe_decommission_webhook' )
+			->with( $previous_webhook_data, 'sk_live_new-12345' )
+			->willReturn( true );
+
+		$controller = new WC_REST_Stripe_Account_Keys_Controller( $mock_account );
+
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( 'secret_key', 'sk_live_new-12345' );
+
+		$controller->set_account_keys( $request );
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( [], $settings['webhook_data'] );
+		$this->assertSame( '', $settings['webhook_secret'] );
 	}
 }

@@ -34,7 +34,6 @@ export const initializeCheckoutIcons = ( isAdmin ) => {
 			bancontact: createIconComponent( 'bancontact' ),
 			ideal: createIconComponent( 'ideal-wero' ),
 			p24: createIconComponent( 'p24' ),
-			giropay: createIconComponent( 'giropay' ),
 			eps: createIconComponent( 'eps' ),
 			multibanco: createIconComponent( 'multibanco' ),
 			sofort: createIconComponent( 'sofort' ),

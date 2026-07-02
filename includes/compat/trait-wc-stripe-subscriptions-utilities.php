@@ -12,20 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 trait WC_Stripe_Subscriptions_Utilities_Trait {
 
 	/**
-	 * Checks if subscriptions are enabled on the site.
-	 *
-	 * @since 5.6.0
-	 *
-	 * @return bool Whether subscriptions is enabled or not.
-	 *
-	 * @deprecated 9.2.0 Use WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled instead.
-	 */
-	public function is_subscriptions_enabled() {
-		wc_deprecated_function( 'is_subscriptions_enabled', '9.2.0', 'WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled' );
-		return WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled();
-	}
-
-	/**
 	 * Is $order_id a subscription?
 	 *
 	 * @since 5.6.0

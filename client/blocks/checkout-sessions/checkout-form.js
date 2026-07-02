@@ -3,14 +3,20 @@ import {
 	PaymentElement,
 	useCheckout,
 } from '@stripe/react-stripe-js/checkout';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { __ } from '@wordpress/i18n';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
-import { getStripeElementOptions } from 'wcstripe/blocks/utils';
+import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
+import {
+	getBlocksConfiguration,
+	getStripeElementOptions,
+} from 'wcstripe/blocks/utils';
+import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
 import {
 	useCheckoutSuccessHandler,
 	usePaymentFailHandler,
 	usePaymentSetupHandler,
+	useCheckoutSessionTotalsSync,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
 
 /**
@@ -22,9 +28,14 @@ import {
  * Checkout Form component.
  *
  * @param {Object}                 props                             Component props.
+ * @param {Object}                 props.api                         WCStripeAPI instance (checkout session AJAX).
  * @param {EmitResponseProps}      props.emitResponse                Function to emit response back to the parent component.
  * @param {string}                 props.errorMessage                Error message to display if loading the checkout session fails.
  * @param {EventRegistrationProps} props.eventRegistration           Object containing event registration functions for payment setup, checkout success, and checkout failure.
+ * @param {Object}                 props.billing                     Billing information for the checkout session.
+ * @param {boolean}                props.isLoggedIn                  Whether the customer is logged-in.
+ * @param {boolean}                props.isPayerPhoneRequired        Whether the payer phone information is required.
+ * @param {Object}                 props.shippingData                Shipping information for the checkout session.
  * @param {JSX.Element}            props.LoadingMask                 LoadingMask component to display while loading.
  * @param {Function}               props.onLoadError                 Callback function to handle load errors.
  * @param {Function}               props.setShouldLoadStripeElements Callback function to set whether Stripe Elements should be loaded instead.
@@ -32,9 +43,14 @@ import {
  * @return {JSX.Element} The Checkout Form component.
  */
 const CheckoutForm = ( {
+	api,
 	emitResponse,
 	errorMessage,
 	eventRegistration: { onPaymentSetup, onCheckoutSuccess, onCheckoutFail },
+	billing,
+	isLoggedIn,
+	isPayerPhoneRequired,
+	shippingData,
 	LoadingMask,
 	onLoadError,
 	setShouldLoadStripeElements,
@@ -44,7 +60,11 @@ const CheckoutForm = ( {
 	const [ checkoutSessionId, setCheckoutSessionId ] = useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
 		useState( false );
+	const [ selectedPaymentType, setSelectedPaymentType ] = useState( '' );
 	const hasLoadErrorRef = useRef( false );
+	// Live value for onPaymentSetup's once-registered callback, which would
+	// otherwise close over a stale isPaymentElementComplete.
+	const isCompleteRef = useRef( false );
 	const setHasLoadError = ( event ) => {
 		hasLoadErrorRef.current = true;
 		onLoadError( event );
@@ -55,15 +75,43 @@ const CheckoutForm = ( {
 		checkoutSessionId,
 		errorMessage,
 		hasLoadErrorRef,
-		isPaymentElementComplete
+		isPaymentElementComplete,
+		selectedPaymentType,
+		isCompleteRef
 	);
-	useCheckoutSuccessHandler( checkoutState, onCheckoutSuccess );
+	useCheckoutSuccessHandler(
+		checkoutState,
+		onCheckoutSuccess,
+		billing,
+		isLoggedIn,
+		isPayerPhoneRequired,
+		shippingData
+	);
 	usePaymentFailHandler( onCheckoutFail, emitResponse );
+	useCheckoutSessionTotalsSync( api, checkoutSessionId, checkoutState );
+
+	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		handleDisplayOfPaymentInstructions( value.type, 'blocks' );
+		// Hide and clear the store-level save checkbox for non-reusable
+		// sub-methods. The Adaptive Pricing form renders its own Payment
+		// Element instead of PaymentProcessor, so it needs this independently.
+		handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );
 		setIsPaymentElementComplete( complete );
+		isCompleteRef.current = complete;
+		setSelectedPaymentType( value?.type ?? '' );
 	};
+
+	// The Payment Element may not emit a change event for the initially
+	// selected method, so evaluate the save checkbox on mount as well (e.g.
+	// card with Link enabled must start hidden).
+	useEffect( () => {
+		handleDisplayOfSavingCheckbox(
+			selectedPaymentType || PAYMENT_METHOD_CARD,
+			paymentMethodsConfig
+		);
+	}, [ selectedPaymentType, paymentMethodsConfig ] );
 
 	const elementOptions = useMemo( () => {
 		try {

@@ -387,14 +387,14 @@ class WC_Stripe_Database_Cache {
 
 		foreach ( $cached_rows as $cached_row ) {
 			$result['last_key'] = $cached_row->option_name;
-			$result['processed']++;
+			++$result['processed'];
 
 			// We fetched the raw contents, so check if we need to unserialize the data.
 			$cache_contents = maybe_unserialize( $cached_row->option_value );
 
 			if ( self::is_expired( $cached_row->option_name, $cache_contents ) ) {
 				self::delete_from_cache( $cached_row->option_name );
-				$result['deleted']++;
+				++$result['deleted'];
 			}
 		}
 
@@ -550,7 +550,7 @@ class WC_Stripe_Database_Cache {
 				]
 			);
 
-			$job_data['job_runs']++;
+			++$job_data['job_runs'];
 		}
 
 		$delete_result = self::delete_stale_entries( $max_rows, $job_data['last_key'] );

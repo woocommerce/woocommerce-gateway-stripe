@@ -21,6 +21,7 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 - Shared data/state: `client/data/`
 - Shared utility logic: `client/utils/`, `client/stripe-utils/`
 - Payment method visuals: `client/payment-method-icons/`
+- UPE appearance/theming: `client/styles/upe/` (samples page styles for Stripe PE appearance matching)
 
 ## Task-to-Command Matrix
 
@@ -47,6 +48,9 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 - Changing state shape in `client/data/` without updating all consumers.
 - Forgetting to rebuild assets when source changes require refreshed build output.
 - Mixing display amounts and API minor-unit amounts in per-feature logic.
+- Safari inline element baseline gap: Stripe Express Checkout Element iframes are inline-level replaced elements. Safari adds extra whitespace below the text baseline (the "image gap"), inflating container height beyond the visible button. Fix with `font-size: 0; line-height: 0` on the container, not by targeting margins.
+- Using block layout (`padding-bottom` on children) for vertical button spacing instead of flexbox/grid with explicit `gap`. Block layout margin/padding behavior varies across browsers; flex/grid `gap` is deterministic.
+- Using `document.fonts.status` as a gate before subscribing to `document.fonts.ready`. The `ready` promise retains its resolved state — `.then()` runs as a microtask even when fonts are already loaded. A `status` check creates a race window. Always subscribe unconditionally.
 
 ## Test Mapping
 

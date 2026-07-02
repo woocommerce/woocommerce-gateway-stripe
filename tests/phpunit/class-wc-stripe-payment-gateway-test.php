@@ -32,6 +32,23 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Helper to build a mocked successful HTTP response for the Stripe API from a body array.
+	 *
+	 * @param array $body The response body to JSON-encode.
+	 * @return array A pre-empted `pre_http_request` response.
+	 */
+	private function build_response( array $body ) {
+		return [
+			'headers'  => [],
+			'body'     => wp_json_encode( $body ),
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+		];
+	}
+
+	/**
 	 * Tests false is returned if payment intent is not set in the order.
 	 */
 	public function test_default_get_payment_intent_from_order() {
@@ -376,6 +393,33 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_result'       => 'Via Dummy card ending in 0000',
 			],
+			'Google Pay card ending in 4040'          => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand'  => 'visa',
+					'last4'  => '4040',
+					'wallet' => [ 'type' => 'google_pay' ],
+				],
+				'expected_result'       => 'Via Google Pay (Visa) ending in 4040',
+			],
+			'Apple Pay card ending in 4444'           => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand'  => 'mastercard',
+					'last4'  => '4444',
+					'wallet' => [ 'type' => 'apple_pay' ],
+				],
+				'expected_result'       => 'Via Apple Pay (MasterCard) ending in 4444',
+			],
+			'Link wallet card stays bare'             => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand'  => 'visa',
+					'last4'  => '1881',
+					'wallet' => [ 'type' => 'link' ],
+				],
+				'expected_result'       => 'Via Visa card ending in 1881',
+			],
 			'SEPA Debit ending in 1234'               => [
 				'payment_method_type'   => 'sepa_debit',
 				'payment_method_fields' => [
@@ -475,7 +519,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$mock_subscription->set_payment_method( 'stripe' );
 
 		static $mock_payment_method_id_counter = 0;
-		$mock_payment_method_id_counter++;
+		++$mock_payment_method_id_counter;
 
 		$id_suffix              = isset( $payment_method_fields['last4'] ) ? $payment_method_fields['last4'] : (string) $mock_payment_method_id_counter;
 		$mock_payment_method_id = 'pm_mock' . $payment_method_type . '_' . $id_suffix;
@@ -520,6 +564,92 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		remove_filter( 'pre_http_request', $mock_payment_method_api );
 
 		$this->assertEquals( $expected_result, $result );
+	}
+
+	/**
+	 * When a saved token backs the subscription's PaymentMethod, its pinned wallet_type
+	 * is authoritative over the live PaymentMethod's wallet, so the subscription row matches
+	 * the saved-token list.
+	 *
+	 * @see WC_Stripe_Subscriptions_Trait::maybe_render_subscription_payment_method()
+	 * @dataProvider provide_test_render_subscription_prefers_saved_token_wallet_type
+	 *
+	 * @param string $token_wallet_type   wallet_type pinned on the saved token.
+	 * @param string $live_wallet_type    wallet type reported by the live Stripe PaymentMethod.
+	 * @param string $expected_result     Expected rendered row text.
+	 */
+	public function test_render_subscription_prefers_saved_token_wallet_type( string $token_wallet_type, string $live_wallet_type, string $expected_result ) {
+		$user_id           = $this->factory()->user->create();
+		$payment_method_id = 'pm_mock_shared_card';
+
+		$mock_subscription = WC_Helper_Order::create_order( $user_id );
+		$mock_subscription->set_payment_method( 'stripe' );
+		$mock_subscription->update_meta_data( '_stripe_source_id', $payment_method_id );
+		$mock_subscription->update_meta_data( '_stripe_customer_id', 'cus_mock' );
+		$mock_subscription->save();
+
+		// Saved token for the same card, pinned to $token_wallet_type.
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( $payment_method_id );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+		$token->set_wallet_type( $token_wallet_type );
+		$token->set_user_id( $user_id );
+		$token->save();
+
+		$card_fields = [
+			'brand' => 'visa',
+			'last4' => '4242',
+		];
+		if ( '' !== $live_wallet_type ) {
+			$card_fields['wallet'] = [ 'type' => $live_wallet_type ];
+		}
+
+		$mock_payment_method_data = [
+			'id'       => $payment_method_id,
+			'type'     => WC_Stripe_Payment_Methods::CARD,
+			'customer' => 'cus_mock',
+			'card'     => $card_fields,
+		];
+
+		$expected_url            = '/v1/payment_methods/' . $payment_method_id;
+		$mock_payment_method_api = function ( $preempt, $request_args, $url ) use ( $expected_url, $mock_payment_method_data ) {
+			if ( str_ends_with( $url, $expected_url ) ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode( $mock_payment_method_data ),
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+				];
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $mock_payment_method_api, 10, 3 );
+
+		$result = $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription );
+
+		remove_filter( 'pre_http_request', $mock_payment_method_api );
+
+		$this->assertEquals( $expected_result, $result );
+	}
+
+	/**
+	 * Data provider for test_render_subscription_prefers_saved_token_wallet_type.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_render_subscription_prefers_saved_token_wallet_type(): array {
+		return [
+			'pinned bare card wins over live wallet' => [ '', 'google_pay', 'Via Visa card ending in 4242' ],
+			'pinned wallet wins over bare live card' => [ 'google_pay', '', 'Via Google Pay (Visa) ending in 4242' ],
+			'pinned wallet matches live wallet'      => [ 'apple_pay', 'apple_pay', 'Via Apple Pay (Visa) ending in 4242' ],
+		];
 	}
 
 	/**
@@ -589,6 +719,129 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
 		$this->assertTrue( $result );
+
+		remove_filter( 'pre_http_request', $callback );
+	}
+
+	/**
+	 * Tests that process_refund recovers a missing charge ID from the stored payment intent.
+	 */
+	public function test_process_refund_recovers_missing_charge_id_from_intent() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		// No transaction ID, but the intent is present.
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_123' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'payment_intents/pi_123' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'            => 'pi_123',
+						'object'        => 'payment_intent',
+						'status'        => 'succeeded',
+						'latest_charge' => 'ch_123',
+					]
+				);
+			}
+			if ( strpos( $url, 'charges/ch_123' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 'ch_123',
+						'object'   => 'charge',
+						'captured' => true,
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 're_123',
+						'object'   => 'refund',
+						'amount'   => 1000,
+						'currency' => 'usd',
+						'charge'   => 'ch_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
+		$this->assertTrue( $result );
+
+		// The recovered charge ID is persisted on the order.
+		$reloaded = wc_get_order( $order_id );
+		$this->assertSame( 'ch_123', $reloaded->get_transaction_id() );
+
+		remove_filter( 'pre_http_request', $callback );
+	}
+
+	/**
+	 * Tests that process_refund returns false when the charge ID can't be recovered.
+	 */
+	public function test_process_refund_returns_false_when_charge_id_unrecoverable() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
+		$this->assertFalse( $result );
+	}
+
+	/**
+	 * Tests that process_refund returns false when the intent is present but the
+	 * charge lookup blows up — `get_latest_charge_from_intent()` throws,
+	 * `recover_charge_id_from_intent()` returns '', and process_refund bails
+	 * gracefully instead of letting the exception escape.
+	 */
+	public function test_process_refund_returns_false_when_intent_charge_lookup_throws() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		// No transaction ID, intent present — triggers the recover path.
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_456' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'payment_intents/pi_456' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'            => 'pi_456',
+						'object'        => 'payment_intent',
+						'status'        => 'succeeded',
+						'latest_charge' => 'ch_456',
+					]
+				);
+			}
+			if ( strpos( $url, 'charges/ch_456' ) !== false ) {
+				// Stripe-style error response — get_charge_object() throws on this.
+				return $this->build_response(
+					[
+						'error' => (object) [
+							'type'    => 'invalid_request_error',
+							'message' => 'No such charge: ch_456',
+						],
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
+		$this->assertFalse( $result );
+
+		// The transaction ID stays empty because the recover path bailed.
+		$reloaded = wc_get_order( $order_id );
+		$this->assertSame( '', (string) $reloaded->get_transaction_id() );
 
 		remove_filter( 'pre_http_request', $callback );
 	}
@@ -1029,6 +1282,272 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected'          => false,
 			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_update_fees_scenarios
+	 */
+	public function test_update_fees( $existing_fee, $existing_net, $api_fee, $api_net, $replace, $expected_fee, $expected_net ) {
+		$order        = WC_Helper_Order::create_order();
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( 0 !== $existing_fee ) {
+			$order_helper->update_stripe_fee( $order, $existing_fee );
+		}
+		if ( 0 !== $existing_net ) {
+			$order_helper->update_stripe_net( $order, $existing_net );
+		}
+
+		// Mock the Stripe API balance transaction response.
+		$mock_response = [
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'fee'      => $api_fee,
+					'net'      => $api_net,
+					'currency' => 'usd',
+				]
+			),
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+		];
+
+		$filter = function () use ( $mock_response ) {
+			return $mock_response;
+		};
+		add_filter( 'pre_http_request', $filter );
+
+		$this->gateway->update_fees( $order, 'txn_test123', $replace );
+
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertEquals( $expected_fee, (float) $order_helper->get_stripe_fee( $order ) );
+		$this->assertEquals( $expected_net, (float) $order_helper->get_stripe_net( $order ) );
+	}
+
+	/**
+	 * Tests that update_fees leaves existing meta intact when the API returns an error.
+	 */
+	public function test_update_fees_with_api_error_leaves_meta_unchanged() {
+		$order        = WC_Helper_Order::create_order();
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$order_helper->update_stripe_fee( $order, 1.50 );
+		$order_helper->update_stripe_net( $order, 48.50 );
+
+		$mock_response = [
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'error' => [
+						'type'    => 'invalid_request_error',
+						'message' => 'No such balance transaction',
+					],
+				]
+			),
+			'response' => [
+				'code'    => 404,
+				'message' => 'Not Found',
+			],
+		];
+
+		$filter = function () use ( $mock_response ) {
+			return $mock_response;
+		};
+		add_filter( 'pre_http_request', $filter );
+
+		$this->gateway->update_fees( $order, 'txn_invalid', true );
+
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertEquals( 1.50, (float) $order_helper->get_stripe_fee( $order ) );
+		$this->assertEquals( 48.50, (float) $order_helper->get_stripe_net( $order ) );
+	}
+
+	public function provide_update_fees_scenarios() {
+		// API fee/net values are in cents (Stripe smallest denomination).
+		// format_balance_fee() converts to dollars (divides by 100 for USD).
+		// Existing and expected values are in dollars (already formatted).
+		return [
+			'add mode - refund adjusts existing fees'       => [
+				'existing_fee' => 1.50,
+				'existing_net' => 48.50,
+				'api_fee'      => -30,
+				'api_net'      => -970,
+				'replace'      => false,
+				'expected_fee' => 1.20,
+				'expected_net' => 38.80,
+			],
+			'replace mode - capture replaces existing fees' => [
+				'existing_fee' => 1.50,
+				'existing_net' => 48.50,
+				'api_fee'      => 75,
+				'api_net'      => 2425,
+				'replace'      => true,
+				'expected_fee' => 0.75,
+				'expected_net' => 24.25,
+			],
+			'replace mode - works with no existing fees'    => [
+				'existing_fee' => 0,
+				'existing_net' => 0,
+				'api_fee'      => 50,
+				'api_net'      => 950,
+				'replace'      => true,
+				'expected_fee' => 0.50,
+				'expected_net' => 9.50,
+			],
+			'add mode - first time fee setting'             => [
+				'existing_fee' => 0,
+				'existing_net' => 0,
+				'api_fee'      => 100,
+				'api_net'      => 4900,
+				'replace'      => false,
+				'expected_fee' => 1.00,
+				'expected_net' => 49.00,
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_test_display_order_currency_cases
+	 *
+	 * @param string $order_currency                   The order currency.
+	 * @param string $stripe_currency                  The Stripe currency.
+	 * @param bool   $expect_stripe_currency_in_output Whether the Stripe currency is expected in the output.
+	 */
+	public function test_display_order_fee( string $order_currency, string $stripe_currency, bool $expect_stripe_currency_in_output ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( $order_currency );
+		$order->save();
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_fee( $order, '0.59' );
+		$order_helper->update_stripe_currency( $order, $stripe_currency );
+		$order->save();
+
+		ob_start();
+		$this->gateway->display_order_fee( $order->get_id() );
+		$output = ob_get_clean();
+
+		if ( $expect_stripe_currency_in_output ) {
+			$this->assertStringContainsString( ' ' . $stripe_currency, $output );
+		} else {
+			$this->assertStringNotContainsString( $stripe_currency, $output );
+		}
+	}
+
+	/**
+	 * @dataProvider provide_test_display_order_currency_cases
+	 *
+	 * @param string $order_currency                   The order currency.
+	 * @param string $stripe_currency                  The Stripe currency.
+	 * @param bool   $expect_stripe_currency_in_output Whether the Stripe currency is expected in the output.
+	 */
+	public function test_display_order_payout( string $order_currency, string $stripe_currency, bool $expect_stripe_currency_in_output ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( $order_currency );
+		$order->save();
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_net( $order, '19.41' );
+		$order_helper->update_stripe_currency( $order, $stripe_currency );
+		$order->save();
+
+		ob_start();
+		$this->gateway->display_order_payout( $order->get_id() );
+		$output = ob_get_clean();
+
+		if ( $expect_stripe_currency_in_output ) {
+			$this->assertStringContainsString( ' ' . $stripe_currency, $output );
+		} else {
+			$this->assertStringNotContainsString( $stripe_currency, $output );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_display_order_fee()} and {@see test_display_order_payout()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_display_order_currency_cases() {
+		return [
+			'same currency'      => [ 'USD', 'USD', false ],
+			'different currency' => [ 'USD', 'EUR', true ],
+		];
+	}
+
+	/**
+	 * display_order_fee() returns early and outputs nothing when the order does not exist.
+	 */
+	public function test_display_order_fee_invalid_order_returns_early() {
+		ob_start();
+		$this->gateway->display_order_fee( 999999 );
+		$output = ob_get_clean();
+
+		$this->assertEmpty( $output );
+	}
+
+	/**
+	 * display_order_payout() returns early and outputs nothing when the order does not exist.
+	 */
+	public function test_display_order_payout_invalid_order_returns_early() {
+		ob_start();
+		$this->gateway->display_order_payout( 999999 );
+		$output = ob_get_clean();
+
+		$this->assertEmpty( $output );
+	}
+
+	/**
+	 * Tests that generate_payment_request includes the shipping phone in the shipping object so it
+	 * reaches Stripe for risk decisioning (STRIPE-973).
+	 *
+	 * @dataProvider provide_test_generate_payment_request_shipping_phone_cases
+	 *
+	 * @param string $phone        The order shipping phone.
+	 * @param bool   $expect_phone Whether the shipping phone is expected in the request.
+	 */
+	public function test_generate_payment_request_includes_shipping_phone( string $phone, bool $expect_phone ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_shipping_first_name( 'Jane' );
+		$order->set_shipping_last_name( 'Doe' );
+		$order->set_shipping_address_1( '123 Ship St' );
+		$order->set_shipping_city( 'Shipville' );
+		$order->set_shipping_state( 'CA' );
+		$order->set_shipping_postcode( '90210' );
+		$order->set_shipping_country( 'US' );
+		$order->set_shipping_phone( $phone );
+		$order->save();
+
+		$prepared_payment_method = (object) [
+			'customer'       => 'cus_123',
+			'source'         => null,
+			'payment_method' => 'pm_123',
+		];
+
+		$post_data = $this->gateway->generate_payment_request( $order, $prepared_payment_method );
+
+		$this->assertArrayHasKey( 'shipping', $post_data, 'Shipping should be included when a shipping postcode is present' );
+		if ( $expect_phone ) {
+			$this->assertArrayHasKey( 'phone', $post_data['shipping'], 'Shipping object should include the shipping phone' );
+			$this->assertEquals( $phone, $post_data['shipping']['phone'], 'Shipping phone should match the order shipping phone' );
+		} else {
+			$this->assertArrayNotHasKey( 'phone', $post_data['shipping'], 'Shipping object should omit an empty phone' );
+		}
+	}
+
+	/**
+	 * Data provider for test_generate_payment_request_includes_shipping_phone.
+	 *
+	 * @return array
+	 */
+	public function provide_test_generate_payment_request_shipping_phone_cases(): array {
+		return [
+			'phone present' => [ '+1 555-333-4444', true ],
+			'phone empty'   => [ '', false ],
 		];
 	}
 }

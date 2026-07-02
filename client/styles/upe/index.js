@@ -1,6 +1,6 @@
 /* global wc_stripe_upe_params */
 
-import { upeRestrictedProperties } from './upe-styles';
+import { getSourcePropertyName, upeRestrictedProperties } from './upe-styles';
 import {
 	generateHoverRules,
 	generateOutlineStyle,
@@ -80,11 +80,21 @@ const appearanceSelectors = {
 			upeThemeLabelSelector:
 				'.wc-block-components-checkout-step__description',
 		},
+		// The PE iframe is transparent — colorBackground is a reference color
+		// Stripe uses for theme selection, text contrast, and secondary UI
+		// (tabs, OTP popups), not the container fill. These selectors must
+		// cover block themes (main, .wp-block-group) and classic themes
+		// (.entry-content, .site-content) so getBackgroundColor doesn't fall
+		// through to body, which often has a different color.
 		backgroundSelectors: [
 			'#payment-method .wc-block-components-radio-control-accordion-option',
 			'#payment-method',
 			'form.wc-block-checkout__form',
 			'.wc-block-checkout',
+			'main',
+			'.wp-block-group',
+			'.entry-content',
+			'.site-content',
 			'body',
 		],
 	},
@@ -315,8 +325,9 @@ export const getFieldStyles = ( selector, upeElement ) => {
 	const filteredStyles = {};
 
 	for ( const property of validProperties ) {
-		if ( typeof styles[ property ] !== 'undefined' ) {
-			filteredStyles[ property ] = styles[ property ];
+		const sourceProperty = getSourcePropertyName( property );
+		if ( typeof styles[ sourceProperty ] !== 'undefined' ) {
+			filteredStyles[ property ] = styles[ sourceProperty ];
 		}
 	}
 
@@ -355,9 +366,9 @@ export const getFieldStyles = ( selector, upeElement ) => {
 const DEFAULT_FONT_DOMAINS = [
 	'fonts.googleapis.com',
 	'fonts.gstatic.com',
-	'fast.fonts.com',
 	'use.typekit.net',
 	'fonts-api.wp.com',
+	'fonts.bunny.net',
 ];
 
 /**
@@ -367,8 +378,10 @@ const DEFAULT_FONT_DOMAINS = [
  * @return {string[]} Array of permitted font domains.
  */
 const getPermittedFontDomains = () => {
-	// eslint-disable-next-line camelcase
-	if ( Array.isArray( wc_stripe_upe_params?.permittedFontDomains ) ) {
+	if (
+		typeof wc_stripe_upe_params !== 'undefined' && // eslint-disable-line camelcase
+		Array.isArray( wc_stripe_upe_params?.permittedFontDomains ) // eslint-disable-line camelcase
+	) {
 		return DEFAULT_FONT_DOMAINS.concat(
 			wc_stripe_upe_params.permittedFontDomains // eslint-disable-line camelcase
 		);
@@ -395,10 +408,42 @@ export const getFontRulesFromPage = () => {
 	return fontRules;
 };
 
+/**
+ * Reads the current fontFamily from the first available text selector via a
+ * single getComputedStyle() call. Used to detect whether web fonts have changed
+ * since the appearance was last computed, without running the full getAppearance
+ * pipeline.
+ *
+ * @param {boolean} isBlocksCheckout Whether the checkout is a blocks checkout.
+ * @return {string|undefined} The current fontFamily, or undefined if no selector matches.
+ */
+export const sampleFontFamily = ( isBlocksCheckout = false ) => {
+	const selectors = appearanceSelectors.getSelectors( isBlocksCheckout );
+	// Pass the array directly to querySelector — JS coerces it to a
+	// comma-separated CSS selector list, matching the same element
+	// resolution that getFieldStyles uses for paragraphRules.fontFamily.
+	const el = document.querySelector( selectors.upeThemeTextSelectors );
+	return el ? window.getComputedStyle( el ).fontFamily : undefined;
+};
+
 export const getAppearance = (
 	isBlocksCheckout = false,
-	shouldExpandOptimizedCheckout = false
+	shouldExpandOptimizedCheckout = false,
+	isEditor = false
 ) => {
+	// In the block editor (Site/Full Site Editor) the checkout block renders a
+	// preview that does not reflect the live storefront DOM. Sampling computed
+	// styles there yields incorrect colors — typically a dark editor-canvas
+	// background that flips the theme to 'night', so the Payment Element fields
+	// render with a dark/black appearance. Return a neutral light appearance
+	// instead so the preview renders correctly. See STRIPE-1061.
+	if ( isEditor ) {
+		return {
+			theme: 'stripe',
+			labels: isBlocksCheckout ? 'floating' : 'above',
+		};
+	}
+
 	const selectors = appearanceSelectors.getSelectors( isBlocksCheckout );
 
 	// Add hidden fields to DOM for generating styles.

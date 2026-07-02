@@ -14,20 +14,18 @@ export const getLinkButton = async ( page, isBlockPage = false ) => {
 
 export const assertLinkModalLoads = async ( page, isBlockPage = false ) => {
 	const linkButton = await getLinkButton( page, isBlockPage );
-	await expect( linkButton ).toBeVisible();
+	await expect( linkButton ).toBeVisible( { timeout: 60 * 1000 } );
 	await expect( linkButton ).toBeEnabled();
 
 	const context = page.context();
 	const [ popup ] = await Promise.all( [
-		context.waitForEvent( 'page' ),
+		context.waitForEvent( 'page', { timeout: 60 * 1000 } ),
 		linkButton.click(),
 	] );
 
 	await popup.waitForLoadState();
 
-	await expect(
-		page.getByRole( 'button', {
-			name: 'Continue payment',
-		} )
-	).toBeVisible();
+	await expect( popup.getByTestId( 'pay-button' ) ).toBeVisible( {
+		timeout: 60 * 1000,
+	} );
 };

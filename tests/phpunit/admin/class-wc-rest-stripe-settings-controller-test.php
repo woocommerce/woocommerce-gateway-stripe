@@ -33,6 +33,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	private static $gateway;
+
 	/**
 	 * Enable UPE and store gateway instance.
 	 *
@@ -41,17 +42,17 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 * would contain another gateway instance than the controller.
 	 *
 	 * @see UPE_Test_Utils::reload_payment_gateways()
+	 *
+	 * @return void
+	 * @throws Exception
 	 */
-	public static function set_up_before_class() {
+	public static function set_up_before_class(): void {
 		parent::set_up_before_class();
 
 		$upe_helper = new UPE_Test_Helper();
 
 		// Enable Amazon Pay
 		update_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME, 'yes' );
-
-		// All tests assume UPE is enabled.
-		update_option( '_wcstripe_feature_upe', 'yes' );
 
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
@@ -73,6 +74,17 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		}
 
 		$this->upe_helper = new UPE_Test_Helper();
+
+		// Ensure API keys are present so WC_Stripe_Payment_Method_Configurations::is_enabled()
+		// returns true. Without them, PMC-reliant tests fall back to the legacy DB path.
+		$settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$settings['publishable_key']      = 'pk_live_1234567890';
+		$settings['secret_key']           = 'sk_live_1234567890';
+		$settings['test_publishable_key'] = 'pk_test_1234567890';
+		$settings['test_secret_key']      = 'sk_test_1234567890';
+		$settings['pmc_enabled']          = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
 		$this->controller = new WC_REST_Stripe_Settings_Controller( $this->get_gateway() );
 
 		add_action( 'rest_api_init', [ $this, 'deregister_wc_blocks_rest_api' ], 5 );
@@ -123,6 +135,94 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 		$response = $this->controller->update_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
+	}
+
+	/**
+	 * Test mode cannot be turned off unless a live account is connected.
+	 *
+	 * @param bool   $live_connected  Whether live API keys are present.
+	 * @param string $expected_option The expected `testmode` option value after the request.
+	 *
+	 * @dataProvider disable_test_mode_requires_live_connection_provider
+	 */
+	public function test_disable_test_mode_requires_live_connection( bool $live_connected, string $expected_option ) {
+		// Start in test mode.
+		$this->get_gateway()->update_option( 'testmode', 'yes' );
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		if ( $live_connected ) {
+			$settings['publishable_key'] = 'pk_live_1234567890';
+			$settings['secret_key']      = 'sk_live_1234567890';
+		} else {
+			$settings['publishable_key'] = '';
+			$settings['secret_key']      = '';
+		}
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		// Attempt to turn test mode off (switch to live).
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_test_mode_enabled', false );
+		$response = rest_do_request( $request );
+
+		// The request always succeeds; only the saved value differs (soft clamp).
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( $expected_option, $this->get_gateway()->get_option( 'testmode' ) );
+	}
+
+	/**
+	 * Data provider for `test_disable_test_mode_requires_live_connection`.
+	 *
+	 * @return array
+	 */
+	public function disable_test_mode_requires_live_connection_provider(): array {
+		return [
+			'live connected: switches to live mode' => [ true, 'no' ],
+			'live disconnected: stays in test mode' => [ false, 'yes' ],
+		];
+	}
+
+	/**
+	 * Test mode cannot be turned on unless a test account is connected.
+	 *
+	 * @param bool   $test_connected  Whether test API keys are present.
+	 * @param string $expected_option The expected `testmode` option value after the request.
+	 *
+	 * @dataProvider enable_test_mode_requires_test_connection_provider
+	 */
+	public function test_enable_test_mode_requires_test_connection( bool $test_connected, string $expected_option ) {
+		// Start in live mode.
+		$this->get_gateway()->update_option( 'testmode', 'no' );
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		if ( $test_connected ) {
+			$settings['test_publishable_key'] = 'pk_test_1234567890';
+			$settings['test_secret_key']      = 'sk_test_1234567890';
+		} else {
+			$settings['test_publishable_key'] = '';
+			$settings['test_secret_key']      = '';
+		}
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		// Attempt to turn test mode on (switch to test).
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_test_mode_enabled', true );
+		$response = rest_do_request( $request );
+
+		// The request always succeeds; only the saved value differs (soft clamp).
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( $expected_option, $this->get_gateway()->get_option( 'testmode' ) );
+	}
+
+	/**
+	 * Data provider for `test_enable_test_mode_requires_test_connection`.
+	 *
+	 * @return array
+	 */
+	public function enable_test_mode_requires_test_connection_provider(): array {
+		return [
+			'test connected: switches to test mode' => [ true, 'yes' ],
+			'test disconnected: stays in live mode' => [ false, 'no' ],
+		];
 	}
 
 	/**
@@ -389,7 +489,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$request->set_param( 'enabled_payment_method_ids', [ WC_Stripe_Payment_Methods::CARD ] );
 		$request->set_param( 'is_upe_enabled', true );
 		// Enable Apple Pay and Google Pay.
-		$request->set_param( 'is_payment_request_enabled', true );
+		$request->set_param( 'is_express_checkout_enabled', true );
 
 		$response = $this->controller->update_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
@@ -417,7 +517,25 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$request->set_param( 'enabled_payment_method_ids', [ WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
 		$request->set_param( 'is_upe_enabled', true );
 		// Enable Apple Pay and Google Pay -- this will be ignored because card is disabled
-		$request->set_param( 'is_payment_request_enabled', true );
+		$request->set_param( 'is_express_checkout_enabled', true );
+
+		$response = $this->controller->update_settings( $request );
+		$this->assertEquals( 200, $response->get_status() );
+	}
+
+	/**
+	 * Tests that omitting `enabled_payment_method_ids` from the payload does not
+	 * trigger a runtime error when `is_express_checkout_enabled` is also set.
+	 */
+	public function test_update_settings_accepts_partial_payload_without_enabled_payment_method_ids() {
+		$this->mock_payment_method_configurations(
+			[ WC_Stripe_Payment_Methods::CARD ],
+			[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
+		);
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'is_express_checkout_enabled', true );
 
 		$response = $this->controller->update_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
@@ -426,72 +544,176 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	/**
 	 * Tests for the dismiss notice endpoint.
 	 *
-	 * @param array $request_params The request parameters.
-	 * @param array $expected_option The expected option after the request.
+	 * @param array $request_params    The request parameters.
+	 * @param array $expected_options  The expected options to have been updated.
 	 * @param array $expected_response The expected response.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_dismiss_notice
 	 */
-	public function test_dismiss_notice( $request_params, $expected_option, $expected_response ) {
+	public function test_dismiss_notice( array $request_params, array $expected_options, array $expected_response ) {
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE . '/notice' );
 		foreach ( $request_params as $key => $value ) {
 			$request->set_param( $key, $value );
 		}
 
-		$response = rest_do_request( $request );
-		if ( count( $expected_option ) > 0 ) {
-			foreach ( $expected_option as $option_name => $option_value ) {
+		$updated_stripe_options = [];
+
+		$pre_update_filter = function ( $value, $option_name ) use ( &$updated_stripe_options ) {
+			if ( str_starts_with( $option_name, 'wc_stripe_' ) ) {
+				$updated_stripe_options[ $option_name ] = $value;
+			}
+			return $value;
+		};
+		add_filter( 'pre_update_option', $pre_update_filter, 10, 2 );
+
+		try {
+			$response = rest_do_request( $request );
+
+			$this->assertEquals( count( $expected_options ), count( $updated_stripe_options ) );
+
+			foreach ( $expected_options as $option_name => $option_value ) {
 				$notice_option = get_option( $option_name );
 				$this->assertEquals( $option_value, $notice_option );
-			}
-		}
 
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( $expected_response, $response->get_data() );
+				$this->assertArrayHasKey( $option_name, $updated_stripe_options );
+				$this->assertEquals( $option_value, $updated_stripe_options[ $option_name ] );
+			}
+
+			$this->assertEquals( 200, $response->get_status() );
+			$this->assertEquals( $expected_response, $response->get_data() );
+		} finally {
+			remove_filter( 'pre_update_option', $pre_update_filter, 10 );
+		}
 	}
 
 	/**
-	 * Provider for test_dismiss_notice.
+	 * Provider for {@see test_dismiss_notice()}.
 	 *
 	 * @return array
 	 */
 	public function provide_test_dismiss_notice() {
-		return [
-			'empty request'                => [
+		$supported_options = [
+			'wc_stripe_show_customization_notice'       => 'wc_stripe_show_customization_notice',
+			'wc_stripe_show_optimized_checkout_notice'  => 'wc_stripe_show_optimized_checkout_notice',
+			'wc_stripe_show_bnpl_promotion_banner'      => 'wc_stripe_show_bnpl_promotion_banner',
+			'wc_stripe_show_oc_promotion_banner'        => 'wc_stripe_show_oc_promotion_banner',
+			'wc_stripe_show_ocs_ap_banner'              => 'wc_stripe_show_ocs_ap_banner',
+			'wc_stripe_show_ap_only_banner'             => 'wc_stripe_show_ap_only_banner',
+			'wc_stripe_show_ocs_only_banner'            => 'wc_stripe_show_ocs_only_banner',
+			'wc_stripe_show_stripe_first_method_notice' => 'wc_stripe_show_stripe_first_method_notice',
+			'wc_stripe_show_stripe_tax_banner'          => 'wc_stripe_show_stripe_tax_banner',
+		];
+
+		$dismissed_result = [
+			'result' => 'notice dismissed',
+		];
+
+		$test_cases = [
+			'empty request'             => [
 				'request params'    => [],
-				'expected option'   => [],
+				'expected options'  => [],
 				'expected response' => [],
 			],
-			'dismiss customization notice' => [
+			'unsupported request param' => [
 				'request params'    => [
-					'wc_stripe_show_customization_notice' => 'no',
+					'wc_stripe_test_notice' => 'no',
 				],
-				'expected option'   => [
-					'wc_stripe_show_customization_notice' => 'no',
-				],
-				'expected response' => [
-					'result' => 'notice dismissed',
-				],
-			],
-			'dismiss BNPL banner'          => [
-				'request params'    => [
-					'wc_stripe_show_bnpl_promotion_banner' => 'no',
-				],
-				'expected option'   => [
-					'wc_stripe_show_bnpl_promotion_banner' => 'no',
-				],
-				'expected response' => [
-					'result' => 'notice dismissed',
-				],
+				'expected options'  => [],
+				'expected response' => [],
 			],
 		];
+
+		foreach ( $supported_options as $request_param => $option_name ) {
+			$test_cases[ 'dismiss ' . $request_param . ' notice' ]               = [
+				'request params'    => [ $request_param => 'no' ],
+				'expected options'  => [ $option_name => 'no' ],
+				'expected response' => $dismissed_result,
+			];
+			$test_cases[ 'dismiss ' . $request_param . ' with empty parameter' ] = [
+				'request params'    => [ $request_param => '' ],
+				'expected options'  => [ $option_name => 'no' ],
+				'expected response' => $dismissed_result,
+			];
+		}
+
+		$test_cases['dismiss multiple notices'] = [
+			'request params'    => [
+				'wc_stripe_show_customization_notice'       => 'no',
+				'wc_stripe_show_optimized_checkout_notice'  => 'no',
+				'wc_stripe_show_stripe_first_method_notice' => 'no',
+				'wc_stripe_show_stripe_tax_banner'          => 'no',
+			],
+			'expected options'  => [
+				'wc_stripe_show_customization_notice'       => 'no',
+				'wc_stripe_show_optimized_checkout_notice'  => 'no',
+				'wc_stripe_show_stripe_first_method_notice' => 'no',
+				'wc_stripe_show_stripe_tax_banner'          => 'no',
+			],
+			'expected response' => $dismissed_result,
+		];
+
+		$test_cases['dismiss multiple notices with mixed values'] = [
+			'request params'    => [
+				'wc_stripe_show_customization_notice'       => 'no',
+				'wc_stripe_show_optimized_checkout_notice'  => '',
+				'wc_stripe_show_stripe_first_method_notice' => 'no',
+				'wc_stripe_show_stripe_tax_banner'          => '',
+			],
+			'expected options'  => [
+				'wc_stripe_show_customization_notice'       => 'no',
+				'wc_stripe_show_optimized_checkout_notice'  => 'no',
+				'wc_stripe_show_stripe_first_method_notice' => 'no',
+				'wc_stripe_show_stripe_tax_banner'          => 'no',
+			],
+			'expected response' => $dismissed_result,
+		];
+
+		return $test_cases;
 	}
 
 	/**
-	 * @dataProvider is_payment_request_enabled_provider
+	 * Tests for moving Stripe gateways to the top via REST endpoint.
 	 */
-	public function test_is_payment_request_enabled( $is_enabled, $enabled_payment_method_ids, $disabled_payment_method_ids ) {
+	public function test_set_stripe_gateways_first() {
+		update_option(
+			'woocommerce_gateway_order',
+			[
+				'affirm'      => '0',
+				'woopayments' => '1',
+				'amazon_pay'  => '2',
+				'stripe_sepa' => '3',
+				'stripe'      => '4',
+				'stripe_eps'  => '5',
+				'cod'         => '6',
+				'paypal'      => '7',
+			]
+		);
+
+		$request  = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE . '/set_stripe_gateways_first' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( [ 'result' => 'Stripe moved to first position' ], $response->get_data() );
+		$this->assertSame(
+			[
+				'stripe_sepa' => '0',
+				'stripe'      => '1',
+				'stripe_eps'  => '2',
+				'affirm'      => '3',
+				'woopayments' => '4',
+				'amazon_pay'  => '5',
+				'cod'         => '6',
+				'paypal'      => '7',
+			],
+			get_option( 'woocommerce_gateway_order', [] )
+		);
+	}
+
+	/**
+	 * @dataProvider is_express_checkout_enabled_provider
+	 */
+	public function test_is_express_checkout_enabled( $is_enabled, $enabled_payment_method_ids, $disabled_payment_method_ids ) {
 		$this->mock_payment_method_configurations(
 			$enabled_payment_method_ids,
 			$disabled_payment_method_ids
@@ -499,10 +721,10 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$request  = new WP_REST_Request( 'GET', self::SETTINGS_ROUTE );
 		$response = $this->controller->get_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( $is_enabled, $response->get_data()['is_payment_request_enabled'] );
+		$this->assertEquals( $is_enabled, $response->get_data()['is_express_checkout_enabled'] );
 	}
 
-	public function is_payment_request_enabled_provider() {
+	public function is_express_checkout_enabled_provider() {
 		return [
 			[ true, [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::GOOGLE_PAY ], [] ],
 			[ false, [], [ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::AMAZON_PAY ] ],
@@ -517,7 +739,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	public function boolean_field_provider(): array {
 		return [
 			'is_stripe_enabled'                     => [ 'is_stripe_enabled', 'enabled' ],
-			'is_test_mode_enabled'                  => [ 'is_test_mode_enabled', 'testmode' ],
 			'is_oc_enabled'                         => [ 'is_oc_enabled', 'optimized_checkout_element' ],
 			'is_ap_enabled'                         => [ 'is_ap_enabled', 'adaptive_pricing' ],
 			'is_manual_capture_enabled'             => [ 'is_manual_capture_enabled', 'capture', true ],
@@ -545,35 +766,49 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 */
 	public function enum_field_provider() {
 		return [
-			'payment_request_button_theme'     => [
-				'payment_request_button_theme',
+			'express_checkout_button_theme'     => [
+				'express_checkout_button_theme',
 				'express_checkout_button_theme',
 				'dark',
 				'light',
 				'foo',
 			],
-			'payment_request_button_size'      => [
-				'payment_request_button_size',
+			'express_checkout_button_size'      => [
+				'express_checkout_button_size',
 				'express_checkout_button_size',
 				'default',
 				'large',
 				'foo',
 			],
-			'payment_request_button_type'      => [
-				'payment_request_button_type',
+			'express_checkout_button_type'      => [
+				'express_checkout_button_type',
 				'express_checkout_button_type',
 				'buy',
 				'book',
 				'foo',
 			],
-			'payment_request_button_locations' => [
-				'payment_request_button_locations',
+			'express_checkout_button_locations' => [
+				'express_checkout_button_locations',
 				'express_checkout_button_locations',
 				[ 'cart' ],
 				[ 'cart', 'checkout', 'product' ],
 				[ 'foo' ],
 			],
-			'optimized_checkout_layout'        => [
+			'link_button_size'                  => [
+				'link_button_size',
+				'link_button_size',
+				'default',
+				'large',
+				'foo',
+			],
+			'link_button_locations'             => [
+				'link_button_locations',
+				'link_button_locations',
+				[ 'cart' ],
+				[ 'cart', 'checkout', 'product' ],
+				[ 'foo' ],
+			],
+			'optimized_checkout_layout'         => [
 				'oc_layout',
 				'optimized_checkout_layout',
 				'accordion',

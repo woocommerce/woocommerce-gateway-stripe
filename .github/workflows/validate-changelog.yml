@@ -13,11 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.3
 
       - name: Check PR description for changelog exemption
         id: check_exemption
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const prBody = context.payload.pull_request.body || '';
@@ -30,15 +30,19 @@ jobs:
       - name: Check for changelog updates
         id: has_changelog_entries
         if: steps.check_exemption.outputs.is_exempt != 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
-            const { data: files } = await github.rest.pulls.listFiles({
+            // Paginate: a PR can change more files than a single listFiles page
+            // (default 30) returns, so without this changelog.txt/readme.txt can
+            // be missed on large PRs and the check fails despite valid entries.
+            const files = await github.paginate(github.rest.pulls.listFiles, {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.issue.number
+              pull_number: context.issue.number,
+              per_page: 100
             });
-            
+
             const changelogUpdated = files.some(file => file.filename === 'changelog.txt');
             const readmeUpdated = files.some(file => file.filename === 'readme.txt');
             

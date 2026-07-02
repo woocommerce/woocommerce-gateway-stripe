@@ -19,6 +19,8 @@ import {
 	useAmazonPayEnabledSettings,
 	useAmazonPayLocations,
 	useAmazonPayButtonSize,
+	useLinkButtonSize,
+	useLinkLocations,
 	useSepaTokensForIdeal,
 	useSepaTokensForBancontact,
 	useIsOCEnabled,
@@ -29,7 +31,7 @@ import { useSelect, useDispatch } from '@wordpress/data';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_EPS,
-	PAYMENT_METHOD_GIROPAY,
+	PAYMENT_METHOD_BANCONTACT,
 	PAYMENT_METHOD_AMAZON_PAY,
 } from 'wcstripe/stripe-utils/constants';
 
@@ -145,7 +147,7 @@ describe( 'Settings hooks tests', () => {
 					ordered_payment_method_ids: [
 						PAYMENT_METHOD_CARD,
 						PAYMENT_METHOD_EPS,
-						PAYMENT_METHOD_GIROPAY,
+						PAYMENT_METHOD_BANCONTACT,
 					],
 				} ) ),
 				isSavingOrderedPaymentMethodIds: jest.fn(),
@@ -160,17 +162,17 @@ describe( 'Settings hooks tests', () => {
 			expect( orderedPaymentMethodIds ).toEqual( [
 				PAYMENT_METHOD_CARD,
 				PAYMENT_METHOD_EPS,
-				PAYMENT_METHOD_GIROPAY,
+				PAYMENT_METHOD_BANCONTACT,
 			] );
 
 			setOrderedPaymentMethodIds( [
-				PAYMENT_METHOD_GIROPAY,
+				PAYMENT_METHOD_BANCONTACT,
 				PAYMENT_METHOD_CARD,
 				PAYMENT_METHOD_EPS,
 			] );
 			expect( actions.updateSettingsValues ).toHaveBeenCalledWith( {
 				ordered_payment_method_ids: [
-					PAYMENT_METHOD_GIROPAY,
+					PAYMENT_METHOD_BANCONTACT,
 					PAYMENT_METHOD_CARD,
 					PAYMENT_METHOD_EPS,
 				],
@@ -187,25 +189,25 @@ describe( 'Settings hooks tests', () => {
 		},
 		useExpressCheckoutEnabledSettings: {
 			hook: useExpressCheckoutEnabledSettings,
-			storeKey: 'is_payment_request_enabled',
+			storeKey: 'is_express_checkout_enabled',
 			testedValue: true,
 			fallbackValue: false,
 		},
 		useExpressCheckoutButtonSize: {
 			hook: useExpressCheckoutButtonSize,
-			storeKey: 'payment_request_button_size',
+			storeKey: 'express_checkout_button_size',
 			testedValue: 'large',
 			fallbackValue: '',
 		},
 		useExpressCheckoutButtonType: {
 			hook: useExpressCheckoutButtonType,
-			storeKey: 'payment_request_button_type',
+			storeKey: 'express_checkout_button_type',
 			testedValue: '',
 			fallbackValue: '',
 		},
 		useExpressCheckoutButtonTheme: {
 			hook: useExpressCheckoutButtonTheme,
-			storeKey: 'payment_request_button_theme',
+			storeKey: 'express_checkout_button_theme',
 			testedValue: 'dark',
 			fallbackValue: '',
 		},
@@ -265,7 +267,7 @@ describe( 'Settings hooks tests', () => {
 		},
 		useExpressCheckoutLocations: {
 			hook: useExpressCheckoutLocations,
-			storeKey: 'payment_request_button_locations',
+			storeKey: 'express_checkout_button_locations',
 			testedValue: [ 'checkout', 'cart' ],
 			fallbackValue: [],
 		},
@@ -278,6 +280,18 @@ describe( 'Settings hooks tests', () => {
 		useAmazonPayLocations: {
 			hook: useAmazonPayLocations,
 			storeKey: 'amazon_pay_button_locations',
+			testedValue: [ 'checkout', 'cart' ],
+			fallbackValue: [],
+		},
+		useLinkButtonSize: {
+			hook: useLinkButtonSize,
+			storeKey: 'link_button_size',
+			testedValue: 'large',
+			fallbackValue: 'default',
+		},
+		useLinkLocations: {
+			hook: useLinkLocations,
+			storeKey: 'link_button_locations',
 			testedValue: [ 'checkout', 'cart' ],
 			fallbackValue: [],
 		},

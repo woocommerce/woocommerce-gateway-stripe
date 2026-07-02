@@ -627,6 +627,59 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that update_order_status_ajax does not fail the order when a customer cancels the payment
+	 * (e.g. closes the Klarna popup), and returns an appropriate JSON error response.
+	 */
+	public function test_update_order_status_ajax_cancellation_does_not_fail_order() {
+		Ajax_Test_Helper::init_hooks();
+
+		$order    = WC_Helper_Order::create_order();
+		$order_id = $order->get_id();
+
+		$intent_id = 'pi_mock_cancel';
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->save();
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+
+		$gateway->expects( $this->once() )
+			->method( 'process_order_for_confirmed_intent' )
+			->willThrowException( new WC_Stripe_Payment_Cancelled_Exception( 'Customer cancelled checkout on Klarna' ) );
+
+		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_gateway' ] )
+			->getMock();
+
+		$controller->expects( $this->any() )
+			->method( 'get_gateway' )
+			->willReturn( $gateway );
+
+		$_POST['order_id']       = $order_id;
+		$_POST['intent_id']      = $intent_id;
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$controller->update_order_status_ajax();
+		$output   = ob_get_clean();
+		$response = json_decode( $output, true );
+
+		// Response must indicate failure so the frontend can show a message.
+		$this->assertFalse( $response['success'] );
+		$this->assertArrayHasKey( 'error', $response['data'] );
+		$this->assertStringContainsString( 'cancelled', strtolower( $response['data']['error']['message'] ) );
+
+		// Order must NOT be set to failed — the customer should be able to retry.
+		$final_order = wc_get_order( $order_id );
+		$this->assertNotEquals( 'failed', $final_order->get_status() );
+
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	/**
 	 * Test that confirm_change_payment rejects requests from users who do not own the subscription.
 	 */
 	public function test_confirm_change_payment_rejects_non_owner() {
@@ -679,6 +732,54 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		if ( ! $response['success'] ) {
 			$this->assertStringNotContainsString( 'permission', strtolower( $response['data']['error']['message'] ) );
 		}
+
+		WC_Subscriptions::set_wcs_get_subscription( null );
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	public function test_confirm_change_payment_succeeds_when_token_relink_finds_no_match() {
+		Ajax_Test_Helper::init_hooks();
+
+		$owner        = $this->factory->user->create( [ 'role' => 'customer' ] );
+		$subscription = $this->create_mock_subscription( $owner );
+		wp_set_current_user( $owner );
+
+		// A confirmed token whose Stripe id is deliberately NOT among the user's
+		// saved tokens, so replace_subscription_payment_token() finds no match.
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( 'pm_unsaved' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'create_token_from_setup_intent' ] )
+			->getMock();
+		$gateway->expects( $this->once() )
+			->method( 'create_token_from_setup_intent' )
+			->willReturn( $token );
+
+		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_upe_gateway' ] )
+			->getMock();
+		$controller->expects( $this->any() )
+			->method( 'get_upe_gateway' )
+			->willReturn( $gateway );
+
+		$_POST['order_id']       = $subscription->get_id();
+		$_POST['intent_id']      = 'seti_mock_123';
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$controller->confirm_change_payment_from_setup_intent_ajax();
+		$output   = ob_get_clean();
+		$response = json_decode( $output, true );
+
+		$this->assertTrue( $response['success'], 'A display-only token-relink miss must not fail an authenticated change.' );
 
 		WC_Subscriptions::set_wcs_get_subscription( null );
 		Ajax_Test_Helper::remove_hooks();

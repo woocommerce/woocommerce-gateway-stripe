@@ -1,0 +1,4 @@
+# Scratch space for agent output (review notes, screenshots, transient artifacts).
+# Anything in this directory is ignored except this .gitignore itself.
+*
+!.gitignore

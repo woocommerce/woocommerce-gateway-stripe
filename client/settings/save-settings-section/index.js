@@ -9,11 +9,14 @@ const SaveSettingsSectionWrapper = styled( SettingsSection )`
 	text-align: right;
 `;
 
-const SaveSettingsSection = ( { onSettingsSave } ) => {
+const SaveSettingsSection = ( { onSettingsSave, agenticSaveRef } ) => {
 	const { saveSettings, isSaving, isLoading } = useSettings();
 
 	const onClickHandler = async () => {
 		await saveSettings();
+		if ( agenticSaveRef?.current?.save ) {
+			await agenticSaveRef.current.save();
+		}
 		if ( onSettingsSave ) {
 			onSettingsSave();
 		}

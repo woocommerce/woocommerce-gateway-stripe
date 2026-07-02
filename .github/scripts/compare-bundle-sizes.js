@@ -76,6 +76,11 @@ for ( const file of allFiles ) {
 	totalBase += base;
 	totalHead += head;
 
+	// Skip files with no change.
+	if ( delta === 0 ) {
+		continue;
+	}
+
 	const icon = statusIcon( file, delta );
 	rows.push(
 		`| ${ icon } \`${ file }\` | ${ toKB( base ) } KB | ${ toKB(
@@ -88,6 +93,12 @@ for ( const file of allFiles ) {
 }
 
 const totalDelta = totalHead - totalBase;
+
+// If no bundles changed, skip the report entirely.
+if ( rows.length === 0 ) {
+	console.log( 'No bundle size changes detected. Skipping report.' );
+	process.exit( 0 );
+}
 
 const lines = [
 	'<!-- bundle-size-report -->',

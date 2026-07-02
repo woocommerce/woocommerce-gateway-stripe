@@ -1,0 +1,52 @@
+// Cart Block — use flexbox for consistent button spacing across browsers.
+// WooCommerce core uses block layout with padding-bottom on each <li>, which
+// produces inconsistent gaps in Safari. Switching to flex + gap gives explicit
+// spacing control. Safari also renders the Stripe Element wrapper (~78px)
+// taller than the visible button (~48px). We collapse inline baseline whitespace
+// on the <li> via `font-size: 0` and `line-height: 0` to prevent inflated gaps.
+.wc-block-components-express-payment--cart {
+	.wc-block-components-express-payment__event-buttons {
+		display: flex !important;
+		flex-direction: column !important;
+		gap: 12px !important;
+
+		> li {
+			margin: 0 !important;
+			padding: 0 !important;
+			width: 100% !important;
+			// Collapse the inline-element line box so the iframe doesn't add
+			// extra whitespace below the baseline (Safari's classic "image gap").
+			font-size: 0 !important;
+			line-height: 0 !important;
+		}
+	}
+}
+
+// OR separator
+.wc-block-components-express-payment-continue-rule--cart {
+	margin: 24px 0 !important;
+	height: 20px;
+}
+
+// StripeElement iframe max-width reset for consistent rendering.
+.wc-block-components-express-payment
+	.wc-block-components-express-payment__event-buttons
+	.StripeElement iframe {
+	max-width: unset;
+}
+
+// Preview button
+@supports not ( -webkit-appearance: -apple-pay-button ) {
+	/* stylelint-disable-next-line selector-id-pattern */
+	#express-payment-method-stripe_express_checkout_element_applePay:has( #express-checkout-button-preview-applePay ) {
+		display: none;
+	}
+}
+
+// Google Pay preview button - fix internal sizing
+/* stylelint-disable-next-line selector-id-pattern */
+#express-checkout-button-preview-googlePay {
+	.gpay-card-info-container {
+		min-width: auto;
+	}
+}

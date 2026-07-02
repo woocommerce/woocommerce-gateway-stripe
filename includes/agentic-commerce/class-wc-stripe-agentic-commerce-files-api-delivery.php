@@ -34,21 +34,21 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	 *
 	 * @var string
 	 */
-	const FILES_API_ENDPOINT = 'https://files.stripe.com/v1/files';
+	public const FILES_API_ENDPOINT = 'https://files.stripe.com/v1/files';
 
 	/**
 	 * Stripe Data Management API endpoint.
 	 *
 	 * @var string
 	 */
-	const IMPORT_SETS_ENDPOINT = 'https://api.stripe.com/v1/data_management/import_sets';
+	public const IMPORT_SETS_ENDPOINT = 'https://api.stripe.com/v1/data_management/import_sets';
 
 	/**
 	 * Stripe Files API content endpoint.
 	 *
 	 * @var string
 	 */
-	const FILES_CONTENT_ENDPOINT = 'https://files.stripe.com/v1/files/';
+	public const FILES_CONTENT_ENDPOINT = 'https://files.stripe.com/v1/files/';
 
 	/**
 	 * Stripe API version for Data Management (preview).
@@ -56,7 +56,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	 *
 	 * @var string
 	 */
-	const API_VERSION = '2025-09-30.clover;udap_beta=v1';
+	public const API_VERSION = '2025-09-30.clover;udap_beta=v1';
 
 	/**
 	 * Stripe secret key.
@@ -109,6 +109,47 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	 * @throws Exception If upload or ImportSet creation fails.
 	 */
 	public function deliver( FeedInterface $feed ): array {
+		return $this->upload_and_import( $feed, 'product_catalog_feed', 'Product catalog' );
+	}
+
+	/**
+	 * Upload an inventory feed to Stripe Files API and create an inventory_feed ImportSet.
+	 *
+	 * Uses the same two-step upload as deliver(), but creates the ImportSet with the
+	 * 'inventory_feed' standard_data_format for incremental stock quantity updates.
+	 *
+	 * @since 10.6.0
+	 * @param FeedInterface $feed The finalized inventory feed to deliver.
+	 * @return array {
+	 *     Response with file and import set details.
+	 *
+	 *     @type string $file_id       Stripe file ID (e.g. "file_...").
+	 *     @type string $import_set_id ImportSet ID.
+	 *     @type string $status        ImportSet status.
+	 * }
+	 * @throws Exception If upload or ImportSet creation fails.
+	 */
+	public function deliver_inventory_feed( FeedInterface $feed ): array {
+		return $this->upload_and_import( $feed, 'inventory_feed', 'Inventory' );
+	}
+
+	/**
+	 * Upload a feed file to Stripe Files API and create an ImportSet.
+	 *
+	 * Shared implementation for deliver() and deliver_inventory_feed().
+	 *
+	 * @since 10.6.0
+	 * @param FeedInterface $feed                 The feed to deliver.
+	 * @param string        $standard_data_format The ImportSet standard_data_format value.
+	 * @param string        $log_prefix           Label used in log messages (e.g. "Product catalog", "Inventory").
+	 * @return array {
+	 *     @type string $file_id       Stripe file ID.
+	 *     @type string $import_set_id ImportSet ID.
+	 *     @type string $status        ImportSet status.
+	 * }
+	 * @throws Exception If upload or ImportSet creation fails.
+	 */
+	private function upload_and_import( FeedInterface $feed, string $standard_data_format, string $log_prefix ): array {
 		$file_path = $feed->get_file_path();
 
 		if ( empty( $file_path ) || ! file_exists( $file_path ) ) {
@@ -128,18 +169,21 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 		}
 
 		WC_Stripe_Logger::info(
-			'Agentic Commerce: File uploaded to Stripe',
+			"Agentic Commerce: {$log_prefix} file uploaded to Stripe",
 			[ 'file_id' => $file_id ]
 		);
 
 		// Step 2: Create ImportSet to trigger processing.
-		$import_set = $this->create_import_set( $file_id, 'product_catalog_feed' );
-
+		// Pass missing/null status through as an empty string so the integration
+		// can fall back to `pending` when an import_set_id was returned. Coercing
+		// to the literal `'unknown'` here would defeat that fallback and surface
+		// the dashboard's "?" badge for in-flight syncs.
+		$import_set    = $this->create_import_set( $file_id, $standard_data_format );
 		$import_set_id = $import_set['id'] ?? '';
-		$status        = $import_set['status'] ?? 'unknown';
+		$status        = $import_set['status'] ?? '';
 
 		WC_Stripe_Logger::info(
-			'Agentic Commerce: ImportSet created',
+			"Agentic Commerce: {$log_prefix} ImportSet created",
 			[
 				'import_set_id' => $import_set_id,
 				'status'        => $status,
@@ -259,6 +303,20 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	 * @throws Exception If the request fails.
 	 */
 	private function create_import_set( string $file_id, string $standard_data_format ): array {
+		/**
+		 * Allows the ImportSet API request to be short-circuited (e.g. for testing).
+		 *
+		 * @since 10.7.0
+		 * @param array|null $pre                  Short-circuit response or null.
+		 * @param string     $file_id              Stripe file ID.
+		 * @param string     $standard_data_format Feed format string.
+		 * @return array|null
+		 */
+		$pre = apply_filters( 'wc_stripe_agentic_commerce_import_set_pre_request', null, $file_id, $standard_data_format );
+		if ( ! is_null( $pre ) ) {
+			return $pre;
+		}
+
 		$response = wp_remote_post(
 			self::IMPORT_SETS_ENDPOINT,
 			[

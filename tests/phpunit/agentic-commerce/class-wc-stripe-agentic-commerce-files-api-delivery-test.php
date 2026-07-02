@@ -131,6 +131,47 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 
 	// ---- deliver() success flow via filter mocks ----
 
+	/**
+	 * When Stripe's ImportSet creation response omits a status field, the
+	 * delivery method must pass through an empty string rather than coercing
+	 * to the literal `'unknown'`. Coercion would defeat the integration's
+	 * fallback to `'pending'` and surface the dashboard's "?" badge for
+	 * in-flight syncs even when Stripe accepted the file.
+	 *
+	 * @return void
+	 */
+	public function test_deliver_returns_empty_status_when_stripe_omits_it() {
+		$csv_path = $this->create_temp_csv();
+		$feed     = $this->create_mock_feed( $csv_path );
+
+		add_filter(
+			'wc_stripe_agentic_commerce_files_api_pre_request',
+			function () {
+				return [ 'id' => 'file_test_abc123' ];
+			}
+		);
+
+		add_filter(
+			'pre_http_request',
+			function ( $preempt, $parsed_args, $url ) {
+				if ( str_contains( $url, 'import_sets' ) ) {
+					return [
+						'response' => [ 'code' => 200 ],
+						'body'     => wp_json_encode( [ 'id' => 'is_test_xyz789' ] ),
+					];
+				}
+				return $preempt;
+			},
+			10,
+			3
+		);
+
+		$result = $this->sut->deliver( $feed );
+
+		$this->assertSame( 'is_test_xyz789', $result['import_set_id'] );
+		$this->assertSame( '', $result['status'] );
+	}
+
 	public function test_deliver_returns_file_id_and_import_set_id_on_success() {
 		$csv_path = $this->create_temp_csv();
 		$feed     = $this->create_mock_feed( $csv_path );

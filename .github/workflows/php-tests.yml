@@ -4,13 +4,28 @@ on:
   pull_request
 
 jobs:
+  changes:
+    name: Check for code changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.detect.outputs.code }}
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - id: detect
+        uses: ./.github/actions/detect-code-changes
+
   get-woocommerce-versions:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-22.04
     outputs:
         woocommerce-versions-json: ${{ steps.get-released-woocommerce-versions.outputs.versions-json }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.3
 
       - name: Get WooCommerce plugin versions
         id: get-released-woocommerce-versions
@@ -19,18 +34,20 @@ jobs:
           plugin-slug: woocommerce
           version-count: 3
   get-wordpress-versions:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-22.04
     outputs:
       wordpress-versions-json: ${{ steps.get-wordpress-versions.outputs.versions-json }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.3
 
       - name: Get WordPress versions
         id: get-wordpress-versions
         uses: ./.github/actions/get-wordpress-versions
         with:
-          version-count: 3
+          version-count: 2
 
   test:
     runs-on: ubuntu-22.04
@@ -38,16 +55,22 @@ jobs:
     strategy:
       fail-fast:    false
       max-parallel: 16
+      # WC support policy for WP is L and L-1 (https://woocommerce.com/support-policy/).
       matrix:
-        woocommerce_support_policy: [ 'L', 'L-1', 'L-2' ]
-        wordpress_support_policy:   [ 'L', 'L-1' ]
-        php_support_policy:         [ 'L', 'L-1', 'L-2', 'L-3', '7.4' ]
+        woocommerce_support_policy: ['L', 'L-2']
+        wordpress_support_policy: ['L', 'L-1']
+        php: ['7.4', '8.2', '8.5']
+        # Skip PHP 8.5 + WP L-1: WP 6.8 ships pre-PHP-8.5 casts in
+        # wp-includes/IXR/class-IXR-message.php (`(double)` / `(boolean)`),
+        # which PHP 8.5 emits as E_DEPRECATED and PHPUnit promotes to test
+        # errors on every test that loads core. WP 6.9 patched the casts.
+        exclude:
+          - php: '8.5'
+            wordpress_support_policy: 'L-1'
         include:
           # WooCommerce
           - woocommerce_support_policy: L
             woocommerce: ${{ fromJson(needs.get-woocommerce-versions.outputs.woocommerce-versions-json)[0] }}
-          - woocommerce_support_policy: L-1
-            woocommerce: ${{ fromJson(needs.get-woocommerce-versions.outputs.woocommerce-versions-json)[1] }}
           - woocommerce_support_policy: L-2
             woocommerce: ${{ fromJson(needs.get-woocommerce-versions.outputs.woocommerce-versions-json)[2] }}
           # WordPress
@@ -55,37 +78,36 @@ jobs:
             wordpress: ${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[0] }}
           - wordpress_support_policy: L-1
             wordpress: ${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[1] }}
-          #- wordpress_support_policy: L-2
-          #  wordpress: ${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[2] }}
-          # PHP
-          - php_support_policy: L
-            php: '8.3'
-          - php_support_policy: L-1
-            php: '8.2'
-          - php_support_policy: L-2
-            php: '8.1'
-          - php_support_policy: L-3
-            php: '8.0'
-          - php_support_policy: '7.4'
-            php: '7.4'
 
-    name: Stable (PHP=${{ matrix.php_support_policy }}, WP=${{ matrix.wordpress_support_policy }}, WC=${{ matrix.woocommerce_support_policy }})
+    name: Stable (PHP=${{ matrix.php }}, WP=${{ matrix.wordpress_support_policy }}, WC=${{ matrix.woocommerce_support_policy }})
     env:
       PHP_VERSION: ${{ matrix.php }} 
       WP_VERSION:  ${{ matrix.wordpress }}
       WC_VERSION:  ${{ matrix.woocommerce }}
     steps:
       - name: Testing with PHP=${{ matrix.php }}, WP=${{ matrix.wordpress }}, WC=${{ matrix.woocommerce }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6.0.3
 
       - name: Set up dependencies caching
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/composer/
           key:  ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
 
+      - name: Cache WordPress core and test suite
+        uses: actions/cache@v5
+        with:
+          path: |
+            /tmp/wordpress
+            /tmp/wordpress-tests-lib
+          key: wp-testenv-${{ runner.os }}-${{ matrix.wordpress }}-wc-${{ matrix.woocommerce }}-${{ hashFiles('bin/install-wp-tests.sh', 'bin/run-ci-tests.bash') }}
+          restore-keys: |
+            wp-testenv-${{ runner.os }}-${{ matrix.wordpress }}-wc-${{ matrix.woocommerce }}-
+            wp-testenv-${{ runner.os }}-${{ matrix.wordpress }}-
+            wp-testenv-${{ runner.os }}-
+
       - name: Set up PHP
-        uses: shivammathur/setup-php@0f7f1d08e3e32076e51cae65eb0b0c871405b16e # v2.34.1
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: ${{ matrix.php }}
           coverage:    xdebug

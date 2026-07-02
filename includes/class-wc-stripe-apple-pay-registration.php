@@ -78,10 +78,10 @@ class WC_Stripe_Apple_Pay_Registration {
 	private function is_enabled() {
 		$stripe_enabled = 'yes' === $this->get_option( 'enabled', 'no' );
 
-		$gateway                        = WC_Stripe::get_instance()->get_main_stripe_gateway();
-		$payment_request_button_enabled = $gateway->is_payment_request_enabled();
+		$gateway                         = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$express_checkout_button_enabled = $gateway->is_express_checkout_enabled();
 
-		return $stripe_enabled && $payment_request_button_enabled;
+		return $stripe_enabled && $express_checkout_button_enabled;
 	}
 
 	/**

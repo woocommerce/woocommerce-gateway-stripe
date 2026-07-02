@@ -41,6 +41,24 @@ const throwCustomError = (
 	);
 };
 
+const deleteProduct = async ( id ) => {
+	await api.delete( `products/${ id }`, {
+		force: true,
+	} );
+};
+
+const createSubscriptionPlan = async ( productId, subscriptionPlan ) => {
+	await api
+		.post( `products/${ productId }/subscription-plans`, subscriptionPlan )
+		.then( ( response ) => response )
+		.catch( ( error ) => {
+			throwCustomError(
+				error,
+				'Failed to create subscription plan. See details below.'
+			);
+		} );
+};
+
 const get = {
 	order: async ( orderId ) => {
 		const response = await api
@@ -88,8 +106,10 @@ const create = {
 		return response.data.id;
 	},
 	product: async ( product ) => {
+		const { subscriptionPlan, ...productParams } = product;
+
 		const response = await api
-			.post( 'products', product )
+			.post( 'products', productParams )
 			.then( ( response ) => response )
 			.catch( ( error ) => {
 				throwCustomError(
@@ -98,7 +118,18 @@ const create = {
 				);
 			} );
 
-		return response.data.id;
+		const productId = response.data.id;
+
+		try {
+			if ( subscriptionPlan ) {
+				await createSubscriptionPlan( productId, subscriptionPlan );
+			}
+		} catch ( error ) {
+			await deleteProduct( productId ).catch( () => {} );
+			throw error;
+		}
+
+		return productId;
 	},
 	order: async ( order ) => {
 		const response = await api
@@ -132,11 +163,7 @@ const update = {
 };
 
 const deletePost = {
-	product: async ( id ) => {
-		await api.delete( `products/${ id }`, {
-			force: true,
-		} );
-	},
+	product: deleteProduct,
 };
 
 export { get, create, update, deletePost };
