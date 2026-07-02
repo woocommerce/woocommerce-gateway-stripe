@@ -60,6 +60,29 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	private const ASYNC_RESYNC_GROUP = 'wc-stripe-agentic-resync';
 
 	/**
+	 * Action Scheduler hook for the one-off "final feed" push queued when the
+	 * merchant disables the toggle. It re-uploads the existing catalog with
+	 * in-agent checkout disabled for every product so already-synced products
+	 * redirect buyers to the store instead of charging cards after the feature
+	 * is switched off. Stripe exposes no catalog-delete API, so this is how we
+	 * take the catalog out of in-agent purchase on the Stripe side.
+	 *
+	 * @var string
+	 * @since 10.9.0
+	 */
+	public const FINAL_FEED_ACTION = 'wc_stripe_agentic_commerce_final_feed';
+
+	/**
+	 * Action Scheduler group for the one-off final-feed push. Distinct from the
+	 * recurring `wc-stripe` group and the adapter resync group so its idempotency
+	 * guard and cancellation only ever match the final-feed action.
+	 *
+	 * @var string
+	 * @since 10.9.0
+	 */
+	private const ASYNC_FINAL_FEED_GROUP = 'wc-stripe-agentic-final-feed';
+
+	/**
 	 * Option name to track whether the sync is scheduled.
 	 *
 	 * @var string
@@ -200,6 +223,9 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		// catalog on the next scheduled full sync.
 		add_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $this, 'schedule_full_resync_now' ] );
 
+		// One-off teardown push queued when the merchant disables the toggle.
+		add_action( self::FINAL_FEED_ACTION, [ $this, 'push_final_checkout_disabled_feed' ] );
+
 		// WC 10.8+ requires `created_via` to be in an allowlist for `payment_complete()` to run.
 		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $this, 'allow_agentic_payment_complete' ] );
 
@@ -249,6 +275,81 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		}
 
 		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP );
+	}
+
+	/**
+	 * Queue the one-off final-feed push run when the merchant disables the toggle.
+	 *
+	 * Deferred to Action Scheduler rather than run inline in the settings-save
+	 * request because it regenerates and re-uploads the full catalog, which can
+	 * be large. Idempotent: a no-op when a push is already pending so repeated
+	 * saves don't stack actions.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function schedule_final_checkout_disabled_feed(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_enqueue_async_action' ) ) {
+			return;
+		}
+
+		if ( as_has_scheduled_action( self::FINAL_FEED_ACTION, [], self::ASYNC_FINAL_FEED_GROUP ) ) {
+			return;
+		}
+
+		as_enqueue_async_action( self::FINAL_FEED_ACTION, [], self::ASYNC_FINAL_FEED_GROUP );
+	}
+
+	/**
+	 * Cancel any pending final-feed push.
+	 *
+	 * Called when the merchant re-enables the toggle so a teardown push queued
+	 * by a just-prior disable does not land after re-enabling and silently
+	 * disable checkout on a catalog the merchant expects to be live again.
+	 * Idempotent: a no-op when nothing is queued.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function cancel_pending_final_checkout_disabled_feed(): void {
+		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+
+		as_unschedule_all_actions( self::FINAL_FEED_ACTION, [], self::ASYNC_FINAL_FEED_GROUP );
+	}
+
+	/**
+	 * Re-upload the existing catalog with in-agent checkout disabled for every
+	 * product, then stop.
+	 *
+	 * Runs from the Action Scheduler job queued on toggle-off. Gated on the
+	 * developer feature flag only — it MUST run while the merchant toggle is
+	 * off, which is the whole point — and deliberately bypasses the
+	 * merchant-enabled gate in {@see self::sync_feed()} by calling the core
+	 * sync directly. Forces {@see self::is_checkout_disabled()} to true for the
+	 * duration via the mapper filter so agents redirect buyers to the store
+	 * instead of completing the purchase in-agent. Forces the upload so the
+	 * content-hash dedup can't skip it when the only change is the checkout flag.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function push_final_checkout_disabled_feed(): void {
+		if ( ! $this->is_enabled() ) {
+			return;
+		}
+
+		$force_disable_checkout = static function () {
+			return true;
+		};
+		add_filter( 'wc_stripe_agentic_commerce_disable_checkout', $force_disable_checkout );
+
+		try {
+			$this->run_feed_sync( true );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_disable_checkout', $force_disable_checkout );
+		}
 	}
 
 	/**
@@ -545,14 +646,45 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return bool True on successful delivery, false on early returns or failure.
 	 */
 	public function sync_feed( bool $force_upload = false ): bool {
-		// Drop any validator cached from a previous sync so this run starts
-		// with a clean per-product error accumulator.
+		// Reset before the enablement gates so a call always clears validator
+		// state from a previous run, even on a disabled early-return.
 		$this->feed_validator = null;
 
 		if ( ! $this->is_enabled() ) {
 			WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - feature not enabled' );
 			return false;
 		}
+
+		// The merchant toggle gates the recurring catalog push. Without this a
+		// scheduled sync would keep re-uploading a checkout-enabled catalog after
+		// the merchant switched the feature off, undoing the final checkout-disabled
+		// feed pushed on disable. The teardown push in
+		// push_final_checkout_disabled_feed() deliberately bypasses this gate by
+		// calling run_feed_sync() directly.
+		if ( ! self::is_merchant_enabled() ) {
+			WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - merchant toggle disabled' );
+			return false;
+		}
+
+		return $this->run_feed_sync( $force_upload );
+	}
+
+	/**
+	 * Generate and upload the catalog feed, skipping the enablement gates.
+	 *
+	 * Extracted from {@see self::sync_feed()} so the final-feed teardown push can
+	 * run while the merchant toggle is off. Callers are responsible for the
+	 * enablement checks; this only guards on delivery setup.
+	 *
+	 * @since 10.9.0
+	 * @param bool $force_upload When true, bypass the content-hash dedup check and
+	 *                           always push the regenerated catalog to Stripe.
+	 * @return bool True on successful delivery, false on early returns or failure.
+	 */
+	private function run_feed_sync( bool $force_upload = false ): bool {
+		// Drop any validator cached from a previous sync so this run starts
+		// with a clean per-product error accumulator.
+		$this->feed_validator = null;
 
 		// Check delivery setup before generating the feed.
 		$delivery = $this->get_push_delivery_method();

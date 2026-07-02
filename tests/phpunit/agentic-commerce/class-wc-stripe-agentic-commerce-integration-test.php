@@ -237,6 +237,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		}
 
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 		// Secret key lives in settings (test mode); check_setup() gates on it.
 		$settings                    = WC_Stripe_Helper::get_stripe_settings();
 		$settings['testmode']        = 'yes';
@@ -311,6 +312,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			remove_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10 );
 			remove_filter( 'pre_http_request', $http_stub, 10 );
 			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+			delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
 			delete_option( 'woocommerce_stripe_settings' );
 			$kept->delete( true );
 			$excluded->delete( true );
@@ -362,6 +364,9 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			has_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $integration, 'schedule_full_resync_now' ] )
 		);
 		$this->assertNotFalse(
+			has_action( \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [ $integration, 'push_final_checkout_disabled_feed' ] )
+		);
+		$this->assertNotFalse(
 			has_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $integration, 'allow_agentic_payment_complete' ] )
 		);
 
@@ -369,6 +374,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$this->assertContains( \WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA, $allowed );
 
 		remove_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $integration, 'schedule_full_resync_now' ] );
+		remove_action( \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [ $integration, 'push_final_checkout_disabled_feed' ] );
 		remove_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $integration, 'allow_agentic_payment_complete' ] );
 	}
 
@@ -604,6 +610,227 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 
 		// If we got here without error, the early return worked.
 		$this->assertFalse( $integration->is_enabled() );
+	}
+
+	/**
+	 * With the developer feature flag on but the merchant toggle off, sync_feed()
+	 * must bail before delivery so a scheduled sync can't keep re-uploading a
+	 * checkout-enabled catalog after the merchant switched the feature off.
+	 *
+	 * @return void
+	 */
+	public function test_sync_feed_skips_when_merchant_disabled_but_feature_enabled() {
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+
+		// Fail loudly if delivery is attempted — the merchant gate must short-circuit first.
+		$http_guard = function () {
+			$this->fail( 'sync_feed() must not reach Stripe delivery while the merchant toggle is off.' );
+		};
+		add_filter( 'pre_http_request', $http_guard );
+
+		try {
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+
+			$this->assertTrue( $integration->is_enabled(), 'Feature flag is on for this case.' );
+			$this->assertFalse( $integration->sync_feed( true ), 'Merchant toggle off must short-circuit the sync.' );
+		} finally {
+			remove_filter( 'pre_http_request', $http_guard );
+			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+		}
+	}
+
+	/**
+	 * The teardown push must run while the merchant toggle is off (bypassing the
+	 * sync_feed() merchant gate) and force in-agent checkout off for every product
+	 * so already-synced products redirect to the store, then clean up its filter.
+	 *
+	 * @return void
+	 */
+	public function test_push_final_checkout_disabled_feed_bypasses_merchant_gate_and_forces_disable() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) || ! class_exists( 'WC_Product_Simple' ) ) {
+			$this->markTestSkipped( 'WooCommerce product/Action Scheduler not available.' );
+		}
+
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+		// Merchant toggle is OFF — the push must still run.
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+		// Store-wide checkout mode is embedded (default), so a value of true on the
+		// filter can only come from the push forcing it — not from the option.
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+
+		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']        = 'yes';
+		$settings['test_secret_key'] = 'sk_test_fake';
+		update_option( 'woocommerce_stripe_settings', $settings );
+
+		$term   = wp_insert_term( 'Stripe Final Feed Cat ' . uniqid(), 'product_cat' );
+		$cat_id = is_wp_error( $term ) ? 0 : (int) $term['term_id'];
+
+		$product = new WC_Product_Simple();
+		$product->set_name( 'Final Feed Product' );
+		$product->set_regular_price( '10.00' );
+		$product->set_status( 'publish' );
+		if ( $cat_id ) {
+			$product->set_category_ids( [ $cat_id ] );
+		}
+		$product->save();
+		$product_id = $product->get_id();
+
+		$scope = static function ( $args ) use ( $product_id ) {
+			$args['include'] = [ $product_id ];
+			return $args;
+		};
+		add_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
+
+		// Observe the checkout flag the mapper resolves for each product. Priority
+		// 20 runs after the push's forcing filter (priority 10) so it sees the
+		// final value.
+		$captured = null;
+		$spy      = static function ( $disabled ) use ( &$captured ) {
+			$captured = $disabled;
+			return $disabled;
+		};
+		add_filter( 'wc_stripe_agentic_commerce_disable_checkout', $spy, 20 );
+
+		$files_stub = static fn() => [ 'id' => 'file_stub' ];
+		add_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10, 2 );
+
+		$http_stub = static fn() => [
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'id'     => 'impset_stub',
+					'status' => 'pending',
+				]
+			),
+		];
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+			$integration->push_final_checkout_disabled_feed();
+
+			$last_sync = \WC_Stripe_Agentic_Commerce_Integration::get_last_sync();
+			$this->assertSame( 1, (int) $last_sync['products'], 'Push must run and upload the catalog despite the merchant toggle being off.' );
+			$this->assertTrue( $captured, 'Push must force in-agent checkout off for every product.' );
+
+			remove_filter( 'wc_stripe_agentic_commerce_disable_checkout', $spy, 20 );
+			$this->assertFalse(
+				apply_filters( 'wc_stripe_agentic_commerce_disable_checkout', false, $product ),
+				'Push must remove its forcing filter so it does not leak into later feed generation.'
+			);
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_disable_checkout', $spy, 20 );
+			remove_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
+			remove_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10 );
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+			delete_option( 'woocommerce_stripe_settings' );
+			$product->delete( true );
+			if ( $cat_id ) {
+				wp_delete_term( $cat_id, 'product_cat' );
+			}
+		}
+	}
+
+	/**
+	 * The teardown push must not run when the whole feature is off — nothing was
+	 * ever synced to Stripe, so there is no catalog to take down.
+	 *
+	 * @return void
+	 */
+	public function test_push_final_checkout_disabled_feed_noops_when_feature_flag_off() {
+		delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+
+		$http_guard = function () {
+			$this->fail( 'Push must not reach Stripe delivery while the feature flag is off.' );
+		};
+		add_filter( 'pre_http_request', $http_guard );
+
+		try {
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+			$integration->push_final_checkout_disabled_feed();
+
+			$this->assertFalse( $integration->is_enabled() );
+		} finally {
+			remove_filter( 'pre_http_request', $http_guard );
+		}
+	}
+
+	/**
+	 * Scheduling the final-feed push enqueues one async job in its own group and
+	 * is idempotent while a push is already pending.
+	 *
+	 * @return void
+	 */
+	public function test_schedule_final_checkout_disabled_feed_enqueues_once() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' );
+
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+
+		$integration->schedule_final_checkout_disabled_feed();
+		$this->assertNotFalse(
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'First call must enqueue the final-feed push.'
+		);
+
+		$pending_before = as_get_scheduled_actions(
+			[
+				'hook'   => \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION,
+				'group'  => 'wc-stripe-agentic-final-feed',
+				'status' => \ActionScheduler_Store::STATUS_PENDING,
+			],
+			'ids'
+		);
+		$integration->schedule_final_checkout_disabled_feed();
+		$pending_after = as_get_scheduled_actions(
+			[
+				'hook'   => \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION,
+				'group'  => 'wc-stripe-agentic-final-feed',
+				'status' => \ActionScheduler_Store::STATUS_PENDING,
+			],
+			'ids'
+		);
+		$this->assertSame(
+			count( $pending_before ),
+			count( $pending_after ),
+			'A second call while a push is pending must not stack queue entries.'
+		);
+
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' );
+	}
+
+	/**
+	 * Canceling clears a pending final-feed push so a re-enable doesn't leave a
+	 * teardown queued to land after the catalog is meant to be live again.
+	 *
+	 * @return void
+	 */
+	public function test_cancel_pending_final_checkout_disabled_feed_clears_the_push() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+		$integration->schedule_final_checkout_disabled_feed();
+		$this->assertNotFalse(
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' )
+		);
+
+		$integration->cancel_pending_final_checkout_disabled_feed();
+		$this->assertFalse(
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'Cancel must clear the pending final-feed push.'
+		);
 	}
 
 	/**
