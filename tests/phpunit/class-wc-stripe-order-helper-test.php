@@ -188,4 +188,25 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 
 		$this->assertTrue( true, 'Setup intent validated without reading a missing amount.' );
 	}
+
+	/**
+	 * A setup intent that fails validation still logs, and that logging must not read the
+	 * missing `amount`/`currency` — otherwise the intended error is masked by an undefined-property warning.
+	 *
+	 * @return void
+	 */
+	public function test_validate_intent_for_order_rejects_setup_intent_without_reading_amount(): void {
+		$order = WC_Helper_Order::create_order();
+
+		$setup_intent = (object) [
+			'id'                   => 'seti_mock',
+			'object'               => 'setup_intent',
+			'payment_method_types' => [ 'sepa_debit' ],
+		];
+
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( "We're not able to process this request. Please try again later." );
+
+		$this->helper->validate_intent_for_order( $order, $setup_intent, 'card' );
+	}
 }

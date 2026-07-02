@@ -1178,13 +1178,15 @@ class WC_Stripe_Order_Helper {
 		}
 
 		$permitted_payment_types = implode( '/', $intent->payment_method_types );
+		$intent_currency         = $intent->currency ?? '';
+		$intent_amount           = $intent->amount ?? '';
 		WC_Stripe_Logger::critical(
-			"Error: Invalid payment intent for order. Intent: {$intent->currency} {$intent->amount} via {$permitted_payment_types}, Order: {$order_currency} {$order_amount} {$selected_payment_type}",
+			"Error: Invalid payment intent for order. Intent: {$intent_currency} {$intent_amount} via {$permitted_payment_types}, Order: {$order_currency} {$order_amount} {$selected_payment_type}",
 			[
 				'order_id'                    => $order->get_id(),
 				'intent_id'                   => $intent->id,
-				'intent_currency'             => $intent->currency,
-				'intent_amount'               => $intent->amount,
+				'intent_currency'             => $intent_currency,
+				'intent_amount'               => $intent_amount,
 				'intent_payment_method_types' => $intent->payment_method_types,
 				'selected_payment_type'       => $selected_payment_type,
 				'order_currency'              => $order->get_currency(),
