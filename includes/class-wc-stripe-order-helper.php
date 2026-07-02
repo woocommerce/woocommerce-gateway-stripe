@@ -1158,9 +1158,10 @@ class WC_Stripe_Order_Helper {
 		$order_amount          = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
 		$order_intent_id       = self::get_intent_id_from_order( $order );
 
-		$amount_matches = $skip_amount_check || $order_amount === $intent->amount;
-
 		if ( 'payment_intent' === $intent->object ) {
+			// Only payment intents carry an amount; reading $intent->amount on a setup intent warns.
+			$amount_matches = $skip_amount_check || $order_amount === $intent->amount;
+
 			$is_valid = $order_currency === $intent->currency
 				&& $is_valid_payment_type
 				&& $amount_matches

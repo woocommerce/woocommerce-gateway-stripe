@@ -165,4 +165,27 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$order = new WC_Order();
 		$this->assertFalse( $this->helper->is_stripe_gateway_order( $order ) );
 	}
+
+	/**
+	 * A setup intent carries no `amount`; validation must not read that property.
+	 *
+	 * With `convertWarningsToExceptions` enabled the "Undefined property" warning would
+	 * otherwise escalate to an exception and break every setup-intent confirmation.
+	 *
+	 * @return void
+	 */
+	public function test_validate_intent_for_order_accepts_setup_intent_without_amount(): void {
+		$order = WC_Helper_Order::create_order();
+
+		$setup_intent = (object) [
+			'id'                   => 'seti_mock',
+			'object'               => 'setup_intent',
+			'payment_method_types' => [ 'card' ],
+		];
+
+		// Returns void on success; a stale-amount read would throw here instead.
+		$this->helper->validate_intent_for_order( $order, $setup_intent );
+
+		$this->assertTrue( true, 'Setup intent validated without reading a missing amount.' );
+	}
 }

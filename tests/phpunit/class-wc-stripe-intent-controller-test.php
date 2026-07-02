@@ -394,7 +394,9 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$this->assertFalse( $first['success'] );
 
 		// Retry: the order total is ahead of the intent, yet validation must let it through.
-		$this->mock_controller->update_intent( 'pi_mock', $this->order->get_id(), false, '' );
+		$second = $this->mock_controller->update_intent( 'pi_mock', $this->order->get_id(), false, '' );
+		$this->assertIsArray( $second );
+		$this->assertTrue( $second['success'] );
 
 		remove_filter( 'pre_http_request', $test_request, 10 );
 
