@@ -104,7 +104,7 @@ export default async function globalSetup( config ) {
 			const envId = process.env.QIT_ENV_ID;
 			if ( envId ) {
 				execSync(
-					`qit env:exec ${ envId } "wp option patch update woocommerce_stripe_settings test_webhook_secret '${ webhookEndpoint.secret }'"`,
+					`qit env:exec "wp option patch update woocommerce_stripe_settings test_webhook_secret '${ webhookEndpoint.secret }'"`,
 					{ stdio: 'inherit' }
 				);
 				console.log(
