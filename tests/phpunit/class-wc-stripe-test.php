@@ -24,7 +24,8 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	/**
 	 * Legacy callbacks registered against the removed WC_Stripe_Payment_Request class via the
-	 * `payment_request_configuration` property must resolve to a valid object, not fatal.
+	 * `payment_request_configuration` property must resolve to a valid object, not fatal,
+	 * and each call must log a deprecation so remaining third-party usage stays visible.
 	 *
 	 * @return void
 	 */
@@ -38,6 +39,10 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'display_payment_request_button_separator_html',
 		];
 
+		foreach ( $legacy_methods as $method ) {
+			$this->setExpectedDeprecated( "WC_Stripe_Payment_Request::{$method}" );
+		}
+
 		// Register the removed class's methods as hook callbacks the way a third party would.
 		foreach ( $legacy_methods as $method ) {
 			$this->assertTrue(
@@ -50,6 +55,10 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		// No TypeError when the hook fires means the shim held.
 		do_action( 'woocommerce_review_order_before_submit' );
 		$this->assertTrue( true );
+
+		// Any other removed method falls through to __call: no fatal, and still logged.
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Request::some_removed_method' );
+		$this->assertNull( $config->some_removed_method() );
 
 		foreach ( $legacy_methods as $method ) {
 			remove_action( 'woocommerce_review_order_before_submit', [ $config, $method ] );
