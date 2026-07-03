@@ -93,8 +93,7 @@ jQuery( function ( $ ) {
 		const updateChain = ( async () => {
 			await maybeUpdateAdaptivePricingCheckoutSession( api );
 			await maybeMountStripePaymentElement();
-			// A billing-country change recalculates checkout but leaves the mounted OC
-			// element in place, so refresh its country-restricted exclusions here.
+			// Remounting skips an already-mounted OC element; refresh its exclusions.
 			maybeUpdateOptimizedCheckoutExclusions();
 		} )();
 		trackMountInProgress( updateChain );

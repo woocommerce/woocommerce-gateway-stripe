@@ -788,10 +788,8 @@ export const getExcludedPaymentMethodTypes = () => {
 };
 
 /**
- * Returns the OC excluded payment method types for a billing country, recomputed
- * as the shopper changes country in-page (the server value reflects only the
- * page-load country). Mirrors the server `get_excluded_payment_method_types()`
- * using the per-method `countriesByMethod` map on the OC config entry.
+ * Returns the OC excluded payment method types for a billing country, merging
+ * the server-seeded list with the per-method `countriesByMethod` map.
  *
  * @param {string} billingCountry Two-letter ISO billing country (may be empty when unknown).
  * @return {Array<string>} Payment method types to exclude for the country.
@@ -805,8 +803,7 @@ export const getExcludedPaymentMethodTypesForBillingCountry = (
 			?.countriesByMethod || {};
 
 	Object.entries( countriesByMethod ).forEach( ( [ method, countries ] ) => {
-		// Empty list = no restriction; a non-empty list omitting the billing country
-		// (including unknown/empty) can't be confirmed.
+		// Empty list = no restriction; an unknown country can't confirm a restricted method.
 		if (
 			Array.isArray( countries ) &&
 			countries.length > 0 &&

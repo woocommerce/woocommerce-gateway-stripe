@@ -315,8 +315,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				...options,
 				paymentMethodConfiguration:
 					stripeServerData?.paymentMethodConfigurationId,
-				// Exclude server-computed unsupported methods plus any the billing country
-				// can't use; kept in sync via maybeUpdateOptimizedCheckoutExclusions().
+				// Server exclusions plus country-restricted methods; refreshed on country change.
 				excludedPaymentMethodTypes:
 					getExcludedPaymentMethodTypesForBillingCountry(
 						getCurrentBillingCountry()
@@ -963,9 +962,8 @@ export function getMountedUPEComponent( paymentMethodType ) {
 }
 
 /**
- * Recomputes the OC Payment Element's excluded methods for the current billing
- * country and pushes them to the live Elements instance. No-op outside OC and on
- * Adaptive Pricing, whose `initCheckout` object has no `update()`.
+ * Pushes recomputed country exclusions to the live OC Elements instance.
+ * No-op outside OC and on Adaptive Pricing (`initCheckout` has no `update()`).
  */
 export function maybeUpdateOptimizedCheckoutExclusions() {
 	if ( ! getStripeServerData()?.shouldShowOptimizedCheckout ) {

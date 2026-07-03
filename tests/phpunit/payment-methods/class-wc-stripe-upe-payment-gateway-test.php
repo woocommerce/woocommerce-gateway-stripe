@@ -5312,17 +5312,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * A country-restricted method must be excluded when the billing country can't use it,
-	 * while unrestricted methods (card) always remain available. Uses
-	 * get_available_billing_countries(), so domestic-only methods (Affirm) are limited to
-	 * the account country and Klarna to its per-account/currency matrix — the same lists
-	 * the client-side recompute and non-optimized layouts use.
+	 * Methods must be excluded when their get_available_billing_countries() list —
+	 * including domestic-only and Klarna narrowing — omits the billing country.
 	 *
-	 * @param string      $billing_country  Billing country supplied to the gateway.
-	 * @param string[]    $enabled_methods  Enabled-at-checkout method IDs.
-	 * @param string[]    $expected         Expected excluded method IDs for the country.
-	 * @param string|null $account_country  Stripe account country to mock, if the scenario needs one.
-	 * @param string|null $store_currency   Store currency to set, if the scenario needs one.
+	 * @param string      $billing_country Billing country supplied to the gateway.
+	 * @param string[]    $enabled_methods Enabled-at-checkout method IDs.
+	 * @param string[]    $expected        Expected excluded method IDs.
+	 * @param string|null $account_country Stripe account country to mock, if needed.
+	 * @param string|null $store_currency  Store currency to set, if needed.
 	 * @return void
 	 * @dataProvider provide_test_get_country_restricted_excluded_payment_method_types
 	 */

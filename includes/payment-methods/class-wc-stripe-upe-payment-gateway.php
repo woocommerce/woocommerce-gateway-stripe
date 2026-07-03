@@ -822,8 +822,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		);
 
-		// Exclude methods the billing country can't use, so the Payment Element doesn't
-		// surface one confirmation would reject. Recomputed on the frontend as country changes.
+		// Hide methods the billing country can't use; recomputed on the frontend as it changes.
 		$country_excluded_methods = array_filter(
 			$this->get_country_restricted_excluded_payment_method_types( $this->get_billing_country_for_checkout() ),
 			function ( $method ) use ( $non_excludable_methods ) {
@@ -842,8 +841,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Returns enabled-at-checkout methods unavailable for the given billing country.
-	 * Unrestricted methods are never returned; an empty country treats restricted
-	 * methods as unavailable until the shopper enters a supported one.
 	 *
 	 * @param string $billing_country Two-letter ISO billing country, or empty when unknown.
 	 * @return string[] Payment method types unavailable in the given country.
@@ -859,11 +856,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				continue;
 			}
 
-			// Gate on get_available_billing_countries() rather than is_available_for_billing_country():
-			// it narrows domestic-only methods (e.g. Affirm) to the account country and applies
-			// Klarna's per-account/currency matrix. This keeps the load-time exclusion consistent
-			// with the client-side `countriesByMethod` recompute and with the per-method country
-			// toggling on non-optimized layouts, which read the same source.
+			// get_available_billing_countries() also narrows domestic-only methods and Klarna —
+			// the same source the client `countriesByMethod` recompute reads.
 			$method_countries = $payment_method->get_available_billing_countries();
 
 			if ( [] !== $method_countries && ! in_array( $billing_country, $method_countries, true ) ) {
@@ -1005,9 +999,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Checkout Sessions flow cannot request `setup_future_usage` for them.
 		$show_save_option_by_method = [];
 
-		// OC collapses per-method config into a single `oc` entry, hiding each method's
-		// `countries` from the frontend. Expose a method => countries map so it can
-		// recompute `excludedPaymentMethodTypes` when the billing country changes in-page.
+		// OC hides each method's `countries` config from the frontend; expose a map so it
+		// can recompute `excludedPaymentMethodTypes` on billing-country changes.
 		$countries_by_method = [];
 		if ( $this->should_render_optimized_checkout() ) {
 			$is_adaptive_pricing_active = $this->is_adaptive_pricing_supported();

@@ -340,9 +340,8 @@ const PaymentProcessor = ( {
 		paymentMethodsConfig,
 	] );
 
-	// Refresh the OC element's country-restricted exclusions when the shopper
-	// changes billing country in-place (the server only seeds the page-load
-	// country). Adaptive Pricing's initCheckout() has no update(), so it's skipped.
+	// Refresh the OC element's country-restricted exclusions on billing-country
+	// changes; Adaptive Pricing's initCheckout() has no update(), so it's skipped.
 	useEffect( () => {
 		if (
 			! stripeServerData?.shouldShowOptimizedCheckout ||
