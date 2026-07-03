@@ -109,18 +109,22 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 			throw new RouteException( 'wc_stripe_express_checkout_invalid_data', $error_messages, 400 );
 		}
 
-		// Persist entered values keyed by field ID so data is saved without a
-		// third-party plugin hooking the action below; runs first so those handlers
-		// can still override. The Store API saves the order after this hook.
+		// Persist entered values keyed by field ID so data is not lost when no
+		// third-party plugin hooks the action below. When a handler IS hooked, it
+		// owns persistence (the pre-existing contract): writing from here too would
+		// duplicate the meta row, because handlers save through their own order
+		// instance while this instance is saved later by the Store API.
 		// Only fields registered on the checkout are persisted: the payload is
 		// client-controlled, so unknown keys must not reach order meta, where they
 		// could overwrite internal WooCommerce/Stripe keys. Unregistered keys still
 		// flow to the actions below for third-party handling.
-		foreach ( $custom_checkout_data as $key => $value ) {
-			if ( ! isset( $custom_checkout_fields[ $key ] ) ) {
-				continue;
+		if ( ! has_action( 'wc_stripe_express_checkout_update_order_meta' ) ) {
+			foreach ( $custom_checkout_data as $key => $value ) {
+				if ( ! isset( $custom_checkout_fields[ $key ] ) ) {
+					continue;
+				}
+				$order->update_meta_data( $key, $value );
 			}
-			$order->update_meta_data( $key, $value );
 		}
 
 		/**

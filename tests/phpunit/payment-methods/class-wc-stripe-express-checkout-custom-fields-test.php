@@ -226,6 +226,64 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * When a third-party handler is hooked to the update-order-meta stand-in action,
+	 * persistence is deferred to it entirely: handlers save through their own order
+	 * instance, so also writing from the class under test would produce a duplicate
+	 * meta row once the Store API saves its instance.
+	 *
+	 * @return void
+	 */
+	public function test_process_custom_checkout_data_defers_to_hooked_meta_handler() {
+		$custom_checkout_fields = function ( $fields ) {
+			$fields['order']['order_custom_field'] = [
+				'type'     => 'text',
+				'label'    => 'Order Custom Field',
+				'required' => false,
+			];
+			return $fields;
+		};
+		add_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
+
+		// Mirrors the documented integration pattern: load a fresh order instance
+		// by ID and save custom data through it.
+		$meta_handler = function ( $order_id, $custom_checkout_data ) {
+			$order = wc_get_order( $order_id );
+			foreach ( $custom_checkout_data as $key => $value ) {
+				$order->update_meta_data( $key, $value );
+			}
+			$order->save();
+		};
+		add_action( 'wc_stripe_express_checkout_update_order_meta', $meta_handler, 10, 2 );
+
+		$request = new \WP_REST_Request( 'POST', '/wc/stripe-ece/v1/test-request' );
+		$request->set_param(
+			'extensions',
+			[
+				'wc-stripe/express-checkout' => [
+					'custom_checkout_data' => json_encode( [ 'order_custom_field' => 'gift wrap please' ] ),
+				],
+			]
+		);
+
+		$order                 = WC_Helper_Order::create_order();
+		$custom_fields_support = $this->get_custom_fields_support();
+		$custom_fields_support->process_custom_checkout_data( $order, $request );
+		// The Store API saves the order instance after the hook fires.
+		$order->save();
+
+		$persisted = wc_get_order( $order->get_id() )->get_meta( 'order_custom_field', false );
+		$this->assertCount( 1, $persisted );
+		$this->assertSame( 'gift wrap please', $persisted[0]->value );
+
+		remove_action( 'wc_stripe_express_checkout_update_order_meta', $meta_handler );
+		remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
+	}
+
+	/**
 	 * Only registered checkout fields are persisted to order meta; client-supplied
 	 * unknown keys (e.g. internal WooCommerce/Stripe meta keys) must not be written
 	 * to the order or redirected to prop setters.
