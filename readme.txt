@@ -190,6 +190,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Preserve decimal product quantities for products when adding to the cart through Apple Pay / Google Pay express checkout
 * Add - Show a "What's new" inbox note after the plugin updates, including via auto-update
 * Tweak - Don't show the Stripe API outage notice on local and development sites, where Stripe is often unreachable for benign reasons
+* Tweak - Clarify in the saved payment methods setting that Link by Stripe collects save consent in the payment form instead of a separate checkbox
 * Update - Deprecate the wc_stripe_agentic_commerce_should_sync_product filter in favor of the shareable woocommerce_agentic_commerce_should_sync_product
 * Update - Replace the legacy add-to-cart AJAX endpoint with a Store API call for variable products in Express Checkout
 * Update - Add booking products to the cart via the Store API in Express Checkout when WooCommerce Bookings supports it
@@ -202,8 +203,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop retrying the Stripe App connection refresh when the connection has permanently expired
 * Dev - Centralize agentic commerce feed scheduling in integration class
 * Dev - Update subscription E2E fixtures to use WooCommerce Subscriptions product plans
+* Fix - Prevent a fatal checkout error when a third-party integration registers callbacks against the Payment Request class removed in 10.4.0
 * Tweak - Cap the Agentic Commerce feed preview scan so it stays responsive on large catalogs instead of timing out
 * Dev - Make the Express Checkout entrypoint bootstrap test deterministic to remove a CI flake
+* Fix - Prevent an error when creating the Adaptive Pricing checkout session for logged-in customers without a saved billing address
 * Fix - Show the selected variation's line items in the Apple Pay/Google Pay payment sheet on variable product pages, instead of the previously selected variation's breakdown
 * Tweak - Break down the Agentic Commerce feed preview's excluded product count by reason so subscriptions are no longer mistaken for a merchant-configured filter
 * Fix - Render the Express Checkout settings button preview background based on the button color
