@@ -67,7 +67,7 @@ const buildApi = ( stripe ) => ( {
 	initSetupIntent: jest.fn(),
 } );
 
-const STRIPE = { elements: jest.fn(), initCheckout: jest.fn() };
+const STRIPE = { elements: jest.fn(), initCheckoutElementsSdk: jest.fn() };
 
 describe( 'PaymentElements adaptive pricing selection', () => {
 	afterEach( () => {

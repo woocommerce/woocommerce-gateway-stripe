@@ -150,7 +150,9 @@ const createMockApi = ( checkoutElements ) => {
 	const standardElements = createMockElements();
 	const stripe = {
 		elements: jest.fn( () => standardElements ),
-		initCheckout: jest.fn( () => Promise.resolve( checkoutElements ) ),
+		initCheckoutElementsSdk: jest.fn( () =>
+			Promise.resolve( checkoutElements )
+		),
 		createPaymentMethod: jest.fn( () =>
 			Promise.resolve( { paymentMethod: { id: 'pm_test_123' } } )
 		),
@@ -241,7 +243,9 @@ describe( 'payment-processing', () => {
 						dom
 					);
 
-				expect( api._stripe.initCheckout ).not.toHaveBeenCalled();
+				expect(
+					api._stripe.initCheckoutElementsSdk
+				).not.toHaveBeenCalled();
 				expect( checkoutElements.loadActions ).not.toHaveBeenCalled();
 				expect( component.hasLoadError ).toBe( false );
 			} );
@@ -491,7 +495,7 @@ describe( 'payment-processing', () => {
 			afterEach( () => {
 				stripeUtils.getUpeSettings.mockReturnValue( {} );
 			} );
-			it( 'calls initCheckout with the client_secret from the session', async () => {
+			it( 'calls initCheckoutElementsSdk with the client_secret from the session', async () => {
 				const checkoutElements = createMockElements();
 				checkoutElements.loadActions.mockResolvedValue( {
 					type: 'success',
@@ -503,7 +507,9 @@ describe( 'payment-processing', () => {
 				await paymentProcessing.mountStripePaymentElement( api, dom );
 
 				expect( api.checkoutSessionsCreateSession ).toHaveBeenCalled();
-				expect( api._stripe.initCheckout ).toHaveBeenCalledWith(
+				expect(
+					api._stripe.initCheckoutElementsSdk
+				).toHaveBeenCalledWith(
 					expect.objectContaining( {
 						clientSecret: MOCK_AP_CHECKOUT_CLIENT_SECRET,
 						elementsOptions: expect.objectContaining( {
@@ -517,7 +523,7 @@ describe( 'payment-processing', () => {
 				expect( api._stripe.elements ).not.toHaveBeenCalled();
 			} );
 
-			it( 'uses createPaymentElement (not create) when using initCheckout', async () => {
+			it( 'uses createPaymentElement (not create) when using initCheckoutElementsSdk', async () => {
 				const checkoutElements = createMockElements();
 				checkoutElements.loadActions.mockResolvedValue( {
 					type: 'success',
@@ -584,7 +590,9 @@ describe( 'payment-processing', () => {
 				await paymentProcessing.mountStripePaymentElement( api, dom );
 
 				expect( api._stripe.elements ).toHaveBeenCalled();
-				expect( api._stripe.initCheckout ).not.toHaveBeenCalled();
+				expect(
+					api._stripe.initCheckoutElementsSdk
+				).not.toHaveBeenCalled();
 			} );
 
 			it( 'falls back to standard elements when client_secret or session_id is absent', async () => {
@@ -599,7 +607,9 @@ describe( 'payment-processing', () => {
 				await paymentProcessing.mountStripePaymentElement( api, dom );
 
 				expect( api._stripe.elements ).toHaveBeenCalled();
-				expect( api._stripe.initCheckout ).not.toHaveBeenCalled();
+				expect(
+					api._stripe.initCheckoutElementsSdk
+				).not.toHaveBeenCalled();
 			} );
 
 			it( 'falls back to standard elements when session_id is absent', async () => {
@@ -614,7 +624,9 @@ describe( 'payment-processing', () => {
 				await paymentProcessing.mountStripePaymentElement( api, dom );
 
 				expect( api._stripe.elements ).toHaveBeenCalled();
-				expect( api._stripe.initCheckout ).not.toHaveBeenCalled();
+				expect(
+					api._stripe.initCheckoutElementsSdk
+				).not.toHaveBeenCalled();
 			} );
 
 			it( 'uses runServerUpdate to call checkoutSessionsUpdateSession after maybeUpdateAdaptivePricingCheckoutSession', async () => {
