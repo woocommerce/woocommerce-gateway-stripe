@@ -849,12 +849,24 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return string[] Payment method types unavailable in the given country.
 	 */
 	protected function get_country_restricted_excluded_payment_method_types( string $billing_country ): array {
-		$excluded = [];
+		$billing_country = strtoupper( $billing_country );
+		$excluded        = [];
 
 		foreach ( $this->get_upe_enabled_at_checkout_payment_method_ids() as $method_id ) {
 			$payment_method = $this->payment_methods[ $method_id ] ?? null;
 
-			if ( $payment_method instanceof WC_Stripe_UPE_Payment_Method && ! $payment_method->is_available_for_billing_country( $billing_country ) ) {
+			if ( ! $payment_method instanceof WC_Stripe_UPE_Payment_Method ) {
+				continue;
+			}
+
+			// Gate on get_available_billing_countries() rather than is_available_for_billing_country():
+			// it narrows domestic-only methods (e.g. Affirm) to the account country and applies
+			// Klarna's per-account/currency matrix. This keeps the load-time exclusion consistent
+			// with the client-side `countriesByMethod` recompute and with the per-method country
+			// toggling on non-optimized layouts, which read the same source.
+			$method_countries = $payment_method->get_available_billing_countries();
+
+			if ( [] !== $method_countries && ! in_array( $billing_country, $method_countries, true ) ) {
 				$excluded[] = $method_id;
 			}
 		}

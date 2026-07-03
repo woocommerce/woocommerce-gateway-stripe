@@ -5312,25 +5312,44 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * A country-restricted method (iDEAL) must be excluded when the billing country
-	 * can't use it, while unrestricted methods (card) always remain available.
+	 * A country-restricted method must be excluded when the billing country can't use it,
+	 * while unrestricted methods (card) always remain available. Uses
+	 * get_available_billing_countries(), so domestic-only methods (Affirm) are limited to
+	 * the account country and Klarna to its per-account/currency matrix — the same lists
+	 * the client-side recompute and non-optimized layouts use.
 	 *
-	 * @param string   $billing_country  Billing country supplied to the gateway.
-	 * @param string[] $enabled_methods  Enabled-at-checkout method IDs.
-	 * @param string[] $expected         Expected excluded method IDs for the country.
+	 * @param string      $billing_country  Billing country supplied to the gateway.
+	 * @param string[]    $enabled_methods  Enabled-at-checkout method IDs.
+	 * @param string[]    $expected         Expected excluded method IDs for the country.
+	 * @param string|null $account_country  Stripe account country to mock, if the scenario needs one.
+	 * @param string|null $store_currency   Store currency to set, if the scenario needs one.
 	 * @return void
 	 * @dataProvider provide_test_get_country_restricted_excluded_payment_method_types
 	 */
-	public function test_get_country_restricted_excluded_payment_method_types( string $billing_country, array $enabled_methods, array $expected ) {
-		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
-			->onlyMethods( [ 'get_upe_enabled_at_checkout_payment_method_ids' ] )
-			->getMock();
-		$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( $enabled_methods );
+	public function test_get_country_restricted_excluded_payment_method_types( string $billing_country, array $enabled_methods, array $expected, ?string $account_country = null, ?string $store_currency = null ) {
+		$original_account = WC_Stripe::get_instance()->account;
 
-		$method = new ReflectionMethod( $gateway, 'get_country_restricted_excluded_payment_method_types' );
-		$method->setAccessible( true );
+		if ( null !== $account_country ) {
+			$this->set_stripe_account_data( [ 'country' => $account_country ] );
+		}
 
-		$this->assertSame( $expected, array_values( $method->invoke( $gateway, $billing_country ) ) );
+		if ( null !== $store_currency ) {
+			update_option( 'woocommerce_currency', $store_currency );
+		}
+
+		try {
+			$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+				->onlyMethods( [ 'get_upe_enabled_at_checkout_payment_method_ids' ] )
+				->getMock();
+			$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( $enabled_methods );
+
+			$method = new ReflectionMethod( $gateway, 'get_country_restricted_excluded_payment_method_types' );
+			$method->setAccessible( true );
+
+			$this->assertSame( $expected, array_values( $method->invoke( $gateway, $billing_country ) ) );
+		} finally {
+			WC_Stripe::get_instance()->account = $original_account;
+		}
 	}
 
 	/**
@@ -5340,10 +5359,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_test_get_country_restricted_excluded_payment_method_types(): array {
 		return [
-			'iDEAL excluded outside NL'      => [ 'US', [ 'card', 'ideal' ], [ 'ideal' ] ],
-			'iDEAL kept in NL'               => [ 'NL', [ 'card', 'ideal' ], [] ],
-			'unknown country excludes iDEAL' => [ '', [ 'card', 'ideal' ], [ 'ideal' ] ],
-			'card never excluded'            => [ 'US', [ 'card' ], [] ],
+			'iDEAL excluded outside NL'          => [ 'US', [ 'card', 'ideal' ], [ 'ideal' ] ],
+			'iDEAL kept in NL'                   => [ 'NL', [ 'card', 'ideal' ], [] ],
+			'iDEAL kept for lowercase input'     => [ 'nl', [ 'card', 'ideal' ], [] ],
+			'unknown country excludes iDEAL'     => [ '', [ 'card', 'ideal' ], [ 'ideal' ] ],
+			'card never excluded'                => [ 'US', [ 'card' ], [] ],
+			'Affirm excluded for CA, US account' => [ 'CA', [ 'card', 'affirm' ], [ 'affirm' ], 'US' ],
+			'Affirm kept for US, US account'     => [ 'US', [ 'card', 'affirm' ], [], 'US' ],
+			'Klarna excluded for SE, FR/EUR'     => [ 'SE', [ 'card', 'klarna' ], [ 'klarna' ], 'FR', 'EUR' ],
+			'Klarna kept for DE, FR/EUR'         => [ 'DE', [ 'card', 'klarna' ], [], 'FR', 'EUR' ],
 		];
 	}
 
