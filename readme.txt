@@ -156,6 +156,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.9.0 - xxxx-xx-xx =
+* Fix - Keep the checkout Payment Element visible on newer Stripe.js builds where Adaptive Pricing can't initialize, falling back to the standard element instead of rendering no payment form
 * Fix - Send the admin New Order and customer Processing emails when an asynchronous payment method (iDEAL, Klarna, Bancontact) is confirmed via the deferred webhook path
 * Fix - Use the Amazon Pay custom button size setting on the product, cart, and checkout pages instead of falling back to the Apple Pay/Google Pay size
 * Tweak - Render the Express Checkout button on the cart and checkout from page-bootstrapped data, removing a cart-details request from the critical path to first button render

@@ -38,6 +38,7 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
+import { recordStripeJsCapability } from 'wcstripe/stripe-utils/stripe-js-capability';
 
 /**
  * @typedef {Object} UPEComponent
@@ -336,12 +337,29 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	}
 
 	const stripe = api.getStripe();
+
+	// Measure which Stripe.js build actually loaded (Clover vs the rare dahlia edge
+	// case) so the render-risk population is observable in production.
+	recordStripeJsCapability( {
+		stripe,
+		surface: 'classic',
+		serverData: stripeServerData,
+	} );
+
 	let elements;
 	let shouldLoadStripeElements = true;
+	// On "dahlia+" Stripe.js initCheckout() is a throwing stub (detectable because the
+	// replacement initCheckoutElementsSdk exists). Skip the Checkout Session path on those
+	// builds so we don't create an orphan session and throw; standard Elements still render.
+	// Migration to initCheckoutElementsSdk is tracked in #5614.
+	const stripeSupportsInitCheckout =
+		typeof stripe?.initCheckout === 'function' &&
+		typeof stripe?.initCheckoutElementsSdk !== 'function';
 	// If Adaptive Pricing is enabled, use the Checkout Session API to load the elements.
 	if (
 		stripeServerData?.isAdaptivePricingEnabled &&
-		supportsDeferredIntent
+		supportsDeferredIntent &&
+		stripeSupportsInitCheckout
 	) {
 		try {
 			const response = await api.checkoutSessionsCreateSession();

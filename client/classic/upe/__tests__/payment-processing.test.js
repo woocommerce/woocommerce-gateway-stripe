@@ -587,6 +587,47 @@ describe( 'payment-processing', () => {
 				expect( api._stripe.initCheckout ).not.toHaveBeenCalled();
 			} );
 
+			// Regression guard for the OCS render drop after 10.8.3 (#5618 removed the
+			// Stripe.js capability guard). On "dahlia+" Stripe.js initCheckout() is a
+			// throwing stub, detectable because the replacement initCheckoutElementsSdk
+			// exists. Skip the Checkout Session path entirely so no orphan session is
+			// created; standard Elements render instead.
+			it( 'skips Adaptive Pricing and renders standard elements on dahlia+ (initCheckoutElementsSdk present)', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				api._stripe.initCheckoutElementsSdk = jest.fn();
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				expect( api._stripe.initCheckout ).not.toHaveBeenCalled();
+				expect(
+					api.checkoutSessionsCreateSession
+				).not.toHaveBeenCalled();
+				expect( api._stripe.elements ).toHaveBeenCalled();
+			} );
+
+			// Defense in depth: even for a build that passes the capability guard, a
+			// synchronous initCheckout() throw is caught so the Payment Element still
+			// renders via standard Elements. The Blocks path has no equivalent
+			// synchronous catch — see adaptive-pricing-initcheckout-fallback.test.js.
+			it( 'falls back to standard elements when initCheckout throws synchronously', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				api._stripe.initCheckout = jest.fn( () => {
+					throw new Error( 'stripe.initCheckout() has been removed' );
+				} );
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				expect( api._stripe.initCheckout ).toHaveBeenCalled();
+				// The Payment Element still renders through the standard Elements fallback.
+				expect( api._stripe.elements ).toHaveBeenCalled();
+			} );
+
 			it( 'falls back to standard elements when client_secret or session_id is absent', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );

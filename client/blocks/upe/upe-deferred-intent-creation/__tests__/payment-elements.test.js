@@ -67,7 +67,14 @@ const buildApi = ( stripe ) => ( {
 	initSetupIntent: jest.fn(),
 } );
 
+// clover: working initCheckout, no replacement method.
 const STRIPE = { elements: jest.fn(), initCheckout: jest.fn() };
+// dahlia+: initCheckout() is a throwing stub and the replacement method exists.
+const DAHLIA_STRIPE = {
+	elements: jest.fn(),
+	initCheckout: jest.fn(),
+	initCheckoutElementsSdk: jest.fn(),
+};
 
 describe( 'PaymentElements adaptive pricing selection', () => {
 	afterEach( () => {
@@ -88,6 +95,25 @@ describe( 'PaymentElements adaptive pricing selection', () => {
 
 		expect( CheckoutContainer ).toHaveBeenCalled();
 		expect( PaymentProcessor ).not.toHaveBeenCalled();
+	} );
+
+	// Regression guard for the OCS render drop (#5618): on dahlia+ Stripe.js the
+	// CheckoutProvider's synchronous initCheckout() throw would leave the Payment
+	// Element unrendered, so Adaptive Pricing must fall back to standard Elements.
+	it( 'falls back to standard elements on dahlia+ even when Adaptive Pricing is enabled', () => {
+		getBlocksConfiguration.mockReturnValue( {
+			isAdaptivePricingEnabled: true,
+			paymentMethodsConfig: { card: { isReusable: false } },
+			cartTotal: 1000,
+			currency: 'USD',
+			shouldShowOptimizedCheckout: false,
+			isAdmin: false,
+		} );
+
+		renderFields( buildApi( DAHLIA_STRIPE ) );
+
+		expect( CheckoutContainer ).not.toHaveBeenCalled();
+		expect( PaymentProcessor ).toHaveBeenCalled();
 	} );
 
 	it( 'uses the standard elements flow when Adaptive Pricing is disabled', () => {

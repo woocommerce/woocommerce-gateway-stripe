@@ -15,6 +15,7 @@ import {
 	getExcludedPaymentMethodTypes,
 } from 'wcstripe/stripe-utils';
 import { initializeUPEAppearance } from 'wcstripe/stripe-utils/upe-appearance';
+import { recordStripeJsCapability } from 'wcstripe/stripe-utils/stripe-js-capability';
 import {
 	getBlocksConfiguration,
 	shouldSetupOffSessionPayment,
@@ -210,8 +211,32 @@ const PaymentElements = ( {
 	...props
 } ) => {
 	const stripeServerData = getBlocksConfiguration();
+
+	// react-stripe-js's CheckoutProvider calls initCheckout() synchronously on mount.
+	// On "dahlia+" Stripe.js that is a throwing stub (detectable because the replacement
+	// initCheckoutElementsSdk exists), and the synchronous throw bypasses the standard-
+	// Elements fallback in checkout-form.js — leaving the Payment Element unrendered.
+	// Gate Adaptive Pricing on a working initCheckout so those loads fall back to
+	// standard Elements instead. Migration to initCheckoutElementsSdk is tracked in #5614.
+	const stripe = api.getStripe();
+	const stripeSupportsInitCheckout =
+		typeof stripe?.initCheckout === 'function' &&
+		typeof stripe?.initCheckoutElementsSdk !== 'function';
 	const isAdaptivePricingSupported =
-		stripeServerData?.isAdaptivePricingEnabled;
+		stripeServerData?.isAdaptivePricingEnabled &&
+		stripeSupportsInitCheckout;
+
+	// Measure which Stripe.js build actually loaded, so the Clover:Dahlia ratio and
+	// the (now-mitigated) render-risk population stay observable in production.
+	useEffect( () => {
+		recordStripeJsCapability( {
+			stripe,
+			surface: 'blocks',
+			serverData: stripeServerData,
+		} );
+		// Fire once on mount; the helper also dedupes per surface per page load.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [] );
 
 	const [ errorMessage, setErrorMessage ] = useState( null );
 	const [
