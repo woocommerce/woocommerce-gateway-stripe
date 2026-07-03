@@ -21,11 +21,17 @@ class WC_Stripe_Customer {
 	public const CUSTOMER_CONTEXT_PAY_FOR_ORDER = 'pay_for_order';
 
 	/**
+	 * Constant for the customer context when creating a Checkout Session (Optimized Checkout).
+	 */
+	public const CUSTOMER_CONTEXT_CHECKOUT_SESSION = 'checkout_session';
+
+	/**
 	 * Constants for the customer contexts where minimal billing details are permitted.
 	 */
 	public const MINIMAL_BILLING_DETAILS_CONTEXTS = [
 		self::CUSTOMER_CONTEXT_ADD_PAYMENT_METHOD,
 		self::CUSTOMER_CONTEXT_PAY_FOR_ORDER,
+		self::CUSTOMER_CONTEXT_CHECKOUT_SESSION,
 	];
 
 	/**
@@ -438,13 +444,16 @@ class WC_Stripe_Customer {
 	 * If customer does not exist, create a new customer. Else retrieve the Stripe customer through the API to check it's existence.
 	 * Recreate the customer if it does not exist in this Stripe account.
 	 *
+	 * @param string|null $current_context The context the customer is being created in. Some contexts (e.g. creating a Checkout
+	 *                                     Session before the buyer has entered any details) permit minimal billing details.
+	 *
 	 * @return string Customer ID
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	public function maybe_create_customer() {
+	public function maybe_create_customer( ?string $current_context = null ) {
 		if ( ! $this->get_id() ) {
-			$customer_id = $this->create_customer();
+			$customer_id = $this->create_customer( [], $current_context );
 			$this->set_id( $customer_id );
 			return $customer_id;
 		}
@@ -455,7 +464,7 @@ class WC_Stripe_Customer {
 			if ( $this->is_no_such_customer_error( $response->error ) ) {
 				// This can happen when switching the main Stripe account or importing users from another site.
 				// Recreate the customer in this case.
-				return $this->recreate_customer();
+				return $this->recreate_customer( [], $current_context );
 			}
 
 			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
