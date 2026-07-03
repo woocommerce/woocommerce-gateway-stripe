@@ -43,9 +43,9 @@ class WC_Stripe {
 	public $connect;
 
 	/**
-	 * Stripe Payment Request configurations.
+	 * Stripe Payment Request configurations. Holds a WC_Stripe_Payment_Request_Compat no-op shim.
 	 *
-	 * @var null
+	 * @var WC_Stripe_Payment_Request_Compat
 	 *
 	 * @deprecated 10.4.0 Use express_checkout_configuration instead. This will be removed in a future release.
 	 */
@@ -204,6 +204,10 @@ class WC_Stripe {
 		$this->api     = new WC_Stripe_Connect_API();
 		$this->connect = new WC_Stripe_Connect( $this->api );
 		$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+
+		// No-op shim so third parties that register the removed WC_Stripe_Payment_Request methods as
+		// hook callbacks via this property don't fatal on a null callback. See the compat class.
+		$this->payment_request_configuration = new WC_Stripe_Payment_Request_Compat();
 
 		if ( self::$instance === $this ) {
 			// Initialize Express Checkout after translations are loaded

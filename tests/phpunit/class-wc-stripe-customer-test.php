@@ -198,6 +198,22 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'expected_exception_string'  => 'Missing required customer field: email',
 				'current_context'            => \WC_Stripe_Customer::CUSTOMER_CONTEXT_PAY_FOR_ORDER,
 			],
+			'checkout session, only email present and required, no overrides'                     => [
+				'billing_fields'             => [], // only email is required
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+				'current_context'            => \WC_Stripe_Customer::CUSTOMER_CONTEXT_CHECKOUT_SESSION,
+			],
+			'checkout session, only email is empty string'                                        => [
+				'billing_fields'             => [ 'email' => '' ],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: email',
+				'expected_exception_string'  => 'Missing required customer field: email',
+				'current_context'            => \WC_Stripe_Customer::CUSTOMER_CONTEXT_CHECKOUT_SESSION,
+			],
 			'all fields present and required, no overrides, context is false'                     => [
 				'billing_fields'             => [],
 				'woo_billing_fields'         => null,
