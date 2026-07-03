@@ -226,10 +226,8 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * When a third-party handler is hooked to the update-order-meta stand-in action,
-	 * persistence is deferred to it entirely: handlers save through their own order
-	 * instance, so also writing from the class under test would produce a duplicate
-	 * meta row once the Store API saves its instance.
+	 * With a handler hooked to the update-order-meta stand-in action, persistence
+	 * is deferred to it; writing from both sides duplicated the meta row.
 	 *
 	 * @return void
 	 */
@@ -246,8 +244,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 		WC()->checkout()->checkout_fields = null;
 		WC()->checkout()->get_checkout_fields();
 
-		// Mirrors the documented integration pattern: load a fresh order instance
-		// by ID and save custom data through it.
+		// Third-party pattern: persist through a separate order instance.
 		$meta_handler = function ( $order_id, $custom_checkout_data ) {
 			$order = wc_get_order( $order_id );
 			foreach ( $custom_checkout_data as $key => $value ) {
@@ -270,7 +267,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 		$order                 = WC_Helper_Order::create_order();
 		$custom_fields_support = $this->get_custom_fields_support();
 		$custom_fields_support->process_custom_checkout_data( $order, $request );
-		// The Store API saves the order instance after the hook fires.
+		// The Store API saves the order after the hook.
 		$order->save();
 
 		$persisted = wc_get_order( $order->get_id() )->get_meta( 'order_custom_field', false );
@@ -284,9 +281,8 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Only registered checkout fields are persisted to order meta; client-supplied
-	 * unknown keys (e.g. internal WooCommerce/Stripe meta keys) must not be written
-	 * to the order or redirected to prop setters.
+	 * Client-supplied keys not registered as checkout fields must not be written
+	 * to order meta or redirected to internal prop setters.
 	 *
 	 * @return void
 	 */
@@ -329,8 +325,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 		$this->assertSame( 'legit value', $order->get_meta( 'order_custom_field' ) );
 		$this->assertSame( '', $order->get_meta( '_customer_user' ) );
 		$this->assertSame( '', $order->get_meta( '_stripe_source_id' ) );
-		// _billing_email is an internal key WC_Data redirects to set_billing_email();
-		// the whitelist must prevent that redirect from ever happening.
+		// WC_Data would redirect _billing_email to set_billing_email() if written.
 		$this->assertSame( $original_email, $order->get_billing_email() );
 
 		// Remove filters and reset checkout fields.
