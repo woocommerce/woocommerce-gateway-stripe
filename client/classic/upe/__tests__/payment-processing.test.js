@@ -578,6 +578,23 @@ describe( 'payment-processing', () => {
 				);
 			} );
 
+			it( 'skips the checkout session and uses standard elements when Stripe.js lacks initCheckoutElementsSdk', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				// A legacy v3 Stripe.js (from another plugin or a manual snippet)
+				// won window.Stripe and never exposes initCheckoutElementsSdk.
+				delete api._stripe.initCheckoutElementsSdk;
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				expect(
+					api.checkoutSessionsCreateSession
+				).not.toHaveBeenCalled();
+				expect( api._stripe.elements ).toHaveBeenCalled();
+			} );
+
 			it( 'falls back to standard elements when session creation fails', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );

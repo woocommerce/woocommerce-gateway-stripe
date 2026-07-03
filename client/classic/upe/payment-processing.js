@@ -341,7 +341,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	// If Adaptive Pricing is enabled, use the Checkout Session API to load the elements.
 	if (
 		stripeServerData?.isAdaptivePricingEnabled &&
-		supportsDeferredIntent
+		supportsDeferredIntent &&
+		typeof stripe?.initCheckoutElementsSdk === 'function'
 	) {
 		try {
 			const response = await api.checkoutSessionsCreateSession();
