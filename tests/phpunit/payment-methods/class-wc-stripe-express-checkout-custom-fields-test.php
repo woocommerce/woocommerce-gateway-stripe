@@ -226,6 +226,62 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Only registered checkout fields are persisted to order meta; client-supplied
+	 * unknown keys (e.g. internal WooCommerce/Stripe meta keys) must not be written
+	 * to the order or redirected to prop setters.
+	 *
+	 * @return void
+	 */
+	public function test_process_custom_checkout_data_ignores_unregistered_keys() {
+		$custom_checkout_fields = function ( $fields ) {
+			$fields['order']['order_custom_field'] = [
+				'type'     => 'text',
+				'label'    => 'Order Custom Field',
+				'required' => false,
+			];
+			return $fields;
+		};
+		add_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
+
+		$request = new \WP_REST_Request( 'POST', '/wc/stripe-ece/v1/test-request' );
+		$request->set_param(
+			'extensions',
+			[
+				'wc-stripe/express-checkout' => [
+					'custom_checkout_data' => json_encode(
+						[
+							'order_custom_field' => 'legit value',
+							'_billing_email'     => 'attacker@example.com',
+							'_customer_user'     => '1',
+							'_stripe_source_id'  => 'pm_attacker',
+						]
+					),
+				],
+			]
+		);
+
+		$order          = WC_Helper_Order::create_order();
+		$original_email = $order->get_billing_email();
+
+		$custom_fields_support = $this->get_custom_fields_support();
+		$custom_fields_support->process_custom_checkout_data( $order, $request );
+
+		$this->assertSame( 'legit value', $order->get_meta( 'order_custom_field' ) );
+		$this->assertSame( '', $order->get_meta( '_customer_user' ) );
+		$this->assertSame( '', $order->get_meta( '_stripe_source_id' ) );
+		// _billing_email is an internal key WC_Data redirects to set_billing_email();
+		// the whitelist must prevent that redirect from ever happening.
+		$this->assertSame( $original_email, $order->get_billing_email() );
+
+		// Remove filters and reset checkout fields.
+		remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
+	}
+
+	/**
 	 * Classic-checkout custom field processing is enabled by default, and can be disabled via the opt-out filter.
 	 *
 	 * @return void

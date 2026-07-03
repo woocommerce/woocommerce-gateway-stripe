@@ -112,7 +112,14 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 		// Persist entered values keyed by field ID so data is saved without a
 		// third-party plugin hooking the action below; runs first so those handlers
 		// can still override. The Store API saves the order after this hook.
+		// Only fields registered on the checkout are persisted: the payload is
+		// client-controlled, so unknown keys must not reach order meta, where they
+		// could overwrite internal WooCommerce/Stripe keys. Unregistered keys still
+		// flow to the actions below for third-party handling.
 		foreach ( $custom_checkout_data as $key => $value ) {
+			if ( ! isset( $custom_checkout_fields[ $key ] ) ) {
+				continue;
+			}
 			$order->update_meta_data( $key, $value );
 		}
 
