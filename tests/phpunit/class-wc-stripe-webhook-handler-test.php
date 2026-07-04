@@ -2317,6 +2317,15 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->assertEquals( $order->get_order_key(), $scheduled_args['request']['metadata']['order_key'] );
 		$this->assertNotEmpty( $scheduled_args['request']['metadata']['signature'] );
 		$this->assertIsInt( $scheduled_args['request']['metadata']['tax_amount'] );
+
+		// Adaptive Pricing transactions must carry the same order/customer identifiers as the standard flow.
+		$this->assertEquals(
+			trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
+			$scheduled_args['request']['metadata']['customer_name']
+		);
+		$this->assertEquals( $order->get_billing_email(), $scheduled_args['request']['metadata']['customer_email'] );
+		$this->assertEquals( esc_url( get_site_url() ), $scheduled_args['request']['metadata']['site_url'] );
+		$this->assertEquals( 'single', $scheduled_args['request']['metadata']['payment_type'] );
 	}
 
 	/**
