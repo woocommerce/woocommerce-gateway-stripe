@@ -1115,6 +1115,148 @@ describe( 'payment-processing', () => {
 				expect( form.trigger ).not.toHaveBeenCalledWith( 'submit' );
 			} );
 		} );
+
+		describe( 'checkout session resync failure handling', () => {
+			const STALE_TOTAL_MESSAGE =
+				"We couldn't update your order total. Please refresh the page and try again.";
+
+			const mountElement = async ( api, checkoutElements ) => {
+				checkoutElements.loadActions.mockResolvedValueOnce( {
+					type: 'success',
+				} );
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+			};
+
+			it.each( [
+				[
+					'runServerUpdate returns an error result',
+					( checkoutElements ) => {
+						checkoutElements.checkoutActions.runServerUpdate.mockResolvedValueOnce(
+							{ type: 'error', error: { message: 'boom' } }
+						);
+					},
+				],
+				[
+					'runServerUpdate throws',
+					( checkoutElements ) => {
+						checkoutElements.checkoutActions.runServerUpdate.mockRejectedValueOnce(
+							new Error( 'boom' )
+						);
+					},
+				],
+				[
+					'the direct session update rejects',
+					( checkoutElements, api ) => {
+						delete checkoutElements.loadActions;
+						api.checkoutSessionsUpdateSession.mockRejectedValueOnce(
+							new Error( 'boom' )
+						);
+					},
+				],
+			] )(
+				'shows a graceful notice when %s',
+				async ( _label, makeFail ) => {
+					const checkoutElements = createMockElements();
+					const api = createMockApi( checkoutElements );
+					await mountElement( api, checkoutElements );
+
+					makeFail( checkoutElements, api );
+					stripeUtils.showErrorCheckout.mockClear();
+
+					await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
+						api
+					);
+
+					expect(
+						stripeUtils.showErrorCheckout
+					).toHaveBeenCalledWith( STALE_TOTAL_MESSAGE );
+				}
+			);
+
+			it( 'does not show a notice when the resync succeeds', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				await mountElement( api, checkoutElements );
+				stripeUtils.showErrorCheckout.mockClear();
+
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
+					api
+				);
+
+				expect( stripeUtils.showErrorCheckout ).not.toHaveBeenCalled();
+			} );
+
+			it( 'blocks payment while the session is stale, then allows it after a clean resync', async () => {
+				const originalLocation = window.location;
+				delete window.location;
+				window.location = { href: '', assign: jest.fn() };
+
+				const mockActions = {
+					getSession: jest.fn().mockResolvedValue( {} ),
+					confirm: jest
+						.fn()
+						.mockResolvedValue( { session: { id: 'cs_xyz' } } ),
+				};
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				mockJQueryAjax.mockResolvedValue( {
+					result: 'success',
+					redirect: 'https://shop.com/order-received/1/',
+				} );
+				await mountElement( api, checkoutElements );
+
+				// Fail the resync so the session holds stale line items.
+				checkoutElements.checkoutActions.runServerUpdate.mockResolvedValueOnce(
+					{ type: 'error', error: { message: 'boom' } }
+				);
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
+					api
+				);
+
+				// Submission is blocked: no order is created and the buyer is warned.
+				checkoutElements.loadActions.mockResolvedValue( {
+					type: 'success',
+					actions: mockActions,
+				} );
+				stripeUtils.showErrorCheckout.mockClear();
+				paymentProcessing.processPayment(
+					api,
+					createMockForm(),
+					'card'
+				);
+				await flushPromises();
+
+				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
+					STALE_TOTAL_MESSAGE
+				);
+				expect(
+					stripeUtils.appendCheckoutSessionIdToForm
+				).not.toHaveBeenCalled();
+				expect( mockJQueryAjax ).not.toHaveBeenCalled();
+
+				// A clean resync lifts the block and the order is created.
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
+					api
+				);
+				paymentProcessing.processPayment(
+					api,
+					createMockForm(),
+					'card'
+				);
+				await flushPromises();
+
+				expect(
+					stripeUtils.appendCheckoutSessionIdToForm
+				).toHaveBeenCalledWith(
+					expect.anything(),
+					MOCK_AP_CHECKOUT_SESSION_ID
+				);
+
+				window.location = originalLocation;
+			} );
+		} );
 	} );
 
 	describe( 'createStripePaymentElement layout option', () => {

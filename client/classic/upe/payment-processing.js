@@ -71,6 +71,17 @@ let hasCheckoutCompleted = false;
 let mountInProgress = null;
 
 /**
+ * Set when the last Adaptive Pricing Checkout Session line-item resync failed.
+ *
+ * A failed resync leaves the session holding stale line items, so the Payment Element
+ * would charge an out-of-date total. We block submission until a later resync succeeds
+ * rather than let the buyer be charged the wrong amount.
+ *
+ * @type {boolean}
+ */
+let adaptivePricingSyncFailed = false;
+
+/**
  * Registers a (re)mount promise to wait on. Composes with any existing one so
  * overlapping `updated_checkout` cycles all settle before submission proceeds.
  *
@@ -109,6 +120,8 @@ export function initializeUPEComponents() {
 	// Reset so processPayment runs fully when called again (e.g. after re-init or in tests).
 	hasCheckoutCompleted = false;
 	mountInProgress = null;
+	// A fresh session is created on the next mount, so any prior stale-session block no longer applies.
+	adaptivePricingSyncFailed = false;
 }
 
 /**
@@ -125,6 +138,9 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 	if ( ! getStripeServerData()?.isAdaptivePricingEnabled ) {
 		return;
 	}
+
+	// Re-evaluate on each resync; a prior failure is cleared once totals sync cleanly.
+	adaptivePricingSyncFailed = false;
 
 	const seen = new Set();
 	for ( const paymentMethodType of Object.keys( gatewayUPEComponents ) ) {
@@ -154,16 +170,19 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 								}
 							);
 						if ( updateResult.type === 'error' ) {
+							adaptivePricingSyncFailed = true;
 							// eslint-disable-next-line no-console
 							console.error( updateResult.error );
 						}
 					} catch ( error ) {
+						adaptivePricingSyncFailed = true;
 						// eslint-disable-next-line no-console
 						console.error( error );
 					}
 					continue;
 				}
 			} catch ( error ) {
+				adaptivePricingSyncFailed = true;
 				// eslint-disable-next-line no-console
 				console.error( error );
 			}
@@ -172,9 +191,19 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 		try {
 			await api.checkoutSessionsUpdateSession( sessionId );
 		} catch ( error ) {
+			adaptivePricingSyncFailed = true;
 			// eslint-disable-next-line no-console
 			console.error( error );
 		}
+	}
+
+	if ( adaptivePricingSyncFailed ) {
+		showErrorCheckout(
+			__(
+				"We couldn't update your order total. Please refresh the page and try again.",
+				'woocommerce-gateway-stripe'
+			)
+		);
 	}
 }
 
@@ -1067,6 +1096,17 @@ export const processPayment = (
 				elements &&
 				typeof elements.loadActions === 'function'
 			) {
+				// The session still holds stale line items from a failed resync, so
+				// its total no longer matches the cart. Block rather than charge it.
+				if ( adaptivePricingSyncFailed ) {
+					throw new Error(
+						__(
+							"We couldn't update your order total. Please refresh the page and try again.",
+							'woocommerce-gateway-stripe'
+						)
+					);
+				}
+
 				const loadActionsResult = await elements.loadActions();
 
 				if ( loadActionsResult.type === 'error' ) {
