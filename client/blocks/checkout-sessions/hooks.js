@@ -1,6 +1,6 @@
 import { useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { select, useSelect } from '@wordpress/data';
+import { dispatch, select, useSelect } from '@wordpress/data';
 import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
 import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
 
@@ -18,6 +18,7 @@ import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-paymen
  * @param {boolean} isPaymentElementComplete      A boolean that indicates whether the Stripe Payment Element is complete, used to validate that the user has entered all required payment information before allowing them to proceed with the payment.
  * @param {string}  selectedPaymentType           The Stripe payment method type the customer picked inside the Payment Element (e.g. 'ideal'), used so the server can set the order's payment method title to the actual method instead of the OC pseudo-method default.
  * @param {Object}  [isPaymentElementCompleteRef] Optional live mirror of isPaymentElementComplete, letting a submission during a (re)mount wait for the element to settle.
+ * @param {Object}  [syncFailedRef]               Optional ref set when the last totals resync failed, so submission is blocked while the session total is stale.
  */
 export const usePaymentSetupHandler = (
 	onPaymentSetup,
@@ -26,7 +27,8 @@ export const usePaymentSetupHandler = (
 	hasLoadErrorRef,
 	isPaymentElementComplete,
 	selectedPaymentType,
-	isPaymentElementCompleteRef = null
+	isPaymentElementCompleteRef = null,
+	syncFailedRef = null
 ) => {
 	useEffect(
 		() =>
@@ -58,6 +60,18 @@ export const usePaymentSetupHandler = (
 							type: 'error',
 							message: __(
 								'We could not initialize the payment session. Please refresh the page and try again.',
+								'woocommerce-gateway-stripe'
+							),
+						};
+					}
+
+					// The session still holds stale line items from a failed
+					// resync, so its total no longer matches the cart.
+					if ( syncFailedRef?.current ) {
+						return {
+							type: 'error',
+							message: __(
+								"We couldn't update your order total. Please refresh the page and try again.",
 								'woocommerce-gateway-stripe'
 							),
 						};
@@ -121,6 +135,7 @@ export const usePaymentSetupHandler = (
 			isPaymentElementCompleteRef,
 			onPaymentSetup,
 			selectedPaymentType,
+			syncFailedRef,
 		]
 	);
 };
@@ -306,11 +321,13 @@ export const usePaymentFailHandler = ( onCheckoutFail, emitResponse ) => {
  * @param {Object|null} api               WCStripeAPI instance (with checkoutSessionsUpdateSession).
  * @param {string|null} checkoutSessionId Stripe Checkout Session id once the session is ready.
  * @param {Object}      checkoutState     Result of useCheckout() from @stripe/react-stripe-js/checkout.
+ * @param {Object}      [syncFailedRef]   Optional ref flagged true when a resync fails (stale session) and false once it succeeds.
  */
 export const useCheckoutSessionTotalsSync = (
 	api,
 	checkoutSessionId,
-	checkoutState
+	checkoutState,
+	syncFailedRef = null
 ) => {
 	const cartTotals = useSelect( ( selectCart ) => {
 		const cartStoreKey = window.wc?.wcBlocksData?.cartStore;
@@ -364,6 +381,22 @@ export const useCheckoutSessionTotalsSync = (
 
 		let cancelled = false;
 
+		const markSyncFailed = () => {
+			if ( cancelled ) {
+				return;
+			}
+			if ( syncFailedRef ) {
+				syncFailedRef.current = true;
+			}
+			dispatch( 'core/notices' )?.createErrorNotice(
+				__(
+					"We couldn't update your order total. Please refresh the page and try again.",
+					'woocommerce-gateway-stripe'
+				),
+				{ context: 'wc/checkout/payments' }
+			);
+		};
+
 		const run = async () => {
 			try {
 				const { checkout } = state;
@@ -380,11 +413,16 @@ export const useCheckoutSessionTotalsSync = (
 					);
 				} );
 				if ( ! cancelled && result && result.type === 'error' ) {
+					markSyncFailed();
 					// eslint-disable-next-line no-console
 					console.error( result.error );
+				} else if ( ! cancelled && syncFailedRef ) {
+					// Totals are back in sync; lift any prior block.
+					syncFailedRef.current = false;
 				}
 			} catch ( error ) {
 				if ( ! cancelled ) {
+					markSyncFailed();
 					// eslint-disable-next-line no-console
 					console.error( error );
 				}
@@ -396,5 +434,5 @@ export const useCheckoutSessionTotalsSync = (
 		return () => {
 			cancelled = true;
 		};
-	}, [ api, cartTotals, checkoutSessionId ] );
+	}, [ api, cartTotals, checkoutSessionId, syncFailedRef ] );
 };
