@@ -40,9 +40,14 @@ const waitForWCPBCCurrency = ( upstream ) =>
 		);
 		cleanups.push( () => clearTimeout( retriggerTimer ) );
 
-		// Hard watchdog: surrender rather than hang ECE forever.
+		// Hard watchdog: surrender rather than hang ECE forever. A rejecting
+		// upstream must still settle us, or ECE init would await this promise
+		// indefinitely.
 		const bailTimer = setTimeout(
-			async () => finish( await upstream ),
+			() =>
+				Promise.resolve( upstream )
+					.catch( () => undefined )
+					.then( finish ),
 			BAIL_AFTER_MS
 		);
 		cleanups.push( () => clearTimeout( bailTimer ) );

@@ -43,7 +43,7 @@ export async function computeProductPageStartArgs( {
 	const hasCurrencyChanged = resolvedCurrency !== localizedCurrency;
 
 	let total = getExpressCheckoutData( 'product' )?.total.amount;
-	let displayItems = getExpressCheckoutData( 'product' ).displayItems ?? [];
+	let displayItems = getExpressCheckoutData( 'product' )?.displayItems ?? [];
 	let requestShipping =
 		getExpressCheckoutData( 'product' )?.requestShipping ?? false;
 

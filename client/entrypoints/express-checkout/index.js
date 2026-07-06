@@ -1020,8 +1020,12 @@ jQuery( function ( $ ) {
 							.then(
 								async ( response ) => {
 									// In case the server returns an unexpected response
-									if ( typeof response !== 'object' ) {
+									if (
+										typeof response !== 'object' ||
+										response === null
+									) {
 										wcStripeECEError = defaultErrorMessage;
+										return;
 									}
 
 									const currencyChanged =
