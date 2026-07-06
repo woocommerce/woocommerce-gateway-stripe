@@ -6025,17 +6025,39 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Test that display_paid_by_customer_amount renders a row with the converted amount and currency.
+	 * Data provider for display_paid_by_customer_amount currency-code disambiguation.
 	 *
+	 * The store currency is USD ("$"). The code is only spelled out when the presentment
+	 * currency shares that symbol (AUD is also "$"); BDT ("৳") stands on its own.
+	 *
+	 * @return array<string, array{string, string, bool}>
+	 */
+	public function provide_display_paid_by_customer_currency_code(): array {
+		return [
+			'shared symbol shows code'   => [ 'aud', 'AUD', true ],
+			'distinct symbol hides code' => [ 'bdt', 'BDT', false ],
+		];
+	}
+
+	/**
+	 * Test that display_paid_by_customer_amount appends the currency code only when its symbol
+	 * collides with the store currency's symbol.
+	 *
+	 * @dataProvider provide_display_paid_by_customer_currency_code
+	 *
+	 * @param string $presentment_currency The presentment currency code (lowercase).
+	 * @param string $expected_code        The uppercase code that may be shown.
+	 * @param bool   $expects_code         Whether the "(CODE)" suffix should be rendered.
 	 * @return void
 	 */
-	public function test_display_paid_by_customer_amount_renders_row_with_converted_amount(): void {
+	public function test_display_paid_by_customer_amount_appends_code_only_on_symbol_collision( string $presentment_currency, string $expected_code, bool $expects_code ): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_currency( 'USD' );
 		$order->set_total( 20.00 );
 		$order->save();
 
-		$checkout_session_id = 'cs_test_paid_by_customer_with_presentment';
+		$checkout_session_id = 'cs_test_paid_by_customer_' . $presentment_currency;
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
 		// The render method reloads the order by ID, so the session meta must be persisted.
 		$order->save();
@@ -6046,7 +6068,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'amount_total'        => 2000,
 				'presentment_details' => [
 					'presentment_amount'   => 1500,
-					'presentment_currency' => 'eur',
+					'presentment_currency' => $presentment_currency,
 				],
 			]
 		);
@@ -6059,9 +6081,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 			$this->assertStringContainsString( 'stripe-paid-by-customer', $output );
 			$this->assertStringContainsString( 'Paid by customer:', $output );
-			// 1500 EUR cents = 15.00 EUR; the currency code is appended after the formatted price.
 			$this->assertStringContainsString( '15.00', $output );
-			$this->assertStringContainsString( 'EUR', $output );
+
+			if ( $expects_code ) {
+				$this->assertStringContainsString( '(' . $expected_code . ')', $output );
+			} else {
+				$this->assertStringNotContainsString( $expected_code, $output );
+			}
 		} finally {
 			WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 		}

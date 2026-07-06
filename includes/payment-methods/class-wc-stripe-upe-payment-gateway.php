@@ -4505,7 +4505,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$presentment_data['amount'],
 			$presentment_data['currency']
 		);
-		$formatted_amount           = wc_price( $amount, [ 'currency' => $presentment_currency_upper ] ) . ' <span class="amount">' . esc_html( $presentment_currency_upper ) . '</span>';
+		$formatted_amount           = wc_price( $amount, [ 'currency' => $presentment_currency_upper ] );
+
+		// Only spell out the currency code when its symbol clashes with the store's (e.g. USD and AUD both "$").
+		if ( get_woocommerce_currency_symbol( strtoupper( $order->get_currency() ) ) === get_woocommerce_currency_symbol( $presentment_currency_upper ) ) {
+			$formatted_amount .= ' (' . esc_html( $presentment_currency_upper ) . ')';
+		}
 
 		?>
 
