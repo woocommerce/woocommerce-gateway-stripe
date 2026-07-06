@@ -5974,6 +5974,100 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Test that display_paid_by_customer_amount outputs nothing when no checkout session is associated with the order.
+	 *
+	 * @return void
+	 */
+	public function test_display_paid_by_customer_amount_outputs_nothing_when_no_checkout_session(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		ob_start();
+		$this->mock_gateway->display_paid_by_customer_amount( $order->get_id() );
+		$output = ob_get_clean();
+
+		$this->assertEmpty( $output );
+	}
+
+	/**
+	 * Test that display_paid_by_customer_amount outputs nothing when the checkout session has no presentment details.
+	 *
+	 * @return void
+	 */
+	public function test_display_paid_by_customer_amount_outputs_nothing_when_no_presentment_details(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$checkout_session_id = 'cs_test_paid_by_customer_no_presentment';
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		// The render method reloads the order by ID, so the session meta must be persisted.
+		$order->save();
+
+		$checkout_session = $this->array_to_object(
+			[
+				'id'           => $checkout_session_id,
+				'amount_total' => 2000,
+			]
+		);
+		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+
+		try {
+			ob_start();
+			$this->mock_gateway->display_paid_by_customer_amount( $order->get_id() );
+			$output = ob_get_clean();
+
+			$this->assertEmpty( $output );
+		} finally {
+			WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+		}
+	}
+
+	/**
+	 * Test that display_paid_by_customer_amount renders a row with the converted amount and currency.
+	 *
+	 * @return void
+	 */
+	public function test_display_paid_by_customer_amount_renders_row_with_converted_amount(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20.00 );
+		$order->save();
+
+		$checkout_session_id = 'cs_test_paid_by_customer_with_presentment';
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		// The render method reloads the order by ID, so the session meta must be persisted.
+		$order->save();
+
+		$checkout_session = $this->array_to_object(
+			[
+				'id'                  => $checkout_session_id,
+				'amount_total'        => 2000,
+				'presentment_details' => [
+					'presentment_amount'   => 1500,
+					'presentment_currency' => 'eur',
+				],
+			]
+		);
+		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+
+		try {
+			ob_start();
+			$this->mock_gateway->display_paid_by_customer_amount( $order->get_id() );
+			$output = ob_get_clean();
+
+			$this->assertStringContainsString( 'stripe-paid-by-customer', $output );
+			$this->assertStringContainsString( 'Paid by customer:', $output );
+			// 1500 EUR cents = 15.00 EUR; the currency code is appended after the formatted price.
+			$this->assertStringContainsString( '15.00', $output );
+			$this->assertStringContainsString( 'EUR', $output );
+		} finally {
+			WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+		}
+	}
+
+	/**
 	 * Test that add_converted_currency_information reads presentment data from order meta without making an API call.
 	 *
 	 * @return void

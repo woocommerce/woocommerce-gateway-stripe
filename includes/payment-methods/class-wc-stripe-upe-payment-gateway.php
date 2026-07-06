@@ -290,6 +290,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		add_action( 'wp_footer', [ $this, 'payment_scripts' ] );
 
+		// Priority 5 keeps this row directly below Order Total and above the Stripe Fee (10) and Payout (20) rows.
+		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_paid_by_customer_amount' ], 5 );
 		// Display the correct fees on the order page.
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_fee' ] );
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_payout' ], 20 );
@@ -4473,6 +4475,48 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			<td width="1%"></td>
 			<td class="total">
 				-<?php echo $formatted_fee; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			</td>
+		</tr>
+
+		<?php
+	}
+
+	/**
+	 * Displays the amount the customer actually paid when Adaptive Pricing converted the order into
+	 * the shopper's local currency. Nothing is rendered for non-Adaptive-Pricing orders.
+	 *
+	 * @param int $order_id The ID of the order.
+	 * @return void
+	 */
+	public function display_paid_by_customer_amount( int $order_id ): void {
+		$order = wc_get_order( $order_id );
+
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
+
+		$presentment_data = $this->get_presentment_data_from_order( $order );
+		if ( null === $presentment_data ) {
+			return;
+		}
+
+		$presentment_currency_upper = strtoupper( $presentment_data['currency'] );
+		$amount                     = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+			$presentment_data['amount'],
+			$presentment_data['currency']
+		);
+		$formatted_amount           = wc_price( $amount, [ 'currency' => $presentment_currency_upper ] ) . ' <span class="amount">' . esc_html( $presentment_currency_upper ) . '</span>';
+
+		?>
+
+		<tr>
+			<td class="label stripe-paid-by-customer">
+				<?php echo wc_help_tip( __( 'The amount the customer paid in their local currency after Adaptive Pricing conversion. Your settlement is unaffected.', 'woocommerce-gateway-stripe' ) ); // wpcs: xss ok. ?>
+				<?php esc_html_e( 'Paid by customer:', 'woocommerce-gateway-stripe' ); ?>
+			</td>
+			<td width="1%"></td>
+			<td class="total">
+				<?php echo $formatted_amount; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</td>
 		</tr>
 
