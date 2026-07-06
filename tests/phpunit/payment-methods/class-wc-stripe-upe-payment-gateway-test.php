@@ -7004,4 +7004,64 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'phone empty'   => [ '', false ],
 		];
 	}
+
+	/**
+	 * Dynamic Payment Methods eligibility gate.
+	 *
+	 * @dataProvider provide_is_automatic_payment_methods_eligible
+	 *
+	 * @param bool        $oc_enabled           Whether Optimized Checkout is enabled.
+	 * @param string      $pmc_enabled          The pmc_enabled setting value.
+	 * @param string      $selected_type        The resolved payment method type.
+	 * @param bool        $is_using_saved       Whether a saved token is used.
+	 * @param bool        $has_subscription     Whether the order has a subscription.
+	 * @param string|null $express_payment_type The express payment type, if any.
+	 * @param bool        $expected             Expected eligibility.
+	 */
+	public function test_is_automatic_payment_methods_eligible( bool $oc_enabled, string $pmc_enabled, string $selected_type, bool $is_using_saved, bool $has_subscription, ?string $express_payment_type, bool $expected ) {
+		$this->mock_gateway->oc_enabled = $oc_enabled;
+
+		// PMC::is_enabled() requires a connected account and pmc_enabled !== 'no'. Force these at read
+		// time; writing them via update_main_stripe_settings() fires a sync hook that resets pmc_enabled.
+		add_filter(
+			'option_' . WC_Stripe_Helper::SETTINGS_OPTION,
+			function ( $settings ) use ( $pmc_enabled ) {
+				$settings                         = is_array( $settings ) ? $settings : [];
+				$settings['testmode']             = 'yes';
+				$settings['test_publishable_key'] = 'pk_test_mock';
+				$settings['test_secret_key']      = 'sk_test_mock';
+				$settings['pmc_enabled']          = $pmc_enabled;
+				return $settings;
+			}
+		);
+
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'is_automatic_payment_methods_eligible' );
+		$method->setAccessible( true );
+
+		$this->assertSame(
+			$expected,
+			$method->invoke( $this->mock_gateway, $selected_type, $is_using_saved, $has_subscription, $express_payment_type )
+		);
+	}
+
+	/**
+	 * Data provider for test_is_automatic_payment_methods_eligible.
+	 *
+	 * @return array
+	 */
+	public function provide_is_automatic_payment_methods_eligible(): array {
+		$card = WC_Stripe_Payment_Methods::CARD;
+
+		return [
+			'eligible: OC + PMC, plain card'        => [ true, 'yes', $card, false, false, null, true ],
+			'eligible: non-voucher redirect method' => [ true, 'yes', WC_Stripe_Payment_Methods::IDEAL, false, false, null, true ],
+			'not eligible: OC disabled'             => [ false, 'yes', $card, false, false, null, false ],
+			'not eligible: PMC disabled'            => [ true, 'no', $card, false, false, null, false ],
+			'not eligible: saved token'             => [ true, 'yes', $card, true, false, null, false ],
+			'not eligible: subscription'            => [ true, 'yes', $card, false, true, null, false ],
+			'not eligible: express payment'         => [ true, 'yes', $card, false, false, WC_Stripe_Payment_Methods::GOOGLE_PAY, false ],
+			'not eligible: boleto voucher'          => [ true, 'yes', WC_Stripe_Payment_Methods::BOLETO, false, false, null, false ],
+			'not eligible: cashapp delayed confirm' => [ true, 'yes', WC_Stripe_Payment_Methods::CASHAPP_PAY, false, false, null, false ],
+		];
+	}
 }

@@ -351,6 +351,95 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * When the Dynamic Payment Methods flag is set, the request drops payment_method_types in favour
+	 * of automatic_payment_methods, carries the exclusion list, and includes the return_url that
+	 * allow_redirects requires.
+	 */
+	public function test_create_and_confirm_payment_intent_with_automatic_payment_methods() {
+		$excluded = [ WC_Stripe_Payment_Methods::AMAZON_PAY, 'konbini' ];
+
+		$payment_information                                  = $this->get_base_payment_information();
+		$payment_information['automatic_payment_methods']     = true;
+		$payment_information['excluded_payment_method_types'] = $excluded;
+		$payment_information['return_url']                    = 'https://example.com/return';
+
+		$test_request = function ( $preempt, $parsed_args, $url ) use ( $excluded ) {
+			$body = $parsed_args['body'];
+
+			$this->assertArrayNotHasKey( 'payment_method_types', $body );
+			$this->assertSame(
+				[
+					'enabled'         => 'true',
+					'allow_redirects' => 'always',
+				],
+				$body['automatic_payment_methods']
+			);
+			$this->assertSame( $excluded, $body['excluded_payment_method_types'] );
+			$this->assertSame( 'https://example.com/return', $body['return_url'] );
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( [] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
+	}
+
+	/**
+	 * Without the flag, the request keeps the explicit payment_method_types list and sends no
+	 * automatic_payment_methods.
+	 */
+	public function test_create_and_confirm_payment_intent_without_automatic_payment_methods() {
+		$payment_information = $this->get_base_payment_information();
+
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			$body = $parsed_args['body'];
+
+			$this->assertSame( [ WC_Stripe_Payment_Methods::CARD ], $body['payment_method_types'] );
+			$this->assertArrayNotHasKey( 'automatic_payment_methods', $body );
+			$this->assertArrayNotHasKey( 'excluded_payment_method_types', $body );
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( [] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
+	}
+
+	/**
+	 * Minimal valid payment information for a card create_and_confirm_payment_intent request.
+	 *
+	 * @return array
+	 */
+	private function get_base_payment_information() {
+		return [
+			'amount'                        => 100,
+			'capture_method'                => 'automatic',
+			'currency'                      => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+			'customer'                      => 'cus_mock',
+			'level3'                        => [],
+			'metadata'                      => [ '_stripe_metadata' => '123' ],
+			'order'                         => $this->order,
+			'payment_method'                => 'pm_mock',
+			'shipping'                      => [],
+			'selected_payment_type'         => WC_Stripe_Payment_Methods::CARD,
+			'payment_method_types'          => [ WC_Stripe_Payment_Methods::CARD ],
+			'is_using_saved_payment_method' => false,
+			'save_payment_method_to_store'  => false,
+			'has_subscription'              => false,
+		];
+	}
+
+	/**
 	 * Test for create_and_confirm_setup_intent method.
 	 */
 	public function test_create_and_confirm_setup_intent() {
