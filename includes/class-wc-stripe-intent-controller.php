@@ -920,6 +920,29 @@ class WC_Stripe_Intent_Controller {
 			unset( $request['return_url'], $request['mandate_data'] );
 		}
 
+		// Under Optimized Checkout + PMC, let Stripe surface every eligible method from the merchant's
+		// Payment Method Configuration (Dynamic Payment Methods) instead of the explicit list. The
+		// eligibility decision is made in WC_Stripe_UPE_Payment_Gateway::prepare_payment_information_from_request(),
+		// here we only apply it to the request.
+		if ( ! empty( $payment_information['automatic_payment_methods'] ) ) {
+			unset( $request['payment_method_types'] );
+
+			$request['automatic_payment_methods'] = [
+				'enabled'         => 'true',
+				'allow_redirects' => 'always',
+			];
+
+			// Mirror the client Payment Element's exclusion list so PMC methods the plugin doesn't support are never accepted by the intent.
+			if ( ! empty( $payment_information['excluded_payment_method_types'] ) ) {
+				$request['excluded_payment_method_types'] = $payment_information['excluded_payment_method_types'];
+			}
+
+			// allow_redirects => always with confirm => true requires a return_url, which build_base_payment_intent_request_params() only sets for the single-redirect-method case.
+			if ( empty( $request['return_url'] ) && ! empty( $payment_information['return_url'] ) ) {
+				$request['return_url'] = $payment_information['return_url'];
+			}
+		}
+
 		// Run the necessary filter to make sure mandate information is added when it's required.
 		$request = apply_filters(
 			'wc_stripe_generate_create_intent_request',
