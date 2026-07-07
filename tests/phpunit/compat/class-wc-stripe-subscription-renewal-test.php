@@ -656,15 +656,10 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		add_action( 'wc_stripe_subscription_renewal_blocked_by_radar', $listener, 10, 3 );
 
 		try {
-			// Act: the throwing listener bubbles up, but by then the order must already be unlocked.
-			try {
-				$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
-				$this->fail( 'Expected the throwing listener to propagate an exception.' );
-			} catch ( Exception $e ) {
-				$this->assertSame( 'Listener failure.', $e->getMessage() );
-			}
+			// Act: the throwing listener is caught internally, so the call returns without error.
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
 
-			// Assert: the payment lock was released before the hook fired.
+			// Assert: the payment lock was released despite the listener throwing.
 			$order_helper = WC_Stripe_Order_Helper::get_instance();
 			$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $renewal_order ) );
 		} finally {
