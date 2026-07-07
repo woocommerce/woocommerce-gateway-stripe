@@ -461,28 +461,30 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		add_filter( 'pre_http_request', $pre_http_request_callback, 10, 3 );
 
-		// Act.
-		$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		try {
+			// Act.
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
 
-		// Assert: the renewal order itself is marked as failed.
-		$order = wc_get_order( $renewal_order->get_id() );
-		$this->assertSame( OrderStatus::FAILED, $order->get_status() );
+			// Assert: the renewal order itself is marked as failed.
+			$order = wc_get_order( $renewal_order->get_id() );
+			$this->assertSame( OrderStatus::FAILED, $order->get_status() );
 
-		// Assert: the pending retry was transitioned to cancelled.
-		$this->assertSame( 'cancelled', $pending_retry->get_status() );
+			// Assert: the pending retry was transitioned to cancelled.
+			$this->assertSame( 'cancelled', $pending_retry->get_status() );
 
-		// Assert: the subscription's payment_retry date was cleared.
-		$this->assertSame( 0, $mock_subscription->get_date( 'payment_retry' ) );
+			// Assert: the subscription's payment_retry date was cleared.
+			$this->assertSame( 0, $mock_subscription->get_date( 'payment_retry' ) );
 
-		// Assert: a Radar note was attached to the subscription.
-		$subscription_notes = $mock_subscription->get_captured_notes();
-		$this->assertNotEmpty( $subscription_notes );
-		$this->assertStringContainsString( 'Stripe Radar blocked payment for the saved payment method', $subscription_notes[0] );
-
-		// Clean up.
-		remove_filter( 'pre_http_request', $pre_http_request_callback );
-		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = null;
-		WCS_Retry_Manager::mock_reset();
+			// Assert: a Radar note was attached to the subscription.
+			$subscription_notes = $mock_subscription->get_captured_notes();
+			$this->assertNotEmpty( $subscription_notes );
+			$this->assertStringContainsString( 'Stripe Radar blocked payment for the saved payment method', $subscription_notes[0] );
+		} finally {
+			// Clean up.
+			remove_filter( 'pre_http_request', $pre_http_request_callback );
+			WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = null;
+			WCS_Retry_Manager::mock_reset();
+		}
 	}
 
 	/**
@@ -560,20 +562,22 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		};
 		add_action( 'wc_stripe_subscription_renewal_blocked_by_radar', $listener, 10, 3 );
 
-		// Act.
-		$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		try {
+			// Act.
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
 
-		// Assert: the hook fired exactly once with the expected arguments.
-		$this->assertCount( 1, $hook_args );
-		$this->assertSame( $renewal_order->get_id(), $hook_args[0][0]->get_id() );
-		$this->assertNotEmpty( $hook_args[0][1]->error );
-		$this->assertSame( 'highest_risk_level', $hook_args[0][2] );
-
-		// Clean up.
-		remove_action( 'wc_stripe_subscription_renewal_blocked_by_radar', $listener, 10 );
-		remove_filter( 'pre_http_request', $pre_http_request_callback );
-		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = null;
-		WCS_Retry_Manager::mock_reset();
+			// Assert: the hook fired exactly once with the expected arguments.
+			$this->assertCount( 1, $hook_args );
+			$this->assertSame( $renewal_order->get_id(), $hook_args[0][0]->get_id() );
+			$this->assertNotEmpty( $hook_args[0][1]->error );
+			$this->assertSame( 'highest_risk_level', $hook_args[0][2] );
+		} finally {
+			// Clean up.
+			remove_action( 'wc_stripe_subscription_renewal_blocked_by_radar', $listener, 10 );
+			remove_filter( 'pre_http_request', $pre_http_request_callback );
+			WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = null;
+			WCS_Retry_Manager::mock_reset();
+		}
 	}
 
 	public function test_missing_customer() {
