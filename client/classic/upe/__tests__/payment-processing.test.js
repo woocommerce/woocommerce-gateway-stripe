@@ -1674,4 +1674,78 @@ describe( 'ensureUPEElementMounted', () => {
 
 		expect( component.hasLoadError ).toBe( false );
 	} );
+
+	describe( 'confirmVoucherPayment', () => {
+		let originalLocation;
+
+		beforeEach( () => {
+			originalLocation = window.location;
+			delete window.location;
+			window.location = {
+				href: '',
+				origin: 'https://shop.com',
+				pathname: '/checkout',
+				search: '',
+				assign: jest.fn(),
+			};
+			jest.spyOn( window.history, 'replaceState' ).mockImplementation(
+				() => {}
+			);
+		} );
+
+		afterEach( () => {
+			window.location = originalLocation;
+			jest.clearAllMocks();
+		} );
+
+		// Hash format written by process_payment_with_deferred_intent():
+		// #wc-stripe-voucher-<order_id>:<type>:<client_secret>:<encoded_redirect_url>
+		const setVoucherHash = ( encodedRedirectUrl ) => {
+			window.location.href =
+				'https://shop.com/checkout#wc-stripe-voucher-123:boleto:cs_secret:' +
+				encodedRedirectUrl;
+		};
+
+		const buildVoucherApi = () => ( {
+			getStripe: jest.fn( () => ( {
+				confirmBoletoPayment: jest.fn().mockResolvedValue( {} ),
+			} ) ),
+		} );
+
+		it( 'navigates to a same-origin post-payment URL after confirming the voucher', async () => {
+			setVoucherHash(
+				encodeURIComponent( 'https://shop.com/order-received/123/' )
+			);
+			stripeUtils.getStripeServerData.mockReturnValue( {
+				orderReceivedURL: 'https://shop.com/checkout/order-received',
+			} );
+
+			await paymentProcessing.confirmVoucherPayment(
+				buildVoucherApi(),
+				createMockForm()
+			);
+
+			expect( window.location.href ).toBe(
+				'https://shop.com/order-received/123/'
+			);
+		} );
+
+		it( 'falls back to the order-received page when the post-payment URL is cross-origin', async () => {
+			setVoucherHash(
+				encodeURIComponent( 'https://evil.example/steal' )
+			);
+			stripeUtils.getStripeServerData.mockReturnValue( {
+				orderReceivedURL: 'https://shop.com/checkout/order-received',
+			} );
+
+			await paymentProcessing.confirmVoucherPayment(
+				buildVoucherApi(),
+				createMockForm()
+			);
+
+			expect( window.location.href ).toBe(
+				'https://shop.com/checkout/order-received/123/'
+			);
+		} );
+	} );
 } );
