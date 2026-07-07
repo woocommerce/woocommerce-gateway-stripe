@@ -203,6 +203,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop retrying the Stripe App connection refresh when the connection has permanently expired
 * Dev - Centralize agentic commerce feed scheduling in integration class
 * Dev - Update subscription E2E fixtures to use WooCommerce Subscriptions product plans
+* Fix - Prevent a fatal checkout error when a third-party integration registers callbacks against the Payment Request class removed in 10.4.0
 * Tweak - Cap the Agentic Commerce feed preview scan so it stays responsive on large catalogs instead of timing out
 * Dev - Make the Express Checkout entrypoint bootstrap test deterministic to remove a CI flake
 * Fix - Prevent an error when creating the Adaptive Pricing checkout session for logged-in customers without a saved billing address
