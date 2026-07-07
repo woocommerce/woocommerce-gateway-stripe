@@ -18,6 +18,7 @@ import {
 	getExcludedPaymentMethodTypes,
 	getUserDataForCheckoutSession,
 	getBillingDetailsForDeferredFlow,
+	normalizeReturnUrl,
 } from '../../stripe-utils';
 import {
 	initializeUPEAppearance,
@@ -1133,7 +1134,10 @@ export const processPayment = (
 				// the customer to the thank-you page instead of checkout.
 				const confirmArgs = {
 					...getUserDataForCheckoutSession( session ),
-					returnUrl: checkoutResponse.redirect,
+					returnUrl: normalizeReturnUrl(
+						checkoutResponse.redirect,
+						getStripeServerData()?.orderReceivedURL
+					),
 					redirect: 'if_required',
 				};
 

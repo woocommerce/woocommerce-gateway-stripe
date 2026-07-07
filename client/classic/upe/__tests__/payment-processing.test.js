@@ -14,6 +14,9 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 	getExcludedPaymentMethodTypes: jest.fn().mockReturnValue( [] ),
 	getPaymentMethodTypes: jest.fn().mockReturnValue( [ 'card' ] ),
 	getUserDataForCheckoutSession: jest.fn().mockReturnValue( {} ),
+	normalizeReturnUrl: jest.requireActual(
+		'wcstripe/stripe-utils/normalize-return-url'
+	).normalizeReturnUrl,
 	getStripeServerData: jest.fn().mockReturnValue( {
 		paymentMethodsConfig: {
 			card: { supportsDeferredIntent: true },
@@ -754,7 +757,11 @@ describe( 'payment-processing', () => {
 			it( 'submits form via AJAX, then confirms with order-received URL', async () => {
 				const originalLocation = window.location;
 				delete window.location;
-				window.location = { href: '', assign: jest.fn() };
+				window.location = {
+					href: '',
+					origin: 'https://shop.com',
+					assign: jest.fn(),
+				};
 
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
@@ -803,10 +810,57 @@ describe( 'payment-processing', () => {
 				window.location = originalLocation;
 			} );
 
+			it( 'confirms with an absolute returnUrl when the server returns a relative redirect', async () => {
+				const originalLocation = window.location;
+				delete window.location;
+				window.location = {
+					href: '',
+					origin: 'https://shop.com',
+					assign: jest.fn(),
+				};
+
+				const relativeRedirect =
+					'/checkout/order-received/123/?key=abc';
+				const mockActions = {
+					getSession: jest.fn().mockResolvedValue( {} ),
+					confirm: jest.fn().mockResolvedValue( {
+						session: { id: 'cs_session_xyz' },
+					} ),
+				};
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+
+				mockJQueryAjax.mockResolvedValue( {
+					result: 'success',
+					redirect: relativeRedirect,
+				} );
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: mockActions,
+				} );
+
+				const form = createMockForm();
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				expect( mockActions.confirm ).toHaveBeenCalledWith( {
+					returnUrl:
+						'https://shop.com/checkout/order-received/123/?key=abc',
+					redirect: 'if_required',
+				} );
+
+				window.location = originalLocation;
+			} );
+
 			it( 'passes savePaymentMethod true when logged in and the save card checkbox is checked', async () => {
 				const originalLocation = window.location;
 				delete window.location;
-				window.location = { href: '', assign: jest.fn() };
+				window.location = {
+					href: '',
+					origin: 'https://shop.com',
+					assign: jest.fn(),
+				};
 
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
@@ -853,7 +907,11 @@ describe( 'payment-processing', () => {
 			it( 'does not pass savePaymentMethod for guests even when the save card checkbox is checked', async () => {
 				const originalLocation = window.location;
 				delete window.location;
-				window.location = { href: '', assign: jest.fn() };
+				window.location = {
+					href: '',
+					origin: 'https://shop.com',
+					assign: jest.fn(),
+				};
 
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
