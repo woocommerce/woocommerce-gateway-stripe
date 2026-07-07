@@ -55,6 +55,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Prevent an error when creating the Adaptive Pricing checkout session for logged-in customers without a saved billing address
 * Tweak - Break down the Agentic Commerce feed preview's excluded product count by reason so subscriptions are no longer mistaken for a merchant-configured filter
 * Fix - Render the Express Checkout settings button preview background based on the button color
+* Add - Add a wc_stripe_subscription_renewal_blocked_by_radar action hook that fires when Stripe Radar blocks a subscription renewal payment
 
 2026-06-22 - version 10.8.3
 * Fix - Ensure Adaptive Pricing appears on the checkout page when enabled
