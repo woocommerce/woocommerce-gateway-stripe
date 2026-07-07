@@ -254,8 +254,13 @@ describe( 'CheckoutSessions hook tests', () => {
 			},
 		};
 
+		let originalLocation;
+
 		beforeEach( () => {
 			document.body.innerHTML = '';
+			originalLocation = window.location;
+			delete window.location;
+			window.location = { origin: 'https://example.com' };
 			onCheckoutSuccess.mockImplementation( ( fn ) => {
 				const onCheckoutProcessingData = {
 					processingResponse: {
@@ -266,6 +271,10 @@ describe( 'CheckoutSessions hook tests', () => {
 				};
 				onCheckoutSuccessResultPromise = fn( onCheckoutProcessingData );
 			} );
+		} );
+
+		afterEach( () => {
+			window.location = originalLocation;
 		} );
 
 		it( 'checkoutState.type is not success', async () => {
@@ -334,6 +343,43 @@ describe( 'CheckoutSessions hook tests', () => {
 				redirect: 'if_required',
 				savePaymentMethod: false,
 			} );
+		} );
+
+		it( 'confirms with an absolute returnUrl when the server returns a relative redirect', async () => {
+			onCheckoutSuccess.mockImplementation( ( fn ) => {
+				const onCheckoutProcessingData = {
+					processingResponse: {
+						paymentDetails: {
+							redirect: '/order-received/123/?key=abc',
+						},
+					},
+				};
+				onCheckoutSuccessResultPromise = fn( onCheckoutProcessingData );
+			} );
+
+			const mockConfirm = jest.fn().mockResolvedValue( {
+				type: 'success',
+			} );
+			const checkoutState = {
+				type: 'success',
+				checkout: { email: '', confirm: mockConfirm },
+			};
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				false,
+				false,
+				shippingData
+			);
+			await onCheckoutSuccessResultPromise;
+
+			expect( mockConfirm ).toHaveBeenCalledWith(
+				expect.objectContaining( {
+					returnUrl:
+						'https://example.com/order-received/123/?key=abc',
+				} )
+			);
 		} );
 
 		it( 'success', async () => {
