@@ -210,9 +210,9 @@ const PaymentElements = ( {
 	...props
 } ) => {
 	const stripeServerData = getBlocksConfiguration();
-	// Adaptive Pricing renders <CheckoutProvider>, which calls initCheckoutElementsSdk() on mount.
-	// Older versions of Stripe.js does not support initCheckoutElementsSdk, so we need to check for it,
-	// fall back to OCS before the provider mounts.
+	// Adaptive Pricing renders <CheckoutElementsProvider>, which calls initCheckoutElementsSdk() on mount.
+	// Older versions of Stripe.js do not support initCheckoutElementsSdk, so we check for it and
+	// fall back to the standard elements flow before the provider mounts.
 	const stripeSupportsInitCheckout =
 		typeof api.getStripe()?.initCheckoutElementsSdk === 'function';
 	const isAdaptivePricingSupported =
