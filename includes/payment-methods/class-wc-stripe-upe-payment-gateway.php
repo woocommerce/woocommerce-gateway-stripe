@@ -4460,7 +4460,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$formatted_fee = wc_price( $fee, [ 'currency' => $currency ] );
+		$formatted_fee = wc_price( (float) $fee, [ 'currency' => $currency ] );
 		if ( strtoupper( $order->get_currency() ) !== strtoupper( $currency ) ) {
 			$formatted_fee .= ' ' . esc_html( strtoupper( $currency ) );
 		}
@@ -4505,7 +4505,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$presentment_data['amount'],
 			$presentment_data['currency']
 		);
-		$formatted_amount           = wc_price( $amount, [ 'currency' => $presentment_currency_upper ] );
+		$formatted_amount           = wc_price( (float) $amount, [ 'currency' => $presentment_currency_upper ] );
 
 		// Only spell out the currency code when its symbol clashes with the store's (e.g. USD and AUD both "$").
 		if ( get_woocommerce_currency_symbol( strtoupper( $order->get_currency() ) ) === get_woocommerce_currency_symbol( $presentment_currency_upper ) ) {
@@ -4555,7 +4555,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$formatted_net = wc_price( $net, [ 'currency' => $currency ] );
+		$formatted_net = wc_price( (float) $net, [ 'currency' => $currency ] );
 		if ( strtoupper( $order->get_currency() ) !== strtoupper( $currency ) ) {
 			$formatted_net .= ' ' . esc_html( strtoupper( $currency ) );
 		}
