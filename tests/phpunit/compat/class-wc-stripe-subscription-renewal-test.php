@@ -580,6 +580,102 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		}
 	}
 
+	/**
+	 * A listener that throws must not leave the renewal order perpetually locked: the payment
+	 * lock is released before the hook fires, so a misbehaving listener cannot strand the order.
+	 */
+	public function test_renewal_radar_blocked_unlocks_order_when_listener_throws() {
+		// Arrange.
+		$renewal_order                 = WC_Helper_Order::create_order();
+		$customer                      = 'cus_123abc';
+		$source                        = 'src_123abc';
+		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
+		$charges_api_base              = 'https://api.stripe.com/v1/charges/';
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => $customer,
+					'source'         => $source,
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$mock_subscription = new WC_Subscription();
+		$mock_subscription->update_status( OrderStatus::ON_HOLD );
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = [ $mock_subscription ];
+
+		$pre_http_request_callback = function (
+			$preempt,
+			$request_args,
+			$url
+		) use (
+			$payments_intents_api_endpoint,
+			$charges_api_base
+		) {
+			if ( $payments_intents_api_endpoint === $url ) {
+				return [
+					'headers'  => [],
+					'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_radar_blocked.json' ),
+					'response' => [
+						'code'    => 402,
+						'message' => 'Payment Required',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			if ( strpos( $url, $charges_api_base ) === 0 ) {
+				return [
+					'headers'  => [],
+					'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_charge_radar_blocked.json' ),
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			return false;
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_callback, 10, 3 );
+
+		$listener = function () {
+			throw new Exception( 'Listener failure.' );
+		};
+		add_action( 'wc_stripe_subscription_renewal_blocked_by_radar', $listener, 10, 3 );
+
+		try {
+			// Act: the throwing listener bubbles up, but by then the order must already be unlocked.
+			try {
+				$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+				$this->fail( 'Expected the throwing listener to propagate an exception.' );
+			} catch ( Exception $e ) {
+				$this->assertSame( 'Listener failure.', $e->getMessage() );
+			}
+
+			// Assert: the payment lock was released before the hook fired.
+			$order_helper = WC_Stripe_Order_Helper::get_instance();
+			$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $renewal_order ) );
+		} finally {
+			// Clean up.
+			remove_action( 'wc_stripe_subscription_renewal_blocked_by_radar', $listener, 10 );
+			remove_filter( 'pre_http_request', $pre_http_request_callback );
+			WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = null;
+			WCS_Retry_Manager::mock_reset();
+		}
+	}
+
 	public function test_missing_customer() {
 		$renewal_order = WC_Helper_Order::create_order();
 		$source        = 'src_123abc';
