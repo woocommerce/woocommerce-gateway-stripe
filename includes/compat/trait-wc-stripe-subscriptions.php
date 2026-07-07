@@ -472,6 +472,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
 		$order_locked = false;
 		$radar_reason = false;
+		$response     = null;
 
 		try {
 			$order_id = $renewal_order->get_id();
@@ -662,9 +663,9 @@ trait WC_Stripe_Subscriptions_Trait {
 				/**
 				 * Fires when a subscription renewal payment is blocked by Stripe Radar.
 				 *
-				 * @param WC_Order $renewal_order The renewal order blocked by Radar.
-				 * @param object   $response      The Stripe API error response.
-				 * @param string   $radar_reason  The Radar block reason (e.g. 'rule', 'highest_risk_level').
+				 * @param WC_Order    $renewal_order The renewal order blocked by Radar.
+				 * @param object|null $response      The Stripe API error response.
+				 * @param string      $radar_reason  The Radar block reason (e.g. 'rule', 'highest_risk_level').
 				 */
 				do_action( 'wc_stripe_subscription_renewal_blocked_by_radar', $renewal_order, $response, $radar_reason );
 			}
