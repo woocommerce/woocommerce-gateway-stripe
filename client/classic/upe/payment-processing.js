@@ -1134,10 +1134,7 @@ export const processPayment = (
 				// the customer to the thank-you page instead of checkout.
 				const confirmArgs = {
 					...getUserDataForCheckoutSession( session ),
-					returnUrl: normalizeReturnUrl(
-						checkoutResponse.redirect,
-						getStripeServerData()?.orderReceivedURL
-					),
+					returnUrl: normalizeReturnUrl( checkoutResponse.redirect ),
 					redirect: 'if_required',
 				};
 
