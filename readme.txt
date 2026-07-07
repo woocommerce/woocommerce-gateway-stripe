@@ -35,8 +35,6 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
-* 10.9.0
-   - Removed the deprecated wc_stripe_is_checkout_sessions_available filter; checkout session availability now derives from Stripe settings only
 * 10.8.0
    - Optimized Checkout Suite enabled by default for eligible existing stores
    - Adaptive Pricing enabled by default for eligible existing stores
