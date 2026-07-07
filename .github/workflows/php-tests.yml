@@ -13,7 +13,7 @@ jobs:
     outputs:
       code: ${{ steps.detect.outputs.code }}
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
       - id: detect
         uses: ./.github/actions/detect-code-changes
 
@@ -25,7 +25,7 @@ jobs:
         woocommerce-versions-json: ${{ steps.get-released-woocommerce-versions.outputs.versions-json }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@v7.0.0
 
       - name: Get WooCommerce plugin versions
         id: get-released-woocommerce-versions
@@ -41,7 +41,7 @@ jobs:
       wordpress-versions-json: ${{ steps.get-wordpress-versions.outputs.versions-json }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@v7.0.0
 
       - name: Get WordPress versions
         id: get-wordpress-versions
@@ -86,16 +86,16 @@ jobs:
       WC_VERSION:  ${{ matrix.woocommerce }}
     steps:
       - name: Testing with PHP=${{ matrix.php }}, WP=${{ matrix.wordpress }}, WC=${{ matrix.woocommerce }}
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@v7.0.0
 
       - name: Set up dependencies caching
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/composer/
           key:  ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
 
       - name: Cache WordPress core and test suite
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             /tmp/wordpress
