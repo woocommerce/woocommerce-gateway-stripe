@@ -1250,40 +1250,54 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		if ( ! WC()->cart || WC()->cart->is_empty() ) {
-			return true;
+		$is_supported = true;
+
+		if ( WC()->cart && ! WC()->cart->is_empty() ) {
+			$subscriptions_available = class_exists( 'WC_Subscriptions_Product' ) && method_exists( 'WC_Subscriptions_Product', 'is_subscription' );
+			$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' );
+			$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' );
+
+			// Use a single loop over cart items to check all cases where adaptive pricing is unsupported:
+			// subscriptions, pre-orders charged upon release, and deposits.
+			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+				$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
+
+				if ( ! is_object( $product ) || ! ( $product instanceof WC_Product ) ) {
+					continue;
+				}
+
+				// Subscriptions are not supported with adaptive pricing.
+				if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) {
+					$is_supported = false;
+					break;
+				}
+
+				// Pre-order (charge upon release) is not supported with adaptive pricing.
+				if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
+					$is_supported = false;
+					break;
+				}
+
+				// Deposits are not supported with adaptive pricing.
+				if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) && ! empty( $cart_item['is_deposit'] ) ) {
+					$is_supported = false;
+					break;
+				}
+			}
 		}
 
-		$subscriptions_available = class_exists( 'WC_Subscriptions_Product' ) && method_exists( 'WC_Subscriptions_Product', 'is_subscription' );
-		$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' );
-		$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' );
-
-		// Use a single loop over cart items to check all cases where adaptive pricing is unsupported:
-		// subscriptions, pre-orders charged upon release, and deposits.
-		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
-			$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
-
-			if ( ! is_object( $product ) || ! ( $product instanceof WC_Product ) ) {
-				continue;
-			}
-
-			// Subscriptions are not supported with adaptive pricing.
-			if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) {
-				return false;
-			}
-
-			// Pre-order (charge upon release) is not supported with adaptive pricing.
-			if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
-				return false;
-			}
-
-			// Deposits are not supported with adaptive pricing.
-			if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) && ! empty( $cart_item['is_deposit'] ) ) {
-				return false;
-			}
-		}
-
-		return true;
+		/**
+		 * Filters whether Adaptive Pricing is supported for the current cart content.
+		 *
+		 * This filter runs after the merchant setting, account availability, and checkout page
+		 * checks have passed, so it cannot enable Adaptive Pricing where those gates reject it.
+		 *
+		 * @since 10.9.0
+		 *
+		 * @param bool         $is_supported Whether Adaptive Pricing is supported for the current cart.
+		 * @param WC_Cart|null $cart         The current cart, or null if unavailable.
+		 */
+		return (bool) apply_filters( 'wc_stripe_is_adaptive_pricing_supported', $is_supported, WC()->cart );
 	}
 
 	/**
