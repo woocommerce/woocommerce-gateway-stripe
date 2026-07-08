@@ -2323,4 +2323,85 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 	}
+
+	/**
+	 * Test for `is_checkout_sessions_available`.
+	 *
+	 * @param bool   $pmc_enabled           Whether the Payment Method Configuration API is enabled.
+	 * @param bool   $oc_enabled             Whether the Optimized Checkout is enabled.
+	 * @param bool   $automatic_capture      Whether automatic capture is enabled.
+	 * @param bool   $expected               The expected result.
+	 * @return void
+	 * @dataProvider provide_test_is_checkout_sessions_available
+	 */
+	public function test_is_checkout_sessions_available(
+		bool $pmc_enabled,
+		bool $oc_enabled,
+		bool $automatic_capture,
+		bool $expected
+	): void {
+		// Mock the payment method configuration for the test, to avoid it being disabled by default.
+		PMC_Test_Helper::cache_mocked_configuration();
+
+		if ( $pmc_enabled ) {
+			PMC_Test_Helper::enable_pmc();
+		} else {
+			PMC_Test_Helper::disable_pmc();
+		}
+
+		if ( $oc_enabled ) {
+			OC_Test_Helper::enable_oc();
+		} else {
+			OC_Test_Helper::disable_oc();
+		}
+
+		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['capture'] = $automatic_capture ? 'yes' : 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$actual = WC_Stripe_Helper::is_checkout_sessions_available();
+
+		// Clean up
+		PMC_Test_Helper::disable_pmc();
+		PMC_Test_Helper::delete_cached_configuration();
+		OC_Test_Helper::disable_oc();
+		$stripe_settings['capture'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_is_checkout_sessions_available`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_checkout_sessions_available(): array {
+		return [
+			'All prerequisites met'  => [
+				'PMC enabled'       => true,
+				'OC enabled'        => true,
+				'automatic capture' => true,
+				'expected'          => true,
+			],
+			'PMC disabled'           => [
+				'PMC enabled'       => false,
+				'OC enabled'        => true,
+				'automatic capture' => true,
+				'expected'          => false,
+			],
+			'OC disabled'            => [
+				'PMC enabled'       => true,
+				'OC enabled'        => false,
+				'automatic capture' => true,
+				'expected'          => false,
+			],
+			'Manual capture enabled' => [
+				'PMC enabled'       => true,
+				'OC enabled'        => true,
+				'automatic capture' => false,
+				'expected'          => false,
+			],
+		];
+	}
 }

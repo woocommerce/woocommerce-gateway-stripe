@@ -472,6 +472,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
 		$order_locked = false;
 		$radar_reason = false;
+		$response     = null;
 
 		try {
 			$order_id = $renewal_order->get_id();
@@ -597,72 +598,90 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			$renewal_order->update_status( OrderStatus::FAILED );
 
-			// If the payment was blocked by Stripe Radar, cancel any scheduled
-			// retry attempt. Without this, WC Subscriptions schedules a retry
-			// that would create another charge for Radar to block, inflating
-			// the block rate.
-			if ( false !== $radar_reason ) {
-				$radar_cause = '';
-				switch ( $radar_reason ) {
-					case 'rule':
-						$radar_cause = __( 'Stripe Radar blocked payment for the saved payment method due to a custom Radar rule.', 'woocommerce-gateway-stripe' );
-						break;
-					case 'low_probability_of_authorization':
-						$radar_cause = __( 'Stripe blocked payment for the saved payment method due to low probability of authorization.', 'woocommerce-gateway-stripe' );
-						break;
-					case 'highest_risk_level':
-						$radar_cause = __( 'Stripe Radar blocked payment for the saved payment method as high risk.', 'woocommerce-gateway-stripe' );
-						break;
-					default:
-						$radar_cause = sprintf(
-							/* translators: %s is the Stripe Radar reason code returned by the API. */
-							__( 'Stripe Radar blocked payment for the saved payment method (reason: %s).', 'woocommerce-gateway-stripe' ),
-							$radar_reason
-						);
-						break;
-				}
-				$retry_cancelled_suffix = __( 'The automatic retry has been cancelled to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' );
+			// Guard the Radar side effects, which include a hook that runs listener code.
+			try {
+				// If the payment was blocked by Stripe Radar, cancel any scheduled
+				// retry attempt. Without this, WC Subscriptions schedules a retry
+				// that would create another charge for Radar to block, inflating
+				// the block rate.
+				if ( false !== $radar_reason ) {
+					$radar_cause = '';
+					switch ( $radar_reason ) {
+						case 'rule':
+							$radar_cause = __( 'Stripe Radar blocked payment for the saved payment method due to a custom Radar rule.', 'woocommerce-gateway-stripe' );
+							break;
+						case 'low_probability_of_authorization':
+							$radar_cause = __( 'Stripe blocked payment for the saved payment method due to low probability of authorization.', 'woocommerce-gateway-stripe' );
+							break;
+						case 'highest_risk_level':
+							$radar_cause = __( 'Stripe Radar blocked payment for the saved payment method as high risk.', 'woocommerce-gateway-stripe' );
+							break;
+						default:
+							$radar_cause = sprintf(
+								/* translators: %s is the Stripe Radar reason code returned by the API. */
+								__( 'Stripe Radar blocked payment for the saved payment method (reason: %s).', 'woocommerce-gateway-stripe' ),
+								$radar_reason
+							);
+							break;
+					}
+					$retry_cancelled_suffix = __( 'The automatic retry has been cancelled to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' );
 
-				try {
-					$subscriptions = function_exists( 'wcs_get_subscriptions_for_renewal_order' )
-						? wcs_get_subscriptions_for_renewal_order( $renewal_order )
-						: [];
+					try {
+						$subscriptions = function_exists( 'wcs_get_subscriptions_for_renewal_order' )
+							? wcs_get_subscriptions_for_renewal_order( $renewal_order )
+							: [];
 
-					$retry_cancelled = false;
-					if ( class_exists( 'WCS_Retry_Manager' ) && method_exists( 'WCS_Retry_Manager', 'is_retry_enabled' ) && WCS_Retry_Manager::is_retry_enabled() && method_exists( 'WCS_Retry_Manager', 'store' ) ) {
-						$retry_store = WCS_Retry_Manager::store();
-						$last_retry  = method_exists( $retry_store, 'get_last_retry_for_order' ) ? $retry_store->get_last_retry_for_order( $renewal_order->get_id() ) : null;
-						if ( $last_retry && 'pending' === $last_retry->get_status() ) {
-							$last_retry->update_status( 'cancelled' );
-							$retry_cancelled = true;
-						}
-						foreach ( $subscriptions as $subscription ) {
-							if ( $subscription->get_date( 'payment_retry' ) > 0 ) {
-								$subscription->delete_date( 'payment_retry' );
+						$retry_cancelled = false;
+						if ( class_exists( 'WCS_Retry_Manager' ) && method_exists( 'WCS_Retry_Manager', 'is_retry_enabled' ) && WCS_Retry_Manager::is_retry_enabled() && method_exists( 'WCS_Retry_Manager', 'store' ) ) {
+							$retry_store = WCS_Retry_Manager::store();
+							$last_retry  = method_exists( $retry_store, 'get_last_retry_for_order' ) ? $retry_store->get_last_retry_for_order( $renewal_order->get_id() ) : null;
+							if ( $last_retry && 'pending' === $last_retry->get_status() ) {
+								$last_retry->update_status( 'cancelled' );
 								$retry_cancelled = true;
 							}
+							foreach ( $subscriptions as $subscription ) {
+								if ( $subscription->get_date( 'payment_retry' ) > 0 ) {
+									$subscription->delete_date( 'payment_retry' );
+									$retry_cancelled = true;
+								}
+							}
 						}
+
+						$radar_note = $retry_cancelled
+							? $radar_cause . ' ' . $retry_cancelled_suffix
+							: $radar_cause;
+
+						foreach ( $subscriptions as $subscription ) {
+							$subscription->add_order_note( $radar_note );
+						}
+						$renewal_order->add_order_note( $radar_note );
+					} catch ( Exception $radar_e ) {
+						WC_Stripe_Logger::error(
+							'Failed to cancel scheduled retry after Stripe Radar blocked subscription renewal: ' . $radar_e->getMessage(),
+							[ 'order_id' => $renewal_order->get_id() ]
+						);
 					}
 
-					$radar_note = $retry_cancelled
-						? $radar_cause . ' ' . $retry_cancelled_suffix
-						: $radar_cause;
-
-					foreach ( $subscriptions as $subscription ) {
-						$subscription->add_order_note( $radar_note );
-					}
-					$renewal_order->add_order_note( $radar_note );
-				} catch ( Exception $radar_e ) {
-					WC_Stripe_Logger::error(
-						'Failed to cancel scheduled retry after Stripe Radar blocked subscription renewal: ' . $radar_e->getMessage(),
-						[ 'order_id' => $renewal_order->get_id() ]
-					);
+					/**
+					 * Fires when a subscription renewal payment is blocked by Stripe Radar.
+					 *
+					 * @param WC_Order    $renewal_order The renewal order blocked by Radar.
+					 * @param object|null $response      The Stripe API error response.
+					 * @param string      $radar_reason  The Radar block reason (e.g. 'rule', 'highest_risk_level').
+					 */
+					do_action( 'wc_stripe_subscription_renewal_blocked_by_radar', $renewal_order, $response, $radar_reason );
 				}
-			}
-
-			if ( $order_locked && isset( $order_helper ) ) {
-				$order_helper->unlock_order_payment( $renewal_order );
-				$order_locked = false;
+			} catch ( Exception $exception ) {
+				WC_Stripe_Logger::error(
+					'Error while handling a Stripe Radar-blocked subscription renewal: ' . $exception->getMessage(),
+					[ 'order_id' => $renewal_order->get_id() ]
+				);
+			} finally {
+				// Always release the lock, or the order stays locked until the lock's TTL expires.
+				if ( $order_locked && isset( $order_helper ) ) {
+					$order_helper->unlock_order_payment( $renewal_order );
+					$order_locked = false;
+				}
 			}
 
 			return;
