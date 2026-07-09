@@ -156,7 +156,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.9.0 - xxxx-xx-xx =
-* Fix - Include the order and customer identifiers (order_id, order_key, customer name/email, payment type) in the payment intent metadata for Adaptive Pricing transactions
+* Fix - Add the missing order and customer metadata to Adaptive Pricing payment intents
 * Add - Show a "Paid by customer" row with the Adaptive Pricing amount and currency on the order edit page
 * Fix - Send the admin New Order and customer Processing emails when an asynchronous payment method (iDEAL, Klarna, Bancontact) is confirmed via the deferred webhook path
 * Fix - Use the Amazon Pay custom button size setting on the product, cart, and checkout pages instead of falling back to the Apple Pay/Google Pay size
