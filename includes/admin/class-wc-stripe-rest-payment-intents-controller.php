@@ -66,6 +66,11 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		],
 	];
 
+	/**
+	 * Endpoint query args.
+	 *
+	 * @var array
+	 */
 	protected $rest_query_args = [
 		'amount'   => 'numeric',
 		'created'  => 'numeric',
