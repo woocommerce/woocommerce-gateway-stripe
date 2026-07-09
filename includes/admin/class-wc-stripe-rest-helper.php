@@ -17,6 +17,7 @@ abstract class WC_Stripe_REST_Helper extends WC_Stripe_REST_Base_Controller {
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request An incoming REST request.
 	 * @param array $rest_args REST endpoint params.
+	 *
 	 * @return array
 	 */
 	public static function build_http_query_array_from_request( $request, $rest_args ): array {
@@ -45,6 +46,7 @@ abstract class WC_Stripe_REST_Helper extends WC_Stripe_REST_Base_Controller {
 	 * Given an incoming REST request, build and return a query parameters string to be appended to Stripe API request URL.
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request An incoming REST request.
+	 * @param array $rest_args REST endpoint params.
 	 *
 	 * @return string
 	 */
