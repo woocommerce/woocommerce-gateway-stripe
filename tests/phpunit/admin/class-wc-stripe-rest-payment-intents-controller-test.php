@@ -213,7 +213,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 			$request->set_param( $rest_param_name, $rest_param_value );
 		}
 
-		$passed_rest_params = $controller->build_http_query_array_from_request( $request );
+		$passed_rest_params = WC_Stripe_REST_Helper::build_http_query_array_from_request( $request, $controller->get_payment_intents_route_args() );
 
 		$pre_http_request = [];
 
