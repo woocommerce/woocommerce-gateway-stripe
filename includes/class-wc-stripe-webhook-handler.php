@@ -2006,17 +2006,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$charge->is_webhook_response = true;
 			$this->process_response( $charge, $order );
 
-			// Schedule a job to store the order description and remaining metadata on the payment intent.
-			// The session is created from the cart before the order exists, so neither could be set at creation.
-			// Match the metadata the standard (non-session) flow sets via get_metadata_from_order() so an
-			// Adaptive Pricing transaction carries the same order/customer identifiers merchants rely on.
+			// The checkout session is created from the cart before the order exists, so the intent starts
+			// without order description or metadata. Backfill them here with the same values the standard
+			// non-session flow attaches at intent creation, so Adaptive Pricing transactions aren't missing
+			// the order/customer identifiers merchants rely on.
 			if ( ! empty( $intent_id ) ) {
-				$metadata                   = $this->get_order_metadata( $order );
-				$metadata['customer_name']  = trim( sanitize_text_field( $order->get_billing_first_name() ) . ' ' . sanitize_text_field( $order->get_billing_last_name() ) );
-				$metadata['customer_email'] = sanitize_email( $order->get_billing_email() );
-				$metadata['site_url']       = esc_url( get_site_url() );
-				$metadata['payment_type']   = $this->is_payment_recurring( $order->get_id() ) ? 'recurring' : 'single';
-
 				$this->action_scheduler_service->schedule_job(
 					time() + $this->process_payment_intent_metadata_delay,
 					$this->process_payment_intent_metadata_action,
@@ -2024,7 +2018,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						'payment_intent_id' => $intent_id,
 						'request'           => [
 							'description' => WC_Stripe_Helper::get_payment_intent_description( $order ),
-							'metadata'    => $metadata,
+							'metadata'    => $this->get_metadata_from_order( $order ),
 						],
 					]
 				);
