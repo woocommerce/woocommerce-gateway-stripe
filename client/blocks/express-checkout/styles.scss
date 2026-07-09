@@ -1,4 +1,4 @@
-@import '../../express-checkout/spinner';
+@use '../../express-checkout/spinner';
 
 // Cart Block — use flexbox for consistent button spacing across browsers.
 // WooCommerce core uses block layout with padding-bottom on each <li>, which

@@ -1,27 +1,13 @@
 // Loading spinner shown over the jQuery.blockUI overlay while an Express
 // Checkout wallet payment (Amazon Pay, Apple Pay, Google Pay) is processed.
-//
-// WooCommerce already renders this spinner on its `.blockUI.blockOverlay`
-// pseudo-element, but only under scoped ancestors (`.woocommerce`,
-// `.woocommerce-checkout`, `.woocommerce-order-pay`). ECE blocks the page via
-// `jQuery.blockUI`, whose overlay is a direct child of `<body>` — so on cart and
-// product pages, and on themes that only scope under `.woocommerce` (e.g.
-// Storefront), no spinner shows and the page just dims.
-//
-// We target the SAME `::before` pseudo-element WooCommerce uses, with lower
-// specificity, so where WC's own rule applies it wins and where it doesn't this
-// fills the gap. Every property here is one WooCommerce's own rule also
-// declares (we draw the spinner with `background-image`, never `border`), so on
-// surfaces where WC wins it overrides all of them and its native loader shows
-// cleanly — nothing leaks through to draw a second ring over it.
 
 @keyframes wc-stripe-ece-spin {
-	to {
+	100% {
 		transform: rotate( 360deg );
 	}
 }
 
-.blockUI.blockOverlay::before {
+body.wc-stripe-ece-processing .blockUI.blockOverlay::before {
 	content: '';
 	display: block;
 	position: absolute;
@@ -32,9 +18,9 @@
 	margin-top: -0.5em;
 	margin-left: -0.5em;
 	font-size: 2em;
-	background-image: url( "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='38'%20height='38'%20viewBox='0%200%2038%2038'%3E%3Ccircle%20cx='19'%20cy='19'%20r='16'%20fill='none'%20stroke='%23000'%20stroke-opacity='0.2'%20stroke-width='3'/%3E%3Cpath%20d='M19%203a16%2016%200%200%201%2016%2016'%20fill='none'%20stroke='%23000'%20stroke-opacity='0.75'%20stroke-width='3'%20stroke-linecap='round'/%3E%3C/svg%3E" );
-	background-repeat: no-repeat;
-	background-position: center center;
-	background-size: contain;
-	animation: wc-stripe-ece-spin 0.75s linear infinite;
+	box-sizing: border-box;
+	border: 0.2em solid currentColor;
+	border-left-color: transparent;
+	border-radius: 50%;
+	animation: wc-stripe-ece-spin 1s linear infinite;
 }

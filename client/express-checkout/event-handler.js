@@ -137,14 +137,10 @@ export const onConfirmHandler = async ( params ) => {
 
 /**
  * Blocks the page UI to prevent duplicate interactions during payment processing.
- *
- * The spinner shown over the overlay is provided by CSS targeting WooCommerce's
- * own `.blockUI.blockOverlay::before` pseudo-element (see _spinner.scss), so the
- * loader appears consistently across themes and pages — including cart and
- * product pages where WC's own theme-compat rules don't reach this body-level
- * overlay.
  */
 const blockUI = () => {
+	document.body.classList.add( 'wc-stripe-ece-processing' );
+
 	jQuery.blockUI( {
 		message: null,
 		overlayCSS: {
@@ -159,6 +155,8 @@ const blockUI = () => {
  */
 const unblockUI = () => {
 	jQuery.unblockUI();
+
+	document.body.classList.remove( 'wc-stripe-ece-processing' );
 };
 
 /**
