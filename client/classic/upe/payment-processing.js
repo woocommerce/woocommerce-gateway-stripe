@@ -18,6 +18,7 @@ import {
 	getExcludedPaymentMethodTypes,
 	getUserDataForCheckoutSession,
 	getBillingDetailsForDeferredFlow,
+	normalizeReturnUrl,
 } from '../../stripe-utils';
 import {
 	initializeUPEAppearance,
@@ -1133,7 +1134,7 @@ export const processPayment = (
 				// the customer to the thank-you page instead of checkout.
 				const confirmArgs = {
 					...getUserDataForCheckoutSession( session ),
-					returnUrl: checkoutResponse.redirect,
+					returnUrl: normalizeReturnUrl( checkoutResponse.redirect ),
 					redirect: 'if_required',
 				};
 
@@ -1335,22 +1336,9 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 		postPaymentUrl = decodeURIComponent( partials[ 4 ] || '' );
 	} catch ( error ) {}
 
-	let validatedRedirectUrl = null;
-	if ( postPaymentUrl ) {
-		try {
-			const redirectUrl = new URL(
-				postPaymentUrl,
-				window.location.origin
-			);
-
-			if ( redirectUrl.origin === window.location.origin ) {
-				validatedRedirectUrl = redirectUrl;
-			}
-		} catch ( error ) {}
-	}
-
+	const validatedRedirectUrl = normalizeReturnUrl( postPaymentUrl );
 	if ( validatedRedirectUrl ) {
-		window.location.href = validatedRedirectUrl.toString();
+		window.location.href = validatedRedirectUrl;
 		return;
 	}
 

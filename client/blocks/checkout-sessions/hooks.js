@@ -2,6 +2,7 @@ import { useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { select, useSelect } from '@wordpress/data';
 import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
+import { normalizeReturnUrl } from 'wcstripe/stripe-utils/normalize-return-url';
 import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
 
 /**
@@ -177,7 +178,7 @@ export const useCheckoutSuccessHandler = (
 								postal_code: billingAddress?.postcode,
 							},
 						},
-						returnUrl: redirect,
+						returnUrl: normalizeReturnUrl( redirect ),
 						redirect: 'if_required',
 					};
 
