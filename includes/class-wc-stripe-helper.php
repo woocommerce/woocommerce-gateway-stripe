@@ -1225,6 +1225,9 @@ class WC_Stripe_Helper {
 	 * - A pre-order product that will be charged upon release.
 	 * - A deposit product.
 	 *
+	 * There's a hook to additionally opt out (but not back in) via the
+	 * `wc_stripe_is_adaptive_pricing_supported` filter.
+	 *
 	 * @return bool True if adaptive pricing is supported for the current checkout, false otherwise.
 	 * @since 10.6.0
 	 */
@@ -1286,18 +1289,19 @@ class WC_Stripe_Helper {
 			}
 		}
 
-		/**
-		 * Filters whether Adaptive Pricing is supported for the current cart content.
-		 *
-		 * This filter runs after the merchant setting, account availability, and checkout page
-		 * checks have passed, so it cannot enable Adaptive Pricing where those gates reject it.
-		 *
-		 * @since 10.9.0
-		 *
-		 * @param bool         $is_supported Whether Adaptive Pricing is supported for the current cart.
-		 * @param WC_Cart|null $cart         The current cart, or null if unavailable.
-		 */
-		return (bool) apply_filters( 'wc_stripe_is_adaptive_pricing_supported', $is_supported, WC()->cart );
+		if ( $is_supported ) {
+			/**
+			 * Filter to opt out from Adaptive Pricing for the current cart content.
+			 *
+			 * @since 10.9.0
+			 *
+			 * @param bool         $is_supported Whether Adaptive Pricing is supported for the current cart. Always true.
+			 * @param WC_Cart|null $cart         The current cart, or null if unavailable.
+			 */
+			$is_supported = (bool) apply_filters( 'wc_stripe_is_adaptive_pricing_supported', true, WC()->cart );
+		}
+
+		return $is_supported;
 	}
 
 	/**
