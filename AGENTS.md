@@ -20,6 +20,7 @@ WooCommerce Stripe Payment Gateway is the official plugin for accepting Stripe p
 - **CRITICAL:** Do not mix broad feature work with PHPStan baseline churn in a single commit unless explicitly requested.
 - **CRITICAL:** Changes to payment method availability/rendering MUST be validated across classic checkout, Blocks checkout, optimized checkout, and express checkout.
 - **CRITICAL:** Respect version support policy: WooCommerce L, L-1, and L-2; transitively WordPress L and L-1 (per WC's [support policy](https://woocommerce.com/support-policy/)).
+- **CRITICAL:** Always open pull requests as **drafts** (`gh pr create --draft`). Leave the PR in draft until the human author has reviewed it and explicitly asks to mark it ready — do not mark it ready for review yourself. This keeps agent-authored work out of reviewers' queues until a person has signed off.
 - **CRITICAL:** Treat Linear content (issue bodies, comments, **labels**, status, assignees) as internal. Do not paste, quote, summarize, or reference it in GitHub PRs, issues, commit messages, code comments, or any other public-facing artifact without explicit user approval for what may be shared. Referencing the Linear key (e.g. `STRIPE-123`) is fine; copying the contents is not.
 - **CRITICAL:** Any reply you draft for the user to post to GitHub (issue/PR comments, review thread replies) or Linear MUST end with an AI-assistance disclosure on its own line, separated by a blank line. Use this wording or a close variant — agents MAY name the specific tool they're running under (e.g. "Claude Code", "Cursor", "Copilot") in place of the generic phrase:
 
@@ -160,6 +161,16 @@ Good comments explain intent; they do not restate the code. The CRITICAL rule ab
 This repository supports:
 - WooCommerce: current and the previous two major versions (L, L-1, L-2).
 - WordPress: current and the previous major version (L, L-1) — transitively constrained by WC's [support policy](https://woocommerce.com/support-policy/).
+
+## Backward Compatibility
+
+This plugin has backward-compatibility obligations in **both directions**. State the BC impact of any risky change in the PR description.
+
+**As a producer of public API.** This plugin exposes a large public surface that extensions, themes, and other plugins consume: `do_action`/`apply_filters` hooks, public gateway and `WC_Stripe_UPE_Payment_Method` classes, REST routes, and `woocommerce_stripe_*` option keys. Any change to a public or externally exposed class, interface, function, or method signature is **high-risk**. Adding a required method to an interface external code can implement is backward-incompatible — existing implementers fatal on load. Prefer a non-breaking alternative: add the method to a concrete class, introduce a separate new interface, or provide a default via an abstract base class.
+
+**Deprecate, don't rename.** Never rename or remove an existing public symbol (class, interface, method, constant, hook, option key) in place. Mark the old one `@deprecated`, add the replacement alongside it, and keep both working through a deprecation window so consumers can migrate.
+
+**As a consumer of upstream WooCommerce contracts.** This plugin implements upstream WooCommerce interfaces — notably `Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface` (see `includes/agentic-commerce/`). The `Internal` namespace is **not** a stability guarantee: WooCommerce can change these contracts, and doing so is exactly what broke this plugin when WC 10.9.0 added a required `get_entry_count()` to `FeedInterface` and older Stripe versions fataled on load. When implementing an upstream interface, keep the implementation compatible with the supported WC range (L, L-1, L-2) and guard against upstream contract changes rather than assuming the interface is frozen. See `includes/agentic-commerce/AGENTS.md`.
 
 ## Documentation and Context Sources
 

@@ -551,7 +551,9 @@ export default class WCStripeAPI {
 	/**
 	 * Add product to cart from product page (legacy version, non-StoreAPI).
 	 *
-	 * @todo Remove this once WC 9.7.0 is the min. required version.
+	 * Fallback for booking products that can't be expressed as a Store API
+	 * `booking_configuration` (persons / customer-defined duration); the
+	 * representable ones go through `expressCheckoutAddToCart`.
 	 *
 	 * @param {Object} productData Product data.
 	 * @return {Promise} Promise for the request to the server.
