@@ -88,4 +88,87 @@ abstract class WC_Stripe_REST_Validator extends WC_Stripe_REST_Base_Controller {
 
 		return $value;
 	}
+
+	/**
+	 * Validate a 'query' parameter value.
+	 *
+	 * @param string $value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param The parameter name.
+	 * @param array $rest_query_args Query field types.
+	 *
+	 * @return bool
+	 */
+	public static function validate_query( $value, WP_REST_Request $request, string $param, $rest_query_args ) {
+		if ( ! is_array( $value ) || 0 === count( $value ) ) {
+			return false;
+		}
+
+		foreach ( $value as $i => $query_field ) {
+			if ( ! is_array( $query_field ) ) {
+				return false;
+			}
+
+			foreach ( $query_field as $key => $value ) {
+				if ( ! in_array( $key, [ 'field' , 'value', 'operator' ] ) ) {
+					return false;
+				}
+
+				if ( ! is_scalar( $value ) ) {
+					return false;
+				}
+			}
+
+			if ( ! isset( $query_field['field'] ) || '' === $query_field['field'] ) {
+				return false;
+			}
+
+			if ( ! isset( $query_field['value'] ) || '' === $query_field['value'] ) {
+				return false;
+			}
+
+			if ( ! isset( $query_field['operator'] ) ) {
+				continue;
+			}
+
+			$query_field_name      = $query_field['field'];
+			$query_field_type      = $rest_query_args[ $query_field_name ];
+			$query_field_operators = self::QUERY_OPERATORS[ $query_field_type ];
+
+			if ( ( ! is_array( $query_field_operators ) && $query_field_operators !== $query_field['operator'] ) ||
+				( ( is_array( $query_field_operators ) && ! in_array( $query_field['operator'], $query_field_operators ) ) ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Sanitize a 'query' parameter value.
+	 *
+	 * @param string $value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param The parameter name.
+	 * @param array $rest_query_args Query field types.
+	 *
+	 * @return mixed
+	 */
+	public static function sanitize_query( $value, WP_REST_Request $request, string $param, $rest_query_args ) {
+		foreach ( $value as $i => $query_field ) {
+			$query_field_name      = $query_field['field'];
+			$query_field_type      = $rest_query_args[ $query_field_name ];
+			$query_field_operators = self::QUERY_OPERATORS[ $query_field_type ];
+
+			if ( ! isset( $query_field['operator'] ) ) {
+				$value[ $i ]['operator'] = is_array( $query_field_operators ) ? reset( $query_field_operators ) : $query_field_operators;
+			}
+
+			if ( 'string' === $query_field_type || 'token' === $query_field_type ) {
+				$value[ $i ]['value'] = '"' . $query_field['value'] . '"';
+			}
+		}
+
+		return $value;
+	}
 }

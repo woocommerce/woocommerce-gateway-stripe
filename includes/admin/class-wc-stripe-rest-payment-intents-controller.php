@@ -64,6 +64,12 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 			'sanitize_callback' => [ WC_Stripe_REST_Validator::class, 'sanitize_timestamp' ],
 			'validate_callback' => [ WC_Stripe_REST_Validator::class, 'validate_timestamp' ],
 		],
+		'query'            => [
+			'type'              => 'array',
+			'required'          => false,
+			'sanitize_callback' => [ self::class, 'sanitize_query_field' ],
+			'validate_callback' => [ self::class, 'validate_query_field' ],
+		],
 	];
 
 	/**
@@ -71,7 +77,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 *
 	 * @var array
 	 */
-	protected $rest_query_args = [
+	protected static $rest_query_args = [
 		'amount'   => 'numeric',
 		'created'  => 'numeric',
 		'currency' => 'token',
@@ -125,7 +131,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_payment_intents( $request ) {
-		$response = WC_Stripe_API::retrieve( 'payment_intents?' . WC_Stripe_REST_Helper::build_http_query_string_from_request( $request, $this->get_payment_intents_route_args() ) );
+		$response = WC_Stripe_API::retrieve( 'payment_intents' . ( WC_Stripe_REST_Helper::is_search_request( $request ) ? '/search' : '' ) . '?' . WC_Stripe_REST_Helper::build_http_query_string_from_request( $request, $this->get_payment_intents_route_args() ) );
 
 		if ( null === $response ) {
 			return new WP_Error(
@@ -149,5 +155,31 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		$filtered_response = WC_Stripe_REST_Response_Filter::filter_response( $response, $this->stripe_response_allowed_fields );
 
 		return rest_ensure_response( $filtered_response );
+	}
+
+	/**
+	 * Validate a 'query' parameter value.
+	 *
+	 * @param string $value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param The parameter name.
+	 *
+	 * @return bool
+	 */
+	public static function validate_query_field( $value, WP_REST_Request $request, string $param ) {
+		return WC_Stripe_REST_Validator::validate_query( $value, $request, $param, self::$rest_query_args );
+	}
+
+	/**
+	 * Sanitize a 'query' parameter value.
+	 *
+	 * @param string $value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param The parameter name.
+	 *
+	 * @return mixed
+	 */
+	public static function sanitize_query_field( $value, WP_REST_Request $request, string $param ) {
+		return WC_Stripe_REST_Validator::sanitize_query( $value, $request, $param, self::$rest_query_args );
 	}
 }

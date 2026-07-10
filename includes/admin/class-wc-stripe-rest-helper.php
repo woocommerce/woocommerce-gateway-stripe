@@ -28,6 +28,7 @@ abstract class WC_Stripe_REST_Helper extends WC_Stripe_REST_Base_Controller {
 		 */
 
 		$search_params = [];
+		$has_query     = false;
 
 		foreach ( $rest_args as $search_param_name => $search_param_definition ) {
 			$search_param_value = $request->get_param( $search_param_name );
@@ -37,9 +38,27 @@ abstract class WC_Stripe_REST_Helper extends WC_Stripe_REST_Base_Controller {
 			}
 
 			$search_params[ $search_param_name ] = $search_param_value;
+
+			if ( 'query' === $search_param_name ) {
+				$has_query = true;
+			}
+		}
+
+		if ( $has_query ) {
+			$search_params['query'] = static::build_query_param( $request->get_param( 'query' ) );
 		}
 
 		return $search_params;
+	}
+
+	public static function build_query_param( $query_param ) {
+		$query_as_string = '';
+
+		foreach ( $query_param as $query_param_item ) {
+			$query_as_string .= ( $query_as_string ? ' or ' : '' ) . $query_param_item['field'] . $query_param_item['operator'] . $query_param_item['value'];
+		}
+
+		return $query_as_string;
 	}
 
 	/**
@@ -52,5 +71,9 @@ abstract class WC_Stripe_REST_Helper extends WC_Stripe_REST_Base_Controller {
 	 */
 	public static function build_http_query_string_from_request( $request, $rest_args ): string {
 		return http_build_query( WC_Stripe_REST_Helper::build_http_query_array_from_request( $request, $rest_args ) );
+	}
+
+	public static function is_search_request( $request ) {
+		return $request->has_param( 'query' );
 	}
 }
