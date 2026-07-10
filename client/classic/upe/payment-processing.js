@@ -18,6 +18,7 @@ import {
 	getExcludedPaymentMethodTypes,
 	getUserDataForCheckoutSession,
 	getBillingDetailsForDeferredFlow,
+	normalizeReturnUrl,
 } from '../../stripe-utils';
 import {
 	initializeUPEAppearance,
@@ -60,6 +61,33 @@ const gatewayUPEComponents = {};
 let hasCheckoutCompleted = false;
 
 /**
+ * Tracks an in-flight Payment Element (re)mount.
+ *
+ * WooCommerce re-renders the payment box on every `updated_checkout`, remounting
+ * asynchronously. A submission in that window posts an empty
+ * `wc-stripe-payment-method` field and fails, so submissions wait on this.
+ *
+ * @type {Promise<*>|null}
+ */
+let mountInProgress = null;
+
+/**
+ * Registers a (re)mount promise to wait on. Composes with any existing one so
+ * overlapping `updated_checkout` cycles all settle before submission proceeds.
+ *
+ * @param {Promise<*>} promise The mount promise to track.
+ */
+export function trackMountInProgress( promise ) {
+	// Swallow rejections so awaiting this in processPayment never throws.
+	const trackedPromise = Promise.resolve( promise ).catch( () => {} );
+	mountInProgress = mountInProgress
+		? Promise.allSettled( [ mountInProgress, trackedPromise ] ).then(
+				() => {}
+		  )
+		: trackedPromise;
+}
+
+/**
  * Initialize the UPE components for each payment method type.
  */
 export function initializeUPEComponents() {
@@ -81,6 +109,7 @@ export function initializeUPEComponents() {
 	}
 	// Reset so processPayment runs fully when called again (e.g. after re-init or in tests).
 	hasCheckoutCompleted = false;
+	mountInProgress = null;
 }
 
 /**
@@ -311,13 +340,9 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	let elements;
 	let shouldLoadStripeElements = true;
 	// If Adaptive Pricing is enabled, use the Checkout Session API to load the elements.
-	// dahlia+ keeps initCheckout() as a throwing stub, so detect the replacement method and
-	// skip AP before creating a Checkout Session instead of falling back after it throws.
 	if (
 		stripeServerData?.isAdaptivePricingEnabled &&
-		supportsDeferredIntent &&
-		typeof stripe?.initCheckout === 'function' &&
-		typeof stripe?.initCheckoutElementsSdk !== 'function'
+		supportsDeferredIntent
 	) {
 		try {
 			const response = await api.checkoutSessionsCreateSession();
@@ -609,6 +634,20 @@ function createStripePaymentMethod(
  * @return {Object} An object containing the Stripe Elements object and the Stripe Payment Element.
  */
 export async function mountStripePaymentElement( api, domElement ) {
+	const mountPromise = mountStripePaymentElementImpl( api, domElement );
+	// Track this (re)mount so a concurrent checkout submission waits for it.
+	trackMountInProgress( mountPromise );
+	return mountPromise;
+}
+
+/**
+ * Mounts the Stripe payment element. See {@link mountStripePaymentElement}.
+ *
+ * @param {Object} api        The API object used to create the Stripe payment element.
+ * @param {Object} domElement The DOM element to mount the Stripe payment element on.
+ * @return {Promise<Object|undefined>} The UPE component, or undefined when nothing was mounted.
+ */
+async function mountStripePaymentElementImpl( api, domElement ) {
 	/*
 	 * Trigger this event to ensure the tokenization-form.js init
 	 * is executed.
@@ -671,8 +710,9 @@ export async function mountStripePaymentElement( api, domElement ) {
 			upeElementPromise;
 	}
 
-	// Expose the full (re)mount as a single awaitable promise so processPayment
-	// can wait for a re-mounting element instead of posting an empty field.
+	// Run the (re)mount as one promise so a concurrent mount of the same node
+	// reuses it (dedupe above) and a newer mount supersedes it via the token
+	// fence. Submission waiting goes through the module-level tracker.
 	const mountPromise = ( async () => {
 		const upeElement = await upeElementPromise;
 
@@ -853,15 +893,8 @@ function isUPEDomElementMounted( domElement ) {
 
 /**
  * Ensures the Payment Element for the given method is fully mounted before the
- * checkout is submitted.
- *
- * WooCommerce re-renders the payment box on `updated_checkout` (e.g. after an
- * address change recalculates shipping), which tears down the Stripe Payment
- * Element and triggers an asynchronous re-mount. If the customer submits during
- * that window, the element isn't ready and the wc-stripe-payment-method field
- * posts empty, failing the payment. This awaits any in-flight (re)mount and, if
- * the element has been torn down but not yet re-mounted, mounts it before we
- * proceed.
+ * checkout is submitted: awaits any in-flight (re)mount and, if the element was
+ * torn down but not yet re-mounted, mounts it.
  *
  * @param {Object} api               The API object.
  * @param {string} paymentMethodType The payment method type.
@@ -873,14 +906,13 @@ export async function ensureUPEElementMounted( api, paymentMethodType ) {
 		return;
 	}
 
-	// Drain in-flight (re)mounts before touching the DOM. Back-to-back
-	// `updated_checkout` re-renders can each start a new mount, so re-read
-	// mountPromise after every await and keep waiting until none is left.
-	while ( component.mountPromise ) {
-		const inFlight = component.mountPromise;
+	// Drain in-flight updated_checkout chains before touching the DOM. Back-to-back
+	// re-renders each start a new chain, so re-read the tracker until none is left.
+	while ( mountInProgress ) {
+		const inFlight = mountInProgress;
 		// eslint-disable-next-line no-await-in-loop
 		await inFlight;
-		if ( component.mountPromise === inFlight ) {
+		if ( mountInProgress === inFlight ) {
 			break;
 		}
 	}
@@ -890,14 +922,12 @@ export async function ensureUPEElementMounted( api, paymentMethodType ) {
 	// mounting into a detached node would bind the iframe outside the document.
 	const domElement = getUPEDomElement( paymentMethodType );
 
-	// No element on the page (e.g. a 100% discount coupon removed the payment
-	// box). Nothing to wait for.
+	// No element on the page (e.g. a 100% discount coupon removed the payment box).
 	if ( ! domElement ) {
 		return;
 	}
 
-	// The element was torn down (its iframe removed) but a re-mount hasn't been
-	// kicked off yet. Mount it now and wait, so we don't submit an empty field.
+	// Torn down but no re-mount kicked off yet — mount it now.
 	if ( ! isUPEDomElementMounted( domElement ) ) {
 		await mountStripePaymentElement( api, domElement );
 	}
@@ -1017,8 +1047,8 @@ export const processPayment = (
 
 	( async () => {
 		try {
-			// The element may be mid-remount; reading its Elements instance now
-			// would post an empty payment method field and fail the payment.
+			// Wait out any in-flight re-mount before reading the Elements
+			// instance. The form is already blocked, so the spinner covers it.
 			await ensureUPEElementMounted( api, paymentMethodType );
 
 			const { elements, hasLoadError } =
@@ -1104,7 +1134,7 @@ export const processPayment = (
 				// the customer to the thank-you page instead of checkout.
 				const confirmArgs = {
 					...getUserDataForCheckoutSession( session ),
-					returnUrl: checkoutResponse.redirect,
+					returnUrl: normalizeReturnUrl( checkoutResponse.redirect ),
 					redirect: 'if_required',
 				};
 
@@ -1306,22 +1336,9 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 		postPaymentUrl = decodeURIComponent( partials[ 4 ] || '' );
 	} catch ( error ) {}
 
-	let validatedRedirectUrl = null;
-	if ( postPaymentUrl ) {
-		try {
-			const redirectUrl = new URL(
-				postPaymentUrl,
-				window.location.origin
-			);
-
-			if ( redirectUrl.origin === window.location.origin ) {
-				validatedRedirectUrl = redirectUrl;
-			}
-		} catch ( error ) {}
-	}
-
+	const validatedRedirectUrl = normalizeReturnUrl( postPaymentUrl );
 	if ( validatedRedirectUrl ) {
-		window.location.href = validatedRedirectUrl.toString();
+		window.location.href = validatedRedirectUrl;
 		return;
 	}
 

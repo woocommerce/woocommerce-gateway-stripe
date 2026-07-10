@@ -472,6 +472,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
 		$order_locked = false;
 		$radar_reason = false;
+		$response     = null;
 
 		try {
 			$order_id = $renewal_order->get_id();
@@ -597,72 +598,90 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			$renewal_order->update_status( OrderStatus::FAILED );
 
-			// If the payment was blocked by Stripe Radar, cancel any scheduled
-			// retry attempt. Without this, WC Subscriptions schedules a retry
-			// that would create another charge for Radar to block, inflating
-			// the block rate.
-			if ( false !== $radar_reason ) {
-				$radar_cause = '';
-				switch ( $radar_reason ) {
-					case 'rule':
-						$radar_cause = __( 'Stripe Radar blocked payment for the saved payment method due to a custom Radar rule.', 'woocommerce-gateway-stripe' );
-						break;
-					case 'low_probability_of_authorization':
-						$radar_cause = __( 'Stripe blocked payment for the saved payment method due to low probability of authorization.', 'woocommerce-gateway-stripe' );
-						break;
-					case 'highest_risk_level':
-						$radar_cause = __( 'Stripe Radar blocked payment for the saved payment method as high risk.', 'woocommerce-gateway-stripe' );
-						break;
-					default:
-						$radar_cause = sprintf(
-							/* translators: %s is the Stripe Radar reason code returned by the API. */
-							__( 'Stripe Radar blocked payment for the saved payment method (reason: %s).', 'woocommerce-gateway-stripe' ),
-							$radar_reason
-						);
-						break;
-				}
-				$retry_cancelled_suffix = __( 'The automatic retry has been cancelled to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' );
+			// Guard the Radar side effects, which include a hook that runs listener code.
+			try {
+				// If the payment was blocked by Stripe Radar, cancel any scheduled
+				// retry attempt. Without this, WC Subscriptions schedules a retry
+				// that would create another charge for Radar to block, inflating
+				// the block rate.
+				if ( false !== $radar_reason ) {
+					$radar_cause = '';
+					switch ( $radar_reason ) {
+						case 'rule':
+							$radar_cause = __( 'Stripe Radar blocked payment for the saved payment method due to a custom Radar rule.', 'woocommerce-gateway-stripe' );
+							break;
+						case 'low_probability_of_authorization':
+							$radar_cause = __( 'Stripe blocked payment for the saved payment method due to low probability of authorization.', 'woocommerce-gateway-stripe' );
+							break;
+						case 'highest_risk_level':
+							$radar_cause = __( 'Stripe Radar blocked payment for the saved payment method as high risk.', 'woocommerce-gateway-stripe' );
+							break;
+						default:
+							$radar_cause = sprintf(
+								/* translators: %s is the Stripe Radar reason code returned by the API. */
+								__( 'Stripe Radar blocked payment for the saved payment method (reason: %s).', 'woocommerce-gateway-stripe' ),
+								$radar_reason
+							);
+							break;
+					}
+					$retry_cancelled_suffix = __( 'The automatic retry has been cancelled to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' );
 
-				try {
-					$subscriptions = function_exists( 'wcs_get_subscriptions_for_renewal_order' )
-						? wcs_get_subscriptions_for_renewal_order( $renewal_order )
-						: [];
+					try {
+						$subscriptions = function_exists( 'wcs_get_subscriptions_for_renewal_order' )
+							? wcs_get_subscriptions_for_renewal_order( $renewal_order )
+							: [];
 
-					$retry_cancelled = false;
-					if ( class_exists( 'WCS_Retry_Manager' ) && method_exists( 'WCS_Retry_Manager', 'is_retry_enabled' ) && WCS_Retry_Manager::is_retry_enabled() && method_exists( 'WCS_Retry_Manager', 'store' ) ) {
-						$retry_store = WCS_Retry_Manager::store();
-						$last_retry  = method_exists( $retry_store, 'get_last_retry_for_order' ) ? $retry_store->get_last_retry_for_order( $renewal_order->get_id() ) : null;
-						if ( $last_retry && 'pending' === $last_retry->get_status() ) {
-							$last_retry->update_status( 'cancelled' );
-							$retry_cancelled = true;
-						}
-						foreach ( $subscriptions as $subscription ) {
-							if ( $subscription->get_date( 'payment_retry' ) > 0 ) {
-								$subscription->delete_date( 'payment_retry' );
+						$retry_cancelled = false;
+						if ( class_exists( 'WCS_Retry_Manager' ) && method_exists( 'WCS_Retry_Manager', 'is_retry_enabled' ) && WCS_Retry_Manager::is_retry_enabled() && method_exists( 'WCS_Retry_Manager', 'store' ) ) {
+							$retry_store = WCS_Retry_Manager::store();
+							$last_retry  = method_exists( $retry_store, 'get_last_retry_for_order' ) ? $retry_store->get_last_retry_for_order( $renewal_order->get_id() ) : null;
+							if ( $last_retry && 'pending' === $last_retry->get_status() ) {
+								$last_retry->update_status( 'cancelled' );
 								$retry_cancelled = true;
 							}
+							foreach ( $subscriptions as $subscription ) {
+								if ( $subscription->get_date( 'payment_retry' ) > 0 ) {
+									$subscription->delete_date( 'payment_retry' );
+									$retry_cancelled = true;
+								}
+							}
 						}
+
+						$radar_note = $retry_cancelled
+							? $radar_cause . ' ' . $retry_cancelled_suffix
+							: $radar_cause;
+
+						foreach ( $subscriptions as $subscription ) {
+							$subscription->add_order_note( $radar_note );
+						}
+						$renewal_order->add_order_note( $radar_note );
+					} catch ( Exception $radar_e ) {
+						WC_Stripe_Logger::error(
+							'Failed to cancel scheduled retry after Stripe Radar blocked subscription renewal: ' . $radar_e->getMessage(),
+							[ 'order_id' => $renewal_order->get_id() ]
+						);
 					}
 
-					$radar_note = $retry_cancelled
-						? $radar_cause . ' ' . $retry_cancelled_suffix
-						: $radar_cause;
-
-					foreach ( $subscriptions as $subscription ) {
-						$subscription->add_order_note( $radar_note );
-					}
-					$renewal_order->add_order_note( $radar_note );
-				} catch ( Exception $radar_e ) {
-					WC_Stripe_Logger::error(
-						'Failed to cancel scheduled retry after Stripe Radar blocked subscription renewal: ' . $radar_e->getMessage(),
-						[ 'order_id' => $renewal_order->get_id() ]
-					);
+					/**
+					 * Fires when a subscription renewal payment is blocked by Stripe Radar.
+					 *
+					 * @param WC_Order    $renewal_order The renewal order blocked by Radar.
+					 * @param object|null $response      The Stripe API error response.
+					 * @param string      $radar_reason  The Radar block reason (e.g. 'rule', 'highest_risk_level').
+					 */
+					do_action( 'wc_stripe_subscription_renewal_blocked_by_radar', $renewal_order, $response, $radar_reason );
 				}
-			}
-
-			if ( $order_locked && isset( $order_helper ) ) {
-				$order_helper->unlock_order_payment( $renewal_order );
-				$order_locked = false;
+			} catch ( Exception $exception ) {
+				WC_Stripe_Logger::error(
+					'Error while handling a Stripe Radar-blocked subscription renewal: ' . $exception->getMessage(),
+					[ 'order_id' => $renewal_order->get_id() ]
+				);
+			} finally {
+				// Always release the lock, or the order stays locked until the lock's TTL expires.
+				if ( $order_locked && isset( $order_helper ) ) {
+					$order_helper->unlock_order_payment( $renewal_order );
+					$order_locked = false;
+				}
 			}
 
 			return;
@@ -1214,7 +1233,8 @@ trait WC_Stripe_Subscriptions_Trait {
 			$saved_payment_method = WC_Stripe_Subscriptions_Helper::get_subscription_payment_method_details( $stripe_customer_id, $stripe_source_id );
 
 			if ( null !== $saved_payment_method ) {
-				return $this->get_payment_method_to_display_for_payment_method( $saved_payment_method );
+				$wallet_type_override = $this->get_saved_token_wallet_type( $customer_user, $stripe_source_id );
+				return $this->get_payment_method_to_display_for_payment_method( $saved_payment_method, $wallet_type_override );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
@@ -1225,12 +1245,45 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
+	 * Returns the pinned `wallet_type` of the saved token backing a Stripe PaymentMethod.
+	 *
+	 * Fingerprint dedup can repoint a saved card token at a newer (wallet-flavored)
+	 * PaymentMethod while leaving its `wallet_type` pinned. The subscription
+	 * row must reflect that pinned branding rather than the live PaymentMethod's wallet,
+	 * so the row and the saved-token list agree.
+	 *
+	 * @param int    $customer_user     WP user ID owning the subscription.
+	 * @param string $stripe_source_id  Stripe PaymentMethod ID stored on the subscription.
+	 * @return string|null The token's pinned wallet type (possibly an empty string), or null
+	 *                     when no matching saved token exists (e.g. guest / parent-order lookups).
+	 */
+	protected function get_saved_token_wallet_type( $customer_user, $stripe_source_id ): ?string {
+		if ( ! $customer_user || empty( $stripe_source_id ) ) {
+			return null;
+		}
+
+		$tokens = WC_Payment_Tokens::get_customer_tokens( $customer_user, WC_Stripe_UPE_Payment_Gateway::ID );
+		foreach ( $tokens as $token ) {
+			if ( $token->get_token() === $stripe_source_id && $token instanceof WC_Stripe_Payment_Token_CC ) {
+				return $token->get_wallet_type();
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Helper function to get the descriptive text for a payment method or source.
 	 *
-	 * @param object $payment_method The payment method or source object.
+	 * @param object      $payment_method      The payment method or source object.
+	 * @param string|null $wallet_type_override Authoritative wallet type from the matching saved
+	 *                                          token, or null when no token matched. When provided
+	 *                                          (including an empty string), it wins over the live
+	 *                                          PaymentMethod's `card->wallet->type` so the row matches
+	 *                                          the saved-token list's pinned branding.
 	 * @return string The descriptive text for the payment method or source.
 	 */
-	protected function get_payment_method_to_display_for_payment_method( object $payment_method ): string {
+	protected function get_payment_method_to_display_for_payment_method( object $payment_method, ?string $wallet_type_override = null ): string {
 		// Legacy handling for Stripe Card objects. ref: https://docs.stripe.com/api/cards/object
 		if ( isset( $payment_method->object ) && WC_Stripe_Payment_Methods::CARD === $payment_method->object ) {
 			return sprintf(
@@ -1247,7 +1300,10 @@ trait WC_Stripe_Subscriptions_Trait {
 				$card_last4 = $payment_method->card->last4;
 
 				// Surface the wallet brand (Apple Pay / Google Pay) used; `link` and manual cards stay bare.
-				$wallet_type  = isset( $payment_method->card->wallet->type ) ? $payment_method->card->wallet->type : '';
+				// When a saved token matched the PaymentMethod, its pinned `wallet_type` is
+				// authoritative so this row matches the saved-token list; otherwise
+				// fall back to the live PaymentMethod's wallet type.
+				$wallet_type  = $wallet_type_override ?? ( isset( $payment_method->card->wallet->type ) ? $payment_method->card->wallet->type : '' );
 				$wallet_label = WC_Stripe_Payment_Methods::EXPRESS_METHODS_LABELS[ $wallet_type ] ?? '';
 				if ( '' !== $wallet_label ) {
 					return sprintf(
