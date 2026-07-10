@@ -173,7 +173,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	/**
 	 * Sanitize a 'query' parameter value.
 	 *
-	 * @param string $value The parameter value.
+	 * @param array $value The parameter value.
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
 	 * @param string $param The parameter name.
 	 *
