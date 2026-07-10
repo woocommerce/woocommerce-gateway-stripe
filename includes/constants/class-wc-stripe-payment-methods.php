@@ -96,6 +96,21 @@ class WC_Stripe_Payment_Methods {
 	];
 
 	/**
+	 * Non-card payment methods that support manual capture.
+	 *
+	 * Level 3 data is card-network only, so it must not be attached to requests for
+	 * these methods — Stripe rejects a request containing level3 for them.
+	 *
+	 * @var array
+	 */
+	public const NON_CARD_MANUAL_CAPTURE_METHODS = [
+		self::AFFIRM,
+		self::AFTERPAY_CLEARPAY,
+		self::KLARNA,
+		self::AMAZON_PAY,
+	];
+
+	/**
 	 * List of express payment methods labels. Amazon Pay and Link are not included,
 	 * as they have their own payment method classes.
 	 */

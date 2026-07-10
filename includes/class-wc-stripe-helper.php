@@ -1530,6 +1530,21 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Determines whether Level 3 data should be sent to Stripe for the given order.
+	 *
+	 * Level 3 data is card-network only. Non-card methods that support manual capture
+	 * (Affirm, Klarna, Afterpay/Clearpay, Amazon Pay) reject requests containing level3,
+	 * so it must not be attached for them.
+	 *
+	 * @param WC_Order $order The order being processed.
+	 * @return bool Whether Level 3 data applies to the order's payment method.
+	 */
+	public static function order_supports_level3_data( $order ) {
+		$payment_method_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
+		return ! in_array( $payment_method_type, WC_Stripe_Payment_Methods::NON_CARD_MANUAL_CAPTURE_METHODS, true );
+	}
+
+	/**
 	 * Verifies if the provided order contains the identifier for a wallet method.
 	 *
 	 * @param WC_Order $order The order.

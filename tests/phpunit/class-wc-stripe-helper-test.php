@@ -734,6 +734,43 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `order_supports_level3_data`.
+	 *
+	 * Level 3 data is card-network only, so it must be attached for card (and
+	 * legacy orders with no stored UPE type) but never for the non-card methods
+	 * that support manual capture (Affirm, Klarna, Afterpay/Clearpay, Amazon Pay).
+	 *
+	 * @param string $upe_payment_type The stored Stripe UPE payment type.
+	 * @param bool   $expected         Whether Level 3 data applies to the order.
+	 * @dataProvider provide_order_supports_level3_data
+	 * @return void
+	 */
+	public function test_order_supports_level3_data( string $upe_payment_type, bool $expected ): void {
+		$order = WC_Helper_Order::create_order();
+		if ( '' !== $upe_payment_type ) {
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $upe_payment_type );
+		}
+
+		$this->assertSame( $expected, WC_Stripe_Helper::order_supports_level3_data( $order ) );
+	}
+
+	/**
+	 * Provider for `test_order_supports_level3_data`.
+	 *
+	 * @return array
+	 */
+	public function provide_order_supports_level3_data(): array {
+		return [
+			'card'              => [ WC_Stripe_Payment_Methods::CARD, true ],
+			'no stored type'    => [ '', true ],
+			'Affirm'            => [ WC_Stripe_Payment_Methods::AFFIRM, false ],
+			'Klarna'            => [ WC_Stripe_Payment_Methods::KLARNA, false ],
+			'Afterpay/Clearpay' => [ WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY, false ],
+			'Amazon Pay'        => [ WC_Stripe_Payment_Methods::AMAZON_PAY, false ],
+		];
+	}
+
+	/**
 	 * Provider for `test_payment_method_allows_manual_capture`
 	 *
 	 * @return array
