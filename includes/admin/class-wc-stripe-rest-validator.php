@@ -147,7 +147,7 @@ abstract class WC_Stripe_REST_Validator extends WC_Stripe_REST_Base_Controller {
 	/**
 	 * Sanitize a 'query' parameter value.
 	 *
-	 * @param string $value The parameter value.
+	 * @param array $value The parameter value.
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
 	 * @param string $param The parameter name.
 	 * @param array $rest_query_args Query field types.

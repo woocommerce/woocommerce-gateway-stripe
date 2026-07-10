@@ -51,6 +51,13 @@ abstract class WC_Stripe_REST_Helper extends WC_Stripe_REST_Base_Controller {
 		return $search_params;
 	}
 
+	/**
+	 * Implode and return a query param fields.
+	 *
+	 * @param array $query_param 'Query' param fields.
+	 *
+	 * @return string
+	 */
 	public static function build_query_param( $query_param ) {
 		$query_as_string = '';
 
@@ -73,6 +80,13 @@ abstract class WC_Stripe_REST_Helper extends WC_Stripe_REST_Base_Controller {
 		return http_build_query( WC_Stripe_REST_Helper::build_http_query_array_from_request( $request, $rest_args ) );
 	}
 
+	/**
+	 * Checks if a given request contains a query param.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request A REST request.
+	 *
+	 * @return bool
+	 */
 	public static function is_search_request( $request ) {
 		return $request->has_param( 'query' );
 	}
