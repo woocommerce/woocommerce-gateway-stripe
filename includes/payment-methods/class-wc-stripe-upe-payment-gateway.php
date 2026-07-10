@@ -3024,31 +3024,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Prepares Stripe metadata for a given order.
-	 *
-	 * @param WC_Order $order Order being processed.
-	 *
-	 * @return array Array of keyed metadata values.
-	 */
-	public function get_metadata_from_order( $order ) {
-		$payment_type = $this->is_payment_recurring( $order->get_id() ) ? 'recurring' : 'single';
-		$name         = trim( sanitize_text_field( $order->get_billing_first_name() ) . ' ' . sanitize_text_field( $order->get_billing_last_name() ) );
-		$email        = sanitize_email( $order->get_billing_email() );
-
-		$metadata = array_merge(
-			[
-				'customer_name'  => $name,
-				'customer_email' => $email,
-				'site_url'       => esc_url( get_site_url() ),
-				'payment_type'   => $payment_type,
-			],
-			$this->get_order_metadata( $order )
-		);
-
-		return apply_filters( 'wc_stripe_intent_metadata', $metadata, $order );
-	}
-
-	/**
 	 * Adds BNPL debug metadata to the metadata array.
 	 *
 	 * @return array
