@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.9.0
+* Add - Add query param support to admin Stripe payment intents REST API endpoint
 * Add - Add an admin REST API endpoint for retrieving Stripe payment intents
 * Fix - Add the missing order and customer metadata to Adaptive Pricing payment intents
 * Add - Show a "Paid by customer" row with the Adaptive Pricing amount and currency on the order edit page
