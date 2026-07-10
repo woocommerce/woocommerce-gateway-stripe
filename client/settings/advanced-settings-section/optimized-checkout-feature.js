@@ -74,6 +74,11 @@ const getAdaptivePricingUnavailableText = (
 				'Adaptive Pricing requires working webhooks. Your Stripe webhooks are currently disabled, so it can’t be enabled.',
 				'woocommerce-gateway-stripe'
 			);
+		case 'manual-capture':
+			return __(
+				'Adaptive Pricing requires automatic capture. It’s unavailable while "Issue an authorization on checkout, and capture later" is enabled.',
+				'woocommerce-gateway-stripe'
+			);
 		default:
 			return __(
 				'Adaptive Pricing is currently unavailable.',
