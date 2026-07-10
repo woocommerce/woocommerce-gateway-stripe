@@ -816,6 +816,21 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test that `get_adaptive_pricing_unavailable_reason` reports manual capture specifically,
+	 * so merchants know that the "Issue an authorization on checkout, and capture later" setting
+	 * is what blocks Adaptive Pricing rather than seeing the generic reason.
+	 *
+	 * @return void
+	 */
+	public function test_get_adaptive_pricing_unavailable_reason_for_manual_capture() {
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'capture' => 'no' ] );
+
+		$this->assertSame( 'manual-capture', WC_Stripe_Helper::get_adaptive_pricing_unavailable_reason() );
+
+		WC_Stripe_Helper::delete_main_stripe_settings();
+	}
+
+	/**
 	 * Test for `get_klarna_preferred_locale`.
 	 * @return void
 	 */
