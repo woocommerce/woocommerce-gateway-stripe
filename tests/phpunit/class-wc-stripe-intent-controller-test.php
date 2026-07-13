@@ -31,11 +31,21 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		$this->order = WC_Helper_Order::create_order();
+		$this->create_gateway_and_controller();
+	}
+
+	/**
+	 * Creates the mocked gateway and controller under test.
+	 *
+	 * The gateway snapshots the main Stripe settings in its constructor, so tests that
+	 * change those settings must call this again for the new values to take effect.
+	 */
+	private function create_gateway_and_controller() {
 		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
 			->getMock();
 
-		$this->order           = WC_Helper_Order::create_order();
 		$this->gateway         = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->setConstructorArgs( [ $mock_account ] )
 			->setMethods( [ 'maybe_process_upe_redirect', 'has_subscription' ] )
@@ -154,6 +164,83 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		return [
 			'uses order currency when order exists' => [ 'USD', 'CAD', 'usd' ],
 			'uses global currency without order'    => [ null, 'EUR', 'eur' ],
+		];
+	}
+
+	/**
+	 * Test that create_payment_intent includes the bank statement descriptor for non-card
+	 * payment methods that create their intent upfront (non-deferred, e.g. ACSS Debit and BLIK).
+	 *
+	 * @param string|null $payment_method_type The payment method type requested for the intent.
+	 * @param string      $local_descriptor    The locally configured statement descriptor.
+	 * @param array       $account_data        The Stripe account data to mock.
+	 * @param string|null $expected_descriptor The expected statement_descriptor in the request, or null if it must not be set.
+	 *
+	 * @dataProvider provide_create_payment_intent_statement_descriptor_data
+	 */
+	public function test_create_payment_intent_statement_descriptor( $payment_method_type, $local_descriptor, $account_data, $expected_descriptor ) {
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['statement_descriptor'] = $local_descriptor;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$this->create_gateway_and_controller();
+
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_cached_account_data' ] )
+			->getMock();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( $account_data );
+
+		$request_body = null;
+		$test_request = function ( $preempt, $parsed_args ) use ( &$request_body ) {
+			$request_body = $parsed_args['body'];
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode(
+					[
+						'id'            => 'pi_mock',
+						'client_secret' => 'cs_mock',
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_payment_intent( $this->order->get_id(), $payment_method_type );
+
+		$this->assertIsArray( $request_body, 'The payment intent creation request should have been made.' );
+
+		if ( null === $expected_descriptor ) {
+			$this->assertArrayNotHasKey( 'statement_descriptor', $request_body );
+		} else {
+			$this->assertArrayHasKey( 'statement_descriptor', $request_body );
+			$this->assertSame( $expected_descriptor, $request_body['statement_descriptor'] );
+		}
+	}
+
+	/**
+	 * Data provider for test_create_payment_intent_statement_descriptor.
+	 *
+	 * @return array[] [ payment_method_type, local_descriptor, account_data, expected_descriptor ]
+	 */
+	public function provide_create_payment_intent_statement_descriptor_data() {
+		$account_with_descriptor = [
+			'settings' => [
+				'payments' => [
+					'statement_descriptor' => 'ACCOUNT DESCRIPTOR',
+				],
+			],
+		];
+
+		return [
+			'blik uses the local descriptor'          => [ WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID, 'WOO STORE', $account_with_descriptor, 'WOO STORE' ],
+			'acss falls back to account descriptor'   => [ WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID, '', $account_with_descriptor, 'ACCOUNT DESCRIPTOR' ],
+			'no descriptor available leaves it unset' => [ WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID, '', [], null ],
+			'card payments do not set the descriptor' => [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, 'WOO STORE', $account_with_descriptor, null ],
+			'no payment method type leaves it unset'  => [ null, 'WOO STORE', $account_with_descriptor, null ],
 		];
 	}
 
