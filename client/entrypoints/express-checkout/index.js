@@ -32,7 +32,6 @@ import 'wcstripe/express-checkout/compatibility/classic-checkout-custom-fields';
 import 'wcstripe/express-checkout/compatibility/wc-product-page';
 import 'wcstripe/express-checkout/compatibility/wcpbc-currency';
 import { resolveExpressCheckoutCurrency } from 'wcstripe/express-checkout/utils/resolve-currency';
-import { getResolvedCurrency } from 'wcstripe/express-checkout/utils/resolved-currency-cache';
 import { setElementCurrency } from 'wcstripe/express-checkout/utils/element-currency-cache';
 import { computeProductPageStartArgs } from 'wcstripe/express-checkout/utils/compute-product-page-start-args';
 import { isAmazonPaySupportedForCurrency } from 'wcstripe/stripe-utils';
@@ -262,11 +261,13 @@ jQuery( function ( $ ) {
 			// after render. When the currency changed, re-check it against the
 			// supported set: a currency Amazon Pay can't take would make Stripe
 			// reject the whole element, while a supported one keeps it offered.
-			const resolvedCurrency = getResolvedCurrency( localizedCurrency );
-			const hasCurrencyChanged = resolvedCurrency !== localizedCurrency;
+			// Check the currency the element is actually built with (options.currency)
+			// rather than the resolved-currency global, which an overlapping init()
+			// could overwrite between here and element creation.
+			const hasCurrencyChanged = options.currency !== localizedCurrency;
 			const amazonPaySupportsCurrency =
 				! hasCurrencyChanged ||
-				isAmazonPaySupportedForCurrency( resolvedCurrency );
+				isAmazonPaySupportedForCurrency( options.currency );
 
 			// For each supported express payment type, create their own
 			// express checkout element. This is necessary as some express payment types
