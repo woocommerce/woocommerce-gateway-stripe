@@ -1,10 +1,9 @@
 /* global wc_stripe_amazon_pay_settings_params */
 import { ADMIN_URL, getSetting } from '@woocommerce/settings';
-import React, { useMemo } from 'react';
+import React from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
-import { loadStripe } from '@stripe/stripe-js';
 import styled from '@emotion/styled';
-import ExpressCheckoutPreviewComponent from './express-checkout-preview-component';
+import ExpressCheckoutPreview from 'wcstripe/settings/express-checkout-preview';
 import {
 	Card,
 	RadioControl,
@@ -17,13 +16,9 @@ import {
 	useAmazonPayLocations,
 	useAmazonPayButtonSize,
 } from 'wcstripe/data';
+import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
-import { useAccount } from 'wcstripe/data/account/hooks';
-import {
-	useAccountKeysPublishableKey,
-	useAccountKeysTestPublishableKey,
-} from 'wcstripe/data/account-keys/hooks';
 
 const makeButtonSizeText = ( string ) =>
 	interpolateComponents( {
@@ -66,21 +61,10 @@ const buttonSizeOptions = [
 
 const AmazonPaySettingsSection = () => {
 	const [ size, setSize ] = useAmazonPayButtonSize();
-	const accountId = useAccount().data?.account?.id;
-	const [ publishableKey ] = useAccountKeysPublishableKey();
-	const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
 	const isButtonStyleOverridden =
 		!! wc_stripe_amazon_pay_settings_params?.is_button_style_overridden; // eslint-disable-line camelcase
-
-	const stripePromise = useMemo( () => {
-		return loadStripe(
-			publishableKey || testPublishableKey || 'pk_test_123',
-			{
-				stripeAccount: accountId || '0001',
-				locale: 'en',
-			}
-		);
-	}, [ testPublishableKey, publishableKey, accountId ] );
+	// eslint-disable-next-line camelcase
+	const previewParams = wc_stripe_amazon_pay_settings_params;
 
 	const [ isAmazonPayEnabled ] = useAmazonPayEnabledSettings();
 
@@ -193,9 +177,24 @@ const AmazonPaySettingsSection = () => {
 				/>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
-					<ExpressCheckoutPreviewComponent
-						stripe={ stripePromise }
+					<ExpressCheckoutPreview
+						params={ previewParams }
+						paymentMethodTypes={ [ PAYMENT_METHOD_AMAZON_PAY ] }
+						paymentMethods={ {
+							amazonPay: 'auto',
+							link: 'never',
+							googlePay: 'never',
+							applePay: 'never',
+							klarna: 'never',
+						} }
 						size={ size }
+						errorMessage={ __(
+							'Failed to preview the Amazon Pay button. ' +
+								'Ensure your store uses HTTPS on a publicly available domain ' +
+								"and you're viewing this page in a Safari or Chrome browser. " +
+								'Your device must be configured to use Amazon Pay.',
+							'woocommerce-gateway-stripe'
+						) }
 					/>
 				</LoadableAccountSection>
 			</CardBody>

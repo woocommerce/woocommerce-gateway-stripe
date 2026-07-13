@@ -108,7 +108,7 @@ jobs:
           mkdir ${{ github.workspace }}/qit-results
 
       - name: Download the zip
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.artifact }}
           path: ${{ github.workspace }}
@@ -352,7 +352,7 @@ jobs:
 
       - name: Upload results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.results-artifact }}
           path: ${{ github.workspace }}/qit-results/

@@ -1,5 +1,4 @@
 const path = require( 'path' );
-const webpack = require( 'webpack' );
 const DependencyExtractionWebpackPlugin = require( '@woocommerce/dependency-extraction-webpack-plugin' );
 const LiveReloadWebpackPlugin = require( '@kooneko/livereload-webpack-plugin' );
 const { BundleAnalyzerPlugin } = require( 'webpack-bundle-analyzer' );
@@ -64,11 +63,6 @@ module.exports = {
 		),
 		new DependencyExtractionWebpackPlugin( {
 			injectPolyfill: true,
-		} ),
-		new webpack.DefinePlugin( {
-			__PAYMENT_METHOD_FEES_ENABLED: JSON.stringify(
-				process.env.PAYMENT_METHOD_FEES_ENABLED === 'true'
-			),
 		} ),
 		process.env.BUNDLE_ANALYZE === 'true' &&
 			new BundleAnalyzerPlugin( {

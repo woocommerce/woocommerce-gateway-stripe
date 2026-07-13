@@ -696,6 +696,111 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * OC must represent Stripe in the Cart/Checkout block editor, even though is_checkout() (and thus
+	 * is_valid_optimized_checkout_page()) is false there.
+	 *
+	 * @dataProvider provide_should_render_optimized_checkout
+	 *
+	 * @param bool $oc_enabled      Whether Optimized Checkout is enabled.
+	 * @param bool $valid_oc_page   Whether is_valid_optimized_checkout_page() returns true.
+	 * @param bool $in_block_editor Whether we are editing a post that hosts the Checkout block in admin.
+	 * @param bool $expected        Expected return value.
+	 */
+	public function test_should_render_optimized_checkout(
+		bool $oc_enabled,
+		bool $valid_oc_page,
+		bool $in_block_editor,
+		bool $expected
+	): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'is_valid_optimized_checkout_page' ] )
+			->getMock();
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( $valid_oc_page );
+		$gateway->oc_enabled = $oc_enabled;
+
+		$initial_get            = $_GET;
+		$initial_current_screen = $GLOBALS['current_screen'] ?? null;
+
+		if ( $in_block_editor ) {
+			$post_id = self::factory()->post->create( [ 'post_content' => '<!-- wp:woocommerce/checkout /-->' ] );
+			// is_editing_cart_or_checkout_block() reads the edited post ID from the request.
+			$_GET['post'] = (string) $post_id;
+			// is_admin() reads the current screen; set an admin screen so the admin branch is exercised.
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$GLOBALS['current_screen'] = WP_Screen::get( 'post.php' );
+		}
+
+		try {
+			$this->assertSame( $expected, $gateway->should_render_optimized_checkout() );
+		} finally {
+			$_GET = $initial_get;
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$GLOBALS['current_screen'] = $initial_current_screen;
+		}
+	}
+
+	/**
+	 * Data provider for test_should_render_optimized_checkout.
+	 *
+	 * @return array[]
+	 */
+	public function provide_should_render_optimized_checkout(): array {
+		return [
+			'OC disabled is never rendered'                   => [
+				'oc_enabled'      => false,
+				'valid_oc_page'   => true,
+				'in_block_editor' => true,
+				'expected'        => false,
+			],
+			'OC enabled on a valid OC checkout page'          => [
+				'oc_enabled'      => true,
+				'valid_oc_page'   => true,
+				'in_block_editor' => false,
+				'expected'        => true,
+			],
+			'OC enabled while editing the Checkout block'     => [
+				'oc_enabled'      => true,
+				'valid_oc_page'   => false,
+				'in_block_editor' => true,
+				'expected'        => true,
+			],
+			'OC enabled but neither checkout page nor editor' => [
+				'oc_enabled'      => true,
+				'valid_oc_page'   => false,
+				'in_block_editor' => false,
+				'expected'        => false,
+			],
+		];
+	}
+
+	/**
+	 * In the block editor with OC enabled, the Blocks config must expose the OC element (keyed under
+	 * the 'card'/OC id, mapped to 'stripe' on the client) even when only Cash App Pay is enabled.
+	 */
+	public function test_get_enabled_payment_method_config_exposes_oc_method_in_block_editor(): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'should_render_optimized_checkout', 'get_upe_enabled_at_checkout_payment_method_ids', 'is_adaptive_pricing_supported' ] )
+			->getMock();
+		// Editor context: OC stands in for Stripe even though is_valid_optimized_checkout_page() is false.
+		$gateway->method( 'should_render_optimized_checkout' )->willReturn( true );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( false );
+		// Card disabled; only Cash App Pay enabled.
+		$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( [ WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
+		$gateway->oc_enabled = true;
+
+		$get_config = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'get_enabled_payment_method_config' );
+		$get_config->setAccessible( true );
+		$config = $get_config->invoke( $gateway );
+
+		// The OC element (id 'card', mapped to 'stripe' client-side) must be present; Cash App Pay
+		// renders inside it rather than as a standalone method.
+		$this->assertArrayHasKey( WC_Stripe_Payment_Methods::OC, $config );
+		$this->assertArrayNotHasKey( WC_Stripe_Payment_Methods::CASHAPP_PAY, $config );
+	}
+
+	/**
 	 * Test that payment_scripts registers the wc-stripe-upe-classic script with the correct version and dependencies.
 	 *
 	 * Because build/upe-classic.asset.php may not be present in test environments, we have conditional logic as follows:
@@ -5866,6 +5971,126 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertStringContainsString( $expected_amount . ' EUR', $output );
 		$this->assertStringContainsString( $expected_rate . ' EUR', $output );
 		$this->assertStringContainsString( '</p>', $output );
+	}
+
+	/**
+	 * Test that display_paid_by_customer_amount outputs nothing when no checkout session is associated with the order.
+	 *
+	 * @return void
+	 */
+	public function test_display_paid_by_customer_amount_outputs_nothing_when_no_checkout_session(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		ob_start();
+		$this->mock_gateway->display_paid_by_customer_amount( $order->get_id() );
+		$output = ob_get_clean();
+
+		$this->assertEmpty( $output );
+	}
+
+	/**
+	 * Test that display_paid_by_customer_amount outputs nothing when the checkout session has no presentment details.
+	 *
+	 * @return void
+	 */
+	public function test_display_paid_by_customer_amount_outputs_nothing_when_no_presentment_details(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$checkout_session_id = 'cs_test_paid_by_customer_no_presentment';
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		// The render method reloads the order by ID, so the session meta must be persisted.
+		$order->save();
+
+		$checkout_session = $this->array_to_object(
+			[
+				'id'           => $checkout_session_id,
+				'amount_total' => 2000,
+			]
+		);
+		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+
+		try {
+			ob_start();
+			$this->mock_gateway->display_paid_by_customer_amount( $order->get_id() );
+			$output = ob_get_clean();
+
+			$this->assertEmpty( $output );
+		} finally {
+			WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+		}
+	}
+
+	/**
+	 * Data provider for display_paid_by_customer_amount currency-code disambiguation.
+	 *
+	 * The store currency is USD ("$"). The code is only spelled out when the presentment
+	 * currency shares that symbol (AUD is also "$"); BDT ("৳") stands on its own.
+	 *
+	 * @return array<string, array{string, string, bool}>
+	 */
+	public function provide_display_paid_by_customer_currency_code(): array {
+		return [
+			'shared symbol shows code'   => [ 'aud', 'AUD', true ],
+			'distinct symbol hides code' => [ 'bdt', 'BDT', false ],
+		];
+	}
+
+	/**
+	 * Test that display_paid_by_customer_amount appends the currency code only when its symbol
+	 * collides with the store currency's symbol.
+	 *
+	 * @dataProvider provide_display_paid_by_customer_currency_code
+	 *
+	 * @param string $presentment_currency The presentment currency code (lowercase).
+	 * @param string $expected_code        The uppercase code that may be shown.
+	 * @param bool   $expects_code         Whether the "(CODE)" suffix should be rendered.
+	 * @return void
+	 */
+	public function test_display_paid_by_customer_amount_appends_code_only_on_symbol_collision( string $presentment_currency, string $expected_code, bool $expects_code ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_currency( 'USD' );
+		$order->set_total( 20.00 );
+		$order->save();
+
+		$checkout_session_id = 'cs_test_paid_by_customer_' . $presentment_currency;
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		// The render method reloads the order by ID, so the session meta must be persisted.
+		$order->save();
+
+		$checkout_session = $this->array_to_object(
+			[
+				'id'                  => $checkout_session_id,
+				'amount_total'        => 2000,
+				'presentment_details' => [
+					'presentment_amount'   => 1500,
+					'presentment_currency' => $presentment_currency,
+				],
+			]
+		);
+		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+
+		try {
+			ob_start();
+			$this->mock_gateway->display_paid_by_customer_amount( $order->get_id() );
+			$output = ob_get_clean();
+
+			$this->assertStringContainsString( 'stripe-paid-by-customer', $output );
+			$this->assertStringContainsString( 'Paid by customer:', $output );
+			$this->assertStringContainsString( '15.00', $output );
+
+			if ( $expects_code ) {
+				$this->assertStringContainsString( '(' . $expected_code . ')', $output );
+			} else {
+				$this->assertStringNotContainsString( $expected_code, $output );
+			}
+		} finally {
+			WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+		}
 	}
 
 	/**
