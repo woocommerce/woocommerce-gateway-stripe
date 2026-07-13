@@ -407,6 +407,13 @@ class WC_Stripe_Intent_Controller {
 			'capture_method'       => $capture ? 'automatic' : 'manual',
 		];
 
+		if ( ! empty( $payment_method_type ) && WC_Stripe_Payment_Methods::CARD !== $payment_method_type ) {
+			$statement_descriptor = $gateway->get_full_statement_descriptor();
+			if ( ! empty( $statement_descriptor ) ) {
+				$request['statement_descriptor'] = $statement_descriptor;
+			}
+		}
+
 		$request = $this->maybe_add_mandate_options( $request, $payment_method_type );
 
 		$payment_intent = WC_Stripe_API::request( $request, 'payment_intents' );

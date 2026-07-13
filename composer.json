@@ -58,6 +58,7 @@
         "includes/migrations/class-wc-stripe-ocs-ap-default-on-update.php",
         "includes/notes/class-wc-stripe-whats-new-note.php",
         "includes/payment-methods/class-wc-stripe-express-checkout-custom-fields.php",
+        "includes/payment-methods/class-wc-stripe-payment-request-compat.php",
         "includes/payment-tokens/class-wc-stripe-ach-payment-token.php",
         "includes/payment-tokens/class-wc-stripe-acss-payment-token.php",
         "includes/payment-tokens/class-wc-stripe-amazon-pay-payment-token.php",
