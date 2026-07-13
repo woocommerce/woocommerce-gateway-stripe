@@ -8,8 +8,7 @@
  *
  * @param {Object}   deps
  * @param {Function} deps.getExpressCheckoutData         Reads the localized ECE params (`'product'`, `'checkout'`).
- * @param {Function} deps.resolveExpressCheckoutCurrency Threads the resolver chain; called with `(fallback, ctx)`.
- * @param {Function} deps.getResolvedCurrency            Reads the cached resolved currency post-resolve.
+ * @param {Function} deps.resolveExpressCheckoutCurrency Threads the resolver chain; called with `(fallback, ctx)`, resolves to the currency.
  * @param {Function} deps.getSelectedProductData         AJAX call that re-fetches product totals in the resolved currency.
  * @param {Function} deps.transformLabeledDisplayItems   Stripe transformer for non-legacy display items.
  * @param {boolean}  deps.useLegacyDisplayItems          True for variations/bookings; skips the transform.
@@ -18,7 +17,6 @@
 export async function computeProductPageStartArgs( {
 	getExpressCheckoutData,
 	resolveExpressCheckoutCurrency,
-	getResolvedCurrency,
 	getSelectedProductData,
 	transformLabeledDisplayItems,
 	useLegacyDisplayItems,
@@ -35,11 +33,10 @@ export async function computeProductPageStartArgs( {
 
 	// let any registered resolver (e.g. WCPBC) settle the visitor's currency
 	// before we create the Stripe Element. fast-path when no resolver participates.
-	await resolveExpressCheckoutCurrency( localizedCurrency, {
-		buttonContext: 'product',
-	} );
-
-	const resolvedCurrency = getResolvedCurrency( localizedCurrency );
+	const resolvedCurrency = await resolveExpressCheckoutCurrency(
+		localizedCurrency,
+		{ buttonContext: 'product' }
+	);
 	const hasCurrencyChanged = resolvedCurrency !== localizedCurrency;
 
 	let total = getExpressCheckoutData( 'product' )?.total?.amount;
@@ -51,17 +48,34 @@ export async function computeProductPageStartArgs( {
 	// data was rendered against the wrong one. the AJAX call below will now see
 	// WCPBC's cookie and return converted values.
 	if ( hasCurrencyChanged ) {
+		let fresh;
 		try {
-			const fresh = await getSelectedProductData();
-			if ( fresh && ! fresh.error ) {
-				total = fresh.total.amount;
-				displayItems = fresh.displayItems ?? [];
-				requestShipping = fresh.requestShipping ?? requestShipping;
-			}
+			fresh = await getSelectedProductData();
 		} catch ( e ) {
-			// fall back to the localized data. ECE may render in the wrong
-			// currency, but it won't fail silently at confirmation.
+			// the re-fetch failed, so we have no trustworthy amount in the
+			// resolved currency. bail rather than render a base-currency amount
+			// under the resolved-currency label; the shopper falls back to the
+			// regular checkout.
+			return null;
 		}
+
+		// only trust the re-fetched payload when the server actually returned
+		// amounts in the resolved currency. an error, a missing total, or a
+		// currency mismatch (e.g. the zone wasn't persisted before this call)
+		// would mean a base-currency amount shown as the resolved currency, so
+		// bail instead of misleading the shopper.
+		if (
+			! fresh ||
+			fresh.error ||
+			fresh.currency !== resolvedCurrency ||
+			fresh.total?.amount === undefined
+		) {
+			return null;
+		}
+
+		total = fresh.total.amount;
+		displayItems = fresh.displayItems ?? [];
+		requestShipping = fresh.requestShipping ?? requestShipping;
 	}
 
 	return {

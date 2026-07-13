@@ -649,7 +649,6 @@ jQuery( function ( $ ) {
 				const args = await computeProductPageStartArgs( {
 					getExpressCheckoutData,
 					resolveExpressCheckoutCurrency,
-					getResolvedCurrency,
 					getSelectedProductData: () =>
 						wcStripeECE.getSelectedProductData(),
 					transformLabeledDisplayItems,

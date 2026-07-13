@@ -27,7 +27,6 @@ describe( 'computeProductPageStartArgs', () => {
 				product: { validVariationSelected: false, currency: 'USD' },
 			} ),
 			resolveExpressCheckoutCurrency: jest.fn(),
-			getResolvedCurrency: jest.fn(),
 			getSelectedProductData: jest.fn(),
 			transformLabeledDisplayItems: passthroughTransform,
 			useLegacyDisplayItems: false,
@@ -47,7 +46,6 @@ describe( 'computeProductPageStartArgs', () => {
 			resolveExpressCheckoutCurrency: jest
 				.fn()
 				.mockResolvedValue( 'usd' ),
-			getResolvedCurrency: jest.fn().mockReturnValue( 'usd' ),
 			getSelectedProductData,
 			transformLabeledDisplayItems: passthroughTransform,
 			useLegacyDisplayItems: false,
@@ -67,6 +65,7 @@ describe( 'computeProductPageStartArgs', () => {
 
 	test( 'currency changed: re-fetches product data and uses fresh values', async () => {
 		const fresh = {
+			currency: 'eur',
 			total: { amount: 1300 },
 			displayItems: [ { label: 'Widget (EUR)', amount: 1300 } ],
 			requestShipping: false,
@@ -76,7 +75,6 @@ describe( 'computeProductPageStartArgs', () => {
 			resolveExpressCheckoutCurrency: jest
 				.fn()
 				.mockResolvedValue( 'eur' ),
-			getResolvedCurrency: jest.fn().mockReturnValue( 'eur' ),
 			getSelectedProductData: jest.fn().mockResolvedValue( fresh ),
 			transformLabeledDisplayItems: passthroughTransform,
 			useLegacyDisplayItems: false,
@@ -94,13 +92,34 @@ describe( 'computeProductPageStartArgs', () => {
 		} );
 	} );
 
+	test( 'currency changed but re-fetch came back in a different currency bails', async () => {
+		const fresh = {
+			currency: 'usd',
+			total: { amount: 1500 },
+			displayItems: [ { label: 'Widget', amount: 1500 } ],
+			requestShipping: true,
+		};
+		const deps = {
+			getExpressCheckoutData: makeData(),
+			resolveExpressCheckoutCurrency: jest
+				.fn()
+				.mockResolvedValue( 'eur' ),
+			getSelectedProductData: jest.fn().mockResolvedValue( fresh ),
+			transformLabeledDisplayItems: passthroughTransform,
+			useLegacyDisplayItems: false,
+		};
+
+		const result = await computeProductPageStartArgs( deps );
+
+		expect( result ).toBeNull();
+	} );
+
 	test( 'legacy cart endpoints skip the display-items transform', async () => {
 		const deps = {
 			getExpressCheckoutData: makeData(),
 			resolveExpressCheckoutCurrency: jest
 				.fn()
 				.mockResolvedValue( 'usd' ),
-			getResolvedCurrency: jest.fn().mockReturnValue( 'usd' ),
 			getSelectedProductData: jest.fn(),
 			transformLabeledDisplayItems: passthroughTransform,
 			useLegacyDisplayItems: true,
@@ -113,13 +132,12 @@ describe( 'computeProductPageStartArgs', () => {
 		] );
 	} );
 
-	test( 'AJAX failure on resolved-away path falls back to localized data', async () => {
+	test( 'AJAX failure on resolved-away path bails rather than showing a mislabeled amount', async () => {
 		const deps = {
 			getExpressCheckoutData: makeData(),
 			resolveExpressCheckoutCurrency: jest
 				.fn()
 				.mockResolvedValue( 'eur' ),
-			getResolvedCurrency: jest.fn().mockReturnValue( 'eur' ),
 			getSelectedProductData: jest
 				.fn()
 				.mockRejectedValue( new Error( 'network' ) ),
@@ -129,18 +147,15 @@ describe( 'computeProductPageStartArgs', () => {
 
 		const result = await computeProductPageStartArgs( deps );
 
-		expect( result.currency ).toBe( 'eur' );
-		expect( result.total ).toBe( 1500 );
-		expect( result.requestShipping ).toBe( true );
+		expect( result ).toBeNull();
 	} );
 
-	test( 'AJAX returning { error } is ignored, localized data is kept', async () => {
+	test( 'AJAX returning { error } bails', async () => {
 		const deps = {
 			getExpressCheckoutData: makeData(),
 			resolveExpressCheckoutCurrency: jest
 				.fn()
 				.mockResolvedValue( 'eur' ),
-			getResolvedCurrency: jest.fn().mockReturnValue( 'eur' ),
 			getSelectedProductData: jest
 				.fn()
 				.mockResolvedValue( { error: 'nope' } ),
@@ -150,7 +165,7 @@ describe( 'computeProductPageStartArgs', () => {
 
 		const result = await computeProductPageStartArgs( deps );
 
-		expect( result.total ).toBe( 1500 );
+		expect( result ).toBeNull();
 	} );
 
 	test( 'requestPhone reflects checkout.needs_payer_phone', async () => {
@@ -161,7 +176,6 @@ describe( 'computeProductPageStartArgs', () => {
 			resolveExpressCheckoutCurrency: jest
 				.fn()
 				.mockResolvedValue( 'usd' ),
-			getResolvedCurrency: jest.fn().mockReturnValue( 'usd' ),
 			getSelectedProductData: jest.fn(),
 			transformLabeledDisplayItems: passthroughTransform,
 			useLegacyDisplayItems: false,

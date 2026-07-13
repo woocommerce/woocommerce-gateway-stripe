@@ -5,6 +5,10 @@ import { addFilter } from '@wordpress/hooks';
 const RETRIGGER_AFTER_MS = 3000;
 const BAIL_AFTER_MS = 6000;
 
+// Rides WCPBC's AJAX geolocation mode: the `wc_price_based_country_ajax_geo_params`
+// global plus the `wc_price_based_country_set_currency_params` body event. That
+// contract has been stable since WCPBC 2.0 (2020), so instead of pinning a version
+// we feature-detect the global here.
 const isWCPBCAjaxModeActive = () =>
 	// eslint-disable-next-line camelcase
 	typeof wc_price_based_country_ajax_geo_params !== 'undefined';
