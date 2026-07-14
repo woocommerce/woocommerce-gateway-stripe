@@ -522,6 +522,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::error( 'Error processing webhook payment for order: ' . $order_id, [ 'error_message' => $e->getMessage() ] );
 
+			/**
+			 * Fires after webhook payment processing fails.
+			 *
+			 * @param WC_Order                 $order        Order that failed webhook payment processing.
+			 * @param object                   $notification Stripe webhook notification.
+			 * @param WC_Stripe_Exception|null $e            When available, the exception raised during webhook processing.
+			 */
 			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, $e );
 
 			$statuses = [ OrderStatus::PENDING, OrderStatus::FAILED ];
@@ -574,7 +581,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order->save();
 		}
 
-		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+		/**
+		 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
+		 */
+		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, null );
 
 		$order_id = $order->get_id();
 		$this->send_failed_order_email( $order_id );
@@ -608,6 +618,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		/**
+		 * Filters whether a dispute webhook should change the order status.
+		 *
+		 * @param bool     $change_status Whether the webhook should change the order status.
+		 * @param WC_Order $order         Order associated with the dispute.
+		 * @param object   $notification  Stripe webhook notification.
+		 */
 		if ( apply_filters( 'wc_stripe_webhook_dispute_change_order_status', true, $order, $notification ) ) {
 			// Mark final so that order status is not overridden by out-of-sequence events.
 			WC_Stripe_Order_Helper::get_instance()->set_stripe_status_final( $order, true );
@@ -842,7 +859,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order->add_order_note( $message );
 		}
 
-		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+		/**
+		 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
+		 */
+		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, null );
 	}
 
 	/**
@@ -882,7 +902,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order->add_order_note( $message );
 		}
 
-		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+		/**
+		 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
+		 */
+		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, null );
 	}
 
 	/**
@@ -1139,6 +1162,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			esc_html( $notification->data->object->reason )
 		);
 
+		/**
+		 * Filters whether a review webhook should change the order status.
+		 *
+		 * @param bool     $change_status Whether the webhook should change the order status.
+		 * @param WC_Order $order         Order associated with the review.
+		 * @param object   $notification  Stripe webhook notification.
+		 */
 		if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) && ! WC_Stripe_Order_Helper::get_instance()->is_stripe_status_final( $order ) ) {
 			$order->update_status( OrderStatus::ON_HOLD, $message );
 		} else {
@@ -1183,6 +1213,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			! $order_helper->is_stripe_status_final( $order ) &&
 			$order->has_status( OrderStatus::ON_HOLD ) &&
 			( ! empty( $notification->data->object->closed_reason ) && 'approved' === $notification->data->object->closed_reason ) &&
+			/**
+			 * This filter is documented in includes/class-wc-stripe-webhook-handler.php.
+			 */
 			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification )
 		) {
 			// If the status we stored before hold is an incomplete status, restore the status to processing/completed instead.
@@ -1293,6 +1326,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( ! $order->has_status(
+			/**
+			 * This filter is documented in includes/class-wc-stripe-webhook-handler.php.
+			 */
 			apply_filters(
 				'wc_stripe_allowed_payment_processing_statuses',
 				[ OrderStatus::PENDING, OrderStatus::FAILED ],
@@ -1329,6 +1365,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				}
 				break;
 			case 'payment_intent.requires_action':
+				/**
+				 * Fires when a PaymentIntent webhook reports that payment requires action.
+				 *
+				 * @param WC_Order $order  Order associated with the PaymentIntent.
+				 * @param object   $intent Stripe PaymentIntent object.
+				 */
 				do_action( 'wc_gateway_stripe_process_payment_intent_requires_action', $order, $notification->data->object );
 
 				if ( $is_voucher_payment ) {
@@ -1340,6 +1382,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			case 'payment_intent.amount_capturable_updated':
 				WC_Stripe_Logger::debug( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
 
+				/**
+				 * Filters whether successful PaymentIntent webhook processing should be deferred.
+				 *
+				 * @param bool     $process_async Whether to process the webhook asynchronously.
+				 * @param WC_Order $order         Order associated with the PaymentIntent.
+				 * @param object   $intent        Stripe PaymentIntent object.
+				 * @param object   $notification  Stripe webhook notification.
+				 */
 				$process_webhook_async = apply_filters( 'wc_stripe_process_payment_intent_webhook_async', true, $order, $intent, $notification );
 				$is_awaiting_action    = $order_helper->get_stripe_upe_waiting_for_redirect( $order ) ?? false;
 
@@ -1372,6 +1422,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					);
 
 					if ( $is_awaiting_action ) {
+						/**
+						 * Fires when PaymentIntent webhook processing is deferred while the order awaits action.
+						 *
+						 * @param WC_Order $order Order associated with the PaymentIntent.
+						 */
 						do_action( 'wc_gateway_stripe_process_payment_intent_incomplete', $order );
 					}
 				}
@@ -1397,7 +1452,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$order->add_order_note( $message );
 				}
 
-				do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+				/**
+				 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
+				 */
+				do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, null );
 
 				$this->send_failed_order_email( $order_id, $status_update );
 				break;
@@ -1570,6 +1628,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					}
 
 					// Check if the order is still in a valid state to process the webhook.
+					/**
+					 * This filter is documented in includes/class-wc-stripe-webhook-handler.php.
+					 */
 					if ( ! $order->has_status( apply_filters( 'wc_stripe_allowed_payment_processing_statuses', [ OrderStatus::PENDING, OrderStatus::FAILED ], $order ) ) ) {
 						WC_Stripe_Logger::debug( "Skipped processing deferred webhook for Stripe PaymentIntent {$intent_id} for order {$order->get_id()} - payment already complete." );
 						return;
@@ -2043,6 +2104,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				[ 'error_message' => $e->getMessage() ]
 			);
 
+			/**
+			 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
+			 */
 			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, $e );
 
 			$status_update = [];
@@ -2152,7 +2216,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$status_update['to']   = OrderStatus::FAILED;
 			$order->update_status( OrderStatus::FAILED, $message );
 
-			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+			/**
+			 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
+			 */
+			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, null );
 
 			$this->send_failed_order_email( $order->get_id(), $status_update );
 		} finally {

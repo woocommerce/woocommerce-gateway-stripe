@@ -166,6 +166,11 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_localized_messages() {
+		/**
+		 * Filters the localized Stripe error messages exposed to checkout JavaScript.
+		 *
+		 * @param array $messages Stripe error code to localized message map.
+		 */
 		return apply_filters(
 			'wc_stripe_localized_messages',
 			[
@@ -1219,6 +1224,11 @@ class WC_Stripe_Helper {
 			return 'webhooks-disabled';
 		}
 
+		// If Adaptive Pricing was disabled due to an amount mismatch, keep Adaptive Pricing disabled.
+		if ( WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected() ) {
+			return 'amount-mismatch-detected';
+		}
+
 		// If we are in test mode, payout details are often missing and currency-based rules
 		// are not enforced.
 		if ( WC_Stripe_Mode::is_test() ) {
@@ -1250,6 +1260,9 @@ class WC_Stripe_Helper {
 	 * - A pre-order product that will be charged upon release.
 	 * - A deposit product.
 	 *
+	 * There's a hook to additionally opt out (but not back in) via the
+	 * `wc_stripe_is_adaptive_pricing_supported` filter.
+	 *
 	 * @return bool True if adaptive pricing is supported for the current checkout, false otherwise.
 	 * @since 10.6.0
 	 */
@@ -1275,40 +1288,55 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		if ( ! WC()->cart || WC()->cart->is_empty() ) {
-			return true;
+		$is_supported = true;
+
+		if ( WC()->cart && ! WC()->cart->is_empty() ) {
+			$subscriptions_available = class_exists( 'WC_Subscriptions_Product' ) && method_exists( 'WC_Subscriptions_Product', 'is_subscription' );
+			$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' );
+			$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' );
+
+			// Use a single loop over cart items to check all cases where adaptive pricing is unsupported:
+			// subscriptions, pre-orders charged upon release, and deposits.
+			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+				$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
+
+				if ( ! is_object( $product ) || ! ( $product instanceof WC_Product ) ) {
+					continue;
+				}
+
+				// Subscriptions are not supported with adaptive pricing.
+				if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) {
+					$is_supported = false;
+					break;
+				}
+
+				// Pre-order (charge upon release) is not supported with adaptive pricing.
+				if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
+					$is_supported = false;
+					break;
+				}
+
+				// Deposits are not supported with adaptive pricing.
+				if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) && ! empty( $cart_item['is_deposit'] ) ) {
+					$is_supported = false;
+					break;
+				}
+			}
 		}
 
-		$subscriptions_available = class_exists( 'WC_Subscriptions_Product' ) && method_exists( 'WC_Subscriptions_Product', 'is_subscription' );
-		$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' );
-		$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' );
-
-		// Use a single loop over cart items to check all cases where adaptive pricing is unsupported:
-		// subscriptions, pre-orders charged upon release, and deposits.
-		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
-			$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
-
-			if ( ! is_object( $product ) || ! ( $product instanceof WC_Product ) ) {
-				continue;
-			}
-
-			// Subscriptions are not supported with adaptive pricing.
-			if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) {
-				return false;
-			}
-
-			// Pre-order (charge upon release) is not supported with adaptive pricing.
-			if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
-				return false;
-			}
-
-			// Deposits are not supported with adaptive pricing.
-			if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) && ! empty( $cart_item['is_deposit'] ) ) {
-				return false;
-			}
+		if ( $is_supported ) {
+			/**
+			 * Filter to opt out from Adaptive Pricing for the current cart content.
+			 *
+			 * @since 10.9.0
+			 *
+			 * @param bool         $is_supported Whether Adaptive Pricing is supported for the current cart. Always true.
+			 * @param WC_Cart|null $cart         The current cart, or null if unavailable.
+			 */
+			$is_supported = (bool) apply_filters( 'wc_stripe_is_adaptive_pricing_supported', true, WC()->cart );
 		}
 
-		return true;
+		return $is_supported;
 	}
 
 	/**
@@ -1346,6 +1374,11 @@ class WC_Stripe_Helper {
 			return true;
 		}
 
+		/**
+		 * Filters whether Stripe scripts load on product pages when payment request buttons are disabled.
+		 *
+		 * @param bool $should_load Whether Stripe scripts should load.
+		 */
 		return apply_filters( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', true );
 	}
 
@@ -1363,6 +1396,11 @@ class WC_Stripe_Helper {
 			return true;
 		}
 
+		/**
+		 * Filters whether Stripe scripts load on cart pages when payment request buttons are disabled.
+		 *
+		 * @param bool $should_load Whether Stripe scripts should load.
+		 */
 		return apply_filters( 'wc_stripe_load_scripts_on_cart_page_when_prbs_disabled', true );
 	}
 
@@ -1552,6 +1590,28 @@ class WC_Stripe_Helper {
 			],
 			true
 		);
+	}
+
+	/**
+	 * Determines whether Level 3 data should be sent to Stripe for the given order.
+	 *
+	 * Level 3 is card-network only. Sending it for a non-card method draws a rejection that
+	 * sets the account-wide wc_stripe_level3_not_allowed transient, disabling level3 for
+	 * legitimate card orders too — so gate strictly to card payment types.
+	 *
+	 * @param WC_Order $order The order being processed.
+	 * @return bool Whether Level 3 data applies to the order's payment method.
+	 */
+	public static function order_supports_level3_data( $order ) {
+		$payment_method_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
+
+		// Legacy WC_Gateway_Stripe orders and the charge-based capture fallback never write the
+		// UPE payment-type meta but are card payments, so an unset type must keep sending level3.
+		if ( empty( $payment_method_type ) ) {
+			return true;
+		}
+
+		return in_array( $payment_method_type, WC_Stripe_Payment_Methods::LEVEL3_SUPPORTED_PAYMENT_METHODS, true );
 	}
 
 	/**
@@ -1874,9 +1934,7 @@ class WC_Stripe_Helper {
 		 *
 		 * @param bool   $force_save Whether the payment method must be saved.
 		 * @param string $order_id   Order ID.
-		 *
-		 * @return bool Whether the payment method must be saved in all situations.
-		*/
+		 */
 		$force_save_payment_method = apply_filters( 'wc_stripe_force_save_payment_method', $force_save_payment_method, $order_id );
 
 		return $force_save_payment_method;
@@ -2079,9 +2137,7 @@ class WC_Stripe_Helper {
 		 * @since 10.1.0
 		 *
 		 * @param bool $enabled True if enabled, false otherwise.
-		 *
-		 * @return bool True if enabled, false otherwise.
-		*/
+		 */
 		return apply_filters( 'wc_stripe_is_verbose_debug_mode_enabled', false );
 	}
 
