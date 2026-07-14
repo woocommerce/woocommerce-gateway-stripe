@@ -1,5 +1,10 @@
 *** Changelog ***
 
+2026-07-14 - version 10.8.4
+* Fix - Improve Checkout Session amount integrity
+* Fix - Update order status only on processing failure in the order status update request
+* Fix - Scope admin gateway filter to block cart and checkout editors only
+
 2026-06-22 - version 10.8.3
 * Fix - Ensure Adaptive Pricing appears on the checkout page when enabled
 

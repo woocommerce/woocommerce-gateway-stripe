@@ -7,6 +7,13 @@ use Automattic\WooCommerce\Enums\OrderStatus;
  */
 class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
+	 * Asserts the exact persisted marker without exposing a production getter only for tests.
+	 *
+	 * @var string
+	 */
+	private const ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION = 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected';
+
+	/**
 	 * Mock UPE Gateway
 	 *
 	 * @var WC_Stripe_UPE_Payment_Gateway
@@ -225,6 +232,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	public function tear_down() {
 		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
+		delete_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION );
 
 		// The tests in this file do not mock ALL the calls to the Stripe API, and as we use mocked API keys they trigger the 401 rate-limiter,
 		// this is not a problem for these tests as they don't depend on the reponses.
@@ -1929,6 +1937,58 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Store Checkout Session context that matches an order total for Checkout Session processing.
+	 *
+	 * @param string   $session_id Stripe Checkout Session id.
+	 * @param WC_Order $order WooCommerce order.
+	 * @param array    $overrides Context values to override.
+	 * @return void
+	 */
+	private function store_checkout_session_context_for_order( string $session_id, WC_Order $order, array $overrides = [] ): void {
+		WC()->session->init();
+
+		$currency = $order->get_currency();
+
+		WC_Stripe_Checkout_Session_Context::set_context(
+			$session_id,
+			array_merge(
+				[
+					'amount'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $currency ),
+					'currency' => strtolower( $currency ),
+					'order_id' => 0,
+				],
+				$overrides
+			)
+		);
+	}
+
+	/**
+	 * WooCommerce mutates this protected value during guest-to-user session migration.
+	 *
+	 * @param string $customer_id Customer ID to set on the current WC session.
+	 * @return void
+	 */
+	private function set_wc_session_customer_id( string $customer_id ): void {
+		$reflection = new ReflectionClass( WC()->session );
+		$property   = $reflection->getProperty( '_customer_id' );
+		$property->setAccessible( true );
+		$property->setValue( WC()->session, $customer_id );
+	}
+
+	/**
+	 * Assert that a Checkout Session processing failure is surfaced through Woo checkout notices.
+	 *
+	 * @param string $expected_message Expected notice message.
+	 * @return void
+	 */
+	private function assert_checkout_session_failure_notice( string $expected_message ): void {
+		$notices = wc_get_notices( 'error' );
+
+		$this->assertNotEmpty( $notices );
+		$this->assertSame( $expected_message, $notices[0]['notice'] );
+	}
+
+	/**
 	 * Test that the Checkout Sessions return URL carries the disambiguation params
 	 * + the `wc_stripe_process_checkout_session_redirect_nonce` so the handler can
 	 * recognise the customer return.
@@ -1942,6 +2002,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->set_status( OrderStatus::PENDING );
 		$order->save();
+
+		$this->store_checkout_session_context_for_order( 'cs_test_disambig', $order );
 
 		try {
 			$result = $this->mock_gateway->process_payment( $order->get_id() );
@@ -1965,6 +2027,186 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// The session id must have been linked to the order.
 		$this->assertSame(
 			'cs_test_disambig',
+			WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) )
+		);
+
+		$context = WC_Stripe_Checkout_Session_Context::get_context( 'cs_test_disambig' );
+		$this->assertIsArray( $context );
+		$this->assertSame( $order->get_id(), $context['order_id'] );
+
+		WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_disambig' );
+	}
+
+	/**
+	 * Checkout Session payment processing requires context from the session creation request.
+	 */
+	public function test_process_payment_with_checkout_session_rejects_missing_context() {
+		$session_id = 'cs_test_missing_context';
+		wc_clear_notices();
+
+		$original_stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                     = $original_stripe_settings;
+		$stripe_settings['adaptive_pricing'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		try {
+			$result                   = $this->mock_gateway->process_payment( $order->get_id() );
+			$adaptive_pricing_setting = WC_Stripe_Helper::get_settings( null, 'adaptive_pricing' );
+			$mismatch_detected        = WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected();
+		} finally {
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'] );
+			WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
+			delete_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION );
+		}
+
+		$this->assertSame( 'failure', $result['result'] );
+		$this->assertSame( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $result['message'] );
+		$this->assertSame( 'yes', $adaptive_pricing_setting );
+		$this->assertFalse( $mismatch_detected );
+		$this->assert_checkout_session_failure_notice( WC_Stripe_Checkout_Session_Context::get_unavailable_message() );
+		$this->assertEmpty(
+			WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) )
+		);
+
+		wc_clear_notices();
+	}
+
+	/**
+	 * Checkout Session payment processing rejects sessions whose amount no longer matches the order total.
+	 */
+	public function test_process_payment_with_checkout_session_rejects_amount_mismatch() {
+		$session_id       = 'cs_test_amount_mismatch';
+		$expected_message = 'The payment amount no longer matches the order total. Please refresh the page and try again.';
+		wc_clear_notices();
+
+		$original_stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                     = $original_stripe_settings;
+		$stripe_settings['adaptive_pricing'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$this->store_checkout_session_context_for_order( $session_id, $order, [ 'amount' => 100 ] );
+
+		try {
+			$result                   = $this->mock_gateway->process_payment( $order->get_id() );
+			$adaptive_pricing_setting = WC_Stripe_Helper::get_settings( null, 'adaptive_pricing' );
+			$mismatch_detected        = WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected();
+		} finally {
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'] );
+			WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
+			delete_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION );
+		}
+
+		$this->assertSame( 'failure', $result['result'] );
+		$this->assertSame( $expected_message, $result['message'] );
+		$this->assertSame( 'no', $adaptive_pricing_setting );
+		$this->assertTrue( $mismatch_detected );
+		$this->assert_checkout_session_failure_notice( $expected_message );
+		$this->assertEmpty(
+			WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) )
+		);
+
+		wc_clear_notices();
+	}
+
+	/**
+	 * Checkout Session payment processing rejects sessions created by a different browser session.
+	 */
+	public function test_process_payment_with_checkout_session_rejects_other_owner() {
+		$session_id = 'cs_test_other_owner';
+		wc_clear_notices();
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$this->store_checkout_session_context_for_order( $session_id, $order, [ 'owner_key' => 'session:another-customer' ] );
+
+		try {
+			$result = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'] );
+		}
+
+		$this->assertSame( 'failure', $result['result'] );
+		$this->assertSame( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $result['message'] );
+		$this->assert_checkout_session_failure_notice( WC_Stripe_Checkout_Session_Context::get_unavailable_message() );
+		$this->assertEmpty(
+			WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) )
+		);
+
+		wc_clear_notices();
+	}
+
+	/**
+	 * Checkout Session ownership stays valid when Woo logs a guest in while processing checkout.
+	 */
+	public function test_process_payment_with_checkout_session_allows_guest_session_after_checkout_login() {
+		$session_id = 'cs_test_guest_to_login';
+
+		wc_clear_notices();
+		wp_set_current_user( 0 );
+		WC()->customer = new WC_Customer( 0, true );
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$this->store_checkout_session_context_for_order( $session_id, $order );
+		$guest_session_id = WC()->session->get_customer_id();
+
+		$user_id = self::factory()->user->create();
+		wp_set_current_user( $user_id );
+		WC()->customer = new WC_Customer( $user_id, true );
+		$this->set_wc_session_customer_id( (string) $user_id );
+		do_action( 'woocommerce_guest_session_to_user_id', $guest_session_id, (string) $user_id );
+
+		try {
+			$result  = $this->mock_gateway->process_payment( $order->get_id() );
+			$notices = wc_get_notices( 'error' );
+		} finally {
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			WC()->session->set( 'wc_stripe_migrated_guest_session_id', '' );
+			$this->set_wc_session_customer_id( $guest_session_id );
+			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'] );
+			wp_set_current_user( 0 );
+			wc_clear_notices();
+		}
+
+		$this->assertSame( 'success', $result['result'] );
+		$this->assertEmpty( $notices );
+		$this->assertSame(
+			$session_id,
 			WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) )
 		);
 	}
@@ -2026,6 +2268,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order->set_status( OrderStatus::PENDING );
 		$order->save();
 
+		$this->store_checkout_session_context_for_order( $session_id, $order );
+
 		$session_update_called = false;
 		$pre_http_filter       = function ( $return_value, $parsed_args, $url ) use ( $session_id, &$session_update_called ) {
 			if ( WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $session_id === $url ) {
@@ -2039,6 +2283,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$result = $this->mock_gateway->process_payment( $order->get_id() );
 		} finally {
 			remove_filter( 'pre_http_request', $pre_http_filter );
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
 			unset(
 				$_POST['wc_stripe_checkout_session_id'],
 				$_POST['payment_method'],

@@ -1,3 +1,4 @@
+import jQuery from 'jquery';
 import { useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { select, useSelect } from '@wordpress/data';
@@ -348,6 +349,11 @@ export const useCheckoutSessionTotalsSync = (
 
 		const run = async () => {
 			try {
+				blockUI(
+					jQuery(
+						'.wc-block-checkout__payment-method, .wc-block-components-checkout-place-order-button'
+					)
+				);
 				const { checkout } = state;
 				if (
 					typeof api?.checkoutSessionsUpdateSession !== 'function' ||
@@ -370,6 +376,12 @@ export const useCheckoutSessionTotalsSync = (
 					// eslint-disable-next-line no-console
 					console.error( error );
 				}
+			} finally {
+				unblockUI(
+					jQuery(
+						'.wc-block-checkout__payment-method, .wc-block-components-checkout-place-order-button'
+					)
+				);
 			}
 		};
 
@@ -379,4 +391,25 @@ export const useCheckoutSessionTotalsSync = (
 			cancelled = true;
 		};
 	}, [ api, cartTotals, checkoutSessionId ] );
+};
+
+/**
+ * Block UI to indicate processing and avoid duplicate submission.
+ *
+ * @param {Object} $target The jQuery object for the target element.
+ */
+const blockUI = ( $target ) => {
+	$target.addClass( 'processing' ).block( {
+		message: null,
+		overlayCSS: { background: '#fff', opacity: 0.6 },
+	} );
+};
+
+/**
+ * Unblock UI to remove the processing state from the element of the form.
+ *
+ * @param {Object} $target The jQuery object for the target element.
+ */
+const unblockUI = ( $target ) => {
+	$target.removeClass( 'processing' ).unblock();
 };
