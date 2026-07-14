@@ -74,6 +74,11 @@ const getAdaptivePricingUnavailableText = (
 				'Adaptive Pricing requires working webhooks. Your Stripe webhooks are currently disabled, so it can’t be enabled.',
 				'woocommerce-gateway-stripe'
 			);
+		case 'amount-mismatch-detected':
+			return __(
+				'Adaptive Pricing was disabled due to a plugin compatibility issue. Please contact WooCommerce support to report the issue so we can investigate the cause.',
+				'woocommerce-gateway-stripe'
+			);
 		default:
 			return __(
 				'Adaptive Pricing is currently unavailable.',

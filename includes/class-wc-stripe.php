@@ -128,6 +128,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-helper.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-helper.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-checkout-session-context.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-payment-method-configurations.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache-prefetch.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-api.php';
@@ -220,6 +221,7 @@ class WC_Stripe {
 
 			$checkout_sessions_ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
 			$checkout_sessions_ajax_handler->init_hooks();
+			WC_Stripe_Checkout_Session_Context::init_hooks();
 		}
 
 		if ( is_admin() ) {
@@ -515,8 +517,25 @@ class WC_Stripe {
 			// Fall back to filter defaults only if no existing setting.
 			global $post;
 
-			$should_show_on_product_page  = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post );
-			$should_show_on_cart_page     = apply_filters( 'wc_stripe_show_payment_request_on_cart', true );
+			/**
+			 * Filters whether payment request buttons should be hidden on product pages.
+			 *
+			 * @param bool         $hide Whether to hide payment request buttons.
+			 * @param WP_Post|null $post Current post object, if available.
+			 */
+			$should_show_on_product_page = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post );
+			/**
+			 * Filters whether payment request buttons should be shown on the cart page.
+			 *
+			 * @param bool $show Whether to show payment request buttons.
+			 */
+			$should_show_on_cart_page = apply_filters( 'wc_stripe_show_payment_request_on_cart', true );
+			/**
+			 * Filters whether payment request buttons should be shown on the checkout page.
+			 *
+			 * @param bool         $show Whether to show payment request buttons.
+			 * @param WP_Post|null $post Current post object, if available.
+			 */
 			$should_show_on_checkout_page = apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post );
 
 			$new_prb_locations = [];

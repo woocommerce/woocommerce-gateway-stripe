@@ -69,10 +69,17 @@ const mockJQueryTrigger = jest.fn();
 // uses the same mock as assertions below. global.jQuery is also set for any
 // code that accesses window.jQuery directly.
 jest.mock( 'jquery', () => {
-	const jq = jest.fn( () => ( {
-		on: jest.fn(),
-		trigger: jest.fn(),
-	} ) );
+	const jq = jest.fn( () => {
+		const chain = {
+			on: jest.fn(),
+			trigger: jest.fn(),
+			addClass: jest.fn( () => chain ),
+			removeClass: jest.fn( () => chain ),
+			block: jest.fn( () => chain ),
+			unblock: jest.fn( () => chain ),
+		};
+		return chain;
+	} );
 	jq.ajax = jest.fn();
 	return jq;
 } );

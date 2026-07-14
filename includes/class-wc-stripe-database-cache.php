@@ -270,8 +270,6 @@ class WC_Stripe_Database_Cache {
 		 * @param bool   $is_expired Whether the cache is expired.
 		 * @param string $prefixed_key The cache key (with prefix).
 		 * @param array  $cache_contents The cache contents.
-		 *
-		 * @return bool Whether the cache is expired.
 		 */
 		return apply_filters( 'wc_stripe_database_cache_is_expired', $expires < $now, $prefixed_key, $cache_contents );
 	}
