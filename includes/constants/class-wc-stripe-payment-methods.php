@@ -96,18 +96,14 @@ class WC_Stripe_Payment_Methods {
 	];
 
 	/**
-	 * Non-card payment methods that support manual capture.
-	 *
-	 * Level 3 data is card-network only, so it must not be attached to requests for
-	 * these methods — Stripe rejects a request containing level3 for them.
+	 * Payment method types that Stripe accepts Level 3 data for.
+	 * Level 3 is card-network only.
 	 *
 	 * @var array
 	 */
-	public const NON_CARD_MANUAL_CAPTURE_METHODS = [
-		self::AFFIRM,
-		self::AFTERPAY_CLEARPAY,
-		self::KLARNA,
-		self::AMAZON_PAY,
+	public const LEVEL3_SUPPORTED_PAYMENT_METHODS = [
+		self::CARD,
+		self::CARD_PRESENT,
 	];
 
 	/**
