@@ -1887,6 +1887,10 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$reloaded = wc_get_order( $order_id );
 		$this->assertCount( 2, $reloaded->get_refunds() );
 		$this->assertSame( 're_2', $order_helper->get_stripe_refund_id( $reloaded ) );
+
+		// The skipped delivery must release the refund lock, or a legitimate refund webhook
+		// arriving within the lock window would be silently dropped.
+		$this->assertEmpty( $order_helper->get_order_existing_refund_lock( $reloaded ) );
 	}
 
 	/**
