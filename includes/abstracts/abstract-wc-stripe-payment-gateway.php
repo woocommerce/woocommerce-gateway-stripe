@@ -1407,7 +1407,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			// a Stripe refund ID. The amount check guards direct callers (e.g. voids) whose refunded
 			// amount corresponds to no WC refund record — better to leave a record untagged than to
 			// tag the wrong one.
-			if ( $order instanceof WC_Order && isset( $response->amount ) ) {
+			if ( isset( $response->amount ) ) {
 				foreach ( $order->get_refunds() as $wc_refund ) {
 					if ( $order_helper->get_stripe_refund_id_for_refund( $wc_refund ) ) {
 						continue;
