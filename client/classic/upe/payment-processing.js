@@ -43,7 +43,7 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
 /**
  * @typedef {Object} UPEComponent
  * @property {string|null}          intentId          The ID of the intent.
- * @property {string|null}          checkoutSessionId Stripe Checkout Session id (cs_…) from create session; same value passed to initCheckout as clientSecret.
+ * @property {string|null}          checkoutSessionId Stripe Checkout Session id (cs_…) from create session; same value passed to initCheckoutElementsSdk as clientSecret.
  * @property {Object|null}          elements          The Stripe elements object.
  * @property {Object|null}          upeElement        The Stripe payment element.
  * @property {boolean}              hasLoadError      Whether the payment element has a load error.
@@ -242,7 +242,7 @@ function updatePaymentElementDefaultValues( forCheckoutSession = false ) {
  * If the payment method doesn't support deferred intent, the intent must be created first.
  *
  * When Adaptive Pricing is enabled, a Checkout Session is created first and
- * the element is loaded via initCheckout.
+ * the element is loaded via initCheckoutElementsSdk.
  * Otherwise, the payment element is created with the intent's client secret.
  *
  * Finally, the payment element is mounted and attached to the gatewayUPEComponents object.
@@ -354,7 +354,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	// If Adaptive Pricing is enabled, use the Checkout Session API to load the elements.
 	if (
 		stripeServerData?.isAdaptivePricingEnabled &&
-		supportsDeferredIntent
+		supportsDeferredIntent &&
+		typeof stripe?.initCheckoutElementsSdk === 'function'
 	) {
 		try {
 			const response = await api.checkoutSessionsCreateSession();
@@ -373,7 +374,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId =
 				sessionId;
 
-			elements = await stripe.initCheckout( {
+			elements = await stripe.initCheckoutElementsSdk( {
 				clientSecret,
 				elementsOptions: {
 					appearance: options.appearance,

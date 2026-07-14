@@ -30,7 +30,7 @@ describe( 'WCStripeAPI', () => {
 		} );
 
 		it( 'instantiates Stripe when Stripe.js was loaded from the official origin', () => {
-			addStripeScriptTag( 'https://js.stripe.com/clover/stripe.js' );
+			addStripeScriptTag( 'https://js.stripe.com/dahlia/stripe.js' );
 			const api = new WCStripeAPI( { key: 'pk_test_123', locale: 'en' } );
 
 			expect( api.getStripe() ).toBeTruthy();
@@ -42,7 +42,7 @@ describe( 'WCStripeAPI', () => {
 
 		it( 'warns and blocks when Stripe.js was loaded from an unexpected origin', () => {
 			addStripeScriptTag(
-				'https://js.stripe.com.evil.example/clover/stripe.js'
+				'https://js.stripe.com.evil.example/dahlia/stripe.js'
 			);
 			const api = new WCStripeAPI( { key: 'pk_test_123', locale: 'en' } );
 

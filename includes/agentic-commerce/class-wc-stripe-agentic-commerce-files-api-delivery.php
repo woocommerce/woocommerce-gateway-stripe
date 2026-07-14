@@ -56,7 +56,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	 *
 	 * @var string
 	 */
-	public const API_VERSION = '2025-09-30.clover;udap_beta=v1';
+	public const API_VERSION = '2026-03-25.dahlia;udap_beta=v1';
 
 	/**
 	 * Stripe secret key.
