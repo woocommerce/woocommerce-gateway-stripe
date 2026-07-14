@@ -444,7 +444,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	private function delete_stripe_refund_ids_from_refunds( $order, $order_helper ) {
 		foreach ( $this->get_refunds_with_stripe_refund_ids( $order, $order_helper ) as $refund ) {
 			$order_helper->delete_stripe_refund_id_for_refund( $refund );
-			$refund->save();
+			$refund->save_meta_data();
 		}
 	}
 

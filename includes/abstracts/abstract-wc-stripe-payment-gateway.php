@@ -1415,7 +1415,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 					if ( WC_Stripe_Helper::get_stripe_amount( $wc_refund->get_amount(), $order_currency ) === (int) $response->amount ) {
 						$order_helper->update_stripe_refund_id_for_refund( $wc_refund, $response->id );
-						$wc_refund->save();
+						$wc_refund->save_meta_data();
 						break;
 					}
 				}

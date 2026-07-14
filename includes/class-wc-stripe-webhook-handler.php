@@ -1012,7 +1012,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					// The parent-order meta below only tracks the latest refund, so the record keeps
 					// its own ID for per-refund reconciliation.
 					$order_helper->update_stripe_refund_id_for_refund( $refund, $stripe_refund_id );
-					$refund->save();
+					$refund->save_meta_data();
 				}
 
 				$order_helper->update_stripe_refund_id( $order, $stripe_refund_id );
