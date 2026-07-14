@@ -23,6 +23,24 @@ jest.mock( 'wcstripe/blocks/wait-for-payment-element-completion', () => ( {
 	waitForPaymentElementCompletion: jest.fn(),
 } ) );
 
+// hooks.js imports jQuery; mock the module with a chainable so the
+// blockUI/unblockUI calls in the totals-sync effect are no-ops here and do not
+// abort the re-price under test.
+jest.mock( 'jquery', () => {
+	const jq = jest.fn( () => {
+		const chain = {
+			on: jest.fn(),
+			trigger: jest.fn(),
+			addClass: jest.fn( () => chain ),
+			removeClass: jest.fn( () => chain ),
+			block: jest.fn( () => chain ),
+			unblock: jest.fn( () => chain ),
+		};
+		return chain;
+	} );
+	return jq;
+} );
+
 describe( 'CheckoutSessions hook tests', () => {
 	beforeEach( () => {
 		useEffect.mockImplementation( ( fn ) => fn() );
@@ -254,8 +272,13 @@ describe( 'CheckoutSessions hook tests', () => {
 			},
 		};
 
+		let originalLocation;
+
 		beforeEach( () => {
 			document.body.innerHTML = '';
+			originalLocation = window.location;
+			delete window.location;
+			window.location = { origin: 'https://example.com' };
 			onCheckoutSuccess.mockImplementation( ( fn ) => {
 				const onCheckoutProcessingData = {
 					processingResponse: {
@@ -266,6 +289,10 @@ describe( 'CheckoutSessions hook tests', () => {
 				};
 				onCheckoutSuccessResultPromise = fn( onCheckoutProcessingData );
 			} );
+		} );
+
+		afterEach( () => {
+			window.location = originalLocation;
 		} );
 
 		it( 'checkoutState.type is not success', async () => {
@@ -334,6 +361,43 @@ describe( 'CheckoutSessions hook tests', () => {
 				redirect: 'if_required',
 				savePaymentMethod: false,
 			} );
+		} );
+
+		it( 'confirms with an absolute returnUrl when the server returns a relative redirect', async () => {
+			onCheckoutSuccess.mockImplementation( ( fn ) => {
+				const onCheckoutProcessingData = {
+					processingResponse: {
+						paymentDetails: {
+							redirect: '/order-received/123/?key=abc',
+						},
+					},
+				};
+				onCheckoutSuccessResultPromise = fn( onCheckoutProcessingData );
+			} );
+
+			const mockConfirm = jest.fn().mockResolvedValue( {
+				type: 'success',
+			} );
+			const checkoutState = {
+				type: 'success',
+				checkout: { email: '', confirm: mockConfirm },
+			};
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				false,
+				false,
+				shippingData
+			);
+			await onCheckoutSuccessResultPromise;
+
+			expect( mockConfirm ).toHaveBeenCalledWith(
+				expect.objectContaining( {
+					returnUrl:
+						'https://example.com/order-received/123/?key=abc',
+				} )
+			);
 		} );
 
 		it( 'success', async () => {

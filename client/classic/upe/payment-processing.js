@@ -18,6 +18,7 @@ import {
 	getExcludedPaymentMethodTypes,
 	getUserDataForCheckoutSession,
 	getBillingDetailsForDeferredFlow,
+	normalizeReturnUrl,
 } from '../../stripe-utils';
 import {
 	initializeUPEAppearance,
@@ -145,6 +146,7 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 					typeof loadResult.actions?.runServerUpdate === 'function'
 				) {
 					try {
+						blockUI( jQuery( 'form.checkout #payment' ) );
 						const updateResult =
 							await loadResult.actions.runServerUpdate(
 								async () => {
@@ -166,6 +168,8 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 			} catch ( error ) {
 				// eslint-disable-next-line no-console
 				console.error( error );
+			} finally {
+				unblockUI( jQuery( 'form.checkout #payment' ) );
 			}
 		}
 
@@ -191,6 +195,15 @@ function blockUI( jQueryForm ) {
 			opacity: 0.6,
 		},
 	} );
+}
+
+/**
+ * Unblock UI to remove the processing state from the element of the form.
+ *
+ * @param {Object} jQueryForm The jQuery object for the form.
+ */
+function unblockUI( jQueryForm ) {
+	jQueryForm.removeClass( 'processing' ).unblock();
 }
 
 /**
@@ -1134,7 +1147,7 @@ export const processPayment = (
 				// the customer to the thank-you page instead of checkout.
 				const confirmArgs = {
 					...getUserDataForCheckoutSession( session ),
-					returnUrl: checkoutResponse.redirect,
+					returnUrl: normalizeReturnUrl( checkoutResponse.redirect ),
 					redirect: 'if_required',
 				};
 
@@ -1336,22 +1349,9 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 		postPaymentUrl = decodeURIComponent( partials[ 4 ] || '' );
 	} catch ( error ) {}
 
-	let validatedRedirectUrl = null;
-	if ( postPaymentUrl ) {
-		try {
-			const redirectUrl = new URL(
-				postPaymentUrl,
-				window.location.origin
-			);
-
-			if ( redirectUrl.origin === window.location.origin ) {
-				validatedRedirectUrl = redirectUrl;
-			}
-		} catch ( error ) {}
-	}
-
+	const validatedRedirectUrl = normalizeReturnUrl( postPaymentUrl );
 	if ( validatedRedirectUrl ) {
-		window.location.href = validatedRedirectUrl.toString();
+		window.location.href = validatedRedirectUrl;
 		return;
 	}
 

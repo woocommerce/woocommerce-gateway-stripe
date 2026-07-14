@@ -166,6 +166,11 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_localized_messages() {
+		/**
+		 * Filters the localized Stripe error messages exposed to checkout JavaScript.
+		 *
+		 * @param array $messages Stripe error code to localized message map.
+		 */
 		return apply_filters(
 			'wc_stripe_localized_messages',
 			[
@@ -1194,6 +1199,11 @@ class WC_Stripe_Helper {
 			return 'webhooks-disabled';
 		}
 
+		// If Adaptive Pricing was disabled due to an amount mismatch, keep Adaptive Pricing disabled.
+		if ( WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected() ) {
+			return 'amount-mismatch-detected';
+		}
+
 		// If we are in test mode, payout details are often missing and currency-based rules
 		// are not enforced.
 		if ( WC_Stripe_Mode::is_test() ) {
@@ -1231,7 +1241,7 @@ class WC_Stripe_Helper {
 	public static function is_adaptive_pricing_supported(): bool {
 
 		// False if checkout session feature flag is disabled.
-		if ( ! WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
+		if ( ! self::is_checkout_sessions_available() ) {
 			return false;
 		}
 
@@ -1321,6 +1331,11 @@ class WC_Stripe_Helper {
 			return true;
 		}
 
+		/**
+		 * Filters whether Stripe scripts load on product pages when payment request buttons are disabled.
+		 *
+		 * @param bool $should_load Whether Stripe scripts should load.
+		 */
 		return apply_filters( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', true );
 	}
 
@@ -1338,6 +1353,11 @@ class WC_Stripe_Helper {
 			return true;
 		}
 
+		/**
+		 * Filters whether Stripe scripts load on cart pages when payment request buttons are disabled.
+		 *
+		 * @param bool $should_load Whether Stripe scripts should load.
+		 */
 		return apply_filters( 'wc_stripe_load_scripts_on_cart_page_when_prbs_disabled', true );
 	}
 
@@ -1849,9 +1869,7 @@ class WC_Stripe_Helper {
 		 *
 		 * @param bool   $force_save Whether the payment method must be saved.
 		 * @param string $order_id   Order ID.
-		 *
-		 * @return bool Whether the payment method must be saved in all situations.
-		*/
+		 */
 		$force_save_payment_method = apply_filters( 'wc_stripe_force_save_payment_method', $force_save_payment_method, $order_id );
 
 		return $force_save_payment_method;
@@ -2054,9 +2072,7 @@ class WC_Stripe_Helper {
 		 * @since 10.1.0
 		 *
 		 * @param bool $enabled True if enabled, false otherwise.
-		 *
-		 * @return bool True if enabled, false otherwise.
-		*/
+		 */
 		return apply_filters( 'wc_stripe_is_verbose_debug_mode_enabled', false );
 	}
 
@@ -2202,5 +2218,28 @@ class WC_Stripe_Helper {
 			'wc_version'             => defined( 'WC_VERSION' ) ? WC_VERSION : '',
 			'wp_version'             => get_bloginfo( 'version' ),
 		];
+	}
+
+	/**
+	 * Checks if the Stripe Checkout Sessions feature is available.
+	 *
+	 * @return bool True if the checkout sessions feature is available, false otherwise.
+	 */
+	public static function is_checkout_sessions_available(): bool {
+		$stripe_settings              = self::get_stripe_settings();
+		$is_pmc_enabled               = $stripe_settings['pmc_enabled'] ?? 'no';
+		$is_oc_enabled                = $stripe_settings['optimized_checkout_element'] ?? 'no';
+		$is_automatic_capture_enabled = $stripe_settings['capture'] ?? 'yes';
+
+		// Stripe checkout sessions feature can only be available if:
+		// - PMC is enabled
+		// - OC Suite is enabled
+		// - Automatic capture is enabled (i.e. manual capture or later capture is disabled)
+		// If any of the above conditions are not met, the feature is not available.
+		if ( 'yes' !== $is_pmc_enabled || 'yes' !== $is_oc_enabled || 'yes' !== $is_automatic_capture_enabled ) {
+			return false;
+		}
+
+		return true;
 	}
 }
