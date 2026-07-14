@@ -239,6 +239,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	protected function get_disable_checkout( \WC_Product $product, ?\WC_Product $parent_product = null ): bool {
 		$disabled = WC_Stripe_Agentic_Commerce_Integration::is_checkout_disabled();
 
+		// wp_validate_boolean() rather than a plain (bool) cast: a callback that
+		// returns the string 'false' would be truthy under a cast and wrongly
+		// enable redirect mode. This still normalises null / 0 / '' to false.
 		/**
 		 * Filter whether a product is excluded from in-agent checkout (redirect to its `link`).
 		 *
@@ -247,9 +250,6 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * @param \WC_Product      $product        Product object.
 		 * @param \WC_Product|null $parent_product Parent product for variations.
 		 */
-		// wp_validate_boolean() rather than a plain (bool) cast: a callback that
-		// returns the string 'false' would be truthy under a cast and wrongly
-		// enable redirect mode. This still normalises null / 0 / '' to false.
 		return wp_validate_boolean( apply_filters( 'wc_stripe_agentic_commerce_disable_checkout', $disabled, $product, $parent_product ) );
 	}
 
@@ -1043,6 +1043,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			'The wc_stripe_agentic_commerce_should_sync_product filter is deprecated since WooCommerce Stripe Gateway 10.9.0. Use woocommerce_agentic_commerce_should_sync_product instead.'
 		);
 
+		// wp_validate_boolean() rather than a plain (bool) cast: an adapter that
+		// returns the string 'false' would be truthy under a cast and wrongly
+		// sync the product. This still normalises null / 0 / '' to false.
 		/**
 		 * Filter whether a product should be included in any Agentic Commerce sync.
 		 *
@@ -1071,9 +1074,6 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * @param bool        $should_sync Whether to include the product. Default true (false for subscriptions).
 		 * @param \WC_Product $product     Product being evaluated.
 		 */
-		// wp_validate_boolean() rather than a plain (bool) cast: an adapter that
-		// returns the string 'false' would be truthy under a cast and wrongly
-		// sync the product. This still normalises null / 0 / '' to false.
 		return wp_validate_boolean( apply_filters( 'woocommerce_agentic_commerce_should_sync_product', $should_sync, $product ) );
 	}
 }

@@ -103,7 +103,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// Ensure Stripe JS is enqueued
 		wp_register_script(
 			'stripe',
-			'https://js.stripe.com/clover/stripe.js',
+			'https://js.stripe.com/dahlia/stripe.js',
 			[],
 			null,
 			true
@@ -260,6 +260,9 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			$js_configuration = $main_gateway->javascript_params();
 		}
 
+		/**
+		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
+		 */
 		return apply_filters(
 			'wc_stripe_params',
 			$js_configuration
@@ -272,6 +275,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array  the JS configuration for Stripe Express Checkout.
 	 */
 	private function get_express_checkout_javascript_params() {
+		/**
+		 * Filters the Express Checkout JavaScript parameters.
+		 *
+		 * @param array $params Express Checkout JavaScript parameters.
+		 */
 		return apply_filters(
 			'wc_stripe_express_checkout_params',
 			$this->express_checkout_configuration->javascript_params()
@@ -298,6 +306,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// https://github.com/woocommerce/woocommerce-gateway-stripe/blob/master/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php#L222.
 		// See https://github.com/woocommerce/woocommerce-gateway-stripe/blob/master/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php#L905 and
 		// https://github.com/woocommerce/woocommerce/wiki/Payment-Token-API .
+		/**
+		 * Filters whether the save payment method checkbox should be displayed.
+		 *
+		 * @param bool $display Whether the save payment method checkbox should be displayed.
+		 */
 		return apply_filters( 'wc_stripe_display_save_payment_method_checkbox', filter_var( $saved_cards, FILTER_VALIDATE_BOOLEAN ) );
 	}
 

@@ -156,12 +156,13 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.9.0 - xxxx-xx-xx =
+* Fix - Stop attaching Level 3 data to captures and payments for non-card methods
+* Fix - Add the missing order and customer metadata to Adaptive Pricing payment intents
 * Add - Show a "Paid by customer" row with the Adaptive Pricing amount and currency on the order edit page
 * Fix - Send the admin New Order and customer Processing emails when an asynchronous payment method (iDEAL, Klarna, Bancontact) is confirmed via the deferred webhook path
 * Fix - Use the Amazon Pay custom button size setting on the product, cart, and checkout pages instead of falling back to the Apple Pay/Google Pay size
 * Tweak - Render the Express Checkout button on the cart and checkout from page-bootstrapped data, removing a cart-details request from the critical path to first button render
 * Fix - Show the Stripe payment block as supported in the Checkout block editor when Optimized Checkout is enabled and only non-card methods (e.g. Cash App Pay) are active
-* Fix - Scope admin gateway filter to block cart and checkout editors only
 * Tweak - Memoize the Blocks Express Checkout button so it no longer re-renders the Stripe element on unrelated cart updates
 * Fix - Keep the subscription payment-method row in sync with the saved-card list when a card has been used both directly and through Apple Pay/Google Pay
 * Tweak - Dim the test mode checkbox when it can't be toggled so the disabled state is visible in the UI
@@ -212,8 +213,12 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Show the selected variation's line items in the Apple Pay/Google Pay payment sheet on variable product pages, instead of the previously selected variation's breakdown
 * Tweak - Break down the Agentic Commerce feed preview's excluded product count by reason so subscriptions are no longer mistaken for a merchant-configured filter
 * Fix - Render the Express Checkout settings button preview background based on the button color
+* Update - Update the Stripe API version and the Stripe.js release train to 2026-03-25 (dahlia)
+* Fix - Fall back to the standard Stripe payment form when another plugin loads an older, incompatible version of Stripe.js, so Adaptive Pricing and Optimized Checkout keep working
 * Update - Move the checkout sessions availability check to WC_Stripe_Helper and remove the deprecated wc_stripe_is_checkout_sessions_available filter
 * Fix - Prevent Adaptive Pricing payments from failing when the checkout return URL is relative
 * Add - Add a wc_stripe_subscription_renewal_blocked_by_radar action hook that fires when Stripe Radar blocks a subscription renewal payment
+* Fix - Include the statement descriptor when creating payment intents for ACSS Debit and BLIK payments
+* Fix - Ensure all WordPress hooks have filter documentation
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

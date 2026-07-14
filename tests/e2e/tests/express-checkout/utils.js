@@ -8,7 +8,7 @@ export const getLinkButton = async ( page, isBlockPage = false ) => {
 	const frameLocator = page.frameLocator( frameSelector );
 
 	return frameLocator.getByRole( 'button', {
-		name: 'Pay with Link',
+		name: /Pay (securely )?with Link/,
 	} );
 };
 
