@@ -21,22 +21,28 @@ class WC_Stripe_Customer {
 	public const CUSTOMER_CONTEXT_PAY_FOR_ORDER = 'pay_for_order';
 
 	/**
+	 * Constant for the customer context when creating a Checkout Session (Optimized Checkout).
+	 */
+	public const CUSTOMER_CONTEXT_CHECKOUT_SESSION = 'checkout_session';
+
+	/**
 	 * Constants for the customer contexts where minimal billing details are permitted.
 	 */
 	public const MINIMAL_BILLING_DETAILS_CONTEXTS = [
 		self::CUSTOMER_CONTEXT_ADD_PAYMENT_METHOD,
 		self::CUSTOMER_CONTEXT_PAY_FOR_ORDER,
+		self::CUSTOMER_CONTEXT_CHECKOUT_SESSION,
 	];
 
 	/**
 	 * String prefix for Stripe payment methods request transient.
 	 */
-	const PAYMENT_METHODS_TRANSIENT_KEY = 'stripe_payment_methods_';
+	public const PAYMENT_METHODS_TRANSIENT_KEY = 'stripe_payment_methods_';
 
 	/**
 	 * Queryable Stripe payment method types.
 	 */
-	const STRIPE_PAYMENT_METHODS = [
+	public const STRIPE_PAYMENT_METHODS = [
 		WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_LINK::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
@@ -235,6 +241,18 @@ class WC_Stripe_Customer {
 		$defaults['metadata']          = apply_filters( 'wc_stripe_customer_metadata', $metadata, $user );
 		$defaults['preferred_locales'] = $this->get_customer_preferred_locale( $user );
 
+		// Add the billing phone, when available. Issuers and Stripe Radar may use it for risk decisioning.
+		$billing_phone = '';
+		if ( $user ) {
+			$billing_phone = get_user_meta( $user->ID, 'billing_phone', true );
+		}
+		if ( empty( $billing_phone ) ) {
+			$billing_phone = $this->get_billing_data_field( 'billing_phone', $order );
+		}
+		if ( ! empty( $billing_phone ) ) {
+			$defaults['phone'] = $billing_phone;
+		}
+
 		// Add customer address default values.
 		$address_fields = [
 			'line1'       => 'billing_address_1',
@@ -380,6 +398,7 @@ class WC_Stripe_Customer {
 			'billing_email',
 			'billing_first_name',
 			'billing_last_name',
+			'billing_phone',
 			'billing_address_1',
 			'billing_address_2',
 			'billing_postcode',
@@ -407,6 +426,8 @@ class WC_Stripe_Customer {
 					return $order->get_billing_first_name();
 				case 'billing_last_name':
 					return $order->get_billing_last_name();
+				case 'billing_phone':
+					return $order->get_billing_phone();
 				case 'billing_address_1':
 					return $order->get_billing_address_1();
 				case 'billing_address_2':
@@ -431,13 +452,16 @@ class WC_Stripe_Customer {
 	 * If customer does not exist, create a new customer. Else retrieve the Stripe customer through the API to check it's existence.
 	 * Recreate the customer if it does not exist in this Stripe account.
 	 *
+	 * @param string|null $current_context The context the customer is being created in. Some contexts (e.g. creating a Checkout
+	 *                                     Session before the buyer has entered any details) permit minimal billing details.
+	 *
 	 * @return string Customer ID
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	public function maybe_create_customer() {
+	public function maybe_create_customer( ?string $current_context = null ) {
 		if ( ! $this->get_id() ) {
-			$customer_id = $this->create_customer();
+			$customer_id = $this->create_customer( [], $current_context );
 			$this->set_id( $customer_id );
 			return $customer_id;
 		}
@@ -448,7 +472,7 @@ class WC_Stripe_Customer {
 			if ( $this->is_no_such_customer_error( $response->error ) ) {
 				// This can happen when switching the main Stripe account or importing users from another site.
 				// Recreate the customer in this case.
-				return $this->recreate_customer();
+				return $this->recreate_customer( [], $current_context );
 			}
 
 			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
@@ -697,6 +721,7 @@ class WC_Stripe_Customer {
 							$wc_token->set_expiry_month( $response->card->exp_month );
 							$wc_token->set_expiry_year( $response->card->exp_year );
 							$wc_token->set_fingerprint( $response->card->fingerprint );
+							$wc_token->set_wallet_type( (string) ( $response->card->wallet->type ?? '' ) );
 						}
 						break;
 				}
@@ -1211,6 +1236,11 @@ class WC_Stripe_Customer {
 					'country'     => $object_to_parse->get_shipping_country(),
 				],
 			];
+
+			$shipping_phone = $object_to_parse->get_shipping_phone();
+			if ( ! empty( $shipping_phone ) ) {
+				$data['shipping']['phone'] = $shipping_phone;
+			}
 		}
 
 		return $data;

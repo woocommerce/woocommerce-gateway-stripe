@@ -1,7 +1,7 @@
 name: Prepare live branch for Jetpack Beta Builder
 
 on:
-  pull_request:
+  pull_request
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,12 +12,27 @@ permissions:
   pull-requests: write
 
 jobs:
+  changes:
+    name: Check for code changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.detect.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7.0.0
+      - id: detect
+        uses: ./.github/actions/detect-code-changes
+
   build-and-inform-zip-file:
     name: "Build and inform the zip file"
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.0
 
       - name: "Get current version"
         id: current-version
@@ -130,17 +145,18 @@ jobs:
         run: |
           BODY="### Test the build
 
-          **This auto-creation flow is only available to logged-in Automattic staff members.**
+          **If you are a logged-in Automattic staff member:**
 
-          :rocket: [Launch a Jurassic Ninja site with this branch](https://jurassic.ninja/create/?jetpack-beta&shortlived&nojetpack&woocommerce&woocommerce-gateway-stripe-dev-tools&branches.woocommerce-gateway-stripe=${PR_HEAD_REF}) :rocket:
+          :rocket: [Launch a Jurassic Ninja site with this branch and sample products](https://jurassic.ninja/create/?jetpack-beta&shortlived&nojetpack&woocommerce&woocommerce-import-sample-data&woocommerce-gateway-stripe-dev-tools&branches.woocommerce-gateway-stripe=${PR_HEAD_REF}) :rocket:
           
-          For everyone else, use the following manual flow:
+          **Otherwise, use the following manual flow:**
 
           :turtle: Navigate to [jurassic.ninja](https://jurassic.ninja/) :turtle:
           * Click on \"See more options\"
           * Check \"Jetpack Beta\"
-          * Enter `${PR_HEAD_REF}` for the WooCommerce Stripe Gateway line
+          * Enter \`${PR_HEAD_REF}\` for the WooCommerce Stripe Gateway line
           * Check \"WooCommerce\"
+          * Check \"Import sample product data\" (it should be immediately below the WooCommerce option)
           * Enter your email address
           * Click on \"Launch single site\"
 

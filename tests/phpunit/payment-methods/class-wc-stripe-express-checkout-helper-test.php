@@ -282,11 +282,16 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test should_show_express_checkout_button, gateway logic.
+	 * Build a helper mock + the world (cart, filters, gateways) used by both
+	 * `test_shows_ece_if_stripe_gateway_available` and `test_hides_ece_if_stripe_gateway_unavailable`.
 	 *
-	 * @return void
+	 * Returns the mock plus a teardown callback that restores everything mutated here. A fresh
+	 * helper instance per test is required because `should_show_express_checkout_button()` memoizes
+	 * its result, so the two scenarios cannot share the same instance.
+	 *
+	 * @return array{0: \PHPUnit\Framework\MockObject\MockObject, 1: callable}
 	 */
-	public function test_hides_ece_if_stripe_gateway_unavailable(): void {
+	private function set_up_stripe_gateway_availability_scenario(): array {
 		$this->set_up_shipping_methods();
 
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
@@ -321,21 +326,55 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC()->cart->empty_cart();
 		WC()->cart->add_to_cart( $product->get_id(), 1 );
 
+		$teardown = function () use ( $original_gateways, $is_checkout_filter ) {
+			WC()->session->cleanup_sessions();
+			WC()->cart->empty_cart();
+			WC()->payment_gateways()->payment_gateways = $original_gateways;
+			remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
+		};
+
+		return [ $wc_stripe_ece_helper_mock, $teardown ];
+	}
+
+	/**
+	 * Test should_show_express_checkout_button when the Stripe gateway is in the
+	 * list of available gateways.
+	 *
+	 * @return void
+	 */
+	public function test_shows_ece_if_stripe_gateway_available(): void {
+		[ $helper, $teardown ] = $this->set_up_stripe_gateway_availability_scenario();
+
 		WC()->payment_gateways()->payment_gateways = [
 			'stripe'        => new WC_Stripe_UPE_Payment_Gateway(),
 			'stripe_alipay' => new WC_Stripe_UPE_Payment_Method_Alipay(),
 		];
-		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
-		// Hide if 'stripe' gateway is unavailable.
-		unset( WC()->payment_gateways()->payment_gateways['stripe'] );
-		$this->assertFalse( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+		try {
+			$this->assertTrue( $helper->should_show_express_checkout_button() );
+		} finally {
+			$teardown();
+		}
+	}
 
-		// Restore original settings.
-		WC()->session->cleanup_sessions();
-		WC()->cart->empty_cart();
-		WC()->payment_gateways()->payment_gateways = $original_gateways;
-		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
+	/**
+	 * Test should_show_express_checkout_button when the Stripe gateway is missing
+	 * from the list of available gateways.
+	 *
+	 * @return void
+	 */
+	public function test_hides_ece_if_stripe_gateway_unavailable(): void {
+		[ $helper, $teardown ] = $this->set_up_stripe_gateway_availability_scenario();
+
+		WC()->payment_gateways()->payment_gateways = [
+			'stripe_alipay' => new WC_Stripe_UPE_Payment_Method_Alipay(),
+		];
+
+		try {
+			$this->assertFalse( $helper->should_show_express_checkout_button() );
+		} finally {
+			$teardown();
+		}
 	}
 
 	/**
@@ -441,6 +480,44 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'id', $checkout_data['default_shipping_option'] );
 		$this->assertArrayHasKey( 'displayName', $checkout_data['default_shipping_option'] );
 		$this->assertArrayHasKey( 'amount', $checkout_data['default_shipping_option'] );
+		$this->assertArrayHasKey( 'display_prices_with_tax', $checkout_data );
+	}
+
+	/**
+	 * Test that get_checkout_data() emits display_prices_with_tax based on the tax display setting.
+	 *
+	 * @param string $tax_display_cart Tax display cart option value.
+	 * @param bool   $expected         Expected display_prices_with_tax value.
+	 *
+	 * @return void
+	 *
+	 * @dataProvider provide_test_get_checkout_data_display_prices_with_tax
+	 */
+	public function test_get_checkout_data_display_prices_with_tax( string $tax_display_cart, bool $expected ): void {
+		update_option( 'woocommerce_tax_display_cart', $tax_display_cart );
+
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+		$checkout_data        = $wc_stripe_ece_helper->get_checkout_data();
+
+		$this->assertSame( $expected, $checkout_data['display_prices_with_tax'] );
+	}
+
+	/**
+	 * Provider for test_get_checkout_data_display_prices_with_tax.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_checkout_data_display_prices_with_tax(): array {
+		return [
+			'prices displayed including tax' => [
+				'tax display cart' => 'incl',
+				'expected'         => true,
+			],
+			'prices displayed excluding tax' => [
+				'tax display cart' => 'excl',
+				'expected'         => false,
+			],
+		];
 	}
 
 	/**
@@ -577,12 +654,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'GB country, redacted' => [
 				'postal code' => 'SW1A',
 				'country'     => 'GB',
-				'expected'    => 'SW1A ***',
+				'expected'    => 'SW1A 000',
 			],
 			'CA country'           => [
 				'postal code' => 'K1A   ',
 				'country'     => 'CA',
-				'expected'    => 'K1A***',
+				'expected'    => 'K1A000',
 			],
 			'US country'           => [
 				'postal code' => '12345',
@@ -729,19 +806,23 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_request_to_store_api(): array {
 		return [
-			'No rest_route set'         => [
+			'No rest_route set'        => [
 				'rest_route' => '',
 				'expected'   => false,
 			],
-			'Store API checkout route'  => [
+			'Store API checkout route' => [
 				'rest_route' => '/wc/store/v1/checkout',
 				'expected'   => true,
 			],
-			'Different Store API route' => [
+			'Store API cart route'     => [
 				'rest_route' => '/wc/store/v1/cart',
-				'expected'   => false,
+				'expected'   => true,
 			],
-			'Non-Store API route'       => [
+			'Store API cart sub-route' => [
+				'rest_route' => '/wc/store/v1/cart/update-customer',
+				'expected'   => true,
+			],
+			'Non-Store API route'      => [
 				'rest_route' => '/wp/v2/posts',
 				'expected'   => false,
 			],
@@ -1081,12 +1162,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			],
 			'link, settings exists'                                   => [
 				'express checkout type' => 'link',
-				'settings'              => [ 'express_checkout_button_locations' => [ 'cart' ] ],
+				'settings'              => [ 'link_button_locations' => [ 'cart' ] ],
 				'expected'              => [ 'cart' ],
 			],
 			'link, settings exists, but not a valid array'            => [
 				'express checkout type' => 'link',
-				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
+				'settings'              => [ 'link_button_locations' => 'invalid_value' ],
 				'expected'              => [],
 			],
 			'link, settings do not exist'                             => [
@@ -1230,6 +1311,61 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC()->payment_gateways()->payment_gateways = $original_gateways;
 
 		$this->assertEquals( $expected, $result );
+	}
+
+	/**
+	 * Verify `should_show_express_checkout_button()` only evaluates its guards once per
+	 * action context within a single request, regardless of how many times callers ask.
+	 *
+	 * @return void
+	 */
+	public function test_should_show_express_checkout_button_memoizes_within_request() {
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->onlyMethods( [ 'compute_should_show_express_checkout_button' ] )
+			->getMock();
+
+		// The wrapped compute must run exactly once even though the outer method is
+		// invoked twice — proves the memoization wrapper is hit on the second call.
+		$helper->expects( $this->once() )
+			->method( 'compute_should_show_express_checkout_button' )
+			->willReturn( true );
+
+		$first  = $helper->should_show_express_checkout_button();
+		$second = $helper->should_show_express_checkout_button();
+
+		$this->assertTrue( $first );
+		$this->assertTrue( $second );
+	}
+
+	/**
+	 * Verify the cache is keyed by `woocommerce_after_add_to_cart_form` action context.
+	 * The OPC-product branch of `compute_should_show_express_checkout_button()` reads
+	 * `doing_action()`, so callers inside vs. outside the action must each get their own
+	 * computed answer.
+	 *
+	 * @return void
+	 */
+	public function test_should_show_express_checkout_button_cache_is_action_keyed() {
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->onlyMethods( [ 'compute_should_show_express_checkout_button' ] )
+			->getMock();
+
+		// Two distinct action contexts → two compute invocations expected (one per key).
+		$helper->expects( $this->exactly( 2 ) )
+			->method( 'compute_should_show_express_checkout_button' )
+			->willReturn( true );
+
+		// Outside the action.
+		$helper->should_show_express_checkout_button();
+
+		// Inside the action.
+		global $wp_current_filter;
+		$wp_current_filter[] = 'woocommerce_after_add_to_cart_form';
+		try {
+			$helper->should_show_express_checkout_button();
+		} finally {
+			array_pop( $wp_current_filter );
+		}
 	}
 
 	/**
@@ -1776,5 +1912,573 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'CA', $result['billing_address']['state'] );
 		$this->assertEquals( 'NSW', $result['shipping_address']['state'] );
+	}
+
+	/**
+	 * Tests for `get_link_button_height`.
+	 *
+	 * @param array  $settings Settings array.
+	 * @param string $expected Expected height.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_get_link_button_height
+	 */
+	public function test_get_link_button_height( array $settings, string $expected ): void {
+		$helper                  = new WC_Stripe_Express_Checkout_Helper();
+		$helper->stripe_settings = $settings;
+
+		$actual = $helper->get_link_button_height();
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_get_link_button_height`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_link_button_height(): array {
+		return [
+			'small'         => [
+				'settings' => [ 'link_button_size' => 'small' ],
+				'expected' => '40',
+			],
+			'default'       => [
+				'settings' => [ 'link_button_size' => 'default' ],
+				'expected' => '48',
+			],
+			'large'         => [
+				'settings' => [ 'link_button_size' => 'large' ],
+				'expected' => '56',
+			],
+			'not set'       => [
+				'settings' => [],
+				'expected' => '48',
+			],
+			'unknown value' => [
+				'settings' => [ 'link_button_size' => 'unknown' ],
+				'expected' => '48',
+			],
+		];
+	}
+
+	/**
+	 * Tests for `get_amazon_pay_button_height`.
+	 *
+	 * @param array  $settings Settings array.
+	 * @param string $expected Expected height.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_get_amazon_pay_button_height
+	 */
+	public function test_get_amazon_pay_button_height( array $settings, string $expected ): void {
+		$helper                  = new WC_Stripe_Express_Checkout_Helper();
+		$helper->stripe_settings = $settings;
+
+		$actual = $helper->get_amazon_pay_button_height();
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_get_amazon_pay_button_height`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_amazon_pay_button_height(): array {
+		return [
+			'small'         => [
+				'settings' => [ 'amazon_pay_button_size' => 'small' ],
+				'expected' => '40',
+			],
+			'default'       => [
+				'settings' => [ 'amazon_pay_button_size' => 'default' ],
+				'expected' => '48',
+			],
+			'large'         => [
+				'settings' => [ 'amazon_pay_button_size' => 'large' ],
+				'expected' => '56',
+			],
+			'not set'       => [
+				'settings' => [],
+				'expected' => '48',
+			],
+			'unknown value' => [
+				'settings' => [ 'amazon_pay_button_size' => 'unknown' ],
+				'expected' => '48',
+			],
+		];
+	}
+
+	/**
+	 * Test for `is_change_payment_method_page`.
+	 *
+	 * @param int|null $query_arg            Value of $_GET['change_payment_method'] (null = unset).
+	 * @param bool     $wcs_is_subscription  Mock return value for wcs_is_subscription().
+	 * @param bool     $expected             Expected return value.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_is_change_payment_method_page
+	 */
+	public function test_is_change_payment_method_page( $query_arg, $wcs_is_subscription, $expected ) {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$helper  = new WC_Stripe_Express_Checkout_Helper( $gateway );
+
+		if ( null !== $query_arg ) {
+			$_GET['change_payment_method'] = $query_arg;
+		}
+		WC_Subscriptions_Helpers::$wcs_is_subscription = $wcs_is_subscription;
+
+		$this->assertSame( $expected, $helper->is_change_payment_method_page() );
+
+		unset( $_GET['change_payment_method'] );
+		WC_Subscriptions_Helpers::$wcs_is_subscription = null;
+	}
+
+	/**
+	 * Provider for `test_is_change_payment_method_page`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_is_change_payment_method_page() {
+		return [
+			'query arg missing'                        => [
+				'query_arg'           => null,
+				'wcs_is_subscription' => true,
+				'expected'            => false,
+			],
+			'query arg set, wcs_is_subscription true'  => [
+				'query_arg'           => 123,
+				'wcs_is_subscription' => true,
+				'expected'            => true,
+			],
+			'query arg set, wcs_is_subscription false' => [
+				'query_arg'           => 123,
+				'wcs_is_subscription' => false,
+				'expected'            => false,
+			],
+		];
+	}
+
+	/**
+	 * Test that `should_show_express_checkout_button` dispatches to the change-payment
+	 * branch and respects the basic gating (connection, SSL, gateway, ECE enablement).
+	 *
+	 * @param bool $is_connected    Whether the Stripe account is connected.
+	 * @param bool $stripe_gateway  Whether the 'stripe' gateway is available.
+	 * @param bool $ece_enabled     Whether ECE is enabled.
+	 * @param bool $show_on_change_payment_location Whether ECE should show on the change-payment location.
+	 * @param bool $expected        Expected result.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_should_show_express_checkout_button_change_payment
+	 */
+	public function test_should_show_express_checkout_button_change_payment(
+		$is_connected,
+		$stripe_gateway,
+		$ece_enabled,
+		$show_on_change_payment_location,
+		$expected
+	) {
+		$_GET['change_payment_method']                 = 123;
+		WC_Subscriptions_Helpers::$wcs_is_subscription = true;
+
+		// Toggle connection by clearing the test keys (set_up populates them).
+		if ( ! $is_connected ) {
+			$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+			$stripe_settings['test_publishable_key'] = '';
+			$stripe_settings['test_secret_key']      = '';
+			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		}
+
+		$original_gateways                         = WC()->payment_gateways()->payment_gateways;
+		WC()->payment_gateways()->payment_gateways = $stripe_gateway
+			? [ 'stripe' => new WC_Stripe_UPE_Payment_Gateway() ]
+			: [];
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$helper  = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->onlyMethods( [ 'is_express_checkout_enabled', 'should_show_ece_on_change_payment_method_location' ] )
+			->setConstructorArgs( [ $gateway ] )
+			->getMock();
+		$helper->method( 'is_express_checkout_enabled' )->willReturn( $ece_enabled );
+		$helper->method( 'should_show_ece_on_change_payment_method_location' )->willReturn( $show_on_change_payment_location );
+		$helper->testmode = true; // Skip SSL gating.
+
+		try {
+			$this->assertSame( $expected, $helper->should_show_express_checkout_button() );
+		} finally {
+			WC()->payment_gateways()->payment_gateways = $original_gateways;
+			unset( $_GET['change_payment_method'] );
+			WC_Subscriptions_Helpers::$wcs_is_subscription = null;
+		}
+	}
+
+	/**
+	 * Provider for `test_should_show_express_checkout_button_change_payment`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_should_show_express_checkout_button_change_payment() {
+		return [
+			'all checks pass'                            => [
+				'is_connected'                    => true,
+				'stripe_gateway'                  => true,
+				'ece_enabled'                     => true,
+				'show_on_change_payment_location' => true,
+				'expected'                        => true,
+			],
+			'not connected'                              => [
+				'is_connected'                    => false,
+				'stripe_gateway'                  => true,
+				'ece_enabled'                     => true,
+				'show_on_change_payment_location' => true,
+				'expected'                        => false,
+			],
+			'stripe gateway missing'                     => [
+				'is_connected'                    => true,
+				'stripe_gateway'                  => false,
+				'ece_enabled'                     => true,
+				'show_on_change_payment_location' => true,
+				'expected'                        => false,
+			],
+			'ECE disabled'                               => [
+				'is_connected'                    => true,
+				'stripe_gateway'                  => true,
+				'ece_enabled'                     => false,
+				'show_on_change_payment_location' => true,
+				'expected'                        => false,
+			],
+			'should not show on change-payment location' => [
+				'is_connected'                    => true,
+				'stripe_gateway'                  => true,
+				'ece_enabled'                     => true,
+				'show_on_change_payment_location' => false,
+				'expected'                        => false,
+			],
+		];
+	}
+
+	/**
+	 * Happy path: when the user has a stripe-gateway token whose `token` matches
+	 * the new payment method ID, it gets attached to the subscription.
+	 *
+	 * @return void
+	 */
+	public function test_replace_subscription_payment_token_attaches_matching_token(): void {
+		$user_id = $this->factory->user->create( [ 'role' => 'customer' ] );
+		$token   = WC_Helper_Token::create_token( 'pm_new_card_123', $user_id );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $user_id );
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->save();
+
+		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_new_card_123' );
+
+		$this->assertTrue( $result );
+		$attached_ids = array_values( $subscription->get_payment_tokens() );
+		$this->assertSame( [ $token->get_id() ], $attached_ids );
+	}
+
+	/**
+	 * Stale tokens left attached to the subscription by the previous payment method
+	 * are cleared so My Account renders only the new card.
+	 *
+	 * @return void
+	 */
+	public function test_replace_subscription_payment_token_drops_stale_tokens(): void {
+		$user_id   = $this->factory->user->create( [ 'role' => 'customer' ] );
+		$old_token = WC_Helper_Token::create_token( 'pm_old_visa', $user_id );
+		$new_token = WC_Helper_Token::create_token( 'pm_new_card_456', $user_id );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $user_id );
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->save();
+		// Attach the stale token after save() so the data store has a valid
+		// post ID to write `_payment_tokens` against.
+		$subscription->add_payment_token( $old_token );
+
+		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_new_card_456' );
+
+		$this->assertTrue( $result );
+		$attached_ids = array_values( $subscription->get_payment_tokens() );
+		$this->assertSame( [ $new_token->get_id() ], $attached_ids );
+	}
+
+	/**
+	 * When no user token matches the payment method ID, the subscription is left
+	 * untouched and the helper returns false.
+	 *
+	 * @return void
+	 */
+	public function test_replace_subscription_payment_token_returns_false_when_no_match(): void {
+		$user_id   = $this->factory->user->create( [ 'role' => 'customer' ] );
+		$old_token = WC_Helper_Token::create_token( 'pm_old_visa', $user_id );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $user_id );
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->save();
+		$subscription->add_payment_token( $old_token );
+
+		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_unknown' );
+
+		$this->assertFalse( $result );
+		$attached_ids = array_values( $subscription->get_payment_tokens() );
+		$this->assertSame( [ $old_token->get_id() ], $attached_ids );
+	}
+
+	/**
+	 * Guard cases: empty payment method ID, missing user, non-WC_Order argument.
+	 *
+	 * @return void
+	 */
+	public function test_replace_subscription_payment_token_noop_for_invalid_input(): void {
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( 0 );
+		$subscription->save();
+
+		// Empty payment method ID.
+		$this->assertFalse(
+			WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, '' )
+		);
+
+		// Subscription with no user.
+		$this->assertFalse(
+			WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_anything' )
+		);
+
+		// Non-WC_Order argument.
+		$this->assertFalse(
+			WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( null, 'pm_anything' )
+		);
+	}
+
+	/**
+	 * Helper to attach a Stripe CC token to a user.
+	 */
+	private function attach_stripe_token( int $user_id, string $pm_id ): WC_Payment_Token_CC {
+		$token = new WC_Payment_Token_CC();
+		$token->set_user_id( $user_id );
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( $pm_id );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+		$token->save();
+		return $token;
+	}
+
+	/**
+	 * Replacing a subscription's payment token must leave exactly the matching
+	 * token attached — the previous token (e.g. a Visa added before the change-
+	 * payment flow) has to be removed, not appended-to. Guards against the
+	 * regression Malith called out on PR #5284: `delete_meta_data('_payment_tokens')`
+	 * is a no-op (WC marks the key as internal), so an `add_payment_token()` on top
+	 * would silently leave the stale token in place and My Account would render it.
+	 */
+	public function test_replace_subscription_payment_token_replaces_existing_token() {
+		$user_id      = self::factory()->user->create();
+		$old_token    = $this->attach_stripe_token( $user_id, 'pm_old' );
+		$new_token    = $this->attach_stripe_token( $user_id, 'pm_new' );
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $user_id );
+		$subscription->save(); // Persist before add_payment_token — otherwise it writes to post_id=0 and is lost.
+		$subscription->add_payment_token( $old_token );
+
+		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_new' );
+
+		$this->assertTrue( $result );
+		$tokens = $subscription->get_payment_tokens();
+		$this->assertSame( [ $new_token->get_id() ], $tokens );
+	}
+
+	/**
+	 * If no saved token matches the supplied Stripe payment-method ID, the
+	 * helper must report false and leave the subscription's tokens untouched.
+	 */
+	public function test_replace_subscription_payment_token_noop_when_no_match() {
+		$user_id      = self::factory()->user->create();
+		$old_token    = $this->attach_stripe_token( $user_id, 'pm_old' );
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $user_id );
+		$subscription->save(); // Persist before add_payment_token — otherwise it writes to post_id=0 and is lost.
+		$subscription->add_payment_token( $old_token );
+
+		$result = WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, 'pm_does_not_exist' );
+
+		$this->assertFalse( $result );
+		$this->assertSame( [ $old_token->get_id() ], $subscription->get_payment_tokens() );
+	}
+
+	/**
+	 * Guard clauses: a non-order argument, an empty payment-method ID, or a
+	 * subscription with no associated user must all short-circuit to false.
+	 *
+	 * @dataProvider provide_replace_subscription_payment_token_invalid_inputs
+	 */
+	public function test_replace_subscription_payment_token_invalid_inputs( $subscription_or_factory, $payment_method_id ) {
+		$subscription = is_callable( $subscription_or_factory )
+			? $subscription_or_factory( $this )
+			: $subscription_or_factory;
+		$this->assertFalse(
+			WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $payment_method_id )
+		);
+	}
+
+	public function provide_replace_subscription_payment_token_invalid_inputs() {
+		return [
+			'non-order'        => [
+				'subscription'      => 'not an order',
+				'payment_method_id' => 'pm_xxx',
+			],
+			'empty pm id'      => [
+				'subscription'      => function () {
+					return new WC_Subscription();
+				},
+				'payment_method_id' => '',
+			],
+			'no user on order' => [
+				'subscription'      => function () {
+					return new WC_Subscription();
+				},
+				'payment_method_id' => 'pm_xxx',
+			],
+		];
+	}
+
+	/**
+	 * The cart snapshot is for bootstrapping the cart/checkout button render only;
+	 * outside those pages there is no button to render, so it must be absent.
+	 *
+	 * @return void
+	 */
+	public function test_get_cart_render_data_returns_null_when_not_cart_or_checkout(): void {
+		WC()->cart->empty_cart();
+		WC()->cart->add_to_cart( WC_Helper_Product::create_simple_product()->get_id(), 1 );
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+
+		$this->assertNull( $helper->get_cart_render_data() );
+
+		WC()->cart->empty_cart();
+	}
+
+	/**
+	 * An empty cart has nothing to charge, so no snapshot is emitted and the client
+	 * keeps its existing AJAX fallback rather than rendering a stale button.
+	 *
+	 * @return void
+	 */
+	public function test_get_cart_render_data_returns_null_for_empty_cart(): void {
+		add_filter( 'woocommerce_is_cart', '__return_true' );
+		WC()->cart->empty_cart();
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$data   = $helper->get_cart_render_data();
+
+		remove_filter( 'woocommerce_is_cart', '__return_true' );
+
+		$this->assertNull( $data );
+	}
+
+	/**
+	 * A populated cart on a cart/checkout page bootstraps the render payload so the
+	 * button can paint without the initial cart-details fetch. The total must match
+	 * the live cart total the AJAX path would have returned.
+	 *
+	 * @return void
+	 */
+	public function test_get_cart_render_data_returns_snapshot_for_populated_cart(): void {
+		update_option( 'woocommerce_currency', 'USD' );
+		update_option( 'woocommerce_checkout_phone_field', 'required' );
+		add_filter( 'woocommerce_is_cart', '__return_true' );
+
+		WC()->cart->empty_cart();
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_regular_price( 25 );
+		$product->set_price( 25 );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 2 );
+		WC()->cart->calculate_totals();
+
+		$expected_total = (int) WC_Stripe_Helper::get_stripe_amount( WC()->cart->get_total( false ) );
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$data   = $helper->get_cart_render_data();
+
+		remove_filter( 'woocommerce_is_cart', '__return_true' );
+		WC()->cart->empty_cart();
+
+		$this->assertIsArray( $data );
+		$this->assertGreaterThan( 0, $data['total'] );
+		$this->assertSame( $expected_total, $data['total'] );
+		$this->assertSame( 'usd', $data['currency'] );
+		$this->assertTrue( $data['requestPhone'] );
+		$this->assertIsBool( $data['requestShipping'] );
+		$this->assertIsArray( $data['displayItems'] );
+	}
+
+	/**
+	 * The bootstrapped total must round, not truncate, a non-integer minor-unit
+	 * value handed back by the `wc_stripe_calculated_total` filter; a bare (int)
+	 * cast would drop a minor unit and undercharge the first-paint preview.
+	 *
+	 * @return void
+	 */
+	public function test_get_cart_render_data_rounds_fractional_total(): void {
+		add_filter( 'woocommerce_is_cart', '__return_true' );
+		$fractional_total = static function () {
+			return 1500.6;
+		};
+		add_filter( 'wc_stripe_calculated_total', $fractional_total );
+
+		WC()->cart->empty_cart();
+		WC()->cart->add_to_cart( WC_Helper_Product::create_simple_product()->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$data   = $helper->get_cart_render_data();
+
+		remove_filter( 'wc_stripe_calculated_total', $fractional_total );
+		remove_filter( 'woocommerce_is_cart', '__return_true' );
+		WC()->cart->empty_cart();
+
+		$this->assertSame( 1501, $data['total'] );
+	}
+
+	/**
+	 * A zero total with no free trial means nothing to charge now, so the snapshot
+	 * is withheld — matching the client's zero-total hide. A virtual product avoids
+	 * any shipping cost that would otherwise lift the total above zero.
+	 *
+	 * @return void
+	 */
+	public function test_get_cart_render_data_returns_null_for_zero_total_without_free_trial(): void {
+		add_filter( 'woocommerce_is_cart', '__return_true' );
+
+		WC()->cart->empty_cart();
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_virtual( true );
+		$product->set_regular_price( 0 );
+		$product->set_price( 0 );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$data   = $helper->get_cart_render_data();
+
+		remove_filter( 'woocommerce_is_cart', '__return_true' );
+		WC()->cart->empty_cart();
+
+		$this->assertNull( $data );
 	}
 }

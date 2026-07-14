@@ -89,4 +89,10 @@
 		</properties>
 	</rule>
 
+	<!-- Require class constants to have explicit visibility -->
+	<rule ref="PSR12.Properties.ConstantVisibility.NotFound">
+		<type>error</type>
+		<exclude-pattern>tests/</exclude-pattern>
+	</rule>
+
 </ruleset>

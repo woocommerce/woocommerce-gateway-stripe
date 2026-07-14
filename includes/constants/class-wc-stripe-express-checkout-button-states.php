@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *    1. WC provides a dropdown list of states, but there's no state field in Chrome for the following countries:
  *        AO (Angola), BD (Bangladesh), BG (Bulgaria), BJ (Benin), BO (Bolivia), DO (Dominican Republic),
  *        DZ (Algeria), GH (Ghana), GT (Guatemala), HU (Hungary), KE (Kenya), LA (Laos),
- *        LR (Liberia), LT (Lithuania), MD (Moldova), NA (Namibia), NP (Nepal), PK (Pakistan),
+ *        LR (Liberia), LT (Lithuania), MA (Morocco), MD (Moldova), NA (Namibia), NP (Nepal), PK (Pakistan),
  *        PY (Paraguay), RO (Romania), TZ (Tanzania), UG (Uganda), UM (United States Minor Outlying Islands),
  *        ZA (South Africa), ZM (Zambia).
  *    2. Chrome does not provide a dropdown list of states for 161 countries in total, out of the 249 countries WC supports,
@@ -41,7 +41,7 @@ class WC_Stripe_Express_Checkout_Button_States {
 	 *
 	 * @var array
 	 */
-	const STATES = [
+	public const STATES = [
 		// Afghanistan.
 		'AF' => [],
 		// Angola.
@@ -650,6 +650,8 @@ class WC_Stripe_Express_Checkout_Button_States {
 		'LT' => [],
 		// Luxembourg.
 		'LU' => [],
+		// Morocco.
+		'MA' => [],
 		// Moldova.
 		'MD' => [],
 		// Martinique.

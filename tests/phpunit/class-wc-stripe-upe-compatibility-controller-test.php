@@ -28,12 +28,10 @@ class WC_Stripe_UPE_Compatibility_Controller_Test extends WP_UnitTestCase {
 		global $wp_version;
 		$this->initial_wp_version = $wp_version;
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-upe-compatibility-controller.php';
-
 		$this->controller = $this->getMockBuilder( WC_Stripe_UPE_Compatibility_Controller::class )
-								 ->disableOriginalConstructor()
-								 ->onlyMethods( [ 'get_wc_version' ] )
-								 ->getMock();
+								->disableOriginalConstructor()
+								->onlyMethods( [ 'get_wc_version' ] )
+								->getMock();
 	}
 
 	public function tear_down() {

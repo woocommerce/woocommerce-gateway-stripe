@@ -15,28 +15,28 @@ class WC_Stripe_Account {
 	 *
 	 * @var string
 	 */
-	const ACCOUNT_CACHE_KEY = 'account_data';
+	public const ACCOUNT_CACHE_KEY = 'account_data';
 
 	/**
 	 * The Account Data cache expiration (TTL).
 	 *
 	 * @var int
 	 */
-	const ACCOUNT_CACHE_EXPIRATION = 2 * HOUR_IN_SECONDS;
+	public const ACCOUNT_CACHE_EXPIRATION = 2 * HOUR_IN_SECONDS;
 
-	const LIVE_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_live';
-	const TEST_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_test';
+	public const LIVE_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_live';
+	public const TEST_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_test';
 
-	const STATUS_COMPLETE        = 'complete';
-	const STATUS_NO_ACCOUNT      = 'NOACCOUNT';
-	const STATUS_RESTRICTED_SOON = 'restricted_soon';
-	const STATUS_RESTRICTED      = 'restricted';
+	public const STATUS_COMPLETE        = 'complete';
+	public const STATUS_NO_ACCOUNT      = 'NOACCOUNT';
+	public const STATUS_RESTRICTED_SOON = 'restricted_soon';
+	public const STATUS_RESTRICTED      = 'restricted';
 
 	/**
 	 * List of webhook events that this plugin listens to.
 	 * Based on WC_Stripe_Webhook_Handler::process_webhook()
 	 */
-	const WEBHOOK_EVENTS = [
+	public const WEBHOOK_EVENTS = [
 		'account.updated',
 		'source.chargeable',
 		'source.canceled',
@@ -376,6 +376,48 @@ class WC_Stripe_Account {
 				WC_Stripe_Logger::info( "Deleted webhook {$webhook->id} because it was being sent to this site's webhook URL." );
 			}
 		}
+	}
+
+	/**
+	 * Decommissions a previously configured webhook endpoint when the secret key that
+	 * created it is being removed or replaced.
+	 *
+	 * @param mixed  $webhook_data   The previously stored webhook data. Expected to contain 'id' and 'secret'.
+	 * @param string $new_secret_key The secret key that is about to be saved. Empty when disconnecting.
+	 *
+	 * @return bool True if a webhook was decommissioned, false otherwise.
+	 */
+	public function maybe_decommission_webhook( $webhook_data, $new_secret_key ): bool {
+		// Nothing to delete unless we have a stored webhook ID and the secret key that created it.
+		if ( ! is_array( $webhook_data ) || empty( $webhook_data['id'] ) || empty( $webhook_data['secret'] ) ) {
+			return false;
+		}
+
+		// Only decommission when the secret key is being removed or has changed.
+		if ( ! empty( $new_secret_key ) && $new_secret_key === $webhook_data['secret'] ) {
+			return false;
+		}
+
+		try {
+			// Authenticate with the secret key that created the webhook so the deletion
+			// hits the originally connected account.
+			WC_Stripe_API::set_secret_key( $webhook_data['secret'] );
+			$this->stripe_api::request( [], 'webhook_endpoints/' . $webhook_data['id'], 'DELETE' );
+
+			WC_Stripe_Logger::info( "Decommissioned previously configured webhook {$webhook_data['id']} before saving new keys." );
+		} catch ( Exception $e ) {
+			// A failure here must not abort the connection flow, so we log and report that nothing was decommissioned.
+			WC_Stripe_Logger::error(
+				"Failed to decommission previously configured webhook {$webhook_data['id']}.",
+				[ 'error_message' => $e->getMessage() ]
+			);
+			return false;
+		} finally {
+			// Reset the key so later calls re-resolve it from the freshly saved settings.
+			WC_Stripe_API::set_secret_key( '' );
+		}
+
+		return true;
 	}
 
 	/**

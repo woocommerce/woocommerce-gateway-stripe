@@ -8,7 +8,31 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::BLIK;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::BLIK;
+
+	/**
+	 * Stripe account countries that may not enable BLIK.
+	 *
+	 * @var string[]
+	 */
+	protected const UNSUPPORTED_ACCOUNT_COUNTRIES = [
+		WC_Stripe_Country_Code::BRAZIL,
+		WC_Stripe_Country_Code::GIBRALTAR,
+		WC_Stripe_Country_Code::HONG_KONG,
+		WC_Stripe_Country_Code::JAPAN,
+		WC_Stripe_Country_Code::MALAYSIA,
+		WC_Stripe_Country_Code::MEXICO,
+		WC_Stripe_Country_Code::NEW_ZEALAND,
+		WC_Stripe_Country_Code::THAILAND,
+		WC_Stripe_Country_Code::UNITED_ARAB_EMIRATES,
+	];
+
+	/**
+	 * Shopper billing countries permitted to use BLIK.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [ WC_Stripe_Country_Code::POLAND ];
 
 	/**
 	 * Constructor for BLIK payment method
@@ -19,38 +43,6 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 		$this->title                    = 'BLIK';
 		$this->is_reusable              = false;
 		$this->supported_currencies     = [ WC_Stripe_Currency_Code::POLISH_ZLOTY ];
-		$this->supported_countries      = [
-			WC_Stripe_Country_Code::AUSTRIA,
-			WC_Stripe_Country_Code::BELGIUM,
-			WC_Stripe_Country_Code::BULGARIA,
-			WC_Stripe_Country_Code::CROATIA,
-			WC_Stripe_Country_Code::CYPRUS,
-			WC_Stripe_Country_Code::CZECH_REPUBLIC,
-			WC_Stripe_Country_Code::DENMARK,
-			WC_Stripe_Country_Code::ESTONIA,
-			WC_Stripe_Country_Code::FINLAND,
-			WC_Stripe_Country_Code::FRANCE,
-			WC_Stripe_Country_Code::GERMANY,
-			WC_Stripe_Country_Code::GREECE,
-			WC_Stripe_Country_Code::HUNGARY,
-			WC_Stripe_Country_Code::ICELAND,
-			WC_Stripe_Country_Code::IRELAND,
-			WC_Stripe_Country_Code::ITALY,
-			WC_Stripe_Country_Code::LATVIA,
-			WC_Stripe_Country_Code::LIECHTENSTEIN,
-			WC_Stripe_Country_Code::LITHUANIA,
-			WC_Stripe_Country_Code::LUXEMBOURG,
-			WC_Stripe_Country_Code::MALTA,
-			WC_Stripe_Country_Code::NETHERLANDS,
-			WC_Stripe_Country_Code::NORWAY,
-			WC_Stripe_Country_Code::POLAND,
-			WC_Stripe_Country_Code::PORTUGAL,
-			WC_Stripe_Country_Code::ROMANIA,
-			WC_Stripe_Country_Code::SLOVAKIA,
-			WC_Stripe_Country_Code::SLOVENIA,
-			WC_Stripe_Country_Code::SPAIN,
-			WC_Stripe_Country_Code::SWEDEN,
-		];
 		$this->label                    = 'BLIK';
 		$this->description              = __(
 			'BLIK enables customers in Poland to pay directly via online payouts from their bank account.',
@@ -65,29 +57,14 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Checks if BLIK is available for the Stripe account's country.
-	 *
-	 * @return bool True if PL-based account; false otherwise.
-	 */
-	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
-	}
-
-	/**
-	 * Returns string representing payment method type
-	 * to query to retrieve saved payment methods from Stripe.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
-	}
-
-	/**
 	 * Returns testing instructions to be printed at checkout in test mode.
 	 *
 	 * @param bool $show_optimized_checkout_instruction Deprecated. Whether to show optimized checkout instructions.
+	 * @param bool $include_test_mode_label Whether to include the "Test mode:" label prefix. Pass false for
+	 *                                      Blocks checkout, which already displays a Test Mode badge.
 	 * @return string
 	 */
-	public function get_testing_instructions( $show_optimized_checkout_instruction = false ) {
+	public function get_testing_instructions( bool $show_optimized_checkout_instruction = false, bool $include_test_mode_label = true ) {
 		if ( false !== $show_optimized_checkout_instruction ) {
 			_deprecated_argument(
 				__FUNCTION__,
@@ -95,12 +72,16 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 			);
 		}
 
-		return sprintf(
-			/* translators: 1) HTML strong open tag 2) HTML strong closing tag */
-			esc_html__( '%1$sTest mode:%2$s use any 6-digit number.', 'woocommerce-gateway-stripe' ),
-			'<strong>',
-			'</strong>',
-		);
+		if ( $include_test_mode_label ) {
+			return sprintf(
+				/* translators: 1) HTML strong open tag 2) HTML strong closing tag */
+				esc_html__( '%1$sTest mode:%2$s use any 6-digit number.', 'woocommerce-gateway-stripe' ),
+				'<strong>',
+				'</strong>',
+			);
+		}
+
+		return esc_html__( 'Use any 6-digit number.', 'woocommerce-gateway-stripe' );
 	}
 
 	public function payment_fields() {
@@ -151,7 +132,7 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 	 * @return array Supported customer locations.
 	 */
 	public function get_available_billing_countries() {
-		return [ WC_Stripe_Country_Code::POLAND ];
+		return self::SUPPORTED_BILLING_COUNTRIES;
 	}
 
 	/**

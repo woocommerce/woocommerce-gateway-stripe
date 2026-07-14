@@ -96,7 +96,7 @@ class WC_Stripe_Intent_Controller {
 		// Retrieve the order.
 		$order = wc_get_order( $order_id );
 
-		if ( ! $order ) {
+		if ( ! $order instanceof WC_Order ) {
 			throw new WC_Stripe_Exception( 'missing-order', __( 'Missing order ID for payment confirmation', 'woocommerce-gateway-stripe' ) );
 		}
 
@@ -407,6 +407,13 @@ class WC_Stripe_Intent_Controller {
 			'capture_method'       => $capture ? 'automatic' : 'manual',
 		];
 
+		if ( ! empty( $payment_method_type ) && WC_Stripe_Payment_Methods::CARD !== $payment_method_type ) {
+			$statement_descriptor = $gateway->get_full_statement_descriptor();
+			if ( ! empty( $statement_descriptor ) ) {
+				$request['statement_descriptor'] = $statement_descriptor;
+			}
+		}
+
 		$request = $this->maybe_add_mandate_options( $request, $payment_method_type );
 
 		$payment_intent = WC_Stripe_API::request( $request, 'payment_intents' );
@@ -509,8 +516,7 @@ class WC_Stripe_Intent_Controller {
 		if ( $intent_id ) {
 			$request = [
 				'metadata'    => $gateway->get_metadata_from_order( $order ),
-				/* translators: 1) blog name 2) order number */
-				'description' => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+				'description' => WC_Stripe_Helper::get_payment_intent_description( $order ),
 			];
 
 			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
@@ -687,9 +693,10 @@ class WC_Stripe_Intent_Controller {
 	 * @return void
 	 */
 	public function update_order_status_ajax() {
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$order        = false;
-		$order_id     = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : false;
+		$order_helper       = WC_Stripe_Order_Helper::get_instance();
+		$order              = false;
+		$order_id           = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : false;
+		$processing_started = false;
 
 		try {
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_order_status_nonce', false, false );
@@ -704,18 +711,15 @@ class WC_Stripe_Intent_Controller {
 
 			$intent_id          = $order_helper->get_intent_id_from_order( $order );
 			$intent_id_received = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : null;
+			// A mismatch here is still untrusted POST data (order_id/intent_id), so it must not mutate
+			// the order: no note, and no status change to failed below.
 			if ( empty( $intent_id_received ) || $intent_id_received !== $intent_id ) {
-				$note = sprintf(
-					/* translators: %1: transaction ID of the payment or a translated string indicating an unknown ID. */
-					__( 'A payment with ID %s was used in an attempt to pay for this order. This payment intent ID does not match any payments for this order, so it was ignored and the order was not updated.', 'woocommerce-gateway-stripe' ),
-					$intent_id_received
-				);
-				$order->add_order_note( $note );
 				throw new WC_Stripe_Exception( 'invalid_intent_id', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 			$save_payment_method = isset( $_POST['payment_method_id'] ) && ! empty( wc_clean( wp_unslash( $_POST['payment_method_id'] ) ) );
 
-			$gateway = $this->get_upe_gateway();
+			$gateway            = $this->get_upe_gateway();
+			$processing_started = true; // Past validation; a failure from here on is a genuine payment failure.
 			$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
 			wp_send_json_success(
 				[
@@ -751,9 +755,10 @@ class WC_Stripe_Intent_Controller {
 				]
 			);
 
-			/* translators: error message */
-			if ( $order ) {
-				// Remove the awaiting confirmation order meta, don't save the order since it'll be saved in the next `update_status()` call.
+			if ( $order && $processing_started ) {
+				// Only fail the order for failures raised during gateway processing; failures before that
+				// (nonce/CSRF, order lookup, intent mismatch) act on untrusted POST data and must not fail
+				// an order the caller may not own. Skip saving here; update_status() below persists it.
 				$order_helper->remove_payment_awaiting_action( $order, false );
 				$order->update_status( OrderStatus::FAILED );
 			}
@@ -893,8 +898,7 @@ class WC_Stripe_Intent_Controller {
 				'confirm'              => 'true',
 				'currency'             => $payment_information['currency'],
 				'customer'             => $payment_information['customer'],
-				/* translators: 1) blog name 2) order number */
-				'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+				'description'          => WC_Stripe_Helper::get_payment_intent_description( $order ),
 				'metadata'             => $payment_information['metadata'],
 				'payment_method_types' => $payment_method_types,
 			]
@@ -902,6 +906,10 @@ class WC_Stripe_Intent_Controller {
 
 		if ( isset( $payment_information['statement_descriptor_suffix'] ) ) {
 			$request['statement_descriptor_suffix'] = $payment_information['statement_descriptor_suffix'];
+		}
+
+		if ( isset( $payment_information['statement_descriptor'] ) ) {
+			$request['statement_descriptor'] = $payment_information['statement_descriptor'];
 		}
 
 		if ( ! empty( $payment_information['payment_method_options'] ) ) {
@@ -1018,6 +1026,10 @@ class WC_Stripe_Intent_Controller {
 		$request = $this->build_base_payment_intent_request_params( $payment_information );
 
 		$order = $payment_information['order'];
+
+		// Note: statement_descriptor and statement_descriptor_suffix are intentionally
+		// NOT forwarded here. The Stripe /confirm endpoint does not accept these
+		// parameters — they can only be set at PaymentIntent creation time.
 
 		// Run the necessary filter to make sure mandate information is added when it's required.
 		$request = apply_filters(
@@ -1394,6 +1406,12 @@ class WC_Stripe_Intent_Controller {
 			$gateway->set_customer_id_for_subscription( $subscription, $customer->get_id() );
 			$gateway->set_payment_method_id_for_subscription( $subscription, $token->get_token() );
 
+			// Update the saved token details to capture the current details for display purposes.
+			// Errors are intentionally ignored as the changes are cosmetic and don't impact renewals.
+			if ( ! WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $token->get_token() ) ) {
+				WC_Stripe_Logger::error( 'Could not re-associate the saved token after 3DS change-payment for subscription: ' . $subscription_id );
+			}
+
 			// Check if the subscription has the delayed update all flag and attempt to update all subscriptions after the intent has been confirmed. If successful, display the "updated all subscriptions" notice.
 			if ( WC_Subscriptions_Change_Payment_Gateway::will_subscription_update_all_payment_methods( $subscription ) && WC_Subscriptions_Change_Payment_Gateway::update_all_payment_methods_from_subscription( $subscription, $token->get_gateway_id() ) ) {
 				$notice = __( 'Payment method updated for all your current subscriptions.', 'woocommerce-gateway-stripe' );
@@ -1448,24 +1466,6 @@ class WC_Stripe_Intent_Controller {
 	 */
 	private function is_delayed_confirmation_required( $payment_methods ) {
 		return ! empty( array_intersect( $payment_methods, [ WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::MULTIBANCO, WC_Stripe_Payment_Methods::CASHAPP_PAY ] ) );
-	}
-
-	/**
-	 * Check for a UPE redirect payment method on order received page or setup intent on payment methods page.
-	 *
-	 * @deprecated 8.3.0
-	 * @since 5.6.0
-	 * @version 5.6.0
-	 *
-	 * @return void
-	 */
-	public function maybe_process_upe_redirect() {
-		wc_deprecated_function( __FUNCTION__, '8.3', 'WC_Stripe_Order_Handler::maybe_process_redirect_order' );
-
-		$gateway = $this->get_gateway();
-		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
-			$gateway->maybe_process_upe_redirect();
-		}
 	}
 
 	/**

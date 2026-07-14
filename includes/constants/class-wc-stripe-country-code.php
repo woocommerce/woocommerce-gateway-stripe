@@ -10,6 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Country_Code {
 
 	// Source: https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
+	public const ANDORRA              = 'AD'; // Andorra.
 	public const UNITED_ARAB_EMIRATES = 'AE'; // United Arab Emirates.
 	public const AUSTRIA              = 'AT'; // Austria.
 	public const AUSTRALIA            = 'AU'; // Australia.
@@ -41,6 +42,7 @@ class WC_Stripe_Country_Code {
 	public const LITHUANIA            = 'LT'; // Lithuania.
 	public const LUXEMBOURG           = 'LU'; // Luxembourg.
 	public const LATVIA               = 'LV'; // Latvia.
+	public const MONACO               = 'MC'; // Monaco.
 	public const MALTA                = 'MT'; // Malta.
 	public const MEXICO               = 'MX'; // Mexico.
 	public const MALAYSIA             = 'MY'; // Malaysia.
@@ -55,5 +57,8 @@ class WC_Stripe_Country_Code {
 	public const SINGAPORE            = 'SG'; // Singapore.
 	public const SLOVENIA             = 'SI'; // Slovenia.
 	public const SLOVAKIA             = 'SK'; // Slovakia.
+	public const SAN_MARINO           = 'SM'; // San Marino.
+	public const THAILAND             = 'TH'; // Thailand.
 	public const UNITED_STATES        = 'US'; // United States.
+	public const VATICAN_CITY         = 'VA'; // Vatican City.
 }

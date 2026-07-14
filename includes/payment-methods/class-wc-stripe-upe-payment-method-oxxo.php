@@ -12,7 +12,21 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::OXXO;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::OXXO;
+
+	/**
+	 * Stripe account countries that may enable OXXO.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [ WC_Stripe_Country_Code::MEXICO ];
+
+	/**
+	 * Shopper billing countries permitted to use OXXO.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [ WC_Stripe_Country_Code::MEXICO ];
 
 	/**
 	 * Constructor for OXXO payment method
@@ -26,7 +40,6 @@ class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 		$this->title                = 'OXXO';
 		$this->is_reusable          = false;
 		$this->supported_currencies = [ WC_Stripe_Currency_Code::MEXICAN_PESO ];
-		$this->supported_countries  = [ WC_Stripe_Country_Code::MEXICO ];
 		$this->supports             = [ PaymentGatewayFeature::PRODUCTS ];
 		$this->label                = __( 'OXXO', 'woocommerce-gateway-stripe' );
 		$this->description          = __(

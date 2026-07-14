@@ -9,6 +9,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	/**
+	 * Checkout session metadata value identifying an Adaptive Pricing checkout.
+	 *
+	 * @var string
+	 */
+	public const ADAPTIVE_PRICING_CHECKOUT_TYPE = 'adaptive_pricing_checkout';
+
+	/**
 	 * Initialize hooks.
 	 *
 	 * @return void
@@ -34,14 +41,19 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
 			}
 
+			$cart_context = $this->build_cart_context();
+
 			$request = [
 				'ui_mode'                       => 'custom',
-				'line_items'                    => $this->build_line_items(),
+				'line_items'                    => $this->build_line_items( $cart_context ),
 				'excluded_payment_method_types' => WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
 				'payment_intent_data'           => $this->build_payment_intent_data(),
 				'mode'                          => 'payment',
 				'adaptive_pricing'              => [
 					'enabled' => 'true',
+				],
+				'metadata'                      => [
+					'checkout_type' => self::ADAPTIVE_PRICING_CHECKOUT_TYPE,
 				],
 			];
 
@@ -51,8 +63,10 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 
 			if ( is_user_logged_in() && WC()->customer instanceof WC_Customer ) {
 				try {
+					// The session is created on page load, before the buyer has entered billing details, so the customer
+					// is built from saved account meta only. Validate minimally (email) — Stripe collects the rest in the form.
 					$stripe_customer = new WC_Stripe_Customer( WC()->customer->get_id() );
-					$stripe_customer->maybe_create_customer();
+					$stripe_customer->maybe_create_customer( WC_Stripe_Customer::CUSTOMER_CONTEXT_CHECKOUT_SESSION );
 				} catch ( Exception $e ) {
 					throw new Exception( __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) );
 				}
@@ -61,6 +75,16 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				$request['saved_payment_method_options'] = [
 					'payment_method_save' => 'enabled',
 				];
+
+				// When the buyer has no saved billing address the customer is created without one, so let Stripe
+				// backfill the Customer's name/address from what's entered at checkout.
+				$has_billing_address = '' !== trim( (string) get_user_meta( WC()->customer->get_id(), 'billing_address_1', true ) );
+				if ( ! $has_billing_address ) {
+					$request['customer_update'] = [
+						'address' => 'auto',
+						'name'    => 'auto',
+					];
+				}
 			}
 
 			$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );
@@ -73,6 +97,8 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 			if ( empty( $checkout_session->client_secret ) || empty( $checkout_session->id ) ) {
 				throw new Exception( __( 'Unable to create Stripe Checkout Session.', 'woocommerce-gateway-stripe' ) );
 			}
+
+			WC_Stripe_Checkout_Session_Context::store_for_cart( $checkout_session->id, $cart_context );
 
 			wp_send_json_success(
 				[
@@ -110,19 +136,26 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			// Recalculate totals.
-			WC()->cart->calculate_totals();
+			WC_Stripe_Checkout_Session_Context::with_mutation_lock(
+				$session_id,
+				function () use ( $session_id ): void {
+					WC_Stripe_Checkout_Session_Context::validate_update_request( $session_id );
+					$cart_context = $this->build_cart_context();
 
-			$request = [
-				'line_items' => $this->build_line_items(),
-			];
+					$request = [
+						'line_items' => $this->build_line_items( $cart_context ),
+					];
 
-			$checkout_session = WC_Stripe_API::request( $request, "checkout/sessions/$session_id" );
+					$checkout_session = WC_Stripe_API::request( $request, "checkout/sessions/$session_id" );
 
-			if ( ! empty( $checkout_session->error ) ) {
-				$message = empty( $checkout_session->error->message ) ? __( 'Checkout Sessions update API returned an error', 'woocommerce-gateway-stripe' ) : $checkout_session->error->message;
-				throw new Exception( $message );
-			}
+					if ( ! empty( $checkout_session->error ) ) {
+						$message = empty( $checkout_session->error->message ) ? __( 'Checkout Sessions update API returned an error', 'woocommerce-gateway-stripe' ) : $checkout_session->error->message;
+						throw new Exception( $message );
+					}
+
+					WC_Stripe_Checkout_Session_Context::store_for_cart( $session_id, $cart_context );
+				}
+			);
 
 			wp_send_json_success( [ 'result' => 'success' ] );
 
@@ -133,23 +166,57 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	}
 
 	/**
-	 * Build the line items array for the Stripe Checkout Session request based on the WooCommerce cart contents.
+	 * Build the current cart context used to validate Checkout Session updates.
 	 *
 	 * @return array
 	 */
-	private function build_line_items(): array {
+	private function build_cart_context(): array {
+		$this->calculate_cart_totals();
+
 		$currency = get_woocommerce_currency();
-		// Payable cart total: subtotal, tax, shipping, fees, minus discounts (same as checkout order total).
-		$cart_total = WC_Stripe_Helper::get_stripe_amount( (float) WC()->cart->get_total( 'edit' ), $currency );
+
+		return [
+			'amount'   => WC_Stripe_Helper::get_stripe_amount( (float) WC()->cart->get_total( 'edit' ), $currency ),
+			'currency' => strtolower( $currency ),
+		];
+	}
+
+	/**
+	 * Recalculate cart totals using the same checkout conditional third-party tax integrations expect.
+	 *
+	 * @return void
+	 */
+	private function calculate_cart_totals(): void {
+		$force_checkout_context = static function (): bool {
+			return true;
+		};
+
+		add_filter( 'woocommerce_is_checkout', $force_checkout_context );
+
+		try {
+			WC()->cart->calculate_totals();
+		} finally {
+			remove_filter( 'woocommerce_is_checkout', $force_checkout_context );
+		}
+	}
+
+	/**
+	 * Build the line items array for the Stripe Checkout Session request based on the WooCommerce cart contents.
+	 *
+	 * @param array|null $cart_context Current cart context.
+	 * @return array
+	 */
+	private function build_line_items( ?array $cart_context = null ): array {
+		$cart_context = $cart_context ?? $this->build_cart_context();
 
 		$line_items = [
 			[
 				'price_data' => [
-					'currency'     => strtolower( $currency ),
+					'currency'     => $cart_context['currency'],
 					'product_data' => [
 						'name' => __( 'Cart total', 'woocommerce-gateway-stripe' ),
 					],
-					'unit_amount'  => $cart_total,
+					'unit_amount'  => $cart_context['amount'],
 				],
 				// As we are using one aggregate line item: the payable total lives in unit_amount, not in quantity × unit price.
 				'quantity'   => 1,
@@ -167,8 +234,9 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	private function build_payment_intent_data(): array {
 		$data     = [];
 		$metadata = [
-			'site_url'     => esc_url_raw( get_site_url() ),
-			'payment_type' => 'single',
+			'site_url'      => esc_url_raw( get_site_url() ),
+			'payment_type'  => 'single',
+			'checkout_type' => self::ADAPTIVE_PRICING_CHECKOUT_TYPE,
 		];
 
 		/** Documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php */

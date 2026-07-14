@@ -122,9 +122,6 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		global $current_tab, $current_section;
 
 		$wp_scripts_backup = $GLOBALS['wp_scripts'];
-		$feature_filter    = static function () use ( $is_checkout_sessions_feature_available ) {
-			return $is_checkout_sessions_feature_available;
-		};
 
 		try {
 			// Avoid stacked `wp_localize_script` output from prior data-provider runs breaking JSON extraction.
@@ -133,9 +130,10 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			$current_tab     = 'checkout';
 			$current_section = 'stripe';
 
-			// is_checkout_sessions_available() bails out before apply_filters unless these are enabled.
+			// is_checkout_sessions_available() requires PMC, OC, and automatic capture all enabled;
+			// toggle PMC to drive the feature on/off for this data-provider row.
 			$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
-			$stripe_settings['pmc_enabled']                = 'yes';
+			$stripe_settings['pmc_enabled']                = $is_checkout_sessions_feature_available ? 'yes' : 'no';
 			$stripe_settings['optimized_checkout_element'] = 'yes';
 			$stripe_settings['capture']                    = 'yes';
 			$stripe_settings['testmode']                   = 'yes';
@@ -145,6 +143,9 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				->disableOriginalConstructor()
 				->getMock();
 			$account->method( 'get_account_country' )->willReturn( $account_country );
+			// Adaptive Pricing availability now also depends on webhooks; enable them so this test
+			// isolates the country-restriction logic it covers.
+			$account->method( 'is_webhook_enabled' )->willReturn( true );
 
 			$stripe_singleton_account_backup   = WC_Stripe::get_instance()->account;
 			WC_Stripe::get_instance()->account = $account;
@@ -169,8 +170,6 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 			$controller = new WC_Stripe_Settings_Controller( $account, $gateway );
 
-			add_filter( 'wc_stripe_is_checkout_sessions_available', $feature_filter );
-
 			$controller->admin_scripts( 'woocommerce_page_wc-settings' );
 
 			$localized_data = wp_scripts()->get_data( 'woocommerce_stripe_admin', 'data' );
@@ -191,7 +190,6 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				WC_Stripe::get_instance()->account = $stripe_singleton_account_backup;
 			}
 			$GLOBALS['wp_scripts'] = $wp_scripts_backup;
-			remove_filter( 'wc_stripe_is_checkout_sessions_available', $feature_filter );
 			unset( $current_tab, $current_section );
 		}
 	}

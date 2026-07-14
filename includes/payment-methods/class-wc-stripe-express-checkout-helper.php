@@ -43,6 +43,16 @@ class WC_Stripe_Express_Checkout_Helper {
 	private $gateway;
 
 	/**
+	 * Request-scoped cache for `should_show_express_checkout_button()`.
+	 *
+	 * Keys in the array capture specific contexts that may apply within a request.
+	 * Once such case is for handling One Page Checkout, which can affect when we are in checkout via runtime hooks.
+	 *
+	 * @var array<string, bool>
+	 */
+	private $should_show_cache = [];
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -65,6 +75,42 @@ class WC_Stripe_Express_Checkout_Helper {
 			$suffix = " ($suffix)";
 		}
 		return $suffix;
+	}
+
+	/**
+	 * Replaces the subscription's saved payment tokens with the WC token that
+	 * matches the given Stripe payment method ID. The change-payment flow
+	 * updates `_stripe_source_id` / `_payment_method` but not `_payment_tokens`,
+	 * so without this My Account keeps rendering the previously saved card.
+	 *
+	 * @param WC_Order $subscription      The subscription being updated.
+	 * @param string   $payment_method_id The Stripe payment method ID just attached to the subscription.
+	 * @return bool                       Whether a matching token was attached.
+	 */
+	public static function replace_subscription_payment_token( $subscription, $payment_method_id ) {
+		if ( ! $subscription instanceof WC_Order || empty( $payment_method_id ) ) {
+			return false;
+		}
+
+		$user_id = $subscription->get_user_id();
+		if ( ! $user_id ) {
+			return false;
+		}
+
+		$tokens = WC_Payment_Tokens::get_customer_tokens( $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+		foreach ( $tokens as $token ) {
+			if ( $token->get_token() === $payment_method_id ) {
+				// `_payment_tokens` is in WC's internal-meta-keys list, so
+				// `delete_meta_data()` is a no-op on it; `add_payment_token()`
+				// then appends rather than replaces, leaving the stale token
+				// alongside the new one. The data-store API rewrites the list
+				// in one call (and works under both CPT and HPOS).
+				$subscription->get_data_store()->update_payment_token_ids( $subscription, [ $token->get_id() ] ); // @phpstan-ignore-line method.notFound (PHPStan can't follow the generic get_data_store() return type to the order data store that implements update_payment_token_ids().)
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -132,6 +178,42 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		if ( 'large' === $height ) {
+			return '56';
+		}
+
+		return '48';
+	}
+
+	/**
+	 * Gets the Link button height.
+	 *
+	 * @return string
+	 */
+	public function get_link_button_height() {
+		$size = isset( $this->stripe_settings['link_button_size'] ) ? $this->stripe_settings['link_button_size'] : 'default';
+		if ( 'small' === $size ) {
+			return '40';
+		}
+
+		if ( 'large' === $size ) {
+			return '56';
+		}
+
+		return '48';
+	}
+
+	/**
+	 * Gets the Amazon Pay button height.
+	 *
+	 * @return string
+	 */
+	public function get_amazon_pay_button_height() {
+		$size = isset( $this->stripe_settings['amazon_pay_button_size'] ) ? $this->stripe_settings['amazon_pay_button_size'] : 'default';
+		if ( 'small' === $size ) {
+			return '40';
+		}
+
+		if ( 'large' === $size ) {
 			return '56';
 		}
 
@@ -302,6 +384,46 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Render-time cart snapshot that lets the cart/checkout Express Checkout button
+	 * paint without the initial `GET /wc/store/v1/cart` fetch. Built from the same
+	 * helpers the AJAX path uses, so it matches what the fetch would return. Returns
+	 * null when the button must not render (wrong page, empty cart, or zero total
+	 * without a free trial); the client then falls back to its AJAX path.
+	 *
+	 * @return array|null
+	 */
+	public function get_cart_render_data() {
+		if ( ! $this->is_cart() && ! $this->is_checkout() ) {
+			return null;
+		}
+
+		if ( is_null( WC()->cart ) || WC()->cart->is_empty() ) {
+			return null;
+		}
+
+		$display_items = $this->build_display_items();
+		// Round before casting: the total passes through the `wc_stripe_calculated_total`
+		// filter, which can hand back a non-integer minor-unit value. A bare (int) cast
+		// would truncate it and drop a minor unit from the first-paint total.
+		$total = (int) round( (float) $display_items['total']['amount'] );
+
+		// Mirror the client's zero-total hide; free trials still render.
+		if ( 0 === $total && ! $this->has_free_trial() ) {
+			return null;
+		}
+
+		$checkout = $this->get_checkout_data();
+
+		return [
+			'total'           => $total,
+			'currency'        => $checkout['currency_code'],
+			'requestShipping' => 'yes' === $checkout['needs_shipping'],
+			'requestPhone'    => (bool) $checkout['needs_payer_phone'],
+			'displayItems'    => $display_items['displayItems'],
+		];
+	}
+
+	/**
 	 * Helper function to return the list of countries that WooCommerce is set up to ship to.
 	 * The data is returned as an array of country codes, and relies on core WooCommerce shipping settings.
 	 *
@@ -340,6 +462,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			'needs_shipping'          => 'no',
 			'needs_payer_phone'       => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
 			'default_shipping_option' => $this->get_default_shipping_option(),
+			'display_prices_with_tax' => 'incl' === get_option( 'woocommerce_tax_display_cart' ),
 		];
 
 		if ( ! is_null( WC()->cart ) && WC()->cart->needs_shipping() ) {
@@ -375,39 +498,22 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return string The normalized postal code.
 	 */
 	public function get_normalized_postal_code( $postcode, $country ) {
-		/**
-		 * Currently, Apple Pay truncates the UK and Canadian postal codes to the first 4 and 3 characters respectively
-		 * Apple Pay also truncates Canadian postal codes to the first 4 characters.
-		 * when passing it back from the shippingcontactselected object. This causes WC to invalidate
-		 * the postal code and not calculate shipping zones correctly.
-		 */
+		// Apple Pay truncates UK/CA postcodes (e.g. `E2L` for `E2L 3C4`), which fails WC validation
+		// and breaks shipping zones. Pad with `0` so it stays valid-looking; `*` would be rejected by
+		// WC_Validation::is_postcode() before the `woocommerce_validate_postcode` bypass can run.
 		if ( WC_Stripe_Country_Code::UNITED_KINGDOM === $country ) {
-			// UK Postcodes returned from Apple Pay can be alpha numeric 2 chars, 3 chars, or 4 chars long will optionally have a trailing space,
-			// depending on whether the customer put a space in their postcode between the outcode and incode part.
-			// See https://assets.publishing.service.gov.uk/media/5a7b997d40f0b62826a049e0/ILRSpecification2013_14Appendix_C_Dec2012_v1.pdf for more details.
-
-			// Here is a table showing the functionality by example:
-			//  Original  | Apple Pay |  Normalized
-			// 'LN10 1AA' |  'LN10 '  |  'LN10 ***'
-			// 'LN101AA'  |  'LN10'   |  'LN10 ***'
-			// 'W10 2AA'  |  'W10 '   |  'W10 ***'
-			// 'W102AA'   |  'W10'    |  'W10 ***'
-			// 'N2 3AA    |  'N2 '    |  'N2 ***'
-			// 'N23AA     |  'N2'     |  'N2 ***'
-
 			$spaceless_postcode = preg_replace( '/\s+/', '', $postcode );
 
 			if ( strlen( $spaceless_postcode ) < 5 ) {
-				// Always reintroduce the space so that Shipping Zones regex like 'N1 *' work to match N1 postcodes like N1 1AA, but don't match N10 postcodes like N10 1AA
-				return $spaceless_postcode . ' ***';
+				// Keep the space so Shipping Zone patterns like 'N1 *' match N1 1AA but not N10 1AA.
+				return $spaceless_postcode . ' 000';
 			}
 
-			return $postcode; // 5 or more chars means it probably wasn't redacted and will likely validate unchanged.
+			return $postcode; // 5+ chars: probably not redacted.
 		}
 
 		if ( WC_Stripe_Country_Code::CANADA === $country ) {
-			// Replaces a redacted string with something like L4Y***.
-			return str_pad( preg_replace( '/\s+/', '', $postcode ), 6, '*' );
+			return str_pad( preg_replace( '/\s+/', '', $postcode ), 6, '0' ); // e.g. L4Y000.
 		}
 
 		return $postcode;
@@ -629,7 +735,77 @@ class WC_Stripe_Express_Checkout_Helper {
 	public function is_page_supported() {
 		return $this->is_product()
 				|| WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
-				|| is_wc_endpoint_url( 'order-pay' );
+				|| is_wc_endpoint_url( 'order-pay' )
+				|| $this->is_change_payment_method_page();
+	}
+
+	/**
+	 * Returns true if the current page is a subscription change payment method page.
+	 *
+	 * @return boolean
+	 */
+	public function is_change_payment_method_page() {
+		return isset( $_GET['change_payment_method'] ) // phpcs:ignore WordPress.Security.NonceVerification
+			&& function_exists( 'wcs_is_subscription' )
+			&& wcs_is_subscription( absint( $_GET['change_payment_method'] ) ); // phpcs:ignore WordPress.Security.NonceVerification
+	}
+
+	/**
+	 * Returns true if ECE should be shown on the subscription change payment method page.
+	 *
+	 * Performs only the basic checks needed (account connected, SSL, gateway available,
+	 * ECE enabled) without cart-dependent validations which don't apply to this flow.
+	 * The location toggle (`change_payment_method`) lets merchants opt out independently
+	 * of the checkout-page setting.
+	 *
+	 * @return boolean
+	 */
+	private function should_show_ece_on_change_payment_method_page() {
+		if ( ! WC_Stripe::get_instance()->connect->is_connected() ) {
+			return false;
+		}
+
+		if ( ! $this->testmode && ! is_ssl() ) {
+			return false;
+		}
+
+		$available_gateways = WC()->payment_gateways()->get_available_payment_gateways();
+		if ( ! isset( $available_gateways['stripe'] ) ) {
+			return false;
+		}
+
+		if ( ! $this->is_express_checkout_enabled() ) {
+			return false;
+		}
+
+		if ( ! $this->should_show_ece_on_change_payment_method_location() ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Returns true if any express checkout buttons are enabled for the subscription
+	 * change payment method location, false otherwise.
+	 *
+	 * @since 10.8.0
+	 * @return boolean
+	 */
+	public function should_show_ece_on_change_payment_method_location() {
+		$should_show = $this->should_show_ece_on_location( 'change_payment_method' );
+
+		/**
+		 * Filters whether Express Checkout buttons should appear on the
+		 * WooCommerce Subscriptions "Change payment method" page.
+		 *
+		 * @since 10.8.0
+		 * @param bool $should_show Whether the buttons should be shown.
+		 */
+		return apply_filters(
+			'wc_stripe_show_express_checkout_on_change_payment_method',
+			$should_show
+		);
 	}
 
 	/**
@@ -639,6 +815,30 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  boolean  True if express checkout elements are supported on current page, false otherwise
 	 */
 	public function should_show_express_checkout_button() {
+		// One Page Checkout can make a page act as a checkout page via runtime hooks.
+		// We need a separate cache key for that case to ensure we enable express checkout.
+		$cache_key = doing_action( 'woocommerce_after_add_to_cart_form' ) ? 'after_add_to_cart' : 'default';
+
+		if ( array_key_exists( $cache_key, $this->should_show_cache ) ) {
+			return $this->should_show_cache[ $cache_key ];
+		}
+
+		$this->should_show_cache[ $cache_key ] = $this->compute_should_show_express_checkout_button();
+		return $this->should_show_cache[ $cache_key ];
+	}
+
+	/**
+	 * Evaluate every guard for showing the Express Checkout button. Do not call directly;
+	 * go through `should_show_express_checkout_button()` so the result is cached.
+	 *
+	 * @return boolean
+	 */
+	protected function compute_should_show_express_checkout_button() {
+		// For subscription change payment method, only check basic requirements.
+		if ( $this->is_change_payment_method_page() ) {
+			return $this->should_show_ece_on_change_payment_method_page();
+		}
+
 		// Bail if account is not connected.
 		if ( ! WC_Stripe::get_instance()->connect->is_connected() ) {
 			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
@@ -955,7 +1155,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	private function should_show_ece_on_location( string $location ): bool {
 		return $this->is_enabled_for_location( 'payment_request', $location ) ||
-				$this->is_enabled_for_location( 'amazon_pay', $location );
+				$this->is_enabled_for_location( 'amazon_pay', $location ) ||
+				$this->is_enabled_for_location( 'link', $location );
 	}
 
 	/**
@@ -1133,8 +1334,6 @@ class WC_Stripe_Express_Checkout_Helper {
 		// @reykjalin: This HK specific sanitazation *should be removed* once Apple Pay fix
 		// the address bug. More info on that in pc4etw-bY-p2.
 		if ( WC_Stripe_Country_Code::HONG_KONG === $billing_country ) {
-			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
-
 			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $billing_state ) ) ) {
 				$billing_postcode = ! empty( $data['billing_address']['postcode'] ) ? wc_clean( wp_unslash( $data['billing_address']['postcode'] ) ) : '';
 				if ( WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $billing_postcode ) ) ) {
@@ -1143,8 +1342,6 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 		if ( WC_Stripe_Country_Code::HONG_KONG === $shipping_country ) {
-			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
-
 			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $shipping_state ) ) ) {
 				$shipping_postcode = ! empty( $data['shipping_address']['postcode'] ) ? wc_clean( wp_unslash( $data['shipping_address']['postcode'] ) ) : '';
 				if ( WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $shipping_postcode ) ) ) {
@@ -1202,7 +1399,6 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function get_normalized_state_from_pr_states( $state, $country ) {
 		// Include Payment Request API State list for compatibility with WC countries/states.
-		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-payment-request-button-states.php';
 		$pr_states = WC_Stripe_Payment_Request_Button_States::STATES;
 
 		if ( ! isset( $pr_states[ $country ] ) ) {
@@ -1627,8 +1823,10 @@ class WC_Stripe_Express_Checkout_Helper {
 			case 'amazon_pay':
 				$key = 'amazon_pay_button_locations';
 				break;
+			case 'link':
+				$key = 'link_button_locations';
+				break;
 			case 'payment_request':
-			case 'link': // Link does not yet have its own Customize page. It shares the same location settings as Apple Pay and Google Pay.
 			default:
 				$key = 'express_checkout_button_locations';
 				break;
@@ -1682,6 +1880,12 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	private function is_enabled_for_current_context( string $express_checkout_type ): bool {
+		// Subscription change payment method has its own dedicated location toggle so
+		// merchants can opt out independently of the checkout-page setting.
+		if ( $this->is_change_payment_method_page() ) {
+			return $this->is_enabled_for_location( $express_checkout_type, 'change_payment_method' );
+		}
+
 		// One Page Checkout plugin creates checkout functionality on product pages, so we need to check for it and treat it as a checkout page.
 		$is_one_page_checkout = $this->is_one_page_checkout();
 
@@ -1754,18 +1958,6 @@ class WC_Stripe_Express_Checkout_Helper {
 		$is_enabled = WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this->gateway );
 
 		return $is_enabled && $this->is_enabled_for_current_context( 'link' );
-	}
-
-	/**
-	 * Returns whether Stripe express checkout element should use the Blocks API.
-	 *
-	 * @return boolean
-	 *
-	 * @deprecated 9.2.0 Feature flag enable by default.
-	 */
-	public function use_blocks_api() {
-		_deprecated_function( __METHOD__, '9.2.0' );
-		return isset( $this->stripe_settings['express_checkout_use_blocks_api'] ) && 'yes' === $this->stripe_settings['express_checkout_use_blocks_api'];
 	}
 
 	/**
@@ -1927,7 +2119,10 @@ class WC_Stripe_Express_Checkout_Helper {
 		if ( empty( $GLOBALS['wp']->query_vars['rest_route'] ) ) {
 			return false;
 		}
-		return 0 === strpos( $GLOBALS['wp']->query_vars['rest_route'], '/wc/store/v1/checkout' );
+
+		$route = $GLOBALS['wp']->query_vars['rest_route'];
+		return 0 === strpos( $route, '/wc/store/v1/checkout' )
+			|| 0 === strpos( $route, '/wc/store/v1/cart' );
 	}
 
 	/**

@@ -7,6 +7,7 @@ import {
 } from 'wcstripe/blocks/checkout-sessions/hooks';
 import { useEffect } from '@wordpress/element';
 import { select, useSelect } from '@wordpress/data';
+import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
 
 jest.mock( '@wordpress/element', () => ( {
 	...jest.requireActual( '@wordpress/element' ),
@@ -17,6 +18,28 @@ jest.mock( '@wordpress/data', () => ( {
 	select: jest.fn(),
 	useSelect: jest.fn( () => '' ),
 } ) );
+
+jest.mock( 'wcstripe/blocks/wait-for-payment-element-completion', () => ( {
+	waitForPaymentElementCompletion: jest.fn(),
+} ) );
+
+// hooks.js imports jQuery; mock the module with a chainable so the
+// blockUI/unblockUI calls in the totals-sync effect are no-ops here and do not
+// abort the re-price under test.
+jest.mock( 'jquery', () => {
+	const jq = jest.fn( () => {
+		const chain = {
+			on: jest.fn(),
+			trigger: jest.fn(),
+			addClass: jest.fn( () => chain ),
+			removeClass: jest.fn( () => chain ),
+			block: jest.fn( () => chain ),
+			unblock: jest.fn( () => chain ),
+		};
+		return chain;
+	} );
+	return jq;
+} );
 
 describe( 'CheckoutSessions hook tests', () => {
 	beforeEach( () => {
@@ -84,6 +107,59 @@ describe( 'CheckoutSessions hook tests', () => {
 				false
 			);
 			const result = await onPaymentSetupResultPromise;
+			expect( result ).toEqual( {
+				type: 'error',
+				message: 'Your payment information is incomplete.',
+			} );
+		} );
+
+		// With a completion ref, a submission landing mid-(re)mount
+		// waits for the element to settle instead of failing immediately.
+		it( 'waits for an in-flight re-mount, then succeeds once the element completes', async () => {
+			const hasLoadErrorRef = { current: false };
+			const completeRef = { current: false };
+			// The element finishes re-mounting while we wait.
+			waitForPaymentElementCompletion.mockImplementation( () => {
+				completeRef.current = true;
+				return Promise.resolve( true );
+			} );
+
+			usePaymentSetupHandler(
+				onPaymentSetup,
+				checkoutSessionId,
+				null,
+				hasLoadErrorRef,
+				false,
+				'',
+				completeRef
+			);
+			const result = await onPaymentSetupResultPromise;
+
+			expect( waitForPaymentElementCompletion ).toHaveBeenCalledWith(
+				completeRef
+			);
+			expect( result.type ).toBe( 'success' );
+		} );
+
+		it( 'returns the incomplete error when the element never completes within the wait', async () => {
+			const hasLoadErrorRef = { current: false };
+			const completeRef = { current: false };
+			waitForPaymentElementCompletion.mockResolvedValue( false );
+
+			usePaymentSetupHandler(
+				onPaymentSetup,
+				checkoutSessionId,
+				null,
+				hasLoadErrorRef,
+				false,
+				'',
+				completeRef
+			);
+			const result = await onPaymentSetupResultPromise;
+
+			expect( waitForPaymentElementCompletion ).toHaveBeenCalledWith(
+				completeRef
+			);
 			expect( result ).toEqual( {
 				type: 'error',
 				message: 'Your payment information is incomplete.',
@@ -196,8 +272,13 @@ describe( 'CheckoutSessions hook tests', () => {
 			},
 		};
 
+		let originalLocation;
+
 		beforeEach( () => {
 			document.body.innerHTML = '';
+			originalLocation = window.location;
+			delete window.location;
+			window.location = { origin: 'https://example.com' };
 			onCheckoutSuccess.mockImplementation( ( fn ) => {
 				const onCheckoutProcessingData = {
 					processingResponse: {
@@ -208,6 +289,10 @@ describe( 'CheckoutSessions hook tests', () => {
 				};
 				onCheckoutSuccessResultPromise = fn( onCheckoutProcessingData );
 			} );
+		} );
+
+		afterEach( () => {
+			window.location = originalLocation;
 		} );
 
 		it( 'checkoutState.type is not success', async () => {
@@ -276,6 +361,43 @@ describe( 'CheckoutSessions hook tests', () => {
 				redirect: 'if_required',
 				savePaymentMethod: false,
 			} );
+		} );
+
+		it( 'confirms with an absolute returnUrl when the server returns a relative redirect', async () => {
+			onCheckoutSuccess.mockImplementation( ( fn ) => {
+				const onCheckoutProcessingData = {
+					processingResponse: {
+						paymentDetails: {
+							redirect: '/order-received/123/?key=abc',
+						},
+					},
+				};
+				onCheckoutSuccessResultPromise = fn( onCheckoutProcessingData );
+			} );
+
+			const mockConfirm = jest.fn().mockResolvedValue( {
+				type: 'success',
+			} );
+			const checkoutState = {
+				type: 'success',
+				checkout: { email: '', confirm: mockConfirm },
+			};
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				false,
+				false,
+				shippingData
+			);
+			await onCheckoutSuccessResultPromise;
+
+			expect( mockConfirm ).toHaveBeenCalledWith(
+				expect.objectContaining( {
+					returnUrl:
+						'https://example.com/order-received/123/?key=abc',
+				} )
+			);
 		} );
 
 		it( 'success', async () => {

@@ -1,5 +1,6 @@
 <?php
 
+use Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils;
 use Automattic\WooCommerce\Enums\OrderStatus;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -12,27 +13,27 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Helper {
-	const SETTINGS_OPTION              = 'woocommerce_stripe_settings';
-	const LEGACY_META_NAME_FEE         = 'Stripe Fee';
-	const LEGACY_META_NAME_NET         = 'Net Revenue From Stripe';
-	const META_NAME_FEE                = '_stripe_fee';
-	const META_NAME_NET                = '_stripe_net';
-	const META_NAME_STRIPE_CURRENCY    = '_stripe_currency';
-	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
+	public const SETTINGS_OPTION              = 'woocommerce_stripe_settings';
+	public const LEGACY_META_NAME_FEE         = 'Stripe Fee';
+	public const LEGACY_META_NAME_NET         = 'Net Revenue From Stripe';
+	public const META_NAME_FEE                = '_stripe_fee';
+	public const META_NAME_NET                = '_stripe_net';
+	public const META_NAME_STRIPE_CURRENCY    = '_stripe_currency';
+	public const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
 	 * The identifier for the official Affirm gateway plugin.
 	 *
 	 * @var string
 	 */
-	const OFFICIAL_PLUGIN_ID_AFFIRM = 'affirm';
+	public const OFFICIAL_PLUGIN_ID_AFFIRM = 'affirm';
 
 	/**
 	 * The identifier for the official Klarna gateway plugin.
 	 *
 	 * @var string
 	 */
-	const OFFICIAL_PLUGIN_ID_KLARNA = 'klarna_payments';
+	public const OFFICIAL_PLUGIN_ID_KLARNA = 'klarna_payments';
 
 	/**
 	 * List of legacy Stripe gateways.
@@ -124,6 +125,18 @@ class WC_Stripe_Helper {
 		}
 
 		return round( $amount / 100, 2 );
+	}
+
+	/**
+	 * Builds the description sent to Stripe for an order's payment or setup intent.
+	 *
+	 * @since 10.8.0
+	 * @param WC_Order $order The order the intent belongs to.
+	 * @return string The intent description. Format: "{blog name} - Order {order number}".
+	 */
+	public static function get_payment_intent_description( $order ): string {
+		/* translators: 1) blog name 2) order number */
+		return sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() );
 	}
 
 	/**
@@ -859,7 +872,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.2
 	 * @param string $intent_id The ID of the intent.
-	 * @return WC_Order|bool Either an order or false when not found.
+	 * @return WC_Order|false Either an order or false when not found.
 	 */
 	public static function get_order_by_intent_id( $intent_id ) {
 		global $wpdb;
@@ -883,10 +896,10 @@ class WC_Stripe_Helper {
 
 		if ( ! empty( $order_id ) ) {
 			$order = wc_get_order( $order_id );
-		}
 
-		if ( ! empty( $order ) && $order->get_status() !== OrderStatus::TRASH ) {
-			return $order;
+			if ( $order instanceof WC_Order && $order->get_status() !== OrderStatus::TRASH ) {
+				return $order;
+			}
 		}
 
 		return false;
@@ -897,7 +910,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.3
 	 * @param string $intent_id The ID of the intent.
-	 * @return WC_Order|bool Either an order or false when not found.
+	 * @return WC_Order|false Either an order or false when not found.
 	 */
 	public static function get_order_by_setup_intent_id( $intent_id ) {
 		global $wpdb;
@@ -920,7 +933,11 @@ class WC_Stripe_Helper {
 		}
 
 		if ( ! empty( $order_id ) ) {
-			return wc_get_order( $order_id );
+			$order = wc_get_order( $order_id );
+
+			if ( $order instanceof WC_Order ) {
+				return $order;
+			}
 		}
 
 		return false;
@@ -1127,6 +1144,35 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Whether the express checkout button styles are overridden by the "Apply uniform style"
+	 * option of the Cart & Checkout blocks' Express Checkout section (`showButtonStyles`).
+	 *
+	 * @since 10.9.0
+	 * @return bool
+	 */
+	public static function is_express_checkout_button_style_overridden(): bool {
+		// CartCheckoutUtils is a semi-internal Blocks class; guard in case it is unavailable.
+		if ( ! is_callable( [ CartCheckoutUtils::class, 'find_express_checkout_attributes' ] ) ) {
+			return false;
+		}
+
+		// Cart and Checkout share the same attributes, so an override on either page counts.
+		foreach ( [ 'checkout', 'cart' ] as $page ) {
+			$post = get_post( wc_get_page_id( $page ) );
+			if ( ! $post instanceof WP_Post || ! has_block( 'woocommerce/' . $page, $post ) ) {
+				continue;
+			}
+
+			$attributes = CartCheckoutUtils::find_express_checkout_attributes( $post->post_content, $page );
+			if ( ! empty( $attributes['showButtonStyles'] ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Checks if Adaptive Pricing is available for the current Stripe account.
 	 * Refer to {@see get_adaptive_pricing_account_unavailable_reason()} for more details.
 	 *
@@ -1155,6 +1201,15 @@ class WC_Stripe_Helper {
 
 		if ( WC_Stripe_Country_Code::INDIA === strtoupper( $account_country ) ) {
 			return 'account-country';
+		}
+
+		if ( ! $stripe_account->is_webhook_enabled() ) {
+			return 'webhooks-disabled';
+		}
+
+		// If Adaptive Pricing was disabled due to an amount mismatch, keep Adaptive Pricing disabled.
+		if ( WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected() ) {
+			return 'amount-mismatch-detected';
 		}
 
 		// If we are in test mode, payout details are often missing and currency-based rules
@@ -1194,7 +1249,7 @@ class WC_Stripe_Helper {
 	public static function is_adaptive_pricing_supported(): bool {
 
 		// False if checkout session feature flag is disabled.
-		if ( ! WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
+		if ( ! self::is_checkout_sessions_available() ) {
 			return false;
 		}
 
@@ -1601,6 +1656,17 @@ class WC_Stripe_Helper {
 		}
 
 		return 'https://dashboard.stripe.com/payments/%s';
+	}
+
+	/**
+	 * Returns the Stripe dashboard payment URL for a given object ID.
+	 *
+	 * @param string $id           The Stripe object ID to link to (PaymentIntent, charge, etc.).
+	 * @param bool   $is_test_mode Whether to link to the test-mode dashboard.
+	 * @return string
+	 */
+	public static function get_transaction_url_for_id( string $id, bool $is_test_mode = false ): string {
+		return sprintf( self::get_transaction_url( $is_test_mode ), $id );
 	}
 
 	/**
@@ -2164,5 +2230,28 @@ class WC_Stripe_Helper {
 			'wc_version'             => defined( 'WC_VERSION' ) ? WC_VERSION : '',
 			'wp_version'             => get_bloginfo( 'version' ),
 		];
+	}
+
+	/**
+	 * Checks if the Stripe Checkout Sessions feature is available.
+	 *
+	 * @return bool True if the checkout sessions feature is available, false otherwise.
+	 */
+	public static function is_checkout_sessions_available(): bool {
+		$stripe_settings              = self::get_stripe_settings();
+		$is_pmc_enabled               = $stripe_settings['pmc_enabled'] ?? 'no';
+		$is_oc_enabled                = $stripe_settings['optimized_checkout_element'] ?? 'no';
+		$is_automatic_capture_enabled = $stripe_settings['capture'] ?? 'yes';
+
+		// Stripe checkout sessions feature can only be available if:
+		// - PMC is enabled
+		// - OC Suite is enabled
+		// - Automatic capture is enabled (i.e. manual capture or later capture is disabled)
+		// If any of the above conditions are not met, the feature is not available.
+		if ( 'yes' !== $is_pmc_enabled || 'yes' !== $is_oc_enabled || 'yes' !== $is_automatic_capture_enabled ) {
+			return false;
+		}
+
+		return true;
 	}
 }
