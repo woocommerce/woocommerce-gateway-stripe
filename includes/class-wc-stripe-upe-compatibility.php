@@ -8,10 +8,20 @@ class WC_Stripe_UPE_Compatibility {
 	public const MIN_WC_VERSION  = '5.5';
 	public const LEARN_MORE_LINK = 'https://developer.woocommerce.com/2021/08/26/developer-advisory-woocommerce-stripe-support-policy-change/';
 
+	/**
+	 * Check if WordPress version is supported.
+	 *
+	 * @return bool
+	 */
 	public static function is_wp_supported() {
 		return version_compare( get_bloginfo( 'version' ), self::MIN_WP_VERSION, '>=' );
 	}
 
+	/**
+	 * Check if WooCommerce version is supported.
+	 *
+	 * @return bool
+	 */
 	public static function is_wc_supported() {
 		return version_compare( WC_VERSION, self::MIN_WC_VERSION, '>=' );
 	}

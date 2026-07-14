@@ -261,8 +261,10 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @since 10.0.0
 	 *
-	 * @param WC_Order $order
-	 * @param string $currency
+	 * @param WC_Order $order    The order object.
+	 * @param string   $currency The currency code.
+	 *
+	 * @return false|void
 	 */
 	public function update_stripe_currency( WC_Order $order, string $currency ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_CURRENCY, $currency );
@@ -297,8 +299,10 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @since 10.0.0
 	 *
-	 * @param WC_Order|null $order
-	 * @param float $amount
+	 * @param WC_Order|null $order  The order object.
+	 * @param float         $amount The fee amount.
+	 *
+	 * @return false|void
 	 */
 	public function update_stripe_fee( ?WC_Order $order = null, float $amount = 0.0 ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_FEE, $amount );
@@ -309,7 +313,9 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @since 10.0.0
 	 *
-	 * @param WC_Order|null $order
+	 * @param WC_Order|null $order The order object.
+	 *
+	 * @return void|false
 	 */
 	public function delete_stripe_fee( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
@@ -349,8 +355,10 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @since 10.0.0
 	 *
-	 * @param WC_Order|null $order
-	 * @param float $amount
+	 * @param WC_Order|null $order  The order object.
+	 * @param float         $amount The net amount.
+	 *
+	 * @return void|false
 	 */
 	public function update_stripe_net( ?WC_Order $order = null, float $amount = 0.0 ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_NET, $amount );
@@ -361,7 +369,9 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @since 10.0.0
 	 *
-	 * @param WC_Order|null $order
+	 * @param WC_Order|null $order The order object.
+	 *
+	 * @return void|false
 	 */
 	public function delete_stripe_net( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {

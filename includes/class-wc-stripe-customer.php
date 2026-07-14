@@ -133,7 +133,9 @@ class WC_Stripe_Customer {
 	/**
 	 * Set User ID used by WordPress.
 	 *
-	 * @param int $user_id
+	 * @param string|int $user_id The WordPress user ID.
+	 *
+	 * @return void
 	 */
 	public function set_user_id( $user_id ) {
 		$this->user_id = absint( $user_id );
@@ -149,7 +151,11 @@ class WC_Stripe_Customer {
 	}
 
 	/**
-	 * Store data from the Stripe API about this customer
+	 * Store data from the Stripe API about this customer.
+	 *
+	 * @param array $data The customer data from Stripe API.
+	 *
+	 * @return void
 	 */
 	public function set_customer_data( $data ) {
 		$this->customer_data = $data;
@@ -275,6 +281,8 @@ class WC_Stripe_Customer {
 	 *
 	 * @param array       $create_customer_request The base data to build the customer request.
 	 * @param null|string $current_context         Flag to indicate whether we are in a context where limited details are permitted.
+	 *
+	 * @return void
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
@@ -647,7 +655,9 @@ class WC_Stripe_Customer {
 	 * error and it is no such customer.
 	 *
 	 * @since 4.1.2
-	 * @param array $error
+	 * @param object $error The error object from Stripe API.
+	 *
+	 * @return bool True if the error indicates no such customer exists, false otherwise.
 	 */
 	public function is_no_such_customer_error( $error ) {
 		return (
@@ -658,12 +668,12 @@ class WC_Stripe_Customer {
 	}
 
 	/**
-	 * Checks to see if error is of invalid request
-	 * error and it is no such customer.
+	 * Checks to see if error is of invalid request error and
+	 * it is due to the source already being attached to a customer.
 	 *
 	 * @since 4.5.6
-	 * @param array $error
-	 * @return bool
+	 * @param object $error The error object from Stripe API.
+	 * @return bool True if the error indicates the source is already attached to a customer, false otherwise.
 	 */
 	public function is_source_already_attached_error( $error ) {
 		return (
@@ -945,7 +955,9 @@ class WC_Stripe_Customer {
 	/**
 	 * Delete a source from stripe.
 	 *
-	 * @param string $source_id
+	 * @param string $source_id The source ID to delete.
+	 *
+	 * @return bool True if successfully deleted, false otherwise.
 	 */
 	public function delete_source( $source_id ) {
 		if ( empty( $source_id ) || ! $this->get_id() ) {
@@ -967,7 +979,9 @@ class WC_Stripe_Customer {
 	/**
 	 * Detach a payment method from stripe.
 	 *
-	 * @param string $payment_method_id
+	 * @param string $payment_method_id The payment method ID to detach.
+	 *
+	 * @return bool True if successfully detached, false otherwise.
 	 */
 	public function detach_payment_method( $payment_method_id ) {
 		if ( ! $this->get_id() ) {
@@ -987,7 +1001,7 @@ class WC_Stripe_Customer {
 	}
 
 	/**
-	 * Set default source in Stripe
+	 * Set default source in Stripe.
 	 *
 	 * @param string $source_id The ID of the source to set as default.
 	 * @return bool True if the default source was set successfully, false otherwise.
@@ -1015,7 +1029,7 @@ class WC_Stripe_Customer {
 	}
 
 	/**
-	 * Set default payment method in Stripe
+	 * Set default payment method in Stripe.
 	 *
 	 * @param string $payment_method_id The ID of the payment method to set as default.
 	 * @return bool True if the default payment method was set successfully, false otherwise.
@@ -1048,6 +1062,8 @@ class WC_Stripe_Customer {
 	 * Deletes caches for this users cards.
 	 *
 	 * @param string|null $payment_method_id The ID of the payment method to clear cache for, if specified.
+	 *
+	 * @return void
 	 */
 	public function clear_cache( $payment_method_id = null ) {
 		delete_transient( 'stripe_sources_' . $this->get_id() );
@@ -1077,6 +1093,8 @@ class WC_Stripe_Customer {
 	 * Updates the current user with the right Stripe ID in the meta table.
 	 *
 	 * @param string $id The Stripe customer ID.
+	 *
+	 * @return void
 	 */
 	public function update_id_in_meta( $id ) {
 		update_user_option( $this->get_user_id(), '_stripe_customer_id', $id, false );
@@ -1084,6 +1102,8 @@ class WC_Stripe_Customer {
 
 	/**
 	 * Deletes the user ID from the meta table with the right key.
+	 *
+	 * @return void
 	 */
 	public function delete_id_from_meta() {
 		delete_user_option( $this->get_user_id(), '_stripe_customer_id', false );

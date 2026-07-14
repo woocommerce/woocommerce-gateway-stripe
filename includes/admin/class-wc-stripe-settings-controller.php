@@ -49,6 +49,8 @@ class WC_Stripe_Settings_Controller {
 
 	/**
 	 * Fetches the Stripe gateway instance.
+	 *
+	 * @return WC_Stripe_Payment_Gateway
 	 */
 	private function get_gateway() {
 		if ( ! $this->gateway ) {
@@ -59,12 +61,14 @@ class WC_Stripe_Settings_Controller {
 	}
 
 	/**
-	* This replaces the refund button with a disabled 'Refunding unavailable' button in the same place for orders that have been authorized but not captured.
-	*
-	* A help tooltip explains that refunds are not available for orders which have not been captured yet.
-	*
-	* @param WC_Order $order The order that is being viewed.
-	*/
+	 * This replaces the refund button with a disabled 'Refunding unavailable' button in the same place for orders that have been authorized but not captured.
+	 *
+	 * A help tooltip explains that refunds are not available for orders which have not been captured yet.
+	 *
+	 * @param WC_Order $order The order that is being viewed.
+	 *
+	 * @return void
+	 */
 	public function hide_refund_button_for_uncaptured_orders( $order ) {
 		try {
 			$intent = $this->get_gateway()->get_intent_from_order( $order );
@@ -85,6 +89,8 @@ class WC_Stripe_Settings_Controller {
 	 * Remove this action once we're fully migrated to UPE and move the wrapper in the `admin_options` method of the UPE gateway.
 	 *
 	 * @param WC_Stripe_Payment_Gateway $gateway the Stripe gateway.
+	 *
+	 * @return void
 	 */
 	public function admin_options( WC_Stripe_Payment_Gateway $gateway ) {
 		global $hide_save_button;
@@ -122,7 +128,9 @@ class WC_Stripe_Settings_Controller {
 	}
 
 	/**
-	 * AJAX handler to generate OAuth URL on-demand
+	 * AJAX handler to generate OAuth URL on-demand.
+	 *
+	 * @return void
 	 */
 	public function ajax_get_oauth_url() {
 		// Check nonce and capabilities
@@ -149,6 +157,10 @@ class WC_Stripe_Settings_Controller {
 
 	/**
 	 * Load admin scripts.
+	 *
+	 * @param string $hook_suffix The current admin page hook suffix.
+	 *
+	 * @return void
 	 */
 	public function admin_scripts( $hook_suffix ) {
 		if ( 'woocommerce_page_wc-settings' !== $hook_suffix ) {
@@ -312,6 +324,8 @@ class WC_Stripe_Settings_Controller {
 	 *
 	 * Note: This function is hooked onto `woocommerce_admin_field_payment_gateways` which is the hook used
 	 * to display the payment gateways on the WooCommerce Settings page.
+	 *
+	 * @return void
 	 */
 	public static function hide_gateways_on_settings_page() {
 		// Prevent hiding gateways in the new payments settings experience (React-based UI).

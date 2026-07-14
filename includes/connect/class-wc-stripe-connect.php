@@ -133,6 +133,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 		/**
 		 * Handle redirect back from oauth-init or credentials reset
+		 *
+		 * @return void
 		 */
 		public function maybe_handle_redirect() {
 			if ( ! is_admin() ) {
@@ -371,6 +373,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		/**
 		 * If user is reconnecting and there are existing settings data, return the value from the settings.
 		 * Otherwise for new connections return 'yes' for `upe_checkout_experience_enabled` field.
+		 *
+		 * @return string
 		 */
 		private function get_upe_checkout_experience_enabled() {
 			$existing_stripe_settings = WC_Stripe_Helper::get_stripe_settings();
@@ -384,6 +388,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 		/**
 		 * Gets default Stripe settings
+		 *
+		 * @return array
 		 */
 		private function get_default_stripe_config() {
 			$result  = [];
@@ -458,6 +464,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * Records a track event after the user is redirected back to the store from the Stripe UX.
 		 *
 		 * @param bool $had_error Whether the Stripe connection had an error.
+		 * @return void
 		 */
 		private function record_account_connect_track_event( bool $had_error ) {
 			if ( ! class_exists( 'WC_Tracks' ) ) {
@@ -475,6 +482,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * Schedules the App OAuth connection refresh.
 		 *
 		 * @since 8.6.0
+		 * @return void
 		 */
 		private function schedule_connection_refresh() {
 			if ( ! $this->is_connected_via_app_oauth() ) {
@@ -503,6 +511,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * Unschedules the App OAuth connection refresh.
 		 *
 		 * @since 8.6.0
+		 * @return void
 		 */
 		protected function unschedule_connection_refresh() {
 			as_unschedule_all_actions( 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID );
@@ -512,6 +521,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * Refreshes the App OAuth access_token via the Woo Connect Server.
 		 *
 		 * @since 8.6.0
+		 * @return void
 		 */
 		public function refresh_connection() {
 			if ( ! $this->is_connected_via_app_oauth() ) {

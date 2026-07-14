@@ -168,6 +168,12 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		return new WP_REST_Response( $account_keys );
 	}
 
+	/**
+	 * Masks a key value for display purposes.
+	 *
+	 * @param string $value The key value to mask.
+	 * @return string The masked key value.
+	 */
 	private function mask_key_value( $value ): string {
 		return substr( $value, 0, 10 ) . str_repeat( '*', 50 ) . substr( $value, -2 );
 	}

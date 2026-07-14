@@ -11,8 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Abstract class that will be inherited by voucher payment methods.
  * Used by Boleto and OXXO
  *
- * @extends WC_Stripe_UPE_Payment_Gateway
- *
  * @since 5.8.0
  */
 abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gateway {
@@ -35,6 +33,8 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	/**
 	 * ID used by stripe
 	 * Change this when extending this class
+	 *
+	 * @var string
 	 */
 	protected $stripe_id = '';
 
@@ -49,6 +49,8 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	/**
 	 * List of accepted countries
 	 * Change this when extending this class
+	 *
+	 * @var array
 	 */
 	protected $supported_countries = [];
 
@@ -207,6 +209,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	/**
 	 * Payment_scripts function.
 	 *
+	 * @return void
 	 * @since 5.8.0
 	 */
 	public function payment_scripts() {
@@ -236,6 +239,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	/**
 	 * Initialize Gateway Settings Form Fields.
 	 *
+	 * @return void
 	 * @since 5.8.0
 	 */
 	public function init_form_fields() {
@@ -245,13 +249,13 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	/**
 	 * Process the payment
 	 *
-	 * @param int $order_id Reference.
+	 * @param int  $order_id Reference.
 	 * @param bool $retry Should we retry on fail.
-	 * @param bool $force_save_source Force payment source to be saved.
+	 * @param bool $force_save_save Force payment source to be saved.
 	 *
+	 * @return array
 	 * @throws Exception If payment will not be accepted.
 	 *
-	 * @since 5.8.0
 	 * @since 5.8.0
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_save = false ) {
@@ -354,8 +358,9 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	 * Validates the minimum and maximum amount.
 	 * Override this method when extending the class
 	 *
-	 * @param $amount
+	 * @param float $amount The amount to validate.
 	 *
+	 * @return void
 	 * @throws WC_Stripe_Exception when amount is out of range
 	 * @since 5.8.0
 	 */
@@ -363,6 +368,8 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 
 	/**
 	 * Updates the payment intent when trying to pay again via Pay Order Page
+	 *
+	 * @return void
 	 */
 	public function update_payment_intent_ajax() {
 		try {
@@ -416,7 +423,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	 * Gather the data necessary to confirm the payment via javascript
 	 * Override this when extending the class
 	 *
-	 * @param WC_Order $order
+	 * @param WC_Order $order The order object.
 	 *
 	 * @return array
 	 */

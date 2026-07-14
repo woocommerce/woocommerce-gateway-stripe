@@ -59,7 +59,8 @@ class WC_Stripe_Helper {
 	/**
 	 * Update the main Stripe settings option.
 	 *
-	 * @param $options array The Stripe settings.
+	 * @param array $options The Stripe settings.
+	 *
 	 * @return void
 	 */
 	public static function update_main_stripe_settings( $options ) {
@@ -391,8 +392,10 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param string $method The payment method to get the settings from.
+	 * @param string $method  The payment method to get the settings from.
 	 * @param string $setting The name of the setting to get.
+	 *
+	 * @return mixed
 	 */
 	public static function get_settings( $method = null, $setting = null ) {
 		$all_settings = self::get_stripe_settings( $method );
@@ -428,6 +431,8 @@ class WC_Stripe_Helper {
 
 	/**
 	 * Get legacy payment method by id.
+	 *
+	 * @param string $id The payment method ID.
 	 *
 	 * @return null
 	 *
@@ -584,6 +589,8 @@ class WC_Stripe_Helper {
 	 * in the order merchants have chosen in the settings.
 	 *
 	 * @param array $ordered_payment_method_ids Ordered Stripe payment method list.
+	 *
+	 * @return void
 	 */
 	public static function add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids = [] ) {
 		// If the ordered payment method ids are not passed, get them from the relevant settings.
@@ -759,7 +766,9 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param string $source_id
+	 * @param string $source_id The Stripe source ID.
+	 *
+	 * @return WC_Order|false The order object or false if not found.
 	 */
 	public static function get_order_by_source_id( $source_id ) {
 		global $wpdb;
@@ -793,7 +802,9 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.0.0
 	 * @since 4.1.16 Return false if charge_id is empty.
-	 * @param string $charge_id
+	 * @param string $charge_id The Stripe charge ID.
+	 *
+	 * @return WC_Order|false The order object or false if not found.
 	 */
 	public static function get_order_by_charge_id( $charge_id ) {
 		global $wpdb;
@@ -825,7 +836,9 @@ class WC_Stripe_Helper {
 	 * Gets the order by Stripe refund ID.
 	 *
 	 * @since 7.5.0
-	 * @param string $refund_id
+	 * @param string $refund_id The Stripe refund ID.
+	 *
+	 * @return WC_Order|false The order object or false if not found.
 	 */
 	public static function get_order_by_refund_id( $refund_id ) {
 		global $wpdb;
@@ -1630,6 +1643,13 @@ class WC_Stripe_Helper {
 		return true;
 	}
 
+	/**
+	 * Get the Stripe transaction URL.
+	 *
+	 * @param bool $is_test_mode Whether test mode is enabled.
+	 *
+	 * @return string The transaction URL in sprintf() format.
+	 */
 	public static function get_transaction_url( $is_test_mode = false ) {
 		if ( $is_test_mode ) {
 			return 'https://dashboard.stripe.com/test/payments/%s';
@@ -1828,8 +1848,8 @@ class WC_Stripe_Helper {
 	 * Checks if the payment method should be saved.
 	 *
 	 * @since 9.6.0
-	 * @param bool $force_save Whether the payment method should be saved.
-	 * @param string $order_id Order ID.
+	 * @param bool        $force_save Whether the payment method should be saved.
+	 * @param string|null $order_id   Order ID.
 	 * @return bool
 	 */
 	public static function should_force_save_payment_method( $force_save = false, $order_id = null ) {
@@ -1864,6 +1884,8 @@ class WC_Stripe_Helper {
 
 	/**
 	 * Returns the description for a refund reason.
+	 *
+	 * @param string $refund_reason_key The refund reason key.
 	 *
 	 * @return string
 	 */
@@ -2036,7 +2058,8 @@ class WC_Stripe_Helper {
 	/**
 	 * Checks if the order is using a Stripe payment method.
 	 *
-	 * @param $order WC_Order The order to check.
+	 * @param WC_Order $order The order to check.
+	 *
 	 * @return bool
 	 *
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::is_stripe_gateway_order() instead.

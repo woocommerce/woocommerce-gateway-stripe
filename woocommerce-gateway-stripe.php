@@ -37,6 +37,7 @@ define( 'WC_STRIPE_PLUGIN_PATH', untrailingslashit( plugin_dir_path( WC_STRIPE_M
  * WooCommerce fallback notice.
  *
  * @since 4.1.2
+ * @return void
  */
 function woocommerce_stripe_missing_wc_notice() {
 	$install_url = wp_nonce_url(
@@ -70,6 +71,7 @@ function woocommerce_stripe_missing_wc_notice() {
  * WooCommerce not supported fallback notice.
  *
  * @since 4.4.0
+ * @return void
  */
 function woocommerce_stripe_wc_not_supported() {
 	/* translators: $1. Minimum WooCommerce version. $2. Current WooCommerce version. */
@@ -98,6 +100,11 @@ function woocommerce_stripe_init_autoloader(): bool {
 	return $autoloader_initialized;
 }
 
+/**
+ * Returns the main instance of WC_Stripe.
+ *
+ * @return WC_Stripe
+ */
 function woocommerce_gateway_stripe() {
 
 	static $plugin;
@@ -115,6 +122,11 @@ function woocommerce_gateway_stripe() {
 
 add_action( 'plugins_loaded', 'woocommerce_gateway_stripe_init' );
 
+/**
+ * Initialize the Stripe gateway plugin.
+ *
+ * @return void
+ */
 function woocommerce_gateway_stripe_init() {
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		add_action( 'admin_notices', 'woocommerce_stripe_missing_wc_notice' );
@@ -133,6 +145,8 @@ function woocommerce_gateway_stripe_init() {
  * Add woocommerce_inbox_variant for the Remote Inbox Notification.
  *
  * P2 post can be found at https://wp.me/paJDYF-1uJ.
+ *
+ * @return void
  */
 if ( ! function_exists( 'add_woocommerce_inbox_variant' ) ) {
 	function add_woocommerce_inbox_variant() {
@@ -186,6 +200,11 @@ register_deactivation_hook( __FILE__, 'wcstripe_deactivated' );
 // implementation is too late.
 add_action( 'woocommerce_blocks_loaded', 'woocommerce_gateway_stripe_woocommerce_block_support' );
 
+/**
+ * Register WooCommerce Blocks integration.
+ *
+ * @return void
+ */
 function woocommerce_gateway_stripe_woocommerce_block_support() {
 	if ( class_exists( 'Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-blocks-support.php';

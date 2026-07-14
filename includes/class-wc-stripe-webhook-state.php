@@ -37,6 +37,7 @@ class WC_Stripe_Webhook_State {
 	 * Clears the webhook state.
 	 *
 	 * @param string $mode Optional. The mode to clear the webhook state for. Can be 'all', 'live', or 'test'. Default is 'all'.
+	 * @return void
 	 */
 	public static function clear_state( $mode = 'all' ): void {
 		if ( 'all' === $mode || 'live' === $mode ) {
@@ -85,6 +86,8 @@ class WC_Stripe_Webhook_State {
 	 *
 	 * @since 5.0.0
 	 * @param int $timestamp UTC seconds since 1970.
+	 *
+	 * @return void
 	 */
 	public static function set_last_webhook_success_at( $timestamp ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_SUCCESS_AT;
@@ -108,6 +111,8 @@ class WC_Stripe_Webhook_State {
 	 *
 	 * @since 5.0.0
 	 * @param int $timestamp UTC seconds since 1970.
+	 *
+	 * @return void
 	 */
 	public static function set_last_webhook_failure_at( $timestamp ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
@@ -131,6 +136,8 @@ class WC_Stripe_Webhook_State {
 	 *
 	 * @since 5.0.0
 	 * @param string $reason Reason code.
+	 *
+	 * @return void
 	 */
 	public static function set_last_error_reason( $reason ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
@@ -222,6 +229,8 @@ class WC_Stripe_Webhook_State {
 	 * @since 9.7.0
 	 *
 	 * @param int $pending_webhooks The number of pending webhooks.
+	 *
+	 * @return void
 	 */
 	public static function set_pending_webhooks_count( $pending_webhooks ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_PENDING_WEBHOOKS : self::OPTION_LIVE_PENDING_WEBHOOKS;

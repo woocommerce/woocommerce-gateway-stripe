@@ -98,6 +98,8 @@ class WC_Stripe_Payment_Method_Configurations {
 
 	/**
 	 * Clear the payment method configuration from cache.
+	 *
+	 * @return void
 	 */
 	public static function clear_payment_method_configuration_cache() {
 		self::$primary_configuration = null;
@@ -108,6 +110,8 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * Cache the payment method configuration.
 	 *
 	 * @param object|array $configuration The payment method configuration to set in cache.
+	 *
+	 * @return void
 	 */
 	private static function set_payment_method_configuration_cache( $configuration ) {
 		self::$primary_configuration = $configuration;
@@ -440,8 +444,10 @@ class WC_Stripe_Payment_Method_Configurations {
 	/**
 	 * Update the payment method configuration.
 	 *
-	 * @param array $enabled_payment_method_ids
-	 * @param array $available_payment_method_ids
+	 * @param array $enabled_payment_method_ids   The enabled payment method IDs.
+	 * @param array $available_payment_method_ids The available payment method IDs.
+	 *
+	 * @return void
 	 */
 	public static function update_payment_method_configuration( $enabled_payment_method_ids, $available_payment_method_ids ) {
 		$payment_method_configuration         = self::get_primary_configuration();
@@ -561,6 +567,8 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * Migrates the payment methods from the DB option to PMC if needed.
 	 *
 	 * @param bool $force_migration Whether to force the migration.
+	 *
+	 * @return void
 	 */
 	public static function maybe_migrate_payment_methods_from_db_to_pmc( $force_migration = false ) {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
@@ -655,6 +663,8 @@ class WC_Stripe_Payment_Method_Configurations {
 	/**
 	 * Disables the payment method configuration sync by setting pmc_enabled to 'no' in the Stripe settings.
 	 * This is called when no Payment Method Configuration is found that inherits from the WooCommerce Platform.
+	 *
+	 * @return void
 	 */
 	private static function disable_payment_method_configuration_sync() {
 		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();

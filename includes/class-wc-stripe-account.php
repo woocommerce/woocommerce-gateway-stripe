@@ -125,6 +125,8 @@ class WC_Stripe_Account {
 	 * Caches account data for a period of time.
 	 *
 	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
+	 *
+	 * @return void
 	 */
 	private function cache_account( $mode = null ) {
 		// If a mode is provided, we'll set the API secret key to the appropriate key to retrieve the account data.
@@ -153,6 +155,8 @@ class WC_Stripe_Account {
 
 	/**
 	 * Wipes the account data option.
+	 *
+	 * @return void
 	 */
 	public function clear_cache() {
 		WC_Stripe_Database_Cache::delete( self::ACCOUNT_CACHE_KEY );
@@ -336,6 +340,8 @@ class WC_Stripe_Account {
 	 * Deletes any previously configured webhooks that are sent to the current site's webhook URL.
 	 *
 	 * @param string $exclude_webhook_id Webhook ID to exclude from deletion.
+	 *
+	 * @return void
 	 */
 	public function delete_previously_configured_webhooks( $exclude_webhook_id = '' ) {
 		$webhooks = $this->stripe_api::retrieve( 'webhook_endpoints' );

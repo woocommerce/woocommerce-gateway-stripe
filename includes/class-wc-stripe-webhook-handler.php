@@ -141,6 +141,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 5.0.0
+	 *
+	 * @return void
 	 */
 	public function check_for_webhook() {
 		if ( ! isset( $_SERVER['REQUEST_METHOD'] )
@@ -295,6 +297,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Check if the Stripe account has duplicate webhooks setup for this site.
 	 *
 	 * @since 9.1.0
+	 *
+	 * @return bool
 	 */
 	public function has_duplicate_webhooks_setup() {
 		$webhook_url = WC_Stripe_Helper::get_webhook_url();
@@ -379,6 +383,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
+	 *
+	 * @return array
 	 */
 	public function get_request_headers() {
 		if ( ! function_exists( 'getallheaders' ) ) {
@@ -402,8 +408,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param object $notification
-	 * @param bool   $retry
+	 * @param object $notification The notification object.
+	 * @param bool   $retry        Whether to retry.
+	 *
+	 * @return void
 	 */
 	public function process_webhook_payment( $notification, $retry = true ) {
 		// The following 3 payment methods are synchronous so does not need to be handle via webhook.
@@ -540,7 +548,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * We want to put the order into on-hold and add an order note.
 	 *
 	 * @since 4.0.0
-	 * @param object $notification
+	 * @param object $notification The notification object.
+	 *
+	 * @return void
 	 */
 	public function process_webhook_dispute( $notification ) {
 		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
@@ -584,7 +594,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Process webhook dispute that is closed.
 	 *
 	 * @since 4.4.1
-	 * @param object $notification
+	 * @param object $notification The notification object.
+	 *
+	 * @return void
 	 */
 	public function process_webhook_dispute_closed( $notification ) {
 		$order  = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
@@ -639,7 +651,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param object $notification
+	 * @param object $notification The webhook notification object.
+	 *
+	 * @return void
 	 */
 	public function process_webhook_capture( $notification ) {
 		$charge       = $notification->data->object;
@@ -713,7 +727,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param object $notification
+	 * @param object $notification The webhook notification object.
+	 *
+	 * @return void
 	 */
 	public function process_webhook_charge_succeeded( $notification ) {
 		if ( empty( $notification->data->object ) ) {
@@ -813,7 +829,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @since 4.0.0
 	 * @since 4.1.5 Can handle any fail payments from any methods.
 	 * @since 9.0.0 Can handle payment expiration.
-	 * @param object $notification
+	 * @param object $notification The webhook notification object.
+	 *
+	 * @return void
 	 */
 	public function process_webhook_charge_failed( $notification ) {
 		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
@@ -851,7 +869,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @since 4.1.15 Add check to make sure order is processed by Stripe.
-	 * @param object $notification
+	 * @param object $notification The notification object.
+	 *
+	 * @return void
 	 */
 	public function process_webhook_source_canceled( $notification ) {
 		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
@@ -890,7 +910,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.9.0
-	 * @param object $notification
+	 * @param object $notification The notification object.
+	 *
+	 * @return void
 	 */
 	public function process_webhook_refund( $notification ) {
 		$refund_object = $this->get_refund_object( $notification );
@@ -997,7 +1019,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Process a refund update.
 	 *
-	 * @param object $notification
+	 * @param object $notification The notification object.
+	 *
+	 * @return void
 	 */
 	public function process_webhook_refund_updated( $notification ) {
 		$refund_object = $notification->data->object;
@@ -1095,7 +1119,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Process webhook reviews that are opened. i.e Radar.
 	 *
 	 * @since 4.0.6
-	 * @param object $notification
+	 * @param object $notification The notification object.
+	 *
+	 * @return void
 	 */
 	public function process_review_opened( $notification ) {
 		if ( isset( $notification->data->object->payment_intent ) ) {
@@ -1139,7 +1165,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Process webhook reviews that are closed. i.e Radar.
 	 *
 	 * @since 4.0.6
-	 * @param object $notification
+	 * @param object $notification The notification object.
+	 *
+	 * @return void
 	 */
 	public function process_review_closed( $notification ) {
 		if ( isset( $notification->data->object->payment_intent ) ) {
@@ -1189,7 +1217,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param object $notification
+	 * @param object $notification The notification object.
+	 *
+	 * @return bool
 	 */
 	public function is_partial_capture( $notification ) {
 		return 0 < $notification->data->object->amount_refunded;
@@ -1219,7 +1249,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param object $notification
+	 * @param object $notification The notification object.
+	 *
+	 * @return float|false
 	 */
 	public function get_refund_amount( $notification ) {
 		if ( $this->is_partial_capture( $notification ) ) {
@@ -1241,7 +1273,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param object $notification
+	 * @param object $notification The notification object.
+	 *
+	 * @return float|false
 	 */
 	public function get_partial_amount_to_charge( $notification ) {
 		if ( $this->is_partial_capture( $notification ) ) {
@@ -1261,6 +1295,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Handles the processing of a payment intent webhook.
 	 *
 	 * @param stdClass $notification The webhook notification from Stripe.
+	 *
+	 * @return void
 	 */
 	public function process_payment_intent( $notification ) {
 		$intent = $notification->data->object;
@@ -1394,6 +1430,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_helper->unlock_order_payment( $order );
 	}
 
+	/**
+	 * Process webhook for setup intent events.
+	 *
+	 * @param object $notification The webhook notification object.
+	 *
+	 * @return void
+	 */
 	public function process_setup_intent( $notification ) {
 		$intent = $notification->data->object;
 		$order  = WC_Stripe_Helper::get_order_by_setup_intent_id( $intent->id );
@@ -1477,6 +1520,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param stdClass $webhook_notification The webhook payload received from Stripe.
 	 * @param array    $additional_data      Additional data to pass to the scheduled job.
 	 * @param int|null $delay                Seconds to wait before retrying. Defaults to $deferred_webhook_delay.
+	 *
+	 * @return void
 	 */
 	protected function defer_webhook_processing( $webhook_notification, $additional_data, $delay = null ) {
 		$delay = null === $delay ? $this->deferred_webhook_delay : $delay;
@@ -1736,6 +1781,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param WC_Order $order     The order object.
 	 * @param string   $intent_id The payment intent ID.
+	 *
+	 * @return void
 	 */
 	protected function handle_deferred_payment_intent_succeeded( $order, $intent_id ) {
 		$intent = $this->get_intent_from_order( $order );
@@ -1771,7 +1818,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * This is triggered when the account details are updated in Stripe's end.
 	 * We want to clear the cached account data to fetch fresh data on next request.
 	 *
-	 * @param object $notification The notification from Stripe
+	 * @param object $notification The notification from Stripe.
+	 *
+	 * @return void
 	 */
 	public function process_account_updated( $notification ) {
 		WC_Stripe::get_instance()->account->clear_cache();
@@ -2153,7 +2202,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param string $request_body
+	 * @param string $request_body The raw request body from the webhook.
+	 *
+	 * @return void
 	 */
 	public function process_webhook( $request_body ) {
 		$notification = json_decode( $request_body );

@@ -202,7 +202,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	public $inline_cc_form;
 
 	/**
-	 * Order pay intent
+	 * Order pay intent.
+	 *
+	 * @var stdClass|null
 	 */
 	private $order_pay_intent;
 

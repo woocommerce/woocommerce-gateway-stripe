@@ -12,6 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
+	/**
+	 * Instance of this class.
+	 *
+	 * @var WC_Stripe_Order_Handler|null
+	 */
 	private static $_this;
 
 	/**
@@ -40,6 +45,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
+	 *
+	 * @return WC_Stripe_Order_Handler
 	 */
 	public static function get_instance() {
 		return self::$_this;
@@ -48,7 +55,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Shows a warning message about editing uncaptured orders.
 	 *
-	 * @param $order_id
+	 * @param int $order_id The order ID.
+	 *
+	 * @return void
 	 */
 	public function show_warning_for_uncaptured_orders( $order_id ) {
 		$order = wc_get_order( $order_id );
@@ -84,9 +93,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @since 4.1.8 Add $previous_error parameter.
-	 * @param int  $order_id
-	 * @param bool $retry
-	 * @param mix  $previous_error Any error message from previous request.
+	 * @param int   $order_id       The order ID.
+	 * @param bool  $retry          Whether to retry on failure.
+	 * @param mixed $previous_error Any error from previous request.
+	 *
+	 * @return void
 	 */
 	public function process_redirect_payment( $order_id, $retry = true, $previous_error = false ) {
 		try {
@@ -250,6 +261,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
+	 *
+	 * @return void
 	 */
 	public function maybe_process_redirect_order() {
 		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
@@ -269,6 +282,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * Processes redirect payment for stores with legacy checkout experience enabled.
 	 *
 	 * @since 8.3.0
+	 *
+	 * @return void
 	 */
 	private function maybe_process_legacy_redirect() {
 		if ( ! is_order_received_page() || empty( $_GET['client_secret'] ) || empty( $_GET['source'] ) ) {
@@ -397,7 +412,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 3.1.0
 	 * @version 4.2.2
-	 * @param  int $order_id
+	 * @param int $order_id The order ID.
+	 *
+	 * @return void
 	 */
 	public function cancel_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
@@ -420,8 +437,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * Note that this filter is only called if WC_Site_Tracking::is_tracking_enabled.
 	 *
 	 * @since 4.5.1
-	 * @param array Properties to be appended to.
-	 * @param string Event name, e.g. orders_edit_status_change.
+	 * @param array  $properties          Properties to be appended to.
+	 * @param string $prefixed_event_name Event name, e.g. orders_edit_status_change.
+	 *
+	 * @return array The modified properties array.
 	 */
 	public function woocommerce_tracks_event_properties( $properties, $prefixed_event_name ) {
 		// Not the desired event? Bail.

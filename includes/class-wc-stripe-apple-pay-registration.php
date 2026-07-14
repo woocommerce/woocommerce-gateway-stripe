@@ -13,7 +13,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	/**
 	 * Cached Stripe settings.
 	 *
-	 * @var
+	 * @var array
 	 */
 	private $stripe_settings;
 
@@ -44,8 +44,8 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * Gets the Stripe settings.
 	 *
 	 * @since 4.0.6
-	 * @param string $setting
-	 * @param string default
+	 * @param string $setting The setting key.
+	 * @param string $default_value The default value.
 	 * @return string $setting_value
 	 */
 	public function get_option( $setting = '', $default_value = '' ) {
@@ -73,7 +73,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * Whether the gateway and Express Checkout Buttons (prerequisites for Apple Pay) are enabled.
 	 *
 	 * @since 4.5.4
-	 * @return string Whether Apple Pay required settings are enabled.
+	 * @return bool Whether Apple Pay required settings are enabled.
 	 */
 	private function is_enabled() {
 		$stripe_enabled = 'yes' === $this->get_option( 'enabled', 'no' );
@@ -111,6 +111,8 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * for the first time for the current domain.
 	 *
 	 * @since 4.9.0
+	 *
+	 * @return void
 	 */
 	public function register_domain_on_domain_name_change() {
 		if ( $this->domain_name !== $this->get_option( 'apple_pay_verified_domain' ) ) {
@@ -121,10 +123,13 @@ class WC_Stripe_Apple_Pay_Registration {
 	/**
 	 * Makes request to register the domain with Stripe.
 	 *
-	 * @param string $secret_key
+	 * @param string $secret_key The Stripe secret key.
+	 *
 	 * @throws Exception If domain registration request fails.
 	 * @since 3.1.0
 	 * @version 4.9.0
+	 *
+	 * @return void
 	 */
 	private function make_domain_registration_request( $secret_key ) {
 		if ( empty( $secret_key ) ) {
@@ -214,6 +219,8 @@ class WC_Stripe_Apple_Pay_Registration {
 	 *
 	 * @since 4.5.4
 	 * @version 4.9.0
+	 *
+	 * @return void
 	 */
 	public function register_domain_if_configured() {
 		$secret_key = $this->get_secret_key();
@@ -257,6 +264,8 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * Display any admin notices to the user.
 	 *
 	 * @since 4.0.6
+	 *
+	 * @return void
 	 */
 	public function admin_notices() {
 		if ( ! $this->is_enabled() ) {

@@ -468,7 +468,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	/**
 	 * Handles adding information about the express checkout type used to the order meta.
 	 *
-	 * @param \WC_Order $order                The order being processed.
+	 * @param \WC_Order $order                 The order being processed.
 	 * @param string    $express_checkout_type The express checkout type used for payment.
 	 *
 	 * @return void

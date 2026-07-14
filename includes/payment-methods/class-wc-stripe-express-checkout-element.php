@@ -27,7 +27,7 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * This Instance.
 	 *
-	 * @var WC_Stripe_Express_Checkout_Element
+	 * @var WC_Stripe_Express_Checkout_Element|null
 	 */
 	private static $_this;
 
@@ -136,7 +136,7 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * Get this instance.
 	 *
-	 * @return WC_Stripe_Express_Checkout_Element
+	 * @return WC_Stripe_Express_Checkout_Element|null
 	 */
 	public static function instance() {
 		return self::$_this;

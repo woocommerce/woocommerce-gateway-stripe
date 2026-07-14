@@ -68,7 +68,9 @@ class WC_Stripe_API {
 	/**
 	 * Set instance of WC_Stripe_API.
 	 *
-	 * @param WC_Stripe_API $instance
+	 * @param WC_Stripe_API $instance The API instance.
+	 *
+	 * @return void
 	 */
 	public static function set_instance( $instance ) {
 		self::$instance = $instance;
@@ -77,7 +79,9 @@ class WC_Stripe_API {
 	/**
 	 * Set secret API Key.
 	 *
-	 * @param string $key
+	 * @param string $secret_key The secret key to set.
+	 *
+	 * @return void
 	 */
 	public static function set_secret_key( $secret_key ) {
 		self::$secret_key = $secret_key;
@@ -99,6 +103,8 @@ class WC_Stripe_API {
 	 * Set secret key based on mode.
 	 *
 	 * @param string|null $mode Optional. The mode to set the secret key for. 'live' or 'test'. Default will set the secret for the currently active mode.
+	 *
+	 * @return void
 	 */
 	public static function set_secret_key_for_mode( $mode = null ) {
 		$options         = WC_Stripe_Helper::get_stripe_settings();
@@ -118,6 +124,8 @@ class WC_Stripe_API {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
+	 *
+	 * @return array
 	 */
 	public static function get_user_agent() {
 		$app_info = [
@@ -141,6 +149,8 @@ class WC_Stripe_API {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
+	 *
+	 * @return array
 	 */
 	public static function get_headers() {
 		$user_agent = self::get_user_agent();
@@ -318,7 +328,9 @@ class WC_Stripe_API {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param string $api
+	 * @param string $api The API endpoint.
+	 *
+	 * @return object|WP_Error|null
 	 */
 	public static function retrieve( $api ) {
 		// If keep count of consecutive 401 errors, and it exceeds INVALID_API_KEY_ERROR_COUNT_THRESHOLD,
@@ -693,7 +705,10 @@ class WC_Stripe_API {
 	/**
 	 * Update the payment method configuration.
 	 *
-	 * @param array $payment_method_configurations The payment method configurations to update.
+	 * @param string $id                           The payment method configuration ID.
+	 * @param array  $payment_method_configurations The payment method configurations to update.
+	 *
+	 * @return array|object The response from the API.
 	 */
 	public function update_payment_method_configurations( $id, $payment_method_configurations ) {
 		$response = self::request(
