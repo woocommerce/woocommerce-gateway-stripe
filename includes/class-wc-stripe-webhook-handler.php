@@ -957,8 +957,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			// If the refund ID matches, don't continue to prevent double refunding.
-			if ( $refund_object->id === $refund_id ) {
+			$incoming_refund_id = $refund_object->id;
+
+			// Skip refunds Stripe re-delivers. The order meta only holds the latest refund, so an
+			// earlier one needs the per-refund lookup; the in-memory compare short-circuits the query.
+			if ( $incoming_refund_id === $refund_id || WC_Stripe_Helper::get_order_by_refund_id( $incoming_refund_id ) ) {
 				return;
 			}
 

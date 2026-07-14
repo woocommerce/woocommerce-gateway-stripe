@@ -1822,6 +1822,74 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A re-delivered event for an earlier refund must not create a duplicate WC refund, even though
+	 * the parent-order meta points at a later one.
+	 */
+	public function test_process_webhook_refund_skips_redelivery_of_earlier_refund() {
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+		$order_helper    = WC_Stripe_Order_Helper::get_instance();
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_transaction_id( 'ch_123' );
+		$order_helper->set_stripe_charge_captured( $order, true );
+		$order->save();
+		$order_id = $order->get_id();
+
+		// Two refunds recorded; `re_2` is the latest, so `re_1` survives only on its own record.
+		$wc_refund_1 = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 5.00,
+			]
+		);
+		$wc_refund_1->update_meta_data( $refund_meta_key, 're_1' );
+		$wc_refund_1->save_meta_data();
+
+		$wc_refund_2 = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 7.00,
+			]
+		);
+		$wc_refund_2->update_meta_data( $refund_meta_key, 're_2' );
+		$wc_refund_2->save_meta_data();
+
+		$order_helper->update_stripe_refund_id( $order, 're_2' );
+		$order->save_meta_data();
+
+		// Stripe re-delivers the event for `re_1`, which no longer matches the parent pointer.
+		$notification = (object) [
+			'data' => (object) [
+				'object' => (object) [
+					'id'              => 'ch_123',
+					'object'          => 'charge',
+					'captured'        => true,
+					'amount'          => 5000,
+					'amount_refunded' => 1200,
+					'currency'        => 'usd',
+					'refunds'         => (object) [
+						'data' => [
+							(object) [
+								'id'                  => 're_1',
+								'amount'              => 500,
+								'balance_transaction' => 'txn_1',
+							],
+						],
+					],
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_refund( $notification );
+
+		// No third refund is created, and the parent pointer is unchanged.
+		$reloaded = wc_get_order( $order_id );
+		$this->assertCount( 2, $reloaded->get_refunds() );
+		$this->assertSame( 're_2', $order_helper->get_stripe_refund_id( $reloaded ) );
+	}
+
+	/**
 	 * Tests for `process_webhook_refund_updated`.
 	 *
 	 * @param string $notification_status The notification status.
