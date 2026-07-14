@@ -146,6 +146,7 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 					typeof loadResult.actions?.runServerUpdate === 'function'
 				) {
 					try {
+						blockUI( jQuery( 'form.checkout #payment' ) );
 						const updateResult =
 							await loadResult.actions.runServerUpdate(
 								async () => {
@@ -167,6 +168,8 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 			} catch ( error ) {
 				// eslint-disable-next-line no-console
 				console.error( error );
+			} finally {
+				unblockUI( jQuery( 'form.checkout #payment' ) );
 			}
 		}
 
@@ -192,6 +195,15 @@ function blockUI( jQueryForm ) {
 			opacity: 0.6,
 		},
 	} );
+}
+
+/**
+ * Unblock UI to remove the processing state from the element of the form.
+ *
+ * @param {Object} jQueryForm The jQuery object for the form.
+ */
+function unblockUI( jQueryForm ) {
+	jQueryForm.removeClass( 'processing' ).unblock();
 }
 
 /**
