@@ -50,3 +50,6 @@ phpunit-html/
 
 # PHPStan temporary files
 phpstan-tmp/
+
+# Temp files for doc generator
+tasks/hooks/tmp/*.json
