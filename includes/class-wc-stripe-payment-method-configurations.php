@@ -21,33 +21,33 @@ class WC_Stripe_Payment_Method_Configurations {
 	 *
 	 * @var string|null
 	 */
-	const TEST_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjBGX8lmJQndTBOzjqxSa';
+	public const TEST_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjBGX8lmJQndTBOzjqxSa';
 
 	/**
 	 * The live mode configuration parent ID.
 	 *
 	 * @var string|null
 	 */
-	const LIVE_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';
+	public const LIVE_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';
 
 	/**
 	 * The payment method configuration cache key.
 	 *
 	 * @var string
 	 */
-	const CONFIGURATION_CACHE_KEY = 'payment_method_configuration';
+	public const CONFIGURATION_CACHE_KEY = 'payment_method_configuration';
 
 	/**
 	 * The payment method configuration cache expiration (TTL).
 	 *
 	 * @var int
 	 */
-	const CONFIGURATION_CACHE_EXPIRATION = 10 * MINUTE_IN_SECONDS;
+	public const CONFIGURATION_CACHE_EXPIRATION = 20 * MINUTE_IN_SECONDS;
 
 	/**
 	 * The payment method configuration fetch cooldown option key.
 	 */
-	const FETCH_COOLDOWN_OPTION_KEY = 'wcstripe_payment_method_config_fetch_cooldown';
+	public const FETCH_COOLDOWN_OPTION_KEY = 'wcstripe_payment_method_config_fetch_cooldown';
 
 	/**
 	 * Get the merchant payment method configuration in Stripe.
@@ -120,8 +120,46 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return object|null
 	 */
 	private static function get_payment_method_configuration_from_stripe() {
+		$is_test_mode = WC_Stripe_Mode::is_test();
+
+		/**
+		 * Allows merchants to specify the ID of a Payment Method Configuration to use. This makes it possible for
+		 * merchants to create configurations for specific sites, e.g. when they operate sites in different countries
+		 * with different local payment methods.
+		 *
+		 * @param string|null $preselected_pmc_id The ID of the Payment Method Configuration to use. Null by default, but a string value may be returned.
+		 * @param bool        $is_test_mode       Whether the site is in test mode.
+		 */
+		$preselected_pmc_id = apply_filters( 'wc_stripe_preselect_payment_method_configuration', null, $is_test_mode );
+
+		if ( is_string( $preselected_pmc_id ) && str_starts_with( $preselected_pmc_id, 'pmc_' ) ) {
+			$configuration = WC_Stripe_API::retrieve( 'payment_method_configurations/' . $preselected_pmc_id );
+			$error         = null;
+			if ( is_wp_error( $configuration ) ) {
+				$error = $configuration;
+			} elseif ( ! empty( $configuration->error ) ) {
+				$error = $configuration->error;
+			}
+
+			if ( null !== $error ) {
+				WC_Stripe_Logger::error(
+					'Error retrieving preselected Payment Method Configuration',
+					[
+						'pmc_id' => $preselected_pmc_id,
+						'error'  => $error,
+					]
+				);
+			} elseif ( ! empty( $configuration ) ) {
+				self::set_payment_method_configuration_cache( $configuration );
+				return $configuration;
+			}
+			// If the preselected Payment Method Configuration is not found, we continue with the default logic below.
+		}
+
 		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
 		$configurations = $result->data ?? [];
+
+		$fallback_pmc_key = $is_test_mode ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
 
 		// When connecting to the WooCommerce Platform account a new payment method configuration is created for the merchant.
 		// This new payment method configuration has the WooCommerce Platform payment method configuration as parent, and inherits it's default payment methods.
@@ -129,13 +167,161 @@ class WC_Stripe_Payment_Method_Configurations {
 			// The API returns data for the corresponding mode of the api keys used, so we'll get either test or live PMCs, but never both.
 			if ( $configuration->parent && ( self::LIVE_MODE_CONFIGURATION_PARENT_ID === $configuration->parent || self::TEST_MODE_CONFIGURATION_PARENT_ID === $configuration->parent ) ) {
 				self::set_payment_method_configuration_cache( $configuration );
+				delete_option( $fallback_pmc_key );
 				return $configuration;
 			}
 		}
 
-		// If we don't have a Payment Method Configuration that inherits from the WooCommerce Platform, disable Payment Method Configuration sync.
-		self::disable_payment_method_configuration_sync();
-		return null;
+		WC_Stripe_Logger::warning( 'Did not find Payment Method Configuration that inherits from the WooCommerce platform' );
+
+		[
+			'pmc'    => $fallback_pmc,
+			'reason' => $fallback_reason,
+		] = self::get_fallback_payment_method_configuration( $configurations );
+
+		if ( null === $fallback_pmc ) {
+			// If we can't find a usable Payment Method Configuration, disable Payment Method Configuration sync.
+			WC_Stripe_Logger::error(
+				'No usable Payment Method Configuration found; disabling Payment Method Configuration sync',
+				[
+					'reason'      => $fallback_reason,
+					'stripe_mode' => $is_test_mode ? 'test' : 'live',
+				]
+			);
+			self::disable_payment_method_configuration_sync();
+			return null;
+		}
+
+		WC_Stripe_Logger::debug(
+			'Using fallback Payment Method Configuration',
+			[
+				'pmc_id'      => $fallback_pmc->id,
+				'reason'      => $fallback_reason,
+				'name'        => $fallback_pmc->name ?? null,
+				'livemode'    => $fallback_pmc->livemode ?? null,
+				'stripe_mode' => $is_test_mode ? 'test' : 'live',
+				'option_name' => $fallback_pmc_key,
+			]
+		);
+
+		self::set_payment_method_configuration_cache( $fallback_pmc );
+		return $fallback_pmc;
+	}
+
+	/**
+	 * Given the list of payment method configurations returned from Stripe,
+	 * find the fallback Payment Method Configuration to use.
+	 *
+	 * @param array $payment_method_configurations The list of payment method configurations returned from Stripe.
+	 * @return array {
+	 *     @type object|null $pmc    The fallback Payment Method Configuration.
+	 *     @type string      $reason The reason for using the fallback Payment Method Configuration.
+	 * }
+	 */
+	private static function get_fallback_payment_method_configuration( array $payment_method_configurations ): array {
+		$active_non_child_payment_method_configurations = array_filter(
+			$payment_method_configurations,
+			function ( $configuration ) {
+				if ( $configuration->parent ?? null ) {
+					return false;
+				}
+				return isset( $configuration->active ) && $configuration->active;
+			}
+		);
+
+		$is_test_mode     = WC_Stripe_Mode::is_test();
+		$fallback_pmc_key = $is_test_mode ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
+		$fallback_pmc_id  = get_option( $fallback_pmc_key );
+		$fallback_pmc     = null;
+
+		if ( [] === $active_non_child_payment_method_configurations ) {
+			if ( $fallback_pmc_id ) {
+				WC_Stripe_Logger::debug(
+					'No eligible Payment Method Configurations returned from Stripe; deleting fallback ID option',
+					[
+						'fallback_pmc_id' => $fallback_pmc_id,
+						'stripe_mode'     => $is_test_mode ? 'test' : 'live',
+						'option_name'     => $fallback_pmc_key,
+					]
+				);
+				delete_option( $fallback_pmc_key );
+			}
+
+			return [
+				'pmc'    => null,
+				'reason' => 'no_eligible_pmcs',
+			];
+		}
+
+		if ( $fallback_pmc_id ) {
+			foreach ( $active_non_child_payment_method_configurations as $configuration ) {
+				if ( $configuration->id === $fallback_pmc_id ) {
+					return [
+						'pmc'    => $configuration,
+						'reason' => 'existing_fallback_pmc_used',
+					];
+				}
+			}
+
+			// If we get here and don't have our fallback yet, we need to delete the fallback ID option.
+			WC_Stripe_Logger::debug(
+				'Fallback Payment Method Configuration not returned from Stripe, deleting fallback ID option',
+				[
+					'fallback_pmc_id' => $fallback_pmc_id,
+					'stripe_mode'     => $is_test_mode ? 'test' : 'live',
+					'option_name'     => $fallback_pmc_key,
+				]
+			);
+			delete_option( $fallback_pmc_key );
+			$fallback_pmc_id = null;
+		}
+
+		$fallback_reason = null;
+		// If we only have one remaining PMC, it should be the fallback, so we don't need to check for default PMCs.
+		if ( 1 === count( $active_non_child_payment_method_configurations ) ) {
+			$fallback_pmc    = reset( $active_non_child_payment_method_configurations );
+			$fallback_reason = 'only_pmc_used';
+		}
+
+		if ( ! $fallback_pmc ) {
+			$default_payment_method_configurations = array_filter(
+				$active_non_child_payment_method_configurations,
+				function ( $configuration ) {
+					return isset( $configuration->default ) && $configuration->default;
+				}
+			);
+
+			if ( 1 === count( $default_payment_method_configurations ) ) {
+				// Use reset() as array_filter() preserves keys.
+				$fallback_pmc    = reset( $default_payment_method_configurations );
+				$fallback_reason = 'only_default_pmc_used';
+			}
+		}
+
+		if ( $fallback_pmc ) {
+			WC_Stripe_Logger::debug(
+				'Updating Payment Method Configuration fallback',
+				[
+					'pmc_id'      => $fallback_pmc->id,
+					'reason'      => $fallback_reason,
+					'name'        => $fallback_pmc->name ?? null,
+					'livemode'    => $fallback_pmc->livemode ?? null,
+					'stripe_mode' => $is_test_mode ? 'test' : 'live',
+					'option_name' => $fallback_pmc_key,
+				]
+			);
+			update_option( $fallback_pmc_key, $fallback_pmc->id );
+
+			return [
+				'pmc'    => $fallback_pmc,
+				'reason' => $fallback_reason,
+			];
+		}
+
+		return [
+			'pmc'    => null,
+			'reason' => 'no_fallback_pmc_found',
+		];
 	}
 
 	/**
@@ -145,6 +331,24 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	public static function get_parent_configuration_id() {
 		return WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_PARENT_ID : self::LIVE_MODE_CONFIGURATION_PARENT_ID;
+	}
+
+	/**
+	 * Get the current payment method configuration ID.
+	 *
+	 * @return string|null The payment method configuration ID when settings sync is enabled and we have a PMC. Null otherwise.
+	 */
+	public static function get_configuration_id(): ?string {
+		if ( ! self::is_enabled() ) {
+			return null;
+		}
+
+		$primary_configuration = self::get_primary_configuration();
+		if ( ! $primary_configuration || empty( $primary_configuration->id ) ) {
+			return null;
+		}
+
+		return (string) $primary_configuration->id;
 	}
 
 	/**
@@ -170,6 +374,35 @@ class WC_Stripe_Payment_Method_Configurations {
 		}
 
 		return $available_payment_method_ids;
+	}
+
+	/**
+	 * Get the enabled payment method IDs in the PMC that are not supported in the plugin.
+	 *
+	 * @return string[] List of payment method IDs that are enabled in the PMC but not supported in the plugin.
+	 */
+	public static function get_unsupported_enabled_payment_method_ids_in_pmc(): array {
+		// Bail if the payment method configurations API is not enabled.
+		if ( ! self::is_enabled() ) {
+			return [];
+		}
+
+		$unsupported_payment_method_ids        = [];
+		$merchant_payment_method_configuration = self::get_primary_configuration();
+
+		if ( $merchant_payment_method_configuration ) {
+			foreach ( (array) $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
+				if ( isset( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS[ $payment_method_id ] ) ) {
+					continue;
+				}
+
+				if ( isset( $payment_method->display_preference->value ) && 'on' === $payment_method->display_preference->value ) {
+					$unsupported_payment_method_ids[] = $payment_method_id;
+				}
+			}
+		}
+
+		return $unsupported_payment_method_ids;
 	}
 
 	/**
@@ -217,7 +450,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		$newly_disabled_methods               = [];
 
 		if ( ! $payment_method_configuration ) {
-			WC_Stripe_Logger::log( 'No primary payment method configuration found while updating payment method configuration' );
+			WC_Stripe_Logger::error( 'No primary payment method configuration found while updating payment method configuration' );
 			return;
 		}
 
@@ -244,7 +477,14 @@ class WC_Stripe_Payment_Method_Configurations {
 			$updated_payment_method_configuration
 		);
 		if ( ! empty( $response->error ) ) {
-			WC_Stripe_Logger::log( 'Error: ' . $response->error->message . ': ' . $response->error->request_log_url );
+			WC_Stripe_Logger::error(
+				'Unable to update Payment Method Configuration',
+				[
+					'pmc_id'        => $payment_method_configuration->id,
+					'configuration' => $updated_payment_method_configuration,
+					'response'      => $response,
+				]
+			);
 		}
 
 		self::clear_payment_method_configuration_cache();
@@ -351,12 +591,21 @@ class WC_Stripe_Payment_Method_Configurations {
 			);
 		}
 
-		// Add Google Pay and Apple Pay to the list if payment_request is enabled
-		if ( ! empty( $stripe_settings['payment_request'] ) && 'yes' === $stripe_settings['payment_request'] ) {
+		// Add default express checkout methods to the list if express checkout is enabled
+		if (
+			! empty( $stripe_settings['express_checkout'] ) &&
+			'yes' === $stripe_settings['express_checkout'] &&
+			'yes' !== ( $stripe_settings['skip_pmc_express_checkout_defaults'] ?? 'no' )
+		) {
 			$enabled_payment_methods = array_merge(
 				$enabled_payment_methods,
 				[ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY ]
 			);
+
+			// If Amazon Pay should be defaulted on, and the account country and currency are supported, enable Amazon Pay.
+			if ( 'yes' === get_option( 'wc_stripe_amazon_pay_default_on' ) && WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_available_for_account_country() && in_array( get_woocommerce_currency(), WC_Stripe_UPE_Payment_Method_Amazon_Pay::get_amazon_pay_supported_currencies(), true ) ) {
+				$enabled_payment_methods[] = WC_Stripe_Payment_Methods::AMAZON_PAY;
+			}
 		}
 
 		// Update the PMC if there are locally enabled payment methods
@@ -369,9 +618,8 @@ class WC_Stripe_Payment_Method_Configurations {
 					$available_payment_method_ids[] = $payment_method_id;
 				}
 
-				// We want to also include payment methods enabled in the PMC, except for express payment methods.
+				// Add all payment methods enabled in the PMC that are not enabled locally.
 				if (
-					! in_array( $payment_method_id, WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS, true ) &&
 					! in_array( $payment_method_id, $enabled_payment_methods, true ) &&
 					isset( $payment_method->display_preference->value ) && 'on' === $payment_method->display_preference->value
 				) {

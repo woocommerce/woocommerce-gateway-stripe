@@ -45,18 +45,6 @@ class WC_Stripe_Subscriptions_Helper {
 	}
 
 	/**
-	 * Loads up to 50 subscriptions, and attempts to return those that are detached from the customer.
-	 *
-	 * @return array
-	 *
-	 * @deprecated 9.6.0 This method is no longer used and will be removed in a future version.
-	 */
-	public static function get_some_detached_subscriptions() {
-		_deprecated_function( __METHOD__, '9.6.0' );
-		return self::get_detached_subscriptions( 50 );
-	}
-
-	/**
 	 * Loads all active subscriptions renewing in less than a month, and attempts to return those that are detached from the customer.
 	 *
 	 * @param int $limit The maximum number of subscriptions to retrieve. Use -1 for no limit (default).
@@ -89,7 +77,7 @@ class WC_Stripe_Subscriptions_Helper {
 		do {
 			if ( ( time() - $start_time ) > $max_time ) {
 				// If we have been running for more than the default limit, stop to avoid long execution times.
-				WC_Stripe_Logger::log(
+				WC_Stripe_Logger::warning(
 					sprintf(
 						/* translators: %d is the maximum time allowed for fetching detached subscriptions */
 						__( 'Stopped fetching detached subscriptions before the %d seconds limit for safety.', 'woocommerce-gateway-stripe' ),
@@ -143,7 +131,7 @@ class WC_Stripe_Subscriptions_Helper {
 	/**
 	 * Checks if a subscription's payment method is detached from the customer.
 	 *
-	 * @param $subscription WC_Subscription The subscription object to check.
+	 * @param WC_Subscription $subscription The subscription object to check.
 	 * @return bool True if the payment method is detached, false otherwise.
 	 */
 	public static function is_subscription_payment_method_detached( $subscription ) {
@@ -151,12 +139,12 @@ class WC_Stripe_Subscriptions_Helper {
 			return false;
 		}
 
-		if ( ! WC_Stripe_Helper::is_stripe_gateway_order( $subscription ) ) {
+		if ( ! WC_Stripe_Order_Helper::get_instance()->is_stripe_gateway_order( $subscription ) ) {
 			// If the payment method is not a Stripe method, we don't need to check further.
 			return false;
 		}
 
-		$source_id = $subscription->get_meta( '_stripe_source_id' );
+		$source_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $subscription );
 		if ( ! $source_id ) {
 			return false;
 		}
@@ -225,7 +213,7 @@ class WC_Stripe_Subscriptions_Helper {
 	public static function get_detached_payment_data_from_subscription( $subscription ) {
 		return [
 			'id'                        => $subscription->get_id(),
-			'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
+			'customer_id'               => WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $subscription ),
 			'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 		];
 	}
@@ -233,7 +221,7 @@ class WC_Stripe_Subscriptions_Helper {
 	/**
 	 * Builds a string containing messages about subscriptions that are detached from the customer.
 	 *
-	 * @param $subscriptions array An array of subscriptions that are detached from the customer.
+	 * @param array $subscriptions An array of subscriptions that are detached from the customer.
 	 * @return string A string containing the messages to be displayed in the admin interface.
 	 */
 	public static function build_subscriptions_detached_messages( $subscriptions = [] ) {
@@ -269,7 +257,7 @@ class WC_Stripe_Subscriptions_Helper {
 	/**
 	 * Builds a message for a single subscription that is detached from the customer.
 	 *
-	 * @param $subscription array An array containing the (single) subscription details.
+	 * @param array $subscription An array containing the (single) subscription details.
 	 * @return string
 	 */
 	public static function build_subscription_detached_message( $subscription ) {
@@ -333,5 +321,26 @@ class WC_Stripe_Subscriptions_Helper {
 		$cached_payment_methods[ $stripe_customer_id ][ $payment_method_id ] = $saved_payment_method;
 
 		return $saved_payment_method;
+	}
+
+	/**
+	 * Checks if the current page is a subscription edit page in wp-admin.
+	 *
+	 * This should be removed once WooCommerce provides a way to check for subscription edit pages.
+	 *
+	 * @return bool
+	 */
+	public static function is_subscription_edit_page(): bool {
+		$query_params = wp_unslash( $_REQUEST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) { // If custom order tables are enabled, we need to check the page query param.
+			return isset( $query_params['page'] ) && 'wc-orders--shop_subscription' === $query_params['page'] && isset( $query_params['id'] );
+		}
+
+		// If custom order tables are not enabled, we need to check the post type and action query params.
+		if ( 'edit' !== ( $query_params['action'] ?? '' ) ) {
+			return false;
+		}
+
+		return isset( $query_params['post'] ) && 'shop_subscription' === get_post_type( $query_params['post'] );
 	}
 }

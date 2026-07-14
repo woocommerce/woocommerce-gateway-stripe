@@ -1,7 +1,7 @@
 import React from 'react';
 import {
 	useEnabledPaymentMethodIds,
-	usePaymentRequestEnabledSettings,
+	useExpressCheckoutEnabledSettings,
 } from '../../data';
 import PaymentMethodIcon from '../../settings/payment-method-icon';
 import { Button } from '@wordpress/components';
@@ -14,7 +14,7 @@ import { PAYMENT_METHOD_LINK } from 'wcstripe/stripe-utils/constants';
 const DisableConfirmationModal = ( { onClose, onConfirm } ) => {
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 	const [ paymentRequestEnabledSettings ] =
-		usePaymentRequestEnabledSettings();
+		useExpressCheckoutEnabledSettings();
 
 	const enabledMethodIds = enabledPaymentMethodIds.filter(
 		( methodId ) => methodId !== PAYMENT_METHOD_LINK

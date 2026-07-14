@@ -99,7 +99,8 @@ class WC_Payment_Token_Becs_Debit extends WC_Payment_Token implements WC_Stripe_
 	/**
 	 * Set the last four digits.
 	 *
-	 * @param string $last4
+	 * @param string $last4 The last 4 digits.
+	 * @return void
 	 */
 	public function set_last4( $last4 ) {
 		$this->set_prop( 'last4', $last4 );
@@ -111,12 +112,11 @@ class WC_Payment_Token_Becs_Debit extends WC_Payment_Token implements WC_Stripe_
 	 * @inheritDoc
 	 */
 	public function is_equal_payment_method( $payment_method ): bool {
-		if (
-			WC_Stripe_Payment_Methods::BECS_DEBIT === $payment_method->type
-			&& ( $payment_method->{WC_Stripe_Payment_Methods::BECS_DEBIT}->fingerprint ?? null ) === $this->get_fingerprint() ) {
-			return true;
+		if ( WC_Stripe_Payment_Methods::BECS_DEBIT !== $payment_method->type ) {
+			return false;
 		}
 
-		return false;
+		// Becs Debit uses the au_becs_debit property.
+		return ( $payment_method->au_becs_debit->fingerprint ?? null ) === $this->get_fingerprint();
 	}
 }

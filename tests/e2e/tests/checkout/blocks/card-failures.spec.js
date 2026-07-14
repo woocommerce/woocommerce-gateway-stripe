@@ -2,8 +2,13 @@ import { test, expect } from '@playwright/test';
 import config from 'config';
 import { payments } from '../../../utils';
 
-const { emptyCart, setupCart, setupBlocksCheckout, fillCreditCardDetails } =
-	payments;
+const {
+	emptyCart,
+	setupCart,
+	setupBlocksCheckout,
+	fillCreditCardDetails,
+	clickPlaceOrder,
+} = payments;
 
 test.beforeEach( async ( { page } ) => {
 	await emptyCart( page );
@@ -18,7 +23,7 @@ const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
 	await fillCreditCardDetails( page, card );
-	await page.locator( 'text=Place order' ).click();
+	await clickPlaceOrder( page );
 
 	/**
 	 * The invalid card error message is shown in the input field validation.

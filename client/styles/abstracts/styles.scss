@@ -1,8 +1,8 @@
-@forward 'node_modules/@wordpress/base-styles/_variables.scss' hide hex-to-rgb;
-@forward 'node_modules/@wordpress/base-styles/_mixins.scss';
-@forward 'node_modules/@wordpress/base-styles/_breakpoints.scss';
-@forward 'node_modules/@wordpress/base-styles/_animations.scss';
-@forward 'node_modules/@wordpress/base-styles/_z-index.scss';
+@forward '@wordpress/base-styles/_variables.scss' hide hex-to-rgb;
+@forward '@wordpress/base-styles/_mixins.scss';
+@forward '@wordpress/base-styles/_breakpoints.scss';
+@forward '@wordpress/base-styles/_animations.scss';
+@forward '@wordpress/base-styles/_z-index.scss';
 @forward './_colors';
 @forward './_breakpoints';
 @forward './_mixins';

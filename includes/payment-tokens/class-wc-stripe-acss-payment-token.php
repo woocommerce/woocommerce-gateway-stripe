@@ -41,18 +41,18 @@ class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Paymen
 	 * @return bool
 	 */
 	public function is_equal_payment_method( $payment_method ): bool {
-		if ( WC_Stripe_Payment_Methods::ACSS_DEBIT === $payment_method->type
-			&& ( $payment_method->acss_debit->fingerprint ?? null ) === $this->get_fingerprint() ) {
-			return true;
+		if ( WC_Stripe_Payment_Methods::ACSS_DEBIT !== $payment_method->type ) {
+			return false;
 		}
 
-		return false;
+		return ( $payment_method->acss_debit->fingerprint ?? null ) === $this->get_fingerprint();
 	}
 
 	/**
 	 * Set the last four digits for the ACSS Debit Token.
 	 *
-	 * @param string $last4
+	 * @param string $last4 The last 4 digits.
+	 * @return void
 	 */
 	public function set_last4( $last4 ) {
 		$this->set_prop( 'last4', $last4 );
@@ -72,6 +72,7 @@ class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Paymen
 	 * Set Stripe payment method type.
 	 *
 	 * @param string $type Payment method type.
+	 * @return void
 	 */
 	public function set_payment_method_type( $type ) {
 		$this->set_prop( 'payment_method_type', $type );
@@ -90,7 +91,8 @@ class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Paymen
 	/**
 	 * Set the bank name.
 	 *
-	 * @param string $bank_name
+	 * @param string $bank_name The bank name.
+	 * @return void
 	 */
 	public function set_bank_name( $bank_name ) {
 		$this->set_prop( 'bank_name', $bank_name );

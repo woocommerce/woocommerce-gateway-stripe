@@ -5,9 +5,11 @@ import {
 	getUPETerms,
 	maybeClearBlikCodeValidation,
 } from '../../stripe-utils';
+import { initializeAlwaysExpandedOptimizedCheckout } from './always-expanded-optimized-checkout';
 import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
 import './deferred-intent.js';
+import 'wcstripe/stripe-utils/copy-test-number';
 import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
@@ -20,7 +22,6 @@ import {
 
 jQuery( function ( $ ) {
 	const key = getStripeServerData()?.key;
-	const isUPEEnabled = getStripeServerData()?.isUPEEnabled;
 	if ( ! key ) {
 		// If no configuration is present, probably this is not the checkout page.
 		return;
@@ -295,7 +296,7 @@ jQuery( function ( $ ) {
 	$( 'form.checkout' )
 		.on( 'checkout_place_order_stripe', function () {
 			if ( ! isUsingSavedPaymentMethod() ) {
-				if ( isUPEEnabled && paymentIntentId ) {
+				if ( paymentIntentId ) {
 					handleUPECheckout( $( this ) );
 					return false;
 				}
@@ -313,11 +314,12 @@ jQuery( function ( $ ) {
 			}
 
 			// Change the payment method container title when the Optimized Checkout is enabled
-			if (
-				getStripeServerData()?.isOCEnabled &&
-				$( 'input#payment_method_stripe' ).is( ':checked' )
-			) {
-				$( 'label[for=payment_method_stripe]' ).text( 'Stripe' );
+			const stripeServerData = getStripeServerData();
+			if ( stripeServerData?.shouldShowOptimizedCheckout ) {
+				$( 'label[for=payment_method_stripe]' ).text(
+					stripeServerData?.optimizedCheckoutClassicTitle ||
+						'Payment options'
+				);
 			}
 
 			maybeClearBlikCodeValidation();
@@ -329,12 +331,20 @@ jQuery( function ( $ ) {
 		const value = $( '#wc-stripe-new-payment-method' ).is( ':checked' )
 			? 'always'
 			: 'never';
-		if ( isUPEEnabled && upeElement ) {
+		if ( upeElement ) {
 			upeElement.update( {
 				terms: getUPETerms( value ),
 			} );
 		}
 	} );
+
+	const stripeServerData = getStripeServerData();
+	if (
+		stripeServerData?.shouldShowOptimizedCheckout &&
+		stripeServerData?.shouldExpandOptimizedCheckout
+	) {
+		initializeAlwaysExpandedOptimizedCheckout( $ );
+	}
 
 	// On every page load, check to see whether we should display the authentication
 	// modal and display it if it should be displayed.

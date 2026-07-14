@@ -48,6 +48,7 @@ class WC_Stripe_Email_Customer_Failed_Refund extends WC_Stripe_Email_Failed_Refu
 	 * Trigger.
 	 *
 	 * @inheritDoc
+	 * @return void
 	 */
 	public function trigger( $order_id, $order = false ) {
 		// Set before calling the parent trigger, so it is not override.

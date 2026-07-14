@@ -1,6 +1,8 @@
 import {
 	transformPrice,
+	transformPriceWithMinorUnits,
 	transformCartDataForDisplayItems,
+	transformCartDataForShippingRates,
 } from '../wc-to-stripe';
 
 global.wc_stripe_express_checkout_params = {};
@@ -356,6 +358,408 @@ describe( 'wc-to-stripe transformers', () => {
 			expect( transformPrice( 180, { currency_minor_unit: 1 } ) ).toBe(
 				18
 			);
+		} );
+	} );
+
+	describe( 'transformPriceWithMinorUnits', () => {
+		afterEach( () => {
+			delete global.wc_stripe_express_checkout_params.checkout
+				.currency_decimals;
+		} );
+
+		const testCases = {
+			'minor units of 3 with Woo default (2)': {
+				price: 18000,
+				minorUnits: 3,
+				expected: 1800,
+			},
+			'minor units of 2 with Woo default (2)': {
+				price: 180,
+				minorUnits: 2,
+				expected: 180,
+			},
+			'minor units of 1 with Woo default (2)': {
+				price: 180,
+				minorUnits: 1,
+				expected: 1800,
+			},
+			'minor units of 0 with Woo default (2)': {
+				price: 180,
+				minorUnits: 0,
+				expected: 18000,
+			},
+			'minor units of 3 with explicit currency decimals 2': {
+				price: 1800,
+				minorUnits: 3,
+				expected: 180,
+				currencyDecimals: 2,
+			},
+			'minor units of 2 with explicit currency decimals 2': {
+				price: 1800,
+				minorUnits: 2,
+				expected: 1800,
+				currencyDecimals: 2,
+			},
+			'minor units of 1 with explicit currency decimals 2': {
+				price: 1800,
+				minorUnits: 1,
+				expected: 18000,
+				currencyDecimals: 2,
+			},
+			'minor units of 0 with explicit currency decimals 2': {
+				price: 180,
+				minorUnits: 0,
+				expected: 18000,
+				currencyDecimals: 2,
+			},
+			'minor units of 3 with explicit currency decimals 1': {
+				price: 18000,
+				minorUnits: 3,
+				expected: 180,
+				currencyDecimals: 1,
+			},
+			'minor units of 2 with explicit currency decimals 1': {
+				price: 1800,
+				minorUnits: 2,
+				expected: 180,
+				currencyDecimals: 1,
+			},
+			'minor units of 1 with explicit currency decimals 1': {
+				price: 1800,
+				minorUnits: 1,
+				expected: 1800,
+				currencyDecimals: 1,
+			},
+			'minor units of 0 with explicit currency decimals 1': {
+				price: 180,
+				minorUnits: 0,
+				expected: 1800,
+				currencyDecimals: 1,
+			},
+			'minor units of 3 with explicit currency decimals 0': {
+				price: 18000,
+				minorUnits: 3,
+				expected: 18,
+				currencyDecimals: 0,
+			},
+			'minor units of 2 with explicit currency decimals 0': {
+				price: 1800,
+				minorUnits: 2,
+				expected: 18,
+				currencyDecimals: 0,
+			},
+			'minor units of 1 with explicit currency decimals 0': {
+				price: 1800,
+				minorUnits: 1,
+				expected: 180,
+				currencyDecimals: 0,
+			},
+			'minor units of 0 with explicit currency decimals 0': {
+				price: 180,
+				minorUnits: 0,
+				expected: 180,
+				currencyDecimals: 0,
+			},
+		};
+
+		Object.entries( testCases ).forEach( ( [ description, testCase ] ) => {
+			// eslint-disable-next-line jest/valid-title
+			it( description, () => {
+				if ( undefined !== testCase.currencyDecimals ) {
+					global.wc_stripe_express_checkout_params.checkout.currency_decimals =
+						testCase.currencyDecimals;
+				}
+				expect(
+					transformPriceWithMinorUnits(
+						testCase.price,
+						testCase.minorUnits
+					)
+				).toBe( testCase.expected );
+			} );
+		} );
+	} );
+
+	describe( 'transformCartDataForShippingRates', () => {
+		const makeRate = ( overrides = {} ) => ( {
+			rate_id: 'flat_rate:1',
+			name: 'Flat Rate',
+			price: '500',
+			taxes: '50',
+			selected: false,
+			currency_minor_unit: 2,
+			meta_data: [],
+			...overrides,
+		} );
+
+		beforeEach( () => {
+			global.wc_stripe_express_checkout_params = {
+				checkout: {
+					display_prices_with_tax: false,
+				},
+			};
+		} );
+
+		afterEach( () => {
+			global.wc_stripe_express_checkout_params = {};
+		} );
+
+		it( 'performs basic transformation of rate fields', () => {
+			const cartData = {
+				shipping_rates: [
+					{
+						shipping_rates: [
+							makeRate( {
+								rate_id: 'flat_rate:1',
+								name: 'Flat Rate',
+								price: '500',
+								taxes: '0',
+							} ),
+						],
+					},
+				],
+			};
+
+			const result = transformCartDataForShippingRates( cartData );
+
+			expect( result ).toHaveLength( 1 );
+			expect( result[ 0 ] ).toMatchObject( {
+				id: 'flat_rate:1',
+				displayName: 'Flat Rate',
+				amount: 500,
+			} );
+		} );
+
+		it( 'uses price + taxes as amount when display_prices_with_tax is true', () => {
+			global.wc_stripe_express_checkout_params.checkout.display_prices_with_tax = true;
+
+			const cartData = {
+				shipping_rates: [
+					{
+						shipping_rates: [
+							makeRate( {
+								price: '500',
+								taxes: '50',
+							} ),
+						],
+					},
+				],
+			};
+
+			const result = transformCartDataForShippingRates( cartData );
+
+			expect( result[ 0 ].amount ).toBe( 550 );
+		} );
+
+		it( 'uses only price as amount when display_prices_with_tax is false', () => {
+			global.wc_stripe_express_checkout_params.checkout.display_prices_with_tax = false;
+
+			const cartData = {
+				shipping_rates: [
+					{
+						shipping_rates: [
+							makeRate( {
+								price: '500',
+								taxes: '50',
+							} ),
+						],
+					},
+				],
+			};
+
+			const result = transformCartDataForShippingRates( cartData );
+
+			expect( result[ 0 ].amount ).toBe( 500 );
+		} );
+
+		it( 'sorts selected rates first', () => {
+			const cartData = {
+				shipping_rates: [
+					{
+						shipping_rates: [
+							makeRate( {
+								rate_id: 'flat_rate:1',
+								name: 'Flat Rate',
+								selected: false,
+							} ),
+							makeRate( {
+								rate_id: 'free_shipping:1',
+								name: 'Free Shipping',
+								selected: true,
+							} ),
+							makeRate( {
+								rate_id: 'flat_rate:2',
+								name: 'Express',
+								selected: false,
+							} ),
+						],
+					},
+				],
+			};
+
+			const result = transformCartDataForShippingRates( cartData );
+
+			expect( result[ 0 ].id ).toBe( 'free_shipping:1' );
+			expect( result[ 1 ].id ).toBe( 'flat_rate:1' );
+			expect( result[ 2 ].id ).toBe( 'flat_rate:2' );
+		} );
+
+		it( 'does not mutate the caller-provided shipping_rates array', () => {
+			const originalRates = [
+				makeRate( { rate_id: 'a', selected: false } ),
+				makeRate( { rate_id: 'b', selected: true } ),
+			];
+			const cartData = {
+				shipping_rates: [ { shipping_rates: originalRates } ],
+			};
+
+			transformCartDataForShippingRates( cartData );
+
+			expect( originalRates[ 0 ].rate_id ).toBe( 'a' );
+			expect( originalRates[ 1 ].rate_id ).toBe( 'b' );
+		} );
+
+		it( 'returns empty array when there are no shipping rates', () => {
+			expect( transformCartDataForShippingRates( {} ) ).toStrictEqual(
+				[]
+			);
+			expect(
+				transformCartDataForShippingRates( {
+					shipping_rates: [ { shipping_rates: [] } ],
+				} )
+			).toStrictEqual( [] );
+		} );
+
+		it( 'builds deliveryEstimate from pickup_address and pickup_details metadata', () => {
+			const cartData = {
+				shipping_rates: [
+					{
+						shipping_rates: [
+							makeRate( {
+								meta_data: [
+									{
+										key: 'pickup_address',
+										value: '123 Main St',
+									},
+									{
+										key: 'pickup_details',
+										value: 'Ring doorbell',
+									},
+								],
+							} ),
+						],
+					},
+				],
+			};
+
+			const result = transformCartDataForShippingRates( cartData );
+
+			expect( result[ 0 ].deliveryEstimate ).toBe(
+				'123 Main St - Ring doorbell'
+			);
+		} );
+
+		it( 'builds deliveryEstimate from only pickup_address when pickup_details is absent', () => {
+			const cartData = {
+				shipping_rates: [
+					{
+						shipping_rates: [
+							makeRate( {
+								meta_data: [
+									{
+										key: 'pickup_address',
+										value: '123 Main St',
+									},
+								],
+							} ),
+						],
+					},
+				],
+			};
+
+			const result = transformCartDataForShippingRates( cartData );
+
+			expect( result[ 0 ].deliveryEstimate ).toBe( '123 Main St' );
+		} );
+
+		it( 'returns empty deliveryEstimate string when no pickup metadata is present', () => {
+			const cartData = {
+				shipping_rates: [
+					{
+						shipping_rates: [ makeRate( { meta_data: [] } ) ],
+					},
+				],
+			};
+
+			const result = transformCartDataForShippingRates( cartData );
+
+			expect( result[ 0 ].deliveryEstimate ).toBe( '' );
+		} );
+
+		it( 'handles missing meta_data without throwing', () => {
+			const cartData = {
+				shipping_rates: [
+					{
+						shipping_rates: [
+							makeRate( { meta_data: undefined } ),
+						],
+					},
+				],
+			};
+
+			expect( () =>
+				transformCartDataForShippingRates( cartData )
+			).not.toThrow();
+
+			const result = transformCartDataForShippingRates( cartData );
+			expect( result[ 0 ].deliveryEstimate ).toBe( '' );
+		} );
+
+		it( 'handles missing taxes as zero when display_prices_with_tax is true', () => {
+			global.wc_stripe_express_checkout_params.checkout.display_prices_with_tax = true;
+
+			const cartData = {
+				shipping_rates: [
+					{
+						shipping_rates: [
+							makeRate( { price: '500', taxes: undefined } ),
+						],
+					},
+				],
+			};
+
+			const result = transformCartDataForShippingRates( cartData );
+
+			expect( result[ 0 ].amount ).toBe( 500 );
+		} );
+
+		it( 'slices results to SHIPPING_RATES_UPPER_LIMIT_COUNT (9)', () => {
+			const rates = Array.from( { length: 12 }, ( _, i ) =>
+				makeRate( { rate_id: `flat_rate:${ i }`, name: `Rate ${ i }` } )
+			);
+
+			const cartData = {
+				shipping_rates: [ { shipping_rates: rates } ],
+			};
+
+			const result = transformCartDataForShippingRates( cartData );
+
+			expect( result ).toHaveLength( 9 );
+		} );
+
+		it( 'decodes HTML entities in rate names', () => {
+			const cartData = {
+				shipping_rates: [
+					{
+						shipping_rates: [
+							makeRate( { name: 'Pickup &amp; Delivery' } ),
+						],
+					},
+				],
+			};
+
+			const result = transformCartDataForShippingRates( cartData );
+
+			expect( result[ 0 ].displayName ).toBe( 'Pickup & Delivery' );
 		} );
 	} );
 } );

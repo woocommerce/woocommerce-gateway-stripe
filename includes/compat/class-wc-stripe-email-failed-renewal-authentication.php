@@ -5,8 +5,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Failed Renewal/Pre-Order Authentication Notification
- *
- * @extends WC_Email_Customer_Invoice
  */
 class WC_Stripe_Email_Failed_Renewal_Authentication extends WC_Stripe_Email_Failed_Authentication {
 	/**
@@ -39,6 +37,7 @@ class WC_Stripe_Email_Failed_Renewal_Authentication extends WC_Stripe_Email_Fail
 	 * Triggers the email while also disconnecting the original Subscriptions email.
 	 *
 	 * @param WC_Order $order The order that is being paid.
+	 * @return void
 	 */
 	public function trigger( $order ) {
 		if ( function_exists( 'wcs_order_contains_subscription' )

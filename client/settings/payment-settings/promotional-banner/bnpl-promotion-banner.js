@@ -2,34 +2,17 @@ import { React } from 'react';
 import styled from '@emotion/styled';
 import { __ } from '@wordpress/i18n';
 import { ExternalLink } from '@wordpress/components';
-import apiFetch from '@wordpress/api-fetch';
 import CardBody from 'wcstripe/settings/card-body';
 import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/bnpl.svg';
 import {
-	BannerIllustration,
-	ButtonsRow,
 	CardColumn,
 	CardInner,
 	DismissButton,
+	BannerIllustrationWithOffset,
+	ButtonsRowWithMargin,
+	CenteredColumnIllustration,
 } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
-
-const BannerIllustrationBNPL = styled( BannerIllustration )`
-	@media ( min-width: 600px ) {
-		margin: 0 0 -40px 24px;
-	}
-`;
-
-const ButtonsRowBNPL = styled( ButtonsRow )`
-	@media ( min-width: 600px ) {
-		margin-bottom: 0.7em;
-	}
-`;
-
-const ColumnIllustration = styled( CardColumn )`
-	@media ( max-width: 599px ) {
-		text-align: center;
-	}
-`;
+import { dismissNotice } from 'wcstripe/utils';
 
 const IntroBNPL = styled.p`
 	line-height: 20px;
@@ -41,11 +24,7 @@ const TitleBNPL = styled.h4`
 
 export const BNPLPromotionBanner = ( { setShowPromotionalBanner } ) => {
 	const handleBannerDismiss = () => {
-		apiFetch( {
-			path: '/wc/v3/wc_stripe/settings/notice',
-			method: 'POST',
-			data: { wc_stripe_show_bnpl_promotion_banner: 'no' },
-		} ).finally( () => {
+		dismissNotice( 'wc_stripe_show_bnpl_promotion_banner', () => {
 			setShowPromotionalBanner( false );
 		} );
 		window.location.reload();
@@ -79,17 +58,17 @@ export const BNPLPromotionBanner = ( { setShowPromotionalBanner } ) => {
 						) }
 					</p>
 				</CardColumn>
-				<ColumnIllustration>
-					<BannerIllustrationBNPL
+				<CenteredColumnIllustration>
+					<BannerIllustrationWithOffset
 						src={ illustration }
 						alt={ __(
 							'Try Buy Now, Pay Later',
 							'woocommerce-gateway-stripe'
 						) }
 					/>
-				</ColumnIllustration>
+				</CenteredColumnIllustration>
 			</CardInner>
-			<ButtonsRowBNPL>
+			<ButtonsRowWithMargin>
 				<ExternalLink href="https://woocommerce.com/document/stripe/setup-and-configuration/additional-payment-methods/">
 					{ __( 'Learn more', 'woocommerce-gateway-stripe' ) }
 				</ExternalLink>
@@ -100,7 +79,7 @@ export const BNPLPromotionBanner = ( { setShowPromotionalBanner } ) => {
 				>
 					{ __( 'Dismiss', 'woocommerce-gateway-stripe' ) }
 				</DismissButton>
-			</ButtonsRowBNPL>
+			</ButtonsRowWithMargin>
 		</CardBody>
 	);
 };

@@ -14,7 +14,6 @@ import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
 	PAYMENT_METHOD_EPS,
-	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_IDEAL,
 	PAYMENT_METHOD_KLARNA,
 	PAYMENT_METHOD_MULTIBANCO,
@@ -27,8 +26,11 @@ import {
 
 const accountCountry =
 	window.wc_stripe_settings_params?.account_country || 'US';
-const isSepaTokensEnabled =
-	window.wc_stripe_settings_params?.is_sepa_tokens_enabled === '1';
+const isSepaTokensForIdealEnabled =
+	window.wc_stripe_settings_params?.is_sepa_tokens_for_ideal_enabled === '1';
+const isSepaTokensForBancontactEnabled =
+	window.wc_stripe_settings_params?.is_sepa_tokens_for_bancontact_enabled ===
+	'1';
 
 const paymentMethodsMap = {
 	card: {
@@ -42,16 +44,6 @@ const paymentMethodsMap = {
 		currencies: [],
 		allows_manual_capture: true,
 		supportsRecurring: true,
-	},
-	giropay: {
-		id: PAYMENT_METHOD_GIROPAY,
-		label: __( 'giropay', 'woocommerce-gateway-stripe' ),
-		description: __(
-			'Expand your business with giropay — Germany’s second most popular payment system.',
-			'woocommerce-gateway-stripe'
-		),
-		Icon: icons.giropay,
-		currencies: [ 'EUR' ],
 	},
 	klarna: {
 		id: PAYMENT_METHOD_KLARNA,
@@ -72,20 +64,23 @@ const paymentMethodsMap = {
 			'NOK',
 			'NZD',
 			'PLN',
+			'RON',
 			'SEK',
 			'USD',
 		],
 		allows_manual_capture: true,
+		supportsRecurring: true,
 	},
 	affirm: {
 		id: PAYMENT_METHOD_AFFIRM,
 		label: __( 'Affirm', 'woocommerce-gateway-stripe' ),
-		// translators: %s is the store currency.
+		// translators: 1: store currency, 2: store currency, 3: the minimum amount, 4: store currency.
 		description: __(
-			'Allow customers to pay over time. Available to all customers paying in %s. Purchases from 50 %s to 30,000 %s are eligible for Affirm financing.',
+			'Allow customers to pay over time. Available to all customers paying in %1$s. Purchases from %2$s %3$s to 30,000 %4$s are eligible for Affirm financing.',
 			'woocommerce-gateway-stripe'
 		),
 		Icon: icons.affirm,
+		minAmounts: { USD: 35, CAD: 50 },
 		currencies: [ 'USD', 'CAD' ],
 		allows_manual_capture: true,
 	},
@@ -162,18 +157,18 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.bancontact,
 		currencies: [ 'EUR' ],
-		supportsRecurring: isSepaTokensEnabled,
+		supportsRecurring: isSepaTokensForBancontactEnabled,
 	},
 	ideal: {
 		id: PAYMENT_METHOD_IDEAL,
-		label: __( 'iDEAL', 'woocommerce-gateway-stripe' ),
+		label: 'iDEAL | Wero',
 		description: __(
-			'iDEAL is a Netherlands-based payment method that allows customers to complete transactions online using their bank credentials.',
+			'iDEAL | Wero is a Netherlands-based payment method that allows customers to complete transactions online using their bank credentials.',
 			'woocommerce-gateway-stripe'
 		),
 		Icon: icons.ideal,
 		currencies: [ 'EUR' ],
-		supportsRecurring: isSepaTokensEnabled,
+		supportsRecurring: isSepaTokensForIdealEnabled,
 	},
 	p24: {
 		id: PAYMENT_METHOD_P24,

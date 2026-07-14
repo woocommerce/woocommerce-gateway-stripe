@@ -75,8 +75,9 @@ abstract class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 	/**
 	 * Trigger.
 	 *
-	 * @param int $order_id The order ID.
-	 * @param WC_Order|false $order Order object.
+	 * @param int            $order_id The order ID.
+	 * @param WC_Order|false $order    Order object.
+	 * @return void
 	 */
 	public function trigger( $order_id, $order = false ) {
 		$this->object = $order;
@@ -101,7 +102,7 @@ abstract class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 			return __( 'Unknown reason', 'woocommerce-gateway-stripe' );
 		}
 
-		$refund_failure_key = $order->get_meta( '_stripe_refund_failure_reason', true );
+		$refund_failure_key = WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_failure_reason( $order );
 		return WC_Stripe_Helper::get_refund_reason_description( $refund_failure_key );
 	}
 }

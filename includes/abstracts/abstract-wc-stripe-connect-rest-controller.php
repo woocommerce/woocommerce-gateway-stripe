@@ -37,6 +37,8 @@ abstract class WC_Stripe_Connect_REST_Controller extends WP_REST_Controller {
 
 	/**
 	 * Registers rest routes for stripe connect functionality
+	 *
+	 * @return void
 	 */
 	public function register_routes() {
 
@@ -139,6 +141,8 @@ abstract class WC_Stripe_Connect_REST_Controller extends WP_REST_Controller {
 
 	/**
 	 * Consolidate cache prevention mechanisms.
+	 *
+	 * @return void
 	 */
 	public function prevent_route_caching() {
 

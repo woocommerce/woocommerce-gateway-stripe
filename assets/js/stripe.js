@@ -211,7 +211,7 @@ jQuery( function($ ) {
 
 			$( 'form.woocommerce-checkout' )
 				.on(
-					'checkout_place_order_stripe checkout_place_order_stripe_bancontact checkout_place_order_stripe_sofort checkout_place_order_stripe_giropay checkout_place_order_stripe_ideal checkout_place_order_stripe_alipay checkout_place_order_stripe_sepa checkout_place_order_stripe_boleto checkout_place_order_stripe_oxxo',
+					'checkout_place_order_stripe checkout_place_order_stripe_bancontact checkout_place_order_stripe_sofort checkout_place_order_stripe_ideal checkout_place_order_stripe_alipay checkout_place_order_stripe_sepa checkout_place_order_stripe_boleto checkout_place_order_stripe_oxxo',
 					this.onSubmit
 				);
 
@@ -290,7 +290,7 @@ jQuery( function($ ) {
 		 * @return {boolean}
 		 */
 		isStripeChosen: function() {
-			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_eps, #payment_method_stripe_multibanco, #payment_method_stripe_boleto, #payment_method_stripe_oxxo' ).is( ':checked' ) || ( $( '#payment_method_stripe' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() ) || ( $( '#payment_method_stripe_sepa' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
+			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_eps, #payment_method_stripe_multibanco, #payment_method_stripe_boleto, #payment_method_stripe_oxxo' ).is( ':checked' ) || ( $( '#payment_method_stripe' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() ) || ( $( '#payment_method_stripe_sepa' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
 		},
 
 		/**
@@ -326,15 +326,6 @@ jQuery( function($ ) {
 		 */
 		isBancontactChosen: function() {
 			return $( '#payment_method_stripe_bancontact' ).is( ':checked' );
-		},
-
-		/**
-		 * Check if Stripe giropay is being used.
-		 *
-		 * @return {boolean}
-		 */
-		isGiropayChosen: function() {
-			return $( '#payment_method_stripe_giropay' ).is( ':checked' );
 		},
 
 		/**
@@ -660,7 +651,6 @@ jQuery( function($ ) {
 			// For methods that needs redirect, we will create the source server side so we can obtain the order ID.
 			if (
 				wc_stripe_form.isBancontactChosen() ||
-				wc_stripe_form.isGiropayChosen() ||
 				wc_stripe_form.isIdealChosen() ||
 				wc_stripe_form.isAlipayChosen() ||
 				wc_stripe_form.isSofortChosen() ||
@@ -960,7 +950,7 @@ jQuery( function($ ) {
 		 * in order to allow customers to confirm an 3DS/SCA authorization, or stripe.handleCardSetup if
 		 * what needs to be confirmed is a SetupIntent.
 		 *
-		 * Those redirects/hashes are generated in `WC_Gateway_Stripe::process_payment`.
+		 * Those redirects/hashes are generated in `WC_Stripe_UPE_Payment_Gateway::process_payment`.
 		 */
 		onHashChange: function() {
 			var partials = window.location.hash.match( /^#?confirm-(pi|si)-([^:]+):(.+)$/ );
@@ -1012,7 +1002,8 @@ jQuery( function($ ) {
 						return;
 					}
 
-					window.location = redirectURL;
+					var intentId = intent?.id;
+					window.location = redirectURL + ( intentId ? '&intent_id=' + encodeURIComponent( intentId ) : '' );
 				} )
 				.catch( function( error ) {
 					if ( alwaysRedirect ) {

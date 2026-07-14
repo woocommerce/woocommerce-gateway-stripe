@@ -98,23 +98,23 @@ export const useEnabledPaymentMethodIds = makeSettingsHook(
 	'enabled_payment_method_ids',
 	EMPTY_ARR
 );
-export const usePaymentRequestEnabledSettings = makeSettingsHook(
-	'is_payment_request_enabled'
+export const useExpressCheckoutEnabledSettings = makeSettingsHook(
+	'is_express_checkout_enabled'
 );
-export const usePaymentRequestButtonSize = makeSettingsHook(
-	'payment_request_button_size',
+export const useExpressCheckoutButtonSize = makeSettingsHook(
+	'express_checkout_button_size',
 	''
 );
-export const usePaymentRequestButtonType = makeSettingsHook(
-	'payment_request_button_type',
+export const useExpressCheckoutButtonType = makeSettingsHook(
+	'express_checkout_button_type',
 	''
 );
-export const usePaymentRequestButtonTheme = makeSettingsHook(
-	'payment_request_button_theme',
+export const useExpressCheckoutButtonTheme = makeSettingsHook(
+	'express_checkout_button_theme',
 	''
 );
-export const usePaymentRequestLocations = makeSettingsHook(
-	'payment_request_button_locations',
+export const useExpressCheckoutLocations = makeSettingsHook(
+	'express_checkout_button_locations',
 	EMPTY_ARR
 );
 export const useAmazonPayEnabledSettings = () => {
@@ -149,11 +149,22 @@ export const useAmazonPayLocations = makeSettingsHook(
 	'amazon_pay_button_locations',
 	EMPTY_ARR
 );
+export const useLinkButtonSize = makeSettingsHook(
+	'link_button_size',
+	'default'
+);
+export const useLinkLocations = makeSettingsHook(
+	'link_button_locations',
+	EMPTY_ARR
+);
 export const useIsStripeEnabled = makeSettingsHook( 'is_stripe_enabled' );
 export const useTestMode = makeSettingsHook( 'is_test_mode_enabled' );
 export const useSavedCards = makeSettingsHook( 'is_saved_cards_enabled' );
-export const useSepaTokensForOtherMethods = makeSettingsHook(
-	'is_sepa_tokens_for_other_methods_enabled'
+export const useSepaTokensForIdeal = makeSettingsHook(
+	'is_sepa_tokens_for_ideal_enabled'
+);
+export const useSepaTokensForBancontact = makeSettingsHook(
+	'is_sepa_tokens_for_bancontact_enabled'
 );
 export const useManualCapture = makeSettingsHook( 'is_manual_capture_enabled' );
 export const useSeparateCardForm = makeSettingsHook(
@@ -163,8 +174,8 @@ export const useIsShortAccountStatementEnabled = makeSettingsHook(
 	'is_short_statement_descriptor_enabled'
 );
 export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
-export const useIsUpeEnabled = makeSettingsHook( 'is_upe_enabled' );
 export const useIsOCEnabled = makeSettingsHook( 'is_oc_enabled' );
+export const useIsAdaptivePricingEnabled = makeSettingsHook( 'is_ap_enabled' );
 export const useOCLayout = makeSettingsHook( 'oc_layout' );
 export const useIsPMCEnabled = makeReadOnlySettingsHook(
 	'is_pmc_enabled',

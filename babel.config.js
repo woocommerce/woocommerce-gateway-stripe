@@ -6,7 +6,7 @@ module.exports = {
 	plugins: [
 		'@emotion',
 		[ '@babel/transform-runtime', { corejs: 3 } ],
-		'@babel/plugin-proposal-optional-chaining',
-		'@babel/plugin-proposal-nullish-coalescing-operator',
+		'@babel/plugin-transform-optional-chaining',
+		'@babel/plugin-transform-nullish-coalescing-operator',
 	],
 };

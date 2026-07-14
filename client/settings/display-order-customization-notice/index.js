@@ -1,11 +1,10 @@
 /* global wc_stripe_settings_params */
 import styled from '@emotion/styled';
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 import { info } from '@wordpress/icons';
-import UpeToggleContext from '../upe-toggle/context';
 import { Icon, Notice } from '@wordpress/components';
-import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
+import { dismissNotice } from 'wcstripe/utils';
 
 const NoticeWrapper = styled( Notice )`
 	border-left: none;
@@ -23,24 +22,20 @@ const NoticeContent = styled.div`
 	}
 `;
 
-const DisplayOrderCustomizationNotice = () => {
-	const { isUpeEnabled } = useContext( UpeToggleContext );
+const DisplayOrderCustomizationNotice = ( { isOCEnabled } ) => {
 	const [ showNotice, setShowNotice ] = useState(
 		// eslint-disable-next-line camelcase
 		wc_stripe_settings_params.show_customization_notice
 	);
 
 	const handleDismissNotice = () => {
-		apiFetch( {
-			path: '/wc/v3/wc_stripe/settings/notice',
-			method: 'POST',
-			data: { wc_stripe_show_customization_notice: 'no' },
-		} ).finally( () => {
+		dismissNotice( 'wc_stripe_show_customization_notice', () => {
 			setShowNotice( false );
 		} );
 	};
 
-	if ( isUpeEnabled || ! showNotice ) {
+	// eslint-disable-next-line camelcase
+	if ( ! showNotice || isOCEnabled ) {
 		return null;
 	}
 

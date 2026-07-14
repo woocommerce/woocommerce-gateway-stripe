@@ -5,12 +5,10 @@ import {
 import {
 	PAYMENT_METHOD_AFFIRM,
 	PAYMENT_METHOD_AMAZON_PAY,
-	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_KLARNA,
 	PAYMENT_METHOD_LINK,
 } from '../../stripe-utils/constants';
 import { updateTokenLabelsWhenLoaded } from './token-label-updater.js';
-import paymentRequestPaymentMethod from 'wcstripe/blocks/payment-request';
 import {
 	expressCheckoutElementAmazonPay,
 	expressCheckoutElementApplePay,
@@ -24,6 +22,7 @@ import {
 	populateOrderAttributionInputs,
 } from 'wcstripe/blocks/utils';
 import './styles.scss';
+import 'wcstripe/blocks/express-checkout/styles.scss';
 import { upeElement } from 'wcstripe/blocks/upe/upe-element';
 
 const api = new WCStripeAPI(
@@ -39,11 +38,7 @@ const api = new WCStripeAPI(
 const paymentMethodsConfig =
 	getBlocksConfiguration()?.paymentMethodsConfig ?? {};
 
-const methodsToFilter = [
-	PAYMENT_METHOD_AMAZON_PAY,
-	PAYMENT_METHOD_LINK,
-	PAYMENT_METHOD_GIROPAY, // Skip giropay as it was deprecated by Jun, 30th 2024.
-];
+const methodsToFilter = [ PAYMENT_METHOD_AMAZON_PAY, PAYMENT_METHOD_LINK ];
 
 // Filter out some BNPLs when other official extensions are present.
 if ( getBlocksConfiguration()?.hasAffirmGatewayPlugin ) {
@@ -59,25 +54,16 @@ Object.entries( paymentMethodsConfig )
 		registerPaymentMethod( upeElement( method, api, config ) );
 	} );
 
-if ( getBlocksConfiguration()?.isECEEnabled ) {
-	// Register Express Checkout Elements.
-	if (
-		getBlocksConfiguration()?.isAmazonPayAvailable && // Hide behind feature flag so the editor does not show the button.
-		getBlocksConfiguration()?.isAmazonPayEnabled
-	) {
-		registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
-	}
-	if ( getBlocksConfiguration()?.isPaymentRequestEnabled ) {
-		registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
-		registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
-	}
-	if ( getBlocksConfiguration()?.isLinkEnabled ) {
-		registerExpressPaymentMethod( expressCheckoutElementStripeLink( api ) );
-	}
-} else {
-	// Register Stripe Payment Request.
-	// TODO: We can remove this once we're sure everyone on the new checkout (UPE) has been migrated to ECE.
-	registerExpressPaymentMethod( paymentRequestPaymentMethod );
+// Register Express Checkout Elements.
+if ( getBlocksConfiguration()?.isAmazonPayEnabled ) {
+	registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
+}
+if ( getBlocksConfiguration()?.isExpressCheckoutEnabled ) {
+	registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
+	registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
+}
+if ( getBlocksConfiguration()?.isLinkEnabled ) {
+	registerExpressPaymentMethod( expressCheckoutElementStripeLink( api ) );
 }
 
 // Update token labels when the checkout form is loaded.

@@ -1,5 +1,5 @@
 import { useStripe, useElements } from '@stripe/react-stripe-js';
-import { useCallback } from '@wordpress/element';
+import { useCallback, useMemo } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import {
 	onAbortPaymentHandler,
@@ -14,6 +14,7 @@ import {
 	getExpressCheckoutData,
 	normalizeLineItems,
 } from 'wcstripe/express-checkout/utils';
+import { transformPriceWithMinorUnits } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import 'wcstripe/express-checkout/compatibility/wc-product-page';
 
@@ -24,33 +25,49 @@ export const useExpressCheckout = ( {
 	onClick,
 	onClose,
 	setExpressPaymentError,
+	expressPaymentMethod,
 } ) => {
 	const stripe = useStripe();
 	const elements = useElements();
 
-	const buttonOptions = getExpressCheckoutButtonStyleSettings();
+	const buttonOptions = useMemo(
+		() => getExpressCheckoutButtonStyleSettings( expressPaymentMethod ),
+		[ expressPaymentMethod ]
+	);
+	const transformAmountForStripe = useCallback(
+		( amount ) =>
+			transformPriceWithMinorUnits( amount, billing.currency.minorUnit ),
+		[ billing.currency.minorUnit ]
+	);
+	const parseAndTransformAmount = useCallback(
+		( amount ) => transformAmountForStripe( parseInt( amount, 10 ) ),
+		[ transformAmountForStripe ]
+	);
 
-	const onCancel = () => {
+	const onCancel = useCallback( () => {
 		onCancelHandler();
 		onClose();
-	};
+	}, [ onClose ] );
 
-	const completePayment = ( redirectUrl ) => {
+	const completePayment = useCallback( ( redirectUrl ) => {
 		onCompletePaymentHandler( redirectUrl );
 		window.location = redirectUrl;
-	};
+	}, [] );
 
-	const abortPayment = ( onConfirmEvent, message, isOrderError = false ) => {
-		if ( ! isOrderError ) {
-			onConfirmEvent.paymentFailed( { reason: 'fail' } );
-		}
+	const abortPayment = useCallback(
+		( onConfirmEvent, message, isOrderError = false ) => {
+			if ( ! isOrderError ) {
+				onConfirmEvent.paymentFailed( { reason: 'fail' } );
+			}
 
-		// If we have a multiline message using newlines, replace them with <br>.
-		const formattedMessage = message.replace( /\n/g, '<br>' );
-		setExpressPaymentError( formattedMessage );
+			// If we have a multiline message using newlines, replace them with <br>.
+			const formattedMessage = message.replace( /\n/g, '<br>' );
+			setExpressPaymentError( formattedMessage );
 
-		onAbortPaymentHandler( onConfirmEvent, message );
-	};
+			onAbortPaymentHandler( onConfirmEvent, message );
+		},
+		[ setExpressPaymentError ]
+	);
 
 	const onButtonClick = useCallback(
 		async ( event ) => {
@@ -65,7 +82,7 @@ export const useExpressCheckout = ( {
 						( r ) => {
 							return {
 								id: r.rate_id,
-								amount: parseInt( r.price, 10 ),
+								amount: parseAndTransformAmount( r.price ),
 								displayName: r.name,
 							};
 						}
@@ -81,7 +98,15 @@ export const useExpressCheckout = ( {
 				return defaultShippingOption ? [ defaultShippingOption ] : [];
 			};
 
-			const lineItems = normalizeLineItems( billing.cartTotalItems );
+			const lineItems = normalizeLineItems( billing.cartTotalItems ).map(
+				( lineItem ) => ( {
+					...lineItem,
+					amount: parseAndTransformAmount( lineItem.amount ),
+				} )
+			);
+			const transformedTotalAmount = transformAmountForStripe(
+				billing.cartTotal.value
+			);
 			const totalAmountOfLineItems = lineItems.reduce(
 				( acc, lineItem ) => {
 					return acc + lineItem.amount;
@@ -96,7 +121,7 @@ export const useExpressCheckout = ( {
 				// if that happens, let's just not return any of the line items.
 				// This way, just the total amount will be displayed to the customer.
 				lineItems:
-					billing.cartTotal.value < totalAmountOfLineItems
+					transformedTotalAmount < totalAmountOfLineItems
 						? []
 						: lineItems,
 				emailRequired: true,
@@ -131,21 +156,26 @@ export const useExpressCheckout = ( {
 			onClick,
 			billing.cartTotalItems,
 			billing.cartTotal.value,
+			parseAndTransformAmount,
+			transformAmountForStripe,
 			shippingData.needsShipping,
 			shippingData.shippingRates,
 		]
 	);
 
-	const onConfirm = async ( event ) => {
-		return await onConfirmHandler( {
-			api,
-			stripe,
-			elements,
-			completePayment,
-			abortPayment,
-			event,
-		} );
-	};
+	const onConfirm = useCallback(
+		async ( event ) => {
+			return await onConfirmHandler( {
+				api,
+				stripe,
+				elements,
+				completePayment,
+				abortPayment,
+				event,
+			} );
+		},
+		[ api, stripe, elements, completePayment, abortPayment ]
+	);
 
 	return {
 		buttonOptions,

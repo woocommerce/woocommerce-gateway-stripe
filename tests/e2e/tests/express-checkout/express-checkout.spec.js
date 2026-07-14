@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { payments } from '../../utils';
+import { assertLinkModalLoads, getLinkButton } from './utils';
 
 const { clickAddToCartButton } = payments;
 
@@ -15,44 +16,9 @@ const addProductToCart = async ( page, productSlug = 'beanie' ) => {
 	).toBeVisible();
 };
 
-const getLinkButton = async ( page, isBlockPage = false ) => {
-	let frameLocator;
-	if ( isBlockPage ) {
-		frameLocator = await page.frameLocator(
-			'#express-payment-method-express_checkout_element_link iframe[name^="__privateStripeFrame"]'
-		);
-	} else {
-		frameLocator = await page.frameLocator(
-			'#wc-stripe-express-checkout-element-link iframe[name^="__privateStripeFrame"]'
-		);
-	}
-	const linkButton = await frameLocator.getByRole( 'button', {
-		name: 'Pay with Link',
-	} );
-
-	return linkButton;
-};
-
 const testLink = async ( page, navigateTo, isBlockPage = false ) => {
 	await page.goto( navigateTo );
-
-	const linkButton = await getLinkButton( page, isBlockPage );
-	await expect( linkButton ).toBeEnabled();
-
-	const context = await page.context();
-	const [ popup ] = await Promise.all( [
-		context.waitForEvent( 'page' ),
-		linkButton.dispatchEvent( 'click' ),
-	] );
-
-	// Check that the payment modal gets loaded.
-	await popup.waitForLoadState();
-
-	// Back in the main window, check that Link's "Continue payment" button is visible.
-	const continuePaymentButton = await page.getByRole( 'button', {
-		name: 'Continue payment',
-	} );
-	await expect( continuePaymentButton ).toBeVisible();
+	await assertLinkModalLoads( page, isBlockPage );
 };
 
 test.describe( 'customer can use Link express checkout', () => {

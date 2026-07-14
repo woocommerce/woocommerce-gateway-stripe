@@ -1,0 +1,180 @@
+name: Prepare live branch for Jetpack Beta Builder
+
+on:
+  pull_request
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  changes:
+    name: Check for code changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.detect.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7.0.0
+      - id: detect
+        uses: ./.github/actions/detect-code-changes
+
+  build-and-inform-zip-file:
+    name: "Build and inform the zip file"
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v7.0.0
+
+      - name: "Get current version"
+        id: current-version
+        run: |
+          VERSION=$( grep -oP '(?<=Version: )(.+)' woocommerce-gateway-stripe.php | head -n1 )
+          echo "Current version found: $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: "Set up PHP and Node"
+        uses: ./.github/actions/setup-env
+
+      - name: "Calculate the next version"
+        id: next-version
+        env:
+          RELEASE_VERSION: ${{ steps.current-version.outputs.VERSION }}
+        run: |
+          MAJOR=$( echo "$RELEASE_VERSION" | cut -d. -f1 )
+          MINOR=$( echo "$RELEASE_VERSION" | cut -d. -f2 )
+          NEXT_MINOR=$(( MINOR + 1 ))
+          NEXT_RELEASE_VERSION="${MAJOR}.${NEXT_MINOR}.0"
+          echo "Next release version: $NEXT_RELEASE_VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "NEXT_RELEASE_VERSION=$NEXT_RELEASE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: "Get dev version"
+        id: get-dev-version
+        env:
+          NEXT_RELEASE_VERSION: ${{ steps.next-version.outputs.NEXT_RELEASE_VERSION }}
+          PR_NUMBER: ${{ github.event.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          DEV_SUFFIX_VERSION="dev_PR-${PR_NUMBER}_commit-${PR_HEAD_SHA:0:7}"
+          DEV_VERSION="${NEXT_RELEASE_VERSION}-${DEV_SUFFIX_VERSION}"
+          echo "Dev Version: $DEV_VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "DEV_VERSION=$DEV_VERSION" >> $GITHUB_OUTPUT
+
+      - name: "Bump dev version"
+        env:
+          DEV_VERSION: ${{ steps.get-dev-version.outputs.DEV_VERSION }}
+        run: |
+          # 'Version' header in the plugin entry file.
+          sed -i "s/^ \* Version: .*$/ * Version: ${DEV_VERSION}/" woocommerce-gateway-stripe.php
+
+          # WC_STRIPE_VERSION constant in the plugin entry file.
+          sed -i "s/define( 'WC_STRIPE_VERSION', '.*' )/define( 'WC_STRIPE_VERSION', '${DEV_VERSION}' )/" woocommerce-gateway-stripe.php
+
+          # 'Stable tag' header in readme.txt — Jetpack Beta Builder reads this.
+          sed -i "s/^Stable tag: .*$/Stable tag: ${DEV_VERSION}/" readme.txt
+
+      - name: "Build the plugin"
+        run: npm run build
+
+      - name: "Restructure artifact for Jetpack Beta Builder"
+        run: |
+          # Jetpack Beta Builder expects the dev build's folder slug to be
+          # `<plugin-slug>-dev`, so the dev version installs alongside the
+          # released version on a tester's site without colliding.
+          cd release
+          mv woocommerce-gateway-stripe woocommerce-gateway-stripe-dev
+          zip -q -r "woocommerce-gateway-stripe-dev.zip" "woocommerce-gateway-stripe-dev/"
+          rm -fR "woocommerce-gateway-stripe-dev"
+
+      - name: "Add file size notice"
+        run: |
+          echo ":information_source: Ignore the artifact size mentioned since GitHub calculates the size of the source folder instead of the zip file created." >> $GITHUB_STEP_SUMMARY
+
+      - name: "Upload the zip file as an artifact"
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: plugins # Hard-coded value for Jetpack Beta Builder.
+          path: release
+          # Only need to retain for a day since the Jetpack Beta Builder slurps it up to distribute.
+          retention-days: 1
+
+      - name: "Get plugin data for Jetpack Beta Builder"
+        id: get-plugin-data
+        env:
+          DEV_VERSION: ${{ steps.get-dev-version.outputs.DEV_VERSION }}
+        run: |
+          PLUGIN_DATA=$( jq -c --arg slug "woocommerce-gateway-stripe" --arg ver "$DEV_VERSION" '. + { ($slug): { version: $ver } }' <<<"{}" )
+          echo "plugin-data=$PLUGIN_DATA" >> $GITHUB_OUTPUT
+
+      - name: "Inform Jetpack Beta Builder webhook"
+        # Skip when the secret is unavailable (fork PRs receive empty secrets).
+        # `secrets.X` can't be referenced in `if:` directly — bind to env first.
+        if: steps.get-plugin-data.outputs.plugin-data != '{}' && env.SECRET != ''
+        env:
+          SECRET: ${{ secrets.STRIPE_LIVE_BRANCH_SECRET }}
+          PLUGIN_DATA: ${{ steps.get-plugin-data.outputs.plugin-data }}
+          PR: ${{ github.event.number }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          # On `pull_request` events GITHUB_REF is `refs/pull/<n>/merge`, so
+          # send the PR head ref explicitly — that's what JN's
+          # `branches.woocommerce-gateway-stripe=<ref>` flag will look up.
+          curl -v --fail -L \
+            --url "https://betadownload.jetpack.me/gh-action.php?run_id=$GITHUB_RUN_ID&pr=$PR&commit=$GITHUB_SHA" \
+            --form-string "repo=$GITHUB_REPOSITORY" \
+            --form-string "branch=$PR_HEAD_REF" \
+            --form-string "plugins=$PLUGIN_DATA" \
+            --form-string "secret=$SECRET"
+
+      - name: "Add/update the information as a comment in the PR"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD_REF: ${{ github.head_ref }}
+        run: |
+          BODY="### Test the build
+
+          **If you are a logged-in Automattic staff member:**
+
+          :rocket: [Launch a Jurassic Ninja site with this branch and sample products](https://jurassic.ninja/create/?jetpack-beta&shortlived&nojetpack&woocommerce&woocommerce-import-sample-data&woocommerce-gateway-stripe-dev-tools&branches.woocommerce-gateway-stripe=${PR_HEAD_REF}) :rocket:
+          
+          **Otherwise, use the following manual flow:**
+
+          :turtle: Navigate to [jurassic.ninja](https://jurassic.ninja/) :turtle:
+          * Click on \"See more options\"
+          * Check \"Jetpack Beta\"
+          * Enter \`${PR_HEAD_REF}\` for the WooCommerce Stripe Gateway line
+          * Check \"WooCommerce\"
+          * Check \"Import sample product data\" (it should be immediately below the WooCommerce option)
+          * Enter your email address
+          * Click on \"Launch single site\"
+
+          ---
+
+          Build info:
+
+          - Latest commit: ${PR_HEAD_SHA}
+          - Build time: $(date -u "+%Y-%m-%d %H:%M:%S UTC")
+
+          _Note: the build is updated when a new commit is pushed to this PR._"
+
+          # Find existing build comment to update in place rather than spam the thread.
+          # Scope to github-actions[bot] — PATCH on a human's comment 403s.
+          COMMENT_ID=$( gh pr view ${PR_NUMBER} --json comments --jq '.comments[]? | select(.author.login == "github-actions" and (.body | contains("### Test the build"))) | .url' 2>/dev/null | head -1 | grep -o '[0-9]*$' || echo "" )
+
+          if [ -n "$COMMENT_ID" ]; then
+            gh api repos/${GITHUB_REPOSITORY}/issues/comments/${COMMENT_ID} -X PATCH -f body="${BODY}"
+          else
+            gh api repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments -f body="${BODY}"
+          fi

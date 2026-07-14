@@ -10,7 +10,6 @@ module.exports = {
 		Backbone: false,
 		jQuery: false,
 		wp: false,
-		__PAYMENT_METHOD_FEES_ENABLED: false,
 	},
 	env: {
 		browser: true,
@@ -81,6 +80,7 @@ module.exports = {
 		'import/core-modules': [
 			'@woocommerce/blocks-checkout',
 			'@woocommerce/blocks-registry',
+			'@woocommerce/currency',
 			'@woocommerce/settings',
 			'@wordpress/i18n',
 			'@wordpress/is-shallow-equal',

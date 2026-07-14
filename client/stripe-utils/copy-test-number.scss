@@ -1,0 +1,59 @@
+.wc-stripe-copy-test-number {
+	line-height: inherit;
+	vertical-align: baseline;
+	border-radius: 0;
+	font-weight: normal;
+	display: inline-flex;
+	cursor: pointer;
+	font-size: inherit;
+	align-items: center;
+
+	// !important overrides are needed because this single-class selector has low
+	// specificity and the button renders inside deeply nested checkout DOM where
+	// theme and block styles would otherwise win.
+	border: none !important;
+	background-color: transparent !important;
+	color: inherit !important;
+	font-family: inherit !important;
+	padding: 2px 1px !important;
+	box-shadow: none !important;
+
+	span {
+		margin-right: 4px;
+	}
+
+	i {
+		order: 1;
+		display: block;
+		width: 1.2em;
+		height: 1.2em;
+		mask-image: url('./icons/copy.svg?asset');
+		mask-size: contain;
+		mask-repeat: no-repeat;
+		mask-position: center;
+		background-color: currentColor;
+	}
+
+	&:hover {
+		background-color: transparent;
+		opacity: 0.7;
+	}
+
+	&:active i {
+		transform: scale(0.9);
+	}
+
+	&:focus {
+		outline: none;
+		box-shadow: none !important;
+	}
+
+	&:focus-visible {
+		outline: 2px solid currentColor;
+		outline-offset: 2px;
+	}
+
+	&.state--success i {
+		mask-image: url('./icons/check.svg?asset');
+	}
+}

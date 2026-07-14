@@ -13,6 +13,7 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 
 export * from './normalize';
+export * from './bookings';
 
 /**
  * Get error messages from WooCommerce notice.
@@ -38,7 +39,7 @@ export const getErrorMessageFromNotice = ( notice ) => {
  */
 export const getExpressCheckoutData = ( key ) =>
 	// eslint-disable-next-line camelcase
-	wc_stripe_express_checkout_params[ key ] ?? null;
+	wc_stripe_express_checkout_params?.[ key ] ?? null;
 
 /**
  * Construct Express Checkout AJAX endpoint URL.
@@ -93,6 +94,11 @@ export const displayLoginConfirmation = ( expressPaymentType ) => {
 	}
 };
 
+/**
+ * Returns the default border radius in pixels for Express Checkout buttons.
+ *
+ * @return {number} The default border radius value.
+ */
 export const getDefaultBorderRadius = () => {
 	return 4;
 };
@@ -105,7 +111,7 @@ export const getExpressCheckoutButtonAppearance = () => {
 	return {
 		variables: {
 			borderRadius: `${
-				getExpressCheckoutData( 'button' )?.radius ||
+				getExpressCheckoutData( 'button' )?.radius ??
 				getDefaultBorderRadius()
 			}px`,
 			spacingUnit: '6px',
@@ -115,8 +121,10 @@ export const getExpressCheckoutButtonAppearance = () => {
 
 /**
  * Returns the style settings for the Express Checkout buttons.
+ *
+ * @param {string} [expressPaymentType] The express payment method type.
  */
-export const getExpressCheckoutButtonStyleSettings = () => {
+export const getExpressCheckoutButtonStyleSettings = ( expressPaymentType ) => {
 	const buttonSettings = getExpressCheckoutData( 'button' );
 
 	// Maps the WC Stripe theme from settings to the button theme.
@@ -144,6 +152,21 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 			? 'plain'
 			: buttonSettings?.type ?? 'buy';
 
+	const getButtonHeight = () => {
+		// Link and Amazon Pay each carry their own size setting; every other
+		// method uses the shared Express Checkout (Apple/Google Pay) height.
+		if ( expressPaymentType === EXPRESS_PAYMENT_METHOD_SETTING_LINK ) {
+			return getExpressCheckoutData( 'link_button_height' ) ?? '48';
+		}
+		if (
+			expressPaymentType === EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY
+		) {
+			return getExpressCheckoutData( 'amazon_pay_button_height' ) ?? '48';
+		}
+		return buttonSettings?.height ?? '48';
+	};
+	const height = parseInt( getButtonHeight(), 10 );
+
 	return {
 		paymentMethods: {
 			amazonPay: 'auto',
@@ -168,10 +191,7 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 			applePay: buttonMethodType,
 		},
 		// Allowed height must be 40px to 55px.
-		buttonHeight: Math.min(
-			Math.max( parseInt( buttonSettings?.height ?? '48', 10 ), 40 ),
-			55
-		),
+		buttonHeight: Math.min( Math.max( height, 40 ), 55 ),
 	};
 };
 
@@ -198,6 +218,13 @@ export const getCustomerNote = () => {
 	return '';
 };
 
+/**
+ * Collects required field values from the WooCommerce Blocks checkout form and
+ * merges them into the provided data object.
+ *
+ * @param {Object} data The existing form data to augment.
+ * @return {Object} The data object enriched with required field values.
+ */
 const getRequiredFieldDataFromBlockCheckoutForm = ( data ) => {
 	const checkoutForm = document.querySelector( '.wc-block-checkout' );
 	// Return if cart page.
@@ -231,6 +258,13 @@ const getRequiredFieldDataFromBlockCheckoutForm = ( data ) => {
 	return data;
 };
 
+/**
+ * Collects required field values from the WooCommerce shortcode checkout form and
+ * merges them into the provided data object.
+ *
+ * @param {Object} data The existing form data to augment.
+ * @return {Object} The data object enriched with required field values.
+ */
 const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
 	const checkoutForm = document.querySelector( 'form.checkout' );
 	// Return if cart page.
@@ -285,6 +319,13 @@ const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
 	return data;
 };
 
+/**
+ * Collects required field values from the checkout form (Blocks or shortcode)
+ * and merges them into the provided data object.
+ *
+ * @param {Object} data The existing form data to augment.
+ * @return {Object} The data object enriched with required field values.
+ */
 export const getRequiredFieldDataFromCheckoutForm = ( data ) => {
 	return getExpressCheckoutData( 'has_block' )
 		? getRequiredFieldDataFromBlockCheckoutForm( data )
@@ -389,12 +430,18 @@ export const expressCheckoutNoticeDelay = async () => {
 /**
  * Determine if the express payment type should use manual payment method creation.
  *
- * @param {string} expressPaymentType The express payment type, e.g 'googlePay' or 'google_pay'
+ * @param {string}  expressPaymentType The express payment type, e.g 'googlePay' or 'google_pay'
+ * @param {boolean} hasFreeTrial       Whether the product being purchased has a free trial.
  * @return {boolean} True if manual payment method creation should be used, false otherwise.
  */
-export const isManualPaymentMethodCreation = ( expressPaymentType ) => {
-	return ! [
-		EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
-		PAYMENT_METHOD_AMAZON_PAY,
-	].includes( expressPaymentType );
+export const isManualPaymentMethodCreation = (
+	expressPaymentType,
+	hasFreeTrial
+) => {
+	return (
+		! [
+			EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+			PAYMENT_METHOD_AMAZON_PAY,
+		].includes( expressPaymentType ) || hasFreeTrial
+	);
 };

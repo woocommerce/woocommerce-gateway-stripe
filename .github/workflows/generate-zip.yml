@@ -9,10 +9,10 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7.0.0
 
             - name: Setup node version
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
                   node-version-file: '.nvmrc'
 
@@ -20,7 +20,7 @@ jobs:
               run: npm run build && rm -rf ./woocommerce-gateway-stripe && unzip woocommerce-gateway-stripe.zip -d ./woocommerce-gateway-stripe
 
             - name: Use the Upload Artifact GitHub Action
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: woocommerce-gateway-stripe
                   path: woocommerce-gateway-stripe/

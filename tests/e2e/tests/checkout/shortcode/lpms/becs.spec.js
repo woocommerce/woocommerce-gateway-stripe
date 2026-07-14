@@ -10,6 +10,7 @@ const {
 	setupShortcodeCheckout,
 	setupBECSCheckout,
 	fillBECSDetails,
+	waitForOrderReceivedPage,
 } = payments;
 
 test.describe( 'BECS payment tests @shortcode @becs', () => {
@@ -40,10 +41,7 @@ test.describe( 'BECS payment tests @shortcode @becs', () => {
 		await setupBECSCheckout( page, 'shortcode' );
 		await fillBECSDetails( page, 'shortcode' );
 		await clickPlaceOrder( page );
-		await page.waitForURL( '**/checkout/order-received/**' );
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
+		await waitForOrderReceivedPage( page );
 	} );
 
 	test( 'customer can save and reuse BECS payment method @smoke', async ( {
@@ -58,16 +56,11 @@ test.describe( 'BECS payment tests @shortcode @becs', () => {
 			);
 			await setupBECSCheckout( page, 'shortcode' );
 			await page
-				.getByRole( 'checkbox', {
-					name: 'Save payment information to',
-				} )
-				.click();
+				.locator( '#wc-stripe_au_becs_debit-new-payment-method' )
+				.check();
 			await fillBECSDetails( page, 'shortcode' );
 			await clickPlaceOrder( page );
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
+			await waitForOrderReceivedPage( page );
 		} );
 
 		// Second order - Use saved payment method.
@@ -89,10 +82,7 @@ test.describe( 'BECS payment tests @shortcode @becs', () => {
 				.first()
 				.click();
 			await clickPlaceOrder( page );
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
+			await waitForOrderReceivedPage( page );
 		} );
 	} );
 

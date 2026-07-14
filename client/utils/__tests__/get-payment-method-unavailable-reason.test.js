@@ -1,5 +1,7 @@
 import {
 	PAYMENT_METHOD_AFFIRM,
+	PAYMENT_METHOD_AMAZON_PAY,
+	PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_KLARNA,
 	PAYMENT_METHOD_SEPA,
@@ -17,6 +19,8 @@ describe( 'getPaymentMethodUnavailableReason', () => {
 		global.wc_stripe_settings_params = {
 			has_klarna_gateway_plugin: false,
 			has_affirm_gateway_plugin: false,
+			taxes_based_on_billing: false,
+			is_card_method_enabled: true,
 		};
 		getPaymentMethodCurrencies.mockImplementation( ( paymentMethodId ) => {
 			if ( paymentMethodId === PAYMENT_METHOD_CARD ) {
@@ -29,30 +33,10 @@ describe( 'getPaymentMethodUnavailableReason', () => {
 		} );
 	} );
 
-	it( 'should return null if UPE is disabled', () => {
-		expect(
-			getPaymentMethodUnavailableReason( {
-				paymentMethodId: PAYMENT_METHOD_CARD,
-				isUpeEnabled: false,
-				storeCurrencyCode: 'USD',
-			} )
-		).toBeNull();
-	} );
-
 	it( 'should return null if the store currency is not set', () => {
 		expect(
 			getPaymentMethodUnavailableReason( {
 				paymentMethodId: PAYMENT_METHOD_CARD,
-				storeCurrencyCode: null,
-			} )
-		).toBeNull();
-	} );
-
-	it( 'should return null when UPE is disabled and the store currency is not set', () => {
-		expect(
-			getPaymentMethodUnavailableReason( {
-				paymentMethodId: PAYMENT_METHOD_CARD,
-				isUpeEnabled: false,
 				storeCurrencyCode: null,
 			} )
 		).toBeNull();
@@ -95,13 +79,24 @@ describe( 'getPaymentMethodUnavailableReason', () => {
 		).toBe( PAYMENT_METHOD_UNAVAILABLE_REASONS.OFFICIAL_PLUGIN_CONFLICT );
 	} );
 
-	it( 'should return UNSUPPORTED_CURRENCY when the payment method is unavailable due to an unsupported currency - EUR needed; store in USD', () => {
+	it( 'should return UNSUPPORTED_CURRENCY when the payment method is unavailable due to an unsupported currency - EUR needed; store in USD and Adaptive Pricing is not supported', () => {
 		expect(
 			getPaymentMethodUnavailableReason( {
 				paymentMethodId: PAYMENT_METHOD_SEPA,
 				storeCurrencyCode: 'USD',
+				isAdaptivePricingSupported: false,
 			} )
 		).toBe( PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY );
+	} );
+
+	it( 'should return null for unsupported currency when Adaptive Pricing is supported', () => {
+		expect(
+			getPaymentMethodUnavailableReason( {
+				paymentMethodId: PAYMENT_METHOD_SEPA,
+				storeCurrencyCode: 'USD',
+				isAdaptivePricingSupported: true,
+			} )
+		).toBeNull();
 	} );
 
 	it( 'should return UNSUPPORTED_CURRENCY when the payment method is unavailable due to an unsupported currency - USD needed; store in EUR', () => {
@@ -111,5 +106,27 @@ describe( 'getPaymentMethodUnavailableReason', () => {
 				storeCurrencyCode: 'EUR',
 			} )
 		).toBe( PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY );
+	} );
+
+	it( 'should return TAX_BASED_ON_BILLING_ADDRESS when Amazon Pay is unavailable due to taxes being based on billing address', () => {
+		global.wc_stripe_settings_params.taxes_based_on_billing = true;
+		expect(
+			getPaymentMethodUnavailableReason( {
+				paymentMethodId: PAYMENT_METHOD_AMAZON_PAY,
+				storeCurrencyCode: 'USD',
+			} )
+		).toBe(
+			PAYMENT_METHOD_UNAVAILABLE_REASONS.TAX_BASED_ON_BILLING_ADDRESS
+		);
+	} );
+
+	it( 'should return REQUIRES_CARD_METHOD when ECE are unavailable due to the card method being disabled', () => {
+		global.wc_stripe_settings_params.is_card_method_enabled = false;
+		expect(
+			getPaymentMethodUnavailableReason( {
+				paymentMethodId: PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY,
+				storeCurrencyCode: 'USD',
+			} )
+		).toBe( PAYMENT_METHOD_UNAVAILABLE_REASONS.REQUIRES_CARD_METHOD );
 	} );
 } );

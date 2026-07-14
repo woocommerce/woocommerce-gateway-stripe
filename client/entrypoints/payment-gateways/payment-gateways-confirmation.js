@@ -1,6 +1,9 @@
-/* global woocommerce_admin */
+/* global woocommerce_admin, wcStripeExitSurveyParams */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import DisableConfirmationModal from './disable-confirmation-modal';
+import ExitSurveyModal, {
+	isCooldownActive,
+} from 'wcstripe/components/exit-survey-modal';
 import { useSettings } from 'data';
 
 const PaymentGatewaysConfirmation = () => {
@@ -10,15 +13,37 @@ const PaymentGatewaysConfirmation = () => {
 
 	const [ isConfirmationModalVisible, setIsConfirmationModalVisible ] =
 		useState( false );
+	const [ showExitSurvey, setShowExitSurvey ] = useState( false );
 	const hasUserConfirmedDeactivation = useRef( false );
 
-	const handleDialogConfirmation = useCallback( () => {
-		setIsConfirmationModalVisible( false );
+	const proceedWithDisable = useCallback( () => {
 		hasUserConfirmedDeactivation.current = true;
 		jQuery(
 			'tr[data-gateway_id="stripe"] .wc-payment-gateway-method-toggle-enabled'
 		).trigger( 'click' );
-	}, [ setIsConfirmationModalVisible ] );
+	}, [] );
+
+	const handleDialogConfirmation = useCallback( () => {
+		setIsConfirmationModalVisible( false );
+
+		// Show exit survey if cooldown is not active.
+		if (
+			typeof wcStripeExitSurveyParams !== 'undefined' &&
+			! isCooldownActive(
+				wcStripeExitSurveyParams.exit_survey_last_shown
+			)
+		) {
+			setShowExitSurvey( true );
+			return;
+		}
+
+		proceedWithDisable();
+	}, [ proceedWithDisable ] );
+
+	const handleExitSurveyClose = useCallback( () => {
+		setShowExitSurvey( false );
+		proceedWithDisable();
+	}, [ proceedWithDisable ] );
 
 	const handleDialogDismissal = useCallback( () => {
 		setIsConfirmationModalVisible( false );
@@ -79,6 +104,16 @@ const PaymentGatewaysConfirmation = () => {
 			jQuery( document ).off( 'ajaxSend', handler );
 		};
 	}, [] );
+
+	if ( showExitSurvey ) {
+		return (
+			<ExitSurveyModal
+				trigger="gateway_toggle_disable"
+				surveyParams={ wcStripeExitSurveyParams }
+				onRequestClose={ handleExitSurveyClose }
+			/>
+		);
+	}
 
 	if ( ! isConfirmationModalVisible ) {
 		return null;

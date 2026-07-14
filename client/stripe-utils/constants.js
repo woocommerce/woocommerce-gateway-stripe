@@ -3,7 +3,6 @@
  */
 export const PAYMENT_METHOD_BLIK = 'blik';
 export const PAYMENT_METHOD_CARD = 'card';
-export const PAYMENT_METHOD_GIROPAY = 'giropay';
 export const PAYMENT_METHOD_EPS = 'eps';
 export const PAYMENT_METHOD_IDEAL = 'ideal';
 export const PAYMENT_METHOD_P24 = 'p24';
@@ -27,6 +26,7 @@ export const PAYMENT_METHOD_ACH = 'us_bank_account';
 export const PAYMENT_METHOD_ACSS = 'acss_debit';
 export const PAYMENT_METHOD_BACS = 'bacs_debit';
 export const PAYMENT_METHOD_BECS = 'au_becs_debit';
+export const PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY = 'apple_pay_google_pay';
 
 /**
  * Payment method names constants with the `stripe` prefix
@@ -34,7 +34,6 @@ export const PAYMENT_METHOD_BECS = 'au_becs_debit';
 export const PAYMENT_METHOD_STRIPE_CARD = 'stripe';
 export const PAYMENT_METHOD_STRIPE_ACH = 'stripe_us_bank_account';
 export const PAYMENT_METHOD_STRIPE_BLIK = 'stripe_blik';
-export const PAYMENT_METHOD_STRIPE_GIROPAY = 'stripe_giropay';
 export const PAYMENT_METHOD_STRIPE_EPS = 'stripe_eps';
 export const PAYMENT_METHOD_STRIPE_IDEAL = 'stripe_ideal';
 export const PAYMENT_METHOD_STRIPE_P24 = 'stripe_p24';
@@ -61,7 +60,6 @@ export function getPaymentMethodsConstants() {
 		card: PAYMENT_METHOD_STRIPE_CARD,
 		us_bank_account: PAYMENT_METHOD_STRIPE_ACH,
 		au_becs_debit: PAYMENT_METHOD_STRIPE_BECS,
-		giropay: PAYMENT_METHOD_STRIPE_GIROPAY,
 		eps: PAYMENT_METHOD_STRIPE_EPS,
 		ideal: PAYMENT_METHOD_STRIPE_IDEAL,
 		p24: PAYMENT_METHOD_STRIPE_P24,
@@ -143,6 +141,12 @@ export const EXPRESS_PAYMENT_METHODS = [
 ];
 
 /**
+ * This constant defines the max number of shipping options that can be handled by the Express Checkout Element (ECE).
+ * More than 9 options will prevent the UI from behaving correctly and cause an IntegrationError.
+ */
+export const SHIPPING_RATES_UPPER_LIMIT_COUNT = 9;
+
+/**
  * List of payment methods that are not recurring
  */
 export const NON_REUSABLE_METHODS = [
@@ -152,8 +156,6 @@ export const NON_REUSABLE_METHODS = [
 	PAYMENT_METHOD_BECS,
 	PAYMENT_METHOD_BOLETO,
 	PAYMENT_METHOD_EPS,
-	PAYMENT_METHOD_GIROPAY,
-	PAYMENT_METHOD_KLARNA,
 	PAYMENT_METHOD_MULTIBANCO,
 	PAYMENT_METHOD_P24,
 	PAYMENT_METHOD_OXXO,
@@ -172,6 +174,8 @@ export const BNPL_METHODS = [
 export const PAYMENT_METHOD_UNAVAILABLE_REASONS = {
 	UNSUPPORTED_CURRENCY: 'unsupported_currency',
 	OFFICIAL_PLUGIN_CONFLICT: 'official_plugin_conflict',
+	TAX_BASED_ON_BILLING_ADDRESS: 'tax_based_on_billing_address',
+	REQUIRES_CARD_METHOD: 'requires_card_method',
 };
 
 /**
@@ -180,3 +184,15 @@ export const PAYMENT_METHOD_UNAVAILABLE_REASONS = {
  * @type {string}
  */
 export const OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT = 'accordion';
+
+/**
+ * Stripe.js options to hide the Stripe testing assistant on newer versions of Stripe.js.
+ * This may be overridden from the server in when in test mode.
+ */
+export const STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT = {
+	developerTools: {
+		assistant: {
+			enabled: false,
+		},
+	},
+};

@@ -3,7 +3,6 @@ import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GeneralSettingsSection from '..';
-import UpeToggleContext from '../../upe-toggle/context';
 import {
 	useIsStripeEnabled,
 	useEnabledPaymentMethodIds,
@@ -12,6 +11,7 @@ import {
 	useIsOCEnabled,
 	useGetOrderedPaymentMethodIds,
 	useIsPMCEnabled,
+	useIsAdaptivePricingEnabled,
 } from 'wcstripe/data';
 import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavailable-reason';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
@@ -22,7 +22,6 @@ import {
 	PAYMENT_METHOD_EPS,
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_SEPA,
-	PAYMENT_METHOD_SOFORT,
 	PAYMENT_METHOD_UNAVAILABLE_REASONS,
 } from 'wcstripe/stripe-utils/constants';
 
@@ -36,6 +35,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useIsOCEnabled: jest.fn(),
 	useGetOrderedPaymentMethodIds: jest.fn(),
 	useIsPMCEnabled: jest.fn(),
+	useIsAdaptivePricingEnabled: jest.fn(),
 } ) );
 jest.mock( 'utils/get-payment-method-unavailable-reason' );
 jest.mock( 'wcstripe/data/account', () => ( {
@@ -78,7 +78,6 @@ describe( 'GeneralSettingsSection', () => {
 
 	beforeEach( () => {
 		mockCurrencyCode( 'EUR' );
-		global.wc_stripe_settings_params = { are_apms_deprecated: false };
 		useGetCapabilities.mockReturnValue( {
 			card_payments: 'active',
 			alipay_payments: 'active',
@@ -99,6 +98,7 @@ describe( 'GeneralSettingsSection', () => {
 		} );
 		useIsStripeEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useIsAdaptivePricingEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
 			orderedPaymentMethodIds: [
 				PAYMENT_METHOD_CARD,
@@ -121,11 +121,7 @@ describe( 'GeneralSettingsSection', () => {
 			refreshAccount: refreshAccountMock,
 			data: { testmode: false },
 		} );
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect( refreshAccountMock ).not.toHaveBeenCalled();
 
@@ -152,11 +148,7 @@ describe( 'GeneralSettingsSection', () => {
 	} );
 
 	it( 'should not render the opt-in banner if UPE is enabled', () => {
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByTestId( 'opt-in-banner' )
@@ -168,7 +160,7 @@ describe( 'GeneralSettingsSection', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should allow to enable a payment method when UPE is enabled', async () => {
+	it( 'should allow to enable a payment method', async () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
@@ -189,11 +181,7 @@ describe( 'GeneralSettingsSection', () => {
 			updateEnabledMethodsMock,
 		] );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		const alipayCheckbox = screen.getByRole( 'checkbox', {
 			name: /Alipay/,
@@ -210,49 +198,7 @@ describe( 'GeneralSettingsSection', () => {
 		] );
 	} );
 
-	it( 'should allow to enable a payment method when UPE is disabled', async () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_CARD,
-			PAYMENT_METHOD_ALIPAY,
-			PAYMENT_METHOD_SEPA,
-		] );
-		const updateEnabledMethodsMock = jest.fn();
-		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_CARD ],
-			updateEnabledMethodsMock,
-		] );
-		useGetOrderedPaymentMethodIds.mockReturnValue( {
-			orderedPaymentMethodIds: [
-				PAYMENT_METHOD_CARD,
-				PAYMENT_METHOD_ALIPAY,
-				PAYMENT_METHOD_SEPA,
-			],
-			setOrderedPaymentMethodIds: jest.fn(),
-			saveOrderedPaymentMethodIds: jest.fn(),
-		} );
-
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
-
-		const alipayCheckbox = screen.getByRole( 'checkbox', {
-			name: /Alipay/,
-		} );
-
-		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
-		expect( alipayCheckbox ).not.toBeChecked();
-
-		await userEvent.click( alipayCheckbox );
-
-		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [
-			PAYMENT_METHOD_CARD,
-			PAYMENT_METHOD_ALIPAY,
-		] );
-	} );
-
-	it( 'should show modal to disable a payment method', async () => {
+	it( 'should immediately disable a payment method on uncheck, without a confirmation dialog', async () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
@@ -264,96 +210,23 @@ describe( 'GeneralSettingsSection', () => {
 			updateEnabledMethodsMock,
 		] );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		const cardCheckbox = screen.getByRole( 'checkbox', {
 			name: /Credit card/,
 		} );
 
 		expect( cardCheckbox ).toBeChecked();
+		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
+
+		await userEvent.click( cardCheckbox );
+
+		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [] );
 		expect(
 			screen.queryByRole( 'heading', {
 				name: 'Remove Credit card / debit card from checkout',
 			} )
 		).not.toBeInTheDocument();
-
-		await userEvent.click( cardCheckbox );
-
-		expect(
-			screen.getByRole( 'heading', {
-				name: 'Remove Credit card / debit card from checkout',
-			} )
-		).toBeInTheDocument();
-	} );
-
-	it( 'should not allow to disable a payment method when canceled via modal', async () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_CARD,
-			PAYMENT_METHOD_ALIPAY,
-			PAYMENT_METHOD_SEPA,
-		] );
-		const updateEnabledMethodsMock = jest.fn();
-		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_CARD ],
-			updateEnabledMethodsMock,
-		] );
-
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
-
-		const cardCheckbox = screen.getByRole( 'checkbox', {
-			name: /Credit card/,
-		} );
-
-		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
-		expect( cardCheckbox ).toBeChecked();
-
-		await userEvent.click( cardCheckbox );
-		await userEvent.click(
-			screen.getByRole( 'button', { name: 'Cancel' } )
-		);
-
-		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
-	} );
-
-	it( 'should allow to disable a payment method when confirmed via modal', async () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_CARD,
-			PAYMENT_METHOD_ALIPAY,
-			PAYMENT_METHOD_SEPA,
-		] );
-		const updateEnabledMethodsMock = jest.fn();
-		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_CARD ],
-			updateEnabledMethodsMock,
-		] );
-
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
-
-		const cardCheckbox = screen.getByRole( 'checkbox', {
-			name: /Credit card/,
-		} );
-
-		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
-		expect( cardCheckbox ).toBeChecked();
-
-		await userEvent.click( cardCheckbox );
-		await userEvent.click(
-			screen.getByRole( 'button', { name: 'Remove' } )
-		);
-
-		expect( updateEnabledMethodsMock ).toHaveBeenCalled();
 	} );
 
 	it( 'does not display the payment method checkbox when currency is not supported', () => {
@@ -362,11 +235,7 @@ describe( 'GeneralSettingsSection', () => {
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
 		] );
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByRole( 'checkbox', {
@@ -386,11 +255,7 @@ describe( 'GeneralSettingsSection', () => {
 			PAYMENT_METHOD_ALIPAY,
 		] );
 		useManualCapture.mockReturnValue( [ true ] );
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByRole( 'checkbox', {
@@ -418,11 +283,7 @@ describe( 'GeneralSettingsSection', () => {
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByRole( 'checkbox', {
@@ -445,11 +306,7 @@ describe( 'GeneralSettingsSection', () => {
 			card_payments: 'active',
 		} );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByRole( 'checkbox', {
@@ -466,18 +323,14 @@ describe( 'GeneralSettingsSection', () => {
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
 			PAYMENT_METHOD_SEPA,
-			PAYMENT_METHOD_SOFORT,
 			PAYMENT_METHOD_EPS,
+			PAYMENT_METHOD_AFFIRM,
 		] );
 		useEnabledPaymentMethodIds.mockReturnValue( [
 			[ PAYMENT_METHOD_CARD ],
 		] );
 		useIsPMCEnabled.mockReturnValue( false );
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByTestId( 'unavailable-payment-methods-list' )
@@ -488,26 +341,9 @@ describe( 'GeneralSettingsSection', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should not render the list of missing payment methods if UPE is disabled', () => {
-		useIsPMCEnabled.mockReturnValue( false );
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
-
-		expect(
-			screen.queryByTestId( 'unavailable-payment-methods-list' )
-		).not.toBeInTheDocument();
-	} );
-
 	it( 'should not render the list of missing payment methods if PMC is enabled', () => {
 		useIsPMCEnabled.mockReturnValue( true );
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByTestId( 'unavailable-payment-methods-list' )
@@ -515,26 +351,10 @@ describe( 'GeneralSettingsSection', () => {
 	} );
 
 	it( 'should not render "early access" pill if UPE is disabled', () => {
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByTestId( 'upe-early-access-pill' )
-		).not.toBeInTheDocument();
-	} );
-
-	it( 'should not render the expandable menu if UPE is disabled', () => {
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
-
-		expect(
-			screen.queryByTestId( 'upe-expandable-menu' )
 		).not.toBeInTheDocument();
 	} );
 
@@ -563,11 +383,7 @@ describe( 'GeneralSettingsSection', () => {
 			}
 		);
 		mockCurrencyCode( 'EUR' );
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByRole( 'checkbox', {
@@ -586,11 +402,7 @@ describe( 'GeneralSettingsSection', () => {
 
 	it( 'should enable the payment method checkbox and not show the requires currency notice when currency is supported', () => {
 		mockCurrencyCode( 'USD' );
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByRole( 'checkbox', {
@@ -634,11 +446,7 @@ describe( 'GeneralSettingsSection', () => {
 		);
 		mockCurrencyCode( 'EUR' );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		const cardElement = screen.getByRole( 'checkbox', {
 			name: /Credit card/,
@@ -678,5 +486,44 @@ describe( 'GeneralSettingsSection', () => {
 		expect( affirmElement.compareDocumentPosition( alipayElement ) ).toBe(
 			Node.DOCUMENT_POSITION_FOLLOWING
 		);
+	} );
+
+	it( 'should enable payment method checkbox when store currency does not support the method but Optimized Checkout and Adaptive Pricing are enabled', () => {
+		const actual = jest.requireActual(
+			'../../../utils/get-payment-method-unavailable-reason'
+		).default;
+		getPaymentMethodUnavailableReason.mockImplementation( ( ctx ) =>
+			actual( ctx )
+		);
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+		useIsAdaptivePricingEnabled.mockReturnValue( [ true, jest.fn() ] );
+		mockCurrencyCode( 'USD' );
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_CARD ],
+			jest.fn(),
+		] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_SEPA,
+		] );
+		useGetOrderedPaymentMethodIds.mockReturnValue( {
+			orderedPaymentMethodIds: [
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_SEPA,
+			],
+			setOrderedPaymentMethodIds: jest.fn(),
+			saveOrderedPaymentMethodIds: jest.fn(),
+		} );
+
+		render( <GeneralSettingsSection /> );
+
+		expect(
+			screen.getByRole( 'checkbox', {
+				name: 'Direct debit payment',
+			} )
+		).toBeEnabled();
+		expect(
+			screen.queryByText( 'Requires currency' )
+		).not.toBeInTheDocument();
 	} );
 } );

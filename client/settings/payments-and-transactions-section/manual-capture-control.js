@@ -1,12 +1,11 @@
 import styled from '@emotion/styled';
-import interpolateComponents from 'interpolate-components';
-import React, { useContext, useState } from 'react';
+import interpolateComponents from '@automattic/interpolate-components';
+import React, { useState } from 'react';
 import { Icon, info } from '@wordpress/icons';
 import { __ } from '@wordpress/i18n';
 import { CheckboxControl, Button } from '@wordpress/components';
 import { useManualCapture } from 'wcstripe/data';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 const AlertIcon = styled( Icon )`
 	fill: #afafaf;
@@ -38,14 +37,20 @@ const WarningListElement = ( { children } ) => (
 const ManualCaptureControl = () => {
 	const [ isManualCaptureEnabled, setIsManualCaptureEnabled ] =
 		useManualCapture();
-	const { isUpeEnabled } = useContext( UpeToggleContext );
 
 	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] =
 		useState( false );
 
+	// Agentic Commerce capture is configured in the Stripe dashboard, not by this
+	// plugin setting, so only flag the divergence to merchants who have actually
+	// enabled Agentic Commerce — gate on the merchant toggle, not the feature flag.
+	const isAgenticCommerceEnabled =
+		!! window.wc_stripe_settings_params
+			?.is_agentic_commerce_merchant_enabled;
+
 	const handleCheckboxToggle = ( isChecked ) => {
 		// toggling from "manual" capture to "automatic" capture - no need to show the modal.
-		if ( ! isChecked || ! isUpeEnabled ) {
+		if ( ! isChecked ) {
 			setIsManualCaptureEnabled( isChecked );
 			return;
 		}
@@ -123,6 +128,14 @@ const ManualCaptureControl = () => {
 								'woocommerce-gateway-stripe'
 							) }
 						</WarningListElement>
+						{ isAgenticCommerceEnabled && (
+							<WarningListElement>
+								{ __(
+									'Agentic Commerce purchases follow the capture setting in your Stripe agentic commerce dashboard, not this option.',
+									'woocommerce-gateway-stripe'
+								) }
+							</WarningListElement>
+						) }
 					</WarningList>
 				</ConfirmationModal>
 			) }

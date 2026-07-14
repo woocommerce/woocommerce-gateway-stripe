@@ -1,3 +1,4 @@
+import { __ } from '@wordpress/i18n';
 import { getDeferredIntentCreationUPEFields } from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-elements';
 import { SavedTokenHandler } from 'wcstripe/blocks/upe/saved-token-handler';
 import {
@@ -13,6 +14,7 @@ import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import Icons from 'wcstripe/payment-method-icons';
 import { initializeCheckoutIcons } from 'wcstripe/blocks/upe/checkout-icons';
 import WCStripeAPI from 'wcstripe/api';
+import 'wcstripe/stripe-utils/copy-test-number';
 
 // Initialize checkout icons
 const isAdmin = getBlocksConfiguration()?.isAdmin ?? false;
@@ -27,7 +29,8 @@ const upeMethods = getPaymentMethodsConstants();
  * @return {JSX.Element|null} The icon element.
  */
 const getUpeElementIcon = ( paymentMethod ) => {
-	if ( getBlocksConfiguration()?.isOCEnabled ) {
+	const stripeServerData = getBlocksConfiguration();
+	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 		return null;
 	}
 
@@ -55,6 +58,9 @@ const getUpeElementIcon = ( paymentMethod ) => {
  */
 export const upeElement = ( paymentMethod, api, upeConfig ) => {
 	const Icon = getUpeElementIcon( paymentMethod );
+	const testingInstructions = getBlocksConfiguration()?.testMode
+		? upeConfig.testingInstructions
+		: '';
 	const supports = {
 		// Use `false` as fallback values in case server provided configuration is missing.
 		showSavedCards: getBlocksConfiguration()?.showSavedCards ?? false,
@@ -72,7 +78,7 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 			upeMethods,
 			api,
 			upeConfig.description,
-			upeConfig.testingInstructions,
+			testingInstructions,
 			upeConfig.showSaveOption ?? false,
 			upeConfig.supportsDeferredIntent
 		),
@@ -81,7 +87,7 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 			upeMethods,
 			api,
 			upeConfig.description,
-			upeConfig.testingInstructions,
+			testingInstructions,
 			upeConfig.showSaveOption ?? false,
 			upeConfig.supportsDeferredIntent
 		),
@@ -110,9 +116,10 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 					( method ) => ! EXPRESS_PAYMENT_METHODS.includes( method )
 				);
 
+			const stripeServerData = getBlocksConfiguration();
 			if (
 				paymentMethod === PAYMENT_METHOD_CARD &&
-				getBlocksConfiguration()?.isOCEnabled &&
+				stripeServerData?.shouldShowOptimizedCheckout &&
 				nonExpressPaymentMethods.length === 0
 			) {
 				return false;
@@ -125,6 +132,11 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 			<>
 				<span>
 					{ upeConfig.title }
+					{ getBlocksConfiguration()?.testMode && (
+						<span className="wc-stripe-test-mode-badge">
+							{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
+						</span>
+					) }
 					{ Icon && <Icon alt={ upeConfig.title } /> }
 				</span>
 			</>

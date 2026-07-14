@@ -3,26 +3,34 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ManualCaptureControl from '../manual-capture-control';
 import { useManualCapture } from 'wcstripe/data';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useManualCapture: jest.fn(),
 } ) );
 
+const agenticNote =
+	/Agentic Commerce purchases follow the capture setting in your Stripe agentic commerce dashboard, not this option\./;
+
 describe( 'ManualCaptureControl', () => {
 	beforeEach( () => {
 		useManualCapture.mockReturnValue( [ false, () => null ] );
+		global.wc_stripe_settings_params = {
+			is_agentic_commerce_merchant_enabled: false,
+		};
 	} );
 
-	it( 'should not render the confirmation modal when UPE is disabled', async () => {
-		const manualCaptureToggleMock = jest.fn();
-		useManualCapture.mockReturnValue( [ false, manualCaptureToggleMock ] );
+	afterEach( () => {
+		delete global.wc_stripe_settings_params;
+	} );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<ManualCaptureControl />
-			</UpeToggleContext.Provider>
-		);
+	it( 'notes in the confirmation modal that agentic purchases follow the Stripe dashboard capture setting when agentic commerce is enabled', async () => {
+		global.wc_stripe_settings_params.is_agentic_commerce_merchant_enabled = true;
+		useManualCapture.mockReturnValue( [ false, jest.fn() ] );
+
+		render( <ManualCaptureControl /> );
+
+		// The note is scoped to the enable-time modal, so it isn't visible up front.
+		expect( screen.queryByText( agenticNote ) ).not.toBeInTheDocument();
 
 		await userEvent.click(
 			screen.getByLabelText(
@@ -30,21 +38,32 @@ describe( 'ManualCaptureControl', () => {
 			)
 		);
 
-		expect( manualCaptureToggleMock ).toHaveBeenCalledWith( true );
-		expect(
-			screen.queryByText( 'Enable manual capture' )
-		).not.toBeInTheDocument();
+		expect( screen.getByText( agenticNote ) ).toBeInTheDocument();
 	} );
 
-	it( 'should render the confirmation modal when UPE is enabled', async () => {
+	it( 'omits the agentic capture note when agentic commerce is disabled', async () => {
+		global.wc_stripe_settings_params.is_agentic_commerce_merchant_enabled = false;
+		useManualCapture.mockReturnValue( [ false, jest.fn() ] );
+
+		render( <ManualCaptureControl /> );
+
+		await userEvent.click(
+			screen.getByLabelText(
+				'Issue an authorization on checkout, and capture later'
+			)
+		);
+
+		expect(
+			screen.queryByText( 'Enable manual capture' )
+		).toBeInTheDocument();
+		expect( screen.queryByText( agenticNote ) ).not.toBeInTheDocument();
+	} );
+
+	it( 'should render the confirmation modal', async () => {
 		const manualCaptureToggleMock = jest.fn();
 		useManualCapture.mockReturnValue( [ false, manualCaptureToggleMock ] );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<ManualCaptureControl />
-			</UpeToggleContext.Provider>
-		);
+		render( <ManualCaptureControl /> );
 
 		await userEvent.click(
 			screen.getByLabelText(
@@ -65,15 +84,11 @@ describe( 'ManualCaptureControl', () => {
 		expect( manualCaptureToggleMock ).not.toHaveBeenCalled();
 	} );
 
-	it( 'should toggle the flag when UPE is enabled', async () => {
+	it( 'should toggle the manual capture setting', async () => {
 		const manualCaptureToggleMock = jest.fn();
 		useManualCapture.mockReturnValue( [ false, manualCaptureToggleMock ] );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<ManualCaptureControl />
-			</UpeToggleContext.Provider>
-		);
+		render( <ManualCaptureControl /> );
 
 		await userEvent.click(
 			screen.getByLabelText(
@@ -98,11 +113,7 @@ describe( 'ManualCaptureControl', () => {
 		const manualCaptureToggleMock = jest.fn();
 		useManualCapture.mockReturnValue( [ true, manualCaptureToggleMock ] );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<ManualCaptureControl />
-			</UpeToggleContext.Provider>
-		);
+		render( <ManualCaptureControl /> );
 
 		await userEvent.click(
 			screen.getByLabelText(

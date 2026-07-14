@@ -45,3 +45,35 @@ export const DismissButton = styled( Button )`
 	box-shadow: none !important;
 	color: #757575 !important;
 `;
+
+export const BannerIllustrationWithOffset = styled( BannerIllustration )`
+	@media ( min-width: 600px ) {
+		margin: 0 0 -40px 24px;
+	}
+`;
+
+export const ButtonsRowWithMargin = styled( ButtonsRow )`
+	@media ( min-width: 600px ) {
+		margin-bottom: 0.7em;
+	}
+`;
+
+export const CenteredColumnIllustration = styled( CardColumn )`
+	@media ( max-width: 599px ) {
+		text-align: center;
+	}
+`;
+
+export const BannerTitle = styled.h4`
+	margin-top: 0.6em !important;
+	font-weight: 500;
+`;
+
+export const BannerIntro = styled.p`
+	line-height: 20px;
+`;
+
+export const BannerFootnote = styled.p`
+	font-size: 12px;
+	color: #757575;
+`;

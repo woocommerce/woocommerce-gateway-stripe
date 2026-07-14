@@ -19,6 +19,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 
 	/**
 	 * Configure REST API routes.
+	 *
+	 * @return void
 	 */
 	public function register_routes() {
 		register_rest_route(
@@ -120,18 +122,18 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	private function transform_pr_address( $location ) {
 		if ( is_array( $location ) ) {
 			// If either country is PR or state is PR, ensure US/PR format.
-			if ( ( isset( $location['country'] ) && 'PR' === $location['country'] ) ||
-				( isset( $location['state'] ) && 'PR' === $location['state'] ) ) {
-				$location['country'] = 'US';
-				$location['state']   = 'PR';
+			if ( ( isset( $location['country'] ) && WC_Stripe_Country_Code::PUERTO_RICO === $location['country'] ) ||
+				( isset( $location['state'] ) && WC_Stripe_Country_Code::PUERTO_RICO === $location['state'] ) ) {
+				$location['country'] = WC_Stripe_Country_Code::UNITED_STATES;
+				$location['state']   = WC_Stripe_Country_Code::PUERTO_RICO;
 			}
 			return $location;
 		}
 
-		if ( ( isset( $location->address->country ) && 'PR' === $location->address->country ) ||
-			( isset( $location->address->state ) && 'PR' === $location->address->state ) ) {
-			$location->address->country = 'US';
-			$location->address->state   = 'PR';
+		if ( ( isset( $location->address->country ) && WC_Stripe_Country_Code::PUERTO_RICO === $location->address->country ) ||
+			( isset( $location->address->state ) && WC_Stripe_Country_Code::PUERTO_RICO === $location->address->state ) ) {
+			$location->address->country = WC_Stripe_Country_Code::UNITED_STATES;
+			$location->address->state   = WC_Stripe_Country_Code::PUERTO_RICO;
 		}
 		return $location;
 	}
@@ -140,6 +142,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * Create a terminal location via Stripe API.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_location( $request ) {
 		try {
@@ -162,6 +166,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * Get all terminal locations via Stripe API.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_all_locations( $request ) {
 		try {
@@ -182,6 +188,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * Delete a terminal location via Stripe API.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function delete_location( $request ) {
 		try {
@@ -196,6 +204,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * Get a terminal location via Stripe API.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_location( $request ) {
 		try {
@@ -210,6 +220,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * Get default terminal location.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_store_location( $request ) {
 		// Originally `get_bloginfo` was used for location name, later switched to `site_url` as the former may be blank.
@@ -278,6 +290,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * Update a terminal location via Stripe API.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function update_location( $request ) {
 		$body = [];
@@ -297,6 +311,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 
 	/**
 	 * Fetch terminal locations from Stripe API.
+	 *
+	 * @return array
 	 */
 	private function fetch_locations() {
 		$response = (array) WC_Stripe_API::request( [], 'terminal/locations', 'GET' );

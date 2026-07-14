@@ -1,13 +1,15 @@
-/* global wc */
+import { getSetting } from '@woocommerce/settings';
+import { isLinkEnabled } from 'wcstripe/stripe-utils';
+import { OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT } from 'wcstripe/stripe-utils/constants';
 
-import {
-	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
-	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
-	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
-} from 'wcstripe/stripe-utils/constants';
-
+/**
+ * Retrieves the Stripe blocks configuration from the WooCommerce settings.
+ *
+ * @throws {Error} If Stripe initialization data is not available.
+ * @return {Object} The Stripe blocks configuration object.
+ */
 export const getBlocksConfiguration = () => {
-	const stripeServerData = wc?.wcSettings?.getSetting( 'stripe_data', null );
+	const stripeServerData = getSetting( 'stripe_data', null );
 
 	if ( ! stripeServerData ) {
 		throw new Error( 'Stripe initialization data is not available' );
@@ -69,73 +71,15 @@ export const shouldSetupOffSessionPayment = (
 };
 
 /**
- * Creates a payment request using cart data from WooCommerce.
+ * Checks if the save payment method checkbox is checked.
  *
- * @param {Object} stripe - The Stripe JS object.
- * @param {Object} cart   - The cart data response from the store's AJAX API.
- *
- * @return {Object} A Stripe payment request.
+ * @return {boolean} True if the save payment method checkbox is checked, false otherwise.
  */
-export const createPaymentRequestUsingCart = ( stripe, cart ) => {
-	const disableWallets = [];
-
-	// Prevent displaying Link in the PRBs if disabled in the plugin settings.
-	if ( ! getBlocksConfiguration()?.stripe?.is_link_enabled ) {
-		disableWallets.push( EXPRESS_PAYMENT_METHOD_SETTING_LINK );
-	}
-
-	// Prevent displaying Apple Pay and Google Pay in the PRBs if disabled in the plugin settings.
-	if ( ! getBlocksConfiguration()?.stripe?.is_payment_request_enabled ) {
-		[
-			EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
-			EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
-		].forEach( function ( wallet ) {
-			disableWallets.push( wallet );
-		} );
-	}
-
-	const options = {
-		total: cart.order_data.total,
-		currency: cart.order_data.currency,
-		country: cart.order_data.country_code,
-		requestPayerName: true,
-		requestPayerEmail: true,
-		requestPayerPhone:
-			getBlocksConfiguration()?.checkout?.needs_payer_phone,
-		requestShipping: cart.shipping_required ? true : false,
-		displayItems: cart.order_data.displayItems,
-		disableWallets,
-	};
-
-	// Puerto Rico (PR) is the only US territory/possession that's supported by Stripe.
-	// Since it's considered a US state by Stripe, we need to do some special mapping.
-	if ( options.country === 'PR' ) {
-		options.country = 'US';
-	}
-
-	// Reunion Island (RE) is a FR territory supported by Stripe.
-	// It's considered like FR by Stripe.
-	if ( options.country === 'RE' ) {
-		options.country = 'FR';
-	}
-
-	return stripe.paymentRequest( options );
-};
-
-/**
- * Updates the given PaymentRequest using the data in the cart object.
- *
- * @param {Object} paymentRequest The payment request object.
- * @param {Object} cart           The cart data response from the store's AJAX API.
- */
-export const updatePaymentRequestUsingCart = ( paymentRequest, cart ) => {
-	const options = {
-		total: cart.order_data.total,
-		currency: cart.order_data.currency,
-		displayItems: cart.order_data.displayItems,
-	};
-
-	paymentRequest.update( options );
+export const isSavePaymentMethodCheckboxChecked = () => {
+	const checkbox = document.querySelector(
+		'.wc-block-components-payment-methods__save-card-info input[type=checkbox]'
+	);
+	return Boolean( checkbox?.checked );
 };
 
 /**
@@ -217,4 +161,80 @@ export const addOrderAttributionInputsIfNotExists = () => {
 export const getStripeImageUrl = ( imageName ) => {
 	const config = getBlocksConfiguration();
 	return `${ config?.plugin_url }/assets/images/${ imageName }.svg`;
+};
+
+/**
+ * Gets the Stripe element options.
+ *
+ * @param {boolean} forCheckoutSession Whether the options are for a checkout session. If true, it will remove options not supported by checkout sessions.
+ * @return {Object} The Stripe element options.
+ */
+export const getStripeElementOptions = ( forCheckoutSession = false ) => {
+	let options = {
+		fields: {
+			billingDetails: {
+				name: 'never',
+				email: 'never',
+				// The phone field is optional, so it needs to be "auto" to not throw errors
+				// when passing the phone parameter to create a payment method.
+				phone: 'auto',
+				address: {
+					country: 'never',
+					line1: 'never',
+					line2: 'never',
+					city: 'never',
+					state: 'never',
+					postalCode: 'never',
+				},
+			},
+		},
+		wallets: {
+			applePay: 'never',
+			googlePay: 'never',
+		},
+	};
+
+	// Prefill Link customer data if available.
+	if ( isLinkEnabled() && ! forCheckoutSession ) {
+		const userEmail = document.getElementById( 'email' )?.value;
+		if ( userEmail ) {
+			const userPhone =
+				document.getElementById( 'billing-phone' )?.value ||
+				document.getElementById( 'shipping-phone' )?.value;
+
+			options = {
+				...options,
+				defaultValues: {
+					billingDetails: {
+						email: userEmail,
+						phone: userPhone,
+					},
+				},
+			};
+		}
+	}
+
+	const stripeServerData = getBlocksConfiguration();
+	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
+		const layout = {
+			type:
+				stripeServerData?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
+		};
+		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
+			layout.radios = 'never';
+			layout.spacedAccordionItems = false;
+		}
+		options = {
+			...options,
+			layout,
+		};
+	} else {
+		// When Optimized Checkout is disabled, default to 'tabs' layout, as that has
+		// the best default UX for individual payment methods.
+		options.layout = {
+			type: 'tabs',
+		};
+	}
+
+	return options;
 };

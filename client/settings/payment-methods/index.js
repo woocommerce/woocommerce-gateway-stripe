@@ -7,7 +7,7 @@ import LoadableSettingsSection from '../loadable-settings-section';
 import DisplayOrderCustomizationNotice from '../display-order-customization-notice';
 import { ExternalLink } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-import { NEW_CHECKOUT_EXPERIENCE_BANNER } from 'wcstripe/settings/payment-settings/constants';
+import AmazonPayTaxesBillingAddressNotice from 'wcstripe/components/amazon-pay-taxes-billing-address-notice';
 import PromotionalBanner from 'wcstripe/settings/payment-settings/promotional-banner';
 import OptimizedCheckoutNotice from 'wcstripe/settings/optimized-checkout-notice';
 
@@ -48,6 +48,19 @@ const PaymentRequestDescription = () => (
 	</>
 );
 
+const AmazonPayTaxesBasedOnBillingAddressSection = () => {
+	const areTaxesBasedOnBillingAddress =
+		!! wc_stripe_settings_params?.taxes_based_on_billing; // eslint-disable-line camelcase
+
+	return (
+		<SettingsSection>
+			<AmazonPayTaxesBillingAddressNotice
+				areTaxesBasedOnBillingAddress={ areTaxesBasedOnBillingAddress }
+			/>
+		</SettingsSection>
+	);
+};
+
 const PaymentMethodsPanel = ( {
 	onSaveChanges,
 	setShowPromotionalBanner,
@@ -55,37 +68,23 @@ const PaymentMethodsPanel = ( {
 	promotionalBannerType,
 	isOCEnabled,
 	setIsOCEnabled,
-	setIsUpeEnabled,
 } ) => {
 	return (
 		<>
+			<AmazonPayTaxesBasedOnBillingAddressSection />
 			{ showPromotionalBanner && (
 				<SettingsSection>
 					<PromotionalBanner
 						setShowPromotionalBanner={ setShowPromotionalBanner }
-						setIsUpeEnabled={ setIsUpeEnabled }
 						setIsOCEnabled={ setIsOCEnabled }
 						promotionalBannerType={ promotionalBannerType }
-						oauthUrl={
-							// eslint-disable-next-line camelcase
-							wc_stripe_settings_params.stripe_oauth_url
-						}
-						testOauthUrl={
-							// eslint-disable-next-line camelcase
-							wc_stripe_settings_params.stripe_test_oauth_url
-						}
 					/>
 				</SettingsSection>
 			) }
 			<SettingsSection Description={ PaymentMethodsDescription }>
-				<DisplayOrderCustomizationNotice />
+				<DisplayOrderCustomizationNotice isOCEnabled={ isOCEnabled } />
 				<OptimizedCheckoutNotice isOCEnabled={ isOCEnabled } />
-				<GeneralSettingsSection
-					onSaveChanges={ onSaveChanges }
-					showLegacyExperienceTransitionNotice={
-						promotionalBannerType !== NEW_CHECKOUT_EXPERIENCE_BANNER
-					}
-				/>
+				<GeneralSettingsSection onSaveChanges={ onSaveChanges } />
 			</SettingsSection>
 			<SettingsSection Description={ PaymentRequestDescription }>
 				<LoadableSettingsSection numLines={ 20 }>

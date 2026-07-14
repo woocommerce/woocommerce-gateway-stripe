@@ -4,7 +4,7 @@ import DisableConfirmationModal from '../disable-confirmation-modal';
 
 jest.mock( '../../../data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn().mockReturnValue( [ [] ] ),
-	usePaymentRequestEnabledSettings: jest.fn().mockReturnValue( '' ),
+	useExpressCheckoutEnabledSettings: jest.fn().mockReturnValue( '' ),
 } ) );
 
 describe( 'DisableConfirmationModal', () => {

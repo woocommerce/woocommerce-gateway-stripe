@@ -1,6 +1,4 @@
-import UpeToggleContext from '../settings/upe-toggle/context';
 import PaymentMethodsMap from '../payment-methods-map';
-import { useContext } from '@wordpress/element';
 import {
 	PAYMENT_METHOD_ALIPAY,
 	PAYMENT_METHOD_KLARNA,
@@ -11,25 +9,15 @@ import {
 const accountCountry =
 	window.wc_stripe_settings_params?.account_country || 'US';
 
-// When UPE is disabled returns the list of all the currencies supported by AliPay.
-// When UPE is enabled returns the specific currencies AliPay supports for the corresponding Stripe account based on location.
-// Documentation: https://docs.stripe.com/payments/alipay#supported-currencies.
-const getAliPayCurrencies = ( isUpeEnabled ) => {
-	if ( ! isUpeEnabled ) {
-		return [
-			'AUD',
-			'CAD',
-			'CNY',
-			'EUR',
-			'GBP',
-			'HKD',
-			'JPY',
-			'MYR',
-			'NZD',
-			'USD',
-		];
-	}
-
+/**
+ * Returns the specific currencies AliPay supports for the corresponding Stripe account based on location.
+ * When UPE is disabled returns the list of all the currencies supported by AliPay.
+ * When UPE is enabled returns the specific currencies AliPay supports for the corresponding Stripe account based on location.
+ *
+ * @see https://docs.stripe.com/payments/alipay#supported-currencies
+ * @return {string[]} Array of currency codes supported by AliPay for the current account.
+ */
+const getAliPayCurrencies = () => {
 	let upeCurrencies = [];
 	switch ( accountCountry ) {
 		case 'AU':
@@ -98,8 +86,12 @@ const getAliPayCurrencies = ( isUpeEnabled ) => {
 	return upeCurrencies;
 };
 
-// Returns the specific currencies WeChat Pay supports for the corresponding Stripe account based on location.
-// Documentation: https://docs.stripe.com/payments/wechat-pay/accept-a-payment?ui=direct-api#supported-currencies.
+/**
+ * Returns the specific currencies WeChat Pay supports for the corresponding Stripe account based on location.
+ *
+ * @see https://docs.stripe.com/payments/wechat-pay/accept-a-payment?ui=direct-api#supported-currencies
+ * @return {string[]} Array of currency codes supported by WeChat Pay for the current account.
+ */
 const getWechatPayCurrencies = () => {
 	let upeCurrencies = [];
 	switch ( accountCountry ) {
@@ -161,8 +153,12 @@ const getWechatPayCurrencies = () => {
 	return upeCurrencies;
 };
 
-// Returns the specific currencies Klarna supports for the corresponding Stripe account based on location.
-// Documentation: https://docs.stripe.com/payments/klarna#:~:text=Merchant%20country%20availability.
+/**
+ * Returns the specific currencies Klarna supports for the corresponding Stripe account based on location.
+ *
+ * @see https://docs.stripe.com/payments/klarna#:~:text=Merchant%20country%20availability
+ * @return {string[]} Array of currency codes supported by Klarna for the current account.
+ */
 const getKlarnaCurrencies = () => {
 	// Accounts can transact in their local currency.
 	switch ( accountCountry ) {
@@ -209,7 +205,17 @@ const getKlarnaCurrencies = () => {
 
 	// Countries located in the EEA, Switzerland and the UK can also transact in any EU based currencies including NOK, PLN, DKK etc.
 	if ( eeaCountries.includes( accountCountry ) ) {
-		return [ 'EUR', 'SEK', 'PLN', 'CHF', 'CZK', 'DKK', 'GBP', 'NOK' ];
+		return [
+			'EUR',
+			'SEK',
+			'PLN',
+			'CHF',
+			'CZK',
+			'DKK',
+			'GBP',
+			'NOK',
+			'RON',
+		];
 	}
 
 	// eslint-disable-next-line no-console
@@ -221,12 +227,30 @@ const getKlarnaCurrencies = () => {
 	return [];
 };
 
+/**
+ * Returns the specific currencies Amazon Pay supports for the corresponding Stripe account based on location.
+ *
+ * @return {string[]} Array of currency codes supported by Amazon Pay for the current account.
+ */
 const getAmazonPayCurrencies = () => {
 	switch ( accountCountry ) {
 		case 'US':
 			return [ 'USD' ];
 		default:
-			return [ 'USD' ];
+			return [
+				'AUD',
+				'CHF',
+				'DKK',
+				'EUR',
+				'GBP',
+				'HKD',
+				'JPY',
+				'NOK',
+				'NZD',
+				'SEK',
+				'USD',
+				'ZAR',
+			];
 	}
 };
 
@@ -234,14 +258,13 @@ const getAmazonPayCurrencies = () => {
  * Returns the currencies supported by a payment method.
  * Note that [] is returned for payment methods that support all currencies.
  *
- * @param {string}  paymentMethodId
- * @param {boolean} isUpeEnabled
+ * @param {string} paymentMethodId
  * @return {string[]} Array of currencies supported by that payment method.
  */
-export const getPaymentMethodCurrencies = ( paymentMethodId, isUpeEnabled ) => {
+export const getPaymentMethodCurrencies = ( paymentMethodId ) => {
 	switch ( paymentMethodId ) {
 		case PAYMENT_METHOD_ALIPAY:
-			return getAliPayCurrencies( isUpeEnabled );
+			return getAliPayCurrencies();
 		case PAYMENT_METHOD_WECHAT_PAY:
 			return getWechatPayCurrencies();
 		case PAYMENT_METHOD_KLARNA:
@@ -261,9 +284,7 @@ export const getPaymentMethodCurrencies = ( paymentMethodId, isUpeEnabled ) => {
  * @return {string[]} Array of currencies supported by that payment method.
  */
 export const usePaymentMethodCurrencies = ( paymentMethodId ) => {
-	const { isUpeEnabled } = useContext( UpeToggleContext );
-
-	return getPaymentMethodCurrencies( paymentMethodId, isUpeEnabled );
+	return getPaymentMethodCurrencies( paymentMethodId );
 };
 
 export default usePaymentMethodCurrencies;

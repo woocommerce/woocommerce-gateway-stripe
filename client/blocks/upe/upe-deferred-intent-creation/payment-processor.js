@@ -13,91 +13,37 @@ import { useEffect, useState, useRef } from 'react';
  * Internal dependencies
  */
 import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
+import RedirectMessageElement from './redirect-message-element';
 import BlikCodeElement from './blik-code-element';
 import { __ } from '@wordpress/i18n';
 import { select } from '@wordpress/data';
-import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import {
+	getBlocksConfiguration,
+	getStripeElementOptions,
+} from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
 import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
-import { isLinkEnabled, validateBlikCode } from 'wcstripe/stripe-utils';
+import { validateBlikCode } from 'wcstripe/stripe-utils';
 import {
-	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
+	invalidateAppearanceCache,
+	initializeUPEAppearance,
+} from 'wcstripe/stripe-utils/upe-appearance';
+import { sampleFontFamily } from 'wcstripe/styles/upe';
+import {
+	PAYMENT_METHOD_ACSS,
 	PAYMENT_METHOD_BLIK,
+	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 import { applyStyles } from 'wcstripe/optimized-checkout/apply-styles';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
+import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
 
 const noop = () => null;
-
-/**
- * Gets the Stripe element options.
- *
- * @return {Object} The Stripe element options.
- */
-const getStripeElementOptions = () => {
-	let options = {
-		fields: {
-			billingDetails: {
-				name: 'never',
-				email: 'never',
-				// The phone field is optional, so it needs to be "auto" to not throw errors
-				// when passing the phone parameter to create a payment method.
-				phone: 'auto',
-				address: {
-					country: 'never',
-					line1: 'never',
-					line2: 'never',
-					city: 'never',
-					state: 'never',
-					postalCode: 'never',
-				},
-			},
-		},
-		wallets: {
-			applePay: 'never',
-			googlePay: 'never',
-		},
-	};
-
-	// Prefill Link customer data if available.
-	if ( isLinkEnabled() ) {
-		const userEmail = document.getElementById( 'email' )?.value;
-		if ( userEmail ) {
-			const userPhone =
-				document.getElementById( 'billing-phone' )?.value ||
-				document.getElementById( 'shipping-phone' )?.value;
-
-			options = {
-				...options,
-				defaultValues: {
-					billingDetails: {
-						email: userEmail,
-						phone: userPhone,
-					},
-				},
-			};
-		}
-	}
-
-	if ( getBlocksConfiguration()?.isOCEnabled ) {
-		options = {
-			...options,
-			layout: {
-				type:
-					getBlocksConfiguration()?.OCLayout ||
-					OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
-				radios: false,
-			},
-		};
-	}
-
-	return options;
-};
 
 /**
  * Submits the payment elements to Stripe for validation.
@@ -155,10 +101,8 @@ const PaymentProcessor = ( {
 		useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
 		useState( false );
-	const testingInstructionsIfAppropriate = getBlocksConfiguration()?.testMode
-		? testingInstructions
-		: '';
-	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
+	const stripeServerData = getBlocksConfiguration();
+	const paymentMethodsConfig = stripeServerData?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
 	const isBlikSelected = selectedPaymentMethodType === PAYMENT_METHOD_BLIK;
 
@@ -166,9 +110,14 @@ const PaymentProcessor = ( {
 	// shouldSavePayment might be set to false because the cart contains a subscription and so the save checkbox isn't shown.
 	// If thats the case, we need to force it to true.
 	shouldSavePayment =
-		shouldSavePayment || getBlocksConfiguration()?.cartContainsSubscription;
+		shouldSavePayment || stripeServerData?.cartContainsSubscription;
 
 	const hasLoadErrorRef = useRef( false );
+
+	// onPaymentSetup's callback is registered once, so it closes over the
+	// initial isPaymentElementComplete and misses later updates. This ref,
+	// refreshed in onSelectedPaymentMethodChange, feeds it the live value.
+	const isCompleteRef = useRef( false );
 
 	const setHasLoadError = ( event ) => {
 		hasLoadErrorRef.current = true;
@@ -206,7 +155,11 @@ const PaymentProcessor = ( {
 					}
 
 					// BLIK is a special case which is not handled through the Stripe element.
-					if ( ! ( isPaymentElementComplete || isBlikSelected ) ) {
+					// If mid-(re)mount, wait briefly for it to settle first.
+					if ( ! ( isCompleteRef.current || isBlikSelected ) ) {
+						await waitForPaymentElementCompletion( isCompleteRef );
+					}
+					if ( ! ( isCompleteRef.current || isBlikSelected ) ) {
 						return {
 							type: 'error',
 							message: __(
@@ -291,7 +244,6 @@ const PaymentProcessor = ( {
 								...dynamicPaymentData,
 								payment_method: upeMethods[ paymentMethodId ],
 								wc_payment_intent_id: paymentIntentId ?? '',
-								'wc-stripe-is-deferred-intent': true,
 								'wc-stripe-payment-method':
 									paymentMethodObject.paymentMethod.id,
 								save_payment_method: shouldSavePayment
@@ -338,15 +290,21 @@ const PaymentProcessor = ( {
 		if ( selectedPaymentMethodType === PAYMENT_METHOD_CASHAPP ) {
 			maybeShowCashAppLimitNotice(
 				'.wc-block-checkout__payment-method .wc-block-components-notices',
-				Number( getBlocksConfiguration()?.cartTotal ),
+				Number( stripeServerData?.cartTotal ),
 				true
 			);
 		} else {
 			removeCashAppLimitNotice();
 		}
 		// Apply single payment element styles if the selected payment method is card and OC is enabled.
-		if ( getBlocksConfiguration()?.isOCEnabled ) {
+		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			applyStyles();
+			// Hide the store-level save checkbox on initial load if needed
+			// (e.g., when Link is enabled and card is the default method).
+			handleDisplayOfSavingCheckbox(
+				selectedPaymentMethodType ?? PAYMENT_METHOD_CARD,
+				paymentMethodsConfig
+			);
 
 			// Maybe change the value of `setupFutureUsage` depending on the saving payment method checkbox state.
 			const savingPaymentMethodCheckbox = document.querySelector(
@@ -355,18 +313,71 @@ const PaymentProcessor = ( {
 			savingPaymentMethodCheckbox?.addEventListener(
 				'change',
 				function () {
-					elements.update( {
-						setupFutureUsage:
-							getBlocksConfiguration()
-								?.cartContainsSubscription ||
-							savingPaymentMethodCheckbox?.checked
-								? 'off_session'
-								: null,
-					} );
+					// `stripe.elements()` exposes `update()`; Adaptive Pricing uses `initCheckout()`, which
+					// returns a Checkout object without that API — toggling save-for-later there requires handling the change in the server.
+					// not a client-side Elements update.
+					// We check for the existence of the `update` function here instead of the 'isAdaptivePricingEnabled' flag
+					// because we might be using the payment element as a fallback though the flag is set to true.
+					if ( typeof elements.update === 'function' ) {
+						elements.update( {
+							setupFutureUsage:
+								stripeServerData?.cartContainsSubscription ||
+								savingPaymentMethodCheckbox?.checked
+									? 'off_session'
+									: null,
+						} );
+					}
 				}
 			);
 		}
-	}, [ selectedPaymentMethodType, elements ] );
+	}, [
+		selectedPaymentMethodType,
+		elements,
+		stripeServerData,
+		paymentMethodsConfig,
+	] );
+
+	// After web fonts finish loading, re-compute the appearance so the PE
+	// uses the correct font families instead of fallback generics.
+	useEffect( () => {
+		if ( ! elements ) {
+			return;
+		}
+
+		// In the block editor preview the appearance is a static, editor-safe
+		// object that does not depend on page fonts. Recomputing here would
+		// sample the editor DOM and reintroduce the dark appearance. See
+		// STRIPE-1061.
+		if ( stripeServerData?.isAdmin ) {
+			return;
+		}
+
+		let cancelled = false;
+		document.fonts?.ready?.then( () => {
+			if ( cancelled ) {
+				return;
+			}
+
+			// Compare the live font with the cached appearance — only
+			// invalidate and recompute if they actually differ.
+			const cachedFont =
+				initializeUPEAppearance( 'true' )?.variables?.fontFamily;
+			const liveFont = sampleFontFamily( true );
+			if ( ! liveFont || liveFont === cachedFont ) {
+				return;
+			}
+
+			invalidateAppearanceCache();
+			const appearance = initializeUPEAppearance( 'true' );
+			if ( typeof elements?.update === 'function' ) {
+				elements.update( { appearance } );
+			}
+		} );
+
+		return () => {
+			cancelled = true;
+		};
+	}, [ elements, stripeServerData ] );
 
 	usePaymentCompleteHandler(
 		api,
@@ -388,35 +399,50 @@ const PaymentProcessor = ( {
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		setSelectedPaymentMethodType( value.type );
 		setIsPaymentElementComplete( complete );
-		if ( getBlocksConfiguration()?.isOCEnabled ) {
-			handleDisplayOfPaymentInstructions( value.type );
-			handleDisplayOfSavingCheckbox( value.type );
+		isCompleteRef.current = complete;
+		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
+			handleDisplayOfPaymentInstructions( value.type, 'blocks' );
+			handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );
 		}
 	};
 
 	return (
 		<>
-			<p
-				className="content"
-				dangerouslySetInnerHTML={ {
-					__html: description,
-				} }
-			/>
-			<p
-				className="content"
-				dangerouslySetInnerHTML={ {
-					__html: testingInstructionsIfAppropriate,
-				} }
-			/>
+			{ description && (
+				<p
+					className="content"
+					dangerouslySetInnerHTML={ {
+						__html: description,
+					} }
+				/>
+			) }
+			{ testingInstructions && (
+				<p
+					className="content"
+					dangerouslySetInnerHTML={ {
+						__html: testingInstructions,
+					} }
+				/>
+			) }
 			{ isBlikSelected ? (
 				<BlikCodeElement />
 			) : (
-				<PaymentElement
-					options={ getStripeElementOptions() }
-					onChange={ onSelectedPaymentMethodChange }
-					onLoadError={ setHasLoadError }
-					className="wcstripe-payment-element"
-				/>
+				<>
+					<PaymentElement
+						options={ getStripeElementOptions() }
+						onChange={ onSelectedPaymentMethodChange }
+						onLoadError={ setHasLoadError }
+						className="wcstripe-payment-element"
+					/>
+					{ paymentMethodId === PAYMENT_METHOD_ACSS && (
+						<RedirectMessageElement
+							text={ __(
+								'After submission, you will need to authorize the payment with your bank.',
+								'woocommerce-gateway-stripe'
+							) }
+						/>
+					) }
+				</>
 			) }
 		</>
 	);

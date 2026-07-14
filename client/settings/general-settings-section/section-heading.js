@@ -1,11 +1,10 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 import { moreVertical } from '@wordpress/icons';
 import { __ } from '@wordpress/i18n';
 import { Button, CardHeader, DropdownMenu } from '@wordpress/components';
 import { useAccount } from 'wcstripe/data/account';
 import { useGetOrderedPaymentMethodIds, useIsOCEnabled } from 'wcstripe/data';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 const StyledHeader = styled( CardHeader )`
 	justify-content: space-between;
@@ -49,7 +48,6 @@ const ActionItems = styled.div`
 
 const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 	const [ isOCEnabled ] = useIsOCEnabled();
-	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const { orderedPaymentMethodIds, isSaving, saveOrderedPaymentMethodIds } =
 		useGetOrderedPaymentMethodIds();
 
@@ -90,25 +88,23 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 								</Button>
 							)
 						}
-						{ isUpeEnabled && (
-							<DropdownMenu
-								data-testid="upe-expandable-menu"
-								icon={ moreVertical }
-								label={ __(
-									'Payment methods menu',
-									'woocommerce-gateway-stripe'
-								) }
-								controls={ [
-									{
-										title: __(
-											'Refresh payment methods',
-											'woocommerce-gateway-stripe'
-										),
-										onClick: refreshAccount,
-									},
-								] }
-							/>
-						) }
+						<DropdownMenu
+							data-testid="upe-expandable-menu"
+							icon={ moreVertical }
+							label={ __(
+								'Payment methods menu',
+								'woocommerce-gateway-stripe'
+							) }
+							controls={ [
+								{
+									title: __(
+										'Refresh payment methods',
+										'woocommerce-gateway-stripe'
+									),
+									onClick: refreshAccount,
+								},
+							] }
+						/>
 					</>
 				) : (
 					<>

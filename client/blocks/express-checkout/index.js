@@ -17,6 +17,7 @@ import {
 	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 } from 'wcstripe/stripe-utils/constants';
+import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
 /** @typedef {import('react')} React */
 
@@ -83,16 +84,19 @@ const expressCheckoutElement = ( expressPaymentMethod, api ) => {
 	);
 	const edit = getEditorElement( expressPaymentMethod );
 	const canMakePayment = ( { cart } ) => {
-		if ( parseFloat( cart.cartTotals.total_price ) === 0.0 ) {
+		// eslint-disable-next-line camelcase
+		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
+			return false;
+		}
+
+		if (
+			parseFloat( cart.cartTotals.total_price ) === 0.0 &&
+			! getExpressCheckoutData( 'has_free_trial' )
+		) {
 			return false;
 		}
 
 		if ( ! getBlocksConfiguration()?.shouldShowExpressCheckoutButton ) {
-			return false;
-		}
-
-		// eslint-disable-next-line camelcase
-		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
 			return false;
 		}
 

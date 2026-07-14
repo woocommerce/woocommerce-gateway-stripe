@@ -39,13 +39,29 @@ export const togglePaymentMethod = async (
 		if ( ( enable && ! isChecked ) || ( ! enable && isChecked ) ) {
 			await checkbox.click();
 
-			// When disabling, we need to click the remove button
+			// When disabling, some methods show a Remove confirmation button.
 			if ( ! enable ) {
-				await page.getByRole( 'button', { name: 'Remove' } ).click();
+				const removeButton = page.getByRole( 'button', {
+					name: 'Remove',
+				} );
+				try {
+					await removeButton.waitFor( {
+						state: 'visible',
+						timeout: 3000,
+					} );
+					await removeButton.click();
+				} catch ( error ) {
+					if ( error?.name !== 'TimeoutError' ) {
+						throw error;
+					}
+					// Remove button is optional for some methods.
+				}
 			}
 
 			await page.click( 'text=Save changes' );
-			await expect( page.getByText( 'Settings saved.' ) ).toBeDefined();
+			await expect(
+				page.getByText( 'Settings saved.' ).first()
+			).toBeVisible();
 		}
 	} finally {
 		await context.close();
@@ -128,4 +144,70 @@ export const initializeOptimizedCheckout = async (
 	}
 
 	await adminContext.close();
+};
+
+/**
+ * Open the admin order edit page for an order and confirm the expected amount
+ * was charged.
+ *
+ * Checks the following locations to ensure we are charging the expected amount:
+ *  - The "Order Total" row
+ *  - The "Paid" (captured) row of the order details
+ *  - The sum of the "Stripe Fee" and "Stripe Payout" rows
+ *
+ * @param {Browser} browser       Playwright browser fixture.
+ * @param {string}  orderId       The WooCommerce order ID.
+ * @param {string}  expectedTotal The expected charged amount, without currency
+ *                                symbol (e.g. "19.99").
+ */
+export const verifyOrderChargedAmount = async (
+	browser,
+	orderId,
+	expectedTotal
+) => {
+	const { context, page } = await getAdminPage( browser );
+
+	try {
+		// Access via the post edit screen - we should be redirected if HPOS is enabled.
+		await page.goto( `/wp-admin/post.php?post=${ orderId }&action=edit` );
+
+		const totalElementForLabel = ( label ) =>
+			page
+				.locator( '.wc-order-totals tr' )
+				.filter( { hasText: label } )
+				.locator( '.total' );
+
+		// The order is recorded for the expected total...
+		await expect( totalElementForLabel( 'Order Total' ) ).toContainText(
+			expectedTotal
+		);
+		// ...and that total was actually captured (the "Paid" line).
+		await expect( totalElementForLabel( 'Paid' ) ).toContainText(
+			expectedTotal
+		);
+
+		// Also verify that the Stripe Fee and Stripe Payout rows are present and add up to the expected amount.
+		const stripeFeeElement = totalElementForLabel( 'Stripe Fee' );
+		const stripePayoutElement = totalElementForLabel( 'Stripe Payout' );
+
+		await expect( stripeFeeElement ).toContainText( '-' );
+		await expect( stripePayoutElement ).not.toBeEmpty();
+
+		const stripeFeeText = await stripeFeeElement.textContent();
+		const stripePayoutText = await stripePayoutElement.textContent();
+
+		// Extract the numeric amount from the text content - ignore - and currency symbol.
+		const stripeFeeAmount = parseFloat(
+			stripeFeeText.replace( /[^0-9\.]/g, '' )
+		);
+		const stripePayoutAmount = parseFloat(
+			stripePayoutText.replace( /[^0-9\.]/g, '' )
+		);
+
+		const totalAmount = stripeFeeAmount + stripePayoutAmount;
+
+		expect( totalAmount ).toBeCloseTo( parseFloat( expectedTotal ), 2 );
+	} finally {
+		await context.close();
+	}
 };

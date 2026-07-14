@@ -1,4 +1,5 @@
-import { render, screen, act } from '@testing-library/react';
+import { act } from 'react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Tooltip from '..';
 
@@ -123,5 +124,25 @@ describe( 'Tooltip', () => {
 		expect( screen.queryByText( 'Tooltip 2 content' ) ).toBeInTheDocument();
 		expect( handleHide1Mock ).toHaveBeenCalled();
 		expect( handleHide2Mock ).not.toHaveBeenCalled();
+	} );
+
+	it( 'does not toggle tooltip when a link inside the content is clicked', async () => {
+		render(
+			<Tooltip
+				isVisible
+				content={ <a href="https://example.com">Update now</a> }
+			>
+				<span>Trigger</span>
+			</Tooltip>
+		);
+
+		jest.runAllTimers();
+
+		expect( screen.getByText( 'Update now' ) ).toBeInTheDocument();
+
+		await userEvent.click( screen.getByText( 'Update now' ) );
+		jest.runAllTimers();
+
+		expect( screen.getByText( 'Update now' ) ).toBeInTheDocument();
 	} );
 } );

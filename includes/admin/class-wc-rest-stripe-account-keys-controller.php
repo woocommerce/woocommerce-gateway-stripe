@@ -14,13 +14,6 @@ defined( 'ABSPATH' ) || exit;
  */
 class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Controller {
 	/**
-	 * The option name for the Stripe gateway settings.
-	 *
-	 * @deprecated 8.7.0
-	 */
-	const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
-
-	/**
 	 * Endpoint path.
 	 *
 	 * @var string
@@ -45,6 +38,8 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 	/**
 	 * Configure REST API routes.
+	 *
+	 * @return void
 	 */
 	public function register_routes() {
 		register_rest_route(
@@ -181,10 +176,10 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * Validate stripe publishable keys and secrets. Allow empty string to erase key.
 	 * Also validates against explicit key prefixes based on live/test environment.
 	 *
-	 * @param mixed           $value
-	 * @param WP_REST_Request $request
-	 * @param string          $param
-	 * @param array $validate_options
+	 * @param mixed           $param            The parameter value to validate.
+	 * @param WP_REST_Request $request          The request object.
+	 * @param string          $key              The parameter key.
+	 * @param array           $validate_options Validation options with 'regex' and 'error_message'.
 	 * @return true|WP_Error
 	 */
 	private function validate_stripe_param( $param, $request, $key, $validate_options ) {
@@ -198,6 +193,14 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		return true;
 	}
 
+	/**
+	 * Validates a publishable key.
+	 *
+	 * @param mixed           $param The parameter value to validate.
+	 * @param WP_REST_Request $request The request object.
+	 * @param string          $key The parameter key.
+	 * @return true|WP_Error
+	 */
 	public function validate_publishable_key( $param, $request, $key ) {
 		return $this->validate_stripe_param(
 			$param,
@@ -210,6 +213,14 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		);
 	}
 
+	/**
+	 * Validates a secret key.
+	 *
+	 * @param mixed           $param The parameter value to validate.
+	 * @param WP_REST_Request $request The request object.
+	 * @param string          $key The parameter key.
+	 * @return true|WP_Error
+	 */
 	public function validate_secret_key( $param, $request, $key ) {
 		return $this->validate_stripe_param(
 			$param,
@@ -222,6 +233,14 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		);
 	}
 
+	/**
+	 * Validates a test publishable key.
+	 *
+	 * @param mixed           $param   The parameter value to validate.
+	 * @param WP_REST_Request $request The request object.
+	 * @param string          $key     The parameter key.
+	 * @return true|WP_Error
+	 */
 	public function validate_test_publishable_key( $param, $request, $key ) {
 		return $this->validate_stripe_param(
 			$param,
@@ -234,6 +253,14 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		);
 	}
 
+	/**
+	 * Validates a test secret key.
+	 *
+	 * @param mixed           $param   The parameter value to validate.
+	 * @param WP_REST_Request $request The request object.
+	 * @param string          $key     The parameter key.
+	 * @return true|WP_Error
+	 */
 	public function validate_test_secret_key( $param, $request, $key ) {
 		return $this->validate_stripe_param(
 			$param,
@@ -250,6 +277,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * Update the data.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 * @return WP_REST_Response
 	 */
 	public function set_account_keys( WP_REST_Request $request ) {
 		$settings       = WC_Stripe_Helper::get_stripe_settings();
@@ -292,20 +320,10 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			|| $current_account_keys['test_publishable_key'] !== $settings['test_publishable_key']
 			|| $current_account_keys['test_secret_key'] !== $settings['test_secret_key'] ) {
 
-			$is_upe_enabled = 'yes' === $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ];
-			if ( ! $is_upe_enabled ) {
-				$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
-				foreach ( $payment_gateways as $gateway ) {
-					$gateway->update_option( 'enabled', 'no' );
-				}
-			} else {
-				$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
-				$upe_gateway->update_enabled_payment_methods( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
+			$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
+			$upe_gateway->update_enabled_payment_methods( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
 
-				// Handle Multibanco separately as it is a non UPE method but it is part of the same settings page.
-				$multibanco = WC_Stripe_Helper::get_legacy_payment_method( 'stripe_multibanco' );
-				$multibanco->update_option( 'enabled', 'no' );
-			}
+			WC_Stripe::get_instance()->connect->clear_caches_after_key_update();
 		}
 
 		$this->account->clear_cache();
@@ -324,6 +342,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * data (except for masked keys, for those the original value from settings is used)
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 * @return WP_REST_Response
 	 */
 	public function test_account_keys( WP_REST_Request $request ) {
 		$live_mode   = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
@@ -339,7 +358,10 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			$secret = $settings[ $live_mode ? 'secret_key' : 'test_secret_key' ];
 		}
 
-		$response = wp_safe_remote_post(
+		// Use wp_remote_post() instead of wp_safe_remote_post() as we have a hard-coded URL
+		// and the safe version fails when there are DNS resolution issues.
+		// See https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4801
+		$response = wp_remote_post(
 			'https://api.stripe.com/v1/tokens',
 			[
 				'method'  => 'POST',
@@ -355,7 +377,10 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$response_data = json_decode( $response['body'] );
 		$token_id      = $response_data->id;
 
-		$response = wp_safe_remote_get(
+		// Use wp_remote_get() instead of wp_safe_remote_get() as we have a hard-coded URL
+		// and the safe version fails when there are DNS resolution issues.
+		// See https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4801
+		$response = wp_remote_get(
 			'https://api.stripe.com/v1/tokens/' . $token_id,
 			[
 				'method'  => 'GET',
@@ -377,6 +402,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * The webhook secret will be stored in the settings.
 	 *
 	 * @param WP_REST_Request $request Data about the request.
+	 * @return WP_REST_Response
 	 */
 	public function configure_webhooks( WP_REST_Request $request ) {
 		$live_mode      = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
@@ -390,19 +416,13 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		WC_Rate_Limiter::set_rate_limit( $rate_limit_key, 60 );
 
-		$settings     = WC_Stripe_Helper::get_stripe_settings();
-		$secret       = wc_clean( wp_unslash( $request->get_param( 'secret' ) ) );
-		$saved_secret = $settings[ $live_mode ? 'secret_key' : 'test_secret_key' ];
-
-		// If the secret received is masked and it matches the saved secret, use the raw saved secret.
-		if ( $secret === $this->mask_key_value( $saved_secret ) ) {
-			$secret = $saved_secret;
-		}
-
 		try {
-			$response = $this->account->configure_webhooks( $environment, $secret );
+			$response = $this->account->configure_webhooks( $environment );
 		} catch ( Exception $e ) {
 			return new WP_REST_Response( [ 'message' => $e->getMessage() ], 400 );
+		} finally {
+			// Ensure we reset the key before we do anything else.
+			WC_Stripe_API::set_secret_key( '' );
 		}
 
 		return new WP_REST_Response(
@@ -443,12 +463,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				continue;
 			}
 
-			// If the user is removing or changing their secret key, we should decommission the webhook.
-			if ( empty( $keys['secret_key'] ) || $keys['secret_key'] !== $keys['webhook_data']['secret'] ) {
-				// Set the appropriate secret key to the mode (live vs test) so we can send the request.
-				WC_Stripe_API::set_secret_key( $keys['webhook_data']['secret'] );
-				WC_Stripe_API::request( [], 'webhook_endpoints/' . $keys['webhook_data']['id'], 'DELETE' );
-
+			// If the user is removing or changing their secret key, decommission the
+			// webhook on the previously connected account to avoid leaving orphaned webhooks in Stripe.
+			if ( $this->account->maybe_decommission_webhook( $keys['webhook_data'], $keys['secret_key'] ) ) {
 				// Update the webhook settings now that the webhook has been decommissioned.
 				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ]     = [];
 				$settings[ 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret' ] = '';
@@ -462,6 +479,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * Records a track event when the keys of an account are manually removed (account disconnected).
 	 *
 	 * @param bool $is_test_mode Whether the keys are test ones.
+	 * @return void
 	 */
 	private function record_manual_account_disconnect_track_event( bool $is_test_mode ) {
 		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
@@ -475,6 +493,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * Records a track event when the keys of an account are manually updated.
 	 *
 	 * @param bool $is_test_mode Whether the keys are test ones.
+	 * @return void
 	 */
 	private function record_manual_account_key_update_track_event( bool $is_test_mode ) {
 		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {

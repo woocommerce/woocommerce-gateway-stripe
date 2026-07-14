@@ -5,6 +5,8 @@
  * @package WooCommerce_Stripe\Payment_Methods
  */
 
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -16,7 +18,21 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 	/**
 	 * The Stripe ID for the payment method.
 	 */
-	const STRIPE_ID = WC_Stripe_Payment_Methods::CASHAPP_PAY;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::CASHAPP_PAY;
+
+	/**
+	 * Stripe account countries that may enable Cash App Pay.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [ WC_Stripe_Country_Code::UNITED_STATES ];
+
+	/**
+	 * Shopper billing countries permitted to use Cash App Pay.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [ WC_Stripe_Country_Code::UNITED_STATES ];
 
 	/**
 	 * Constructor for Cash App payment method.
@@ -28,9 +44,8 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		$this->title                        = __( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 		$this->is_reusable                  = true;
 		$this->supported_currencies         = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
-		$this->supported_countries          = [ 'US' ];
 		$this->accept_only_domestic_payment = true;
-		$this->supports[]                   = 'tokenization';
+		$this->supports[]                   = PaymentGatewayFeature::TOKENIZATION;
 		$this->label                        = __( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 		$this->description                  = __(
 			'Cash App is a popular consumer app in the US that allows customers to bank, invest, send, and receive money using their digital wallet.',
@@ -44,26 +59,6 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 	}
 
 	/**
-	 * Returns whether the payment method is available for the Stripe account's country.
-	 *
-	 * Cash App Pay is only available to merchants in the United States.
-	 *
-	 * @return bool True if the payment method is available for the account's country, false otherwise.
-	 */
-	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
-	}
-
-	/**
-	 * Returns a string representing payment method type to query for when retrieving saved payment methods from Stripe.
-	 *
-	 * @return string The payment method type.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
-	}
-
-	/**
 	 * Creates a Cash App Pay payment token for the customer.
 	 *
 	 * @param int      $user_id        The customer ID the payment token is associated with.
@@ -74,9 +69,7 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
 		$token = new WC_Payment_Token_CashApp();
 
-		$gateway_id = $this->is_oc_enabled() ? 'stripe' : $this->id;
-
-		$token->set_gateway_id( $gateway_id );
+		$token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ self::STRIPE_ID ] );
 		$token->set_token( $payment_method->id );
 		$token->set_user_id( $user_id );
 

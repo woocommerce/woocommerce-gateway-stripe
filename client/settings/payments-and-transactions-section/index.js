@@ -1,6 +1,6 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
-import interpolateComponents from 'interpolate-components';
+import interpolateComponents from '@automattic/interpolate-components';
 import CardBody from '../card-body';
 import StatementPreviewsWrapper from './statement-previews-wrapper';
 import StatementPreview from './statement-preview';
@@ -15,12 +15,11 @@ import { __ } from '@wordpress/i18n';
 import { useAccount } from 'wcstripe/data/account';
 import {
 	useSavedCards,
-	useSeparateCardForm,
 	useEnabledPaymentMethodIds,
 	useIsShortAccountStatementEnabled,
-	useSepaTokensForOtherMethods,
+	useSepaTokensForBancontact,
+	useSepaTokensForIdeal,
 } from 'wcstripe/data';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
 
 const StatementDescriptorInputWrapper = styled.div`
@@ -40,12 +39,12 @@ const StatementDescriptorInputWrapper = styled.div`
 
 const PaymentsAndTransactionsSection = () => {
 	const [ isSavedCardsEnabled, setIsSavedCardsEnabled ] = useSavedCards();
+	const [ isSepaTokensForIdealEnabled, setIsSepaTokensForIdealEnabled ] =
+		useSepaTokensForIdeal();
 	const [
-		isSepaTokensForOtherMethodsEnabled,
-		setIsSepaTokensForOtherMethodsEnabled,
-	] = useSepaTokensForOtherMethods();
-	const [ isSeparateCardFormEnabled, setIsSeparateCardFormEnabled ] =
-		useSeparateCardForm();
+		isSepaTokensForBancontactEnabled,
+		setIsSepaTokensForBancontactEnabled,
+	] = useSepaTokensForBancontact();
 	const [
 		isShortAccountStatementEnabled,
 		setIsShortAccountStatementEnabled,
@@ -55,8 +54,6 @@ const PaymentsAndTransactionsSection = () => {
 	const isCashAppEnabled = enabledPaymentMethods.includes(
 		PAYMENT_METHOD_CASHAPP
 	);
-
-	const { isUpeEnabled } = useContext( UpeToggleContext );
 
 	const translatedFullBankPreviewTitle = isShortAccountStatementEnabled
 		? __( 'All Other Payment Methods', 'woocommerce-gateway-stripe' )
@@ -87,40 +84,38 @@ const PaymentsAndTransactionsSection = () => {
 					checked={ isSavedCardsEnabled }
 					onChange={ setIsSavedCardsEnabled }
 					label={ __(
-						'Enable payments via saved cards',
+						'Enable saved card payment methods',
 						'woocommerce-gateway-stripe'
 					) }
 					help={ __(
-						'If enabled, users will be able to pay with a saved card during checkout. Card details are saved on Stripe servers, not on your store.',
+						'Let returning customers check out with card payment details securely stored by Stripe — never on your store. When Link by Stripe is enabled, Stripe collects save consent within their payment form, replacing the store checkbox at checkout.',
 						'woocommerce-gateway-stripe'
 					) }
 				/>
 				<CheckboxControl
-					checked={ isSepaTokensForOtherMethodsEnabled }
-					onChange={ setIsSepaTokensForOtherMethodsEnabled }
+					checked={ isSepaTokensForIdealEnabled }
+					onChange={ setIsSepaTokensForIdealEnabled }
 					label={ __(
-						'Enable SEPA Direct Debit tokens for other methods',
+						'Enable saved iDEAL | Wero payments for repeat payments',
 						'woocommerce-gateway-stripe'
 					) }
 					help={ __(
-						'If enabled, users will be able to pay with iDEAL or Bancontact and save the method as a SEPA Direct Debit method.',
+						'Let customers save iDEAL | Wero as a SEPA Direct Debit method for future purchases. Requires iDEAL | Wero to be enabled.',
 						'woocommerce-gateway-stripe'
 					) }
 				/>
-				{ ! isUpeEnabled && (
-					<CheckboxControl
-						checked={ isSeparateCardFormEnabled }
-						onChange={ setIsSeparateCardFormEnabled }
-						label={ __(
-							'Enable separate credit card form',
-							'woocommerce-gateway-stripe'
-						) }
-						help={ __(
-							'If enabled, the credit card form will display separate credit card number field, expiry date field and CVC field.',
-							'woocommerce-gateway-stripe'
-						) }
-					/>
-				) }
+				<CheckboxControl
+					checked={ isSepaTokensForBancontactEnabled }
+					onChange={ setIsSepaTokensForBancontactEnabled }
+					label={ __(
+						'Enable saved Bancontact payments for repeat payments',
+						'woocommerce-gateway-stripe'
+					) }
+					help={ __(
+						'Let customers save Bancontact as a SEPA Direct Debit method for future purchases. Requires Bancontact to be enabled.',
+						'woocommerce-gateway-stripe'
+					) }
+				/>
 				<h4>
 					{ __(
 						'Transaction preferences',

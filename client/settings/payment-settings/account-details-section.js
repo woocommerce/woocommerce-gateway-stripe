@@ -1,6 +1,7 @@
-import { React, useState } from 'react';
+import { React, useEffect, useRef, useState } from 'react';
 import { moreVertical } from '@wordpress/icons';
 import styled from '@emotion/styled';
+import { getQuery } from '@woocommerce/navigation';
 import CardBody from '../card-body';
 import CardFooter from '../card-footer';
 import Pill from '../../components/pill';
@@ -12,21 +13,35 @@ import { useDispatch } from '@wordpress/data';
 import './style.scss';
 import { useTestMode } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
+import { recordEvent } from 'wcstripe/tracking';
 
 const HeaderDetails = styled.div`
 	display: flex;
 	margin: 0;
 	font-size: 16px;
-
 	h4 {
+		align-content: center;
 		margin: 0 4px 0 0;
 	}
+`;
+
+const AccountIdentity = styled.div`
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	margin-left: auto;
+	line-height: 1.2;
+`;
+
+const StripeAccountName = styled.span`
+	font-size: 15px;
+	color: #1e1e1e;
+	font-weight: 600;
 `;
 
 const StripeAccountId = styled.span`
 	font-size: 12px;
 	color: #757575;
-	margin-left: auto;
 `;
 
 // @todo - remove setModalType as prop
@@ -93,15 +108,44 @@ const AccountSettingsDropdownMenu = ( {
 
 // @todo - remove setModalType as prop
 const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
+	const headingRef = useRef( null );
 	const [ isTestMode ] = useTestMode();
 	const { data } = useAccount();
-	const isTestModeEnabled = Boolean( data.testmode );
+	const oauthConnected = isTestMode
+		? data?.oauth_connections?.test?.connected
+		: data?.oauth_connections?.live?.connected;
+
+	const handleButtonClick = () => {
+		const mode = isTestMode ? 'test' : 'live';
+		if ( ! oauthConnected ) {
+			recordEvent( 'wcstripe_reconnect_button_click', {
+				source: 'account_details_section',
+				mode,
+			} );
+		}
+
+		setModalType( mode );
+	};
+
+	useEffect( () => {
+		if ( ! headingRef.current ) {
+			return;
+		}
+
+		const { highlight } = getQuery();
+		if ( highlight === 'account-details' ) {
+			headingRef.current.scrollIntoView( {
+				behavior: 'smooth',
+				block: 'start',
+			} );
+		}
+	}, [ headingRef ] );
 
 	return (
 		<Card className="account-details">
 			<CardHeader>
 				<HeaderDetails>
-					<h4>
+					<h4 ref={ headingRef }>
 						{ data.account?.email
 							? data.account.email
 							: __(
@@ -110,14 +154,24 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 							  ) }
 					</h4>
 
-					{ isTestModeEnabled && (
+					{ isTestMode && (
 						<Pill>
 							{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
 						</Pill>
 					) }
 				</HeaderDetails>
 				{ data.account?.id && (
-					<StripeAccountId>{ data.account.id }</StripeAccountId>
+					<AccountIdentity>
+						{ ( data.account?.settings?.dashboard?.display_name ||
+							data.account?.business_profile?.name ) && (
+							<StripeAccountName>
+								{ data.account.settings?.dashboard
+									?.display_name ||
+									data.account.business_profile.name }
+							</StripeAccountName>
+						) }
+						<StripeAccountId>{ data.account.id }</StripeAccountId>
+					</AccountIdentity>
 				) }
 				<AccountSettingsDropdownMenu
 					setModalType={ setModalType }
@@ -131,9 +185,7 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 				<Button
 					variant="secondary"
 					id="btn-configure-connection"
-					onClick={ () =>
-						setModalType( isTestMode ? 'test' : 'live' )
-					}
+					onClick={ handleButtonClick }
 				>
 					{ __(
 						'Configure connection',

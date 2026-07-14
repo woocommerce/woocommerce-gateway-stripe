@@ -7,11 +7,15 @@ const {
 	setupCart,
 	setupBlocksCheckout,
 	fillCreditCardDetails,
+	clickPlaceOrder,
 	handleCheckout3DSChallenge,
+	getCartTotal,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
 test( 'customer can checkout with a SCA card @smoke @blocks', async ( {
 	page,
+	browser,
 } ) => {
 	await emptyCart( page );
 	await setupCart( page );
@@ -20,13 +24,16 @@ test( 'customer can checkout with a SCA card @smoke @blocks', async ( {
 		config.get( 'addresses.customer.billing' )
 	);
 	await fillCreditCardDetails( page, config.get( 'cards.3ds' ) );
-	await page.locator( 'text=Place order' ).click();
+
+	const expectedTotal = await getCartTotal( page );
+
+	await clickPlaceOrder( page );
 
 	await handleCheckout3DSChallenge( page );
 
-	await page.waitForURL( '**/checkout/order-received/**' );
-
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
+	await waitForOrderReceivedPageAndConfirmExpectedTotal(
+		browser,
+		page,
+		expectedTotal
 	);
 } );

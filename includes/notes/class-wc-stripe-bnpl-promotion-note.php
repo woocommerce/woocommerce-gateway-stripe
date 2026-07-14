@@ -7,7 +7,6 @@
 
 use Automattic\WooCommerce\Admin\Notes\NoteTraits;
 use Automattic\WooCommerce\Admin\Notes\Note;
-use Automattic\WooCommerce\Admin\Notes\WC_Admin_Note;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -20,50 +19,38 @@ class WC_Stripe_BNPL_Promotion_Note {
 	/**
 	 * Name of the note for use in the database.
 	 */
-	const NOTE_NAME = 'wc-stripe-bnpl-promotion-note';
+	public const NOTE_NAME = 'wc-stripe-bnpl-promotion-note';
 
 	/**
 	 * Link to learn more about BNPLs.
 	 */
-	const LEARN_MORE_LINK = 'https://woocommerce.com/document/stripe/setup-and-configuration/additional-payment-methods/';
+	public const LEARN_MORE_LINK = 'https://woocommerce.com/document/stripe/setup-and-configuration/additional-payment-methods/';
 
 	/**
 	 * Get the note.
+	 *
+	 * @return Note
 	 */
 	public static function get_note() {
-		$note_class = self::get_note_class();
-		$note       = new $note_class();
+		$note = new Note();
 
 		$note->set_title( __( 'Offer more ways to pay with Buy Now, Pay Later', 'woocommerce-gateway-stripe' ) );
 		$message  = __( 'Flexible pay-over-time options can boost revenue by up to 14%.* Affirm and Klarna payments are auto-enabled with Stripe for eligible merchants.', 'woocommerce-gateway-stripe' );
 		$message .= '<br /><br />';
 		$message .= __( '*Source: Stripe 2024', 'woocommerce-gateway-stripe' );
 		$note->set_content( $message );
-		$note->set_type( $note_class::E_WC_ADMIN_NOTE_MARKETING );
+		$note->set_type( Note::E_WC_ADMIN_NOTE_MARKETING );
 		$note->set_name( self::NOTE_NAME );
 		$note->set_source( 'woocommerce-gateway-stripe' );
 		$note->add_action(
 			self::NOTE_NAME,
 			__( 'Learn more', 'woocommerce-gateway-stripe' ),
 			self::LEARN_MORE_LINK,
-			$note_class::E_WC_ADMIN_NOTE_UNACTIONED,
+			Note::E_WC_ADMIN_NOTE_UNACTIONED,
 			true
 		);
 
 		return $note;
-	}
-
-	/**
-	 * Get the class type to be used for the note.
-	 *
-	 * @return string
-	 */
-	private static function get_note_class() {
-		if ( class_exists( 'Automattic\WooCommerce\Admin\Notes\Note' ) ) {
-			return Note::class;
-		} else {
-			return WC_Admin_Note::class;
-		}
 	}
 
 	/**

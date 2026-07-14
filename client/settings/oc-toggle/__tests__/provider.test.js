@@ -73,7 +73,7 @@ describe( 'OCToggleContextProvider', () => {
 		};
 
 		render(
-			<OCToggleContextProvider defaultIsUpeEnabled={ true }>
+			<OCToggleContextProvider>
 				<LocallyUpdateOCDisabledFlagMock />
 				<OCToggleContext.Consumer>
 					{ childrenMock }

@@ -7,7 +7,6 @@
  *
  * @version     4.3.0
  * @package     WooCommerce_Stripe/Classes/WC_Stripe_Email_Failed_Authentication_Retry
- * @extends     WC_Email_Failed_Order
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -93,6 +92,8 @@ class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order 
 	 *
 	 * @param int           $order_id The order ID.
 	 * @param WC_Order|null $order Order object.
+	 *
+	 * @return void
 	 */
 	public function trigger( $order_id, $order = null ) {
 		$this->object = $order;
@@ -102,7 +103,7 @@ class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order 
 			$this->retry                 = function_exists( 'wcs_get_objects_property' ) ? WCS_Retry_Manager::store()->get_last_retry_for_order( wcs_get_objects_property( $order, 'id' ) ) : null;
 			$this->replace['retry-time'] = null !== $this->retry ? wcs_get_human_time_diff( $this->retry->get_time() ) : '';
 		} else {
-			WC_Stripe_Logger::log( 'WCS_Retry_Manager class or does not exist. Not able to send admnin email about customer notification for authentication required for renewal payment.' );
+			WC_Stripe_Logger::warning( 'WCS_Retry_Manager class or does not exist. Not able to send admnin email about customer notification for authentication required for renewal payment.' );
 			return;
 		}
 

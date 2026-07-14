@@ -1,12 +1,13 @@
-import { React } from 'react';
+import { React, useState, useCallback } from 'react';
 import styled from '@emotion/styled';
-import interpolateComponents from 'interpolate-components';
+import interpolateComponents from '@automattic/interpolate-components';
+import { getQuery } from '@woocommerce/navigation';
 import CardBody from '../card-body';
-import { Button, Card, ExternalLink } from '@wordpress/components';
+import { Card } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import StripeBanner from 'wcstripe/components/stripe-banner';
-import { recordEvent } from 'wcstripe/tracking';
-import InlineNotice from 'wcstripe/components/inline-notice';
+import ConnectButton from 'wcstripe/settings/stripe-auth-account/connect-button';
+import ConnectionErrorNotice from 'wcstripe/settings/stripe-auth-account/connection-error-notice';
 
 const CardWrapper = styled( Card )`
 	max-width: 560px;
@@ -31,10 +32,15 @@ const TermsOfServiceText = styled.p`
 	margin: 22px 0px 16px;
 `;
 
+const ErrorContainer = styled.div`
+	margin-bottom: 12px;
+`;
+
 const ButtonWrapper = styled.div`
 	align-items: center;
 	display: flex;
 	flex-wrap: wrap;
+	column-gap: 12px;
 
 	> :last-child {
 		box-shadow: none;
@@ -47,16 +53,27 @@ const ButtonWrapper = styled.div`
 	}
 `;
 
-const ConnectStripeAccount = ( { oauthUrl, testOauthUrl } ) => {
-	const handleCreateOrConnectAccount = () => {
-		recordEvent( 'wcstripe_create_or_connect_account_click', {} );
-		window.location.assign( oauthUrl );
-	};
+const ConnectStripeAccount = () => {
+	// eslint-disable-next-line camelcase
+	const { wc_stripe_connect_error: connectError } = getQuery();
 
-	const handleCreateOrConnectTestAccount = () => {
-		recordEvent( 'wcstripe_create_or_connect_test_account_click', {} );
-		window.location.assign( testOauthUrl );
-	};
+	const connectErrorMessage =
+		connectError === 'expired_nonce'
+			? __(
+					'Your Stripe connection attempt expired or was interrupted before it could complete. Please try again. For assistance, refer to our {{Link}}documentation{{/Link}}.',
+					'woocommerce-gateway-stripe'
+			  )
+			: undefined;
+
+	const [ hasError, setHasError ] = useState(
+		Boolean( connectErrorMessage )
+	);
+	const [ errorMessage, setErrorMessage ] = useState( connectErrorMessage );
+
+	const handleErrorChange = useCallback( ( error ) => {
+		setHasError( !! error );
+		setErrorMessage( undefined );
+	}, [] );
 
 	return (
 		<CardWrapper>
@@ -70,78 +87,51 @@ const ConnectStripeAccount = ( { oauthUrl, testOauthUrl } ) => {
 				</h2>
 				<InformationText>
 					{ __(
-						'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDEAL, SEPA, and more international payment methods.',
+						'Connect or create a Stripe account to accept all major debit and credit cards, digital wallets (including Apple Pay and Google Pay), buy now, pay later options (such as Klarna and Affirm), and a wide range of local and international payment methods.',
 						'woocommerce-gateway-stripe'
 					) }
 				</InformationText>
-
-				{ oauthUrl || testOauthUrl ? (
-					<>
-						<TermsOfServiceText>
-							{ interpolateComponents( {
-								mixedString: __(
-									'By clicking "Create or connect an account", you agree to the {{tosLink}}Terms of service.{{/tosLink}}',
-									'woocommerce-gateway-stripe'
-								),
-								components: {
-									tosLink: (
-										// eslint-disable-next-line jsx-a11y/anchor-has-content
-										<a
-											target="_blank"
-											rel="noreferrer"
-											href="https://wordpress.com/tos"
-										/>
-									),
-								},
-							} ) }
-						</TermsOfServiceText>
-						<ButtonWrapper>
-							{ oauthUrl && (
-								<Button
-									variant="primary"
-									onClick={ handleCreateOrConnectAccount }
-								>
-									{ __(
-										'Create or connect an account',
-										'woocommerce-gateway-stripe'
-									) }
-								</Button>
-							) }
-							{ testOauthUrl && (
-								<Button
-									variant={
-										oauthUrl ? 'secondary' : 'primary'
-									}
-									onClick={ handleCreateOrConnectTestAccount }
-								>
-									{ oauthUrl
-										? __(
-												'Create or connect a test account instead',
-												'woocommerce-gateway-stripe'
-										  )
-										: __(
-												'Create or connect a test account',
-												'woocommerce-gateway-stripe'
-										  ) }
-								</Button>
-							) }
-						</ButtonWrapper>
-					</>
-				) : (
-					<InlineNotice isDismissible={ false } status="error">
-						{ interpolateComponents( {
-							mixedString: __(
-								'An issue occurred generating a connection to Stripe. Please try again. For more assistance, refer to our {{Link}}documentation{{/Link}}.',
-								'woocommerce-gateway-stripe'
+				<TermsOfServiceText>
+					{ interpolateComponents( {
+						mixedString: __(
+							'By clicking "Create or connect an account", you agree to the {{tosLink}}Terms of service.{{/tosLink}}',
+							'woocommerce-gateway-stripe'
+						),
+						components: {
+							tosLink: (
+								// eslint-disable-next-line jsx-a11y/anchor-has-content
+								<a
+									target="_blank"
+									rel="noreferrer"
+									href="https://wordpress.com/tos"
+								/>
 							),
-							components: {
-								Link: (
-									<ExternalLink href="https://woocommerce.com/document/stripe/setup-and-configuration/connecting-to-stripe/" />
-								),
-							},
-						} ) }
-					</InlineNotice>
+						},
+					} ) }
+				</TermsOfServiceText>
+				<p className="woocommerce-stripe-auth__help">
+					{ __(
+						'Some payment methods are automatically enabled when you connect your account. Review your Payment Methods settings for details.',
+						'woocommerce-gateway-stripe'
+					) }
+				</p>
+				{ hasError && (
+					<ErrorContainer>
+						<ConnectionErrorNotice message={ errorMessage } />
+					</ErrorContainer>
 				) }
+				<ButtonWrapper>
+					<ConnectButton
+						testMode={ false }
+						buttonVariant="primary"
+						onErrorChange={ handleErrorChange }
+					/>
+					<ConnectButton
+						testMode={ true }
+						buttonVariant="secondary"
+						onErrorChange={ handleErrorChange }
+					/>
+				</ButtonWrapper>
 			</CardBody>
 		</CardWrapper>
 	);

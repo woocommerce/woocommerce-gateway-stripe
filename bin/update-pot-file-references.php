@@ -89,7 +89,7 @@ function load_js_transpiling_source_maps(): array {
 		}
 
 		foreach ( $file_json[ 'sources' ] as $source ) {
-			$source = preg_replace( '%^webpack:///\./(client/.*)$%', '${1}', $source );
+			$source = preg_replace( '%^webpack://\./(client/.*)$%', '${1}', $source );
 			if ( 'webpack' !== substr( $source, 0, 7 ) ) {
 				$mappings[ $source ][] = $file_json[ 'file' ];
 			}

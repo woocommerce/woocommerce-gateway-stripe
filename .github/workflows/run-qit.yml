@@ -44,6 +44,9 @@ on:
       test-additional-plugins:
         type: string
         default: ''
+      test-extension-set:
+        type: string
+        default: ''
       test-malware:
         type: string
         default: 'false'
@@ -53,6 +56,9 @@ on:
       test-validation:
         type: string
         default: 'false'
+      results-artifact:
+        type: string
+        default: 'qit-results'
       options:
         type: string
         default: ''
@@ -69,6 +75,8 @@ env:
   WC_VERSION: ${{ inputs.wc-version && inputs.wc-version || 'stable' }}
   PHP_VERSION: ${{ inputs.php-version && inputs.php-version || '8.4' }}
   ADDITIONAL_PLUGINS: ${{ inputs.test-additional-plugins && format( '--additional_plugins={0}', inputs.test-additional-plugins ) || '' }}
+  ACTIVATION_PLUGINS: ${{ inputs.test-additional-plugins && format( '-p {0}', inputs.test-additional-plugins ) || '' }}
+  EXTENSION_SET: ${{ inputs['test-extension-set'] && format( '--extension_set={0}', inputs['test-extension-set'] ) || '' }}
   WAIT_FLAG: ${{ inputs.wait && '--wait' || '' }}
   EXTRA_OPTIONS: ${{ inputs.options }}
 
@@ -100,7 +108,7 @@ jobs:
           mkdir ${{ github.workspace }}/qit-results
 
       - name: Download the zip
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.artifact }}
           path: ${{ github.workspace }}
@@ -122,6 +130,8 @@ jobs:
             --wp=${{ env.WP_VERSION }} \
             --woo=${{ env.WC_VERSION }} \
             --php_version=${{ env.PHP_VERSION }} \
+            ${{ env.ACTIVATION_PLUGINS }} \
+            ${{ env.EXTENSION_SET }} \
             ${{ env.EXTRA_OPTIONS }} \
             -n \
             > ${{ github.workspace }}/qit-results/qit-activation-results.txt
@@ -342,7 +352,7 @@ jobs:
 
       - name: Upload results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: qit-results
+          name: ${{ inputs.results-artifact }}
           path: ${{ github.workspace }}/qit-results/

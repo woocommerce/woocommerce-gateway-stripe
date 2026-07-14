@@ -1,7 +1,6 @@
 import { getSetting } from '@woocommerce/settings';
-import { useContext } from 'react';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavailable-reason';
+import { useIsOCEnabled, useIsAdaptivePricingEnabled } from 'wcstripe/data';
 
 /**
  * React hook to return the reason why a payment method is unavailable, or null if it is available.
@@ -10,14 +9,15 @@ import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavaila
  * @return {string|null} The reason why the payment method is unavailable, or null if it is available. See `PAYMENT_METHOD_UNAVAILABLE_REASONS` for possible values.
  */
 const usePaymentMethodUnavailableReason = ( paymentMethodId ) => {
-	const { isUpeEnabled } = useContext( UpeToggleContext );
-
+	const [ isOCEnabled ] = useIsOCEnabled();
+	const [ isAdaptivePricingEnabled ] = useIsAdaptivePricingEnabled();
+	const isAdaptivePricingSupported = isOCEnabled && isAdaptivePricingEnabled;
 	const storeCurrencyCode = getSetting( 'currency' )?.code;
 
 	return getPaymentMethodUnavailableReason( {
 		paymentMethodId,
-		isUpeEnabled,
 		storeCurrencyCode,
+		isAdaptivePricingSupported,
 	} );
 };
 

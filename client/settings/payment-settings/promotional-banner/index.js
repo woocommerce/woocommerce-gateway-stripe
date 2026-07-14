@@ -1,33 +1,57 @@
 import { React } from 'react';
 import {
-	RECONNECT_BANNER,
-	NEW_CHECKOUT_EXPERIENCE_BANNER,
+	AP_ONLY_BANNER,
 	BNPL_PROMOTION_BANNER,
-	NEW_CHECKOUT_EXPERIENCE_APMS_BANNER,
 	OC_PROMOTION_BANNER,
+	OCS_AP_BANNER,
+	OCS_ONLY_BANNER,
+	RECONNECT_BANNER,
+	STRIPE_TAX_BANNER,
 } from '../constants';
 import { ReConnectAccountBanner } from 'wcstripe/settings/payment-settings/promotional-banner/re-connect-account-banner';
-import { NewCheckoutExperienceAPMsBanner } from 'wcstripe/settings/payment-settings/promotional-banner/new-checkout-experience-apms-banner';
-import { NewCheckoutExperienceBanner } from 'wcstripe/settings/payment-settings/promotional-banner/new-checkout-experience-banner';
 import { BNPLPromotionBanner } from 'wcstripe/settings/payment-settings/promotional-banner/bnpl-promotion-banner';
 import { BannerCard } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
 import { OCPromotionBanner } from 'wcstripe/settings/payment-settings/promotional-banner/oc-promotion-banner';
+import { StripeTaxBanner } from 'wcstripe/settings/payment-settings/promotional-banner/stripe-tax-banner';
+import { OCSAndAPBanner } from 'wcstripe/settings/payment-settings/promotional-banner/ocs-ap-banner';
+import { APOnlyBanner } from 'wcstripe/settings/payment-settings/promotional-banner/ap-only-banner';
+import { OCSOnlyBanner } from 'wcstripe/settings/payment-settings/promotional-banner/ocs-only-banner';
 
 const PromotionalBanner = ( {
 	setShowPromotionalBanner,
 	promotionalBannerType,
-	setIsUpeEnabled,
 	setIsOCEnabled,
-	oauthUrl,
-	testOauthUrl,
 } ) => {
 	let BannerContent = null;
 	switch ( promotionalBannerType ) {
 		case RECONNECT_BANNER:
+			BannerContent = <ReConnectAccountBanner />;
+			break;
+		case OCS_AP_BANNER:
 			BannerContent = (
-				<ReConnectAccountBanner
-					testOauthUrl={ testOauthUrl }
-					oauthUrl={ oauthUrl }
+				<OCSAndAPBanner
+					setShowPromotionalBanner={ setShowPromotionalBanner }
+				/>
+			);
+			break;
+		case AP_ONLY_BANNER:
+			BannerContent = (
+				<APOnlyBanner
+					setShowPromotionalBanner={ setShowPromotionalBanner }
+				/>
+			);
+			break;
+		case OCS_ONLY_BANNER:
+			BannerContent = (
+				<OCSOnlyBanner
+					setShowPromotionalBanner={ setShowPromotionalBanner }
+				/>
+			);
+			break;
+		case STRIPE_TAX_BANNER:
+			BannerContent = (
+				<StripeTaxBanner
+					setShowPromotionalBanner={ setShowPromotionalBanner }
 				/>
 			);
 			break;
@@ -43,22 +67,6 @@ const PromotionalBanner = ( {
 			BannerContent = (
 				<BNPLPromotionBanner
 					setShowPromotionalBanner={ setShowPromotionalBanner }
-				/>
-			);
-			break;
-		case NEW_CHECKOUT_EXPERIENCE_APMS_BANNER:
-			BannerContent = (
-				<NewCheckoutExperienceAPMsBanner
-					setShowPromotionalBanner={ setShowPromotionalBanner }
-					setIsUpeEnabled={ setIsUpeEnabled }
-				/>
-			);
-			break;
-		case NEW_CHECKOUT_EXPERIENCE_BANNER:
-			BannerContent = (
-				<NewCheckoutExperienceBanner
-					setShowPromotionalBanner={ setShowPromotionalBanner }
-					setIsUpeEnabled={ setIsUpeEnabled }
 				/>
 			);
 			break;

@@ -1,7 +1,6 @@
 import AlipayIcon from './alipay';
 import BlikIcon from './blik';
 import CreditCardIcon from './cards';
-import GiropayIcon from './giropay';
 import KlarnaIcon from './klarna';
 import AffirmIcon from './affirm';
 import AfterpayIcon from './afterpay';
@@ -19,13 +18,11 @@ import WechatPayIcon from './wechat-pay';
 import CashAppIcon from './cashapp';
 import BankDebitIcon from './bank-debit';
 import BacsDebitIcon from './bacs-debit';
-import StripeIcon from './stripe';
 
 export default {
 	alipay: AlipayIcon,
 	blik: BlikIcon,
 	card: CreditCardIcon,
-	giropay: GiropayIcon,
 	klarna: KlarnaIcon,
 	affirm: AffirmIcon,
 	afterpay: AfterpayIcon,
@@ -45,5 +42,4 @@ export default {
 	bacs_debit: BacsDebitIcon,
 	acss_debit: BankDebitIcon,
 	au_becs_debit: BankDebitIcon,
-	stripe: StripeIcon,
 };

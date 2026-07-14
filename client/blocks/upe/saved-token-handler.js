@@ -4,7 +4,7 @@ export const SavedTokenHandler = ( {
 	api,
 	stripe,
 	elements,
-	eventRegistration: { onCheckoutAfterProcessingWithSuccess },
+	eventRegistration: { onCheckoutSuccess },
 	emitResponse,
 } ) => {
 	// Once the server has completed payment processing, confirm the intent of necessary.
@@ -12,7 +12,7 @@ export const SavedTokenHandler = ( {
 		api,
 		stripe,
 		elements,
-		onCheckoutAfterProcessingWithSuccess,
+		onCheckoutSuccess,
 		emitResponse,
 		false // No need to save a payment that has already been saved.
 	);
