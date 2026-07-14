@@ -342,7 +342,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 			if ( ! empty( $variation_id ) ) {
 				$product = wc_get_product( $variation_id );
-				if ( ! $product instanceof WC_Product ) {
+				if ( ! ( $product instanceof WC_Product ) ) {
 					return false;
 				}
 			}
