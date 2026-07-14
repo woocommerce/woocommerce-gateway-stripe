@@ -58,6 +58,60 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests for `get_stripe_refund_id_for_refund`, `update_stripe_refund_id_for_refund`,
+	 * and `delete_stripe_refund_id_for_refund`.
+	 *
+	 * @param bool $pass_null Whether to exercise the null-argument contract instead of a real refund.
+	 * @return void
+	 * @dataProvider provide_test_stripe_refund_id_for_refund
+	 */
+	public function test_stripe_refund_id_for_refund( bool $pass_null ): void {
+		if ( $pass_null ) {
+			$this->assertFalse( $this->helper->get_stripe_refund_id_for_refund( null ) );
+			$this->assertFalse( $this->helper->update_stripe_refund_id_for_refund( null, 're_null' ) );
+			$this->assertFalse( $this->helper->delete_stripe_refund_id_for_refund( null ) );
+			return;
+		}
+
+		$order  = WC_Helper_Order::create_order();
+		$refund = wc_create_refund(
+			[
+				'order_id' => $order->get_id(),
+				'amount'   => 5.00,
+			]
+		);
+
+		$this->assertEmpty( $this->helper->get_stripe_refund_id_for_refund( $refund ) );
+
+		// The update does not save, mirroring the order-level methods' contract.
+		$this->helper->update_stripe_refund_id_for_refund( $refund, 're_123' );
+		$this->assertSame( 're_123', $this->helper->get_stripe_refund_id_for_refund( $refund ) );
+
+		$refund->save_meta_data();
+		$reloaded = wc_get_order( $refund->get_id() );
+		$this->assertSame( 're_123', $this->helper->get_stripe_refund_id_for_refund( $reloaded ) );
+
+		// The parent order's meta is not touched by the per-refund methods.
+		$this->assertEmpty( $this->helper->get_stripe_refund_id( wc_get_order( $order->get_id() ) ) );
+
+		$this->helper->delete_stripe_refund_id_for_refund( $reloaded );
+		$reloaded->save_meta_data();
+		$this->assertEmpty( $this->helper->get_stripe_refund_id_for_refund( wc_get_order( $refund->get_id() ) ) );
+	}
+
+	/**
+	 * Data provider for `test_stripe_refund_id_for_refund`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_stripe_refund_id_for_refund(): array {
+		return [
+			'real refund record' => [ 'pass_null' => false ],
+			'null refund'        => [ 'pass_null' => true ],
+		];
+	}
+
+	/**
 	 * Tests for `lock_order_refund`, `get_order_existing_refund_lock`, `unlock_order_refund`,
 	 * `lock_order_payment`, `get_order_existing_payment_lock`, and `unlock_order_payment`.
 	 *

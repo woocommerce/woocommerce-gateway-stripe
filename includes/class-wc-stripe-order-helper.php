@@ -447,6 +447,51 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Gets the Stripe refund ID stored on a refund record.
+	 *
+	 * The parent order's `_stripe_refund_id` only tracks the most recent refund, so
+	 * per-refund reconciliation must read the ID from the refund record itself.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order_Refund|null $refund
+	 * @return false|string|null
+	 */
+	public function get_stripe_refund_id_for_refund( ?WC_Order_Refund $refund = null ) {
+		return $this->get_order_meta( $refund, self::META_STRIPE_REFUND_ID );
+	}
+
+	/**
+	 * Stores the Stripe refund ID on a refund record.
+	 *
+	 * Does not persist; callers must save the refund. `WC_Order_Refund` has no
+	 * `transaction_id` in WooCommerce core, so meta is the only portable storage.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order_Refund|null $refund
+	 * @param string $refund_id
+	 * @return false|void
+	 */
+	public function update_stripe_refund_id_for_refund( ?WC_Order_Refund $refund = null, string $refund_id = '' ) {
+		return $this->update_order_meta( $refund, self::META_STRIPE_REFUND_ID, $refund_id );
+	}
+
+	/**
+	 * Deletes the Stripe refund ID from a refund record.
+	 *
+	 * Does not persist; callers must save the refund.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order_Refund|null $refund
+	 * @return false|void
+	 */
+	public function delete_stripe_refund_id_for_refund( ?WC_Order_Refund $refund = null ) {
+		return $this->delete_order_meta( $refund, self::META_STRIPE_REFUND_ID );
+	}
+
+	/**
 	 * Gets the Stripe intent for order.
 	 *
 	 * @since 10.0.0
@@ -1354,11 +1399,11 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Helper function to get order meta data. The goal of the function is to reduce boilerplate in the helper due to `null` checks everywhere.
 	 *
-	 * @param WC_Order|null $order The order to get meta for.
+	 * @param WC_Abstract_Order|null $order The order or refund to get meta for.
 	 * @param string $key The meta key to get.
 	 * @return false|string|null
 	 */
-	protected function get_order_meta( ?WC_Order $order, string $key ) {
+	protected function get_order_meta( ?WC_Abstract_Order $order, string $key ) {
 		if ( null === $order ) {
 			return false;
 		}
@@ -1369,12 +1414,12 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Helper function to update order meta data. The goal of the function is to reduce boilerplate in the helper due to `null` checks everywhere.
 	 *
-	 * @param WC_Order|null $order The order to update meta for.
+	 * @param WC_Abstract_Order|null $order The order or refund to update meta for.
 	 * @param string $key The meta key to update.
 	 * @param mixed $value The meta value to set.
 	 * @return false|void
 	 */
-	protected function update_order_meta( ?WC_Order $order, string $key, $value ) {
+	protected function update_order_meta( ?WC_Abstract_Order $order, string $key, $value ) {
 		if ( null === $order ) {
 			return false;
 		}
@@ -1385,11 +1430,11 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Helper function to delete an order meta data. The goal of the function is to reduce boilerplate in the helper due to `null` checks everywhere.
 	 *
-	 * @param WC_Order|null $order The order to delete meta for.
+	 * @param WC_Abstract_Order|null $order The order or refund to delete meta for.
 	 * @param string $key The meta key to delete.
 	 * @return false|void
 	 */
-	protected function delete_order_meta( ?WC_Order $order, string $key ) {
+	protected function delete_order_meta( ?WC_Abstract_Order $order, string $key ) {
 		if ( null === $order ) {
 			return false;
 		}
