@@ -2003,11 +2003,12 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Test for {@see WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason()}.
 	 *
-	 * @param array   $account_data    Stripe account data to mock.
-	 * @param bool    $test_mode       Whether Stripe test mode is enabled.
-	 * @param string  $store_currency  WooCommerce store currency code.
-	 * @param ?string $expected        Expected return value.
-	 * @param bool    $webhook_enabled Whether the Stripe webhook endpoint is enabled. Defaults to true.
+	 * @param array   $account_data             Stripe account data to mock.
+	 * @param bool    $test_mode                Whether Stripe test mode is enabled.
+	 * @param string  $store_currency           WooCommerce store currency code.
+	 * @param ?string $expected                 Expected return value.
+	 * @param bool    $webhook_enabled          Whether the Stripe webhook endpoint is enabled. Defaults to true.
+	 * @param bool    $amount_mismatch_detected Whether Adaptive Pricing was disabled due to amount mismatches. Defaults to false.
 	 * @return void
 	 * @dataProvider provide_test_get_adaptive_pricing_account_unavailable_reason
 	 */
@@ -2016,7 +2017,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		bool $test_mode,
 		string $store_currency,
 		?string $expected,
-		bool $webhook_enabled = true
+		bool $webhook_enabled = true,
+		bool $amount_mismatch_detected = false
 	): void {
 		$original_settings    = WC_Stripe_Helper::get_stripe_settings();
 		$settings             = $original_settings;
@@ -2042,6 +2044,12 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
 		}
 
+		if ( $amount_mismatch_detected ) {
+			update_option( 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected', 'yes' );
+		} else {
+			delete_option( 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected' );
+		}
+
 		$this->set_stripe_account_data( $account_data );
 
 		$original_currency = get_option( 'woocommerce_currency' );
@@ -2051,6 +2059,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		// Cleanup.
 		update_option( 'woocommerce_currency', $original_currency );
+		delete_option( 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected' );
 		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
 		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
 		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
@@ -2201,6 +2210,64 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'store_currency'  => 'USD',
 				'expected'        => 'webhooks-disabled',
 				'webhook_enabled' => false,
+			],
+			'Live mode, disabled due to amount mismatch → amount-mismatch-detected'         => [
+				'account_data'             => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'usd' ],
+						],
+					],
+				],
+				'test_mode'                => false,
+				'store_currency'           => 'USD',
+				'expected'                 => 'amount-mismatch-detected',
+				'webhook_enabled'          => true,
+				'amount_mismatch_detected' => true,
+			],
+			'Test mode, disabled due to amount mismatches → amount-mismatches-encountered (gate applies before test mode)' => [
+				'account_data'             => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [],
+					],
+				],
+				'test_mode'                => true,
+				'store_currency'           => 'USD',
+				'expected'                 => 'amount-mismatch-detected',
+				'webhook_enabled'          => true,
+				'amount_mismatch_detected' => true,
+			],
+			'Webhooks disabled takes precedence over amount mismatches → webhooks-disabled' => [
+				'account_data'             => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'usd' ],
+						],
+					],
+				],
+				'test_mode'                => false,
+				'store_currency'           => 'USD',
+				'expected'                 => 'webhooks-disabled',
+				'webhook_enabled'          => false,
+				'amount_mismatch_detected' => true,
+			],
+			'India account takes precedence over amount mismatches → account-country'       => [
+				'account_data'             => [
+					'country'           => 'IN',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'inr' ],
+						],
+					],
+				],
+				'test_mode'                => false,
+				'store_currency'           => 'USD',
+				'expected'                 => 'account-country',
+				'webhook_enabled'          => true,
+				'amount_mismatch_detected' => true,
 			],
 		];
 	}
