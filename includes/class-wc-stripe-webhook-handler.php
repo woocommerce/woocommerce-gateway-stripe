@@ -525,9 +525,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			/**
 			 * Fires after webhook payment processing fails.
 			 *
-			 * @param WC_Order            $order        Order that failed webhook payment processing.
-			 * @param object              $notification Stripe webhook notification.
-			 * @param WC_Stripe_Exception $e            Exception raised during webhook processing.
+			 * @param WC_Order                 $order        Order that failed webhook payment processing.
+			 * @param object                   $notification Stripe webhook notification.
+			 * @param WC_Stripe_Exception|null $e            When available, the exception raised during webhook processing.
 			 */
 			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, $e );
 
@@ -584,7 +584,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		/**
 		 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
 		 */
-		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, null );
 
 		$order_id = $order->get_id();
 		$this->send_failed_order_email( $order_id );
@@ -862,7 +862,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		/**
 		 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
 		 */
-		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, null );
 	}
 
 	/**
@@ -905,7 +905,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		/**
 		 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
 		 */
-		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, null );
 	}
 
 	/**
@@ -1443,7 +1443,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				/**
 				 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
 				 */
-				do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+				do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, null );
 
 				$this->send_failed_order_email( $order_id, $status_update );
 				break;
@@ -2207,7 +2207,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			/**
 			 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
 			 */
-			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, null );
 
 			$this->send_failed_order_email( $order->get_id(), $status_update );
 		} finally {
