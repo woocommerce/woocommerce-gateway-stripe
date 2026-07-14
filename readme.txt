@@ -163,7 +163,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Use the Amazon Pay custom button size setting on the product, cart, and checkout pages instead of falling back to the Apple Pay/Google Pay size
 * Tweak - Render the Express Checkout button on the cart and checkout from page-bootstrapped data, removing a cart-details request from the critical path to first button render
 * Fix - Show the Stripe payment block as supported in the Checkout block editor when Optimized Checkout is enabled and only non-card methods (e.g. Cash App Pay) are active
-* Fix - Scope admin gateway filter to block cart and checkout editors only
 * Tweak - Memoize the Blocks Express Checkout button so it no longer re-renders the Stripe element on unrelated cart updates
 * Fix - Keep the subscription payment-method row in sync with the saved-card list when a card has been used both directly and through Apple Pay/Google Pay
 * Tweak - Dim the test mode checkbox when it can't be toggled so the disabled state is visible in the UI
@@ -216,5 +215,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Move the checkout sessions availability check to WC_Stripe_Helper and remove the deprecated wc_stripe_is_checkout_sessions_available filter
 * Fix - Prevent Adaptive Pricing payments from failing when the checkout return URL is relative
 * Add - Add a wc_stripe_subscription_renewal_blocked_by_radar action hook that fires when Stripe Radar blocks a subscription renewal payment
+* Fix - Include the statement descriptor when creating payment intents for ACSS Debit and BLIK payments
+* Fix - Ensure all WordPress hooks have filter documentation
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
