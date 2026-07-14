@@ -156,6 +156,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.8.4 - xxxx-xx-xx =
+* Fix - Improve Checkout Session amount integrity
+* Fix - Update order status only on processing failure in the order status update request
 * Fix - Scope admin gateway filter to block cart and checkout editors only
 
 = 10.8.3 - 2026-06-22 =
