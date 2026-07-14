@@ -572,16 +572,22 @@ class WC_Stripe_API {
 	public static function attach_payment_method_to_customer( string $customer_id, string $payment_method_id ) {
 		// Sources and Payment Methods need different API calls.
 		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
-			return self::request(
+			$result = self::request(
 				[ 'source' => $payment_method_id ],
 				'customers/' . $customer_id . '/sources'
 			);
+		} else {
+			$result = self::request(
+				[ 'customer' => $customer_id ],
+				'payment_methods/' . $payment_method_id . '/attach'
+			);
 		}
 
-		return self::request(
-			[ 'customer' => $customer_id ],
-			'payment_methods/' . $payment_method_id . '/attach'
-		);
+		if ( empty( $result->error ) ) {
+			WC_Stripe_Customer::clear_customer_cache( $customer_id, $payment_method_id );
+		}
+
+		return $result;
 	}
 
 	/**
@@ -602,17 +608,24 @@ class WC_Stripe_API {
 
 		// Sources and Payment Methods need different API calls.
 		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
-			return self::request(
+			$result = self::request(
 				[],
 				'customers/' . $customer_id . '/sources/' . $payment_method_id,
 				'DELETE'
 			);
+		} else {
+			$result = self::request(
+				[],
+				'payment_methods/' . $payment_method_id . '/detach'
+			);
 		}
 
-		return self::request(
-			[],
-			'payment_methods/' . $payment_method_id . '/detach'
-		);
+		if ( empty( $result->error ) ) {
+			// Clear cached payment methods.
+			WC_Stripe_Customer::clear_customer_cache( $customer_id, $payment_method_id );
+		}
+
+		return $result;
 	}
 
 	/**
