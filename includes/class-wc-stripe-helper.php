@@ -1236,7 +1236,7 @@ class WC_Stripe_Helper {
 	public static function is_adaptive_pricing_supported(): bool {
 
 		// False if checkout session feature flag is disabled.
-		if ( ! WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
+		if ( ! self::is_checkout_sessions_available() ) {
 			return false;
 		}
 
@@ -2213,5 +2213,28 @@ class WC_Stripe_Helper {
 			'wc_version'             => defined( 'WC_VERSION' ) ? WC_VERSION : '',
 			'wp_version'             => get_bloginfo( 'version' ),
 		];
+	}
+
+	/**
+	 * Checks if the Stripe Checkout Sessions feature is available.
+	 *
+	 * @return bool True if the checkout sessions feature is available, false otherwise.
+	 */
+	public static function is_checkout_sessions_available(): bool {
+		$stripe_settings              = self::get_stripe_settings();
+		$is_pmc_enabled               = $stripe_settings['pmc_enabled'] ?? 'no';
+		$is_oc_enabled                = $stripe_settings['optimized_checkout_element'] ?? 'no';
+		$is_automatic_capture_enabled = $stripe_settings['capture'] ?? 'yes';
+
+		// Stripe checkout sessions feature can only be available if:
+		// - PMC is enabled
+		// - OC Suite is enabled
+		// - Automatic capture is enabled (i.e. manual capture or later capture is disabled)
+		// If any of the above conditions are not met, the feature is not available.
+		if ( 'yes' !== $is_pmc_enabled || 'yes' !== $is_oc_enabled || 'yes' !== $is_automatic_capture_enabled ) {
+			return false;
+		}
+
+		return true;
 	}
 }

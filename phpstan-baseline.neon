@@ -4741,12 +4741,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#1 \$price of function wc_price expects float, string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Parameter \#1 \$product of method WC_Stripe_Payment_Gateway\:\:is_pre_order_product_charged_upfront\(\) expects object, object\|null given\.$#'
 			identifier: argument.type
 			count: 2
