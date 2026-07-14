@@ -1434,6 +1434,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return string The sanitized string.
 	 */
 	public function sanitize_string( $string ) {
+		// Remap apostrophe variants to U+0027 APOSTROPHE so the comparison is insensitive to
+		// which glyph the customer's keyboard produced.
+		// See https://www.unicode.org/Public/security/latest/confusables.txt.
+		$string = str_replace( [ "\u{2019}", "\u{2018}", "\u{02BC}", "\u{FF07}", "\u{00B4}", '`' ], "'", $string );
+
 		return trim( wc_strtolower( remove_accents( $string ) ) );
 	}
 
