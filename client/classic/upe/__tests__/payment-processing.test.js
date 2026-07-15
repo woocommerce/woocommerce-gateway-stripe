@@ -28,6 +28,11 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 		shouldShowOptimizedCheckout: false,
 	} ),
 	getUpeSettings: jest.fn().mockReturnValue( {} ),
+	getStaleCheckoutTotalMessage: jest
+		.fn()
+		.mockReturnValue(
+			"We couldn't update your order total. Please refresh the page and try again."
+		),
 
 	isLinkEnabled: jest.fn().mockReturnValue( false ),
 	resetBlockCheckoutPaymentState: jest.fn(),
@@ -1216,6 +1221,52 @@ describe( 'payment-processing', () => {
 					).toHaveBeenCalledWith( STALE_TOTAL_MESSAGE );
 				}
 			);
+
+			it( 'ignores a stale failing resync that settles after a newer successful one', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				await mountElement( api, checkoutElements );
+				stripeUtils.showErrorCheckout.mockClear();
+
+				// Hold the older resync open so it can only fail after the
+				// newer one has already succeeded.
+				let failOlder;
+				checkoutElements.checkoutActions.runServerUpdate
+					.mockImplementationOnce(
+						() =>
+							new Promise( ( resolve ) => {
+								failOlder = () =>
+									resolve( {
+										type: 'error',
+										error: { message: 'stale' },
+									} );
+							} )
+					)
+					.mockImplementationOnce( async ( userFunction ) => {
+						await userFunction();
+						return {
+							type: 'success',
+							session: { id: MOCK_AP_CHECKOUT_SESSION_ID },
+						};
+					} );
+
+				const olderResync =
+					paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
+						api
+					);
+				await flushPromises();
+
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
+					api
+				);
+
+				failOlder();
+				await olderResync;
+
+				// The superseded failure must not resurrect the stale-total
+				// block after the newer resync cleared it.
+				expect( stripeUtils.showErrorCheckout ).not.toHaveBeenCalled();
+			} );
 
 			it( 'does not show a notice when the resync succeeds', async () => {
 				const checkoutElements = createMockElements();

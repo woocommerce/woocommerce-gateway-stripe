@@ -4,6 +4,7 @@ import { __ } from '@wordpress/i18n';
 import { dispatch, select, useSelect } from '@wordpress/data';
 import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
 import { normalizeReturnUrl } from 'wcstripe/stripe-utils/normalize-return-url';
+import { getStaleCheckoutTotalMessage } from 'wcstripe/stripe-utils/utils';
 import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
 
 /**
@@ -72,10 +73,7 @@ export const usePaymentSetupHandler = (
 					if ( syncFailedRef?.current ) {
 						return {
 							type: 'error',
-							message: __(
-								"We couldn't update your order total. Please refresh the page and try again.",
-								'woocommerce-gateway-stripe'
-							),
+							message: getStaleCheckoutTotalMessage(),
 						};
 					}
 
@@ -391,10 +389,7 @@ export const useCheckoutSessionTotalsSync = (
 				syncFailedRef.current = true;
 			}
 			dispatch( 'core/notices' )?.createErrorNotice(
-				__(
-					"We couldn't update your order total. Please refresh the page and try again.",
-					'woocommerce-gateway-stripe'
-				),
+				getStaleCheckoutTotalMessage(),
 				{ context: 'wc/checkout/payments' }
 			);
 		};
