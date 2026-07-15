@@ -6,7 +6,7 @@ import {
 	useCheckoutSessionTotalsSync,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
 import { useEffect } from '@wordpress/element';
-import { select, useSelect } from '@wordpress/data';
+import { dispatch, select, useSelect } from '@wordpress/data';
 import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
 
 jest.mock( '@wordpress/element', () => ( {
@@ -14,10 +14,17 @@ jest.mock( '@wordpress/element', () => ( {
 	useEffect: jest.fn( ( fn ) => fn() ),
 } ) );
 
-jest.mock( '@wordpress/data', () => ( {
-	select: jest.fn(),
-	useSelect: jest.fn( () => '' ),
-} ) );
+jest.mock( '@wordpress/data', () => {
+	const createErrorNotice = jest.fn();
+	return {
+		select: jest.fn(),
+		useSelect: jest.fn( () => '' ),
+		dispatch: jest.fn( () => ( { createErrorNotice } ) ),
+	};
+} );
+
+const STALE_TOTAL_MESSAGE =
+	"We couldn't update your order total. Please refresh the page and try again.";
 
 jest.mock( 'wcstripe/blocks/wait-for-payment-element-completion', () => ( {
 	waitForPaymentElementCompletion: jest.fn(),
@@ -77,6 +84,43 @@ describe( 'CheckoutSessions hook tests', () => {
 				message:
 					'There was an error loading the payment information. Please refresh the page and try again.',
 			} );
+		} );
+
+		it( 'returns error when the totals resync failed (session stale)', async () => {
+			const hasLoadErrorRef = { current: false };
+			const syncFailedRef = { current: true };
+			usePaymentSetupHandler(
+				onPaymentSetup,
+				checkoutSessionId,
+				null,
+				hasLoadErrorRef,
+				true,
+				'',
+				null,
+				syncFailedRef
+			);
+			const result = await onPaymentSetupResultPromise;
+			expect( result ).toEqual( {
+				type: 'error',
+				message: STALE_TOTAL_MESSAGE,
+			} );
+		} );
+
+		it( 'does not block when the stale-session ref is clear', async () => {
+			const hasLoadErrorRef = { current: false };
+			const syncFailedRef = { current: false };
+			usePaymentSetupHandler(
+				onPaymentSetup,
+				checkoutSessionId,
+				null,
+				hasLoadErrorRef,
+				true,
+				'',
+				null,
+				syncFailedRef
+			);
+			const result = await onPaymentSetupResultPromise;
+			expect( result.type ).toBe( 'success' );
 		} );
 
 		it( 'returns undefined when there are validation errors', async () => {
@@ -694,6 +738,82 @@ describe( 'CheckoutSessions hook tests', () => {
 				).toHaveBeenCalledWith( 'cs_test' );
 			} );
 			expect( checkoutState.checkout.runServerUpdate ).toHaveBeenCalled();
+		} );
+
+		it( 'flags the ref and shows a notice when the resync fails', async () => {
+			const createErrorNotice = dispatch().createErrorNotice;
+			createErrorNotice.mockClear();
+			const syncFailedRef = { current: false };
+			const api = {
+				checkoutSessionsUpdateSession: jest.fn( () =>
+					Promise.resolve( {} )
+				),
+			};
+			const checkoutState = {
+				type: 'success',
+				checkout: {
+					id: 'cs_test',
+					runServerUpdate: jest.fn( async ( fn ) => {
+						await fn();
+						return { type: 'error', error: { message: 'boom' } };
+					} ),
+				},
+			};
+
+			const { rerender } = renderHook( () =>
+				useCheckoutSessionTotalsSync(
+					api,
+					'cs_test',
+					checkoutState,
+					syncFailedRef
+				)
+			);
+
+			cartPrice = '2000';
+			rerender();
+
+			await waitFor( () => {
+				expect( syncFailedRef.current ).toBe( true );
+			} );
+			expect( createErrorNotice ).toHaveBeenCalledWith(
+				STALE_TOTAL_MESSAGE,
+				{ context: 'wc/checkout/payments' }
+			);
+		} );
+
+		it( 'clears the stale flag after a successful resync', async () => {
+			const syncFailedRef = { current: true };
+			const api = {
+				checkoutSessionsUpdateSession: jest.fn( () =>
+					Promise.resolve( {} )
+				),
+			};
+			const checkoutState = {
+				type: 'success',
+				checkout: {
+					id: 'cs_test',
+					runServerUpdate: jest.fn( async ( fn ) => {
+						await fn();
+						return { type: 'success' };
+					} ),
+				},
+			};
+
+			const { rerender } = renderHook( () =>
+				useCheckoutSessionTotalsSync(
+					api,
+					'cs_test',
+					checkoutState,
+					syncFailedRef
+				)
+			);
+
+			cartPrice = '2000';
+			rerender();
+
+			await waitFor( () => {
+				expect( syncFailedRef.current ).toBe( false );
+			} );
 		} );
 	} );
 } );

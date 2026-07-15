@@ -19,6 +19,7 @@ import {
 	getUserDataForCheckoutSession,
 	getBillingDetailsForDeferredFlow,
 	normalizeReturnUrl,
+	getStaleCheckoutTotalMessage,
 } from '../../stripe-utils';
 import {
 	initializeUPEAppearance,
@@ -72,6 +73,26 @@ let hasCheckoutCompleted = false;
 let mountInProgress = null;
 
 /**
+ * Set when the last Adaptive Pricing Checkout Session line-item resync failed.
+ *
+ * A failed resync leaves the session holding stale line items, so the Payment Element
+ * would charge an out-of-date total. We block submission until a later resync succeeds
+ * rather than let the buyer be charged the wrong amount.
+ *
+ * @type {boolean}
+ */
+let adaptivePricingSyncFailed = false;
+
+/**
+ * Bumped on each resync. Back-to-back `updated_checkout` events can overlap two
+ * resyncs; only the newest one may publish `adaptivePricingSyncFailed`, so a
+ * slower older resync can't clobber the current result.
+ *
+ * @type {number}
+ */
+let adaptivePricingSyncGeneration = 0;
+
+/**
  * Registers a (re)mount promise to wait on. Composes with any existing one so
  * overlapping `updated_checkout` cycles all settle before submission proceeds.
  *
@@ -110,6 +131,8 @@ export function initializeUPEComponents() {
 	// Reset so processPayment runs fully when called again (e.g. after re-init or in tests).
 	hasCheckoutCompleted = false;
 	mountInProgress = null;
+	// A fresh session is created on the next mount, so any prior stale-session block no longer applies.
+	adaptivePricingSyncFailed = false;
 }
 
 /**
@@ -126,6 +149,9 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 	if ( ! getStripeServerData()?.isAdaptivePricingEnabled ) {
 		return;
 	}
+
+	const generation = ++adaptivePricingSyncGeneration;
+	let resyncFailed = false;
 
 	const seen = new Set();
 	for ( const paymentMethodType of Object.keys( gatewayUPEComponents ) ) {
@@ -156,16 +182,19 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 								}
 							);
 						if ( updateResult.type === 'error' ) {
+							resyncFailed = true;
 							// eslint-disable-next-line no-console
 							console.error( updateResult.error );
 						}
 					} catch ( error ) {
+						resyncFailed = true;
 						// eslint-disable-next-line no-console
 						console.error( error );
 					}
 					continue;
 				}
 			} catch ( error ) {
+				resyncFailed = true;
 				// eslint-disable-next-line no-console
 				console.error( error );
 			} finally {
@@ -176,9 +205,21 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 		try {
 			await api.checkoutSessionsUpdateSession( sessionId );
 		} catch ( error ) {
+			resyncFailed = true;
 			// eslint-disable-next-line no-console
 			console.error( error );
 		}
+	}
+
+	// A newer resync started while we were awaiting; let it own the result.
+	if ( generation !== adaptivePricingSyncGeneration ) {
+		return;
+	}
+
+	adaptivePricingSyncFailed = resyncFailed;
+
+	if ( resyncFailed ) {
+		showErrorCheckout( getStaleCheckoutTotalMessage() );
 	}
 }
 
@@ -1081,6 +1122,12 @@ export const processPayment = (
 				elements &&
 				typeof elements.loadActions === 'function'
 			) {
+				// The session still holds stale line items from a failed resync, so
+				// its total no longer matches the cart. Block rather than charge it.
+				if ( adaptivePricingSyncFailed ) {
+					throw new Error( getStaleCheckoutTotalMessage() );
+				}
+
 				const loadActionsResult = await elements.loadActions();
 
 				if ( loadActionsResult.type === 'error' ) {
