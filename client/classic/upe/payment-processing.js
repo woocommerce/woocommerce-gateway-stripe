@@ -198,7 +198,11 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 				// eslint-disable-next-line no-console
 				console.error( error );
 			} finally {
-				unblockUI( jQuery( 'form.checkout #payment' ) );
+				// A superseded resync must not lift the block a newer, still
+				// in-flight resync is holding on the payment area.
+				if ( generation === adaptivePricingSyncGeneration ) {
+					unblockUI( jQuery( 'form.checkout #payment' ) );
+				}
 			}
 		}
 

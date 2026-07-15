@@ -429,11 +429,15 @@ export const useCheckoutSessionTotalsSync = (
 					console.error( error );
 				}
 			} finally {
-				unblockUI(
-					jQuery(
-						'.wc-block-checkout__payment-method, .wc-block-components-checkout-place-order-button'
-					)
-				);
+				// A superseded resync must not lift the block a newer, still
+				// in-flight resync is holding on the payment area.
+				if ( ! cancelled ) {
+					unblockUI(
+						jQuery(
+							'.wc-block-checkout__payment-method, .wc-block-components-checkout-place-order-button'
+						)
+					);
+				}
 			}
 		};
 
