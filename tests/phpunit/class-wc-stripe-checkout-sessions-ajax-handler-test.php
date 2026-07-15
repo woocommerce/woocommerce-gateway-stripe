@@ -218,6 +218,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 		}
 
 		$this->assertIsArray( $captured_request );
+		$this->assertSame( 'elements', $captured_request['ui_mode'] );
 		$this->assertArrayHasKey( 'line_items', $captured_request );
 		$this->assertCount( 1, $captured_request['line_items'] );
 
