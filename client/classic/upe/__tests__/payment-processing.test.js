@@ -33,6 +33,7 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 		.mockReturnValue(
 			"We couldn't update your order total. Please refresh the page and try again."
 		),
+	clearStaleCheckoutTotalNotice: jest.fn(),
 
 	isLinkEnabled: jest.fn().mockReturnValue( false ),
 	resetBlockCheckoutPaymentState: jest.fn(),
@@ -1308,6 +1309,30 @@ describe( 'payment-processing', () => {
 				);
 
 				expect( stripeUtils.showErrorCheckout ).not.toHaveBeenCalled();
+			} );
+
+			it( 'retracts the stale-total notice once a later resync succeeds', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				await mountElement( api, checkoutElements );
+
+				// First resync fails and leaves a notice on the page.
+				checkoutElements.checkoutActions.runServerUpdate.mockResolvedValueOnce(
+					{ type: 'error', error: { message: 'boom' } }
+				);
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
+					api
+				);
+				stripeUtils.clearStaleCheckoutTotalNotice.mockClear();
+
+				// A later clean resync must clear that lingering notice.
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
+					api
+				);
+
+				expect(
+					stripeUtils.clearStaleCheckoutTotalNotice
+				).toHaveBeenCalled();
 			} );
 
 			it( 'blocks payment while the session is stale, then allows it after a clean resync', async () => {

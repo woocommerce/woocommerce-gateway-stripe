@@ -20,6 +20,7 @@ import {
 	getBillingDetailsForDeferredFlow,
 	normalizeReturnUrl,
 	getStaleCheckoutTotalMessage,
+	clearStaleCheckoutTotalNotice,
 } from '../../stripe-utils';
 import {
 	initializeUPEAppearance,
@@ -224,6 +225,9 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 
 	if ( resyncFailed ) {
 		showErrorCheckout( getStaleCheckoutTotalMessage() );
+	} else {
+		// Retract the notice a prior failed resync left behind now that totals sync.
+		clearStaleCheckoutTotalNotice();
 	}
 }
 

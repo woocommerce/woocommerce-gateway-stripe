@@ -381,6 +381,9 @@ export const useCheckoutSessionTotalsSync = (
 
 		let cancelled = false;
 
+		// Stable id so a later successful resync can retract the notice a failed one showed.
+		const STALE_TOTAL_NOTICE_ID = 'wc-stripe-stale-checkout-total';
+
 		const markSyncFailed = () => {
 			if ( cancelled ) {
 				return;
@@ -390,7 +393,20 @@ export const useCheckoutSessionTotalsSync = (
 			}
 			dispatch( 'core/notices' )?.createErrorNotice(
 				getStaleCheckoutTotalMessage(),
-				{ context: 'wc/checkout/payments' }
+				{
+					id: STALE_TOTAL_NOTICE_ID,
+					context: 'wc/checkout/payments',
+				}
+			);
+		};
+
+		const clearSyncFailed = () => {
+			if ( syncFailedRef ) {
+				syncFailedRef.current = false;
+			}
+			dispatch( 'core/notices' )?.removeNotice(
+				STALE_TOTAL_NOTICE_ID,
+				'wc/checkout/payments'
 			);
 		};
 
@@ -418,9 +434,9 @@ export const useCheckoutSessionTotalsSync = (
 					markSyncFailed();
 					// eslint-disable-next-line no-console
 					console.error( result.error );
-				} else if ( ! cancelled && syncFailedRef ) {
-					// Totals are back in sync; lift any prior block.
-					syncFailedRef.current = false;
+				} else if ( ! cancelled ) {
+					// Totals are back in sync; lift the block and retract the notice.
+					clearSyncFailed();
 				}
 			} catch ( error ) {
 				if ( ! cancelled ) {
