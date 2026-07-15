@@ -172,6 +172,26 @@ This plugin has backward-compatibility obligations in **both directions**. State
 
 **As a consumer of upstream WooCommerce contracts.** This plugin implements upstream WooCommerce interfaces — notably `Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface` (see `includes/agentic-commerce/`). The `Internal` namespace is **not** a stability guarantee: WooCommerce can change these contracts, and doing so is exactly what broke this plugin when WC 10.9.0 added a required `get_entry_count()` to `FeedInterface` and older Stripe versions fataled on load. When implementing an upstream interface, keep the implementation compatible with the supported WC range (L, L-1, L-2) and guard against upstream contract changes rather than assuming the interface is frozen. See `includes/agentic-commerce/AGENTS.md`.
 
+### The compatibility surface is wider than PHP signatures
+
+WordPress exposes more contracts than class and function signatures. The following are equally binding: a change to any of them is **high-risk** and requires the same backward-compatibility impact statement in the PR description.
+
+**Hooks and filters are public contracts.** Every `do_action` and `apply_filters` call in this plugin — the `wc_stripe_*` and `woocommerce_stripe_*` families — is an interface third-party callbacks depend on. Removing a hook, renaming it, or removing/reordering its arguments breaks every attached callback. Changing *when* or *whether* a hook fires breaks consumers just as surely: a filter that still fires on classic checkout but no longer fires on the Blocks path is a silent breakage for every store on that path. Additive is the safe path — append new arguments at the end, never remove or reorder existing ones. To retire a hook, fire it through `do_action_deprecated()` / `apply_filters_deprecated()` for a deprecation window instead of deleting it; the `woocommerce_stripe_*` → `wc_stripe_*` renames did exactly this (see `WC_Stripe_API::request()` and `WC_Stripe_Webhook_Handler::process_webhook_payment()`).
+
+**Do not assume global state.** This plugin's code runs in admin, REST, CLI, cron/Action Scheduler, webhook, and front-end checkout contexts, and not all of them set the globals a front-end request does (`$post`, `$wp_query`, an initialized session, cart, or customer). Webhook and Action Scheduler paths are the trap here: `WC_Stripe_Webhook_Handler` processes Stripe events with no cart and no session, so a newly introduced `WC()->cart` or `WC()->session` read on a path reachable from there is a fatal or a silent misbehavior. Guard the exact dependency explicitly: `function_exists`/`class_exists` for symbols, `isset` for variables, `did_action` for lifecycle state, and verify that `WC()` and the required component are initialized before dereferencing `WC()->…`.
+
+**Do not assume single-site.** Multisite changes where data lives: site-scoped vs network-scoped options (`get_option` vs `get_site_option`), per-site tables, user roles and capabilities, and upload paths all differ. This plugin's settings (`woocommerce_stripe_settings`, `woocommerce_stripe_{method}_settings`) and its account cache are site-scoped — each site in a network has its own Stripe account and keys, and no change may leak one site's credentials or cached account data into another. A change that reads or writes site state must state in its PR whether it behaves correctly under multisite — and if it was not tested there, say so explicitly.
+
+**Do not assume install layout.** WordPress could be configured to run in a subdirectory, with relocated `wp-content`, and behind reverse proxies. Never build paths or URLs by concatenation from the domain root; derive them (`plugins_url()`, `plugin_dir_path()`, `wp_upload_dir()`, and mind the `home_url()` vs `site_url()` distinction). This governs payment method icons and built assets, and the webhook endpoint URL registered with Stripe — an endpoint that resolves on a root install and 404s on a subdirectory install silently breaks webhook delivery for that store.
+
+### Before changing any public or externally exposed surface (agent checklist)
+
+1. Identify the contract you are touching: signature, hook, global/scope expectation, site topology, or install layout.
+2. Assume unseen consumers. You cannot enumerate third-party code; if the surface is reachable from outside this plugin, someone consumes it.
+3. Prefer the additive path (new optional method, appended hook argument, new symbol + deprecation) over changing what exists.
+4. State the impact in the PR description: what changed, who could consume it, and why it is safe or what the deprecation path is.
+5. If you cannot establish the impact, stop and flag it to the user as needing review.
+
 ## Documentation and Context Sources
 
 - Root project docs: `README.md`
