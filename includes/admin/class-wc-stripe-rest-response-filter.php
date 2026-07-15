@@ -21,6 +21,9 @@ abstract class WC_Stripe_REST_Response_Filter {
 	 * @return object|array
 	 */
 	public static function filter_response( object $response, array $allowed_properties ) {
+		if ( ! $allowed_properties ) {
+			return $response;
+		}
 		$expanded_allowed_properties = static::expand_allowed_property_paths( $allowed_properties );
 
 		return static::filter_value( $response, $expanded_allowed_properties );

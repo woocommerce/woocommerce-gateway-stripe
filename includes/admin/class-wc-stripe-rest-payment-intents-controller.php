@@ -19,7 +19,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 *
 	 * @var string
 	 */
-	protected $rest_base = 'wc_stripe/payment_intents';
+	protected $rest_base = 'payment_intents';
 
 	/**
 	 * Endpoint args.
@@ -97,6 +97,17 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		'data.status'                          => '',
 	];
 
+	protected array $stripe_details_response_allowed_fields = [
+		'object'                          => '',
+		'id'                              => '',
+		'amount'                          => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
+		'amount_received'                 => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
+		'currency'                        => 'strtoupper',
+		'payment_details.order_reference' => '',
+		'status'                          => '',
+		'description'                     => '',
+	];
+
 	/**
 	 * Configure REST API routes.
 	 *
@@ -104,8 +115,8 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 */
 	public function register_routes() {
 		register_rest_route(
-			$this->namespace,
-			'/' . $this->rest_base,
+			$this->namespace . '/wc_stripe',
+			'/payment_intents(?:/(?P<id>.+))?',
 			[
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => [ $this, 'get_payment_intents' ],
@@ -131,7 +142,15 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_payment_intents( $request ) {
-		$response = WC_Stripe_API::retrieve( 'payment_intents' . ( WC_Stripe_REST_Helper::is_search_request( $request ) ? '/search' : '' ) . '?' . WC_Stripe_REST_Helper::build_http_query_string_from_request( $request, $this->get_payment_intents_route_args() ) );
+		$search_params = $request->get_params();
+
+		if ( isset( $search_params['id'] ) ) {
+			$stripe_url_ending = '/' . $search_params['id'];
+		} else {
+			$stripe_url_ending = ( WC_Stripe_REST_Helper::is_search_request( $request ) ? '/search' : '' ) . '?' . WC_Stripe_REST_Helper::build_http_query_string_from_request( $request, $this->get_payment_intents_route_args() );
+		}
+
+		$response = WC_Stripe_API::retrieve( 'payment_intents' . $stripe_url_ending );
 
 		if ( null === $response ) {
 			return new WP_Error(
@@ -152,7 +171,13 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 			return new WP_Error( $error_code, $error_message, [ 'status' => 400 ] );
 		}
 
-		$filtered_response = WC_Stripe_REST_Response_Filter::filter_response( $response, $this->stripe_response_allowed_fields );
+		if ( ! isset( $search_params['id'] ) ) {
+			$allowed_fields = $this->stripe_response_allowed_fields;
+		} else {
+			$allowed_fields = $this->stripe_details_response_allowed_fields;
+		}
+
+		$filtered_response = WC_Stripe_REST_Response_Filter::filter_response( $response, $allowed_fields );
 
 		return rest_ensure_response( $filtered_response );
 	}
