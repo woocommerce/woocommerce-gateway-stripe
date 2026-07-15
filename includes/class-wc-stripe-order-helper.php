@@ -492,6 +492,41 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Returns the order's refund records that carry their own Stripe refund ID.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order $order
+	 * @return WC_Order_Refund[]
+	 */
+	public function get_refunds_with_stripe_refund_ids( WC_Order $order ): array {
+		return array_filter(
+			$order->get_refunds(),
+			function ( $refund ) {
+				return ! empty( $this->get_stripe_refund_id_for_refund( $refund ) );
+			}
+		);
+	}
+
+	/**
+	 * Deletes the Stripe refund ID from each of the order's refund records.
+	 *
+	 * Unlike the single-record methods, this persists each deletion — as a bulk
+	 * operation over records it looked up itself, callers have nothing to save.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order $order
+	 * @return void
+	 */
+	public function delete_stripe_refund_ids_from_refunds( WC_Order $order ): void {
+		foreach ( $this->get_refunds_with_stripe_refund_ids( $order ) as $refund ) {
+			$this->delete_stripe_refund_id_for_refund( $refund );
+			$refund->save_meta_data();
+		}
+	}
+
+	/**
 	 * Gets the Stripe intent for order.
 	 *
 	 * @since 10.0.0

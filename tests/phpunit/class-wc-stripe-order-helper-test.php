@@ -112,6 +112,48 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests for `get_refunds_with_stripe_refund_ids` and `delete_stripe_refund_ids_from_refunds`.
+	 *
+	 * @return void
+	 */
+	public function test_refunds_with_stripe_refund_ids(): void {
+		$order = WC_Helper_Order::create_order();
+
+		// No refunds at all.
+		$this->assertSame( [], $this->helper->get_refunds_with_stripe_refund_ids( $order ) );
+
+		$tagged_refund = wc_create_refund(
+			[
+				'order_id' => $order->get_id(),
+				'amount'   => 5.00,
+			]
+		);
+		$this->helper->update_stripe_refund_id_for_refund( $tagged_refund, 're_1' );
+		$tagged_refund->save_meta_data();
+
+		$untagged_refund = wc_create_refund(
+			[
+				'order_id' => $order->get_id(),
+				'amount'   => 7.00,
+			]
+		);
+
+		$order = wc_get_order( $order->get_id() );
+
+		// Only the tagged record is returned.
+		$found = $this->helper->get_refunds_with_stripe_refund_ids( $order );
+		$this->assertCount( 1, $found );
+		$this->assertSame( $tagged_refund->get_id(), current( $found )->get_id() );
+
+		// Bulk deletion erases and persists the tagged record's ID, leaving the other record alone.
+		$this->helper->delete_stripe_refund_ids_from_refunds( $order );
+
+		$this->assertEmpty( $this->helper->get_stripe_refund_id_for_refund( wc_get_order( $tagged_refund->get_id() ) ) );
+		$this->assertSame( [], $this->helper->get_refunds_with_stripe_refund_ids( wc_get_order( $order->get_id() ) ) );
+		$this->assertInstanceOf( WC_Order_Refund::class, wc_get_order( $untagged_refund->get_id() ) );
+	}
+
+	/**
 	 * Tests for `lock_order_refund`, `get_order_existing_refund_lock`, `unlock_order_refund`,
 	 * `lock_order_payment`, `get_order_existing_payment_lock`, and `unlock_order_payment`.
 	 *

@@ -378,7 +378,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			$order_helper->delete_stripe_source_id( $renewal_order );
 			$order_helper->delete_stripe_refund_id( $renewal_order );
 			$order_helper->delete_stripe_customer_id( $renewal_order );
-			$this->delete_stripe_refund_ids_from_refunds( $renewal_order, $order_helper );
+			$order_helper->delete_stripe_refund_ids_from_refunds( $renewal_order );
 		}
 
 		$order_helper->delete_stripe_source_id( $subscription );
@@ -399,7 +399,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$stripe_source_id       = $order_helper->get_stripe_source_id( $order );
 		$stripe_refund_id       = $order_helper->get_stripe_refund_id( $order );
 		$stripe_customer_id     = $order_helper->get_stripe_customer_id( $order );
-		$refunds_with_stripe_id = $this->get_refunds_with_stripe_refund_ids( $order, $order_helper );
+		$refunds_with_stripe_id = $order_helper->get_refunds_with_stripe_refund_ids( $order );
 
 		if ( ! $this->is_retention_expired( $order->get_date_created()->getTimestamp() ) ) {
 			/* translators: %d Order ID */
@@ -413,39 +413,9 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$order_helper->delete_stripe_source_id( $order );
 		$order_helper->delete_stripe_refund_id( $order );
 		$order_helper->delete_stripe_customer_id( $order );
-		$this->delete_stripe_refund_ids_from_refunds( $order, $order_helper );
+		$order_helper->delete_stripe_refund_ids_from_refunds( $order );
 
 		return [ true, false, [ __( 'Stripe personal data erased.', 'woocommerce-gateway-stripe' ) ] ];
-	}
-
-	/**
-	 * Returns the order's refund records that carry their own Stripe refund ID.
-	 *
-	 * @param WC_Order $order
-	 * @param WC_Stripe_Order_Helper $order_helper
-	 * @return WC_Order_Refund[]
-	 */
-	private function get_refunds_with_stripe_refund_ids( $order, $order_helper ) {
-		return array_filter(
-			$order->get_refunds(),
-			function ( $refund ) use ( $order_helper ) {
-				return ! empty( $order_helper->get_stripe_refund_id_for_refund( $refund ) );
-			}
-		);
-	}
-
-	/**
-	 * Erases the Stripe refund ID from each of the order's refund records.
-	 *
-	 * @param WC_Order $order
-	 * @param WC_Stripe_Order_Helper $order_helper
-	 * @return void
-	 */
-	private function delete_stripe_refund_ids_from_refunds( $order, $order_helper ) {
-		foreach ( $this->get_refunds_with_stripe_refund_ids( $order, $order_helper ) as $refund ) {
-			$order_helper->delete_stripe_refund_id_for_refund( $refund );
-			$refund->save_meta_data();
-		}
 	}
 
 	/**
