@@ -835,6 +835,10 @@ class WC_Stripe_Helper {
 	public static function get_order_by_refund_id( $refund_id ) {
 		global $wpdb;
 
+		if ( empty( $refund_id ) ) {
+			return false;
+		}
+
 		// The refund ID can live on the parent order (which tracks the latest refund, and is the only
 		// location for orders refunded before per-refund storage existed) or on the refund record
 		// itself. Callers expect the parent WC_Order, never a WC_Order_Refund, so refund-record

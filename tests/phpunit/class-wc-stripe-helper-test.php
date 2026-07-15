@@ -446,6 +446,18 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * An empty refund ID must return `false` early, even when an order carries an
+	 * empty-string `_stripe_refund_id` meta value that a meta query would match.
+	 */
+	public function test_get_order_by_refund_id_returns_false_for_empty_id(): void {
+		$order = WC_Helper_Order::create_order();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_refund_id( $order, '' );
+		$order->save_meta_data();
+
+		$this->assertFalse( WC_Stripe_Helper::get_order_by_refund_id( '' ) );
+	}
+
+	/**
 	 * Data provider for `test_get_order_by_refund_id`.
 	 *
 	 * @return array
