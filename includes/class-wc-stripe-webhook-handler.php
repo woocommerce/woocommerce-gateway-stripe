@@ -980,13 +980,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			$incoming_refund_id = $refund_object->id;
-
-			// Skip refunds Stripe re-delivers. The parent meta only holds the latest refund's ID,
-			// so earlier refunds need the per-refund lookup.
-			if ( $incoming_refund_id === $refund_id || WC_Stripe_Helper::get_order_by_refund_id( $incoming_refund_id ) ) {
-				// Unlock, or the next refund webhook within the lock window is dropped.
-				$order_helper->unlock_order_refund( $order );
+			// If the refund ID matches, don't continue to prevent double refunding.
+			if ( $refund_object->id === $refund_id ) {
 				return;
 			}
 
