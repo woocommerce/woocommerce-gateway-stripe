@@ -135,4 +135,15 @@ abstract class WC_Stripe_REST_Response_Filter {
 	public static function money_format( $value ) {
 		return number_format( round( $value / 100, 2 ), 2 );
 	}
+
+	/**
+	 * Format a unix timestamp as a date
+	 *
+	 * @param int $value The timestamp.
+	 *
+	 * @return string
+	 */
+	public static function date_format( $value ) {
+		return gmdate( 'F j, Y', $value );
+	}
 }

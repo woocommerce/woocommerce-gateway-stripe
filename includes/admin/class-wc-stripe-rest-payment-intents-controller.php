@@ -90,6 +90,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		'object'                               => '',
 		'has_more'                             => '',
 		'data.id'                              => '',
+		'data.created'                         => [ WC_Stripe_REST_Response_Filter::class, 'date_format' ],
 		'data.amount'                          => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
 		'data.amount_received'                 => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
 		'data.currency'                        => 'strtoupper',
@@ -100,6 +101,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	protected array $stripe_details_response_allowed_fields = [
 		'object'                          => '',
 		'id'                              => '',
+		'created'                         => [ WC_Stripe_REST_Response_Filter::class, 'date_format' ],
 		'amount'                          => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
 		'amount_received'                 => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
 		'currency'                        => 'strtoupper',
