@@ -79,6 +79,11 @@ const getAdaptivePricingUnavailableText = (
 				'Adaptive Pricing requires automatic capture. It’s unavailable while "Issue an authorization on checkout, and capture later" is enabled.',
 				'woocommerce-gateway-stripe'
 			);
+		case 'amount-mismatch-detected':
+			return __(
+				'Adaptive Pricing was disabled due to a plugin compatibility issue. Please contact WooCommerce support to report the issue so we can investigate the cause.',
+				'woocommerce-gateway-stripe'
+			);
 		default:
 			return __(
 				'Adaptive Pricing is currently unavailable.',
