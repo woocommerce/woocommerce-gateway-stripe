@@ -221,6 +221,10 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 		return;
 	}
 
+	// Clear any overlay a superseded resync left up; as the current generation
+	// with none newer in flight, this can't lift a block still in use.
+	unblockUI( jQuery( 'form.checkout #payment' ) );
+
 	adaptivePricingSyncFailed = resyncFailed;
 
 	if ( resyncFailed ) {
