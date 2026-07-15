@@ -1820,6 +1820,21 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Parent meta keeps tracking the latest refund (unchanged behavior).
 		$this->assertSame( 're_2', $order_helper->get_stripe_refund_id( $reloaded ) );
+
+		// Stripe delivers webhooks at least once: a replay of the same notification must be
+		// deduplicated by the parent-meta guard — no third refund, stored IDs untouched.
+		$this->mock_webhook_handler->process_webhook_refund( $notification );
+
+		$reloaded = wc_get_order( $order_id );
+		$this->assertCount( 2, $reloaded->get_refunds() );
+		$this->assertSame( 're_2', $order_helper->get_stripe_refund_id( $reloaded ) );
+
+		$replayed_ids = [];
+		foreach ( $reloaded->get_refunds() as $refund ) {
+			$replayed_ids[] = $refund->get_meta( $refund_meta_key );
+		}
+		sort( $replayed_ids );
+		$this->assertSame( [ 're_1', 're_2' ], $replayed_ids );
 	}
 
 	/**
