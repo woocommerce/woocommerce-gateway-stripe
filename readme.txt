@@ -156,6 +156,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.9.0 - xxxx-xx-xx =
+* Fix - Surface an error and block checkout when the Adaptive Pricing order total can't be synced with Stripe, instead of silently letting the buyer pay a stale amount
 * Fix - Stop attaching Level 3 data to captures and payments for non-card methods
 * Fix - Add the missing order and customer metadata to Adaptive Pricing payment intents
 * Add - Show a "Paid by customer" row with the Adaptive Pricing amount and currency on the order edit page
@@ -209,6 +210,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Cap the Agentic Commerce feed preview scan so it stays responsive on large catalogs instead of timing out
 * Dev - Make the Express Checkout entrypoint bootstrap test deterministic to remove a CI flake
 * Fix - Prevent an error when creating the Adaptive Pricing checkout session for logged-in customers without a saved billing address
+* Add - Add a wc_stripe_is_adaptive_pricing_supported filter so extensions can disable Adaptive Pricing for carts their flows are incompatible with
 * Fix - Show the selected variation's line items in the Apple Pay/Google Pay payment sheet on variable product pages, instead of the previously selected variation's breakdown
 * Tweak - Break down the Agentic Commerce feed preview's excluded product count by reason so subscriptions are no longer mistaken for a merchant-configured filter
 * Fix - Render the Express Checkout settings button preview background based on the button color
