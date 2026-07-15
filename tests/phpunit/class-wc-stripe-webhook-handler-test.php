@@ -1773,6 +1773,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'amount'   => 5.00,
 			]
 		);
+		$this->assertNotWPError( $wc_refund_1 );
 		$wc_refund_1->update_meta_data( $refund_meta_key, 're_1' );
 		$wc_refund_1->save_meta_data();
 		$order_helper->update_stripe_refund_id( $order, 're_1' );

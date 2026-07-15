@@ -817,6 +817,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'amount'   => 5.00,
 			]
 		);
+		$this->assertNotWPError( $wc_refund_1 );
 		$this->assertTrue( $this->gateway->process_refund( $order_id, 5.00 ) );
 
 		$mock_refund_id     = 're_2';
@@ -828,6 +829,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'amount'   => 7.00,
 			]
 		);
+		$this->assertNotWPError( $wc_refund_2 );
 		$this->assertTrue( $this->gateway->process_refund( $order_id, 7.00 ) );
 
 		remove_filter( 'pre_http_request', $callback );
@@ -857,6 +859,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'amount'   => 5.00,
 			]
 		);
+		$this->assertNotWPError( $refund );
 
 		$callback = function ( $preempt, $request_args, $url ) {
 			if ( strpos( $url, 'refunds' ) !== false ) {
