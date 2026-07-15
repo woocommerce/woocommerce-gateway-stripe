@@ -1235,6 +1235,9 @@ class WC_Stripe_Helper {
 	 * - A pre-order product that will be charged upon release.
 	 * - A deposit product.
 	 *
+	 * There's a hook to additionally opt out (but not back in) via the
+	 * `wc_stripe_is_adaptive_pricing_supported` filter.
+	 *
 	 * @return bool True if adaptive pricing is supported for the current checkout, false otherwise.
 	 * @since 10.6.0
 	 */
@@ -1260,40 +1263,55 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		if ( ! WC()->cart || WC()->cart->is_empty() ) {
-			return true;
+		$is_supported = true;
+
+		if ( WC()->cart && ! WC()->cart->is_empty() ) {
+			$subscriptions_available = class_exists( 'WC_Subscriptions_Product' ) && method_exists( 'WC_Subscriptions_Product', 'is_subscription' );
+			$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' );
+			$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' );
+
+			// Use a single loop over cart items to check all cases where adaptive pricing is unsupported:
+			// subscriptions, pre-orders charged upon release, and deposits.
+			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+				$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
+
+				if ( ! is_object( $product ) || ! ( $product instanceof WC_Product ) ) {
+					continue;
+				}
+
+				// Subscriptions are not supported with adaptive pricing.
+				if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) {
+					$is_supported = false;
+					break;
+				}
+
+				// Pre-order (charge upon release) is not supported with adaptive pricing.
+				if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
+					$is_supported = false;
+					break;
+				}
+
+				// Deposits are not supported with adaptive pricing.
+				if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) && ! empty( $cart_item['is_deposit'] ) ) {
+					$is_supported = false;
+					break;
+				}
+			}
 		}
 
-		$subscriptions_available = class_exists( 'WC_Subscriptions_Product' ) && method_exists( 'WC_Subscriptions_Product', 'is_subscription' );
-		$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' );
-		$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' );
-
-		// Use a single loop over cart items to check all cases where adaptive pricing is unsupported:
-		// subscriptions, pre-orders charged upon release, and deposits.
-		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
-			$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
-
-			if ( ! is_object( $product ) || ! ( $product instanceof WC_Product ) ) {
-				continue;
-			}
-
-			// Subscriptions are not supported with adaptive pricing.
-			if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) {
-				return false;
-			}
-
-			// Pre-order (charge upon release) is not supported with adaptive pricing.
-			if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
-				return false;
-			}
-
-			// Deposits are not supported with adaptive pricing.
-			if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) && ! empty( $cart_item['is_deposit'] ) ) {
-				return false;
-			}
+		if ( $is_supported ) {
+			/**
+			 * Filter to opt out from Adaptive Pricing for the current cart content.
+			 *
+			 * @since 10.9.0
+			 *
+			 * @param bool         $is_supported Whether Adaptive Pricing is supported for the current cart. Always true.
+			 * @param WC_Cart|null $cart         The current cart, or null if unavailable.
+			 */
+			$is_supported = (bool) apply_filters( 'wc_stripe_is_adaptive_pricing_supported', true, WC()->cart );
 		}
 
-		return true;
+		return $is_supported;
 	}
 
 	/**
