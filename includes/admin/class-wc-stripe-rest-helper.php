@@ -40,12 +40,9 @@ abstract class WC_Stripe_REST_Helper extends WC_Stripe_REST_Base_Controller {
 			$search_params[ $search_param_name ] = $search_param_value;
 
 			if ( 'query' === $search_param_name ) {
-				$has_query = true;
+				$search_params = [ 'query' => static::build_query_param( $request->get_param( 'query' ) ) ];
+				break;
 			}
-		}
-
-		if ( $has_query ) {
-			$search_params['query'] = static::build_query_param( $request->get_param( 'query' ) );
 		}
 
 		return $search_params;
