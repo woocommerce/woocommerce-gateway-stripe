@@ -8,15 +8,38 @@
  */
 
 const mockGetCartDetails = jest.fn();
+const mockGetSelectedProductData = jest.fn();
+const mockGetStripe = jest.fn();
+const mockAddToCart = jest.fn();
+const mockEmptyCartLegacy = jest.fn();
+
+// Drain both microtasks and jQuery Deferred's timer-scheduled callbacks.
+const flushPromises = async () => {
+	for ( let i = 0; i < 5; i++ ) {
+		await new Promise( ( resolve ) => setTimeout( resolve, 0 ) );
+	}
+};
+
+// Run jQuery's ready callback synchronously instead of on a `setTimeout` macrotask,
+// which raced the test's flush under CI load and bled into the next test. Other
+// jQuery calls delegate to the real library so `.on()`/`.trigger()` still work.
+jest.mock( 'jquery', () => {
+	const actualJQuery = jest.requireActual( 'jquery' );
+	const syncReadyJQuery = ( arg ) =>
+		typeof arg === 'function'
+			? arg( syncReadyJQuery )
+			: actualJQuery( arg );
+	return Object.assign( syncReadyJQuery, actualJQuery );
+} );
 
 // Stub the API so we can spy on the cart-details fetch without hitting the network.
 jest.mock( '../../../api', () =>
 	jest.fn().mockImplementation( () => ( {
 		expressCheckoutGetCartDetails: mockGetCartDetails,
-		getStripe: jest.fn(),
-		expressCheckoutGetSelectedProductData: jest.fn(),
-		expressCheckoutAddToCart: jest.fn(),
-		expressCheckoutEmptyCartLegacy: jest.fn(),
+		getStripe: mockGetStripe,
+		expressCheckoutGetSelectedProductData: mockGetSelectedProductData,
+		expressCheckoutAddToCart: mockAddToCart,
+		expressCheckoutEmptyCartLegacy: mockEmptyCartLegacy,
 	} ) )
 );
 
@@ -42,11 +65,6 @@ jest.mock(
 	() => ( {} )
 );
 
-// jQuery resolves its ready Deferred on a macrotask when the document is already
-// loaded; give that chain a couple of timer turns to bind the entrypoint handlers.
-const flushReady = () =>
-	new Promise( ( resolve ) => setTimeout( resolve, 10 ) );
-
 const baseParams = () => ( {
 	has_block: false,
 	is_pay_for_order: false,
@@ -61,6 +79,7 @@ const baseParams = () => ( {
 // Load the entrypoint into the current module registry so the test and the
 // entrypoint share one jQuery instance (jQuery stores event handlers per copy,
 // so triggers must come from the same instance the entrypoint bound them on).
+// With the synchronous-ready mock above, requiring it runs the bootstrap inline.
 const loadEntrypoint = () => {
 	require( '../index.js' );
 };
@@ -86,7 +105,7 @@ describe( 'Express Checkout cart/checkout bootstrap', () => {
 		delete global.wc_stripe_express_checkout_params;
 	} );
 
-	it( 'renders from the localized snapshot and skips the cart-details fetch on first paint', async () => {
+	it( 'renders from the localized snapshot and skips the cart-details fetch on first paint', () => {
 		global.wc_stripe_express_checkout_params = {
 			...baseParams(),
 			cart: {
@@ -99,12 +118,11 @@ describe( 'Express Checkout cart/checkout bootstrap', () => {
 		};
 
 		loadEntrypoint();
-		await flushReady();
 
 		expect( mockGetCartDetails ).not.toHaveBeenCalled();
 	} );
 
-	it( 'falls back to the cart-details fetch on re-init once the snapshot is consumed', async () => {
+	it( 'falls back to the cart-details fetch on re-init once the snapshot is consumed', () => {
 		global.wc_stripe_express_checkout_params = {
 			...baseParams(),
 			cart: {
@@ -117,7 +135,6 @@ describe( 'Express Checkout cart/checkout bootstrap', () => {
 		};
 
 		loadEntrypoint();
-		await flushReady();
 		expect( mockGetCartDetails ).not.toHaveBeenCalled();
 
 		// A live cart mutation re-runs init(); the consume-once flag now routes it
@@ -128,15 +145,210 @@ describe( 'Express Checkout cart/checkout bootstrap', () => {
 		expect( mockGetCartDetails ).toHaveBeenCalledTimes( 1 );
 	} );
 
-	it( 'fetches cart details on first paint when no snapshot is localized (develop parity)', async () => {
+	it( 'fetches cart details on first paint when no snapshot is localized (develop parity)', () => {
 		global.wc_stripe_express_checkout_params = {
 			...baseParams(),
 			cart: null,
 		};
 
 		loadEntrypoint();
-		await flushReady();
 
 		expect( mockGetCartDetails ).toHaveBeenCalledTimes( 1 );
+	} );
+} );
+
+describe( 'Express Checkout product page variation breakdown', () => {
+	const productParams = () => ( {
+		...baseParams(),
+		is_product_page: true,
+		is_cart_page: false,
+		stripe: {
+			publishable_key: 'pk_test_123',
+			locale: 'en',
+			is_express_checkout_enabled: true,
+		},
+		product: {
+			total: { amount: 1000 },
+			currency: 'usd',
+			requestShipping: false,
+			requestPhone: false,
+			// Initial paint: red variation ($10), the default selection.
+			displayItems: [ { label: 'Red variation', amount: 1000 } ],
+		},
+	} );
+
+	// Stripe button stub that captures the bound event handlers so the test can
+	// invoke the click handler directly. Each express type (Apple Pay, Google
+	// Pay, …) gets its own Elements group, so `elementsList` collects them all to
+	// assert the amount is pushed to every group.
+	const stubStripeButton = () => {
+		const handlers = {};
+		const elementsList = [];
+		const button = {
+			on: ( evt, cb ) => {
+				handlers[ evt ] = cb;
+				return button;
+			},
+			mount: jest.fn(),
+		};
+		mockGetStripe.mockReturnValue( {
+			elements: jest.fn( () => {
+				const elements = {
+					create: jest.fn( () => button ),
+					update: jest.fn(),
+				};
+				elementsList.push( elements );
+				return elements;
+			} ),
+		} );
+		return { handlers, elementsList };
+	};
+
+	beforeEach( () => {
+		jest.resetModules();
+		[
+			mockGetSelectedProductData,
+			mockGetStripe,
+			mockAddToCart,
+			mockEmptyCartLegacy,
+		].forEach( ( m ) => m.mockReset() );
+
+		// The BlockUI plugin (`.block()`/`.unblock()`) isn't loaded in jsdom.
+		// eslint-disable-next-line global-require
+		const jq = require( 'jquery' );
+		jq.fn.block = function () {
+			return this;
+		};
+		jq.fn.unblock = function () {
+			return this;
+		};
+
+		document.body.innerHTML = `
+			<div id="wc-stripe-express-checkout-element"></div>
+			<form class="variations_form cart">
+				<table class="variations"><tbody><tr><td class="value">
+					<select name="attribute_color" data-attribute_name="attribute_color">
+						<option value="blue" selected>blue</option>
+					</select>
+				</td></tr></tbody></table>
+				<div class="single_variation_wrap">
+					<div class="quantity"><input type="number" class="qty" name="quantity" value="1" /></div>
+					<button type="submit" class="single_add_to_cart_button" value="1048">Add</button>
+					<input type="hidden" name="product_id" value="1048" />
+					<input type="hidden" name="variation_id" class="variation_id" value="123" />
+				</div>
+			</form>`;
+	} );
+
+	afterEach( () => {
+		delete global.wc_stripe_express_checkout_params;
+	} );
+
+	it( 'resolves the click with the newly selected variation’s line items, not the initial ones', async () => {
+		global.wc_stripe_express_checkout_params = productParams();
+
+		// Switching to blue ($20) refreshes the preview via the fast-path, which
+		// updates only the element amount — the regression left the breakdown stale.
+		mockGetSelectedProductData.mockResolvedValue( {
+			total: { amount: 2000 },
+			currency: 'usd',
+			requestShipping: false,
+			displayItems: [ { label: 'Blue variation', amount: 2000 } ],
+		} );
+		mockAddToCart.mockResolvedValue( { items_count: 1 } );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+
+		const { handlers } = stubStripeButton();
+
+		loadEntrypoint();
+
+		// eslint-disable-next-line global-require
+		require( 'jquery' )( document.body ).trigger(
+			'woocommerce_variation_has_changed'
+		);
+		await flushPromises();
+
+		const event = { resolve: jest.fn(), expressPaymentType: 'googlePay' };
+		await handlers.click( event );
+
+		expect( event.resolve ).toHaveBeenCalledTimes( 1 );
+		expect( event.resolve.mock.calls[ 0 ][ 0 ].lineItems ).toEqual( [
+			{ name: 'Blue variation', amount: 2000 },
+		] );
+	} );
+
+	it( 'refreshes the click breakdown when the quantity changes', async () => {
+		// The `.qty` handler is debounced (250ms), so drive timers deterministically.
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+
+		// Bumping qty to 2 doubles the red variation breakdown via the debounced
+		// .qty fast-path, which writes the new total/displayItems back to the cache.
+		mockGetSelectedProductData.mockResolvedValue( {
+			total: { amount: 2000 },
+			currency: 'usd',
+			requestShipping: false,
+			displayItems: [ { label: 'Red variation', amount: 2000 } ],
+		} );
+		mockAddToCart.mockResolvedValue( { items_count: 1 } );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+
+		const { handlers } = stubStripeButton();
+
+		loadEntrypoint();
+
+		// eslint-disable-next-line global-require
+		const jq = require( 'jquery' );
+		const qtyInput = document.querySelector( '.qty' );
+		qtyInput.value = '2';
+		jq( qtyInput ).trigger( 'input' );
+
+		// Run the debounce and flush the resulting promise chain. Restore real
+		// timers in `finally` so a throw here can't leak fake timers into later tests.
+		try {
+			await jest.advanceTimersByTimeAsync( 300 );
+		} finally {
+			jest.useRealTimers();
+		}
+
+		const event = { resolve: jest.fn(), expressPaymentType: 'googlePay' };
+		await handlers.click( event );
+
+		expect( event.resolve ).toHaveBeenCalledTimes( 1 );
+		expect( event.resolve.mock.calls[ 0 ][ 0 ].lineItems ).toEqual( [
+			{ name: 'Red variation', amount: 2000 },
+		] );
+	} );
+
+	it( 'pushes the new amount to every mounted express button, not just the last one', async () => {
+		global.wc_stripe_express_checkout_params = productParams();
+
+		mockGetSelectedProductData.mockResolvedValue( {
+			total: { amount: 2000 },
+			currency: 'usd',
+			requestShipping: false,
+			displayItems: [ { label: 'Blue variation', amount: 2000 } ],
+		} );
+		mockAddToCart.mockResolvedValue( { items_count: 1 } );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+
+		const { elementsList } = stubStripeButton();
+
+		loadEntrypoint();
+
+		// Apple Pay and Google Pay each mount their own Elements group.
+		expect( elementsList.length ).toBeGreaterThan( 1 );
+
+		// eslint-disable-next-line global-require
+		require( 'jquery' )( document.body ).trigger(
+			'woocommerce_variation_has_changed'
+		);
+		await flushPromises();
+
+		// The regression updated only the last group, leaving the others below
+		// the refreshed line-item total so their wallet rejected the click.
+		elementsList.forEach( ( elements ) => {
+			expect( elements.update ).toHaveBeenCalledWith( { amount: 2000 } );
+		} );
 	} );
 } );

@@ -31,11 +31,21 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		$this->order = WC_Helper_Order::create_order();
+		$this->create_gateway_and_controller();
+	}
+
+	/**
+	 * Creates the mocked gateway and controller under test.
+	 *
+	 * The gateway snapshots the main Stripe settings in its constructor, so tests that
+	 * change those settings must call this again for the new values to take effect.
+	 */
+	private function create_gateway_and_controller() {
 		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
 			->getMock();
 
-		$this->order           = WC_Helper_Order::create_order();
 		$this->gateway         = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->setConstructorArgs( [ $mock_account ] )
 			->setMethods( [ 'maybe_process_upe_redirect', 'has_subscription' ] )
@@ -154,6 +164,83 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		return [
 			'uses order currency when order exists' => [ 'USD', 'CAD', 'usd' ],
 			'uses global currency without order'    => [ null, 'EUR', 'eur' ],
+		];
+	}
+
+	/**
+	 * Test that create_payment_intent includes the bank statement descriptor for non-card
+	 * payment methods that create their intent upfront (non-deferred, e.g. ACSS Debit and BLIK).
+	 *
+	 * @param string|null $payment_method_type The payment method type requested for the intent.
+	 * @param string      $local_descriptor    The locally configured statement descriptor.
+	 * @param array       $account_data        The Stripe account data to mock.
+	 * @param string|null $expected_descriptor The expected statement_descriptor in the request, or null if it must not be set.
+	 *
+	 * @dataProvider provide_create_payment_intent_statement_descriptor_data
+	 */
+	public function test_create_payment_intent_statement_descriptor( $payment_method_type, $local_descriptor, $account_data, $expected_descriptor ) {
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['statement_descriptor'] = $local_descriptor;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$this->create_gateway_and_controller();
+
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_cached_account_data' ] )
+			->getMock();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( $account_data );
+
+		$request_body = null;
+		$test_request = function ( $preempt, $parsed_args ) use ( &$request_body ) {
+			$request_body = $parsed_args['body'];
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode(
+					[
+						'id'            => 'pi_mock',
+						'client_secret' => 'cs_mock',
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_payment_intent( $this->order->get_id(), $payment_method_type );
+
+		$this->assertIsArray( $request_body, 'The payment intent creation request should have been made.' );
+
+		if ( null === $expected_descriptor ) {
+			$this->assertArrayNotHasKey( 'statement_descriptor', $request_body );
+		} else {
+			$this->assertArrayHasKey( 'statement_descriptor', $request_body );
+			$this->assertSame( $expected_descriptor, $request_body['statement_descriptor'] );
+		}
+	}
+
+	/**
+	 * Data provider for test_create_payment_intent_statement_descriptor.
+	 *
+	 * @return array[] [ payment_method_type, local_descriptor, account_data, expected_descriptor ]
+	 */
+	public function provide_create_payment_intent_statement_descriptor_data() {
+		$account_with_descriptor = [
+			'settings' => [
+				'payments' => [
+					'statement_descriptor' => 'ACCOUNT DESCRIPTOR',
+				],
+			],
+		];
+
+		return [
+			'blik uses the local descriptor'          => [ WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID, 'WOO STORE', $account_with_descriptor, 'WOO STORE' ],
+			'acss falls back to account descriptor'   => [ WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID, '', $account_with_descriptor, 'ACCOUNT DESCRIPTOR' ],
+			'no descriptor available leaves it unset' => [ WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID, '', [], null ],
+			'card payments do not set the descriptor' => [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, 'WOO STORE', $account_with_descriptor, null ],
+			'no payment method type leaves it unset'  => [ null, 'WOO STORE', $account_with_descriptor, null ],
 		];
 	}
 
@@ -675,6 +762,106 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		// Order must NOT be set to failed — the customer should be able to retry.
 		$final_order = wc_get_order( $order_id );
 		$this->assertNotEquals( 'failed', $final_order->get_status() );
+
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	/**
+	 * A request whose intent_id does not match the order's stored intent (an attacker replaying a
+	 * valid generic guest nonce against a victim order_id) must be rejected before any order
+	 * mutation: the order is not set to failed and no note is added to it.
+	 */
+	public function test_update_order_status_ajax_intent_mismatch_does_not_fail_order() {
+		Ajax_Test_Helper::init_hooks();
+
+		$order = WC_Helper_Order::create_order();
+		$order->update_meta_data( '_stripe_intent_id', 'pi_victim_real' );
+		$order->set_status( 'completed' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+
+		// A mismatch is rejected before processing starts, so the gateway is never asked to process.
+		$gateway->expects( $this->never() )
+			->method( 'process_order_for_confirmed_intent' );
+
+		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_gateway' ] )
+			->getMock();
+
+		$controller->expects( $this->any() )
+			->method( 'get_gateway' )
+			->willReturn( $gateway );
+
+		$notes_before = count( wc_get_order_notes( [ 'order_id' => $order_id ] ) );
+
+		// Valid generic guest nonce, victim order_id, attacker-supplied unrelated intent_id.
+		$_POST['order_id']       = $order_id;
+		$_POST['intent_id']      = 'pi_attacker_unrelated';
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$controller->update_order_status_ajax();
+		$output   = ob_get_clean();
+		$response = json_decode( $output, true );
+
+		$this->assertFalse( $response['success'] );
+
+		// The victim order must be untouched: still completed, and no spam note added.
+		$final_order = wc_get_order( $order_id );
+		$this->assertEquals( 'completed', $final_order->get_status() );
+		$this->assertSame( $notes_before, count( wc_get_order_notes( [ 'order_id' => $order_id ] ) ) );
+
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	/**
+	 * A genuine payment failure raised once gateway processing has begun must still fail the order.
+	 * This guards the $processing_started flag from suppressing legitimate payment-failure handling.
+	 */
+	public function test_update_order_status_ajax_payment_failure_still_fails_order() {
+		Ajax_Test_Helper::init_hooks();
+
+		$order     = WC_Helper_Order::create_order();
+		$intent_id = 'pi_matches_order';
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+
+		$gateway->expects( $this->once() )
+			->method( 'process_order_for_confirmed_intent' )
+			->willThrowException( new WC_Stripe_Exception( 'processing_error', 'Your card was declined.' ) );
+
+		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_gateway' ] )
+			->getMock();
+
+		$controller->expects( $this->any() )
+			->method( 'get_gateway' )
+			->willReturn( $gateway );
+
+		$_POST['order_id']       = $order_id;
+		$_POST['intent_id']      = $intent_id;
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$controller->update_order_status_ajax();
+		$output   = ob_get_clean();
+		$response = json_decode( $output, true );
+
+		$this->assertFalse( $response['success'] );
+		$this->assertEquals( 'failed', wc_get_order( $order_id )->get_status() );
 
 		Ajax_Test_Helper::remove_hooks();
 	}

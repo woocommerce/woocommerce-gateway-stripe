@@ -363,6 +363,11 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			return [ false, true, [ sprintf( __( 'Order ID %d is less than set retention days. Personal data retained. (Stripe)', 'woocommerce-gateway-stripe' ), $order->get_id() ) ] ];
 		}
 
+		/**
+		 * Filters subscription statuses that retain Stripe personal data during erasure.
+		 *
+		 * @param string[] $statuses Subscription statuses that should retain personal data.
+		 */
 		if ( $subscription->has_status( apply_filters( 'wc_stripe_privacy_eraser_subs_statuses', [ 'on-hold', 'active' ] ) ) ) {
 			/* translators: %d Order ID */
 			return [ false, true, [ sprintf( __( 'Order ID %d contains an active Subscription. Personal data retained. (Stripe)', 'woocommerce-gateway-stripe' ), $order->get_id() ) ] ];
