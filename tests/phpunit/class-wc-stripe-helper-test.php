@@ -2049,6 +2049,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param ?string $expected                 Expected return value.
 	 * @param bool    $webhook_enabled          Whether the Stripe webhook endpoint is enabled. Defaults to true.
 	 * @param bool    $amount_mismatch_detected Whether Adaptive Pricing was disabled due to amount mismatches. Defaults to false.
+	 * @param bool    $manual_capture           Whether manual capture is enabled. Defaults to false.
 	 * @return void
 	 * @dataProvider provide_test_get_adaptive_pricing_account_unavailable_reason
 	 */
@@ -2058,11 +2059,13 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		string $store_currency,
 		?string $expected,
 		bool $webhook_enabled = true,
-		bool $amount_mismatch_detected = false
+		bool $amount_mismatch_detected = false,
+		bool $manual_capture = false
 	): void {
 		$original_settings    = WC_Stripe_Helper::get_stripe_settings();
 		$settings             = $original_settings;
 		$settings['testmode'] = $test_mode ? 'yes' : 'no';
+		$settings['capture']  = $manual_capture ? 'no' : 'yes';
 		if ( $webhook_enabled ) {
 			$settings['webhook_data']      = [
 				'id'     => 'we_live',
@@ -2126,6 +2129,22 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'test_mode'      => false,
 				'store_currency' => 'USD',
 				'expected'       => 'account-country',
+			],
+			'Manual capture → manual-capture'                                               => [
+				'account_data'             => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'usd' ],
+						],
+					],
+				],
+				'test_mode'                => false,
+				'store_currency'           => 'USD',
+				'expected'                 => 'manual-capture',
+				'webhook_enabled'          => true,
+				'amount_mismatch_detected' => false,
+				'manual_capture'           => true,
 			],
 			'India account (lowercase) → account-country'                                   => [
 				'account_data'   => [
