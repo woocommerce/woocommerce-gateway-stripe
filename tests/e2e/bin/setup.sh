@@ -86,18 +86,12 @@ redirect_output cli wp plugin install disable-emails --activate
 
 # Install WooCommerce
 if [[ -n "$WC_VERSION" && $WC_VERSION != 'latest' ]]; then
-	# If specified version is 'beta', fetch the latest beta version from WordPress.org API.
+	# If specified version is 'beta' or 'rc', fetch the latest matching version from WordPress.org API.
 	# jq sorts keys lexically ("9.9.0-beta.1" > "11.0.0-beta.1"), so sort with PHP's
 	# version_compare instead to get the actual latest version.
-	if [[ $WC_VERSION == 'beta' ]]; then
+	if [[ $WC_VERSION == 'beta' || $WC_VERSION == 'rc' ]]; then
 		WC_VERSION=$(curl -s https://api.wordpress.org/plugins/info/1.0/woocommerce.json | \
-			jq -r '.versions | keys[] | select(match("beta";"i"))' | \
-			php -r '$v = array_filter( array_map( "trim", file( "php://stdin" ) ) ); usort( $v, "version_compare" ); echo end( $v ) ?: "";')
-	fi
-
-	if [[ $WC_VERSION == 'rc' ]]; then
-		WC_VERSION=$(curl -s https://api.wordpress.org/plugins/info/1.0/woocommerce.json | \
-			jq -r '.versions | keys[] | select(match("rc";"i"))' | \
+			jq -r --arg type "$WC_VERSION" '.versions | keys[] | select(match($type;"i"))' | \
 			php -r '$v = array_filter( array_map( "trim", file( "php://stdin" ) ) ); usort( $v, "version_compare" ); echo end( $v ) ?: "";')
 	fi
 
