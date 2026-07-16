@@ -93,9 +93,11 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	private function mock_webhook_handler( $exclude_methods = [] ) {
 		$methods = [
 			'handle_deferred_payment_intent_succeeded',
+			'handle_deferred_payment_for_cancelled_order',
 			'get_intent_from_order',
 			'get_latest_charge_from_intent',
 			'process_response',
+			'process_refund',
 			'update_fees',
 			'send_failed_refund_emails',
 		];
@@ -316,6 +318,204 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->method( 'process_response' );
 
 		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+	}
+
+	/**
+	 * Order meta flag recording that a late payment on a cancelled order was refunded/voided.
+	 */
+	const META_REFUNDED_AFTER_CANCELLATION = '_stripe_refunded_after_cancellation';
+
+	/**
+	 * Builds a deferred payment_intent.succeeded payload for the given order.
+	 *
+	 * @param WC_Order $order The order the webhook targets.
+	 * @return array{0: array, 1: object} The additional data and notification.
+	 */
+	private function build_deferred_intent_succeeded_payload( $order ) {
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+
+		return [ $data, $notification ];
+	}
+
+	/**
+	 * A cancelled order is routed to the refund handler, not the mark-as-paid handler.
+	 */
+	public function test_deferred_webhook_routes_cancelled_order_to_refund_handler() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->save();
+
+		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
+
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'handle_deferred_payment_intent_succeeded' );
+
+		$this->mock_webhook_handler->expects( $this->once() )
+			->method( 'handle_deferred_payment_for_cancelled_order' )
+			->with(
+				$this->callback(
+					function ( $passed_order ) use ( $order ) {
+						return $passed_order instanceof WC_Order && $order->get_id() === $passed_order->get_id();
+					}
+				),
+				self::MOCK_PAYMENT_INTENT['id']
+			);
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+	}
+
+	/**
+	 * A captured payment landing on a cancelled order is refunded, noted and flagged, and the
+	 * order stays cancelled.
+	 */
+	public function test_cancelled_order_captured_payment_is_refunded() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->save();
+
+		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
+
+		// Run the real cancelled-order handler; mock only its dependencies.
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
+
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT );
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		// A captured charge must be refunded for its full amount; a null amount would no-op.
+		$this->mock_webhook_handler->expects( $this->once() )
+			->method( 'process_refund' )
+			->with( $order->get_id(), $order->get_total(), $this->isType( 'string' ) )
+			->willReturn( true );
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertEquals( OrderStatus::CANCELLED, $updated_order->get_status() );
+		$this->assertEquals( 'yes', $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
+		$this->assertOrderHasNoteContaining( $updated_order, 'automatically refunded' );
+	}
+
+	/**
+	 * An already-flagged order is not refunded again when the deferred job is retried.
+	 */
+	public function test_cancelled_order_refund_is_idempotent() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->update_meta_data( self::META_REFUNDED_AFTER_CANCELLATION, 'yes' );
+		$order->save();
+
+		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
+
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
+
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT );
+
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'process_refund' );
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+	}
+
+	/**
+	 * An uncaptured authorisation is routed through process_refund() (which voids the intent) and
+	 * noted as a voided authorisation. process_refund() returns null on the void path, which is
+	 * treated as success.
+	 */
+	public function test_cancelled_order_uncaptured_authorization_is_voided() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->save();
+
+		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
+
+		$intent                 = (object) array_merge(
+			self::MOCK_PAYMENT_INTENT,
+			[ 'status' => WC_Stripe_Intent_Status::REQUIRES_CAPTURE ]
+		);
+		$uncaptured             = self::MOCK_PAYMENT_INTENT['charges']['data'][0];
+		$uncaptured['captured'] = false;
+
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
+
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturn( $intent );
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) $uncaptured );
+
+		// process_refund() cancels the requires_capture intent internally and returns null.
+		$this->mock_webhook_handler->expects( $this->once() )
+			->method( 'process_refund' )
+			->with( $order->get_id(), null, $this->isType( 'string' ) )
+			->willReturn( null );
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertEquals( OrderStatus::CANCELLED, $updated_order->get_status() );
+		$this->assertEquals( 'yes', $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
+		$this->assertOrderHasNoteContaining( $updated_order, 'voided' );
+	}
+
+	/**
+	 * A failed refund leaves the order un-flagged so Action Scheduler can retry, and records a note.
+	 */
+	public function test_cancelled_order_refund_failure_adds_note_and_allows_retry() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->save();
+
+		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
+
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
+
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT );
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$this->mock_webhook_handler->method( 'process_refund' )
+			->willReturn( new WP_Error( 'stripe_error', 'Refund failed for testing.' ) );
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertEquals( OrderStatus::CANCELLED, $updated_order->get_status() );
+		$this->assertEmpty( $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
+		$this->assertOrderHasNoteContaining( $updated_order, 'automatic refund failed' );
+	}
+
+	/**
+	 * Asserts that an order has at least one note containing the given substring.
+	 *
+	 * @param WC_Order $order  The order to inspect.
+	 * @param string   $needle The substring the note must contain.
+	 * @return void
+	 */
+	private function assertOrderHasNoteContaining( $order, $needle ) {
+		$notes    = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+		$contents = wp_list_pluck( $notes, 'content' );
+
+		$this->assertNotEmpty(
+			array_filter(
+				$contents,
+				function ( $content ) use ( $needle ) {
+					return false !== strpos( $content, $needle );
+				}
+			),
+			sprintf( 'Expected an order note containing "%s".', $needle )
+		);
 	}
 
 	/**
