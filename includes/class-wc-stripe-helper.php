@@ -1160,6 +1160,11 @@ class WC_Stripe_Helper {
 			return 'webhooks-disabled';
 		}
 
+		// If Adaptive Pricing was disabled due to an amount mismatch, keep Adaptive Pricing disabled.
+		if ( WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected() ) {
+			return 'amount-mismatch-detected';
+		}
+
 		// If we are in test mode, payout details are often missing and currency-based rules
 		// are not enforced.
 		if ( WC_Stripe_Mode::is_test() ) {

@@ -18,6 +18,24 @@ jest.mock( '@wordpress/data', () => ( {
 	useSelect: jest.fn( () => '' ),
 } ) );
 
+// hooks.js imports jQuery; mock the module with a chainable so the
+// blockUI/unblockUI calls in the totals-sync effect are no-ops here and do not
+// abort the re-price under test.
+jest.mock( 'jquery', () => {
+	const jq = jest.fn( () => {
+		const chain = {
+			on: jest.fn(),
+			trigger: jest.fn(),
+			addClass: jest.fn( () => chain ),
+			removeClass: jest.fn( () => chain ),
+			block: jest.fn( () => chain ),
+			unblock: jest.fn( () => chain ),
+		};
+		return chain;
+	} );
+	return jq;
+} );
+
 describe( 'CheckoutSessions hook tests', () => {
 	beforeEach( () => {
 		useEffect.mockImplementation( ( fn ) => fn() );
