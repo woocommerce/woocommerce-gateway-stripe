@@ -93,7 +93,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
-		$this->mock_controller->create_payment_intent( $this->order->get_id() );
+		$this->mock_controller->create_payment_intent( $this->order->get_id(), WC_Stripe_Payment_Methods::BLIK );
 	}
 
 	/**
@@ -150,7 +150,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
-		$this->mock_controller->create_payment_intent( $order_id );
+		$this->mock_controller->create_payment_intent( $order_id, WC_Stripe_Payment_Methods::BLIK );
 
 		remove_filter( 'woocommerce_currency', $currency_callback );
 	}
@@ -164,6 +164,32 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		return [
 			'uses order currency when order exists' => [ 'USD', 'CAD', 'usd' ],
 			'uses global currency without order'    => [ null, 'EUR', 'eur' ],
+		];
+	}
+
+	/**
+	 * Test that intents can only be created upfront for payment methods that do not support deferred intent creation.
+	 *
+	 * @param string|null $payment_method_type The requested payment method type.
+	 * @dataProvider provide_unsupported_create_payment_intent_types
+	 */
+	public function test_create_payment_intent_rejects_deferred_or_invalid_payment_method_types( $payment_method_type ) {
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'Unable to process your request.' );
+
+		$this->mock_controller->create_payment_intent( $this->order->get_id(), $payment_method_type );
+	}
+
+	/**
+	 * Data provider for test_create_payment_intent_rejects_deferred_or_invalid_payment_method_types.
+	 *
+	 * @return array[]
+	 */
+	public function provide_unsupported_create_payment_intent_types() {
+		return [
+			'card supports deferred intent creation' => [ WC_Stripe_Payment_Methods::CARD ],
+			'missing payment method type'            => [ null ],
+			'unknown payment method type'            => [ 'unknown' ],
 		];
 	}
 
@@ -239,8 +265,6 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			'blik uses the local descriptor'          => [ WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID, 'WOO STORE', $account_with_descriptor, 'WOO STORE' ],
 			'acss falls back to account descriptor'   => [ WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID, '', $account_with_descriptor, 'ACCOUNT DESCRIPTOR' ],
 			'no descriptor available leaves it unset' => [ WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID, '', [], null ],
-			'card payments do not set the descriptor' => [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, 'WOO STORE', $account_with_descriptor, null ],
-			'no payment method type leaves it unset'  => [ null, 'WOO STORE', $account_with_descriptor, null ],
 		];
 	}
 
