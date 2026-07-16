@@ -1204,6 +1204,11 @@ class WC_Stripe_Helper {
 			return 'amount-mismatch-detected';
 		}
 
+		// Adaptive Pricing requires automatic capture.
+		if ( 'yes' !== ( self::get_stripe_settings()['capture'] ?? 'yes' ) ) {
+			return 'manual-capture';
+		}
+
 		// If we are in test mode, payout details are often missing and currency-based rules
 		// are not enforced.
 		if ( WC_Stripe_Mode::is_test() ) {
@@ -1224,28 +1229,6 @@ class WC_Stripe_Helper {
 		}
 
 		return null;
-	}
-
-	/**
-	 * Returns the reason why Adaptive Pricing is unavailable for the store, or null if it is available.
-	 *
-	 * Checks for:
-	 * - Account level restrictions
-	 * - Store level restrictions (manual capture disabled)
-	 *
-	 * @return string|null The reason why Adaptive Pricing is unavailable, or null if it is available.
-	 */
-	public static function get_adaptive_pricing_unavailable_reason(): ?string {
-		if ( ! self::is_checkout_sessions_available() ) {
-			$is_automatic_capture_enabled = ( self::get_stripe_settings()['capture'] ?? 'yes' ) === 'yes';
-			if ( ! $is_automatic_capture_enabled ) {
-				return 'manual-capture';
-			}
-
-			return 'disabled';
-		}
-
-		return self::get_adaptive_pricing_account_unavailable_reason();
 	}
 
 	/**

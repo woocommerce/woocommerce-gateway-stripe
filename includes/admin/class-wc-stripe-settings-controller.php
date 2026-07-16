@@ -232,8 +232,11 @@ class WC_Stripe_Settings_Controller {
 			&& ! $is_ap_enabled
 			&& 'yes' === get_option( 'wc_stripe_show_ocs_only_banner', 'no' );
 
-		$adaptive_pricing_unavailable_reason = WC_Stripe_Helper::get_adaptive_pricing_unavailable_reason();
-		$is_checkout_sessions_available      = null === $adaptive_pricing_unavailable_reason;
+		$adaptive_pricing_unavailable_reason = WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason();
+		if ( null === $adaptive_pricing_unavailable_reason && ! WC_Stripe_Helper::is_checkout_sessions_available() ) {
+			$adaptive_pricing_unavailable_reason = 'disabled';
+		}
+		$is_checkout_sessions_available = null === $adaptive_pricing_unavailable_reason;
 
 		$params = [
 			'time'                                  => time(),
