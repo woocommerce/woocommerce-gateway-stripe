@@ -2877,11 +2877,17 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 10
+			count: 11
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$payment_method\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
