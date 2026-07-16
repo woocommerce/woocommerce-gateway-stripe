@@ -1861,6 +1861,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return void
 	 */
 	protected function handle_deferred_payment_for_cancelled_order( $order, $intent_id ) {
+		/**
+		 * Filters whether a late Stripe payment on a cancelled order is automatically refunded.
+		 *
+		 * Return false to leave the payment in place (e.g. to reconcile it manually) instead of
+		 * refunding the charge or voiding the authorisation.
+		 *
+		 * @since 10.9.0
+		 *
+		 * @param bool     $auto_refund Whether to refund the payment automatically. Default true.
+		 * @param WC_Order $order       The cancelled order that received the payment.
+		 */
+		if ( ! apply_filters( 'wc_stripe_auto_refund_cancelled_order', true, $order ) ) {
+			WC_Stripe_Logger::debug( "Skipped refunding cancelled order {$order->get_id()} for Stripe PaymentIntent {$intent_id} - auto-refund disabled by the wc_stripe_auto_refund_cancelled_order filter." );
+			return;
+		}
+
 		$intent = $this->get_intent_from_order( $order );
 
 		if ( ! $intent || $intent->id !== $intent_id ) {
