@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.9.0
+* Fix - Surface an error and block checkout when the Adaptive Pricing order total can't be synced with Stripe, instead of silently letting the buyer pay a stale amount
 * Fix - Stop attaching Level 3 data to captures and payments for non-card methods
 * Fix - Add the missing order and customer metadata to Adaptive Pricing payment intents
 * Add - Show a "Paid by customer" row with the Adaptive Pricing amount and currency on the order edit page
@@ -24,6 +25,7 @@ xxxx-xx-xx - version 10.9.0
 * Update - Replace shipping AJAX endpoints with Store API calls for Express Checkout Element
 * Tweak - Consolidate the default payment intent metadata fields into a shared method so they stay consistent across payment flows
 * Fix - Prevent an uncaught "Stripe initialization data is not available" error on product pages when express checkout loads without the Stripe payment configuration
+* Add - Add a wc_stripe_is_adaptive_pricing_supported filter so extensions can disable Adaptive Pricing for carts their flows are incompatible with
 * Add - Stripe admin pages to the WordPress Command Palette
 * Fix - Prevent a possible fatal error when saving the payment method on a subscription order
 * Dev - Use clsx library instead of classnames
