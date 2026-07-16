@@ -497,6 +497,33 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Merchants can disable the auto-refund via the wc_stripe_auto_refund_cancelled_order filter.
+	 */
+	public function test_cancelled_order_refund_can_be_disabled_by_filter() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->save();
+
+		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
+
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
+
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'process_refund' );
+
+		add_filter( 'wc_stripe_auto_refund_cancelled_order', '__return_false' );
+		try {
+			$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+		} finally {
+			remove_filter( 'wc_stripe_auto_refund_cancelled_order', '__return_false' );
+		}
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertEquals( OrderStatus::CANCELLED, $updated_order->get_status() );
+		$this->assertEmpty( $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
+	}
+
+	/**
 	 * Asserts that an order has at least one note containing the given substring.
 	 *
 	 * @param WC_Order $order  The order to inspect.
