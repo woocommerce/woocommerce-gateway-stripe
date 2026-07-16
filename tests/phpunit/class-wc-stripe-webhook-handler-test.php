@@ -374,36 +374,81 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A captured payment landing on a cancelled order is refunded, noted and flagged, and the
-	 * order stays cancelled.
+	 * A cancelled order that receives a late payment is refunded (captured charge) or voided
+	 * (uncaptured authorisation). The refund amount comes from the charge's remaining balance, and
+	 * the order is only flagged as handled when process_refund() reports the path-appropriate success.
+	 *
+	 * @param string $intent_status      PaymentIntent status.
+	 * @param int    $charge_amount      Charge amount in the smallest currency unit.
+	 * @param int    $amount_refunded    Already-refunded amount in the smallest currency unit.
+	 * @param bool   $is_captured        Whether the charge was captured.
+	 * @param mixed  $refund_return      The value process_refund() returns.
+	 * @param bool   $expect_null_amount Whether process_refund() should be called with a null amount.
+	 * @param string $expected_note      Substring the resulting order note must contain.
+	 * @param bool   $expect_flagged     Whether the order should be flagged as handled.
+	 * @dataProvider provide_cancelled_order_refund_scenarios
 	 */
-	public function test_cancelled_order_captured_payment_is_refunded() {
+	public function test_cancelled_order_refund_scenarios( $intent_status, $charge_amount, $amount_refunded, $is_captured, $refund_return, $expect_null_amount, $expected_note, $expect_flagged ) {
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::CANCELLED );
 		$order->save();
 
 		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
 
+		$intent = (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'status' => $intent_status ] );
+		$charge = (object) array_merge(
+			self::MOCK_PAYMENT_INTENT['charges']['data'][0],
+			[
+				'amount'          => $charge_amount,
+				'amount_refunded' => $amount_refunded,
+				'currency'        => 'usd',
+				'captured'        => $is_captured,
+			]
+		);
+
 		// Run the real cancelled-order handler; mock only its dependencies.
 		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
 
-		$this->mock_webhook_handler->method( 'get_intent_from_order' )
-			->willReturn( (object) self::MOCK_PAYMENT_INTENT );
-		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
-			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )->willReturn( $intent );
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
 
-		// A captured charge must be refunded for its full amount; a null amount would no-op.
+		// Captured charges refund the remaining balance; authorisation voids pass a null amount.
+		$expected_amount = $expect_null_amount
+			? null
+			: WC_Stripe_Helper::convert_from_stripe_amount( $charge_amount - $amount_refunded, 'usd' );
+
 		$this->mock_webhook_handler->expects( $this->once() )
 			->method( 'process_refund' )
-			->with( $order->get_id(), $order->get_total(), $this->isType( 'string' ) )
-			->willReturn( true );
+			->with( $order->get_id(), $expected_amount, $this->isType( 'string' ) )
+			->willReturn( $refund_return );
 
 		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
 
 		$updated_order = wc_get_order( $order->get_id() );
 		$this->assertEquals( OrderStatus::CANCELLED, $updated_order->get_status() );
-		$this->assertEquals( 'yes', $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
-		$this->assertOrderHasNoteContaining( $updated_order, 'automatically refunded' );
+
+		if ( $expect_flagged ) {
+			$this->assertEquals( 'yes', $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
+		} else {
+			$this->assertEmpty( $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
+		}
+		$this->assertOrderHasNoteContaining( $updated_order, $expected_note );
+	}
+
+	/**
+	 * Data provider for test_cancelled_order_refund_scenarios.
+	 *
+	 * @return array[]
+	 */
+	public function provide_cancelled_order_refund_scenarios() {
+		return [
+			'captured charge is refunded in full'          => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, true, false, 'automatically refunded', true ],
+			'captured charge refunds remaining balance'    => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 400, true, true, false, 'automatically refunded', true ],
+			'uncaptured authorisation is voided'           => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, 1000, 0, false, false, true, 'voided', true ],
+			'captured refund returning false is a failure' => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, false, false, 'automatic refund failed', false ],
+			'captured refund returning null is a failure'  => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, null, false, 'automatic refund failed', false ],
+			'refund error is a failure'                    => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, new WP_Error( 'stripe_error', 'boom' ), false, 'automatic refund failed', false ],
+		];
 	}
 
 	/**
@@ -426,74 +471,6 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->method( 'process_refund' );
 
 		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
-	}
-
-	/**
-	 * An uncaptured authorisation is routed through process_refund() (which voids the intent) and
-	 * noted as a voided authorisation. process_refund() returns null on the void path, which is
-	 * treated as success.
-	 */
-	public function test_cancelled_order_uncaptured_authorization_is_voided() {
-		$order = WC_Helper_Order::create_order();
-		$order->set_status( OrderStatus::CANCELLED );
-		$order->save();
-
-		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
-
-		$intent                 = (object) array_merge(
-			self::MOCK_PAYMENT_INTENT,
-			[ 'status' => WC_Stripe_Intent_Status::REQUIRES_CAPTURE ]
-		);
-		$uncaptured             = self::MOCK_PAYMENT_INTENT['charges']['data'][0];
-		$uncaptured['captured'] = false;
-
-		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
-
-		$this->mock_webhook_handler->method( 'get_intent_from_order' )
-			->willReturn( $intent );
-		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
-			->willReturn( (object) $uncaptured );
-
-		// process_refund() cancels the requires_capture intent internally and returns null.
-		$this->mock_webhook_handler->expects( $this->once() )
-			->method( 'process_refund' )
-			->with( $order->get_id(), null, $this->isType( 'string' ) )
-			->willReturn( null );
-
-		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
-
-		$updated_order = wc_get_order( $order->get_id() );
-		$this->assertEquals( OrderStatus::CANCELLED, $updated_order->get_status() );
-		$this->assertEquals( 'yes', $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
-		$this->assertOrderHasNoteContaining( $updated_order, 'voided' );
-	}
-
-	/**
-	 * A failed refund leaves the order un-flagged so Action Scheduler can retry, and records a note.
-	 */
-	public function test_cancelled_order_refund_failure_adds_note_and_allows_retry() {
-		$order = WC_Helper_Order::create_order();
-		$order->set_status( OrderStatus::CANCELLED );
-		$order->save();
-
-		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
-
-		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
-
-		$this->mock_webhook_handler->method( 'get_intent_from_order' )
-			->willReturn( (object) self::MOCK_PAYMENT_INTENT );
-		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
-			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
-
-		$this->mock_webhook_handler->method( 'process_refund' )
-			->willReturn( new WP_Error( 'stripe_error', 'Refund failed for testing.' ) );
-
-		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
-
-		$updated_order = wc_get_order( $order->get_id() );
-		$this->assertEquals( OrderStatus::CANCELLED, $updated_order->get_status() );
-		$this->assertEmpty( $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
-		$this->assertOrderHasNoteContaining( $updated_order, 'automatic refund failed' );
 	}
 
 	/**
