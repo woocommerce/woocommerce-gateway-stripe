@@ -35,7 +35,12 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function tear_down() {
 		delete_option( 'wc_stripe_optimized_checkout_default_on' );
+		delete_option( 'wc_stripe_oauth_failed_attempts' );
 		WC_Stripe_Helper::update_main_stripe_settings( [] );
+
+		if ( function_exists( 'as_unschedule_all_actions' ) ) {
+			as_unschedule_all_actions( 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID );
+		}
 
 		parent::tear_down();
 	}
@@ -275,12 +280,82 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * A dead refresh token must stop the 55-minute refresh loop immediately
+	 * and clear the account cache so the merchant is prompted to reconnect, rather than burning
+	 * the full 10-attempt retry budget. A transient failure, or a failure from an older Connect Server that forwards no Stripe
+	 * error code, must keep rescheduling as before.
+	 *
+	 * @param object|string $error_data         The `data` payload carried by the WCC WP_Error.
+	 * @param bool          $expect_rescheduled  Whether the refresh should be rescheduled.
+	 * @param int           $expect_clear_cache  Expected number of account cache clears.
+	 *
+	 * @dataProvider provide_refresh_connection_terminal_handling
+	 */
+	public function test_refresh_connection_stops_retrying_on_terminal_error( $error_data, bool $expect_rescheduled, int $expect_clear_cache ): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		// App OAuth live connection so refresh_connection() proceeds past its guard.
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'testmode'        => 'no',
+				'publishable_key' => 'pk_live_123',
+				'secret_key'      => 'sk_live_123',
+				'connection_type' => 'app',
+				'refresh_token'   => 'rt_live_123',
+			]
+		);
+		delete_option( 'wc_stripe_oauth_failed_attempts' );
+		as_unschedule_all_actions( 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID );
+
+		// Mirror WC_Stripe_Connect_API::request(): the Stripe error code (when the Connect
+		// Server forwards one) rides in the WP_Error's data payload.
+		$error    = new WP_Error( 'wcc_server_error_response', 'Error', $error_data );
+		$api_mock = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
+		$api_mock->method( 'refresh_stripe_app_oauth_keys' )->willReturn( $error );
+
+		$account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'clear_cache' ] )
+			->getMock();
+		$account->expects( $this->exactly( $expect_clear_cache ) )->method( 'clear_cache' );
+		WC_Stripe::get_instance()->account = $account;
+
+		$connect = new WC_Stripe_Connect( $api_mock );
+		$connect->refresh_connection();
+
+		$this->assertSame(
+			$expect_rescheduled,
+			(bool) as_has_scheduled_action( 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID )
+		);
+	}
+
+	/**
 	 * @return array
 	 */
 	public function provide_dual_fetch_cases(): array {
 		return [
 			'server returns test keys'        => [ true ],
 			'server omits test keys (legacy)' => [ false ],
+		];
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_refresh_connection_terminal_handling(): array {
+		return [
+			'terminal invalid_grant stops retrying and clears cache'  => [
+				'error_data'         => (object) [ 'stripe_error_code' => 'invalid_grant' ],
+				'expect_rescheduled' => false,
+				'expect_clear_cache' => 1,
+			],
+			'transient failure from old server (no code) reschedules' => [
+				'error_data'         => '',
+				'expect_rescheduled' => true,
+				'expect_clear_cache' => 0,
+			],
 		];
 	}
 

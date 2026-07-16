@@ -788,6 +788,18 @@ export const getExcludedPaymentMethodTypes = () => {
 };
 
 /**
+ * Notice shown when the Adaptive Pricing Checkout Session total can't be resynced
+ * with the cart.
+ *
+ * @return {string} The translated stale-total message.
+ */
+export const getStaleCheckoutTotalMessage = () =>
+	__(
+		"We couldn't update your order total. Please refresh the page and try again.",
+		'woocommerce-gateway-stripe'
+	);
+
+/**
  * Show error notice at top of checkout form.
  * Will try to use a translatable message using the message code if available.
  *
@@ -817,24 +829,24 @@ export const showErrorCheckout = ( errorMessage ) => {
 		}
 	}
 
-	// Use the WC Blocks API to show the error notice if we're in a block context.
-	if (
-		typeof wcSettings !== 'undefined' &&
-		wcSettings.wcBlocksConfig &&
-		! isMyAccountPage
-	) {
-		dispatch( 'core/notices' ).createErrorNotice( errorMessage, {
+	// wcSettings.wcBlocksConfig is also truthy on woocommerce/classic-shortcode pages, but
+	// there the checkout notices store isn't mounted (dispatch() returns null) and
+	// StoreNotice may be absent — guard both so a failed payment falls through to the
+	// classic notice below instead of throwing and silently dropping the message.
+	const inBlockContext =
+		typeof wcSettings !== 'undefined' && wcSettings.wcBlocksConfig;
+	const noticesStore = inBlockContext ? dispatch( 'core/notices' ) : null;
+
+	if ( noticesStore?.createErrorNotice && ! isMyAccountPage ) {
+		noticesStore.createErrorNotice( errorMessage, {
 			context: 'wc/checkout/payments', // Display the notice in the payments context.
 		} );
 		return;
 	}
 
 	let messageWrapper = '';
-	if ( typeof wcSettings !== 'undefined' && wcSettings.wcBlocksConfig ) {
-		const StoreNotice = window.wc?.blocksCheckout?.StoreNotice;
-		if ( ! StoreNotice ) {
-			return;
-		}
+	const StoreNotice = window.wc?.blocksCheckout?.StoreNotice;
+	if ( inBlockContext && StoreNotice ) {
 		const NoticeComponent = () => (
 			<StoreNotice status="error" isDismissible={ true }>
 				{ errorMessage }
