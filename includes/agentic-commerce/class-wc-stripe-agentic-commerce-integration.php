@@ -1002,15 +1002,6 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return false;
 		}
 
-		/**
-		 * Filter the max age of the cached upload record before dedup is bypassed.
-		 *
-		 * Defaults to one week. Applied as a safety valve so a stale or lost Stripe
-		 * file id still gets refreshed on a predictable cadence.
-		 *
-		 * @since 10.8.0
-		 * @param int $ttl_seconds Default self::FEED_CACHE_TTL.
-		 */
 		if ( ! isset( $last['uploaded_at'] ) || ! is_numeric( $last['uploaded_at'] ) ) {
 			return false;
 		}
@@ -1018,6 +1009,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		if ( $uploaded_at <= 0 ) {
 			return false;
 		}
+		/**
+		 * Filters the max age of the cached upload record before dedup is bypassed.
+		 *
+		 * @since 10.8.0
+		 *
+		 * @param int $ttl_seconds Default self::FEED_CACHE_TTL.
+		 */
 		$max_age = (int) apply_filters( 'wc_stripe_agentic_commerce_feed_cache_ttl', self::FEED_CACHE_TTL );
 		if ( $max_age > 0 && ( time() - $uploaded_at ) > $max_age ) {
 			return false;
