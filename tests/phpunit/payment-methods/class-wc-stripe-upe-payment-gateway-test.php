@@ -1806,6 +1806,86 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Arranges a redirect (3DS/APM return) that will pay the given order, and returns its id.
+	 *
+	 * @param string $cart_hash        Cart hash to stamp on the order.
+	 * @param string $payment_intent_id Intent id the return carries.
+	 * @return int
+	 */
+	private function arrange_redirect_payment( string $cart_hash, string $payment_intent_id = 'pi_mock' ): int {
+		$order = WC_Helper_Order::create_order();
+		list( $amount, $description, $metadata, $currency ) = $this->get_order_details( $order );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_cart_hash( $cart_hash );
+		$order->save();
+
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = 'pm_mock';
+		$payment_method_mock['card']['exp_year'] = intval( gmdate( 'Y' ) ) + 1;
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['currency']           = $currency;
+		$payment_intent_mock['last_payment_error'] = [];
+		$payment_intent_mock['payment_method']     = $payment_method_mock;
+		$payment_intent_mock['latest_charge']      = 'ch_mock';
+
+		$this->mock_gateway->method( 'stripe_request' )->willReturn( $this->array_to_object( $payment_intent_mock ) );
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn(
+			$this->array_to_object(
+				[
+					'id'                     => 'ch_mock',
+					'captured'               => true,
+					'status'                 => 'succeeded',
+					'payment_method_details' => $payment_method_mock,
+				]
+			)
+		);
+
+		return $order->get_id();
+	}
+
+	/**
+	 * A 3DS or redirect payment method completes on the browser return, so the marker must be recorded there too.
+	 *
+	 * @return void
+	 */
+	public function test_process_upe_redirect_payment_records_the_paid_cart_marker(): void {
+		WC()->session->init();
+		$order_id = $this->arrange_redirect_payment( 'redirect_hash' );
+
+		// Buffer output so the session cookie save_data() writes doesn't trip "headers already sent" under the test harness.
+		ob_start();
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, 'pi_mock', false );
+		ob_end_clean();
+
+		$this->assertNotNull( wc_get_order( $order_id )->get_date_paid( 'edit' ) );
+
+		$marker = WC()->session->get( 'wc_stripe_paid_cart' );
+		$this->assertIsArray( $marker );
+		$this->assertEquals( $order_id, $marker['order_id'] );
+		$this->assertEquals( 'redirect_hash', $marker['cart_hash'] );
+	}
+
+	/**
+	 * Pay-for-order settles an existing order, so its cart is not what was charged and must not be recorded.
+	 *
+	 * @return void
+	 */
+	public function test_process_upe_redirect_payment_skips_the_marker_for_pay_for_order(): void {
+		WC()->session->init();
+		$order_id = $this->arrange_redirect_payment( 'redirect_hash' );
+
+		ob_start();
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, 'pi_mock', false, true );
+		ob_end_clean();
+
+		$this->assertNotNull( wc_get_order( $order_id )->get_date_paid( 'edit' ) );
+		$this->assertNull( WC()->session->get( 'wc_stripe_paid_cart' ) );
+	}
+
+	/**
 	 * Test redirect payment processed only runs once.
 	 */
 	public function test_process_redirect_payment_only_runs_once() {

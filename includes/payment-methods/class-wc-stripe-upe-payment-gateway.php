@@ -2525,6 +2525,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::info( "Begin processing UPE redirect payment for order $order_id for the amount of {$order->get_total()}" );
 
 			$this->process_order_for_confirmed_intent( $order, $intent_id, $save_payment_method );
+
+			// A 3DS or redirect payment method finishes here, on the browser return from the challenge, rather than inside
+			// process_payment(), so record the marker on this leg too or a lost response could still resubmit the cart.
+			// Pay-for-order settles an existing order, so its cart isn't what was charged and must not be recorded.
+			if ( ! $is_pay_for_order && $order instanceof WC_Order && $order->get_date_paid( 'edit' ) ) {
+				$this->record_paid_cart_marker( $order );
+			}
 		} catch ( WC_Stripe_Payment_Cancelled_Exception $e ) {
 			if ( $order instanceof WC_Order ) {
 				$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
