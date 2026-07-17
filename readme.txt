@@ -220,6 +220,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent Adaptive Pricing payments from failing when the checkout return URL is relative
 * Add - Add a wc_stripe_subscription_renewal_blocked_by_radar action hook that fires when Stripe Radar blocks a subscription renewal payment
 * Fix - Include the statement descriptor when creating payment intents for ACSS Debit and BLIK payments
+* Fix - Represent negative fees and taxes as discounts in Level 3 data so manually capturing an order edited to include a negative fee no longer fails
 * Fix - Ensure all WordPress hooks have filter documentation
 * Update - Show a clear message when manual capture is blocking Adaptive Pricing from being enabled
 
