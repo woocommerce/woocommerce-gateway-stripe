@@ -1458,8 +1458,8 @@ class WC_Stripe_Express_Checkout_Helper {
 			return $state;
 		}
 
+		$sanitized_state_string = $this->sanitize_string( $state );
 		foreach ( $pr_states[ $country ] as $wc_state_abbr => $pr_state ) {
-			$sanitized_state_string = $this->sanitize_string( $state );
 			// Checks if input state matches with Payment Request state code (0), name (1) or localName (2).
 			if (
 				( ! empty( $pr_state[0] ) && $sanitized_state_string === $this->sanitize_string( $pr_state[0] ) ) ||
