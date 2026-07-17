@@ -26,6 +26,7 @@ cd "$CWD"
 check_dep 'docker'
 check_dep 'curl'
 check_dep 'jq'
+check_dep 'php'
 
 if ! docker info > /dev/null 2>&1; then
 	echo
