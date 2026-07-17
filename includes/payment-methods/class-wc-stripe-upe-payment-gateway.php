@@ -73,6 +73,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	public const OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT = 'accordion';
 
 	/**
+	 * Session key recording the cart Stripe most recently charged, used to short-circuit a resubmission of that cart.
+	 *
+	 * @var string
+	 */
+	protected const PAID_CART_MARKER_SESSION_KEY = 'wc_stripe_paid_cart';
+
+	/**
 	 * Notices (array)
 	 *
 	 * @var array
@@ -1444,6 +1451,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return array|null An array with result of payment and redirect URL, or nothing.
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
+		$duplicate_response = $this->maybe_prevent_duplicate_charge( $order_id );
+
+		if ( null !== $duplicate_response ) {
+			return $duplicate_response;
+		}
+
 		$payment_intent_id     = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$checkout_session_id   = isset( $_POST['wc_stripe_checkout_session_id'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_checkout_session_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
@@ -1464,6 +1477,175 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $this->process_payment_with_deferred_intent( $order_id );
+	}
+
+	/**
+	 * Returns a success response pointing at an order Stripe already paid for this cart, when there is one.
+	 *
+	 * Core only resumes an order while it still needs payment. When a checkout response is lost the first order
+	 * is already paid, so core declines to resume it and builds a brand new one for a cart Stripe has charged.
+	 * Only the gateway knows about that charge, so this bails out ahead of the first Stripe API call.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param int $order_id ID of the order being processed.
+	 * @return array|null A response for the already-paid order, or null to carry on with payment.
+	 */
+	private function maybe_prevent_duplicate_charge( int $order_id ): ?array {
+		// These flows pay an existing order or no order at all, so matching them against the cart is meaningless.
+		if ( $this->is_changing_payment_method_for_subscription()
+			|| $this->is_valid_pay_for_order_endpoint()
+			|| $this->is_on_add_payment_method_page() ) {
+			return null;
+		}
+
+		// Checkout sessions carry their own already-paid guard and mutation lock.
+		if ( ! empty( $_POST['wc_stripe_checkout_session_id'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			return null;
+		}
+
+		$order = wc_get_order( $order_id );
+
+		if ( ! $order instanceof WC_Order ) {
+			return null;
+		}
+
+		$marker = $this->get_paid_cart_marker();
+
+		if ( null === $marker ) {
+			return null;
+		}
+
+		$cart_hash = $order->get_cart_hash();
+
+		if ( '' === $cart_hash || ! hash_equals( $marker['cart_hash'], $cart_hash ) ) {
+			return null;
+		}
+
+		// A shopper who changed their email is telling us this is a different purchase, not a retry of the recorded one.
+		if ( ! hash_equals( $marker['billing_email'], (string) $order->get_billing_email() ) ) {
+			return null;
+		}
+
+		$window_in_seconds = $this->get_duplicate_charge_detection_window( $order );
+
+		if ( $window_in_seconds <= 0 || time() - $marker['paid_at'] > $window_in_seconds ) {
+			return null;
+		}
+
+		$paid_order = wc_get_order( $marker['order_id'] );
+
+		// The recorded order has to still be paid; a refunded or cancelled one means the shopper is legitimately buying again.
+		if ( ! $paid_order instanceof WC_Order || ! $paid_order->get_date_paid( 'edit' ) ) {
+			return null;
+		}
+
+		WC_Stripe_Logger::info(
+			'Duplicate charge prevented; redirecting to the order already paid for this cart.',
+			[
+				'order_id'      => $order_id,
+				'paid_order_id' => $paid_order->get_id(),
+			]
+		);
+
+		if ( WC()->cart ) {
+			WC()->cart->empty_cart();
+		}
+
+		return [
+			'result'   => 'success',
+			'redirect' => $this->get_return_url( $paid_order ),
+		];
+	}
+
+	/**
+	 * Records that Stripe has charged the given order's cart, so a resubmission of the same cart can be short-circuited.
+	 *
+	 * Written to the session and flushed immediately: the response to the request that charged the card may never
+	 * reach the shopper, and a marker that only lands on shutdown is exactly the one that goes missing in that race.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order $order The order that was just paid.
+	 * @return void
+	 */
+	private function record_paid_cart_marker( WC_Order $order ): void {
+		$cart_hash = $order->get_cart_hash();
+
+		if ( ! WC()->session || '' === $cart_hash ) {
+			return;
+		}
+
+		// save_data() lives on the concrete handlers rather than WC_Session, and the handler is swappable via woocommerce_session_handler.
+		if ( ! method_exists( WC()->session, 'save_data' ) ) {
+			return;
+		}
+
+		WC()->session->set(
+			self::PAID_CART_MARKER_SESSION_KEY,
+			[
+				'cart_hash'     => $cart_hash,
+				'order_id'      => $order->get_id(),
+				'billing_email' => (string) $order->get_billing_email(),
+				'paid_at'       => time(),
+			]
+		);
+
+		// A marker that only lands on shutdown is the one that goes missing when the response is lost, so flush it now.
+		WC()->session->save_data();
+	}
+
+	/**
+	 * Returns the recorded paid-cart marker, or null when there isn't a usable one.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @return array|null
+	 */
+	private function get_paid_cart_marker(): ?array {
+		if ( ! WC()->session ) {
+			return null;
+		}
+
+		$marker = WC()->session->get( self::PAID_CART_MARKER_SESSION_KEY );
+
+		if ( ! is_array( $marker ) ) {
+			return null;
+		}
+
+		// Session data is deserialized from storage, so treat a partial marker as no marker at all.
+		foreach ( [ 'cart_hash', 'order_id', 'billing_email', 'paid_at' ] as $key ) {
+			if ( ! isset( $marker[ $key ] ) ) {
+				return null;
+			}
+		}
+
+		return [
+			'cart_hash'     => (string) $marker['cart_hash'],
+			'order_id'      => (int) $marker['order_id'],
+			'billing_email' => (string) $marker['billing_email'],
+			'paid_at'       => (int) $marker['paid_at'],
+		];
+	}
+
+	/**
+	 * Returns how long after a charge a resubmission of the same cart still counts as a duplicate.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order $order The order being processed.
+	 * @return int Window in seconds. Zero or less disables the guard.
+	 */
+	private function get_duplicate_charge_detection_window( WC_Order $order ): int {
+		/**
+		 * Filters how long after a charge a resubmission of the same cart is still treated as a duplicate.
+		 *
+		 * @since 10.9.0
+		 *
+		 * @param int      $window_in_seconds Detection window. Return zero or less to disable the guard.
+		 * @param WC_Order $order             The order being processed.
+		 */
+		return (int) apply_filters( 'wc_stripe_duplicate_charge_detection_window', 2 * MINUTE_IN_SECONDS, $order );
 	}
 
 	/**
@@ -1751,6 +1933,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 
 			$order_helper->unlock_order_payment( $order );
+
+			// Reaching here doesn't mean the card was charged: intents awaiting 3DS or a redirect land here unpaid and settle later.
+			if ( $order instanceof WC_Order && $order->get_date_paid( 'edit' ) ) {
+				$this->record_paid_cart_marker( $order );
+			}
 
 			return array_merge(
 				[
