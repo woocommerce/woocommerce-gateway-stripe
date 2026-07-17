@@ -207,13 +207,13 @@ class WC_Stripe_Feature_Flags {
 	/**
 	 * Whether the OC feature is currently offered to shoppers / operational at runtime.
 	 *
-	 * False when {@see self::is_oc_available()} is false, OR when remote-config
-	 * has killed the feature. When this returns false but `is_oc_available()`
-	 * returns true, the feature has been remotely killed.
+	 * False when {@see self::is_oc_available()} is false, OR when a high-severity
+	 * issue warrants disabling Optimized Checkout remotely. When this returns false
+	 * but `is_oc_available()` returns true, the feature has been remotely disabled.
 	 *
 	 * Use for: customer-facing checkout rendering, payment-method registration,
 	 * runtime path gating. Do NOT use for admin settings UI rendering - use
-	 * `is_oc_available()` so remote-killed features still show their settings
+	 * `is_oc_available()` so remotely-disabled features still show their settings
 	 * section in a disabled state.
 	 */
 	public static function is_oc_offered(): bool {

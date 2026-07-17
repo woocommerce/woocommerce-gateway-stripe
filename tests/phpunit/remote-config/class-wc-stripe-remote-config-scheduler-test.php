@@ -52,9 +52,9 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 		);
 	}
 
-	private function payload( bool $value ): array {
+	private function get_mock_payload( bool $optimized_checkout_flag_value ): array {
 		return [
-			'flags'        => [ 'optimized_checkout' => [ 'value' => $value ] ],
+			'flags'        => [ 'optimized_checkout' => [ 'value' => $optimized_checkout_flag_value ] ],
 			'generated_at' => '2026-05-09T12:00:00Z',
 		];
 	}
@@ -64,7 +64,7 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 		$scheduler->init_hooks();
 
 		$this->assertNotFalse( has_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [ $scheduler, 'run' ] ) );
-		$this->assertNotFalse( has_action( 'woocommerce_stripe_updated', [ $scheduler, 'on_plugin_upgrade' ] ) );
+		$this->assertNotFalse( has_action( 'woocommerce_stripe_updated', [ WC_Stripe_Remote_Config_Scheduler::class, 'on_plugin_upgrade' ] ) );
 	}
 
 	public function test_on_plugin_upgrade_enqueues_async_sync(): void {
@@ -72,7 +72,7 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 			$this->markTestSkipped( 'Action Scheduler not available.' );
 		}
 
-		( new WC_Stripe_Remote_Config_Scheduler() )->on_plugin_upgrade();
+		WC_Stripe_Remote_Config_Scheduler::on_plugin_upgrade();
 
 		$this->assertTrue( as_has_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION ) );
 	}
@@ -84,7 +84,7 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 		$client->expects( $this->once() )
 			->method( 'fetch' )
 			->with( 'live' )
-			->willReturn( $this->payload( false ) );
+			->willReturn( $this->get_mock_payload( false ) );
 
 		$rc = new WC_Stripe_Remote_Config();
 		( new WC_Stripe_Remote_Config_Scheduler( $client, $rc ) )->run();
@@ -101,7 +101,7 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 			->method( 'fetch' )
 			->willReturnCallback(
 				function ( string $mode ): array {
-					return $this->payload( 'test' === $mode );
+					return $this->get_mock_payload( 'test' === $mode );
 				}
 			);
 

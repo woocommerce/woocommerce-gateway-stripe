@@ -168,11 +168,11 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * is_oc_available() must stay independent of remote-config: a remotely-killed
-	 * feature is still "available" to the merchant (settings remain editable —
-	 * the runtime predicate is_oc_offered() is the one that flips).
+	 * is_oc_available() must stay independent of remote-config: a feature is still
+	 * "available" to the merchant (settings remain editable) regardless of the remote
+	 * flag value — the runtime predicate is_oc_offered() is the one that flips.
 	 */
-	public function test_is_oc_available_ignores_remote_kill(): void {
+	public function test_is_oc_available_ignores_remote_flag(): void {
 		add_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
 		PMC_Test_Helper::cache_mocked_configuration();
 		PMC_Test_Helper::enable_pmc();
@@ -202,8 +202,8 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 
-		$this->assertTrue( $is_available, 'is_oc_available() must ignore remote-config' );
-		$this->assertFalse( $is_offered, 'is_oc_offered() must reflect remote kill' );
+		$this->assertTrue( $is_available, 'is_oc_available() must ignore the remote config flag' );
+		$this->assertFalse( $is_offered, 'is_oc_offered() must reflect the remote config flag' );
 	}
 
 	/**

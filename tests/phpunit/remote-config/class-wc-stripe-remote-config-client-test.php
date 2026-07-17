@@ -16,7 +16,21 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		add_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
 		$this->client            = new WC_Stripe_Remote_Config_Client();
 		$this->captured_requests = [];
+	}
 
+	public function tear_down(): void {
+		remove_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		remove_all_filters( 'pre_http_request' );
+		parent::tear_down();
+	}
+
+	/**
+	 * Stubs `pre_http_request` to capture each outbound request and return a
+	 * canned 200 response, so a test can assert the request shape without a
+	 * live network call. Kept out of set_up() so each test opts into the HTTP
+	 * behaviour it needs explicitly.
+	 */
+	private function stub_successful_response(): void {
 		add_filter(
 			'pre_http_request',
 			function ( $preempt, $args, $url ) {
@@ -43,13 +57,9 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		);
 	}
 
-	public function tear_down(): void {
-		remove_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
-		remove_all_filters( 'pre_http_request' );
-		parent::tear_down();
-	}
-
 	public function test_fetch_request_shape_and_decoded_body(): void {
+		$this->stub_successful_response();
+
 		$result = $this->client->fetch( 'live' );
 
 		$this->assertIsArray( $result );
@@ -72,11 +82,12 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 
 		$result = $this->client->fetch( 'live' );
 
+		// Clean up before asserting so a failed assertion can't leak the filter into later tests.
+		remove_filter( 'wc_stripe_remote_config_enabled', '__return_false' );
+
 		$this->assertWPError( $result );
 		$this->assertSame( 'wc_stripe_remote_config_disabled', $result->get_error_code() );
 		$this->assertCount( 0, $this->captured_requests );
-
-		remove_filter( 'wc_stripe_remote_config_enabled', '__return_false' );
 	}
 
 	/**
@@ -144,6 +155,10 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Runs in a separate process because it defines WC_STRIPE_DISABLE_REMOTE_CONFIG,
+	 * which cannot be undefined once set and would otherwise short-circuit every
+	 * later test in the run.
+	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
