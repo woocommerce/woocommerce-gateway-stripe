@@ -384,7 +384,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			}
 
 			$settings = WC_Stripe_Helper::get_stripe_settings();
-			$settings = is_array( $settings ) ? $settings : [];
 
 			$test_secret_key                  = $result->testSecretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			$settings['test_publishable_key'] = $result->testPublishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
