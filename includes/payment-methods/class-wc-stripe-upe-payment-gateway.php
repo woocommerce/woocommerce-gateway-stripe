@@ -1472,11 +1472,50 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		if ( is_string( $checkout_session_id ) && ! empty( $checkout_session_id ) && ! WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected() ) {
-			return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
+		try {
+			if ( is_string( $checkout_session_id ) && ! empty( $checkout_session_id ) && ! WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected() ) {
+				return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
+			}
+
+			return $this->process_payment_with_deferred_intent( $order_id );
+		} finally {
+			$this->handle_paid_order_after_checkout( $order_id );
+		}
+	}
+
+	/**
+	 * Records that Stripe charged this cart, once the order has actually been paid for.
+	 *
+	 * The paid date decides, not how this request ended: a callback that throws after the charge fails a request whose
+	 * card was charged, while an intent awaiting 3DS returns success still unpaid. So this runs on the failure path too.
+	 *
+	 * Deliberately leaves the cart alone. Core rejects a checkout with an empty cart before the gateway is reached
+	 * (WC_Checkout::process_checkout(), and validate_cart_not_empty() on the Store API), so clearing it here would
+	 * bail the resubmission out with "your session has expired" instead of letting the guard return the shopper to
+	 * the order they already paid for. The cart is cleared once that redirect is underway, and on the happy path by
+	 * the order received page.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param int $order_id ID of the order that was processed.
+	 * @return void
+	 */
+	private function handle_paid_order_after_checkout( int $order_id ): void {
+		// These flows pay an existing order or no order at all, so the shopper's cart isn't what was charged and the
+		// order's hash is the original purchase's.
+		if ( $this->is_changing_payment_method_for_subscription()
+			|| $this->is_valid_pay_for_order_endpoint()
+			|| $this->is_on_add_payment_method_page() ) {
+			return;
 		}
 
-		return $this->process_payment_with_deferred_intent( $order_id );
+		$order = wc_get_order( $order_id );
+
+		if ( ! $order instanceof WC_Order || ! $order->get_date_paid( 'edit' ) ) {
+			return;
+		}
+
+		$this->record_paid_cart_marker( $order );
 	}
 
 	/**
@@ -1492,7 +1531,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return array|null A response for the already-paid order, or null to carry on with payment.
 	 */
 	private function maybe_prevent_duplicate_charge( int $order_id ): ?array {
-		// These flows pay an existing order or no order at all, so matching them against the cart is meaningless.
+		// These flows pay an existing order or no order at all, so the shopper's cart isn't what's being paid for and a hash
+		// match would prove nothing about it. Blocking a pay-for-order would strand a customer paying a legitimate invoice.
 		if ( $this->is_changing_payment_method_for_subscription()
 			|| $this->is_valid_pay_for_order_endpoint()
 			|| $this->is_on_add_payment_method_page() ) {
@@ -1933,11 +1973,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 
 			$order_helper->unlock_order_payment( $order );
-
-			// Reaching here doesn't mean the card was charged: intents awaiting 3DS or a redirect land here unpaid and settle later.
-			if ( $order instanceof WC_Order && $order->get_date_paid( 'edit' ) ) {
-				$this->record_paid_cart_marker( $order );
-			}
 
 			return array_merge(
 				[
