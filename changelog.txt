@@ -67,6 +67,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Include the statement descriptor when creating payment intents for ACSS Debit and BLIK payments
 * Fix - Ensure all WordPress hooks have filter documentation
 * Update - Show a clear message when manual capture is blocking Adaptive Pricing from being enabled
+* Fix - Lock the order while confirming a 3DS card payment so a concurrent webhook can't complete it twice, duplicating stock reduction, order notes, and emails
 
 2026-07-14 - version 10.8.4
 * Fix - Improve Checkout Session amount integrity
