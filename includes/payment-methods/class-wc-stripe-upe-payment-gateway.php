@@ -1588,6 +1588,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			]
 		);
 
+		$this->cancel_order_superseded_by( $order, $paid_order );
+
 		if ( WC()->cart ) {
 			WC()->cart->empty_cart();
 		}
@@ -1596,6 +1598,37 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'result'   => 'success',
 			'redirect' => $this->get_return_url( $paid_order ),
 		];
+	}
+
+	/**
+	 * Cancels an order that will never be paid because its cart was charged under a different order.
+	 *
+	 * Core creates the order before handing over to the gateway, so by the time the duplicate is spotted the order
+	 * already exists and would otherwise sit pending: WooCommerce only sweeps unpaid orders up when the hold stock
+	 * setting is non-empty, so on a store that has cleared it the record would linger and read as an abandoned sale.
+	 *
+	 * Cancelling from pending or failed is inert beyond the status change. Stock was never reduced, so the restore
+	 * hook returns early, and the cancelled order email only fires out of processing or on-hold.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order $order      The order to cancel.
+	 * @param WC_Order $paid_order The order whose charge supersedes it.
+	 * @return void
+	 */
+	private function cancel_order_superseded_by( WC_Order $order, WC_Order $paid_order ): void {
+		if ( ! $order->has_status( [ OrderStatus::PENDING, OrderStatus::FAILED ] ) ) {
+			return;
+		}
+
+		$order->update_status(
+			OrderStatus::CANCELLED,
+			sprintf(
+				/* translators: %s: order number of the order that already paid for this cart. */
+				__( 'Cancelled because this cart had already been paid for by order %s.', 'woocommerce-gateway-stripe' ),
+				$paid_order->get_order_number()
+			)
+		);
 	}
 
 	/**
