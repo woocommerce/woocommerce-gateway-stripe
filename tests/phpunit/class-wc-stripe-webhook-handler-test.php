@@ -466,6 +466,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'void unconfirmed by intent is a failure'      => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, 1000, 0, false, 'USD', 'usd', null, WC_Stripe_Intent_Status::REQUIRES_CAPTURE, true, 'automatic refund failed', false ],
 			// The intent can't be re-read to confirm the void: treat as failed, don't flag.
 			'void with unreadable intent is a failure'     => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, 1000, 0, false, 'USD', 'usd', false, null, true, 'automatic refund failed', false ],
+			// The authorisation is captured in the window before the void confirms: fail closed with a
+			// manual-refund note and leave the order unflagged rather than mark an uncancelled intent settled.
+			'void captured mid-flight fails closed'        => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, 1000, 0, false, 'USD', 'usd', true, WC_Stripe_Intent_Status::SUCCEEDED, true, 'automatic refund failed', false ],
 			'captured refund returning false is a failure' => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, 'USD', 'usd', false, null, false, 'automatic refund failed', false ],
 			'captured refund returning null is a failure'  => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, 'USD', 'usd', null, null, false, 'automatic refund failed', false ],
 			'refund error is a failure'                    => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, 'USD', 'usd', new WP_Error( 'stripe_error', 'boom' ), null, false, 'automatic refund failed', false ],
