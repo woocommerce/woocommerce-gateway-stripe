@@ -1085,6 +1085,83 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Fills the cart, so a test can tell a cart that was emptied from one that was never populated.
+	 *
+	 * @return void
+	 */
+	private function arrange_cart_with_a_product(): void {
+		WC()->session->init();
+		WC()->cart->empty_cart();
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+	}
+
+	/**
+	 * A declined card leaves the order unpaid, and the shopper still needs their cart to try another one.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_leaves_the_cart_when_the_charge_is_declined(): void {
+		$order = $this->create_checkout_order( 'declined_hash', 'shopper@example.com' );
+		$this->arrange_cart_with_a_product();
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => 'pm_mock',
+			'wc-stripe-confirmation-token' => '',
+		];
+
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willThrowException( new WC_Stripe_Exception( 'card_declined', 'Your card was declined.' ) );
+
+		$response = $this->mock_gateway->process_payment( $order->get_id() );
+
+		$this->assertEquals( 'failure', $response['result'] );
+		$this->assertNull( wc_get_order( $order->get_id() )->get_date_paid( 'edit' ) );
+		$this->assertFalse( WC()->cart->is_empty(), 'A declined payment must leave the cart alone so the shopper can retry.' );
+	}
+
+	/**
+	 * An intent awaiting 3DS reaches the end of processing with no charge: the card is only charged once the shopper
+	 * authenticates, so clearing the cart here would strand a failed authentication with nothing to retry.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_leaves_the_cart_when_the_intent_still_needs_authentication(): void {
+		$order = $this->create_checkout_order( '3ds_hash', 'shopper@example.com' );
+		$this->arrange_cart_with_a_product();
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => 'pm_mock',
+			'wc-stripe-confirmation-token' => '',
+		];
+
+		$mock_intent = (object) wp_parse_args(
+			[ 'payment_method' => 'pm_mock' ],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+
+		// The shared mock stubs get_latest_charge_from_intent() to null, which is the shape of an intent still awaiting 3DS.
+		$this->mock_gateway->process_payment( $order->get_id() );
+
+		$this->assertNull( wc_get_order( $order->get_id() )->get_date_paid( 'edit' ) );
+		$this->assertFalse( WC()->cart->is_empty(), 'An unauthenticated payment must leave the cart alone.' );
+	}
+
+	/**
 	 * A lost checkout response leaves the cart intact, so core builds a second order for a cart Stripe already charged.
 	 *
 	 * @return void
@@ -1103,6 +1180,89 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->assertEquals( 'success', $second_response['result'] );
 		$this->assertNull( wc_get_order( $second_order->get_id() )->get_date_paid( 'edit' ), 'The resubmitted order must never be charged.' );
+	}
+
+	/**
+	 * Once the shopper has seen an order's confirmation page, a genuine repurchase of the same items must go through.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_allows_a_repurchase_after_the_thankyou_page(): void {
+		$first_order = $this->arrange_paid_cart_gateway( 'dupe_hash', 'shopper@example.com', 2 );
+		$this->mock_gateway->process_payment( $first_order->get_id() );
+
+		// The shopper reaching the confirmation page is what tells the guard the next same-cart order is deliberate.
+		do_action( 'woocommerce_thankyou', $first_order->get_id() );
+
+		$repurchase = $this->create_checkout_order( 'dupe_hash', 'shopper@example.com' );
+		$this->mock_gateway->process_payment( $repurchase->get_id() );
+
+		$this->assertNotNull( wc_get_order( $repurchase->get_id() )->get_date_paid( 'edit' ), 'A repurchase after confirmation must be charged, not treated as a duplicate.' );
+	}
+
+	/**
+	 * A confirmation page for an unrelated order must not retire a still-valid marker.
+	 *
+	 * @return void
+	 */
+	public function test_thankyou_for_another_order_keeps_the_marker(): void {
+		$first_order = $this->arrange_paid_cart_gateway( 'dupe_hash', 'shopper@example.com', 1 );
+		$this->mock_gateway->process_payment( $first_order->get_id() );
+
+		// A different order's confirmation page is not proof this cart was seen, so the guard must still fire.
+		do_action( 'woocommerce_thankyou', $first_order->get_id() + 1000 );
+
+		$second_order = $this->create_checkout_order( 'dupe_hash', 'shopper@example.com' );
+		$this->mock_gateway->process_payment( $second_order->get_id() );
+
+		$this->assertNull( wc_get_order( $second_order->get_id() )->get_date_paid( 'edit' ), 'The resubmitted order must still be caught as a duplicate.' );
+	}
+
+	/**
+	 * Core creates the order before the gateway runs, so the resubmission leaves one behind that is never paid.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_cancels_the_order_superseded_by_the_paid_one(): void {
+		$first_order = $this->arrange_paid_cart_gateway( 'dupe_hash', 'shopper@example.com', 1 );
+		$this->mock_gateway->process_payment( $first_order->get_id() );
+
+		$second_order = $this->create_checkout_order( 'dupe_hash', 'shopper@example.com' );
+		$this->mock_gateway->process_payment( $second_order->get_id() );
+
+		$superseded = wc_get_order( $second_order->get_id() );
+
+		$this->assertEquals( OrderStatus::CANCELLED, $superseded->get_status(), 'The superseded order must not be left pending.' );
+		$this->assertNull( $superseded->get_date_paid( 'edit' ) );
+
+		$notes = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $second_order->get_id() ] ), 'content' );
+		$this->assertStringContainsString( (string) $first_order->get_order_number(), implode( ' ', $notes ) );
+	}
+
+	/**
+	 * Core rejects a checkout with an empty cart before the gateway is reached, so clearing the cart on payment would
+	 * bail the resubmission out with "your session has expired" and the guard would never run to redirect the shopper.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_leaves_the_cart_for_the_duplicate_charge_guard(): void {
+		WC()->session->init();
+		WC()->cart->empty_cart();
+
+		try {
+			$product = WC_Helper_Product::create_simple_product();
+			$product->save();
+			WC()->cart->add_to_cart( $product->get_id(), 1 );
+			WC()->cart->calculate_totals();
+
+			$order = $this->arrange_paid_cart_gateway( 'dupe_hash', 'shopper@example.com', 1 );
+			$this->mock_gateway->process_payment( $order->get_id() );
+
+			$this->assertNotNull( wc_get_order( $order->get_id() )->get_date_paid( 'edit' ) );
+			$this->assertFalse( WC()->cart->is_empty(), 'The cart must survive payment or the guard becomes unreachable.' );
+		} finally {
+			WC()->cart->empty_cart();
+		}
 	}
 
 	/**
