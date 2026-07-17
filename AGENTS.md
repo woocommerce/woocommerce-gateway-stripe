@@ -162,6 +162,16 @@ This repository supports:
 - WooCommerce: current and the previous two major versions (L, L-1, L-2).
 - WordPress: current and the previous major version (L, L-1) — transitively constrained by WC's [support policy](https://woocommerce.com/support-policy/).
 
+## Backward Compatibility
+
+This plugin has backward-compatibility obligations in **both directions**. State the BC impact of any risky change in the PR description.
+
+**As a producer of public API.** This plugin exposes a large public surface that extensions, themes, and other plugins consume: `do_action`/`apply_filters` hooks, public gateway and `WC_Stripe_UPE_Payment_Method` classes, REST routes, and `woocommerce_stripe_*` option keys. Any change to a public or externally exposed class, interface, function, or method signature is **high-risk**. Adding a required method to an interface external code can implement is backward-incompatible — existing implementers fatal on load. Prefer a non-breaking alternative: add the method to a concrete class, introduce a separate new interface, or provide a default via an abstract base class.
+
+**Deprecate, don't rename.** Never rename or remove an existing public symbol (class, interface, method, constant, hook, option key) in place. Mark the old one `@deprecated`, add the replacement alongside it, and keep both working through a deprecation window so consumers can migrate.
+
+**As a consumer of upstream WooCommerce contracts.** This plugin implements upstream WooCommerce interfaces — notably `Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface` (see `includes/agentic-commerce/`). The `Internal` namespace is **not** a stability guarantee: WooCommerce can change these contracts, and doing so is exactly what broke this plugin when WC 10.9.0 added a required `get_entry_count()` to `FeedInterface` and older Stripe versions fataled on load. When implementing an upstream interface, keep the implementation compatible with the supported WC range (L, L-1, L-2) and guard against upstream contract changes rather than assuming the interface is frozen. See `includes/agentic-commerce/AGENTS.md`.
+
 ## Documentation and Context Sources
 
 - Root project docs: `README.md`

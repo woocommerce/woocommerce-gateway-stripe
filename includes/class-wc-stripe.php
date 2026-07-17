@@ -43,9 +43,9 @@ class WC_Stripe {
 	public $connect;
 
 	/**
-	 * Stripe Payment Request configurations.
+	 * Stripe Payment Request configurations. Holds a WC_Stripe_Payment_Request_Compat no-op shim.
 	 *
-	 * @var null
+	 * @var WC_Stripe_Payment_Request_Compat
 	 *
 	 * @deprecated 10.4.0 Use express_checkout_configuration instead. This will be removed in a future release.
 	 */
@@ -128,6 +128,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-helper.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-helper.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-checkout-session-context.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-payment-method-configurations.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache-prefetch.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-api.php';
@@ -206,6 +207,10 @@ class WC_Stripe {
 		$this->connect = new WC_Stripe_Connect( $this->api );
 		$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
+		// No-op shim so third parties that register the removed WC_Stripe_Payment_Request methods as
+		// hook callbacks via this property don't fatal on a null callback. See the compat class.
+		$this->payment_request_configuration = new WC_Stripe_Payment_Request_Compat();
+
 		if ( self::$instance === $this ) {
 			// Initialize Express Checkout after translations are loaded
 			add_action( 'init', [ $this, 'init_express_checkout' ], 11 );
@@ -217,6 +222,7 @@ class WC_Stripe {
 
 			$checkout_sessions_ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
 			$checkout_sessions_ajax_handler->init_hooks();
+			WC_Stripe_Checkout_Session_Context::init_hooks();
 		}
 
 		if ( is_admin() ) {
@@ -512,8 +518,25 @@ class WC_Stripe {
 			// Fall back to filter defaults only if no existing setting.
 			global $post;
 
-			$should_show_on_product_page  = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post );
-			$should_show_on_cart_page     = apply_filters( 'wc_stripe_show_payment_request_on_cart', true );
+			/**
+			 * Filters whether payment request buttons should be hidden on product pages.
+			 *
+			 * @param bool         $hide Whether to hide payment request buttons.
+			 * @param WP_Post|null $post Current post object, if available.
+			 */
+			$should_show_on_product_page = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post );
+			/**
+			 * Filters whether payment request buttons should be shown on the cart page.
+			 *
+			 * @param bool $show Whether to show payment request buttons.
+			 */
+			$should_show_on_cart_page = apply_filters( 'wc_stripe_show_payment_request_on_cart', true );
+			/**
+			 * Filters whether payment request buttons should be shown on the checkout page.
+			 *
+			 * @param bool         $show Whether to show payment request buttons.
+			 * @param WP_Post|null $post Current post object, if available.
+			 */
 			$should_show_on_checkout_page = apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post );
 
 			$new_prb_locations = [];
@@ -623,15 +646,16 @@ class WC_Stripe {
 	/**
 	 * Whether the request is editing a post that hosts the Cart or Checkout block.
 	 *
-	 * ECE and OCS render as inner blocks of those, so either parent's presence on the edited
-	 * post is what {@see add_gateways()} keys on to suppress block-support warnings — and only there.
+	 * ECE and OCS render as inner blocks of those, so either parent's presence on the edited post is
+	 * what {@see add_gateways()} keys on to suppress block-support warnings. The OC Blocks config
+	 * builder keys on the same check so the gateway list and registered Blocks methods stay in lockstep.
 	 *
 	 * The post ID is read from the request rather than the global $post because this filter runs
 	 * during the editor page load before $post is populated.
 	 *
 	 * @return bool
 	 */
-	private function is_editing_cart_or_checkout_block(): bool {
+	public function is_editing_cart_or_checkout_block(): bool {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only check, no state change.
 		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
 

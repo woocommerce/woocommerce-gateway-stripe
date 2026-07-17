@@ -31,8 +31,7 @@ describe( 'WCStripeAPI', () => {
 		} );
 
 		it( 'instantiates Stripe when Stripe.js was loaded from the official origin', () => {
-			addStripeScriptTag( 'https://js.stripe.com/clover/stripe.js' );
-
+			addStripeScriptTag( 'https://js.stripe.com/dahlia/stripe.js' );
 			const api = new WCStripeAPI( { key: 'pk_test_123', locale: 'en' } );
 
 			expect( api.getStripe() ).toBeTruthy();
@@ -44,7 +43,7 @@ describe( 'WCStripeAPI', () => {
 
 		it( 'warns and blocks when Stripe.js was loaded from an unexpected origin', () => {
 			addStripeScriptTag(
-				'https://js.stripe.com.evil.example/clover/stripe.js'
+				'https://js.stripe.com.evil.example/dahlia/stripe.js'
 			);
 			const api = new WCStripeAPI( { key: 'pk_test_123', locale: 'en' } );
 
@@ -66,73 +65,47 @@ describe( 'WCStripeAPI', () => {
 		} );
 	} );
 
-	describe( 'confirmIntent', () => {
-		let mockConfirmPayment;
-		let mockRequest;
-		let api;
+	describe( 'checkoutSessionsUpdateSession', () => {
+		const options = {
+			ajax_url: '/?wc-ajax=%%endpoint%%',
+			updateCheckoutSessionNonce: 'nonce_123',
+		};
 
-		beforeEach( () => {
-			addStripeScriptTag( 'https://js.stripe.com/clover/stripe.js' );
-
-			mockConfirmPayment = jest.fn().mockResolvedValue( {
-				paymentIntent: { id: 'pi_test123' },
-			} );
-
-			global.Stripe = jest.fn( () => ( {
-				confirmPayment: mockConfirmPayment,
-			} ) );
-
-			mockRequest = jest.fn().mockResolvedValue( {
+		it( 'resolves when the server reports success', async () => {
+			const request = jest.fn().mockResolvedValue( {
 				success: true,
-				data: { return_url: 'https://example.com/order-received/' },
+				data: { result: 'success' },
 			} );
+			const api = new WCStripeAPI( options, request );
 
-			getStripeServerData.mockReturnValue( { isChangingPayment: false } );
-
-			api = new WCStripeAPI(
+			await expect(
+				api.checkoutSessionsUpdateSession( 'cs_test' )
+			).resolves.toEqual( {
+				success: true,
+				data: { result: 'success' },
+			} );
+			expect( request ).toHaveBeenCalledWith(
+				'/?wc-ajax=wc_stripe_update_checkout_session',
 				{
-					key: 'pk_test_123',
-					locale: 'en',
-					return_url: 'https://example.com/return/',
-					ajax_url:
-						'https://example.com/wp-admin/admin-ajax.php?action=%%endpoint%%',
-				},
-				mockRequest
+					security: 'nonce_123',
+					checkout_session_id: 'cs_test',
+				}
 			);
 		} );
 
-		afterEach( () => {
-			document.getElementById( 'stripe-js' )?.remove();
-			delete global.Stripe;
-			jest.clearAllMocks();
-		} );
+		// wp_send_json_error replies with HTTP 200 { success: false }, so the
+		// request resolves; this must surface as a rejection so a stale session
+		// is not silently accepted.
+		it( 'rejects with the server message when success is false', async () => {
+			const request = jest.fn().mockResolvedValue( {
+				success: false,
+				data: { message: 'Checkout session ID is required.' },
+			} );
+			const api = new WCStripeAPI( options, request );
 
-		it( 'passes return_url inside confirmParams when confirming a payment intent', async () => {
-			const redirectUrl =
-				'https://example.com/checkout/#wc-stripe-confirm-pi:ORDER123:cs_test_secret:nonce_abc';
-
-			const { request } = api.confirmIntent( redirectUrl, null );
-			await request;
-
-			expect( mockConfirmPayment ).toHaveBeenCalledWith(
-				expect.objectContaining( {
-					clientSecret: 'cs_test_secret',
-					redirect: 'if_required',
-					confirmParams: expect.objectContaining( {
-						return_url: 'https://example.com/return/',
-					} ),
-				} )
-			);
-		} );
-
-		it( 'returns true without calling confirmPayment when redirectUrl has no intent hash', () => {
-			const result = api.confirmIntent(
-				'https://example.com/order-received/',
-				null
-			);
-
-			expect( result ).toBe( true );
-			expect( mockConfirmPayment ).not.toHaveBeenCalled();
+			await expect(
+				api.checkoutSessionsUpdateSession( 'cs_test' )
+			).rejects.toThrow( 'Checkout session ID is required.' );
 		} );
 	} );
 } );
