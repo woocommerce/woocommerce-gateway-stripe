@@ -708,7 +708,7 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			$order = wc_get_order( $order_id );
-			if ( ! $order ) {
+			if ( ! $order instanceof WC_Order ) {
 				throw new WC_Stripe_Exception( 'order_not_found', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
@@ -721,20 +721,53 @@ class WC_Stripe_Intent_Controller {
 			}
 			$save_payment_method = isset( $_POST['payment_method_id'] ) && ! empty( wc_clean( wp_unslash( $_POST['payment_method_id'] ) ) );
 
-			$gateway            = $this->get_upe_gateway();
-			$processing_started = true; // Past validation; a failure from here on is a genuine payment failure.
-			$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
-			wp_send_json_success(
-				[
-					'return_url' => $gateway->get_return_url( $order ),
-				],
-				200
-			);
-		} catch ( WC_Stripe_Payment_Cancelled_Exception $e ) {
-			if ( $order instanceof WC_Order ) {
-				$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
-				$order_helper->remove_payment_awaiting_action( $order );
+			$gateway = $this->get_upe_gateway();
+
+			// A concurrent request (typically the deferred payment_intent.succeeded webhook) can
+			// settle this order in parallel, which would complete it twice — duplicating stock
+			// reduction, order notes, and emails. The status/redirect-processed guards catch a
+			// request that already finished; the lock serializes against one still in flight.
+			// Mirrors WC_Stripe_UPE_Payment_Gateway::process_upe_redirect_payment(). In every case
+			// the customer is sent to the thank-you page.
+			if (
+				$order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ] )
+				|| $order_helper->get_stripe_upe_redirect_processed( $order )
+			) {
+				wp_send_json_success(
+					[
+						'return_url' => $gateway->get_return_url( $order ),
+					],
+					200
+				);
+			} elseif ( $order_helper->lock_order_payment( $order ) ) {
+				// Already locked by the concurrent request. Bail without unlocking — releasing the
+				// winner's lock would defeat the mutual exclusion.
+				WC_Stripe_Logger::info( "Skipping update_order_status_ajax for order $order_id; order payment is already locked." );
+				wp_send_json_success(
+					[
+						'return_url' => $gateway->get_return_url( $order ),
+					],
+					200
+				);
+			} else {
+				$processing_started = true; // Past validation; a failure from here on is a genuine payment failure.
+				try {
+					$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
+				} finally {
+					// This request owns the lock (we just acquired it above), so it must release it.
+					$order_helper->unlock_order_payment( $order );
+				}
+
+				wp_send_json_success(
+					[
+						'return_url' => $gateway->get_return_url( $order ),
+					],
+					200
+				);
 			}
+		} catch ( WC_Stripe_Payment_Cancelled_Exception $e ) {
+			$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
+			$order_helper->remove_payment_awaiting_action( $order );
 
 			// Customer-initiated cancellation (e.g. closed Klarna popup). Do not fail the
 			// order — leave it retryable and return an error so the frontend can notify the customer.
