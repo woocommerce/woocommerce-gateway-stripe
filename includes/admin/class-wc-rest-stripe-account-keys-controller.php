@@ -14,13 +14,6 @@ defined( 'ABSPATH' ) || exit;
  */
 class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Controller {
 	/**
-	 * The option name for the Stripe gateway settings.
-	 *
-	 * @deprecated 8.7.0
-	 */
-	const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
-
-	/**
 	 * Endpoint path.
 	 *
 	 * @var string
@@ -470,12 +463,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				continue;
 			}
 
-			// If the user is removing or changing their secret key, we should decommission the webhook.
-			if ( empty( $keys['secret_key'] ) || $keys['secret_key'] !== $keys['webhook_data']['secret'] ) {
-				// Set the appropriate secret key to the mode (live vs test) so we can send the request.
-				WC_Stripe_API::set_secret_key( $keys['webhook_data']['secret'] );
-				WC_Stripe_API::request( [], 'webhook_endpoints/' . $keys['webhook_data']['id'], 'DELETE' );
-
+			// If the user is removing or changing their secret key, decommission the
+			// webhook on the previously connected account to avoid leaving orphaned webhooks in Stripe.
+			if ( $this->account->maybe_decommission_webhook( $keys['webhook_data'], $keys['secret_key'] ) ) {
 				// Update the webhook settings now that the webhook has been decommissioned.
 				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ]     = [];
 				$settings[ 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret' ] = '';

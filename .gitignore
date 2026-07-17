@@ -14,6 +14,7 @@ sftp-config.json
 vendor
 release/
 build/
+bundle-report.html
 woocommerce-gateway-stripe.zip
 languages/woocommerce-gateway-stripe.pot
 *.env
@@ -49,3 +50,6 @@ phpunit-html/
 
 # PHPStan temporary files
 phpstan-tmp/
+
+# Temp files for doc generator
+tasks/hooks/tmp/*.json

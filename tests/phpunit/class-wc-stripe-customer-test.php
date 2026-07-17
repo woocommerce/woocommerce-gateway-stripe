@@ -20,6 +20,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 			'email'      => 'test@example.com',
 			'first_name' => 'Test',
 			'last_name'  => 'User',
+			'phone'      => '',
 			'address_1'  => '123 Test St',
 			'address_2'  => '',
 			'city'       => 'Test City',
@@ -41,6 +42,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 					'get_billing_email',
 					'get_billing_first_name',
 					'get_billing_last_name',
+					'get_billing_phone',
 					'get_billing_postcode',
 					'get_billing_state',
 				]
@@ -50,6 +52,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		$mock_order->method( 'get_billing_email' )->willReturn( $billing_data['email'] );
 		$mock_order->method( 'get_billing_first_name' )->willReturn( $billing_data['first_name'] );
 		$mock_order->method( 'get_billing_last_name' )->willReturn( $billing_data['last_name'] );
+		$mock_order->method( 'get_billing_phone' )->willReturn( $billing_data['phone'] );
 		$mock_order->method( 'get_billing_address_1' )->willReturn( $billing_data['address_1'] );
 		$mock_order->method( 'get_billing_address_2' )->willReturn( $billing_data['address_2'] );
 		$mock_order->method( 'get_billing_city' )->willReturn( $billing_data['city'] );
@@ -194,6 +197,22 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'expected_exception_message' => 'missing_required_customer_field: email',
 				'expected_exception_string'  => 'Missing required customer field: email',
 				'current_context'            => \WC_Stripe_Customer::CUSTOMER_CONTEXT_PAY_FOR_ORDER,
+			],
+			'checkout session, only email present and required, no overrides'                     => [
+				'billing_fields'             => [], // only email is required
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+				'current_context'            => \WC_Stripe_Customer::CUSTOMER_CONTEXT_CHECKOUT_SESSION,
+			],
+			'checkout session, only email is empty string'                                        => [
+				'billing_fields'             => [ 'email' => '' ],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: email',
+				'expected_exception_string'  => 'Missing required customer field: email',
+				'current_context'            => \WC_Stripe_Customer::CUSTOMER_CONTEXT_CHECKOUT_SESSION,
 			],
 			'all fields present and required, no overrides, context is false'                     => [
 				'billing_fields'             => [],
@@ -491,6 +510,119 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 			remove_filter( 'wc_stripe_create_customer_args', $capture_filter, 10 );
 			remove_filter( 'pre_http_request', $mock_http, 10 );
 			wp_delete_user( $user_id );
+		}
+	}
+
+	/**
+	 * Test that generate_customer_request includes the billing phone so it reaches the Stripe
+	 * customer object, where issuers and Stripe Radar can use it for risk decisioning (STRIPE-973).
+	 *
+	 * @dataProvider provide_test_generate_customer_request_phone_cases
+	 *
+	 * @param string $phone         The order billing phone.
+	 * @param bool   $expect_phone  Whether the phone key is expected in the request.
+	 */
+	public function test_generate_customer_request_includes_billing_phone( string $phone, bool $expect_phone ) {
+		$customer = new \WC_Stripe_Customer();
+
+		$mock_order = $this->create_mock_order( [ 'phone' => $phone ] );
+
+		$captured_args  = null;
+		$capture_filter = function ( $args ) use ( &$captured_args ) {
+			$captured_args = $args;
+			return $args;
+		};
+		add_filter( 'wc_stripe_create_customer_args', $capture_filter, 10, 1 );
+
+		$mock_http = function ( $return_value, $parsed_args, $url ) {
+			if ( str_starts_with( $url, 'https://api.stripe.com/v1/customers' ) ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode( [ 'id' => 'cus_test_phone' ] ),
+				];
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		try {
+			$customer->create_customer( [], null, $mock_order );
+
+			$this->assertNotNull( $captured_args, 'Customer args should have been captured' );
+			if ( $expect_phone ) {
+				$this->assertArrayHasKey( 'phone', $captured_args, 'Customer request should include the billing phone' );
+				$this->assertEquals( $phone, $captured_args['phone'], 'phone should match the order billing phone' );
+			} else {
+				$this->assertArrayNotHasKey( 'phone', $captured_args, 'Customer request should omit an empty billing phone' );
+			}
+		} finally {
+			remove_filter( 'wc_stripe_create_customer_args', $capture_filter, 10 );
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+		}
+	}
+
+	/**
+	 * Data provider for test_generate_customer_request_includes_billing_phone.
+	 *
+	 * @return array
+	 */
+	public function provide_test_generate_customer_request_phone_cases(): array {
+		return [
+			'phone present' => [ '+1 555-123-4567', true ],
+			'phone empty'   => [ '', false ],
+		];
+	}
+
+	/**
+	 * Test that map_customer_data includes the billing phone and, when shipping is present, the
+	 * shipping phone (STRIPE-973).
+	 */
+	public function test_map_customer_data_includes_billing_and_shipping_phone() {
+		$order = new \WC_Order();
+		$order->set_billing_first_name( 'Jane' );
+		$order->set_billing_last_name( 'Doe' );
+		$order->set_billing_email( 'jane@example.com' );
+		$order->set_billing_phone( '+1 555-111-2222' );
+		$order->set_shipping_first_name( 'Jane' );
+		$order->set_shipping_last_name( 'Doe' );
+		$order->set_shipping_address_1( '123 Ship St' );
+		$order->set_shipping_city( 'Shipville' );
+		$order->set_shipping_postcode( '90210' );
+		$order->set_shipping_state( 'CA' );
+		$order->set_shipping_country( 'US' );
+		$order->set_shipping_phone( '+1 555-333-4444' );
+
+		try {
+			$data = \WC_Stripe_Customer::map_customer_data( $order );
+
+			$this->assertEquals( '+1 555-111-2222', $data['phone'], 'Billing phone should be mapped to the customer phone' );
+			$this->assertArrayHasKey( 'shipping', $data, 'Shipping should be mapped when a shipping postcode is present' );
+			$this->assertEquals( '+1 555-333-4444', $data['shipping']['phone'], 'Shipping phone should be mapped to the shipping object' );
+		} finally {
+			$order->delete( true );
+		}
+	}
+
+	/**
+	 * Test that map_customer_data omits the shipping phone when none is set.
+	 */
+	public function test_map_customer_data_omits_empty_shipping_phone() {
+		$order = new \WC_Order();
+		$order->set_billing_first_name( 'Jane' );
+		$order->set_billing_last_name( 'Doe' );
+		$order->set_shipping_first_name( 'Jane' );
+		$order->set_shipping_last_name( 'Doe' );
+		$order->set_shipping_address_1( '123 Ship St' );
+		$order->set_shipping_postcode( '90210' );
+
+		try {
+			$data = \WC_Stripe_Customer::map_customer_data( $order );
+
+			$this->assertArrayHasKey( 'shipping', $data, 'Shipping should be mapped when a shipping postcode is present' );
+			$this->assertArrayNotHasKey( 'phone', $data['shipping'], 'Shipping object should omit an empty phone' );
+		} finally {
+			$order->delete( true );
 		}
 	}
 

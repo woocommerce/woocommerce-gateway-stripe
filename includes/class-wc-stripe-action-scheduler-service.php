@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
  */
 class WC_Stripe_Action_Scheduler_Service {
 
-	const GROUP_ID = 'woocommerce_stripe';
+	public const GROUP_ID = 'woocommerce_stripe';
 
 	/**
 	 * Schedule an action scheduler job. Also unschedules (replaces) any previous instances of the same job.

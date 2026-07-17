@@ -1,10 +1,7 @@
-/* global wc_stripe_upe_params, wc, wc_stripe_express_checkout_params */
+/* global wc_stripe_upe_params, wc_stripe_express_checkout_params */
+import { getSetting } from '@woocommerce/settings';
 import React from 'react';
 import { createPortal } from 'react-dom';
-import {
-	getAppearance,
-	getExpandedOptimizedCheckoutRules,
-} from '../styles/upe';
 import {
 	errorTypes,
 	errorCodes,
@@ -26,7 +23,7 @@ import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 /**
  * Stripe data comes form the server passed on a global object.
  *
- * @return  {StripeServerData} Stripe server data.
+ * @return  {StripeServerData|null} Stripe server data, or null when it isn't localized on the page.
  */
 const getStripeServerData = () => {
 	let data = null;
@@ -34,19 +31,12 @@ const getStripeServerData = () => {
 	// eslint-disable-next-line camelcase
 	if ( typeof wc_stripe_upe_params !== 'undefined' ) {
 		data = wc_stripe_upe_params; // eslint-disable-line camelcase
-	} else if (
-		typeof wc === 'object' &&
-		typeof wc.wcSettings !== 'undefined'
-	) {
-		// 'getSetting' has this data value on block checkout only.
-		data = wc.wcSettings?.getSetting( 'stripe_data' ) || null;
+	} else {
+		// 'stripe_data' is available via wc-settings on block checkout only.
+		data = getSetting( 'stripe_data', null );
 	}
 
-	if ( ! data ) {
-		throw new Error( 'Stripe initialization data is not available' );
-	}
-
-	return data;
+	return data || null;
 };
 
 /**
@@ -463,9 +453,11 @@ export const getHiddenBillingFields = ( enabledBillingFields ) => {
 			line1: enabledBillingFields.includes( 'billing_address_1' )
 				? 'never'
 				: 'auto',
-			line2: enabledBillingFields.includes( 'billing_address_2' )
-				? 'never'
-				: 'auto',
+			// Line 2 should never be collected by Stripe.
+			// It is not _required_ in any situations, and the are various cases where line 2
+			// is hidden in WooCommerce. When the WooCommerce field has been hidden
+			// by merchants, we don't want Stripe to collect it within the payment element.
+			line2: 'never',
 			city: enabledBillingFields.includes( 'billing_city' )
 				? 'never'
 				: 'auto',
@@ -524,77 +516,93 @@ export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
 };
 
 /**
- * Craft the defaultValues parameter, used to pre-fill
- * user email and phone number for Link in the Payment Element.
- * On order pay and change payment method pages, also preloads all billing details
- * from the customer billing data passed from the server.
+ * Returns true when the current page is one of the deferred-payment flows
+ * (order pay, change payment method, or add payment method).
  *
- * @param {boolean} forCheckoutSession Whether the default values are for a Checkout Session.
- * @return {Object} The defaultValues object for the Payment Element.
+ * @return {boolean} Whether the current page is a deferred-payment flow.
  */
-export const getDefaultValues = ( forCheckoutSession = false ) => {
+const isDeferredPaymentFlow = () => {
 	const stripeServerData = getStripeServerData();
-	const isOrderPay = stripeServerData?.isOrderPay;
-	const isChangingPayment = stripeServerData?.isChangingPayment;
-	const isAddPaymentMethod = stripeServerData?.isAddPaymentMethod;
+	return Boolean(
+		stripeServerData?.isOrderPay ||
+			stripeServerData?.isChangingPayment ||
+			stripeServerData?.isAddPaymentMethod
+	);
+};
 
+/**
+ * Normalizes the server-localized customer billing data into a billing details
+ * object (`{ name, email, phone, address }`) suitable for both the Payment
+ * Element `defaultValues` and the `createPaymentMethod` `billing_details` param.
+ *
+ * @return {Object|null} Normalized billing details, or null when unavailable.
+ */
+const buildCustomerBillingDetails = () => {
+	const billingData = getStripeServerData()?.customerBillingData;
+
+	if ( ! billingData || ! billingData.email?.trim() ) {
+		return null;
+	}
+
+	// Build address object, only including non-empty values.
+	const address = {};
+	const country = billingData.address?.country?.trim();
+	if ( country ) {
+		// Country must be uppercase ISO 3166-1 alpha-2 code for Stripe.
+		address.country = country.toUpperCase();
+	}
+	const line1 = billingData.address?.line1?.trim();
+	if ( line1 ) {
+		address.line1 = line1;
+	}
+	const line2 = billingData.address?.line2?.trim();
+	if ( line2 ) {
+		address.line2 = line2;
+	}
+	const city = billingData.address?.city?.trim();
+	if ( city ) {
+		address.city = city;
+	}
+	const state = billingData.address?.state?.trim();
+	if ( state ) {
+		address.state = state;
+	}
+	const postalCode = billingData.address?.postal_code?.trim();
+	if ( postalCode ) {
+		address.postal_code = postalCode;
+	}
+
+	return {
+		name: billingData.name?.trim() || undefined,
+		email: billingData.email.trim(),
+		phone: billingData.phone?.trim() || undefined,
+		...( Object.keys( address ).length > 0 ? { address } : {} ),
+	};
+};
+
+export const getDefaultValues = ( forCheckoutSession = false ) => {
 	// On order pay, change payment method, and add payment method pages, use billing data from customer.
-	if ( isOrderPay || isChangingPayment || isAddPaymentMethod ) {
-		const billingData = stripeServerData?.customerBillingData;
+	if ( isDeferredPaymentFlow() ) {
+		const billingDetails = buildCustomerBillingDetails();
 
-		if ( billingData && billingData.email?.trim() ) {
-			// Build address object, only including non-empty values
-			const address = {};
-			const country = billingData.address?.country?.trim();
-			if ( country ) {
-				// Country must be uppercase ISO 3166-1 alpha-2 code for Stripe
-				address.country = country.toUpperCase();
-			}
-			const line1 = billingData.address?.line1?.trim();
-			if ( line1 ) {
-				address.line1 = line1;
-			}
-			const line2 = billingData.address?.line2?.trim();
-			if ( line2 ) {
-				address.line2 = line2;
-			}
-			const city = billingData.address?.city?.trim();
-			if ( city ) {
-				address.city = city;
-			}
-			const state = billingData.address?.state?.trim();
-			if ( state ) {
-				address.state = state;
-			}
-			const postalCode = billingData.address?.postal_code?.trim();
-			if ( postalCode ) {
-				address.postal_code = postalCode;
-			}
-
+		if ( billingDetails ) {
 			if ( forCheckoutSession ) {
 				return {
 					defaultValues: {
 						billingAddress: {
-							name: billingData.name?.trim() || undefined,
-							...( Object.keys( address ).length > 0
-								? { address }
+							name: billingDetails.name,
+							...( billingDetails.address
+								? { address: billingDetails.address }
 								: {} ),
 						},
-						phoneNumber: billingData.phone?.trim() || undefined,
+						phoneNumber: billingDetails.phone,
 					},
 				};
 			}
 
 			return {
 				defaultValues: {
-					billingDetails: {
-						name: billingData.name?.trim() || undefined,
-						email: billingData.email.trim(),
-						phone: billingData.phone?.trim() || undefined,
-						...( Object.keys( address ).length > 0
-							? { address }
-							: {} ),
-					},
+					billingDetails,
 				},
 			};
 		}
@@ -622,6 +630,26 @@ export const getDefaultValues = ( forCheckoutSession = false ) => {
 			},
 		},
 	};
+};
+
+/**
+ * Returns the `billing_details` object to pass to Stripe's `createPaymentMethod`
+ * on the deferred-payment flows.
+ *
+ * On these flows the form is not a checkout form, so billing fields are not
+ * present in the DOM. The order/customer billing data is localized server-side
+ * as `customerBillingData`; we forward it explicitly so the full address reaches
+ * the PaymentMethod.
+ *
+ * @return {Object|null} A `billing_details` object, or null when not a deferred
+ *                       flow or when no usable customer billing data exists.
+ */
+export const getBillingDetailsForDeferredFlow = () => {
+	if ( ! isDeferredPaymentFlow() ) {
+		return null;
+	}
+
+	return buildCustomerBillingDetails();
 };
 
 /**
@@ -760,6 +788,18 @@ export const getExcludedPaymentMethodTypes = () => {
 };
 
 /**
+ * Notice shown when the Adaptive Pricing Checkout Session total can't be resynced
+ * with the cart.
+ *
+ * @return {string} The translated stale-total message.
+ */
+export const getStaleCheckoutTotalMessage = () =>
+	__(
+		"We couldn't update your order total. Please refresh the page and try again.",
+		'woocommerce-gateway-stripe'
+	);
+
+/**
  * Show error notice at top of checkout form.
  * Will try to use a translatable message using the message code if available.
  *
@@ -780,33 +820,33 @@ export const showErrorCheckout = ( errorMessage ) => {
 	) {
 		if (
 			errorMessage?.code &&
-			getStripeServerData()[ errorMessage?.code ]
+			getStripeServerData()?.[ errorMessage?.code ]
 		) {
-			errorMessage = getStripeServerData()[ errorMessage?.code ];
+			errorMessage = getStripeServerData()?.[ errorMessage?.code ];
 		} else {
 			errorMessage =
 				errorMessage?.message || 'An unknown error occurred.';
 		}
 	}
 
-	// Use the WC Blocks API to show the error notice if we're in a block context.
-	if (
-		typeof wcSettings !== 'undefined' &&
-		wcSettings.wcBlocksConfig &&
-		! isMyAccountPage
-	) {
-		dispatch( 'core/notices' ).createErrorNotice( errorMessage, {
+	// wcSettings.wcBlocksConfig is also truthy on woocommerce/classic-shortcode pages, but
+	// there the checkout notices store isn't mounted (dispatch() returns null) and
+	// StoreNotice may be absent — guard both so a failed payment falls through to the
+	// classic notice below instead of throwing and silently dropping the message.
+	const inBlockContext =
+		typeof wcSettings !== 'undefined' && wcSettings.wcBlocksConfig;
+	const noticesStore = inBlockContext ? dispatch( 'core/notices' ) : null;
+
+	if ( noticesStore?.createErrorNotice && ! isMyAccountPage ) {
+		noticesStore.createErrorNotice( errorMessage, {
 			context: 'wc/checkout/payments', // Display the notice in the payments context.
 		} );
 		return;
 	}
 
 	let messageWrapper = '';
-	if ( typeof wcSettings !== 'undefined' && wcSettings.wcBlocksConfig ) {
-		const StoreNotice = window.wc?.blocksCheckout?.StoreNotice;
-		if ( ! StoreNotice ) {
-			return;
-		}
+	const StoreNotice = window.wc?.blocksCheckout?.StoreNotice;
+	if ( inBlockContext && StoreNotice ) {
 		const NoticeComponent = () => (
 			<StoreNotice status="error" isDismissible={ true }>
 				{ errorMessage }
@@ -873,8 +913,11 @@ export const showErrorPaymentMethod = ( errorMessage, containerSelector ) => {
 		typeof errorMessage !== 'string' &&
 		! ( errorMessage instanceof String )
 	) {
-		if ( errorMessage.code && getStripeServerData()[ errorMessage.code ] ) {
-			errorMessage = getStripeServerData()[ errorMessage.code ];
+		if (
+			errorMessage.code &&
+			getStripeServerData()?.[ errorMessage.code ]
+		) {
+			errorMessage = getStripeServerData()?.[ errorMessage.code ];
 		} else {
 			errorMessage = errorMessage.message;
 		}
@@ -896,65 +939,6 @@ export const showErrorPaymentMethod = ( errorMessage, containerSelector ) => {
 	$container.find( '.woocommerce-error' ).remove();
 
 	$container.prepend( messageWrapper );
-};
-
-// In-memory cache for computed appearance objects, keyed by checkout type.
-// Avoids redundant getComputedStyle() calls within a single page load.
-const appearanceCache = {};
-
-/**
- * Initializes the appearance of the payment element. Returns a cached value
- * when available, otherwise computes from the current page styles and caches
- * the result for the lifetime of the page.
- *
- * @param {string}  isBlockCheckout               Whether the checkout is being used in a block context.
- * @param {boolean} shouldExpandOptimizedCheckout Whether the Optimized Checkout Suite should be expanded. Only applicable for classic checkout.
- *
- * @return {Object} The appearance object for the UPE.
- */
-export const initializeUPEAppearance = (
-	isBlockCheckout = 'false',
-	shouldExpandOptimizedCheckout = false
-) => {
-	const isBlocks = isBlockCheckout === 'true';
-	const location = isBlocks
-		? 'blocks'
-		: 'classic' + ( shouldExpandOptimizedCheckout ? '_expanded' : '' );
-
-	// Check for custom appearance configuration from the server.
-	const customServerField = isBlocks ? 'blocksAppearance' : 'appearance';
-	const customAppearance = getStripeServerData()?.[ customServerField ];
-	if ( customAppearance ) {
-		if ( ! shouldExpandOptimizedCheckout ) {
-			return customAppearance;
-		}
-
-		return {
-			...customAppearance,
-			rules: getExpandedOptimizedCheckoutRules(
-				customAppearance.rules || {}
-			),
-		};
-	}
-
-	if ( appearanceCache[ location ] ) {
-		return appearanceCache[ location ];
-	}
-
-	const appearance = getAppearance( isBlocks, shouldExpandOptimizedCheckout );
-	appearanceCache[ location ] = appearance;
-	return appearance;
-};
-
-/**
- * Clears the in-memory appearance cache so the next call to
- * initializeUPEAppearance() re-computes from the current page styles.
- * Used after web fonts finish loading to refresh stale font families.
- */
-export const invalidateAppearanceCache = () => {
-	Object.keys( appearanceCache ).forEach(
-		( key ) => delete appearanceCache[ key ]
-	);
 };
 
 /**

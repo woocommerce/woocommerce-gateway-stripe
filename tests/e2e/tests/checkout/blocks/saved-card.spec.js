@@ -3,8 +3,14 @@ import { randomUUID } from 'crypto';
 import config from 'config';
 import { payments, api, user, admin } from '../../../utils';
 
-const { emptyCart, setupCart, setupBlocksCheckout, fillCreditCardDetails } =
-	payments;
+const {
+	emptyCart,
+	setupCart,
+	setupBlocksCheckout,
+	fillCreditCardDetails,
+	getCartTotal,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
+} = payments;
 
 let username, userEmail;
 
@@ -54,11 +60,14 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 				)
 				.click();
 
+			const expectedTotal = await getCartTotal( page );
+
 			await page.locator( 'text=Place order' ).click();
 
-			await page.waitForNavigation();
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
+			await waitForOrderReceivedPageAndConfirmExpectedTotal(
+				browser,
+				page,
+				expectedTotal
 			);
 		} );
 
@@ -80,11 +89,14 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 				)
 				.click();
 
+			const expectedTotal = await getCartTotal( page );
+
 			await page.locator( 'text=Place order' ).click();
 
-			await page.waitForNavigation();
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
+			await waitForOrderReceivedPageAndConfirmExpectedTotal(
+				browser,
+				page,
+				expectedTotal
 			);
 		} );
 	} finally {

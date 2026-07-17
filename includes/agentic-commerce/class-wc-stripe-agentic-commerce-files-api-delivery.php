@@ -34,21 +34,21 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	 *
 	 * @var string
 	 */
-	const FILES_API_ENDPOINT = 'https://files.stripe.com/v1/files';
+	public const FILES_API_ENDPOINT = 'https://files.stripe.com/v1/files';
 
 	/**
 	 * Stripe Data Management API endpoint.
 	 *
 	 * @var string
 	 */
-	const IMPORT_SETS_ENDPOINT = 'https://api.stripe.com/v1/data_management/import_sets';
+	public const IMPORT_SETS_ENDPOINT = 'https://api.stripe.com/v1/data_management/import_sets';
 
 	/**
 	 * Stripe Files API content endpoint.
 	 *
 	 * @var string
 	 */
-	const FILES_CONTENT_ENDPOINT = 'https://files.stripe.com/v1/files/';
+	public const FILES_CONTENT_ENDPOINT = 'https://files.stripe.com/v1/files/';
 
 	/**
 	 * Stripe API version for Data Management (preview).
@@ -56,7 +56,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	 *
 	 * @var string
 	 */
-	const API_VERSION = '2025-09-30.clover;udap_beta=v1';
+	public const API_VERSION = '2026-03-25.dahlia;udap_beta=v1';
 
 	/**
 	 * Stripe secret key.
@@ -212,7 +212,6 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 		 * @since 10.5.0
 		 * @param array|null $pre       Short-circuit response or null.
 		 * @param string     $file_path The path to the feed file.
-		 * @return array|null
 		 */
 		$pre = apply_filters( 'wc_stripe_agentic_commerce_files_api_pre_request', null, $file_path );
 		if ( ! is_null( $pre ) ) {
@@ -310,7 +309,6 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 		 * @param array|null $pre                  Short-circuit response or null.
 		 * @param string     $file_id              Stripe file ID.
 		 * @param string     $standard_data_format Feed format string.
-		 * @return array|null
 		 */
 		$pre = apply_filters( 'wc_stripe_agentic_commerce_import_set_pre_request', null, $file_id, $standard_data_format );
 		if ( ! is_null( $pre ) ) {

@@ -8,7 +8,26 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_P24 extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::P24;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::P24;
+
+	/**
+	 * Stripe account countries that may not enable Przelewy24.
+	 *
+	 * @var string[]
+	 */
+	protected const UNSUPPORTED_ACCOUNT_COUNTRIES = [
+		WC_Stripe_Country_Code::BRAZIL,
+		WC_Stripe_Country_Code::MALAYSIA,
+		WC_Stripe_Country_Code::THAILAND,
+		WC_Stripe_Country_Code::UNITED_ARAB_EMIRATES,
+	];
+
+	/**
+	 * Shopper billing countries permitted to use Przelewy24.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [ WC_Stripe_Country_Code::POLAND ];
 
 	/**
 	 * Constructor for Przelewy24 payment method

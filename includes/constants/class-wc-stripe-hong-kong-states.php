@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Hong_Kong_States {
 	// Source: https://www.rvd.gov.hk/doc/tc/hkpr13/06.pdf
-	const STATES = [
+	public const STATES = [
 		'hong kong',
 		'港島',
 

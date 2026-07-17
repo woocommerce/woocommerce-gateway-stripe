@@ -38,7 +38,6 @@ module.exports = {
 		),
 	],
 	globals: {
-		__PAYMENT_METHOD_FEES_ENABLED: false,
 		wc_stripe_express_checkout_params: {},
 	},
 	setupFilesAfterEnv: [
@@ -55,4 +54,5 @@ module.exports = {
 		'<rootDir>/docker/',
 		'<rootDir>/tests',
 	],
+	modulePathIgnorePatterns: [ '<rootDir>/docker/' ],
 };

@@ -1,7 +1,7 @@
 name: Prepare live branch for Jetpack Beta Builder
 
 on:
-  pull_request:
+  pull_request
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,12 +12,27 @@ permissions:
   pull-requests: write
 
 jobs:
+  changes:
+    name: Check for code changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.detect.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7.0.0
+      - id: detect
+        uses: ./.github/actions/detect-code-changes
+
   build-and-inform-zip-file:
     name: "Build and inform the zip file"
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.0
 
       - name: "Get current version"
         id: current-version

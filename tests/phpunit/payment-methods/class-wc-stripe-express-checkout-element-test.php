@@ -142,6 +142,209 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Build an element with helper mocks for both guards.
+	 *
+	 * @param bool $page_supported Return value for is_page_supported().
+	 * @param bool $should_show    Return value for should_show_express_checkout_button().
+	 *
+	 * @return WC_Stripe_Express_Checkout_Element
+	 */
+	private function build_element_with_guards( $page_supported, $should_show ) {
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->setMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
+			->getMock();
+
+		$helper->method( 'is_page_supported' )
+			->willReturn( $page_supported );
+
+		$helper->method( 'should_show_express_checkout_button' )
+			->willReturn( $should_show );
+
+		return new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+	}
+
+	/**
+	 * Test that `add_resource_hints` appends Stripe preconnect entries when ECE will render.
+	 *
+	 * @return void
+	 */
+	public function test_add_resource_hints_appends_preconnect_when_ece_enabled() {
+		$element = $this->build_element_with_guards( true, true );
+
+		$urls = $element->add_resource_hints( [ 'https://example.com' ], 'preconnect' );
+
+		$hrefs = array_map(
+			static function ( $entry ) {
+				return is_array( $entry ) ? $entry['href'] : $entry;
+			},
+			$urls
+		);
+
+		$this->assertContains( 'https://example.com', $hrefs );
+		$this->assertContains( 'https://js.stripe.com', $hrefs );
+		$this->assertContains( 'https://m.stripe.network', $hrefs );
+		$this->assertContains( 'https://q.stripe.com', $hrefs );
+		$this->assertContains( 'https://b.stripecdn.com', $hrefs );
+
+		// js.stripe.com and m.stripe.network must declare crossorigin so the preconnected
+		// TLS session is reused by the script/iframe fetch that follows.
+		foreach ( $urls as $entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+
+			if ( in_array( $entry['href'], [ 'https://js.stripe.com', 'https://m.stripe.network', 'https://b.stripecdn.com' ], true ) ) {
+				$this->assertSame( 'anonymous', $entry['crossorigin'] );
+			}
+
+			if ( 'https://q.stripe.com' === $entry['href'] ) {
+				$this->assertArrayNotHasKey( 'crossorigin', $entry );
+			}
+		}
+	}
+
+	/**
+	 * Test that `add_resource_hints` is a no-op when the page or guard rules block ECE.
+	 *
+	 * @param bool $page_supported Return value for is_page_supported().
+	 * @param bool $should_show    Return value for should_show_express_checkout_button().
+	 *
+	 * @return void
+	 * @dataProvider provide_test_add_resource_hints_skips_when_unavailable
+	 */
+	public function test_add_resource_hints_skips_when_unavailable( $page_supported, $should_show ) {
+		$element = $this->build_element_with_guards( $page_supported, $should_show );
+
+		$input = [ 'https://example.com' ];
+		$urls  = $element->add_resource_hints( $input, 'preconnect' );
+
+		$this->assertSame( $input, $urls );
+	}
+
+	/**
+	 * Provider for `test_add_resource_hints_skips_when_unavailable`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_add_resource_hints_skips_when_unavailable() {
+		return [
+			'page not supported' => [
+				'page supported' => false,
+				'should show'    => true,
+			],
+			'guards say no'      => [
+				'page supported' => true,
+				'should show'    => false,
+			],
+			'both say no'        => [
+				'page supported' => false,
+				'should show'    => false,
+			],
+		];
+	}
+
+	/**
+	 * Test that `add_resource_hints` only touches the `preconnect` relation type.
+	 *
+	 * @param string $relation_type The relation type to pass.
+	 *
+	 * @return void
+	 * @dataProvider provide_test_add_resource_hints_ignores_non_preconnect_relations
+	 */
+	public function test_add_resource_hints_ignores_non_preconnect_relations( $relation_type ) {
+		$element = $this->build_element_with_guards( true, true );
+
+		$input = [ 'https://example.com' ];
+		$urls  = $element->add_resource_hints( $input, $relation_type );
+
+		$this->assertSame( $input, $urls );
+	}
+
+	/**
+	 * Provider for `test_add_resource_hints_ignores_non_preconnect_relations`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_add_resource_hints_ignores_non_preconnect_relations() {
+		return [
+			'dns-prefetch' => [ 'dns-prefetch' ],
+			'prefetch'     => [ 'prefetch' ],
+			'prerender'    => [ 'prerender' ],
+		];
+	}
+
+	/**
+	 * Test that `add_preload_resources` appends the ECE bundle entry only when ECE will render.
+	 *
+	 * @param bool $page_supported Return value for is_page_supported().
+	 * @param bool $should_show    Return value for should_show_express_checkout_button().
+	 * @param bool $expect_entry   Whether a preload entry should be appended.
+	 *
+	 * @return void
+	 * @dataProvider provide_test_add_preload_resources
+	 */
+	public function test_add_preload_resources( $page_supported, $should_show, $expect_entry ) {
+		$element = $this->build_element_with_guards( $page_supported, $should_show );
+
+		$existing = [
+			[
+				'href' => 'https://example.com/other.js',
+				'as'   => 'script',
+			],
+		];
+		$output   = $element->add_preload_resources( $existing );
+
+		// Pre-existing entries must be preserved regardless of the guard outcome.
+		$this->assertSame( $existing[0], $output[0] );
+
+		if ( $expect_entry ) {
+			$this->assertCount( 2, $output );
+			$bundle_entry = $output[1];
+			$this->assertSame( 'script', $bundle_entry['as'] );
+			$this->assertMatchesRegularExpression(
+				'#/build/express-checkout\.js\?ver=[^&]+$#',
+				$bundle_entry['href']
+			);
+		} else {
+			$this->assertSame( $existing, $output );
+		}
+	}
+
+	/**
+	 * Provider for `test_add_preload_resources`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_add_preload_resources() {
+		return [
+			'page not supported'    => [
+				'page supported' => false,
+				'should show'    => true,
+				'expect entry'   => false,
+			],
+			'should not show'       => [
+				'page supported' => true,
+				'should show'    => false,
+				'expect entry'   => false,
+			],
+			'successfully rendered' => [
+				'page supported' => true,
+				'should show'    => true,
+				'expect entry'   => true,
+			],
+		];
+	}
+
+	/**
 	 * Test for `add_order_meta`.
 	 *
 	 * @param string $checkout_type The checkout type.
@@ -206,6 +409,8 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 
 		$this->assertSame( $expected, $subscription->get_payment_method_title() );
 
+		$this->assertContains( "Payment method updated to {$expected}.", $subscription->get_captured_notes() );
+
 		unset( $_GET['change_payment_method'], $_POST['express_checkout_type'] );
 		WC_Subscriptions::$wcs_get_subscription = null;
 	}
@@ -245,17 +450,28 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_update_subscription_payment_method_title
 	 */
 	public function test_maybe_apply_express_title_after_confirmed_intent( $checkout_type, $expected ) {
+		$user_id = $this->factory->user->create( [ 'role' => 'customer' ] );
+		$token   = WC_Helper_Token::create_token( 'pm_post3ds_card', $user_id );
+
 		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $user_id );
 		$subscription->set_payment_method( 'stripe' );
 		$subscription->set_payment_method_title( 'Credit Card (Stripe)' );
 		$subscription->update_meta_data( '_wc_stripe_express_checkout_type', $checkout_type );
+		$subscription->update_meta_data( '_wc_stripe_express_checkout_payment_method_id', 'pm_post3ds_card' );
 		$subscription->save();
 
 		$this->element->maybe_apply_express_title_after_confirmed_intent( $subscription );
 
 		$this->assertSame( $expected, $subscription->get_payment_method_title() );
-		// Meta should be cleaned up after applying.
+		// Both temporary meta fields should be cleaned up after applying.
 		$this->assertSame( '', $subscription->get_meta( '_wc_stripe_express_checkout_type' ) );
+		$this->assertSame( '', $subscription->get_meta( '_wc_stripe_express_checkout_payment_method_id' ) );
+		// The token persisted alongside the title meta must be linked to the subscription.
+		$attached_ids = array_values( $subscription->get_payment_tokens() );
+		$this->assertSame( [ $token->get_id() ], $attached_ids );
+		// And the corrective note should also be appended on this path.
+		$this->assertContains( "Payment method updated to {$expected}.", $subscription->get_captured_notes() );
 	}
 
 	/**
@@ -714,5 +930,79 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 				'expected_result'      => false,
 			],
 		];
+	}
+
+	/**
+	 * The Pay for Order page must localize the express checkout payload using the order's
+	 * currency, not the store base currency. Otherwise the Apple Pay / Google Pay wallet
+	 * sheet shows the wrong currency (and, for zero-decimal currencies, the wrong amount)
+	 * whenever the order currency differs from the store base. See STRIPE-1195.
+	 *
+	 * @param string $store_currency  Store base currency option value.
+	 * @param string $order_currency  The order's currency.
+	 * @param int    $expected_amount Expected `total.amount` in Stripe's smallest unit.
+	 *
+	 * @return void
+	 * @dataProvider provide_test_localize_pay_for_order_uses_order_currency
+	 */
+	public function test_localize_pay_for_order_uses_order_currency( $store_currency, $order_currency, $expected_amount ) {
+		// Start from a clean script registration so we read only this call's localized data.
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		update_option( 'woocommerce_currency', $store_currency );
+
+		// Order total is 50 from the helper; give it a currency that may differ from the store base.
+		$order = WC_Helper_Order::create_order( 1, null, [ 'currency' => $order_currency ] );
+
+		$this->element->localize_pay_for_order_page_scripts( $order );
+
+		$params = $this->get_localized_pay_for_order_params();
+
+		$this->assertSame( strtolower( $order_currency ), $params['currency'] );
+		$this->assertSame( $expected_amount, $params['total']['amount'] );
+	}
+
+	/**
+	 * Data provider for `test_localize_pay_for_order_uses_order_currency`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_localize_pay_for_order_uses_order_currency() {
+		return [
+			// Order total 50, two-decimal currency differing from store base -> 5000 (cents).
+			'order currency differs from store base' => [
+				'store_currency'  => 'GBP',
+				'order_currency'  => 'AUD',
+				'expected_amount' => 5000,
+			],
+			// Zero-decimal order currency on a two-decimal store: amount must stay 50, not 5000.
+			'zero-decimal order currency'            => [
+				'store_currency'  => 'GBP',
+				'order_currency'  => 'JPY',
+				'expected_amount' => 50,
+			],
+			// Control: order currency equal to store base still works.
+			'order currency equals store base'       => [
+				'store_currency'  => 'USD',
+				'order_currency'  => 'USD',
+				'expected_amount' => 5000,
+			],
+		];
+	}
+
+	/**
+	 * Decode the localized `wcStripeExpressCheckoutPayForOrderParams` payload back into an array.
+	 *
+	 * `wp_localize_script` stores it as `var wcStripeExpressCheckoutPayForOrderParams = {json};`.
+	 *
+	 * @return array
+	 */
+	private function get_localized_pay_for_order_params() {
+		$data  = wp_scripts()->get_data( 'wc_stripe_express_checkout', 'data' );
+		$start = strpos( $data, '{' );
+		$end   = strrpos( $data, '}' );
+		$json  = substr( $data, $start, $end - $start + 1 );
+
+		return json_decode( $json, true );
 	}
 }

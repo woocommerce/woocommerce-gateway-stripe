@@ -3,7 +3,7 @@
 /**
  * These tests make assertions against class WC_Stripe_UPE_Payment_Method_ACH.
  */
-class WC_Stripe_UPE_Payment_Method_ACH_Test extends WP_UnitTestCase {
+class WC_Stripe_UPE_Payment_Method_ACH_Test extends WC_Stripe_UPE_Payment_Method_Test_Case {
 	/**
 	 * Tests for create_payment_token_for_user.
 	 */
@@ -60,5 +60,37 @@ class WC_Stripe_UPE_Payment_Method_ACH_Test extends WP_UnitTestCase {
 
 		$token = $ach_payment_method->create_payment_token_for_user( $user_id, $payment_method_missing_us_bank_account );
 		$this->assertNull( $token, 'Token should be null when the "us_bank_account" property is missing.' );
+	}
+
+	/**
+	 * Test that {@see WC_Stripe_UPE_Payment_Method_ACH::is_available_for_account_country()}
+	 * behaves as expected.
+	 *
+	 * @param string $account_country The account country.
+	 * @param bool   $expected_result The expected result.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_is_available_for_account_country
+	 */
+	public function test_is_available_for_account_country( string $account_country, bool $expected_result ): void {
+		$this->run_is_available_for_account_country_test( WC_Stripe_UPE_Payment_Method_ACH::class, $account_country, $expected_result );
+	}
+
+	/**
+	 * Data provider for {@see test_is_available_for_account_country()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_available_for_account_country(): array {
+		return [
+			'US is supported'     => [ WC_Stripe_Country_Code::UNITED_STATES, true ],
+			'GB is supported'     => [ WC_Stripe_Country_Code::UNITED_KINGDOM, true ],
+			'DE is supported'     => [ WC_Stripe_Country_Code::GERMANY, true ],
+			'AT is supported'     => [ WC_Stripe_Country_Code::AUSTRIA, true ],
+			'BR is not supported' => [ WC_Stripe_Country_Code::BRAZIL, false ],
+			'MX is not supported' => [ WC_Stripe_Country_Code::MEXICO, false ],
+			'JP is not supported' => [ WC_Stripe_Country_Code::JAPAN, false ],
+			'ZZ is not supported' => [ 'ZZ', false ],
+		];
 	}
 }

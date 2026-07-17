@@ -63,3 +63,17 @@ export const CenteredColumnIllustration = styled( CardColumn )`
 		text-align: center;
 	}
 `;
+
+export const BannerTitle = styled.h4`
+	margin-top: 0.6em !important;
+	font-weight: 500;
+`;
+
+export const BannerIntro = styled.p`
+	line-height: 20px;
+`;
+
+export const BannerFootnote = styled.p`
+	font-size: 12px;
+	color: #757575;
+`;
