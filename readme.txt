@@ -222,6 +222,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Include the statement descriptor when creating payment intents for ACSS Debit and BLIK payments
 * Fix - Represent negative fees and taxes as discounts in Level 3 data so manually capturing an order edited to include a negative fee no longer fails
 * Fix - Ensure all WordPress hooks have filter documentation
+* Fix - Accept express checkout addresses whose province is entered with a curly apostrophe, so Apple Pay no longer rejects them
 * Update - Show a clear message when manual capture is blocking Adaptive Pricing from being enabled
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
