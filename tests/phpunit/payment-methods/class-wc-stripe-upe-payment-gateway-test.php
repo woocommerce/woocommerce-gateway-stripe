@@ -1024,6 +1024,162 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Arranges a gateway that will charge a card successfully, and returns the order to charge.
+	 *
+	 * @param string $cart_hash     The cart hash to stamp on the order.
+	 * @param string $billing_email The billing email to set on the order.
+	 * @param int    $expected_charges How many times the gateway is expected to reach Stripe across the test.
+	 * @return WC_Order
+	 */
+	private function arrange_paid_cart_gateway( string $cart_hash, string $billing_email, int $expected_charges ): WC_Order {
+		$mock_intent = (object) wp_parse_args(
+			[ 'payment_method' => 'pm_mock' ],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->exactly( $expected_charges ) )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+
+		// The shared mock stubs this to null, which would leave the order unpaid and never record the marker.
+		// Each charge needs its own id as Stripe would issue: process_response() rejects a charge already consumed by another order.
+		$charge_count = 0;
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturnCallback(
+			function () use ( &$charge_count ) {
+				++$charge_count;
+
+				return (object) [
+					'id'       => 'ch_mock_' . $charge_count,
+					'captured' => true,
+					'status'   => 'succeeded',
+				];
+			}
+		);
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => 'pm_mock',
+			'wc-stripe-confirmation-token' => '',
+		];
+
+		return $this->create_checkout_order( $cart_hash, $billing_email );
+	}
+
+	/**
+	 * Creates an order that looks like it came from the given cart.
+	 *
+	 * @param string $cart_hash     The cart hash to stamp on the order.
+	 * @param string $billing_email The billing email to set on the order.
+	 * @return WC_Order
+	 */
+	private function create_checkout_order( string $cart_hash, string $billing_email ): WC_Order {
+		$order = WC_Helper_Order::create_order();
+		$order->set_cart_hash( $cart_hash );
+		$order->set_billing_email( $billing_email );
+		$order->save();
+
+		return $order;
+	}
+
+	/**
+	 * A lost checkout response leaves the cart intact, so core builds a second order for a cart Stripe already charged.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_prevents_a_duplicate_charge_for_the_same_cart(): void {
+		// Only the first submission may reach Stripe.
+		$first_order = $this->arrange_paid_cart_gateway( 'dupe_hash', 'shopper@example.com', 1 );
+
+		$first_response = $this->mock_gateway->process_payment( $first_order->get_id() );
+
+		$this->assertEquals( 'success', $first_response['result'] );
+		$this->assertNotNull( wc_get_order( $first_order->get_id() )->get_date_paid( 'edit' ) );
+
+		$second_order    = $this->create_checkout_order( 'dupe_hash', 'shopper@example.com' );
+		$second_response = $this->mock_gateway->process_payment( $second_order->get_id() );
+
+		$this->assertEquals( 'success', $second_response['result'] );
+		$this->assertNull( wc_get_order( $second_order->get_id() )->get_date_paid( 'edit' ), 'The resubmitted order must never be charged.' );
+	}
+
+	/**
+	 * The guard has to point the shopper at the order that was actually paid, not at the one they just resubmitted.
+	 *
+	 * @return void
+	 */
+	public function test_duplicate_charge_guard_redirects_to_the_paid_order(): void {
+		$first_order = $this->arrange_paid_cart_gateway( 'dupe_hash', 'shopper@example.com', 1 );
+		$this->mock_gateway->process_payment( $first_order->get_id() );
+
+		$second_order = $this->create_checkout_order( 'dupe_hash', 'shopper@example.com' );
+
+		// The shared mock stubs get_return_url to a constant, so only a real gateway can prove which order it points at.
+		// The guard returns ahead of the first Stripe call, so this short-circuits without touching the API.
+		$response = ( new WC_Stripe_UPE_Payment_Gateway() )->process_payment( $second_order->get_id() );
+
+		$this->assertEquals( 'success', $response['result'] );
+		$this->assertStringContainsString( $first_order->get_order_key(), $response['redirect'] );
+		$this->assertStringNotContainsString( $second_order->get_order_key(), $response['redirect'] );
+	}
+
+	/**
+	 * @param string $second_cart_hash     The cart hash on the second submission.
+	 * @param string $second_billing_email The billing email on the second submission.
+	 * @param bool   $disable_guard        Whether to switch the guard off through its filter.
+	 * @return void
+	 * @dataProvider provide_process_payment_charges_a_genuinely_new_submission
+	 */
+	public function test_process_payment_charges_a_genuinely_new_submission( string $second_cart_hash, string $second_billing_email, bool $disable_guard ): void {
+		// Both submissions are legitimate, so both must reach Stripe.
+		$first_order = $this->arrange_paid_cart_gateway( 'dupe_hash', 'shopper@example.com', 2 );
+
+		try {
+			if ( $disable_guard ) {
+				add_filter( 'wc_stripe_duplicate_charge_detection_window', '__return_zero' );
+			}
+
+			$this->mock_gateway->process_payment( $first_order->get_id() );
+
+			$second_order = $this->create_checkout_order( $second_cart_hash, $second_billing_email );
+			$this->mock_gateway->process_payment( $second_order->get_id() );
+
+			$this->assertNotNull( wc_get_order( $second_order->get_id() )->get_date_paid( 'edit' ) );
+		} finally {
+			if ( $disable_guard ) {
+				remove_filter( 'wc_stripe_duplicate_charge_detection_window', '__return_zero' );
+			}
+		}
+	}
+
+	/**
+	 * Data provider for `test_process_payment_charges_a_genuinely_new_submission`
+	 *
+	 * @return array
+	 */
+	public function provide_process_payment_charges_a_genuinely_new_submission(): array {
+		return [
+			'a different cart'             => [
+				'second_cart_hash'     => 'other_hash',
+				'second_billing_email' => 'shopper@example.com',
+				'disable_guard'        => false,
+			],
+			'a changed billing email'      => [
+				'second_cart_hash'     => 'dupe_hash',
+				'second_billing_email' => 'someone-else@example.com',
+				'disable_guard'        => false,
+			],
+			'the guard disabled by filter' => [
+				'second_cart_hash'     => 'dupe_hash',
+				'second_billing_email' => 'shopper@example.com',
+				'disable_guard'        => true,
+			],
+		];
+	}
+
+	/**
 	 * Provider for `test_process_payment_deferred_intent_returns_valid_response`.
 	 */
 	public function provide_process_payment_deferred_intent_returns_valid_response() {
