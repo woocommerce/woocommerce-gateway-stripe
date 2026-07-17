@@ -378,18 +378,22 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * (uncaptured authorisation). The refund amount comes from the charge's remaining balance, and
 	 * the order is only flagged as handled when process_refund() reports the path-appropriate success.
 	 *
-	 * @param string $intent_status      PaymentIntent status.
-	 * @param int    $charge_amount      Charge amount in the smallest currency unit.
-	 * @param int    $amount_refunded    Already-refunded amount in the smallest currency unit.
-	 * @param bool   $is_captured        Whether the charge was captured.
-	 * @param mixed  $refund_return      The value process_refund() returns.
-	 * @param bool   $expect_null_amount Whether process_refund() should be called with a null amount.
-	 * @param string $expected_note      Substring the resulting order note must contain.
-	 * @param bool   $expect_flagged     Whether the order should be flagged as handled.
+	 * @param string $intent_status         PaymentIntent status.
+	 * @param int    $charge_amount         Charge amount in the smallest currency unit.
+	 * @param int    $amount_refunded       Already-refunded amount in the smallest currency unit.
+	 * @param bool   $is_captured           Whether the charge was captured.
+	 * @param string $order_currency        Order currency code.
+	 * @param string $charge_currency       Charge currency code (may differ in exponent from the order).
+	 * @param mixed  $refund_return         The value process_refund() returns.
+	 * @param string $confirm_intent_status Status of the intent re-read after a void, or null for no intent.
+	 * @param bool   $expect_null_amount    Whether process_refund() should be called with a null amount.
+	 * @param string $expected_note         Substring the resulting order note must contain.
+	 * @param bool   $expect_flagged        Whether the order should be flagged as handled.
 	 * @dataProvider provide_cancelled_order_refund_scenarios
 	 */
-	public function test_cancelled_order_refund_scenarios( $intent_status, $charge_amount, $amount_refunded, $is_captured, $refund_return, $expect_null_amount, $expected_note, $expect_flagged ) {
+	public function test_cancelled_order_refund_scenarios( $intent_status, $charge_amount, $amount_refunded, $is_captured, $order_currency, $charge_currency, $refund_return, $confirm_intent_status, $expect_null_amount, $expected_note, $expect_flagged ) {
 		$order = WC_Helper_Order::create_order();
+		$order->set_currency( $order_currency );
 		$order->set_status( OrderStatus::CANCELLED );
 		$order->save();
 
@@ -401,21 +405,29 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			[
 				'amount'          => $charge_amount,
 				'amount_refunded' => $amount_refunded,
-				'currency'        => 'usd',
+				'currency'        => $charge_currency,
 				'captured'        => $is_captured,
 			]
 		);
 
+		// The void path re-reads the intent after process_refund() to confirm Stripe cancelled it;
+		// the second read reflects the post-void status (null models an unreadable intent).
+		$confirm_intent = null === $confirm_intent_status
+			? null
+			: (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'status' => $confirm_intent_status ] );
+
 		// Run the real cancelled-order handler; mock only its dependencies.
 		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
 
-		$this->mock_webhook_handler->method( 'get_intent_from_order' )->willReturn( $intent );
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturnOnConsecutiveCalls( $intent, $confirm_intent );
 		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
 
-		// Captured charges refund the remaining balance; authorisation voids pass a null amount.
+		// The refundable balance is converted with the order currency because process_refund()
+		// reconverts with it; authorisation voids pass a null amount.
 		$expected_amount = $expect_null_amount
 			? null
-			: WC_Stripe_Helper::convert_from_stripe_amount( $charge_amount - $amount_refunded, 'usd' );
+			: WC_Stripe_Helper::convert_from_stripe_amount( $charge_amount - $amount_refunded, $order_currency );
 
 		$this->mock_webhook_handler->expects( $this->once() )
 			->method( 'process_refund' )
@@ -442,12 +454,21 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 */
 	public function provide_cancelled_order_refund_scenarios() {
 		return [
-			'captured charge is refunded in full'          => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, true, false, 'automatically refunded', true ],
-			'captured charge refunds remaining balance'    => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 400, true, true, false, 'automatically refunded', true ],
-			'uncaptured authorisation is voided'           => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, 1000, 0, false, false, true, 'voided', true ],
-			'captured refund returning false is a failure' => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, false, false, 'automatic refund failed', false ],
-			'captured refund returning null is a failure'  => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, null, false, 'automatic refund failed', false ],
-			'refund error is a failure'                    => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, new WP_Error( 'stripe_error', 'boom' ), false, 'automatic refund failed', false ],
+			// intent_status, charge_amount, amount_refunded, is_captured, order_currency, charge_currency, refund_return, confirm_intent_status, expect_null_amount, expected_note, expect_flagged
+			'captured charge is refunded in full'          => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, 'USD', 'usd', true, null, false, 'automatically refunded', true ],
+			'captured charge refunds remaining balance'    => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 400, true, 'USD', 'usd', true, null, false, 'automatically refunded', true ],
+			// Order currency (0-decimal) differs in exponent from the charge currency; the amount must
+			// be converted with the order currency so process_refund() reconverts it losslessly.
+			'captured refund uses order currency exponent' => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, 'JPY', 'usd', true, null, false, 'automatically refunded', true ],
+			// A real authorisation void returns false and cancels the intent; success is confirmed by the re-read.
+			'uncaptured authorisation is voided'           => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, 1000, 0, false, 'USD', 'usd', false, WC_Stripe_Intent_Status::CANCELED, true, 'voided', true ],
+			// The intent is still not cancelled after process_refund(): treat the void as failed, don't flag.
+			'void unconfirmed by intent is a failure'      => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, 1000, 0, false, 'USD', 'usd', null, WC_Stripe_Intent_Status::REQUIRES_CAPTURE, true, 'automatic refund failed', false ],
+			// The intent can't be re-read to confirm the void: treat as failed, don't flag.
+			'void with unreadable intent is a failure'     => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, 1000, 0, false, 'USD', 'usd', false, null, true, 'automatic refund failed', false ],
+			'captured refund returning false is a failure' => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, 'USD', 'usd', false, null, false, 'automatic refund failed', false ],
+			'captured refund returning null is a failure'  => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, 'USD', 'usd', null, null, false, 'automatic refund failed', false ],
+			'refund error is a failure'                    => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, 'USD', 'usd', new WP_Error( 'stripe_error', 'boom' ), null, false, 'automatic refund failed', false ],
 		];
 	}
 

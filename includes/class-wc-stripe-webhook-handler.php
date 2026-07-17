@@ -1919,9 +1919,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// authorisation-void path instead needs null (any amount makes it throw).
 		$refund_amount = null;
 		if ( ! $is_authorization ) {
-			// Missing or delayed charge data: don't guess an amount and risk over-refunding. Leave the
-			// order unflagged so an Action Scheduler retry can settle it once the charge is available.
-			if ( ! is_object( $charge ) || ! isset( $charge->amount, $charge->currency ) ) {
+			// Skip if no charge amount to refund against.
+			if ( ! is_object( $charge ) || ! isset( $charge->amount ) ) {
 				WC_Stripe_Logger::warning( "Skipped refunding cancelled order {$order->get_id()} for Stripe PaymentIntent {$intent_id} - no charge amount available to refund." );
 				return;
 			}
@@ -1932,16 +1931,25 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			$refund_amount = WC_Stripe_Helper::convert_from_stripe_amount( $refundable, $charge->currency );
+			// $refundable is in the smallest unit; convert with the order currency because process_refund()
+			// reconverts with the order currency. Using the charge currency here would corrupt the amount
+			// whenever the two currencies have different decimal exponents.
+			$refund_amount = WC_Stripe_Helper::convert_from_stripe_amount( $refundable, $order->get_currency() );
 		}
 
 		$reason = __( 'Payment received in Stripe after the order was cancelled by the customer. Automatically refunded.', 'woocommerce-gateway-stripe' );
 		$result = $this->process_refund( $order->get_id(), $refund_amount, $reason );
 
-		// The success contract is path-dependent: a captured refund must return true, while an
-		// authorisation void succeeds with false/null (there is no refund object to report). Treating
-		// any non-WP_Error as success would mark an unrefunded captured payment as handled.
-		$succeeded = $is_authorization ? ! is_wp_error( $result ) : ( true === $result );
+		// The success contract is path-dependent. A captured refund must return true. An authorisation
+		// void produces no refund object, so process_refund() returns false or null either way — an
+		// ambiguous signal — so re-read the intent and require a Stripe-confirmed cancellation before
+		// treating the void as settled. A WP_Error is always a failure.
+		if ( $is_authorization ) {
+			$confirmed_intent = is_wp_error( $result ) ? null : $this->get_intent_from_order( $order );
+			$succeeded        = $confirmed_intent && WC_Stripe_Intent_Status::CANCELED === $confirmed_intent->status;
+		} else {
+			$succeeded = ( true === $result );
+		}
 		if ( ! $succeeded ) {
 			$error_message = is_wp_error( $result ) ? $result->get_error_message() : '';
 			$order->add_order_note(
