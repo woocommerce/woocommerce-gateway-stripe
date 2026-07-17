@@ -91,9 +91,15 @@ if [[ -n "$WC_VERSION" && $WC_VERSION != 'latest' ]]; then
 	# jq sorts keys lexically ("9.9.0-beta.1" > "11.0.0-beta.1"), so sort with PHP's
 	# version_compare instead to get the actual latest version.
 	if [[ $WC_VERSION == 'beta' || $WC_VERSION == 'rc' ]]; then
+		REQUESTED_WC_VERSION=$WC_VERSION
 		WC_VERSION=$(curl -s https://api.wordpress.org/plugins/info/1.0/woocommerce.json | \
 			jq -r --arg type "$WC_VERSION" '.versions | keys[] | select(match($type;"i"))' | \
 			php -r '$v = array_filter( array_map( "trim", file( "php://stdin" ) ) ); usort( $v, "version_compare" ); echo end( $v ) ?: "";')
+
+		if [[ -z "$WC_VERSION" ]]; then
+			error "Could not resolve the latest WooCommerce '${REQUESTED_WC_VERSION}' version from the WordPress.org API."
+			exit 1
+		fi
 	fi
 
 	step "Installing WooCommerce ${WC_VERSION}"
