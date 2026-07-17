@@ -1679,9 +1679,23 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					WC_Stripe_Logger::error( $error_msg );
 					throw new WC_Stripe_Exception( $error_msg );
 				}
-				$unit_cost       = WC_Stripe_Helper::get_stripe_amount( ( $subtotal / $quantity ), $currency );
-				$tax_amount      = WC_Stripe_Helper::get_stripe_amount( $item->get_total_tax(), $currency );
-				$discount_amount = WC_Stripe_Helper::get_stripe_amount( $subtotal - $item->get_total(), $currency );
+				$total_tax  = $item->get_total_tax();
+				$item_total = $item->get_total();
+
+				if ( $subtotal >= 0 ) {
+					$unit_cost       = WC_Stripe_Helper::get_stripe_amount( ( $subtotal / $quantity ), $currency );
+					$discount_amount = WC_Stripe_Helper::get_stripe_amount( $subtotal - $item_total, $currency );
+				} else {
+					$unit_cost       = 0;
+					$discount_amount = WC_Stripe_Helper::get_stripe_amount( $item_total, $currency );
+				}
+
+				// Tax must not be negative either; fold a negative tax into the discount.
+				$tax_amount = WC_Stripe_Helper::get_stripe_amount( $total_tax, $currency );
+				if ( $total_tax < 0 ) {
+					$discount_amount += $tax_amount;
+					$tax_amount       = 0;
+				}
 
 				return (object) [
 					'product_code'        => (string) $product_id, // Up to 12 characters that uniquely identify the product.
