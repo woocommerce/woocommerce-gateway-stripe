@@ -317,6 +317,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Add a notice about currency conversion when the order currency is different from the store currency on the order details page.
 		add_action( 'woocommerce_order_details_after_order_table', [ $this, 'add_currency_conversion_notice' ], 10 );
 
+		// Retire the duplicate-charge marker once the shopper has seen an order confirmed; both classic and Blocks fire this.
+		add_action( 'woocommerce_thankyou', [ $this, 'clear_paid_cart_marker_for_confirmed_order' ] );
+
 		// Add a notice about currency conversion in the order confirmation emails when the order currency is different from the store currency.
 		add_action( 'woocommerce_email_after_order_table', [ $this, 'add_email_currency_conversion_notice' ], 10, 3 );
 
@@ -1699,6 +1702,33 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'billing_email' => (string) $marker['billing_email'],
 			'paid_at'       => (int) $marker['paid_at'],
 		];
+	}
+
+	/**
+	 * Retires the paid-cart marker once the shopper has reached an order's confirmation page.
+	 *
+	 * Reaching the thank-you page is proof the shopper saw the order succeed, so the cart they are now holding is a
+	 * deliberate new purchase rather than a resubmission of a response they never received. Without this a genuine
+	 * repurchase of the same items within the detection window would be mistaken for a duplicate and cancelled.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param int $order_id ID of the order whose confirmation page is being shown.
+	 * @return void
+	 */
+	public function clear_paid_cart_marker_for_confirmed_order( $order_id ): void {
+		$marker = $this->get_paid_cart_marker();
+
+		if ( null === $marker || (int) $order_id !== $marker['order_id'] ) {
+			return;
+		}
+
+		if ( ! WC()->session || ! method_exists( WC()->session, 'save_data' ) ) {
+			return;
+		}
+
+		WC()->session->set( self::PAID_CART_MARKER_SESSION_KEY, null );
+		WC()->session->save_data();
 	}
 
 	/**
