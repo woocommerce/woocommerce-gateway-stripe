@@ -13,7 +13,7 @@ on:
         default: 'latest'
         required: true
       woocommerce-version:
-        description: WooCommerce version number. Defaults to 'latest' (the latest version).
+        description: WooCommerce version number, or 'beta'/'rc' for the latest beta/RC release. Defaults to 'latest' (the latest stable version).
         type: string
         default: 'latest'
         required: true
