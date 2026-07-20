@@ -90,6 +90,15 @@ jQuery( function ( $ ) {
 	// win the last-writer race against the mounted Elements group.
 	let cartFetchGeneration = 0;
 
+	// Structural inputs elements.update() cannot change, so a change in either
+	// forces a rebuild rather than an in-place refresh.
+	let renderSignature = null;
+
+	// Container the current buttons are mounted in. WooCommerce replaces
+	// `.cart_totals` wholesale before firing `updated_cart_totals`, so a live
+	// re-query can return a different node than the one we built into.
+	let mountedContainer = null;
+
 	const hasVariationForm = $( '.variations_form' ).length > 0;
 	const hasBookingForm = $( '.wc-bookings-booking-form' ).length > 0;
 
@@ -157,6 +166,16 @@ jQuery( function ( $ ) {
 		const variationSelected = variationId && variationId !== '0';
 		return isVariationProduct && ! variationSelected;
 	};
+
+	// An in-place refresh is only valid while the buttons are still mounted in
+	// the live container and the structural inputs are unchanged; anything else
+	// has to rebuild, which re-hits /v1/elements/sessions.
+	const canRefreshInPlace = ( currency, requestShipping ) =>
+		( wcStripeECE.expressCheckoutElements ?? [] ).length > 0 &&
+		!! mountedContainer &&
+		mountedContainer === wcStripeECE.getElements()[ 0 ] &&
+		renderSignature?.currency === currency &&
+		renderSignature?.requestShipping === requestShipping;
 
 	const wcStripeECE = {
 		createButton: ( elements, options ) =>
@@ -281,13 +300,14 @@ jQuery( function ( $ ) {
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			].filter( Boolean );
 
-			// Record the structural signature so a later cart update can tell an
-			// in-place amount change from one that needs a full rebuild.
+			// Record what this render was built against, so a later cart update
+			// can tell an in-place amount change from one that needs a rebuild.
 			wcStripeECE.teardownExpressCheckout();
-			wcStripeECE.renderSignature = {
+			renderSignature = {
 				currency: options.currency,
 				requestShipping: options.requestShipping,
 			};
+			mountedContainer = wcStripeECE.getElements()[ 0 ];
 
 			expressPaymentTypes.forEach( ( expressPaymentType ) => {
 				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {
@@ -716,18 +736,7 @@ jQuery( function ( $ ) {
 					const displayItems =
 						transformCartDataForDisplayItems( cart );
 
-					// elements.update() cannot change currency or shipping requirement,
-					// so only an unchanged signature may refresh in place; anything
-					// else rebuilds, re-hitting /v1/elements/sessions.
-					const isMounted =
-						( wcStripeECE.expressCheckoutElements ?? [] ).length >
-						0;
-					const signatureUnchanged =
-						wcStripeECE.renderSignature?.currency === currency &&
-						wcStripeECE.renderSignature?.requestShipping ===
-							requestShipping;
-
-					if ( isMounted && signatureUnchanged ) {
+					if ( canRefreshInPlace( currency, requestShipping ) ) {
 						wcStripeECE.refreshExpressCheckoutAmount( {
 							total,
 							displayItems,

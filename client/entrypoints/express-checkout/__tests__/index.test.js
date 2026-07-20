@@ -506,6 +506,42 @@ describe( 'Express Checkout cart in-place amount update', () => {
 		);
 	} );
 
+	it( 'rebuilds when the cart page swaps the container node (classic quantity update)', async () => {
+		global.wc_stripe_express_checkout_params = cartParams();
+		const { elementsFactory, button, handlers } = stubStripe();
+		setCartTotal( 2500 );
+
+		loadEntrypoint();
+		const groupsAfterFirstPaint = elementsFactory.mock.calls.length;
+
+		// WooCommerce's cart.js replaces `.cart_totals` wholesale and only then
+		// fires `updated_cart_totals`, so the container the buttons were mounted
+		// into is detached and a fresh, empty one takes its place.
+		const stale = document.getElementById(
+			'wc-stripe-express-checkout-element'
+		);
+		const fresh = document.createElement( 'div' );
+		fresh.id = 'wc-stripe-express-checkout-element';
+		fresh.style.display = 'none';
+		stale.replaceWith( fresh );
+
+		await triggerCartUpdate();
+
+		// A stale registry must not win: the buttons have to be rebuilt into the
+		// new node rather than refreshed in place against the detached one.
+		expect( button.destroy ).toHaveBeenCalled();
+		expect( elementsFactory.mock.calls.length ).toBeGreaterThan(
+			groupsAfterFirstPaint
+		);
+
+		// The rebuilt button reveals the element from its own 'ready' event, so
+		// the buttons are only actually visible again if the rebuild re-bound it
+		// against the new node.
+		expect( button.mount ).toHaveBeenCalled();
+		handlers.ready( { availablePaymentMethods: { applePay: true } } );
+		expect( fresh.style.display ).not.toBe( 'none' );
+	} );
+
 	it( 'does not reveal an empty container on refresh when no wallet is available', async () => {
 		global.wc_stripe_express_checkout_params = cartParams();
 		const { elementsList } = stubStripe();
