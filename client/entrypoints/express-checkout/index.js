@@ -235,15 +235,9 @@ jQuery( function ( $ ) {
 					return getExpressCheckoutData( 'product' )?.shippingOptions;
 				}
 
-				return options.displayItems
-					.filter( ( i ) => i.key && i.key === 'total_shipping' )
-					.map( ( i ) => ( {
-						id: 'rate-shipping',
-						amount: i.amount,
-						displayName: useLegacyDisplayItems
-							? i.label ?? i.name
-							: i.name,
-					} ) );
+				return wcStripeECE.deriveCartShippingRates(
+					options.displayItems
+				);
 			};
 
 			const shippingRates = getShippingRates();
@@ -459,12 +453,15 @@ jQuery( function ( $ ) {
 
 			wcStripeECE.renderButton( eceButton, expressPaymentType );
 
-			// Retain the button alongside its group so a later cart update can push the new
-			// amount to every group and, on a structural change, tear the old buttons down cleanly.
+			// Retain the button and its click-closure options alongside the group,
+			// so a later cart update can push the new amount to every group,
+			// refresh each button's line items, and tear the old buttons down
+			// cleanly on a structural change.
 			wcStripeECE.expressCheckoutElements.push( {
 				elements,
 				button: eceButton,
 				expressPaymentType,
+				options,
 			} );
 
 			eceButton.on( 'click', async function ( event ) {
@@ -1060,6 +1057,39 @@ jQuery( function ( $ ) {
 		updateExpressCheckoutAmount: ( amount ) => {
 			( wcStripeECE.expressCheckoutElements ?? [] ).forEach(
 				( { elements } ) => elements.update( { amount } )
+			);
+		},
+
+		// Derive wallet shipping rates from cart/checkout display items: the
+		// `total_shipping` line becomes the selected rate. Shared by the initial
+		// render and the in-place refresh so the rate and the line items always
+		// come from the same source.
+		deriveCartShippingRates: ( displayItems ) =>
+			( displayItems ?? [] )
+				.filter( ( i ) => i.key && i.key === 'total_shipping' )
+				.map( ( i ) => ( {
+					id: 'rate-shipping',
+					amount: i.amount,
+					displayName: useLegacyDisplayItems
+						? i.label ?? i.name
+						: i.name,
+				} ) ),
+
+		// In-place refresh for a cart/checkout amount change: push the new
+		// amount to every mounted Elements group and refresh each button's click
+		// closure (line items + derived shipping rates), so the wallet sheet
+		// stays correct without re-creating the group — no /v1/elements/sessions
+		// call, no wallet re-probe. Only valid when the structural signature is
+		// unchanged; the caller falls back to a full rebuild otherwise.
+		refreshExpressCheckoutAmount: ( { total, displayItems } ) => {
+			const shippingRates =
+				wcStripeECE.deriveCartShippingRates( displayItems );
+			( wcStripeECE.expressCheckoutElements ?? [] ).forEach(
+				( entry ) => {
+					entry.elements.update( { amount: total } );
+					entry.options.displayItems = displayItems;
+					entry.options.shippingRates = shippingRates;
+				}
 			);
 		},
 
