@@ -43,6 +43,7 @@ xxxx-xx-xx - version 10.9.0
 * Tweak - Don't show the Stripe API outage notice on local and development sites, where Stripe is often unreachable for benign reasons
 * Tweak - Clarify in the saved payment methods setting that Link by Stripe collects save consent in the payment form instead of a separate checkbox
 * Update - Deprecate the wc_stripe_agentic_commerce_should_sync_product filter in favor of the shareable woocommerce_agentic_commerce_should_sync_product
+* Add - Per-product "Agentic Commerce" exclude toggle on the product editor's Inventory tab
 * Update - Replace the legacy add-to-cart AJAX endpoint with a Store API call for variable products in Express Checkout
 * Update - Add booking products to the cart via the Store API in Express Checkout when WooCommerce Bookings supports it
 * Dev - Rename internal Blocks API references to Store API in the Express Checkout client for naming consistency
