@@ -44,7 +44,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 			$cart_context = $this->build_cart_context();
 
 			$request = [
-				'ui_mode'                       => 'custom',
+				'ui_mode'                       => 'elements',
 				'line_items'                    => $this->build_line_items( $cart_context ),
 				'excluded_payment_method_types' => WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
 				'payment_intent_data'           => $this->build_payment_intent_data(),
