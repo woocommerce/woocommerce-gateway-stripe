@@ -168,6 +168,27 @@ jQuery( function ( $ ) {
 			wcStripeECE.getButtonSeparator().hide();
 		},
 
+		// Destroy the buttons/groups from the previous render and drop their
+		// containers before a re-init, so re-inits don't stack duplicate buttons
+		// or leave the abandoned wallet iframes and telemetry the old groups
+		// spun up alive.
+		teardownExpressCheckout: () => {
+			( wcStripeECE.expressCheckoutElements ?? [] ).forEach(
+				( { button } ) => {
+					try {
+						button.destroy();
+					} catch ( e ) {
+						// Button may already be destroyed/unmounted; ignore.
+					}
+				}
+			);
+			wcStripeECE.expressCheckoutElements = [];
+			wcStripeECE
+				.getElements()
+				.find( '[id^="wc-stripe-express-checkout-element-"]' )
+				.remove();
+		},
+
 		renderButton: ( eceButton, expressPaymentType ) => {
 			if ( $( '#wc-stripe-express-checkout-element' ).length ) {
 				const containerName = `wc-stripe-express-checkout-element-${ expressPaymentType }`;
@@ -261,11 +282,12 @@ jQuery( function ( $ ) {
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			].filter( Boolean );
 
-			// Reset the registry so variation/qty updates only touch the buttons
-			// mounted for this render, and record this render's structural
+			// Tear down the previous render's buttons/groups before building new
+			// ones so re-inits don't stack duplicate buttons or leak the old
+			// wallet iframes/telemetry, and record this render's structural
 			// signature so a later cart update can tell an in-place amount change
 			// from one that needs a full rebuild.
-			wcStripeECE.expressCheckoutElements = [];
+			wcStripeECE.teardownExpressCheckout();
 			wcStripeECE.renderSignature = {
 				currency: options.currency,
 				requestShipping: options.requestShipping,
