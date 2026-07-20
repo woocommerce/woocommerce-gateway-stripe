@@ -60,6 +60,9 @@ const AgenticCommerceDescription = () => (
 const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	const [ isFeatureEnabled, setIsFeatureEnabled ] = useState( false );
 	const [ disableCheckout, setDisableCheckout ] = useState( false );
+	const [ autoExcludeAddons, setAutoExcludeAddons ] = useState( false );
+	const [ autoDisableCheckoutAddons, setAutoDisableCheckoutAddons ] =
+		useState( false );
 	const [ webhookSecret, setWebhookSecret ] = useState( '' );
 	const [ isLoadingSettings, setIsLoadingSettings ] = useState( true );
 	const [ settingsNotice, setSettingsNotice ] = useState( null );
@@ -80,6 +83,10 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			} );
 			setIsFeatureEnabled( result.is_enabled );
 			setDisableCheckout( result.disable_checkout ?? false );
+			setAutoExcludeAddons( result.auto_exclude_addons ?? false );
+			setAutoDisableCheckoutAddons(
+				result.auto_disable_checkout_addons ?? false
+			);
 			setWebhookSecret( result.webhook_secret ?? '' );
 		} catch {
 			// Settings fetch failure is non-fatal; defaults remain.
@@ -101,11 +108,17 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 				data: {
 					is_enabled: isFeatureEnabled,
 					disable_checkout: disableCheckout,
+					auto_exclude_addons: autoExcludeAddons,
+					auto_disable_checkout_addons: autoDisableCheckoutAddons,
 					webhook_secret: webhookSecret,
 				},
 			} );
 			setIsFeatureEnabled( result.is_enabled );
 			setDisableCheckout( result.disable_checkout ?? false );
+			setAutoExcludeAddons( result.auto_exclude_addons ?? false );
+			setAutoDisableCheckoutAddons(
+				result.auto_disable_checkout_addons ?? false
+			);
 			setWebhookSecret( result.webhook_secret ?? '' );
 			// No success notice: the global Save changes flow already shows a page-level toast.
 		} catch ( err ) {
@@ -119,7 +132,13 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 					),
 			} );
 		}
-	}, [ isFeatureEnabled, disableCheckout, webhookSecret ] );
+	}, [
+		isFeatureEnabled,
+		disableCheckout,
+		autoExcludeAddons,
+		autoDisableCheckoutAddons,
+		webhookSecret,
+	] );
 
 	// Expose save function to parent via ref so the global Save changes
 	// button can trigger it alongside the main settings save.
@@ -181,6 +200,38 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 										) }
 										checked={ disableCheckout }
 										onChange={ setDisableCheckout }
+									/>
+								) }
+
+								{ isFeatureEnabled && (
+									<CheckboxControl
+										label={ __(
+											'Exclude products with add-ons or configurators from the feed',
+											'woocommerce-gateway-stripe'
+										) }
+										help={ __(
+											"Products built with add-on or configurator plugins (Product Add-Ons, Extra Product Options, Composite Products, individually-priced Bundles) have prices that depend on shopper choices, which the feed can't represent. When enabled, those products are kept out of the catalog entirely.",
+											'woocommerce-gateway-stripe'
+										) }
+										checked={ autoExcludeAddons }
+										onChange={ setAutoExcludeAddons }
+									/>
+								) }
+
+								{ isFeatureEnabled && ! autoExcludeAddons && (
+									<CheckboxControl
+										label={ __(
+											'Redirect shoppers to my store for products with add-ons or configurators',
+											'woocommerce-gateway-stripe'
+										) }
+										help={ __(
+											'Instead of excluding add-on / configurator products, keep them discoverable in agents but send shoppers to your store to configure and complete the purchase. Has no effect on products already excluded above.',
+											'woocommerce-gateway-stripe'
+										) }
+										checked={ autoDisableCheckoutAddons }
+										onChange={
+											setAutoDisableCheckoutAddons
+										}
 									/>
 								) }
 

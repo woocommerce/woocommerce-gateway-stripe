@@ -103,6 +103,8 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 	 *     validation_errors: array<int, array{product_id:int, product_name:string, edit_link:string, errors:string[]}>,
 	 *     truncated: int,
 	 *     scan_limited: bool,
+	 *     advisories: array<int, array{product_id:int, product_name:string, edit_link:string, type:string, detail:string}>,
+	 *     advisories_truncated: int,
 	 *     shipping_warnings: string[]
 	 * }
 	 */
@@ -150,6 +152,8 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 		$truncated              = 0;
 		$scan_limited           = false;
 		$validation_errors      = [];
+		$advisories             = [];
+		$advisories_truncated   = 0;
 
 		// Zones that contribute no flat-rate shipping to the feed. Computed once,
 		// independent of the product walk.
@@ -210,14 +214,13 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 
 				$errors = $validator->validate_entry( $row, $product );
 
-				if ( empty( $errors ) ) {
-					++$included_count;
-					continue;
-				}
+				// An empty row means the product was excluded (a merchant choice,
+				// not a defect); split the count so auto-excluded subscriptions
+				// aren't mistaken for a filter. A non-empty row with errors is a
+				// genuine validation failure.
+				$excluded = empty( $row );
 
-				// An empty row means should_sync_product() excluded it; split the
-				// count so auto-excluded subscriptions aren't mistaken for a filter.
-				if ( empty( $row ) ) {
+				if ( $excluded ) {
 					++$excluded_count;
 
 					if ( WC_Stripe_Agentic_Commerce_Product_Mapper::is_subscription_product( $product ) ) {
@@ -225,30 +228,40 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 					} else {
 						++$excluded_filtered;
 					}
-
-					continue;
+				} elseif ( empty( $errors ) ) {
+					++$included_count;
+				} else {
+					++$invalid_count;
+					$this->collect_error( $validation_errors, $truncated, $detail_limit, $product, $errors );
 				}
 
-				++$invalid_count;
-				$this->collect_error( $validation_errors, $truncated, $detail_limit, $product, $errors );
+				// Non-fatal advisories: why a product is excluded, whether it
+				// redirects (and from which layer), and missing-SKU warnings.
+				// Gated on the concrete mapper since these helpers are not part
+				// of ProductMapperInterface.
+				if ( $mapper instanceof WC_Stripe_Agentic_Commerce_Product_Mapper ) {
+					$this->collect_advisories( $advisories, $advisories_truncated, $detail_limit, $product, $row, $mapper, $excluded );
+				}
 			}
 
 			++$page;
 		} while ( self::PER_PAGE === $batch_iterated && $page <= $max_num_pages );
 
 		return [
-			'total_count'        => $total_count,
-			'included_count'     => $included_count,
-			'excluded_count'     => $excluded_count,
-			'excluded_breakdown' => [
+			'total_count'          => $total_count,
+			'included_count'       => $included_count,
+			'excluded_count'       => $excluded_count,
+			'excluded_breakdown'   => [
 				'subscriptions' => $excluded_subscriptions,
 				'filtered'      => $excluded_filtered,
 			],
-			'invalid_count'      => $invalid_count,
-			'validation_errors'  => $validation_errors,
-			'truncated'          => $truncated,
-			'scan_limited'       => $scan_limited,
-			'shipping_warnings'  => $shipping_warnings,
+			'invalid_count'        => $invalid_count,
+			'validation_errors'    => $validation_errors,
+			'truncated'            => $truncated,
+			'scan_limited'         => $scan_limited,
+			'advisories'           => $advisories,
+			'advisories_truncated' => $advisories_truncated,
+			'shipping_warnings'    => $shipping_warnings,
 		];
 	}
 
@@ -283,6 +296,82 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 			'product_name' => wp_strip_all_tags( $product->get_name() ),
 			'edit_link'    => is_string( $edit_link ) ? $edit_link : '',
 			'errors'       => array_values( $errors ),
+		];
+	}
+
+	/**
+	 * Collect the non-fatal advisories for a single product: why it is excluded,
+	 * whether it redirects (and from which layer), and missing-SKU warnings.
+	 *
+	 * Excluded products are never in the feed, so their SKU / checkout state is
+	 * moot — only the exclusion reason is recorded for them.
+	 *
+	 * @since 10.9.0
+	 * @param array                                    $advisories Advisory list, modified in place.
+	 * @param int                                      $truncated  Overflow counter, modified in place.
+	 * @param int                                      $detail_limit Maximum advisories to retain.
+	 * @param \WC_Product                              $product    Product being inspected.
+	 * @param array                                    $row        Mapped feed row for the product.
+	 * @param WC_Stripe_Agentic_Commerce_Product_Mapper $mapper    Concrete mapper for diagnostics.
+	 * @param bool                                     $excluded   Whether the product was excluded from the feed.
+	 * @return void
+	 */
+	private function collect_advisories( array &$advisories, int &$truncated, int $detail_limit, \WC_Product $product, array $row, WC_Stripe_Agentic_Commerce_Product_Mapper $mapper, bool $excluded ): void {
+		if ( $excluded ) {
+			$reason = WC_Stripe_Agentic_Commerce_Product_Mapper::get_sync_exclusion_reason( $product );
+			if ( null !== $reason ) {
+				$this->add_advisory( $advisories, $truncated, $detail_limit, $product, 'excluded', $reason );
+			}
+			return;
+		}
+
+		// Missing SKU: the product still syncs (id falls back to the product ID)
+		// but loses the SKU-based identity ACP line-item resolution prefers.
+		if ( '' === $product->get_sku() ) {
+			$this->add_advisory( $advisories, $truncated, $detail_limit, $product, 'no_sku', '' );
+		}
+
+		// Redirect-only: surface which layer set disable_checkout. The mapped row
+		// already carries the resolved boolean, so only re-resolve (re-applying
+		// the filter) to read the source when the product actually redirects.
+		if ( isset( $row['disable_checkout'] ) && 'true' === $row['disable_checkout'] ) {
+			$source = $mapper->resolve_disable_checkout( $product )['source'];
+			$this->add_advisory( $advisories, $truncated, $detail_limit, $product, 'disable_checkout', (string) $source );
+		}
+	}
+
+	/**
+	 * Append a single advisory to the list, or bump the overflow counter once the
+	 * detail cap is reached.
+	 *
+	 * @since 10.9.0
+	 * @param array       $advisories   Advisory list, modified in place.
+	 * @param int         $truncated    Overflow counter, modified in place.
+	 * @param int         $detail_limit Maximum advisories to retain.
+	 * @param \WC_Product $product      Product the advisory is about.
+	 * @param string      $type         Advisory type: 'excluded' | 'no_sku' | 'disable_checkout'.
+	 * @param string      $detail       Machine-readable qualifier (exclusion reason or disable_checkout source).
+	 * @return void
+	 */
+	private function add_advisory( array &$advisories, int &$truncated, int $detail_limit, \WC_Product $product, string $type, string $detail ): void {
+		if ( count( $advisories ) >= $detail_limit ) {
+			++$truncated;
+			return;
+		}
+
+		// Variations are edited on their parent's screen.
+		$edit_id = ( \Automattic\WooCommerce\Enums\ProductType::VARIATION === $product->get_type() )
+			? $product->get_parent_id()
+			: $product->get_id();
+
+		$edit_link = get_edit_post_link( $edit_id, 'raw' );
+
+		$advisories[] = [
+			'product_id'   => $product->get_id(),
+			'product_name' => wp_strip_all_tags( $product->get_name() ),
+			'edit_link'    => is_string( $edit_link ) ? $edit_link : '',
+			'type'         => $type,
+			'detail'       => $detail,
 		];
 	}
 }

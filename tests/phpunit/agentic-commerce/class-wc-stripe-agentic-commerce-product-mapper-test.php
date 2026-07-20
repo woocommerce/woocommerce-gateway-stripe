@@ -1376,6 +1376,195 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * product_has_addons() detects the WooCommerce Product Add-Ons meta key.
+	 *
+	 * @return void
+	 */
+	public function test_product_has_addons_detects_product_addons_meta() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
+		$product->save();
+
+		$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * A plain product carrying no configurator metadata is not flagged.
+	 *
+	 * @return void
+	 */
+	public function test_product_has_addons_false_for_plain_product() {
+		$product = WC_Helper_Product::create_simple_product();
+
+		$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * A Product Bundle is flagged only when priced individually; a fixed-price
+	 * bundle stays eligible.
+	 *
+	 * @return void
+	 */
+	public function test_product_has_addons_bundle_only_when_priced_individually() {
+		$fixed = WC_Helper_Product::create_simple_product();
+		$fixed->update_meta_data( '_wc_pb_priced_individually', 'no' );
+		$fixed->save();
+		$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $fixed ) );
+		$fixed->delete( true );
+
+		$dynamic = WC_Helper_Product::create_simple_product();
+		$dynamic->update_meta_data( '_wc_pb_priced_individually', 'yes' );
+		$dynamic->save();
+		$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $dynamic ) );
+		$dynamic->delete( true );
+	}
+
+	/**
+	 * Variations inherit their parent's add-on metadata (configurator options
+	 * live on the parent).
+	 *
+	 * @return void
+	 */
+	public function test_product_has_addons_variation_inherits_parent() {
+		$parent = WC_Helper_Product::create_variation_product();
+		$parent->update_meta_data( '_product_addons', [ [ 'name' => 'Gift wrap' ] ] );
+		$parent->save();
+
+		$variation = wc_get_product( $parent->get_children()[0] );
+
+		$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $variation ) );
+
+		$parent->delete( true );
+	}
+
+	/**
+	 * The detection meta-key set is filterable so merchants can register signals
+	 * for configurator plugins not covered out of the box.
+	 *
+	 * @return void
+	 */
+	public function test_product_has_addons_meta_keys_are_filterable() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->update_meta_data( '_my_custom_configurator', 'on' );
+		$product->save();
+
+		$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+
+		$callback = static function ( $keys ) {
+			$keys[] = '_my_custom_configurator';
+			return $keys;
+		};
+		add_filter( 'woocommerce_agentic_commerce_addon_detection_meta_keys', $callback );
+
+		try {
+			$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_addon_detection_meta_keys', $callback );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * With the auto-exclude toggle off (default), an add-on product still syncs —
+	 * preserving backward-compatible behavior.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_addon_product_synced_when_toggle_off() {
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
+		$product->save();
+
+		$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		$this->assertNull( WC_Stripe_Agentic_Commerce_Product_Mapper::get_sync_exclusion_reason( $product ) );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * With the auto-exclude toggle on, an add-on product is excluded from the
+	 * feed and the exclusion reason is reported as 'addons'.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_addon_product_excluded_when_toggle_on() {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION, 'yes' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
+		$product->save();
+
+		try {
+			$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+			$this->assertSame( 'addons', WC_Stripe_Agentic_Commerce_Product_Mapper::get_sync_exclusion_reason( $product ) );
+		} finally {
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * A custom should_sync filter still wins over the auto-exclude default,
+	 * keeping add-on detection an opt-in default rather than a hard override.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_filter_wins_over_auto_exclude() {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION, 'yes' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
+		$product->save();
+
+		$callback = static fn() => true;
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
+
+		try {
+			$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * With the auto-redirect toggle on, an add-on product defaults to
+	 * disable_checkout=true (sourced from 'addons'), while a plain product stays
+	 * embedded.
+	 *
+	 * @return void
+	 */
+	public function test_disable_checkout_auto_default_for_addon_products() {
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_DISABLE_CHECKOUT_ADDONS_OPTION, 'yes' );
+
+		$addon = WC_Helper_Product::create_simple_product();
+		$addon->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
+		$addon->save();
+
+		$plain = WC_Helper_Product::create_simple_product();
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+
+			$this->assertSame( 'true', $mapper->map_product( $addon )['disable_checkout'] );
+			$this->assertSame( 'addons', $mapper->resolve_disable_checkout( $addon )['source'] );
+			$this->assertSame( 'false', $mapper->map_product( $plain )['disable_checkout'] );
+		} finally {
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_DISABLE_CHECKOUT_ADDONS_OPTION );
+			$addon->delete( true );
+			$plain->delete( true );
+		}
+	}
+
+	/**
 	 * get_shipping_diagnostics() flags a zone with no flat-rate method as
 	 * contributing no shipping to the feed.
 	 *
