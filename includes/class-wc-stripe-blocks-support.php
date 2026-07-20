@@ -78,6 +78,12 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			return true;
 		}
 
+		// With OC the single OC element stands in for the gateway, so the per-method checks below don't
+		// apply. Needed in the block editor where those methods may all be unavailable (e.g. no cart).
+		if ( $stripe_gateway->should_render_optimized_checkout() ) {
+			return true;
+		}
+
 		// This payment method is active if there is at least 1 UPE method available.
 		foreach ( $stripe_gateway->payment_methods as $upe_method ) {
 			if ( $upe_method->is_enabled() && $upe_method->is_available() ) {
@@ -97,7 +103,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// Ensure Stripe JS is enqueued
 		wp_register_script(
 			'stripe',
-			'https://js.stripe.com/clover/stripe.js',
+			'https://js.stripe.com/dahlia/stripe.js',
 			[],
 			null,
 			true
@@ -237,13 +243,26 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	private function get_gateway_javascript_params() {
 		$js_configuration   = [];
 		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
+		$main_gateway       = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
 		if ( isset( $available_gateways['stripe'] ) ) {
 			$js_configuration = $available_gateways['stripe']->javascript_params();
 		} elseif ( $this->is_upe_method_available( $available_gateways ) ) {
-			$js_configuration = WC_Stripe::get_instance()->get_main_stripe_gateway()->javascript_params();
+			$js_configuration = $main_gateway->javascript_params();
+		} elseif (
+			is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' )
+			&& $main_gateway->should_render_optimized_checkout()
+		) {
+			// In the Cart/Checkout block editor with OC enabled and card disabled, the consolidated
+			// gateway is unavailable (is_available() requires the card method) and the per-method
+			// gateways are filtered out of the editor, so neither branch above fires. Build the config
+			// anyway so the OC element registers as 'stripe' and the block reports it as supported.
+			$js_configuration = $main_gateway->javascript_params();
 		}
 
+		/**
+		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
+		 */
 		return apply_filters(
 			'wc_stripe_params',
 			$js_configuration
@@ -256,6 +275,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array  the JS configuration for Stripe Express Checkout.
 	 */
 	private function get_express_checkout_javascript_params() {
+		/**
+		 * Filters the Express Checkout JavaScript parameters.
+		 *
+		 * @param array $params Express Checkout JavaScript parameters.
+		 */
 		return apply_filters(
 			'wc_stripe_express_checkout_params',
 			$this->express_checkout_configuration->javascript_params()
@@ -282,6 +306,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// https://github.com/woocommerce/woocommerce-gateway-stripe/blob/master/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php#L222.
 		// See https://github.com/woocommerce/woocommerce-gateway-stripe/blob/master/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php#L905 and
 		// https://github.com/woocommerce/woocommerce/wiki/Payment-Token-API .
+		/**
+		 * Filters whether the save payment method checkbox should be displayed.
+		 *
+		 * @param bool $display Whether the save payment method checkbox should be displayed.
+		 */
 		return apply_filters( 'wc_stripe_display_save_payment_method_checkbox', filter_var( $saved_cards, FILTER_VALIDATE_BOOLEAN ) );
 	}
 

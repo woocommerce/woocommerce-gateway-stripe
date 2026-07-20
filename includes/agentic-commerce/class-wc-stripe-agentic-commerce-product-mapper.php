@@ -229,6 +229,31 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	}
 
 	/**
+	 * Whether to exclude this product from in-agent checkout (feed-only / redirect).
+	 *
+	 * @since 10.9.0
+	 * @param \WC_Product      $product        Product object.
+	 * @param \WC_Product|null $parent_product Parent product for variations.
+	 * @return bool
+	 */
+	protected function get_disable_checkout( \WC_Product $product, ?\WC_Product $parent_product = null ): bool {
+		$disabled = WC_Stripe_Agentic_Commerce_Integration::is_checkout_disabled();
+
+		// wp_validate_boolean() rather than a plain (bool) cast: a callback that
+		// returns the string 'false' would be truthy under a cast and wrongly
+		// enable redirect mode. This still normalises null / 0 / '' to false.
+		/**
+		 * Filter whether a product is excluded from in-agent checkout (redirect to its `link`).
+		 *
+		 * @since 10.9.0
+		 * @param bool             $disabled       Store-wide default.
+		 * @param \WC_Product      $product        Product object.
+		 * @param \WC_Product|null $parent_product Parent product for variations.
+		 */
+		return wp_validate_boolean( apply_filters( 'wc_stripe_agentic_commerce_disable_checkout', $disabled, $product, $parent_product ) );
+	}
+
+	/**
 	 * Get product GTIN.
 	 *
 	 * @since 10.5.0
@@ -976,6 +1001,20 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	}
 
 	/**
+	 * Whether the product is a subscription type the feed excludes by default.
+	 *
+	 * Exposed so callers can report the exclusion reason without duplicating the
+	 * type list.
+	 *
+	 * @since 10.9.0
+	 * @param \WC_Product $product Product to check.
+	 * @return bool
+	 */
+	public static function is_subscription_product( \WC_Product $product ): bool {
+		return $product->is_type( [ 'subscription', 'variable-subscription', 'subscription_variation' ] );
+	}
+
+	/**
 	 * Whether the given product should be included in any Agentic Commerce sync
 	 * (full feed, inventory updates, archive events).
 	 *
@@ -991,7 +1030,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		// post type, so the feed's simple/variation query returns them; left in,
 		// they fail validation and downgrade every sync to a partial success.
 		// Excluded by default, still overridable via the filters below.
-		$default_should_sync = ! $product->is_type( [ 'subscription', 'variable-subscription', 'subscription_variation' ] );
+		$default_should_sync = ! self::is_subscription_product( $product );
 
 		// The Stripe-prefixed filter is retained for backward compatibility. Its
 		// result seeds the default for the canonical filter below, so existing
@@ -1004,6 +1043,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			'The wc_stripe_agentic_commerce_should_sync_product filter is deprecated since WooCommerce Stripe Gateway 10.9.0. Use woocommerce_agentic_commerce_should_sync_product instead.'
 		);
 
+		// wp_validate_boolean() rather than a plain (bool) cast: an adapter that
+		// returns the string 'false' would be truthy under a cast and wrongly
+		// sync the product. This still normalises null / 0 / '' to false.
 		/**
 		 * Filter whether a product should be included in any Agentic Commerce sync.
 		 *
@@ -1032,9 +1074,6 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * @param bool        $should_sync Whether to include the product. Default true (false for subscriptions).
 		 * @param \WC_Product $product     Product being evaluated.
 		 */
-		// wp_validate_boolean() rather than a plain (bool) cast: an adapter that
-		// returns the string 'false' would be truthy under a cast and wrongly
-		// sync the product. This still normalises null / 0 / '' to false.
 		return wp_validate_boolean( apply_filters( 'woocommerce_agentic_commerce_should_sync_product', $should_sync, $product ) );
 	}
 }

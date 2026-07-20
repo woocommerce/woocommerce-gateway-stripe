@@ -81,6 +81,9 @@ jQuery( function ( $ ) {
 		'woocommerce-gateway-stripe'
 	);
 
+	// Snapshot is first-paint only; re-inits reconcile via AJAX (see init() below).
+	let cartBootstrapConsumed = false;
+
 	const hasVariationForm = $( '.variations_form' ).length > 0;
 	const hasBookingForm = $( '.wc-bookings-booking-form' ).length > 0;
 
@@ -100,10 +103,19 @@ jQuery( function ( $ ) {
 			'allowed_shipping_countries'
 		);
 
+		// The fast-path on variation/qty change updates only the element amount,
+		// not this click closure, so read the latest items from the store to keep
+		// the wallet breakdown in sync. Legacy (variable/booking) format only.
+		const displayItems =
+			useLegacyDisplayItems && getExpressCheckoutData( 'is_product_page' )
+				? getExpressCheckoutData( 'product' )?.displayItems ??
+				  options.displayItems
+				: options.displayItems;
+
 		const clickOptions = {
 			lineItems: useLegacyDisplayItems
-				? normalizeLineItems( options.displayItems )
-				: options.displayItems,
+				? normalizeLineItems( displayItems )
+				: displayItems,
 			emailRequired: true,
 			shippingAddressRequired: options.requestShipping,
 			phoneNumberRequired: options.requestPhone,
@@ -249,6 +261,10 @@ jQuery( function ( $ ) {
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			].filter( Boolean );
 
+			// Reset the registry so variation/qty updates only touch the buttons
+			// mounted for this render.
+			wcStripeECE.expressCheckoutElements = [];
+
 			expressPaymentTypes.forEach( ( expressPaymentType ) => {
 				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {
 					...options,
@@ -388,6 +404,11 @@ jQuery( function ( $ ) {
 					getPaymentMethodTypesForExpressMethod( expressPaymentType ),
 			} );
 
+			// A product page can mount several express buttons (Apple Pay,
+			// Google Pay, …), each with its own Elements group. Track them so a
+			// variation/qty change updates every group's amount.
+			wcStripeECE.expressCheckoutElements.push( elements );
+
 			const buttonStyleSettings =
 				getExpressCheckoutButtonStyleSettings( expressPaymentType );
 
@@ -524,7 +545,7 @@ jQuery( function ( $ ) {
 			} );
 
 			if ( getExpressCheckoutData( 'is_product_page' ) ) {
-				wcStripeECE.attachProductPageEventListeners( elements );
+				wcStripeECE.attachProductPageEventListeners();
 			}
 		},
 
@@ -608,6 +629,28 @@ jQuery( function ( $ ) {
 				}
 			} else {
 				// Cart and Checkout page specific initialization.
+				const cartBootstrap = getExpressCheckoutData( 'cart' );
+
+				// First paint renders from the snapshot, skipping GET /wc/store/v1/cart;
+				// re-inits fall through to the AJAX path below for live cart updates.
+				if ( cartBootstrap && ! cartBootstrapConsumed ) {
+					cartBootstrapConsumed = true;
+
+					wcStripeECE.startExpressCheckout( {
+						total: cartBootstrap.total,
+						currency: cartBootstrap.currency,
+						requestShipping: cartBootstrap.requestShipping,
+						requestPhone: cartBootstrap.requestPhone,
+						displayItems: transformLabeledDisplayItems(
+							cartBootstrap.displayItems ?? []
+						),
+					} );
+
+					// After initializing a new express checkout button, we need to reset the paymentAborted flag.
+					wcStripeECE.paymentAborted = false;
+					return;
+				}
+
 				api.expressCheckoutGetCartDetails().then( ( cart ) => {
 					const total = transformPrice(
 						parseInt( cart.totals.total_price, 10 ) -
@@ -837,7 +880,7 @@ jQuery( function ( $ ) {
 			displayExpressCheckoutNotice( message, 'error' );
 		},
 
-		attachProductPageEventListeners: ( elements ) => {
+		attachProductPageEventListeners: () => {
 			// WooCommerce Deposits support.
 			// Trigger the "woocommerce_variation_has_changed" event when the deposit option is changed.
 			// Needs to be defined before the `woocommerce_variation_has_changed` event handler is set.
@@ -884,9 +927,11 @@ jQuery( function ( $ ) {
 										response.requestShipping;
 
 								if ( ! isDeposits && needsShipping ) {
-									elements.update( {
-										amount: response.total.amount,
-									} );
+									// Refresh stored items so the click breakdown matches this variation.
+									wcStripeECE.refreshTotals( response );
+									wcStripeECE.updateExpressCheckoutAmount(
+										response.total.amount
+									);
 								} else {
 									wcStripeECE.reInitExpressCheckoutElement(
 										response
@@ -935,9 +980,11 @@ jQuery( function ( $ ) {
 											.requestShipping ===
 											response.requestShipping
 									) {
-										elements.update( {
-											amount: response.total.amount,
-										} );
+										// Refresh stored items so the click breakdown matches the new qty.
+										wcStripeECE.refreshTotals( response );
+										wcStripeECE.updateExpressCheckoutAmount(
+											response.total.amount
+										);
 									} else {
 										wcStripeECE.reInitExpressCheckoutElement(
 											response
@@ -963,10 +1010,26 @@ jQuery( function ( $ ) {
 		reInitExpressCheckoutElement: ( response ) => {
 			getExpressCheckoutData( 'product' ).requestShipping =
 				response.requestShipping;
-			getExpressCheckoutData( 'product' ).total = response.total;
-			getExpressCheckoutData( 'product' ).displayItems =
-				response.displayItems;
+			wcStripeECE.refreshTotals( response );
 			wcStripeECE.init();
+		},
+
+		// Keep the cached product breakdown in sync with the latest server response so the
+		// click-time wallet line items match the selected variation/quantity.
+		refreshTotals: ( response ) => {
+			const product = getExpressCheckoutData( 'product' );
+			product.total = response.total;
+			product.displayItems = response.displayItems;
+		},
+
+		// Every mounted express button has its own Elements group, so the amount
+		// has to be pushed to all of them. Updating only one leaves the others at
+		// the previous amount, and the wallet then rejects the click because the
+		// refreshed line items exceed that stale amount.
+		updateExpressCheckoutAmount: ( amount ) => {
+			( wcStripeECE.expressCheckoutElements ?? [] ).forEach(
+				( elements ) => elements.update( { amount } )
+			);
 		},
 
 		blockExpressCheckoutButton: () => {
