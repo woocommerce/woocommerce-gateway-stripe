@@ -5595,6 +5595,55 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * The billing country seeding OC exclusions must come from the order on
+	 * pay-for-order and from the session customer elsewhere.
+	 *
+	 * @param bool   $is_pay_for_order Whether the pay-for-order endpoint is active.
+	 * @param string $order_country    Billing country set on the order.
+	 * @param string $customer_country Billing country set on the session customer.
+	 * @param string $expected         Expected resolved billing country.
+	 * @return void
+	 * @dataProvider provide_test_get_billing_country_for_checkout
+	 */
+	public function test_get_billing_country_for_checkout( bool $is_pay_for_order, string $order_country, string $customer_country, string $expected ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_billing_country( $order_country );
+		$order->save();
+
+		$previous_customer_country = WC()->customer->get_billing_country();
+		set_query_var( 'order-pay', $order->get_id() );
+		WC()->customer->set_billing_country( $customer_country );
+
+		try {
+			$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+				->onlyMethods( [ 'is_valid_pay_for_order_endpoint' ] )
+				->getMock();
+			$gateway->method( 'is_valid_pay_for_order_endpoint' )->willReturn( $is_pay_for_order );
+
+			$method = new ReflectionMethod( $gateway, 'get_billing_country_for_checkout' );
+			$method->setAccessible( true );
+
+			$this->assertSame( $expected, $method->invoke( $gateway ) );
+		} finally {
+			set_query_var( 'order-pay', 0 );
+			WC()->customer->set_billing_country( $previous_customer_country );
+		}
+	}
+
+	/**
+	 * Data provider for `test_get_billing_country_for_checkout`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_billing_country_for_checkout(): array {
+		return [
+			'order country wins on pay-for-order'     => [ true, 'NL', 'DE', 'NL' ],
+			'customer country used off pay-for-order' => [ false, 'NL', 'DE', 'DE' ],
+			'empty order country stays empty'         => [ true, '', 'DE', '' ],
+		];
+	}
+
+	/**
 	 * Data provider for `test_get_country_restricted_excluded_payment_method_types`.
 	 *
 	 * @return array
