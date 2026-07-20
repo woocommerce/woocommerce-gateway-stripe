@@ -1,8 +1,9 @@
-// Mock for @woocommerce/settings, which is a webpack external (resolved to the
-// wc.wcSettings global at runtime) and no longer installed as a devDependency.
-// The real implementation lives in the WooCommerce monorepo at
-// plugins/woocommerce/client/blocks/assets/js/settings/shared/ and ships as
-// WooCommerce core's `wc-settings` script; keep this mock faithful to it.
+// Mock for @woocommerce/settings, a webpack external not installed as a
+// devDependency. At runtime the import resolves to the `wc.wcSettings` API,
+// which serves data from the separate `wcSettings` global printed by PHP.
+// This mock does the same — tests inject data via `global.wcSettings`.
+// Keep it faithful to the real implementation in the WooCommerce monorepo:
+// plugins/woocommerce/client/blocks/assets/js/settings/shared/
 const getSetting = (
 	name,
 	fallback = false,
