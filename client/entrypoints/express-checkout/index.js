@@ -1155,13 +1155,22 @@ jQuery( function ( $ ) {
 		wcStripeECE.init();
 	}
 
-	// We need to refresh ECE data when total is updated.
-	$( document.body ).on( 'updated_cart_totals', () => {
-		wcStripeECE.init();
-	} );
-
-	// We need to refresh ECE data when total is updated.
-	$( document.body ).on( 'updated_checkout', () => {
-		wcStripeECE.init();
-	} );
+	// Refresh ECE when the cart total changes. Debounced on the leading
+	// edge so the first event (which paints the buttons on checkout) fires
+	// immediately, while the burst of follow-up events an address change or
+	// recalc emits is coalesced into a single trailing reconcile — one
+	// Store API cart fetch instead of one per event.
+	const refreshExpressCheckoutOnCartChange = debounce(
+		() => wcStripeECE.init(),
+		300,
+		{ leading: true, trailing: true }
+	);
+	$( document.body ).on(
+		'updated_cart_totals',
+		refreshExpressCheckoutOnCartChange
+	);
+	$( document.body ).on(
+		'updated_checkout',
+		refreshExpressCheckoutOnCartChange
+	);
 } );
