@@ -117,7 +117,8 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	public function test_admin_scripts_sets_checkout_sessions_availability_with_country_restrictions(
 		string $account_country,
 		bool $is_checkout_sessions_feature_available,
-		bool $expected_checkout_sessions_availability
+		bool $expected_checkout_sessions_availability,
+		?string $expected_adaptive_pricing_unavailable_reason = null
 	): void {
 		global $current_tab, $current_section;
 
@@ -184,6 +185,10 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			$this->assertIsArray( $params );
 			$expected_cs_param = $expected_checkout_sessions_availability ? '1' : '';
 			$this->assertSame( $expected_cs_param, $params['is_cs_available'] );
+			$this->assertSame(
+				$expected_adaptive_pricing_unavailable_reason,
+				$params['adaptive_pricing_unavailable_reason']
+			);
 			$this->assertSame( 'accordion', $params['oc_layout'] );
 		} finally {
 			if ( isset( $stripe_singleton_account_backup ) ) {
@@ -196,10 +201,10 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 	public function provide_test_admin_scripts_checkout_sessions_country_restrictions(): array {
 		return [
-			'US account + feature available'   => [ 'US', true, true ],
-			'IN account + feature available'   => [ 'IN', true, false ],
-			'DE account + feature available'   => [ 'DE', true, true ],
-			'US account + feature unavailable' => [ 'US', false, false ],
+			'US account + feature available'   => [ 'US', true, true, null ],
+			'IN account + feature available'   => [ 'IN', true, false, 'account-country' ],
+			'DE account + feature available'   => [ 'DE', true, true, null ],
+			'US account + feature unavailable' => [ 'US', false, false, 'disabled' ],
 		];
 	}
 }
