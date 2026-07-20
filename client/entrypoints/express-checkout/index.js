@@ -715,9 +715,16 @@ jQuery( function ( $ ) {
 					// Prefer the live cart currency so an AJAX currency switch (e.g. a
 					// multi-currency plugin) is reflected; fall back to the localized
 					// param. Store API returns it upper-cased; Stripe wants lower-case.
-					const currency =
-						cart.totals.currency_code?.toLowerCase() ??
-						getExpressCheckoutData( 'checkout' )?.currency_code;
+					// Truthiness (not ??) so an empty currency_code also falls back
+					// instead of forcing a rebuild every update.
+					// Caveat: the amount is still scaled by transformPrice() using the
+					// page-load currency_decimals, so a no-reload switch to a currency
+					// with different decimals (e.g. USD→JPY) can mis-scale it. Reload-
+					// based switchers — the common case — are unaffected.
+					const liveCurrency = cart.totals.currency_code;
+					const currency = liveCurrency
+						? liveCurrency.toLowerCase()
+						: getExpressCheckoutData( 'checkout' )?.currency_code;
 					const requestShipping = cart.needs_shipping === true;
 					const displayItems =
 						transformCartDataForDisplayItems( cart );
