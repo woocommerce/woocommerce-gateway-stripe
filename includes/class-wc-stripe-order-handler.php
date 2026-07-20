@@ -89,6 +89,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param mix  $previous_error Any error message from previous request.
 	 */
 	public function process_redirect_payment( $order_id, $retry = true, $previous_error = false ) {
+		$order = null;
 		try {
 			$source = isset( $_GET['source'] ) ? wc_clean( wp_unslash( $_GET['source'] ) ) : '';
 
@@ -102,7 +103,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			$order = wc_get_order( $order_id );
 
-			if ( ! is_object( $order ) ) {
+			if ( ! $order instanceof WC_Order ) {
 				return;
 			}
 
@@ -228,6 +229,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::error( 'Error processing redirect payment for order: ' . $order_id, [ 'error_message' => $e->getMessage() ] );
 
+			/**
+			 * Fires after redirect payment processing fails.
+			 *
+			 * @param WC_Stripe_Exception $exception The exception raised during redirect payment processing.
+			 * @param WC_Order            $order     The order that failed payment processing.
+			 */
 			do_action( 'wc_gateway_stripe_process_redirect_payment_error', $e, $order );
 
 			/* translators: error message */
@@ -386,6 +393,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				}
 
 				// This hook fires when admin manually changes order status to processing or completed.
+				/**
+				 * Fires after a manually captured Stripe charge is processed.
+				 *
+				 * @param WC_Order $order  Order associated with the manual capture.
+				 * @param object   $result Stripe capture response.
+				 */
 				do_action( 'woocommerce_stripe_process_manual_capture', $order, $result );
 				return $result;
 			}
@@ -402,6 +415,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	public function cancel_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
 
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
+
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$captured = WC_Stripe_Order_Helper::get_instance()->is_stripe_charge_captured( $order );
 
@@ -411,6 +428,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			// This hook fires when admin manually changes order status to cancel.
+			/**
+			 * Fires after a manually canceled Stripe pre-authorization is processed.
+			 *
+			 * @param WC_Order $order Order associated with the manual cancellation.
+			 */
 			do_action( 'woocommerce_stripe_process_manual_cancel', $order );
 		}
 	}
