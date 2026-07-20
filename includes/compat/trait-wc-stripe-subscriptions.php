@@ -470,9 +470,41 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return void
 	 */
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
-		$radar_reason = false;
-		$order_locked = false;
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_id     = $renewal_order->get_id();
+
+		// Acquire the order payment lock once and hold it for the entire renewal attempt —
+		// including any retries — so a concurrent scheduled renewal cannot create a second charge
+		// for this order while this attempt is in flight. Returning early when the lock is already
+		// held mirrors the regular checkout handler. The finally guarantees release on every exit
+		// path (success, failure, retry exhaustion, or an unexpected error).
+		if ( $order_helper->lock_order_payment( $renewal_order ) ) {
+			WC_Stripe_Logger::warning( "Stripe: skipping duplicate renewal attempt for order {$order_id} because the payment lock is already held." );
+			return;
+		}
+
+		try {
+			$this->process_subscription_payment_attempt( $amount, $renewal_order, $retry, $previous_error );
+		} finally {
+			$order_helper->unlock_order_payment( $renewal_order );
+		}
+	}
+
+	/**
+	 * Performs a single renewal payment attempt, plus its retries, for {@see process_subscription_payment()}.
+	 *
+	 * The order payment lock is acquired and released by the caller and stays held for the whole
+	 * duration of this method, so retries below run under the same lock instead of releasing and
+	 * re-acquiring it (which would let a concurrent renewal charge in the gap).
+	 *
+	 * @param float        $amount         The amount to charge.
+	 * @param WC_Order     $renewal_order  The renewal order.
+	 * @param bool         $retry          Should we retry the process?
+	 * @param object|false $previous_error Previous error object.
+	 * @return void
+	 */
+	private function process_subscription_payment_attempt( $amount, $renewal_order, $retry = true, $previous_error = false ) {
+		$radar_reason = false;
 
 		try {
 			$order_id = $renewal_order->get_id();
@@ -514,18 +546,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				$prepared_source->source = '';
 			}
 
-			// Lock the order or return if it is already locked. The lock is held until the
-			// renewal response has been fully processed below (status and transaction updates),
-			// so a concurrent scheduled renewal cannot create a second charge for this order
-			// while this attempt is in flight. It is released before retrying and in the
-			// catch/finally paths.
-			if ( $order_helper->lock_order_payment( $renewal_order ) ) {
-				WC_Stripe_Logger::warning( "Stripe: skipping duplicate renewal attempt for order {$order_id} because the payment lock is already held." );
-				return;
-			}
-			$order_locked = true;
-
-			$payment_attempt            = $this->create_subscription_renewal_payment_response( $amount, $renewal_order, $prepared_source );
+			$payment_attempt            = $this->attempt_subscription_renewal_payment( $amount, $renewal_order, $prepared_source );
 			$response                   = $payment_attempt['response'];
 			$is_authentication_required = $payment_attempt['is_authentication_required'];
 
@@ -539,13 +560,10 @@ trait WC_Stripe_Subscriptions_Trait {
 				// would just create another blocked charge and inflate the block rate.
 				if ( $this->is_retryable_error( $response->error ) && false === $radar_reason ) {
 					if ( $retry ) {
-						// Release the lock before re-entering so the retry can acquire it.
-						$order_helper->unlock_order_payment( $renewal_order );
-						$order_locked = false;
-
-						// Don't do anymore retries after this.
+						// Retry under the still-held lock so a concurrent scheduled renewal cannot
+						// charge in the gap. Don't do anymore retries after this.
 						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
-							$this->process_subscription_payment( $amount, $renewal_order, false, $response->error );
+							$this->process_subscription_payment_attempt( $amount, $renewal_order, false, $response->error );
 							return;
 						}
 
@@ -553,7 +571,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 						++$this->retry_interval;
 
-						$this->process_subscription_payment( $amount, $renewal_order, true, $response->error );
+						$this->process_subscription_payment_attempt( $amount, $renewal_order, true, $response->error );
 						return;
 					} else {
 						$localized_message = sprintf(
@@ -585,11 +603,6 @@ trait WC_Stripe_Subscriptions_Trait {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
-			if ( $order_locked ) {
-				$order_helper->unlock_order_payment( $renewal_order );
-				$order_locked = false;
-			}
-
 			WC_Stripe_Logger::error(
 				'Error processing subscription renewal payment: ' . $e->getMessage(),
 				[
@@ -668,16 +681,6 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 
 			return;
-		} catch ( \Throwable $e ) {
-			// Release the payment lock even if an unexpected (non-Stripe) error interrupts the
-			// attempt, so a leaked lock cannot block retries until its TTL expires. The error is
-			// re-thrown to preserve the existing failure handling.
-			if ( $order_locked ) {
-				$order_helper->unlock_order_payment( $renewal_order );
-				$order_locked = false;
-			}
-
-			throw $e;
 		}
 
 		try {
@@ -740,7 +743,23 @@ trait WC_Stripe_Subscriptions_Trait {
 				// Use the last charge within the intent or the full response body in case of SEPA.
 				$latest_charge   = $this->get_latest_charge_from_intent( $response );
 				$charge_response = ( ! empty( $latest_charge ) ) ? $latest_charge : $response;
-				/** @var object $charge_response */
+
+				// process_response() reads the charge via object property access; mirror the SEPA
+				// normalization so an associative-array response becomes an object and cannot fatal
+				// there. JSON lists stay arrays, as the readers expect.
+				if ( is_array( $charge_response ) ) {
+					$encoded_charge  = wp_json_encode( $charge_response );
+					$decoded_charge  = is_string( $encoded_charge ) ? json_decode( $encoded_charge ) : null;
+					$charge_response = $decoded_charge instanceof stdClass ? $decoded_charge : (object) $charge_response;
+				}
+
+				/**
+				 * Although get_latest_charge_from_intent() is annotated string|object, a bare
+				 * charge id string is resolved to a charge object before it is returned, so an
+				 * object is what reaches this call.
+				 *
+				 * @var object $charge_response
+				 */
 				$this->process_response( $charge_response, $renewal_order );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
@@ -755,16 +774,11 @@ trait WC_Stripe_Subscriptions_Trait {
 			);
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
-		} finally {
-			if ( $order_locked ) {
-				$order_helper->unlock_order_payment( $renewal_order );
-				$order_locked = false;
-			}
 		}
 	}
 
 	/**
-	 * Creates one Stripe payment attempt for a subscription renewal.
+	 * Makes a single Stripe payment attempt for a subscription renewal.
 	 *
 	 * The caller is responsible for the order payment lock; this method only performs a single
 	 * charge so the lock can be held across the response processing that follows.
@@ -775,7 +789,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return array{response: stdClass, is_authentication_required: bool}
 	 * @throws WC_Stripe_Exception When the Stripe API request fails.
 	 */
-	private function create_subscription_renewal_payment_response( $amount, WC_Order $renewal_order, $prepared_source ): array {
+	private function attempt_subscription_renewal_payment( $amount, WC_Order $renewal_order, $prepared_source ): array {
 		// If the payment gateway is SEPA, use the charges API.
 		// TODO: Remove when SEPA is migrated to payment intents.
 		if ( 'stripe_sepa' === $this->id ) {
@@ -786,10 +800,12 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// WC_Stripe_API::request() returns the decoded response body, which is not
 			// guaranteed to be an object; the renewal flow and process_response() read the
-			// charge (including nested members) via object property access, so normalize
-			// arrays to objects at every level before returning.
+			// charge via object property access. Round-tripping through json_decode() turns
+			// associative arrays (including nested ones) into objects while leaving JSON lists
+			// as arrays, which is what the downstream readers expect.
 			if ( is_array( $response ) ) {
-				$decoded_response = json_decode( wp_json_encode( $response ) );
+				$encoded_response = wp_json_encode( $response );
+				$decoded_response = is_string( $encoded_response ) ? json_decode( $encoded_response ) : null;
 				$response         = $decoded_response instanceof stdClass ? $decoded_response : (object) $response;
 			}
 
@@ -799,8 +815,14 @@ trait WC_Stripe_Subscriptions_Trait {
 			];
 		}
 
+		/**
+		 * The API layer json-decodes responses, so the intent (or error) arrives as
+		 * stdClass even though create_and_confirm_intent_for_off_session() is only
+		 * annotated as object.
+		 *
+		 * @var stdClass $response
+		 */
 		$response = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
-		/** @var stdClass $response */
 
 		return [
 			'response'                   => $response,

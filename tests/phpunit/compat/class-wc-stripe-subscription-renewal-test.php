@@ -291,7 +291,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		// Enable logging and spy on the logger so we can assert the duplicate-attempt
 		// warning is emitted; production relies on it to observe the short-circuit.
-		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
+		$previous_settings          = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings            = $previous_settings;
 		$stripe_settings['logging'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
@@ -307,7 +308,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $expected_api_endpoint, &$api_requests ) {
 			if ( 0 !== strpos( $url, $expected_api_endpoint ) ) {
-				return false;
+				return $preempt;
 			}
 
 			$api_requests[] = $url;
@@ -354,6 +355,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		} finally {
 			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
 			WC_Stripe_Logger::$logger = $previous_logger;
+			WC_Stripe_Helper::update_main_stripe_settings( $previous_settings );
 		}
 
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
@@ -384,7 +386,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		];
 	}
 
-	public function test_renewal_retry_releases_payment_lock_before_next_attempt() {
+	public function test_renewal_retry_acquires_the_lock_only_once() {
 		$renewal_order                 = WC_Helper_Order::create_order();
 		$customer                      = 'cus_123abc';
 		$source                        = 'src_123abc';
@@ -410,6 +412,22 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 					'payment_method' => null,
 				]
 			);
+
+		// Spy on the order lock: it must be acquired exactly once for the whole retry chain.
+		// The previous behaviour released and re-acquired the lock between attempts, which let a
+		// concurrent scheduled renewal charge in the gap. Only lock/unlock are mocked; the rest of
+		// the helper runs real so process_response() still completes.
+		$order_helper_spy = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'lock_order_payment', 'unlock_order_payment' ] )
+			->getMock();
+		$order_helper_spy->expects( $this->once() )->method( 'lock_order_payment' )->willReturn( false );
+		$order_helper_spy->method( 'unlock_order_payment' );
+
+		$instance_property = new ReflectionProperty( WC_Stripe_Order_Helper::class, 'instance' );
+		$instance_property->setAccessible( true );
+		$original_instance = $instance_property->getValue();
+		$instance_property->setValue( null, $order_helper_spy );
 
 		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $payments_intents_api_endpoint, &$request_count ) {
 			if ( $payments_intents_api_endpoint !== $url ) {
@@ -456,13 +474,15 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, true, false );
 		} finally {
 			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			$instance_property->setValue( null, $original_instance );
 		}
 
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
 
+		// The first attempt failed and the retry — under the same lock — succeeded.
+		// lock_order_payment() being called exactly once is asserted by the spy expectation.
 		$this->assertSame( 2, $request_count );
 		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
-		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $renewal_order ) );
 	}
 
 	public function test_renewal_holds_payment_lock_until_response_is_processed() {
@@ -577,6 +597,81 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertInstanceOf( RuntimeException::class, $caught );
 		// ...and the payment lock is released, so a later retry is not blocked.
 		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( wc_get_order( $renewal_order->get_id() ) ) );
+	}
+
+	public function test_renewal_sepa_success_processes_charge_response() {
+		$renewal_order = WC_Helper_Order::create_order();
+		$customer      = 'cus_123abc';
+		$source        = 'src_123abc';
+		$charges_api   = 'https://api.stripe.com/v1/charges';
+		$requested     = [];
+
+		$renewal_order->set_payment_method( 'stripe_sepa' );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe->id = 'stripe_sepa';
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => $customer,
+					'source'         => $source,
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::SEPA,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $charges_api, &$requested, $renewal_order ) {
+			if ( 0 !== strpos( $url, $charges_api ) ) {
+				return $preempt;
+			}
+
+			$requested[] = $url;
+
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'id'                     => 'ch_123abc',
+						'object'                 => 'charge',
+						'captured'               => true,
+						'paid'                   => true,
+						'status'                 => 'succeeded',
+						'currency'               => strtolower( $renewal_order->get_currency() ),
+						'payment_method_details' => [
+							'type' => WC_Stripe_Payment_Methods::SEPA,
+						],
+					]
+				),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		// The legacy SEPA charges endpoint was used, the charge response was carried through
+		// process_response() to completion, and the payment lock was released afterward.
+		$this->assertNotEmpty( $requested );
+		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $renewal_order ) );
 	}
 
 	private function set_gateway_retry_interval( $retry_interval ) {
