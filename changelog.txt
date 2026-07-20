@@ -73,6 +73,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Ensure all WordPress hooks have filter documentation
 * Fix - Accept express checkout addresses whose province is entered with a curly apostrophe, so Apple Pay no longer rejects them
 * Update - Show a clear message when manual capture is blocking Adaptive Pricing from being enabled
+* Dev - Remove the deprecated @woocommerce/settings npm package; settings are still read from the wc-settings script WooCommerce provides at runtime
 
 2026-07-14 - version 10.8.4
 * Fix - Improve Checkout Session amount integrity
