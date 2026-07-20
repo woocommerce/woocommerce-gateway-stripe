@@ -352,3 +352,151 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		} );
 	} );
 } );
+describe( 'Express Checkout cart in-place amount update', () => {
+	const cartParams = () => ( {
+		...baseParams(),
+		stripe: {
+			publishable_key: 'pk_test_123',
+			locale: 'en',
+			is_express_checkout_enabled: true,
+		},
+		cart: {
+			total: 1500,
+			currency: 'usd',
+			requestShipping: false,
+			requestPhone: false,
+			displayItems: [],
+		},
+	} );
+
+	// Stripe stub whose elements() factory is a spy, so a full re-init (which
+	// creates a new group) is distinguishable from an in-place elements.update().
+	const stubStripe = () => {
+		const elementsList = [];
+		const button = {
+			on: () => button,
+			mount: jest.fn(),
+			destroy: jest.fn(),
+		};
+		const elementsFactory = jest.fn( () => {
+			const elements = {
+				create: jest.fn( () => button ),
+				update: jest.fn(),
+			};
+			elementsList.push( elements );
+			return elements;
+		} );
+		mockGetStripe.mockReturnValue( { elements: elementsFactory } );
+		return { elementsList, elementsFactory, button };
+	};
+
+	// The cart-details total flows through the mocked transformPrice.
+	const setCartTotal = ( amount ) => {
+		// eslint-disable-next-line global-require
+		require( 'wcstripe/express-checkout/transformers/wc-to-stripe' ).transformPrice.mockReturnValue(
+			amount
+		);
+	};
+
+	// Fire a cart update and drain the debounced handler + the cart-details
+	// promise chain it kicks off.
+	const triggerCartUpdate = async () => {
+		// eslint-disable-next-line global-require
+		require( 'jquery' )( document.body ).trigger( 'updated_cart_totals' );
+		try {
+			await jest.advanceTimersByTimeAsync( 300 );
+		} finally {
+			jest.useRealTimers();
+		}
+	};
+
+	beforeEach( () => {
+		jest.resetModules();
+		jest.useFakeTimers();
+		mockGetStripe.mockReset();
+		mockGetCartDetails.mockReset();
+		mockGetCartDetails.mockResolvedValue( {
+			totals: { total_price: '2500', total_refund: '0' },
+			needs_shipping: false,
+		} );
+		document.body.innerHTML =
+			'<div id="wc-stripe-express-checkout-element"></div>';
+	} );
+
+	afterEach( () => {
+		jest.useRealTimers();
+		delete global.wc_stripe_express_checkout_params;
+	} );
+
+	it( 'pushes the new amount to the existing groups without re-creating them on a second cart event', async () => {
+		global.wc_stripe_express_checkout_params = cartParams();
+		const { elementsList, elementsFactory } = stubStripe();
+		setCartTotal( 2500 );
+
+		loadEntrypoint();
+
+		// First paint mounts one Elements group per express method from the snapshot.
+		const groupsAfterFirstPaint = elementsFactory.mock.calls.length;
+		expect( groupsAfterFirstPaint ).toBeGreaterThan( 0 );
+		elementsList.forEach( ( e ) =>
+			expect( e.update ).not.toHaveBeenCalled()
+		);
+
+		await triggerCartUpdate();
+
+		// No new Elements group was created (no fresh /v1/elements/sessions) ...
+		expect( elementsFactory.mock.calls.length ).toBe(
+			groupsAfterFirstPaint
+		);
+		// ... and every existing group had the new amount pushed in place.
+		elementsList.forEach( ( e ) =>
+			expect( e.update ).toHaveBeenCalledWith( { amount: 2500 } )
+		);
+	} );
+
+	it( 'rebuilds the group when the shipping requirement changes', async () => {
+		global.wc_stripe_express_checkout_params = cartParams();
+		const { elementsFactory, button } = stubStripe();
+		setCartTotal( 2500 );
+		// The recalc now needs shipping: a structural change elements.update()
+		// can't express, so the group must be torn down and rebuilt.
+		mockGetCartDetails.mockResolvedValue( {
+			totals: { total_price: '2500', total_refund: '0' },
+			needs_shipping: true,
+		} );
+
+		loadEntrypoint();
+		const groupsAfterFirstPaint = elementsFactory.mock.calls.length;
+
+		await triggerCartUpdate();
+
+		expect( button.destroy ).toHaveBeenCalled();
+		expect( elementsFactory.mock.calls.length ).toBeGreaterThan(
+			groupsAfterFirstPaint
+		);
+	} );
+
+	it( 'hides the buttons when the cart total drops to zero', async () => {
+		global.wc_stripe_express_checkout_params = cartParams();
+		const { elementsList, elementsFactory } = stubStripe();
+		setCartTotal( 0 );
+
+		loadEntrypoint();
+		const groupsAfterFirstPaint = elementsFactory.mock.calls.length;
+
+		await triggerCartUpdate();
+
+		// Zero total hides rather than pushing an invalid amount: no in-place
+		// update, no rebuild.
+		expect(
+			document.getElementById( 'wc-stripe-express-checkout-element' )
+				.style.display
+		).toBe( 'none' );
+		expect( elementsFactory.mock.calls.length ).toBe(
+			groupsAfterFirstPaint
+		);
+		elementsList.forEach( ( e ) =>
+			expect( e.update ).not.toHaveBeenCalled()
+		);
+	} );
+} );
