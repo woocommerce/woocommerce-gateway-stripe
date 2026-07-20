@@ -664,7 +664,27 @@ class WC_Stripe_Intent_Controller {
 	 * @throws Exception If customer for the current user cannot be read/found.
 	 */
 	public function init_setup_intent( $payment_method_type = null ) {
-		// Determine the customer managing the payment methods, create one if we don't have one already.
+		// Resolve enabled methods before creating the customer so a rejected request creates no Stripe customer.
+		$gateway                 = $this->get_upe_gateway();
+		$enabled_payment_methods = array_values( array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] ) );
+		if ( $payment_method_type ) {
+			$enabled_payment_methods = in_array( $payment_method_type, $enabled_payment_methods, true ) ? [ $payment_method_type ] : [];
+		}
+
+		$enabled_payment_methods = array_values(
+			array_filter(
+				$enabled_payment_methods,
+				function ( $payment_method_id ) use ( $gateway ) {
+					$payment_method = $gateway->payment_methods[ $payment_method_id ] ?? null;
+					return $payment_method && ! $payment_method->supports_deferred_intent();
+				}
+			)
+		);
+
+		if ( empty( $enabled_payment_methods ) ) {
+			throw new Exception( __( 'Unable to process your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
+		}
+
 		$user     = wp_get_current_user();
 		$customer = new WC_Stripe_Customer( $user->ID );
 
@@ -673,9 +693,6 @@ class WC_Stripe_Intent_Controller {
 		} else {
 			$customer_id = $customer->update_customer();
 		}
-
-		$gateway                 = $this->get_upe_gateway();
-		$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : array_values( array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] ) );
 
 		$request = [
 			'customer'             => $customer_id,
