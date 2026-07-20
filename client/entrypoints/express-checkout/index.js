@@ -84,10 +84,10 @@ jQuery( function ( $ ) {
 	// Snapshot is first-paint only; re-inits reconcile via AJAX (see init() below).
 	let cartBootstrapConsumed = false;
 
-	// Monotonic id for cart-details fetches. Debounced update bursts on
-	// classic checkout can leave more than one fetch in flight; only the
-	// latest one may apply, so an out-of-order older response can't overwrite
-	// the current total in the reused Elements group.
+	// Monotonic id for cart-details fetches. The leading+trailing debounce on
+	// cart-update events can leave two fetches in flight, and responses may
+	// arrive out of order — drop any but the latest so a stale total can't
+	// win the last-writer race against the mounted Elements group.
 	let cartFetchGeneration = 0;
 
 	const hasVariationForm = $( '.variations_form' ).length > 0;
@@ -174,10 +174,9 @@ jQuery( function ( $ ) {
 			wcStripeECE.getButtonSeparator().hide();
 		},
 
-		// Destroy the buttons/groups from the previous render and drop their
-		// containers before a re-init, so re-inits don't stack duplicate buttons
-		// or leave the abandoned wallet iframes and telemetry the old groups
-		// spun up alive.
+		// Destroy the previous render's buttons and drop their containers, so a
+		// re-init neither stacks duplicate buttons nor leaks the wallet iframes
+		// the abandoned groups keep alive.
 		teardownExpressCheckout: () => {
 			( wcStripeECE.expressCheckoutElements ?? [] ).forEach(
 				( { button } ) => {
@@ -282,12 +281,8 @@ jQuery( function ( $ ) {
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			].filter( Boolean );
 
-			// Tear down the previous render's buttons/groups before building new
-			// ones so re-inits don't stack duplicate buttons or leak the old
-			// wallet iframes/telemetry, and record this render's structural
-			// signature (currency + shipping requirement) so a later cart update
-			// can tell an in-place amount change from one that needs a full
-			// rebuild.
+			// Record the structural signature so a later cart update can tell an
+			// in-place amount change from one that needs a full rebuild.
 			wcStripeECE.teardownExpressCheckout();
 			wcStripeECE.renderSignature = {
 				currency: options.currency,
@@ -460,10 +455,10 @@ jQuery( function ( $ ) {
 
 			wcStripeECE.renderButton( eceButton, expressPaymentType );
 
-			// Retain the button and its click-closure options alongside the group,
-			// so a later cart update can push the new amount to every group,
-			// refresh each button's line items, and tear the old buttons down
-			// cleanly on a structural change.
+			// A page can mount several express buttons (Apple Pay, Google Pay, …),
+			// each with its own Elements group. Retain each button alongside its
+			// group and click-closure options so a cart update can refresh every
+			// one, and a structural change can tear them all down.
 			wcStripeECE.expressCheckoutElements.push( {
 				elements,
 				button: eceButton,
@@ -688,8 +683,7 @@ jQuery( function ( $ ) {
 
 				const fetchGeneration = ++cartFetchGeneration;
 				api.expressCheckoutGetCartDetails().then( ( cart ) => {
-					// A newer fetch was started after this one; discard the stale
-					// response so an older total can't win the last-writer race.
+					// A newer fetch has since started; drop this stale response.
 					if ( fetchGeneration !== cartFetchGeneration ) {
 						return;
 					}
@@ -704,23 +698,16 @@ jQuery( function ( $ ) {
 						total === 0 &&
 						! getExpressCheckoutData( 'has_free_trial' )
 					) {
-						// Amount 0 is invalid in payment mode. Hide rather than push it,
-						// and intentionally leave the group mounted (hidden, so
-						// unclickable): a return above 0 then refreshes it in place
-						// below instead of paying for a full rebuild.
+						// Amount 0 is invalid in payment mode, so hide rather than push
+						// it. The group stays mounted (hidden, so unclickable) to let a
+						// later non-zero total refresh in place instead of rebuilding.
 						wcStripeECE.hide();
 						return;
 					}
 
-					// Prefer the live cart currency so an AJAX currency switch (e.g. a
-					// multi-currency plugin) is reflected; fall back to the localized
-					// param. Store API returns it upper-cased; Stripe wants lower-case.
-					// Truthiness (not ??) so an empty currency_code also falls back
-					// instead of forcing a rebuild every update.
-					// Caveat: the amount is still scaled by transformPrice() using the
-					// page-load currency_decimals, so a no-reload switch to a currency
-					// with different decimals (e.g. USD→JPY) can mis-scale it. Reload-
-					// based switchers — the common case — are unaffected.
+					// Live cart currency reflects AJAX multi-currency switches; empty
+					// falls back to the localized param (truthiness, not ??, or every
+					// update would force a rebuild).
 					const liveCurrency = cart.totals.currency_code;
 					const currency = liveCurrency
 						? liveCurrency.toLowerCase()
@@ -729,15 +716,9 @@ jQuery( function ( $ ) {
 					const displayItems =
 						transformCartDataForDisplayItems( cart );
 
-					// A typical cart recalc only moves the amount and its
-					// line-item breakdown. If a group is already mounted and the
-					// structural signature — currency and shipping requirement, the
-					// inputs elements.update() cannot change, both taken live from the
-					// cart response — is unchanged, refresh in place instead of
-					// re-creating the group, which would re-hit /v1/elements/sessions
-					// and leak the old group. A currency switch (multi-currency
-					// plugin), a shipping-requirement change, or nothing mounted,
-					// falls through to a full (re)build.
+					// elements.update() cannot change currency or shipping requirement,
+					// so only an unchanged signature may refresh in place; anything
+					// else rebuilds, re-hitting /v1/elements/sessions.
 					const isMounted =
 						( wcStripeECE.expressCheckoutElements ?? [] ).length >
 						0;
@@ -751,10 +732,9 @@ jQuery( function ( $ ) {
 							total,
 							displayItems,
 						} );
-						// Only reveal if a wallet container actually survived — the
-						// button 'ready' handler removes the container for methods the
-						// browser can't offer, and un-hiding an empty flex box would
-						// leave a blank gap. Mirror hide() by restoring the separator.
+						// Only reveal if a container survived: the 'ready' handler removes
+						// containers for methods the browser can't offer, and un-hiding
+						// an empty flex box leaves a blank gap. Separator mirrors hide().
 						if ( wcStripeECE.getElements().children().length ) {
 							wcStripeECE.show();
 							wcStripeECE.getButtonSeparator().show();
@@ -1127,10 +1107,9 @@ jQuery( function ( $ ) {
 			);
 		},
 
-		// Derive wallet shipping rates from cart/checkout display items: the
-		// `total_shipping` line becomes the selected rate. Shared by the initial
-		// render and the in-place refresh so the rate and the line items always
-		// come from the same source.
+		// The `total_shipping` display item becomes the wallet's selected rate.
+		// Shared by the initial render and the in-place refresh so the rate and
+		// the line items can't drift apart.
 		deriveCartShippingRates: ( displayItems ) =>
 			( displayItems ?? [] )
 				.filter( ( i ) => i.key && i.key === 'total_shipping' )
@@ -1142,12 +1121,10 @@ jQuery( function ( $ ) {
 						: i.name,
 				} ) ),
 
-		// In-place refresh for a cart/checkout amount change: push the new
-		// amount to every mounted Elements group and refresh each button's click
-		// closure (line items + derived shipping rates), so the wallet sheet
-		// stays correct without re-creating the group — no /v1/elements/sessions
-		// call, no wallet re-probe. Only valid when the structural signature is
-		// unchanged; the caller falls back to a full rebuild otherwise.
+		// Push the new amount to every mounted group and refresh each button's
+		// click closure, so the wallet sheet stays correct without re-creating
+		// the group. Callers must check the structural signature first — this
+		// cannot change currency or shipping requirement.
 		refreshExpressCheckoutAmount: ( { total, displayItems } ) => {
 			const shippingRates =
 				wcStripeECE.deriveCartShippingRates( displayItems );
@@ -1191,11 +1168,9 @@ jQuery( function ( $ ) {
 		wcStripeECE.init();
 	}
 
-	// Refresh ECE when the cart total changes. Debounced on the leading
-	// edge so the first event (which paints the buttons on checkout) fires
-	// immediately, while the burst of follow-up events an address change or
-	// recalc emits is coalesced into a single trailing reconcile — one
-	// Store API cart fetch instead of one per event.
+	// Refresh ECE when the cart total changes. Leading edge so the first event
+	// paints the buttons immediately; trailing edge coalesces the burst an
+	// address change or recalc emits into one Store API fetch, not one per event.
 	const refreshExpressCheckoutOnCartChange = debounce(
 		() => wcStripeECE.init(),
 		300,
