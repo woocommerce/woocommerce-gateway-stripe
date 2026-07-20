@@ -178,7 +178,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_unsupported_create_payment_intent_types
 	 */
 	public function test_create_payment_intent_rejects_deferred_or_invalid_payment_method_types( $payment_method_type ) {
-		$this->gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( [] );
+		$this->gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( [ WC_Stripe_Payment_Methods::CARD ] );
 
 		$this->expectException( Exception::class );
 		$this->expectExceptionMessage( 'Unable to process your request.' );
