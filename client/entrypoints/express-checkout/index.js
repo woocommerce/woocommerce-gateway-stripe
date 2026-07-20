@@ -262,8 +262,14 @@ jQuery( function ( $ ) {
 			].filter( Boolean );
 
 			// Reset the registry so variation/qty updates only touch the buttons
-			// mounted for this render.
+			// mounted for this render, and record this render's structural
+			// signature so a later cart update can tell an in-place amount change
+			// from one that needs a full rebuild.
 			wcStripeECE.expressCheckoutElements = [];
+			wcStripeECE.renderSignature = {
+				currency: options.currency,
+				requestShipping: options.requestShipping,
+			};
 
 			expressPaymentTypes.forEach( ( expressPaymentType ) => {
 				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {
@@ -404,11 +410,6 @@ jQuery( function ( $ ) {
 					getPaymentMethodTypesForExpressMethod( expressPaymentType ),
 			} );
 
-			// A product page can mount several express buttons (Apple Pay,
-			// Google Pay, …), each with its own Elements group. Track them so a
-			// variation/qty change updates every group's amount.
-			wcStripeECE.expressCheckoutElements.push( elements );
-
 			const buttonStyleSettings =
 				getExpressCheckoutButtonStyleSettings( expressPaymentType );
 
@@ -435,6 +436,14 @@ jQuery( function ( $ ) {
 			} );
 
 			wcStripeECE.renderButton( eceButton, expressPaymentType );
+
+			// Retain the button alongside its group so a later cart update can push the new
+			// amount to every group and, on a structural change, tear the old buttons down cleanly.
+			wcStripeECE.expressCheckoutElements.push( {
+				elements,
+				button: eceButton,
+				expressPaymentType,
+			} );
 
 			eceButton.on( 'click', async function ( event ) {
 				// If login is required for checkout, display redirect confirmation dialog.
@@ -1028,7 +1037,7 @@ jQuery( function ( $ ) {
 		// refreshed line items exceed that stale amount.
 		updateExpressCheckoutAmount: ( amount ) => {
 			( wcStripeECE.expressCheckoutElements ?? [] ).forEach(
-				( elements ) => elements.update( { amount } )
+				( { elements } ) => elements.update( { amount } )
 			);
 		},
 
