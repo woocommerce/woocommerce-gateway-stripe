@@ -48,7 +48,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$this->gateway         = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->setConstructorArgs( [ $mock_account ] )
-			->setMethods( [ 'maybe_process_upe_redirect', 'has_subscription' ] )
+			->setMethods( [ 'maybe_process_upe_redirect', 'has_subscription', 'get_upe_enabled_at_checkout_payment_method_ids' ] )
 			->getMock();
 		$this->mock_controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
 			->disableOriginalConstructor()
@@ -71,6 +71,8 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_capture_method
 	 */
 	public function test_capture_method( ?string $capture_setting, string $expected_method ) {
+		$this->gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( [ WC_Stripe_Payment_Methods::BLIK ] );
+
 		if ( null !== $capture_setting ) {
 			$this->gateway->settings['capture'] = $capture_setting;
 		}
@@ -120,6 +122,8 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_create_payment_intent_currency_data
 	 */
 	public function test_create_payment_intent_chooses_currency( $order_currency, $global_currency, $expected_currency ) {
+		$this->gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( [ WC_Stripe_Payment_Methods::BLIK ] );
+
 		$order_id = null;
 
 		if ( null !== $order_currency ) {
@@ -174,6 +178,8 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_unsupported_create_payment_intent_types
 	 */
 	public function test_create_payment_intent_rejects_deferred_or_invalid_payment_method_types( $payment_method_type ) {
+		$this->gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( [] );
+
 		$this->expectException( Exception::class );
 		$this->expectExceptionMessage( 'Unable to process your request.' );
 
@@ -186,6 +192,32 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * @return array[]
 	 */
 	public function provide_unsupported_create_payment_intent_types() {
+		return [
+			'card supports deferred intent creation' => [ WC_Stripe_Payment_Methods::CARD ],
+			'missing payment method type'            => [ null ],
+			'unknown payment method type'            => [ 'unknown' ],
+		];
+	}
+
+	/**
+	 * Test that setup intents can only be created upfront for payment methods that do not support deferred intent creation.
+	 *
+	 * @param string|null $payment_method_type The requested payment method type.
+	 * @dataProvider provide_unsupported_init_setup_intent_types
+	 */
+	public function test_init_setup_intent_rejects_deferred_or_invalid_payment_method_types( $payment_method_type ) {
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'Unable to process your request.' );
+
+		$this->mock_controller->init_setup_intent( $payment_method_type );
+	}
+
+	/**
+	 * Data provider for test_init_setup_intent_rejects_deferred_or_invalid_payment_method_types.
+	 *
+	 * @return array[]
+	 */
+	public function provide_unsupported_init_setup_intent_types() {
 		return [
 			'card supports deferred intent creation' => [ WC_Stripe_Payment_Methods::CARD ],
 			'missing payment method type'            => [ null ],
@@ -210,6 +242,8 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$this->create_gateway_and_controller();
+
+		$this->gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( [ $payment_method_type ] );
 
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
