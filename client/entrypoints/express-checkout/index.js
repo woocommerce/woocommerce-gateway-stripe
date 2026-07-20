@@ -694,15 +694,46 @@ jQuery( function ( $ ) {
 						return;
 					}
 
+					const currency =
+						getExpressCheckoutData( 'checkout' )?.currency_code;
+					const requestShipping = cart.needs_shipping === true;
+					const displayItems =
+						transformCartDataForDisplayItems( cart );
+
+					// A typical cart recalc only moves the amount and its
+					// line-item breakdown. If a group is already mounted and
+					// the structural signature — currency and shipping
+					// requirement, the only inputs elements.update() cannot
+					// change — is unchanged, refresh in place instead of
+					// re-creating the group, which would re-hit
+					// /v1/elements/sessions and leak the old group. A
+					// structural change, or nothing mounted, falls through
+					// to a full (re)build.
+					const isMounted =
+						( wcStripeECE.expressCheckoutElements ?? [] ).length >
+						0;
+					const signatureUnchanged =
+						wcStripeECE.renderSignature?.currency === currency &&
+						wcStripeECE.renderSignature?.requestShipping ===
+							requestShipping;
+
+					if ( isMounted && signatureUnchanged ) {
+						wcStripeECE.refreshExpressCheckoutAmount( {
+							total,
+							displayItems,
+						} );
+						wcStripeECE.show();
+						return;
+					}
+
 					wcStripeECE.startExpressCheckout( {
 						total,
-						currency:
-							getExpressCheckoutData( 'checkout' )?.currency_code,
-						requestShipping: cart.needs_shipping === true,
+						currency,
+						requestShipping,
 						requestPhone:
 							getExpressCheckoutData( 'checkout' )
 								?.needs_payer_phone,
-						displayItems: transformCartDataForDisplayItems( cart ),
+						displayItems,
 					} );
 				} );
 			}
