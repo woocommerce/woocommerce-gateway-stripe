@@ -335,7 +335,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 		$this->assertEquals( 'file_test_abc123', $captured_args['body']['file'] );
 		$this->assertEquals( 'product_catalog_feed', $captured_args['body']['standard_data_format'] );
 		$this->assertStringContainsString( 'Bearer sk_test_fake_key_123', $captured_args['headers']['Authorization'] );
-		$this->assertEquals( '2025-09-30.clover;udap_beta=v1', $captured_args['headers']['Stripe-Version'] );
+		$this->assertEquals( '2026-03-25.dahlia;udap_beta=v1', $captured_args['headers']['Stripe-Version'] );
 	}
 
 	public function test_import_set_request_includes_stripe_account_header() {
@@ -511,6 +511,6 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 	public function test_class_constants_are_set() {
 		$this->assertEquals( 'https://files.stripe.com/v1/files', WC_Stripe_Agentic_Commerce_Files_Api_Delivery::FILES_API_ENDPOINT );
 		$this->assertEquals( 'https://api.stripe.com/v1/data_management/import_sets', WC_Stripe_Agentic_Commerce_Files_Api_Delivery::IMPORT_SETS_ENDPOINT );
-		$this->assertEquals( '2025-09-30.clover;udap_beta=v1', WC_Stripe_Agentic_Commerce_Files_Api_Delivery::API_VERSION );
+		$this->assertEquals( '2026-03-25.dahlia;udap_beta=v1', WC_Stripe_Agentic_Commerce_Files_Api_Delivery::API_VERSION );
 	}
 }

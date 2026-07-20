@@ -1,4 +1,4 @@
-import { CheckoutProvider } from '@stripe/react-stripe-js/checkout';
+import { CheckoutElementsProvider } from '@stripe/react-stripe-js/checkout';
 import React, { useMemo } from 'react';
 import CheckoutForm from 'wcstripe/blocks/checkout-sessions/checkout-form';
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
@@ -57,11 +57,14 @@ export const CheckoutContainer = ( props ) => {
 	);
 
 	return (
-		<CheckoutProvider stripe={ stripePromise } options={ providerOptions }>
+		<CheckoutElementsProvider
+			stripe={ stripePromise }
+			options={ providerOptions }
+		>
 			<CheckoutForm
 				{ ...props }
 				onLoadError={ setPaymentProcessorLoadErrorMessage }
 			/>
-		</CheckoutProvider>
+		</CheckoutElementsProvider>
 	);
 };
