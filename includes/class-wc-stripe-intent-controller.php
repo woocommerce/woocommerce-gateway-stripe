@@ -400,7 +400,10 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		$gateway                 = $this->get_upe_gateway();
-		$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
+		$enabled_payment_methods = $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
+		if ( $payment_method_type ) {
+			$enabled_payment_methods = in_array( $payment_method_type, $enabled_payment_methods, true ) ? [ $payment_method_type ] : [];
+		}
 		$enabled_payment_methods = array_values(
 			array_filter(
 				$enabled_payment_methods,
