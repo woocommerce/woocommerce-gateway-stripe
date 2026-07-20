@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Stores the per-product exclude flag and filters Agentic Commerce sync eligibility.
  *
  * @internal
- * @since 10.8.0
+ * @since 10.9.0
  */
 class WC_Stripe_Agentic_Commerce_Product_Exclusion {
 
