@@ -98,34 +98,13 @@ class WC_Stripe_Feature_Flags {
 	/**
 	 * Feature flag to control the availability of Stripe Checkout Sessions.
 	 *
-	 * TODO: Remove this method from the class and add a new method in WC_Stripe_Helper instead in version 10.8.0 to check the necessary conditions in settings.
-	 *
+	 * @deprecated 10.9.0 Stripe Checkout Sessions is permanently available as of version 10.6.0. This method will be removed in a future release.
 	 * @return bool
 	 * @since 10.4.0
 	 */
 	public static function is_checkout_sessions_available() {
-		$stripe_settings              = WC_Stripe::get_instance()->get_settings();
-		$is_pmc_enabled               = $stripe_settings['pmc_enabled'] ?? 'no';
-		$is_oc_enabled                = $stripe_settings['optimized_checkout_element'] ?? 'no';
-		$is_automatic_capture_enabled = $stripe_settings['capture'] ?? 'yes';
-
-		// Stripe checkout sessions feature can only be available if:
-		// - PMC is enabled
-		// - OC Suite is enabled
-		// - Automatic capture is enabled (i.e. manual capture or later capture is disabled)
-		// If any of the above conditions are not met, the feature is not available.
-		if ( 'yes' !== $is_pmc_enabled || 'yes' !== $is_oc_enabled || 'yes' !== $is_automatic_capture_enabled ) {
-			return false;
-		}
-
-		/**
-		 * Filter to control the availability of the Stripe Checkout Sessions feature.
-		 *
-		 * @since 10.4.0
-		 * @deprecated This filter will be removed in version 10.8.0. Stripe Checkout Sessions is permanently available as of version 10.6.0.
-		 * @param bool $is_checkout_sessions_available Whether Stripe Checkout Sessions should be available.
-		 */
-		return (bool) apply_filters( 'wc_stripe_is_checkout_sessions_available', true );
+		wc_deprecated_function( __METHOD__, '10.9.0', 'WC_Stripe_Helper::is_checkout_sessions_available()' );
+		return WC_Stripe_Helper::is_checkout_sessions_available();
 	}
 
 	/**

@@ -1708,6 +1708,16 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'country'  => 'ES',
 				'expected' => 'BI',
 			],
+			'IT straight apostrophe L\'Aquila normalizes to AQ'             => [
+				'state'    => "L'Aquila",
+				'country'  => 'IT',
+				'expected' => 'AQ',
+			],
+			'IT curly apostrophe L’Aquila normalizes to AQ'                 => [
+				'state'    => "L\u{2019}Aquila",
+				'country'  => 'IT',
+				'expected' => 'AQ',
+			],
 		];
 	}
 
