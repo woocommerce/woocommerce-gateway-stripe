@@ -738,12 +738,6 @@ trait WC_Stripe_Subscriptions_Trait {
 					'Error while handling a Stripe Radar-blocked subscription renewal: ' . $exception->getMessage(),
 					[ 'order_id' => $renewal_order->get_id() ]
 				);
-			} finally {
-				// Always release the lock, or the order stays locked until the lock's TTL expires.
-				if ( $order_locked && isset( $order_helper ) ) {
-					$order_helper->unlock_order_payment( $renewal_order );
-					$order_locked = false;
-				}
 			}
 
 			return;
