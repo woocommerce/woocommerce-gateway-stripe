@@ -87,6 +87,12 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 		}
 
 		if ( ! empty( $required_field_errors ) ) {
+			// Only the classic checkout form can collect these values, so a request
+			// without the custom-data payload came from a page without that form
+			// (e.g. product or cart), where the buyer has no way to fill the fields in.
+			if ( ! $this->request_has_custom_checkout_data( $request ) ) {
+				$required_field_errors[] = __( 'Please go to the checkout page, fill in the required fields, and complete your order from there.', 'woocommerce-gateway-stripe' );
+			}
 			$error_messages = implode( "\n", $required_field_errors );
 			throw new RouteException( 'wc_stripe_express_checkout_missing_required_fields', $error_messages, 400 );
 		}
@@ -133,6 +139,21 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 		 * @param array $custom_checkout_data The custom checkout data.
 		 */
 		do_action( 'wc_stripe_express_checkout_update_order_meta', $order->get_id(), $custom_checkout_data );
+	}
+
+	/**
+	 * Whether the request carries the express checkout custom-data payload.
+	 *
+	 * The client attaches the payload (even when empty) whenever a classic
+	 * checkout form is present on the page, so its absence identifies flows
+	 * started on pages where custom fields are not rendered.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return bool
+	 */
+	private function request_has_custom_checkout_data( $request ) {
+		$extensions = $request->get_param( 'extensions' );
+		return ! empty( $extensions['wc-stripe/express-checkout']['custom_checkout_data'] );
 	}
 
 	/**

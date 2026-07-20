@@ -53,6 +53,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Stop retrying the Stripe App connection refresh when the connection has permanently expired
 * Dev - Centralize agentic commerce feed scheduling in integration class
 * Fix - Enforce custom required checkout fields and save their entered values when paying with express checkout on classic checkout
+* Update - Process custom classic checkout fields in express checkout by default; the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter now defaults to true and can be used to opt out
 * Dev - Update subscription E2E fixtures to use WooCommerce Subscriptions product plans
 * Fix - Prevent a fatal checkout error when a third-party integration registers callbacks against the Payment Request class removed in 10.4.0
 * Tweak - Cap the Agentic Commerce feed preview scan so it stays responsive on large catalogs instead of timing out

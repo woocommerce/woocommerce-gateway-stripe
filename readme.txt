@@ -35,6 +35,8 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 10.9.0
+   - Express checkout now processes and enforces custom classic checkout fields by default; the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter defaults to true
 * 10.8.0
    - Optimized Checkout Suite enabled by default for eligible existing stores
    - Adaptive Pricing enabled by default for eligible existing stores
@@ -206,6 +208,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop retrying the Stripe App connection refresh when the connection has permanently expired
 * Dev - Centralize agentic commerce feed scheduling in integration class
 * Fix - Enforce custom required checkout fields and save their entered values when paying with express checkout on classic checkout
+* Update - Process custom classic checkout fields in express checkout by default; the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter now defaults to true and can be used to opt out
 * Dev - Update subscription E2E fixtures to use WooCommerce Subscriptions product plans
 * Fix - Prevent a fatal checkout error when a third-party integration registers callbacks against the Payment Request class removed in 10.4.0
 * Tweak - Cap the Agentic Commerce feed preview scan so it stays responsive on large catalogs instead of timing out

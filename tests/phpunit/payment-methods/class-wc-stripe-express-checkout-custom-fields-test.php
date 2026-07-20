@@ -348,7 +348,41 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 		remove_filter( 'wc_stripe_express_checkout_enable_classic_checkout_custom_fields', $opt_out );
 	}
 
-	public function test_process_custom_checkout_data_missing_data() {
+	/**
+	 * Provides missing-required-field scenarios: whether the request carries the
+	 * custom-data payload, and whether the error should direct the buyer to the
+	 * checkout page.
+	 *
+	 * @return array[]
+	 */
+	public function provide_missing_required_field_scenarios() {
+		return [
+			'payload present (checkout page flow)' => [
+				[
+					'wc-stripe/express-checkout' => [
+						'custom_checkout_data' => '{}',
+					],
+				],
+				false,
+			],
+			'payload absent (product/cart flow)'   => [
+				[],
+				true,
+			],
+		];
+	}
+
+	/**
+	 * A missing required field throws; when the request carries no custom-data
+	 * payload (the flow started on a page without the classic checkout form),
+	 * the error also directs the buyer to the checkout page.
+	 *
+	 * @dataProvider provide_missing_required_field_scenarios
+	 * @param array $extensions Extensions param to set on the request.
+	 * @param bool  $expects_checkout_page_guidance Whether the error should include the go-to-checkout recommendation.
+	 * @return void
+	 */
+	public function test_process_custom_checkout_data_missing_data( $extensions, $expects_checkout_page_guidance ) {
 		$custom_checkout_fields = function ( $fields ) {
 			$fields['billing']['billing_custom_field1'] = [
 				'type'     => 'text',
@@ -362,20 +396,23 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 		WC()->checkout()->get_checkout_fields();
 
 		$request = new \WP_REST_Request( 'POST', '/wc/stripe-ece/v1/test-request' );
-		$request->set_param(
-			'extensions',
-			[
-				'wc-stripe/express-checkout' => [
-					'custom_checkout_data' => json_encode( [] ),
-				],
-			]
-		);
+		$request->set_param( 'extensions', $extensions );
+
 		$order                 = WC_Helper_Order::create_order();
 		$custom_fields_support = $this->get_custom_fields_support();
 
-		// Assert RouteException is thrown.
-		$this->expectException( RouteException::class );
-		$custom_fields_support->process_custom_checkout_data( $order, $request );
+		try {
+			$custom_fields_support->process_custom_checkout_data( $order, $request );
+			$this->fail( 'Expected RouteException for a missing required field.' );
+		} catch ( RouteException $e ) {
+			$message = $e->getMessage();
+			$this->assertStringContainsString( 'Billing Custom Field 1 is a required field.', $message );
+			if ( $expects_checkout_page_guidance ) {
+				$this->assertStringContainsString( 'go to the checkout page', $message );
+			} else {
+				$this->assertStringNotContainsString( 'go to the checkout page', $message );
+			}
+		}
 
 		// Remove filters and reset checkout fields.
 		remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
