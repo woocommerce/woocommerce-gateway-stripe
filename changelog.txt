@@ -1,7 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.9.0
-* Fix - Reuse the Apple Pay/Google Pay/Link express checkout buttons on the cart and checkout when the total changes, instead of re-initialising them on every update — preventing duplicate stacked buttons and a repeated Stripe payment-session request on each cart recalculation
+* Fix - Stop duplicate express checkout buttons stacking when the cart or checkout total changes, and reuse the existing buttons on checkout instead of rebuilding them on every update
 * Fix - Surface an error and block checkout when the Adaptive Pricing order total can't be synced with Stripe, instead of silently letting the buyer pay a stale amount
 * Fix - Stop attaching Level 3 data to captures and payments for non-card methods
 * Fix - Add the missing order and customer metadata to Adaptive Pricing payment intents
