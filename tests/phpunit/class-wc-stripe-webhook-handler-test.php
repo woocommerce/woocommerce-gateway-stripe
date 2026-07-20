@@ -366,6 +366,103 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * While the order-received redirect handler holds the payment lock, the deferred
+	 * payment_intent webhook must re-queue itself instead of settling. Otherwise both paths
+	 * reach payment_complete() concurrently and whichever runs second no-ops on an
+	 * already-paid order, dropping the initial paid transition's New Order / Processing emails.
+	 */
+	public function test_deferred_payment_intent_requeues_while_order_locked() {
+		$order        = WC_Helper_Order::create_order();
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+
+		// Simulate the redirect handler holding the lock.
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+		$order_helper->expects( $this->once() )
+			->method( 'lock_order_payment' )
+			->willReturn( true );
+		$order_helper->expects( $this->never() )
+			->method( 'unlock_order_payment' );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'handle_deferred_payment_intent_succeeded', 'defer_webhook_processing' ] )
+			->getMock();
+
+		// Settlement must not run while the order is locked.
+		$handler->expects( $this->never() )
+			->method( 'handle_deferred_payment_intent_succeeded' );
+
+		// The event must be re-queued with the short locked-order retry delay.
+		$handler->expects( $this->once() )
+			->method( 'defer_webhook_processing' )
+			->with( $this->anything(), $data, 10 );
+
+		$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+	}
+
+	/**
+	 * On the happy path the deferred payment_intent webhook acquires the lock, settles the
+	 * order exactly once, and releases the lock — without re-queuing.
+	 */
+	public function test_deferred_payment_intent_unlocks_after_processing() {
+		$order        = WC_Helper_Order::create_order();
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+		$order_helper->expects( $this->once() )
+			->method( 'lock_order_payment' )
+			->willReturn( false );
+		$order_helper->expects( $this->once() )
+			->method( 'unlock_order_payment' );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'handle_deferred_payment_intent_succeeded', 'defer_webhook_processing' ] )
+			->getMock();
+
+		$handler->expects( $this->once() )
+			->method( 'handle_deferred_payment_intent_succeeded' )
+			->with(
+				$this->callback(
+					function ( $passed_order ) use ( $order ) {
+						return $passed_order instanceof WC_Order && $order->get_id() === $passed_order->get_id();
+					}
+				),
+				self::MOCK_PAYMENT_INTENT['id']
+			);
+
+		// A settled order must not be re-queued.
+		$handler->expects( $this->never() )
+			->method( 'defer_webhook_processing' );
+
+		$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+	}
+
+	/**
 	 * Creates an order carrying a Stripe PaymentIntent that was ultimately settled via the given
 	 * gateway — the shared setup for the unexpected-charge detection tests.
 	 *
@@ -2163,6 +2260,14 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		// Capture a fixed baseline before scheduling so the timestamp assertion can't race a 1-second rollover.
 		$test_start_time = time();
 
+		// The session flow now builds metadata via get_metadata_from_order(), which runs the
+		// wc_stripe_intent_metadata filter. Register a sentinel to prove the filter is applied here too.
+		$filter = function ( $metadata ) {
+			$metadata['sentinel'] = 'applied';
+			return $metadata;
+		};
+		add_filter( 'wc_stripe_intent_metadata', $filter );
+
 		// Mock the action scheduler service.
 		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
 		$scheduled_args = null;
@@ -2220,6 +2325,20 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->assertEquals( $order->get_order_key(), $scheduled_args['request']['metadata']['order_key'] );
 		$this->assertNotEmpty( $scheduled_args['request']['metadata']['signature'] );
 		$this->assertIsInt( $scheduled_args['request']['metadata']['tax_amount'] );
+
+		// Adaptive Pricing transactions must carry the same order/customer identifiers as the standard flow.
+		$this->assertEquals(
+			trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
+			$scheduled_args['request']['metadata']['customer_name']
+		);
+		$this->assertEquals( $order->get_billing_email(), $scheduled_args['request']['metadata']['customer_email'] );
+		$this->assertEquals( esc_url( get_site_url() ), $scheduled_args['request']['metadata']['site_url'] );
+		$this->assertEquals( 'single', $scheduled_args['request']['metadata']['payment_type'] );
+
+		// The wc_stripe_intent_metadata filter must run for session (Adaptive Pricing) transactions too.
+		$this->assertEquals( 'applied', $scheduled_args['request']['metadata']['sentinel'] );
+
+		remove_filter( 'wc_stripe_intent_metadata', $filter );
 	}
 
 	/**

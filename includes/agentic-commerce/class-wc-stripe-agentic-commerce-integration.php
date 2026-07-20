@@ -45,19 +45,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_feed';
 
 	/**
-	 * Action Scheduler group for adapter-fired one-off resyncs.
-	 *
-	 * Kept distinct from the recurring `wc-stripe` group so the idempotency
-	 * guard in {@see self::schedule_full_resync_now()} can ask "is another
-	 * adapter-fired resync already pending?" without matching the recurring
-	 * full-feed occurrence — `as_has_scheduled_action()` filters by group,
-	 * so a shared group would make the one-off a no-op whenever the cron
-	 * tick is queued.
+	 * Action Scheduler hook for an immediate, one-off full resync. Kept distinct
+	 * from {@see self::SCHEDULED_ACTION} — the recurring action is always pending,
+	 * so sharing it would make `as_has_scheduled_action()` drop every immediate resync.
 	 *
 	 * @var string
 	 * @since 10.8.0
 	 */
-	private const ASYNC_RESYNC_GROUP = 'wc-stripe-agentic-resync';
+	protected const IMMEDIATE_SYNC_ACTION = 'wc_stripe_agentic_commerce_sync_feed_now';
 
 	/**
 	 * Option name to track whether the sync is scheduled.
@@ -192,6 +187,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 */
 	public function register_hooks(): void {
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
+		add_action( self::IMMEDIATE_SYNC_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 
 		// Adapter-fired hook for converging Stripe's catalog when the
 		// `woocommerce_agentic_commerce_should_sync_product` filter outcome changes.
@@ -208,12 +204,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
-	 * Enqueue an immediate full-feed sync if one is not already pending.
+	 * Enqueue an immediate full-feed sync unless one is already queued.
 	 *
-	 * Idempotent: when a sync is already pending (recurring cron tick or a
-	 * previous call within the same request), this is a no-op. Adapters can
-	 * call it cheaply on every visibility-setting save without worrying about
-	 * stacking Action Scheduler entries.
+	 * Idempotent against other immediate resyncs only, so adapters can call it on
+	 * every visibility-setting save. It does NOT dedupe against the recurring
+	 * {@see self::SCHEDULED_ACTION}, which would otherwise leave the catalog stale
+	 * until the next cron tick.
 	 *
 	 * @since 10.8.0
 	 * @return void
@@ -223,22 +219,18 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		if ( as_has_scheduled_action( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP ) ) {
+		if ( as_has_scheduled_action( self::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' ) ) {
 			return;
 		}
 
-		as_enqueue_async_action( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP );
+		as_enqueue_async_action( self::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
 	}
 
 	/**
-	 * Cancel any pending adapter-fired one-off resync.
-	 *
-	 * A full sync that has just run — e.g. a manual sync from the settings UI —
-	 * already produces a complete upload reflecting current visibility, so a
-	 * queued {@see self::schedule_full_resync_now()} action would only repeat
-	 * that work. It lives in {@see self::ASYNC_RESYNC_GROUP}, which the manual
-	 * sync's `wc-stripe`-group reschedule does not touch, so it must be cleared
-	 * explicitly. Idempotent: a no-op when nothing is queued.
+	 * Cancel any pending immediate resync. A just-run full sync already reflects
+	 * current visibility, so a queued {@see self::IMMEDIATE_SYNC_ACTION} would only
+	 * repeat the work; the manual sync's reschedule doesn't touch it, so clear it
+	 * explicitly. Idempotent.
 	 *
 	 * @since 10.8.0
 	 * @return void
@@ -248,7 +240,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP );
+		as_unschedule_all_actions( self::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
 	}
 
 	/**
@@ -294,7 +286,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		}
 
 		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], 'wc-stripe' );
-		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP );
+		as_unschedule_all_actions( self::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
 		delete_option( self::SCHEDULED_OPTION );
 		delete_option( self::LAST_UPLOAD_OPTION );
 
@@ -1002,15 +994,6 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return false;
 		}
 
-		/**
-		 * Filter the max age of the cached upload record before dedup is bypassed.
-		 *
-		 * Defaults to one week. Applied as a safety valve so a stale or lost Stripe
-		 * file id still gets refreshed on a predictable cadence.
-		 *
-		 * @since 10.8.0
-		 * @param int $ttl_seconds Default self::FEED_CACHE_TTL.
-		 */
 		if ( ! isset( $last['uploaded_at'] ) || ! is_numeric( $last['uploaded_at'] ) ) {
 			return false;
 		}
@@ -1018,6 +1001,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		if ( $uploaded_at <= 0 ) {
 			return false;
 		}
+		/**
+		 * Filters the max age of the cached upload record before dedup is bypassed.
+		 *
+		 * @since 10.8.0
+		 *
+		 * @param int $ttl_seconds Default self::FEED_CACHE_TTL.
+		 */
 		$max_age = (int) apply_filters( 'wc_stripe_agentic_commerce_feed_cache_ttl', self::FEED_CACHE_TTL );
 		if ( $max_age > 0 && ( time() - $uploaded_at ) > $max_age ) {
 			return false;
