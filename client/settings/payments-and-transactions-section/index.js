@@ -84,11 +84,11 @@ const PaymentsAndTransactionsSection = () => {
 					checked={ isSavedCardsEnabled }
 					onChange={ setIsSavedCardsEnabled }
 					label={ __(
-						'Enable saved payment methods',
+						'Enable saved card payment methods',
 						'woocommerce-gateway-stripe'
 					) }
 					help={ __(
-						'If enabled, returning customers can check out using payment details securely stored by Stripe. No payment information is stored on your store.',
+						'Let returning customers check out with card payment details securely stored by Stripe — never on your store. When Link by Stripe is enabled, Stripe collects save consent within their payment form, replacing the store checkbox at checkout.',
 						'woocommerce-gateway-stripe'
 					) }
 				/>
