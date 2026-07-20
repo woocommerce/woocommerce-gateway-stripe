@@ -287,6 +287,9 @@ trait WC_Stripe_Pre_Orders_Trait {
 
 				WC_Emails::instance();
 
+				/**
+				 * This action is documented in includes/compat/trait-wc-stripe-subscriptions.php.
+				 */
 				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $order );
 
 				throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
