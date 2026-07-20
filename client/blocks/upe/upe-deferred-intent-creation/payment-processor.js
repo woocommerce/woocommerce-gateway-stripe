@@ -357,7 +357,13 @@ const PaymentProcessor = ( {
 					billing?.billingAddress?.country || ''
 				),
 		} );
-	}, [ elements, billing?.billingAddress?.country, stripeServerData ] );
+		// Depend on the primitive flag actually read, not the whole config
+		// object, so a changed config identity can't re-fire the Stripe update.
+	}, [
+		elements,
+		billing?.billingAddress?.country,
+		stripeServerData?.shouldShowOptimizedCheckout,
+	] );
 
 	// After web fonts finish loading, re-compute the appearance so the PE
 	// uses the correct font families instead of fallback generics.

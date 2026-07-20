@@ -889,6 +889,26 @@ describe( 'showErrorCheckout', () => {
 			).toContain( 'ideal' );
 		} );
 
+		it( 're-surfaces a server-seeded exclusion when the billing country becomes supported', () => {
+			// The server seeds exclusions for the page-load country (e.g. US);
+			// switching to a supported country must drop the stale exclusion.
+			setServerData( { ideal: [ 'NL' ] }, [ 'amazon_pay', 'ideal' ] );
+
+			const excluded =
+				getExcludedPaymentMethodTypesForBillingCountry( 'NL' );
+
+			expect( excluded ).not.toContain( 'ideal' );
+			expect( excluded ).toContain( 'amazon_pay' );
+		} );
+
+		it( 'keeps Amazon Pay excluded even when its country list allows the billing country', () => {
+			setServerData( { amazon_pay: [ 'US' ] }, [ 'amazon_pay' ] );
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( 'US' )
+			).toContain( 'amazon_pay' );
+		} );
+
 		it( 'preserves the server-provided exclusions and de-duplicates', () => {
 			setServerData( { ideal: [ 'NL' ] }, [ 'amazon_pay', 'ideal' ] );
 

@@ -63,6 +63,18 @@ const gatewayUPEComponents = {};
 let hasCheckoutCompleted = false;
 
 /**
+ * OC exclusions last applied to each Elements instance (as a sorted key), so
+ * redundant `elements.update()` calls can be skipped. Keyed by instance: a
+ * re-mounted element starts fresh and stale state can't leak across mounts.
+ *
+ * @type {WeakMap<Object, string>}
+ */
+const appliedOptimizedCheckoutExclusions = new WeakMap();
+
+const getExclusionsKey = ( excludedPaymentMethodTypes ) =>
+	[ ...excludedPaymentMethodTypes ].sort().join( ',' );
+
+/**
  * Tracks an in-flight Payment Element (re)mount.
  *
  * WooCommerce re-renders the payment box on every `updated_checkout`, remounting
@@ -450,6 +462,15 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	if ( shouldLoadStripeElements ) {
 		gatewayUPEComponents[ paymentMethodType ].checkoutSessionId = null;
 		elements = stripe.elements( options );
+
+		// Creation already applied these exclusions; seed the memo so the first
+		// `updated_checkout` doesn't re-send an identical update.
+		if ( options.excludedPaymentMethodTypes ) {
+			appliedOptimizedCheckoutExclusions.set(
+				elements,
+				getExclusionsKey( options.excludedPaymentMethodTypes )
+			);
+		}
 	}
 
 	// After web fonts finish loading, re-compute appearance with correct
@@ -1030,12 +1051,22 @@ export function maybeUpdateOptimizedCheckoutExclusions() {
 		return;
 	}
 
-	elements.update( {
-		excludedPaymentMethodTypes:
-			getExcludedPaymentMethodTypesForBillingCountry(
-				getCurrentBillingCountry()
-			),
-	} );
+	const excludedPaymentMethodTypes =
+		getExcludedPaymentMethodTypesForBillingCountry(
+			getCurrentBillingCountry()
+		);
+
+	// `updated_checkout` fires for many unrelated changes (coupon, shipping,
+	// quantity); skip the Stripe round-trip when the exclusions are unchanged.
+	const exclusionsKey = getExclusionsKey( excludedPaymentMethodTypes );
+	if (
+		appliedOptimizedCheckoutExclusions.get( elements ) === exclusionsKey
+	) {
+		return;
+	}
+	appliedOptimizedCheckoutExclusions.set( elements, exclusionsKey );
+
+	elements.update( { excludedPaymentMethodTypes } );
 }
 
 /**
