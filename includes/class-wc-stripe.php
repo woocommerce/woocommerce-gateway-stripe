@@ -1045,6 +1045,16 @@ class WC_Stripe {
 			WP_CLI::add_command( 'stripe agentic-commerce', 'WC_Stripe_Agentic_Commerce_CLI' );
 		}
 
+		// Per-product exclude toggle. The exclusion storage registers the feed
+		// filter in every context; the meta box is the admin-only editor UI on top
+		// of it.
+		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_Exclusion' ) ) {
+			( new WC_Stripe_Agentic_Commerce_Product_Exclusion() )->init();
+		}
+		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_Meta_Box' ) ) {
+			( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->init();
+		}
+
 		/**
 		 * Fires after Agentic Commerce integration is initialized.
 		 *
