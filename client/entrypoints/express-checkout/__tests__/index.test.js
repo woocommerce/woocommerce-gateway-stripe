@@ -352,6 +352,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		} );
 	} );
 } );
+
 describe( 'Express Checkout cart in-place amount update', () => {
 	const cartParams = () => ( {
 		...baseParams(),
@@ -372,9 +373,13 @@ describe( 'Express Checkout cart in-place amount update', () => {
 	// Stripe stub whose elements() factory is a spy, so a full re-init (which
 	// creates a new group) is distinguishable from an in-place elements.update().
 	const stubStripe = () => {
+		const handlers = {};
 		const elementsList = [];
 		const button = {
-			on: () => button,
+			on: ( evt, cb ) => {
+				handlers[ evt ] = cb;
+				return button;
+			},
 			mount: jest.fn(),
 			destroy: jest.fn(),
 		};
@@ -387,7 +392,7 @@ describe( 'Express Checkout cart in-place amount update', () => {
 			return elements;
 		} );
 		mockGetStripe.mockReturnValue( { elements: elementsFactory } );
-		return { elementsList, elementsFactory, button };
+		return { handlers, elementsList, elementsFactory, button };
 	};
 
 	// The cart-details total flows through the mocked transformPrice.
@@ -426,6 +431,7 @@ describe( 'Express Checkout cart in-place amount update', () => {
 	afterEach( () => {
 		jest.useRealTimers();
 		delete global.wc_stripe_express_checkout_params;
+		delete global.jQuery;
 	} );
 
 	it( 'pushes the new amount to the existing groups without re-creating them on a second cart event', async () => {
@@ -497,6 +503,162 @@ describe( 'Express Checkout cart in-place amount update', () => {
 		);
 		elementsList.forEach( ( e ) =>
 			expect( e.update ).not.toHaveBeenCalled()
+		);
+	} );
+
+	it( 'does not reveal an empty container on refresh when no wallet is available', async () => {
+		global.wc_stripe_express_checkout_params = cartParams();
+		const { elementsList } = stubStripe();
+		setCartTotal( 2500 );
+
+		loadEntrypoint();
+
+		// Simulate a browser that offers no wallet: the button ready handler
+		// has removed every per-method container and the element is hidden.
+		const container = document.getElementById(
+			'wc-stripe-express-checkout-element'
+		);
+		container.innerHTML = '';
+		container.style.display = 'none';
+
+		await triggerCartUpdate();
+
+		// The refresh still runs (the registry is untouched) ...
+		elementsList.forEach( ( e ) =>
+			expect( e.update ).toHaveBeenCalledWith( { amount: 2500 } )
+		);
+		// ... but it must not un-hide an empty container.
+		expect( container.style.display ).toBe( 'none' );
+	} );
+
+	it( 'refreshes the click line items and shipping rates on an in-place update', async () => {
+		global.wc_stripe_express_checkout_params = {
+			...cartParams(),
+			allowed_shipping_countries: [],
+			cart: {
+				total: 500,
+				currency: 'usd',
+				requestShipping: true,
+				requestPhone: false,
+				displayItems: [],
+			},
+		};
+
+		// onClickHandler() calls blockUI(), which uses the global jQuery.blockUI.
+		// eslint-disable-next-line global-require
+		global.jQuery = require( 'jquery' );
+		global.jQuery.blockUI = jest.fn();
+		global.jQuery.unblockUI = jest.fn();
+
+		// eslint-disable-next-line global-require
+		const transformers = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
+		transformers.transformLabeledDisplayItems.mockReturnValue( [
+			{ key: 'total_shipping', name: 'Shipping', amount: 500 },
+		] );
+		const updatedItems = [
+			{ key: 'total_shipping', name: 'Shipping', amount: 800 },
+			{ name: 'Subtotal', amount: 2000 },
+		];
+		transformers.transformCartDataForDisplayItems.mockReturnValue(
+			updatedItems
+		);
+		transformers.transformPrice.mockReturnValue( 2800 );
+		mockGetCartDetails.mockResolvedValue( {
+			totals: { total_price: '2800', total_refund: '0' },
+			needs_shipping: true,
+		} );
+
+		const { handlers } = stubStripe();
+
+		loadEntrypoint();
+		await triggerCartUpdate();
+
+		// Resolving a click after the in-place update must see the refreshed
+		// breakdown, not an amount-only stale closure.
+		const event = { resolve: jest.fn(), expressPaymentType: 'googlePay' };
+		await handlers.click( event );
+
+		expect( event.resolve ).toHaveBeenCalledTimes( 1 );
+		const clickOptions = event.resolve.mock.calls[ 0 ][ 0 ];
+		expect( clickOptions.lineItems ).toEqual( updatedItems );
+		expect( clickOptions.shippingRates ).toEqual( [
+			{ id: 'rate-shipping', amount: 800, displayName: 'Shipping' },
+		] );
+	} );
+
+	it( 'discards a stale overlapping cart fetch so the newer total wins', async () => {
+		global.wc_stripe_express_checkout_params = cartParams();
+		const { elementsList } = stubStripe();
+
+		// Identity transform so the total is just total_price - total_refund.
+		// eslint-disable-next-line global-require
+		const transformers = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
+		transformers.transformPrice.mockImplementation( ( amount ) => amount );
+
+		let resolveStale;
+		let resolveFresh;
+		const stale = new Promise( ( r ) => {
+			resolveStale = r;
+		} );
+		const fresh = new Promise( ( r ) => {
+			resolveFresh = r;
+		} );
+		mockGetCartDetails
+			.mockReturnValueOnce( stale ) // leading edge, older total
+			.mockReturnValueOnce( fresh ); // trailing edge, newer total
+
+		loadEntrypoint();
+
+		// Two rapid updates: leading fetch (gen 1) then trailing fetch (gen 2).
+		// eslint-disable-next-line global-require
+		const jq = require( 'jquery' );
+		jq( document.body ).trigger( 'updated_cart_totals' );
+		jq( document.body ).trigger( 'updated_cart_totals' );
+		await jest.advanceTimersByTimeAsync( 300 );
+		jest.useRealTimers();
+
+		// The newer (trailing) response lands first and applies 2100 ...
+		resolveFresh( {
+			totals: { total_price: '2100', total_refund: '0' },
+			needs_shipping: false,
+		} );
+		await flushPromises();
+		// ... then the older (leading) response lands late and must be ignored.
+		resolveStale( {
+			totals: { total_price: '2300', total_refund: '0' },
+			needs_shipping: false,
+		} );
+		await flushPromises();
+
+		elementsList.forEach( ( e ) => {
+			expect( e.update ).toHaveBeenCalledWith( { amount: 2100 } );
+			expect( e.update ).not.toHaveBeenCalledWith( { amount: 2300 } );
+		} );
+	} );
+
+	it( 'rebuilds the group when the live cart currency changes (multi-currency switch)', async () => {
+		global.wc_stripe_express_checkout_params = cartParams(); // snapshot currency usd
+		const { elementsFactory, button } = stubStripe();
+		setCartTotal( 2500 );
+		// A currency switcher flips the live cart currency while the localized
+		// param stays usd; the group must rebuild in the new currency.
+		mockGetCartDetails.mockResolvedValue( {
+			totals: {
+				total_price: '2500',
+				total_refund: '0',
+				currency_code: 'EUR',
+			},
+			needs_shipping: false,
+		} );
+
+		loadEntrypoint();
+		const groupsAfterFirstPaint = elementsFactory.mock.calls.length;
+
+		await triggerCartUpdate();
+
+		expect( button.destroy ).toHaveBeenCalled();
+		expect( elementsFactory.mock.calls.length ).toBeGreaterThan(
+			groupsAfterFirstPaint
 		);
 	} );
 } );

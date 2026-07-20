@@ -84,6 +84,12 @@ jQuery( function ( $ ) {
 	// Snapshot is first-paint only; re-inits reconcile via AJAX (see init() below).
 	let cartBootstrapConsumed = false;
 
+	// Monotonic id for cart-details fetches. Debounced update bursts on
+	// classic checkout can leave more than one fetch in flight; only the
+	// latest one may apply, so an out-of-order older response can't overwrite
+	// the current total in the reused Elements group.
+	let cartFetchGeneration = 0;
+
 	const hasVariationForm = $( '.variations_form' ).length > 0;
 	const hasBookingForm = $( '.wc-bookings-booking-form' ).length > 0;
 
@@ -279,8 +285,9 @@ jQuery( function ( $ ) {
 			// Tear down the previous render's buttons/groups before building new
 			// ones so re-inits don't stack duplicate buttons or leak the old
 			// wallet iframes/telemetry, and record this render's structural
-			// signature so a later cart update can tell an in-place amount change
-			// from one that needs a full rebuild.
+			// signature (currency + shipping requirement) so a later cart update
+			// can tell an in-place amount change from one that needs a full
+			// rebuild.
 			wcStripeECE.teardownExpressCheckout();
 			wcStripeECE.renderSignature = {
 				currency: options.currency,
@@ -679,7 +686,14 @@ jQuery( function ( $ ) {
 					return;
 				}
 
+				const fetchGeneration = ++cartFetchGeneration;
 				api.expressCheckoutGetCartDetails().then( ( cart ) => {
+					// A newer fetch was started after this one; discard the stale
+					// response so an older total can't win the last-writer race.
+					if ( fetchGeneration !== cartFetchGeneration ) {
+						return;
+					}
+
 					const total = transformPrice(
 						parseInt( cart.totals.total_price, 10 ) -
 							parseInt( cart.totals.total_refund || 0, 10 ),
@@ -690,25 +704,33 @@ jQuery( function ( $ ) {
 						total === 0 &&
 						! getExpressCheckoutData( 'has_free_trial' )
 					) {
+						// Amount 0 is invalid in payment mode. Hide rather than push it,
+						// and intentionally leave the group mounted (hidden, so
+						// unclickable): a return above 0 then refreshes it in place
+						// below instead of paying for a full rebuild.
 						wcStripeECE.hide();
 						return;
 					}
 
+					// Prefer the live cart currency so an AJAX currency switch (e.g. a
+					// multi-currency plugin) is reflected; fall back to the localized
+					// param. Store API returns it upper-cased; Stripe wants lower-case.
 					const currency =
+						cart.totals.currency_code?.toLowerCase() ??
 						getExpressCheckoutData( 'checkout' )?.currency_code;
 					const requestShipping = cart.needs_shipping === true;
 					const displayItems =
 						transformCartDataForDisplayItems( cart );
 
 					// A typical cart recalc only moves the amount and its
-					// line-item breakdown. If a group is already mounted and
-					// the structural signature — currency and shipping
-					// requirement, the only inputs elements.update() cannot
-					// change — is unchanged, refresh in place instead of
-					// re-creating the group, which would re-hit
-					// /v1/elements/sessions and leak the old group. A
-					// structural change, or nothing mounted, falls through
-					// to a full (re)build.
+					// line-item breakdown. If a group is already mounted and the
+					// structural signature — currency and shipping requirement, the
+					// inputs elements.update() cannot change, both taken live from the
+					// cart response — is unchanged, refresh in place instead of
+					// re-creating the group, which would re-hit /v1/elements/sessions
+					// and leak the old group. A currency switch (multi-currency
+					// plugin), a shipping-requirement change, or nothing mounted,
+					// falls through to a full (re)build.
 					const isMounted =
 						( wcStripeECE.expressCheckoutElements ?? [] ).length >
 						0;
@@ -722,7 +744,14 @@ jQuery( function ( $ ) {
 							total,
 							displayItems,
 						} );
-						wcStripeECE.show();
+						// Only reveal if a wallet container actually survived — the
+						// button 'ready' handler removes the container for methods the
+						// browser can't offer, and un-hiding an empty flex box would
+						// leave a blank gap. Mirror hide() by restoring the separator.
+						if ( wcStripeECE.getElements().children().length ) {
+							wcStripeECE.show();
+							wcStripeECE.getButtonSeparator().show();
+						}
 						return;
 					}
 
