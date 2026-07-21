@@ -300,6 +300,52 @@ class WC_Stripe_Agentic_Commerce_Manual_Approval_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that a backorder-enabled product is approved beyond its stock
+	 * quantity — backorders are a permitted oversell, not a decline.
+	 */
+	public function test_approves_backordered_product_beyond_stock(): void {
+		$product = $this->create_product(
+			[
+				'manage_stock'   => true,
+				'stock_quantity' => 1,
+				'backorders'     => 'yes',
+			]
+		);
+
+		$event    = $this->build_finalize_event( [ $product ], [ 5 ] );
+		$response = $this->approval->validate( $event );
+
+		$this->assertSame( 'approved', $response['manual_approval_details']['type'] );
+	}
+
+	/**
+	 * Test that units held by a concurrent checkout (WC reserved stock) count
+	 * against availability at finalize, so two sessions can't both be approved
+	 * for the same last units.
+	 */
+	public function test_declines_when_stock_is_held_by_concurrent_checkout(): void {
+		$product = $this->create_product(
+			[
+				'manage_stock'   => true,
+				'stock_quantity' => 2,
+			]
+		);
+
+		$competing = wc_create_order( [ 'status' => 'pending' ] );
+		$competing->add_product( wc_get_product( $product->get_id() ), 2 );
+		$competing->save();
+		( new \Automattic\WooCommerce\Checkout\Helpers\ReserveStock() )->reserve_stock_for_order( $competing, 10 );
+
+		$event    = $this->build_finalize_event( [ $product ], [ 1 ] );
+		$response = $this->approval->validate( $event );
+
+		$this->assertSame( 'declined', $response['manual_approval_details']['type'] );
+		$this->assertStringContainsString( 'Only 0 available', $response['manual_approval_details']['declined']['reason'] );
+
+		$competing->delete( true );
+	}
+
+	/**
 	 * Creates a simple product and tracks it for cleanup.
 	 *
 	 * @param array $args Product property overrides.

@@ -1572,6 +1572,155 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that completion places a stock hold, reduces stock via
+	 * payment_complete(), and leaves no lingering reservation.
+	 */
+	public function test_completion_reserves_and_reduces_stock() {
+		update_option( 'woocommerce_manage_stock', 'yes' );
+		$product = $this->create_managed_stock_product( 3 );
+		$session = $this->build_stock_session( $product, 2 );
+
+		$order = $this->mapper->create_order_from_checkout_session( $session );
+
+		$this->assertEquals( 'processing', $order->get_status() );
+		$this->assertSame( 1, wc_get_product( $product->get_id() )->get_stock_quantity() );
+		$this->assertSame( 0, (int) wc_get_held_stock_quantity( wc_get_product( $product->get_id() ) ) );
+
+		$order->delete( true );
+		$product->delete( true );
+	}
+
+	/**
+	 * Regression test for the concurrent-session oversell race: when another
+	 * (concurrent) order already holds the last units via WC's reserved-stock
+	 * table, completion must not oversell — the paid order is parked on-hold,
+	 * stock is untouched, and the transaction id is preserved for refunding.
+	 */
+	public function test_completion_holds_order_when_stock_already_reserved_by_concurrent_order() {
+		update_option( 'woocommerce_manage_stock', 'yes' );
+		$product = $this->create_managed_stock_product( 1 );
+
+		// Simulate the concurrent session that won the race: a separate order
+		// holding the last unit in the wc_reserved_stock table.
+		$competing = wc_create_order( [ 'status' => 'pending' ] );
+		$competing->add_product( wc_get_product( $product->get_id() ), 1 );
+		$competing->save();
+		( new \Automattic\WooCommerce\Checkout\Helpers\ReserveStock() )->reserve_stock_for_order( $competing, 10 );
+
+		$session = $this->build_stock_session( $product, 1 );
+		$order   = $this->mapper->create_order_from_checkout_session( $session );
+
+		$this->assertEquals( 'on-hold', $order->get_status() );
+		$this->assertSame( 1, wc_get_product( $product->get_id() )->get_stock_quantity(), 'Stock must not be reduced for the oversold order.' );
+		$this->assertSame( 'pi_test_456', $order->get_transaction_id() );
+
+		$notes = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+		$this->assertNotEmpty(
+			array_filter(
+				$notes,
+				static function ( $note ) {
+					return false !== strpos( $note->content, 'stock could not be secured' );
+				}
+			),
+			'The on-hold order must carry a note explaining the stock failure.'
+		);
+
+		$order->delete( true );
+		$competing->delete( true );
+		$product->delete( true );
+	}
+
+	/**
+	 * Test that completion for more units than are in stock parks the order
+	 * on-hold instead of completing and driving stock negative.
+	 */
+	public function test_completion_holds_order_when_stock_insufficient() {
+		update_option( 'woocommerce_manage_stock', 'yes' );
+		$product = $this->create_managed_stock_product( 1 );
+		$session = $this->build_stock_session( $product, 2 );
+
+		$order = $this->mapper->create_order_from_checkout_session( $session );
+
+		$this->assertEquals( 'on-hold', $order->get_status() );
+		$this->assertSame( 1, wc_get_product( $product->get_id() )->get_stock_quantity(), 'Stock must not go negative.' );
+
+		$order->delete( true );
+		$product->delete( true );
+	}
+
+	/**
+	 * Test that products with backorders enabled complete normally and may go
+	 * negative — the reservation guard must not block permitted backorders.
+	 */
+	public function test_completion_allows_backordered_products() {
+		update_option( 'woocommerce_manage_stock', 'yes' );
+		$product = $this->create_managed_stock_product( 1, [ 'backorders' => 'yes' ] );
+		$session = $this->build_stock_session( $product, 3 );
+
+		$order = $this->mapper->create_order_from_checkout_session( $session );
+
+		$this->assertEquals( 'processing', $order->get_status() );
+		$this->assertSame( -2, wc_get_product( $product->get_id() )->get_stock_quantity() );
+
+		$order->delete( true );
+		$product->delete( true );
+	}
+
+	/**
+	 * Creates a managed-stock product priced at 10.00.
+	 *
+	 * @param int   $stock Stock quantity.
+	 * @param array $extra Additional product props.
+	 * @return \WC_Product
+	 */
+	private function create_managed_stock_product( int $stock, array $extra = [] ): \WC_Product {
+		return WC_Helper_Product::create_simple_product(
+			true,
+			array_merge(
+				[
+					'regular_price'  => '10.00',
+					'price'          => '10.00',
+					'sku'            => 'MAPPER-STOCK-' . uniqid(),
+					'manage_stock'   => true,
+					'stock_quantity' => $stock,
+				],
+				$extra
+			)
+		);
+	}
+
+	/**
+	 * Builds a session for $quantity units of a 10.00 product with matching totals.
+	 *
+	 * @param \WC_Product $product  The product to order.
+	 * @param int         $quantity Units to order.
+	 * @return WC_Stripe_Agentic_Checkout_Session
+	 */
+	private function build_stock_session( \WC_Product $product, int $quantity ): WC_Stripe_Agentic_Checkout_Session {
+		$amount = 1000 * $quantity;
+
+		return $this->build_checkout_session(
+			[
+				'amount_total'    => $amount,
+				'amount_subtotal' => $amount,
+				'line_items'      => $this->build_line_items(
+					[
+						[
+							'lookup_key'      => (string) $product->get_sku(),
+							'quantity'        => $quantity,
+							'unit_amount'     => 1000,
+							'amount_total'    => $amount,
+							'amount_subtotal' => $amount,
+							'amount_tax'      => 0,
+						],
+					]
+				),
+			],
+			$product
+		);
+	}
+
+	/**
 	 * Builds a Stripe checkout session wrapper for testing.
 	 *
 	 * @param array<string, mixed>  $overrides Fields to override on the default session.

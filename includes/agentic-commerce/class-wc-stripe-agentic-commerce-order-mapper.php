@@ -33,6 +33,18 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	public const CREATED_VIA = 'stripe-agentic-commerce';
 
 	/**
+	 * Minutes to hold reserved stock while the order completes payment.
+	 *
+	 * The hold only needs to outlive the moments between reserve_stock() and
+	 * payment_complete() below — stock reduction releases it. It is passed
+	 * explicitly so the merchant's `woocommerce_hold_stock_minutes` setting
+	 * (blank disables holds for the cart flow) cannot switch this guard off.
+	 *
+	 * @var int
+	 */
+	private const STOCK_HOLD_MINUTES = 10;
+
+	/**
 	 * Creates a WooCommerce order from a Stripe checkout session.
 	 *
 	 * @since 10.6.0
@@ -71,6 +83,19 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		} catch ( Throwable $e ) {
 			$order->delete( true );
 			throw $e;
+		}
+
+		// Atomically hold stock before taking the order live. This is the only
+		// point that serializes concurrent agentic sessions on stock:
+		// finalize_checkout validates availability without reserving anything,
+		// so N sessions can all pass validation for the same last units.
+		// ReserveStock's insert-with-availability-check either claims the
+		// units or throws.
+		try {
+			$this->reserve_stock( $order );
+		} catch ( \Automattic\WooCommerce\Checkout\Helpers\ReserveStockException $e ) {
+			$this->hold_order_for_insufficient_stock( $order, $session, $e );
+			return $order;
 		}
 
 		// Complete payment outside the delete-on-failure block, since
@@ -292,6 +317,72 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		}
 
 		return $item;
+	}
+
+	/**
+	 * Places an atomic stock hold for every managed-stock item on the order.
+	 *
+	 * Products with backorders enabled (and unmanaged in-stock products) are
+	 * skipped by ReserveStock itself, so backorders keep working.
+	 *
+	 * @since 10.9.0
+	 * @param WC_Order $order The order with mapped line items.
+	 * @throws \Automattic\WooCommerce\Checkout\Helpers\ReserveStockException When stock cannot be secured for an item.
+	 */
+	private function reserve_stock( WC_Order $order ): void {
+		$reserve_stock = new \Automattic\WooCommerce\Checkout\Helpers\ReserveStock();
+		$reserve_stock->reserve_stock_for_order( $order, self::STOCK_HOLD_MINUTES );
+	}
+
+	/**
+	 * Parks a paid order that lost the stock race instead of overselling.
+	 *
+	 * Payment is already captured by Stripe when checkout.session.completed
+	 * arrives, so the order can be neither declined nor deleted. Keep it
+	 * on-hold with the transaction id (refundable from the order screen) and
+	 * suppress the on-hold stock reduction — reducing would drive the oversold
+	 * product negative, which is the exact outcome the hold guards against.
+	 *
+	 * @since 10.9.0
+	 * @param WC_Order                                                  $order   The created order.
+	 * @param WC_Stripe_Agentic_Checkout_Session                        $session The checkout session wrapper.
+	 * @param \Automattic\WooCommerce\Checkout\Helpers\ReserveStockException $e  The reservation failure.
+	 */
+	private function hold_order_for_insufficient_stock( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session, \Automattic\WooCommerce\Checkout\Helpers\ReserveStockException $e ): void {
+		$order->set_transaction_id( $session->get_payment_intent_id() ?? '' );
+
+		// woocommerce_payment_complete_reduce_order_stock (not
+		// woocommerce_can_reduce_order_stock): the latter blocks the reduction
+		// but still lets wc_maybe_reduce_stock_levels() mark the order
+		// stock-reduced, so a later cancel/refund would wrongly restock units
+		// that were never taken.
+		$order_id        = $order->get_id();
+		$block_reduction = static function ( $trigger_reduce, $target_order_id ) use ( $order_id ) {
+			return (int) $target_order_id === $order_id ? false : $trigger_reduce;
+		};
+		add_filter( 'woocommerce_payment_complete_reduce_order_stock', $block_reduction, 10, 2 );
+
+		try {
+			$order->update_status(
+				'on-hold',
+				sprintf(
+					/* translators: %s: reason stock could not be secured */
+					__( 'Stripe captured the payment, but stock could not be secured for every item: %s Review stock, then process or refund this order manually.', 'woocommerce-gateway-stripe' ),
+					$e->getMessage()
+				)
+			);
+		} finally {
+			remove_filter( 'woocommerce_payment_complete_reduce_order_stock', $block_reduction );
+		}
+
+		WC_Stripe_Logger::error(
+			'Agentic order mapper: stock could not be secured at completion; order placed on hold.',
+			[
+				'session_id' => $session->get_id(),
+				'order_id'   => $order_id,
+				'reason'     => $e->getMessage(),
+			]
+		);
 	}
 
 	/**
