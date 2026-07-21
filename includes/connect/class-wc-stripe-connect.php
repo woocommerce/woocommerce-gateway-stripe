@@ -383,10 +383,16 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return;
 			}
 
+			$test_publishable_key = $result->testPublishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$test_secret_key      = $result->testSecretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+
+			if ( ! is_string( $test_publishable_key ) || '' === $test_publishable_key || ! is_string( $test_secret_key ) || '' === $test_secret_key ) {
+				return;
+			}
+
 			$settings = WC_Stripe_Helper::get_stripe_settings();
 
-			$test_secret_key                  = $result->testSecretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$settings['test_publishable_key'] = $result->testPublishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$settings['test_publishable_key'] = $test_publishable_key;
 			$settings['test_secret_key']      = $test_secret_key;
 			$settings['test_connection_type'] = 'connect';
 
