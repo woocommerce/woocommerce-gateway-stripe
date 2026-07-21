@@ -117,6 +117,27 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		).toBeDisabled();
 	} );
 
+	it( 'disables Adaptive Pricing and explains why when manual capture is enabled', () => {
+		global.wc_stripe_settings_params = {
+			is_cs_available: false,
+			adaptive_pricing_unavailable_reason: 'manual-capture',
+		};
+
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+
+		render( <OptimizedCheckoutFeature isOCAvailable={ true } /> );
+
+		expect(
+			screen.getByText( /Adaptive Pricing requires automatic capture/i )
+		).toBeInTheDocument();
+
+		expect(
+			screen.getByLabelText(
+				'Let customers pay in their local currency with Adaptive Pricing'
+			)
+		).toBeDisabled();
+	} );
+
 	it( 'disables Adaptive Pricing and explains why when disabled due to amount mismatches', () => {
 		global.wc_stripe_settings_params = {
 			is_cs_available: true,
