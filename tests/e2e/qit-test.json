@@ -7,7 +7,7 @@
 		"network": true,
 		"tunnel": true,
 		"secrets": [ "STRIPE_PUB_KEY", "STRIPE_SECRET_KEY" ],
-		"plugins": [ "woocommerce-subscriptions", "woocommerce-pre-orders" ]
+		"plugins": [ "woocommerce-subscriptions:latest", "woocommerce-pre-orders:latest" ]
 	},
 	"test": {
 		"phases": {
@@ -39,12 +39,32 @@
 				}
 			}
 		},
-		"woocommerce-gateway-stripe/e2e-optimized-checkout": {
-			"description": "Optimized Checkout Element tests",
+		"woocommerce-gateway-stripe/e2e-becs": {
+			"description": "BECS Direct Debit tests (AUD) - MUST provide Stripe AU account keys in STRIPE_PUB_KEY/STRIPE_SECRET_KEY",
 			"test": {
 				"phases": {
 					"run": [
-						"npx playwright test --config=./qit/playwright.config.js --project=oc-setup --project=optimized-checkout"
+						"npx playwright test --config=./qit/playwright.config.js --project=becs-setup --project=becs"
+					]
+				}
+			}
+		},
+		"woocommerce-gateway-stripe/e2e-blik": {
+			"description": "BLIK tests (PLN) - MUST provide Stripe PL account keys in STRIPE_PUB_KEY/STRIPE_SECRET_KEY",
+			"test": {
+				"phases": {
+					"run": [
+						"npx playwright test --config=./qit/playwright.config.js --project=blik-setup --project=blik"
+					]
+				}
+			}
+		},
+		"woocommerce-gateway-stripe/e2e-default": {
+			"description": "Default tests (USD)",
+			"test": {
+				"phases": {
+					"run": [
+						"npx playwright test --config=./qit/playwright.config.js --project=default-setup --project=default"
 					]
 				}
 			}
@@ -53,7 +73,19 @@
 			"description": "ISK/Icelandic Króna express checkout tests",
 			"test": {
 				"phases": {
-					"run": [ "npx playwright test --config=./qit/playwright.config.js --project=isk" ]
+					"run": [
+						"npx playwright test --config=./qit/playwright.config.js --project=isk"
+					]
+				}
+			}
+		},
+		"woocommerce-gateway-stripe/e2e-optimized-checkout": {
+			"description": "Optimized Checkout Suite tests",
+			"test": {
+				"phases": {
+					"run": [
+						"npx playwright test --config=./qit/playwright.config.js --project=oc-setup --project=optimized-checkout"
+					]
 				}
 			}
 		}

@@ -10,52 +10,19 @@
 	},
 	"test_types": {
 		"e2e": {
-			"default": {
-				"test_packages": [ "./tests/e2e" ]
-			},
-			"acss": {
+			"main": {
 				"test_packages": [
-					"./tests/e2e:woocommerce-gateway-stripe/e2e-acss"
+					"./tests/e2e"
 				]
 			},
-			"becs": {
-				"test_packages": [
-					"./tests/e2e/becs"
-				]
-			},
-			"blik": {
-				"test_packages": [
-					"./tests/e2e/blik"
-				]
-			},
-			"optimized-checkout": {
-				"test_packages": [
-					"./tests/e2e:woocommerce-gateway-stripe/e2e-optimized-checkout"
-				]
-			},
-			"isk": {
-				"test_packages": [
-					"./tests/e2e:woocommerce-gateway-stripe/e2e-isk"
-				]
-			},
-			"full": {
-				"test_packages": [
-					"./tests/e2e",
-					"./tests/e2e:woocommerce-gateway-stripe/e2e-acss",
-					"./tests/e2e/becs",
-					"./tests/e2e/blik",
-					"./tests/e2e:woocommerce-gateway-stripe/e2e-optimized-checkout",
-					"./tests/e2e:woocommerce-gateway-stripe/e2e-isk"
-				]
-			}
 		}
 	},
 	"groups": {
 		"ci-quick": {
-			"e2e": [ "default" ]
+			"e2e": [ "main" ]
 		},
 		"ci-full": {
-			"e2e": [ "full" ]
+			"e2e": [ "main" ]
 		}
 	}
 }
