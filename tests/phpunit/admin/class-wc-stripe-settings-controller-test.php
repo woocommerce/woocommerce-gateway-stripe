@@ -112,6 +112,47 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The refund button is replaced with a disabled one only once the payment method's
+	 * refund window has elapsed, measured from the order's paid date.
+	 *
+	 * @param string   $payment_type  The order's Stripe UPE payment type.
+	 * @param int|null $paid_days_ago Days ago the order was paid, or null for no paid date.
+	 * @param bool     $should_block  Whether the refund button should be replaced.
+	 *
+	 * @dataProvider provide_hide_refund_button_outside_refund_window
+	 */
+	public function test_hide_refund_button_outside_refund_window( string $payment_type, ?int $paid_days_ago, bool $should_block ): void {
+		$order = WC_Helper_Order::create_order();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $payment_type );
+		if ( null !== $paid_days_ago ) {
+			$order->set_date_paid( time() - ( $paid_days_ago * DAY_IN_SECONDS ) );
+		}
+		$order->save();
+
+		ob_start();
+		$this->controller->maybe_hide_refund_button( $order );
+		$output = ob_get_clean();
+
+		if ( $should_block ) {
+			$this->assertStringContainsString( 'button-disabled', $output );
+			$this->assertStringContainsString( 'Refund unavailable', $output );
+		} else {
+			$this->assertSame( '', $output );
+		}
+	}
+
+	public function provide_hide_refund_button_outside_refund_window(): array {
+		return [
+			'Klarna beyond 180-day window'         => [ WC_Stripe_Payment_Methods::KLARNA, 200, true ],
+			'Klarna within 180-day window'         => [ WC_Stripe_Payment_Methods::KLARNA, 10, false ],
+			'Klarna with no paid date (fail open)' => [ WC_Stripe_Payment_Methods::KLARNA, null, false ],
+			'Affirm beyond 120-day window'         => [ WC_Stripe_Payment_Methods::AFFIRM, 130, true ],
+			'Affirm within 120-day window'         => [ WC_Stripe_Payment_Methods::AFFIRM, 100, false ],
+			'Card is never time-blocked'           => [ WC_Stripe_Payment_Methods::CARD, 500, false ],
+		];
+	}
+
+	/**
 	 * @dataProvider provide_test_admin_scripts_checkout_sessions_country_restrictions
 	 */
 	public function test_admin_scripts_sets_checkout_sessions_availability_with_country_restrictions(
