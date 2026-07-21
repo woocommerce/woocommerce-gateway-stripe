@@ -303,6 +303,67 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Data provider for out-of-bounds line item quantity/unit_amount values.
+	 *
+	 * @return array<string, array{quantity: int, unit_amount: int}>
+	 */
+	public function invalid_line_item_bounds_provider(): array {
+		return [
+			'zero quantity'        => [
+				'quantity'    => 0,
+				'unit_amount' => 1000,
+			],
+			'negative quantity'    => [
+				'quantity'    => -2,
+				'unit_amount' => 1000,
+			],
+			'negative unit_amount' => [
+				'quantity'    => 1,
+				'unit_amount' => -500,
+			],
+		];
+	}
+
+	/**
+	 * Test that a non-positive quantity or negative unit_amount makes the
+	 * calculator throw instead of computing rates from corrupted line totals.
+	 *
+	 * @dataProvider invalid_line_item_bounds_provider
+	 */
+	public function test_throws_on_out_of_bounds_line_item_values( int $quantity, int $unit_amount ) {
+		$product = \WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => '10.00',
+				'price'         => '10.00',
+				'sku'           => 'SHIPCALC-BOUNDS-' . uniqid(),
+			]
+		);
+
+		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', '[cost]' );
+
+		$event = $this->build_event_from_raw_items(
+			[
+				[
+					'id'          => 'li_bounds',
+					'sku_id'      => (string) $product->get_sku(),
+					'quantity'    => $quantity,
+					'unit_amount' => $unit_amount,
+				],
+			]
+		);
+
+		try {
+			$this->expectException( \Exception::class );
+			$this->expectExceptionMessage( 'invalid quantity or unit_amount' );
+
+			$this->calculator->calculate( $event, 'usd' );
+		} finally {
+			$product->delete( true );
+		}
+	}
+
+	/**
 	 * Test that a line item without unit_amount whose product has no catalog
 	 * price makes the calculator throw instead of quoting a 0.00 package.
 	 */
