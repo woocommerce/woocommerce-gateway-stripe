@@ -95,7 +95,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		];
 
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
-			->setMethods( [ 'get_intent_from_order' ] )
+			->onlyMethods( [ 'get_intent_from_order' ] )
 			->getMock();
 
 		$gateway->expects( $this->once() )
@@ -106,9 +106,9 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$controller = new WC_Stripe_Settings_Controller( $this->account, $gateway );
 
 		ob_start();
-		$controller->hide_refund_button_for_uncaptured_orders( $order );
+		$controller->maybe_hide_refund_button( $order );
 		$output = ob_get_clean();
-		$this->assertStringMatchesFormat( '%aclass="button button-disabled"%a', $output );
+		$this->assertStringContainsString( ' class="button button-disabled"', $output );
 	}
 
 	/**
