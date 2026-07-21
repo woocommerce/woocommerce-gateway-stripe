@@ -1201,6 +1201,40 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * date_paid survives a refund or a cancellation, so the guard has to read status too.
+	 *
+	 * @dataProvider provide_statuses_that_invalidate_a_paid_order
+	 *
+	 * @param string $status Status the recorded order ends up in.
+	 * @return void
+	 */
+	public function test_duplicate_charge_guard_ignores_a_cancelled_refunded_or_failed_order( string $status ): void {
+		$first_order = $this->arrange_paid_cart_gateway( 'dupe_hash', 'shopper@example.com', 2 );
+		$this->mock_gateway->process_payment( $first_order->get_id() );
+
+		$paid_order = wc_get_order( $first_order->get_id() );
+		$paid_order->update_status( $status );
+
+		$this->assertNotNull( $paid_order->get_date_paid( 'edit' ), 'This test is only meaningful while the paid date survives the status change.' );
+
+		$repurchase = $this->create_checkout_order( 'dupe_hash', 'shopper@example.com' );
+		$this->mock_gateway->process_payment( $repurchase->get_id() );
+
+		$this->assertNotNull( wc_get_order( $repurchase->get_id() )->get_date_paid( 'edit' ), 'A repurchase must be charged once the recorded order has been reversed.' );
+	}
+
+	/**
+	 * @return array<string, string[]>
+	 */
+	public function provide_statuses_that_invalidate_a_paid_order(): array {
+		return [
+			'cancelled' => [ OrderStatus::CANCELLED ],
+			'refunded'  => [ OrderStatus::REFUNDED ],
+			'failed'    => [ OrderStatus::FAILED ],
+		];
+	}
+
+	/**
 	 * A confirmation page for an unrelated order must not retire a still-valid marker.
 	 *
 	 * @return void

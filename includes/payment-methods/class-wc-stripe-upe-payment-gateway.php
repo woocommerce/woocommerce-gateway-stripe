@@ -1579,7 +1579,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$paid_order = wc_get_order( $marker['order_id'] );
 
 		// The recorded order has to still be paid; a refunded or cancelled one means the shopper is legitimately buying again.
-		if ( ! $paid_order instanceof WC_Order || ! $paid_order->get_date_paid( 'edit' ) ) {
+		if ( ! $paid_order instanceof WC_Order
+			|| ! $paid_order->get_date_paid( 'edit' )
+			|| $paid_order->has_status( [ OrderStatus::CANCELLED, OrderStatus::REFUNDED, OrderStatus::FAILED ] ) ) {
 			return null;
 		}
 
