@@ -1592,16 +1592,14 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 
 	/**
 	 * Regression test for the concurrent-session oversell race: when another
-	 * (concurrent) order already holds the last units via WC's reserved-stock
-	 * table, completion must not oversell — the paid order is parked on-hold,
-	 * stock is untouched, and the transaction id is preserved for refunding.
+	 * order already holds the last unit, completion must park the paid order
+	 * on-hold with the transaction id, leaving stock untouched.
 	 */
 	public function test_completion_holds_order_when_stock_already_reserved_by_concurrent_order() {
 		update_option( 'woocommerce_manage_stock', 'yes' );
 		$product = $this->create_managed_stock_product( 1 );
 
-		// Simulate the concurrent session that won the race: a separate order
-		// holding the last unit in the wc_reserved_stock table.
+		// Simulate the concurrent session that won the race.
 		$competing = wc_create_order( [ 'status' => 'pending' ] );
 		$competing->add_product( wc_get_product( $product->get_id() ), 1 );
 		$competing->save();
@@ -1631,8 +1629,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that completion for more units than are in stock parks the order
-	 * on-hold instead of completing and driving stock negative.
+	 * Test that completing more units than are in stock parks the order
+	 * on-hold instead of driving stock negative.
 	 */
 	public function test_completion_holds_order_when_stock_insufficient() {
 		update_option( 'woocommerce_manage_stock', 'yes' );
@@ -1649,8 +1647,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that products with backorders enabled complete normally and may go
-	 * negative — the reservation guard must not block permitted backorders.
+	 * Test that backorder-enabled products complete normally and may go negative.
 	 */
 	public function test_completion_allows_backordered_products() {
 		update_option( 'woocommerce_manage_stock', 'yes' );

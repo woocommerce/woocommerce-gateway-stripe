@@ -133,10 +133,8 @@ class WC_Stripe_Agentic_Commerce_Manual_Approval {
 			$stock_quantity = $product->get_stock_quantity();
 			$quantity       = $line_item->get_quantity();
 
-			// Subtract stock already held by concurrent checkouts (store cart
-			// or other agentic sessions) so finalize doesn't approve units
-			// another session has claimed. This is advisory only — the atomic
-			// guard is the reservation placed at order creation.
+			// Subtract stock held by concurrent checkouts. Advisory only — the
+			// atomic guard is the reservation placed at order creation.
 			$held      = function_exists( 'wc_get_held_stock_quantity' ) ? (int) wc_get_held_stock_quantity( $product ) : 0;
 			$available = null === $stock_quantity ? null : $stock_quantity - $held;
 
