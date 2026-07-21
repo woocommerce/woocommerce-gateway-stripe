@@ -60,13 +60,6 @@ class WC_Stripe_Express_Checkout_Helper {
 		$this->stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->testmode        = WC_Stripe_Mode::is_test();
 		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
-
-		/**
-		 * Filters the suffix appended to the Express Checkout total label.
-		 *
-		 * @param string $suffix Total label suffix.
-		 */
-		$this->total_label = str_replace( "'", '', $this->total_label ) . apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
 	}
 
 	/**
@@ -254,7 +247,13 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return string
 	 */
 	public function get_total_label() {
-		return $this->total_label;
+		/**
+		 * Filters the suffix appended to the Express Checkout total label.
+		 *
+		 * @param string $suffix Total label suffix. Default is ' (via WooCommerce)'.
+		 */
+		$suffix = apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
+		return str_replace( "'", '', $this->total_label ) . $suffix;
 	}
 
 	/**
@@ -386,7 +385,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			 *
 			 * @param string $label Total label.
 			 */
-			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
+			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->get_total_label() ),
 			'amount'  => WC_Stripe_Helper::get_stripe_amount( $price + $total_tax, $currency ),
 			'pending' => true,
 		];
@@ -1842,7 +1841,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		return [
 			'displayItems' => WC_Stripe_Helper::build_line_items( $display_items ),
 			'total'        => [
-				'label'   => $this->total_label,
+				'label'   => $this->get_total_label(),
 				'amount'  => max( 0, $calculated_total ),
 				'pending' => false,
 			],
