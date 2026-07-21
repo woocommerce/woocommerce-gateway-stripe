@@ -74,6 +74,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Accept express checkout addresses whose province is entered with a curly apostrophe, so Apple Pay no longer rejects them
 * Update - Show a clear message when manual capture is blocking Adaptive Pricing from being enabled
 * Fix - Store the Stripe refund ID on each WooCommerce refund record so orders with multiple partial refunds retain every refund ID
+* Add - Show the originating AI agent in the WooCommerce order Origin column for Agentic Commerce orders
 
 2026-07-14 - version 10.8.4
 * Fix - Improve Checkout Session amount integrity

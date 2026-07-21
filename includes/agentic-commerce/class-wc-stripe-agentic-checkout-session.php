@@ -307,4 +307,33 @@ class WC_Stripe_Agentic_Checkout_Session {
 		$network_business_profile = $agent_details->network_business_profile ?? '';
 		return is_string( $network_business_profile ) && '' !== $network_business_profile;
 	}
+
+	/**
+	 * Returns the identifier of the agent network that originated this session,
+	 * or null when absent (non-agentic sessions).
+	 *
+	 * @since 10.9.0
+	 * @return string|null
+	 */
+	public function get_agent_source(): ?string {
+		$agent_details = $this->session->payment_intent->agent_details ?? null;
+		if ( ! is_object( $agent_details ) ) {
+			return null;
+		}
+
+		$profile = $agent_details->network_business_profile ?? null;
+
+		// Stripe currently sends the profile as a string; tolerate a future
+		// expanded object by preferring its display name over its id.
+		if ( is_object( $profile ) ) {
+			$profile = $profile->name ?? $profile->id ?? null;
+		}
+
+		if ( ! is_string( $profile ) ) {
+			return null;
+		}
+
+		$profile = trim( $profile );
+		return '' === $profile ? null : $profile;
+	}
 }

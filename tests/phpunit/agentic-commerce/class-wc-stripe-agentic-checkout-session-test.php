@@ -498,6 +498,96 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that get_agent_source returns the originating agent identifier,
+	 * tolerating an expanded profile object, and null for all absent/blank shapes.
+	 *
+	 * @dataProvider provide_get_agent_source_cases
+	 * @param object      $raw      Raw session payload.
+	 * @param string|null $expected Expected agent source.
+	 */
+	public function test_get_agent_source( object $raw, ?string $expected ) {
+		$session = new WC_Stripe_Agentic_Checkout_Session( $raw );
+		$this->assertSame( $expected, $session->get_agent_source() );
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_get_agent_source_cases(): array {
+		return [
+			'profile string present'               => [
+				(object) [
+					'payment_intent' => (object) [
+						'agent_details' => (object) [
+							'network_business_profile' => 'nbp_openai_123',
+						],
+					],
+				],
+				'nbp_openai_123',
+			],
+			'profile string padded'                => [
+				(object) [
+					'payment_intent' => (object) [
+						'agent_details' => (object) [
+							'network_business_profile' => '  ChatGPT  ',
+						],
+					],
+				],
+				'ChatGPT',
+			],
+			'profile expanded object with name'    => [
+				(object) [
+					'payment_intent' => (object) [
+						'agent_details' => (object) [
+							'network_business_profile' => (object) [
+								'id'   => 'nbp_openai_123',
+								'name' => 'ChatGPT',
+							],
+						],
+					],
+				],
+				'ChatGPT',
+			],
+			'profile expanded object without name' => [
+				(object) [
+					'payment_intent' => (object) [
+						'agent_details' => (object) [
+							'network_business_profile' => (object) [
+								'id' => 'nbp_openai_123',
+							],
+						],
+					],
+				],
+				'nbp_openai_123',
+			],
+			'profile empty string'                 => [
+				(object) [
+					'payment_intent' => (object) [
+						'agent_details' => (object) [
+							'network_business_profile' => '',
+						],
+					],
+				],
+				null,
+			],
+			'agent_details missing'                => [
+				(object) [
+					'payment_intent' => (object) [ 'id' => 'pi_test' ],
+				],
+				null,
+			],
+			'payment_intent is unexpanded string'  => [
+				(object) [ 'payment_intent' => 'pi_test' ],
+				null,
+			],
+			'payment_intent missing'               => [
+				(object) [],
+				null,
+			],
+		];
+	}
+
+	/**
 	 * Test get_fields_to_expand includes both line items and shipping cost.
 	 */
 	public function test_get_fields_to_expand() {
