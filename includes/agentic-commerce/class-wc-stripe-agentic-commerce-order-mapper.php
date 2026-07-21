@@ -421,7 +421,9 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * which never runs for webhook-created orders. Interim canonicalization:
 	 * Core's Origin label only renders a fixed set of source types, so until it
 	 * supports a first-class 'agent' type we borrow 'referral' + utm_source,
-	 * which renders as "Referral: <agent>".
+	 * which renders as "Referral: <agent>". When migrating to an 'agent' source
+	 * type, keep writing 'referral' on WC versions whose Origin renderer
+	 * predates it — an unrecognized type renders as "Unknown".
 	 *
 	 * @since 10.9.0
 	 * @param WC_Order                           $order   The WooCommerce order.
