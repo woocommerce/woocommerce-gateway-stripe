@@ -70,7 +70,7 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event    The customization hook event.
 	 * @param string                                     $currency The three-letter currency code.
 	 * @return array Cart-item-format entries keyed by line item ID.
-	 * @throws Exception When a line item's sku_id cannot be resolved to a product.
+	 * @throws Exception When a line item's sku_id cannot be resolved to a product, or the product has no catalog price to fall back on.
 	 */
 	public static function build_contents_from_event( WC_Stripe_Agentic_Customize_Checkout_Event $event, string $currency ): array {
 		$contents = [];
@@ -96,9 +96,33 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 
 			$quantity    = $line_item->get_quantity();
 			$unit_amount = $line_item->get_unit_amount();
-			$line_total  = null !== $unit_amount
-				? WC_Stripe_Helper::convert_from_stripe_amount( $unit_amount * $quantity, $currency )
-				: (float) wc_get_price_excluding_tax( $product, [ 'qty' => $quantity ] );
+
+			if ( null !== $unit_amount ) {
+				$line_total = WC_Stripe_Helper::convert_from_stripe_amount( $unit_amount * $quantity, $currency );
+			} else {
+				// A product with no catalog price must fail the request rather
+				// than silently quote content-cost rates against a 0.00 package.
+				// Newer WC casts the missing price to 0.0 inside
+				// wc_get_price_excluding_tax() — indistinguishable from a
+				// legitimately free product — so check the raw price first;
+				// older WC returns '' from the helper, which the is_numeric()
+				// guard catches.
+				$price = '' !== $product->get_price()
+					? wc_get_price_excluding_tax( $product, [ 'qty' => $quantity ] )
+					: '';
+
+				if ( ! is_numeric( $price ) ) {
+					throw new Exception(
+						sprintf(
+							'Shipping package builder: no catalog price for line item %s (product ID %d).',
+							$line_item->get_id(),
+							$product->get_id()
+						)
+					);
+				}
+
+				$line_total = (float) $price;
+			}
 
 			$contents[ $line_item->get_id() ] = self::build_contents_entry( $product, $quantity, $line_total, $line_total );
 		}

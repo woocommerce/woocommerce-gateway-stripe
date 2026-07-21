@@ -303,6 +303,42 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that a line item without unit_amount whose product has no catalog
+	 * price makes the calculator throw instead of quoting a 0.00 package.
+	 */
+	public function test_throws_when_catalog_price_fallback_is_unavailable() {
+		$product = \WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => '',
+				'price'         => '',
+				'sku'           => 'SHIPCALC-NOPRICE-' . uniqid(),
+			]
+		);
+
+		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', '[cost]' );
+
+		$event = $this->build_event_from_raw_items(
+			[
+				[
+					'id'       => 'li_no_price',
+					'sku_id'   => (string) $product->get_sku(),
+					'quantity' => 1,
+				],
+			]
+		);
+
+		try {
+			$this->expectException( \Exception::class );
+			$this->expectExceptionMessage( 'no catalog price' );
+
+			$this->calculator->calculate( $event, 'usd' );
+		} finally {
+			$product->delete( true );
+		}
+	}
+
+	/**
 	 * Test that a non-matching country returns empty or does not include the wrong zone.
 	 */
 	public function test_returns_empty_for_non_matching_zone() {
