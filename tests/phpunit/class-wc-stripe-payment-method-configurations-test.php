@@ -86,6 +86,15 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	];
 
 	/**
+	 * Reset the fetch cooldown between tests. The parent already clears the PMC cache, but not this
+	 * option, which `refresh_pmc_availability()` writes — leaving it set would leak into later tests.
+	 */
+	public function tear_down() {
+		parent::tear_down();
+		delete_option( WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY );
+	}
+
+	/**
 	 * Tests for `get_parent_configuration_id`.
 	 *
 	 * @return void
@@ -1268,6 +1277,42 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		remove_filter( 'wc_stripe_preselect_payment_method_configuration', $preselect_filter );
 		remove_filter( 'pre_http_request', $http_filter );
 		$instance_property->setValue( null, null );
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
+
+	/**
+	 * A transient Stripe failure during refresh must not flip pmc_enabled to 'no' through the forced
+	 * settings re-fetch that follows it. refresh_pmc_availability() arms the fetch cooldown, so the
+	 * subsequent get_upe_enabled_payment_method_ids( true ) reuses the last-known-good cached PMC
+	 * instead of re-hitting Stripe — a repeat call that would fail again and disable sync.
+	 *
+	 * The mock asserts get_payment_method_configurations() runs exactly once (the refresh itself);
+	 * a second call would mean the forced re-fetch bypassed the cache.
+	 */
+	public function test_refresh_pmc_availability_survives_transient_failure_through_forced_settings_refetch() {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'yes' ) );
+
+		// Seed a last-known-good PMC in the cache: the merchant was working before the outage.
+		WC_Stripe_Database_Cache::set(
+			WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY,
+			(object) self::MOCK_CHILD_TEST_PMC,
+			WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_EXPIRATION
+		);
+
+		$instance_property = $this->mock_get_payment_method_configurations_response( new WP_Error( 'stripe_error', 'boom' ) );
+
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+
+		// Simulate the frontend's forced settings re-fetch triggered by the account refresh.
+		WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids( true );
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$instance_property->setValue( null, null );
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
 
 		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );

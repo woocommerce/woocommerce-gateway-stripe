@@ -172,7 +172,6 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return array {
 	 *     @type string|null $pmc_id        The preselected Payment Method Configuration ID.
 	 *     @type mixed       $configuration The retrieved Payment Method Configuration, if available.
-	 *     @type mixed       $response      The raw Stripe API response.
 	 *     @type mixed       $error         The normalized retrieval error, if any.
 	 * }
 	 */
@@ -193,7 +192,6 @@ class WC_Stripe_Payment_Method_Configurations {
 			return [
 				'pmc_id'        => null,
 				'configuration' => null,
-				'response'      => null,
 				'error'         => null,
 			];
 		}
@@ -209,7 +207,6 @@ class WC_Stripe_Payment_Method_Configurations {
 		return [
 			'pmc_id'        => $preselected_pmc_id,
 			'configuration' => null === $error ? $response : null,
-			'response'      => $response,
 			'error'         => $error,
 		];
 	}
@@ -621,10 +618,10 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * Re-evaluates whether the merchant has a usable Payment Method Configuration in Stripe and
 	 * updates the `pmc_enabled` setting accordingly.
 	 *
-	 * Bypasses the configuration cache and the fetch cooldown so that an explicit caller (e.g. the
-	 * "Refresh account details" admin action) forces a reconciliation against Stripe. On transport
-	 * or Stripe API errors `pmc_enabled` is left untouched so a transient failure can't flip the
-	 * merchant into the DB-only fallback path.
+	 * Fetches directly from Stripe, bypassing the configuration cache, so an explicit caller (e.g. the
+	 * "Refresh account details" admin action) forces a reconciliation. On transport or Stripe API
+	 * errors `pmc_enabled` is left untouched so a transient failure can't flip the merchant into the
+	 * DB-only fallback path.
 	 *
 	 * Selection follows the same precedence as the normal fetch path: the
 	 * `wc_stripe_preselect_payment_method_configuration` filter takes priority, then the
@@ -642,7 +639,11 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return void
 	 */
 	public static function refresh_pmc_availability() {
-		delete_option( self::FETCH_COOLDOWN_OPTION_KEY );
+		// Re-arm the cooldown instead of clearing it: this admin action triggers a forced settings
+		// re-fetch (get_upe_enabled_payment_method_ids( true )), which would otherwise bypass the PMC
+		// we cache below and make a redundant Stripe call — one that, on a transient failure, could
+		// flip pmc_enabled to 'no' and undo the protection this method provides.
+		update_option( self::FETCH_COOLDOWN_OPTION_KEY, time() + MINUTE_IN_SECONDS );
 
 		$usable_pmc   = null;
 		$is_test_mode = WC_Stripe_Mode::is_test();
@@ -655,8 +656,8 @@ class WC_Stripe_Payment_Method_Configurations {
 				WC_Stripe_Logger::warning(
 					'Skipping PMC availability refresh: preselected Payment Method Configuration could not be retrieved',
 					[
-						'pmc_id'   => $preselected_pmc['pmc_id'],
-						'response' => $preselected_pmc['response'],
+						'pmc_id' => $preselected_pmc['pmc_id'],
+						'error'  => $preselected_pmc['error'],
 					]
 				);
 				return;
