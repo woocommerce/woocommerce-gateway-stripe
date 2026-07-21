@@ -8,6 +8,8 @@
  * @since   10.6.0
  */
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -351,7 +353,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 		try {
 			$order->update_status(
-				'on-hold',
+				OrderStatus::ON_HOLD,
 				sprintf(
 					/* translators: %s: reason stock could not be secured */
 					__( 'Stripe captured the payment, but stock could not be secured for every item: %s Review stock, then process or refund this order manually.', 'woocommerce-gateway-stripe' ),

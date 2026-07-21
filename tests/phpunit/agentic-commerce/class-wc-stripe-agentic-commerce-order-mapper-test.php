@@ -5,6 +5,8 @@
  * @package WooCommerce\Stripe\Tests
  */
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 /**
  * Class WC_Stripe_Agentic_Commerce_Order_Mapper_Test
  *
@@ -1582,7 +1584,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 
 		$order = $this->mapper->create_order_from_checkout_session( $session );
 
-		$this->assertEquals( 'processing', $order->get_status() );
+		$this->assertEquals( OrderStatus::PROCESSING, $order->get_status() );
 		$this->assertSame( 1, wc_get_product( $product->get_id() )->get_stock_quantity() );
 		$this->assertSame( 0, (int) wc_get_held_stock_quantity( wc_get_product( $product->get_id() ) ) );
 
@@ -1600,7 +1602,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		$product = $this->create_managed_stock_product( 1 );
 
 		// Simulate the concurrent session that won the race.
-		$competing = wc_create_order( [ 'status' => 'pending' ] );
+		$competing = wc_create_order( [ 'status' => OrderStatus::PENDING ] );
 		$competing->add_product( wc_get_product( $product->get_id() ), 1 );
 		$competing->save();
 		( new \Automattic\WooCommerce\Checkout\Helpers\ReserveStock() )->reserve_stock_for_order( $competing, 10 );
@@ -1608,7 +1610,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		$session = $this->build_stock_session( $product, 1 );
 		$order   = $this->mapper->create_order_from_checkout_session( $session );
 
-		$this->assertEquals( 'on-hold', $order->get_status() );
+		$this->assertEquals( OrderStatus::ON_HOLD, $order->get_status() );
 		$this->assertSame( 1, wc_get_product( $product->get_id() )->get_stock_quantity(), 'Stock must not be reduced for the oversold order.' );
 		$this->assertSame( 'pi_test_456', $order->get_transaction_id() );
 
@@ -1639,7 +1641,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 
 		$order = $this->mapper->create_order_from_checkout_session( $session );
 
-		$this->assertEquals( 'on-hold', $order->get_status() );
+		$this->assertEquals( OrderStatus::ON_HOLD, $order->get_status() );
 		$this->assertSame( 1, wc_get_product( $product->get_id() )->get_stock_quantity(), 'Stock must not go negative.' );
 
 		$order->delete( true );
@@ -1656,7 +1658,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 
 		$order = $this->mapper->create_order_from_checkout_session( $session );
 
-		$this->assertEquals( 'processing', $order->get_status() );
+		$this->assertEquals( OrderStatus::PROCESSING, $order->get_status() );
 		$this->assertSame( -2, wc_get_product( $product->get_id() )->get_stock_quantity() );
 
 		$order->delete( true );

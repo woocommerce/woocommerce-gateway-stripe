@@ -9,6 +9,7 @@ namespace WooCommerce\Stripe\Tests;
 
 require_once __DIR__ . '/trait-agentic-commerce-test-helpers.php';
 
+use Automattic\WooCommerce\Enums\OrderStatus;
 use WP_UnitTestCase;
 use WC_Helper_Product;
 use WC_Stripe_Agentic_Commerce_Manual_Approval;
@@ -329,7 +330,7 @@ class WC_Stripe_Agentic_Commerce_Manual_Approval_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$competing = wc_create_order( [ 'status' => 'pending' ] );
+		$competing = wc_create_order( [ 'status' => OrderStatus::PENDING ] );
 		$competing->add_product( wc_get_product( $product->get_id() ), 2 );
 		$competing->save();
 		( new \Automattic\WooCommerce\Checkout\Helpers\ReserveStock() )->reserve_stock_for_order( $competing, 10 );
