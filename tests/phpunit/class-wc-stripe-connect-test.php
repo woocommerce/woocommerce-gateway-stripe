@@ -408,6 +408,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * must all still be persisted, and save_stripe_keys() must not surface a WP_Error.
 	 */
 	public function test_save_stripe_keys_persists_all_keys_when_only_test_webhook_fails(): void {
+		$configured_modes = [];
+
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
 			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache' ] )
@@ -416,7 +418,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
 		// Only the test webhook fails; the live webhook must still be configured.
 		$account->method( 'configure_webhooks' )->willReturnCallback(
-			function ( $mode ) {
+			function ( $mode ) use ( &$configured_modes ) {
+				$configured_modes[] = $mode;
 				if ( 'test' === $mode ) {
 					throw new Exception( 'not permitted to configure webhook endpoints on a connected account' );
 				}
@@ -433,6 +436,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_stripe_keys' );
 		$method->setAccessible( true );
 		$return = $method->invoke( $this->connect, $result, 'connect', 'live' );
+
+		$this->assertSame( [ 'test', 'live' ], $configured_modes );
 
 		// A swallowed test-webhook failure must not surface as an error from the live flow.
 		$this->assertNotInstanceOf( WP_Error::class, $return );
