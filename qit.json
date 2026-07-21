@@ -14,7 +14,7 @@
 				"test_packages": [
 					"./tests/e2e"
 				]
-			},
+			}
 		}
 	},
 	"groups": {
