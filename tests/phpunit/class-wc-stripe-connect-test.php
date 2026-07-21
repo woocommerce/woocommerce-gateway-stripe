@@ -402,6 +402,55 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * The test webhook setup during dual-fetch is best-effort: when
+	 * configure_webhooks('test') throws, the failure is swallowed so it cannot abort the
+	 * live onboarding. The live keys, the live webhook, and the dual-fetched test keys
+	 * must all still be persisted, and save_stripe_keys() must not surface a WP_Error.
+	 */
+	public function test_save_stripe_keys_persists_all_keys_when_only_test_webhook_fails(): void {
+		$account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache' ] )
+			->getMock();
+		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
+		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
+		// Only the test webhook fails; the live webhook must still be configured.
+		$account->method( 'configure_webhooks' )->willReturnCallback(
+			function ( $mode ) {
+				if ( 'test' === $mode ) {
+					throw new Exception( 'not permitted to configure webhook endpoints on a connected account' );
+				}
+			}
+		);
+		WC_Stripe::get_instance()->account = $account;
+
+		$result                     = new stdClass();
+		$result->publishableKey     = 'pk_live_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$result->secretKey          = 'sk_live_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$result->testPublishableKey = 'pk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$result->testSecretKey      = 'sk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+
+		$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_stripe_keys' );
+		$method->setAccessible( true );
+		$return = $method->invoke( $this->connect, $result, 'connect', 'live' );
+
+		// A swallowed test-webhook failure must not surface as an error from the live flow.
+		$this->assertNotInstanceOf( WP_Error::class, $return );
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+
+		// Live environment is fully saved despite the test-webhook failure.
+		$this->assertSame( 'sk_live_123', $settings['secret_key'] );
+		$this->assertSame( 'no', $settings['testmode'] );
+
+		// The dual-fetched test keys are persisted; the webhook failure happens after the
+		// settings write, so it does not roll them back.
+		$this->assertSame( 'sk_test_123', $settings['test_secret_key'] );
+		$this->assertSame( 'pk_test_123', $settings['test_publishable_key'] );
+		$this->assertSame( 'connect', $settings['test_connection_type'] );
+	}
+
+	/**
 	 * Builds a WC_Stripe_Account mock with the methods save_stripe_keys() relies on, and
 	 * registers it on the plugin instance.
 	 *
