@@ -160,16 +160,10 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 	/**
 	 * Refreshes the cached account data and returns the updated payload.
 	 *
-	 * Forces a fresh fetch from Stripe and overwrites the cache only on success, so a transient
-	 * API failure leaves the previously cached account data intact instead of wiping it.
-	 *
 	 * @return WP_REST_Response
 	 */
 	public function refresh_account() {
-		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
-		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
-
-		$this->account->get_cached_account_data( null, true );
+		$this->account->refresh_cache();
 
 		// calling the same "get" method, so that the data format is the same.
 		return $this->get_account();
