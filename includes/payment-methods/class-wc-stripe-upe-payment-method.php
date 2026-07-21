@@ -183,6 +183,20 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Runs $register only for the first instance of this payment method, so
+	 * repeated instantiation (the gateway constructor, factories, admin
+	 * checks) doesn't stack duplicate hook callbacks.
+	 *
+	 * @param callable $register Registers this instance's hooks.
+	 * @return void
+	 */
+	protected function register_instance_hooks_once( callable $register ): void {
+		if ( WC_Stripe_Hook_Manager::get_instance()->register_payment_method_hooks( $this->id, WC_Stripe_Hook_Categories::GENERAL ) ) {
+			$register();
+		}
+	}
+
+	/**
 	 * Magic method to get properties.
 	 * Used for backwards compatibility with deprecated properties.
 	 *
