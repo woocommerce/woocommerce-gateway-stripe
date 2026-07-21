@@ -125,155 +125,158 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that a quantity-based flat rate cost expression ('2 * [qty]') sees the
-	 * package contents quantities, proving contents are populated from the event.
+	 * Data provider for content-dependent cost expression scenarios.
+	 *
+	 * Product specs create simple products; line item specs reference them by
+	 * index. Omitting unit_amount exercises the catalog-price fallback.
+	 *
+	 * @return array<string, array{cost_expression: string, product_specs: array, line_item_specs: array, expected_amount: int}>
 	 */
-	public function test_qty_cost_expression_uses_package_contents() {
-		$product = \WC_Helper_Product::create_simple_product(
-			true,
-			[
-				'regular_price' => '10.00',
-				'price'         => '10.00',
-				'sku'           => 'SHIPCALC-QTY-' . uniqid(),
-			]
-		);
-
-		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', '2 * [qty]' );
-
-		$event = $this->build_event_from_raw_items(
-			[
-				[
-					'id'          => 'li_qty',
-					'sku_id'      => (string) $product->get_sku(),
-					'quantity'    => 3,
-					'unit_amount' => 1000,
+	public function cost_expression_provider(): array {
+		return [
+			'qty expression sees contents quantities'              => [
+				'cost_expression' => '2 * [qty]',
+				'product_specs'   => [ [ 'price' => '10.00' ] ],
+				'line_item_specs' => [
+					[
+						'product'     => 0,
+						'quantity'    => 3,
+						'unit_amount' => 1000,
+					],
 				],
-			]
-		);
-
-		$result = $this->calculator->calculate( $event, 'usd' );
-
-		$this->assertSame( 600, $result['shipping_options'][0]['shipping_rate_data']['fixed_amount']['amount'] );
-
-		$product->delete( true );
+				'expected_amount' => 600,
+			],
+			'cost expression uses unit_amount, not catalog price'  => [
+				'cost_expression' => '[cost]',
+				'product_specs'   => [ [ 'price' => '99.00' ] ],
+				'line_item_specs' => [
+					[
+						'product'     => 0,
+						'quantity'    => 2,
+						'unit_amount' => 1234,
+					],
+				],
+				'expected_amount' => 2468,
+			],
+			'cost falls back to catalog price without unit_amount' => [
+				'cost_expression' => '[cost]',
+				'product_specs'   => [ [ 'price' => '10.00' ] ],
+				'line_item_specs' => [
+					[
+						'product'  => 0,
+						'quantity' => 2,
+					],
+				],
+				'expected_amount' => 2000,
+			],
+			'virtual products excluded from qty'                   => [
+				'cost_expression' => '[qty]',
+				'product_specs'   => [
+					[ 'price' => '10.00' ],
+					[
+						'price'   => '5.00',
+						'virtual' => true,
+					],
+				],
+				'line_item_specs' => [
+					[
+						'product'     => 0,
+						'quantity'    => 2,
+						'unit_amount' => 1000,
+					],
+					[
+						'product'     => 1,
+						'quantity'    => 5,
+						'unit_amount' => 500,
+					],
+				],
+				'expected_amount' => 200,
+			],
+			'multiple shippable products sum quantities'           => [
+				'cost_expression' => '[qty]',
+				'product_specs'   => [
+					[ 'price' => '10.00' ],
+					[ 'price' => '8.00' ],
+				],
+				'line_item_specs' => [
+					[
+						'product'     => 0,
+						'quantity'    => 2,
+						'unit_amount' => 1000,
+					],
+					[
+						'product'     => 1,
+						'quantity'    => 3,
+						'unit_amount' => 800,
+					],
+				],
+				'expected_amount' => 500,
+			],
+			'multiple shippable products sum contents cost'        => [
+				'cost_expression' => '[cost]',
+				'product_specs'   => [
+					[ 'price' => '10.00' ],
+					[ 'price' => '7.50' ],
+				],
+				'line_item_specs' => [
+					[
+						'product'     => 0,
+						'quantity'    => 2,
+						'unit_amount' => 1000,
+					],
+					[
+						'product'     => 1,
+						'quantity'    => 2,
+						'unit_amount' => 750,
+					],
+				],
+				'expected_amount' => 3500,
+			],
+		];
 	}
 
 	/**
-	 * Test that a '[cost]' expression resolves to the package contents_cost
-	 * derived from the event's unit_amount × quantity.
+	 * Test that content-dependent flat rate cost expressions ('[qty]', '[cost]')
+	 * price the package contents populated from the event's line items.
+	 *
+	 * @dataProvider cost_expression_provider
 	 */
-	public function test_cost_expression_uses_contents_cost_from_unit_amount() {
-		$product = \WC_Helper_Product::create_simple_product(
-			true,
-			[
-				'regular_price' => '99.00',
-				'price'         => '99.00',
-				'sku'           => 'SHIPCALC-COST-' . uniqid(),
-			]
-		);
-
-		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', '[cost]' );
-
-		// 12.34 × 2 = 24.68 contents_cost; catalog price (99.00) must be ignored.
-		$event = $this->build_event_from_raw_items(
-			[
+	public function test_cost_expression_prices_package_contents( string $cost_expression, array $product_specs, array $line_item_specs, int $expected_amount ) {
+		$products = [];
+		foreach ( $product_specs as $i => $spec ) {
+			$products[] = \WC_Helper_Product::create_simple_product(
+				true,
 				[
-					'id'          => 'li_cost',
-					'sku_id'      => (string) $product->get_sku(),
-					'quantity'    => 2,
-					'unit_amount' => 1234,
-				],
-			]
-		);
+					'regular_price' => $spec['price'],
+					'price'         => $spec['price'],
+					'sku'           => 'SHIPCALC-' . $i . '-' . uniqid(),
+					'virtual'       => $spec['virtual'] ?? false,
+				]
+			);
+		}
 
-		$result = $this->calculator->calculate( $event, 'usd' );
+		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', $cost_expression );
 
-		$this->assertSame( 2468, $result['shipping_options'][0]['shipping_rate_data']['fixed_amount']['amount'] );
+		$raw_items = [];
+		foreach ( $line_item_specs as $i => $spec ) {
+			$raw_item = [
+				'id'       => 'li_' . $i,
+				'sku_id'   => (string) $products[ $spec['product'] ]->get_sku(),
+				'quantity' => $spec['quantity'],
+			];
+			if ( isset( $spec['unit_amount'] ) ) {
+				$raw_item['unit_amount'] = $spec['unit_amount'];
+			}
+			$raw_items[] = $raw_item;
+		}
 
-		$product->delete( true );
-	}
+		$result = $this->calculator->calculate( $this->build_event_from_raw_items( $raw_items ), 'usd' );
 
-	/**
-	 * Test that line items without unit_amount fall back to the catalog price
-	 * when computing contents_cost.
-	 */
-	public function test_contents_cost_falls_back_to_catalog_price_without_unit_amount() {
-		$product = \WC_Helper_Product::create_simple_product(
-			true,
-			[
-				'regular_price' => '10.00',
-				'price'         => '10.00',
-				'sku'           => 'SHIPCALC-FALLBACK-' . uniqid(),
-			]
-		);
+		$this->assertSame( $expected_amount, $result['shipping_options'][0]['shipping_rate_data']['fixed_amount']['amount'] );
 
-		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', '[cost]' );
-
-		$event = $this->build_event_from_raw_items(
-			[
-				[
-					'id'       => 'li_fallback',
-					'sku_id'   => (string) $product->get_sku(),
-					'quantity' => 2,
-				],
-			]
-		);
-
-		$result = $this->calculator->calculate( $event, 'usd' );
-
-		$this->assertSame( 2000, $result['shipping_options'][0]['shipping_rate_data']['fixed_amount']['amount'] );
-
-		$product->delete( true );
-	}
-
-	/**
-	 * Test that virtual products are excluded from the package contents, so
-	 * quantity-based expressions only count shippable items.
-	 */
-	public function test_virtual_products_excluded_from_package_contents() {
-		$shippable = \WC_Helper_Product::create_simple_product(
-			true,
-			[
-				'regular_price' => '10.00',
-				'price'         => '10.00',
-				'sku'           => 'SHIPCALC-PHYS-' . uniqid(),
-			]
-		);
-		$virtual   = \WC_Helper_Product::create_simple_product(
-			true,
-			[
-				'regular_price' => '5.00',
-				'price'         => '5.00',
-				'sku'           => 'SHIPCALC-VIRT-' . uniqid(),
-				'virtual'       => true,
-			]
-		);
-
-		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', '[qty]' );
-
-		$event = $this->build_event_from_raw_items(
-			[
-				[
-					'id'          => 'li_phys',
-					'sku_id'      => (string) $shippable->get_sku(),
-					'quantity'    => 2,
-					'unit_amount' => 1000,
-				],
-				[
-					'id'          => 'li_virt',
-					'sku_id'      => (string) $virtual->get_sku(),
-					'quantity'    => 5,
-					'unit_amount' => 500,
-				],
-			]
-		);
-
-		$result = $this->calculator->calculate( $event, 'usd' );
-
-		$this->assertSame( 200, $result['shipping_options'][0]['shipping_rate_data']['fixed_amount']['amount'] );
-
-		$shippable->delete( true );
-		$virtual->delete( true );
+		foreach ( $products as $product ) {
+			$product->delete( true );
+		}
 	}
 
 	/**
@@ -320,12 +323,11 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that the full, realistic customize_checkout webhook payload published in
-	 * the PR description parses end-to-end: its single qty-1 line item resolves to a
-	 * shippable product and a content-dependent '2 * [qty]' flat rate prices the
-	 * populated package (0.00 against an empty package before this change).
+	 * Test that a full customize_checkout webhook payload parses end-to-end: its
+	 * single qty-1 line item resolves to a shippable product and a
+	 * content-dependent '2 * [qty]' flat rate prices the populated package.
 	 */
-	public function test_realistic_customize_checkout_payload_prices_package_contents() {
+	public function test_full_customize_checkout_payload_prices_package_contents() {
 		$product = \WC_Helper_Product::create_simple_product(
 			true,
 			[
@@ -337,7 +339,7 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 
 		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', '2 * [qty]' );
 
-		$raw    = $this->realistic_customize_checkout_event();
+		$raw    = $this->get_mock_customize_checkout_event();
 		$event  = new WC_Stripe_Agentic_Customize_Checkout_Event( $raw );
 		$result = $this->calculator->calculate( $event, $raw->data->currency );
 
@@ -347,13 +349,12 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Returns the sanitized customize_checkout event used by the realistic payload
-	 * test. This is the same JSON shared in the PR description so a reviewer can
-	 * replay it against a store; identifiers and the address are placeholders.
+	 * Returns a mock customize_checkout webhook event mirroring the full payload
+	 * Stripe sends; identifiers and the address are sanitized placeholders.
 	 *
 	 * @return \stdClass The decoded webhook event.
 	 */
-	private function realistic_customize_checkout_event(): \stdClass {
+	private function get_mock_customize_checkout_event(): \stdClass {
 		$json = <<<'JSON'
 {
   "id": "evt_test_customize_checkout",
