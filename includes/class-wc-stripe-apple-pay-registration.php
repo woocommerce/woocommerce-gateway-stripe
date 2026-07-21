@@ -32,12 +32,22 @@ class WC_Stripe_Apple_Pay_Registration {
 	public $apple_pay_registration_notice;
 
 	public function __construct() {
+		$this->domain_name                   = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : str_replace( array( 'https://', 'http://' ), '', get_site_url() ); // @codingStandardsIgnoreLine
+		$this->apple_pay_registration_notice = '';
+	}
+
+	/**
+	 * Registers the registration hooks. Kept out of the constructor so
+	 * instantiating the class never stacks duplicate callbacks; the bootstrap
+	 * calls this exactly once.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		add_action( 'admin_init', [ $this, 'register_domain_on_domain_name_change' ] );
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'register_domain_on_updated_settings' ], 10, 2 );
 		add_action( 'admin_notices', [ $this, 'admin_notices' ] );
-
-		$this->domain_name                   = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : str_replace( array( 'https://', 'http://' ), '', get_site_url() ); // @codingStandardsIgnoreLine
-		$this->apple_pay_registration_notice = '';
 	}
 
 	/**

@@ -124,13 +124,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$this->action_scheduler_service = new WC_Stripe_Action_Scheduler_Service();
 
-		add_action( 'woocommerce_api_wc_stripe', [ $this, 'check_for_webhook' ] );
-
 		// Get/set the time we began monitoring the health of webhooks by fetching it.
 		// This should be roughly the same as the activation time of the version of the
 		// plugin when this code first appears.
 		WC_Stripe_Webhook_State::get_monitoring_began_at();
+	}
 
+	/**
+	 * Registers the handler's hooks. Kept out of the constructor so
+	 * instantiating the class never stacks duplicate callbacks; the bootstrap
+	 * calls this exactly once.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
+		add_action( 'woocommerce_api_wc_stripe', [ $this, 'check_for_webhook' ] );
 		add_action( $this->deferred_webhook_action, [ $this, 'process_deferred_webhook' ], 10, 3 );
 		add_action( $this->process_payment_intent_metadata_action, [ $this, 'process_payment_intent_metadata' ], 10, 2 );
 		add_action( $this->process_checkout_session_metadata_action, [ $this, 'process_checkout_session_metadata' ], 10, 2 );

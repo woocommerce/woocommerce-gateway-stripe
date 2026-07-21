@@ -51,7 +51,17 @@ class WC_Stripe_Payment_Tokens {
 	 */
 	public function __construct() {
 		self::$_this = $this;
+	}
 
+	/**
+	 * Registers the token hooks. Kept out of the constructor so instantiating
+	 * the class never stacks duplicate callbacks; the bootstrap calls this
+	 * exactly once.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		add_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 		add_filter( 'woocommerce_payment_methods_list_item', [ $this, 'get_account_saved_payment_methods_list_item' ], 10, 2 );
 		add_filter( 'woocommerce_get_credit_card_type_label', [ $this, 'normalize_payment_method_label' ] );

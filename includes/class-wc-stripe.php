@@ -144,7 +144,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-handler.php';
 
 		if ( self::$instance === $this ) {
-			new WC_Stripe_Webhook_Handler();
+			( new WC_Stripe_Webhook_Handler() )->register_hooks();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-apple-pay-registration.php';
@@ -185,12 +185,12 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-handler.php';
 
 		if ( self::$instance === $this ) {
-			new WC_Stripe_Order_Handler();
+			( new WC_Stripe_Order_Handler() )->register_hooks();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
 		if ( self::$instance === $this ) {
-			new WC_Stripe_Payment_Tokens();
+			( new WC_Stripe_Payment_Tokens() )->register_hooks();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
@@ -205,6 +205,12 @@ class WC_Stripe {
 		$this->api     = new WC_Stripe_Connect_API();
 		$this->connect = new WC_Stripe_Connect( $this->api );
 		$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+
+		// Guarded unlike the assignment above: the property must exist on every
+		// instance, but only the first may register the connection hooks.
+		if ( self::$instance === $this ) {
+			$this->connect->register_hooks();
+		}
 
 		// No-op shim so third parties that register the removed WC_Stripe_Payment_Request methods as
 		// hook callbacks via this property don't fatal on a null callback. See the compat class.
@@ -337,7 +343,7 @@ class WC_Stripe {
 	 * Initialize the class for handling the Apple Pay registration.
 	 */
 	public function initialize_apple_pay_registration() {
-		new WC_Stripe_Apple_Pay_Registration();
+		( new WC_Stripe_Apple_Pay_Registration() )->register_hooks();
 	}
 
 	/**
