@@ -22,13 +22,6 @@ class WC_Stripe_Express_Checkout_Helper {
 	public $stripe_settings;
 
 	/**
-	 * Total label
-	 *
-	 * @var string
-	 */
-	public $total_label;
-
-	/**
 	 * Is test mode active?
 	 *
 	 * @var bool
@@ -53,13 +46,37 @@ class WC_Stripe_Express_Checkout_Helper {
 	private $should_show_cache = [];
 
 	/**
+	 * Internal property to store the pre-filter total label previously accessible via the total_label property.
+	 *
+	 * @var string
+	 */
+	private $pre_filter_total_label = '';
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
-		$this->gateway         = WC_Stripe::get_instance()->get_main_stripe_gateway();
-		$this->stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->testmode        = WC_Stripe_Mode::is_test();
-		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
+		$this->gateway                = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$this->stripe_settings        = WC_Stripe_Helper::get_stripe_settings();
+		$this->testmode               = WC_Stripe_Mode::is_test();
+		$this->pre_filter_total_label = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
+		$this->pre_filter_total_label = str_replace( "'", '', $this->pre_filter_total_label );
+	}
+
+	/**
+	 * Magic getter to add warnings for deprecated properties.
+	 *
+	 * @param string $property Property name.
+	 * @return mixed
+	 */
+	public function __get( $property ) {
+		if ( 'total_label' === $property ) {
+			wc_deprecated_function( static::class . '::$' . $property, '10.9.0', static::class . '::get_total_label()' );
+			return $this->get_total_label();
+		}
+
+		trigger_error( esc_html( 'Undefined property: ' . static::class . '::$' . $property ), E_USER_NOTICE ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
+		return null;
 	}
 
 	/**
@@ -253,7 +270,8 @@ class WC_Stripe_Express_Checkout_Helper {
 		 * @param string $suffix Total label suffix. Default is ' (via WooCommerce)'.
 		 */
 		$suffix = apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
-		return str_replace( "'", '', $this->total_label ) . $suffix;
+
+		return $this->pre_filter_total_label . $suffix;
 	}
 
 	/**
