@@ -35,6 +35,8 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 10.9.0
+   - Express checkout processes classic checkout custom fields by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
 * 10.8.0
    - Optimized Checkout Suite enabled by default for eligible existing stores
    - Adaptive Pricing enabled by default for eligible existing stores
@@ -172,6 +174,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - When changing a subscription's payment method, reflect the new card and its Apple Pay/Google Pay branding on My Account and clarify the admin order note
 * Dev - Use a shared hook manager to prevent duplicate subscription hook registrations
 * Dev - Initial infrastructure for more complex Agentic feed filtering
+* Dev - Agentic Commerce: add the shareable woocommerce_agentic_commerce_disable_checkout filter, deprecating the wc_stripe_-prefixed twin
 * Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
 * Fix - Prevent classic and Blocks checkout submissions from failing while the Stripe Payment Element is re-mounting after a checkout update
 * Fix - Decommission the previously configured webhook before connecting via OAuth so reconnecting to a different Stripe account no longer leaves an orphaned webhook on the old account
@@ -194,8 +197,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Preserve decimal product quantities for products when adding to the cart through Apple Pay / Google Pay express checkout
 * Add - Show a "What's new" inbox note after the plugin updates, including via auto-update
 * Tweak - Don't show the Stripe API outage notice on local and development sites, where Stripe is often unreachable for benign reasons
+* Fix - Show a loading spinner while an Express Checkout wallet payment (Amazon Pay, Apple Pay, Google Pay) is processed so the page no longer appears frozen
 * Tweak - Clarify in the saved payment methods setting that Link by Stripe collects save consent in the payment form instead of a separate checkbox
 * Update - Deprecate the wc_stripe_agentic_commerce_should_sync_product filter in favor of the shareable woocommerce_agentic_commerce_should_sync_product
+* Add - Per-product "Agentic Commerce" exclude toggle on the product editor's Inventory tab
 * Update - Replace the legacy add-to-cart AJAX endpoint with a Store API call for variable products in Express Checkout
 * Update - Add booking products to the cart via the Store API in Express Checkout when WooCommerce Bookings supports it
 * Dev - Rename internal Blocks API references to Store API in the Express Checkout client for naming consistency
@@ -206,6 +211,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - When enabling manual capture, clarify to agentic commerce merchants that Agentic Commerce purchases follow the capture setting in the Stripe agentic commerce dashboard
 * Fix - Stop retrying the Stripe App connection refresh when the connection has permanently expired
 * Dev - Centralize agentic commerce feed scheduling in integration class
+* Fix - Enforce and save custom required checkout fields when paying with express checkout on classic checkout
+* Update - Process classic checkout custom fields in express checkout by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
 * Dev - Update subscription E2E fixtures to use WooCommerce Subscriptions product plans
 * Fix - Prevent a fatal checkout error when a third-party integration registers callbacks against the Payment Request class removed in 10.4.0
 * Tweak - Cap the Agentic Commerce feed preview scan so it stays responsive on large catalogs instead of timing out
@@ -223,6 +230,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Include the statement descriptor when creating payment intents for ACSS Debit and BLIK payments
 * Fix - Represent negative fees and taxes as discounts in Level 3 data so manually capturing an order edited to include a negative fee no longer fails
 * Fix - Ensure all WordPress hooks have filter documentation
+* Fix - Restrict payment intent creation to payment methods that do not support deferred intent
+* Fix - Clear the Adaptive Pricing order total error notice once a later update succeeds
+* Fix - Accept express checkout addresses whose province is entered with a curly apostrophe, so Apple Pay no longer rejects them
 * Update - Show a clear message when manual capture is blocking Adaptive Pricing from being enabled
+* Fix - Lock the order while confirming a 3DS card payment so a concurrent webhook can't complete it twice, duplicating stock reduction, order notes, and emails
+* Fix - Store the Stripe refund ID on each WooCommerce refund record so orders with multiple partial refunds retain every refund ID
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

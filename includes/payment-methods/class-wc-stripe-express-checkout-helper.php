@@ -1434,6 +1434,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return string The sanitized string.
 	 */
 	public function sanitize_string( $string ) {
+		// Remap apostrophe variants to U+0027 APOSTROPHE so the comparison is insensitive to
+		// which glyph the customer's keyboard produced.
+		// See https://www.unicode.org/Public/security/latest/confusables.txt.
+		$string = str_replace( [ "\u{2019}", "\u{2018}", "\u{02BC}", "\u{FF07}", "\u{00B4}", '`' ], "'", $string );
+
 		return trim( wc_strtolower( remove_accents( $string ) ) );
 	}
 
@@ -1453,8 +1458,8 @@ class WC_Stripe_Express_Checkout_Helper {
 			return $state;
 		}
 
+		$sanitized_state_string = $this->sanitize_string( $state );
 		foreach ( $pr_states[ $country ] as $wc_state_abbr => $pr_state ) {
-			$sanitized_state_string = $this->sanitize_string( $state );
 			// Checks if input state matches with Payment Request state code (0), name (1) or localName (2).
 			if (
 				( ! empty( $pr_state[0] ) && $sanitized_state_string === $this->sanitize_string( $pr_state[0] ) ) ||
