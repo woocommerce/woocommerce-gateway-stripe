@@ -353,7 +353,7 @@ The store-wide default is set in **Stripe settings → Agentic commerce → "Red
 
 ```php
 add_filter(
-    'wc_stripe_agentic_commerce_disable_checkout',
+    'woocommerce_agentic_commerce_disable_checkout',
     function ( bool $disabled, WC_Product $product, ?WC_Product $parent ): bool {
         // e.g. redirect only for a specific category.
         return has_term( 'made-to-order', 'product_cat', $product->get_id() ) ? true : $disabled;
@@ -362,3 +362,5 @@ add_filter(
     3
 );
 ```
+
+> The Stripe-prefixed `wc_stripe_agentic_commerce_disable_checkout` filter is **deprecated since 10.9.0** in favour of the shareable `woocommerce_agentic_commerce_disable_checkout` above (mirroring the `woocommerce_agentic_commerce_should_sync_product` migration). Existing hooks on the old name still run — they seed the new filter's default — but emit a deprecation notice.
