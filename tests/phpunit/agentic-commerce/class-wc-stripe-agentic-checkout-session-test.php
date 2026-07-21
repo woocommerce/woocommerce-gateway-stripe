@@ -515,15 +515,48 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	 */
 	public function provide_get_agent_source_cases(): array {
 		return [
-			'profile string present'               => [
+			'name preferred over profile id'       => [
 				(object) [
 					'payment_intent' => (object) [
 						'agent_details' => (object) [
-							'network_business_profile' => 'nbp_openai_123',
+							'name'                     => 'ChatGPT',
+							'network_business_profile' => 'profile_openai_123',
 						],
 					],
 				],
-				'nbp_openai_123',
+				'ChatGPT',
+			],
+			'display_name preferred over profile'  => [
+				(object) [
+					'payment_intent' => (object) [
+						'agent_details' => (object) [
+							'display_name'             => 'Copilot',
+							'network_business_profile' => 'profile_msft_123',
+						],
+					],
+				],
+				'Copilot',
+			],
+			'blank name falls back to profile'     => [
+				(object) [
+					'payment_intent' => (object) [
+						'agent_details' => (object) [
+							'name'                     => '  ',
+							'network_business_profile' => 'profile_openai_123',
+						],
+					],
+				],
+				'profile_openai_123',
+			],
+			'profile string only'                  => [
+				(object) [
+					'payment_intent' => (object) [
+						'agent_details' => (object) [
+							'network_business_profile' => 'profile_openai_123',
+						],
+					],
+				],
+				'profile_openai_123',
 			],
 			'profile string padded'                => [
 				(object) [
@@ -540,7 +573,7 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 					'payment_intent' => (object) [
 						'agent_details' => (object) [
 							'network_business_profile' => (object) [
-								'id'   => 'nbp_openai_123',
+								'id'   => 'profile_openai_123',
 								'name' => 'ChatGPT',
 							],
 						],
@@ -553,12 +586,12 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 					'payment_intent' => (object) [
 						'agent_details' => (object) [
 							'network_business_profile' => (object) [
-								'id' => 'nbp_openai_123',
+								'id' => 'profile_openai_123',
 							],
 						],
 					],
 				],
-				'nbp_openai_123',
+				'profile_openai_123',
 			],
 			'profile empty string'                 => [
 				(object) [

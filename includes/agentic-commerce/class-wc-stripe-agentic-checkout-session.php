@@ -309,8 +309,13 @@ class WC_Stripe_Agentic_Checkout_Session {
 	}
 
 	/**
-	 * Returns the identifier of the agent network that originated this session,
+	 * Returns a label for the agent network that originated this session,
 	 * or null when absent (non-agentic sessions).
+	 *
+	 * Prefers the human-readable agent name over network_business_profile:
+	 * per the ACP spec, agent_details carries both a name/display_name and
+	 * the profile, but the profile is an opaque `profile_…` ID — it still
+	 * distinguishes networks, yet reads poorly in merchant-facing surfaces.
 	 *
 	 * @since 10.9.0
 	 * @return string|null
@@ -321,19 +326,23 @@ class WC_Stripe_Agentic_Checkout_Session {
 			return null;
 		}
 
-		$profile = $agent_details->network_business_profile ?? null;
+		$candidates = [
+			$agent_details->name ?? null,
+			$agent_details->display_name ?? null,
+			$agent_details->network_business_profile ?? null,
+		];
 
-		// Stripe currently sends the profile as a string; tolerate a future
-		// expanded object by preferring its display name over its id.
-		if ( is_object( $profile ) ) {
-			$profile = $profile->name ?? $profile->id ?? null;
+		foreach ( $candidates as $candidate ) {
+			// Tolerate a future expansion of the profile into an object.
+			if ( is_object( $candidate ) ) {
+				$candidate = $candidate->name ?? $candidate->id ?? null;
+			}
+
+			if ( is_string( $candidate ) && '' !== trim( $candidate ) ) {
+				return trim( $candidate );
+			}
 		}
 
-		if ( ! is_string( $profile ) ) {
-			return null;
-		}
-
-		$profile = trim( $profile );
-		return '' === $profile ? null : $profile;
+		return null;
 	}
 }
