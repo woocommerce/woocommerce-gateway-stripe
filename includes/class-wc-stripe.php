@@ -712,7 +712,9 @@ class WC_Stripe {
 	 */
 	public function gateway_settings_update( $settings, $old_settings ) {
 		if ( false === $old_settings ) {
-			$gateway      = new WC_Stripe_UPE_Payment_Gateway();
+			// The shared instance, not `new`: the constructor registers hooks,
+			// so every extra instantiation duplicates their callbacks.
+			$gateway      = $this->get_main_stripe_gateway();
 			$fields       = $gateway->get_form_fields();
 			$old_settings = array_merge( array_fill_keys( array_keys( $fields ), '' ), wp_list_pluck( $fields, 'default' ) );
 			$settings     = array_merge( $old_settings, $settings );
@@ -832,7 +834,9 @@ class WC_Stripe {
 	}
 
 	protected function disable_upe( $settings ) {
-		$upe_gateway            = new WC_Stripe_UPE_Payment_Gateway();
+		// The shared instance, not `new`: the constructor registers hooks,
+		// so every extra instantiation duplicates their callbacks.
+		$upe_gateway            = $this->get_main_stripe_gateway();
 		$upe_enabled_method_ids = $upe_gateway->get_upe_enabled_payment_method_ids();
 		// Disable main Stripe/card LPM if 'card' UPE method wasn't enabled.
 		if ( ! in_array( 'card', $upe_enabled_method_ids, true ) ) {
