@@ -98,7 +98,7 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 			$unit_amount = $line_item->get_unit_amount();
 			$line_total  = null !== $unit_amount
 				? WC_Stripe_Helper::convert_from_stripe_amount( $unit_amount * $quantity, $currency )
-				: (float) $product->get_price() * $quantity;
+				: (float) wc_get_price_excluding_tax( $product, ['qty' => $quantity ] );
 
 			$contents[ $line_item->get_id() ] = self::build_contents_entry( $product, $quantity, $line_total, $line_total );
 		}
