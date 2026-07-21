@@ -386,6 +386,118 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `get_order_by_refund_id`.
+	 *
+	 * The lookup must always resolve to the PARENT order: the refund ID may live on the
+	 * parent's meta (historical orders) or on the refund record's meta (per-refund storage).
+	 *
+	 * @param string $target         Which object carries the refund ID meta. One of 'order', 'refund', or 'none'.
+	 * @param bool   $use_hpos       Whether to enable or disable HPOS.
+	 * @param bool   $expect_success Whether the parent order should be returned.
+	 * @dataProvider provide_test_get_order_by_refund_id
+	 */
+	public function test_get_order_by_refund_id( string $target, bool $use_hpos, bool $expect_success ): void {
+		$previous_hpos_setting = get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		$new_hpos_setting      = $use_hpos ? 'yes' : 'no';
+
+		try {
+			// Allow HPOS to be toggled regardless of database state.
+			add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $new_hpos_setting );
+			}
+
+			$order           = WC_Helper_Order::create_order();
+			$order_id        = $order->get_id();
+			$refund_id       = 're_lookup_mock';
+			$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+
+			if ( 'order' === $target ) {
+				WC_Stripe_Order_Helper::get_instance()->update_stripe_refund_id( $order, $refund_id );
+				$order->save_meta_data();
+			} elseif ( 'refund' === $target ) {
+				$refund = wc_create_refund(
+					[
+						'amount'   => $order->get_total(),
+						'order_id' => $order_id,
+						'reason'   => 'Test refund',
+					]
+				);
+
+				$refund->update_meta_data( $refund_meta_key, $refund_id );
+				$refund->save_meta_data();
+			}
+
+			$found = WC_Stripe_Helper::get_order_by_refund_id( $refund_id );
+
+			if ( $expect_success ) {
+				$this->assertInstanceOf( WC_Order::class, $found );
+				$this->assertSame( $order_id, $found->get_id() );
+			} else {
+				$this->assertFalse( $found );
+			}
+		} finally {
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $previous_hpos_setting );
+			}
+			remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+		}
+	}
+
+	/**
+	 * An empty refund ID must return `false` early, even when an order carries an
+	 * empty-string `_stripe_refund_id` meta value that a meta query would match.
+	 */
+	public function test_get_order_by_refund_id_returns_false_for_empty_id(): void {
+		$order = WC_Helper_Order::create_order();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_refund_id( $order, '' );
+		$order->save_meta_data();
+
+		$this->assertFalse( WC_Stripe_Helper::get_order_by_refund_id( '' ) );
+	}
+
+	/**
+	 * Data provider for `test_get_order_by_refund_id`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_order_by_refund_id(): array {
+		return [
+			'meta on parent, legacy'        => [
+				'target'         => 'order',
+				'use_hpos'       => false,
+				'expect_success' => true,
+			],
+			'meta on parent, HPOS'          => [
+				'target'         => 'order',
+				'use_hpos'       => true,
+				'expect_success' => true,
+			],
+			'meta on refund record, legacy' => [
+				'target'         => 'refund',
+				'use_hpos'       => false,
+				'expect_success' => true,
+			],
+			'meta on refund record, HPOS'   => [
+				'target'         => 'refund',
+				'use_hpos'       => true,
+				'expect_success' => true,
+			],
+			'unknown refund id, legacy'     => [
+				'target'         => 'none',
+				'use_hpos'       => false,
+				'expect_success' => false,
+			],
+			'unknown refund id, HPOS'       => [
+				'target'         => 'none',
+				'use_hpos'       => true,
+				'expect_success' => false,
+			],
+		];
+	}
+
+	/**
 	 * Test for `get_order_by_setup_intent_id`.
 	 *
 	 * @param string|null $intent_target  Which object to save the SetupIntent ID on. One of null, 'refund', or 'order'.
@@ -731,6 +843,46 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function test_payment_method_allows_manual_capture( $payment_method, $expected ): void {
 		$actual = WC_Stripe_Helper::payment_method_allows_manual_capture( $payment_method );
 		$this->assertEquals( $expected, $actual );
+	}
+
+	/**
+	 * Test for `order_supports_level3_data`.
+	 *
+	 * Level 3 is card-network only: it applies to card orders (and legacy orders with no
+	 * stored UPE type, which are card payments) but never to non-card payment methods.
+	 *
+	 * @param string $upe_payment_type The stored Stripe UPE payment type.
+	 * @param bool   $expected         Whether Level 3 data applies to the order.
+	 * @dataProvider provide_order_supports_level3_data
+	 * @return void
+	 */
+	public function test_order_supports_level3_data( string $upe_payment_type, bool $expected ): void {
+		$order = WC_Helper_Order::create_order();
+		if ( '' !== $upe_payment_type ) {
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $upe_payment_type );
+		}
+
+		$this->assertSame( $expected, WC_Stripe_Helper::order_supports_level3_data( $order ) );
+	}
+
+	/**
+	 * Provider for `test_order_supports_level3_data`.
+	 *
+	 * @return array
+	 */
+	public function provide_order_supports_level3_data(): array {
+		return [
+			'card'                  => [ WC_Stripe_Payment_Methods::CARD, true ],
+			'card present'          => [ WC_Stripe_Payment_Methods::CARD_PRESENT, true ],
+			'no stored type'        => [ '', true ],
+			'Affirm'                => [ WC_Stripe_Payment_Methods::AFFIRM, false ],
+			'Klarna'                => [ WC_Stripe_Payment_Methods::KLARNA, false ],
+			'Afterpay/Clearpay'     => [ WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY, false ],
+			'Amazon Pay'            => [ WC_Stripe_Payment_Methods::AMAZON_PAY, false ],
+			'Link'                  => [ WC_Stripe_Payment_Methods::LINK, false ],
+			'Cash App Pay'          => [ WC_Stripe_Payment_Methods::CASHAPP_PAY, false ],
+			'ACH (us_bank_account)' => [ WC_Stripe_Payment_Methods::ACH, false ],
+		];
 	}
 
 	/**
@@ -2003,11 +2155,13 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Test for {@see WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason()}.
 	 *
-	 * @param array   $account_data    Stripe account data to mock.
-	 * @param bool    $test_mode       Whether Stripe test mode is enabled.
-	 * @param string  $store_currency  WooCommerce store currency code.
-	 * @param ?string $expected        Expected return value.
-	 * @param bool    $webhook_enabled Whether the Stripe webhook endpoint is enabled. Defaults to true.
+	 * @param array   $account_data             Stripe account data to mock.
+	 * @param bool    $test_mode                Whether Stripe test mode is enabled.
+	 * @param string  $store_currency           WooCommerce store currency code.
+	 * @param ?string $expected                 Expected return value.
+	 * @param bool    $webhook_enabled          Whether the Stripe webhook endpoint is enabled. Defaults to true.
+	 * @param bool    $amount_mismatch_detected Whether Adaptive Pricing was disabled due to amount mismatches. Defaults to false.
+	 * @param bool    $manual_capture           Whether manual capture is enabled. Defaults to false.
 	 * @return void
 	 * @dataProvider provide_test_get_adaptive_pricing_account_unavailable_reason
 	 */
@@ -2016,11 +2170,14 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		bool $test_mode,
 		string $store_currency,
 		?string $expected,
-		bool $webhook_enabled = true
+		bool $webhook_enabled = true,
+		bool $amount_mismatch_detected = false,
+		bool $manual_capture = false
 	): void {
 		$original_settings    = WC_Stripe_Helper::get_stripe_settings();
 		$settings             = $original_settings;
 		$settings['testmode'] = $test_mode ? 'yes' : 'no';
+		$settings['capture']  = $manual_capture ? 'no' : 'yes';
 		if ( $webhook_enabled ) {
 			$settings['webhook_data']      = [
 				'id'     => 'we_live',
@@ -2042,6 +2199,12 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
 		}
 
+		if ( $amount_mismatch_detected ) {
+			update_option( 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected', 'yes' );
+		} else {
+			delete_option( 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected' );
+		}
+
 		$this->set_stripe_account_data( $account_data );
 
 		$original_currency = get_option( 'woocommerce_currency' );
@@ -2051,6 +2214,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		// Cleanup.
 		update_option( 'woocommerce_currency', $original_currency );
+		delete_option( 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected' );
 		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
 		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
 		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
@@ -2077,6 +2241,22 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'test_mode'      => false,
 				'store_currency' => 'USD',
 				'expected'       => 'account-country',
+			],
+			'Manual capture → manual-capture'                                               => [
+				'account_data'             => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'usd' ],
+						],
+					],
+				],
+				'test_mode'                => false,
+				'store_currency'           => 'USD',
+				'expected'                 => 'manual-capture',
+				'webhook_enabled'          => true,
+				'amount_mismatch_detected' => false,
+				'manual_capture'           => true,
 			],
 			'India account (lowercase) → account-country'                                   => [
 				'account_data'   => [
@@ -2202,6 +2382,64 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'        => 'webhooks-disabled',
 				'webhook_enabled' => false,
 			],
+			'Live mode, disabled due to amount mismatch → amount-mismatch-detected'         => [
+				'account_data'             => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'usd' ],
+						],
+					],
+				],
+				'test_mode'                => false,
+				'store_currency'           => 'USD',
+				'expected'                 => 'amount-mismatch-detected',
+				'webhook_enabled'          => true,
+				'amount_mismatch_detected' => true,
+			],
+			'Test mode, disabled due to amount mismatches → amount-mismatches-encountered (gate applies before test mode)' => [
+				'account_data'             => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [],
+					],
+				],
+				'test_mode'                => true,
+				'store_currency'           => 'USD',
+				'expected'                 => 'amount-mismatch-detected',
+				'webhook_enabled'          => true,
+				'amount_mismatch_detected' => true,
+			],
+			'Webhooks disabled takes precedence over amount mismatches → webhooks-disabled' => [
+				'account_data'             => [
+					'country'           => 'US',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'usd' ],
+						],
+					],
+				],
+				'test_mode'                => false,
+				'store_currency'           => 'USD',
+				'expected'                 => 'webhooks-disabled',
+				'webhook_enabled'          => false,
+				'amount_mismatch_detected' => true,
+			],
+			'India account takes precedence over amount mismatches → account-country'       => [
+				'account_data'             => [
+					'country'           => 'IN',
+					'external_accounts' => [
+						'data' => [
+							[ 'currency' => 'inr' ],
+						],
+					],
+				],
+				'test_mode'                => false,
+				'store_currency'           => 'USD',
+				'expected'                 => 'account-country',
+				'webhook_enabled'          => true,
+				'amount_mismatch_detected' => true,
+			],
 		];
 	}
 
@@ -2320,6 +2558,87 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'classic shortcode checkout'                   => [
 				'[woocommerce_checkout]',
 				false,
+			],
+		];
+	}
+
+	/**
+	 * Test for `is_checkout_sessions_available`.
+	 *
+	 * @param bool   $pmc_enabled           Whether the Payment Method Configuration API is enabled.
+	 * @param bool   $oc_enabled             Whether the Optimized Checkout is enabled.
+	 * @param bool   $automatic_capture      Whether automatic capture is enabled.
+	 * @param bool   $expected               The expected result.
+	 * @return void
+	 * @dataProvider provide_test_is_checkout_sessions_available
+	 */
+	public function test_is_checkout_sessions_available(
+		bool $pmc_enabled,
+		bool $oc_enabled,
+		bool $automatic_capture,
+		bool $expected
+	): void {
+		// Mock the payment method configuration for the test, to avoid it being disabled by default.
+		PMC_Test_Helper::cache_mocked_configuration();
+
+		if ( $pmc_enabled ) {
+			PMC_Test_Helper::enable_pmc();
+		} else {
+			PMC_Test_Helper::disable_pmc();
+		}
+
+		if ( $oc_enabled ) {
+			OC_Test_Helper::enable_oc();
+		} else {
+			OC_Test_Helper::disable_oc();
+		}
+
+		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['capture'] = $automatic_capture ? 'yes' : 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$actual = WC_Stripe_Helper::is_checkout_sessions_available();
+
+		// Clean up
+		PMC_Test_Helper::disable_pmc();
+		PMC_Test_Helper::delete_cached_configuration();
+		OC_Test_Helper::disable_oc();
+		$stripe_settings['capture'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_is_checkout_sessions_available`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_checkout_sessions_available(): array {
+		return [
+			'All prerequisites met'  => [
+				'PMC enabled'       => true,
+				'OC enabled'        => true,
+				'automatic capture' => true,
+				'expected'          => true,
+			],
+			'PMC disabled'           => [
+				'PMC enabled'       => false,
+				'OC enabled'        => true,
+				'automatic capture' => true,
+				'expected'          => false,
+			],
+			'OC disabled'            => [
+				'PMC enabled'       => true,
+				'OC enabled'        => false,
+				'automatic capture' => true,
+				'expected'          => false,
+			],
+			'Manual capture enabled' => [
+				'PMC enabled'       => true,
+				'OC enabled'        => true,
+				'automatic capture' => false,
+				'expected'          => false,
 			],
 		];
 	}
