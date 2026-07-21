@@ -13,6 +13,16 @@ class WC_Stripe_Express_Checkout_Controller {
 	 * Constructor.
 	 */
 	public function __construct() {
+	}
+
+	/**
+	 * Registers the controller's hooks; called once by the bootstrap so
+	 * instantiation alone never stacks duplicate callbacks.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );
 	}

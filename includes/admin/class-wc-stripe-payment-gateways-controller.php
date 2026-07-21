@@ -27,6 +27,16 @@ class WC_Stripe_Payment_Gateways_Controller {
 	 */
 	public function __construct( WC_Stripe_Account $account ) {
 		$this->account = $account;
+	}
+
+	/**
+	 * Registers the controller's hooks; called once by the bootstrap so
+	 * instantiation alone never stacks duplicate callbacks.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		// If UPE is enabled and there are enabled payment methods, we need to load the disable Stripe confirmation modal.
 		$stripe_settings              = WC_Stripe_Helper::get_stripe_settings();
 		$enabled_upe_payment_methods  = WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids();

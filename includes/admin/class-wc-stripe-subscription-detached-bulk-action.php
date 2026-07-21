@@ -12,6 +12,16 @@ class WC_Stripe_Subscription_Detached_Bulk_Action {
 	 * Constructor.
 	 */
 	public function __construct() {
+	}
+
+	/**
+	 * Registers the bulk action hooks; called once by the bootstrap so
+	 * instantiation alone never stacks duplicate callbacks.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
 			add_filter( 'bulk_actions-woocommerce_page_wc-orders--shop_subscription', [ $this, 'subscriptions_bulk_actions' ] );
 			add_filter( 'handle_bulk_actions-woocommerce_page_wc-orders--shop_subscription', [ $this, 'handle_subscription_detachment_check' ], 10, 3 );

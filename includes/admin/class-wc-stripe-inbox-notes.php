@@ -17,6 +17,16 @@ class WC_Stripe_Inbox_Notes {
 	public const CAMPAIGN_2020_CLEANUP_ACTION = 'wc_stripe_apple_pay_2020_cleanup';
 
 	public function __construct() {
+	}
+
+	/**
+	 * Registers the note hooks and schedules cleanup; called once by the
+	 * bootstrap so instantiation alone never stacks duplicate callbacks.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		add_action( self::POST_SETUP_SUCCESS_ACTION, [ self::class, 'create_marketing_note' ] );
 		add_action( self::CAMPAIGN_2020_CLEANUP_ACTION, [ self::class, 'cleanup_campaign_2020' ] );
 		add_action( 'admin_init', [ self::class, 'create_upe_notes' ] );

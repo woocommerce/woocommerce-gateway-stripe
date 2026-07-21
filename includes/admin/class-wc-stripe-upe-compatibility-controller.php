@@ -11,6 +11,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Compatibility_Controller {
 	public function __construct() {
+	}
+
+	/**
+	 * Registers the notice hook; called once by the bootstrap so
+	 * instantiation alone never stacks duplicate callbacks.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		add_action( 'admin_notices', [ $this, 'add_compatibility_notice' ] );
 	}
 
