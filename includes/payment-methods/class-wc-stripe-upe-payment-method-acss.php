@@ -15,6 +15,11 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 	public const STRIPE_ID = WC_Stripe_Payment_Methods::ACSS_DEBIT;
 
 	/**
+	 * Refund window is 180 days.
+	 */
+	protected const REFUND_WINDOW_EXPRESSION = '+180 days';
+
+	/**
 	 * Stripe account countries that may enable ACSS Debit.
 	 *
 	 * @var string[]

@@ -46,6 +46,23 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	protected const SUPPORTED_BILLING_COUNTRIES = [];
 
 	/**
+	 * The window, measured from the order's paid date, during which Stripe still accepts a refund
+	 * for this payment method.
+	 *
+	 * A PHP relative-date expression applied to the paid date (via DateTime::modify()) to derive
+	 * the refund deadline — e.g. "+180 days", "+13 months". {@see get_refund_window_deadline()}.
+	 *
+	 * An empty string means "no documented refund window". For some payment methods, refunds are not
+	 * supported at all (e.g. Boleto and OXXO), while for others there are no specific refund windows.
+	 * Card refunds depend on the card network, so don't have a fixed refund window.
+	 *
+	 * Subclasses with a specific refund window MUST override this constant.
+	 *
+	 * @var string
+	 */
+	protected const REFUND_WINDOW_DATE_EXPRESSION = '';
+
+	/**
 	 * Stripe key name
 	 *
 	 * @var string
@@ -671,6 +688,62 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function can_refund_via_stripe() {
 		return $this->can_refund;
+	}
+
+	/**
+	 * Returns the date by which Stripe still accepts a refund for the given order when paid
+	 * using this payment method. The date is derived from the order's paid date plus this
+	 * payment method's refund window as defined in {@see REFUND_WINDOW_DATE_EXPRESSION}.
+	 *
+	 * Returns null when no refund deadline exists, which includes the following cases:
+	 *  - the order wasn't paid with this method,
+	 *  - the order has no paid date (e.g. still authorized/uncaptured),
+	 *  - the payment method does not support refunds via the Stripe API(e.g. Boleto and OXXO),
+	 *  - the payment method has no documented refund window in {@see REFUND_WINDOW_DATE_EXPRESSION}.
+	 *
+	 * @param WC_Order $order The order to evaluate.
+	 * @return WC_DateTime|null The refund deadline, or null when no window applies.
+	 */
+	public function get_refund_window_deadline( WC_Order $order ): ?WC_DateTime {
+		if ( $this->get_id() !== WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order ) ) {
+			return null;
+		}
+
+		if ( ! $this->can_refund_via_stripe() ) {
+			return null;
+		}
+
+		$paid_date = $order->get_date_paid();
+		if ( ! $paid_date ) {
+			return null;
+		}
+
+		if ( '' === static::REFUND_WINDOW_DATE_EXPRESSION ) {
+			return null;
+		}
+
+		$deadline = clone $paid_date;
+		$deadline->modify( static::REFUND_WINDOW_DATE_EXPRESSION );
+
+		return $deadline;
+	}
+
+	/**
+	 * Whether this payment method's Stripe refund window has elapsed for the given order.
+	 *
+	 * Note that this method returns false whenever a deadline is not available, as
+	 * that prevents situations where we prevent refunds for unrelated or unrefundable orders.
+	 *
+	 * @param WC_Order $order The order to evaluate.
+	 * @return bool True when the order was paid for using this payment method and the refund deadline has passed. False otherwise.
+	 */
+	public function has_refund_window_expired( WC_Order $order ): bool {
+		$deadline = $this->get_refund_window_deadline( $order );
+		if ( null === $deadline ) {
+			return false;
+		}
+
+		return time() > $deadline->getTimestamp();
 	}
 
 	/**

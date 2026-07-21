@@ -11,6 +11,11 @@ class WC_Stripe_UPE_Payment_Method_Giropay extends WC_Stripe_UPE_Payment_Method 
 	public const STRIPE_ID = WC_Stripe_Payment_Methods::GIROPAY;
 
 	/**
+	 * Refund window is 180 days.
+	 */
+	protected const REFUND_WINDOW_DATE_EXPRESSION = '+180 days';
+
+	/**
 	 * Stripe account countries that may enable giropay. Last-known data; giropay was
 	 * deprecated by Stripe on 2024-06-30. is_enabled_at_checkout() returns false.
 	 *
