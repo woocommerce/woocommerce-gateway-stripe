@@ -7,7 +7,7 @@
 		"network": true,
 		"tunnel": true,
 		"secrets": [ "STRIPE_PUB_KEY", "STRIPE_SECRET_KEY" ],
-		"plugins": [ "woocommerce-subscriptions:latest", "woocommerce-pre-orders:latest" ]
+		"plugins": [ "woocommerce-subscriptions", "woocommerce-pre-orders" ]
 	},
 	"test": {
 		"phases": {
