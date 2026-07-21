@@ -729,42 +729,26 @@ class WC_Stripe_Intent_Controller {
 			// request that already finished; the lock serializes against one still in flight.
 			// Mirrors WC_Stripe_UPE_Payment_Gateway::process_upe_redirect_payment(). In every case
 			// the customer is sent to the thank-you page.
-			if (
-				$order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ] )
-				|| $order_helper->get_stripe_upe_redirect_processed( $order )
-			) {
-				wp_send_json_success(
-					[
-						'return_url' => $gateway->get_return_url( $order ),
-					],
-					200
-				);
-			} elseif ( $order_helper->lock_order_payment( $order ) ) {
-				// Already locked by the concurrent request. Bail without unlocking — releasing the
-				// winner's lock would defeat the mutual exclusion.
-				WC_Stripe_Logger::info( "Skipping update_order_status_ajax for order $order_id; order payment is already locked." );
-				wp_send_json_success(
-					[
-						'return_url' => $gateway->get_return_url( $order ),
-					],
-					200
-				);
-			} else {
-				$processing_started = true; // Past validation; a failure from here on is a genuine payment failure.
-				try {
-					$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
-				} finally {
-					// This request owns the lock (we just acquired it above), so it must release it.
-					$order_helper->unlock_order_payment( $order );
-				}
+			$already_settled = $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ] )
+				|| $order_helper->get_stripe_upe_redirect_processed( $order );
 
-				wp_send_json_success(
-					[
-						'return_url' => $gateway->get_return_url( $order ),
-					],
-					200
-				);
+			if ( ! $already_settled ) {
+				// lock_order_payment() returns true when another request already holds the lock.
+				if ( $order_helper->lock_order_payment( $order ) ) {
+					// Bail without unlocking — releasing the winner's lock would defeat the mutual exclusion.
+					WC_Stripe_Logger::info( "Skipping update_order_status_ajax for order $order_id; order payment is already locked." );
+				} else {
+					$processing_started = true; // Past validation; a failure from here on is a genuine payment failure.
+					try {
+						$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
+					} finally {
+						// This request owns the lock (we just acquired it above), so it must release it.
+						$order_helper->unlock_order_payment( $order );
+					}
+				}
 			}
+
+			wp_send_json_success( [ 'return_url' => $gateway->get_return_url( $order ) ], 200 );
 		} catch ( WC_Stripe_Payment_Cancelled_Exception $e ) {
 			$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
 			$order_helper->remove_payment_awaiting_action( $order );
