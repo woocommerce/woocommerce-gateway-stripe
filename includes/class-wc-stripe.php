@@ -970,6 +970,7 @@ class WC_Stripe {
 		$logger  = wc_get_logger();
 		$updater = new WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens( $logger );
 
+		$updater->register_hooks();
 		$updater->init();
 		$updater->maybe_update();
 	}
