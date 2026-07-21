@@ -16,10 +16,11 @@ jest.mock( '@wordpress/element', () => ( {
 
 jest.mock( '@wordpress/data', () => {
 	const createErrorNotice = jest.fn();
+	const removeNotice = jest.fn();
 	return {
 		select: jest.fn(),
 		useSelect: jest.fn( () => '' ),
-		dispatch: jest.fn( () => ( { createErrorNotice } ) ),
+		dispatch: jest.fn( () => ( { createErrorNotice, removeNotice } ) ),
 	};
 } );
 
@@ -777,7 +778,10 @@ describe( 'CheckoutSessions hook tests', () => {
 			} );
 			expect( createErrorNotice ).toHaveBeenCalledWith(
 				STALE_TOTAL_MESSAGE,
-				{ context: 'wc/checkout/payments' }
+				{
+					id: 'wc-stripe-stale-checkout-total',
+					context: 'wc/checkout/payments',
+				}
 			);
 		} );
 
@@ -814,6 +818,12 @@ describe( 'CheckoutSessions hook tests', () => {
 			await waitFor( () => {
 				expect( syncFailedRef.current ).toBe( false );
 			} );
+
+			// The notice a prior failed resync showed must be retracted, not left stale.
+			expect( dispatch().removeNotice ).toHaveBeenCalledWith(
+				'wc-stripe-stale-checkout-total',
+				'wc/checkout/payments'
+			);
 		} );
 	} );
 } );
