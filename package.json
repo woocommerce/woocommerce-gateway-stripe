@@ -52,7 +52,7 @@
     "@wordpress/url": "^3.2.1",
     "allure-playwright": "3.7.1",
     "archiver": "^5.0.0",
-    "axios": "^1.16.0",
+    "axios": "^1.18.1",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "clean-css-cli": "^4.1.10",
