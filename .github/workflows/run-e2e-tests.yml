@@ -44,6 +44,8 @@ jobs:
       - name: Prepare test environment
         env:
           GITHUB_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
+          WP_VERSION: ${{ inputs.wp-version }}
+          WC_VERSION: ${{ inputs.wc-version }}
           STRIPE_PUB_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
           STRIPE_SECRET_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e-setup

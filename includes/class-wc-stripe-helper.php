@@ -1233,6 +1233,11 @@ class WC_Stripe_Helper {
 			return 'amount-mismatch-detected';
 		}
 
+		// Adaptive Pricing requires automatic capture.
+		if ( 'yes' !== ( self::get_stripe_settings()['capture'] ?? 'yes' ) ) {
+			return 'manual-capture';
+		}
+
 		// If we are in test mode, payout details are often missing and currency-based rules
 		// are not enforced.
 		if ( WC_Stripe_Mode::is_test() ) {
