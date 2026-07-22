@@ -296,4 +296,36 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 			'null charge'              => [ null, null, '' ],
 		];
 	}
+
+	/**
+	 * Tests for `is_stripe_charge_authorized_only`.
+	 *
+	 * @param bool|null $captured Recorded captured state, or null to leave the flag unwritten.
+	 * @param bool      $expected The expected result.
+	 *
+	 * @dataProvider provide_test_is_stripe_charge_authorized_only
+	 */
+	public function test_is_stripe_charge_authorized_only( $captured, $expected ): void {
+		$order = WC_Helper_Order::create_order();
+
+		if ( null !== $captured ) {
+			$this->helper->set_stripe_charge_captured( $order, $captured );
+		}
+
+		$this->assertSame( $expected, $this->helper->is_stripe_charge_authorized_only( $order ) );
+	}
+
+	/**
+	 * Provider for `test_is_stripe_charge_authorized_only`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_stripe_charge_authorized_only(): array {
+		return [
+			'recorded uncaptured' => [ false, true ],
+			'recorded captured'   => [ true, false ],
+			// Never recorded is unknown, not authorize-only: capture/void flows must not act on it.
+			'flag never recorded' => [ null, false ],
+		];
+	}
 }

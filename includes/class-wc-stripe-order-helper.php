@@ -902,6 +902,23 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Checks whether the order's charge was explicitly recorded as authorize-only ('no').
+	 *
+	 * Deliberately false when the flag was never recorded (''): capture and void flows act on
+	 * this state by moving or releasing money, so an unknown state must not qualify — only a
+	 * charge Stripe was seen to leave uncaptured. Contrast is_stripe_charge_captured(), which
+	 * folds missing into false.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order|null $order The order to check.
+	 * @return bool
+	 */
+	public function is_stripe_charge_authorized_only( ?WC_Order $order = null ): bool {
+		return 'no' === $this->get_stripe_charge_captured( $order );
+	}
+
+	/**
 	 * Sets whether charge was captured for order.
 	 *
 	 * @since 10.1.0
