@@ -59,7 +59,7 @@ export default async function globalSetup( config ) {
 	} catch ( err ) {
 		console.error( err );
 		console.error(
-			'Admin login failed. Please check if the test site has been setup correctly.'
+			'Admin login failed. Please check if the test site has been set up correctly.'
 		);
 		process.exit( 1 );
 	}
@@ -69,7 +69,7 @@ export default async function globalSetup( config ) {
 		await createApiTokens( apiTokensPage );
 	} catch ( err ) {
 		console.error(
-			'Could not create a WC REST API key. Please check if the test site has been setup correctly.'
+			'Could not create a WC REST API key. Please check if the test site has been set up correctly.'
 		);
 		process.exit( 1 );
 	}
@@ -107,7 +107,7 @@ export default async function globalSetup( config ) {
 				);
 			}
 		} catch ( e ) {
-			console.error( 'Failed to setup Stripe webhook:', e );
+			console.error( 'Failed to set up Stripe webhook:', e );
 			console.error(
 				'Tests requiring webhooks may fail. Continuing anyway...'
 			);
