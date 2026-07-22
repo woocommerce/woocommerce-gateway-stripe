@@ -1506,7 +1506,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 					'charges' => (object) [
 						'data' => [
 							(object) [
-								'id' => 'ch_mock',
+								'id'       => 'ch_mock',
+								'captured' => true,
 							],
 						],
 					],
@@ -1531,6 +1532,10 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$updated_order = wc_get_order( $order->get_id() );
 		$this->assertEquals( OrderStatus::ON_HOLD, $updated_order->get_status() );
 		$this->assertEquals( 'ch_mock', $updated_order->get_transaction_id() );
+
+		// The captured state is recorded on this first sighting of the charge — async-confirmed
+		// orders have no other writer for it, and refund paths depend on it.
+		$this->assertSame( 'yes', $updated_order->get_meta( '_stripe_charge_captured' ) );
 
 		// Verify the awaiting-payment note was added to the order.
 		$this->assert_order_has_note_containing( 'Stripe charge awaiting payment: ch_mock.', $updated_order->get_id() );
@@ -1703,6 +1708,130 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'three_d_secure' => [ 'three_d_secure' ],
 			'sepa_debit'     => [ WC_Stripe_Payment_Methods::SEPA_DEBIT ],
 		];
+	}
+
+	/**
+	 * Tests that charge.succeeded records the captured state for asynchronous payment
+	 * methods. Async-confirmed orders have no charge at checkout, so process_response()
+	 * never writes the meta and this webhook is its only writer.
+	 */
+	public function test_process_webhook_charge_succeeded_sets_captured_meta_for_async_order() {
+		$charge_id = 'py_mock123';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_status( OrderStatus::ON_HOLD );
+		$order->set_transaction_id( $charge_id );
+		$order->save();
+
+		$notification = (object) [
+			'type' => 'charge.succeeded',
+			'data' => (object) [
+				'object' => (object) [
+					'id'                     => $charge_id,
+					'captured'               => true,
+					'payment_method_details' => (object) [
+						'type' => WC_Stripe_Payment_Methods::ACH,
+					],
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
+
+		$reloaded = wc_get_order( $order->get_id() );
+		$this->assertSame( 'yes', $reloaded->get_meta( '_stripe_charge_captured' ) );
+		$this->assertSame( OrderStatus::PROCESSING, $reloaded->get_status() );
+	}
+
+	/**
+	 * Tests that a Stripe-Dashboard refund for an async-confirmed order — whose captured
+	 * meta was never written — reconciles the captured state from the charge payload and
+	 * records a refund, instead of cancelling the order as a voided pre-authorization.
+	 */
+	public function test_process_webhook_refund_reconciles_captured_state_from_charge_payload() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->set_transaction_id( 'py_123' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$notification = (object) [
+			'data' => (object) [
+				'object' => (object) [
+					'id'              => 'py_123',
+					'object'          => 'charge',
+					'captured'        => true,
+					'amount'          => 5000,
+					'amount_refunded' => 700,
+					'currency'        => 'usd',
+					'refunds'         => (object) [
+						'data' => [
+							(object) [
+								'id'                  => 're_async',
+								'amount'              => 700,
+								'balance_transaction' => 'txn_1',
+							],
+						],
+					],
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_refund( $notification );
+
+		$reloaded = wc_get_order( $order_id );
+
+		$this->assertSame( 'yes', $reloaded->get_meta( '_stripe_charge_captured' ) );
+		$this->assertSame( OrderStatus::PROCESSING, $reloaded->get_status() );
+
+		$refunds = $reloaded->get_refunds();
+		$this->assertCount( 1, $refunds );
+		$this->assertSame( 7.00, (float) $refunds[0]->get_amount() );
+		$this->assertSame( 're_async', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( $reloaded ) );
+	}
+
+	/**
+	 * Tests that a charge.refunded webhook for a genuinely uncaptured charge still cancels
+	 * the order as a voided pre-authorization (unchanged behavior).
+	 */
+	public function test_process_webhook_refund_cancels_order_for_voided_pre_auth() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_status( OrderStatus::ON_HOLD );
+		$order->set_transaction_id( 'ch_123' );
+		WC_Stripe_Order_Helper::get_instance()->set_stripe_charge_captured( $order, false );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$notification = (object) [
+			'data' => (object) [
+				'object' => (object) [
+					'id'              => 'ch_123',
+					'object'          => 'charge',
+					'captured'        => false,
+					'amount'          => 5000,
+					'amount_refunded' => 5000,
+					'currency'        => 'usd',
+					'refunds'         => (object) [
+						'data' => [
+							(object) [
+								'id'     => 're_void',
+								'amount' => 5000,
+							],
+						],
+					],
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_refund( $notification );
+
+		$reloaded = wc_get_order( $order_id );
+		$this->assertSame( OrderStatus::CANCELLED, $reloaded->get_status() );
+		$this->assertCount( 0, $reloaded->get_refunds() );
+		$this->assert_order_has_note_containing( 'voided from the Stripe Dashboard', $order_id );
 	}
 
 	/**
