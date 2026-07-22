@@ -91,6 +91,9 @@ const config = {
 				'**/blik.spec.js',
 				'**/becs.spec.js',
 				'**/isk.spec.js',
+				'**/sepa.spec.js',
+				'**/ideal.spec.js',
+				'**/bancontact.spec.js',
 			],
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
@@ -133,6 +136,21 @@ const config = {
 			name: 'optimized-checkout',
 			testMatch: '**/*optimized-checkout.spec.js',
 			dependencies: [ 'oc-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'eur-lpms-setup',
+			testMatch: '/eur-lpms.setup.js',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'eur-lpms',
+			testMatch: [
+				'**/sepa.spec.js',
+				'**/ideal.spec.js',
+				'**/bancontact.spec.js',
+			],
+			dependencies: [ 'eur-lpms-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 		{

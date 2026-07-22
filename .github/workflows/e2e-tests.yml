@@ -29,7 +29,7 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        project: ['default', 'isk', 'acss', 'optimized-checkout', 'blik', 'becs']
+        project: ['default', 'isk', 'acss', 'optimized-checkout', 'blik', 'becs', 'eur-lpms']
 
     name: E2E - ${{ matrix.project }} WP=latest, WC=latest, PHP=7.4
     steps:
