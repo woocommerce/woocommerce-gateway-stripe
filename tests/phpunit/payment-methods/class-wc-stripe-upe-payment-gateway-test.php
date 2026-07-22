@@ -1032,6 +1032,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return WC_Order
 	 */
 	private function arrange_paid_cart_gateway( string $cart_hash, string $billing_email, int $expected_charges ): WC_Order {
+		// The session outlives a single test, so a marker left by an earlier one would otherwise satisfy assertions here.
+		if ( WC()->session ) {
+			WC()->session->set( 'wc_stripe_paid_cart', null );
+		}
+
 		$mock_intent = (object) wp_parse_args(
 			[ 'payment_method' => 'pm_mock' ],
 			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
@@ -1231,6 +1236,53 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'cancelled' => [ OrderStatus::CANCELLED ],
 			'refunded'  => [ OrderStatus::REFUNDED ],
 			'failed'    => [ OrderStatus::FAILED ],
+		];
+	}
+
+	/**
+	 * Paying an existing order by its key — classic pay-for-order and Store API express checkout alike — must not
+	 * stamp the shopper's current cart as charged, or their next genuine checkout of the same items is cancelled.
+	 *
+	 * @dataProvider provide_order_key_scenarios
+	 *
+	 * @param bool $send_matching_key Whether the request carries the order's own key.
+	 * @param bool $expected_marker   Whether a marker is expected afterwards.
+	 * @return void
+	 */
+	public function test_settling_an_existing_order_by_key_records_no_marker( bool $send_matching_key, bool $expected_marker ): void {
+		$order    = $this->arrange_paid_cart_gateway( 'existing_order_hash', 'shopper@example.com', 1 );
+		$original = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : null; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+		$_GET['key'] = $send_matching_key ? $order->get_order_key() : 'wc_order_unrelated';
+
+		try {
+			$this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			if ( null === $original ) {
+				unset( $_GET['key'] );
+			} else {
+				$_GET['key'] = $original;
+			}
+		}
+
+		$this->assertNotNull( wc_get_order( $order->get_id() )->get_date_paid( 'edit' ), 'The order itself must still be paid.' );
+
+		if ( $expected_marker ) {
+			$this->assertIsArray( WC()->session->get( 'wc_stripe_paid_cart' ) );
+		} else {
+			$this->assertNull( WC()->session->get( 'wc_stripe_paid_cart' ), 'Settling an existing order by key must not record a paid-cart marker.' );
+		}
+	}
+
+	/**
+	 * @return array<string, array{0: bool, 1: bool}>
+	 */
+	public function provide_order_key_scenarios(): array {
+		return [
+			// The order's own key proves the request settles that existing order, not the session cart.
+			'matching key skips the marker' => [ true, false ],
+			// A key that isn't this order's is treated as an ordinary checkout, so a stale param can't disable the guard.
+			'unrelated key still records'   => [ false, true ],
 		];
 	}
 

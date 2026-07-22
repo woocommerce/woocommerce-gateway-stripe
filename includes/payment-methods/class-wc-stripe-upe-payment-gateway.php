@@ -1454,7 +1454,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return array|null An array with result of payment and redirect URL, or nothing.
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
-		$duplicate_response = $this->maybe_prevent_duplicate_charge( $order_id );
+		// Decided here because the signals it reads decay once payment succeeds: needs_payment() flips, so a paid
+		// order-pay stops looking like one, and the marker is written from the finally block below.
+		$is_paying_for_session_cart = $this->is_paying_for_session_cart( $order_id );
+
+		$duplicate_response = $this->maybe_prevent_duplicate_charge( $order_id, $is_paying_for_session_cart );
 
 		if ( null !== $duplicate_response ) {
 			return $duplicate_response;
@@ -1482,8 +1486,47 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			return $this->process_payment_with_deferred_intent( $order_id );
 		} finally {
-			$this->handle_paid_order_after_checkout( $order_id );
+			$this->handle_paid_order_after_checkout( $order_id, $is_paying_for_session_cart );
 		}
+	}
+
+	/**
+	 * Tells whether this request is paying for the cart the shopper is holding, rather than settling an existing order.
+	 *
+	 * Only meaningful before payment is taken; see the call site in {@see process_payment()}.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param int $order_id ID of the order being processed.
+	 * @return bool
+	 */
+	private function is_paying_for_session_cart( int $order_id ): bool {
+		return ! $this->is_changing_payment_method_for_subscription()
+			&& ! $this->is_on_add_payment_method_page()
+			&& ! $this->is_settling_an_existing_order( $order_id );
+	}
+
+	/**
+	 * Tells whether this request is settling an order that already exists, as pay-for-order and express checkout do.
+	 *
+	 * Keyed on the order key rather than the request path: paying by key is how WooCommerce settles an existing order
+	 * on both the classic order-pay page and the Store API, so this catches express checkout too, which the classic
+	 * is_valid_pay_for_order_endpoint() detector misses. Such an order's cart hash is its original purchase's.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param int $order_id ID of the order being processed.
+	 * @return bool
+	 */
+	private function is_settling_an_existing_order( int $order_id ): bool {
+		if ( empty( $_GET['key'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return false;
+		}
+
+		$order = wc_get_order( $order_id );
+
+		return $order instanceof WC_Order
+			&& hash_equals( $order->get_order_key(), wc_clean( wp_unslash( $_GET['key'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	}
 
 	/**
@@ -1500,15 +1543,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 10.9.0
 	 *
-	 * @param int $order_id ID of the order that was processed.
+	 * @param int  $order_id ID of the order that was processed.
+	 * @param bool $is_paying_for_session_cart Whether this request was paying the shopper's cart, decided before payment.
 	 * @return void
 	 */
-	private function handle_paid_order_after_checkout( int $order_id ): void {
-		// These flows pay an existing order or no order at all, so the shopper's cart isn't what was charged and the
-		// order's hash is the original purchase's.
-		if ( $this->is_changing_payment_method_for_subscription()
-			|| $this->is_valid_pay_for_order_endpoint()
-			|| $this->is_on_add_payment_method_page() ) {
+	private function handle_paid_order_after_checkout( int $order_id, bool $is_paying_for_session_cart ): void {
+		// Settling an existing order means the shopper's cart isn't what was charged and the order's hash is the
+		// original purchase's.
+		if ( ! $is_paying_for_session_cart ) {
 			return;
 		}
 
@@ -1530,15 +1572,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 10.9.0
 	 *
-	 * @param int $order_id ID of the order being processed.
+	 * @param int  $order_id ID of the order being processed.
+	 * @param bool $is_paying_for_session_cart Whether this request is paying the shopper's cart.
 	 * @return array|null A response for the already-paid order, or null to carry on with payment.
 	 */
-	private function maybe_prevent_duplicate_charge( int $order_id ): ?array {
-		// These flows pay an existing order or no order at all, so the shopper's cart isn't what's being paid for and a hash
-		// match would prove nothing about it. Blocking a pay-for-order would strand a customer paying a legitimate invoice.
-		if ( $this->is_changing_payment_method_for_subscription()
-			|| $this->is_valid_pay_for_order_endpoint()
-			|| $this->is_on_add_payment_method_page() ) {
+	private function maybe_prevent_duplicate_charge( int $order_id, bool $is_paying_for_session_cart ): ?array {
+		// Settling an existing order means a hash match would prove nothing, and blocking one would strand a customer
+		// paying a legitimate invoice.
+		if ( ! $is_paying_for_session_cart ) {
 			return null;
 		}
 
