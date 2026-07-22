@@ -1957,15 +1957,27 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		} else {
 			$succeeded = ( true === $result );
 		}
+		// Link the payment in the mode it was actually made in, which isn't necessarily the gateway's current mode.
+		$is_test_mode = empty( $intent->livemode );
+		$intent_url   = WC_Stripe_Helper::get_transaction_url_for_id( $intent_id, $is_test_mode );
+		$charge_url   = WC_Stripe_Helper::get_transaction_url_for_id( $charge_id, $is_test_mode );
+		$reference    = sprintf(
+			/* translators: 1: opening anchor tag for the PaymentIntent, 2: Stripe PaymentIntent ID, 3: opening anchor tag for the charge, 4: Stripe charge ID, 5: closing anchor tag. */
+			__( 'PaymentIntent: %1$s%2$s%5$s. Charge: %3$s%4$s%5$s.', 'woocommerce-gateway-stripe' ),
+			'<a href="' . esc_url( $intent_url ) . '" target="_blank" rel="noopener noreferrer">',
+			esc_html( $intent_id ),
+			'<a href="' . esc_url( $charge_url ) . '" target="_blank" rel="noopener noreferrer">',
+			esc_html( $charge_id ),
+			'</a>'
+		);
+
 		if ( ! $succeeded ) {
 			$error_message = is_wp_error( $result ) ? $result->get_error_message() : '';
 			$order->add_order_note(
-				trim(
-					sprintf(
-						/* translators: %s: Stripe error message. */
-						__( 'Stripe took a payment after this order was cancelled, but the automatic refund failed. Please refund it manually in the Stripe dashboard. %s', 'woocommerce-gateway-stripe' ),
-						$error_message
-					)
+				sprintf(
+					/* translators: %s: Stripe error message (may be empty) followed by the PaymentIntent and charge IDs linked to the Stripe dashboard. */
+					__( 'Stripe took a payment after this order was cancelled, but the automatic refund failed. Please refund it manually in the Stripe dashboard. %s', 'woocommerce-gateway-stripe' ),
+					trim( $error_message . ' ' . $reference )
 				)
 			);
 			WC_Stripe_Logger::error( "Failed to refund cancelled order {$order->get_id()} (PaymentIntent {$intent_id}) after a late Stripe payment: {$error_message}" );
@@ -1978,19 +1990,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( $is_authorization ) {
 			$order->add_order_note(
 				sprintf(
-					/* translators: 1: Stripe PaymentIntent ID, 2: Stripe charge ID. */
-					__( 'Stripe authorised this payment after the order was cancelled, so the authorisation was voided to release the shopper\'s funds. PaymentIntent: %1$s. Charge: %2$s.', 'woocommerce-gateway-stripe' ),
-					$intent_id,
-					$charge_id
+					/* translators: %s: Stripe PaymentIntent and charge IDs, linked to the Stripe dashboard. */
+					__( 'Stripe authorised this payment after the order was cancelled, so the authorisation was voided to release the shopper\'s funds. %s', 'woocommerce-gateway-stripe' ),
+					$reference
 				)
 			);
 		} else {
 			$order->add_order_note(
 				sprintf(
-					/* translators: 1: Stripe PaymentIntent ID, 2: Stripe charge ID. */
-					__( 'This payment was received in Stripe after the order was cancelled, so it was automatically refunded. PaymentIntent: %1$s. Charge: %2$s.', 'woocommerce-gateway-stripe' ),
-					$intent_id,
-					$charge_id
+					/* translators: %s: Stripe PaymentIntent and charge IDs, linked to the Stripe dashboard. */
+					__( 'This payment was received in Stripe after the order was cancelled, so it was automatically refunded. %s', 'woocommerce-gateway-stripe' ),
+					$reference
 				)
 			);
 		}

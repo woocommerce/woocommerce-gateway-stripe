@@ -525,6 +525,76 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The cancelled-order notes link both the PaymentIntent and the charge to the Stripe dashboard,
+	 * in the mode the intent itself was created in rather than the gateway's configured mode.
+	 *
+	 * @param string $intent_status         PaymentIntent status.
+	 * @param bool   $livemode              The intent's `livemode` value, or null to omit it entirely.
+	 * @param mixed  $refund_return         The value process_refund() returns.
+	 * @param string $confirm_intent_status Status of the intent re-read after a void, or null for no intent.
+	 * @param string $expected_base         Dashboard base URL both IDs must be linked against.
+	 * @dataProvider provide_cancelled_order_note_dashboard_links
+	 */
+	public function test_cancelled_order_notes_link_to_stripe_dashboard( $intent_status, $livemode, $refund_return, $confirm_intent_status, $expected_base ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->save();
+
+		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
+
+		$intent_overrides = [ 'status' => $intent_status ];
+		if ( null !== $livemode ) {
+			$intent_overrides['livemode'] = $livemode;
+		}
+		$intent = (object) array_merge( self::MOCK_PAYMENT_INTENT, $intent_overrides );
+		$charge = (object) array_merge(
+			self::MOCK_PAYMENT_INTENT['charges']['data'][0],
+			[
+				'amount'          => 1000,
+				'amount_refunded' => 0,
+				'currency'        => 'usd',
+			]
+		);
+
+		$confirm_intent = null === $confirm_intent_status
+			? null
+			: (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'status' => $confirm_intent_status ] );
+
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
+
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturnOnConsecutiveCalls( $intent, $confirm_intent );
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+		$this->mock_webhook_handler->method( 'process_refund' )->willReturn( $refund_return );
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+		$note = $this->get_latest_order_note_content( wc_get_order( $order->get_id() ) );
+
+		$this->assertStringContainsString( 'href="' . $expected_base . 'pi_mock"', $note );
+		$this->assertStringContainsString( 'href="' . $expected_base . 'ch_mock"', $note );
+	}
+
+	/**
+	 * Data provider for test_cancelled_order_notes_link_to_stripe_dashboard.
+	 *
+	 * @return array[]
+	 */
+	public function provide_cancelled_order_note_dashboard_links() {
+		$live = 'https://dashboard.stripe.com/payments/';
+		$test = 'https://dashboard.stripe.com/test/payments/';
+
+		return [
+			// intent_status, livemode, refund_return, confirm_intent_status, expected_base
+			'live refund links live dashboard'    => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, null, $live ],
+			'test refund links test dashboard'    => [ WC_Stripe_Intent_Status::SUCCEEDED, false, true, null, $test ],
+			'missing livemode falls back to test' => [ WC_Stripe_Intent_Status::SUCCEEDED, null, true, null, $test ],
+			'voided authorisation note is linked' => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, false, false, WC_Stripe_Intent_Status::CANCELED, $test ],
+			'failed refund note is linked'        => [ WC_Stripe_Intent_Status::SUCCEEDED, false, new WP_Error( 'stripe_error', 'boom' ), null, $test ],
+		];
+	}
+
+	/**
 	 * Asserts that an order has at least one note containing the given substring.
 	 *
 	 * @param WC_Order $order  The order to inspect.
