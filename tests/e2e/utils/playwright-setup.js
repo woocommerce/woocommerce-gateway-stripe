@@ -1,10 +1,8 @@
-import path from 'path';
-import fs from 'fs';
-
-import stripe from 'stripe';
-
 import { expect } from '@playwright/test';
-
+import fs from 'fs';
+import path from 'path';
+import stripe from 'stripe';
+import { fileURLToPath } from 'url';
 import { user } from './index.js';
 
 const {
@@ -110,8 +108,9 @@ export const installPluginFromRepository = async (
 
 	const pluginZip = `${ pluginSlug }.zip`;
 	const pluginZipPath = path.resolve(
-		new URL( '.', import.meta.url ).pathname,
-		`../../tmp/${ pluginZip }`
+		fileURLToPath( import.meta.url ),
+		'../../tmp',
+		pluginZip
 	);
 
 	// Download the needed plugin (lazy-loaded to avoid requiring axios in QIT).

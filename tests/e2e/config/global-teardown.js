@@ -1,4 +1,5 @@
 import path from 'path';
+import { fileURLToPath } from 'url';
 import fs from 'fs';
 
 import { chromium } from '@playwright/test';
@@ -49,8 +50,8 @@ export default async ( config ) => {
 	}
 
 	// Delete the tmp folder.
-	const __dirname = path.dirname( new URL( import.meta.url ).pathname );
-	fs.rmSync( path.resolve( __dirname, `../../tmp` ), {
+	const __dirname = path.dirname( fileURLToPath( import.meta.url ) );
+	fs.rmSync( path.resolve( __dirname, '../../tmp' ), {
 		recursive: true,
 		force: true,
 	} );
