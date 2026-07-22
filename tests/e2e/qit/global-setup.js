@@ -8,6 +8,10 @@ import {
 	loginAdminAndSaveState,
 	createApiTokens,
 } from '../utils/playwright-setup.js';
+import {
+	deleteStripeWebhooksByURL,
+	getStripeWebhookURL,
+} from '../utils/stripe-webhooks.js';
 
 const ADMIN_USER =
 	process.env.QIT_ADMIN_USERNAME || process.env.ADMIN_USER || 'admin';
@@ -78,16 +82,10 @@ export default async function globalSetup( config ) {
 	if ( STRIPE_SECRET_KEY ) {
 		try {
 			const stripeClient = new Stripe( STRIPE_SECRET_KEY );
-			const webhookURL = `${ baseURL }?wc-api=wc_stripe`;
+			const webhookURL = getStripeWebhookURL( baseURL );
 
-			// Clean up previous webhooks for this URL.
-			const existingWebhooks = await stripeClient.webhookEndpoints.list();
-			const matching = existingWebhooks.data.filter(
-				( w ) => w.url === webhookURL
-			);
-			for ( const webhook of matching ) {
-				await stripeClient.webhookEndpoints.del( webhook.id );
-			}
+			// Clean up any previous webhooks for this URL.
+			await deleteStripeWebhooksByURL( stripeClient, webhookURL );
 
 			// Create a new webhook.
 			const webhookEndpoint = await stripeClient.webhookEndpoints.create(
