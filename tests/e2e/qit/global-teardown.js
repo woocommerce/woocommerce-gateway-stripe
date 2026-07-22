@@ -63,11 +63,9 @@ export default async function globalTeardown( config ) {
 			const stripeClient = new Stripe( STRIPE_SECRET_KEY );
 			const deleted = await deleteStripeWebhooksByURL(
 				stripeClient,
-				getStripeWebhookURL( baseURL )
+				getStripeWebhookURL( baseURL ),
+				true
 			);
-			if ( deleted > 0 ) {
-				console.log( '✔ Deleted Stripe webhook(s) successfully.' );
-			}
 		} catch ( e ) {
 			console.error( 'Failed to delete Stripe webhook:', e );
 		}

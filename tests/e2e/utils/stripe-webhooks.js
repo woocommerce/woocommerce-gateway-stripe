@@ -15,30 +15,35 @@ export const getStripeWebhookURL = ( baseURL ) =>
  *
  * @param {Object} stripeClient An initialised Stripe client.
  * @param {string} webhookURL   The webhook endpoint URL to match.
+ * @param {boolean} verbose     Whether to log messages to the console. Defaults to false.
  * @return {Promise<number>} The number of endpoints deleted.
  */
-export const deleteStripeWebhooksByURL = async ( stripeClient, webhookURL ) => {
-	let haveMore = true;
+export const deleteStripeWebhooksByURL = async (
+	stripeClient,
+	webhookURL,
+	verbose = false
+) => {
 	let count = 0;
-	let startAfter = undefined;
+	const webhookEndpoints = stripeClient.webhookEndpoints.list( {
+		limit: 100,
+	} );
 
-	// Ensure we loop over all webhooks. We shouldn't get >100 webhooks
-	// for an account, but we should handle that edge case.
-	while ( haveMore ) {
-		const { data, has_more: haveMore } =
-			await stripeClient.webhookEndpoints.list( {
-				limit: 100,
-				starting_after: startAfter,
-			} );
-		const matching = data.filter( ( w ) => w.url === webhookURL );
-		count += matching.length;
-
-		for ( const webhook of matching ) {
+	await webhookEndpoints.autoPagingEach( async ( webhook ) => {
+		if ( webhook.url === webhookURL ) {
 			await stripeClient.webhookEndpoints.del( webhook.id );
+			count++;
 		}
+	} );
 
-		if ( haveMore ) {
-			startAfter = data.pop()?.id;
+	if ( verbose ) {
+		if ( count > 0 ) {
+			console.log(
+				`\u2714 Deleted existing Stripe webhooks for the site: ${ count } deleted.`
+			);
+		} else {
+			console.log(
+				'\u2714 No existing Stripe webhooks exist for this site.'
+			);
 		}
 	}
 

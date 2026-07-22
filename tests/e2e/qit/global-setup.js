@@ -80,7 +80,7 @@ export default async function globalSetup( config ) {
 			const webhookURL = getStripeWebhookURL( baseURL );
 
 			// Clean up all previous webhooks for this URL to ensure we have a clean starting state.
-			await deleteStripeWebhooksByURL( stripeClient, webhookURL );
+			await deleteStripeWebhooksByURL( stripeClient, webhookURL, true );
 
 			const webhookEndpoint = await stripeClient.webhookEndpoints.create(
 				{
