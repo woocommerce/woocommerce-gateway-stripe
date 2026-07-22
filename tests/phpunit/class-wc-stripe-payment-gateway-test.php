@@ -720,7 +720,172 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
 		$this->assertTrue( $result );
 
+		// A direct call with no WC refund record (e.g. voiding via cancel_payment) must not fatal.
+		$this->assertCount( 0, wc_get_order( $order_id )->get_refunds() );
+
 		remove_filter( 'pre_http_request', $callback );
+	}
+
+	/**
+	 * Tests that process_refund stores the Stripe refund ID on the WC refund record.
+	 */
+	public function test_process_refund_stores_refund_id_on_refund_record() {
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		// WC core creates and saves the refund record before invoking the gateway.
+		$refund = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 10.00,
+				'reason'   => 'Customer requested',
+			]
+		);
+		$this->assertNotWPError( $refund );
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 're_123',
+						'object'   => 'refund',
+						'amount'   => 1000,
+						'currency' => 'usd',
+						'charge'   => 'ch_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
+		$this->assertTrue( $result );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$reloaded_refund = wc_get_order( $refund->get_id() );
+		$this->assertSame( 're_123', $reloaded_refund->get_meta( $refund_meta_key ) );
+		$this->assertSame( 're_123', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( wc_get_order( $order_id ) ) );
+	}
+
+	/**
+	 * Tests that multiple partial refunds each keep their own Stripe refund ID.
+	 */
+	public function test_process_refund_multiple_refunds_keep_distinct_ids() {
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$mock_refund_id     = 're_1';
+		$mock_refund_amount = 500;
+
+		$callback = function ( $preempt, $request_args, $url ) use ( &$mock_refund_id, &$mock_refund_amount ) {
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => $mock_refund_id,
+						'object'   => 'refund',
+						'amount'   => $mock_refund_amount,
+						'currency' => 'usd',
+						'charge'   => 'ch_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$wc_refund_1 = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 5.00,
+			]
+		);
+		$this->assertNotWPError( $wc_refund_1 );
+		$this->assertTrue( $this->gateway->process_refund( $order_id, 5.00 ) );
+
+		$mock_refund_id     = 're_2';
+		$mock_refund_amount = 700;
+
+		$wc_refund_2 = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 7.00,
+			]
+		);
+		$this->assertNotWPError( $wc_refund_2 );
+		$this->assertTrue( $this->gateway->process_refund( $order_id, 7.00 ) );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$this->assertSame( 're_1', wc_get_order( $wc_refund_1->get_id() )->get_meta( $refund_meta_key ) );
+		$this->assertSame( 're_2', wc_get_order( $wc_refund_2->get_id() )->get_meta( $refund_meta_key ) );
+		$this->assertSame( 're_2', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( wc_get_order( $order_id ) ) );
+	}
+
+	/**
+	 * Tests that a refund record whose amount does not match the Stripe response is left untagged.
+	 */
+	public function test_process_refund_skips_refund_record_on_amount_mismatch() {
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		// Record for a different amount than what Stripe reports refunded.
+		$refund = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 5.00,
+			]
+		);
+		$this->assertNotWPError( $refund );
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 're_123',
+						'object'   => 'refund',
+						'amount'   => 1000,
+						'currency' => 'usd',
+						'charge'   => 'ch_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00 );
+		$this->assertTrue( $result );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$this->assertSame( '', wc_get_order( $refund->get_id() )->get_meta( $refund_meta_key ) );
+		$this->assertSame( 're_123', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( wc_get_order( $order_id ) ) );
 	}
 
 	/**

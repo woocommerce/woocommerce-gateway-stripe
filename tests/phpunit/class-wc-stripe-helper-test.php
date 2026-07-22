@@ -386,6 +386,118 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `get_order_by_refund_id`.
+	 *
+	 * The lookup must always resolve to the PARENT order: the refund ID may live on the
+	 * parent's meta (historical orders) or on the refund record's meta (per-refund storage).
+	 *
+	 * @param string $target         Which object carries the refund ID meta. One of 'order', 'refund', or 'none'.
+	 * @param bool   $use_hpos       Whether to enable or disable HPOS.
+	 * @param bool   $expect_success Whether the parent order should be returned.
+	 * @dataProvider provide_test_get_order_by_refund_id
+	 */
+	public function test_get_order_by_refund_id( string $target, bool $use_hpos, bool $expect_success ): void {
+		$previous_hpos_setting = get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		$new_hpos_setting      = $use_hpos ? 'yes' : 'no';
+
+		try {
+			// Allow HPOS to be toggled regardless of database state.
+			add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $new_hpos_setting );
+			}
+
+			$order           = WC_Helper_Order::create_order();
+			$order_id        = $order->get_id();
+			$refund_id       = 're_lookup_mock';
+			$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+
+			if ( 'order' === $target ) {
+				WC_Stripe_Order_Helper::get_instance()->update_stripe_refund_id( $order, $refund_id );
+				$order->save_meta_data();
+			} elseif ( 'refund' === $target ) {
+				$refund = wc_create_refund(
+					[
+						'amount'   => $order->get_total(),
+						'order_id' => $order_id,
+						'reason'   => 'Test refund',
+					]
+				);
+
+				$refund->update_meta_data( $refund_meta_key, $refund_id );
+				$refund->save_meta_data();
+			}
+
+			$found = WC_Stripe_Helper::get_order_by_refund_id( $refund_id );
+
+			if ( $expect_success ) {
+				$this->assertInstanceOf( WC_Order::class, $found );
+				$this->assertSame( $order_id, $found->get_id() );
+			} else {
+				$this->assertFalse( $found );
+			}
+		} finally {
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $previous_hpos_setting );
+			}
+			remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+		}
+	}
+
+	/**
+	 * An empty refund ID must return `false` early, even when an order carries an
+	 * empty-string `_stripe_refund_id` meta value that a meta query would match.
+	 */
+	public function test_get_order_by_refund_id_returns_false_for_empty_id(): void {
+		$order = WC_Helper_Order::create_order();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_refund_id( $order, '' );
+		$order->save_meta_data();
+
+		$this->assertFalse( WC_Stripe_Helper::get_order_by_refund_id( '' ) );
+	}
+
+	/**
+	 * Data provider for `test_get_order_by_refund_id`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_order_by_refund_id(): array {
+		return [
+			'meta on parent, legacy'        => [
+				'target'         => 'order',
+				'use_hpos'       => false,
+				'expect_success' => true,
+			],
+			'meta on parent, HPOS'          => [
+				'target'         => 'order',
+				'use_hpos'       => true,
+				'expect_success' => true,
+			],
+			'meta on refund record, legacy' => [
+				'target'         => 'refund',
+				'use_hpos'       => false,
+				'expect_success' => true,
+			],
+			'meta on refund record, HPOS'   => [
+				'target'         => 'refund',
+				'use_hpos'       => true,
+				'expect_success' => true,
+			],
+			'unknown refund id, legacy'     => [
+				'target'         => 'none',
+				'use_hpos'       => false,
+				'expect_success' => false,
+			],
+			'unknown refund id, HPOS'       => [
+				'target'         => 'none',
+				'use_hpos'       => true,
+				'expect_success' => false,
+			],
+		];
+	}
+
+	/**
 	 * Test for `get_order_by_setup_intent_id`.
 	 *
 	 * @param string|null $intent_target  Which object to save the SetupIntent ID on. One of null, 'refund', or 'order'.
