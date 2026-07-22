@@ -19,7 +19,7 @@ We use [Playwright](https://playwright.dev/) as our test runner.
     - [Pre-requisites for QIT](#pre-requisites-for-qit)
     - [Environment Setup for QIT](#environment-setup-for-qit)
     - [Running QIT tests](#running-qit-tests)
-  
+
 ## Running E2E Tests
 
 ### Pre-requisites
@@ -137,7 +137,7 @@ You can also run the e2e tests using QIT (the Quality Insights Toolkit).
 ### Environment Setup for QIT
 
 - Copy the file `/tests/e2e/qit/qit.env.example` to `/tests/e2e/qit/qit.env`.
-- Edit the variables in the `local.env` file and replace the values with your Stripe test keys.
+- Edit the variables in the `qit.env` file and replace the values with your Stripe test keys.
 
 If you want to run the Becs Direct Debit or BLIKS e2e tests, you need to have Stripe test keys for an Australian account (for Becs) or a Polish account (for BLIK). In these cases, you need to copy `/tests/e2e/qit/qit.au.env.example` to `/tests/e2e/qit/qit.au.env` for Becs or `/tests/e2e/qit/qit.pl.env.example` to `/tests/e2e/qit/qit.pl.env` for BLIK, and then replace the key values with your test keys.
 
