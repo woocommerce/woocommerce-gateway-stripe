@@ -1192,17 +1192,33 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 *
 	 * @return void
 	 */
-	public function test_process_payment_allows_a_repurchase_after_the_thankyou_page(): void {
+	public function test_process_payment_allows_a_repurchase_after_the_confirmation_page(): void {
 		$first_order = $this->arrange_paid_cart_gateway( 'dupe_hash', 'shopper@example.com', 2 );
 		$this->mock_gateway->process_payment( $first_order->get_id() );
 
-		// The shopper reaching the confirmation page is what tells the guard the next same-cart order is deliberate.
-		do_action( 'woocommerce_thankyou', $first_order->get_id() );
+		// Loading the order-received page is what tells the guard the next same-cart order is deliberate.
+		$this->arrive_at_order_received_page( $first_order->get_id() );
 
 		$repurchase = $this->create_checkout_order( 'dupe_hash', 'shopper@example.com' );
 		$this->mock_gateway->process_payment( $repurchase->get_id() );
 
 		$this->assertNotNull( wc_get_order( $repurchase->get_id() )->get_date_paid( 'edit' ), 'A repurchase after confirmation must be charged, not treated as a duplicate.' );
+	}
+
+	/**
+	 * Drives the marker-clearing hook the way a real order-received page load does: through the endpoint query var,
+	 * not woocommerce_thankyou, so the test exercises the template-independent path.
+	 *
+	 * @param int $order_id Order whose confirmation page is being simulated.
+	 * @return void
+	 */
+	private function arrive_at_order_received_page( int $order_id ): void {
+		set_query_var( 'order-received', $order_id );
+		try {
+			$this->mock_gateway->clear_paid_cart_marker_on_confirmation();
+		} finally {
+			set_query_var( 'order-received', '' );
+		}
 	}
 
 	/**
@@ -1291,12 +1307,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 *
 	 * @return void
 	 */
-	public function test_thankyou_for_another_order_keeps_the_marker(): void {
+	public function test_confirmation_for_another_order_keeps_the_marker(): void {
 		$first_order = $this->arrange_paid_cart_gateway( 'dupe_hash', 'shopper@example.com', 1 );
 		$this->mock_gateway->process_payment( $first_order->get_id() );
 
 		// A different order's confirmation page is not proof this cart was seen, so the guard must still fire.
-		do_action( 'woocommerce_thankyou', $first_order->get_id() + 1000 );
+		$this->arrive_at_order_received_page( $first_order->get_id() + 1000 );
 
 		$second_order = $this->create_checkout_order( 'dupe_hash', 'shopper@example.com' );
 		$this->mock_gateway->process_payment( $second_order->get_id() );
