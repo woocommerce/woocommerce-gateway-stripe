@@ -35,7 +35,16 @@ class WC_Stripe_Settings_Controller {
 	public function __construct( WC_Stripe_Account $account, ?WC_Stripe_Payment_Gateway $gateway = null ) {
 		$this->account = $account;
 		$this->gateway = $gateway;
+	}
 
+	/**
+	 * Registers the controller's hooks; called once by the bootstrap so
+	 * instantiation alone never stacks duplicate callbacks.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );
 		add_action( 'woocommerce_order_item_add_action_buttons', [ $this, 'hide_refund_button_for_uncaptured_orders' ] );

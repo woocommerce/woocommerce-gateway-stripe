@@ -24,7 +24,16 @@ class WC_Stripe_Plugins_Page_Controller {
 	 */
 	public function __construct( WC_Stripe_Account $account ) {
 		$this->account = $account;
+	}
 
+	/**
+	 * Registers the controller's hooks; called once by the bootstrap so
+	 * instantiation alone never stacks duplicate callbacks.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
 		add_action( 'admin_footer', [ $this, 'render_container' ] );
 		add_filter( 'plugin_row_meta', [ $this, 'add_release_notes_link' ], 10, 2 );

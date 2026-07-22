@@ -117,7 +117,7 @@ class WC_Stripe {
 
 		if ( is_admin() && self::$instance === $this ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-privacy.php';
-			new WC_Stripe_Privacy();
+			( new WC_Stripe_Privacy() )->register_hooks();
 		}
 
 		if ( file_exists( WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php' ) ) {
@@ -197,7 +197,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-intent-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-inbox-notes.php';
 		if ( self::$instance === $this ) {
-			new WC_Stripe_Inbox_Notes();
+			( new WC_Stripe_Inbox_Notes() )->register_hooks();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
@@ -227,7 +227,7 @@ class WC_Stripe {
 		if ( is_admin() ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
 			if ( self::$instance === $this ) {
-				new WC_Stripe_Admin_Notices();
+				( new WC_Stripe_Admin_Notices() )->register_hooks();
 			}
 
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-settings-controller.php';
@@ -236,41 +236,41 @@ class WC_Stripe {
 			if ( in_array( $area, [ 'express_checkout', 'payment_requests' ], true ) ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-express-checkout-controller.php';
 				if ( self::$instance === $this ) {
-					new WC_Stripe_Express_Checkout_Controller();
+					( new WC_Stripe_Express_Checkout_Controller() )->register_hooks();
 				}
 			} elseif ( 'amazon_pay' === $area ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-amazon-pay-controller.php';
 				if ( self::$instance === $this ) {
-					new WC_Stripe_Amazon_Pay_Controller();
+					( new WC_Stripe_Amazon_Pay_Controller() )->register_hooks();
 				}
 			} elseif ( 'link' === $area ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-link-controller.php';
 				if ( self::$instance === $this ) {
-					new WC_Stripe_Link_Controller();
+					( new WC_Stripe_Link_Controller() )->register_hooks();
 				}
 			} elseif ( self::$instance === $this ) {
-				new WC_Stripe_Settings_Controller( $this->account );
+				( new WC_Stripe_Settings_Controller( $this->account ) )->register_hooks();
 			}
 
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-payment-gateways-controller.php';
 			if ( self::$instance === $this ) {
-				new WC_Stripe_Payment_Gateways_Controller( $this->account );
+				( new WC_Stripe_Payment_Gateways_Controller( $this->account ) )->register_hooks();
 			}
 
 			if ( self::$instance === $this ) {
-				new WC_Stripe_Plugins_Page_Controller( $this->account );
+				( new WC_Stripe_Plugins_Page_Controller( $this->account ) )->register_hooks();
 			}
 
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-command-palette-controller.php';
 			if ( self::$instance === $this ) {
-				new WC_Stripe_Command_Palette_Controller();
+				( new WC_Stripe_Command_Palette_Controller() )->register_hooks();
 			}
 
 			if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-subscription-detached-bulk-action.php';
 
 				if ( self::$instance === $this ) {
-					new WC_Stripe_Subscription_Detached_Bulk_Action();
+					( new WC_Stripe_Subscription_Detached_Bulk_Action() )->register_hooks();
 				}
 			}
 		}
@@ -298,7 +298,7 @@ class WC_Stripe {
 		}
 
 		if ( self::$instance === $this ) {
-			new WC_Stripe_UPE_Compatibility_Controller();
+			( new WC_Stripe_UPE_Compatibility_Controller() )->register_hooks();
 		}
 
 		if ( self::$instance === $this ) {

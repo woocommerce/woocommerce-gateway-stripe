@@ -53,6 +53,16 @@ class WC_Stripe_Admin_Notices {
 	 * @since 4.1.0
 	 */
 	public function __construct() {
+	}
+
+	/**
+	 * Registers the notice hooks; called once by the bootstrap so
+	 * instantiation alone never stacks duplicate callbacks.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		add_action( 'admin_notices', [ $this, 'admin_notices' ] );
 		add_action( 'wp_loaded', [ $this, 'hide_notices' ] );
 	}

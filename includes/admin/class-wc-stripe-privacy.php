@@ -9,7 +9,17 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	 */
 	public function __construct() {
 		parent::__construct();
+	}
 
+	/**
+	 * Registers this class's own hooks; called once by the bootstrap so
+	 * instantiation alone never stacks duplicate callbacks. The parent
+	 * WC_Abstract_Privacy constructor still registers its own machinery.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		add_action( 'init', [ $this, 'register_erasers_exporters' ] );
 		add_filter( 'woocommerce_get_settings_account', [ $this, 'account_settings' ] );
 	}
