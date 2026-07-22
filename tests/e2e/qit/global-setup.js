@@ -25,14 +25,11 @@ export default async function globalSetup( config ) {
 	const { baseURL, userAgent } = config.projects[ 0 ].use;
 	const stateDir = config.projects[ 0 ].use.stateDir || './results/storage/';
 
-	// Ensure the storage directory exists.
 	const resolvedStateDir = path.resolve( stateDir );
 	fs.mkdirSync( resolvedStateDir, { recursive: true } );
 
-	// Used throughout tests for authentication.
 	process.env.ADMINSTATE = path.join( resolvedStateDir, 'adminState.json' );
 
-	// Clear out the previous saved state.
 	try {
 		fs.unlinkSync( process.env.ADMINSTATE );
 		console.log( 'Admin state file deleted successfully.' );
@@ -50,7 +47,7 @@ export default async function globalSetup( config ) {
 	const adminContext = await browser.newContext( contextOptions );
 	const adminPage = await adminContext.newPage();
 
-	// 1. Login as admin and save session state.
+	// Create a valid admin user session so we can (re)use the session for any admin UI actions during tests.
 	try {
 		await loginAdminAndSaveState( {
 			page: adminPage,
@@ -67,7 +64,6 @@ export default async function globalSetup( config ) {
 		process.exit( 1 );
 	}
 
-	// 2. Create WC REST API tokens via browser automation.
 	const apiTokensPage = await adminContext.newPage();
 	try {
 		await createApiTokens( apiTokensPage );
@@ -78,16 +74,14 @@ export default async function globalSetup( config ) {
 		process.exit( 1 );
 	}
 
-	// 3. Create Stripe webhook and update the webhook secret in WordPress.
 	if ( STRIPE_SECRET_KEY ) {
 		try {
 			const stripeClient = new Stripe( STRIPE_SECRET_KEY );
 			const webhookURL = getStripeWebhookURL( baseURL );
 
-			// Clean up any previous webhooks for this URL.
+			// Clean up all previous webhooks for this URL to ensure we have a clean starting state.
 			await deleteStripeWebhooksByURL( stripeClient, webhookURL );
 
-			// Create a new webhook.
 			const webhookEndpoint = await stripeClient.webhookEndpoints.create(
 				{
 					url: webhookURL,
@@ -98,7 +92,6 @@ export default async function globalSetup( config ) {
 
 			console.log( '\u2714 Created Stripe webhook successfully.' );
 
-			// Update the webhook secret in WordPress via WP-CLI.
 			const envId = process.env.QIT_ENV_ID;
 			if ( envId ) {
 				execSync(
