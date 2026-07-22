@@ -18,12 +18,29 @@ export const getStripeWebhookURL = ( baseURL ) =>
  * @return {Promise<number>} The number of endpoints deleted.
  */
 export const deleteStripeWebhooksByURL = async ( stripeClient, webhookURL ) => {
-	const { data } = await stripeClient.webhookEndpoints.list();
-	const matching = data.filter( ( w ) => w.url === webhookURL );
+	let haveMore = true;
+	let count = 0;
+	let startAfter = undefined;
 
-	for ( const webhook of matching ) {
-		await stripeClient.webhookEndpoints.del( webhook.id );
+	// Ensure we loop over all webhooks. We shouldn't get >100 webhooks
+	// for an account, but we should handle that edge case.
+	while ( haveMore ) {
+		const { data, has_more: haveMore } =
+			await stripeClient.webhookEndpoints.list( {
+				limit: 100,
+				starting_after: startAfter,
+			} );
+		const matching = data.filter( ( w ) => w.url === webhookURL );
+		count += matching.length;
+
+		for ( const webhook of matching ) {
+			await stripeClient.webhookEndpoints.del( webhook.id );
+		}
+
+		if ( haveMore ) {
+			startAfter = data.pop()?.id;
+		}
 	}
 
-	return matching.length;
+	return count;
 };
