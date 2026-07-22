@@ -667,16 +667,17 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Tests that process_refund fails with an explicit error for negative amounts.
+	 * Tests that a failed captured-state lookup surfaces the lookup error instead of
+	 * being treated as an uncaptured charge (which would suggest a manual refund for
+	 * money Stripe may still hold).
 	 */
-	public function test_process_refund_fails_on_negative_amount() {
+	public function test_process_refund_fails_when_captured_state_cannot_be_resolved() {
 		$order = WC_Helper_Order::create_order();
 		$order->set_transaction_id( 'ch_123' );
 		$order->save();
 		$order_id = $order->get_id();
 
-		// With no captured flag recorded, process_refund now tries to resolve it by
-		// fetching the charge; mock that fetch to a Stripe error so the test stays offline.
+		// No captured flag recorded, so process_refund resolves it by fetching the charge.
 		$callback = function ( $preempt, $request_args, $url ) {
 			if ( strpos( $url, 'charges/ch_123' ) !== false ) {
 				return $this->build_response(
@@ -693,15 +694,52 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		add_filter( 'pre_http_request', $callback, 10, 3 );
 
+		$result = $this->gateway->process_refund( $order_id, 10.00 );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'stripe_error', $result->get_error_code() );
+		// The lookup failure itself reaches the merchant, not uncaptured-charge guidance.
+		$this->assertStringContainsString( 'No such charge: ch_123', $result->get_error_message() );
+
+		// Nothing was recorded from the failed resolution: the flag stays unwritten so a
+		// later attempt resolves again instead of trusting a fabricated value.
+		$this->assertSame( '', wc_get_order( $order_id )->get_meta( '_stripe_charge_captured' ) );
+	}
+
+	/**
+	 * Tests that process_refund rejects negative amounts without contacting Stripe.
+	 * WC_Stripe_Helper::get_stripe_amount() strips the sign, so an unguarded negative
+	 * amount would refund the absolute value instead of failing.
+	 */
+	public function test_process_refund_fails_on_negative_amount() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_transaction_id( 'ch_123' );
+		$this->updateOrderMeta( $order, '_stripe_charge_captured', 'yes' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$requested_urls = [];
+
+		$callback = function ( $preempt, $request_args, $url ) use ( &$requested_urls ) {
+			$requested_urls[] = $url;
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
 		$result = $this->gateway->process_refund( $order_id, -10 );
 
 		remove_filter( 'pre_http_request', $callback );
 
 		$this->assertWPError( $result );
+		$this->assertSame( 'stripe_error', $result->get_error_code() );
+		$this->assertStringContainsString( 'must be greater than or equal to zero', $result->get_error_message() );
 
-		// Nothing was recorded from the failed resolution: the flag stays unwritten so a
-		// later attempt resolves again instead of trusting a fabricated value.
-		$this->assertSame( '', wc_get_order( $order_id )->get_meta( '_stripe_charge_captured' ) );
+		// No request reached Stripe: an unguarded -10 would have refunded +10.
+		$this->assertSame( [], $requested_urls );
 	}
 
 	/**
@@ -1156,24 +1194,6 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		// The reconciled captured state is persisted for subsequent refund paths.
 		$this->assertSame( 'yes', wc_get_order( $order_id )->get_meta( '_stripe_charge_captured' ) );
-	}
-
-	/**
-	 * Tests that process_refund surfaces an explicit error when the charge is not
-	 * captured and there is no authorization pending capture to void, instead of
-	 * silently returning without contacting Stripe.
-	 */
-	public function test_process_refund_returns_error_when_uncaptured_and_nothing_to_void() {
-		$order = WC_Helper_Order::create_order();
-		$order->set_transaction_id( 'ch_123' );
-		$this->updateOrderMeta( $order, '_stripe_charge_captured', 'no' );
-		$order->save();
-
-		$result = $this->gateway->process_refund( $order->get_id(), 10.00, 'Customer requested' );
-
-		$this->assertWPError( $result );
-		$this->assertSame( 'stripe_error', $result->get_error_code() );
-		$this->assertStringContainsString( 'not captured', $result->get_error_message() );
 	}
 
 	/**

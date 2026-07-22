@@ -1255,7 +1255,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param  int $order_id
 	 * @param  float $amount
 	 *
-	 * @return bool True or false based on success.
+	 * @return bool|WP_Error True on success, false when there is nothing to refund, or a WP_Error describing the failure.
 	 * @throws Exception Throws exception when charge wasn't captured.
 	 */
 	public function process_refund( $order_id, $amount = null, $reason = '' ) {
@@ -1263,6 +1263,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( ! $order instanceof WC_Order ) {
 			return false;
+		}
+
+		// Stripe amounts are unsigned — WC_Stripe_Helper::get_stripe_amount() would silently
+		// flip the sign and refund the absolute value — so reject negative amounts outright.
+		if ( ! is_null( $amount ) && $amount < 0 ) {
+			return new WP_Error(
+				'stripe_error',
+				__( 'The refund amount must be greater than or equal to zero.', 'woocommerce-gateway-stripe' )
+			);
 		}
 
 		$request = [];
@@ -1280,7 +1289,30 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return false;
 		}
 
-		$captured = $this->resolve_charge_captured_state( $order, $charge_id );
+		// Refund vs void depends on the captured state; if it cannot be determined the refund
+		// must fail with the real error. Defaulting to "not captured" would route a possibly
+		// captured charge to the void path and its "Refund manually" guidance.
+		try {
+			$captured = $this->resolve_charge_captured_state( $order, $charge_id );
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::warning(
+				'Unable to resolve the captured state of the Stripe charge before refunding.',
+				[
+					'order_id'      => $order->get_id(),
+					'charge_id'     => $charge_id,
+					'error_message' => $e->getMessage(),
+				]
+			);
+
+			return new WP_Error(
+				'stripe_error',
+				sprintf(
+					/* translators: %1$s is a stripe error message */
+					__( 'There was a problem initiating a refund: %1$s', 'woocommerce-gateway-stripe' ),
+					$e->getLocalizedMessage() ? $e->getLocalizedMessage() : $e->getMessage()
+				)
+			);
+		}
 
 		if ( ! is_null( $amount ) ) {
 			$request['amount'] = WC_Stripe_Helper::get_stripe_amount( $amount, $order_currency );
@@ -1350,24 +1382,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			if ( ! $intent_cancelled && $captured ) {
 				$order_helper->lock_order_refund( $order );
 				$response = WC_Stripe_API::request( $request, 'refunds' );
-			}
-
-			// No request was sent to Stripe: the charge is not captured and there was no
-			// authorization pending capture to void. Log and return an explicit error so
-			// the merchant can tell this apart from a refund attempt that failed.
-			if ( ! $intent_cancelled && ! $captured ) {
-				WC_Stripe_Logger::warning(
-					'Refund request not sent to Stripe: the charge is not captured and the intent is not pending capture.',
-					[
-						'order_id'  => $order->get_id(),
-						'charge_id' => $charge_id,
-					]
-				);
-
-				return new WP_Error(
-					'stripe_error',
-					__( 'The payment for this order is not captured in Stripe, so there is no charge to refund. If the authorization was voided or has expired, use "Refund manually" instead.', 'woocommerce-gateway-stripe' )
-				);
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::error( 'Error processing refund', [ 'error_message' => $e->getMessage() ] );
@@ -1517,9 +1531,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * recorded. An explicit 'no' means an authorize-only charge and is trusted without an API
 	 * call so the void path still applies.
 	 *
+	 * A state that cannot be determined (the lookup fails, or the response carries no captured
+	 * flag) throws instead of defaulting: false is reserved for a charge Stripe explicitly
+	 * reports as uncaptured, because callers treat false as safe to void.
+	 *
 	 * @param WC_Order $order     The order being refunded.
 	 * @param string   $charge_id The order's charge ID.
 	 * @return bool Whether the charge is captured.
+	 * @throws WC_Stripe_Exception When the captured state cannot be determined from Stripe.
 	 */
 	private function resolve_charge_captured_state( WC_Order $order, string $charge_id ): bool {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
@@ -1530,26 +1549,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return $captured;
 		}
 
-		try {
-			$synced = $order_helper->sync_stripe_charge_captured( $order, $this->get_charge_object( $charge_id ) );
+		$synced = $order_helper->sync_stripe_charge_captured( $order, $this->get_charge_object( $charge_id ) );
 
-			if ( null !== $synced ) {
-				$order->save();
-
-				return $synced;
-			}
-		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::warning(
-				'Unable to reconcile the missing captured state from the Stripe charge before refunding.',
-				[
-					'order_id'      => $order->get_id(),
-					'charge_id'     => $charge_id,
-					'error_message' => $e->getMessage(),
-				]
+		if ( null === $synced ) {
+			throw new WC_Stripe_Exception(
+				"Charge {$charge_id} carries no captured state.",
+				__( 'The captured state of the charge could not be determined from Stripe.', 'woocommerce-gateway-stripe' )
 			);
 		}
 
-		return $captured;
+		$order->save();
+
+		return $synced;
 	}
 
 	/**

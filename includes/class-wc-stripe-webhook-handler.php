@@ -917,12 +917,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.9.0
-	 * @param object $notification
+	 * @param stdClass $notification The decoded charge.refunded event.
 	 */
 	public function process_webhook_refund( $notification ) {
-		$refund_object = $this->get_refund_object( $notification );
-		$order         = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
-		$order_helper  = WC_Stripe_Order_Helper::get_instance();
+		// The charge.refunded payload object is the charge itself.
+		$charge_payload = $notification->data->object;
+		$refund_object  = $this->get_refund_object( $notification );
+		$order          = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
+		$order_helper   = WC_Stripe_Order_Helper::get_instance();
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::debug( 'Could not find order via refund ID: ' . $refund_object->id );
@@ -934,8 +936,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order = WC_Stripe_Helper::get_order_by_intent_id( $notification->data->object->payment_intent );
 
 			if ( $order instanceof WC_Order && $order_helper->is_stripe_gateway_order( $order ) && ! $order->get_transaction_id() ) {
-				$order->set_transaction_id( $notification->data->object->id );
-				$order_helper->sync_stripe_charge_captured( $order, $notification->data->object );
+				$order->set_transaction_id( $charge_payload->id );
+				$order_helper->sync_stripe_charge_captured( $order, $charge_payload );
 				$order->save();
 			}
 		}
@@ -957,7 +959,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// or stale, so the uncaptured branch below can't cancel a paid order as a voided
 			// pre-authorization.
 			$was_captured = $order_helper->is_stripe_charge_captured( $order );
-			$captured     = $order_helper->sync_stripe_charge_captured( $order, $notification->data->object ) ?? $was_captured;
+			$captured     = $order_helper->sync_stripe_charge_captured( $order, $charge_payload ) ?? $was_captured;
 
 			if ( $captured !== $was_captured ) {
 				$order->save();
