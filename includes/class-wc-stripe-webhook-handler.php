@@ -957,11 +957,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			// Repair the stored captured flag from the payload (the charge itself) when absent
 			// or stale, so the uncaptured branch below can't cancel a paid order as a voided
-			// pre-authorization.
-			$was_captured = $order_helper->is_stripe_charge_captured( $order );
-			$captured     = $order_helper->sync_stripe_charge_captured( $order, $charge_payload ) ?? $was_captured;
+			// pre-authorization. The save decision compares the stored strings, not booleans:
+			// '' and 'no' both read as uncaptured, but a repaired ''->'no' must still persist —
+			// nothing below is guaranteed to save an already-cancelled order.
+			$was_recorded = (string) $order_helper->get_stripe_charge_captured( $order );
+			$captured     = $order_helper->sync_stripe_charge_captured( $order, $charge_payload ) ?? wc_string_to_bool( $was_recorded );
 
-			if ( $captured !== $was_captured ) {
+			if ( (string) $order_helper->get_stripe_charge_captured( $order ) !== $was_recorded ) {
 				$order->save();
 			}
 

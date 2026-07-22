@@ -1835,6 +1835,49 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that the ''->'no' repair persists even when the order is already cancelled.
+	 * That path skips update_status() (whose save would otherwise persist the repair as a
+	 * side effect), so the save decision must notice the stored-string change itself.
+	 */
+	public function test_process_webhook_refund_persists_uncaptured_repair_on_cancelled_order() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->set_transaction_id( 'ch_123' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$this->assertSame( '', $order->get_meta( '_stripe_charge_captured' ) );
+
+		$notification = (object) [
+			'data' => (object) [
+				'object' => (object) [
+					'id'              => 'ch_123',
+					'object'          => 'charge',
+					'captured'        => false,
+					'amount'          => 5000,
+					'amount_refunded' => 5000,
+					'currency'        => 'usd',
+					'refunds'         => (object) [
+						'data' => [
+							(object) [
+								'id'     => 're_void',
+								'amount' => 5000,
+							],
+						],
+					],
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_refund( $notification );
+
+		$reloaded = wc_get_order( $order_id );
+		$this->assertSame( 'no', $reloaded->get_meta( '_stripe_charge_captured' ) );
+		$this->assertSame( OrderStatus::CANCELLED, $reloaded->get_status() );
+	}
+
+	/**
 	 * Tests that a refund webhook finds the order via the intent ID when the charge ID is missing.
 	 */
 	public function test_process_webhook_refund_finds_order_via_intent_when_charge_id_missing() {
