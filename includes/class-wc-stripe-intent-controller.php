@@ -758,10 +758,11 @@ class WC_Stripe_Intent_Controller {
 				]
 			);
 
-			if ( $order && $processing_started ) {
+			if ( $order instanceof WC_Order && $processing_started && ! $order->get_date_paid( 'edit' ) ) {
 				// Only fail the order for failures raised during gateway processing; failures before that
 				// (nonce/CSRF, order lookup, intent mismatch) act on untrusted POST data and must not fail
 				// an order the caller may not own. Skip saving here; update_status() below persists it.
+				// A throw after the charge (e.g. a completion hook) leaves the order paid; don't fail that one.
 				$order_helper->remove_payment_awaiting_action( $order, false );
 				$order->update_status( OrderStatus::FAILED );
 			}

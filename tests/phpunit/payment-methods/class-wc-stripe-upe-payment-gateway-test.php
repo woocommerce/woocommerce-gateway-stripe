@@ -1896,13 +1896,18 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 *
 	 * @param string $cart_hash        Cart hash to stamp on the order.
 	 * @param string $payment_intent_id Intent id the return carries.
+	 * @param bool   $eligible          Whether the original checkout flagged this order a cart checkout.
 	 * @return int
 	 */
-	private function arrange_redirect_payment( string $cart_hash, string $payment_intent_id = 'pi_mock' ): int {
+	private function arrange_redirect_payment( string $cart_hash, string $payment_intent_id = 'pi_mock', bool $eligible = false ): int {
 		$order = WC_Helper_Order::create_order();
 		list( $amount, $description, $metadata, $currency ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->set_cart_hash( $cart_hash );
+		if ( $eligible ) {
+			// Set by process_payment() when the initial request was paying the shopper's cart; the completion leg reads it.
+			$order->update_meta_data( '_wc_stripe_paid_cart_eligible', 'yes' );
+		}
 		$order->save();
 
 		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
@@ -1939,7 +1944,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function test_process_upe_redirect_payment_records_the_paid_cart_marker(): void {
 		WC()->session->init();
-		$order_id = $this->arrange_redirect_payment( 'redirect_hash' );
+		$order_id = $this->arrange_redirect_payment( 'redirect_hash', 'pi_mock', true );
 
 		// Buffer output so the session cookie save_data() writes doesn't trip "headers already sent" under the test harness.
 		ob_start();
@@ -1955,16 +1960,53 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Pay-for-order settles an existing order, so its cart is not what was charged and must not be recorded.
+	 * A 3DS card completes over the update-order-status AJAX leg, and a hook throwing while the response is processed
+	 * must not lose the marker: the charge already happened, so a resubmit would double it.
+	 *
+	 * process_order_for_confirmed_intent() is the shared completion method for that leg; process_response() calls
+	 * payment_complete() before firing wc_gateway_stripe_process_response, so the order is paid when a hook throws.
 	 *
 	 * @return void
 	 */
-	public function test_process_upe_redirect_payment_skips_the_marker_for_pay_for_order(): void {
+	public function test_confirmed_intent_records_the_marker_even_when_response_processing_throws(): void {
+		WC()->session->init();
+		$order_id = $this->arrange_redirect_payment( 'threeds_hash', 'pi_mock', true );
+
+		$thrower = static function () {
+			throw new Exception( 'simulated lost response' );
+		};
+		add_action( 'wc_gateway_stripe_process_response', $thrower );
+
+		$threw = false;
+		ob_start();
+		try {
+			$this->mock_gateway->process_order_for_confirmed_intent( wc_get_order( $order_id ), 'pi_mock', false );
+		} catch ( Exception $e ) {
+			$threw = true;
+		} finally {
+			ob_end_clean();
+			remove_action( 'wc_gateway_stripe_process_response', $thrower );
+		}
+
+		$this->assertTrue( $threw, 'The completion hook must still surface its error.' );
+		$this->assertNotNull( wc_get_order( $order_id )->get_date_paid( 'edit' ), 'The charge succeeded, so the order is paid.' );
+
+		$marker = WC()->session->get( 'wc_stripe_paid_cart' );
+		$this->assertIsArray( $marker, 'The marker must be recorded from the finally despite the throw.' );
+		$this->assertEquals( $order_id, $marker['order_id'] );
+	}
+
+	/**
+	 * Without the cart-checkout flag — as when settling an existing order — the completion leg records no marker.
+	 *
+	 * @return void
+	 */
+	public function test_process_upe_redirect_payment_skips_the_marker_when_not_a_cart_checkout(): void {
 		WC()->session->init();
 		$order_id = $this->arrange_redirect_payment( 'redirect_hash' );
 
 		ob_start();
-		$this->mock_gateway->process_upe_redirect_payment( $order_id, 'pi_mock', false, true );
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, 'pi_mock', false );
 		ob_end_clean();
 
 		$this->assertNotNull( wc_get_order( $order_id )->get_date_paid( 'edit' ) );

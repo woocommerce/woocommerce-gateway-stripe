@@ -80,6 +80,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	protected const PAID_CART_MARKER_SESSION_KEY = 'wc_stripe_paid_cart';
 
 	/**
+	 * Order meta flagging that this checkout was paying the shopper's cart, carried to the async completion leg.
+	 *
+	 * A 3DS or redirect payment finishes on a later request that can't re-derive that decision (the order key isn't
+	 * in the AJAX post), so process_payment() stamps it here for {@see process_order_for_confirmed_intent()} to read.
+	 *
+	 * @var string
+	 */
+	protected const PAID_CART_ELIGIBLE_META_KEY = '_wc_stripe_paid_cart_eligible';
+
+	/**
 	 * Notices (array)
 	 *
 	 * @var array
@@ -1484,7 +1494,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
 			}
 
-			return $this->process_payment_with_deferred_intent( $order_id );
+			return $this->process_payment_with_deferred_intent( $order_id, $is_paying_for_session_cart );
 		} finally {
 			$this->handle_paid_order_after_checkout( $order_id, $is_paying_for_session_cart );
 		}
@@ -1519,14 +1529,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	private function is_settling_an_existing_order( int $order_id ): bool {
-		if ( empty( $_GET['key'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$provided_key = isset( $_GET['key'] ) ? wc_clean( wp_unslash( $_GET['key'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+		if ( ! is_string( $provided_key ) || '' === $provided_key ) {
 			return false;
 		}
 
 		$order = wc_get_order( $order_id );
 
-		return $order instanceof WC_Order
-			&& hash_equals( $order->get_order_key(), wc_clean( wp_unslash( $_GET['key'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		return $order instanceof WC_Order && hash_equals( $order->get_order_key(), $provided_key );
 	}
 
 	/**
@@ -1715,6 +1726,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Records the marker on the async completion leg, when this order was flagged a cart checkout and is now paid.
+	 *
+	 * The eligibility meta is what keeps pay-for-order and other existing-order payments out; it is only set when the
+	 * original checkout was paying the shopper's cart. Cleared here once consumed. The clear is left for the order's
+	 * own save on the success path rather than an extra write; a throw leaves a benign flag on the paid order.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order $order The order whose confirmed intent was just processed.
+	 * @return void
+	 */
+	private function maybe_record_paid_cart_marker_for_confirmed_order( WC_Order $order ): void {
+		if ( 'yes' !== $order->get_meta( self::PAID_CART_ELIGIBLE_META_KEY ) || ! $order->get_date_paid( 'edit' ) ) {
+			return;
+		}
+
+		$this->record_paid_cart_marker( $order );
+		$order->delete_meta_data( self::PAID_CART_ELIGIBLE_META_KEY );
+	}
+
+	/**
 	 * Returns the recorded paid-cart marker, or null when there isn't a usable one.
 	 *
 	 * @since 10.9.0
@@ -1797,16 +1829,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Process the payment for an order using a deferred intent.
 	 *
-	 * @param int $order_id WC Order ID to be paid for.
+	 * @param int  $order_id WC Order ID to be paid for.
+	 * @param bool $is_paying_for_session_cart Whether this request is paying the shopper's cart, decided before payment.
 	 *
 	 * @return array An array with the result of the payment processing, and a redirect URL on success.
 	 */
-	private function process_payment_with_deferred_intent( int $order_id ) {
+	private function process_payment_with_deferred_intent( int $order_id, bool $is_paying_for_session_cart = false ) {
 		if ( ! empty( $_POST['wc-stripe-confirmation-token'] ) ) {
 			return $this->process_payment_with_confirmation_token( $order_id );
 		}
 
-		return $this->process_payment_with_payment_method( $order_id );
+		return $this->process_payment_with_payment_method( $order_id, $is_paying_for_session_cart );
 	}
 
 	/**
@@ -1915,11 +1948,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Process the payment for an order that has a payment method attached.
 	 *
-	 * @param int $order_id ID of order to be processed.
+	 * @param int  $order_id ID of order to be processed.
+	 * @param bool $is_paying_for_session_cart Whether this request is paying the shopper's cart, decided before payment.
 	 *
 	 * @return array An array with the result of the payment processing, and a redirect URL on success.
 	 */
-	private function process_payment_with_payment_method( int $order_id ) {
+	private function process_payment_with_payment_method( int $order_id, bool $is_paying_for_session_cart = false ) {
 		if ( $this->is_changing_payment_method_for_subscription() ) {
 			return $this->process_change_subscription_payment_with_deferred_intent( $order_id );
 		}
@@ -2056,6 +2090,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 				// Prevent processing the payment intent webhooks while also processing the redirect payment (also prevents duplicate Stripe meta stored on the order).
 				$order_helper->update_stripe_upe_waiting_for_redirect( $order, true );
+
+				// Payment finishes on a later request (3DS/redirect return) that can't see this was a cart checkout, so
+				// carry the decision on the order for the completion leg to record the marker from.
+				if ( $is_paying_for_session_cart && $order instanceof WC_Order ) {
+					$order->update_meta_data( self::PAID_CART_ELIGIBLE_META_KEY, 'yes' );
+				}
+
 				$order->save();
 
 				$redirect = $this->get_redirect_url( $this->get_return_url( $order ), $payment_intent, $payment_information, $order, $payment_needed );
@@ -2568,13 +2609,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::info( "Begin processing UPE redirect payment for order $order_id for the amount of {$order->get_total()}" );
 
 			$this->process_order_for_confirmed_intent( $order, $intent_id, $save_payment_method );
-
-			// A 3DS or redirect payment method finishes here, on the browser return from the challenge, rather than inside
-			// process_payment(), so record the marker on this leg too or a lost response could still resubmit the cart.
-			// Pay-for-order settles an existing order, so its cart isn't what was charged and must not be recorded.
-			if ( ! $is_pay_for_order && $order instanceof WC_Order && $order->get_date_paid( 'edit' ) ) {
-				$this->record_paid_cart_marker( $order );
-			}
 		} catch ( WC_Stripe_Payment_Cancelled_Exception $e ) {
 			if ( $order instanceof WC_Order ) {
 				$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
@@ -2592,6 +2626,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$order_helper->unlock_order_payment( $order );
 
 			WC_Stripe_Logger::error( 'Error processing UPE redirect payment for order: ' . $order_id, [ 'error_message' => $e->getMessage() ] );
+
+			// A throw after the charge (e.g. a completion hook) leaves the order paid; send the shopper to it rather
+			// than failing a paid order and bouncing them back to checkout, where they could pay a second time.
+			if ( $order instanceof WC_Order && $order->get_date_paid( 'edit' ) ) {
+				wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
+				exit;
+			}
+
 			/* translators: localized exception message */
 			$order->update_status( OrderStatus::FAILED, sprintf( __( 'UPE payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
@@ -2899,11 +2941,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( ! $is_pre_order ) {
-			if ( $payment_needed ) {
-				// Use the last charge within the intent to proceed.
-				$this->process_response( $this->get_latest_charge_from_intent( $intent ), $order );
-			} else {
-				$order->payment_complete();
+			try {
+				if ( $payment_needed ) {
+					// Use the last charge within the intent to proceed.
+					$this->process_response( $this->get_latest_charge_from_intent( $intent ), $order );
+				} else {
+					$order->payment_complete();
+				}
+			} finally {
+				// payment_complete() runs before process_response()'s completion hook, so the order is already paid
+				// when a hook there throws. Record from the finally, gated on the paid date, or that lost response
+				// could still resubmit the cart it charged. Mirrors the synchronous path in handle_paid_order_after_checkout().
+				$this->maybe_record_paid_cart_marker_for_confirmed_order( $order );
 			}
 		}
 

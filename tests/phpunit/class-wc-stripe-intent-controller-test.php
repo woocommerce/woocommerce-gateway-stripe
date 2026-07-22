@@ -867,6 +867,58 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A throw after the charge has completed (e.g. a completion hook) leaves the order paid. That order must not be
+	 * failed: the charge stands, and failing it would let the duplicate-charge guard treat a later resubmit as new.
+	 */
+	public function test_update_order_status_ajax_does_not_fail_an_order_paid_before_the_throw() {
+		Ajax_Test_Helper::init_hooks();
+
+		$order     = WC_Helper_Order::create_order();
+		$intent_id = 'pi_paid_then_threw';
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+
+		// The charge completes (order becomes paid), then processing throws, as a lost response after the charge would.
+		$gateway->expects( $this->once() )
+			->method( 'process_order_for_confirmed_intent' )
+			->willReturnCallback(
+				function ( $order ) {
+					$order->payment_complete();
+					throw new WC_Stripe_Exception( 'processing_error', 'simulated lost response' );
+				}
+			);
+
+		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_gateway' ] )
+			->getMock();
+
+		$controller->expects( $this->any() )
+			->method( 'get_gateway' )
+			->willReturn( $gateway );
+
+		$_POST['order_id']       = $order_id;
+		$_POST['intent_id']      = $intent_id;
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$controller->update_order_status_ajax();
+		ob_get_clean();
+
+		$final_order = wc_get_order( $order_id );
+		$this->assertNotEquals( 'failed', $final_order->get_status(), 'An order the charge already paid must not be failed.' );
+		$this->assertNotNull( $final_order->get_date_paid( 'edit' ) );
+
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	/**
 	 * Test that confirm_change_payment rejects requests from users who do not own the subscription.
 	 */
 	public function test_confirm_change_payment_rejects_non_owner() {
