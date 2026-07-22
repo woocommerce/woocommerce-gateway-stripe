@@ -420,9 +420,13 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
-			$captured = WC_Stripe_Order_Helper::get_instance()->is_stripe_charge_captured( $order );
-
-			if ( ! $captured ) {
+			// Strictly 'no' (matching capture_payment()): this hook also fires on transitions made
+			// without wanting a gateway refund (e.g. "Refund manually"). With the flag merely
+			// missing, process_refund() would resolve it from Stripe and, if the charge turns out
+			// to be captured, issue a full refund nobody asked for. An explicit 'no' is the only
+			// state where voiding is known to move no money; an unvoided authorization expires on
+			// its own.
+			if ( 'no' === WC_Stripe_Order_Helper::get_instance()->get_stripe_charge_captured( $order ) ) {
 				// To cancel a pre-auth, we need to refund the charge.
 				$this->process_refund( $order_id );
 			}
