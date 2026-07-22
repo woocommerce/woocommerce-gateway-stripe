@@ -1008,11 +1008,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					]
 				);
 
+				$stripe_refund_id = $refund_object->id;
+
 				if ( is_wp_error( $refund ) ) {
 					WC_Stripe_Logger::error( 'Error creating refund for order: ' . $order_id, [ 'error_message' => $refund->get_error_message() ] );
+				} else {
+					// The parent-order meta below only tracks the latest refund, so the record keeps
+					// its own ID for per-refund reconciliation.
+					$order_helper->update_stripe_refund_id_for_refund( $refund, $stripe_refund_id );
+					$refund->save_meta_data();
 				}
 
-				$order_helper->update_stripe_refund_id( $order, $refund_object->id );
+				$order_helper->update_stripe_refund_id( $order, $stripe_refund_id );
 
 				if ( isset( $refund_object->balance_transaction ) ) {
 					$this->update_fees( $order, $refund_object->balance_transaction );

@@ -1972,6 +1972,97 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		// Charge ID back-filled and refund synced against the recovered order.
 		$this->assertSame( 'ch_missing', $reloaded->get_transaction_id() );
 		$this->assertSame( 're_xyz', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( $reloaded ) );
+
+		// The created refund record carries its own Stripe refund ID.
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+		$refunds         = $reloaded->get_refunds();
+		$this->assertCount( 1, $refunds );
+		$this->assertSame( 're_xyz', $refunds[0]->get_meta( $refund_meta_key ) );
+	}
+
+	/**
+	 * Tests that a Stripe-Dashboard refund webhook stores the refund ID on the WC refund record it creates.
+	 */
+	public function test_process_webhook_refund_stores_id_on_created_refund() {
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+		$order_helper    = WC_Stripe_Order_Helper::get_instance();
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_transaction_id( 'ch_123' );
+		$order_helper->set_stripe_charge_captured( $order, true );
+		$order->save();
+		$order_id = $order->get_id();
+
+		// An earlier refund already recorded: its ID sits on the record and (as the latest at the time) on the parent.
+		$wc_refund_1 = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 5.00,
+			]
+		);
+		$this->assertNotWPError( $wc_refund_1 );
+		$wc_refund_1->update_meta_data( $refund_meta_key, 're_1' );
+		$wc_refund_1->save_meta_data();
+		$order_helper->update_stripe_refund_id( $order, 're_1' );
+		$order->save_meta_data();
+
+		$notification = (object) [
+			'data' => (object) [
+				'object' => (object) [
+					'id'              => 'ch_123',
+					'object'          => 'charge',
+					'captured'        => true,
+					'amount'          => 5000,
+					'amount_refunded' => 1200,
+					'currency'        => 'usd',
+					'refunds'         => (object) [
+						'data' => [
+							(object) [
+								'id'                  => 're_2',
+								'amount'              => 700,
+								'balance_transaction' => 'txn_2',
+							],
+						],
+					],
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_refund( $notification );
+
+		$reloaded = wc_get_order( $order_id );
+		$refunds  = $reloaded->get_refunds();
+		$this->assertCount( 2, $refunds );
+
+		$refunds_by_stripe_id = [];
+		foreach ( $refunds as $refund ) {
+			$refunds_by_stripe_id[ $refund->get_meta( $refund_meta_key ) ] = $refund;
+		}
+
+		// The new record carries the incoming ID; the earlier record is untouched.
+		$this->assertArrayHasKey( 're_2', $refunds_by_stripe_id );
+		$this->assertSame( 7.00, (float) $refunds_by_stripe_id['re_2']->get_amount() );
+		$this->assertArrayHasKey( 're_1', $refunds_by_stripe_id );
+		$this->assertSame( 5.00, (float) $refunds_by_stripe_id['re_1']->get_amount() );
+
+		// Parent meta keeps tracking the latest refund (unchanged behavior).
+		$this->assertSame( 're_2', $order_helper->get_stripe_refund_id( $reloaded ) );
+
+		// Stripe delivers webhooks at least once: a replay of the same notification must be
+		// deduplicated by the parent-meta guard — no third refund, stored IDs untouched.
+		$this->mock_webhook_handler->process_webhook_refund( $notification );
+
+		$reloaded = wc_get_order( $order_id );
+		$this->assertCount( 2, $reloaded->get_refunds() );
+		$this->assertSame( 're_2', $order_helper->get_stripe_refund_id( $reloaded ) );
+
+		$replayed_ids = [];
+		foreach ( $reloaded->get_refunds() as $refund ) {
+			$replayed_ids[] = $refund->get_meta( $refund_meta_key );
+		}
+		sort( $replayed_ids );
+		$this->assertSame( [ 're_1', 're_2' ], $replayed_ids );
 	}
 
 	/**

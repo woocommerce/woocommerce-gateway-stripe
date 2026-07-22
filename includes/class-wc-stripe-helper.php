@@ -835,10 +835,19 @@ class WC_Stripe_Helper {
 	public static function get_order_by_refund_id( $refund_id ) {
 		global $wpdb;
 
+		if ( empty( $refund_id ) ) {
+			return false;
+		}
+
+		// The refund ID can live on the parent order (which tracks the latest refund, and is the only
+		// location for orders refunded before per-refund storage existed) or on the refund record
+		// itself. Callers expect the parent WC_Order, never a WC_Order_Refund, so refund-record
+		// matches resolve to their parent. Parents are checked first to keep historical lookups cheap.
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
 			$orders   = wc_get_orders(
 				[
 					'limit'      => 1,
+					'type'       => 'shop_order',
 					'meta_query' => [
 						[
 							'key'   => '_stripe_refund_id',
@@ -848,8 +857,28 @@ class WC_Stripe_Helper {
 				]
 			);
 			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
+
+			if ( empty( $order_id ) ) {
+				$refunds  = wc_get_orders(
+					[
+						'limit'      => 1,
+						'type'       => 'shop_order_refund',
+						'meta_query' => [
+							[
+								'key'   => '_stripe_refund_id',
+								'value' => $refund_id,
+							],
+						],
+					]
+				);
+				$order_id = current( $refunds ) ? current( $refunds )->get_parent_id() : false;
+			}
 		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $refund_id, '_stripe_refund_id' ) );
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s AND posts.post_type = 'shop_order'", $refund_id, '_stripe_refund_id' ) );
+
+			if ( empty( $order_id ) ) {
+				$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT posts.post_parent FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s AND posts.post_type = 'shop_order_refund'", $refund_id, '_stripe_refund_id' ) );
+			}
 		}
 
 		if ( ! empty( $order_id ) ) {
@@ -1202,6 +1231,11 @@ class WC_Stripe_Helper {
 		// If Adaptive Pricing was disabled due to an amount mismatch, keep Adaptive Pricing disabled.
 		if ( WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected() ) {
 			return 'amount-mismatch-detected';
+		}
+
+		// Adaptive Pricing requires automatic capture.
+		if ( 'yes' !== ( self::get_stripe_settings()['capture'] ?? 'yes' ) ) {
+			return 'manual-capture';
 		}
 
 		// If we are in test mode, payout details are often missing and currency-based rules
