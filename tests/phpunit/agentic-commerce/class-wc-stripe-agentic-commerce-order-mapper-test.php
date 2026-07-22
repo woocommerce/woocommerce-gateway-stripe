@@ -1056,6 +1056,27 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that a session carrying a Stripe-side discount is rejected with an
+	 * explicit error before the order is built.
+	 */
+	public function test_exception_thrown_for_discounted_session() {
+		$session = $this->build_checkout_session(
+			[
+				'total_details' => (object) [
+					'amount_shipping' => 0,
+					'amount_tax'      => 0,
+					'amount_discount' => 500,
+				],
+			]
+		);
+
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'discounts are not supported' );
+
+		$this->mapper->create_order_from_checkout_session( $session );
+	}
+
+	/**
 	 * Test creating an order with multiple line items.
 	 *
 	 * @return void

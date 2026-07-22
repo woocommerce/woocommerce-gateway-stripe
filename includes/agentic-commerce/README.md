@@ -364,3 +364,13 @@ add_filter(
 ```
 
 > The Stripe-prefixed `wc_stripe_agentic_commerce_disable_checkout` filter is **deprecated since 10.9.0** in favour of the shareable `woocommerce_agentic_commerce_disable_checkout` above (mirroring the `woocommerce_agentic_commerce_should_sync_product` migration). Existing hooks on the old name still run — they seed the new filter's default — but emit a deprecation notice.
+
+## Coupons and discounts
+
+WooCommerce coupons do not participate in delegated (in-agent) checkout. Prices come from the synced product feed and are computed by Stripe, the shopper pays inside the AI agent, and the WooCommerce order is only created afterwards from the completed session. Consequences merchants should be aware of:
+
+- No WooCommerce coupon is ever applied to an agentic order — agentic shoppers pay the feed price.
+- WooCommerce coupon **usage limits are neither enforced nor consumed** by agentic sales. A limited-use coupon promotion does not cap, count, or discount purchases completed inside an agent.
+- Stripe-side discounts are rejected at order creation: a session whose `total_details.amount_discount` is non-zero fails with an explicit error (WooCommerce recalculates full catalog prices, so such an order could never pass total verification). Because Stripe captures payment before the webhook fires, the failure surfaces in logs for manual resolution.
+
+Whether to support promotions in agentic checkout (mapping Stripe discounts to WooCommerce coupons and enforcing usage limits at `finalize_checkout`) is an open product decision, tracked in STRIPE-1257.

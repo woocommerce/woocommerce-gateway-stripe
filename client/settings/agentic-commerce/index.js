@@ -47,6 +47,12 @@ const AgenticCommerceDescription = () => (
 			) }
 		</p>
 		<p>
+			{ __(
+				'WooCommerce coupons and their usage limits do not apply to purchases completed inside AI agents.',
+				'woocommerce-gateway-stripe'
+			) }
+		</p>
+		<p>
 			<ExternalLink href="https://docs.stripe.com/agentic-commerce">
 				{ __(
 					'Learn more about agentic commerce',

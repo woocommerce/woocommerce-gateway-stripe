@@ -55,6 +55,19 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test get_amount_discount reads total_details and defaults to 0 when absent.
+	 */
+	public function test_get_amount_discount() {
+		$with_discount = new WC_Stripe_Agentic_Checkout_Session(
+			(object) [ 'total_details' => (object) [ 'amount_discount' => 500 ] ]
+		);
+		$this->assertSame( 500, $with_discount->get_amount_discount() );
+
+		$without = new WC_Stripe_Agentic_Checkout_Session( (object) [] );
+		$this->assertSame( 0, $without->get_amount_discount() );
+	}
+
+	/**
 	 * @dataProvider provide_amount_total_cases
 	 */
 	public function test_get_amount_total( object $raw, ?int $expected ) {
