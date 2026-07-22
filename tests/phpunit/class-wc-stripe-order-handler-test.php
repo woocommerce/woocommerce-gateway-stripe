@@ -126,6 +126,8 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 
 		add_filter( 'pre_http_request', $callback, 10, 3 );
 
+		$status_before = $order->get_status();
+
 		$this->order_handler->cancel_payment( $order->get_id() );
 
 		remove_filter( 'pre_http_request', $callback );
@@ -133,6 +135,12 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 		// No captured-state lookup, no refund: Stripe must not be contacted at all.
 		$this->assertSame( [], $requested_urls );
 		$this->assertSame( '', wc_get_order( $order->get_id() )->get_meta( '_stripe_charge_captured' ) );
+
+		// And the order itself is untouched: no refund records, no status change, nothing refunded.
+		$order = wc_get_order( $order->get_id() );
+		$this->assertCount( 0, $order->get_refunds() );
+		$this->assertSame( 0.0, (float) $order->get_total_refunded() );
+		$this->assertSame( $status_before, $order->get_status() );
 	}
 
 	/**
