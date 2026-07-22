@@ -667,7 +667,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Tests that process_refund returns false for negative amounts.
+	 * Tests that process_refund fails with an explicit error for negative amounts.
 	 */
 	public function test_process_refund_fails_on_negative_amount() {
 		$order = WC_Helper_Order::create_order();
@@ -675,8 +675,33 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$order->save();
 		$order_id = $order->get_id();
 
+		// With no captured flag recorded, process_refund now tries to resolve it by
+		// fetching the charge; mock that fetch to a Stripe error so the test stays offline.
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'charges/ch_123' ) !== false ) {
+				return $this->build_response(
+					[
+						'error' => (object) [
+							'type'    => 'invalid_request_error',
+							'message' => 'No such charge: ch_123',
+						],
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
 		$result = $this->gateway->process_refund( $order_id, -10 );
-		$this->assertSame( null, $result );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$this->assertWPError( $result );
+
+		// Nothing was recorded from the failed resolution: the flag stays unwritten so a
+		// later attempt resolves again instead of trusting a fabricated value.
+		$this->assertSame( '', wc_get_order( $order_id )->get_meta( '_stripe_charge_captured' ) );
 	}
 
 	/**
@@ -1081,6 +1106,74 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertFalse( $result );
 
 		remove_filter( 'pre_http_request', $callback );
+	}
+
+	/**
+	 * Tests that process_refund reconciles a missing captured flag from the charge itself.
+	 * Async-confirmed orders (e.g. ACH microdeposits) never write the meta at checkout,
+	 * and treating that as "not captured" used to silently skip the refund request.
+	 */
+	public function test_process_refund_reconciles_missing_captured_meta_from_charge() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		// Transaction ID back-filled by the async completion webhooks; captured meta never written.
+		$order->set_transaction_id( 'py_123' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'charges/py_123' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 'py_123',
+						'object'   => 'charge',
+						'captured' => true,
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 're_123',
+						'object'   => 'refund',
+						'amount'   => 1000,
+						'currency' => 'usd',
+						'charge'   => 'py_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
+		$this->assertTrue( $result );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		// The reconciled captured state is persisted for subsequent refund paths.
+		$this->assertSame( 'yes', wc_get_order( $order_id )->get_meta( '_stripe_charge_captured' ) );
+	}
+
+	/**
+	 * Tests that process_refund surfaces an explicit error when the charge is not
+	 * captured and there is no authorization pending capture to void, instead of
+	 * silently returning without contacting Stripe.
+	 */
+	public function test_process_refund_returns_error_when_uncaptured_and_nothing_to_void() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_transaction_id( 'ch_123' );
+		$this->updateOrderMeta( $order, '_stripe_charge_captured', 'no' );
+		$order->save();
+
+		$result = $this->gateway->process_refund( $order->get_id(), 10.00, 'Customer requested' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'stripe_error', $result->get_error_code() );
+		$this->assertStringContainsString( 'not captured', $result->get_error_message() );
 	}
 
 	/**

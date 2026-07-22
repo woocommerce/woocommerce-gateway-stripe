@@ -735,7 +735,7 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:process_refund\(\) should return bool but returns WP_Error\.$#'
 			identifier: return.type
-			count: 2
+			count: 3
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -2619,7 +2619,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$data\.$#'
 			identifier: property.notFound
-			count: 44
+			count: 45
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-

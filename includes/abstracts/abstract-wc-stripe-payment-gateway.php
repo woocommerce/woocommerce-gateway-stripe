@@ -624,10 +624,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$order_id     = $order->get_id();
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$captured     = isset( $response->captured ) && $response->captured;
 
-		// Store charge data.
-		$order_helper->set_stripe_charge_captured( $order, $captured );
+		// Record the captured flag while the charge is in hand; refund and capture flows read
+		// it. When $response is an intent with no charge attached, no flag is recorded and the
+		// refund path resolves the real state from Stripe instead.
+		$captured = $order_helper->sync_stripe_charge_captured( $order, $response ) ?? false;
 
 		if ( isset( $response->balance_transaction ) ) {
 			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
@@ -1279,8 +1280,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return false;
 		}
 
-		// Read after recovery, which reconciles the captured flag.
-		$captured = $order_helper->is_stripe_charge_captured( $order );
+		$captured = $this->resolve_charge_captured_state( $order, $charge_id );
 
 		if ( ! is_null( $amount ) ) {
 			$request['amount'] = WC_Stripe_Helper::get_stripe_amount( $amount, $order_currency );
@@ -1350,6 +1350,24 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			if ( ! $intent_cancelled && $captured ) {
 				$order_helper->lock_order_refund( $order );
 				$response = WC_Stripe_API::request( $request, 'refunds' );
+			}
+
+			// No request was sent to Stripe: the charge is not captured and there was no
+			// authorization pending capture to void. Log and return an explicit error so
+			// the merchant can tell this apart from a refund attempt that failed.
+			if ( ! $intent_cancelled && ! $captured ) {
+				WC_Stripe_Logger::warning(
+					'Refund request not sent to Stripe: the charge is not captured and the intent is not pending capture.',
+					[
+						'order_id'  => $order->get_id(),
+						'charge_id' => $charge_id,
+					]
+				);
+
+				return new WP_Error(
+					'stripe_error',
+					__( 'The payment for this order is not captured in Stripe, so there is no charge to refund. If the authorization was voided or has expired, use "Refund manually" instead.', 'woocommerce-gateway-stripe' )
+				);
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::error( 'Error processing refund', [ 'error_message' => $e->getMessage() ] );
@@ -1475,9 +1493,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$order->set_transaction_id( $charge_id );
 
 		// Reconcile the captured flag, which may have been lost with the charge ID.
-		if ( isset( $charge->captured ) ) {
-			$order_helper->set_stripe_charge_captured( $order, (bool) $charge->captured );
-		}
+		$order_helper->sync_stripe_charge_captured( $order, $charge );
 
 		$order->save();
 
@@ -1487,6 +1503,53 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		WC_Stripe_Logger::info( "Recovered missing charge ID {$charge_id} for order {$order->get_id()} from the stored payment intent." );
 
 		return $charge_id;
+	}
+
+	/**
+	 * Resolves whether the order's charge is captured, asking Stripe when the stored flag is missing.
+	 *
+	 * The captured flag decides between refunding a charge and voiding a pre-authorization.
+	 * It is normally recorded as 'yes' or 'no' the first time a charge is seen (see
+	 * WC_Stripe_Order_Helper::sync_stripe_charge_captured()), but async-confirmed orders
+	 * (e.g. ACH with microdeposit verification) may have no recorded value at all because no
+	 * charge existed at checkout. Treating "never recorded" as "not captured" would wrongly
+	 * void a refundable charge, so only in that case the charge is fetched and its real state
+	 * recorded. An explicit 'no' means an authorize-only charge and is trusted without an API
+	 * call so the void path still applies.
+	 *
+	 * @param WC_Order $order     The order being refunded.
+	 * @param string   $charge_id The order's charge ID.
+	 * @return bool Whether the charge is captured.
+	 */
+	private function resolve_charge_captured_state( WC_Order $order, string $charge_id ): bool {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$captured     = $order_helper->is_stripe_charge_captured( $order );
+
+		// A stored 'yes' or 'no' is authoritative; only a missing value ('') needs Stripe.
+		if ( $captured || '' !== (string) $order_helper->get_stripe_charge_captured( $order ) ) {
+			return $captured;
+		}
+
+		try {
+			$synced = $order_helper->sync_stripe_charge_captured( $order, $this->get_charge_object( $charge_id ) );
+
+			if ( null !== $synced ) {
+				$order->save();
+
+				return $synced;
+			}
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::warning(
+				'Unable to reconcile the missing captured state from the Stripe charge before refunding.',
+				[
+					'order_id'      => $order->get_id(),
+					'charge_id'     => $charge_id,
+					'error_message' => $e->getMessage(),
+				]
+			);
+		}
+
+		return $captured;
 	}
 
 	/**
