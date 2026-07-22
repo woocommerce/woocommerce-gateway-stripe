@@ -37,6 +37,7 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 		.mockReturnValue(
 			"We couldn't update your order total. Please refresh the page and try again."
 		),
+	clearStaleCheckoutTotalNotice: jest.fn(),
 
 	isLinkEnabled: jest.fn().mockReturnValue( false ),
 	resetBlockCheckoutPaymentState: jest.fn(),
@@ -78,14 +79,31 @@ const mockJQueryTrigger = jest.fn();
 // uses the same mock as assertions below. global.jQuery is also set for any
 // code that accesses window.jQuery directly.
 jest.mock( 'jquery', () => {
-	const jq = jest.fn( () => {
+	// Record block/unblock per selector on globalThis so counts survive
+	// jest.resetModules() (which otherwise desyncs the mock instance the code
+	// under test captured at import from the one a test would grab here).
+	const jq = jest.fn( ( selector ) => {
 		const chain = {
 			on: jest.fn(),
 			trigger: jest.fn(),
 			addClass: jest.fn( () => chain ),
 			removeClass: jest.fn( () => chain ),
-			block: jest.fn( () => chain ),
-			unblock: jest.fn( () => chain ),
+			block: jest.fn( () => {
+				if ( typeof selector === 'string' ) {
+					global.__wcStripeBlockCounts ??= {};
+					global.__wcStripeBlockCounts[ selector ] =
+						( global.__wcStripeBlockCounts[ selector ] ?? 0 ) + 1;
+				}
+				return chain;
+			} ),
+			unblock: jest.fn( () => {
+				if ( typeof selector === 'string' ) {
+					global.__wcStripeUnblockCounts ??= {};
+					global.__wcStripeUnblockCounts[ selector ] =
+						( global.__wcStripeUnblockCounts[ selector ] ?? 0 ) + 1;
+				}
+				return chain;
+			} ),
 		};
 		return chain;
 	} );
@@ -1302,6 +1320,67 @@ describe( 'payment-processing', () => {
 				expect( stripeUtils.showErrorCheckout ).not.toHaveBeenCalled();
 			} );
 
+			it( 'clears the payment-area block when the superseding resync never blocks of its own', async () => {
+				const SELECTOR = 'form.checkout #payment';
+				const blockCount = () =>
+					global.__wcStripeBlockCounts?.[ SELECTOR ] ?? 0;
+				const unblockCount = () =>
+					global.__wcStripeUnblockCounts?.[ SELECTOR ] ?? 0;
+				const blocksBefore = blockCount();
+				const unblocksBefore = unblockCount();
+
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				await mountElement( api, checkoutElements );
+
+				// Make the next resync enter the block branch regardless of the
+				// mount's one-shot loadActions.
+				checkoutElements.loadActions.mockResolvedValue( {
+					type: 'success',
+					actions: checkoutElements.checkoutActions,
+				} );
+
+				// Hold the older resync open so its finally runs after the newer
+				// generation takes over.
+				let resolveOlder;
+				checkoutElements.checkoutActions.runServerUpdate.mockImplementationOnce(
+					() =>
+						new Promise( ( resolve ) => {
+							resolveOlder = () =>
+								resolve( {
+									type: 'success',
+									session: {
+										id: MOCK_AP_CHECKOUT_SESSION_ID,
+									},
+								} );
+						} )
+				);
+
+				// Gen A blocks the payment area, then parks mid-update.
+				const olderResync =
+					paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
+						api
+					);
+				await flushPromises();
+				expect( blockCount() ).toBe( blocksBefore + 1 );
+
+				// Element tears down before the newer resync, so it skips the
+				// block/guarded-unblock branch entirely (no loadActions).
+				delete checkoutElements.loadActions;
+
+				// Gen B (now current) completes without blocking.
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
+					api
+				);
+
+				// Gen A settles last; superseded, so it skips its guarded unblock.
+				resolveOlder();
+				await olderResync;
+
+				// Gen B's final cleanup must have lifted the block Gen A stranded.
+				expect( unblockCount() ).toBeGreaterThan( unblocksBefore );
+			} );
+
 			it( 'does not show a notice when the resync succeeds', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
@@ -1313,6 +1392,30 @@ describe( 'payment-processing', () => {
 				);
 
 				expect( stripeUtils.showErrorCheckout ).not.toHaveBeenCalled();
+			} );
+
+			it( 'retracts the stale-total notice once a later resync succeeds', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				await mountElement( api, checkoutElements );
+
+				// First resync fails and leaves a notice on the page.
+				checkoutElements.checkoutActions.runServerUpdate.mockResolvedValueOnce(
+					{ type: 'error', error: { message: 'boom' } }
+				);
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
+					api
+				);
+				stripeUtils.clearStaleCheckoutTotalNotice.mockClear();
+
+				// A later clean resync must clear that lingering notice.
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
+					api
+				);
+
+				expect(
+					stripeUtils.clearStaleCheckoutTotalNotice
+				).toHaveBeenCalled();
 			} );
 
 			it( 'blocks payment while the session is stale, then allows it after a clean resync', async () => {

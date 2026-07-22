@@ -21,6 +21,7 @@ import {
 	getBillingDetailsForDeferredFlow,
 	normalizeReturnUrl,
 	getStaleCheckoutTotalMessage,
+	clearStaleCheckoutTotalNotice,
 } from '../../stripe-utils';
 import {
 	initializeUPEAppearance,
@@ -211,7 +212,11 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 				// eslint-disable-next-line no-console
 				console.error( error );
 			} finally {
-				unblockUI( jQuery( 'form.checkout #payment' ) );
+				// A superseded resync must not lift the block a newer, still
+				// in-flight resync is holding on the payment area.
+				if ( generation === adaptivePricingSyncGeneration ) {
+					unblockUI( jQuery( 'form.checkout #payment' ) );
+				}
 			}
 		}
 
@@ -229,10 +234,17 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 		return;
 	}
 
+	// Clear any overlay a superseded resync left up; as the current generation
+	// with none newer in flight, this can't lift a block still in use.
+	unblockUI( jQuery( 'form.checkout #payment' ) );
+
 	adaptivePricingSyncFailed = resyncFailed;
 
 	if ( resyncFailed ) {
 		showErrorCheckout( getStaleCheckoutTotalMessage() );
+	} else {
+		// Retract the notice a prior failed resync left behind now that totals sync.
+		clearStaleCheckoutTotalNotice();
 	}
 }
 
