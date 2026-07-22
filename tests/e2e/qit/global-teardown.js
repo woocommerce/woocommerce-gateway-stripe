@@ -25,31 +25,35 @@ export default async function globalTeardown( config ) {
 
 	let consumerTokenCleared = false;
 
-	await user.login( adminPage, ADMIN_USER, ADMIN_PASSWORD );
+	try {
+		await user.login( adminPage, ADMIN_USER, ADMIN_PASSWORD );
 
-	// Clean up the consumer keys.
-	const keysRetries = 5;
-	for ( let i = 1; i <= keysRetries; i++ ) {
-		try {
-			console.log( '- Trying to clear consumer token... Try:' + i );
+		// Clean up the consumer keys.
+		const keysRetries = 5;
+		for ( let i = 1; i <= keysRetries; i++ ) {
+			try {
+				console.log( '- Trying to clear consumer token... Try:' + i );
 
-			await adminPage.goto(
-				`/wp-admin/admin.php?page=wc-settings&tab=advanced&section=keys`
-			);
-			await adminPage.dispatchEvent( 'a.submitdelete', 'click' );
-			console.log( '\u2714 Cleared up consumer token successfully.' );
-			consumerTokenCleared = true;
-			break;
-		} catch ( e ) {
-			console.error(
-				`Failed to clear consumer token. Retrying... ${ i }/${ keysRetries }. Error:`,
-				e
-			);
+				await adminPage.goto(
+					`/wp-admin/admin.php?page=wc-settings&tab=advanced&section=keys`
+				);
+				await adminPage.dispatchEvent( 'a.submitdelete', 'click' );
+				console.log( '\u2714 Cleared up consumer token successfully.' );
+				consumerTokenCleared = true;
+				break;
+			} catch ( e ) {
+				console.error(
+					`Failed to clear consumer token. Retrying... ${ i }/${ keysRetries }. Error:`,
+					e
+				);
+			}
 		}
-	}
 
-	if ( ! consumerTokenCleared ) {
-		console.error( 'Could not clear consumer token.' );
+		if ( ! consumerTokenCleared ) {
+			console.error( 'Could not clear consumer token.' );
+		}
+	} catch ( e ) {
+		console.error( 'Failed to clear consumer token:', e );
 	}
 
 	// Delete all Stripe webhooks pointed at this site's URL to ensure
