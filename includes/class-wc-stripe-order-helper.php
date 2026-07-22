@@ -916,6 +916,38 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Records the captured state carried by a Stripe charge on the order.
+	 *
+	 * This is the single writer of the captured flag for every code path that receives a
+	 * charge object — a checkout response (process_response()), a webhook payload
+	 * (payment_intent.processing, charge.succeeded, charge.captured, charge.refunded), or
+	 * an on-demand API fetch (refund-time resolution, charge ID recovery). Refund and
+	 * capture flows read the flag to tell a refundable charge from a voidable
+	 * pre-authorization.
+	 *
+	 * Some payment methods create their charge only after checkout, so a webhook payload or
+	 * an API fetch may be the first — and only — chance to record the flag.
+	 *
+	 * Does not persist the order; callers decide when to save.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order $order The order to record the captured state on.
+	 * @param object|string|null $charge The received Stripe charge (or charge-shaped webhook payload).
+	 * @return bool|null The recorded captured state, or null when the charge carries none.
+	 */
+	public function sync_stripe_charge_captured( WC_Order $order, $charge ): ?bool {
+		if ( ! is_object( $charge ) || ! isset( $charge->captured ) ) {
+			return null;
+		}
+
+		$captured = (bool) $charge->captured;
+		$this->set_stripe_charge_captured( $order, $captured );
+
+		return $captured;
+	}
+
+	/**
 	 * Checks if stripe status is final for order.
 	 *
 	 * @since 10.1.0
