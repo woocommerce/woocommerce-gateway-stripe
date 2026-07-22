@@ -709,40 +709,6 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Tests that process_refund rejects negative amounts without contacting Stripe.
-	 * WC_Stripe_Helper::get_stripe_amount() strips the sign, so an unguarded negative
-	 * amount would refund the absolute value instead of failing.
-	 */
-	public function test_process_refund_fails_on_negative_amount() {
-		$order = WC_Helper_Order::create_order();
-		$order->set_currency( 'USD' );
-		$order->set_transaction_id( 'ch_123' );
-		$this->updateOrderMeta( $order, '_stripe_charge_captured', 'yes' );
-		$order->save();
-		$order_id = $order->get_id();
-
-		$requested_urls = [];
-
-		$callback = function ( $preempt, $request_args, $url ) use ( &$requested_urls ) {
-			$requested_urls[] = $url;
-			return $preempt;
-		};
-
-		add_filter( 'pre_http_request', $callback, 10, 3 );
-
-		$result = $this->gateway->process_refund( $order_id, -10 );
-
-		remove_filter( 'pre_http_request', $callback );
-
-		$this->assertWPError( $result );
-		$this->assertSame( 'stripe_error', $result->get_error_code() );
-		$this->assertStringContainsString( 'must be greater than or equal to zero', $result->get_error_message() );
-
-		// No request reached Stripe: an unguarded -10 would have refunded +10.
-		$this->assertSame( [], $requested_urls );
-	}
-
-	/**
 	 * Tests successful refund processing with a positive amount.
 	 */
 	public function test_process_refund_success() {

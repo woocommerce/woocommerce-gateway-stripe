@@ -77,7 +77,6 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Lock the order while confirming a 3DS card payment so a concurrent webhook can't complete it twice, duplicating stock reduction, order notes, and emails
 * Fix - Store the Stripe refund ID on each WooCommerce refund record so orders with multiple partial refunds retain every refund ID
 * Fix - Record the charge-captured state for asynchronously confirmed payments (e.g. ACH with microdeposit verification) so refunds from wp-admin succeed and refunds from the Stripe Dashboard no longer cancel the order
-* Fix - Reject negative refund amounts with an explicit error instead of silently refunding the absolute value
 
 2026-07-14 - version 10.8.4
 * Fix - Improve Checkout Session amount integrity
