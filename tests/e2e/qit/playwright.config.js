@@ -25,7 +25,6 @@ const config = {
 		timeout: 30 * 1000,
 	},
 
-	// Folder for test artifacts such as screenshots, videos, traces, etc
 	outputDir: '../results/output',
 
 	/* Retry on CI only */
@@ -58,13 +57,10 @@ const config = {
 
 		stateDir: './results/storage/',
 
-		// Capture screenshot after each test failure
 		screenshot: 'only-on-failure',
 
-		// Collect trace when retrying the failed test.
 		trace: 'retain-on-failure',
 
-		// Record video only when retrying a test for the first time
 		video: 'on-first-retry',
 
 		viewport: { width: 1280, height: 720 },
