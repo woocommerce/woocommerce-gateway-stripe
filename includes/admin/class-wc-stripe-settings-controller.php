@@ -253,6 +253,9 @@ class WC_Stripe_Settings_Controller {
 			'are_apms_deprecated'                   => false,
 			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
 			'is_oc_enabled'                         => $is_oc_enabled,
+			// Settings sync is only reported as disabled for connected accounts: is_enabled() is also
+			// false when there is no connection at all, but in that case the connect UI is shown instead.
+			'is_pmc_sync_disabled'                  => WC_Stripe_Helper::is_connected() && ! WC_Stripe_Payment_Method_Configurations::is_enabled(),
 			'is_cs_available'                       => $is_checkout_sessions_available,
 			'adaptive_pricing_unavailable_reason'   => $adaptive_pricing_unavailable_reason,
 			'oc_layout'                             => $this->get_gateway()->get_validated_option( 'optimized_checkout_layout' ),
