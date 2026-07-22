@@ -373,4 +373,6 @@ WooCommerce coupons do not participate in delegated (in-agent) checkout. Prices 
 - WooCommerce coupon **usage limits are neither enforced nor consumed** by agentic sales. A limited-use coupon promotion does not cap, count, or discount purchases completed inside an agent.
 - Stripe-side discounts are rejected at order creation: a session whose `total_details.amount_discount` is non-zero fails with an explicit error (WooCommerce recalculates full catalog prices, so such an order could never pass total verification). Because Stripe captures payment before the webhook fires, the failure surfaces in logs for manual resolution.
 
-Whether to support promotions in agentic checkout (mapping Stripe discounts to WooCommerce coupons and enforcing usage limits at `finalize_checkout`) is an open product decision, tracked in STRIPE-1257.
+This limitation only affects delegated (in-agent) purchases. In feed-only / redirect mode (see [Checkout Mode](#checkout-mode-embedded-vs-redirect) above) the shopper completes checkout on the store, where WooCommerce coupons and their usage limits apply as usual.
+
+Whether to support promotions in delegated checkout (mapping Stripe discounts to WooCommerce coupons and enforcing usage limits at `finalize_checkout`) is an open product decision, tracked in STRIPE-1257.
