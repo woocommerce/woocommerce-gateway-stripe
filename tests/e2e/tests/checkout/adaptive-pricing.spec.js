@@ -1,8 +1,7 @@
 /**
- * Adaptive Pricing flows. On a test-mode US account with working webhooks the
- * feature is available, and a same-currency shopper still checks out through
- * the Adaptive Pricing (checkout sessions) path — Stripe just presents the
- * store currency — so these flows exercise the real session code end-to-end.
+ * Adaptive Pricing flows. A same-currency shopper still checks out through
+ * the checkout-sessions path (Stripe just presents the store currency), so
+ * these exercise the real session code end-to-end.
  */
 import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
@@ -43,10 +42,8 @@ const payWithAdaptivePricing = async ( page, checkoutType ) => {
 
 	await clickPlaceOrder( page );
 
-	// Adaptive Pricing orders are only marked paid by the checkout session
-	// webhooks, which cannot reach the tunnel-less CI site — so assert the
-	// order-received page (the redirect handler verifies the live session)
-	// and its total instead of the admin "Paid" row.
+	// AP orders are only marked paid by webhooks, which can't reach the
+	// tunnel-less CI site — assert the received page, not the "Paid" row.
 	await waitForOrderReceivedPage( page );
 	await expect(
 		page.locator( '.woocommerce-order-overview__total' )
@@ -59,10 +56,9 @@ test.describe( 'Adaptive Pricing checkout', () => {
 	test( 'customer can pay through Adaptive Pricing on shortcode checkout @smoke', async ( {
 		page,
 	} ) => {
-		// The "Paid by customer" presentment row is NOT asserted here: Stripe
-		// only reports presentment details when a currency conversion actually
-		// happened, which a same-currency CI shopper cannot produce. Its
-		// rendering is covered by unit tests.
+		// No "Paid by customer" assertion: Stripe only reports presentment
+		// details on real conversions, impossible for a same-currency CI
+		// shopper. Unit tests cover the row.
 		await payWithAdaptivePricing( page, 'shortcode' );
 	} );
 
@@ -75,13 +71,11 @@ test.describe( 'Adaptive Pricing checkout', () => {
 	test( 'logged-in customer without a saved billing address can pay through Adaptive Pricing', async ( {
 		page,
 	} ) => {
-		// A bare customer: no billing/shipping address saved on the account.
+		// Empty addresses: the helper's mapped fields come out undefined and
+		// are dropped, creating the customer with no saved address.
 		const randomString = randomUUID();
 		const username =
 			randomString + '.' + config.get( 'users.customer.username' );
-		// Empty billing/shipping: the helper maps their fields, and the
-		// undefined values are dropped from the request, creating the
-		// customer with no saved address.
 		await api.create.customer( {
 			...config.get( 'users.customer' ),
 			email: randomString + '+' + config.get( 'users.customer.email' ),
@@ -96,8 +90,7 @@ test.describe( 'Adaptive Pricing checkout', () => {
 			config.get( 'users.customer.password' )
 		);
 
-		// Creating the checkout session for this buyer must not fail on the
-		// missing address; the payment element renders and the purchase works.
+		// Session creation must not fail on the missing address.
 		await payWithAdaptivePricing( page, 'shortcode' );
 	} );
 
@@ -131,8 +124,7 @@ test.describe( 'Adaptive Pricing checkout', () => {
 				page.locator( '.wc-stripe-adaptive-pricing-unavailable-reason' )
 			).toContainText( 'Adaptive Pricing requires automatic capture' );
 		} finally {
-			// Restore automatic capture (unchecking shows no modal) and
-			// confirm Adaptive Pricing becomes selectable again.
+			// Restore automatic capture (no modal on uncheck).
 			await page.goto( SETTINGS_URL );
 			const manualCapture = page.getByLabel( MANUAL_CAPTURE_LABEL );
 			if ( await manualCapture.isChecked() ) {

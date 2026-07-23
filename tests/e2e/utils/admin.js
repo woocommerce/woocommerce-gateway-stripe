@@ -149,10 +149,8 @@ export const initializeOptimizedCheckout = async (
 /**
  * Enables or disables Adaptive Pricing in the Stripe settings.
  *
- * Adaptive Pricing is only offered while the Optimized Checkout Suite is
- * enabled, so enabling it enables OC first. Disabling only unchecks Adaptive
- * Pricing; callers that also want OC off should call
- * initializeOptimizedCheckout( browser, false ) afterwards.
+ * Enabling turns on the Optimized Checkout Suite first (AP requires it);
+ * disabling leaves OC on.
  *
  * @param {Browser} browser      Playwright browser fixture.
  * @param {boolean} shouldEnable Whether to enable or disable Adaptive Pricing.
@@ -184,8 +182,8 @@ export const initializeAdaptivePricing = async (
 		( shouldEnable && ! isChecked ) || ( ! shouldEnable && isChecked );
 
 	if ( updateNeeded ) {
-		// Fail fast with a readable reason when an availability gate (webhooks,
-		// PMC, capture, OC) is unmet, instead of timing out on the click.
+		// Fail fast when an availability gate (webhooks, PMC, capture, OC)
+		// is unmet, instead of timing out on the click.
 		await expect( checkbox ).toBeEnabled();
 		await checkbox.click();
 		await page.click( 'text=Save changes' );

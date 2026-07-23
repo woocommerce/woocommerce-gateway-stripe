@@ -39,11 +39,9 @@ fi
 TEST_ENV="$TEST_ENV DOCKER=true E2E_ROOT=${E2E_ROOT} BASE_URL='http://localhost:8088'"
 TEST_ENV="$TEST_ENV ADMIN_USER='admin' ADMIN_PASSWORD='admin'"
 
-# Adaptive Pricing is only offered while the plugin believes webhooks work and
-# the payment method configurations API is on. The docker site cannot receive
-# real webhooks (no tunnel), so seed exactly what the availability checks read:
-# webhook data plus the cached status transient — which is_webhook_enabled()
-# trusts without calling Stripe — and the PMC flag.
+# The docker site can't receive real webhooks (no tunnel), so seed what the
+# Adaptive Pricing availability checks read: webhook data, the cached status
+# transient is_webhook_enabled() trusts without calling Stripe, and PMC.
 if [[ "adaptive-pricing" == "$project" ]]; then
 	echo "Seeding Adaptive Pricing prerequisites"
 	cli wp option patch insert woocommerce_stripe_settings pmc_enabled 'yes'

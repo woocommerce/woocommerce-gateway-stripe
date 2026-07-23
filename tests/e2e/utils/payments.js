@@ -788,9 +788,8 @@ export const setupOptimizedCheckout = async (
 			options.timeout
 		);
 
-		// Select the card payment method. Optional because the Adaptive
-		// Pricing (checkout sessions) element renders differently across
-		// flows; fillOCDetails() expands the Card accordion row when needed.
+		// Optional for Adaptive Pricing, whose element renders differently
+		// across flows; fillOCDetails() expands the Card row when needed.
 		if ( options.cardSelectionOptional ) {
 			await paymentFrame
 				.locator(
@@ -959,10 +958,8 @@ export async function handleCheckoutCashAppPay(
 /**
  * Resolves the visible Stripe iframe that renders the payment UI.
  *
- * Multiple visible Stripe frames can match the container selector — e.g. the
- * Adaptive Pricing element adds a test-mode banner frame ("Use card 4242…")
- * before the payment frame — so pick the frame that actually contains the
- * method selector or card fields instead of blindly taking the first.
+ * Multiple visible frames can match the selector (e.g. Adaptive Pricing adds
+ * a test-mode banner frame first), so pick by content, not position.
  *
  * @param {Page}   page           Playwright page fixture.
  * @param {string} iframeSelector Selector matching the container's Stripe iframes.
@@ -994,8 +991,7 @@ const getOCPaymentFrame = async ( page, iframeSelector, timeout = 10000 ) => {
 		await page.waitForTimeout( 250 );
 	} while ( Date.now() < deadline );
 
-	// Fall back to the first visible frame so the caller's own failure
-	// message points at the missing field.
+	// Fall back so the caller's own failure message names the missing field.
 	return candidates.first().contentFrame();
 };
 
@@ -1015,8 +1011,7 @@ export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
 
 	const paymentFrame = await getOCPaymentFrame( page, iframeSelector );
 
-	// The Adaptive Pricing blocks element renders the methods as a collapsed
-	// accordion; expand Card if its fields are not showing yet.
+	// Expand the Card accordion row if its fields are not showing yet.
 	if ( ! ( await paymentFrame.locator( '[name="number"]' ).isVisible() ) ) {
 		await paymentFrame
 			.locator(
