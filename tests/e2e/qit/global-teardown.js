@@ -28,7 +28,6 @@ export default async function globalTeardown( config ) {
 	try {
 		await user.login( adminPage, ADMIN_USER, ADMIN_PASSWORD );
 
-		// Clean up the consumer keys.
 		const keysRetries = 5;
 		for ( let i = 1; i <= keysRetries; i++ ) {
 			try {
