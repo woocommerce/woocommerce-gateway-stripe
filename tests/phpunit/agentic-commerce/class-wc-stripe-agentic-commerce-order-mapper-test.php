@@ -1061,6 +1061,57 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Data provider for non-positive line item quantities whose amounts are
+	 * internally consistent, so the price reconciliation alone would pass.
+	 *
+	 * @return array<string, array{quantity: int, amount: int}>
+	 */
+	public function non_positive_quantity_provider(): array {
+		return [
+			'zero quantity'     => [
+				'quantity' => 0,
+				'amount'   => 0,
+			],
+			'negative quantity' => [
+				'quantity' => -2,
+				'amount'   => -2000,
+			],
+		];
+	}
+
+	/**
+	 * Test that a line item with a non-positive quantity throws even when its
+	 * amounts reconcile with the catalog price.
+	 *
+	 * @dataProvider non_positive_quantity_provider
+	 */
+	public function test_exception_thrown_for_non_positive_quantity( int $quantity, int $amount ) {
+		$session = $this->build_checkout_session(
+			[
+				'amount_total'    => $amount,
+				'amount_subtotal' => $amount,
+				'line_items'      => $this->build_line_items(
+					[
+						[
+							'lookup_key'      => (string) $this->default_product->get_sku(),
+							'quantity'        => $quantity,
+							'unit_amount'     => 1000,
+							'amount_total'    => $amount,
+							'amount_subtotal' => $amount,
+							'amount_tax'      => 0,
+						],
+					]
+				),
+			]
+		);
+
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'invalid quantity' );
+
+		$this->mapper->create_order_from_checkout_session( $session );
+	}
+
+	/**
 	 * Test creating an order with multiple line items.
 	 *
 	 * @return void

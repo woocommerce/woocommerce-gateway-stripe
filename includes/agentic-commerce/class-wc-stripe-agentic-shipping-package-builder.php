@@ -70,7 +70,7 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event    The customization hook event.
 	 * @param string                                     $currency The three-letter currency code.
 	 * @return array Cart-item-format entries keyed by line item ID.
-	 * @throws Exception When a line item's sku_id cannot be resolved to a product, or the product has no catalog price to fall back on.
+	 * @throws Exception When a line item's sku_id cannot be resolved to a product, its quantity or unit_amount is out of bounds, or the product has no catalog price to fall back on.
 	 */
 	public static function build_contents_from_event( WC_Stripe_Agentic_Customize_Checkout_Event $event, string $currency ): array {
 		$contents = [];
@@ -96,6 +96,20 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 
 			$quantity    = $line_item->get_quantity();
 			$unit_amount = $line_item->get_unit_amount();
+
+			// The event getters only cast to int, so a malformed payload can
+			// carry a zero/negative quantity or a negative unit_amount; either
+			// would corrupt line totals, so fail the request instead.
+			if ( $quantity < 1 || ( null !== $unit_amount && $unit_amount < 0 ) ) {
+				throw new Exception(
+					sprintf(
+						'Shipping package builder: invalid quantity or unit_amount for line item %s (quantity %d, unit_amount %s).',
+						$line_item->get_id(),
+						$quantity,
+						null === $unit_amount ? 'null' : (string) $unit_amount
+					)
+				);
+			}
 
 			if ( null !== $unit_amount ) {
 				$line_total = WC_Stripe_Helper::convert_from_stripe_amount( $unit_amount * $quantity, $currency );

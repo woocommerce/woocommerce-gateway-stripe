@@ -208,7 +208,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
-	 * @throws Exception When a product cannot be found for a line item.
+	 * @throws Exception When a product cannot be found for a line item, or a line item has a non-positive quantity.
 	 */
 	private function map_line_items( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
 		$currency   = $session->get_currency() ?? '';
@@ -236,7 +236,21 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 			$product = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product( $product_id );
 
-			$quantity   = $line_item->get_quantity();
+			$quantity = $line_item->get_quantity();
+
+			// The getter only casts to int, and the line-total reconciliation
+			// below can't catch a payload that is internally consistent with a
+			// non-positive quantity (e.g. quantity 0 with amount_total 0).
+			if ( $quantity < 1 ) {
+				throw new Exception(
+					sprintf(
+						'Line item %s has an invalid quantity (%d).',
+						$line_item->get_id(),
+						$quantity
+					)
+				);
+			}
+
 			$line_total = WC_Stripe_Helper::convert_from_stripe_amount(
 				$line_item->get_amount_total() - $line_item->get_amount_tax(),
 				$currency
