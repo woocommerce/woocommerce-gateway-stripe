@@ -174,6 +174,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - When changing a subscription's payment method, reflect the new card and its Apple Pay/Google Pay branding on My Account and clarify the admin order note
 * Dev - Use a shared hook manager to prevent duplicate subscription hook registrations
 * Dev - Initial infrastructure for more complex Agentic feed filtering
+* Dev - Agentic Commerce: add the shareable woocommerce_agentic_commerce_disable_checkout filter, deprecating the wc_stripe_-prefixed twin
 * Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
 * Fix - Prevent classic and Blocks checkout submissions from failing while the Stripe Payment Element is re-mounting after a checkout update
 * Fix - Decommission the previously configured webhook before connecting via OAuth so reconnecting to a different Stripe account no longer leaves an orphaned webhook on the old account
@@ -229,6 +230,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Include the statement descriptor when creating payment intents for ACSS Debit and BLIK payments
 * Fix - Represent negative fees and taxes as discounts in Level 3 data so manually capturing an order edited to include a negative fee no longer fails
 * Fix - Ensure all WordPress hooks have filter documentation
+* Fix - Refund the shopper when a Stripe payment is captured after the order was cancelled, instead of leaving them charged for a cancelled order
 * Fix - Restrict payment intent creation to payment methods that do not support deferred intent
 * Fix - Clear the Adaptive Pricing order total error notice once a later update succeeds
 * Fix - Accept express checkout addresses whose province is entered with a curly apostrophe, so Apple Pay no longer rejects them
