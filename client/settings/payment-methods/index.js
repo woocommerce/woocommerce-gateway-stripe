@@ -10,6 +10,7 @@ import { __ } from '@wordpress/i18n';
 import AmazonPayTaxesBillingAddressNotice from 'wcstripe/components/amazon-pay-taxes-billing-address-notice';
 import PromotionalBanner from 'wcstripe/settings/payment-settings/promotional-banner';
 import OptimizedCheckoutNotice from 'wcstripe/settings/optimized-checkout-notice';
+import SettingsSyncDisabledNotice from 'wcstripe/settings/settings-sync-disabled-notice';
 
 const PaymentMethodsDescription = () => {
 	return (
@@ -82,6 +83,7 @@ const PaymentMethodsPanel = ( {
 				</SettingsSection>
 			) }
 			<SettingsSection Description={ PaymentMethodsDescription }>
+				<SettingsSyncDisabledNotice />
 				<DisplayOrderCustomizationNotice isOCEnabled={ isOCEnabled } />
 				<OptimizedCheckoutNotice isOCEnabled={ isOCEnabled } />
 				<GeneralSettingsSection onSaveChanges={ onSaveChanges } />
