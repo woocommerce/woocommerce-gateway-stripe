@@ -94,6 +94,38 @@ test.describe( 'Adaptive Pricing checkout', () => {
 		await payWithAdaptivePricing( page, 'shortcode' );
 	} );
 
+	test( 'guest sees converted prices as a simulated French shopper', async ( {
+		page,
+		context,
+		baseURL,
+	} ) => {
+		// The e2e mu-plugin turns this cookie into Stripe's documented
+		// "+location_XX" customer_email test hook on the session request.
+		await context.addCookies( [
+			{ name: 'wc_stripe_e2e_location', value: 'FR', url: baseURL },
+		] );
+
+		await setupOptimizedCheckout( page, 'shortcode', {
+			timeout: 10000,
+			skipCartSetup: false,
+			cardSelectionOptional: true,
+		} );
+
+		// The currency selector only offers a choice when Stripe converts
+		// the presentment currency, so EUR here proves the conversion ran.
+		const currencySelector = page.locator( '#wc-stripe-currency-selector' );
+		await expect( currencySelector ).toBeVisible( { timeout: 20000 } );
+		await expect(
+			currencySelector
+				.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
+				.locator( 'body' )
+		).toContainText( /EUR|€/, { timeout: 20000 } );
+
+		await fillOCDetails( page, config.get( 'cards.basic' ), 'shortcode' );
+		await clickPlaceOrder( page );
+		await waitForOrderReceivedPage( page );
+	} );
+
 	test( 'manual capture blocks Adaptive Pricing in the settings with a clear reason', async ( {
 		browser,
 	} ) => {
