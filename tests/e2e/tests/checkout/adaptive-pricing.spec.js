@@ -79,10 +79,15 @@ test.describe( 'Adaptive Pricing checkout', () => {
 		const randomString = randomUUID();
 		const username =
 			randomString + '.' + config.get( 'users.customer.username' );
+		// Empty billing/shipping: the helper maps their fields, and the
+		// undefined values are dropped from the request, creating the
+		// customer with no saved address.
 		await api.create.customer( {
 			...config.get( 'users.customer' ),
 			email: randomString + '+' + config.get( 'users.customer.email' ),
 			username,
+			billing: {},
+			shipping: {},
 		} );
 
 		await user.login(
