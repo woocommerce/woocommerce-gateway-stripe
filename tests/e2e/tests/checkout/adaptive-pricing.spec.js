@@ -14,6 +14,7 @@ const {
 	clickPlaceOrder,
 	getCartTotal,
 	waitForOrderReceivedPage,
+	getOrderIdFromOrderReceivedUrl,
 } = payments;
 
 const SETTINGS_URL =
@@ -98,6 +99,7 @@ test.describe( 'Adaptive Pricing checkout', () => {
 		page,
 		context,
 		baseURL,
+		browser,
 	} ) => {
 		// The e2e mu-plugin turns this cookie into Stripe's documented
 		// "+location_XX" customer_email test hook on the session request.
@@ -124,6 +126,33 @@ test.describe( 'Adaptive Pricing checkout', () => {
 		await fillOCDetails( page, config.get( 'cards.basic' ), 'shortcode' );
 		await clickPlaceOrder( page );
 		await waitForOrderReceivedPage( page );
+
+		// Both notices below read presentment meta populated by a lazy
+		// checkout-session fetch when the page renders, so they work
+		// without the settlement webhook CI can't receive.
+		await expect(
+			page.locator( '.woocommerce-info', {
+				hasText: 'Currency Conversion:',
+			} )
+		).toContainText( 'EUR' );
+
+		const orderId = getOrderIdFromOrderReceivedUrl( page.url() );
+		const { context: adminContext, page: adminPage } =
+			await admin.getAdminPage( browser );
+		try {
+			// HPOS redirects this legacy edit URL to the new order screen.
+			await adminPage.goto(
+				`/wp-admin/post.php?post=${ orderId }&action=edit`
+			);
+			await expect(
+				adminPage
+					.locator( '.wc-order-totals tr' )
+					.filter( { hasText: 'Paid by customer' } )
+					.locator( '.total' )
+			).toContainText( '€' );
+		} finally {
+			await adminContext.close();
+		}
 	} );
 
 	test( 'manual capture blocks Adaptive Pricing in the settings with a clear reason', async ( {
