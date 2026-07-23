@@ -1030,14 +1030,17 @@ export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
 
 	// For emails Link doesn't recognize, it offers signup with "Save my
 	// information" pre-checked, which requires a mobile number the tests
-	// don't fill and blocks the payment; opt out instead.
+	// don't fill and blocks the payment; opt out instead. Best-effort:
+	// mandatory-save flows (e.g. subscriptions) render the checkbox only
+	// transiently before re-rendering without it, so it can disappear
+	// between the check and the uncheck.
 	const linkSaveInfo = paymentFrame.getByRole( 'checkbox', {
 		name: 'Save my information for faster checkout',
 	} );
 	if (
 		await linkSaveInfo.isChecked( { timeout: 5000 } ).catch( () => false )
 	) {
-		await linkSaveInfo.uncheck();
+		await linkSaveInfo.uncheck( { timeout: 5000 } ).catch( () => {} );
 	}
 };
 
