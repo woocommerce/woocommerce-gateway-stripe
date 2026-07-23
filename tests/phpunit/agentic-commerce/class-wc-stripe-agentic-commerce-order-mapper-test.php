@@ -1625,8 +1625,43 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			'The on-hold order must carry a note explaining the stock failure.'
 		);
 
+		// Cancelling the parked order must not restock units that were never
+		// taken — the reason woocommerce_payment_complete_reduce_order_stock
+		// (not woocommerce_can_reduce_order_stock) suppresses the reduction.
+		$order->update_status( OrderStatus::CANCELLED );
+		$this->assertSame( 1, wc_get_product( $product->get_id() )->get_stock_quantity(), 'Cancelling must not restock never-taken units.' );
+
 		$order->delete( true );
 		$competing->delete( true );
+		$product->delete( true );
+	}
+
+	/**
+	 * Test that a non-ReserveStockException failure inside the reservation
+	 * (e.g. a third-party callback) also parks the paid order on-hold instead
+	 * of escaping with neither payment_complete() nor the fallback run.
+	 */
+	public function test_completion_holds_order_when_reservation_throws_generic_error() {
+		update_option( 'woocommerce_manage_stock', 'yes' );
+		$product = $this->create_managed_stock_product( 3 );
+		$session = $this->build_stock_session( $product, 1 );
+
+		$thrower = static function () {
+			throw new RuntimeException( 'third-party callback failure' );
+		};
+		add_filter( 'woocommerce_order_hold_stock_minutes', $thrower );
+
+		try {
+			$order = $this->mapper->create_order_from_checkout_session( $session );
+		} finally {
+			remove_filter( 'woocommerce_order_hold_stock_minutes', $thrower );
+		}
+
+		$this->assertEquals( OrderStatus::ON_HOLD, $order->get_status() );
+		$this->assertSame( 3, wc_get_product( $product->get_id() )->get_stock_quantity() );
+		$this->assertSame( 'pi_test_456', $order->get_transaction_id() );
+
+		$order->delete( true );
 		$product->delete( true );
 	}
 

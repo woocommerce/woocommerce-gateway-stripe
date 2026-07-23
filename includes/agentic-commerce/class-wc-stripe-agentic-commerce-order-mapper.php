@@ -87,9 +87,13 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		// The only point that serializes concurrent agentic sessions on stock —
 		// finalize_checkout validates without reserving, so N sessions can all
 		// pass for the same last units. ReserveStock either claims them or throws.
+		// Throwable, not just ReserveStockException: third-party callbacks can
+		// throw anything from inside the reservation, and payment is already
+		// captured — every failure must land on the parked-order path rather
+		// than escape with neither payment_complete() nor the fallback run.
 		try {
 			$this->reserve_stock( $order );
-		} catch ( \Automattic\WooCommerce\Checkout\Helpers\ReserveStockException $e ) {
+		} catch ( \Throwable $e ) {
 			$this->hold_order_for_insufficient_stock( $order, $session, $e );
 			return $order;
 		}
@@ -336,11 +340,11 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * reduction that would drive the oversold product negative.
 	 *
 	 * @since 10.9.0
-	 * @param WC_Order                                                  $order   The created order.
-	 * @param WC_Stripe_Agentic_Checkout_Session                        $session The checkout session wrapper.
-	 * @param \Automattic\WooCommerce\Checkout\Helpers\ReserveStockException $e  The reservation failure.
+	 * @param WC_Order                           $order   The created order.
+	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+	 * @param Throwable                          $e       The reservation failure.
 	 */
-	private function hold_order_for_insufficient_stock( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session, \Automattic\WooCommerce\Checkout\Helpers\ReserveStockException $e ): void {
+	private function hold_order_for_insufficient_stock( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session, Throwable $e ): void {
 		$order->set_transaction_id( $session->get_payment_intent_id() ?? '' );
 
 		// Not woocommerce_can_reduce_order_stock: that still marks the order
@@ -356,7 +360,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 				OrderStatus::ON_HOLD,
 				sprintf(
 					/* translators: %s: reason stock could not be secured */
-					__( 'Stripe captured the payment, but stock could not be secured for every item: %s Review stock, then process or refund this order manually.', 'woocommerce-gateway-stripe' ),
+					__( 'Stripe captured the payment, but stock could not be secured for every item. Review stock, then process or refund this order manually. Reason: %s', 'woocommerce-gateway-stripe' ),
 					$e->getMessage()
 				)
 			);
