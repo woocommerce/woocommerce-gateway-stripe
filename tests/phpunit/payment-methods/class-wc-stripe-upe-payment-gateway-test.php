@@ -915,6 +915,39 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * A wc_stripe_upe_params filter callback returning a non-array must not
+	 * fatal payment_scripts(); the unfiltered params are used instead.
+	 */
+	public function test_payment_scripts_survives_non_array_upe_params_filter(): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'javascript_params', 'get_return_url' ] )
+			->getMock();
+		$gateway->method( 'javascript_params' )->willReturn( [ 'isCheckout' => true ] );
+		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
+		$gateway->enabled = 'yes';
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+		add_filter( 'wc_stripe_upe_params', '__return_null' );
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+
+		$gateway->payment_scripts();
+		$localized = wp_scripts()->get_data( 'wc-stripe-upe-classic', 'data' );
+
+		remove_filter( 'wc_stripe_upe_params', '__return_null' );
+		remove_filter( 'woocommerce_is_checkout', '__return_true' );
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+
+		$this->assertIsString( $localized, 'wc_stripe_upe_params was not localized' );
+		preg_match( '/var wc_stripe_upe_params = (\{.*\});/s', $localized, $matches );
+		$params = json_decode( $matches[1], true );
+
+		// wp_localize_script() casts scalar values to strings.
+		$this->assertSame( '1', $params['isCheckout'] );
+		$this->assertArrayHasKey( 'scriptDependencies', $params );
+	}
+
+	/**
 	 * The bootstrap pins webpack's publicPath to `pluginBuildUrl`; guard that
 	 * PHP→JS contract key here.
 	 */

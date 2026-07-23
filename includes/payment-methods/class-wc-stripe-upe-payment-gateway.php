@@ -507,6 +507,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		 */
 		$upe_params = apply_filters( 'wc_stripe_upe_params', $this->javascript_params() );
 
+		// A filter callback returning a non-array must not fatal the checkout.
+		if ( ! is_array( $upe_params ) ) {
+			$upe_params = $this->javascript_params();
+		}
+
 		// The bootstrap waits for these dependencies' globals before loading the
 		// async init chunk; sourcing the list from the build keeps it in sync.
 		$upe_params['scriptDependencies'] = $dependencies;

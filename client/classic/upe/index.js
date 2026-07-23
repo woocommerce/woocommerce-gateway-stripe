@@ -70,6 +70,10 @@ const handleToGlobalPath = ( handle ) => {
 		return [ 'wp', camelCaseDash( handle.slice( 'wp-'.length ) ) ];
 	}
 	// Unknown handle: skip rather than risk hanging on a wrong path.
+	// eslint-disable-next-line no-console
+	console.warn(
+		`[wc-stripe] No known global for script dependency "${ handle }"; not gating on it.`
+	);
 	return null;
 };
 

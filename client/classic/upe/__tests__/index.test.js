@@ -152,6 +152,36 @@ describe( 'classic UPE bootstrap', () => {
 		} );
 	} );
 
+	it( 'warns on an unmapped dependency handle and does not gate on it', async () => {
+		global.wc_stripe_upe_params = {
+			scriptDependencies: [
+				'some-future-handle',
+				'wp-data',
+				'wc-settings',
+			],
+		};
+		const warnSpy = jest
+			.spyOn( console, 'warn' )
+			.mockImplementation( () => {} );
+
+		await jest.isolateModulesAsync( async () => {
+			require( '../index' );
+			await flushPromises();
+
+			window.wp = { data: {} };
+			window.wc = { wcSettings: {} };
+			jest.advanceTimersByTime( 50 );
+			await flushPromises();
+
+			expect( global.__upeInitLoadCount ).toBe( 1 );
+		} );
+
+		expect( warnSpy ).toHaveBeenCalledWith(
+			expect.stringContaining( 'some-future-handle' )
+		);
+		warnSpy.mockRestore();
+	} );
+
 	it( 'does not gate on ignored handles (wp-polyfill/stripe/wc-checkout)', async () => {
 		global.wc_stripe_upe_params = {
 			scriptDependencies: [
