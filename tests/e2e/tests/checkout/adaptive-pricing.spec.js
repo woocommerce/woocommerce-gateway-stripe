@@ -14,7 +14,6 @@ const {
 	fillOCDetails,
 	clickPlaceOrder,
 	getCartTotal,
-	getOrderIdFromOrderReceivedUrl,
 	waitForOrderReceivedPage,
 } = payments;
 
@@ -27,11 +26,10 @@ const MANUAL_CAPTURE_LABEL =
 	'Issue an authorization on checkout, and capture later';
 
 /**
- * Completes an Adaptive Pricing card purchase and returns the order ID.
+ * Completes an Adaptive Pricing card purchase through to the received page.
  *
  * @param {Page}   page         Playwright page fixture.
  * @param {string} checkoutType 'shortcode' or 'blocks'.
- * @return {Promise<string>} The WooCommerce order ID.
  */
 const payWithAdaptivePricing = async ( page, checkoutType ) => {
 	await setupOptimizedCheckout( page, checkoutType );
@@ -49,37 +47,19 @@ const payWithAdaptivePricing = async ( page, checkoutType ) => {
 	await expect(
 		page.locator( '.woocommerce-order-overview__total' )
 	).toContainText( expectedTotal );
-
-	return getOrderIdFromOrderReceivedUrl( page.url() );
 };
 
 test.describe( 'Adaptive Pricing checkout', () => {
 	test.describe.configure( { mode: 'serial' } );
 
-	test( 'customer can pay through Adaptive Pricing on shortcode checkout, and the order records the presentment amount @smoke', async ( {
+	test( 'customer can pay through Adaptive Pricing on shortcode checkout @smoke', async ( {
 		page,
-		browser,
 	} ) => {
-		const orderId = await payWithAdaptivePricing( page, 'shortcode' );
-
-		// The order edit page shows the "Paid by customer" row with the
-		// presentment amount reported by the checkout session.
-		const { context, page: adminPage } =
-			await admin.getAdminPage( browser );
-		try {
-			await adminPage.goto(
-				`/wp-admin/post.php?post=${ orderId }&action=edit`
-			);
-			const paidByCustomerRow = adminPage
-				.locator( '.wc-order-totals tr' )
-				.filter( { hasText: 'Paid by customer' } );
-			await expect( paidByCustomerRow ).toBeVisible();
-			// Same-currency purchase: the symbol clashes with the store's, so
-			// the currency code is spelled out.
-			await expect( paidByCustomerRow ).toContainText( 'USD' );
-		} finally {
-			await context.close();
-		}
+		// The "Paid by customer" presentment row is NOT asserted here: Stripe
+		// only reports presentment details when a currency conversion actually
+		// happened, which a same-currency CI shopper cannot produce. Its
+		// rendering is covered by unit tests.
+		await payWithAdaptivePricing( page, 'shortcode' );
 	} );
 
 	test( 'customer can pay through Adaptive Pricing on blocks checkout @smoke', async ( {
