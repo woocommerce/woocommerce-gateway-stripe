@@ -31,6 +31,41 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * get_default_stripe_config() reads form-field defaults through the shared
+	 * gateway; it must not construct a new gateway and re-register its
+	 * constructor hooks.
+	 */
+	public function test_get_default_stripe_config_does_not_duplicate_gateway_hooks() {
+		WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$hooks_before = $this->count_gateway_hook_callbacks();
+
+		$method = new ReflectionMethod( WC_Stripe_Connect::class, 'get_default_stripe_config' );
+		$method->setAccessible( true );
+		$config = $method->invoke( $this->connect );
+
+		$this->assertIsArray( $config );
+		$this->assertSame( 'yes', $config['upe_checkout_experience_enabled'] );
+		$this->assertSame( $hooks_before, $this->count_gateway_hook_callbacks() );
+	}
+
+	/**
+	 * Counts callbacks at priority 5 on the admin totals hook — registered only
+	 * by the UPE gateway constructor, so growth means a duplicate instance.
+	 *
+	 * @return int
+	 */
+	private function count_gateway_hook_callbacks(): int {
+		global $wp_filter;
+
+		$hook = 'woocommerce_admin_order_totals_after_total';
+		if ( ! isset( $wp_filter[ $hook ]->callbacks[5] ) ) {
+			return 0;
+		}
+
+		return count( $wp_filter[ $hook ]->callbacks[5] );
+	}
+
+	/**
 	 * @inheritDoc
 	 */
 	public function tear_down() {
