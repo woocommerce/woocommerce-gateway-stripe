@@ -73,6 +73,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Include the statement descriptor when creating payment intents for ACSS Debit and BLIK payments
 * Fix - Represent negative fees and taxes as discounts in Level 3 data so manually capturing an order edited to include a negative fee no longer fails
 * Fix - Ensure all WordPress hooks have filter documentation
+* Fix - Refund the shopper when a Stripe payment is captured after the order was cancelled, instead of leaving them charged for a cancelled order
 * Fix - Restrict payment intent creation to payment methods that do not support deferred intent
 * Fix - Clear the Adaptive Pricing order total error notice once a later update succeeds
 * Fix - Accept express checkout addresses whose province is entered with a curly apostrophe, so Apple Pay no longer rejects them
