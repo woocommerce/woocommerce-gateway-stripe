@@ -1027,6 +1027,18 @@ export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
 		.locator( '[name="expiry"]' )
 		.fill( card.expires.month + card.expires.year );
 	await paymentFrame.locator( '[name="cvc"]' ).fill( card.cvc );
+
+	// For emails Link doesn't recognize, it offers signup with "Save my
+	// information" pre-checked, which requires a mobile number the tests
+	// don't fill and blocks the payment; opt out instead.
+	const linkSaveInfo = paymentFrame.getByRole( 'checkbox', {
+		name: 'Save my information for faster checkout',
+	} );
+	if (
+		await linkSaveInfo.isChecked( { timeout: 5000 } ).catch( () => false )
+	) {
+		await linkSaveInfo.uncheck();
+	}
 };
 
 /**
