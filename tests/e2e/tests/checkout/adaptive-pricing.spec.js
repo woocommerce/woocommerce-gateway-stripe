@@ -15,7 +15,7 @@ const {
 	clickPlaceOrder,
 	getCartTotal,
 	getOrderIdFromOrderReceivedUrl,
-	waitForOrderReceivedPageAndConfirmExpectedTotal,
+	waitForOrderReceivedPage,
 } = payments;
 
 const SETTINGS_URL =
@@ -29,12 +29,11 @@ const MANUAL_CAPTURE_LABEL =
 /**
  * Completes an Adaptive Pricing card purchase and returns the order ID.
  *
- * @param {Page}    page         Playwright page fixture.
- * @param {Browser} browser      Playwright browser fixture.
- * @param {string}  checkoutType 'shortcode' or 'blocks'.
+ * @param {Page}   page         Playwright page fixture.
+ * @param {string} checkoutType 'shortcode' or 'blocks'.
  * @return {Promise<string>} The WooCommerce order ID.
  */
-const payWithAdaptivePricing = async ( page, browser, checkoutType ) => {
+const payWithAdaptivePricing = async ( page, checkoutType ) => {
 	await setupOptimizedCheckout( page, checkoutType );
 	await fillOCDetails( page, config.get( 'cards.basic' ), checkoutType );
 
@@ -42,11 +41,14 @@ const payWithAdaptivePricing = async ( page, browser, checkoutType ) => {
 
 	await clickPlaceOrder( page );
 
-	await waitForOrderReceivedPageAndConfirmExpectedTotal(
-		browser,
-		page,
-		expectedTotal
-	);
+	// Adaptive Pricing orders are only marked paid by the checkout session
+	// webhooks, which cannot reach the tunnel-less CI site — so assert the
+	// order-received page (the redirect handler verifies the live session)
+	// and its total instead of the admin "Paid" row.
+	await waitForOrderReceivedPage( page );
+	await expect(
+		page.locator( '.woocommerce-order-overview__total' )
+	).toContainText( expectedTotal );
 
 	return getOrderIdFromOrderReceivedUrl( page.url() );
 };
@@ -58,11 +60,7 @@ test.describe( 'Adaptive Pricing checkout', () => {
 		page,
 		browser,
 	} ) => {
-		const orderId = await payWithAdaptivePricing(
-			page,
-			browser,
-			'shortcode'
-		);
+		const orderId = await payWithAdaptivePricing( page, 'shortcode' );
 
 		// The order edit page shows the "Paid by customer" row with the
 		// presentment amount reported by the checkout session.
@@ -86,14 +84,12 @@ test.describe( 'Adaptive Pricing checkout', () => {
 
 	test( 'customer can pay through Adaptive Pricing on blocks checkout @smoke', async ( {
 		page,
-		browser,
 	} ) => {
-		await payWithAdaptivePricing( page, browser, 'blocks' );
+		await payWithAdaptivePricing( page, 'blocks' );
 	} );
 
 	test( 'logged-in customer without a saved billing address can pay through Adaptive Pricing', async ( {
 		page,
-		browser,
 	} ) => {
 		// A bare customer: no billing/shipping address saved on the account.
 		const randomString = randomUUID();
@@ -113,7 +109,7 @@ test.describe( 'Adaptive Pricing checkout', () => {
 
 		// Creating the checkout session for this buyer must not fail on the
 		// missing address; the payment element renders and the purchase works.
-		await payWithAdaptivePricing( page, browser, 'shortcode' );
+		await payWithAdaptivePricing( page, 'shortcode' );
 	} );
 
 	test( 'manual capture blocks Adaptive Pricing in the settings with a clear reason', async ( {

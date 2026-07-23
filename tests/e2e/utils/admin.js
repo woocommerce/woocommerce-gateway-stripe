@@ -184,6 +184,9 @@ export const initializeAdaptivePricing = async (
 		( shouldEnable && ! isChecked ) || ( ! shouldEnable && isChecked );
 
 	if ( updateNeeded ) {
+		// Fail fast with a readable reason when an availability gate (webhooks,
+		// PMC, capture, OC) is unmet, instead of timing out on the click.
+		await expect( checkbox ).toBeEnabled();
 		await checkbox.click();
 		await page.click( 'text=Save changes' );
 		await expect(
