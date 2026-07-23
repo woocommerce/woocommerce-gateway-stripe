@@ -32,7 +32,11 @@ const MANUAL_CAPTURE_LABEL =
  * @param {string} checkoutType 'shortcode' or 'blocks'.
  */
 const payWithAdaptivePricing = async ( page, checkoutType ) => {
-	await setupOptimizedCheckout( page, checkoutType );
+	await setupOptimizedCheckout( page, checkoutType, {
+		timeout: 10000,
+		skipCartSetup: false,
+		cardSelectionOptional: true,
+	} );
 	await fillOCDetails( page, config.get( 'cards.basic' ), checkoutType );
 
 	const expectedTotal = await getCartTotal( page );

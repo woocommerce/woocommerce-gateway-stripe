@@ -795,8 +795,17 @@ export const setupOptimizedCheckout = async (
 
 		const paymentFrame = paymentIframe.contentFrame();
 
-		// Select the card payment method
-		await paymentFrame.getByRole( 'button', { name: 'Card' } ).click();
+		// Select the card payment method. Optional because the Adaptive
+		// Pricing (checkout sessions) element on blocks renders card
+		// preselected with no method selector.
+		const cardButton = paymentFrame.getByRole( 'button', {
+			name: 'Card',
+		} );
+		if ( options.cardSelectionOptional ) {
+			await cardButton.click( { timeout: 5000 } ).catch( () => {} );
+		} else {
+			await cardButton.click();
+		}
 	} catch ( error ) {
 		throw new Error(
 			`Failed to set up Optimized Checkout: ${ error.message }`
