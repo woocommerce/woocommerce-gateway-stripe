@@ -782,4 +782,83 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEquals( $expected_raw_error, $thrown_exception->getMessage() );
 		$this->assertEquals( $expected_localized_error, $thrown_exception->getLocalizedMessage() );
 	}
+
+	/**
+	 * The failure order note links the Stripe request log URL with target="_blank" so the
+	 * merchant does not navigate away from the order screen when opening it.
+	 *
+	 * @dataProvider provide_test_failed_renewal_note_links_request_log_url_in_new_tab
+	 */
+	public function test_failed_renewal_note_links_request_log_url_in_new_tab( $mock_error_data, $expected_note_template ) {
+		$renewal_order   = WC_Helper_Order::create_order();
+		$request_log_url = 'https://dashboard.stripe.com/acct_123abc/test/logs/req_123abc';
+
+		// Mock prepare_order_source() to return a valid customer.
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$mock_error = (object) [
+			'error' => (object) array_merge( $mock_error_data, [ 'request_log_url' => $request_log_url ] ),
+		];
+
+		// Arrange: Add filter that will return a mocked HTTP response for the payment_intent call.
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $mock_error ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
+				return $preempt;
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => json_encode( $mock_error ),
+				'response' => [
+					'code'    => 400,
+					'message' => 'Bad Request',
+				],
+			];
+		};
+		\add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		$this->wc_gateway_stripe->process_subscription_payment( $renewal_order->get_total(), $renewal_order, false, false );
+
+		\remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+
+		$expected_note = sprintf(
+			$expected_note_template,
+			'<a href="' . $request_log_url . '" target="_blank" rel="noopener noreferrer">' . $request_log_url . '</a>'
+		);
+		$note_contents = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $renewal_order->get_id() ] ), 'content' );
+
+		$this->assertContains( $expected_note, $note_contents );
+	}
+
+	public function provide_test_failed_renewal_note_links_request_log_url_in_new_tab() {
+		return [
+			'non-retryable card decline'             => [
+				[
+					'type'    => 'card_error',
+					'code'    => 'card_declined',
+					'message' => 'Mock card declined error',
+				],
+				'The card was declined. %s',
+			],
+			'retryable error with retries exhausted' => [
+				[
+					'type'    => 'api_error',
+					'message' => 'Mock API error',
+				],
+				'Sorry, we are unable to process the payment at this time. Reason: Mock API error %s',
+			],
+		];
+	}
 }
