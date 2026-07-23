@@ -791,7 +791,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	 */
 	public function test_failed_renewal_note_links_request_log_url_in_new_tab( $mock_error_data, $expected_note_template ) {
 		$renewal_order   = WC_Helper_Order::create_order();
-		$request_log_url = 'https://dashboard.stripe.com/acct_123abc/test/logs/req_123abc';
+		$request_log_url = 'https://dashboard.stripe.com/acct_123abc/test/logs/req_123abc?t=123&span=456';
 
 		// Mock prepare_order_source() to return a valid customer.
 		$this->wc_gateway_stripe
@@ -833,15 +833,25 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		\remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
 
+		// The fixture URL's "&" locks in the escaping: esc_url() encodes it as "&#038;"
+		// in the href, esc_html() as "&amp;" in the link text.
+		$expected_href = 'https://dashboard.stripe.com/acct_123abc/test/logs/req_123abc?t=123&#038;span=456';
+		$expected_text = 'https://dashboard.stripe.com/acct_123abc/test/logs/req_123abc?t=123&amp;span=456';
+
 		$expected_note = sprintf(
 			$expected_note_template,
-			'<a href="' . $request_log_url . '" target="_blank" rel="noopener noreferrer">' . $request_log_url . '</a>'
+			'<a href="' . $expected_href . '" target="_blank" rel="noopener noreferrer">' . $expected_text . '</a>'
 		);
 		$note_contents = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $renewal_order->get_id() ] ), 'content' );
 
 		$this->assertContains( $expected_note, $note_contents );
 	}
 
+	/**
+	 * Data provider for `test_failed_renewal_note_links_request_log_url_in_new_tab`.
+	 *
+	 * @return array
+	 */
 	public function provide_test_failed_renewal_note_links_request_log_url_in_new_tab() {
 		return [
 			'non-retryable card decline'             => [
