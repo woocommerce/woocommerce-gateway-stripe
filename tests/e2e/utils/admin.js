@@ -147,6 +147,56 @@ export const initializeOptimizedCheckout = async (
 };
 
 /**
+ * Enables or disables Adaptive Pricing in the Stripe settings.
+ *
+ * Adaptive Pricing is only offered while the Optimized Checkout Suite is
+ * enabled, so enabling it enables OC first. Disabling only unchecks Adaptive
+ * Pricing; callers that also want OC off should call
+ * initializeOptimizedCheckout( browser, false ) afterwards.
+ *
+ * @param {Browser} browser      Playwright browser fixture.
+ * @param {boolean} shouldEnable Whether to enable or disable Adaptive Pricing.
+ */
+export const initializeAdaptivePricing = async (
+	browser,
+	shouldEnable = true
+) => {
+	if ( shouldEnable ) {
+		await initializeOptimizedCheckout( browser, true );
+	}
+
+	const adminContext = await browser.newContext( {
+		storageState: process.env.ADMINSTATE,
+	} );
+
+	const page = await adminContext.newPage();
+
+	await page.goto(
+		'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings'
+	);
+
+	const checkbox = page.getByLabel(
+		'Let customers pay in their local currency with Adaptive Pricing'
+	);
+	const isChecked = await checkbox.isChecked();
+
+	const updateNeeded =
+		( shouldEnable && ! isChecked ) || ( ! shouldEnable && isChecked );
+
+	if ( updateNeeded ) {
+		await checkbox.click();
+		await page.click( 'text=Save changes' );
+		await expect(
+			page.locator(
+				'.components-snackbar__content:has-text("Settings saved.")'
+			)
+		).toBeVisible();
+	}
+
+	await adminContext.close();
+};
+
+/**
  * Open the admin order edit page for an order and confirm the expected amount
  * was charged.
  *
