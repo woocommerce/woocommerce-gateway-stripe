@@ -77,13 +77,13 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 		// Ensure API keys are present so WC_Stripe_Payment_Method_Configurations::is_enabled()
 		// returns true. Without them, PMC-reliant tests fall back to the legacy DB path.
-		$settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$settings                         = WC_Stripe::get_instance()->get_settings();
 		$settings['publishable_key']      = 'pk_live_1234567890';
 		$settings['secret_key']           = 'sk_live_1234567890';
 		$settings['test_publishable_key'] = 'pk_test_1234567890';
 		$settings['test_secret_key']      = 'sk_test_1234567890';
 		$settings['pmc_enabled']          = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe::get_instance()->update_settings( $settings );
 
 		$this->controller = new WC_REST_Stripe_Settings_Controller( $this->get_gateway() );
 
@@ -123,9 +123,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$this->mock_payment_method_configurations( [ 'card' ], [ 'amazon_pay', 'google_pay', 'apple_pay' ] );
 
 		// Set pmc_enabled to yes to prevent migration
-		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                = WC_Stripe::get_instance()->get_settings();
 		$stripe_settings['pmc_enabled'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$this->expect_payment_method_configurations_update( [ 'amazon_pay', 'card' ] );
 
@@ -149,7 +149,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		// Start in test mode.
 		$this->get_gateway()->update_option( 'testmode', 'yes' );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe::get_instance()->get_settings();
 		if ( $live_connected ) {
 			$settings['publishable_key'] = 'pk_live_1234567890';
 			$settings['secret_key']      = 'sk_live_1234567890';
@@ -157,7 +157,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			$settings['publishable_key'] = '';
 			$settings['secret_key']      = '';
 		}
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe::get_instance()->update_settings( $settings );
 
 		// Attempt to turn test mode off (switch to live).
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
@@ -193,7 +193,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		// Start in live mode.
 		$this->get_gateway()->update_option( 'testmode', 'no' );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe::get_instance()->get_settings();
 		if ( $test_connected ) {
 			$settings['test_publishable_key'] = 'pk_test_1234567890';
 			$settings['test_secret_key']      = 'sk_test_1234567890';
@@ -201,7 +201,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			$settings['test_publishable_key'] = '';
 			$settings['test_secret_key']      = '';
 		}
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe::get_instance()->update_settings( $settings );
 
 		// Attempt to turn test mode on (switch to test).
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );

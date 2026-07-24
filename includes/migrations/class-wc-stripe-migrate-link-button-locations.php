@@ -22,7 +22,7 @@ class WC_Stripe_Migrate_Link_Button_Locations {
 	 * @return void
 	 */
 	public function maybe_migrate() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = WC_Stripe::get_instance()->get_settings();
 
 		// If Link already has its own locations, there is nothing to migrate.
 		if ( isset( $stripe_settings['link_button_locations'] ) ) {
@@ -46,6 +46,6 @@ class WC_Stripe_Migrate_Link_Button_Locations {
 		}
 
 		$stripe_settings['link_button_locations'] = $express_locations;
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 	}
 }
