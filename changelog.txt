@@ -79,6 +79,7 @@ xxxx-xx-xx - version 10.9.0
 * Update - Show a clear message when manual capture is blocking Adaptive Pricing from being enabled
 * Fix - Lock the order while confirming a 3DS card payment so a concurrent webhook can't complete it twice, duplicating stock reduction, order notes, and emails
 * Fix - Store the Stripe refund ID on each WooCommerce refund record so orders with multiple partial refunds retain every refund ID
+* Fix - Prevent fatals during internal order check
 
 2026-08-05 - version 10.8.5
 * Update - Improve webhook handling
