@@ -240,14 +240,14 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @dataProvider provide_test_needs_setup
 	 */
 	public function test_needs_setup( $is_test_mode, $test_publishable_key, $test_secret_key, $publishable_key, $secret_key, $expected ) {
-		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                         = WC_Stripe::get_instance()->get_settings();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = $is_test_mode ? 'yes' : 'no';
 		$stripe_settings['test_publishable_key'] = $test_publishable_key;
 		$stripe_settings['test_secret_key']      = $test_secret_key;
 		$stripe_settings['publishable_key']      = $publishable_key;
 		$stripe_settings['secret_key']           = $secret_key;
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$gateway = new WC_Stripe_UPE_Payment_Gateway();
 		$this->assertSame( $expected, $gateway->needs_setup() );
