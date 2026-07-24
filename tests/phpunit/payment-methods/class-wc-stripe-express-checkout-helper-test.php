@@ -39,12 +39,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$stripe_settings                         = WC_Stripe::get_instance()->get_settings();
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
-		WC_Stripe::get_instance()->update_settings( $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
 
 	/**
@@ -1220,10 +1220,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_opc_detection_logic( $is_opc, $button_locations, $expected ): void {
-		$stripe_settings                                      = WC_Stripe::get_instance()->get_settings();
+		$stripe_settings                                      = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['express_checkout_button_locations'] = $button_locations;
 		$stripe_settings['amazon_pay_button_locations']       = $button_locations;
-		WC_Stripe::get_instance()->update_settings( $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
@@ -2097,10 +2097,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		// Toggle connection by clearing the test keys (set_up populates them).
 		if ( ! $is_connected ) {
-			$stripe_settings                         = WC_Stripe::get_instance()->get_settings();
+			$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
 			$stripe_settings['test_publishable_key'] = '';
 			$stripe_settings['test_secret_key']      = '';
-			WC_Stripe::get_instance()->update_settings( $stripe_settings );
+			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		}
 
 		$original_gateways                         = WC()->payment_gateways()->payment_gateways;

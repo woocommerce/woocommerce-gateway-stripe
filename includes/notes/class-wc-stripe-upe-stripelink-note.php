@@ -61,7 +61,7 @@ class WC_Stripe_UPE_StripeLink_Note {
 	 */
 	public static function init( WC_Stripe_Payment_Gateway $gateway ) {
 		// Skip if the Stripe gateway itself is disabled — no UPE note is relevant in that case.
-		$stripe_settings = WC_Stripe::get_instance()->get_settings();
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		if ( empty( $stripe_settings['enabled'] ) || 'yes' !== $stripe_settings['enabled'] ) {
 			return;
 		}

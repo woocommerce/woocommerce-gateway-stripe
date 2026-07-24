@@ -18,9 +18,9 @@ class WC_Stripe_Mode_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_mode
 	 */
 	public function test_mode( string $testmode, bool $is_live, bool $is_test ) {
-		$stripe_settings             = WC_Stripe::get_instance()->get_settings();
+		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['testmode'] = $testmode;
-		WC_Stripe::get_instance()->update_settings( $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$this->assertSame( $is_live, WC_Stripe_Mode::is_live() );
 		$this->assertSame( $is_test, WC_Stripe_Mode::is_test() );

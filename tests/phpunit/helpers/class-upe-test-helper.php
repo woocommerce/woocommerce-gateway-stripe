@@ -33,7 +33,7 @@ class UPE_Test_Helper {
 		$closure();
 		WC()->payment_gateways()->payment_gateways = [];
 		WC()->payment_gateways()->init();
-		$settings                         = WC_Stripe::get_instance()->get_settings();
+		$settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$settings['publishable_key']      = 'pk_live_1234567890';
 		$settings['secret_key']           = 'sk_live_1234567890';
 		$settings['connection_type']      = 'connect';
@@ -41,7 +41,7 @@ class UPE_Test_Helper {
 		$settings['test_secret_key']      = 'sk_test_1234567890';
 		$settings['test_connection_type'] = 'connect';
 		$settings['pmc_enabled']          = 'yes';
-		WC_Stripe::get_instance()->update_settings( $settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 		WC_Stripe_Helper::$stripe_legacy_gateways = [];
 	}
 
@@ -51,9 +51,9 @@ class UPE_Test_Helper {
 	 * @return void
 	 */
 	public function enable_upe(): void {
-		$settings = WC_Stripe::get_instance()->get_settings();
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
-		WC_Stripe::get_instance()->update_settings( $settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 	}
 
 	/**
@@ -62,8 +62,8 @@ class UPE_Test_Helper {
 	 * @return void
 	 */
 	public function disable_upe(): void {
-		$settings = WC_Stripe::get_instance()->get_settings();
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
-		WC_Stripe::get_instance()->update_settings( $settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 	}
 }

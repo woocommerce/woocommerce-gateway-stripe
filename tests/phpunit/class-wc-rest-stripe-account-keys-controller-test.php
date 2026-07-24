@@ -30,12 +30,12 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		wp_set_current_user( 1 );
 
 		// Setup existing keys
-		$settings                         = WC_Stripe::get_instance()->get_settings();
+		$settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$settings['publishable_key']      = 'original-live-key-9999';
 		$settings['secret_key']           = '';
 		$settings['test_publishable_key'] = 'original-test-key-9999';
 		$settings['test_secret_key']      = '';
-		WC_Stripe::get_instance()->update_settings( $settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
 		$mock_account = $this->getMockBuilder( WC_Stripe_Account::class )
 							->disableOriginalConstructor()
@@ -80,7 +80,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 
 		$this->assertEquals( 200, $response->get_status() );
 
-		$settings = WC_Stripe::get_instance()->get_settings();
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$this->assertEquals( 'pk_live-key-12345', $settings['publishable_key'] );
 		$this->assertEquals( 'sk_live_secret-key-12345', $settings['secret_key'] );
@@ -103,7 +103,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 
 		$this->assertEquals( 200, $response->get_status() );
 
-		$settings = WC_Stripe::get_instance()->get_settings();
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$this->assertEquals( 'pk_test-live-key-12345', $settings['test_publishable_key'] );
 		$this->assertEquals( 'sk_test-secret-key-12345', $settings['test_secret_key'] );
@@ -124,7 +124,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 
 		$this->assertEquals( 200, $response->get_status() );
 
-		$settings = WC_Stripe::get_instance()->get_settings();
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$this->assertEquals( 'pk_live-key-12345', $settings['publishable_key'] );
 		// Other settings do not change and do not get erased.
@@ -142,7 +142,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 
 		$this->assertEquals( 200, $response->get_status() );
 
-		$settings = WC_Stripe::get_instance()->get_settings();
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$this->assertEquals( '', $settings['publishable_key'] );
 		// Other settings do not change and do not get erased.
@@ -155,7 +155,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	 */
 	public function test_changing_keys_resets_payment_methods() {
 		// Default options
-		WC_Stripe::get_instance()->update_settings(
+		WC_Stripe_Helper::update_main_stripe_settings(
 			[
 				'publishable_key'                                            => 'pk_live-key',
 				'secret_key'                                                 => 'sk_live-key',
@@ -306,7 +306,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 			'secret' => 'sk_live_old',
 		];
 
-		WC_Stripe::get_instance()->update_settings(
+		WC_Stripe_Helper::update_main_stripe_settings(
 			[
 				'publishable_key' => 'pk_live_old',
 				'secret_key'      => 'sk_live_old',
@@ -331,7 +331,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 
 		$controller->set_account_keys( $request );
 
-		$settings = WC_Stripe::get_instance()->get_settings();
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( [], $settings['webhook_data'] );
 		$this->assertSame( '', $settings['webhook_secret'] );
 	}

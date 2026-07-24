@@ -80,6 +80,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Lock the order while confirming a 3DS card payment so a concurrent webhook can't complete it twice, duplicating stock reduction, order notes, and emails
 * Fix - Store the Stripe refund ID on each WooCommerce refund record so orders with multiple partial refunds retain every refund ID
 * Fix - Prevent fatals during internal order check
+* Dev - Add WC_Stripe::get_settings()/update_settings() as the canonical accessors for the main Stripe settings, with the WC_Stripe_Helper shims delegating to them
 
 2026-07-14 - version 10.8.4
 * Fix - Improve Checkout Session amount integrity
@@ -127,7 +128,6 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Make the "Update now" link in the account status tooltip clickable and improve its contrast against the tooltip background
 * Dev - Add Jurassic Ninja preview link for PRs to enable one-click browser testing
 * Remove - Remove giropay from new checkouts (deprecated by Stripe on 2024-06-30); legacy refund and past-order rendering preserved
-* Update - Deprecate WC_Stripe_Helper::get_stripe_settings() and update_main_stripe_settings() in favor of WC_Stripe::get_instance()->get_settings() and update_settings()
 * Dev - Exclude AGENTS.md and CLAUDE.md contributor-instruction files from the built plugin zip
 * Add - Append a "what's new" changelog link to the Updated! message after manually updating the plugin from the Plugins page
 * Fix - Dismissible subscription detached admin notices

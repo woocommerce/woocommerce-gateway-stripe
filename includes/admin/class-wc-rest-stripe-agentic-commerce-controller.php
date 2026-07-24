@@ -427,7 +427,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 * @return WC_Stripe_Agentic_Commerce_Files_Api_Delivery
 	 */
 	private function create_delivery(): WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
-		$settings  = WC_Stripe::get_instance()->get_settings();
+		$settings  = WC_Stripe_Helper::get_stripe_settings();
 		$test_mode = isset( $settings['testmode'] ) && 'yes' === $settings['testmode'];
 		$secret    = $test_mode
 			? ( $settings['test_secret_key'] ?? '' )

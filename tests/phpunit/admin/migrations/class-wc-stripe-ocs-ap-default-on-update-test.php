@@ -71,7 +71,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 	public function test_ran_once_guard_short_circuits_subsequent_runs() {
 		update_option( self::MIGRATION_FLAG_OPTION, 'yes' );
 		update_option( self::STRIPE_VERSION_OPTION, '10.7.0' );
-		WC_Stripe::get_instance()->update_settings(
+		WC_Stripe_Helper::update_main_stripe_settings(
 			[
 				'optimized_checkout_element' => 'no',
 				'adaptive_pricing'           => 'no',
@@ -80,7 +80,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 
 		$this->build_migration()->maybe_migrate();
 
-		$stored = WC_Stripe::get_instance()->get_settings();
+		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'no', $stored['optimized_checkout_element'], 'OCS must remain disabled when guard is set.' );
 		$this->assertSame( 'no', $stored['adaptive_pricing'], 'Adaptive Pricing must remain disabled when guard is set.' );
 		$this->assertFalse( get_option( self::SHOW_OCS_AP_BANNER_OPTION ), 'OCS and AP banner option must not be set.' );
@@ -90,7 +90,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 
 	public function test_new_install_writes_only_ran_once_flag() {
 		// No wc_stripe_version option present — simulates a new install.
-		WC_Stripe::get_instance()->update_settings(
+		WC_Stripe_Helper::update_main_stripe_settings(
 			[
 				'optimized_checkout_element' => 'no',
 				'adaptive_pricing'           => 'no',
@@ -99,7 +99,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 
 		$this->build_migration()->maybe_migrate();
 
-		$stored = WC_Stripe::get_instance()->get_settings();
+		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'no', $stored['optimized_checkout_element'], 'New install must leave OCS disabled.' );
 		$this->assertSame( 'no', $stored['adaptive_pricing'], 'New install must leave Adaptive Pricing disabled.' );
 		$this->assertFalse( get_option( self::SHOW_OCS_AP_BANNER_OPTION ), 'OCS and AP banner option must not be set.' );
@@ -110,7 +110,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 
 	public function test_already_on_10_8_writes_only_ran_once_flag() {
 		update_option( self::STRIPE_VERSION_OPTION, '10.8.0' );
-		WC_Stripe::get_instance()->update_settings(
+		WC_Stripe_Helper::update_main_stripe_settings(
 			[
 				'optimized_checkout_element' => 'no',
 				'adaptive_pricing'           => 'no',
@@ -119,7 +119,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 
 		$this->build_migration()->maybe_migrate( '10.8.0' );
 
-		$stored = WC_Stripe::get_instance()->get_settings();
+		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'no', $stored['optimized_checkout_element'], 'Already on 10.8 must leave OCS disabled.' );
 		$this->assertSame( 'no', $stored['adaptive_pricing'], 'Already on 10.8 must leave Adaptive Pricing disabled.' );
 		$this->assertFalse( get_option( self::SHOW_OCS_AP_BANNER_OPTION ), 'OCS and AP banner option must not be set.' );
@@ -136,7 +136,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 	 */
 	public function test_migration_scenarios( array $scenario ) {
 		update_option( self::STRIPE_VERSION_OPTION, $scenario['previous_version'] );
-		WC_Stripe::get_instance()->update_settings(
+		WC_Stripe_Helper::update_main_stripe_settings(
 			[
 				'optimized_checkout_element' => $scenario['oc_pre'],
 				'adaptive_pricing'           => $scenario['ap_pre'],
@@ -178,7 +178,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			sprintf( 'OCS-only banner flag mismatch for %s', $context )
 		);
 
-		$stored = WC_Stripe::get_instance()->get_settings();
+		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame(
 			$scenario['expected_oc_after'],
 			$stored['optimized_checkout_element'] ?? 'no',
@@ -422,7 +422,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 
 	public function test_migration_preserves_unrelated_settings_keys() {
 		update_option( self::STRIPE_VERSION_OPTION, '10.7.0' );
-		WC_Stripe::get_instance()->update_settings(
+		WC_Stripe_Helper::update_main_stripe_settings(
 			[
 				'optimized_checkout_element' => 'no',
 				'adaptive_pricing'           => 'no',
@@ -433,7 +433,7 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 
 		$this->build_migration( null, 1747008000 )->maybe_migrate( '10.7.0' );
 
-		$stored = WC_Stripe::get_instance()->get_settings();
+		$stored = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'yes', $stored['optimized_checkout_element'], 'OCS must be enabled.' );
 		$this->assertSame( 'yes', $stored['adaptive_pricing'], 'Adaptive Pricing must be enabled.' );
 		$this->assertSame( 'My Store', $stored['statement_descriptor'], 'Unrelated stored keys must survive.' );

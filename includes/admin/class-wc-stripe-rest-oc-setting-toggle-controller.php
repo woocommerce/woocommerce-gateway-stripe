@@ -93,11 +93,11 @@ class WC_Stripe_REST_OC_Setting_Toggle_Controller extends WC_Stripe_REST_Base_Co
 		}
 
 		$current_value                          = $this->gateway->is_oc_enabled();
-		$settings                               = WC_Stripe::get_instance()->get_settings();
+		$settings                               = WC_Stripe_Helper::get_stripe_settings();
 		$value                                  = $is_oc_enabled ? 'yes' : 'no';
 		$settings['optimized_checkout_element'] = $value;
 
-		WC_Stripe::get_instance()->update_settings( $settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
 		if ( $is_oc_enabled !== $current_value ) {
 			wc_admin_record_tracks_event(

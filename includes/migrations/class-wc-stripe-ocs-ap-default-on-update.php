@@ -63,7 +63,7 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 			return;
 		}
 
-		$stripe_settings = WC_Stripe::get_instance()->get_settings();
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$oc_pre          = ( $stripe_settings['optimized_checkout_element'] ?? 'no' ) === 'yes';
 		$ap_pre          = ( $stripe_settings['adaptive_pricing'] ?? 'no' ) === 'yes';
 
@@ -119,7 +119,7 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 			$stripe_settings['adaptive_pricing'] = 'yes';
 		}
 		if ( $enable_oc || $enable_ap ) {
-			WC_Stripe::get_instance()->update_settings( $stripe_settings );
+			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		}
 
 		update_option( self::MIGRATION_FLAG_OPTION, 'yes' );

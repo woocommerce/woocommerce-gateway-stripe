@@ -210,7 +210,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - When enabling manual capture, clarify to agentic commerce merchants that Agentic Commerce purchases follow the capture setting in the Stripe agentic commerce dashboard
 * Fix - Stop retrying the Stripe App connection refresh when the connection has permanently expired
 * Dev - Centralize agentic commerce feed scheduling in integration class
-* Update - Deprecate WC_Stripe_Helper::get_stripe_settings() and update_main_stripe_settings() in favor of WC_Stripe::get_instance()->get_settings() and update_settings()
 * Fix - Enforce and save custom required checkout fields when paying with express checkout on classic checkout
 * Update - Process classic checkout custom fields in express checkout by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
 * Dev - Update subscription E2E fixtures to use WooCommerce Subscriptions product plans
@@ -238,5 +237,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Lock the order while confirming a 3DS card payment so a concurrent webhook can't complete it twice, duplicating stock reduction, order notes, and emails
 * Fix - Store the Stripe refund ID on each WooCommerce refund record so orders with multiple partial refunds retain every refund ID
 * Fix - Prevent fatals during internal order check
+* Dev - Add WC_Stripe::get_settings()/update_settings() as the canonical accessors for the main Stripe settings, with the WC_Stripe_Helper shims delegating to them
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -45,12 +45,12 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 * Should print a placeholder div with id 'wc-stripe-account-settings-container'
 	 */
 	public function test_admin_options_when_stripe_is_connected() {
-		$stripe_settings                         = WC_Stripe::get_instance()->get_settings();
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
-		WC_Stripe::get_instance()->update_settings( $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		ob_start();
 		$this->controller->admin_options( $this->gateway );
@@ -62,14 +62,14 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 * Should print a placeholder div with id 'wc-stripe-new-account-container'
 	 */
 	public function test_admin_options_when_stripe_is_not_connected() {
-		$stripe_settings                         = WC_Stripe::get_instance()->get_settings();
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = '';
 		$stripe_settings['test_secret_key']      = '';
 		$stripe_settings['publishable_key']      = '';
 		$stripe_settings['secret_key']           = '';
-		WC_Stripe::get_instance()->update_settings( $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		ob_start();
 		$this->controller->admin_options( $this->gateway );
@@ -133,12 +133,12 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 			// is_checkout_sessions_available() requires PMC, OC, and automatic capture all enabled;
 			// toggle PMC to drive the feature on/off for this data-provider row.
-			$stripe_settings                               = WC_Stripe::get_instance()->get_settings();
+			$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
 			$stripe_settings['pmc_enabled']                = $is_checkout_sessions_feature_available ? 'yes' : 'no';
 			$stripe_settings['optimized_checkout_element'] = 'yes';
 			$stripe_settings['capture']                    = 'yes';
 			$stripe_settings['testmode']                   = 'yes';
-			WC_Stripe::get_instance()->update_settings( $stripe_settings );
+			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 			$account = $this->getMockBuilder( WC_Stripe_Account::class )
 				->disableOriginalConstructor()

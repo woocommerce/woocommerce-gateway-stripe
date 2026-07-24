@@ -237,9 +237,9 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_create_payment_intent_statement_descriptor_data
 	 */
 	public function test_create_payment_intent_statement_descriptor( $payment_method_type, $local_descriptor, $account_data, $expected_descriptor ) {
-		$stripe_settings                         = WC_Stripe::get_instance()->get_settings();
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['statement_descriptor'] = $local_descriptor;
-		WC_Stripe::get_instance()->update_settings( $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$this->create_gateway_and_controller();
 

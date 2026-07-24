@@ -64,14 +64,16 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * The static read_settings_option() reads the raw option without requiring an instance.
+	 * The static read_method_settings_option() reads a per-method option and
+	 * normalizes non-array values.
 	 *
 	 * @return void
 	 */
-	public function test_read_settings_option_reads_raw_option(): void {
-		WC_Stripe::get_instance()->update_settings( [ 'foo' => 'bar' ] );
+	public function test_read_method_settings_option_reads_raw_option(): void {
+		update_option( 'woocommerce_stripe_boleto_settings', [ 'foo' => 'bar' ] );
 
-		$this->assertSame( 'bar', WC_Stripe::read_settings_option()['foo'] );
+		$this->assertSame( 'bar', WC_Stripe::read_method_settings_option( 'boleto' )['foo'] );
+		$this->assertSame( [], WC_Stripe::read_method_settings_option( 'nonexistent_method' ) );
 	}
 
 	/**

@@ -84,7 +84,7 @@ class WC_Stripe_BNPL_Promotion_Note {
 			return;
 		}
 
-		$stripe_settings = WC_Stripe::get_instance()->get_settings();
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_enabled  = isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
 		if ( ! $stripe_enabled ) {
 			return;
