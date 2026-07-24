@@ -236,6 +236,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Show a clear message when manual capture is blocking Adaptive Pricing from being enabled
 * Fix - Lock the order while confirming a 3DS card payment so a concurrent webhook can't complete it twice, duplicating stock reduction, order notes, and emails
 * Fix - Store the Stripe refund ID on each WooCommerce refund record so orders with multiple partial refunds retain every refund ID
+* Fix - Prevent fatals during internal order check
 * Add - Show the originating AI agent in the WooCommerce order Origin column for Agentic Commerce orders
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
