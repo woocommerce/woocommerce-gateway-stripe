@@ -338,8 +338,11 @@ class WC_Stripe_Agentic_Checkout_Session {
 				$candidate = $candidate->name ?? $candidate->id ?? null;
 			}
 
-			if ( is_string( $candidate ) && '' !== trim( $candidate ) ) {
-				return trim( $candidate );
+			if ( is_string( $candidate ) ) {
+				$trimmed_candidate = trim( $candidate );
+				if ( '' !== $trimmed_candidate ) {
+					return $trimmed_candidate;
+				}
 			}
 		}
 
