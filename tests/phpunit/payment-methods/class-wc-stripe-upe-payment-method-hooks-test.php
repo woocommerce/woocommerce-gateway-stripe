@@ -100,6 +100,38 @@ class WC_Stripe_UPE_Payment_Method_Hooks_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that a subclass whose id the hook manager can't track (no `stripe`
+	 * prefix) still registers its hooks — the guard fails open, per instance.
+	 */
+	public function test_foreign_id_subclass_registers_hooks_per_instance() {
+		$make = function () {
+			return new class() extends WC_Stripe_UPE_Payment_Method_Multibanco {
+				public function __construct() {
+					parent::__construct();
+					$this->id = 'foreign_multibanco';
+					$this->register_instance_hooks_once(
+						function () {
+							// A fresh closure per instance: identical string
+							// callbacks would collapse into one wp_filter slot.
+							add_action(
+								'wc_stripe_test_foreign_hook',
+								static function () {}
+							);
+						}
+					);
+				}
+			};
+		};
+
+		$make();
+		$this->assertSame( 1, $this->count_hook_callbacks( 'wc_stripe_test_foreign_hook' ) );
+
+		// No dedup possible for untracked ids: each instance registers.
+		$make();
+		$this->assertSame( 2, $this->count_hook_callbacks( 'wc_stripe_test_foreign_hook' ) );
+	}
+
+	/**
 	 * Helper: count callbacks registered on `$hook` across all priorities.
 	 *
 	 * @param string $hook Hook name.

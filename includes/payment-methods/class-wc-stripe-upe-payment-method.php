@@ -191,7 +191,17 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return void
 	 */
 	protected function register_instance_hooks_once( callable $register ): void {
-		if ( WC_Stripe_Hook_Manager::get_instance()->register_payment_method_hooks( $this->id, WC_Stripe_Hook_Categories::GENERAL ) ) {
+		$hook_manager = WC_Stripe_Hook_Manager::get_instance();
+
+		// The manager only tracks Stripe-prefixed ids. A third-party subclass
+		// with a foreign id can't be deduplicated, so fail open and register
+		// per instance rather than silently dropping its hooks.
+		if ( ! $hook_manager->is_valid_payment_method_id( $this->id ) ) {
+			$register();
+			return;
+		}
+
+		if ( $hook_manager->register_payment_method_hooks( $this->id, WC_Stripe_Hook_Categories::GENERAL ) ) {
 			$register();
 		}
 	}
