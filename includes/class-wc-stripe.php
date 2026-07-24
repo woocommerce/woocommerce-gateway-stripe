@@ -17,48 +17,16 @@ class WC_Stripe {
 	public const SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
 
 	/**
-	 * Reads the raw main Stripe settings option directly, bypassing the cache.
-	 *
-	 * Low-level storage primitive backing get_settings(). Static and uncached so
-	 * it stays safe for the rare bootstrap caller that must not depend on the
-	 * singleton or cache being ready; normal reads should use get_settings().
-	 * Always returns an array.
-	 *
-	 * @since 10.9.0
-	 *
-	 * @return array
-	 */
-	public static function read_settings_option(): array {
-		$settings = get_option( self::SETTINGS_OPTION_NAME, [] );
-
-		return is_array( $settings ) ? $settings : [];
-	}
-
-	/**
-	 * Writes the raw main Stripe settings option directly.
-	 *
-	 * Low-level storage primitive backing update_settings().
-	 *
-	 * @since 10.9.0
-	 *
-	 * @param array $settings The settings to persist.
-	 * @return bool Whether the option was actually written (matches `update_option`).
-	 */
-	public static function write_settings_option( array $settings ): bool {
-		return update_option( self::SETTINGS_OPTION_NAME, $settings );
-	}
-
-	/**
-	 * Returns the main Stripe settings array. Reads straight from the option;
-	 * WordPress already caches options per request, so no extra caching layer is
-	 * warranted here.
+	 * Get the Stripe settings option. Always returns an array.
 	 *
 	 * @since 10.9.0
 	 *
 	 * @return array
 	 */
 	public function get_settings(): array {
-		return self::read_settings_option();
+		$settings = get_option( self::SETTINGS_OPTION_NAME, [] );
+
+		return is_array( $settings ) ? $settings : [];
 	}
 
 	/**
@@ -67,10 +35,10 @@ class WC_Stripe {
 	 * @since 10.9.0
 	 *
 	 * @param array $settings The settings to persist.
-	 * @return bool Whether the option was actually written (matches update_option).
+	 * @return bool Whether the option was actually written (matches `update_option`).
 	 */
 	public function update_settings( array $settings ): bool {
-		return self::write_settings_option( $settings );
+		return update_option( self::SETTINGS_OPTION_NAME, $settings );
 	}
 
 	/**
