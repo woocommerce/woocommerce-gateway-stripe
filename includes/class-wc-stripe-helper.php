@@ -1616,6 +1616,10 @@ class WC_Stripe_Helper {
 	 * @return bool Whether Level 3 data applies to the order's payment method.
 	 */
 	public static function order_supports_level3_data( $order ) {
+		if ( ! $order instanceof WC_Order ) {
+			return false;
+		}
+
 		$payment_method_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
 
 		// Legacy WC_Gateway_Stripe orders and the charge-based capture fallback never write the
