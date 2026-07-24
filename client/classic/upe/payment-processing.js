@@ -18,6 +18,9 @@ import {
 	getExcludedPaymentMethodTypes,
 	getUserDataForCheckoutSession,
 	getBillingDetailsForDeferredFlow,
+	normalizeReturnUrl,
+	getStaleCheckoutTotalMessage,
+	clearStaleCheckoutTotalNotice,
 } from '../../stripe-utils';
 import {
 	initializeUPEAppearance,
@@ -42,7 +45,7 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
 /**
  * @typedef {Object} UPEComponent
  * @property {string|null}          intentId          The ID of the intent.
- * @property {string|null}          checkoutSessionId Stripe Checkout Session id (cs_…) from create session; same value passed to initCheckout as clientSecret.
+ * @property {string|null}          checkoutSessionId Stripe Checkout Session id (cs_…) from create session; same value passed to initCheckoutElementsSdk as clientSecret.
  * @property {Object|null}          elements          The Stripe elements object.
  * @property {Object|null}          upeElement        The Stripe payment element.
  * @property {boolean}              hasLoadError      Whether the payment element has a load error.
@@ -58,6 +61,53 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
  */
 const gatewayUPEComponents = {};
 let hasCheckoutCompleted = false;
+
+/**
+ * Tracks an in-flight Payment Element (re)mount.
+ *
+ * WooCommerce re-renders the payment box on every `updated_checkout`, remounting
+ * asynchronously. A submission in that window posts an empty
+ * `wc-stripe-payment-method` field and fails, so submissions wait on this.
+ *
+ * @type {Promise<*>|null}
+ */
+let mountInProgress = null;
+
+/**
+ * Set when the last Adaptive Pricing Checkout Session line-item resync failed.
+ *
+ * A failed resync leaves the session holding stale line items, so the Payment Element
+ * would charge an out-of-date total. We block submission until a later resync succeeds
+ * rather than let the buyer be charged the wrong amount.
+ *
+ * @type {boolean}
+ */
+let adaptivePricingSyncFailed = false;
+
+/**
+ * Bumped on each resync. Back-to-back `updated_checkout` events can overlap two
+ * resyncs; only the newest one may publish `adaptivePricingSyncFailed`, so a
+ * slower older resync can't clobber the current result.
+ *
+ * @type {number}
+ */
+let adaptivePricingSyncGeneration = 0;
+
+/**
+ * Registers a (re)mount promise to wait on. Composes with any existing one so
+ * overlapping `updated_checkout` cycles all settle before submission proceeds.
+ *
+ * @param {Promise<*>} promise The mount promise to track.
+ */
+export function trackMountInProgress( promise ) {
+	// Swallow rejections so awaiting this in processPayment never throws.
+	const trackedPromise = Promise.resolve( promise ).catch( () => {} );
+	mountInProgress = mountInProgress
+		? Promise.allSettled( [ mountInProgress, trackedPromise ] ).then(
+				() => {}
+		  )
+		: trackedPromise;
+}
 
 /**
  * Initialize the UPE components for each payment method type.
@@ -81,6 +131,9 @@ export function initializeUPEComponents() {
 	}
 	// Reset so processPayment runs fully when called again (e.g. after re-init or in tests).
 	hasCheckoutCompleted = false;
+	mountInProgress = null;
+	// A fresh session is created on the next mount, so any prior stale-session block no longer applies.
+	adaptivePricingSyncFailed = false;
 }
 
 /**
@@ -97,6 +150,9 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 	if ( ! getStripeServerData()?.isAdaptivePricingEnabled ) {
 		return;
 	}
+
+	const generation = ++adaptivePricingSyncGeneration;
+	let resyncFailed = false;
 
 	const seen = new Set();
 	for ( const paymentMethodType of Object.keys( gatewayUPEComponents ) ) {
@@ -117,6 +173,7 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 					typeof loadResult.actions?.runServerUpdate === 'function'
 				) {
 					try {
+						blockUI( jQuery( 'form.checkout #payment' ) );
 						const updateResult =
 							await loadResult.actions.runServerUpdate(
 								async () => {
@@ -126,27 +183,55 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 								}
 							);
 						if ( updateResult.type === 'error' ) {
+							resyncFailed = true;
 							// eslint-disable-next-line no-console
 							console.error( updateResult.error );
 						}
 					} catch ( error ) {
+						resyncFailed = true;
 						// eslint-disable-next-line no-console
 						console.error( error );
 					}
 					continue;
 				}
 			} catch ( error ) {
+				resyncFailed = true;
 				// eslint-disable-next-line no-console
 				console.error( error );
+			} finally {
+				// A superseded resync must not lift the block a newer, still
+				// in-flight resync is holding on the payment area.
+				if ( generation === adaptivePricingSyncGeneration ) {
+					unblockUI( jQuery( 'form.checkout #payment' ) );
+				}
 			}
 		}
 
 		try {
 			await api.checkoutSessionsUpdateSession( sessionId );
 		} catch ( error ) {
+			resyncFailed = true;
 			// eslint-disable-next-line no-console
 			console.error( error );
 		}
+	}
+
+	// A newer resync started while we were awaiting; let it own the result.
+	if ( generation !== adaptivePricingSyncGeneration ) {
+		return;
+	}
+
+	// Clear any overlay a superseded resync left up; as the current generation
+	// with none newer in flight, this can't lift a block still in use.
+	unblockUI( jQuery( 'form.checkout #payment' ) );
+
+	adaptivePricingSyncFailed = resyncFailed;
+
+	if ( resyncFailed ) {
+		showErrorCheckout( getStaleCheckoutTotalMessage() );
+	} else {
+		// Retract the notice a prior failed resync left behind now that totals sync.
+		clearStaleCheckoutTotalNotice();
 	}
 }
 
@@ -163,6 +248,15 @@ function blockUI( jQueryForm ) {
 			opacity: 0.6,
 		},
 	} );
+}
+
+/**
+ * Unblock UI to remove the processing state from the element of the form.
+ *
+ * @param {Object} jQueryForm The jQuery object for the form.
+ */
+function unblockUI( jQueryForm ) {
+	jQueryForm.removeClass( 'processing' ).unblock();
 }
 
 /**
@@ -201,7 +295,7 @@ function updatePaymentElementDefaultValues( forCheckoutSession = false ) {
  * If the payment method doesn't support deferred intent, the intent must be created first.
  *
  * When Adaptive Pricing is enabled, a Checkout Session is created first and
- * the element is loaded via initCheckout.
+ * the element is loaded via initCheckoutElementsSdk.
  * Otherwise, the payment element is created with the intent's client secret.
  *
  * Finally, the payment element is mounted and attached to the gatewayUPEComponents object.
@@ -311,13 +405,10 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	let elements;
 	let shouldLoadStripeElements = true;
 	// If Adaptive Pricing is enabled, use the Checkout Session API to load the elements.
-	// dahlia+ keeps initCheckout() as a throwing stub, so detect the replacement method and
-	// skip AP before creating a Checkout Session instead of falling back after it throws.
 	if (
 		stripeServerData?.isAdaptivePricingEnabled &&
 		supportsDeferredIntent &&
-		typeof stripe?.initCheckout === 'function' &&
-		typeof stripe?.initCheckoutElementsSdk !== 'function'
+		typeof stripe?.initCheckoutElementsSdk === 'function'
 	) {
 		try {
 			const response = await api.checkoutSessionsCreateSession();
@@ -336,7 +427,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId =
 				sessionId;
 
-			elements = await stripe.initCheckout( {
+			elements = await stripe.initCheckoutElementsSdk( {
 				clientSecret,
 				elementsOptions: {
 					appearance: options.appearance,
@@ -609,6 +700,20 @@ function createStripePaymentMethod(
  * @return {Object} An object containing the Stripe Elements object and the Stripe Payment Element.
  */
 export async function mountStripePaymentElement( api, domElement ) {
+	const mountPromise = mountStripePaymentElementImpl( api, domElement );
+	// Track this (re)mount so a concurrent checkout submission waits for it.
+	trackMountInProgress( mountPromise );
+	return mountPromise;
+}
+
+/**
+ * Mounts the Stripe payment element. See {@link mountStripePaymentElement}.
+ *
+ * @param {Object} api        The API object used to create the Stripe payment element.
+ * @param {Object} domElement The DOM element to mount the Stripe payment element on.
+ * @return {Promise<Object|undefined>} The UPE component, or undefined when nothing was mounted.
+ */
+async function mountStripePaymentElementImpl( api, domElement ) {
 	/*
 	 * Trigger this event to ensure the tokenization-form.js init
 	 * is executed.
@@ -671,8 +776,9 @@ export async function mountStripePaymentElement( api, domElement ) {
 			upeElementPromise;
 	}
 
-	// Expose the full (re)mount as a single awaitable promise so processPayment
-	// can wait for a re-mounting element instead of posting an empty field.
+	// Run the (re)mount as one promise so a concurrent mount of the same node
+	// reuses it (dedupe above) and a newer mount supersedes it via the token
+	// fence. Submission waiting goes through the module-level tracker.
 	const mountPromise = ( async () => {
 		const upeElement = await upeElementPromise;
 
@@ -853,15 +959,8 @@ function isUPEDomElementMounted( domElement ) {
 
 /**
  * Ensures the Payment Element for the given method is fully mounted before the
- * checkout is submitted.
- *
- * WooCommerce re-renders the payment box on `updated_checkout` (e.g. after an
- * address change recalculates shipping), which tears down the Stripe Payment
- * Element and triggers an asynchronous re-mount. If the customer submits during
- * that window, the element isn't ready and the wc-stripe-payment-method field
- * posts empty, failing the payment. This awaits any in-flight (re)mount and, if
- * the element has been torn down but not yet re-mounted, mounts it before we
- * proceed.
+ * checkout is submitted: awaits any in-flight (re)mount and, if the element was
+ * torn down but not yet re-mounted, mounts it.
  *
  * @param {Object} api               The API object.
  * @param {string} paymentMethodType The payment method type.
@@ -873,14 +972,13 @@ export async function ensureUPEElementMounted( api, paymentMethodType ) {
 		return;
 	}
 
-	// Drain in-flight (re)mounts before touching the DOM. Back-to-back
-	// `updated_checkout` re-renders can each start a new mount, so re-read
-	// mountPromise after every await and keep waiting until none is left.
-	while ( component.mountPromise ) {
-		const inFlight = component.mountPromise;
+	// Drain in-flight updated_checkout chains before touching the DOM. Back-to-back
+	// re-renders each start a new chain, so re-read the tracker until none is left.
+	while ( mountInProgress ) {
+		const inFlight = mountInProgress;
 		// eslint-disable-next-line no-await-in-loop
 		await inFlight;
-		if ( component.mountPromise === inFlight ) {
+		if ( mountInProgress === inFlight ) {
 			break;
 		}
 	}
@@ -890,14 +988,12 @@ export async function ensureUPEElementMounted( api, paymentMethodType ) {
 	// mounting into a detached node would bind the iframe outside the document.
 	const domElement = getUPEDomElement( paymentMethodType );
 
-	// No element on the page (e.g. a 100% discount coupon removed the payment
-	// box). Nothing to wait for.
+	// No element on the page (e.g. a 100% discount coupon removed the payment box).
 	if ( ! domElement ) {
 		return;
 	}
 
-	// The element was torn down (its iframe removed) but a re-mount hasn't been
-	// kicked off yet. Mount it now and wait, so we don't submit an empty field.
+	// Torn down but no re-mount kicked off yet — mount it now.
 	if ( ! isUPEDomElementMounted( domElement ) ) {
 		await mountStripePaymentElement( api, domElement );
 	}
@@ -1017,8 +1113,8 @@ export const processPayment = (
 
 	( async () => {
 		try {
-			// The element may be mid-remount; reading its Elements instance now
-			// would post an empty payment method field and fail the payment.
+			// Wait out any in-flight re-mount before reading the Elements
+			// instance. The form is already blocked, so the spinner covers it.
 			await ensureUPEElementMounted( api, paymentMethodType );
 
 			const { elements, hasLoadError } =
@@ -1038,6 +1134,12 @@ export const processPayment = (
 				elements &&
 				typeof elements.loadActions === 'function'
 			) {
+				// The session still holds stale line items from a failed resync, so
+				// its total no longer matches the cart. Block rather than charge it.
+				if ( adaptivePricingSyncFailed ) {
+					throw new Error( getStaleCheckoutTotalMessage() );
+				}
+
 				const loadActionsResult = await elements.loadActions();
 
 				if ( loadActionsResult.type === 'error' ) {
@@ -1104,7 +1206,7 @@ export const processPayment = (
 				// the customer to the thank-you page instead of checkout.
 				const confirmArgs = {
 					...getUserDataForCheckoutSession( session ),
-					returnUrl: checkoutResponse.redirect,
+					returnUrl: normalizeReturnUrl( checkoutResponse.redirect ),
 					redirect: 'if_required',
 				};
 
@@ -1306,22 +1408,9 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 		postPaymentUrl = decodeURIComponent( partials[ 4 ] || '' );
 	} catch ( error ) {}
 
-	let validatedRedirectUrl = null;
-	if ( postPaymentUrl ) {
-		try {
-			const redirectUrl = new URL(
-				postPaymentUrl,
-				window.location.origin
-			);
-
-			if ( redirectUrl.origin === window.location.origin ) {
-				validatedRedirectUrl = redirectUrl;
-			}
-		} catch ( error ) {}
-	}
-
+	const validatedRedirectUrl = normalizeReturnUrl( postPaymentUrl );
 	if ( validatedRedirectUrl ) {
-		window.location.href = validatedRedirectUrl.toString();
+		window.location.href = validatedRedirectUrl;
 		return;
 	}
 

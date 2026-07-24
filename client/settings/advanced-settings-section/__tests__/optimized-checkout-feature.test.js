@@ -117,6 +117,50 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		).toBeDisabled();
 	} );
 
+	it( 'disables Adaptive Pricing and explains why when manual capture is enabled', () => {
+		global.wc_stripe_settings_params = {
+			is_cs_available: false,
+			adaptive_pricing_unavailable_reason: 'manual-capture',
+		};
+
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+
+		render( <OptimizedCheckoutFeature isOCAvailable={ true } /> );
+
+		expect(
+			screen.getByText( /Adaptive Pricing requires automatic capture/i )
+		).toBeInTheDocument();
+
+		expect(
+			screen.getByLabelText(
+				'Let customers pay in their local currency with Adaptive Pricing'
+			)
+		).toBeDisabled();
+	} );
+
+	it( 'disables Adaptive Pricing and explains why when disabled due to amount mismatches', () => {
+		global.wc_stripe_settings_params = {
+			is_cs_available: true,
+			adaptive_pricing_unavailable_reason: 'amount-mismatch-detected',
+		};
+
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+
+		render( <OptimizedCheckoutFeature isOCAvailable={ true } /> );
+
+		expect(
+			screen.getByText(
+				'Adaptive Pricing was disabled due to a plugin compatibility issue. Please contact WooCommerce support to report the issue so we can investigate the cause.'
+			)
+		).toBeInTheDocument();
+
+		expect(
+			screen.getByLabelText(
+				'Let customers pay in their local currency with Adaptive Pricing'
+			)
+		).toBeDisabled();
+	} );
+
 	it( 'triggers the hook when changing the Adaptive Pricing setting', async () => {
 		global.wc_stripe_settings_params = {
 			is_cs_available: true,

@@ -175,8 +175,15 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		try {
 
 			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-			$qty        = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
-			$product    = wc_get_product( $product_id );
+			// wc_stock_amount() respects the store's decimal-quantity setting; wc_format_decimal()
+			// normalises localised separators ("0,25") before the cast so fractions survive.
+			$qty         = 1;
+			$cleaned_qty = isset( $_POST['qty'] ) ? wc_clean( wp_unslash( $_POST['qty'] ) ) : 1;
+			if ( is_string( $cleaned_qty ) ) {
+				$qty = max( 0, wc_stock_amount( (float) wc_format_decimal( $cleaned_qty ) ) );
+			}
+
+			$product = wc_get_product( $product_id );
 
 			if ( ! $product || ! is_a( $product, 'WC_Product' ) ) {
 				/* translators: 1) The product Id */
@@ -202,15 +209,18 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 				}
 			}
 
+			// On the add_to_cart() calls below: $qty can be a float on decimal-quantity stores.
+			// WC_Cart::add_to_cart() accepts fractional quantities at runtime even though its stub types $quantity as int.
+			// The inline PHPStan suppressions below are limited to that stub mismatch.
 			if ( ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
 				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
 
 				$data_store   = WC_Data_Store::load( 'product' );
 				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
 
-				WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
+				WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes ); // @phpstan-ignore argument.type
 			} elseif ( in_array( $product_type, $this->express_checkout_helper->supported_product_types(), true ) ) {
-				WC()->cart->add_to_cart( $product->get_id(), $qty );
+				WC()->cart->add_to_cart( $product->get_id(), $qty ); // @phpstan-ignore argument.type
 			}
 
 			WC()->cart->calculate_totals();
@@ -351,8 +361,20 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		check_ajax_referer( 'wc-stripe-get-selected-product-data', 'security' );
 
 		try {
-			$product_id      = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-			$qty             = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
+			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+			// Preserve decimal quantities (see ajax_add_to_cart above): wc_format_decimal()
+			// normalises localised decimal separators before the cast.
+			$qty         = 1;
+			$cleaned_qty = isset( $_POST['qty'] ) ? wc_clean( wp_unslash( $_POST['qty'] ) ) : 1;
+			if ( is_string( $cleaned_qty ) ) {
+				$qty = max( 0, wc_stock_amount( (float) wc_format_decimal( $cleaned_qty ) ) );
+			}
+
+			// Re-clamp after the add-to-cart-quantity filter (a third-party callback could
+			// return a negative or non-numeric value) so the preview total can't go negative.
+			$filtered_qty = apply_filters( 'woocommerce_add_to_cart_quantity', $qty, $product_id );
+			$qty          = is_numeric( $filtered_qty ) ? max( 0, wc_stock_amount( (float) $filtered_qty ) ) : 0;
+
 			$addon_value     = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
 			$product         = wc_get_product( $product_id );
 			$variation_id    = null;
@@ -382,13 +404,23 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 			// Force quantity to 1 if sold individually and check for existing item in cart.
 			if ( $product->is_sold_individually() ) {
-				$qty     = apply_filters_deprecated(
+				$qty = apply_filters_deprecated(
 					'wc_stripe_payment_request_add_to_cart_sold_individually_quantity',
 					[ 1, $qty, $product_id, $variation_id ],
 					'10.6.0',
 					'wc_stripe_express_checkout_add_to_cart_sold_individually_quantity'
 				);
-					$qty = apply_filters( 'wc_stripe_express_checkout_add_to_cart_sold_individually_quantity', $qty, $qty, $product_id, $variation_id );
+				/**
+				 * Filters the quantity for sold-individually products in Express Checkout add-to-cart previews.
+				 *
+				 * @since 10.6.0
+				 *
+				 * @param int|float $quantity     Quantity to add.
+				 * @param int|float $requested    Requested quantity.
+				 * @param int       $product_id   Product ID.
+				 * @param int|null  $variation_id Variation ID, if any.
+				 */
+				$qty = apply_filters( 'wc_stripe_express_checkout_add_to_cart_sold_individually_quantity', $qty, $qty, $product_id, $variation_id );
 			}
 
 			if ( ! $product->has_enough_stock( $qty ) ) {
@@ -396,8 +428,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
 			}
 
-			$price = $this->express_checkout_helper->get_product_price( $product, $is_deposit, $deposit_plan_id );
-			$total = $qty * $price + $addon_value;
+			$price      = $this->express_checkout_helper->get_product_price( $product, $is_deposit, $deposit_plan_id );
+			$line_total = $qty * $price + $addon_value;
 
 			$quantity_label = 1 < $qty ? ' (x' . $qty . ')' : '';
 
@@ -410,11 +442,16 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 			$items[] = [
 				'label'  => $product->get_name() . $quantity_label,
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $total ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $line_total, $currency ),
 			];
 
-			$total_tax = 0;
-			foreach ( $this->express_checkout_helper->get_taxes_like_cart( $product, $price ) as $tax ) {
+			// Tax the full line total ($line_total = qty x price + add-ons) like the cart does, and skip
+			// tax entirely for non-taxable products so the preview can't show tax the cart won't charge.
+			$total_tax  = 0;
+			$line_taxes = ( $product instanceof WC_Product && $product->is_taxable() )
+				? $this->express_checkout_helper->get_taxes_like_cart( $product, $line_total )
+				: [];
+			foreach ( $line_taxes as $tax ) {
 				$total_tax += $tax;
 
 				$items[] = [
@@ -442,7 +479,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			$data['displayItems'] = $items;
 			$data['total']        = [
 				'label'  => $this->express_checkout_helper->get_total_label(),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $total + $total_tax, $currency ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $line_total + $total_tax, $currency ),
 			];
 
 			wp_send_json( $data );
@@ -493,6 +530,11 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 		// List of countries where postcode is optional in express checkouts (Google Pay, Apple Pay).
 		// These countries allow addresses without postal codes, but WooCommerce requires them by default.
+		/**
+		 * Filters countries where postcodes are optional in Express Checkout.
+		 *
+		 * @param string[] $country_codes Country codes where postcodes are optional.
+		 */
 		$countries_with_optional_postcode = apply_filters(
 			'wc_stripe_express_checkout_countries_with_optional_postcode',
 			[

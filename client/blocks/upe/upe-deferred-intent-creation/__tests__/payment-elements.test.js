@@ -67,17 +67,14 @@ const buildApi = ( stripe ) => ( {
 	initSetupIntent: jest.fn(),
 } );
 
-// clover: working initCheckout, no replacement method.
-const CLOVER_STRIPE = { elements: jest.fn(), initCheckout: jest.fn() };
-// dahlia+: initCheckout() remains as a throwing stub and the renamed method exists.
-const DAHLIA_STRIPE = {
-	elements: jest.fn(),
-	initCheckout: jest.fn(),
-	initCheckoutElementsSdk: jest.fn(),
-};
+const STRIPE = { elements: jest.fn(), initCheckoutElementsSdk: jest.fn() };
 
 describe( 'PaymentElements adaptive pricing selection', () => {
-	beforeEach( () => {
+	afterEach( () => {
+		jest.clearAllMocks();
+	} );
+
+	it( 'uses the Adaptive Pricing container when Adaptive Pricing is enabled', () => {
 		getBlocksConfiguration.mockReturnValue( {
 			isAdaptivePricingEnabled: true,
 			paymentMethodsConfig: { card: { isReusable: false } },
@@ -86,28 +83,42 @@ describe( 'PaymentElements adaptive pricing selection', () => {
 			shouldShowOptimizedCheckout: false,
 			isAdmin: false,
 		} );
-	} );
 
-	afterEach( () => {
-		jest.clearAllMocks();
-	} );
-
-	it( 'uses the Adaptive Pricing container when Stripe.js supports initCheckout', () => {
-		renderFields( buildApi( CLOVER_STRIPE ) );
+		renderFields( buildApi( STRIPE ) );
 
 		expect( CheckoutContainer ).toHaveBeenCalled();
 		expect( PaymentProcessor ).not.toHaveBeenCalled();
 	} );
 
-	it( 'falls back to the standard elements flow when Stripe.js exposes initCheckoutElementsSdk (dahlia+)', () => {
-		renderFields( buildApi( DAHLIA_STRIPE ) );
+	it( 'falls back to the standard elements flow when a legacy Stripe.js lacks initCheckoutElementsSdk', () => {
+		getBlocksConfiguration.mockReturnValue( {
+			isAdaptivePricingEnabled: true,
+			paymentMethodsConfig: { card: { isReusable: false } },
+			cartTotal: 1000,
+			currency: 'USD',
+			shouldShowOptimizedCheckout: false,
+			isAdmin: false,
+		} );
+
+		// A legacy v3 Stripe.js (loaded by another plugin or a manual snippet)
+		// won window.Stripe; it exposes elements() but not initCheckoutElementsSdk.
+		renderFields( buildApi( { elements: jest.fn() } ) );
 
 		expect( CheckoutContainer ).not.toHaveBeenCalled();
 		expect( PaymentProcessor ).toHaveBeenCalled();
 	} );
 
-	it( 'falls back to the standard elements flow when initCheckout is absent (older Stripe.js)', () => {
-		renderFields( buildApi( { elements: jest.fn() } ) );
+	it( 'uses the standard elements flow when Adaptive Pricing is disabled', () => {
+		getBlocksConfiguration.mockReturnValue( {
+			isAdaptivePricingEnabled: false,
+			paymentMethodsConfig: { card: { isReusable: false } },
+			cartTotal: 1000,
+			currency: 'USD',
+			shouldShowOptimizedCheckout: false,
+			isAdmin: false,
+		} );
+
+		renderFields( buildApi( STRIPE ) );
 
 		expect( CheckoutContainer ).not.toHaveBeenCalled();
 		expect( PaymentProcessor ).toHaveBeenCalled();
