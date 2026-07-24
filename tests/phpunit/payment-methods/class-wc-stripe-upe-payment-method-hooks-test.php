@@ -11,6 +11,35 @@
 class WC_Stripe_UPE_Payment_Method_Hooks_Test extends WP_UnitTestCase {
 
 	/**
+	 * @inheritDoc
+	 */
+	public function set_up() {
+		parent::set_up();
+		$this->reset_hook_manager_singleton();
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function tear_down() {
+		$this->reset_hook_manager_singleton();
+		parent::tear_down();
+	}
+
+	/**
+	 * Resets the hook manager singleton so each test's first instantiation
+	 * actually exercises the registration path: WP_UnitTestCase restores
+	 * `$wp_filter` between tests but not the singleton's registered state.
+	 *
+	 * @return void
+	 */
+	private function reset_hook_manager_singleton() {
+		$reflection = new ReflectionProperty( WC_Stripe_Hook_Manager::class, 'instance' );
+		$reflection->setAccessible( true );
+		$reflection->setValue( null, null );
+	}
+
+	/**
 	 * Data provider mapping each hook-registering payment method class to a
 	 * hook only its constructor registers.
 	 *
