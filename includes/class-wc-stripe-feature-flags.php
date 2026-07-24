@@ -154,7 +154,7 @@ class WC_Stripe_Feature_Flags {
 		}
 
 		// Check if Optimized Checkout Suite is enabled.
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = WC_Stripe::get_instance()->get_settings();
 		if ( 'yes' !== ( $stripe_settings['optimized_checkout_element'] ?? 'no' ) ) {
 			return false;
 		}
@@ -176,7 +176,7 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_oc_available() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = WC_Stripe::get_instance()->get_settings();
 		$pmc_enabled     = $stripe_settings['pmc_enabled'] ?? 'no';
 		if ( 'yes' !== $pmc_enabled ) {
 			return false;

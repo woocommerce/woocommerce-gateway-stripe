@@ -984,7 +984,9 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Test for `update_main_stripe_settings`, `get_stripe_settings` and `delete_main_stripe_settings`.
+	 * Guards the delegation of the `WC_Stripe_Helper` settings shims to the
+	 * `WC_Stripe` accessors. The deprecation notice lands in a follow-up once
+	 * all in-tree callers have migrated.
 	 *
 	 * @return void
 	 */
@@ -994,7 +996,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertSame( $current_settings['test'], 'abc' );
 
 		WC_Stripe_Helper::delete_main_stripe_settings();
-		$current_settings = WC_Stripe_Helper::get_stripe_settings();
+		$current_settings = WC_Stripe::get_instance()->get_settings();
 		$this->assertSame( [], $current_settings );
 	}
 
@@ -1931,7 +1933,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @dataProvider provide_is_adaptive_pricing_supported
 	 */
 	public function test_is_adaptive_pricing_supported( bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected, string $account_country = 'US', bool $webhook_enabled = true ): void {
-		$original_stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
+		$original_stripe_settings                          = WC_Stripe::get_instance()->get_settings();
 		$new_stripe_settings                               = $original_stripe_settings;
 		$new_stripe_settings['adaptive_pricing']           = $adaptive_pricing;
 		$new_stripe_settings['optimized_checkout_element'] = 'yes';
@@ -1947,7 +1949,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'secret' => 'whsec_test',
 			];
 		}
-		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $new_stripe_settings );
 
 		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
 		if ( $webhook_enabled ) {
@@ -2014,7 +2016,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC()->shipping()->shipping_methods = $saved_shipping_methods;
 
 		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
-		WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $original_stripe_settings );
 		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
 		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
 		\WC_Subscriptions_Product::set_is_subscription( false );
@@ -2205,7 +2207,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		bool $amount_mismatch_detected = false,
 		bool $manual_capture = false
 	): void {
-		$original_settings    = WC_Stripe_Helper::get_stripe_settings();
+		$original_settings    = WC_Stripe::get_instance()->get_settings();
 		$settings             = $original_settings;
 		$settings['testmode'] = $test_mode ? 'yes' : 'no';
 		$settings['capture']  = $manual_capture ? 'no' : 'yes';
@@ -2219,7 +2221,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'secret' => 'whsec_test',
 			];
 		}
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe::get_instance()->update_settings( $settings );
 
 		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
 		if ( $webhook_enabled ) {
@@ -2246,7 +2248,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		// Cleanup.
 		update_option( 'woocommerce_currency', $original_currency );
 		delete_option( 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected' );
-		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+		WC_Stripe::get_instance()->update_settings( $original_settings );
 		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
 		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
 
@@ -2624,9 +2626,9 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			OC_Test_Helper::disable_oc();
 		}
 
-		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings            = WC_Stripe::get_instance()->get_settings();
 		$stripe_settings['capture'] = $automatic_capture ? 'yes' : 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$actual = WC_Stripe_Helper::is_checkout_sessions_available();
 
@@ -2635,7 +2637,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		PMC_Test_Helper::delete_cached_configuration();
 		OC_Test_Helper::disable_oc();
 		$stripe_settings['capture'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$this->assertSame( $expected, $actual );
 	}
