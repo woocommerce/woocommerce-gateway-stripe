@@ -91,9 +91,9 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	 * @return void
 	 */
 	public function test_get_parent_configuration_id() {
-		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		$initial_settings = WC_Stripe::get_instance()->get_settings();
 
-		WC_Stripe_Helper::update_main_stripe_settings(
+		WC_Stripe::get_instance()->update_settings(
 			array_merge(
 				$initial_settings,
 				[ 'testmode' => 'yes' ]
@@ -105,7 +105,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 			WC_Stripe_Payment_Method_Configurations::get_parent_configuration_id()
 		);
 
-		WC_Stripe_Helper::update_main_stripe_settings(
+		WC_Stripe::get_instance()->update_settings(
 			array_merge(
 				$initial_settings,
 				[ 'testmode' => 'no' ]
@@ -117,7 +117,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 			WC_Stripe_Payment_Method_Configurations::get_parent_configuration_id()
 		);
 
-		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		WC_Stripe::get_instance()->update_settings( $initial_settings );
 	}
 
 	/**
@@ -127,7 +127,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	 */
 	public function test_disable_payment_method_configuration_sync() {
 		// Get initial settings
-		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		$initial_settings = WC_Stripe::get_instance()->get_settings();
 
 		// Use reflection to access the private method
 		$reflection = new ReflectionClass( WC_Stripe_Payment_Method_Configurations::class );
@@ -137,13 +137,13 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$method->invoke( null );
 
 		// Get updated settings
-		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+		$updated_settings = WC_Stripe::get_instance()->get_settings();
 
 		// Verify pmc_enabled is set to 'no'
 		$this->assertEquals( 'no', $updated_settings['pmc_enabled'] );
 
 		// Restore original settings
-		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		WC_Stripe::get_instance()->update_settings( $initial_settings );
 	}
 
 	/**
@@ -168,7 +168,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$property->setValue( null, $mock_api );
 
 		// Get initial settings
-		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		$initial_settings = WC_Stripe::get_instance()->get_settings();
 
 		// Call get_primary_configuration which should trigger disable_payment_method_configuration_sync
 		// Use reflection to access the private method
@@ -180,13 +180,13 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$method->invoke( null );
 
 		// Get updated settings
-		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+		$updated_settings = WC_Stripe::get_instance()->get_settings();
 
 		// Verify pmc_enabled is set to 'no'
 		$this->assertEquals( 'no', $updated_settings['pmc_enabled'] );
 
 		// Restore original settings and API instance
-		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		WC_Stripe::get_instance()->update_settings( $initial_settings );
 		$property->setValue( null, null );
 	}
 
@@ -197,7 +197,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	 */
 	public function test_pmc_enabled_not_disabled_with_valid_data() {
 		// Get initial settings
-		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		$initial_settings = WC_Stripe::get_instance()->get_settings();
 
 		// Mock the Stripe API response to return a valid configuration
 		$mock_api = $this->getMockBuilder( WC_Stripe_API::class )
@@ -229,13 +229,13 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$method->invoke( null );
 
 		// Get the updated settings
-		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+		$updated_settings = WC_Stripe::get_instance()->get_settings();
 
 		// Verify pmc_enabled is not set to 'no'
 		$this->assertNotEquals( 'no', $updated_settings['pmc_enabled'] ?? null );
 
 		// Restore original settings and API instance
-		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		WC_Stripe::get_instance()->update_settings( $initial_settings );
 		$property->setValue( null, null );
 	}
 
@@ -266,7 +266,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$property->setValue( null, $mock_api );
 
 		// Get initial settings
-		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		$initial_settings = WC_Stripe::get_instance()->get_settings();
 
 		// Call get_payment_method_configuration_from_stripe which should trigger disable_payment_method_configuration_sync
 		// We could use get_primary_configuration, but it has a cooldown cache; we can remove the option for the test, but
@@ -281,13 +281,13 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$method->invoke( null );
 
 		// Get updated settings
-		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+		$updated_settings = WC_Stripe::get_instance()->get_settings();
 
 		// Verify pmc_enabled is set to 'no'
 		$this->assertEquals( 'no', $updated_settings['pmc_enabled'] );
 
 		// Restore original settings and API instance
-		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		WC_Stripe::get_instance()->update_settings( $initial_settings );
 		$property->setValue( null, null );
 	}
 
@@ -579,9 +579,9 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	 * @dataProvider provide_get_payment_method_configuration_from_stripe_tests()
 	 */
 	public function test_get_payment_method_configuration_from_stripe( array $mock_pmc_response, ?string $expected_pmc_id, ?string $expected_fallback_pmc_id, ?string $initial_fallback_pmc_id = null, bool $is_test_mode = false ) {
-		$settings             = WC_Stripe_Helper::get_stripe_settings();
+		$settings             = WC_Stripe::get_instance()->get_settings();
 		$settings['testmode'] = $is_test_mode ? 'yes' : 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe::get_instance()->update_settings( $settings );
 
 		$mock_api = $this->getMockBuilder( \WC_Stripe_API::class )
 			->disableOriginalConstructor()
@@ -792,7 +792,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		bool $from_cache,
 		?string $expected_configuration_id
 	): void {
-		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		$initial_settings = WC_Stripe::get_instance()->get_settings();
 		$settings         = $initial_settings;
 
 		$settings['testmode']    = $is_test_mode ? 'yes' : 'no';
@@ -816,7 +816,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 			unset( $settings['secret_key'] );
 			unset( $settings['connection_type'] );
 		}
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe::get_instance()->update_settings( $settings );
 
 		delete_option( \WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY );
 		\WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
@@ -852,7 +852,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$configuration_id = \WC_Stripe_Payment_Method_Configurations::get_configuration_id();
 
 		// Reset settings and API instance before running assertions.
-		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		WC_Stripe::get_instance()->update_settings( $initial_settings );
 		$property->setValue( null, null );
 		delete_option( \WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY );
 		\WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
@@ -876,7 +876,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	 * @dataProvider provide_test_get_unsupported_enabled_payment_method_ids_in_pmc
 	 */
 	public function test_get_unsupported_enabled_payment_method_ids_in_pmc( array $settings, $mock_api_response, array $expected_contains, array $expected_not_contains, bool $expect_empty ) {
-		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		$initial_settings = WC_Stripe::get_instance()->get_settings();
 
 		// Set up mock API first, before clearing cache, to ensure it's ready when needed.
 		$property = null;
@@ -895,14 +895,14 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		}
 
 		// Update settings and clear all caches/cooldowns after mock is set up.
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe::get_instance()->update_settings( $settings );
 		delete_option( WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY );
 		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 
 		$result = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
 
 		// Restore original settings and API instance.
-		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		WC_Stripe::get_instance()->update_settings( $initial_settings );
 		if ( null !== $property ) {
 			$property->setValue( null, null );
 		}
@@ -931,7 +931,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	 * @return array
 	 */
 	public function provide_test_get_unsupported_enabled_payment_method_ids_in_pmc(): array {
-		$settings_base = WC_Stripe_Helper::get_stripe_settings();
+		$settings_base = WC_Stripe::get_instance()->get_settings();
 
 		return [
 			'PMC disabled'             => [
