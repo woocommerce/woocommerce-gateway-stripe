@@ -188,6 +188,8 @@ export const onConfirmHandler = async ( params ) => {
  * Blocks the page UI to prevent duplicate interactions during payment processing.
  */
 const blockUI = () => {
+	document.body.classList.add( 'wc-stripe-ece-processing' );
+
 	jQuery.blockUI( {
 		message: null,
 		overlayCSS: {
@@ -202,6 +204,8 @@ const blockUI = () => {
  */
 const unblockUI = () => {
 	jQuery.unblockUI();
+
+	document.body.classList.remove( 'wc-stripe-ece-processing' );
 };
 
 /**

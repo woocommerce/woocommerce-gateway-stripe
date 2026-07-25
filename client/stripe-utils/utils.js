@@ -806,6 +806,32 @@ export const getExcludedPaymentMethodTypes = () => {
 };
 
 /**
+ * Notice shown when the Adaptive Pricing Checkout Session total can't be resynced
+ * with the cart.
+ *
+ * @return {string} The translated stale-total message.
+ */
+export const getStaleCheckoutTotalMessage = () =>
+	__(
+		"We couldn't update your order total. Please refresh the page and try again.",
+		'woocommerce-gateway-stripe'
+	);
+
+/**
+ * Remove a stale-total notice a prior failed resync left on the classic checkout.
+ *
+ * WooCommerce's `updated_checkout` refresh doesn't clear notices prepended to the
+ * notices wrapper, so a later successful resync must retract it itself. Matched by
+ * message text to avoid removing unrelated checkout errors.
+ */
+export const clearStaleCheckoutTotalNotice = () => {
+	const message = getStaleCheckoutTotalMessage();
+	jQuery( '.woocommerce-notices-wrapper .woocommerce-error' )
+		.filter( ( index, element ) => element.textContent.trim() === message )
+		.remove();
+};
+
+/**
  * Show error notice at top of checkout form.
  * Will try to use a translatable message using the message code if available.
  *
