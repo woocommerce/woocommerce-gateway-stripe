@@ -111,6 +111,89 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 		},
 	} );
 
+	// Values a stock Blocks checkout produces at a 16px root font size:
+	// `.wc-block-components-text-input.is-active input` resolves to
+	// `padding: 24px 9px 8px`, and its label to `line-height: 22px` with
+	// `transform: scale(0.82)`.
+	const BLOCKS_INPUT_PADDING_TOP = '24px';
+	const BLOCKS_INPUT_PADDING_BOTTOM = '8px';
+	const BLOCKS_FLOATING_LABEL = {
+		transform: 'matrix(0.82, 0, 0, 0.82, 0, 0)',
+		lineHeight: '22px',
+		color: 'rgb(100, 100, 100)',
+	};
+
+	it( 'splits the floating label compensation evenly across the input', () => {
+		const appearance = makeAppearance( {
+			paddingTop: BLOCKS_INPUT_PADDING_TOP,
+			paddingBottom: BLOCKS_INPUT_PADDING_BOTTOM,
+		} );
+
+		const result = upeUtils.handleAppearanceForFloatingLabel( appearance, {
+			...BLOCKS_FLOATING_LABEL,
+		} );
+
+		// Stripe centers field content — including the card brand icons — inside
+		// .Input, so an uneven split leaves them sitting off-center.
+		expect( result.rules[ '.Input' ].paddingTop ).toBe(
+			result.rules[ '.Input' ].paddingBottom
+		);
+
+		// floor(22 * 0.82) = 18px reserved for the label, plus Stripe's 4px and
+		// 1px of offset per side: (24 + 8 - 18 - 4 - 2) / 2 = 4px each.
+		expect( result.rules[ '.Input' ].paddingTop ).toBe( '4px' );
+		expect( result.rules[ '.Input' ].paddingBottom ).toBe( '4px' );
+	} );
+
+	it( 'preserves the total vertical padding so the field height is unchanged', () => {
+		const appearance = makeAppearance( {
+			paddingTop: BLOCKS_INPUT_PADDING_TOP,
+			paddingBottom: BLOCKS_INPUT_PADDING_BOTTOM,
+		} );
+
+		const result = upeUtils.handleAppearanceForFloatingLabel( appearance, {
+			...BLOCKS_FLOATING_LABEL,
+		} );
+
+		const total =
+			parseFloat( result.rules[ '.Input' ].paddingTop ) +
+			parseFloat( result.rules[ '.Input' ].paddingBottom );
+
+		// Same total the top-heavy split reserved: 1px + 7px.
+		expect( total ).toBe( 8 );
+	} );
+
+	it( 'leaves the resting label unnudged once padding is balanced', () => {
+		const appearance = makeAppearance( {
+			paddingTop: BLOCKS_INPUT_PADDING_TOP,
+			paddingBottom: BLOCKS_INPUT_PADDING_BOTTOM,
+		} );
+
+		const result = upeUtils.handleAppearanceForFloatingLabel( appearance, {
+			...BLOCKS_FLOATING_LABEL,
+		} );
+
+		// The margin existed only to pull the label back toward center against
+		// a top-heavy input; with even padding it would push it low instead.
+		expect( 'marginTop' in result.rules[ '.Label' ] ).toBe( false );
+	} );
+
+	it( 'clamps to zero rather than emitting negative padding', () => {
+		const appearance = makeAppearance( {
+			paddingTop: '8px',
+			paddingBottom: '8px',
+		} );
+
+		const result = upeUtils.handleAppearanceForFloatingLabel( appearance, {
+			...BLOCKS_FLOATING_LABEL,
+		} );
+
+		// 8 + 8 - 18 - 4 - 2 is negative; a negative padding would be dropped by
+		// Stripe and let the field grow taller than the theme's inputs.
+		expect( result.rules[ '.Input' ].paddingTop ).toBe( '0px' );
+		expect( result.rules[ '.Input' ].paddingBottom ).toBe( '0px' );
+	} );
+
 	it( 'adjusts padding and label styles with a valid transform matrix', () => {
 		const appearance = makeAppearance();
 		const floatingStyles = {
@@ -131,16 +214,12 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 			'transform'
 		);
 
-		// paddingTop = calc(10px - 15px - 4px - 1px)
-		expect( result.rules[ '.Input' ].paddingTop ).toBe(
-			'calc(10px - 15px - 4px - 1px)'
-		);
+		// (10 + 12 - 15 - 4 - 2) / 2 = 0.5px on each side.
+		expect( result.rules[ '.Input' ].paddingTop ).toBe( '0.5px' );
+		expect( result.rules[ '.Input' ].paddingBottom ).toBe( '0.5px' );
 
-		// paddingBottom = 12 - 1 = 11px
-		expect( result.rules[ '.Input' ].paddingBottom ).toBe( '11px' );
-
-		// Label marginTop = floor((12 - 1) / 3) = 3px
-		expect( result.rules[ '.Label' ].marginTop ).toBe( '3px' );
+		// Balanced padding centers the resting label without a nudge.
+		expect( 'marginTop' in result.rules[ '.Label' ] ).toBe( false );
 
 		// Floating label marginTop set to 3px for border spacing.
 		expect( result.rules[ '.Label--floating' ].marginTop ).toBe( '3px' );
@@ -204,10 +283,9 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 		expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
 			'fontSize'
 		);
-		// Padding adjustments still run using original lineHeight.
-		expect( result.rules[ '.Input' ].paddingTop ).toBe(
-			'calc(10px - 20px - 4px - 1px)'
-		);
+		// Padding adjustments still run using the original lineHeight, and
+		// 10 + 12 - 20 - 4 - 2 is negative, so both sides clamp to zero.
+		expect( result.rules[ '.Input' ].paddingTop ).toBe( '0px' );
 	} );
 
 	it( 'skips transform processing when transform is none', () => {

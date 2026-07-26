@@ -186,26 +186,66 @@ export const handleAppearanceForFloatingLabel = (
 		delete appearance.rules[ '.Label--floating' ].transform;
 	}
 
-	// Subtract the label's lineHeight from padding-top to account for floating label height.
-	// Minus STRIPE_PADDING_TOP which is a constant value added by Stripe to the padding-top.
-	// Minus STRIPE_PADDING_OFFSET for each vertical padding to account for unpredictable input height.
-	if ( appearance.rules[ '.Input' ].paddingTop ) {
-		appearance.rules[
-			'.Input'
-		].paddingTop = `calc(${ appearance.rules[ '.Input' ].paddingTop } - ${ appearance.rules[ '.Label--floating' ].lineHeight } - ${ STRIPE_PADDING_TOP } - ${ STRIPE_PADDING_OFFSET })`;
-	}
-	if ( appearance.rules[ '.Input' ].paddingBottom ) {
-		const paddingOffset = parseFloat( STRIPE_PADDING_OFFSET );
-		const originalPaddingBottom = parseFloat(
-			appearance.rules[ '.Input' ].paddingBottom
-		);
-		appearance.rules[ '.Input' ].paddingBottom = `${
-			originalPaddingBottom - paddingOffset
-		}px`;
+	// Reserve room for the floating label without letting the field grow taller
+	// than the theme's own inputs. The space the label needs is its lineHeight,
+	// plus STRIPE_PADDING_TOP which Stripe adds to padding-top on its own, plus
+	// STRIPE_PADDING_OFFSET per side to absorb unpredictable input height.
+	const paddingTop = parseFloat( appearance.rules[ '.Input' ].paddingTop );
+	const paddingBottom = parseFloat(
+		appearance.rules[ '.Input' ].paddingBottom
+	);
+	const floatingLabelLineHeight = parseFloat(
+		appearance.rules[ '.Label--floating' ].lineHeight
+	);
 
-		appearance.rules[ '.Label' ].marginTop = `${ Math.floor(
-			( originalPaddingBottom - paddingOffset ) / 3
-		) }px`;
+	if (
+		Number.isFinite( paddingTop ) &&
+		Number.isFinite( paddingBottom ) &&
+		Number.isFinite( floatingLabelLineHeight )
+	) {
+		// Themes that float their labels park the extra vertical space at the
+		// top of the input, where the label sits. Stripe centers what it draws
+		// inside .Input — the value, and the card brand icons on the card
+		// number field — against the padding box, so carrying that top-heavy
+		// split across leaves them visibly high. Take the same total out of
+		// both sides instead: the field keeps its height and the contents stay
+		// centered. Clamped at zero because a negative padding is dropped, and
+		// the field would then outgrow the theme's inputs.
+		const reservedForLabel =
+			floatingLabelLineHeight +
+			parseFloat( STRIPE_PADDING_TOP ) +
+			parseFloat( STRIPE_PADDING_OFFSET ) * 2;
+		const balancedPadding = Math.max(
+			0,
+			( paddingTop + paddingBottom - reservedForLabel ) / 2
+		);
+
+		appearance.rules[ '.Input' ].paddingTop = `${ balancedPadding }px`;
+		appearance.rules[ '.Input' ].paddingBottom = `${ balancedPadding }px`;
+	} else {
+		// Fall back to adjusting each side on its own when a padding or the
+		// label's lineHeight doesn't resolve to a number (`normal`, a keyword,
+		// or absent from the sampled styles).
+		if ( appearance.rules[ '.Input' ].paddingTop ) {
+			appearance.rules[
+				'.Input'
+			].paddingTop = `calc(${ appearance.rules[ '.Input' ].paddingTop } - ${ appearance.rules[ '.Label--floating' ].lineHeight } - ${ STRIPE_PADDING_TOP } - ${ STRIPE_PADDING_OFFSET })`;
+		}
+		if ( appearance.rules[ '.Input' ].paddingBottom ) {
+			const paddingOffset = parseFloat( STRIPE_PADDING_OFFSET );
+			const originalPaddingBottom = parseFloat(
+				appearance.rules[ '.Input' ].paddingBottom
+			);
+			appearance.rules[ '.Input' ].paddingBottom = `${
+				originalPaddingBottom - paddingOffset
+			}px`;
+
+			// Pulls the resting label back toward center against the top-heavy
+			// input this branch leaves behind.
+			appearance.rules[ '.Label' ].marginTop = `${ Math.floor(
+				( originalPaddingBottom - paddingOffset ) / 3
+			) }px`;
+		}
 	}
 
 	// Add top margin so the floating label doesn't sit flush against the input border.
