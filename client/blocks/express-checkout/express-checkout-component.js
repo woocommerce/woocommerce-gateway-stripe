@@ -48,14 +48,6 @@ const adjustButtonHeights = ( buttonOptions, expressPaymentMethod ) => {
 		buttonHeight = buttonHeight + 0.4;
 	}
 
-	// GooglePay with the white theme has a 2px height difference due to its border.
-	if (
-		expressPaymentMethod === EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY &&
-		buttonOptions.buttonTheme.googlePay === 'white'
-	) {
-		buttonHeight = buttonHeight - 2;
-	}
-
 	return {
 		...buttonOptions,
 		// Clamp the button height to the allowed range 40px to 55px.
