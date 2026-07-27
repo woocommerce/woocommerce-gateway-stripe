@@ -83,6 +83,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Open the Stripe Dashboard links in subscription renewal failure order notes in a new tab
 * Fix - Prevent fatals during internal order check
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
+* Fix - Open the all Stripe Dashboard links in admin notices and order notes in a new tab
 
 2026-07-14 - version 10.8.4
 * Fix - Improve Checkout Session amount integrity
