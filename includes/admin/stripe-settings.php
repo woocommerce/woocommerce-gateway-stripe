@@ -145,7 +145,7 @@ return apply_filters(
 				'<br />',
 				'<a href="https://stripe.com/apple-pay/legal" target="_blank">Stripe</a>',
 				'<a href="https://developer.apple.com/apple-pay/acceptable-use-guidelines-for-websites/" target="_blank">Apple</a>',
-				'<a href="https://dashboard.stripe.com/settings/payments/apple_pay" target="_blank">',
+				WC_Stripe_Helper::get_external_link_open_tag( 'https://dashboard.stripe.com/settings/payments/apple_pay' ),
 				'</a>'
 			),
 			'type'        => 'checkbox',
