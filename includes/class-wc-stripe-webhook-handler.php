@@ -1347,7 +1347,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
+		// Re-queue instead of dropping: the endpoint has already acked 200, so
+		// Stripe never retries a dropped event. The retry is bounded by the
+		// lock's 5-minute TTL and by the allowed-status guard above once the
+		// lock holder settles the order.
 		if ( $order_helper->lock_order_payment( $order ) ) {
+			$this->defer_webhook_processing(
+				$notification,
+				[
+					'order_id'  => $order->get_id(),
+					'intent_id' => $intent->id,
+				],
+				$this->locked_order_retry_delay
+			);
 			return;
 		}
 
@@ -1399,6 +1411,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				// Process the webhook now if it's for a voucher, wallet, or BLIK payment, or if filtered to process immediately and order is not awaiting action.
 				if ( $is_voucher_payment || $is_wallet_payment || $is_blik_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
+					if ( $this->maybe_mark_order_as_pre_ordered( $order ) ) {
+						$this->run_webhook_received_action( (string) $notification->type, $notification );
+						break;
+					}
+
 					$charge = $this->get_latest_charge_from_intent( $intent );
 
 					do_action_deprecated(
@@ -1677,6 +1694,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				case 'checkout.session.async_payment_failed':
 					$this->handle_checkout_session_failure( $notification );
 					break;
+				case 'payment_intent.processing':
+				case 'payment_intent.requires_action':
+				case 'payment_intent.payment_failed':
+					// Retry of an immediate-mode event that hit the payment lock:
+					// re-enter the immediate handler, which re-runs its own guards
+					// and re-queues again while the lock is held.
+					$this->process_payment_intent( $notification );
+					return;
 				default:
 					throw new Exception( "Unsupported webhook type: {$webhook_type}" );
 					break;
@@ -1839,6 +1864,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		WC_Stripe_Logger::info( "Processing Stripe PaymentIntent {$intent_id} for order {$order->get_id()} via deferred webhook." );
 
+		if ( $this->maybe_mark_order_as_pre_ordered( $order ) ) {
+			return;
+		}
+
 		do_action_deprecated(
 			'wc_gateway_stripe_process_payment',
 			[ $charge, $order ],
@@ -1849,6 +1878,32 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$charge->is_webhook_response = true;
 		$this->process_response( $charge, $order );
+	}
+
+	/**
+	 * Routes a settling order into the pre-order lifecycle instead of the
+	 * standard completion flow.
+	 *
+	 * The AJAX/redirect confirm path marks charged-upfront pre-orders itself,
+	 * but when the webhook wins the settlement race (or the shopper never
+	 * returns), this is the only settle path — and process_response() would run
+	 * the standard completion, silently breaking the pre-order lifecycle.
+	 *
+	 * @param WC_Order $order The order being settled.
+	 * @return bool True when the order was handled as a pre-order and the
+	 *              standard completion flow must be skipped.
+	 */
+	protected function maybe_mark_order_as_pre_ordered( $order ): bool {
+		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+		if ( ! $gateway->has_pre_order( $order->get_id() ) ) {
+			return false;
+		}
+
+		WC_Stripe_Logger::info( "Marking order {$order->get_id()} as pre-ordered via webhook settlement." );
+		$gateway->mark_order_as_pre_ordered( $order->get_id() );
+
+		return true;
 	}
 
 	/**

@@ -761,6 +761,146 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * An immediate-mode payment_intent event landing while another request holds the payment
+	 * lock must re-queue itself instead of being dropped: the endpoint has already acked 200,
+	 * so Stripe never retries a dropped event.
+	 */
+	public function test_immediate_payment_intent_requeues_while_order_locked() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->update_meta_data( '_stripe_intent_id', self::MOCK_PAYMENT_INTENT['id'] );
+		$order->save();
+
+		// No metadata/charges on the intent, so the handler resolves the order
+		// via the stored intent ID.
+		$notification = (object) [
+			'type' => 'payment_intent.processing',
+			'data' => (object) [
+				'object' => (object) [
+					'id'     => self::MOCK_PAYMENT_INTENT['id'],
+					'object' => 'payment_intent',
+					'status' => WC_Stripe_Intent_Status::PROCESSING,
+				],
+			],
+		];
+
+		// Simulate the AJAX confirm (or another request) holding the lock.
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+		$order_helper->expects( $this->once() )
+			->method( 'lock_order_payment' )
+			->willReturn( true );
+		$order_helper->expects( $this->never() )
+			->method( 'unlock_order_payment' );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'defer_webhook_processing' ] )
+			->getMock();
+
+		$handler->expects( $this->once() )
+			->method( 'defer_webhook_processing' )
+			->with(
+				$notification,
+				[
+					'order_id'  => $order->get_id(),
+					'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+				],
+				10
+			);
+
+		$handler->process_payment_intent( $notification );
+
+		// The event must not have been applied while locked.
+		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+	}
+
+	/**
+	 * A re-queued immediate-mode event re-enters the immediate handler from the deferred
+	 * processor, so its own guards and lock handling run again on retry.
+	 */
+	public function test_deferred_retry_reenters_immediate_handler() {
+		$order        = WC_Helper_Order::create_order();
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.processing',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'process_payment_intent' ] )
+			->getMock();
+
+		$handler->expects( $this->once() )
+			->method( 'process_payment_intent' )
+			->with(
+				$this->callback(
+					function ( $passed ) {
+						return is_object( $passed ) && 'payment_intent.processing' === $passed->type;
+					}
+				)
+			);
+
+		$handler->process_deferred_webhook( 'payment_intent.processing', $data, $notification );
+	}
+
+	/**
+	 * When the webhook settles a charged-upfront pre-order (the AJAX confirm lost the race or
+	 * never ran), the deferred handler must route it into the pre-order lifecycle instead of
+	 * the standard completion flow.
+	 */
+	public function test_deferred_payment_intent_succeeded_marks_pre_order() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods(
+				[
+					'get_intent_from_order',
+					'get_latest_charge_from_intent',
+					'process_response',
+					'maybe_mark_order_as_pre_ordered',
+				]
+			)
+			->getMock();
+
+		$handler->expects( $this->any() )
+			->method( 'get_intent_from_order' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT );
+		$handler->expects( $this->any() )
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) [ 'id' => 'ch_mock' ] );
+		$handler->expects( $this->once() )
+			->method( 'maybe_mark_order_as_pre_ordered' )
+			->willReturn( true );
+
+		// The pre-order lifecycle replaces the standard completion flow.
+		$handler->expects( $this->never() )
+			->method( 'process_response' );
+
+		$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+	}
+
+	/**
 	 * Creates an order carrying a Stripe PaymentIntent that was ultimately settled via the given
 	 * gateway — the shared setup for the unexpected-charge detection tests.
 	 *

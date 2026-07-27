@@ -771,12 +771,25 @@ class WC_Stripe_Intent_Controller {
 					// Bail without unlocking — releasing the winner's lock would defeat the mutual exclusion.
 					WC_Stripe_Logger::info( "Skipping update_order_status_ajax for order $order_id; order payment is already locked." );
 				} else {
-					$processing_started = true; // Past validation; a failure from here on is a genuine payment failure.
-					try {
-						$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
-					} finally {
-						// This request owns the lock (we just acquired it above), so it must release it.
+					// Double-checked locking: the settled-check above read a snapshot
+					// loaded before the lock, so a concurrent request that fully
+					// settled and unlocked in between is invisible to it. Re-check
+					// against a fresh read now that this request holds the lock.
+					$order           = wc_get_order( $order_id );
+					$settled_at_lock = $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ] )
+						|| $order_helper->get_stripe_upe_redirect_processed( $order );
+
+					if ( $settled_at_lock ) {
+						WC_Stripe_Logger::info( "Skipping update_order_status_ajax for order $order_id; order was settled by a concurrent request." );
 						$order_helper->unlock_order_payment( $order );
+					} else {
+						$processing_started = true; // Past validation; a failure from here on is a genuine payment failure.
+						try {
+							$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
+						} finally {
+							// This request owns the lock (we just acquired it above), so it must release it.
+							$order_helper->unlock_order_payment( $order );
+						}
 					}
 				}
 			}
