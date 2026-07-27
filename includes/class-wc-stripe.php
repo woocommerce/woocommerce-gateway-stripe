@@ -211,6 +211,10 @@ class WC_Stripe {
 		$this->payment_request_configuration = new WC_Stripe_Payment_Request_Compat();
 
 		if ( self::$instance === $this ) {
+			( new WC_Stripe_Smart_Payment_Method_Defaults() )->init();
+		}
+
+		if ( self::$instance === $this ) {
 			// Initialize Express Checkout after translations are loaded
 			add_action( 'init', [ $this, 'init_express_checkout' ], 11 );
 		}

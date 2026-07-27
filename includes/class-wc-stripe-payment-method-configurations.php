@@ -362,12 +362,35 @@ class WC_Stripe_Payment_Method_Configurations {
 			return [];
 		}
 
+		return array_values(
+			array_intersect(
+				self::get_available_payment_method_ids(),
+				array_keys( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS )
+			)
+		);
+	}
+
+	/**
+	 * Get the available payment method IDs in the PMC that the plugin can manage.
+	 *
+	 * @return string[]
+	 */
+	public static function get_available_payment_method_ids(): array {
+		// Bail if the payment method configurations API is not enabled.
+		if ( ! self::is_enabled() ) {
+			return [];
+		}
+
 		$available_payment_method_ids          = [];
+		$supported_payment_method_ids          = array_merge(
+			array_keys( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS ),
+			[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
+		);
 		$merchant_payment_method_configuration = self::get_primary_configuration();
 
 		if ( $merchant_payment_method_configuration ) {
-			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
-				if ( isset( $payment_method->display_preference->value ) && isset( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS[ $payment_method_id ] ) ) {
+			foreach ( (array) $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
+				if ( isset( $payment_method->display_preference->value ) && in_array( $payment_method_id, $supported_payment_method_ids, true ) ) {
 					$available_payment_method_ids[] = $payment_method_id;
 				}
 			}
@@ -422,6 +445,32 @@ class WC_Stripe_Payment_Method_Configurations {
 
 		// Migrate payment methods from DB to Stripe PMC if needed
 		self::maybe_migrate_payment_methods_from_db_to_pmc();
+
+		$enabled_payment_method_ids            = [];
+		$merchant_payment_method_configuration = self::get_primary_configuration( $force_refresh );
+
+		if ( $merchant_payment_method_configuration ) {
+			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
+				if ( isset( $payment_method->display_preference->value ) && 'on' === $payment_method->display_preference->value ) {
+					$enabled_payment_method_ids[] = $payment_method_id;
+				}
+			}
+		}
+
+		return $enabled_payment_method_ids;
+	}
+
+	/**
+	 * Get enabled payment method IDs directly from the PMC without triggering migration.
+	 *
+	 * @param bool $force_refresh Whether to force a refresh of the payment method configuration from Stripe.
+	 * @return string[]
+	 */
+	public static function get_enabled_payment_method_ids_from_configuration( $force_refresh = false ): array {
+		// Bail if the payment method configurations API is not enabled.
+		if ( ! self::is_enabled() ) {
+			return [];
+		}
 
 		$enabled_payment_method_ids            = [];
 		$merchant_payment_method_configuration = self::get_primary_configuration( $force_refresh );

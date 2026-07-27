@@ -21,6 +21,13 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	private $controller;
 
 	/**
+	 * Stripe account mock used by the controller.
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	private $account;
+
+	/**
 	 * Pre-test setup
 	 */
 	public function set_up() {
@@ -37,17 +44,11 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$settings['test_secret_key']      = '';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
-		$mock_account = $this->getMockBuilder( WC_Stripe_Account::class )
-							->disableOriginalConstructor()
-							->getMock();
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+						->disableOriginalConstructor()
+						->getMock();
 
-		$this->controller = new WC_REST_Stripe_Account_Keys_Controller( $mock_account );
-		$this->mock_payment_method_configurations(
-			[
-				WC_Stripe_Payment_Methods::CARD,
-				WC_Stripe_Payment_Methods::LINK,
-			]
-		);
+		$this->controller = new WC_REST_Stripe_Account_Keys_Controller( $this->account );
 	}
 
 	public function test_get_account_keys_returns_status_code_200() {
@@ -150,32 +151,112 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	}
 
 	/**
-	 * Test for `set_account_keys` checking if payment methods are reset
+	 * Test for `set_account_keys` checking payment method resets for active mode key changes.
+	 *
+	 * @param array      $settings                  Initial Stripe settings.
+	 * @param array      $request_params            Request parameters to submit.
+	 * @param string[]   $current_enabled_methods   Methods enabled in the PMC before the request.
+	 * @param string[]   $available_disabled_methods Methods available but disabled in the PMC before the request.
+	 * @param array|null $expected_update           Expected PMC update payload, or null when no update is expected.
 	 * @return void
+	 * @dataProvider provide_changing_keys_payment_method_updates
 	 */
-	public function test_changing_keys_resets_payment_methods() {
-		// Default options
-		WC_Stripe_Helper::update_main_stripe_settings(
-			[
-				'publishable_key'                                            => 'pk_live-key',
-				'secret_key'                                                 => 'sk_live-key',
-				'testmode'                                                   => 'no',
-				'connection_type'                                            => 'connect',
-				'pmc_enabled'                                                => 'yes',
-				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'yes',
-			]
+	public function test_changing_keys_updates_payment_methods_for_active_mode( array $settings, array $request_params, array $current_enabled_methods, array $available_disabled_methods, ?array $expected_update ): void {
+		WC_Stripe_Helper::delete_main_stripe_settings();
+		add_option(
+			WC_Stripe_Helper::SETTINGS_OPTION,
+			$settings
 		);
 
-		// Build request params
 		$request = new WP_REST_Request( 'POST', self::ROUTE );
-		$request->set_param( 'publishable_key', 'pk_live-key-updated' );
+		foreach ( $request_params as $param => $value ) {
+			$request->set_param( $param, $value );
+		}
 
-		// Set initial payment methods
-		$this->set_stripe_account_data( [ 'country' => 'US' ] );
-		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA, WC_Stripe_Payment_Methods::IDEAL ], [] );
-		$this->expect_payment_method_configurations_update( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
+		$this->account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
+		$this->mock_payment_method_configurations( $current_enabled_methods, $available_disabled_methods );
+
+		if ( null === $expected_update ) {
+			$this->stripe_api->expects( $this->never() )->method( 'update_payment_method_configurations' );
+		} else {
+			$this->expect_payment_method_configurations_update(
+				$expected_update['enabled_methods'],
+				$expected_update['disabled_methods']
+			);
+		}
 
 		$this->controller->set_account_keys( $request );
+	}
+
+	/**
+	 * Provides key change scenarios and the payment method configuration updates they should trigger.
+	 *
+	 * @return array
+	 */
+	public function provide_changing_keys_payment_method_updates(): array {
+		$base_settings = [
+			'publishable_key'                                            => 'pk_live-key',
+			'secret_key'                                                 => 'sk_live-key',
+			'testmode'                                                   => 'no',
+			'connection_type'                                            => 'connect',
+			'pmc_enabled'                                                => 'yes',
+			WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'yes',
+		];
+
+		$expected_us_default_methods = [
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::AFFIRM,
+			WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY,
+			WC_Stripe_Payment_Methods::KLARNA,
+			WC_Stripe_Payment_Methods::LINK,
+			WC_Stripe_Payment_Methods::APPLE_PAY,
+			WC_Stripe_Payment_Methods::GOOGLE_PAY,
+			WC_Stripe_Payment_Methods::ACH,
+		];
+		$current_live_methods        = [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::IDEAL ];
+
+		return [
+			'active live key change resets payment methods'           => [
+				'settings'                   => $base_settings,
+				'request_params'             => [ 'publishable_key' => 'pk_live-key-updated' ],
+				'current_enabled_methods'    => $current_live_methods,
+				'available_disabled_methods' => array_diff( $expected_us_default_methods, $current_live_methods ),
+				'expected_update'            => [
+					'enabled_methods'  => $expected_us_default_methods,
+					'disabled_methods' => [ WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::IDEAL ],
+				],
+			],
+			'active test key change resets payment methods'           => [
+				'settings'                   => array_merge(
+					$base_settings,
+					[
+						'test_publishable_key' => 'pk_test-key',
+						'test_secret_key'      => 'sk_test-key',
+						'testmode'             => 'yes',
+					]
+				),
+				'request_params'             => [ 'test_publishable_key' => 'pk_test-key-updated' ],
+				'current_enabled_methods'    => $current_live_methods,
+				'available_disabled_methods' => array_diff( $expected_us_default_methods, $current_live_methods ),
+				'expected_update'            => [
+					'enabled_methods'  => $expected_us_default_methods,
+					'disabled_methods' => [ WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::IDEAL ],
+				],
+			],
+			'inactive test key change does not reset payment methods' => [
+				'settings'                   => array_merge(
+					$base_settings,
+					[
+						'test_publishable_key' => 'pk_test-key',
+						'test_secret_key'      => 'sk_test-key',
+					]
+				),
+				'request_params'             => [ 'test_publishable_key' => 'pk_test-key-updated' ],
+				'current_enabled_methods'    => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ],
+				'available_disabled_methods' => [ WC_Stripe_Payment_Methods::ACH ],
+				'expected_update'            => null,
+			],
+		];
 	}
 
 	/**

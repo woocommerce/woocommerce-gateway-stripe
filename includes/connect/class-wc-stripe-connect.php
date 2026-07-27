@@ -262,13 +262,17 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
+			// Fresh installs have no settings stored yet, so the getter can return false.
+			$current_options = WC_Stripe_Helper::get_stripe_settings();
+			$current_options = is_array( $current_options ) ? $current_options : [];
+
 			$publishable_key                            = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			$secret_key                                 = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			$is_test                                    = 'live' !== $mode;
 			$prefix                                     = $is_test ? 'test_' : '';
 			$default_options                            = $this->get_default_stripe_config();
-			$current_options                            = WC_Stripe_Helper::get_stripe_settings();
-			$options                                    = array_merge( $default_options, is_array( $current_options ) ? $current_options : [] );
+			$options                                    = array_merge( $default_options, $current_options );
+			$previous_options                           = $current_options;
 			$options['enabled']                         = 'yes';
 			$options['testmode']                        = $is_test ? 'yes' : 'no';
 			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
@@ -310,6 +314,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				$options['optimized_checkout_element'] = 'yes';
 				WC_Stripe_Helper::update_main_stripe_settings( $options );
 			}
+
+			( new WC_Stripe_Smart_Payment_Method_Defaults() )->apply_for_account_connection( $mode, $previous_options );
+			$options = WC_Stripe_Helper::get_stripe_settings();
 
 			if ( $is_verbose_debug_mode_enabled ) {
 				WC_Stripe_Logger::debug(
