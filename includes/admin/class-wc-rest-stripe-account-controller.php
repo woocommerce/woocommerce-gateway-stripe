@@ -158,12 +158,12 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 	}
 
 	/**
-	 * Clears the cached account data, re-evaluates Payment Method Configuration availability, and returns the updated account data.
+	 * Refreshes the cached account data, re-evaluates Payment Method Configuration availability, and returns the updated account data.
 	 *
 	 * @return WP_REST_Response
 	 */
 	public function refresh_account() {
-		$this->account->clear_cache();
+		$this->account->refresh_cache();
 
 		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
 
