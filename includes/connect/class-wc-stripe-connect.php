@@ -262,12 +262,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
+			// Fresh installs have no settings stored yet, so the getter can return false.
+			$current_options = WC_Stripe_Helper::get_stripe_settings();
+			$current_options = is_array( $current_options ) ? $current_options : [];
+
 			$publishable_key                            = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			$secret_key                                 = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			$is_test                                    = 'live' !== $mode;
 			$prefix                                     = $is_test ? 'test_' : '';
 			$default_options                            = $this->get_default_stripe_config();
-			$current_options                            = WC_Stripe_Helper::get_stripe_settings();
 			$options                                    = array_merge( $default_options, $current_options );
 			$previous_options                           = $current_options;
 			$options['enabled']                         = 'yes';
