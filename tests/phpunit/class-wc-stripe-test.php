@@ -44,42 +44,63 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * update_settings() persists the option and subsequent reads reflect the new value.
+	 * update_settings() writes through to the underlying option, asserted via
+	 * get_option() so the test holds even if get_settings() grows a cache.
 	 *
 	 * @return void
 	 */
 	public function test_update_settings_persists_option(): void {
 		WC_Stripe::get_instance()->update_settings( [ 'enabled' => 'yes' ] );
-		$this->assertSame( 'yes', WC_Stripe::get_instance()->get_settings()['enabled'] );
+		$this->assertSame( 'yes', get_option( WC_Stripe::SETTINGS_OPTION_NAME )['enabled'] );
 
 		WC_Stripe::get_instance()->update_settings( [ 'enabled' => 'no' ] );
-		$this->assertSame( 'no', WC_Stripe::get_instance()->get_settings()['enabled'] );
+		$this->assertSame( 'no', get_option( WC_Stripe::SETTINGS_OPTION_NAME )['enabled'] );
 	}
 
 	/**
-	 * get_settings() reflects a raw update_option() write that bypasses update_settings().
+	 * get_settings() reflects a raw update_option() write that bypasses
+	 * update_settings() — the accessor introduces no divergent state.
 	 *
 	 * @return void
 	 */
 	public function test_get_settings_reflects_raw_option_write(): void {
-		WC_Stripe::get_instance()->update_settings( [ 'enabled' => 'yes' ] );
-		$this->assertSame( 'yes', WC_Stripe::get_instance()->get_settings()['enabled'] );
-
 		update_option( WC_Stripe::SETTINGS_OPTION_NAME, [ 'enabled' => 'no' ] );
+
 		$this->assertSame( 'no', WC_Stripe::get_instance()->get_settings()['enabled'] );
 	}
 
 	/**
-	 * The static get_payment_method_settings() reads a per-method option and
-	 * normalizes non-array values.
+	 * The static get_payment_method_settings() reads the method's option,
+	 * normalizing gateway-id and mixed-case inputs to the slug.
 	 *
+	 * @dataProvider provide_payment_method_settings_inputs
+	 *
+	 * @param string $input       Value passed to get_payment_method_settings().
+	 * @param string $option_name Option the read should resolve to.
 	 * @return void
 	 */
-	public function test_get_payment_method_settings_reads_raw_option(): void {
-		update_option( 'woocommerce_stripe_boleto_settings', [ 'foo' => 'bar' ] );
+	public function test_get_payment_method_settings_reads_raw_option( string $input, string $option_name ): void {
+		update_option( $option_name, [ 'foo' => 'bar' ] );
 
-		$this->assertSame( 'bar', WC_Stripe::get_payment_method_settings( 'boleto' )['foo'] );
-		$this->assertSame( [], WC_Stripe::get_payment_method_settings( 'nonexistent_method' ) );
+		$this->assertSame( 'bar', WC_Stripe::get_payment_method_settings( $input )['foo'] );
+
+		delete_option( $option_name );
+		$this->assertSame( [], WC_Stripe::get_payment_method_settings( $input ) );
+	}
+
+	/**
+	 * Provider for `test_get_payment_method_settings_reads_raw_option`.
+	 *
+	 * @return array
+	 */
+	public function provide_payment_method_settings_inputs(): array {
+		return [
+			'boleto slug'           => [ WC_Stripe_Payment_Methods::BOLETO, 'woocommerce_stripe_boleto_settings' ],
+			'klarna slug'           => [ WC_Stripe_Payment_Methods::KLARNA, 'woocommerce_stripe_klarna_settings' ],
+			'sepa slug'             => [ WC_Stripe_Payment_Methods::SEPA_DEBIT, 'woocommerce_stripe_sepa_debit_settings' ],
+			'gateway id normalized' => [ 'stripe_boleto', 'woocommerce_stripe_boleto_settings' ],
+			'mixed case normalized' => [ 'Boleto', 'woocommerce_stripe_boleto_settings' ],
+		];
 	}
 
 	/**

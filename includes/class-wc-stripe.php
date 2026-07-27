@@ -47,10 +47,20 @@ class WC_Stripe {
 	 *
 	 * @since 10.9.0
 	 *
-	 * @param string $method_slug The payment method slug.
+	 * @param string $method_slug The payment method slug — a {@see WC_Stripe_Payment_Methods}
+	 *                            constant. Gateway ids ("stripe_boleto") and mixed case are
+	 *                            normalized to the slug.
 	 * @return array
 	 */
 	public static function get_payment_method_settings( string $method_slug ): array {
+		$method_slug = strtolower( $method_slug );
+
+		// Gateway ids are the slug with a "stripe_" prefix and target the same
+		// option, so accept them rather than silently reading a wrong option.
+		if ( 0 === strpos( $method_slug, 'stripe_' ) ) {
+			$method_slug = substr( $method_slug, strlen( 'stripe_' ) );
+		}
+
 		$settings = get_option( 'woocommerce_stripe_' . $method_slug . '_settings', [] );
 
 		return is_array( $settings ) ? $settings : [];
@@ -934,12 +944,11 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-orders-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-tokens-controller.php';
 
-		$main_gateway                 = $this->get_main_stripe_gateway();
-		$connection_tokens_controller = new WC_REST_Stripe_Connection_Tokens_Controller( $main_gateway );
+		$connection_tokens_controller = new WC_REST_Stripe_Connection_Tokens_Controller( $this->get_main_stripe_gateway() );
 		$locations_controller         = new WC_REST_Stripe_Locations_Controller();
-		$orders_controller            = new WC_REST_Stripe_Orders_Controller( $main_gateway );
+		$orders_controller            = new WC_REST_Stripe_Orders_Controller( $this->get_main_stripe_gateway() );
 		$stripe_tokens_controller     = new WC_REST_Stripe_Tokens_Controller();
-		$stripe_account_controller    = new WC_REST_Stripe_Account_Controller( $main_gateway, $this->account );
+		$stripe_account_controller    = new WC_REST_Stripe_Account_Controller( $this->get_main_stripe_gateway(), $this->account );
 
 		$connection_tokens_controller->register_routes();
 		$locations_controller->register_routes();
@@ -954,13 +963,13 @@ class WC_Stripe {
 		$upe_flag_toggle_controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
 		$upe_flag_toggle_controller->register_routes();
 
-		$settings_controller = new WC_REST_Stripe_Settings_Controller( $main_gateway );
+		$settings_controller = new WC_REST_Stripe_Settings_Controller( $this->get_main_stripe_gateway() );
 		$settings_controller->register_routes();
 
 		$stripe_account_keys_controller = new WC_REST_Stripe_Account_Keys_Controller( $this->account );
 		$stripe_account_keys_controller->register_routes();
 
-		$oc_setting_toggle_controller = new WC_Stripe_REST_OC_Setting_Toggle_Controller( $main_gateway );
+		$oc_setting_toggle_controller = new WC_Stripe_REST_OC_Setting_Toggle_Controller( $this->get_main_stripe_gateway() );
 		$oc_setting_toggle_controller->register_routes();
 
 		$exit_survey_controller = new WC_REST_Stripe_Exit_Survey_Controller();
