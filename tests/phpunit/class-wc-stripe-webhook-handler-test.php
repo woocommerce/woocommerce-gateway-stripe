@@ -1333,6 +1333,101 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * An Adaptive Pricing session with no linked order yet must be re-queued a bounded number
+	 * of times instead of being dropped on the first deferred miss.
+	 *
+	 * @param int      $retry_count      Retry count carried by the deferred job being executed.
+	 * @param int|null $expected_requeue Retry count of the re-queued job, or null when the handler gives up.
+	 * @dataProvider provide_adaptive_pricing_order_lookup_retry_counts
+	 */
+	public function test_deferred_adaptive_pricing_session_without_order_retries_are_bounded( int $retry_count, ?int $expected_requeue ): void {
+		$checkout_session_id = 'cs_test_ap_retry_' . $retry_count;
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_ap_retry',
+					'metadata'       => (object) [
+						'checkout_type' => WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE,
+					],
+				],
+			],
+		];
+
+		$start          = time();
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+
+		if ( null === $expected_requeue ) {
+			$mock_scheduler->expects( $this->never() )->method( 'schedule_job' );
+		} else {
+			$mock_scheduler->expects( $this->once() )
+				->method( 'schedule_job' )
+				->with(
+					$this->callback(
+						function ( $timestamp ) use ( $start ) {
+							$this->assertIsInt( $timestamp );
+							$this->assertGreaterThanOrEqual( $start + 2 * MINUTE_IN_SECONDS, $timestamp );
+
+							return true;
+						}
+					),
+					'wc_stripe_deferred_webhook',
+					$this->callback(
+						function ( $args ) use ( $checkout_session_id, $expected_requeue ) {
+							return 'checkout.session.completed' === ( $args['type'] ?? '' )
+								&& ( $args['data']['session_id'] ?? '' ) === $checkout_session_id
+								&& ( $args['data']['retry_count'] ?? null ) === $expected_requeue;
+						}
+					)
+				);
+		}
+
+		$handler = new WC_Stripe_Webhook_Handler();
+		$prop    = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		$fired    = 0;
+		$listener = function () use ( &$fired ) {
+			++$fired;
+		};
+		add_action( 'wc_stripe_webhook_received', $listener );
+
+		try {
+			$handler->process_deferred_webhook(
+				'checkout.session.completed',
+				[
+					'session_id'  => $checkout_session_id,
+					'retry_count' => $retry_count,
+				],
+				$notification
+			);
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $listener );
+		}
+
+		if ( null !== $expected_requeue ) {
+			$this->assertSame( 0, $fired, 'wc_stripe_webhook_received must not fire while the event is re-queued awaiting its order.' );
+		}
+	}
+
+	/**
+	 * @return array<string, array{0: int, 1: int|null}>
+	 */
+	public function provide_adaptive_pricing_order_lookup_retry_counts(): array {
+		return [
+			'first deferred run re-queues'   => [ 0, 1 ],
+			'last allowed retry re-queues'   => [ 2, 3 ],
+			'max retries reached — gives up' => [ 3, null ],
+		];
+	}
+
+	/**
 	 * Deferred checkout session failure events should run handle_checkout_session_failure when the job executes.
 	 *
 	 * @param string $event_type Stripe event type.
