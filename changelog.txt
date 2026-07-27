@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.9.0
+* Fix - Keep the currently loaded Stripe account details visible when an account refresh fails
 * Fix - Surface an error and block checkout when the Adaptive Pricing order total can't be synced with Stripe, instead of silently letting the buyer pay a stale amount
 * Fix - Stop attaching Level 3 data to captures and payments for non-card methods
 * Fix - Add the missing order and customer metadata to Adaptive Pricing payment intents
@@ -80,6 +81,8 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Lock the order while confirming a 3DS card payment so a concurrent webhook can't complete it twice, duplicating stock reduction, order notes, and emails
 * Fix - Store the Stripe refund ID on each WooCommerce refund record so orders with multiple partial refunds retain every refund ID
 * Dev - Make e2e tests runnable from Quality Insights Toolkit (QIT)
+* Fix - Prevent fatals during internal order check
+* Fix - Ensure that settings with checked, disabled checkboxes look disabled
 
 2026-07-14 - version 10.8.4
 * Fix - Improve Checkout Session amount integrity
