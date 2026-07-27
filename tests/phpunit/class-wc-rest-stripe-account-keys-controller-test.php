@@ -189,6 +189,8 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	}
 
 	/**
+	 * Provides key change scenarios and the payment method configuration updates they should trigger.
+	 *
 	 * @return array
 	 */
 	public function provide_changing_keys_payment_method_updates(): array {

@@ -9,11 +9,32 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Smart_Payment_Method_Defaults {
 
-	public const TRIGGER_ACCOUNT_CONNECTION      = 'account_connection';
+	/**
+	 * Trigger for defaults applied when a Stripe account is connected.
+	 *
+	 * @var string
+	 */
+	public const TRIGGER_ACCOUNT_CONNECTION = 'account_connection';
+
+	/**
+	 * Trigger for defaults applied when WooCommerce Subscriptions is activated.
+	 *
+	 * @var string
+	 */
 	public const TRIGGER_SUBSCRIPTIONS_ACTIVATED = 'subscriptions_activated';
 
+	/**
+	 * Option storing the payment methods the merchant disabled themselves, so defaults never re-enable them.
+	 *
+	 * @var string
+	 */
 	private const EXPLICITLY_DISABLED_OPTION = 'wc_stripe_smart_default_explicitly_disabled_payment_methods';
 
+	/**
+	 * Payment methods enabled by default regardless of the account country.
+	 *
+	 * @var string[]
+	 */
 	private const UNIVERSAL_PAYMENT_METHODS = [
 		WC_Stripe_Payment_Methods::CARD,
 		WC_Stripe_Payment_Methods::AFFIRM,
@@ -24,6 +45,11 @@ class WC_Stripe_Smart_Payment_Method_Defaults {
 		WC_Stripe_Payment_Methods::GOOGLE_PAY,
 	];
 
+	/**
+	 * Payment methods only defaulted on when Subscriptions is active, since they suit recurring payments.
+	 *
+	 * @var string[]
+	 */
 	private const DIRECT_DEBIT_PAYMENT_METHODS = [
 		WC_Stripe_Payment_Methods::ACH,
 		WC_Stripe_Payment_Methods::ACSS_DEBIT,
@@ -32,6 +58,11 @@ class WC_Stripe_Smart_Payment_Method_Defaults {
 		WC_Stripe_Payment_Methods::SEPA_DEBIT,
 	];
 
+	/**
+	 * Additional payment methods defaulted on per Stripe account country.
+	 *
+	 * @var array<string, string[]>
+	 */
 	private const COUNTRY_PAYMENT_METHODS = [
 		WC_Stripe_Country_Code::NETHERLANDS    => [ WC_Stripe_Payment_Methods::IDEAL ],
 		WC_Stripe_Country_Code::BELGIUM        => [ WC_Stripe_Payment_Methods::BANCONTACT ],

@@ -36,6 +36,9 @@ class WC_Stripe_Smart_Payment_Method_Defaults_Test extends WC_Mock_Stripe_API_Un
 		parent::tear_down();
 	}
 
+	/**
+	 * Verifies that universal and country-specific defaults are enabled in the payment method configuration on connection.
+	 */
 	public function test_applies_universal_and_country_defaults_to_pmc(): void {
 		$this->set_connected_test_settings( [ 'pmc_enabled' => 'yes' ] );
 		$this->set_stripe_account_data( [ 'country' => WC_Stripe_Country_Code::POLAND ] );
@@ -62,6 +65,9 @@ class WC_Stripe_Smart_Payment_Method_Defaults_Test extends WC_Mock_Stripe_API_Un
 		$this->assertSame( [], $result['methods_skipped'] );
 	}
 
+	/**
+	 * Verifies that no defaults are applied when the store already has payment method choices saved.
+	 */
 	public function test_skips_account_connection_when_payment_method_choices_already_exist(): void {
 		$this->stripe_api->expects( $this->never() )->method( 'update_payment_method_configurations' );
 
@@ -74,6 +80,9 @@ class WC_Stripe_Smart_Payment_Method_Defaults_Test extends WC_Mock_Stripe_API_Un
 		$this->assertSame( 'existing_configuration', $result['reason'] );
 	}
 
+	/**
+	 * Verifies that direct debit defaults are only included when Subscriptions is active.
+	 */
 	public function test_direct_debit_defaults_are_gated_by_subscriptions(): void {
 		$without_subscriptions = $this->smart_defaults->get_default_payment_method_ids(
 			WC_Stripe_Country_Code::UNITED_STATES,
@@ -90,6 +99,9 @@ class WC_Stripe_Smart_Payment_Method_Defaults_Test extends WC_Mock_Stripe_API_Un
 		$this->assertContains( WC_Stripe_Payment_Methods::ACH, $with_subscriptions );
 	}
 
+	/**
+	 * Verifies that defaults fall back to the gateway settings, filtered by account capabilities, when the PMC is disabled.
+	 */
 	public function test_applies_defaults_to_settings_when_pmc_is_disabled(): void {
 		$this->set_connected_live_settings( [ 'pmc_enabled' => 'no' ] );
 		$this->set_stripe_account_data(
@@ -115,6 +127,9 @@ class WC_Stripe_Smart_Payment_Method_Defaults_Test extends WC_Mock_Stripe_API_Un
 		$this->assertContains( WC_Stripe_Payment_Methods::LINK, $result['methods_skipped'] );
 	}
 
+	/**
+	 * Verifies that activating Subscriptions backfills the account country direct debit method.
+	 */
 	public function test_subscriptions_activation_backfill_enables_country_direct_debit(): void {
 		$this->set_connected_test_settings( [ 'pmc_enabled' => 'yes' ] );
 		$this->set_stripe_account_data( [ 'country' => WC_Stripe_Country_Code::UNITED_STATES ] );
@@ -133,6 +148,9 @@ class WC_Stripe_Smart_Payment_Method_Defaults_Test extends WC_Mock_Stripe_API_Un
 		$this->assertSame( [ WC_Stripe_Payment_Methods::ACH ], $result['methods_enabled'] );
 	}
 
+	/**
+	 * Verifies that the Subscriptions backfill skips methods the merchant explicitly disabled.
+	 */
 	public function test_subscriptions_activation_backfill_respects_explicitly_disabled_methods(): void {
 		$this->set_connected_test_settings( [ 'pmc_enabled' => 'yes' ] );
 		$this->set_stripe_account_data( [ 'country' => WC_Stripe_Country_Code::UNITED_STATES ] );
@@ -150,6 +168,9 @@ class WC_Stripe_Smart_Payment_Method_Defaults_Test extends WC_Mock_Stripe_API_Un
 		$this->assertSame( [ WC_Stripe_Payment_Methods::ACH ], $result['methods_skipped'] );
 	}
 
+	/**
+	 * Verifies that activating an unrelated plugin does not trigger the Subscriptions backfill.
+	 */
 	public function test_subscriptions_activation_backfill_ignores_unrelated_plugin_activation(): void {
 		add_filter( 'wc_stripe_smart_defaults_is_subscriptions_active', '__return_true' );
 		$this->stripe_api->expects( $this->never() )->method( 'get_payment_method_configurations' );
