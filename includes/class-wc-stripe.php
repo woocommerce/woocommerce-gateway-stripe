@@ -50,7 +50,7 @@ class WC_Stripe {
 	 * @param string $method The payment method slug.
 	 * @return array
 	 */
-	public static function read_method_settings_option( string $method ): array {
+	public static function get_payment_method_settings( string $method_slug ): array {
 		$settings = get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
 
 		return is_array( $settings ) ? $settings : [];
