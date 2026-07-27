@@ -802,23 +802,25 @@ export const getExcludedPaymentMethodTypesForBillingCountry = (
 			?.countriesByMethod || {};
 	const isCountryRestricted = ( countries ) =>
 		Array.isArray( countries ) && countries.length > 0;
+	// `countriesByMethod` values are uppercase ISO codes; normalize in case a
+	// caller hands us a lowercase form value.
+	const country = ( billingCountry || '' ).toUpperCase();
 
-	// The server seed bakes in country exclusions for the page-load country, so
-	// methods governed by `countriesByMethod` must be recomputed from scratch —
-	// keeping them would make the list append-only and a method hidden for the
-	// previous country could never re-surface. Amazon Pay is exempt: it renders
-	// via Express Checkout only and stays excluded regardless of country.
+	// The server exposes its country-derived exclusions separately, so the
+	// recompute subtracts exactly that portion from the seed — anything else in
+	// the seed (unsupported methods, third-party `wc_stripe_upe_params`
+	// additions) is preserved rather than dropped and re-derived.
+	const countryExcludedSeed =
+		getStripeServerData()?.countryExcludedPaymentMethodTypes || [];
 	const excluded = getExcludedPaymentMethodTypes().filter(
-		( method ) =>
-			method === PAYMENT_METHOD_AMAZON_PAY ||
-			! isCountryRestricted( countriesByMethod[ method ] )
+		( method ) => ! countryExcludedSeed.includes( method )
 	);
 
 	Object.entries( countriesByMethod ).forEach( ( [ method, countries ] ) => {
 		// Empty list = no restriction; an unknown country can't confirm a restricted method.
 		if (
 			isCountryRestricted( countries ) &&
-			! countries.includes( billingCountry )
+			! countries.includes( country )
 		) {
 			excluded.push( method );
 		}

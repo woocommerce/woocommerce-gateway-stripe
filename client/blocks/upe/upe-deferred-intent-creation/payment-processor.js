@@ -345,6 +345,9 @@ const PaymentProcessor = ( {
 	useEffect( () => {
 		if (
 			! stripeServerData?.shouldShowOptimizedCheckout ||
+			// The editor preview has no shopper country; recomputing there
+			// would exclude every country-restricted method from the preview.
+			stripeServerData?.isAdmin ||
 			! elements ||
 			typeof elements.update !== 'function'
 		) {
@@ -363,6 +366,7 @@ const PaymentProcessor = ( {
 		elements,
 		billing?.billingAddress?.country,
 		stripeServerData?.shouldShowOptimizedCheckout,
+		stripeServerData?.isAdmin,
 	] );
 
 	// After web fonts finish loading, re-compute the appearance so the PE

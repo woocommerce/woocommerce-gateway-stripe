@@ -1076,9 +1076,10 @@ export function maybeUpdateOptimizedCheckoutExclusions() {
 	) {
 		return;
 	}
-	appliedOptimizedCheckoutExclusions.set( elements, exclusionsKey );
 
 	elements.update( { excludedPaymentMethodTypes } );
+	// Recorded only after a successful update, so a throw doesn't poison the memo.
+	appliedOptimizedCheckoutExclusions.set( elements, exclusionsKey );
 }
 
 /**

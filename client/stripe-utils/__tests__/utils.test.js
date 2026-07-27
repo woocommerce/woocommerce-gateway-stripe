@@ -865,6 +865,13 @@ describe( 'showErrorCheckout', () => {
 			};
 		};
 
+		const setCountryExcludedSeed = (
+			countryExcludedPaymentMethodTypes
+		) => {
+			global.wc_stripe_upe_params.countryExcludedPaymentMethodTypes =
+				countryExcludedPaymentMethodTypes;
+		};
+
 		it( 'excludes a country-restricted method when the billing country is unsupported', () => {
 			setServerData( { ideal: [ 'NL' ] }, [ 'amazon_pay' ] );
 
@@ -893,12 +900,36 @@ describe( 'showErrorCheckout', () => {
 			// The server seeds exclusions for the page-load country (e.g. US);
 			// switching to a supported country must drop the stale exclusion.
 			setServerData( { ideal: [ 'NL' ] }, [ 'amazon_pay', 'ideal' ] );
+			setCountryExcludedSeed( [ 'ideal' ] );
 
 			const excluded =
 				getExcludedPaymentMethodTypesForBillingCountry( 'NL' );
 
 			expect( excluded ).not.toContain( 'ideal' );
 			expect( excluded ).toContain( 'amazon_pay' );
+		} );
+
+		it( 'preserves seed entries that are not country-derived, even when country-governed', () => {
+			// A third party excluded Klarna via `wc_stripe_upe_params` for a
+			// non-country reason: it is absent from the country-derived seed,
+			// so the recompute must not drop it for a supported country.
+			setServerData( { klarna: [ 'US', 'NL' ] }, [
+				'amazon_pay',
+				'klarna',
+			] );
+			setCountryExcludedSeed( [] );
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( 'NL' )
+			).toContain( 'klarna' );
+		} );
+
+		it( 'matches billing countries case-insensitively', () => {
+			setServerData( { ideal: [ 'NL' ] }, [ 'amazon_pay' ] );
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( 'nl' )
+			).not.toContain( 'ideal' );
 		} );
 
 		it( 'keeps Amazon Pay excluded even when its country list allows the billing country', () => {

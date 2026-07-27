@@ -5557,6 +5557,23 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * In wp-admin (block editor preview) no shopper country exists and the
+	 * preview has no recompute path, so no country exclusions may be seeded.
+	 *
+	 * @return void
+	 */
+	public function test_get_country_excluded_payment_method_types_skips_admin() {
+		set_current_screen( 'edit-post' );
+
+		try {
+			$gateway = new WC_Stripe_UPE_Payment_Gateway();
+			$this->assertSame( [], $gateway->get_country_excluded_payment_method_types() );
+		} finally {
+			set_current_screen( 'front' );
+		}
+	}
+
+	/**
 	 * Methods must be excluded when their get_available_billing_countries() list —
 	 * including domestic-only and Klarna narrowing — omits the billing country.
 	 *
