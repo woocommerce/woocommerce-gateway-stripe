@@ -52,7 +52,11 @@ class WC_Stripe_Helper {
 	 * @return array $settings The Stripe settings.
 	 */
 	public static function get_stripe_settings( $method = null ) {
-		return null === $method ? WC_Stripe::get_instance()->get_settings() : WC_Stripe::read_method_settings_option( $method );
+		if ( null === $method ) {
+			return WC_Stripe::get_instance()->get_settings();
+		}
+		
+		return WC_Stripe::read_method_settings_option( $method );
 	}
 
 	/**
