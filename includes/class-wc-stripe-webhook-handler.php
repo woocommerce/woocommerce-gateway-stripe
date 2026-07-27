@@ -1697,9 +1697,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				case 'payment_intent.processing':
 				case 'payment_intent.requires_action':
 				case 'payment_intent.payment_failed':
-					// Retry of an immediate-mode event that hit the payment lock:
-					// re-enter the immediate handler, which re-runs its own guards
-					// and re-queues again while the lock is held.
+					/**
+					 * Retry of an immediate-mode event that hit the payment lock:
+					 * re-enter the immediate handler, which re-runs its own guards
+					 * and re-queues again while the lock is held.
+					 *
+					 * @var stdClass $notification
+					 */
 					$this->process_payment_intent( $notification );
 					return;
 				default:
@@ -1901,7 +1905,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		WC_Stripe_Logger::info( "Marking order {$order->get_id()} as pre-ordered via webhook settlement." );
-		$gateway->mark_order_as_pre_ordered( $order->get_id() );
+		$gateway->mark_order_as_pre_ordered( $order );
 
 		return true;
 	}

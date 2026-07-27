@@ -775,7 +775,10 @@ class WC_Stripe_Intent_Controller {
 					// loaded before the lock, so a concurrent request that fully
 					// settled and unlocked in between is invisible to it. Re-check
 					// against a fresh read now that this request holds the lock.
-					$order           = wc_get_order( $order_id );
+					$fresh_order = wc_get_order( $order_id );
+					if ( $fresh_order instanceof WC_Order ) {
+						$order = $fresh_order;
+					}
 					$settled_at_lock = $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ] )
 						|| $order_helper->get_stripe_upe_redirect_processed( $order );
 
