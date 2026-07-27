@@ -16,7 +16,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function test_get_settings_returns_stored_option(): void {
 		update_option( WC_Stripe::SETTINGS_OPTION_NAME, [ 'enabled' => 'yes' ] );
 
-		$this->assertSame( 'yes', WC_Stripe::get_instance()->get_settings()['enabled'] );
+		$this->assertSame( [ 'enabled' => 'yes' ], WC_Stripe::get_instance()->get_settings() );
 	}
 
 	/**
