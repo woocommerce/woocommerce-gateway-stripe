@@ -16,7 +16,13 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function test_get_settings_returns_stored_option(): void {
 		update_option( WC_Stripe::SETTINGS_OPTION_NAME, [ 'enabled' => 'yes' ] );
 
-		$this->assertSame( [ 'enabled' => 'yes' ], WC_Stripe::get_instance()->get_settings() );
+		// Compare against the stored option rather than the literal written
+		// above: the pre_update_option filter merges defaults into the write.
+		$this->assertSame(
+			get_option( WC_Stripe::SETTINGS_OPTION_NAME ),
+			WC_Stripe::get_instance()->get_settings()
+		);
+		$this->assertSame( 'yes', WC_Stripe::get_instance()->get_settings()['enabled'] );
 	}
 
 	/**
@@ -64,16 +70,16 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * The static read_method_settings_option() reads a per-method option and
+	 * The static get_payment_method_settings() reads a per-method option and
 	 * normalizes non-array values.
 	 *
 	 * @return void
 	 */
-	public function test_read_method_settings_option_reads_raw_option(): void {
+	public function test_get_payment_method_settings_reads_raw_option(): void {
 		update_option( 'woocommerce_stripe_boleto_settings', [ 'foo' => 'bar' ] );
 
-		$this->assertSame( 'bar', WC_Stripe::read_method_settings_option( 'boleto' )['foo'] );
-		$this->assertSame( [], WC_Stripe::read_method_settings_option( 'nonexistent_method' ) );
+		$this->assertSame( 'bar', WC_Stripe::get_payment_method_settings( 'boleto' )['foo'] );
+		$this->assertSame( [], WC_Stripe::get_payment_method_settings( 'nonexistent_method' ) );
 	}
 
 	/**

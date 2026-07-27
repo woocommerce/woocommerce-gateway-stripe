@@ -55,8 +55,8 @@ class WC_Stripe_Helper {
 		if ( null === $method ) {
 			return WC_Stripe::get_instance()->get_settings();
 		}
-		
-		return WC_Stripe::read_method_settings_option( $method );
+
+		return WC_Stripe::get_payment_method_settings( $method );
 	}
 
 	/**

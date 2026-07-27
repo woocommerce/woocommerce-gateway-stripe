@@ -47,11 +47,11 @@ class WC_Stripe {
 	 *
 	 * @since 10.9.0
 	 *
-	 * @param string $method The payment method slug.
+	 * @param string $method_slug The payment method slug.
 	 * @return array
 	 */
 	public static function get_payment_method_settings( string $method_slug ): array {
-		$settings = get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
+		$settings = get_option( 'woocommerce_stripe_' . $method_slug . '_settings', [] );
 
 		return is_array( $settings ) ? $settings : [];
 	}
