@@ -15,7 +15,11 @@ We use [Playwright](https://playwright.dev/) as our test runner.
   - [Guide for writing e2e tests](#guide-for-writing-e2e-tests)
     - [Creating the test structure](#creating-the-test-structure)
     - [Writing the test](#writing-the-test)
-  
+  - [Running E2E Tests via QIT](#running-e2e-tests-via-qit)
+    - [Pre-requisites for QIT](#pre-requisites-for-qit)
+    - [Environment Setup for QIT](#environment-setup-for-qit)
+    - [Running QIT tests](#running-qit-tests)
+
 ## Running E2E Tests
 
 ### Pre-requisites
@@ -116,3 +120,33 @@ Make sure to follow the established naming conventions for the test files and di
 The test should be self-explanatory and should be easily understood by anyone who reads it.
 
 Make sure to follow best practices for writing e2e tests, such as using descriptive and meaningful test names, and keeping the tests as independent as possible to avoid flaky tests.
+
+## Running E2E Tests via QIT
+
+You can also run the e2e tests using QIT (the Quality Insights Toolkit).
+
+### Pre-requisites for QIT
+
+- Node.js ([Installation instructions](https://nodejs.org/en/download/))
+- Docker
+- The QIT CLI ([Installation instructions](https://qit.woo.com/docs/getting-started/#installation))
+- Test keys for a Stripe account
+- For Becs Direct Debit tests, you also need test keys for a Stripe account based in Australia (AU)
+- For BLIK tests, you also need test keys for a Stripe account based in Poland (PL)
+
+### Environment Setup for QIT
+
+- Copy the file `/tests/e2e/qit/qit.env.example` to `/tests/e2e/qit/qit.env`.
+- Edit the variables in the `qit.env` file and replace the values with your Stripe test keys.
+
+If you want to run the Becs Direct Debit or BLIKS e2e tests, you need to have Stripe test keys for an Australian account (for Becs) or a Polish account (for BLIK). In these cases, you need to copy `/tests/e2e/qit/qit.au.env.example` to `/tests/e2e/qit/qit.au.env` for Becs or `/tests/e2e/qit/qit.pl.env.example` to `/tests/e2e/qit/qit.pl.env` for BLIK, and then replace the key values with your test keys.
+
+### Running QIT tests
+
+`npm run test:e2e:qit`
+
+You can also run the tests directly via this more verbose command:
+
+`qit run:e2e --config=qit.json --profile=main --test-package=./tests/e2e --env_file=./tests/e2e/qit/qit.env`
+
+At this time, the main e2e test suites are run, but the Becs and BLIK tests are **not run**.

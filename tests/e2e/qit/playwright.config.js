@@ -1,55 +1,51 @@
 'use strict';
 
-/* jshint node: true */
-
 import { devices } from '@playwright/test';
-import dotenv from 'dotenv';
 
-dotenv.config( {
-	path: `${ process.env.E2E_ROOT }/config/local.env`,
-} );
+const { QIT_SITE_URL, BASE_URL, CI, E2E_WORKERS, E2E_MAX_FAILURES, TIMEOUT } =
+	process.env;
 
-const { BASE_URL, CI, DOCKER, E2E_MAX_FAILURES, TIMEOUT } = process.env;
+// Point the `config` npm module at our test-data directory.
+process.env.NODE_CONFIG_DIR = new URL(
+	'../test-data',
+	import.meta.url
+).pathname;
 
 const config = {
-	globalSetup: DOCKER ? './global-setup-docker.js' : './global-setup.js',
+	globalSetup: './global-setup.js',
 	globalTeardown: './global-teardown.js',
 
 	testDir: '../tests',
 
-	// Maximum time one test can run for
 	// Increased from 90s to 120s to reduce flakiness with Stripe iframe/modal flow.
 	timeout: TIMEOUT ? Number( TIMEOUT ) : 120 * 1000,
 
 	expect: {
-		// Maximum time expect() should wait for the condition to be met
-		// For example in `await expect(locator).toHaveText();`
 		// Increased from 20s to 30s to reduce flakiness with Stripe iframe/modal interactions.
 		timeout: 30 * 1000,
 	},
 
-	// Folder for test artifacts such as screenshots, videos, traces, etc
-	outputDir: '../test-results/output',
+	outputDir: '../results/output',
 
 	/* Retry on CI only */
 	retries: CI ? 3 : 0,
 
-	workers: 5,
+	workers: E2E_WORKERS ? Number( E2E_WORKERS ) : 5,
 
 	// Reporter to use. See https://playwright.dev/docs/test-reporters
 	reporter: [
 		[ CI ? 'github' : 'list' ],
 		[
-			'html',
+			'playwright-ctrf-json-reporter',
 			{
-				outputFolder: '../test-results/report-html',
-				open: CI ? 'never' : 'on-failure',
+				outputDir: './results',
+				outputFile: 'ctrf.json',
 			},
 		],
 		[
 			'allure-playwright',
 			{
-				resultsDir: 'tests/e2e/test-results/report-allure/',
+				outputFolder: './results/allure',
 			},
 		],
 	],
@@ -57,17 +53,14 @@ const config = {
 	maxFailures: E2E_MAX_FAILURES ? Number( E2E_MAX_FAILURES ) : 0,
 
 	use: {
-		baseURL: BASE_URL,
+		baseURL: QIT_SITE_URL || BASE_URL,
 
-		stateDir: 'tests/e2e/test-results/storage/',
+		stateDir: './results/storage/',
 
-		// Capture screenshot after each test failure
 		screenshot: 'only-on-failure',
 
-		// Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer
 		trace: 'retain-on-failure',
 
-		// Record video only when retrying a test for the first time
 		video: 'on-first-retry',
 
 		viewport: { width: 1280, height: 720 },
@@ -87,7 +80,7 @@ const config = {
 			testMatch: '**/*.spec.js',
 			testIgnore: [
 				'**/acss.spec.js',
-				'**/*optimized-checkout.spec.js',
+				'**/optimized-checkout.spec.js',
 				'**/blik.spec.js',
 				'**/becs.spec.js',
 				'**/isk.spec.js',
@@ -131,7 +124,7 @@ const config = {
 		},
 		{
 			name: 'optimized-checkout',
-			testMatch: '**/*optimized-checkout.spec.js',
+			testMatch: '**/optimized-checkout.spec.js',
 			dependencies: [ 'oc-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},

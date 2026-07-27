@@ -23,7 +23,8 @@
         "wp-cli/wp-cli-bundle": "^2.12",
         "yoast/phpunit-polyfills": "^2.0",
         "brianium/paratest": "^6.0",
-        "nikic/php-parser": "^5.7"
+        "nikic/php-parser": "^5.7",
+        "woocommerce/qit-cli": "^1.1"
     },
     "autoload": {
       "classmap": [

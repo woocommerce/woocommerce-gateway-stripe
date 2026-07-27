@@ -34,6 +34,13 @@ tests/e2e/report
 tests/e2e/test-results
 tests/e2e/e2e-setup.log
 
+# QIT E2E test results
+tests/e2e/results/*
+!tests/e2e/results/.gitkeep
+
+# QIT E2E dependencies
+tests/e2e/node_modules/
+
 # Volumes mounted by Docker containers
 docker/bin/jt
 docker/data
