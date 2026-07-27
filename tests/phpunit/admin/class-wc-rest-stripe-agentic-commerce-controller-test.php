@@ -176,6 +176,60 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Entries recorded under the other mode describe a different Stripe
+	 * environment's catalog and must be hidden from status and history;
+	 * legacy entries with no recorded mode stay visible.
+	 */
+	public function test_get_status_filters_out_other_mode_entries(): void {
+		$current_mode = WC_Stripe_Agentic_Commerce_Integration::get_current_mode();
+		$other_mode   = 'test' === $current_mode ? 'live' : 'test';
+
+		$current_entry = [
+			'status'        => 'succeeded',
+			'timestamp'     => 2000,
+			'products'      => 1,
+			'import_set_id' => 'impset_current',
+			'file_id'       => 'file_current',
+			'error'         => '',
+			'mode'          => $current_mode,
+		];
+		$other_entry   = array_merge(
+			$current_entry,
+			[
+				'import_set_id' => 'impset_other',
+				'timestamp'     => 3000,
+				'mode'          => $other_mode,
+			]
+		);
+		$legacy_entry  = array_diff_key(
+			array_merge(
+				$current_entry,
+				[
+					'import_set_id' => 'impset_legacy',
+					'timestamp'     => 1000,
+				]
+			),
+			[ 'mode' => '' ]
+		);
+
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [ $legacy_entry, $current_entry, $other_entry ] );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, $other_entry );
+
+		$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$data = $response->get_data();
+
+		// The other-mode snapshot must not masquerade as the current mode's state.
+		$this->assertNull( $data['last_sync'] );
+
+		$returned_ids = array_column( $data['history'], 'import_set_id' );
+		$this->assertSame( [ 'impset_current', 'impset_legacy' ], $returned_ids );
+	}
+
+	/**
 	 * GET returns history newest-first, capped at the 5 most recent.
 	 */
 	public function test_get_status_returns_history_newest_first_capped_at_5(): void {

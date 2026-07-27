@@ -195,12 +195,38 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		// exported product that becomes excluded would only drop out of Stripe's
 		// catalog on the next scheduled full sync.
 		add_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $this, 'schedule_full_resync_now' ] );
+		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_resync_after_mode_switch' ], 10, 2 );
 
 		// WC 10.8+ requires `created_via` to be in an allowlist for `payment_complete()` to run.
 		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $this, 'allow_agentic_payment_complete' ] );
 
 		$inventory_tracker = new WC_Stripe_Agentic_Commerce_Inventory_Tracker();
 		$inventory_tracker->register_hooks();
+	}
+
+	/**
+	 * Resync the catalog when the test/live mode toggles.
+	 *
+	 * The new mode's Stripe environment has its own catalog: the dedup record
+	 * belongs to the previous mode, and without a fresh upload the newly
+	 * active environment would stay empty until the feed content changes.
+	 *
+	 * @since 10.9.0
+	 * @param mixed $old_value Previous settings option value.
+	 * @param mixed $value     New settings option value.
+	 * @return void
+	 */
+	public function maybe_resync_after_mode_switch( $old_value, $value ): void {
+		$mode_of = function ( $settings ) {
+			return is_array( $settings ) && 'yes' === ( $settings['testmode'] ?? 'no' ) ? 'test' : 'live';
+		};
+
+		if ( $mode_of( $old_value ) === $mode_of( $value ) || ! self::is_merchant_enabled() ) {
+			return;
+		}
+
+		delete_option( self::LAST_UPLOAD_OPTION );
+		$this->schedule_full_resync_now();
 	}
 
 	/**
@@ -777,6 +803,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			'import_set_id'    => $result['import_set_id'] ?? '',
 			'error'            => $result['error'] ?? '',
 			'skipped_products' => isset( $result['skipped_products'] ) ? max( 0, (int) $result['skipped_products'] ) : 0,
+			'mode'             => self::get_current_mode(),
 		];
 
 		$history[] = $entry;
@@ -994,6 +1021,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return false;
 		}
 
+		// A record from the other mode (or a legacy record with no mode) says
+		// nothing about the current mode's environment — its catalog may have
+		// never received this feed, so an identical hash must still upload.
+		if ( ( $last['mode'] ?? '' ) !== self::get_current_mode() ) {
+			return false;
+		}
+
 		if ( ! isset( $last['uploaded_at'] ) || ! is_numeric( $last['uploaded_at'] ) ) {
 			return false;
 		}
@@ -1032,9 +1066,23 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				'uploaded_at'   => time(),
 				'file_id'       => is_string( $result['file_id'] ?? null ) ? $result['file_id'] : '',
 				'import_set_id' => is_string( $result['import_set_id'] ?? null ) ? $result['import_set_id'] : '',
+				'mode'          => self::get_current_mode(),
 			],
 			false
 		);
+	}
+
+	/**
+	 * Returns the Stripe mode the sync flow is currently operating in.
+	 *
+	 * Test and live are separate Stripe environments with separate catalogs,
+	 * so any persisted sync state must be attributable to one of them.
+	 *
+	 * @since 10.9.0
+	 * @return string Either 'test' or 'live'.
+	 */
+	public static function get_current_mode(): string {
+		return WC_Stripe_Mode::is_test() ? 'test' : 'live';
 	}
 
 	/**

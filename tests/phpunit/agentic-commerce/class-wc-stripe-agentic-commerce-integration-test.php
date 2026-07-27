@@ -692,17 +692,27 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			'hash'        => 'abc123',
 			'uploaded_at' => time(),
 			'file_id'     => 'file_test',
+			'mode'        => \WC_Stripe_Agentic_Commerce_Integration::get_current_mode(),
 		];
+
+		$other_mode_record         = $fresh_record;
+		$other_mode_record['mode'] = 'test' === $fresh_record['mode'] ? 'live' : 'test';
+
+		$legacy_record = $fresh_record;
+		unset( $legacy_record['mode'] );
 
 		return [
 			'no cached record falls through'              => [ null, 'abc123', true, false ],
 			'fresh hash match short-circuits'             => [ $fresh_record, 'abc123', true, true ],
+			'other-mode record forces fresh upload'       => [ $other_mode_record, 'abc123', true, false ],
+			'legacy record without mode forces upload'    => [ $legacy_record, 'abc123', true, false ],
 			'hash mismatch falls through'                 => [ $fresh_record, 'different_hash', true, false ],
 			'expired record forces fresh upload'          => [
 				[
 					'hash'        => 'abc123',
 					'uploaded_at' => time() - ( 2 * WEEK_IN_SECONDS ),
 					'file_id'     => 'file_test',
+					'mode'        => \WC_Stripe_Agentic_Commerce_Integration::get_current_mode(),
 				],
 				'abc123',
 				true,
@@ -714,6 +724,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 				[
 					'hash'    => 'abc123',
 					'file_id' => 'file_test',
+					'mode'    => \WC_Stripe_Agentic_Commerce_Integration::get_current_mode(),
 				],
 				'abc123',
 				true,
@@ -724,6 +735,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 					'hash'        => 'abc123',
 					'uploaded_at' => 'not-a-timestamp',
 					'file_id'     => 'file_test',
+					'mode'        => \WC_Stripe_Agentic_Commerce_Integration::get_current_mode(),
 				],
 				'abc123',
 				true,
@@ -734,6 +746,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 					'hash'        => 'abc123',
 					'uploaded_at' => 0,
 					'file_id'     => 'file_test',
+					'mode'        => \WC_Stripe_Agentic_Commerce_Integration::get_current_mode(),
 				],
 				'abc123',
 				true,
@@ -769,6 +782,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$this->assertSame( 'abc123', $record['hash'] );
 		$this->assertSame( 'file_123', $record['file_id'] );
 		$this->assertSame( 'imp_456', $record['import_set_id'] );
+		$this->assertSame( \WC_Stripe_Agentic_Commerce_Integration::get_current_mode(), $record['mode'] );
 		$this->assertIsInt( $record['uploaded_at'] );
 		$this->assertLessThanOrEqual( time(), $record['uploaded_at'] );
 
@@ -807,8 +821,107 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'impset_xyz', $history[0]['import_set_id'] );
 		$this->assertSame( 3, $history[0]['skipped_products'] );
 		$this->assertArrayHasKey( 'timestamp', $history[0] );
+		$this->assertSame( \WC_Stripe_Agentic_Commerce_Integration::get_current_mode(), $history[0]['mode'] );
 
 		$this->assertEquals( $history[0], $last_sync );
+	}
+
+	/**
+	 * A test↔live switch invalidates the dedup record and queues an immediate
+	 * resync, so the newly active mode's environment receives the feed even
+	 * when its content hash is unchanged.
+	 *
+	 * @return void
+	 */
+	public function test_mode_switch_clears_dedup_and_schedules_resync() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		as_unschedule_all_actions( $this->immediate_sync_action, [], 'wc-stripe' );
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+		update_option( $this->last_upload_option, [ 'hash' => 'abc' ], false );
+
+		try {
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+			$integration->maybe_resync_after_mode_switch(
+				[ 'testmode' => 'yes' ],
+				[ 'testmode' => 'no' ]
+			);
+
+			$this->assertFalse( get_option( $this->last_upload_option ) );
+			$this->assertNotFalse(
+				as_has_scheduled_action( $this->immediate_sync_action )
+			);
+		} finally {
+			as_unschedule_all_actions( $this->immediate_sync_action, [], 'wc-stripe' );
+			delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+		}
+	}
+
+	/**
+	 * No dedup invalidation or resync when the mode did not change, or when
+	 * the merchant has not enabled the integration.
+	 *
+	 * @dataProvider provide_mode_switch_noop_scenarios
+	 *
+	 * @param array  $old_value Previous settings option value.
+	 * @param array  $new_value New settings option value.
+	 * @param string $enabled   ENABLED_OPTION value to seed.
+	 * @return void
+	 */
+	public function test_mode_switch_noops( array $old_value, array $new_value, string $enabled ) {
+		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		as_unschedule_all_actions( $this->immediate_sync_action, [], 'wc-stripe' );
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, $enabled );
+		update_option( $this->last_upload_option, [ 'hash' => 'abc' ], false );
+
+		try {
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+			$integration->maybe_resync_after_mode_switch( $old_value, $new_value );
+
+			$this->assertSame( [ 'hash' => 'abc' ], get_option( $this->last_upload_option ) );
+			$this->assertFalse(
+				as_has_scheduled_action( $this->immediate_sync_action )
+			);
+		} finally {
+			as_unschedule_all_actions( $this->immediate_sync_action, [], 'wc-stripe' );
+			delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+		}
+	}
+
+	/**
+	 * Provider for `test_mode_switch_noops`.
+	 *
+	 * @return array
+	 */
+	public function provide_mode_switch_noop_scenarios(): array {
+		return [
+			'mode unchanged'               => [
+				[ 'testmode' => 'yes' ],
+				[ 'testmode' => 'yes' ],
+				'yes',
+			],
+			'mode changed but not enabled' => [
+				[ 'testmode' => 'yes' ],
+				[ 'testmode' => 'no' ],
+				'no',
+			],
+			'non-mode setting change only' => [
+				[
+					'testmode' => 'no',
+					'capture'  => 'yes',
+				],
+				[
+					'testmode' => 'no',
+					'capture'  => 'no',
+				],
+				'yes',
+			],
+		];
 	}
 
 	/**

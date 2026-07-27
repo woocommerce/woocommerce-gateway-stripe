@@ -177,6 +177,13 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		$last_sync   = WC_Stripe_Agentic_Commerce_Integration::get_last_sync();
 		$history_raw = WC_Stripe_Agentic_Commerce_Integration::get_sync_history();
 
+		// Syncs from the other mode describe a different Stripe environment's
+		// catalog; showing them here would report the wrong catalog as synced.
+		if ( ! $this->is_entry_for_current_mode( $last_sync ) ) {
+			$last_sync = [];
+		}
+		$history_raw = array_values( array_filter( $history_raw, [ $this, 'is_entry_for_current_mode' ] ) );
+
 		// Return the most recent history entries, newest first.
 		$history = array_map(
 			[ $this, 'format_entry' ],
@@ -393,6 +400,12 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				continue;
 			}
 
+			// An ImportSet from the other mode can't be retrieved with the
+			// current mode's key (Stripe returns a 404).
+			if ( ! $this->is_entry_for_current_mode( $entry ) ) {
+				continue;
+			}
+
 			$import_set_id = $entry['import_set_id'] ?? '';
 			if ( '' === $import_set_id ) {
 				continue;
@@ -454,6 +467,22 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			'file_id'       => $entry['file_id'] ?? null,
 			'error'         => $entry['error'] ?? null,
 		];
+	}
+
+	/**
+	 * Whether a persisted sync entry belongs to the currently active mode.
+	 *
+	 * Entries with no recorded mode predate mode tracking and are kept, since
+	 * their mode can no longer be determined.
+	 *
+	 * @since 10.9.0
+	 * @param array $entry Raw entry from the options table.
+	 * @return bool
+	 */
+	private function is_entry_for_current_mode( array $entry ): bool {
+		$mode = $entry['mode'] ?? '';
+
+		return '' === $mode || WC_Stripe_Agentic_Commerce_Integration::get_current_mode() === $mode;
 	}
 
 	/**
