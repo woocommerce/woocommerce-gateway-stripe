@@ -177,7 +177,6 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-smart-payment-method-defaults.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-element.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-helper.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php';

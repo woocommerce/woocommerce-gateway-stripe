@@ -42,6 +42,7 @@
         "includes/class-wc-stripe-exception.php",
         "includes/class-wc-stripe-hook-manager.php",
         "includes/class-wc-stripe-payment-cancelled-exception.php",
+        "includes/class-wc-stripe-smart-payment-method-defaults.php",
         "includes/class-wc-stripe-upe-compatibility.php",
         "includes/class-wc-stripe-update-manager.php",
         "includes/compat/class-wc-stripe-email-failed-authentication.php",
