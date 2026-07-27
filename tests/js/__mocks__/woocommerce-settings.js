@@ -3,7 +3,10 @@
 // which serves data from the separate `wcSettings` global printed by PHP.
 // This mock does the same — tests inject data via `global.wcSettings`.
 // Keep it faithful to the real implementation in the WooCommerce monorepo:
-// plugins/woocommerce/client/blocks/assets/js/settings/shared/
+// https://github.com/woocommerce/woocommerce/blob/65b5eb18192a509a46a9169d41c66516ea0cd4c4/plugins/woocommerce/client/blocks/assets/js/settings/shared/utils.ts
+//   (`getSetting`, `getAdminLink`)
+// https://github.com/woocommerce/woocommerce/blob/65b5eb18192a509a46a9169d41c66516ea0cd4c4/plugins/woocommerce/client/blocks/assets/js/settings/shared/default-constants.ts
+//   (`ADMIN_URL`)
 const getSetting = (
 	name,
 	fallback = false,
