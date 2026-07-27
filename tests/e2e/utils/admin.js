@@ -192,6 +192,14 @@ export const initializeAdaptivePricing = async (
 				'.components-snackbar__content:has-text("Settings saved.")'
 			)
 		).toBeVisible();
+
+		// A save that silently didn't take would fail every dependent test
+		// deep in checkout; assert the resulting state here instead.
+		if ( shouldEnable ) {
+			await expect( checkbox ).toBeChecked();
+		} else {
+			await expect( checkbox ).not.toBeChecked();
+		}
 	}
 
 	await adminContext.close();
