@@ -1093,9 +1093,8 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A concurrent request that fully settles and unlocks between the settled-check and the
-	 * lock acquisition is invisible to the initial snapshot; the post-lock re-check against a
-	 * fresh order read must catch it and skip processing (double-checked locking).
+	 * The post-lock re-check must catch a concurrent request that settled the order
+	 * between the initial settled-check and the lock acquisition, and skip processing.
 	 */
 	public function test_update_order_status_ajax_rechecks_settlement_after_locking() {
 		Ajax_Test_Helper::init_hooks();
@@ -1107,8 +1106,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$order->save();
 		$order_id = $order->get_id();
 
-		// The lock acquisition is the seam between the two checks: settle the order from
-		// "another request" exactly there, after the initial snapshot was taken.
+		// Settle the order from "another request" at the seam between the two checks.
 		$order_helper = $this->createPartialMock(
 			WC_Stripe_Order_Helper::class,
 			[ 'lock_order_payment' ]

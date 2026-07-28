@@ -239,9 +239,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Store the Stripe refund ID on each WooCommerce refund record so orders with multiple partial refunds retain every refund ID
 * Fix - Open the Stripe Dashboard links in subscription renewal failure order notes in a new tab
 * Fix - Prevent fatals during internal order check
-* Fix - Re-queue Stripe payment_intent webhooks that arrive while another request holds the order payment lock, instead of dropping them
-* Fix - Mark charged-upfront pre-orders as pre-ordered when the webhook settles the payment instead of the checkout confirmation
-* Fix - Re-check order settlement state after acquiring the payment lock in the order status AJAX handler, closing a double-processing window
+* Fix - Prevent dropped webhooks, double processing, and skipped pre-order handling when requests race for the order payment lock
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -771,10 +771,8 @@ class WC_Stripe_Intent_Controller {
 					// Bail without unlocking — releasing the winner's lock would defeat the mutual exclusion.
 					WC_Stripe_Logger::info( "Skipping update_order_status_ajax for order $order_id; order payment is already locked." );
 				} else {
-					// Double-checked locking: the settled-check above read a snapshot
-					// loaded before the lock, so a concurrent request that fully
-					// settled and unlocked in between is invisible to it. Re-check
-					// against a fresh read now that this request holds the lock.
+					// The settled-check above ran before the lock; re-check against a
+					// fresh read in case a concurrent request settled in between.
 					$fresh_order = wc_get_order( $order_id );
 					if ( $fresh_order instanceof WC_Order ) {
 						$order = $fresh_order;

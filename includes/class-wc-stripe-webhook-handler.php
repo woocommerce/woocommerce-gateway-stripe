@@ -1347,10 +1347,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
-		// Re-queue instead of dropping: the endpoint has already acked 200, so
-		// Stripe never retries a dropped event. The retry is bounded by the
-		// lock's 5-minute TTL and by the allowed-status guard above once the
-		// lock holder settles the order.
+		// Re-queue instead of dropping: the endpoint already acked 200, so Stripe
+		// never retries. Bounded by the lock TTL and the status guard above.
 		if ( $order_helper->lock_order_payment( $order ) ) {
 			$this->defer_webhook_processing(
 				$notification,
@@ -1698,9 +1696,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				case 'payment_intent.requires_action':
 				case 'payment_intent.payment_failed':
 					/**
-					 * Retry of an immediate-mode event that hit the payment lock:
-					 * re-enter the immediate handler, which re-runs its own guards
-					 * and re-queues again while the lock is held.
+					 * Retry of an immediate-mode event that hit the payment lock.
 					 *
 					 * @var stdClass $notification
 					 */
@@ -1885,17 +1881,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Routes a settling order into the pre-order lifecycle instead of the
-	 * standard completion flow.
-	 *
-	 * The AJAX/redirect confirm path marks charged-upfront pre-orders itself,
-	 * but when the webhook wins the settlement race (or the shopper never
-	 * returns), this is the only settle path — and process_response() would run
-	 * the standard completion, silently breaking the pre-order lifecycle.
+	 * Routes webhook-settled charged-upfront pre-orders into the pre-order
+	 * lifecycle, which process_response() would otherwise skip.
 	 *
 	 * @param WC_Order $order The order being settled.
-	 * @return bool True when the order was handled as a pre-order and the
-	 *              standard completion flow must be skipped.
+	 * @return bool True when handled as a pre-order (skip standard completion).
 	 */
 	protected function maybe_mark_order_as_pre_ordered( $order ): bool {
 		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();

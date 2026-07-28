@@ -761,9 +761,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * An immediate-mode payment_intent event landing while another request holds the payment
-	 * lock must re-queue itself instead of being dropped: the endpoint has already acked 200,
-	 * so Stripe never retries a dropped event.
+	 * A payment_intent event landing while another request holds the payment lock
+	 * must re-queue itself instead of being dropped.
 	 */
 	public function test_immediate_payment_intent_requeues_while_order_locked() {
 		$order = WC_Helper_Order::create_order();
@@ -771,8 +770,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order->update_meta_data( '_stripe_intent_id', self::MOCK_PAYMENT_INTENT['id'] );
 		$order->save();
 
-		// No metadata/charges on the intent, so the handler resolves the order
-		// via the stored intent ID.
+		// No metadata/charges on the intent, so the order resolves via the stored intent ID.
 		$notification = (object) [
 			'type' => 'payment_intent.processing',
 			'data' => (object) [
@@ -818,8 +816,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A re-queued immediate-mode event re-enters the immediate handler from the deferred
-	 * processor, so its own guards and lock handling run again on retry.
+	 * A re-queued event re-enters the immediate handler from the deferred processor,
+	 * so its guards and lock handling run again on retry.
 	 */
 	public function test_deferred_retry_reenters_immediate_handler() {
 		$order        = WC_Helper_Order::create_order();
@@ -852,9 +850,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * When the webhook settles a charged-upfront pre-order (the AJAX confirm lost the race or
-	 * never ran), the deferred handler must route it into the pre-order lifecycle instead of
-	 * the standard completion flow.
+	 * When the webhook settles a charged-upfront pre-order, the deferred handler must
+	 * route it into the pre-order lifecycle instead of standard completion.
 	 */
 	public function test_deferred_payment_intent_succeeded_marks_pre_order() {
 		$order = WC_Helper_Order::create_order();
