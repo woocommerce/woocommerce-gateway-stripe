@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
-import { payments, api, user } from '../../../utils';
+import { payments, api, user, admin } from '../../../utils';
 
 const {
 	emptyCart,
@@ -28,52 +28,64 @@ test.beforeAll( async () => {
 	await api.create.customer( user );
 } );
 
-test( 'customer can checkout with a saved card @smoke', async ( { page } ) => {
-	await test.step( 'customer login', async () => {
-		await user.login(
-			page,
-			username,
-			config.get( 'users.customer.password' )
-		);
-	} );
+test( 'customer can checkout with a saved card @smoke', async ( {
+	page,
+	browser,
+} ) => {
+	// Disable Link so the store-level save checkbox is visible.
+	// When Link is enabled, the store checkbox is hidden and Link handles save consent.
+	await admin.togglePaymentMethod( browser, 'Link by Stripe', false );
 
-	await test.step( 'checkout and choose to save the card', async () => {
-		await emptyCart( page );
-		await setupCart( page );
-		await setupShortcodeCheckout( page );
-		await fillCreditCardDetailsShortcode(
-			page,
-			config.get( 'cards.basic' )
-		);
+	try {
+		await test.step( 'customer login', async () => {
+			await user.login(
+				page,
+				username,
+				config.get( 'users.customer.password' )
+			);
+		} );
 
-		// check box to save payment method.
-		await page.locator( '#wc-stripe-new-payment-method' ).click();
+		await test.step( 'checkout and choose to save the card', async () => {
+			await emptyCart( page );
+			await setupCart( page );
+			await setupShortcodeCheckout( page );
+			await fillCreditCardDetailsShortcode(
+				page,
+				config.get( 'cards.basic' )
+			);
 
-		await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
+			// check box to save payment method.
+			await page.locator( '#wc-stripe-new-payment-method' ).click();
 
-		await page.waitForNavigation();
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
-	} );
+			await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
 
-	await test.step( 'checkout and pay with the saved card', async () => {
-		await emptyCart( page );
-		await setupCart( page );
-		await setupShortcodeCheckout( page, null, true );
+			await page.waitForNavigation();
+			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
+				'Order received'
+			);
+		} );
 
-		// check that there are saved payment methods.
-		await expect(
-			page.locator(
-				'.woocommerce-SavedPaymentMethods-token input[id^="wc-stripe-payment-token-"]'
-			)
-		).toHaveCount( 1 );
+		await test.step( 'checkout and pay with the saved card', async () => {
+			await emptyCart( page );
+			await setupCart( page );
+			await setupShortcodeCheckout( page, null, true );
 
-		await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
+			// check that there are saved payment methods.
+			await expect(
+				page.locator(
+					'.woocommerce-SavedPaymentMethods-token input[id^="wc-stripe-payment-token-"]'
+				)
+			).toHaveCount( 1 );
 
-		await page.waitForNavigation();
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
-	} );
+			await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
+
+			await page.waitForNavigation();
+			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
+				'Order received'
+			);
+		} );
+	} finally {
+		// Re-enable Link after the test.
+		await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
+	}
 } );

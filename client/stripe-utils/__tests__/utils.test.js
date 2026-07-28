@@ -1,12 +1,14 @@
 import {
 	getFontSizeBase,
 	getDefaultValues,
-	initializeUPEAppearance,
+	getHiddenBillingFields,
 } from '../utils';
+import { initializeUPEAppearance } from '../upe-appearance';
 import { getAppearance } from '../../styles/upe';
 
 jest.mock( '../../styles/upe', () => ( {
 	getAppearance: jest.fn(),
+	getExpandedOptimizedCheckoutRules: jest.fn( ( rules ) => rules ),
 } ) );
 
 describe( 'utils', () => {
@@ -15,7 +17,7 @@ describe( 'utils', () => {
 
 		beforeEach( () => {
 			global.wc_stripe_upe_params = {
-				isOCEnabled: false,
+				shouldShowOptimizedCheckout: false,
 			};
 		} );
 
@@ -24,7 +26,7 @@ describe( 'utils', () => {
 		} );
 
 		it( 'Optimized Checkout - should increase the provided font size by 2', () => {
-			global.wc_stripe_upe_params = { isOCEnabled: true };
+			global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: true };
 
 			const fontSize = '16px';
 			const expectedFontSize = '18px';
@@ -33,7 +35,7 @@ describe( 'utils', () => {
 		} );
 
 		it( 'Optimized Checkout - should increase the provided font size by 2 (decimal value)', () => {
-			global.wc_stripe_upe_params = { isOCEnabled: true };
+			global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: true };
 
 			const fontSize = '16.5px';
 			const expectedFontSize = '18.5px';
@@ -55,7 +57,7 @@ describe( 'utils', () => {
 
 		beforeEach( () => {
 			global.wc_stripe_upe_params = {
-				isOCEnabled: false,
+				shouldShowOptimizedCheckout: false,
 			};
 
 			// Mock document.getElementById for fallback behavior
@@ -296,7 +298,7 @@ describe( 'utils', () => {
 
 				initializeUPEAppearance( 'true' );
 
-				expect( getAppearance ).toHaveBeenCalledWith( true );
+				expect( getAppearance ).toHaveBeenCalledWith( true, false );
 			} );
 
 			it( 'falls through to computed appearance when server appearance is falsy', () => {
@@ -305,7 +307,7 @@ describe( 'utils', () => {
 
 				initializeUPEAppearance( 'false' );
 
-				expect( getAppearance ).toHaveBeenCalledWith( false );
+				expect( getAppearance ).toHaveBeenCalledWith( false, false );
 			} );
 
 			it( 'does not use server blocks appearance when isBlockCheckout is false', () => {
@@ -316,7 +318,7 @@ describe( 'utils', () => {
 
 				initializeUPEAppearance( 'false' );
 
-				expect( getAppearance ).toHaveBeenCalledWith( false );
+				expect( getAppearance ).toHaveBeenCalledWith( false, false );
 			} );
 		} );
 
@@ -329,7 +331,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -337,7 +339,10 @@ describe( 'utils', () => {
 
 					const result = init( 'false' );
 
-					expect( mockGetAppearance ).toHaveBeenCalledWith( false );
+					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						false,
+						false
+					);
 					expect( result ).toEqual( { theme: 'classic' } );
 				} );
 			} );
@@ -346,7 +351,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -354,7 +359,10 @@ describe( 'utils', () => {
 
 					const result = init( 'true' );
 
-					expect( mockGetAppearance ).toHaveBeenCalledWith( true );
+					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						true,
+						false
+					);
 					expect( result ).toEqual( { theme: 'blocks' } );
 				} );
 			} );
@@ -363,7 +371,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -371,7 +379,10 @@ describe( 'utils', () => {
 
 					init();
 
-					expect( mockGetAppearance ).toHaveBeenCalledWith( false );
+					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						false,
+						false
+					);
 				} );
 			} );
 
@@ -379,7 +390,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -399,7 +410,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -417,7 +428,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -437,7 +448,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -445,7 +456,10 @@ describe( 'utils', () => {
 
 					init( true );
 
-					expect( mockGetAppearance ).toHaveBeenCalledWith( false );
+					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						false,
+						false
+					);
 				} );
 			} );
 
@@ -455,7 +469,7 @@ describe( 'utils', () => {
 					const blocksAppearance = { theme: 'blocks' };
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -479,7 +493,7 @@ describe( 'utils', () => {
 				jest.isolateModules( () => {
 					const {
 						initializeUPEAppearance: init,
-					} = require( '../utils' );
+					} = require( '../upe-appearance' );
 					const {
 						getAppearance: mockGetAppearance,
 					} = require( '../../styles/upe' );
@@ -499,6 +513,46 @@ describe( 'utils', () => {
 					expect( result ).toBe( serverAppearance );
 				} );
 			} );
+		} );
+	} );
+
+	describe( 'getHiddenBillingFields', () => {
+		it( 'should always set address line2 to "never" so Stripe never renders it', () => {
+			// Address line 2 disabled in WooCommerce.
+			expect( getHiddenBillingFields( [] ).address.line2 ).toBe(
+				'never'
+			);
+
+			// Address line 2 enabled in WooCommerce.
+			expect(
+				getHiddenBillingFields( [ 'billing_address_2' ] ).address.line2
+			).toBe( 'never' );
+		} );
+
+		it( 'should set enabled fields to "never" and disabled fields to "auto"', () => {
+			const result = getHiddenBillingFields( [
+				'billing_first_name',
+				'billing_email',
+				'billing_country',
+				'billing_address_1',
+			] );
+
+			expect( result.name ).toBe( 'never' );
+			expect( result.email ).toBe( 'never' );
+			expect( result.address.country ).toBe( 'never' );
+			expect( result.address.line1 ).toBe( 'never' );
+
+			// Not enabled, so Stripe is allowed to collect them.
+			expect( result.address.city ).toBe( 'auto' );
+			expect( result.address.state ).toBe( 'auto' );
+			expect( result.address.postalCode ).toBe( 'auto' );
+		} );
+
+		it( 'should always keep phone as "auto"', () => {
+			expect( getHiddenBillingFields( [] ).phone ).toBe( 'auto' );
+			expect( getHiddenBillingFields( [ 'billing_phone' ] ).phone ).toBe(
+				'auto'
+			);
 		} );
 	} );
 } );

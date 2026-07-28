@@ -12,20 +12,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Method {
 	use WC_Stripe_Subscriptions_Trait;
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::BANCONTACT;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::BANCONTACT;
+
+	/**
+	 * Stripe account countries where Bancontact is not supported.
+	 *
+	 * @var string[]
+	 */
+	protected const UNSUPPORTED_ACCOUNT_COUNTRIES = [
+		WC_Stripe_Country_Code::BRAZIL,
+		WC_Stripe_Country_Code::MALAYSIA,
+		WC_Stripe_Country_Code::THAILAND,
+		WC_Stripe_Country_Code::UNITED_ARAB_EMIRATES,
+	];
+
+	/**
+	 * Shopper billing countries permitted to use Bancontact.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_BILLING_COUNTRIES = [ WC_Stripe_Country_Code::BELGIUM ];
 
 	/**
 	 * Constructor for Bancontact payment method
 	 */
 	public function __construct() {
 		parent::__construct();
-		$is_sepa_tokens_for_bancontact_enabled    = $this->is_sepa_tokens_for_bancontact_enabled();
-		$this->stripe_id                          = self::STRIPE_ID;
-		$this->title                              = 'Bancontact';
-		$this->is_reusable                        = $is_sepa_tokens_for_bancontact_enabled;
-		$this->supported_currencies               = [ WC_Stripe_Currency_Code::EURO ];
-		$this->label                              = __( 'Bancontact', 'woocommerce-gateway-stripe' );
-		$this->description                        = __(
+		$is_sepa_tokens_for_bancontact_enabled = $this->is_sepa_tokens_for_bancontact_enabled();
+		$this->stripe_id                       = self::STRIPE_ID;
+		$this->title                           = 'Bancontact';
+		$this->is_reusable                     = $is_sepa_tokens_for_bancontact_enabled;
+		$this->supported_currencies            = [ WC_Stripe_Currency_Code::EURO ];
+		$this->label                           = __( 'Bancontact', 'woocommerce-gateway-stripe' );
+		$this->description                     = __(
 			'Bancontact is the most popular online payment method in Belgium, with over 15 million cards in circulation.',
 			'woocommerce-gateway-stripe'
 		);

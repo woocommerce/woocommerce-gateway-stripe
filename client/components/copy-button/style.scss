@@ -1,0 +1,43 @@
+.wc-stripe-copy-button {
+	display: inline-flex;
+	align-items: center;
+	cursor: pointer;
+	border: none;
+	background-color: transparent;
+	padding: 2px;
+	line-height: 1;
+	vertical-align: middle;
+	color: inherit;
+
+	i {
+		display: block;
+		width: 1.2em;
+		height: 1.2em;
+		mask-image: url('../../stripe-utils/icons/copy.svg?asset');
+		mask-size: contain;
+		mask-repeat: no-repeat;
+		mask-position: center;
+		background-color: currentColor;
+	}
+
+	&:hover {
+		opacity: 0.7;
+	}
+
+	&:active i {
+		transform: scale(0.9);
+	}
+
+	&:focus {
+		outline: none;
+	}
+
+	&:focus-visible {
+		outline: 2px solid currentColor;
+		outline-offset: 2px;
+	}
+
+	&.state--success i {
+		mask-image: url('../../stripe-utils/icons/check.svg?asset');
+	}
+}

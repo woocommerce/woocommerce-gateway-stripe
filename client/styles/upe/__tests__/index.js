@@ -2,6 +2,17 @@ import * as upeStyles from '..';
 
 describe( 'Getting styles for automated theming', () => {
 	const mockElement = document.createElement( 'input' );
+	const mockCssProperties = {
+		fontFamily:
+			'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
+		color: 'rgb(109, 109, 109)',
+		backgroundColor: 'rgba(0, 0, 0, 0)',
+		'-webkit-font-smoothing': 'antialiased',
+		'-moz-osx-font-smoothing': 'grayscale',
+		unsuportedProperty: 'some value',
+		outlineColor: 'rgb(150, 88, 138)',
+		outlineWidth: '1px',
+	};
 	const mockCSStyleDeclaration = {
 		length: 6,
 		0: 'color',
@@ -10,17 +21,12 @@ describe( 'Getting styles for automated theming', () => {
 		3: 'unsuportedProperty',
 		4: 'outlineColor',
 		5: 'outlineWidth',
+		...mockCssProperties,
+		// CSSOM aliases used by getComputedStyle for vendor font-smoothing.
+		WebkitFontSmoothing: mockCssProperties[ '-webkit-font-smoothing' ],
+		MozOsxFontSmoothing: mockCssProperties[ '-moz-osx-font-smoothing' ],
 		getPropertyValue: ( propertyName ) => {
-			const cssProperties = {
-				fontFamily:
-					'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
-				color: 'rgb(109, 109, 109)',
-				backgroundColor: 'rgba(0, 0, 0, 0)',
-				unsuportedProperty: 'some value',
-				outlineColor: 'rgb(150, 88, 138)',
-				outlineWidth: '1px',
-			};
-			return cssProperties[ propertyName ];
+			return mockCssProperties[ propertyName ];
 		},
 	};
 
@@ -28,7 +34,7 @@ describe( 'Getting styles for automated theming', () => {
 
 	beforeEach( () => {
 		global.wc_stripe_upe_params = {
-			isOCEnabled: false,
+			shouldShowOptimizedCheckout: false,
 		};
 	} );
 
@@ -49,6 +55,8 @@ describe( 'Getting styles for automated theming', () => {
 			'.Input'
 		);
 		expect( fieldStyles ).toEqual( {
+			'-moz-osx-font-smoothing': 'grayscale',
+			'-webkit-font-smoothing': 'antialiased',
 			backgroundColor: 'rgba(0, 0, 0, 0)',
 			color: 'rgb(109, 109, 109)',
 			fontFamily:
@@ -112,8 +120,135 @@ describe( 'Getting styles for automated theming', () => {
 		expect( fontRules ).toEqual( [] );
 	} );
 
+	it( 'getFontRulesFromPage returns font rules from fonts-api.wp.com by default', () => {
+		const mockStyleSheets = {
+			length: 1,
+			0: { href: 'https://fonts-api.wp.com/css?family=Lato' },
+		};
+		jest.spyOn( document, 'styleSheets', 'get' ).mockReturnValue(
+			mockStyleSheets
+		);
+
+		const fontRules = upeStyles.getFontRulesFromPage();
+		expect( fontRules ).toEqual( [
+			{ cssSrc: 'https://fonts-api.wp.com/css?family=Lato' },
+		] );
+	} );
+
+	it( 'getFontRulesFromPage returns font rules from fonts.bunny.net by default', () => {
+		const mockStyleSheets = {
+			length: 1,
+			0: { href: 'https://fonts.bunny.net/css?family=Inter' },
+		};
+		jest.spyOn( document, 'styleSheets', 'get' ).mockReturnValue(
+			mockStyleSheets
+		);
+
+		const fontRules = upeStyles.getFontRulesFromPage();
+		expect( fontRules ).toEqual( [
+			{ cssSrc: 'https://fonts.bunny.net/css?family=Inter' },
+		] );
+	} );
+
+	it( 'getFontRulesFromPage includes stylesheets from extra domains in permittedFontDomains', () => {
+		global.wc_stripe_upe_params = {
+			...global.wc_stripe_upe_params,
+			permittedFontDomains: [ 'custom-fonts.example.com' ],
+		};
+
+		const mockStyleSheets = {
+			length: 2,
+			0: { href: 'https://custom-fonts.example.com/style.css' },
+			1: { href: 'https://not-allowed.example.com/style.css' },
+		};
+		jest.spyOn( document, 'styleSheets', 'get' ).mockReturnValue(
+			mockStyleSheets
+		);
+
+		const fontRules = upeStyles.getFontRulesFromPage();
+		expect( fontRules ).toEqual( [
+			{ cssSrc: 'https://custom-fonts.example.com/style.css' },
+		] );
+	} );
+
+	it( 'getFontRulesFromPage includes both default and extra domains when permittedFontDomains is set', () => {
+		global.wc_stripe_upe_params = {
+			...global.wc_stripe_upe_params,
+			permittedFontDomains: [ 'custom-fonts.example.com' ],
+		};
+
+		const mockStyleSheets = {
+			length: 2,
+			0: { href: 'https://fonts.googleapis.com/css?family=Roboto' },
+			1: { href: 'https://custom-fonts.example.com/style.css' },
+		};
+		jest.spyOn( document, 'styleSheets', 'get' ).mockReturnValue(
+			mockStyleSheets
+		);
+
+		const fontRules = upeStyles.getFontRulesFromPage();
+		expect( fontRules ).toHaveLength( 2 );
+		expect( fontRules[ 0 ].cssSrc ).toContain( 'fonts.googleapis.com' );
+		expect( fontRules[ 1 ].cssSrc ).toContain( 'custom-fonts.example.com' );
+	} );
+
+	it( 'getFontRulesFromPage ignores permittedFontDomains when it is not an array', () => {
+		global.wc_stripe_upe_params = {
+			...global.wc_stripe_upe_params,
+			permittedFontDomains: 'custom-fonts.example.com',
+		};
+
+		const mockStyleSheets = {
+			length: 2,
+			0: { href: 'https://custom-fonts.example.com/style.css' },
+			1: { href: 'https://fonts.googleapis.com/css?family=Roboto' },
+		};
+		jest.spyOn( document, 'styleSheets', 'get' ).mockReturnValue(
+			mockStyleSheets
+		);
+
+		const fontRules = upeStyles.getFontRulesFromPage();
+		expect( fontRules ).toEqual( [
+			{ cssSrc: 'https://fonts.googleapis.com/css?family=Roboto' },
+		] );
+	} );
+
+	it( 'getFontRulesFromPage uses only default domains when permittedFontDomains is not set', () => {
+		global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: false };
+
+		const mockStyleSheets = {
+			length: 2,
+			0: { href: 'https://custom-fonts.example.com/style.css' },
+			1: { href: 'https://fonts.googleapis.com/css?family=Roboto' },
+		};
+		jest.spyOn( document, 'styleSheets', 'get' ).mockReturnValue(
+			mockStyleSheets
+		);
+
+		const fontRules = upeStyles.getFontRulesFromPage();
+		expect( fontRules ).toEqual( [
+			{ cssSrc: 'https://fonts.googleapis.com/css?family=Roboto' },
+		] );
+	} );
+
+	it( 'getAppearance returns floating labels for Blocks checkout', () => {
+		global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: false };
+
+		jest.spyOn( document, 'querySelector' ).mockImplementation( () => {
+			return mockElement;
+		} );
+		jest.spyOn( window, 'getComputedStyle' ).mockImplementation( () => {
+			return mockCSStyleDeclaration;
+		} );
+
+		const appearance = upeStyles.getAppearance( true );
+		expect( appearance.labels ).toBe( 'floating' );
+		expect( appearance.rules[ '.Label--floating' ] ).toBeDefined();
+		expect( appearance.rules[ '.Label--resting' ] ).toBeDefined();
+	} );
+
 	it( 'getAppearance returns the object with filtered CSS rules for UPE theming', () => {
-		global.wc_stripe_upe_params = { isOCEnabled: false };
+		global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: false };
 
 		jest.spyOn( document, 'querySelector' ).mockImplementation( () => {
 			return mockElement;
@@ -124,6 +259,7 @@ describe( 'Getting styles for automated theming', () => {
 
 		const appearance = upeStyles.getAppearance();
 		expect( appearance ).toEqual( {
+			labels: 'above',
 			theme: 'stripe',
 			variables: {
 				colorBackground: '#ffffff',
@@ -134,6 +270,8 @@ describe( 'Getting styles for automated theming', () => {
 			},
 			rules: {
 				'.Input': {
+					'-moz-osx-font-smoothing': 'grayscale',
+					'-webkit-font-smoothing': 'antialiased',
 					backgroundColor: 'rgba(0, 0, 0, 0)',
 					color: 'rgb(109, 109, 109)',
 					fontFamily:
@@ -141,6 +279,8 @@ describe( 'Getting styles for automated theming', () => {
 					outline: '1px solid rgb(150, 88, 138)',
 				},
 				'.Input--invalid': {
+					'-moz-osx-font-smoothing': 'grayscale',
+					'-webkit-font-smoothing': 'antialiased',
 					backgroundColor: 'rgba(0, 0, 0, 0)',
 					color: 'rgb(109, 109, 109)',
 					fontFamily:
@@ -148,9 +288,14 @@ describe( 'Getting styles for automated theming', () => {
 					outline: '1px solid rgb(150, 88, 138)',
 				},
 				'.Label': {
+					'-moz-osx-font-smoothing': 'grayscale',
+					'-webkit-font-smoothing': 'antialiased',
 					color: 'rgb(109, 109, 109)',
 					fontFamily:
 						'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
+				},
+				'.Label--resting': {
+					fontSize: undefined,
 				},
 				'.Tab': {
 					backgroundColor: 'rgba(0, 0, 0, 0)',
@@ -176,11 +321,15 @@ describe( 'Getting styles for automated theming', () => {
 					color: 'rgb(109, 109, 109)',
 				},
 				'.Text': {
+					'-moz-osx-font-smoothing': 'grayscale',
+					'-webkit-font-smoothing': 'antialiased',
 					color: 'rgb(109, 109, 109)',
 					fontFamily:
 						'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
 				},
 				'.Text--redirect': {
+					'-moz-osx-font-smoothing': 'grayscale',
+					'-webkit-font-smoothing': 'antialiased',
 					color: 'rgb(109, 109, 109)',
 					fontFamily:
 						'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
@@ -196,7 +345,7 @@ describe( 'Getting styles for automated theming', () => {
 					border: '1px solid var(--p-colorBackgroundDeemphasize10)',
 				},
 				'.CheckboxInput--checked': {
-					backgroundColor: 'var(--colorPrimary)	',
+					backgroundColor: 'var(--colorPrimary)',
 					borderColor: 'var(--colorPrimary)',
 				},
 			},

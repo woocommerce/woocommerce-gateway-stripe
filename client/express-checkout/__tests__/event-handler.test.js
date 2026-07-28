@@ -255,6 +255,10 @@ describe( 'Express checkout event handlers', () => {
 		let order;
 
 		beforeEach( () => {
+			global.jQuery = {
+				blockUI: jest.fn(),
+				unblockUI: jest.fn(),
+			};
 			api = {
 				expressCheckoutNormalizeAddress: jest.fn(),
 				expressCheckoutECECreateOrder: jest.fn(),
@@ -304,6 +308,25 @@ describe( 'Express checkout event handlers', () => {
 
 		afterEach( () => {
 			jest.clearAllMocks();
+			delete global.jQuery;
+		} );
+
+		test( 'should block UI immediately when payment confirmation starts, before any processing', async () => {
+			// Fail fast on submit so we can confirm blockUI was called before any async work.
+			elements.submit.mockResolvedValue( {
+				error: { message: 'Submit error' },
+			} );
+
+			await onConfirmHandler( {
+				api,
+				stripe,
+				elements,
+				completePayment,
+				abortPayment,
+				event,
+			} );
+
+			expect( global.jQuery.blockUI ).toHaveBeenCalled();
 		} );
 
 		test( 'should abort payment if elements.submit fails', async () => {

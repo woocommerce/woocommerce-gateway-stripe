@@ -10,11 +10,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.5.4
  */
 class WC_Stripe_Inbox_Notes {
-	const SUCCESS_NOTE_NAME = 'stripe-apple-pay-marketing-guide-holiday-2020';
-	const FAILURE_NOTE_NAME = 'stripe-apple-pay-domain-registration-needed';
+	public const SUCCESS_NOTE_NAME = 'stripe-apple-pay-marketing-guide-holiday-2020';
+	public const FAILURE_NOTE_NAME = 'stripe-apple-pay-domain-registration-needed';
 
-	const POST_SETUP_SUCCESS_ACTION    = 'wc_stripe_apple_pay_post_setup_success';
-	const CAMPAIGN_2020_CLEANUP_ACTION = 'wc_stripe_apple_pay_2020_cleanup';
+	public const POST_SETUP_SUCCESS_ACTION    = 'wc_stripe_apple_pay_post_setup_success';
+	public const CAMPAIGN_2020_CLEANUP_ACTION = 'wc_stripe_apple_pay_2020_cleanup';
 
 	public function __construct() {
 		add_action( self::POST_SETUP_SUCCESS_ACTION, [ self::class, 'create_marketing_note' ] );
@@ -60,9 +60,6 @@ class WC_Stripe_Inbox_Notes {
 		if ( ! self::are_inbox_notes_supported() ) {
 			return;
 		}
-
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
-		WC_Stripe_UPE_Availability_Note::init();
 
 		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
@@ -140,7 +137,7 @@ class WC_Stripe_Inbox_Notes {
 	public static function should_show_marketing_note() {
 		// Display to US merchants only.
 		$base_location = wc_get_base_location();
-		if ( ! $base_location || 'US' !== $base_location['country'] ) {
+		if ( ! $base_location || WC_Stripe_Country_Code::UNITED_STATES !== $base_location['country'] ) {
 			return false;
 		}
 

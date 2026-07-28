@@ -81,6 +81,7 @@ module.exports = {
 		'import/core-modules': [
 			'@woocommerce/blocks-checkout',
 			'@woocommerce/blocks-registry',
+			'@woocommerce/currency',
 			'@woocommerce/settings',
 			'@wordpress/i18n',
 			'@wordpress/is-shallow-equal',

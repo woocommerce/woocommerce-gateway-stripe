@@ -67,6 +67,15 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * @throws RuntimeException If the parent product is not found.
 	 */
 	public function map_product( \WC_Product $product ): array {
+		// Per-product visibility gate. Returning an empty row causes the validator's
+		// required-field check to reject it, so the walker skips the entry. Adapters
+		// (e.g. WC AI Storefront) that want to scope the catalog at query time should
+		// prefer the `wc_stripe_agentic_commerce_product_query_args` filter so excluded
+		// products aren't iterated at all; this hook is the per-product safety net.
+		if ( ! self::should_sync_product( $product ) ) {
+			return [];
+		}
+
 		$row = [];
 
 		$parent_product = null;
@@ -159,13 +168,22 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	}
 
 	/**
-	 * Get product ID.
+	 * Get the catalog row id Stripe will surface back as `price.external_reference`.
+	 *
+	 * Returns the WooCommerce SKU when present so the merchant's identifier shows
+	 * up in Stripe's UI and downstream lookups can resolve via `wc_get_product_id_by_sku()`.
+	 * Falls back to the product ID for SKU-less products so the legacy contract — which
+	 * keyed catalogs by product ID — keeps working.
 	 *
 	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
-	 * @return string Product ID as string.
+	 * @return string SKU when present, otherwise the product ID as a string.
 	 */
 	protected function get_id( \WC_Product $product ): string {
+		$sku = $product->get_sku();
+		if ( '' !== $sku ) {
+			return $sku;
+		}
 		return (string) $product->get_id();
 	}
 
@@ -955,5 +973,47 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		];
 
 		return $this->cached_shipping_zones;
+	}
+
+	/**
+	 * Whether the given product should be included in any Agentic Commerce sync
+	 * (full feed, inventory updates, archive events).
+	 *
+	 * Default is true; integrations such as WC AI Storefront can return false to
+	 * exclude a product based on merchant-configured visibility settings.
+	 *
+	 * @since 10.8.0
+	 * @param \WC_Product $product Product to check.
+	 * @return bool
+	 */
+	public static function should_sync_product( \WC_Product $product ): bool {
+		/**
+		 * Filter whether a product should be included in any Agentic Commerce sync.
+		 *
+		 * Applied per product at three entry points: the full-feed mapper, the
+		 * inventory-change tracker, and the archive tracker. Returning false from
+		 * any caller suppresses that product across all three surfaces.
+		 *
+		 * For large-scale exclusions, also hook `wc_stripe_agentic_commerce_product_query_args`
+		 * to scope the full-feed query — that avoids loading the product at all
+		 * and keeps the validator's skipped-product log unpolluted.
+		 *
+		 * Lifecycle contract: this filter only governs what gets *sent* to Stripe.
+		 * A product that was previously exported and is now excluded stays in
+		 * Stripe's catalog until the next full feed replacement overwrites it —
+		 * the inventory tracker intentionally drops delta events for excluded
+		 * products. Adapters that want immediate convergence when their filter
+		 * outcome changes (e.g. a merchant flips a visibility setting) MUST fire
+		 * `do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' )` to
+		 * enqueue an immediate full-catalog sync.
+		 *
+		 * @since 10.8.0
+		 * @param bool        $should_sync Whether to include the product. Default true.
+		 * @param \WC_Product $product     Product being evaluated.
+		 */
+		// wp_validate_boolean() rather than a plain (bool) cast: an adapter that
+		// returns the string 'false' would be truthy under a cast and wrongly
+		// sync the product. This still normalises null / 0 / '' to false.
+		return wp_validate_boolean( apply_filters( 'wc_stripe_agentic_commerce_should_sync_product', true, $product ) );
 	}
 }

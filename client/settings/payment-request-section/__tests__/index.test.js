@@ -6,6 +6,7 @@ import {
 	useExpressCheckoutEnabledSettings,
 	useAmazonPayEnabledSettings,
 	useIsOCEnabled,
+	useIsAdaptivePricingEnabled,
 } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_CARD,
@@ -19,6 +20,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn(),
 	useAmazonPayEnabledSettings: jest.fn(),
 	useIsOCEnabled: jest.fn(),
+	useIsAdaptivePricingEnabled: jest.fn(),
 } ) );
 
 const getMockPaymentRequestEnabledSettings = (
@@ -44,6 +46,7 @@ describe( 'PaymentRequestSection', () => {
 		] );
 		useAmazonPayEnabledSettings.mockReturnValue( [ false, jest.fn() ] );
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useIsAdaptivePricingEnabled.mockReturnValue( [ false, jest.fn() ] );
 		global.wc_stripe_settings_params = {
 			...globalValues,
 			is_amazon_pay_available: true,

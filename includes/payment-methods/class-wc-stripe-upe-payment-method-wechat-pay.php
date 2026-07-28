@@ -8,7 +8,37 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = WC_Stripe_Payment_Methods::WECHAT_PAY;
+	public const STRIPE_ID = WC_Stripe_Payment_Methods::WECHAT_PAY;
+
+	/**
+	 * Stripe account countries that may enable WeChat Pay.
+	 *
+	 * @var string[]
+	 */
+	protected const SUPPORTED_ACCOUNT_COUNTRIES = [
+		WC_Stripe_Country_Code::AUSTRIA,
+		WC_Stripe_Country_Code::AUSTRALIA,
+		WC_Stripe_Country_Code::BELGIUM,
+		WC_Stripe_Country_Code::CANADA,
+		WC_Stripe_Country_Code::SWITZERLAND,
+		WC_Stripe_Country_Code::GERMANY,
+		WC_Stripe_Country_Code::DENMARK,
+		WC_Stripe_Country_Code::SPAIN,
+		WC_Stripe_Country_Code::FINLAND,
+		WC_Stripe_Country_Code::FRANCE,
+		WC_Stripe_Country_Code::HONG_KONG,
+		WC_Stripe_Country_Code::IRELAND,
+		WC_Stripe_Country_Code::ITALY,
+		WC_Stripe_Country_Code::JAPAN,
+		WC_Stripe_Country_Code::LUXEMBOURG,
+		WC_Stripe_Country_Code::NETHERLANDS,
+		WC_Stripe_Country_Code::NORWAY,
+		WC_Stripe_Country_Code::PORTUGAL,
+		WC_Stripe_Country_Code::SWEDEN,
+		WC_Stripe_Country_Code::SINGAPORE,
+		WC_Stripe_Country_Code::UNITED_KINGDOM,
+		WC_Stripe_Country_Code::UNITED_STATES,
+	];
 
 	/**
 	 * Constructor for WeChat Pay payment method
@@ -18,7 +48,6 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'WeChat Pay', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = false;
-		$this->supported_countries  = [ 'AT', 'AU', 'BE', 'CA', 'CH', 'DE', 'DK', 'ES', 'FI', 'FR', 'HK', 'IE', 'IT', 'JP', 'LU', 'NL', 'NO', 'PT', 'SE', 'SG', 'GB', 'US' ];
 		$this->supported_currencies = [
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
 			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
@@ -54,59 +83,48 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 		$currency = [];
 
 		switch ( $country ) {
-			case 'AU':
+			case WC_Stripe_Country_Code::AUSTRALIA:
 				$currency = [ WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
-			case 'CA':
+			case WC_Stripe_Country_Code::CANADA:
 				$currency = [ WC_Stripe_Currency_Code::CANADIAN_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
-			case 'CH':
+			case WC_Stripe_Country_Code::SWITZERLAND:
 				$currency = [ WC_Stripe_Currency_Code::SWISS_FRANC, WC_Stripe_Currency_Code::CHINESE_YUAN, WC_Stripe_Currency_Code::EURO ];
 				break;
-			case 'DK':
+			case WC_Stripe_Country_Code::DENMARK:
 				$currency = [ WC_Stripe_Currency_Code::DANISH_KRONE, WC_Stripe_Currency_Code::CHINESE_YUAN, WC_Stripe_Currency_Code::EURO ];
 				break;
-			case 'HK':
+			case WC_Stripe_Country_Code::HONG_KONG:
 				$currency = [ WC_Stripe_Currency_Code::HONG_KONG_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
-			case 'JP':
+			case WC_Stripe_Country_Code::JAPAN:
 				$currency = [ WC_Stripe_Currency_Code::JAPANESE_YEN, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
-			case 'NO':
+			case WC_Stripe_Country_Code::NORWAY:
 				$currency = [ WC_Stripe_Currency_Code::NORWEGIAN_KRONE, WC_Stripe_Currency_Code::CHINESE_YUAN, WC_Stripe_Currency_Code::EURO ];
 				break;
-			case 'SE':
+			case WC_Stripe_Country_Code::SWEDEN:
 				$currency = [ WC_Stripe_Currency_Code::SWEDISH_KRONA, WC_Stripe_Currency_Code::CHINESE_YUAN, WC_Stripe_Currency_Code::EURO ];
 				break;
-			case 'SG':
+			case WC_Stripe_Country_Code::SINGAPORE:
 				$currency = [ WC_Stripe_Currency_Code::SINGAPORE_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
-			case 'GB':
+			case WC_Stripe_Country_Code::UNITED_KINGDOM:
 				$currency = [ WC_Stripe_Currency_Code::POUND_STERLING, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
-			case 'US':
+			case WC_Stripe_Country_Code::UNITED_STATES:
 				$currency = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			default:
 				$currency = [ WC_Stripe_Currency_Code::CHINESE_YUAN ];
 		}
 
-		$euro_supported_countries = [ 'AT', 'BE', 'FI', 'FR', 'DE', 'IE', 'IT', 'LU', 'NL', 'PT', 'ES' ];
+		$euro_supported_countries = [ WC_Stripe_Country_Code::AUSTRIA, WC_Stripe_Country_Code::BELGIUM, WC_Stripe_Country_Code::FINLAND, WC_Stripe_Country_Code::FRANCE, WC_Stripe_Country_Code::GERMANY, WC_Stripe_Country_Code::IRELAND, WC_Stripe_Country_Code::ITALY, WC_Stripe_Country_Code::LUXEMBOURG, WC_Stripe_Country_Code::NETHERLANDS, WC_Stripe_Country_Code::PORTUGAL, WC_Stripe_Country_Code::SPAIN ];
 		if ( in_array( $country, $euro_supported_countries, true ) ) {
 			$currency = [ WC_Stripe_Currency_Code::EURO, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 		}
 
 		return $currency;
-	}
-
-	/**
-	 * Returns whether the payment method is available for the Stripe account's country.
-	 *
-	 * WeChat Pay is available for the following countries: AT, AU, BE, CA, CH, DE, DK, ES, FI, FR, HK, IE, IT, JP, LU, NL, NO, PT, SE, SG, UK, US.
-	 *
-	 * @return bool True if the payment method is available for the account's country, false otherwise.
-	 */
-	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
 	}
 }

@@ -21,12 +21,61 @@
         "szepeviktor/phpstan-wordpress": "^2.0",
         "woocommerce/woocommerce-sniffs": "1.0.0",
         "wp-cli/wp-cli-bundle": "^2.12",
-        "yoast/phpunit-polyfills": "^2.0"
+        "yoast/phpunit-polyfills": "^2.0",
+        "brianium/paratest": "^6.0",
+        "nikic/php-parser": "^5.7"
+    },
+    "autoload": {
+      "classmap": [
+        "includes/ajax-handlers/",
+        "includes/agentic-commerce/",
+        "includes/abilities/",
+        "includes/admin/class-wc-stripe-rest-base-controller.php",
+        "includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php",
+        "includes/admin/class-wc-rest-stripe-exit-survey-controller.php",
+        "includes/admin/class-wc-stripe-plugins-page-controller.php",
+        "includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php",
+        "includes/admin/class-wc-stripe-upe-compatibility-controller.php",
+        "includes/class-wc-stripe-action-scheduler-service.php",
+        "includes/class-wc-stripe-api-outage-status.php",
+        "includes/class-wc-stripe-co-branded-cc-compatibility.php",
+        "includes/class-wc-stripe-exception.php",
+        "includes/class-wc-stripe-payment-cancelled-exception.php",
+        "includes/class-wc-stripe-upe-compatibility.php",
+        "includes/class-wc-stripe-update-manager.php",
+        "includes/compat/class-wc-stripe-email-failed-authentication.php",
+        "includes/compat/class-wc-stripe-email-failed-preorder-authentication.php",
+        "includes/compat/class-wc-stripe-email-failed-renewal-authentication.php",
+        "includes/compat/class-wc-stripe-woo-compat-utils.php",
+        "includes/constants/",
+        "includes/migrations/class-allowed-payment-request-button-types-update.php",
+        "includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php",
+        "includes/migrations/class-sepa-tokens-for-other-methods-settings-update.php",
+        "includes/migrations/class-wc-stripe-express-checkout-add-change-payment-method-location-update.php",
+        "includes/migrations/class-wc-stripe-ocs-ap-default-on-update.php",
+        "includes/payment-methods/class-wc-stripe-express-checkout-custom-fields.php",
+        "includes/payment-tokens/class-wc-stripe-ach-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-acss-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-amazon-pay-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-bacs-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-becs-debit-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-cash-app-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-cc-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-klarna-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-link-payment-token.php",
+        "includes/payment-tokens/class-wc-stripe-sepa-payment-token.php",
+        "includes/payment-tokens/interface-wc-stripe-payment-method-comparison.php",
+        "includes/payment-tokens/trait-wc-stripe-fingerprint.php"
+      ]
     },
     "autoload-dev": {
-      "psr-4": {
-        "WooCommerce\\Stripe\\Tests\\": "tests/phpunit/"
-      }
+      "classmap": [
+				"tests/phpunit/"
+			],
+      "exclude-from-classmap": [
+        "/tests/phpunit/helpers/",
+        "/tests/phpunit/stubs/"
+      ]
     },
     "scripts": {
       "phpstan": [

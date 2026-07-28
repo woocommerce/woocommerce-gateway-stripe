@@ -30,14 +30,14 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 *
 	 * @var string
 	 */
-	const LEGACY_TOKEN_PAYMENT_METHOD_META_KEY = '_migrated_sepa_payment_method';
+	public const LEGACY_TOKEN_PAYMENT_METHOD_META_KEY = '_migrated_sepa_payment_method';
 
 	/**
 	 * Subscription meta key used to store the associated source ID.
 	 *
 	 * @var string
 	 */
-	const SOURCE_ID_META_KEY = '_stripe_source_id';
+	public const SOURCE_ID_META_KEY = '_stripe_source_id';
 
 	/**
 	 * Gateway ID for the Updated SEPA payment method.

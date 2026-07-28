@@ -1,5 +1,5 @@
-import React from 'react';
 import CurrencyFactory from '@woocommerce/currency';
+import React from 'react';
 import { CreditCardIcon } from './icons/creditCard';
 import { CashAppIcon } from './icons/cashApp.js';
 import { BankIcon } from './icons/bank.js';

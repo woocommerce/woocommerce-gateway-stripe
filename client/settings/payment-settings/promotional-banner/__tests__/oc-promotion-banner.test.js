@@ -54,12 +54,6 @@ describe( 'OC promotional banner', () => {
 	} );
 
 	it( 'should make an API call to dismiss the banner on button click', async () => {
-		// Keep the original function.
-		const reload = window.location.reload;
-		Object.defineProperty( window, 'location', {
-			value: { reload: jest.fn() },
-		} );
-
 		const dismissNoticeMock = jest.fn( () =>
 			Promise.resolve( { data: {} } )
 		);
@@ -77,11 +71,6 @@ describe( 'OC promotional banner', () => {
 			await userEvent.click( dismissButton );
 		} );
 		expect( dismissNoticeMock ).toHaveBeenCalled();
-
-		// Set the original function back to keep further tests working as expected.
-		Object.defineProperty( window, 'location', {
-			value: { reload },
-		} );
 	} );
 
 	it( 'should attempt to enable OC when clicking the "Activate now" button', async () => {

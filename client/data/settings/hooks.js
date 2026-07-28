@@ -99,22 +99,22 @@ export const useEnabledPaymentMethodIds = makeSettingsHook(
 	EMPTY_ARR
 );
 export const useExpressCheckoutEnabledSettings = makeSettingsHook(
-	'is_payment_request_enabled'
+	'is_express_checkout_enabled'
 );
 export const useExpressCheckoutButtonSize = makeSettingsHook(
-	'payment_request_button_size',
+	'express_checkout_button_size',
 	''
 );
 export const useExpressCheckoutButtonType = makeSettingsHook(
-	'payment_request_button_type',
+	'express_checkout_button_type',
 	''
 );
 export const useExpressCheckoutButtonTheme = makeSettingsHook(
-	'payment_request_button_theme',
+	'express_checkout_button_theme',
 	''
 );
 export const useExpressCheckoutLocations = makeSettingsHook(
-	'payment_request_button_locations',
+	'express_checkout_button_locations',
 	EMPTY_ARR
 );
 export const useAmazonPayEnabledSettings = () => {

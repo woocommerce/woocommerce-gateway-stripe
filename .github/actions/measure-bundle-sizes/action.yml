@@ -1,0 +1,82 @@
+name: Measure Bundle Sizes
+description: >
+  Restores cached JS bundle sizes or builds webpack bundles from scratch,
+  measures the output file sizes, and uploads a sizes.json artifact.
+
+inputs:
+  commit-sha:
+    description: 'Full 40-character commit SHA used as the bundle size cache key'
+    required: true
+  side:
+    description: 'Which side of the comparison this is: "head" or "base"'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Validate inputs
+      shell: bash
+      run: |
+        if [[ ! "${{ inputs.commit-sha }}" =~ ^[0-9a-f]{40}$ ]]; then
+          echo "Error: 'commit-sha' must be a full 40-character lowercase commit SHA, got '${{ inputs.commit-sha }}'"
+          exit 1
+        fi
+        if [[ "${{ inputs.side }}" != "head" && "${{ inputs.side }}" != "base" ]]; then
+          echo "Error: 'side' must be 'head' or 'base', got '${{ inputs.side }}'"
+          exit 1
+        fi
+
+    - name: Get current commit SHA
+      id: get-current-commit-sha
+      shell: bash
+      run: echo "commit-sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+    - name: Checkout target commit
+      shell: bash
+      run: git checkout "${{ inputs.commit-sha }}"
+
+    - name: Restore bundle sizes from cache
+      id: cache
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: sizes.json
+        key: bundle-sizes-${{ runner.os }}-${{ inputs.commit-sha }}
+
+    - name: Setup PHP and Node
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/setup-env
+      with:
+        php-version: '8.4'
+
+    - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: npm ci
+
+    - name: Build
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: npm run build:webpack
+
+    - name: Measure bundle sizes
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        node -e "
+        const fs = require('fs'), path = require('path'), dir = 'build';
+        const files = fs.readdirSync(dir).filter(f => f.endsWith('.js') && !f.endsWith('.js.map')).sort();
+        const sizes = {};
+        for (const f of files) sizes[f] = fs.statSync(path.join(dir, f)).size;
+        fs.writeFileSync('sizes.json', JSON.stringify(sizes, null, 2));
+        "
+
+    - name: Upload sizes artifact
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: bundle-sizes-${{ inputs.side }}
+        path: sizes.json
+
+    - name: Restore initial commit state
+      if: ${{ always() && steps.get-current-commit-sha.outputs.commit-sha != '' }}
+      shell: bash
+      run: git checkout --force "${{ steps.get-current-commit-sha.outputs.commit-sha }}"

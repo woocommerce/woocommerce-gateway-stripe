@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class WC_Stripe_Feature_Flags {
-	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
+	public const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
 
 	/**
 	 * Feature flag for Amazon Pay.
@@ -12,35 +12,17 @@ class WC_Stripe_Feature_Flags {
 	 * @var string
 	 * @deprecated This feature flag will be removed in version 10.5.0. Amazon Pay is permanently enabled as of version 10.4.0.
 	 */
-	const AMAZON_PAY_FEATURE_FLAG_NAME        = '_wcstripe_feature_amazon_pay';
-
-	/**
-	 * Feature flag for Stripe ECE (Express Checkout Element).
-	 * This feature flag controls whether the new Express Checkout Element (ECE) or the legacy Payment Request Button (PRB) is used to render express checkout buttons.
-	 *
-	 * @var string
-	 *
-	 * @deprecated This feature flag will be removed in version 10.1.0. ECE will be permanently enabled.
-	 */
-	const ECE_FEATURE_FLAG_NAME = '_wcstripe_feature_ece';
-
-	/**
-	 * Feature flag for Optimized Checkout (OC).
-	 *
-	 * @var string
-	 *
-	 * @deprecated This feature flag will be removed in version 9.9.0.
-	 */
-	const OC_FEATURE_FLAG_NAME = '_wcstripe_feature_oc';
+	public const AMAZON_PAY_FEATURE_FLAG_NAME = '_wcstripe_feature_amazon_pay';
 
 	/**
 	 * Feature flag for Stripe Checkout Sessions.
 	 *
 	 * @var string
 	 * @since 10.4.0
+	 *
+	 * @deprecated This feature flag will be removed in version 10.8.0. Stripe Checkout Sessions is available as of version 10.6.0.
 	 */
-	const CHECKOUT_SESSIONS_FEATURE_FLAG_NAME = '_wcstripe_feature_stripe_checkout_sessions';
-
+	public const CHECKOUT_SESSIONS_FEATURE_FLAG_NAME = '_wcstripe_feature_stripe_checkout_sessions';
 
 	/**
 	 * Feature flag for Agentic Commerce.
@@ -48,7 +30,23 @@ class WC_Stripe_Feature_Flags {
 	 * @var string
 	 * @since 10.5.0
 	 */
-	const AGENTIC_COMMERCE_FEATURE_FLAG_NAME = '_wcstripe_feature_agentic_commerce';
+	public const AGENTIC_COMMERCE_FEATURE_FLAG_NAME = '_wcstripe_feature_agentic_commerce';
+
+	/**
+	 * Feature flag for expanding Optimized Checkout Suite in legacy checkout.
+	 *
+	 * @var string
+	 * @since 10.6.0
+	 */
+	protected const EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME = '_wcstripe_feature_expand_ocs_legacy_checkout';
+
+	/**
+	 * Feature flag for the WordPress Abilities API integration.
+	 *
+	 * @var string
+	 * @since 10.8.0
+	 */
+	public const ABILITIES_FEATURE_FLAG_NAME = '_wcstripe_feature_abilities';
 
 	/**
 	 * Map of feature flag option names => their default "yes"/"no" value.
@@ -57,11 +55,12 @@ class WC_Stripe_Feature_Flags {
 	 * @var array
 	 */
 	protected static $feature_flags = [
-		'_wcstripe_feature_upe'                   => 'yes',
-		self::AMAZON_PAY_FEATURE_FLAG_NAME        => 'no',
-		self::OC_FEATURE_FLAG_NAME                => 'no',
-		self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME => 'no',
-		self::AGENTIC_COMMERCE_FEATURE_FLAG_NAME  => 'no',
+		'_wcstripe_feature_upe'                                              => 'yes',
+		self::AMAZON_PAY_FEATURE_FLAG_NAME                                   => 'no',
+		self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME                            => 'no',
+		self::AGENTIC_COMMERCE_FEATURE_FLAG_NAME                             => 'no',
+		self::EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME => 'no',
+		self::ABILITIES_FEATURE_FLAG_NAME                                    => 'no',
 	];
 
 	/**
@@ -98,6 +97,8 @@ class WC_Stripe_Feature_Flags {
 	/**
 	 * Feature flag to control the availability of Stripe Checkout Sessions.
 	 *
+	 * TODO: Remove this method from the class and add a new method in WC_Stripe_Helper instead in version 10.8.0 to check the necessary conditions in settings.
+	 *
 	 * @return bool
 	 * @since 10.4.0
 	 */
@@ -116,16 +117,14 @@ class WC_Stripe_Feature_Flags {
 			return false;
 		}
 
-		$is_checkout_sessions_available = 'yes' === self::get_option_with_default( self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME );
-
 		/**
 		 * Filter to control the availability of the Stripe Checkout Sessions feature.
 		 *
 		 * @since 10.4.0
-		 * Note: This filter will be removed when the feature rolls out.
+		 * @deprecated This filter will be removed in version 10.8.0. Stripe Checkout Sessions is permanently available as of version 10.6.0.
 		 * @param bool $is_checkout_sessions_available Whether Stripe Checkout Sessions should be available.
 		 */
-		return (bool) apply_filters( 'wc_stripe_is_checkout_sessions_available', $is_checkout_sessions_available );
+		return (bool) apply_filters( 'wc_stripe_is_checkout_sessions_available', true );
 	}
 
 	/**
@@ -164,30 +163,31 @@ class WC_Stripe_Feature_Flags {
 	}
 
 	/**
-	 * Checks whether UPE has been manually disabled by the merchant.
+	 * Whether the Optimized Checkout Suite should be expanded in legacy checkout.
 	 *
-	 * @return bool
-	 *
-	 * @deprecated 10.5.0 UPE is always enabled. This method will be removed in a future release.
+	 * @return bool True if the Optimized Checkout Suite should be expanded in legacy checkout, false otherwise.
+	 * @since 10.6.0
 	 */
-	public static function did_merchant_disable_upe() {
-		wc_deprecated_function( __METHOD__, '10.5.0' );
+	public static function should_expand_ocs_in_legacy_checkout(): bool {
+		if ( ! self::is_oc_available() ) {
+			return false;
+		}
 
+		// Check if Optimized Checkout Suite is enabled.
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		return ! empty( $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) && 'disabled' === $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ];
-	}
+		if ( 'yes' !== ( $stripe_settings['optimized_checkout_element'] ?? 'no' ) ) {
+			return false;
+		}
 
-	/**
-	 * Checks if the APMs are deprecated. Stripe deprecated them on October 29, 2024 (for the legacy checkout).
-	 *
-	 * @return bool Whether the APMs are deprecated.
-	 *
-	 * @deprecated 10.5.0 APMs are deprecated and the legacy checkout no longer exists. This method will be removed in a future release.
-	 */
-	public static function are_apms_deprecated() {
-		wc_deprecated_function( __METHOD__, '10.5.0' );
+		$feature_flag_enabled = 'yes' === self::get_option_with_default( self::EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME );
 
-		return false;
+		/**
+		 * Filter to control whether the Optimized Checkout Suite should be expanded in the legacy checkout.
+		 *
+		 * @since 10.6.0
+		 * @param bool $always_expand_ocs_in_legacy_checkout Whether the Optimized Checkout Suite should be expanded in the legacy checkout.
+		 */
+		return (bool) apply_filters( 'wc_stripe_expand_ocs_in_legacy_checkout', $feature_flag_enabled );
 	}
 
 	/**
@@ -207,15 +207,42 @@ class WC_Stripe_Feature_Flags {
 		 *
 		 * @since 9.6.0
 		 * @deprecated This filter will be removed in version 9.9.0. No replacement will be provided as the Optimized Checkout feature will be permanently enabled.
-		 * @param string $default_value The default value for the feature flag.
-		 * @param string $pmc_enabled The value of the 'pmc_enabled' setting.
+		 * @param bool   $default_value  The default value for the feature flag.
+		 * @param string $default_pmc    The default value of the 'pmc_enabled' setting passed to the filter.
+		 * @param string $pmc_enabled    The actual value of the 'pmc_enabled' setting.
 		 */
-		return apply_filters(
+		return (bool) apply_filters(
 			'wc_stripe_is_optimized_checkout_available',
 			true,
 			'yes',
 			$pmc_enabled
 		);
+	}
+
+	/**
+	 * Whether the WordPress Abilities API integration is enabled.
+	 *
+	 * Default-off during rollout. Merchants, integrators, and developers
+	 * can opt in via the `wc_stripe_abilities_enabled` filter.
+	 *
+	 * @since 10.8.0
+	 * @return bool True if enabled, false otherwise.
+	 */
+	public static function is_abilities_enabled(): bool {
+		$is_abilities_enabled = 'yes' === self::get_option_with_default( self::ABILITIES_FEATURE_FLAG_NAME );
+
+		/**
+		 * Filter whether Stripe's Abilities API registrations are active.
+		 *
+		 * Composes with the `_wcstripe_feature_abilities` option: pass the
+		 * option-derived bool through this filter to flip the result
+		 * regardless of the stored option value.
+		 *
+		 * @since 10.8.0
+		 *
+		 * @param bool $enabled Whether to register Stripe abilities.
+		 */
+		return (bool) apply_filters( 'wc_stripe_abilities_enabled', $is_abilities_enabled );
 	}
 
 	/**

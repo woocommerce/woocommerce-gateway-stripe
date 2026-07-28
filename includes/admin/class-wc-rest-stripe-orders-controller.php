@@ -169,7 +169,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 			$order     = wc_get_order( $order_id );
 
 			// Check that order exists before capturing payment.
-			if ( ! $order ) {
+			if ( ! $order instanceof WC_Order ) {
 				return new WP_Error( 'wc_stripe_missing_order', __( 'Order not found', 'woocommerce-gateway-stripe' ), [ 'status' => 404 ] );
 			}
 
@@ -189,6 +189,14 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 			// Ensure that intent can be captured.
 			if ( ! in_array( $intent->status, [ WC_Stripe_Intent_Status::PROCESSING, WC_Stripe_Intent_Status::REQUIRES_CAPTURE ], true ) ) {
 				return new WP_Error( 'wc_stripe_payment_uncapturable', __( 'The payment cannot be captured', 'woocommerce-gateway-stripe' ), [ 'status' => 409 ] );
+			}
+
+			// Store IPP channel from intent metadata for POS identification.
+			$order_helper     = WC_Stripe_Order_Helper::get_instance();
+			$ipp_channel      = $intent->metadata->ipp_channel ?? '';
+			$allowed_channels = [ 'mobile_pos', 'mobile_store_management' ];
+			if ( in_array( $ipp_channel, $allowed_channels, true ) ) {
+				$order_helper->update_stripe_ipp_channel( $order, $ipp_channel );
 			}
 
 			// Update order with payment method and intent details.

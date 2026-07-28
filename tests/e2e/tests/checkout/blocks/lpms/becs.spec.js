@@ -56,8 +56,8 @@ test.describe( 'BECS payment tests @blocks @becs', () => {
 				config.get( 'users.customer.password' )
 			);
 			await setupBECSCheckout( page, 'blocks' );
-			await page.getByLabel( 'Save payment information' ).click();
 			await fillBECSDetails( page );
+			await page.getByLabel( 'Save payment information' ).click();
 			await page.locator( 'text=Place order' ).click();
 			await page.waitForURL( '**/checkout/order-received/**' );
 			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(

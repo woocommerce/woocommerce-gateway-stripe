@@ -6,6 +6,7 @@
  */
 
 require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/class-wc-stripe-test-suite-loader.php';
 
 $_tests_dir = getenv( 'WP_TESTS_DIR' );
 
@@ -36,7 +37,7 @@ function _manually_load_plugin() {
 	// Load the WooCommerce plugin so we can use its classes in our WooCommerce Stripe Payment Gateway plugin.
 	require_once ABSPATH . '/wp-content/plugins/woocommerce/woocommerce.php';
 	require __DIR__ . '/setup.php';
-	require_once __DIR__ . '/Helpers/WCS_Background_Repairer.php';
+	require_once __DIR__ . '/helpers/class-wcs-background-repairer.php';
 
 	$_plugin_dir = __DIR__ . '/../../';
 	require $_plugin_dir . 'woocommerce-gateway-stripe.php';
@@ -45,21 +46,105 @@ function _manually_load_plugin() {
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-base-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
+	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php';
+	// Stub WooCommerce ProductFeed interfaces/classes when running against an older WooCommerce
+	// that does not ship them. Individual tests skip themselves when real implementations are needed.
+	require_once __DIR__ . '/helpers/woocommerce-product-feed-stubs.php';
+	// Agentic Commerce integration classes (needed by the controller).
+	require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php';
+	require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-inventory-tracker.php';
 }
 
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 
+// When paratest runs workers in parallel, each gets a unique TEST_TOKEN.
+// The per-worker databases (e.g. wc_stripe_tests_1) are created by install-wp-tests.sh
+// before paratest starts. We attempt creation here as a safety net, but silently
+// skip on failure to avoid writing to STDERR (which paratest interprets as a test error).
+// The base DB name defaults to 'wc_stripe_tests' (matching install-wp-tests.sh) but can
+// be overridden via the WP_TESTS_DB_NAME environment variable.
+$_test_token = getenv( 'TEST_TOKEN' );
+if ( $_test_token && ctype_digit( (string) $_test_token ) ) {
+	$_wp_db_host    = getenv( 'WORDPRESS_DB_HOST' );
+	$_db_host_parts = explode( ':', $_wp_db_host ? $_wp_db_host : 'db' );
+	$_db_host       = $_db_host_parts[0];
+	$_db_port       = isset( $_db_host_parts[1] ) ? (int) $_db_host_parts[1] : 3306;
+	$_base_db_name  = getenv( 'WP_TESTS_DB_NAME' ) ? getenv( 'WP_TESTS_DB_NAME' ) : 'wc_stripe_tests';
+	$_worker_db     = $_base_db_name . '_' . $_test_token;
+	mysqli_report( MYSQLI_REPORT_OFF ); // phpcs:ignore WordPress.DB -- prevent exceptions so we can fail silently.
+	$_mysql_pass = getenv( 'MYSQL_ROOT_PASSWORD' );
+	$_mysqli     = @new mysqli( $_db_host, 'root', $_mysql_pass ? $_mysql_pass : '', '', $_db_port ); // phpcs:ignore WordPress.DB
+	if ( ! $_mysqli->connect_error ) {
+		$_mysqli->query( "CREATE DATABASE IF NOT EXISTS `{$_worker_db}`" ); // phpcs:ignore WordPress.DB
+		$_mysqli->close();
+	}
+	unset( $_wp_db_host, $_db_host_parts, $_db_host, $_db_port, $_base_db_name, $_worker_db, $_mysql_pass, $_mysqli );
+}
+unset( $_test_token );
+
 require $_tests_dir . '/includes/bootstrap.php';
 
-# Load WooCommerce Helpers (https://github.com/woocommerce/woocommerce/tree/master/tests/legacy/framework/helpers)
-# To keep the plugin self-contained, copy any needed helper to the `Helpers/` sub-folder.
-# These helpers cannot be autoloaded, so we need to require them manually.
-require_once __DIR__ . '/Helpers/WC_Subscription.php';
-require_once __DIR__ . '/Helpers/WC_Subscriptions.php';
-require_once __DIR__ . '/Helpers/WC_Subscriptions_Cart.php';
-require_once __DIR__ . '/Helpers/WC_Subscriptions_Helpers.php';
-require_once __DIR__ . '/Helpers/WC_Subscriptions_Product.php';
-require_once __DIR__ . '/Helpers/WC_Subscriptions_Switcher.php';
-require_once __DIR__ . '/Helpers/WC_Pre_Orders_Product.php';
-require_once __DIR__ . '/Helpers/WC_Deposits_Product_Manager.php';
-require_once __DIR__ . '/Helpers/WC_Subscriptions_Change_Payment_Gateway.php';
+# Load test helpers manually. The helpers/ directory is excluded from the Composer classmap
+# (to prevent stub classes like WC_Subscriptions from being autoloaded in E2E environments
+# where the real plugin is active), so all helpers must be explicitly required here.
+require_once __DIR__ . '/helpers/class-wc-subscription.php';
+require_once __DIR__ . '/helpers/class-wc-subscriptions.php';
+require_once __DIR__ . '/helpers/class-wc-subscriptions-cart.php';
+require_once __DIR__ . '/helpers/class-wc-subscriptions-helpers.php';
+require_once __DIR__ . '/helpers/class-wcs-retry.php';
+require_once __DIR__ . '/helpers/class-wcs-retry-store-mock.php';
+require_once __DIR__ . '/helpers/class-wcs-retry-manager.php';
+require_once __DIR__ . '/helpers/class-wc-subscriptions-product.php';
+require_once __DIR__ . '/helpers/class-wc-subscriptions-switcher.php';
+require_once __DIR__ . '/helpers/class-wc-pre-orders-product.php';
+require_once __DIR__ . '/helpers/class-wc-deposits-product-manager.php';
+require_once __DIR__ . '/helpers/class-wc-subscriptions-change-payment-gateway.php';
+require_once __DIR__ . '/helpers/class-wc-helper-order.php';
+require_once __DIR__ . '/helpers/class-wc-helper-product.php';
+require_once __DIR__ . '/helpers/class-wc-helper-shipping.php';
+require_once __DIR__ . '/helpers/class-wc-helper-stripe-api.php';
+require_once __DIR__ . '/helpers/class-wc-helper-token.php';
+require_once __DIR__ . '/helpers/class-wcs-staging.php';
+require_once __DIR__ . '/helpers/class-ajax-test-helper.php';
+require_once __DIR__ . '/helpers/class-oc-test-helper.php';
+require_once __DIR__ . '/helpers/class-pmc-test-helper.php';
+require_once __DIR__ . '/helpers/class-upe-test-helper.php';
+require_once __DIR__ . '/helpers/class-wc-stripe-test-helper.php';
+
+// Pre-create HPOS (Custom Orders Table) schema so that parallel workers don't
+// race to create it when tests toggle `woocommerce_custom_orders_table_enabled`.
+if ( class_exists( \Automattic\WooCommerce\Internal\DataStores\Orders\DataSynchronizer::class ) ) {
+	$_data_sync = wc_get_container()->get( \Automattic\WooCommerce\Internal\DataStores\Orders\DataSynchronizer::class );
+	if ( ! $_data_sync->check_orders_table_exists() ) {
+		$_data_sync->create_database_tables();
+	}
+	unset( $_data_sync );
+}
+
+// WooCommerce 10.7.0-rc.1 fails to generate woocommerce-placeholder.webp on plugin
+// activation. Tests that create orders or render products then trigger
+// wp_getimagesize() on the missing file, and phpunit.xml.dist's
+// convertWarningsToExceptions="true" turns those "Failed to open stream" warnings
+// into test errors. Seed the file by copying WooCommerce's bundled placeholder
+// asset (per-worker when running under paratest, since UPLOADS is overridden in
+// wp-tests-config.php). Safe to remove once a fixed WooCommerce release is in the
+// compatibility matrix.
+if ( function_exists( 'WC' ) ) {
+	$_uploads_info     = wp_upload_dir( null, false );
+	$_uploads_dir      = $_uploads_info['basedir'];
+	$_placeholder_webp = $_uploads_dir . '/woocommerce-placeholder.webp';
+	if ( ! file_exists( $_placeholder_webp ) ) {
+		if ( ! is_dir( $_uploads_dir ) ) {
+			wp_mkdir_p( $_uploads_dir );
+		}
+		$_wc_assets = WC()->plugin_path() . '/assets/images';
+		foreach ( [ 'placeholder.webp', 'placeholder.png' ] as $_candidate ) {
+			if ( file_exists( $_wc_assets . '/' . $_candidate ) ) {
+				@copy( $_wc_assets . '/' . $_candidate, $_placeholder_webp ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+				break;
+			}
+		}
+		unset( $_wc_assets, $_candidate );
+	}
+	unset( $_uploads_info, $_uploads_dir, $_placeholder_webp );
+}

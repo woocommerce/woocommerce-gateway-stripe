@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { Elements, ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { __ } from '@wordpress/i18n';
+import { useExpressCheckoutEnabledSettings } from 'wcstripe/data';
 import { getDefaultBorderRadius } from 'wcstripe/express-checkout/utils';
 import InlineNotice from 'components/inline-notice';
 import {
@@ -20,6 +21,7 @@ const buttonSizeToPxMap = {
 
 const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 	const [ canRenderButtons, setCanRenderButtons ] = useState( true );
+	const [ isExpressCheckoutEnabled ] = useExpressCheckoutEnabledSettings();
 
 	/* eslint-disable camelcase */
 	const stripePromise = useMemo( () => {
@@ -42,7 +44,7 @@ const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 		paymentMethodTypes: [ PAYMENT_METHOD_CARD ],
 	};
 
-	const height = buttonSizeToPxMap[ size ] || buttonSizeToPxMap.medium;
+	const height = buttonSizeToPxMap[ size ] || buttonSizeToPxMap.default;
 
 	const mapThemeConfigToButtonTheme = ( paymentMethod, buttonTheme ) => {
 		switch ( buttonTheme ) {
@@ -97,6 +99,18 @@ const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 			setCanRenderButtons( false );
 		}
 	};
+
+	if ( ! isExpressCheckoutEnabled ) {
+		return (
+			<InlineNotice icon status="warning" isDismissible={ false }>
+				{ __(
+					'The preview is only available when Apple Pay and Google Pay are enabled. ' +
+						'Please enable Apple Pay and Google Pay to see the preview.',
+					'woocommerce-gateway-stripe'
+				) }
+			</InlineNotice>
+		);
+	}
 
 	if ( canRenderButtons ) {
 		return (

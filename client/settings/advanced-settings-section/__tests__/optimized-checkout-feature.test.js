@@ -43,7 +43,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		const setIsOCEnabledMock = jest.fn();
 		useIsOCEnabled.mockReturnValue( [ true, setIsOCEnabledMock ] );
 
-		render( <OptimizedCheckoutFeature /> );
+		render( <OptimizedCheckoutFeature isOCAvailable={ true } /> );
 
 		const OCCheckbox = screen.getByTestId(
 			'optimized-checkout-element-checkbox'
@@ -74,7 +74,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		// Adaptive pricing settings.
 		expect(
 			screen.getByText(
-				'Let customers pay in their local currency with Adaptive Pricing.'
+				'Let customers pay in their local currency with Adaptive Pricing'
 			)
 		).toBeInTheDocument();
 	} );
@@ -96,8 +96,55 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		} );
 	} );
 
+	it( 'disables Adaptive Pricing and explains why when webhooks are disabled', () => {
+		global.wc_stripe_settings_params = {
+			is_cs_available: true,
+			adaptive_pricing_unavailable_reason: 'webhooks-disabled',
+		};
+
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+
+		render( <OptimizedCheckoutFeature isOCAvailable={ true } /> );
+
+		expect(
+			screen.getByText( /Adaptive Pricing requires working webhooks/i )
+		).toBeInTheDocument();
+
+		expect(
+			screen.getByLabelText(
+				'Let customers pay in their local currency with Adaptive Pricing'
+			)
+		).toBeDisabled();
+	} );
+
+	it( 'disables Adaptive Pricing and explains why when disabled due to amount mismatches', () => {
+		global.wc_stripe_settings_params = {
+			is_cs_available: true,
+			adaptive_pricing_unavailable_reason: 'amount-mismatch-detected',
+		};
+
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+
+		render( <OptimizedCheckoutFeature isOCAvailable={ true } /> );
+
+		expect(
+			screen.getByText(
+				'Adaptive Pricing was disabled due to a plugin compatibility issue. Please contact WooCommerce support to report the issue so we can investigate the cause.'
+			)
+		).toBeInTheDocument();
+
+		expect(
+			screen.getByLabelText(
+				'Let customers pay in their local currency with Adaptive Pricing'
+			)
+		).toBeDisabled();
+	} );
+
 	it( 'triggers the hook when changing the Adaptive Pricing setting', async () => {
-		global.wc_stripe_settings_params = { is_cs_available: true };
+		global.wc_stripe_settings_params = {
+			is_cs_available: true,
+			adaptive_pricing_unavailable_reason: null,
+		};
 
 		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
 
@@ -107,13 +154,13 @@ describe( 'Optimized Checkout Element feature setting', () => {
 			setAdaptivePricingEnabledMock,
 		] );
 
-		render( <OptimizedCheckoutFeature /> );
+		render( <OptimizedCheckoutFeature isOCAvailable={ true } /> );
 
 		expect( setAdaptivePricingEnabledMock ).not.toHaveBeenCalled();
 
 		await userEvent.click(
 			screen.getByLabelText(
-				'Let customers pay in their local currency with Adaptive Pricing.'
+				'Let customers pay in their local currency with Adaptive Pricing'
 			)
 		);
 

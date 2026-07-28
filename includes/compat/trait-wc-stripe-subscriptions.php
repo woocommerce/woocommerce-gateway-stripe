@@ -83,6 +83,11 @@ trait WC_Stripe_Subscriptions_Trait {
 		if ( WC_Stripe_UPE_Payment_Gateway::ID !== $this->id ) {
 			return;
 		}
+		// Secondary check to skip registration for the OC payment method, which mimics the Stripe ID.
+		$current_class = get_class( $this );
+		if ( WC_Stripe_UPE_Payment_Gateway::class !== $current_class ) {
+			return;
+		}
 
 		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
 		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
@@ -281,6 +286,24 @@ trait WC_Stripe_Subscriptions_Trait {
 			];
 		}
 
+		$express_checkout_type = isset( $_POST['express_checkout_type'] ) && is_string( $_POST['express_checkout_type'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			? wc_clean( wp_unslash( $_POST['express_checkout_type'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			: '';
+		$express_checkout_type = in_array( $express_checkout_type, WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS, true ) ? $express_checkout_type : '';
+
+		$is_express_checkout_submission = '' !== $express_checkout_type;
+
+		// ECE confirms before the shopper sees the "update all subscriptions"
+		// checkbox, so its default-checked state can't be treated as consent.
+		if ( $is_express_checkout_submission ) {
+			unset( $_POST['update_all_subscriptions_payment_method'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+			// The change-payment form carries the saved-cards selector value, so
+			// is_using_saved_payment_method() would otherwise route to the old
+			// saved token and discard the ECE-supplied payment method.
+			$_POST['wc-stripe-payment-token'] = 'new'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		}
+
 		try {
 			$payment_information = $this->prepare_payment_information_from_request( $subscription );
 
@@ -306,6 +329,12 @@ trait WC_Stripe_Subscriptions_Trait {
 					$payment_information['payment_method_details'],
 					$selected_payment_type
 				);
+
+				// Link the new token to the subscription so My Account renders it.
+				// Scoped to ECE here; tracked for the broader paths in #5382.
+				if ( $is_express_checkout_submission ) {
+					WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $payment_method_id );
+				}
 			}
 
 			$redirect           = $this->get_return_url( $subscription );
@@ -318,6 +347,18 @@ trait WC_Stripe_Subscriptions_Trait {
 					$subscription->update_meta_data( '_delayed_update_payment_method_all', $new_payment_method );
 					$subscription->save();
 				}
+
+				// Persist the express type and the new payment method ID for the
+				// post-confirmation hooks (title override + token replacement),
+				// or clear any stale markers when this submission isn't express.
+				if ( $is_express_checkout_submission ) {
+					$subscription->update_meta_data( '_wc_stripe_express_checkout_type', $express_checkout_type );
+					$subscription->update_meta_data( '_wc_stripe_express_checkout_payment_method_id', $payment_method_id );
+				} else {
+					$subscription->delete_meta_data( '_wc_stripe_express_checkout_type' );
+					$subscription->delete_meta_data( '_wc_stripe_express_checkout_payment_method_id' );
+				}
+				$subscription->save();
 
 				wp_safe_redirect( $this->get_redirect_url( $redirect, $payment_intent, $payment_information, $subscription, false ) );
 				exit;
@@ -374,6 +415,46 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
+	 * Determines whether a failed payment was blocked by Stripe Radar.
+	 *
+	 * When Stripe Radar blocks a charge it still creates a charge object (for audit
+	 * purposes) with outcome.type === 'blocked'. The charge ID is surfaced in the
+	 * error response so we can fetch it and inspect the outcome.
+	 *
+	 * @param object $response The Stripe API response containing the error.
+	 * @return string|false The Radar block reason (e.g. 'highest_risk_level', 'rule') when the
+	 *                      charge is blocked, false otherwise.
+	 */
+	protected function is_charge_blocked_by_radar( $response ) {
+		$charge_id = null;
+
+		// For both the Charges API (e.g. SEPA) and the Payment Intents API, the
+		// charge ID appears at error.charge when a charge was actually attempted.
+		if ( ! empty( $response->error->charge ) && is_string( $response->error->charge ) ) {
+			$charge_id = $response->error->charge;
+		} elseif ( ! empty( $response->error->payment_intent->latest_charge ) && is_string( $response->error->payment_intent->latest_charge ) ) {
+			// Fallback: Payment Intents API may surface the charge ID via latest_charge.
+			$charge_id = $response->error->payment_intent->latest_charge;
+		}
+
+		if ( empty( $charge_id ) ) {
+			return false;
+		}
+
+		$charge = WC_Stripe_API::retrieve( "charges/{$charge_id}" );
+
+		if ( is_wp_error( $charge ) || empty( $charge ) || ! empty( $charge->error ) ) {
+			return false;
+		}
+
+		if ( isset( $charge->outcome->type ) && 'blocked' === $charge->outcome->type ) {
+			return isset( $charge->outcome->reason ) ? (string) $charge->outcome->reason : 'unknown';
+		}
+
+		return false;
+	}
+
+	/**
 	 * Process a payment for a subscription renewal.
 	 *
 	 * @since 3.0
@@ -389,6 +470,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
 		$order_locked = false;
+		$radar_reason = false;
 
 		try {
 			$order_id = $renewal_order->get_id();
@@ -451,8 +533,12 @@ trait WC_Stripe_Subscriptions_Trait {
 			// It's only a failed payment if it's an error and it's not of the type 'authentication_required'.
 			// If it's 'authentication_required', then we should email the user and ask them to authenticate.
 			if ( ! empty( $response->error ) && ! $is_authentication_required ) {
-				// We want to retry.
-				if ( $this->is_retryable_error( $response->error ) ) {
+				// Compute once here so the catch block can reuse the result without a second API call.
+				$radar_reason = $this->is_charge_blocked_by_radar( $response );
+
+				// We want to retry — unless Stripe Radar blocked the charge, in which case retrying
+				// would just create another blocked charge and inflate the block rate.
+				if ( $this->is_retryable_error( $response->error ) && false === $radar_reason ) {
 					if ( $retry ) {
 						// Don't do anymore retries after this.
 						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
@@ -509,6 +595,69 @@ trait WC_Stripe_Subscriptions_Trait {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 
 			$renewal_order->update_status( OrderStatus::FAILED );
+
+			// If the payment was blocked by Stripe Radar, cancel any scheduled
+			// retry attempt. Without this, WC Subscriptions schedules a retry
+			// that would create another charge for Radar to block, inflating
+			// the block rate.
+			if ( false !== $radar_reason ) {
+				$radar_cause = '';
+				switch ( $radar_reason ) {
+					case 'rule':
+						$radar_cause = __( 'Stripe Radar blocked payment for the saved payment method due to a custom Radar rule.', 'woocommerce-gateway-stripe' );
+						break;
+					case 'low_probability_of_authorization':
+						$radar_cause = __( 'Stripe blocked payment for the saved payment method due to low probability of authorization.', 'woocommerce-gateway-stripe' );
+						break;
+					case 'highest_risk_level':
+						$radar_cause = __( 'Stripe Radar blocked payment for the saved payment method as high risk.', 'woocommerce-gateway-stripe' );
+						break;
+					default:
+						$radar_cause = sprintf(
+							/* translators: %s is the Stripe Radar reason code returned by the API. */
+							__( 'Stripe Radar blocked payment for the saved payment method (reason: %s).', 'woocommerce-gateway-stripe' ),
+							$radar_reason
+						);
+						break;
+				}
+				$retry_cancelled_suffix = __( 'The automatic retry has been cancelled to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' );
+
+				try {
+					$subscriptions = function_exists( 'wcs_get_subscriptions_for_renewal_order' )
+						? wcs_get_subscriptions_for_renewal_order( $renewal_order )
+						: [];
+
+					$retry_cancelled = false;
+					if ( class_exists( 'WCS_Retry_Manager' ) && method_exists( 'WCS_Retry_Manager', 'is_retry_enabled' ) && WCS_Retry_Manager::is_retry_enabled() && method_exists( 'WCS_Retry_Manager', 'store' ) ) {
+						$retry_store = WCS_Retry_Manager::store();
+						$last_retry  = method_exists( $retry_store, 'get_last_retry_for_order' ) ? $retry_store->get_last_retry_for_order( $renewal_order->get_id() ) : null;
+						if ( $last_retry && 'pending' === $last_retry->get_status() ) {
+							$last_retry->update_status( 'cancelled' );
+							$retry_cancelled = true;
+						}
+						foreach ( $subscriptions as $subscription ) {
+							if ( $subscription->get_date( 'payment_retry' ) > 0 ) {
+								$subscription->delete_date( 'payment_retry' );
+								$retry_cancelled = true;
+							}
+						}
+					}
+
+					$radar_note = $retry_cancelled
+						? $radar_cause . ' ' . $retry_cancelled_suffix
+						: $radar_cause;
+
+					foreach ( $subscriptions as $subscription ) {
+						$subscription->add_order_note( $radar_note );
+					}
+					$renewal_order->add_order_note( $radar_note );
+				} catch ( Exception $radar_e ) {
+					WC_Stripe_Logger::error(
+						'Failed to cancel scheduled retry after Stripe Radar blocked subscription renewal: ' . $radar_e->getMessage(),
+						[ 'order_id' => $renewal_order->get_id() ]
+					);
+				}
+			}
 
 			if ( $order_locked && isset( $order_helper ) ) {
 				$order_helper->unlock_order_payment( $renewal_order );
@@ -624,13 +773,14 @@ trait WC_Stripe_Subscriptions_Trait {
 			$subscriptions = [];
 		}
 
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		foreach ( $subscriptions as $subscription ) {
-			$subscription->update_meta_data( '_stripe_customer_id', $source->customer );
+			$order_helper->update_stripe_customer_id( $subscription, $source->customer );
 
 			if ( ! empty( $source->payment_method ) ) {
-				$subscription->update_meta_data( '_stripe_source_id', $source->payment_method );
+				$order_helper->update_stripe_source_id( $subscription, $source->payment_method );
 			} else {
-				$subscription->update_meta_data( '_stripe_source_id', $source->source );
+				$order_helper->update_stripe_source_id( $subscription, $source->source );
 			}
 
 			// Update the payment method.
@@ -649,6 +799,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return void
 	 */
 	public function delete_resubscribe_meta( $resubscribe_order ) {
+		if ( ! $resubscribe_order instanceof WC_Order ) {
+			return;
+		}
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->delete_stripe_source_id( $resubscribe_order );
 
@@ -668,6 +822,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return WC_Order|null The renewal order.
 	 */
 	public function delete_renewal_meta( $renewal_order ) {
+		if ( ! $renewal_order instanceof WC_Order ) {
+			return $renewal_order;
+		}
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->delete_stripe_fee( $renewal_order );
 		$order_helper->delete_stripe_net( $renewal_order );
@@ -687,11 +845,20 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return void
 	 */
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
+		if ( ! $subscription instanceof WC_Subscription ) {
+			return;
+		}
+
+		if ( ! $renewal_order instanceof WC_Order ) {
+			return;
+		}
+
 		$order_helper       = WC_Stripe_Order_Helper::get_instance();
 		$stripe_customer_id = $order_helper->get_stripe_customer_id( $renewal_order );
 		$stripe_source_id   = $order_helper->get_stripe_source_id( $renewal_order );
-		$subscription->update_meta_data( '_stripe_customer_id', $stripe_customer_id ? $stripe_customer_id : '' );
-		$subscription->update_meta_data( '_stripe_source_id', $stripe_source_id ? $stripe_source_id : '' );
+
+		$order_helper->update_stripe_customer_id( $subscription, $stripe_customer_id ? $stripe_customer_id : '' );
+		$order_helper->update_stripe_source_id( $subscription, $stripe_source_id ? $stripe_source_id : '' );
 		$subscription->save();
 	}
 
@@ -707,22 +874,23 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function add_subscription_payment_meta( $payment_meta, $subscription ) {
 		$subscription_id = $subscription->get_id();
-		$source_id       = $subscription->get_meta( '_stripe_source_id', true );
+		$order_helper    = WC_Stripe_Order_Helper::get_instance();
+		$source_id       = $order_helper->get_stripe_source_id( $subscription );
 
 		// For BW compat will remove in future.
 		if ( empty( $source_id ) ) {
-			$source_id = $subscription->get_meta( '_stripe_card_id', true );
+			$source_id = $order_helper->get_stripe_card_id( $subscription );
 
 			// Take this opportunity to update the key name.
-			$subscription->update_meta_data( '_stripe_source_id', $source_id );
-			$subscription->delete_meta_data( '_stripe_card_id' );
+			$order_helper->update_stripe_source_id( $subscription, $source_id ? $source_id : '' );
+			$order_helper->delete_stripe_card_id( $subscription );
 			$subscription->save();
 		}
 
 		$payment_meta[ $this->id ] = [
 			'post_meta' => [
 				'_stripe_customer_id' => [
-					'value' => $subscription->get_meta( '_stripe_customer_id', true ),
+					'value' => $order_helper->get_stripe_customer_id( $subscription ),
 					'label' => 'Stripe Customer ID',
 				],
 				'_stripe_source_id'   => [
@@ -993,18 +1161,19 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $payment_method_to_display;
 		}
 
-		$stripe_source_id = $subscription->get_meta( '_stripe_source_id', true );
+		$order_helper     = WC_Stripe_Order_Helper::get_instance();
+		$stripe_source_id = $order_helper->get_stripe_source_id( $subscription );
 
 		// For BW compat will remove in future.
 		if ( empty( $stripe_source_id ) ) {
-			$stripe_source_id = $subscription->get_meta( '_stripe_card_id', true );
+			$stripe_source_id = $order_helper->get_stripe_card_id( $subscription );
 
 			// Take this opportunity to update the key name.
-			$subscription->update_meta_data( '_stripe_source_id', $stripe_source_id );
+			$order_helper->update_stripe_source_id( $subscription, $stripe_source_id ? $stripe_source_id : '' );
 			$subscription->save();
 		}
 
-		$stripe_customer_id = $subscription->get_meta( '_stripe_customer_id', true );
+		$stripe_customer_id = $order_helper->get_stripe_customer_id( $subscription );
 
 		// If we couldn't find a Stripe customer linked to the subscription, fallback to the user meta data.
 		if ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) {
@@ -1294,8 +1463,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $editable;
 		}
 
-		// Not using the helper class here since $order is actually a subscription.
-		$source_id = $order->get_meta( '_stripe_source_id', true );
+		$source_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $order );
 		if ( empty( $source_id ) ) {
 			return $editable;
 		}
@@ -1309,7 +1477,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// If the payment method is a card and the card's country is India, disable subscription editing.
-		if ( $payment_method && WC_Stripe_Payment_Methods::CARD === $payment_method->type && 'IN' === ( $payment_method->card->country ?? '' ) ) {
+		if ( $payment_method && WC_Stripe_Payment_Methods::CARD === $payment_method->type && WC_Stripe_Country_Code::INDIA === ( $payment_method->card->country ?? '' ) ) {
 			return false;
 		}
 

@@ -5,7 +5,7 @@ import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies'
 
 jest.mock( '../../../payment-methods-map', () => ( {
 	card: { currencies: [] },
-	giropay: { currencies: [ 'EUR' ] },
+	bancontact: { currencies: [ 'EUR' ] },
 } ) );
 
 jest.mock( 'utils/use-payment-method-currencies', () => ( {
@@ -21,7 +21,10 @@ describe( 'PaymentMethodMissingCurrencyPill', () => {
 
 	it( 'should render the "Requires currency" text when currency is not supported', () => {
 		render(
-			<PaymentMethodMissingCurrencyPill id="giropay" label="giropay" />
+			<PaymentMethodMissingCurrencyPill
+				id="bancontact"
+				label="Bancontact"
+			/>
 		);
 
 		expect( screen.queryByText( 'Requires currency' ) ).toBeInTheDocument();

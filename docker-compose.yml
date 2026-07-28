@@ -1,51 +1,56 @@
+networks:
+  wcstripe-network:
+    external: true
+
+volumes:
+  # Per-worktree volumes (each WP container manages its own copy).
+  docker_directory:
+  node_modules:
+  phpstan_stubs:
+  release_directory:
+  # Shared volumes defined in docker-compose.infra.yml.
+  wcstripe-plugins:
+    external: true
+  wcstripe-themes:
+    external: true
+  wcstripe-uploads:
+    external: true
+  wcstripe-mu-plugins:
+    external: true
+
 services:
   wordpress:
     build: ./docker/wordpress_xdebug
-    image: wordpress-xdebug
-    container_name: woocommerce_stripe_wordpress
-    depends_on:
-      - db
-    links:
-      - db:mysql
+    image: wcstripe_wp_${WORKTREE_ID:-default}
+    container_name: wcstripe_wp_${WORKTREE_ID:-default}
+    restart: unless-stopped
     ports:
-      - "8072:80"
+      - "${WORDPRESS_PORT:-8072}:80"
     env_file:
       - default.env
+    environment:
+      - WORKTREE_ID=${WORKTREE_ID:-default}
     volumes:
       - ./docker/wordpress:/var/www/html/
-      - ./docker/logs/apache2/:/var/log/apache2
-      - ./docker/logs/php/:/var/log/php
+      # Shared wp-content overlays.
+      - wcstripe-plugins:/var/www/html/wp-content/plugins
+      - wcstripe-themes:/var/www/html/wp-content/themes
+      - wcstripe-uploads:/var/www/html/wp-content/uploads
+      - wcstripe-mu-plugins:/var/www/html/wp-content/mu-plugins
+      # Per-worktree overlays of the plugin source on top of shared plugins.
       - .:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe
       - ./tests/phpunit:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/phpunit
       - docker_directory:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/docker
       - node_modules:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/node_modules
       - phpstan_stubs:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/phpstan-stubs
       - release_directory:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/release
+      # Per-worktree logs and PHP ini overlays.
+      - ./docker/logs/apache2/:/var/log/apache2
+      - ./docker/logs/php/:/var/log/php
       - ./docker/dev-php.ini:/usr/local/etc/php/conf.d/dev-php.ini
       - ./docker/override-php-error-logging.ini:/usr/local/etc/php/conf.d/override-php-error-logging.ini
       - ./docker/bin:/var/scripts
     extra_hosts:
       - "host.docker.internal:host-gateway"
-  db:
-    container_name: woocommerce_stripe_mysql
-    image: mariadb:latest
-    ports:
-      - "5668:3306"
-    env_file:
-      - default.env
-    volumes:
-      - ./docker/data:/var/lib/mysql
-  phpMyAdmin:
-    container_name: woocommerce_stripe_phpmyadmin
-    image: phpmyadmin/phpmyadmin:latest
-    ports:
-      - "8073:80"
-    env_file:
-      - default.env
-# Set up volumes to prevent files from the host machine being exposed to the container and possible external access.
-volumes:
-   docker_directory:
-   node_modules:
-   phpstan_stubs:
-   release_directory:
-
+    networks:
+      - wcstripe-network

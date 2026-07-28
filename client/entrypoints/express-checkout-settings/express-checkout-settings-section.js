@@ -1,3 +1,4 @@
+/* global wc_stripe_express_checkout_settings_params */
 import { ADMIN_URL, getSetting } from '@woocommerce/settings';
 import React, { useMemo } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
@@ -226,6 +227,29 @@ const ExpressCheckoutSettingsSection = () => {
 							label={ __( 'Cart', 'woocommerce-gateway-stripe' ) }
 						/>
 					</li>
+					{
+						// eslint-disable-next-line camelcase
+						wc_stripe_express_checkout_settings_params?.is_subscriptions_active && (
+							<li>
+								<CheckboxControl
+									disabled={ ! isExpressCheckoutEnabled }
+									checked={
+										isExpressCheckoutEnabled &&
+										expressCheckoutLocations.includes(
+											'change_payment_method'
+										)
+									}
+									onChange={ makeLocationChangeHandler(
+										'change_payment_method'
+									) }
+									label={ __(
+										'Change payment method for WooCommerce Subscriptions',
+										'woocommerce-gateway-stripe'
+									) }
+								/>
+							</li>
+						)
+					}
 				</ul>
 				<h4>
 					{ __( 'Call to action', 'woocommerce-gateway-stripe' ) }

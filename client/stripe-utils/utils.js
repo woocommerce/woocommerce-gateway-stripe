@@ -1,7 +1,7 @@
-/* global wc_stripe_upe_params, wc, wc_stripe_express_checkout_params */
+/* global wc_stripe_upe_params, wc_stripe_express_checkout_params */
+import { getSetting } from '@woocommerce/settings';
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { getAppearance } from '../styles/upe';
 import {
 	errorTypes,
 	errorCodes,
@@ -31,12 +31,9 @@ const getStripeServerData = () => {
 	// eslint-disable-next-line camelcase
 	if ( typeof wc_stripe_upe_params !== 'undefined' ) {
 		data = wc_stripe_upe_params; // eslint-disable-line camelcase
-	} else if (
-		typeof wc === 'object' &&
-		typeof wc.wcSettings !== 'undefined'
-	) {
-		// 'getSetting' has this data value on block checkout only.
-		data = wc.wcSettings?.getSetting( 'stripe_data' ) || null;
+	} else {
+		// 'stripe_data' is available via wc-settings on block checkout only.
+		data = getSetting( 'stripe_data', null );
 	}
 
 	if ( ! data ) {
@@ -460,9 +457,11 @@ export const getHiddenBillingFields = ( enabledBillingFields ) => {
 			line1: enabledBillingFields.includes( 'billing_address_1' )
 				? 'never'
 				: 'auto',
-			line2: enabledBillingFields.includes( 'billing_address_2' )
-				? 'never'
-				: 'auto',
+			// Line 2 should never be collected by Stripe.
+			// It is not _required_ in any situations, and the are various cases where line 2
+			// is hidden in WooCommerce. When the WooCommerce field has been hidden
+			// by merchants, we don't want Stripe to collect it within the payment element.
+			line2: 'never',
 			city: enabledBillingFields.includes( 'billing_city' )
 				? 'never'
 				: 'auto',
@@ -503,6 +502,21 @@ export const getUpeSettings = () => {
 	}
 
 	return upeSettings;
+};
+
+export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
+	const existingElement = form.find( 'input#wc_stripe_checkout_session_id' );
+	if ( existingElement.length ) {
+		existingElement.val( checkoutSessionId );
+		return;
+	}
+
+	const hiddenInput = document.createElement( 'input' );
+	hiddenInput.type = 'hidden';
+	hiddenInput.id = 'wc_stripe_checkout_session_id';
+	hiddenInput.name = 'wc_stripe_checkout_session_id';
+	hiddenInput.value = checkoutSessionId;
+	form.append( hiddenInput );
 };
 
 /**
@@ -604,6 +618,123 @@ export const getDefaultValues = ( forCheckoutSession = false ) => {
 			},
 		},
 	};
+};
+
+/**
+ * Reads a value from a field by element id.
+ *
+ * @param {string} id HTML id attribute.
+ * @return {string} Field value, or empty string when missing.
+ */
+const getFieldValue = ( id ) => {
+	const value = document.getElementById( id )?.value;
+	return typeof value === 'string' ? value.trim() : '';
+};
+
+/**
+ * Normalizes a WooCommerce country code for Stripe (uppercase ISO 3166-1 alpha-2 when applicable).
+ *
+ * @param {string} country Raw country from the form.
+ * @return {string} If country is a two-letter string, return the uppercase value. If country is some other string, return that value. For falsy values of country, return ''.
+ */
+const normalizeCountryForStripe = ( country ) => {
+	if ( ! country ) {
+		return '';
+	}
+	return country.length === 2 ? country.toUpperCase() : country;
+};
+
+/**
+ * Reads billing, shipping, email, and (when applicable) phone from the classic WooCommerce checkout
+ * form and returns to use in Stripe Custom Checkout `confirm()` args.
+ *
+ * @param {Object} currentSession The current session object.
+ * @return {Object} Partial confirm args: `billingAddress`, optional `shippingAddress`, optional `email`, optional `phoneNumber`.
+ */
+export const getUserDataForCheckoutSession = ( currentSession = null ) => {
+	const result = {};
+
+	const stripeServerData = getStripeServerData();
+	const isPayerPhoneRequired = Boolean(
+		stripeServerData?.isPayerPhoneRequired
+	);
+
+	const billingFirstName = getFieldValue( 'billing_first_name' );
+	const billingLastName = getFieldValue( 'billing_last_name' );
+	const billingName = `${ billingFirstName } ${ billingLastName }`.trim();
+
+	if ( ! currentSession?.billingAddress ) {
+		const billingCountry = normalizeCountryForStripe(
+			getFieldValue( 'billing_country' )
+		);
+
+		const billingAddress = {
+			name: billingName,
+			address: {
+				country: billingCountry || undefined,
+				line1: getFieldValue( 'billing_address_1' ) || undefined,
+				line2: getFieldValue( 'billing_address_2' ) || undefined,
+				state: getFieldValue( 'billing_state' ) || undefined,
+				city: getFieldValue( 'billing_city' ) || undefined,
+				postal_code: getFieldValue( 'billing_postcode' ) || undefined,
+			},
+		};
+		result.billingAddress = billingAddress;
+	}
+
+	if ( ! currentSession?.shippingAddress ) {
+		const shippingLine1 = getFieldValue( 'shipping_address_1' );
+		const shippingCountry = normalizeCountryForStripe(
+			getFieldValue( 'shipping_country' )
+		);
+
+		// Stripe requires at minimum line1 and country for a valid shipping address.
+		// Skip shipping entirely if either of these two fields is absent from the form.
+		if ( shippingLine1 && shippingCountry ) {
+			const shippingFirstName = getFieldValue( 'shipping_first_name' );
+			const shippingLastName = getFieldValue( 'shipping_last_name' );
+			let shippingName =
+				`${ shippingFirstName } ${ shippingLastName }`.trim();
+
+			if ( ! shippingName ) {
+				shippingName = billingName;
+			}
+
+			const shippingAddress = {
+				name: shippingName,
+				address: {
+					country: shippingCountry,
+					line1: shippingLine1,
+					line2: getFieldValue( 'shipping_address_2' ) || undefined,
+					state: getFieldValue( 'shipping_state' ) || undefined,
+					city: getFieldValue( 'shipping_city' ) || undefined,
+					postal_code:
+						getFieldValue( 'shipping_postcode' ) || undefined,
+				},
+			};
+			result.shippingAddress = shippingAddress;
+		}
+	}
+
+	if ( ! currentSession?.email ) {
+		const email =
+			getFieldValue( 'billing_email' ) || getFieldValue( 'email' );
+		if ( email ) {
+			result.email = email;
+		}
+	}
+
+	if ( ! currentSession?.phoneNumber ) {
+		const billingOrShippingPhone =
+			getFieldValue( 'billing_phone' ) ||
+			getFieldValue( 'shipping_phone' );
+
+		if ( isPayerPhoneRequired && billingOrShippingPhone ) {
+			result.phoneNumber = billingOrShippingPhone;
+		}
+	}
+
+	return result;
 };
 
 /**
@@ -761,39 +892,6 @@ export const showErrorPaymentMethod = ( errorMessage, containerSelector ) => {
 	$container.find( '.woocommerce-error' ).remove();
 
 	$container.prepend( messageWrapper );
-};
-
-// In-memory cache for computed appearance objects, keyed by checkout type.
-// Avoids redundant getComputedStyle() calls within a single page load.
-const appearanceCache = {};
-
-/**
- * Initializes the appearance of the payment element. Returns a cached value
- * when available, otherwise computes from the current page styles and caches
- * the result for the lifetime of the page.
- *
- * @param {string} isBlockCheckout Whether the checkout is being used in a block context.
- *
- * @return {Object} The appearance object for the UPE.
- */
-export const initializeUPEAppearance = ( isBlockCheckout = 'false' ) => {
-	const isBlocks = isBlockCheckout === 'true';
-	const location = isBlocks ? 'blocks' : 'classic';
-
-	// Check for custom appearance configuration from the server.
-	const customServerField = isBlocks ? 'blocksAppearance' : 'appearance';
-	const customAppearance = getStripeServerData()?.[ customServerField ];
-	if ( customAppearance ) {
-		return customAppearance;
-	}
-
-	if ( appearanceCache[ location ] ) {
-		return appearanceCache[ location ];
-	}
-
-	const appearance = getAppearance( isBlocks );
-	appearanceCache[ location ] = appearance;
-	return appearance;
 };
 
 /**
@@ -977,7 +1075,8 @@ export const maybeClearBlikCodeValidation = () => {
  * @return {string} The base font size.
  */
 export const getFontSizeBase = ( defaultFontSize ) => {
-	if ( getStripeServerData()?.isOCEnabled && defaultFontSize ) {
+	const stripeServerData = getStripeServerData();
+	if ( stripeServerData?.shouldShowOptimizedCheckout && defaultFontSize ) {
 		// Find numbers for font size.
 		const matches = defaultFontSize.match( /(\d+(?:\.\d+)?)/ );
 		if ( matches.length > 0 ) {

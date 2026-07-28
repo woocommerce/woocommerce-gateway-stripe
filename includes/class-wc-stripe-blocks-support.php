@@ -40,7 +40,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			);
 		}
 
-		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_payment_request_order_meta' ], 8, 2 );
+		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_express_checkout_order_meta' ], 8, 2 );
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_stripe_intents' ], 9999, 2 );
 
 		if ( null === $express_checkout_configuration ) {
@@ -333,8 +333,10 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	}
 
 	/**
-	 * Add payment request data to the order meta as hooked on the
+	 * Add express checkout data to the order meta as hooked on the
 	 * woocommerce_rest_checkout_process_payment_with_context action.
+	 *
+	 * @deprecated 10.6.0 Use add_express_checkout_order_meta() instead.
 	 *
 	 * @param PaymentContext $context Holds context for the payment.
 	 * @param PaymentResult  $result  Result object for the payment.
@@ -342,10 +344,22 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return void
 	 */
 	public function add_payment_request_order_meta( PaymentContext $context, PaymentResult &$result ) {
+		wc_deprecated_function( __METHOD__, '10.6.0', 'WC_Stripe_Blocks_Support::add_express_checkout_order_meta' );
+		$this->add_express_checkout_order_meta( $context, $result );
+	}
+
+	/**
+	 * Add express checkout data to the order meta as hooked on the
+	 * woocommerce_rest_checkout_process_payment_with_context action.
+	 *
+	 * @param PaymentContext $context Holds context for the payment.
+	 * @param PaymentResult  $result  Result object for the payment.
+	 *
+	 * @return void
+	 */
+	public function add_express_checkout_order_meta( PaymentContext $context, PaymentResult &$result ) {
 		$data = $context->payment_data;
-		if ( ! empty( $data['payment_request_type'] ) && 'stripe' === $context->payment_method ) {
-			$this->add_order_meta( $context->order, $data['payment_request_type'] );
-		} elseif ( ! empty( $data['express_checkout_type'] ) && 'stripe' === $context->payment_method ) {
+		if ( ! empty( $data['express_checkout_type'] ) && 'stripe' === $context->payment_method ) {
 			$this->add_order_meta( $context->order, $data['express_checkout_type'] );
 		}
 
@@ -436,16 +450,16 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	}
 
 	/**
-	 * Handles adding information about the payment request type used to the order meta.
+	 * Handles adding information about the express checkout type used to the order meta.
 	 *
 	 * @param \WC_Order $order                The order being processed.
-	 * @param string    $payment_request_type The payment request type used for payment.
+	 * @param string    $express_checkout_type The express checkout type used for payment.
 	 *
 	 * @return void
 	 */
-	private function add_order_meta( \WC_Order $order, $payment_request_type ) {
+	private function add_order_meta( \WC_Order $order, $express_checkout_type ) {
 		$payment_method_title = '';
-		switch ( $payment_request_type ) {
+		switch ( $express_checkout_type ) {
 			case WC_Stripe_Payment_Methods::APPLE_PAY:
 				$payment_method_title = WC_Stripe_Payment_Methods::APPLE_PAY_LABEL;
 				break;

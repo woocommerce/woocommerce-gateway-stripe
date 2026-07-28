@@ -1,0 +1,44 @@
+{
+   "error":{
+      "charge":"ch_radar_blocked_123",
+      "code":"card_declined",
+      "decline_code":"do_not_honor",
+      "message":"Your card was declined.",
+      "payment_intent":{
+         "id":"pi_radar_blocked_123",
+         "object":"payment_intent",
+         "amount":2000,
+         "amount_capturable":0,
+         "amount_received":0,
+         "canceled_at":null,
+         "cancellation_reason":null,
+         "capture_method":"automatic",
+         "confirmation_method":"automatic",
+         "created":1565731413,
+         "currency":"usd",
+         "customer":"cus_123abc",
+         "description":"",
+         "last_payment_error":{
+            "charge":"ch_radar_blocked_123",
+            "code":"card_declined",
+            "decline_code":"do_not_honor",
+            "message":"Your card was declined.",
+            "type":"card_error"
+         },
+         "latest_charge":"ch_radar_blocked_123",
+         "livemode":false,
+         "metadata":{
+            "customer_name":"Test User",
+            "customer_email":"test@example.org",
+            "order_id":"6",
+            "payment_type":"recurring"
+         },
+         "next_action":null,
+         "payment_method_types":[
+            "card"
+         ],
+         "status":"requires_payment_method"
+      },
+      "type":"card_error"
+   }
+}

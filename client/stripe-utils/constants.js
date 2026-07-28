@@ -3,7 +3,6 @@
  */
 export const PAYMENT_METHOD_BLIK = 'blik';
 export const PAYMENT_METHOD_CARD = 'card';
-export const PAYMENT_METHOD_GIROPAY = 'giropay';
 export const PAYMENT_METHOD_EPS = 'eps';
 export const PAYMENT_METHOD_IDEAL = 'ideal';
 export const PAYMENT_METHOD_P24 = 'p24';
@@ -35,7 +34,6 @@ export const PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY = 'apple_pay_google_pay';
 export const PAYMENT_METHOD_STRIPE_CARD = 'stripe';
 export const PAYMENT_METHOD_STRIPE_ACH = 'stripe_us_bank_account';
 export const PAYMENT_METHOD_STRIPE_BLIK = 'stripe_blik';
-export const PAYMENT_METHOD_STRIPE_GIROPAY = 'stripe_giropay';
 export const PAYMENT_METHOD_STRIPE_EPS = 'stripe_eps';
 export const PAYMENT_METHOD_STRIPE_IDEAL = 'stripe_ideal';
 export const PAYMENT_METHOD_STRIPE_P24 = 'stripe_p24';
@@ -62,7 +60,6 @@ export function getPaymentMethodsConstants() {
 		card: PAYMENT_METHOD_STRIPE_CARD,
 		us_bank_account: PAYMENT_METHOD_STRIPE_ACH,
 		au_becs_debit: PAYMENT_METHOD_STRIPE_BECS,
-		giropay: PAYMENT_METHOD_STRIPE_GIROPAY,
 		eps: PAYMENT_METHOD_STRIPE_EPS,
 		ideal: PAYMENT_METHOD_STRIPE_IDEAL,
 		p24: PAYMENT_METHOD_STRIPE_P24,
@@ -159,7 +156,6 @@ export const NON_REUSABLE_METHODS = [
 	PAYMENT_METHOD_BECS,
 	PAYMENT_METHOD_BOLETO,
 	PAYMENT_METHOD_EPS,
-	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_MULTIBANCO,
 	PAYMENT_METHOD_P24,
 	PAYMENT_METHOD_OXXO,
@@ -188,3 +184,15 @@ export const PAYMENT_METHOD_UNAVAILABLE_REASONS = {
  * @type {string}
  */
 export const OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT = 'accordion';
+
+/**
+ * Stripe.js options to hide the Stripe testing assistant on newer versions of Stripe.js.
+ * This may be overridden from the server in when in test mode.
+ */
+export const STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT = {
+	developerTools: {
+		assistant: {
+			enabled: false,
+		},
+	},
+};

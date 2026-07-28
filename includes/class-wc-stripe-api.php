@@ -13,8 +13,9 @@ class WC_Stripe_API {
 	/**
 	 * Stripe API Endpoint
 	 */
-	const ENDPOINT           = 'https://api.stripe.com/v1/';
-	const STRIPE_API_VERSION = '2025-09-30.clover';
+	public const ENDPOINT                     = 'https://api.stripe.com/v1/';
+	public const STRIPE_API_VERSION           = '2025-09-30.clover';
+	public const AGENTIC_COMMERCE_API_VERSION = '2025-12-15.preview';
 
 	/**
 	 * The invalid API key error count cache key.
@@ -146,7 +147,7 @@ class WC_Stripe_API {
 		$app_info   = $user_agent['application'];
 
 		$headers = [
-			'Authorization' => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
+			'Authorization'  => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
 			'Stripe-Version' => self::STRIPE_API_VERSION,
 		];
 
@@ -246,7 +247,10 @@ class WC_Stripe_API {
 			]
 		);
 
-		$response = wp_safe_remote_post(
+		// Use wp_remote_post() instead of wp_safe_remote_post() as we have a hard-coded URL
+		// and the safe version fails when there are DNS resolution issues.
+		// See https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4801
+		$response = wp_remote_post(
 			self::ENDPOINT . $api,
 			[
 				'method'  => $method,
@@ -258,18 +262,37 @@ class WC_Stripe_API {
 
 		$response_headers = wp_remote_retrieve_headers( $response );
 
-		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
+		if ( WC_Stripe_API_Outage_Status::is_outage_response( $response ) ) {
+			WC_Stripe_API_Outage_Status::record_outage();
+
 			$error_data = [
-				'stripe_api_key'    => $masked_secret_key,
-				'request'           => $request,
-				'idempotency_key'   => $idempotency_key,
+				'stripe_api_key'  => $masked_secret_key,
+				'request'         => $request,
+				'idempotency_key' => $idempotency_key,
+			];
+			self::log_error_response( $response, $api, $method, $error_data );
+
+			throw new WC_Stripe_Exception(
+				print_r( $response, true ),
+				__( 'The Stripe API is temporarily unavailable. Please try again in a few minutes.', 'woocommerce-gateway-stripe' )
+			);
+		}
+
+		WC_Stripe_API_Outage_Status::record_success();
+
+		$response_body_raw = wp_remote_retrieve_body( $response );
+		if ( empty( $response_body_raw ) ) {
+			$error_data = [
+				'stripe_api_key'  => $masked_secret_key,
+				'request'         => $request,
+				'idempotency_key' => $idempotency_key,
 			];
 			self::log_error_response( $response, $api, $method, $error_data );
 
 			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem sending a request to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		$response_body = json_decode( $response['body'] );
+		$response_body = json_decode( $response_body_raw );
 
 		WC_Stripe_Logger::debug(
 			"Stripe API response: {$method} {$api}",
@@ -321,7 +344,10 @@ class WC_Stripe_API {
 			]
 		);
 
-		$response = wp_safe_remote_get(
+		// Use wp_remote_get() instead of wp_safe_remote_get() as we have a hard-coded URL
+		// and the safe version fails when there are DNS resolution issues.
+		// See https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4801
+		$response = wp_remote_get(
 			self::ENDPOINT . $api,
 			[
 				'method'  => 'GET',
@@ -329,6 +355,19 @@ class WC_Stripe_API {
 				'timeout' => 70,
 			]
 		);
+
+		if ( WC_Stripe_API_Outage_Status::is_outage_response( $response ) ) {
+			WC_Stripe_API_Outage_Status::record_outage();
+
+			self::log_error_response( $response, $api, 'GET' );
+
+			return new WP_Error(
+				'stripe_api_outage',
+				__( 'The Stripe API is temporarily unavailable. Please try again in a few minutes.', 'woocommerce-gateway-stripe' )
+			);
+		}
+
+		WC_Stripe_API_Outage_Status::record_success();
 
 		// If we get a 401 error, we know the secret key is not valid.
 		if ( is_array( $response ) && isset( $response['response'] ) && is_array( $response['response'] ) && isset( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
@@ -368,7 +407,8 @@ class WC_Stripe_API {
 			WC_Stripe_Database_Cache::delete( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 		}
 
-		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
+		$response_body_raw = wp_remote_retrieve_body( $response );
+		if ( empty( $response_body_raw ) ) {
 			$error_data = [
 				'stripe_api_key' => $masked_secret_key,
 			];
@@ -377,7 +417,7 @@ class WC_Stripe_API {
 			return new WP_Error( 'stripe_error', __( 'There was a problem retrieving data from the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		$response_body = json_decode( $response['body'] );
+		$response_body = json_decode( $response_body_raw );
 
 		WC_Stripe_Logger::debug(
 			"Stripe API response: GET {$api}",
@@ -674,7 +714,7 @@ class WC_Stripe_API {
 	 */
 	private static function log_error_response( $response, string $api, string $method, array $data = [] ): void {
 		$error_message = "Stripe API error: {$method} {$api}";
-		$error_data = array_merge(
+		$error_data    = array_merge(
 			$data,
 			[
 				'stripe_request_id' => self::get_stripe_request_id( $response ),
@@ -697,7 +737,7 @@ class WC_Stripe_API {
 			if ( $resolved_ip_address === $stripe_api_host ) {
 				$error_data['validation_details'] = "$stripe_api_host could not be resolved to an IP address";
 			} else {
-				$error_message .= "; Possible DNS resolution problem for $stripe_api_host";
+				$error_message                   .= "; Possible DNS resolution problem for $stripe_api_host";
 				$error_data['validation_details'] = "$stripe_api_host resolved to $resolved_ip_address";
 			}
 		}
