@@ -90,6 +90,23 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * An empty slug (or a bare gateway prefix) must not read the malformed
+	 * "woocommerce_stripe__settings" option.
+	 *
+	 * @return void
+	 */
+	public function test_get_payment_method_settings_returns_empty_for_empty_slug(): void {
+		update_option( 'woocommerce_stripe__settings', [ 'foo' => 'bar' ] );
+
+		try {
+			$this->assertSame( [], WC_Stripe::get_payment_method_settings( '' ) );
+			$this->assertSame( [], WC_Stripe::get_payment_method_settings( 'stripe_' ) );
+		} finally {
+			delete_option( 'woocommerce_stripe__settings' );
+		}
+	}
+
+	/**
 	 * Provider for `test_get_payment_method_settings_reads_raw_option`.
 	 *
 	 * @return array

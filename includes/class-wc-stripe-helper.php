@@ -46,7 +46,9 @@ class WC_Stripe_Helper {
 	 * Get the main Stripe settings option.
 	 *
 	 * Delegates to the canonical accessors on WC_Stripe so there is a single
-	 * settings code path. Will be deprecated once in-tree callers migrate.
+	 * settings code path.
+	 *
+	 * @deprecated 10.9.0 Use WC_Stripe::get_instance()->get_settings() or WC_Stripe::get_payment_method_settings() instead.
 	 *
 	 * @param string $method (Optional) The payment method to get the settings from.
 	 * @return array $settings The Stripe settings.
@@ -63,7 +65,9 @@ class WC_Stripe_Helper {
 	 * Update the main Stripe settings option.
 	 *
 	 * Delegates to the canonical accessor on WC_Stripe so there is a single
-	 * settings code path. Will be deprecated once in-tree callers migrate.
+	 * settings code path.
+	 *
+	 * @deprecated 10.9.0 Use WC_Stripe::get_instance()->update_settings() instead.
 	 *
 	 * @param $options array The Stripe settings.
 	 * @return void

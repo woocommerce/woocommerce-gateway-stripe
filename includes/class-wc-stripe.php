@@ -57,8 +57,13 @@ class WC_Stripe {
 
 		// Gateway ids are the slug with a "stripe_" prefix and target the same
 		// option, so accept them rather than silently reading a wrong option.
-		if ( 0 === strpos( $method_slug, 'stripe_' ) ) {
+		if ( str_starts_with( $method_slug, 'stripe_' ) ) {
 			$method_slug = substr( $method_slug, strlen( 'stripe_' ) );
+		}
+
+		// An empty slug would resolve to the nonsensical "woocommerce_stripe__settings" option.
+		if ( '' === $method_slug ) {
+			return [];
 		}
 
 		$settings = get_option( 'woocommerce_stripe_' . $method_slug . '_settings', [] );
