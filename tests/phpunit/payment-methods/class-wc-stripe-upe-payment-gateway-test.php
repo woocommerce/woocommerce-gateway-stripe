@@ -5567,7 +5567,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		try {
 			$gateway = new WC_Stripe_UPE_Payment_Gateway();
-			$this->assertSame( [], $gateway->get_country_excluded_payment_method_types() );
+			$method  = new ReflectionMethod( $gateway, 'get_country_excluded_payment_method_types' );
+			$method->setAccessible( true );
+
+			$this->assertSame( [], $method->invoke( $gateway ) );
 		} finally {
 			set_current_screen( 'front' );
 		}

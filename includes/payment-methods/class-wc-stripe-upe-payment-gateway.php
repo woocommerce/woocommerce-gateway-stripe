@@ -862,7 +862,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return string[] Payment method types excluded for the current billing country.
 	 */
-	public function get_country_excluded_payment_method_types(): array {
+	private function get_country_excluded_payment_method_types(): array {
 		// The block editor preview has no customer (the country resolves to
 		// empty) and no recompute path, so filtering there would blank out
 		// every restricted method from the preview.
