@@ -3261,7 +3261,7 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$webhook_notification of method WC_Stripe_Webhook_Handler\:\:defer_webhook_processing\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
-			count: 3
+			count: 4
 			path: includes/class-wc-stripe-webhook-handler.php
 
 
@@ -3843,12 +3843,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$product of method WC_Stripe_Express_Checkout_Helper\:\:get_product_price\(\) expects object, WC_Product\|false\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
-			message: '#^Parameter \#1 \$product of method WC_Stripe_Express_Checkout_Helper\:\:get_taxes_like_cart\(\) expects WC_Product, WC_Product\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
@@ -4893,12 +4887,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$payment_method of method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_gateway_id_for_order\(\) expects WC_Stripe_UPE_Payment_Method, WC_Stripe_UPE_Payment_Method\|null given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#1 \$price of function wc_price expects float, string given\.$#'
 			identifier: argument.type
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php

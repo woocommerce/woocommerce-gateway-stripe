@@ -1563,7 +1563,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						return;
 					}
 
-					$this->handle_deferred_payment_intent_succeeded( $order, $intent_id );
+					$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+					// Serialize against the order-received redirect handler, which holds this same
+					// lock. Without it both paths settle concurrently; the loser no-ops on an
+					// already-paid order, so the initial paid transition's emails never fire. Re-queue
+					// while locked — the lock's 5-minute TTL bounds the retry.
+					if ( $order_helper->lock_order_payment( $order ) ) {
+						$this->defer_webhook_processing( $notification, $additional_data, $this->locked_order_retry_delay );
+						return;
+					}
+
+					try {
+						$this->handle_deferred_payment_intent_succeeded( $order, $intent_id );
+					} finally {
+						$order_helper->unlock_order_payment( $order );
+					}
 					break;
 				case 'checkout.session.completed':
 				case 'checkout.session.async_payment_succeeded':
@@ -1991,8 +2006,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$charge->is_webhook_response = true;
 			$this->process_response( $charge, $order );
 
-			// Schedule a job to store the order description and remaining metadata on the payment intent.
-			// The session is created from the cart before the order exists, so neither could be set at creation.
+			// The checkout session is created from the cart before the order exists, so the intent starts
+			// without order description or metadata. Backfill them here with the same values the standard
+			// non-session flow attaches at intent creation, so Adaptive Pricing transactions aren't missing
+			// the order/customer identifiers merchants rely on.
 			if ( ! empty( $intent_id ) ) {
 				$this->action_scheduler_service->schedule_job(
 					time() + $this->process_payment_intent_metadata_delay,
@@ -2001,7 +2018,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						'payment_intent_id' => $intent_id,
 						'request'           => [
 							'description' => WC_Stripe_Helper::get_payment_intent_description( $order ),
-							'metadata'    => $this->get_order_metadata( $order ),
+							'metadata'    => $this->get_metadata_from_order( $order ),
 						],
 					]
 				);

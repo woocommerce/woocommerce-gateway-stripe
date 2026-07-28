@@ -13,8 +13,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * REST base path.
 	 */
-	const REST_BASE    = '/wc/v3/wc_stripe/agentic-commerce';
-	const STATUS_ROUTE = self::REST_BASE . '/status';
+	const REST_BASE     = '/wc/v3/wc_stripe/agentic-commerce';
+	const STATUS_ROUTE  = self::REST_BASE . '/status';
+	const PREVIEW_ROUTE = self::REST_BASE . '/preview';
 
 	/**
 	 * Controller under test.
@@ -175,9 +176,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * GET returns history entries in reverse-chronological order, capped at 20.
+	 * GET returns history newest-first, capped at the 5 most recent.
 	 */
-	public function test_get_status_returns_history_newest_first_capped_at_20(): void {
+	public function test_get_status_returns_history_newest_first_capped_at_5(): void {
 		// Store 25 entries oldest-first.
 		$history = [];
 		for ( $i = 1; $i <= 25; $i++ ) {
@@ -197,12 +198,12 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 		$returned = $response->get_data()['history'];
 
-		// Only the 20 most recent entries should be returned.
-		$this->assertCount( 20, $returned );
+		// Only the 5 most recent entries should be returned.
+		$this->assertCount( 5, $returned );
 
-		// Newest first: entry 25 should be at index 0, entry 6 at index 19.
+		// Newest first: entry 25 should be at index 0, entry 21 at index 4.
 		$this->assertEquals( 'impset_25', $returned[0]['import_set_id'] );
-		$this->assertEquals( 'impset_6', $returned[19]['import_set_id'] );
+		$this->assertEquals( 'impset_21', $returned[4]['import_set_id'] );
 	}
 
 	/**
@@ -955,6 +956,83 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
+	// GET /wc/v3/wc_stripe/agentic-commerce/preview
+	// -------------------------------------------------------------------------
+
+	/**
+	 * GET /preview returns 200 with the summary counts and validation error list.
+	 */
+	public function test_get_preview_returns_summary_shape(): void {
+		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Feed_Preview' ) ) {
+			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Feed_Preview class not loaded' );
+		}
+
+		$request  = new WP_REST_Request( 'GET', self::PREVIEW_ROUTE );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$data = $response->get_data();
+		foreach ( [ 'total_count', 'included_count', 'excluded_count', 'invalid_count', 'truncated' ] as $key ) {
+			$this->assertArrayHasKey( $key, $data );
+			$this->assertIsInt( $data[ $key ] );
+		}
+		$this->assertArrayHasKey( 'validation_errors', $data );
+		$this->assertIsArray( $data['validation_errors'] );
+	}
+
+	/**
+	 * GET /preview reflects a product that fails feed validation: it is counted
+	 * as invalid and listed with its name and an edit link.
+	 */
+	public function test_get_preview_surfaces_invalid_product(): void {
+		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Feed_Preview' ) ) {
+			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Feed_Preview class not loaded' );
+		}
+
+		// A priced-less published product fails the feed's "price required" rule.
+		$product = new WC_Product_Simple();
+		$product->set_name( 'Preview Invalid Product' );
+		$product->set_status( 'publish' );
+		$product->save();
+
+		$restrict = static function ( $args ) use ( $product ) {
+			$args['include'] = [ $product->get_id() ];
+			return $args;
+		};
+		add_filter( 'wc_stripe_agentic_commerce_product_query_args', $restrict );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::PREVIEW_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_product_query_args', $restrict );
+			$product->delete( true );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$data = $response->get_data();
+		$this->assertSame( 1, $data['total_count'] );
+		$this->assertSame( 1, $data['invalid_count'] );
+		$this->assertCount( 1, $data['validation_errors'] );
+		$this->assertSame( 'Preview Invalid Product', $data['validation_errors'][0]['product_name'] );
+		$this->assertNotEmpty( $data['validation_errors'][0]['errors'] );
+	}
+
+	/**
+	 * Unauthenticated GET /preview requests should be refused.
+	 */
+	public function test_get_preview_requires_auth(): void {
+		wp_set_current_user( 0 );
+
+		$request  = new WP_REST_Request( 'GET', self::PREVIEW_ROUTE );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 401, $response->get_status() );
+	}
+
+	// -------------------------------------------------------------------------
 	// GET /wc/v3/wc_stripe/agentic-commerce/settings
 	// -------------------------------------------------------------------------
 
@@ -1008,6 +1086,18 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * GET /settings reports the checkout mode, defaulting to embedded (false).
+	 */
+	public function test_get_settings_reflects_disable_checkout(): void {
+		$request = new WP_REST_Request( 'GET', self::REST_BASE . '/settings' );
+		$this->assertArrayHasKey( 'disable_checkout', rest_do_request( $request )->get_data() );
+		$this->assertFalse( rest_do_request( $request )->get_data()['disable_checkout'] );
+
+		update_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION, 'yes' );
+		$this->assertTrue( rest_do_request( $request )->get_data()['disable_checkout'] );
+	}
+
+	/**
 	 * Unauthenticated GET /settings requests should be refused.
 	 */
 	public function test_get_settings_requires_auth(): void {
@@ -1035,6 +1125,28 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertTrue( $response->get_data()['is_enabled'] );
 		$this->assertSame( 'yes', get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION ) );
+	}
+
+	/**
+	 * POST /settings persists the checkout mode toggle to its option.
+	 */
+	public function test_update_settings_persists_disable_checkout(): void {
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'disable_checkout' => true ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertTrue( $response->get_data()['disable_checkout'] );
+		$this->assertSame( 'yes', get_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION ) );
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'disable_checkout' => false ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertFalse( $response->get_data()['disable_checkout'] );
+		$this->assertSame( 'no', get_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION ) );
 	}
 
 	/**
@@ -1184,8 +1296,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public static function unauthorized_route_provider(): array {
 		return [
-			'GET status' => [ 'GET', self::REST_BASE . '/status' ],
-			'POST sync'  => [ 'POST', self::REST_BASE . '/sync' ],
+			'GET status'  => [ 'GET', self::REST_BASE . '/status' ],
+			'GET preview' => [ 'GET', self::REST_BASE . '/preview' ],
+			'POST sync'   => [ 'POST', self::REST_BASE . '/sync' ],
 		];
 	}
 
