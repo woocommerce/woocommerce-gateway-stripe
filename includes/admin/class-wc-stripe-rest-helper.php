@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 10.9.0
  */
-abstract class WC_Stripe_REST_Helper extends WC_Stripe_REST_Base_Controller {
+abstract class WC_Stripe_REST_Helper {
 	/**
 	 * Given an incoming REST request, build and return an array of query parameters to be appended to Stripe API request URL.
 	 *
@@ -20,7 +20,7 @@ abstract class WC_Stripe_REST_Helper extends WC_Stripe_REST_Base_Controller {
 	 *
 	 * @return array
 	 */
-	public static function build_http_query_array_from_request( $request, $rest_args ): array {
+	public static function build_http_query_array_from_request( $request, $rest_args, $expand = [] ): array {
 		/**
 		 * Route args.
 		 *
@@ -40,12 +40,13 @@ abstract class WC_Stripe_REST_Helper extends WC_Stripe_REST_Base_Controller {
 			$search_params[ $search_param_name ] = $search_param_value;
 
 			if ( 'query' === $search_param_name ) {
-				$has_query = true;
+				$search_params = [ 'query' => static::build_query_param( $request->get_param( 'query' ) ) ];
+				break;
 			}
 		}
 
-		if ( $has_query ) {
-			$search_params = [ 'query' => static::build_query_param( $request->get_param( 'query' ) ) ];
+		if ( $expand ) {
+			$search_params['expand'] = $expand;
 		}
 
 		return $search_params;
@@ -76,8 +77,8 @@ abstract class WC_Stripe_REST_Helper extends WC_Stripe_REST_Base_Controller {
 	 *
 	 * @return string
 	 */
-	public static function build_http_query_string_from_request( $request, $rest_args ): string {
-		return http_build_query( WC_Stripe_REST_Helper::build_http_query_array_from_request( $request, $rest_args ) );
+	public static function build_http_query_string_from_request( $request, $rest_args, $expand = [] ): string {
+		return http_build_query( WC_Stripe_REST_Helper::build_http_query_array_from_request( $request, $rest_args, $expand ) );
 	}
 
 	/**

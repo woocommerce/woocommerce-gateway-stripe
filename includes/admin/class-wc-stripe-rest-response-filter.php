@@ -146,4 +146,49 @@ abstract class WC_Stripe_REST_Response_Filter {
 	public static function date_format( $value ) {
 		return gmdate( 'F j, Y', $value );
 	}
+
+	/**
+	 * Format a payment method details as a string
+	 *
+	 * @param object $value The payment method details.
+	 *
+	 * @return string
+	 */
+	public static function payment_method_details_format( $value ) {
+		switch ( $value->type ) {
+			case 'card':
+				$result = ucfirst( $value->card->network );
+
+				if ( isset( $value->card->last4 ) ) {
+					$result .= ' (•••• ' . $value->card->last4 . ')';
+				}
+				break;
+			default:
+				$result = '';
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Format a payment destination as a string
+	 *
+	 * @param object $value The payment method details.
+	 *
+	 * @return string
+	 */
+	public static function destination_bank_format( $value ) {
+		return ( $value->bank_name ? ' ' . $value->bank_name : '' ) . '( •••• ' . ( $value->last4 ?? '••••' ) . ' )';
+	}
+
+	/**
+	 * Format a status
+	 *
+	 * @param object $value The payment method details.
+	 *
+	 * @return string
+	 */
+	public static function status_format( $value ) {
+		return ucfirst( str_replace( '_', ' ', $value ) );
+	}
 }

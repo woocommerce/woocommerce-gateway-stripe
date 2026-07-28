@@ -87,27 +87,51 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	];
 
 	protected array $stripe_response_allowed_fields = [
-		'object'                               => '',
-		'has_more'                             => '',
-		'data.id'                              => '',
-		'data.created'                         => [ WC_Stripe_REST_Response_Filter::class, 'date_format' ],
-		'data.amount'                          => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
-		'data.amount_received'                 => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
-		'data.currency'                        => 'strtoupper',
-		'data.payment_details.order_reference' => '',
-		'data.status'                          => '',
+		'object'                                    => '',
+		'has_more'                                  => '',
+		'data.id'                                   => '',
+		'data.payment_intent'                       => '',
+		'data.created'                              => [ WC_Stripe_REST_Response_Filter::class, 'date_format' ],
+		'data.amount'                               => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
+		'data.currency'                             => 'strtoupper',
+		'data.status'                               => [ WC_Stripe_REST_Response_Filter::class, 'status_format' ],
+		'data.description'                          => '',
+		'data.latest_charge.billing_details.name'   => '',
+		'data.latest_charge.payment_method_details' => [ WC_Stripe_REST_Response_Filter::class, 'payment_method_details_format' ],
 	];
 
 	protected array $stripe_details_response_allowed_fields = [
-		'object'                          => '',
-		'id'                              => '',
-		'created'                         => [ WC_Stripe_REST_Response_Filter::class, 'date_format' ],
-		'amount'                          => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
-		'amount_received'                 => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
-		'currency'                        => 'strtoupper',
-		'payment_details.order_reference' => '',
-		'status'                          => '',
-		'description'                     => '',
+		'object'                                                     => '',
+		'id'                                                         => '',
+		'created'                                                    => [ WC_Stripe_REST_Response_Filter::class, 'date_format' ],
+		'amount'                                                     => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
+		'amount_received'                                            => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
+		'currency'                                                   => 'strtoupper',
+		'payment_details.order_reference'                            => '',
+		'status'                                                     => [ WC_Stripe_REST_Response_Filter::class, 'status_format' ],
+		'description'                                                => '',
+		'latest_charge.balance_transaction.fee'                      => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
+		'latest_charge.balance_transaction.net'                      => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
+		'latest_charge.balance_transaction.currency'                 => 'strtoupper',
+		'latest_charge.billing_details'                              => '',
+		'latest_charge.payment_method_details.type'                  => 'ucfirst',
+		'latest_charge.payment_method_details.card.last4'            => '',
+		'latest_charge.payment_method_details.card.exp_month'        => '',
+		'latest_charge.payment_method_details.card.exp_year'         => '',
+		'latest_charge.payment_method_details.card.checks.cvc_check' => 'ucfirst',
+		'latest_charge.payment_method_details.card.brand'            => 'ucfirst',
+		'latest_charge.payment_method_details.card.funding'          => '',
+		'latest_charge.payment_method_details.card.country'          => 'strtoupper',
+	];
+
+	protected array $stripe_expand_fields = [
+		'data.latest_charge',
+	];
+
+	protected array $stripe_details_expand_fields = [
+		'latest_charge.balance_transaction',
+		'latest_charge.billing_details',
+		'latest_charge.payment_method_details',
 	];
 
 	/**
@@ -147,9 +171,11 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		$search_params = $request->get_params();
 
 		if ( isset( $search_params['id'] ) ) {
-			$stripe_url_ending = '/' . $search_params['id'];
+			$expand            = http_build_query( [ 'expand' => $this->stripe_details_expand_fields ] );
+			$stripe_url_ending = '/' . $search_params['id'] . '?' . $expand;
 		} else {
-			$stripe_url_ending = ( WC_Stripe_REST_Helper::is_search_request( $request ) ? '/search' : '' ) . '?' . WC_Stripe_REST_Helper::build_http_query_string_from_request( $request, $this->get_payment_intents_route_args() );
+			$expand            = http_build_query( [ 'expand' => $this->stripe_expand_fields ] );
+			$stripe_url_ending = ( WC_Stripe_REST_Helper::is_search_request( $request ) ? '/search' : '' ) . '?' . WC_Stripe_REST_Helper::build_http_query_string_from_request( $request, $this->get_payment_intents_route_args(), $this->stripe_expand_fields );
 		}
 
 		$response = WC_Stripe_API::retrieve( 'payment_intents' . $stripe_url_ending );

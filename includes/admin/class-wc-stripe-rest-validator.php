@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 10.9.0
  */
-abstract class WC_Stripe_REST_Validator extends WC_Stripe_REST_Base_Controller {
+abstract class WC_Stripe_REST_Validator {
 	public const QUERY_OPERATORS = [
 		'token'   => ':',
 		'string'  => [
