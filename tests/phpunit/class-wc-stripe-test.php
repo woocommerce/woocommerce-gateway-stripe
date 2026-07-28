@@ -18,11 +18,12 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		// Compare against the stored option rather than the literal written
 		// above: the pre_update_option filter merges defaults into the write.
+		$updated_settings = WC_Stripe::get_instance()->get_settings();
 		$this->assertSame(
 			get_option( WC_Stripe::SETTINGS_OPTION_NAME ),
-			WC_Stripe::get_instance()->get_settings()
+			$updated_settings
 		);
-		$this->assertSame( 'yes', WC_Stripe::get_instance()->get_settings()['enabled'] );
+		$this->assertSame( 'yes', $updated_settings['enabled'] );
 	}
 
 	/**
