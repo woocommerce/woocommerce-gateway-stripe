@@ -33,6 +33,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	protected const AGENTIC_SESSION_CLAIM_TTL = DAY_IN_SECONDS;
 
 	/**
+	 * Order meta flag recording that a late Stripe payment on a cancelled order was already
+	 * refunded/voided. Deferred webhooks are retried by Action Scheduler, and refunds are not
+	 * idempotent, so this guards against issuing a second refund on a retry.
+	 *
+	 * @var string
+	 */
+	protected const META_REFUNDED_AFTER_CANCELLATION = '_stripe_refunded_after_cancellation';
+
+	/**
 	 * Is test mode active?
 	 *
 	 * @var bool
@@ -1642,11 +1651,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						throw new Exception( "Missing required data. 'intent_id' is missing for the deferred '{$webhook_type}' event." );
 					}
 
+					// Cancelled orders route to a refund instead of the mark-as-paid path below.
+					// @see handle_deferred_payment_for_cancelled_order() for why.
+					$order_cancelled = $order->has_status( OrderStatus::CANCELLED );
+
 					// Check if the order is still in a valid state to process the webhook.
 					/**
 					 * This filter is documented in includes/class-wc-stripe-webhook-handler.php.
 					 */
-					if ( ! $order->has_status( apply_filters( 'wc_stripe_allowed_payment_processing_statuses', [ OrderStatus::PENDING, OrderStatus::FAILED ], $order ) ) ) {
+					if ( ! $order_cancelled && ! $order->has_status( apply_filters( 'wc_stripe_allowed_payment_processing_statuses', [ OrderStatus::PENDING, OrderStatus::FAILED ], $order ) ) ) {
 						WC_Stripe_Logger::debug( "Skipped processing deferred webhook for Stripe PaymentIntent {$intent_id} for order {$order->get_id()} - payment already complete." );
 						return;
 					}
@@ -1663,7 +1676,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					}
 
 					try {
-						$this->handle_deferred_payment_intent_succeeded( $order, $intent_id );
+						if ( $order_cancelled ) {
+							$this->handle_deferred_payment_for_cancelled_order( $order, $intent_id );
+						} else {
+							$this->handle_deferred_payment_intent_succeeded( $order, $intent_id );
+						}
 					} finally {
 						$order_helper->unlock_order_payment( $order );
 					}
@@ -1852,6 +1869,175 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$charge->is_webhook_response = true;
 		$this->process_response( $charge, $order );
+	}
+
+	/**
+	 * Handles a deferred payment webhook for an order the shopper already cancelled.
+	 *
+	 * A shopper can cancel an order while its payment is still settling in Stripe - for
+	 * example a slow 3DS confirmation that fails the return to checkout, after which the
+	 * shopper cancels the still-pending order. Stripe can then capture the payment and fire
+	 * payment_intent.succeeded (or authorise it and fire amount_capturable_updated) against
+	 * a cancelled order. Marking that order paid would silently run payment_complete(),
+	 * granting downloads, reducing stock and firing fulfilment hooks for an order nobody
+	 * wants. Instead we return the money: refund a captured charge, or void an uncaptured
+	 * authorisation, and record the details on the order for the merchant.
+	 *
+	 * @param WC_Order $order     The cancelled order.
+	 * @param string   $intent_id The PaymentIntent ID from the webhook payload.
+	 * @return void
+	 */
+	protected function handle_deferred_payment_for_cancelled_order( $order, $intent_id ) {
+		/**
+		 * Filters whether a late Stripe payment on a cancelled order is automatically refunded.
+		 *
+		 * Return false to leave the payment in place (e.g. to reconcile it manually) instead of
+		 * refunding the charge or voiding the authorisation.
+		 *
+		 * @since 10.9.0
+		 *
+		 * @param bool     $auto_refund Whether to refund the payment automatically. Default true.
+		 * @param WC_Order $order       The cancelled order that received the payment.
+		 */
+		if ( ! apply_filters( 'wc_stripe_auto_refund_cancelled_order', true, $order ) ) {
+			WC_Stripe_Logger::debug( "Skipped refunding cancelled order {$order->get_id()} for Stripe PaymentIntent {$intent_id} - auto-refund disabled by the wc_stripe_auto_refund_cancelled_order filter." );
+			return;
+		}
+
+		$intent = $this->get_intent_from_order( $order );
+
+		if ( ! $intent || $intent->id !== $intent_id ) {
+			WC_Stripe_Logger::debug( "Skipped refunding cancelled order {$order->get_id()} for Stripe PaymentIntent {$intent_id} - intent ID stored on the order doesn't match." );
+			return;
+		}
+
+		// Idempotency: Action Scheduler can retry this job, and issuing a refund twice would
+		// take the money from the shopper twice. The meta flag is the deterministic guard; the
+		// Stripe-state checks below catch a retry that lands before the flag was persisted.
+		if ( wc_string_to_bool( $order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) ) ) {
+			WC_Stripe_Logger::debug( "Skipped refunding cancelled order {$order->get_id()} for Stripe PaymentIntent {$intent_id} - already refunded after cancellation." );
+			return;
+		}
+
+		if ( WC_Stripe_Intent_Status::CANCELED === $intent->status ) {
+			WC_Stripe_Logger::debug( "Skipped refunding cancelled order {$order->get_id()} for Stripe PaymentIntent {$intent_id} - the intent is already cancelled." );
+			return;
+		}
+
+		$charge    = $this->get_latest_charge_from_intent( $intent );
+		$charge_id = isset( $charge->id ) ? $charge->id : '';
+
+		if ( $charge && ! empty( $charge->refunded ) ) {
+			$this->mark_cancelled_order_refunded( $order );
+			WC_Stripe_Logger::debug( "Skipped refunding cancelled order {$order->get_id()} for Stripe PaymentIntent {$intent_id} - the charge is already refunded." );
+			return;
+		}
+
+		$is_authorization = WC_Stripe_Intent_Status::REQUIRES_CAPTURE === $intent->status;
+
+		// process_refund() returns the money either way: it refunds a captured charge, or cancels a
+		// requires_capture intent to release the authorisation hold, recovering the charge ID from
+		// the stored intent (a cancelled order has no recorded transaction).
+		//
+		// For a captured charge, refund the charge's remaining balance (amount minus any prior
+		// refund) rather than the order total, which can drift from what Stripe actually holds after
+		// a partial capture, an earlier partial refund, or an edited order total. process_refund()
+		// treats a null amount as a no-op for a captured charge, so a real amount is required; the
+		// authorisation-void path instead needs null (any amount makes it throw).
+		$refund_amount = null;
+		if ( ! $is_authorization ) {
+			// Skip if no charge amount to refund against.
+			if ( ! is_object( $charge ) || ! isset( $charge->amount ) ) {
+				WC_Stripe_Logger::warning( "Skipped refunding cancelled order {$order->get_id()} for Stripe PaymentIntent {$intent_id} - no charge amount available to refund." );
+				return;
+			}
+
+			$refundable = (int) $charge->amount - (int) ( $charge->amount_refunded ?? 0 );
+			if ( $refundable <= 0 ) {
+				WC_Stripe_Logger::warning( "Skipped refunding cancelled order {$order->get_id()} for Stripe PaymentIntent {$intent_id} - the charge has no refundable balance." );
+				return;
+			}
+
+			// $refundable is in the smallest unit; convert with the order currency because process_refund()
+			// reconverts with the order currency. Using the charge currency here would corrupt the amount
+			// whenever the two currencies have different decimal exponents.
+			$refund_amount = WC_Stripe_Helper::convert_from_stripe_amount( $refundable, $order->get_currency() );
+		}
+
+		$reason = __( 'Payment received in Stripe after the order was cancelled by the customer. Automatically refunded.', 'woocommerce-gateway-stripe' );
+		$result = $this->process_refund( $order->get_id(), $refund_amount, $reason );
+
+		// The success contract is path-dependent. A captured refund must return true. An authorisation
+		// void produces no refund object, so process_refund() returns false or null either way — an
+		// ambiguous signal — so re-read the intent and require a Stripe-confirmed cancellation before
+		// treating the void as settled. A WP_Error is always a failure.
+		if ( $is_authorization ) {
+			$confirmed_intent = is_wp_error( $result ) ? null : $this->get_intent_from_order( $order );
+			$succeeded        = $confirmed_intent && WC_Stripe_Intent_Status::CANCELED === $confirmed_intent->status;
+		} else {
+			$succeeded = ( true === $result );
+		}
+		// Link the payment in the mode it was actually made in, which isn't necessarily the gateway's current mode.
+		$is_test_mode = empty( $intent->livemode );
+		$intent_url   = WC_Stripe_Helper::get_transaction_url_for_id( $intent_id, $is_test_mode );
+		$charge_url   = WC_Stripe_Helper::get_transaction_url_for_id( $charge_id, $is_test_mode );
+		$reference    = sprintf(
+			/* translators: 1: opening anchor tag for the PaymentIntent, 2: Stripe PaymentIntent ID, 3: opening anchor tag for the charge, 4: Stripe charge ID, 5: closing anchor tag. */
+			__( 'PaymentIntent: %1$s%2$s%5$s. Charge: %3$s%4$s%5$s.', 'woocommerce-gateway-stripe' ),
+			'<a href="' . esc_url( $intent_url ) . '" target="_blank" rel="noopener noreferrer">',
+			esc_html( $intent_id ),
+			'<a href="' . esc_url( $charge_url ) . '" target="_blank" rel="noopener noreferrer">',
+			esc_html( $charge_id ),
+			'</a>'
+		);
+
+		if ( ! $succeeded ) {
+			$error_message = is_wp_error( $result ) ? $result->get_error_message() : '';
+			$order->add_order_note(
+				sprintf(
+					/* translators: %s: Stripe error message (may be empty) followed by the PaymentIntent and charge IDs linked to the Stripe dashboard. */
+					__( 'Stripe took a payment after this order was cancelled, but the automatic refund failed. Please refund it manually in the Stripe dashboard. %s', 'woocommerce-gateway-stripe' ),
+					trim( $error_message . ' ' . $reference )
+				)
+			);
+			WC_Stripe_Logger::error( "Failed to refund cancelled order {$order->get_id()} (PaymentIntent {$intent_id}) after a late Stripe payment: {$error_message}" );
+			return;
+		}
+
+		// Record the outcome with the Stripe identifiers so the merchant can trace it. process_refund()
+		// adds its own note for a captured refund; this note also covers the voided-authorisation case
+		// and always carries the intent and charge IDs.
+		if ( $is_authorization ) {
+			$order->add_order_note(
+				sprintf(
+					/* translators: %s: Stripe PaymentIntent and charge IDs, linked to the Stripe dashboard. */
+					__( 'Stripe authorised this payment after the order was cancelled, so the authorisation was voided to release the shopper\'s funds. %s', 'woocommerce-gateway-stripe' ),
+					$reference
+				)
+			);
+		} else {
+			$order->add_order_note(
+				sprintf(
+					/* translators: %s: Stripe PaymentIntent and charge IDs, linked to the Stripe dashboard. */
+					__( 'This payment was received in Stripe after the order was cancelled, so it was automatically refunded. %s', 'woocommerce-gateway-stripe' ),
+					$reference
+				)
+			);
+		}
+		$this->mark_cancelled_order_refunded( $order );
+
+		WC_Stripe_Logger::info( "Returned the payment for cancelled order {$order->get_id()} (PaymentIntent {$intent_id}) after a late Stripe payment." );
+	}
+
+	/**
+	 * Records that a late Stripe payment on a cancelled order has been refunded/voided.
+	 *
+	 * @param WC_Order $order The cancelled order.
+	 * @return void
+	 */
+	private function mark_cancelled_order_refunded( $order ) {
+		$order->update_meta_data( self::META_REFUNDED_AFTER_CANCELLATION, 'yes' );
+		$order->save();
 	}
 
 	/**

@@ -158,6 +158,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.9.0 - xxxx-xx-xx =
+* Fix - Keep the currently loaded Stripe account details visible when an account refresh fails
 * Fix - Surface an error and block checkout when the Adaptive Pricing order total can't be synced with Stripe, instead of silently letting the buyer pay a stale amount
 * Fix - Stop attaching Level 3 data to captures and payments for non-card methods
 * Fix - Add the missing order and customer metadata to Adaptive Pricing payment intents
@@ -174,6 +175,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - When changing a subscription's payment method, reflect the new card and its Apple Pay/Google Pay branding on My Account and clarify the admin order note
 * Dev - Use a shared hook manager to prevent duplicate subscription hook registrations
 * Dev - Initial infrastructure for more complex Agentic feed filtering
+* Dev - Agentic Commerce: add the shareable woocommerce_agentic_commerce_disable_checkout filter, deprecating the wc_stripe_-prefixed twin
 * Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
 * Fix - Prevent classic and Blocks checkout submissions from failing while the Stripe Payment Element is re-mounting after a checkout update
 * Fix - Decommission the previously configured webhook before connecting via OAuth so reconnecting to a different Stripe account no longer leaves an orphaned webhook on the old account
@@ -228,6 +230,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Include the statement descriptor when creating payment intents for ACSS Debit and BLIK payments
 * Fix - Represent negative fees and taxes as discounts in Level 3 data so manually capturing an order edited to include a negative fee no longer fails
 * Fix - Ensure all WordPress hooks have filter documentation
+* Fix - Refund the shopper when a Stripe payment is captured after the order was cancelled, instead of leaving them charged for a cancelled order
+* Fix - Restrict payment intent creation to payment methods that do not support deferred intent
 * Fix - Clear the Adaptive Pricing order total error notice once a later update succeeds
 * Fix - Accept express checkout addresses whose province is entered with a curly apostrophe, so Apple Pay no longer rejects them
 * Update - Show a clear message when manual capture is blocking Adaptive Pricing from being enabled
@@ -235,5 +239,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Store the Stripe refund ID on each WooCommerce refund record so orders with multiple partial refunds retain every refund ID
 * Fix - Record the charge-captured state for asynchronously confirmed payments (e.g. ACH) so refunds from wp-admin and the Stripe Dashboard behave correctly
 * Fix - Reject negative refund amounts with an explicit error instead of silently refunding the absolute value
+* Fix - Open the Stripe Dashboard links in subscription renewal failure order notes in a new tab
+* Fix - Prevent fatals during internal order check
+* Fix - Ensure that settings with checked, disabled checkboxes look disabled
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
