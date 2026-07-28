@@ -69,7 +69,9 @@ class WC_Stripe_Helper {
 	 * @return void
 	 */
 	public static function update_main_stripe_settings( $options ) {
-		WC_Stripe::get_instance()->update_settings( (array) $options );
+		if ( is_array( $options ) ) {
+			WC_Stripe::get_instance()->update_settings( (array) $options );
+		}
 	}
 
 	/**
