@@ -1265,6 +1265,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return false;
 		}
 
+		// Stripe amounts are unsigned — WC_Stripe_Helper::get_stripe_amount() would silently
+		// flip the sign and refund the absolute value — so reject negative amounts outright.
+		if ( ! is_null( $amount ) && $amount < 0 ) {
+			return new WP_Error(
+				'stripe_error',
+				__( 'The refund amount must be greater than or equal to zero.', 'woocommerce-gateway-stripe' )
+			);
+		}
+
 		$request = [];
 
 		$order_helper   = WC_Stripe_Order_Helper::get_instance();
