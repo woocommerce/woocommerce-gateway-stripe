@@ -625,9 +625,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$order_id     = $order->get_id();
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
-		// Record the captured flag while the charge is in hand; refund and capture flows read
-		// it. When $response is an intent with no charge attached, no flag is recorded and the
-		// refund path resolves the real state from Stripe instead.
+		// Record the captured flag for refund/capture flows; a chargeless intent records
+		// nothing, and the refund path later resolves the real state from Stripe.
 		$captured = $order_helper->sync_stripe_charge_captured( $order, $response ) ?? false;
 
 		if ( isset( $response->balance_transaction ) ) {
@@ -1522,18 +1521,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Resolves whether the order's charge is captured, asking Stripe when the stored flag is missing.
 	 *
-	 * The captured flag decides between refunding a charge and voiding a pre-authorization.
-	 * It is normally recorded as 'yes' or 'no' the first time a charge is seen (see
-	 * WC_Stripe_Order_Helper::sync_stripe_charge_captured()), but async-confirmed orders
-	 * (e.g. ACH with microdeposit verification) may have no recorded value at all because no
-	 * charge existed at checkout. Treating "never recorded" as "not captured" would wrongly
-	 * void a refundable charge, so only in that case the charge is fetched and its real state
-	 * recorded. An explicit 'no' means an authorize-only charge and is trusted without an API
-	 * call so the void path still applies.
-	 *
-	 * A state that cannot be determined (the lookup fails, or the response carries no captured
-	 * flag) throws instead of defaulting: false is reserved for a charge Stripe explicitly
-	 * reports as uncaptured, because callers treat false as safe to void.
+	 * A stored 'yes'/'no' is trusted; only a missing flag ('') triggers the lookup, because
+	 * async-confirmed orders (e.g. ACH) may have had no charge at checkout, and treating
+	 * "never recorded" as "not captured" would wrongly void a refundable charge. An
+	 * undeterminable state throws instead of defaulting: callers treat false as safe to void.
 	 *
 	 * @param WC_Order $order     The order being refunded.
 	 * @param string   $charge_id The order's charge ID.
