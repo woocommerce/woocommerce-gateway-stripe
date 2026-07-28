@@ -83,7 +83,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function test_get_payment_method_settings_reads_raw_option( string $input, string $option_name ): void {
 		update_option( $option_name, [ 'foo' => 'bar' ] );
 
-		$this->assertSame( 'bar', WC_Stripe::get_payment_method_settings( $input )['foo'] );
+		$this->assertEquals( [ 'foo' => 'bar' ], WC_Stripe::get_payment_method_settings( $input ) );
 
 		delete_option( $option_name );
 		$this->assertSame( [], WC_Stripe::get_payment_method_settings( $input ) );
