@@ -160,7 +160,7 @@ abstract class WC_Stripe_REST_Response_Filter {
 				$result = ucfirst( $value->card->network ?? '' );
 
 				if ( $value->card->last4 ?? '' ) {
-					$result .= ' (•••• ' . $value->card->last4 . ')';
+					$result .= ' (•••• ' . ( $value->card->last4 ?? '' ) . ')';
 				}
 				break;
 			default:
