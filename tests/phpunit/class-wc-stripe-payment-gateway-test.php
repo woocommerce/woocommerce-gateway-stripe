@@ -712,12 +712,17 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * Tests that process_refund rejects negative amounts without contacting Stripe.
 	 * WC_Stripe_Helper::get_stripe_amount() strips the sign, so an unguarded negative
 	 * amount would refund the absolute value instead of failing.
+	 *
+	 * @dataProvider provide_test_process_refund_fails_on_negative_amount
+	 * @param string $captured_meta Stored _stripe_charge_captured value ('' = never recorded).
 	 */
-	public function test_process_refund_fails_on_negative_amount() {
+	public function test_process_refund_fails_on_negative_amount( string $captured_meta ) {
 		$order = WC_Helper_Order::create_order();
 		$order->set_currency( 'USD' );
 		$order->set_transaction_id( 'ch_123' );
-		$this->updateOrderMeta( $order, '_stripe_charge_captured', 'yes' );
+		if ( '' !== $captured_meta ) {
+			$this->updateOrderMeta( $order, '_stripe_charge_captured', $captured_meta );
+		}
 		$order->save();
 		$order_id = $order->get_id();
 
@@ -738,8 +743,23 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertSame( 'stripe_error', $result->get_error_code() );
 		$this->assertStringContainsString( 'must be greater than or equal to zero', $result->get_error_message() );
 
-		// No request reached Stripe: an unguarded -10 would have refunded +10.
+		// No request reached Stripe: an unguarded -10 would have refunded +10, and a
+		// missing captured flag must not trigger the charge lookup for a doomed refund.
 		$this->assertSame( [], $requested_urls );
+	}
+
+	/**
+	 * Data provider for test_process_refund_fails_on_negative_amount.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_process_refund_fails_on_negative_amount(): array {
+		return [
+			'captured charge'               => [ 'yes' ],
+			'authorize-only charge'         => [ 'no' ],
+			'captured state never recorded' => [ '' ],
+			'unexpected stored value'       => [ 'maybe' ],
+		];
 	}
 
 	/**
