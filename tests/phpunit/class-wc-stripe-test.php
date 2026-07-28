@@ -80,7 +80,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param string $option_name Option the read should resolve to.
 	 * @return void
 	 */
-	public function test_get_payment_method_settings_reads_raw_option( string $input, string $option_name ): void {
+	public function test_get_payment_method_settings_reads_raw_option( string $method_slug, string $option_name ): void {
 		update_option( $option_name, [ 'foo' => 'bar' ] );
 
 		$this->assertEquals( [ 'foo' => 'bar' ], WC_Stripe::get_payment_method_settings( $input ) );
