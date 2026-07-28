@@ -155,11 +155,11 @@ abstract class WC_Stripe_REST_Response_Filter {
 	 * @return string
 	 */
 	public static function payment_method_details_format( $value ) {
-		switch ( $value->type ) {
+		switch ( $value->type ?? '' ) {
 			case 'card':
-				$result = ucfirst( $value->card->network );
+				$result = ucfirst( $value->card->network ?? '' );
 
-				if ( isset( $value->card->last4 ) ) {
+				if ( $value->card->last4 ?? '' ) {
 					$result .= ' (•••• ' . $value->card->last4 . ')';
 				}
 				break;
@@ -178,13 +178,13 @@ abstract class WC_Stripe_REST_Response_Filter {
 	 * @return string
 	 */
 	public static function destination_bank_format( $value ) {
-		return ( $value->bank_name ? ' ' . $value->bank_name : '' ) . '( •••• ' . ( $value->last4 ?? '••••' ) . ' )';
+		return ( ( $value->bank_name ?? '' ) ? ' ' . $value->bank_name : '' ) . '( •••• ' . ( $value->last4 ?? '••••' ) . ' )';
 	}
 
 	/**
 	 * Format a status
 	 *
-	 * @param object $value The payment method details.
+	 * @param string $value The payment method details.
 	 *
 	 * @return string
 	 */

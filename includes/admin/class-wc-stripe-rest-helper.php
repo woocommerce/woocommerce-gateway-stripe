@@ -17,6 +17,7 @@ abstract class WC_Stripe_REST_Helper {
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request An incoming REST request.
 	 * @param array $rest_args REST endpoint params.
+	 * @param array $expand Fields to expand.
 	 *
 	 * @return array
 	 */
@@ -74,6 +75,7 @@ abstract class WC_Stripe_REST_Helper {
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request An incoming REST request.
 	 * @param array $rest_args REST endpoint params.
+	 * @param array $expand Fields to expand.
 	 *
 	 * @return string
 	 */
