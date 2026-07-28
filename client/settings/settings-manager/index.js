@@ -6,6 +6,7 @@ import { isEmpty } from 'lodash';
 import SettingsLayout from '../settings-layout';
 import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';
+import PayoutsPanel from '../payouts-section';
 import SaveSettingsSection from '../save-settings-section';
 import { useEnabledPaymentMethodIds, useSettings } from '../../data';
 import { TabPanel } from '@wordpress/components';
@@ -33,6 +34,10 @@ const TABS = [
 	{
 		name: 'settings',
 		title: __( 'Settings', 'woocommerce-gateway-stripe' ),
+	},
+	{
+		name: 'payouts',
+		title: __( 'Payouts', 'woocommerce-gateway-stripe' ),
 	},
 ];
 
@@ -100,6 +105,9 @@ const SettingsManager = () => {
 		if ( panel === 'settings' ) {
 			return 'settings';
 		}
+		if ( panel === 'payouts' ) {
+			return 'payouts';
+		}
 
 		return 'methods';
 	};
@@ -122,9 +130,14 @@ const SettingsManager = () => {
 				tabs={ TABS }
 				onSelect={ updatePanelUri }
 			>
-				{ ( tab ) => (
-					<div data-testid={ `${ tab.name }-tab` }>
-						{ tab.name === 'settings' && (
+				{ ( tab ) => {
+					let tabContent = null;
+					const addSaveSettingsSection = tab.name !== 'payouts';
+
+					if ( tab.name === 'payouts' ) {
+						tabContent = <PayoutsPanel />;
+					} else if ( tab.name === 'settings' ) {
+						tabContent = (
 							<PaymentSettingsPanel
 								showPromotionalBanner={ showPromotionalBanner }
 								setShowPromotionalBanner={
@@ -138,8 +151,9 @@ const SettingsManager = () => {
 								}
 								agenticSaveRef={ agenticSaveRef }
 							/>
-						) }
-						{ tab.name === 'methods' && (
+						);
+					} else if ( tab.name === 'methods' ) {
+						tabContent = (
 							<PaymentMethodsPanel
 								onSaveChanges={ onSaveChanges }
 								showPromotionalBanner={ showPromotionalBanner }
@@ -150,17 +164,25 @@ const SettingsManager = () => {
 								isOCEnabled={ isOCEnabled }
 								setIsOCEnabled={ setIsOCEnabled }
 							/>
-						) }
-						<SaveSettingsSection
-							onSettingsSave={ onSettingsSave }
-							agenticSaveRef={
-								tab.name === 'settings'
-									? agenticSaveRef
-									: undefined
-							}
-						/>
-					</div>
-				) }
+						);
+					}
+
+					return (
+						<div data-testid={ `${ tab.name }-tab` }>
+							{ tabContent }
+							{ addSaveSettingsSection && (
+								<SaveSettingsSection
+									onSettingsSave={ onSettingsSave }
+									agenticSaveRef={
+										tab.name === 'settings'
+											? agenticSaveRef
+											: undefined
+									}
+								/>
+							) }
+						</div>
+					);
+				} }
 			</StyledTabPanel>
 		</SettingsLayout>
 	);

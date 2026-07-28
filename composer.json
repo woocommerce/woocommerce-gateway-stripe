@@ -33,6 +33,7 @@
         "includes/admin/class-wc-stripe-rest-base-controller.php",
         "includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php",
         "includes/admin/class-wc-rest-stripe-exit-survey-controller.php",
+        "includes/admin/class-wc-rest-stripe-payouts-controller.php",
         "includes/admin/class-wc-stripe-plugins-page-controller.php",
         "includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php",
         "includes/admin/class-wc-stripe-upe-compatibility-controller.php",
