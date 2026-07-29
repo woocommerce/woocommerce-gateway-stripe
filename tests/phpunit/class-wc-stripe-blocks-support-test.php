@@ -4,19 +4,6 @@
  * Unit tests for WC_Stripe_Blocks_Support.
  */
 class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
-	/**
-	 * Handle of the blocks integration script, mirroring the private constant on the class under test.
-	 *
-	 * @var string
-	 */
-	private const BLOCK_SCRIPT_HANDLE = 'wc-stripe-blocks-integration';
-
-	/**
-	 * Handle of the blocks checkout stylesheet, mirroring the private constant on the class under test.
-	 *
-	 * @var string
-	 */
-	private const BLOCK_STYLE_HANDLE = 'wc-stripe-blocks-checkout-style';
 
 	/**
 	 * The gateway instance cached on the WC_Stripe singleton before a test swaps it out.
@@ -75,10 +62,10 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 
 		// WP_Scripts and WP_Styles are globals shared across the suite.
 		// Ensure that we clean up after each test.
-		wp_dequeue_style( self::BLOCK_STYLE_HANDLE );
-		wp_deregister_style( self::BLOCK_STYLE_HANDLE );
+		wp_dequeue_style( $this->get_block_style_handle() );
+		wp_deregister_style( $this->get_block_style_handle() );
 
-		foreach ( array_merge( [ self::BLOCK_SCRIPT_HANDLE, 'stripe' ], $this->registered_test_scripts ) as $handle ) {
+		foreach ( array_merge( [ $this->get_block_script_handle(), 'stripe' ], $this->registered_test_scripts ) as $handle ) {
 			wp_dequeue_script( $handle );
 			wp_deregister_script( $handle );
 		}
@@ -192,9 +179,9 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 
 		$handles = $blocks_support->get_payment_method_script_handles();
 
-		$this->assertSame( [ self::BLOCK_SCRIPT_HANDLE ], $handles );
-		$this->assertTrue( wp_style_is( self::BLOCK_STYLE_HANDLE, 'registered' ) );
-		$this->assertFalse( wp_style_is( self::BLOCK_STYLE_HANDLE, 'enqueued' ) );
+		$this->assertSame( [ $this->get_block_script_handle() ], $handles );
+		$this->assertTrue( wp_style_is( $this->get_block_style_handle(), 'registered' ) );
+		$this->assertFalse( wp_style_is( $this->get_block_style_handle(), 'enqueued' ) );
 	}
 
 	/**
@@ -205,7 +192,7 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 	public function test_registered_style_is_flagged_for_rtl_replacement(): void {
 		( new WC_Stripe_Blocks_Support() )->get_payment_method_script_handles();
 
-		$this->assertSame( 'replace', wp_styles()->get_data( self::BLOCK_STYLE_HANDLE, 'rtl' ) );
+		$this->assertSame( 'replace', wp_styles()->get_data( $this->get_block_style_handle(), 'rtl' ) );
 	}
 
 	/**
@@ -244,7 +231,7 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 
 		$blocks_support->maybe_enqueue_blocks_style( '' );
 
-		$this->assertSame( $expected_enqueued, wp_style_is( self::BLOCK_STYLE_HANDLE, 'enqueued' ) );
+		$this->assertSame( $expected_enqueued, wp_style_is( $this->get_block_style_handle(), 'enqueued' ) );
 	}
 
 	/**
@@ -254,22 +241,22 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 		return [
 			'directly enqueued'                => [
 				[],
-				self::BLOCK_SCRIPT_HANDLE,
+				$this->get_block_script_handle(),
 				true,
 			],
 			'dependency of the checkout block' => [
-				[ 'wc-checkout-block-frontend' => [ self::BLOCK_SCRIPT_HANDLE ] ],
+				[ 'wc-checkout-block-frontend' => [ $this->get_block_script_handle() ] ],
 				'wc-checkout-block-frontend',
 				true,
 			],
 			'dependency of the cart block'     => [
-				[ 'wc-cart-block-frontend' => [ self::BLOCK_SCRIPT_HANDLE ] ],
+				[ 'wc-cart-block-frontend' => [ $this->get_block_script_handle() ] ],
 				'wc-cart-block-frontend',
 				true,
 			],
 			'transitive dependency'            => [
 				[
-					'wc-checkout-block-frontend' => [ self::BLOCK_SCRIPT_HANDLE ],
+					'wc-checkout-block-frontend' => [ $this->get_block_script_handle() ],
 					'theme-checkout-extras'      => [ 'wc-checkout-block-frontend' ],
 				],
 				'theme-checkout-extras',
@@ -289,19 +276,19 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 
 		$blocks_support->maybe_enqueue_blocks_style( '' );
 
-		$this->assertFalse( wp_style_is( self::BLOCK_STYLE_HANDLE, 'enqueued' ) );
+		$this->assertFalse( wp_style_is( $this->get_block_style_handle(), 'enqueued' ) );
 	}
 
 	public function test_maybe_enqueue_blocks_style_for_editor_enqueues_when_editor_script_is_enqueued(): void {
 		$blocks_support = new WC_Stripe_Blocks_Support();
 		$blocks_support->get_payment_method_script_handles();
 
-		$this->register_test_script( 'wc-checkout-block', [ self::BLOCK_SCRIPT_HANDLE ] );
+		$this->register_test_script( 'wc-checkout-block', [ $this->get_block_script_handle() ] );
 		wp_enqueue_script( 'wc-checkout-block' );
 
 		$blocks_support->maybe_enqueue_blocks_style_for_editor();
 
-		$this->assertTrue( wp_style_is( self::BLOCK_STYLE_HANDLE, 'enqueued' ) );
+		$this->assertTrue( wp_style_is( $this->get_block_style_handle(), 'enqueued' ) );
 	}
 
 	/**
@@ -328,5 +315,13 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 			'cart block render'     => [ 'render_block_woocommerce/cart', 'maybe_enqueue_blocks_style', 10 ],
 			'block editor assets'   => [ 'enqueue_block_editor_assets', 'maybe_enqueue_blocks_style_for_editor', 20 ],
 		];
+	}
+
+	private function get_block_script_handle(): string {
+		return WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Blocks_Support::class, 'BLOCKS_SCRIPT_HANDLE', 'string' );
+	}
+
+	private function get_block_style_handle(): string {
+		return WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Blocks_Support::class, 'BLOCKS_STYLE_HANDLE', 'string' );
 	}
 }
