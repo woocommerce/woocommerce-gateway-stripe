@@ -240,6 +240,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Open the Stripe Dashboard links in subscription renewal failure order notes in a new tab
 * Fix - Prevent fatals during internal order check
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
-* Fix - Open the all Stripe Dashboard links in admin notices and order notes in a new tab
+* Fix - Open all Stripe Dashboard links in admin notices and order notes in a new tab
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
