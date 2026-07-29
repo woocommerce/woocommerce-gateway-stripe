@@ -3,7 +3,6 @@ import { render } from '@testing-library/react';
 import {
 	extractOrderAttributionData,
 	getStripeElementOptions,
-	populateOrderAttributionInputs,
 	shouldSetupOffSessionPayment,
 } from 'wcstripe/blocks/utils';
 import { isLinkEnabled } from 'wcstripe/stripe-utils';
@@ -40,19 +39,124 @@ describe( 'Blocks Utils', () => {
 	} );
 
 	describe( 'populateOrderAttributionInputs', () => {
-		test( 'order attribution global present', () => {
-			global.wc_order_attribution = {
-				params: {
-					allowTracking: true,
-				},
+		// Matches the debounce wait used by populateOrderAttributionInputs.
+		const RETRY_DELAY = 1000;
+
+		let populateOrderAttributionInputs;
+
+		beforeEach( () => {
+			jest.useFakeTimers();
+			delete window.wc_order_attribution;
+
+			// The retry is debounced at module scope, so load a fresh copy of the
+			// module per test to avoid leaking a pending retry between tests.
+			jest.resetModules();
+			( {
+				populateOrderAttributionInputs,
+			} = require( 'wcstripe/blocks/utils' ) );
+		} );
+
+		afterEach( () => {
+			jest.clearAllTimers();
+			jest.useRealTimers();
+			delete window.wc_order_attribution;
+		} );
+
+		test.each( [ [ true ], [ false ] ] )(
+			'forwards allowTracking=%s immediately when the order attribution script is ready',
+			( allowTracking ) => {
+				window.wc_order_attribution = {
+					params: { allowTracking },
+					setOrderTracking: jest.fn(),
+				};
+
+				populateOrderAttributionInputs();
+
+				expect(
+					window.wc_order_attribution.setOrderTracking
+				).toHaveBeenCalledWith( allowTracking );
+			}
+		);
+
+		test( 'does not schedule a retry when tracking was set immediately', () => {
+			window.wc_order_attribution = {
+				params: { allowTracking: true },
 				setOrderTracking: jest.fn(),
 			};
 
 			populateOrderAttributionInputs();
 
+			expect( jest.getTimerCount() ).toBe( 0 );
+
+			jest.runAllTimers();
+
 			expect(
-				global.wc_order_attribution.setOrderTracking
+				window.wc_order_attribution.setOrderTracking
+			).toHaveBeenCalledTimes( 1 );
+		} );
+
+		test( 'retries once setOrderTracking becomes available', () => {
+			window.wc_order_attribution = { params: { allowTracking: true } };
+
+			populateOrderAttributionInputs();
+
+			window.wc_order_attribution.setOrderTracking = jest.fn();
+
+			expect(
+				window.wc_order_attribution.setOrderTracking
+			).not.toHaveBeenCalled();
+
+			jest.advanceTimersByTime( RETRY_DELAY - 1 );
+
+			expect(
+				window.wc_order_attribution.setOrderTracking
+			).not.toHaveBeenCalled();
+
+			jest.advanceTimersByTime( 1 );
+
+			expect(
+				window.wc_order_attribution.setOrderTracking
 			).toHaveBeenCalledWith( true );
+		} );
+
+		test( 'retries once the order attribution global becomes available', () => {
+			populateOrderAttributionInputs();
+
+			window.wc_order_attribution = {
+				params: { allowTracking: false },
+				setOrderTracking: jest.fn(),
+			};
+
+			jest.runAllTimers();
+
+			expect(
+				window.wc_order_attribution.setOrderTracking
+			).toHaveBeenCalledWith( false );
+		} );
+
+		test( 'coalesces repeated calls into a single retry', () => {
+			window.wc_order_attribution = { params: { allowTracking: true } };
+
+			populateOrderAttributionInputs();
+			jest.advanceTimersByTime( RETRY_DELAY / 2 );
+			populateOrderAttributionInputs();
+
+			window.wc_order_attribution.setOrderTracking = jest.fn();
+
+			jest.runAllTimers();
+
+			expect(
+				window.wc_order_attribution.setOrderTracking
+			).toHaveBeenCalledTimes( 1 );
+		} );
+
+		test( 'does not throw when the order attribution script never loads', () => {
+			expect( () => {
+				populateOrderAttributionInputs();
+				jest.runAllTimers();
+			} ).not.toThrow();
+
+			expect( jest.getTimerCount() ).toBe( 0 );
 		} );
 	} );
 
