@@ -341,20 +341,22 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 		);
 	} );
 
-	// When a value can't be resolved, all three overrides must come off
+	// When a value can't be resolved, both padding overrides come off
 	// together — a partial adjustment is worse than none.
 	describe( 'when an operand cannot be resolved', () => {
-		// One object, so a partial adjustment shows all three properties at once.
+		// One object, so a partial adjustment shows all properties at once.
+		// `.Label` marginTop is the legacy nudge the old fallback wrote;
+		// pinned here so no path reintroduces it.
 		const overridesOn = ( result ) => ( {
 			paddingTop: 'paddingTop' in result.rules[ '.Input' ],
 			paddingBottom: 'paddingBottom' in result.rules[ '.Input' ],
-			labelMarginTop: 'marginTop' in result.rules[ '.Label' ],
+			legacyLabelNudge: 'marginTop' in result.rules[ '.Label' ],
 		} );
 
 		const NONE = {
 			paddingTop: false,
 			paddingBottom: false,
-			labelMarginTop: false,
+			legacyLabelNudge: false,
 		};
 
 		it( 'drops the overrides when the label styles are empty', () => {
@@ -451,6 +453,8 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 					paddingTop: result.rules[ '.Input' ].paddingTop,
 					paddingBottom: result.rules[ '.Input' ].paddingBottom,
 					labelMarginTop: result.rules[ '.Label' ].marginTop,
+					floatingLabelMarginTop:
+						result.rules[ '.Label--floating' ].marginTop,
 				} ).forEach( ( [ prop, value ] ) => {
 					if (
 						value !== undefined &&
