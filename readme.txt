@@ -158,6 +158,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.9.0 - xxxx-xx-xx =
+* Fix - Keep the currently loaded Stripe account details visible when an account refresh fails
 * Fix - Surface an error and block checkout when the Adaptive Pricing order total can't be synced with Stripe, instead of silently letting the buyer pay a stale amount
 * Fix - Stop attaching Level 3 data to captures and payments for non-card methods
 * Fix - Add the missing order and customer metadata to Adaptive Pricing payment intents
@@ -237,5 +238,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Lock the order while confirming a 3DS card payment so a concurrent webhook can't complete it twice, duplicating stock reduction, order notes, and emails
 * Fix - Store the Stripe refund ID on each WooCommerce refund record so orders with multiple partial refunds retain every refund ID
 * Update - Document that WooCommerce coupons do not apply to in-agent agentic purchases and reject discounted agentic sessions with an explicit error
+* Fix - Open the Stripe Dashboard links in subscription renewal failure order notes in a new tab
+* Fix - Prevent fatals during internal order check
+* Fix - Ensure that settings with checked, disabled checkboxes look disabled
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
