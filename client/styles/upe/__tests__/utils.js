@@ -345,8 +345,7 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 	// together — a partial adjustment is worse than none.
 	describe( 'when an operand cannot be resolved', () => {
 		// One object, so a partial adjustment shows all properties at once.
-		// `.Label` marginTop is the legacy nudge the old fallback wrote;
-		// pinned here so no path reintroduces it.
+		// The resting label must not receive a margin nudge on fallback paths.
 		const overridesOn = ( result ) => ( {
 			paddingTop: 'paddingTop' in result.rules[ '.Input' ],
 			paddingBottom: 'paddingBottom' in result.rules[ '.Input' ],
