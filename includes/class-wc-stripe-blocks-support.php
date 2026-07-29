@@ -39,6 +39,13 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	private $express_checkout_configuration;
 
 	/**
+	 * Local cache for the UPE blocks asset metadata. Used to avoid multiple file reads.
+	 *
+	 * @var array{version: string, dependencies: array}|null
+	 */
+	private $blocks_asset = null;
+
+	/**
 	 * Constructor
 	 *
 	 * @param mixed                                   $payment_request_configuration The Stripe Payment Request configuration used for Payment Request buttons (removed).
@@ -186,6 +193,10 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array{version: string, dependencies: array} The build version and script dependencies.
 	 */
 	private function get_upe_blocks_asset(): array {
+		if ( null !== $this->blocks_asset ) {
+			return $this->blocks_asset;
+		}
+
 		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/upe-blocks.asset.php';
 		$version      = WC_STRIPE_VERSION;
 		$dependencies = [];
@@ -199,10 +210,12 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			}
 		}
 
-		return [
+		$this->blocks_asset = [
 			'version'      => $version,
 			'dependencies' => $dependencies,
 		];
+
+		return $this->blocks_asset;
 	}
 
 	/**
