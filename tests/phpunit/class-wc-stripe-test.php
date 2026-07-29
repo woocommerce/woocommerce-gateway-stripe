@@ -71,57 +71,6 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * The static get_payment_method_settings() reads the method's option,
-	 * normalizing gateway-id and mixed-case inputs to the slug.
-	 *
-	 * @dataProvider provide_payment_method_settings_inputs
-	 *
-	 * @param string $method_slug Value passed to get_payment_method_settings().
-	 * @param string $option_name Option the read should resolve to.
-	 * @return void
-	 */
-	public function test_get_payment_method_settings_reads_raw_option( string $method_slug, string $option_name ): void {
-		update_option( $option_name, [ 'foo' => 'bar' ] );
-
-		$this->assertEquals( [ 'foo' => 'bar' ], WC_Stripe::get_payment_method_settings( $method_slug ) );
-
-		delete_option( $option_name );
-		$this->assertSame( [], WC_Stripe::get_payment_method_settings( $method_slug ) );
-	}
-
-	/**
-	 * An empty slug (or a bare gateway prefix) must not read the malformed
-	 * "woocommerce_stripe__settings" option.
-	 *
-	 * @return void
-	 */
-	public function test_get_payment_method_settings_returns_empty_for_empty_slug(): void {
-		update_option( 'woocommerce_stripe__settings', [ 'foo' => 'bar' ] );
-
-		try {
-			$this->assertSame( [], WC_Stripe::get_payment_method_settings( '' ) );
-			$this->assertSame( [], WC_Stripe::get_payment_method_settings( 'stripe_' ) );
-		} finally {
-			delete_option( 'woocommerce_stripe__settings' );
-		}
-	}
-
-	/**
-	 * Provider for `test_get_payment_method_settings_reads_raw_option`.
-	 *
-	 * @return array
-	 */
-	public function provide_payment_method_settings_inputs(): array {
-		return [
-			'boleto slug'           => [ WC_Stripe_Payment_Methods::BOLETO, 'woocommerce_stripe_boleto_settings' ],
-			'klarna slug'           => [ WC_Stripe_Payment_Methods::KLARNA, 'woocommerce_stripe_klarna_settings' ],
-			'sepa slug'             => [ WC_Stripe_Payment_Methods::SEPA_DEBIT, 'woocommerce_stripe_sepa_debit_settings' ],
-			'gateway id normalized' => [ 'stripe_boleto', 'woocommerce_stripe_boleto_settings' ],
-			'mixed case normalized' => [ 'Boleto', 'woocommerce_stripe_boleto_settings' ],
-		];
-	}
-
-	/**
 	 * Tests that the plugin constants are defined.
 	 *
 	 * @return void

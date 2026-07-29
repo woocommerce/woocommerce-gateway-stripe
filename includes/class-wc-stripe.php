@@ -42,36 +42,6 @@ class WC_Stripe {
 	}
 
 	/**
-	 * Reads the raw per-method settings option directly (e.g. "boleto" →
-	 * `woocommerce_stripe_boleto_settings`). Always returns an array.
-	 *
-	 * @since 10.9.0
-	 *
-	 * @param string $method_slug The payment method slug — a {@see WC_Stripe_Payment_Methods}
-	 *                            constant. Gateway ids ("stripe_boleto") and mixed case are
-	 *                            normalized to the slug.
-	 * @return array
-	 */
-	public static function get_payment_method_settings( string $method_slug ): array {
-		$method_slug = strtolower( $method_slug );
-
-		// Gateway ids are the slug with a "stripe_" prefix and target the same
-		// option, so accept them rather than silently reading a wrong option.
-		if ( str_starts_with( $method_slug, 'stripe_' ) ) {
-			$method_slug = substr( $method_slug, strlen( 'stripe_' ) );
-		}
-
-		// An empty slug would resolve to the nonsensical "woocommerce_stripe__settings" option.
-		if ( '' === $method_slug ) {
-			return [];
-		}
-
-		$settings = get_option( 'woocommerce_stripe_' . $method_slug . '_settings', [] );
-
-		return is_array( $settings ) ? $settings : [];
-	}
-
-	/**
 	 * The *Singleton* instance of this class
 	 *
 	 * @var WC_Stripe
