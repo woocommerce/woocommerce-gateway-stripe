@@ -148,6 +148,7 @@ class WC_Stripe_Admin_Notices {
 				[
 					'a'      => [
 						'href'   => [],
+						'rel'    => [],
 						'target' => [],
 					],
 					'strong' => [],
@@ -169,6 +170,7 @@ class WC_Stripe_Admin_Notices {
 							'a' => [
 								'class'  => [],
 								'href'   => [],
+								'rel'    => [],
 								'style'  => [],
 								'target' => [],
 							],
@@ -730,6 +732,7 @@ class WC_Stripe_Admin_Notices {
 						[
 							'a'      => [
 								'href'   => [],
+								'rel'    => [],
 								'target' => [],
 							],
 							'strong' => [],

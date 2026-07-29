@@ -117,6 +117,33 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test that notice rendering preserves external link attributes.
+	 *
+	 * @return void
+	 */
+	public function test_admin_notices_preserves_external_link_rel_attributes() {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->add_admin_notice(
+			'external_link_notice',
+			'notice notice-info',
+			WC_Stripe_Helper::get_external_link( 'https://dashboard.stripe.com/customers/cus_123', 'Stripe customer page' ),
+			false,
+			[
+				WC_Stripe_Helper::get_external_link( 'https://dashboard.stripe.com/logs/req_123', 'Stripe request log', 'button' ),
+			]
+		);
+
+		ob_start();
+		$notices->admin_notices();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( '<a href="https://dashboard.stripe.com/customers/cus_123" target="_blank" rel="noopener noreferrer">Stripe customer page</a>', $output );
+		$this->assertStringContainsString( '<a href="https://dashboard.stripe.com/logs/req_123" class="button" target="_blank" rel="noopener noreferrer">Stripe request log</a>', $output );
+	}
+
+	/**
 	 * Test that the correct notices are shown in all scenarios.
 	 *
 	 * @param array $options_to_set         Options to set before running the test.
@@ -1042,6 +1069,9 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		if ( $expected_content ) {
 			$this->assertArrayHasKey( 'subscription_detached_bulk_action', $actual );
 			$this->assertStringContainsString( $expected_content, $actual['subscription_detached_bulk_action']['message'] );
+			if ( count( $subscriptions ) > 0 ) {
+				$this->assertStringContainsString( 'rel="noopener noreferrer"', $actual['subscription_detached_bulk_action']['message'] );
+			}
 		} else {
 			$this->assertArrayNotHasKey( 'subscription_detached_bulk_action', $actual );
 		}
