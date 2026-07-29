@@ -10,34 +10,7 @@
  */
 class WC_Stripe_UPE_Payment_Method_Hooks_Test extends WP_UnitTestCase {
 
-	/**
-	 * @inheritDoc
-	 */
-	public function set_up() {
-		parent::set_up();
-		$this->reset_hook_manager_singleton();
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public function tear_down() {
-		$this->reset_hook_manager_singleton();
-		parent::tear_down();
-	}
-
-	/**
-	 * Resets the hook manager singleton so each test's first instantiation
-	 * actually exercises the registration path: WP_UnitTestCase restores
-	 * `$wp_filter` between tests but not the singleton's registered state.
-	 *
-	 * @return void
-	 */
-	private function reset_hook_manager_singleton() {
-		$reflection = new ReflectionProperty( WC_Stripe_Hook_Manager::class, 'instance' );
-		$reflection->setAccessible( true );
-		$reflection->setValue( null, null );
-	}
+	use WC_Stripe_Hook_Manager_Reset_Trait;
 
 	/**
 	 * Data provider mapping each hook-registering payment method class to a
@@ -97,6 +70,27 @@ class WC_Stripe_UPE_Payment_Method_Hooks_Test extends WP_UnitTestCase {
 		WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( WC_Stripe_Payment_Methods::MULTIBANCO );
 
 		$this->assertSame( $after_first, $this->count_hook_callbacks( 'woocommerce_email_before_order_table' ) );
+	}
+
+	/**
+	 * Test that a subclass keeping a core id still registers its callbacks
+	 * after the core class has: dedup is keyed per concrete class, so neither
+	 * suppresses the other, and each class still registers only once.
+	 */
+	public function test_same_id_subclass_registers_independently_of_core_class() {
+		new WC_Stripe_UPE_Payment_Method_Multibanco();
+		$after_core = $this->count_hook_callbacks( 'woocommerce_email_before_order_table' );
+
+		$make_subclass = function () {
+			return new class() extends WC_Stripe_UPE_Payment_Method_Multibanco {};
+		};
+
+		$make_subclass();
+		$after_subclass = $this->count_hook_callbacks( 'woocommerce_email_before_order_table' );
+		$this->assertGreaterThan( $after_core, $after_subclass );
+
+		$make_subclass();
+		$this->assertSame( $after_subclass, $this->count_hook_callbacks( 'woocommerce_email_before_order_table' ) );
 	}
 
 	/**
