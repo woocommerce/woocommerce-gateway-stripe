@@ -82,6 +82,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Store the Stripe refund ID on each WooCommerce refund record so orders with multiple partial refunds retain every refund ID
 * Fix - Open the Stripe Dashboard links in subscription renewal failure order notes in a new tab
 * Fix - Prevent fatals during internal order check
+* Fix - Attach a Stripe customer to guest Adaptive Pricing checkouts, linking it to the order and any account created at checkout
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
 
 2026-07-14 - version 10.8.4

@@ -2224,6 +2224,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order_helper->update_stripe_source_id( $order, $payment_method_id );
 			}
 
+			$this->maybe_attach_checkout_session_customer( $checkout_session, $order );
+
 			// Fetch the charge once; reused below.
 			$charge = $this->get_latest_charge_from_intent( $intent );
 
@@ -2314,6 +2316,39 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Persists the checkout session's Stripe customer on the order and, when the order belongs to
+	 * a WP user without one, on that user. The session is created before the buyer is known, so for
+	 * guests (and accounts created at checkout) this is the first point where the Customer that
+	 * Stripe created at confirmation can be linked back to store records. Existing IDs are never
+	 * overwritten.
+	 *
+	 * @param object   $checkout_session The checkout session from the webhook event.
+	 * @param WC_Order $order            The order the session settled.
+	 */
+	private function maybe_attach_checkout_session_customer( object $checkout_session, WC_Order $order ): void {
+		$session_customer = $checkout_session->customer ?? null;
+		$customer_id      = is_object( $session_customer ) ? ( $session_customer->id ?? '' ) : (string) $session_customer;
+
+		if ( '' === $customer_id ) {
+			return;
+		}
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( ! $order_helper->get_stripe_customer_id( $order ) ) {
+			$order_helper->update_stripe_customer_id( $order, $customer_id );
+		}
+
+		$user_id = $order->get_user_id();
+		if ( $user_id > 0 ) {
+			$user_customer = new WC_Stripe_Customer( $user_id );
+			if ( ! $user_customer->get_id() ) {
+				$user_customer->update_id_in_meta( $customer_id );
+			}
+		}
 	}
 
 	/**

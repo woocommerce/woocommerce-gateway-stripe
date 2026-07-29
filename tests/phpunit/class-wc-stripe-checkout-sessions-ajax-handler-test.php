@@ -888,6 +888,127 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Sessions without an attached customer must ask Stripe to create one at confirmation
+	 * (customer_creation=always), so guest payments don't end up with an unattached PaymentIntent.
+	 * A failing customer API call for a logged-in buyer degrades to that same guest-style session
+	 * instead of failing checkout.
+	 *
+	 * @param bool $user_is_logged_in     Whether a user is logged in when the session is created.
+	 * @param bool $customer_api_fails    Whether the Stripe customers API call fails.
+	 * @param bool $expect_customer       Whether the request should carry a customer.
+	 * @dataProvider provide_test_customer_attachment
+	 */
+	public function test_customer_attachment_in_checkout_session_request(
+		bool $user_is_logged_in,
+		bool $customer_api_fails,
+		bool $expect_customer
+	): void {
+		Ajax_Test_Helper::init_hooks();
+
+		if ( $user_is_logged_in ) {
+			wp_set_current_user( 1 );
+			WC()->customer = new \WC_Customer( 1 );
+			delete_user_option( 1, '_stripe_customer_id' );
+		} else {
+			wp_set_current_user( 0 );
+		}
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+
+		$captured_request = null;
+		$capture_body     = static function ( $request, $api ) use ( &$captured_request ) {
+			if ( 'checkout/sessions' === $api ) {
+				$captured_request = $request;
+			}
+			return $request;
+		};
+		add_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+
+		$test_request = static function ( $return_value, $parsed_args, $url ) use ( $customer_api_fails ) {
+			if ( strpos( $url, '/v1/customers' ) !== false ) {
+				$body = $customer_api_fails
+					? (object) [ 'error' => (object) [ 'message' => 'Simulated customer API failure.' ] ]
+					: (object) [ 'id' => 'cus_123' ];
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( $body ),
+				];
+			}
+			if ( 'https://api.stripe.com/v1/checkout/sessions' === $url ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						(object) [
+							'client_secret' => 'cs_test_secret',
+							'id'            => 'cs_test_123',
+						]
+					),
+				];
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_create_checkout_session_nonce' );
+
+		$ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
+
+		try {
+			ob_start();
+			$ajax_handler->create_checkout_session();
+			$output = ob_get_clean();
+		} finally {
+			remove_filter( 'pre_http_request', $test_request, 10, 3 );
+			remove_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+			Ajax_Test_Helper::remove_hooks();
+		}
+
+		$response = json_decode( $output );
+		$this->assertTrue( $response->success, 'The session must be created even without a customer.' );
+		$this->assertIsArray( $captured_request );
+
+		if ( $expect_customer ) {
+			$this->assertSame( 'cus_123', $captured_request['customer'] );
+			$this->assertArrayNotHasKey( 'customer_creation', $captured_request );
+		} else {
+			$this->assertArrayNotHasKey( 'customer', $captured_request );
+			$this->assertSame( 'always', $captured_request['customer_creation'] );
+			$this->assertArrayNotHasKey( 'saved_payment_method_options', $captured_request );
+		}
+	}
+
+	/**
+	 * Data provider for `test_customer_attachment_in_checkout_session_request`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_customer_attachment(): array {
+		return [
+			'guest'                           => [
+				'user_is_logged_in'  => false,
+				'customer_api_fails' => false,
+				'expect_customer'    => false,
+			],
+			'logged in'                       => [
+				'user_is_logged_in'  => true,
+				'customer_api_fails' => false,
+				'expect_customer'    => true,
+			],
+			'logged in, customer API failure' => [
+				'user_is_logged_in'  => true,
+				'customer_api_fails' => true,
+				'expect_customer'    => false,
+			],
+		];
+	}
+
+	/**
 	 * Data provider for `test_create_checkout_session`.
 	 *
 	 * @return array

@@ -2731,6 +2731,97 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The Stripe customer created at session confirmation must be linked back to the order and,
+	 * when the order belongs to a WP user (including accounts created at checkout), to that user —
+	 * without overwriting an ID the user already has.
+	 *
+	 * @param bool    $order_has_user            Whether the order belongs to a WP user.
+	 * @param ?string $existing_user_customer_id A Stripe customer ID already stored on that user, if any.
+	 * @param ?string $expected_user_customer_id The user's Stripe customer ID after processing.
+	 * @dataProvider provide_test_checkout_session_customer_attachment
+	 */
+	public function test_process_checkout_session_attaches_session_customer( bool $order_has_user, ?string $existing_user_customer_id, ?string $expected_user_customer_id ): void {
+		$checkout_session_id = 'cs_test_customer123';
+		$session_customer_id = 'cus_session_123';
+
+		$user_id = 0;
+		if ( $order_has_user ) {
+			$user_id = self::factory()->user->create();
+			if ( null !== $existing_user_customer_id ) {
+				update_user_option( $user_id, '_stripe_customer_id', $existing_user_customer_id, false );
+			}
+		}
+
+		$order = WC_Helper_Order::create_order( $user_id );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_abc',
+					'customer'       => $session_customer_id,
+				],
+			],
+		];
+
+		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->mock_webhook_handler, $this->createMock( WC_Stripe_Action_Scheduler_Service::class ) );
+
+		$this->mock_webhook_handler->process_checkout_session_success( $notification );
+
+		$this->assertSame(
+			$session_customer_id,
+			WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( wc_get_order( $order->get_id() ) )
+		);
+
+		if ( $order_has_user ) {
+			$this->assertSame( $expected_user_customer_id, ( new WC_Stripe_Customer( $user_id ) )->get_id() );
+		}
+	}
+
+	/**
+	 * Data provider for `test_process_checkout_session_attaches_session_customer`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_checkout_session_customer_attachment(): array {
+		return [
+			'guest order'                           => [
+				'order_has_user'            => false,
+				'existing_user_customer_id' => null,
+				'expected_user_customer_id' => null,
+			],
+			'user without a Stripe customer'        => [
+				'order_has_user'            => true,
+				'existing_user_customer_id' => null,
+				'expected_user_customer_id' => 'cus_session_123',
+			],
+			'user with an existing Stripe customer' => [
+				'order_has_user'            => true,
+				'existing_user_customer_id' => 'cus_existing_456',
+				'expected_user_customer_id' => 'cus_existing_456',
+			],
+		];
+	}
+
+	/**
 	 * Test that `process_checkout_session` does not schedule the metadata job when an exception is thrown during processing.
 	 *
 	 * @return void
