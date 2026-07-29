@@ -819,6 +819,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		);
 
+		// Country restrictions deliberately HIDE methods rather than offer them
+		// and fail at confirmation ("This payment method type is not available
+		// in the selected country."). The trade-off: a hidden-but-eligible
+		// method costs at most a reload, while an offered-but-ineligible one
+		// fails the payment. On the Adaptive Pricing (checkout session) flow
+		// this filter is fixed at session creation — exclusions can't be
+		// updated mid-session, so a billing-country change to an eligible
+		// country won't reveal the method until a new session is created. The
+		// other OCS flows recompute it client-side on country change.
 		$excluded_methods = array_merge( $excluded_methods, $this->get_country_excluded_payment_method_types() );
 
 		// Always exclude Amazon Pay, as it is shown via Express Checkout and not in the standard Payment Element.
