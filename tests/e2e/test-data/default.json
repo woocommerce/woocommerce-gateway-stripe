@@ -133,6 +133,66 @@
 				"country_iso": "AU"
 			}
 		},
+		"customer_netherlands": {
+			"billing": {
+				"first_name": "Customer",
+				"last_name": "Customerson",
+				"company": "",
+				"country": "Netherlands",
+				"country_iso": "NL",
+				"address_1": "Kalverstraat 1",
+				"address_2": "billing",
+				"city": "Amsterdam",
+				"state": "",
+				"state_iso": "",
+				"postcode": "1012 NX",
+				"phone": "2025550104",
+				"email": "e2e-customer-billing@woocommerce.com"
+			},
+			"shipping": {
+				"first_name": "Recipient",
+				"last_name": "Recipientson",
+				"company": "",
+				"country": "Netherlands",
+				"country_iso": "NL",
+				"address_1": "Kalverstraat 1",
+				"address_2": "shipping",
+				"city": "Amsterdam",
+				"state": "",
+				"state_iso": "",
+				"postcode": "1012 NX"
+			}
+		},
+		"customer_belgium": {
+			"billing": {
+				"first_name": "Customer",
+				"last_name": "Customerson",
+				"company": "",
+				"country": "Belgium",
+				"country_iso": "BE",
+				"address_1": "Grasmarkt 1",
+				"address_2": "billing",
+				"city": "Brussels",
+				"state": "",
+				"state_iso": "",
+				"postcode": "1000",
+				"phone": "2025550104",
+				"email": "e2e-customer-billing@woocommerce.com"
+			},
+			"shipping": {
+				"first_name": "Recipient",
+				"last_name": "Recipientson",
+				"company": "",
+				"country": "Belgium",
+				"country_iso": "BE",
+				"address_1": "Grasmarkt 1",
+				"address_2": "shipping",
+				"city": "Brussels",
+				"state": "",
+				"state_iso": "",
+				"postcode": "1000"
+			}
+		},
 		"customer_poland": {
 			"billing": {
 				"first_name": "Customer",
@@ -351,6 +411,9 @@
 			"cvc": "626",
 			"label": "3DS not supported"
 		}
+	},
+	"sepa": {
+		"iban": "AT611904300234573201"
 	},
 	"becs": {
 		"valid": {

@@ -1077,6 +1077,102 @@ export const fillBECSDetails = async ( page, checkoutType = 'blocks' ) => {
 };
 
 /**
+ * Set up the checkout page for a euro-denominated local payment method
+ * (SEPA Direct Debit, iDEAL, Bancontact).
+ *
+ * These methods share the same selection flow and only differ in the method
+ * label and the shopper billing country they are restricted to.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @param {string} methodLabel The payment method label shown at checkout (e.g. 'SEPA Direct Debit').
+ * @param {Object} billingDetails The billing details in the format provided on the test-data.
+ * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ */
+export const setupEuroLPMCheckout = async (
+	page,
+	methodLabel,
+	billingDetails,
+	checkoutType = 'blocks'
+) => {
+	await emptyCart( page );
+	await setupCart( page );
+
+	if ( checkoutType === 'blocks' ) {
+		await setupBlocksCheckout( page, billingDetails );
+
+		const methodOptionLabel = page
+			.locator( 'label' )
+			.filter( { hasText: methodLabel } );
+		await methodOptionLabel.waitFor( { state: 'visible' } );
+		await methodOptionLabel.dispatchEvent( 'click' );
+	} else {
+		await setupShortcodeCheckout( page, billingDetails );
+
+		const methodOptionLabel = page.getByText( methodLabel, {
+			exact: true,
+		} );
+		await methodOptionLabel.waitFor( { state: 'visible' } );
+		await methodOptionLabel.dispatchEvent( 'click' );
+	}
+};
+
+/**
+ * Interact with the Stripe Elements iframe to fill in the SEPA IBAN.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @param {string} iban The IBAN to pay with.
+ * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ */
+export const fillSepaDetails = async (
+	page,
+	iban,
+	checkoutType = 'blocks'
+) => {
+	let frameHandle;
+	if ( checkoutType === 'shortcode' ) {
+		frameHandle = await page.waitForSelector(
+			'.wc_payment_method.payment_method_stripe_sepa_debit iframe[src*="elements-inner-payment"]'
+		);
+	} else {
+		frameHandle = await page.waitForSelector(
+			'#radio-control-wc-payment-method-options-stripe_sepa_debit__content iframe[src*="elements-inner-payment"]'
+		);
+	}
+
+	const stripeFrame = await frameHandle.contentFrame();
+
+	await expect( stripeFrame.locator( '[name="iban"]' ) ).toBeVisible( {
+		timeout: 30000,
+	} );
+
+	await stripeFrame.locator( '[name="iban"]' ).fill( iban );
+};
+
+/**
+ * Complete a redirect-based payment on Stripe's hosted test page.
+ *
+ * In test mode, redirect methods (e.g. iDEAL, Bancontact) send the shopper to
+ * a Stripe-hosted page where the payment outcome is chosen manually instead of
+ * a real bank flow.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @param {string} action The payment outcome to pick ('authorize' or 'fail').
+ */
+export const handleHostedTestPaymentPage = async (
+	page,
+	action = 'authorize'
+) => {
+	const linkName =
+		action === 'authorize' ? 'Authorize Test Payment' : 'Fail Test Payment';
+
+	// The hosted page is reached via a full-page redirect after placing the
+	// order, so give it the same generous timeout used for other Stripe pages.
+	const actionLink = page.getByRole( 'link', { name: linkName } );
+	await expect( actionLink ).toBeVisible( { timeout: 30000 } );
+	await actionLink.click();
+};
+
+/**
  * Set up the checkout page for Affirm payment.
  *
  * @param {Page} page Playwright page fixture.
