@@ -9105,7 +9105,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 12
+			count: 14
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-

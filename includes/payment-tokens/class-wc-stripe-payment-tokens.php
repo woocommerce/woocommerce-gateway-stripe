@@ -224,8 +224,7 @@ class WC_Stripe_Payment_Tokens {
 			// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
 			remove_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10 );
 
-			$payment_methods    = $customer->get_all_payment_methods( $active_reusable_types );
-			$payment_method_ids = array_map( fn ( $payment_method ) => $payment_method->id, $payment_methods );
+			$payment_methods = $customer->get_all_payment_methods( $active_reusable_types );
 
 			foreach ( $payment_methods as $payment_method ) {
 				if ( ! isset( $payment_method->type ) ) {
@@ -272,7 +271,7 @@ class WC_Stripe_Payment_Tokens {
 					$this->is_valid_payment_method_id( $payment_method->id, $payment_method_type ) &&
 					( empty( $gateway_id ) || $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) )
 				) {
-					$token                      = $this->add_token_to_user( $payment_method, $customer, $payment_method_ids );
+					$token                      = $this->add_token_to_user( $payment_method, $customer, $payment_methods );
 					$tokens[ $token->get_id() ] = $token;
 				}
 			}
@@ -532,13 +531,6 @@ class WC_Stripe_Payment_Tokens {
 			}
 			$payment_methods = $customer->get_all_payment_methods( $active_reusable_payment_method_types );
 
-			$payment_method_ids = array_map(
-				function ( $payment_method ) {
-					return $payment_method->id;
-				},
-				$payment_methods
-			);
-
 			// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
 			remove_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 
@@ -564,7 +556,7 @@ class WC_Stripe_Payment_Tokens {
 					$this->is_valid_payment_method_id( $payment_method->id, $payment_method_type ) &&
 					( empty( $gateway_id ) || $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) )
 				) {
-					$token                      = $this->add_token_to_user( $payment_method, $customer, $payment_method_ids );
+					$token                      = $this->add_token_to_user( $payment_method, $customer, $payment_methods );
 					$tokens[ $token->get_id() ] = $token;
 				} else {
 					unset( $stored_tokens[ $payment_method->id ] );
@@ -774,17 +766,18 @@ class WC_Stripe_Payment_Tokens {
 	/**
 	 * Creates and add a token to an user, based on the PaymentMethod object.
 	 *
-	 * @param   object             $payment_method      Payment method to be added.
-	 * @param   WC_Stripe_Customer $customer            WC_Stripe_Customer we're processing the tokens for.
-	 * @param   array              $payment_method_ids  List of payment methods retrieved from Stripe.
+	 * @param   object             $payment_method   Payment method to be added.
+	 * @param   WC_Stripe_Customer $customer         WC_Stripe_Customer we're processing the tokens for.
+	 * @param   object[]           $payment_methods  Payment method objects retrieved from Stripe.
 	 * @return  WC_Payment_Token   The WC object for the payment token.
 	 */
-	private function add_token_to_user( $payment_method, WC_Stripe_Customer $customer, $payment_method_ids = [] ) {
+	private function add_token_to_user( $payment_method, WC_Stripe_Customer $customer, $payment_methods = [] ) {
 		$payment_method_type = $this->get_original_payment_method_type( $payment_method );
 		$gateway_id          = self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_type ];
 
 		$found_token = $this->get_duplicate_token( $payment_method, $customer->get_user_id(), $gateway_id );
 		if ( $found_token ) {
+			$payment_method_ids = array_map( fn( $pm ) => $pm->id, $payment_methods );
 			// Update the token with the new payment method ID if the current payment method ID is not in the list of payment method IDs retrieved from Stripe.
 			if ( ! in_array( $found_token->get_token(), $payment_method_ids, true ) ) {
 				// Clear cached payment methods.
@@ -802,6 +795,17 @@ class WC_Stripe_Payment_Tokens {
 					$found_token->set_last4( $payment_method->card->last4 );
 				}
 
+				$found_token->save();
+			} elseif ( $found_token instanceof WC_Payment_Token_Link && $this->is_newer_link_payment_method( $payment_method, $found_token, $payment_methods ) ) {
+				// Link tokens dedupe by account email, and re-enrolling through
+				// Link attaches a new PM while the old one stays in Stripe's
+				// list — so the detached-only refresh above never fires and
+				// renewals keep charging the card behind the old PM. Repoint to
+				// the newer PM; requiring "newer" (not just "different") keeps
+				// the sync loop stable while both PMs remain attached,
+				// regardless of iteration order.
+				$customer->clear_cache();
+				$found_token->set_token( $payment_method->id );
 				$found_token->save();
 			}
 			return $found_token;
@@ -904,6 +908,27 @@ class WC_Stripe_Payment_Tokens {
 		$token->save();
 
 		return $token;
+	}
+
+	/**
+	 * Whether the incoming Link payment method is a newer enrollment than the
+	 * one the matched token currently references.
+	 *
+	 * @param object           $payment_method  Incoming Link payment method.
+	 * @param WC_Payment_Token $token           The email-matched Link token.
+	 * @param object[]         $payment_methods Payment method objects retrieved from Stripe.
+	 * @return bool
+	 */
+	private function is_newer_link_payment_method( $payment_method, $token, $payment_methods ): bool {
+		foreach ( $payment_methods as $attached ) {
+			if ( ( $attached->id ?? null ) === $token->get_token() ) {
+				// Strictly newer, so two PMs created in the same second can't
+				// repoint the token back and forth across syncs.
+				return isset( $payment_method->created, $attached->created ) && $payment_method->created > $attached->created;
+			}
+		}
+
+		return false;
 	}
 
 	/**
