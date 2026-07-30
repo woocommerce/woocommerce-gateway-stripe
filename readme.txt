@@ -240,5 +240,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Open the Stripe Dashboard links in subscription renewal failure order notes in a new tab
 * Fix - Prevent fatals during internal order check
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
+* Update - Check Apple Pay and Google Pay availability on the Blocks cart and checkout with one shared probe instead of one per method
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
