@@ -48,7 +48,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$this->gateway         = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->setConstructorArgs( [ $mock_account ] )
-			->setMethods( [ 'maybe_process_upe_redirect', 'has_subscription' ] )
+			->setMethods( [ 'maybe_process_upe_redirect', 'has_subscription', 'get_upe_enabled_at_checkout_payment_method_ids' ] )
 			->getMock();
 		$this->mock_controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
 			->disableOriginalConstructor()
@@ -71,6 +71,8 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_capture_method
 	 */
 	public function test_capture_method( ?string $capture_setting, string $expected_method ) {
+		$this->gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( [ WC_Stripe_Payment_Methods::BLIK ] );
+
 		if ( null !== $capture_setting ) {
 			$this->gateway->settings['capture'] = $capture_setting;
 		}
@@ -93,7 +95,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
-		$this->mock_controller->create_payment_intent( $this->order->get_id() );
+		$this->mock_controller->create_payment_intent( $this->order->get_id(), WC_Stripe_Payment_Methods::BLIK );
 	}
 
 	/**
@@ -120,6 +122,8 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_create_payment_intent_currency_data
 	 */
 	public function test_create_payment_intent_chooses_currency( $order_currency, $global_currency, $expected_currency ) {
+		$this->gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( [ WC_Stripe_Payment_Methods::BLIK ] );
+
 		$order_id = null;
 
 		if ( null !== $order_currency ) {
@@ -150,7 +154,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
-		$this->mock_controller->create_payment_intent( $order_id );
+		$this->mock_controller->create_payment_intent( $order_id, WC_Stripe_Payment_Methods::BLIK );
 
 		remove_filter( 'woocommerce_currency', $currency_callback );
 	}
@@ -164,6 +168,60 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		return [
 			'uses order currency when order exists' => [ 'USD', 'CAD', 'usd' ],
 			'uses global currency without order'    => [ null, 'EUR', 'eur' ],
+		];
+	}
+
+	/**
+	 * Test that intents can only be created upfront for payment methods that do not support deferred intent creation.
+	 *
+	 * @param string|null $payment_method_type The requested payment method type.
+	 * @dataProvider provide_unsupported_create_payment_intent_types
+	 */
+	public function test_create_payment_intent_rejects_deferred_or_invalid_payment_method_types( $payment_method_type ) {
+		$this->gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( [ WC_Stripe_Payment_Methods::CARD ] );
+
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'Unable to process your request.' );
+
+		$this->mock_controller->create_payment_intent( $this->order->get_id(), $payment_method_type );
+	}
+
+	/**
+	 * Data provider for test_create_payment_intent_rejects_deferred_or_invalid_payment_method_types.
+	 *
+	 * @return array[]
+	 */
+	public function provide_unsupported_create_payment_intent_types() {
+		return [
+			'card supports deferred intent creation' => [ WC_Stripe_Payment_Methods::CARD ],
+			'missing payment method type'            => [ null ],
+			'unknown payment method type'            => [ 'unknown' ],
+		];
+	}
+
+	/**
+	 * Test that setup intents can only be created upfront for payment methods that do not support deferred intent creation.
+	 *
+	 * @param string|null $payment_method_type The requested payment method type.
+	 * @dataProvider provide_unsupported_init_setup_intent_types
+	 */
+	public function test_init_setup_intent_rejects_deferred_or_invalid_payment_method_types( $payment_method_type ) {
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'Unable to process your request.' );
+
+		$this->mock_controller->init_setup_intent( $payment_method_type );
+	}
+
+	/**
+	 * Data provider for test_init_setup_intent_rejects_deferred_or_invalid_payment_method_types.
+	 *
+	 * @return array[]
+	 */
+	public function provide_unsupported_init_setup_intent_types() {
+		return [
+			'card supports deferred intent creation' => [ WC_Stripe_Payment_Methods::CARD ],
+			'missing payment method type'            => [ null ],
+			'unknown payment method type'            => [ 'unknown' ],
 		];
 	}
 
@@ -184,6 +242,8 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$this->create_gateway_and_controller();
+
+		$this->gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( [ $payment_method_type ] );
 
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
@@ -239,8 +299,6 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			'blik uses the local descriptor'          => [ WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID, 'WOO STORE', $account_with_descriptor, 'WOO STORE' ],
 			'acss falls back to account descriptor'   => [ WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID, '', $account_with_descriptor, 'ACCOUNT DESCRIPTOR' ],
 			'no descriptor available leaves it unset' => [ WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID, '', [], null ],
-			'card payments do not set the descriptor' => [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, 'WOO STORE', $account_with_descriptor, null ],
-			'no payment method type leaves it unset'  => [ null, 'WOO STORE', $account_with_descriptor, null ],
 		];
 	}
 
@@ -762,6 +820,359 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		// Order must NOT be set to failed — the customer should be able to retry.
 		$final_order = wc_get_order( $order_id );
 		$this->assertNotEquals( 'failed', $final_order->get_status() );
+
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	/**
+	 * A request whose intent_id does not match the order's stored intent (an attacker replaying a
+	 * valid generic guest nonce against a victim order_id) must be rejected before any order
+	 * mutation: the order is not set to failed and no note is added to it.
+	 */
+	public function test_update_order_status_ajax_intent_mismatch_does_not_fail_order() {
+		Ajax_Test_Helper::init_hooks();
+
+		$order = WC_Helper_Order::create_order();
+		$order->update_meta_data( '_stripe_intent_id', 'pi_victim_real' );
+		$order->set_status( 'completed' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+
+		// A mismatch is rejected before processing starts, so the gateway is never asked to process.
+		$gateway->expects( $this->never() )
+			->method( 'process_order_for_confirmed_intent' );
+
+		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_gateway' ] )
+			->getMock();
+
+		$controller->expects( $this->any() )
+			->method( 'get_gateway' )
+			->willReturn( $gateway );
+
+		$notes_before = count( wc_get_order_notes( [ 'order_id' => $order_id ] ) );
+
+		// Valid generic guest nonce, victim order_id, attacker-supplied unrelated intent_id.
+		$_POST['order_id']       = $order_id;
+		$_POST['intent_id']      = 'pi_attacker_unrelated';
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$controller->update_order_status_ajax();
+		$output   = ob_get_clean();
+		$response = json_decode( $output, true );
+
+		$this->assertFalse( $response['success'] );
+
+		// The victim order must be untouched: still completed, and no spam note added.
+		$final_order = wc_get_order( $order_id );
+		$this->assertEquals( 'completed', $final_order->get_status() );
+		$this->assertSame( $notes_before, count( wc_get_order_notes( [ 'order_id' => $order_id ] ) ) );
+
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	/**
+	 * A genuine payment failure raised once gateway processing has begun must still fail the order.
+	 * This guards the $processing_started flag from suppressing legitimate payment-failure handling.
+	 */
+	public function test_update_order_status_ajax_payment_failure_still_fails_order() {
+		Ajax_Test_Helper::init_hooks();
+
+		$order     = WC_Helper_Order::create_order();
+		$intent_id = 'pi_matches_order';
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+
+		$gateway->expects( $this->once() )
+			->method( 'process_order_for_confirmed_intent' )
+			->willThrowException( new WC_Stripe_Exception( 'processing_error', 'Your card was declined.' ) );
+
+		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_gateway' ] )
+			->getMock();
+
+		$controller->expects( $this->any() )
+			->method( 'get_gateway' )
+			->willReturn( $gateway );
+
+		$_POST['order_id']       = $order_id;
+		$_POST['intent_id']      = $intent_id;
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$controller->update_order_status_ajax();
+		$output   = ob_get_clean();
+		$response = json_decode( $output, true );
+
+		$this->assertFalse( $response['success'] );
+		$this->assertEquals( 'failed', wc_get_order( $order_id )->get_status() );
+
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	/**
+	 * Builds a controller whose gateway is mocked so process_order_for_confirmed_intent can be
+	 * asserted against without hitting Stripe. Mirrors the setup of the sibling AJAX tests.
+	 *
+	 * @param WC_Stripe_UPE_Payment_Gateway $gateway The mocked gateway to return from get_gateway().
+	 * @return WC_Stripe_Intent_Controller
+	 */
+	private function build_controller_with_gateway( $gateway ) {
+		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_gateway' ] )
+			->getMock();
+
+		$controller->expects( $this->any() )
+			->method( 'get_gateway' )
+			->willReturn( $gateway );
+
+		return $controller;
+	}
+
+	/**
+	 * When a concurrent request (e.g. the deferred webhook) has already moved the order to a
+	 * terminal status, the AJAX handler must skip re-processing and return the thank-you URL.
+	 *
+	 * @param string $status A status that indicates the order was already settled elsewhere.
+	 * @dataProvider provide_already_settled_statuses
+	 */
+	public function test_update_order_status_ajax_skips_when_order_already_settled( string $status ) {
+		Ajax_Test_Helper::init_hooks();
+
+		$order     = WC_Helper_Order::create_order();
+		$intent_id = 'pi_already_settled';
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->set_status( $status );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+
+		// Already settled by another request; this one must not process it again.
+		$gateway->expects( $this->never() )
+			->method( 'process_order_for_confirmed_intent' );
+
+		$controller = $this->build_controller_with_gateway( $gateway );
+
+		$_POST['order_id']       = $order_id;
+		$_POST['intent_id']      = $intent_id;
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$controller->update_order_status_ajax();
+		$response = json_decode( ob_get_clean(), true );
+
+		$this->assertIsArray( $response );
+		$this->assertTrue( $response['success'] );
+		$this->assertArrayHasKey( 'return_url', $response['data'] );
+
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	/**
+	 * Data provider of statuses that mean the order was already settled by a concurrent request.
+	 *
+	 * @return array
+	 */
+	public function provide_already_settled_statuses(): array {
+		return [
+			'processing' => [ 'processing' ],
+			'completed'  => [ 'completed' ],
+			'on-hold'    => [ 'on-hold' ],
+		];
+	}
+
+	/**
+	 * When the redirect handler has already processed this order (flag set), the AJAX handler must
+	 * skip re-processing even if the status guard has not caught up yet.
+	 */
+	public function test_update_order_status_ajax_skips_when_redirect_already_processed() {
+		Ajax_Test_Helper::init_hooks();
+
+		$order     = WC_Helper_Order::create_order();
+		$intent_id = 'pi_redirect_processed';
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->set_status( 'pending' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		// The helper's meta setter only stages the value; persist it so the handler's fresh
+		// order load sees the flag.
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_redirect_processed( $order, true );
+		$order->save();
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+
+		$gateway->expects( $this->never() )
+			->method( 'process_order_for_confirmed_intent' );
+
+		$controller = $this->build_controller_with_gateway( $gateway );
+
+		$_POST['order_id']       = $order_id;
+		$_POST['intent_id']      = $intent_id;
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$controller->update_order_status_ajax();
+		$response = json_decode( ob_get_clean(), true );
+
+		$this->assertIsArray( $response );
+		$this->assertTrue( $response['success'] );
+		$this->assertArrayHasKey( 'return_url', $response['data'] );
+
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	/**
+	 * A request that finds the order already locked by another in-flight request must skip
+	 * processing AND leave the existing lock intact — releasing the winner's lock would defeat
+	 * the mutual exclusion the lock exists to provide.
+	 */
+	public function test_update_order_status_ajax_skips_and_preserves_existing_lock() {
+		Ajax_Test_Helper::init_hooks();
+
+		$order     = WC_Helper_Order::create_order();
+		$intent_id = 'pi_locked';
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->set_status( 'pending' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		// Simulate the concurrent request already holding the lock.
+		$this->assertFalse( $order_helper->lock_order_payment( $order ) );
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+
+		$gateway->expects( $this->never() )
+			->method( 'process_order_for_confirmed_intent' );
+
+		$controller = $this->build_controller_with_gateway( $gateway );
+
+		$_POST['order_id']       = $order_id;
+		$_POST['intent_id']      = $intent_id;
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$controller->update_order_status_ajax();
+		$response = json_decode( ob_get_clean(), true );
+
+		$this->assertIsArray( $response );
+		$this->assertTrue( $response['success'] );
+		$this->assertArrayHasKey( 'return_url', $response['data'] );
+
+		// The winner's lock must survive this losing request.
+		$this->assertNotEmpty( $order_helper->get_order_existing_payment_lock( wc_get_order( $order_id ) ) );
+
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	/**
+	 * On the happy path the handler acquires the lock, processes once, and releases the lock so a
+	 * legitimate later retry (or the webhook) is not blocked by a stale lock.
+	 */
+	public function test_update_order_status_ajax_releases_lock_after_processing() {
+		Ajax_Test_Helper::init_hooks();
+
+		$order     = WC_Helper_Order::create_order();
+		$intent_id = 'pi_happy_path';
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->set_status( 'pending' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+
+		$gateway->expects( $this->once() )
+			->method( 'process_order_for_confirmed_intent' );
+
+		$controller = $this->build_controller_with_gateway( $gateway );
+
+		$_POST['order_id']       = $order_id;
+		$_POST['intent_id']      = $intent_id;
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$controller->update_order_status_ajax();
+		$response = json_decode( ob_get_clean(), true );
+
+		$this->assertIsArray( $response );
+		$this->assertTrue( $response['success'] );
+		$this->assertArrayHasKey( 'return_url', $response['data'] );
+
+		// Lock must be released after processing completes.
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( wc_get_order( $order_id ) ) );
+
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	/**
+	 * A genuine processing failure must still release the lock, otherwise a stale 5-minute lock
+	 * would block the customer's retry and the webhook fallback.
+	 */
+	public function test_update_order_status_ajax_releases_lock_after_processing_failure() {
+		Ajax_Test_Helper::init_hooks();
+
+		$order     = WC_Helper_Order::create_order();
+		$intent_id = 'pi_failure';
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->set_status( 'pending' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+
+		$gateway->expects( $this->once() )
+			->method( 'process_order_for_confirmed_intent' )
+			->willThrowException( new WC_Stripe_Exception( 'processing_error', 'Your card was declined.' ) );
+
+		$controller = $this->build_controller_with_gateway( $gateway );
+
+		$_POST['order_id']       = $order_id;
+		$_POST['intent_id']      = $intent_id;
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$controller->update_order_status_ajax();
+		$response = json_decode( ob_get_clean(), true );
+
+		$this->assertIsArray( $response );
+		$this->assertFalse( $response['success'] );
+		$this->assertEquals( 'failed', wc_get_order( $order_id )->get_status() );
+
+		// Even on failure the lock must be released.
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( wc_get_order( $order_id ) ) );
 
 		Ajax_Test_Helper::remove_hooks();
 	}

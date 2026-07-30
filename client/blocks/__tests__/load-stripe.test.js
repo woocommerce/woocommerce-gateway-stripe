@@ -36,7 +36,7 @@ describe( 'loadStripe', () => {
 	} );
 
 	it( 'loads Stripe when Stripe.js was loaded from the official origin', async () => {
-		addStripeScriptTag( 'https://js.stripe.com/clover/stripe.js' );
+		addStripeScriptTag( 'https://js.stripe.com/dahlia/stripe.js' );
 
 		const result = await loadStripe();
 
@@ -49,7 +49,7 @@ describe( 'loadStripe', () => {
 
 	it( 'warns and blocks when Stripe.js was loaded from an unexpected origin', async () => {
 		addStripeScriptTag(
-			'https://js.stripe.com.evil.example/clover/stripe.js'
+			'https://js.stripe.com.evil.example/dahlia/stripe.js'
 		);
 
 		const result = await loadStripe();
@@ -61,7 +61,7 @@ describe( 'loadStripe', () => {
 	} );
 
 	it( 'passes developerTools.assistant.enabled false to Stripe loadStripe when disabled', async () => {
-		addStripeScriptTag( 'https://js.stripe.com/clover/stripe.js' );
+		addStripeScriptTag( 'https://js.stripe.com/dahlia/stripe.js' );
 		getStripeDevWidgetOptions.mockReturnValue( {
 			developerTools: {
 				assistant: {
@@ -86,7 +86,7 @@ describe( 'loadStripe', () => {
 	} );
 
 	it( 'passes developerTools.assistant.enabled true to Stripe loadStripe when enabled', async () => {
-		addStripeScriptTag( 'https://js.stripe.com/clover/stripe.js' );
+		addStripeScriptTag( 'https://js.stripe.com/dahlia/stripe.js' );
 		getStripeDevWidgetOptions.mockReturnValue( {
 			developerTools: {
 				assistant: {
