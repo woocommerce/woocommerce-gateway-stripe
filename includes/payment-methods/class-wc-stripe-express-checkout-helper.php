@@ -1756,6 +1756,47 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Whether Stripe.js should be injected lazily on the current page instead
+	 * of being printed as an eager script tag.
+	 *
+	 * Only true on product/cart pages where the express checkout button is the
+	 * sole Stripe surface — its bundle takes over loading the SDK there.
+	 * Checkout-like contexts need the SDK as soon as the page paints.
+	 *
+	 * @return bool
+	 */
+	public function should_defer_stripe_js() {
+		if ( ! $this->is_product() && ! $this->is_cart() ) {
+			return false;
+		}
+
+		// One Page Checkout renders a checkout on product/cart URLs.
+		if (
+			$this->is_checkout()
+			|| $this->is_one_page_checkout()
+			|| is_add_payment_method_page()
+			|| $this->is_pay_for_order_page()
+			|| isset( $_GET['change_payment_method'] ) // phpcs:ignore WordPress.Security.NonceVerification
+		) {
+			return false;
+		}
+
+		// No express checkout bundle on the page means no code to inject the SDK.
+		if ( ! $this->should_show_express_checkout_button() ) {
+			return false;
+		}
+
+		/**
+		 * Filters whether Stripe.js loading is deferred on product and cart pages.
+		 *
+		 * @since 10.9.0
+		 *
+		 * @param bool $defer Whether to defer loading of Stripe.js.
+		 */
+		return apply_filters( 'wc_stripe_defer_stripe_js_on_storefront_pages', true );
+	}
+
+	/**
 	 * Builds the shipping methods to pass to express checkout elements.
 	 *
 	 * @param array $shipping_methods The shipping methods data.

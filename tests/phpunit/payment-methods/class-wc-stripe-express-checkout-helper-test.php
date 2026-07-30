@@ -2491,4 +2491,119 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$this->assertNull( $data );
 	}
+
+	/**
+	 * Stripe.js may only be deferred on plain product/cart pages where the
+	 * button will render; checkout-like contexts keep the eager tag.
+	 *
+	 * @dataProvider provide_test_should_defer_stripe_js
+	 */
+	public function test_should_defer_stripe_js( $page_flags, $should_show_button, $expected ) {
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->disableOriginalConstructor()
+			->onlyMethods(
+				[
+					'is_product',
+					'is_cart',
+					'is_checkout',
+					'is_one_page_checkout',
+					'is_pay_for_order_page',
+					'should_show_express_checkout_button',
+				]
+			)
+			->getMock();
+
+		$defaults = [
+			'is_product'            => false,
+			'is_cart'               => false,
+			'is_checkout'           => false,
+			'is_one_page_checkout'  => false,
+			'is_pay_for_order_page' => false,
+		];
+		foreach ( array_merge( $defaults, $page_flags ) as $method => $value ) {
+			$helper->method( $method )->willReturn( $value );
+		}
+		$helper->method( 'should_show_express_checkout_button' )->willReturn( $should_show_button );
+
+		$this->assertSame( $expected, $helper->should_defer_stripe_js() );
+	}
+
+	/**
+	 * Data provider for test_should_defer_stripe_js.
+	 *
+	 * @return array
+	 */
+	public function provide_test_should_defer_stripe_js() {
+		return [
+			'product page with button'          => [
+				'page_flags'         => [ 'is_product' => true ],
+				'should_show_button' => true,
+				'expected'           => true,
+			],
+			'cart page with button'             => [
+				'page_flags'         => [ 'is_cart' => true ],
+				'should_show_button' => true,
+				'expected'           => true,
+			],
+			'product page without button'       => [
+				'page_flags'         => [ 'is_product' => true ],
+				'should_show_button' => false,
+				'expected'           => false,
+			],
+			'checkout page'                     => [
+				'page_flags'         => [ 'is_checkout' => true ],
+				'should_show_button' => true,
+				'expected'           => false,
+			],
+			'one page checkout on product page' => [
+				'page_flags'         => [
+					'is_product'           => true,
+					'is_one_page_checkout' => true,
+				],
+				'should_show_button' => true,
+				'expected'           => false,
+			],
+			'pay for order on cart-like page'   => [
+				'page_flags'         => [
+					'is_cart'               => true,
+					'is_pay_for_order_page' => true,
+				],
+				'should_show_button' => true,
+				'expected'           => false,
+			],
+		];
+	}
+
+	/**
+	 * The wc_stripe_defer_stripe_js_on_storefront_pages filter must be able to
+	 * force the eager script tag back on.
+	 */
+	public function test_should_defer_stripe_js_respects_opt_out_filter() {
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->disableOriginalConstructor()
+			->onlyMethods(
+				[
+					'is_product',
+					'is_cart',
+					'is_checkout',
+					'is_one_page_checkout',
+					'is_pay_for_order_page',
+					'should_show_express_checkout_button',
+				]
+			)
+			->getMock();
+		$helper->method( 'is_product' )->willReturn( true );
+		$helper->method( 'is_cart' )->willReturn( false );
+		$helper->method( 'is_checkout' )->willReturn( false );
+		$helper->method( 'is_one_page_checkout' )->willReturn( false );
+		$helper->method( 'is_pay_for_order_page' )->willReturn( false );
+		$helper->method( 'should_show_express_checkout_button' )->willReturn( true );
+
+		add_filter( 'wc_stripe_defer_stripe_js_on_storefront_pages', '__return_false' );
+		try {
+			$this->assertFalse( $helper->should_defer_stripe_js() );
+		} finally {
+			remove_filter( 'wc_stripe_defer_stripe_js_on_storefront_pages', '__return_false' );
+		}
+	}
 }

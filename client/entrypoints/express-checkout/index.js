@@ -27,6 +27,7 @@ import {
 	shippingRateChangeHandler,
 } from 'wcstripe/express-checkout/event-handler';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
+import { ensureStripeSdk } from 'wcstripe/express-checkout/utils/load-stripe-sdk';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import 'wcstripe/express-checkout/compatibility/classic-checkout-custom-fields';
 import 'wcstripe/express-checkout/compatibility/wc-product-page';
@@ -1053,6 +1054,20 @@ jQuery( function ( $ ) {
 		},
 	};
 
+	// Deferred-SDK pages wait for the injected Stripe.js; everywhere else this
+	// stays synchronous so existing event ordering is untouched.
+	const initWhenSdkReady = () => {
+		if (
+			window.Stripe ||
+			! getExpressCheckoutData( 'stripe' )?.defer_sdk
+		) {
+			wcStripeECE.init();
+			return;
+		}
+
+		ensureStripeSdk().then( () => wcStripeECE.init() );
+	};
+
 	// We don't need to initialize ECE on the checkout page now because it will be initialized by updated_checkout event.
 	if (
 		getExpressCheckoutData( 'is_product_page' ) ||
@@ -1060,16 +1075,16 @@ jQuery( function ( $ ) {
 		getExpressCheckoutData( 'is_cart_page' ) ||
 		getExpressCheckoutData( 'is_change_payment_method' )
 	) {
-		wcStripeECE.init();
+		initWhenSdkReady();
 	}
 
 	// We need to refresh ECE data when total is updated.
 	$( document.body ).on( 'updated_cart_totals', () => {
-		wcStripeECE.init();
+		initWhenSdkReady();
 	} );
 
 	// We need to refresh ECE data when total is updated.
 	$( document.body ).on( 'updated_checkout', () => {
-		wcStripeECE.init();
+		initWhenSdkReady();
 	} );
 } );

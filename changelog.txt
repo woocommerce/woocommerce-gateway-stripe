@@ -83,6 +83,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Open the Stripe Dashboard links in subscription renewal failure order notes in a new tab
 * Fix - Prevent fatals during internal order check
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
+* Update - Defer Stripe.js on product and cart pages until page load or first interaction (opt out via the wc_stripe_defer_stripe_js_on_storefront_pages filter)
 
 2026-07-14 - version 10.8.4
 * Fix - Improve Checkout Session amount integrity

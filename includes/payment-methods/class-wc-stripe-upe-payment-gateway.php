@@ -469,7 +469,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		wp_register_script( 'stripe', 'https://js.stripe.com/dahlia/stripe.js', [], null, true );
-		wp_enqueue_script( 'stripe' );
+
+		// On product/cart pages the express checkout bundle injects the SDK
+		// lazily; keep the handle registered but skip the eager tag.
+		if ( ! ( new WC_Stripe_Express_Checkout_Helper() )->should_defer_stripe_js() ) {
+			wp_enqueue_script( 'stripe' );
+		}
 
 		if ( $this->should_skip_full_payment_scripts() ) {
 			return;
