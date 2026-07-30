@@ -13,8 +13,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * REST base path.
 	 */
-	const REST_BASE    = '/wc/v3/wc_stripe/agentic-commerce';
-	const STATUS_ROUTE = self::REST_BASE . '/status';
+	const REST_BASE     = '/wc/v3/wc_stripe/agentic-commerce';
+	const STATUS_ROUTE  = self::REST_BASE . '/status';
+	const PREVIEW_ROUTE = self::REST_BASE . '/preview';
 
 	/**
 	 * Controller under test.
@@ -175,9 +176,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * GET returns history entries in reverse-chronological order, capped at 20.
+	 * GET returns history newest-first, capped at the 5 most recent.
 	 */
-	public function test_get_status_returns_history_newest_first_capped_at_20(): void {
+	public function test_get_status_returns_history_newest_first_capped_at_5(): void {
 		// Store 25 entries oldest-first.
 		$history = [];
 		for ( $i = 1; $i <= 25; $i++ ) {
@@ -197,12 +198,12 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 		$returned = $response->get_data()['history'];
 
-		// Only the 20 most recent entries should be returned.
-		$this->assertCount( 20, $returned );
+		// Only the 5 most recent entries should be returned.
+		$this->assertCount( 5, $returned );
 
-		// Newest first: entry 25 should be at index 0, entry 6 at index 19.
+		// Newest first: entry 25 should be at index 0, entry 21 at index 4.
 		$this->assertEquals( 'impset_25', $returned[0]['import_set_id'] );
-		$this->assertEquals( 'impset_6', $returned[19]['import_set_id'] );
+		$this->assertEquals( 'impset_21', $returned[4]['import_set_id'] );
 	}
 
 	/**
@@ -955,6 +956,83 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
+	// GET /wc/v3/wc_stripe/agentic-commerce/preview
+	// -------------------------------------------------------------------------
+
+	/**
+	 * GET /preview returns 200 with the summary counts and validation error list.
+	 */
+	public function test_get_preview_returns_summary_shape(): void {
+		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Feed_Preview' ) ) {
+			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Feed_Preview class not loaded' );
+		}
+
+		$request  = new WP_REST_Request( 'GET', self::PREVIEW_ROUTE );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$data = $response->get_data();
+		foreach ( [ 'total_count', 'included_count', 'excluded_count', 'invalid_count', 'truncated' ] as $key ) {
+			$this->assertArrayHasKey( $key, $data );
+			$this->assertIsInt( $data[ $key ] );
+		}
+		$this->assertArrayHasKey( 'validation_errors', $data );
+		$this->assertIsArray( $data['validation_errors'] );
+	}
+
+	/**
+	 * GET /preview reflects a product that fails feed validation: it is counted
+	 * as invalid and listed with its name and an edit link.
+	 */
+	public function test_get_preview_surfaces_invalid_product(): void {
+		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Feed_Preview' ) ) {
+			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Feed_Preview class not loaded' );
+		}
+
+		// A priced-less published product fails the feed's "price required" rule.
+		$product = new WC_Product_Simple();
+		$product->set_name( 'Preview Invalid Product' );
+		$product->set_status( 'publish' );
+		$product->save();
+
+		$restrict = static function ( $args ) use ( $product ) {
+			$args['include'] = [ $product->get_id() ];
+			return $args;
+		};
+		add_filter( 'wc_stripe_agentic_commerce_product_query_args', $restrict );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::PREVIEW_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_product_query_args', $restrict );
+			$product->delete( true );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$data = $response->get_data();
+		$this->assertSame( 1, $data['total_count'] );
+		$this->assertSame( 1, $data['invalid_count'] );
+		$this->assertCount( 1, $data['validation_errors'] );
+		$this->assertSame( 'Preview Invalid Product', $data['validation_errors'][0]['product_name'] );
+		$this->assertNotEmpty( $data['validation_errors'][0]['errors'] );
+	}
+
+	/**
+	 * Unauthenticated GET /preview requests should be refused.
+	 */
+	public function test_get_preview_requires_auth(): void {
+		wp_set_current_user( 0 );
+
+		$request  = new WP_REST_Request( 'GET', self::PREVIEW_ROUTE );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 401, $response->get_status() );
+	}
+
+	// -------------------------------------------------------------------------
 	// GET /wc/v3/wc_stripe/agentic-commerce/settings
 	// -------------------------------------------------------------------------
 
@@ -1218,8 +1296,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public static function unauthorized_route_provider(): array {
 		return [
-			'GET status' => [ 'GET', self::REST_BASE . '/status' ],
-			'POST sync'  => [ 'POST', self::REST_BASE . '/sync' ],
+			'GET status'  => [ 'GET', self::REST_BASE . '/status' ],
+			'GET preview' => [ 'GET', self::REST_BASE . '/preview' ],
+			'POST sync'   => [ 'POST', self::REST_BASE . '/sync' ],
 		];
 	}
 
@@ -1376,10 +1455,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A manual sync already produces a full upload, so it must drop any pending
-	 * adapter-fired one-off resync queued in the `wc-stripe-agentic-resync`
-	 * group. Without this the one-off fires again right after the manual sync,
-	 * doing redundant work the manual sync just completed.
+	 * A manual sync drops any pending IMMEDIATE_SYNC_ACTION resync, since it
+	 * already produced a full upload.
 	 *
 	 * @return void
 	 */
@@ -1427,11 +1504,18 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		};
 		add_filter( 'pre_http_request', $http_stub, 10, 3 );
 
+		// IMMEDIATE_SYNC_ACTION is protected; resolve it for scheduling assertions.
+		$immediate_sync_action = WC_Stripe_Test_Helper::get_class_const_value(
+			WC_Stripe_Agentic_Commerce_Integration::class,
+			'IMMEDIATE_SYNC_ACTION',
+			'string'
+		);
+
 		// Seed a pending adapter-fired one-off resync, as schedule_full_resync_now() would.
-		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' );
-		as_enqueue_async_action( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' );
+		as_unschedule_all_actions( $immediate_sync_action, [], 'wc-stripe' );
+		as_enqueue_async_action( $immediate_sync_action, [], 'wc-stripe' );
 		$this->assertNotFalse(
-			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' ),
+			as_has_scheduled_action( $immediate_sync_action ),
 			'Sanity: a one-off resync must be pending before the manual sync.'
 		);
 
@@ -1441,7 +1525,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 			$this->assertEquals( 200, $response->get_status() );
 			$this->assertFalse(
-				as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' ),
+				as_has_scheduled_action( $immediate_sync_action ),
 				'A successful manual sync must clear the pending one-off resync.'
 			);
 		} finally {
@@ -1452,7 +1536,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 			if ( function_exists( 'as_unschedule_all_actions' ) ) {
 				as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
-				as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe-agentic-resync' );
+				as_unschedule_all_actions( $immediate_sync_action, [], 'wc-stripe' );
 			}
 		}
 	}

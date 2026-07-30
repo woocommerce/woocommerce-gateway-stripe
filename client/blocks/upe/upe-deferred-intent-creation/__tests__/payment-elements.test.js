@@ -67,7 +67,7 @@ const buildApi = ( stripe ) => ( {
 	initSetupIntent: jest.fn(),
 } );
 
-const STRIPE = { elements: jest.fn(), initCheckout: jest.fn() };
+const STRIPE = { elements: jest.fn(), initCheckoutElementsSdk: jest.fn() };
 
 describe( 'PaymentElements adaptive pricing selection', () => {
 	afterEach( () => {
@@ -88,6 +88,24 @@ describe( 'PaymentElements adaptive pricing selection', () => {
 
 		expect( CheckoutContainer ).toHaveBeenCalled();
 		expect( PaymentProcessor ).not.toHaveBeenCalled();
+	} );
+
+	it( 'falls back to the standard elements flow when a legacy Stripe.js lacks initCheckoutElementsSdk', () => {
+		getBlocksConfiguration.mockReturnValue( {
+			isAdaptivePricingEnabled: true,
+			paymentMethodsConfig: { card: { isReusable: false } },
+			cartTotal: 1000,
+			currency: 'USD',
+			shouldShowOptimizedCheckout: false,
+			isAdmin: false,
+		} );
+
+		// A legacy v3 Stripe.js (loaded by another plugin or a manual snippet)
+		// won window.Stripe; it exposes elements() but not initCheckoutElementsSdk.
+		renderFields( buildApi( { elements: jest.fn() } ) );
+
+		expect( CheckoutContainer ).not.toHaveBeenCalled();
+		expect( PaymentProcessor ).toHaveBeenCalled();
 	} );
 
 	it( 'uses the standard elements flow when Adaptive Pricing is disabled', () => {

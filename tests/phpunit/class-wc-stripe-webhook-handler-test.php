@@ -93,9 +93,11 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	private function mock_webhook_handler( $exclude_methods = [] ) {
 		$methods = [
 			'handle_deferred_payment_intent_succeeded',
+			'handle_deferred_payment_for_cancelled_order',
 			'get_intent_from_order',
 			'get_latest_charge_from_intent',
 			'process_response',
+			'process_refund',
 			'update_fees',
 			'send_failed_refund_emails',
 		];
@@ -319,6 +321,302 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Order meta flag recording that a late payment on a cancelled order was refunded/voided.
+	 */
+	const META_REFUNDED_AFTER_CANCELLATION = '_stripe_refunded_after_cancellation';
+
+	/**
+	 * Builds a deferred payment_intent.succeeded payload for the given order.
+	 *
+	 * @param WC_Order $order The order the webhook targets.
+	 * @return array{0: array, 1: object} The additional data and notification.
+	 */
+	private function build_deferred_intent_succeeded_payload( $order ) {
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+
+		return [ $data, $notification ];
+	}
+
+	/**
+	 * A cancelled order is routed to the refund handler, not the mark-as-paid handler.
+	 */
+	public function test_deferred_webhook_routes_cancelled_order_to_refund_handler() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->save();
+
+		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
+
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'handle_deferred_payment_intent_succeeded' );
+
+		$this->mock_webhook_handler->expects( $this->once() )
+			->method( 'handle_deferred_payment_for_cancelled_order' )
+			->with(
+				$this->callback(
+					function ( $passed_order ) use ( $order ) {
+						return $passed_order instanceof WC_Order && $order->get_id() === $passed_order->get_id();
+					}
+				),
+				self::MOCK_PAYMENT_INTENT['id']
+			);
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+	}
+
+	/**
+	 * A cancelled order that receives a late payment is refunded (captured charge) or voided
+	 * (uncaptured authorisation). The refund amount comes from the charge's remaining balance, and
+	 * the order is only flagged as handled when process_refund() reports the path-appropriate success.
+	 *
+	 * @param string $intent_status         PaymentIntent status.
+	 * @param int    $charge_amount         Charge amount in the smallest currency unit.
+	 * @param int    $amount_refunded       Already-refunded amount in the smallest currency unit.
+	 * @param bool   $is_captured           Whether the charge was captured.
+	 * @param string $order_currency        Order currency code.
+	 * @param string $charge_currency       Charge currency code (may differ in exponent from the order).
+	 * @param mixed  $refund_return         The value process_refund() returns.
+	 * @param string $confirm_intent_status Status of the intent re-read after a void, or null for no intent.
+	 * @param bool   $expect_null_amount    Whether process_refund() should be called with a null amount.
+	 * @param string $expected_note         Substring the resulting order note must contain.
+	 * @param bool   $expect_flagged        Whether the order should be flagged as handled.
+	 * @dataProvider provide_cancelled_order_refund_scenarios
+	 */
+	public function test_cancelled_order_refund_scenarios( $intent_status, $charge_amount, $amount_refunded, $is_captured, $order_currency, $charge_currency, $refund_return, $confirm_intent_status, $expect_null_amount, $expected_note, $expect_flagged ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( $order_currency );
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->save();
+
+		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
+
+		$intent = (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'status' => $intent_status ] );
+		$charge = (object) array_merge(
+			self::MOCK_PAYMENT_INTENT['charges']['data'][0],
+			[
+				'amount'          => $charge_amount,
+				'amount_refunded' => $amount_refunded,
+				'currency'        => $charge_currency,
+				'captured'        => $is_captured,
+			]
+		);
+
+		// The void path re-reads the intent after process_refund() to confirm Stripe cancelled it;
+		// the second read reflects the post-void status (null models an unreadable intent).
+		$confirm_intent = null === $confirm_intent_status
+			? null
+			: (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'status' => $confirm_intent_status ] );
+
+		// Run the real cancelled-order handler; mock only its dependencies.
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
+
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturnOnConsecutiveCalls( $intent, $confirm_intent );
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+
+		// The refundable balance is converted with the order currency because process_refund()
+		// reconverts with it; authorisation voids pass a null amount.
+		$expected_amount = $expect_null_amount
+			? null
+			: WC_Stripe_Helper::convert_from_stripe_amount( $charge_amount - $amount_refunded, $order_currency );
+
+		$this->mock_webhook_handler->expects( $this->once() )
+			->method( 'process_refund' )
+			->with( $order->get_id(), $expected_amount, $this->isType( 'string' ) )
+			->willReturn( $refund_return );
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertEquals( OrderStatus::CANCELLED, $updated_order->get_status() );
+
+		if ( $expect_flagged ) {
+			$this->assertEquals( 'yes', $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
+		} else {
+			$this->assertEmpty( $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
+		}
+		$this->assertOrderHasNoteContaining( $updated_order, $expected_note );
+	}
+
+	/**
+	 * Data provider for test_cancelled_order_refund_scenarios.
+	 *
+	 * @return array[]
+	 */
+	public function provide_cancelled_order_refund_scenarios() {
+		return [
+			// intent_status, charge_amount, amount_refunded, is_captured, order_currency, charge_currency, refund_return, confirm_intent_status, expect_null_amount, expected_note, expect_flagged
+			'captured charge is refunded in full'          => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, 'USD', 'usd', true, null, false, 'automatically refunded', true ],
+			'captured charge refunds remaining balance'    => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 400, true, 'USD', 'usd', true, null, false, 'automatically refunded', true ],
+			// Order currency (0-decimal) differs in exponent from the charge currency; the amount must
+			// be converted with the order currency so process_refund() reconverts it losslessly.
+			'captured refund uses order currency exponent' => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, 'JPY', 'usd', true, null, false, 'automatically refunded', true ],
+			// A real authorisation void returns false and cancels the intent; success is confirmed by the re-read.
+			'uncaptured authorisation is voided'           => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, 1000, 0, false, 'USD', 'usd', false, WC_Stripe_Intent_Status::CANCELED, true, 'voided', true ],
+			// The intent is still not cancelled after process_refund(): treat the void as failed, don't flag.
+			'void unconfirmed by intent is a failure'      => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, 1000, 0, false, 'USD', 'usd', null, WC_Stripe_Intent_Status::REQUIRES_CAPTURE, true, 'automatic refund failed', false ],
+			// The intent can't be re-read to confirm the void: treat as failed, don't flag.
+			'void with unreadable intent is a failure'     => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, 1000, 0, false, 'USD', 'usd', false, null, true, 'automatic refund failed', false ],
+			// The authorisation is captured in the window before the void confirms: fail closed with a
+			// manual-refund note and leave the order unflagged rather than mark an uncancelled intent settled.
+			'void captured mid-flight fails closed'        => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, 1000, 0, false, 'USD', 'usd', true, WC_Stripe_Intent_Status::SUCCEEDED, true, 'automatic refund failed', false ],
+			'captured refund returning false is a failure' => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, 'USD', 'usd', false, null, false, 'automatic refund failed', false ],
+			'captured refund returning null is a failure'  => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, 'USD', 'usd', null, null, false, 'automatic refund failed', false ],
+			'refund error is a failure'                    => [ WC_Stripe_Intent_Status::SUCCEEDED, 1000, 0, true, 'USD', 'usd', new WP_Error( 'stripe_error', 'boom' ), null, false, 'automatic refund failed', false ],
+		];
+	}
+
+	/**
+	 * An already-flagged order is not refunded again when the deferred job is retried.
+	 */
+	public function test_cancelled_order_refund_is_idempotent() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->update_meta_data( self::META_REFUNDED_AFTER_CANCELLATION, 'yes' );
+		$order->save();
+
+		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
+
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
+
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT );
+
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'process_refund' );
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+	}
+
+	/**
+	 * Merchants can disable the auto-refund via the wc_stripe_auto_refund_cancelled_order filter.
+	 */
+	public function test_cancelled_order_refund_can_be_disabled_by_filter() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->save();
+
+		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
+
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
+
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'process_refund' );
+
+		add_filter( 'wc_stripe_auto_refund_cancelled_order', '__return_false' );
+		try {
+			$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+		} finally {
+			remove_filter( 'wc_stripe_auto_refund_cancelled_order', '__return_false' );
+		}
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertEquals( OrderStatus::CANCELLED, $updated_order->get_status() );
+		$this->assertEmpty( $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
+	}
+
+	/**
+	 * The cancelled-order notes link both the PaymentIntent and the charge to the Stripe dashboard,
+	 * in the mode the intent itself was created in rather than the gateway's configured mode.
+	 *
+	 * @param string $intent_status         PaymentIntent status.
+	 * @param bool   $livemode              The intent's `livemode` value, or null to omit it entirely.
+	 * @param mixed  $refund_return         The value process_refund() returns.
+	 * @param string $confirm_intent_status Status of the intent re-read after a void, or null for no intent.
+	 * @param string $expected_base         Dashboard base URL both IDs must be linked against.
+	 * @dataProvider provide_cancelled_order_note_dashboard_links
+	 */
+	public function test_cancelled_order_notes_link_to_stripe_dashboard( $intent_status, $livemode, $refund_return, $confirm_intent_status, $expected_base ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->save();
+
+		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
+
+		$intent_overrides = [ 'status' => $intent_status ];
+		if ( null !== $livemode ) {
+			$intent_overrides['livemode'] = $livemode;
+		}
+		$intent = (object) array_merge( self::MOCK_PAYMENT_INTENT, $intent_overrides );
+		$charge = (object) array_merge(
+			self::MOCK_PAYMENT_INTENT['charges']['data'][0],
+			[
+				'amount'          => 1000,
+				'amount_refunded' => 0,
+				'currency'        => 'usd',
+			]
+		);
+
+		$confirm_intent = null === $confirm_intent_status
+			? null
+			: (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'status' => $confirm_intent_status ] );
+
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
+
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturnOnConsecutiveCalls( $intent, $confirm_intent );
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+		$this->mock_webhook_handler->method( 'process_refund' )->willReturn( $refund_return );
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+		$note = $this->get_latest_order_note_content( wc_get_order( $order->get_id() ) );
+
+		$this->assertStringContainsString( 'href="' . $expected_base . 'pi_mock"', $note );
+		$this->assertStringContainsString( 'href="' . $expected_base . 'ch_mock"', $note );
+	}
+
+	/**
+	 * Data provider for test_cancelled_order_notes_link_to_stripe_dashboard.
+	 *
+	 * @return array[]
+	 */
+	public function provide_cancelled_order_note_dashboard_links() {
+		$live = 'https://dashboard.stripe.com/payments/';
+		$test = 'https://dashboard.stripe.com/test/payments/';
+
+		return [
+			// intent_status, livemode, refund_return, confirm_intent_status, expected_base
+			'live refund links live dashboard'    => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, null, $live ],
+			'test refund links test dashboard'    => [ WC_Stripe_Intent_Status::SUCCEEDED, false, true, null, $test ],
+			'missing livemode falls back to test' => [ WC_Stripe_Intent_Status::SUCCEEDED, null, true, null, $test ],
+			'voided authorisation note is linked' => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, false, false, WC_Stripe_Intent_Status::CANCELED, $test ],
+			'failed refund note is linked'        => [ WC_Stripe_Intent_Status::SUCCEEDED, false, new WP_Error( 'stripe_error', 'boom' ), null, $test ],
+		];
+	}
+
+	/**
+	 * Asserts that an order has at least one note containing the given substring.
+	 *
+	 * @param WC_Order $order  The order to inspect.
+	 * @param string   $needle The substring the note must contain.
+	 * @return void
+	 */
+	private function assertOrderHasNoteContaining( $order, $needle ) {
+		$notes    = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+		$contents = wp_list_pluck( $notes, 'content' );
+
+		$this->assertNotEmpty(
+			array_filter(
+				$contents,
+				function ( $content ) use ( $needle ) {
+					return false !== strpos( $content, $needle );
+				}
+			),
+			sprintf( 'Expected an order note containing "%s".', $needle )
+		);
+	}
+
+	/**
 	 * Test successful deferred webhook.
 	 */
 	public function test_process_of_successful_payment_intent_deferred_webhook() {
@@ -363,6 +661,103 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			);
 
 		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+	}
+
+	/**
+	 * While the order-received redirect handler holds the payment lock, the deferred
+	 * payment_intent webhook must re-queue itself instead of settling. Otherwise both paths
+	 * reach payment_complete() concurrently and whichever runs second no-ops on an
+	 * already-paid order, dropping the initial paid transition's New Order / Processing emails.
+	 */
+	public function test_deferred_payment_intent_requeues_while_order_locked() {
+		$order        = WC_Helper_Order::create_order();
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+
+		// Simulate the redirect handler holding the lock.
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+		$order_helper->expects( $this->once() )
+			->method( 'lock_order_payment' )
+			->willReturn( true );
+		$order_helper->expects( $this->never() )
+			->method( 'unlock_order_payment' );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'handle_deferred_payment_intent_succeeded', 'defer_webhook_processing' ] )
+			->getMock();
+
+		// Settlement must not run while the order is locked.
+		$handler->expects( $this->never() )
+			->method( 'handle_deferred_payment_intent_succeeded' );
+
+		// The event must be re-queued with the short locked-order retry delay.
+		$handler->expects( $this->once() )
+			->method( 'defer_webhook_processing' )
+			->with( $this->anything(), $data, 10 );
+
+		$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+	}
+
+	/**
+	 * On the happy path the deferred payment_intent webhook acquires the lock, settles the
+	 * order exactly once, and releases the lock — without re-queuing.
+	 */
+	public function test_deferred_payment_intent_unlocks_after_processing() {
+		$order        = WC_Helper_Order::create_order();
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+		$order_helper->expects( $this->once() )
+			->method( 'lock_order_payment' )
+			->willReturn( false );
+		$order_helper->expects( $this->once() )
+			->method( 'unlock_order_payment' );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'handle_deferred_payment_intent_succeeded', 'defer_webhook_processing' ] )
+			->getMock();
+
+		$handler->expects( $this->once() )
+			->method( 'handle_deferred_payment_intent_succeeded' )
+			->with(
+				$this->callback(
+					function ( $passed_order ) use ( $order ) {
+						return $passed_order instanceof WC_Order && $order->get_id() === $passed_order->get_id();
+					}
+				),
+				self::MOCK_PAYMENT_INTENT['id']
+			);
+
+		// A settled order must not be re-queued.
+		$handler->expects( $this->never() )
+			->method( 'defer_webhook_processing' );
+
+		$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
 	}
 
 	/**
@@ -1647,6 +2042,97 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		// Charge ID back-filled and refund synced against the recovered order.
 		$this->assertSame( 'ch_missing', $reloaded->get_transaction_id() );
 		$this->assertSame( 're_xyz', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( $reloaded ) );
+
+		// The created refund record carries its own Stripe refund ID.
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+		$refunds         = $reloaded->get_refunds();
+		$this->assertCount( 1, $refunds );
+		$this->assertSame( 're_xyz', $refunds[0]->get_meta( $refund_meta_key ) );
+	}
+
+	/**
+	 * Tests that a Stripe-Dashboard refund webhook stores the refund ID on the WC refund record it creates.
+	 */
+	public function test_process_webhook_refund_stores_id_on_created_refund() {
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+		$order_helper    = WC_Stripe_Order_Helper::get_instance();
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_transaction_id( 'ch_123' );
+		$order_helper->set_stripe_charge_captured( $order, true );
+		$order->save();
+		$order_id = $order->get_id();
+
+		// An earlier refund already recorded: its ID sits on the record and (as the latest at the time) on the parent.
+		$wc_refund_1 = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 5.00,
+			]
+		);
+		$this->assertNotWPError( $wc_refund_1 );
+		$wc_refund_1->update_meta_data( $refund_meta_key, 're_1' );
+		$wc_refund_1->save_meta_data();
+		$order_helper->update_stripe_refund_id( $order, 're_1' );
+		$order->save_meta_data();
+
+		$notification = (object) [
+			'data' => (object) [
+				'object' => (object) [
+					'id'              => 'ch_123',
+					'object'          => 'charge',
+					'captured'        => true,
+					'amount'          => 5000,
+					'amount_refunded' => 1200,
+					'currency'        => 'usd',
+					'refunds'         => (object) [
+						'data' => [
+							(object) [
+								'id'                  => 're_2',
+								'amount'              => 700,
+								'balance_transaction' => 'txn_2',
+							],
+						],
+					],
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_refund( $notification );
+
+		$reloaded = wc_get_order( $order_id );
+		$refunds  = $reloaded->get_refunds();
+		$this->assertCount( 2, $refunds );
+
+		$refunds_by_stripe_id = [];
+		foreach ( $refunds as $refund ) {
+			$refunds_by_stripe_id[ $refund->get_meta( $refund_meta_key ) ] = $refund;
+		}
+
+		// The new record carries the incoming ID; the earlier record is untouched.
+		$this->assertArrayHasKey( 're_2', $refunds_by_stripe_id );
+		$this->assertSame( 7.00, (float) $refunds_by_stripe_id['re_2']->get_amount() );
+		$this->assertArrayHasKey( 're_1', $refunds_by_stripe_id );
+		$this->assertSame( 5.00, (float) $refunds_by_stripe_id['re_1']->get_amount() );
+
+		// Parent meta keeps tracking the latest refund (unchanged behavior).
+		$this->assertSame( 're_2', $order_helper->get_stripe_refund_id( $reloaded ) );
+
+		// Stripe delivers webhooks at least once: a replay of the same notification must be
+		// deduplicated by the parent-meta guard — no third refund, stored IDs untouched.
+		$this->mock_webhook_handler->process_webhook_refund( $notification );
+
+		$reloaded = wc_get_order( $order_id );
+		$this->assertCount( 2, $reloaded->get_refunds() );
+		$this->assertSame( 're_2', $order_helper->get_stripe_refund_id( $reloaded ) );
+
+		$replayed_ids = [];
+		foreach ( $reloaded->get_refunds() as $refund ) {
+			$replayed_ids[] = $refund->get_meta( $refund_meta_key );
+		}
+		sort( $replayed_ids );
+		$this->assertSame( [ 're_1', 're_2' ], $replayed_ids );
 	}
 
 	/**
@@ -2163,6 +2649,14 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		// Capture a fixed baseline before scheduling so the timestamp assertion can't race a 1-second rollover.
 		$test_start_time = time();
 
+		// The session flow now builds metadata via get_metadata_from_order(), which runs the
+		// wc_stripe_intent_metadata filter. Register a sentinel to prove the filter is applied here too.
+		$filter = function ( $metadata ) {
+			$metadata['sentinel'] = 'applied';
+			return $metadata;
+		};
+		add_filter( 'wc_stripe_intent_metadata', $filter );
+
 		// Mock the action scheduler service.
 		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
 		$scheduled_args = null;
@@ -2220,6 +2714,20 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->assertEquals( $order->get_order_key(), $scheduled_args['request']['metadata']['order_key'] );
 		$this->assertNotEmpty( $scheduled_args['request']['metadata']['signature'] );
 		$this->assertIsInt( $scheduled_args['request']['metadata']['tax_amount'] );
+
+		// Adaptive Pricing transactions must carry the same order/customer identifiers as the standard flow.
+		$this->assertEquals(
+			trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
+			$scheduled_args['request']['metadata']['customer_name']
+		);
+		$this->assertEquals( $order->get_billing_email(), $scheduled_args['request']['metadata']['customer_email'] );
+		$this->assertEquals( esc_url( get_site_url() ), $scheduled_args['request']['metadata']['site_url'] );
+		$this->assertEquals( 'single', $scheduled_args['request']['metadata']['payment_type'] );
+
+		// The wc_stripe_intent_metadata filter must run for session (Adaptive Pricing) transactions too.
+		$this->assertEquals( 'applied', $scheduled_args['request']['metadata']['sentinel'] );
+
+		remove_filter( 'wc_stripe_intent_metadata', $filter );
 	}
 
 	/**

@@ -10,7 +10,6 @@ module.exports = {
 		Backbone: false,
 		jQuery: false,
 		wp: false,
-		__PAYMENT_METHOD_FEES_ENABLED: false,
 	},
 	env: {
 		browser: true,
