@@ -449,17 +449,47 @@ export default class WCStripeAPI {
 	}
 
 	/**
+	 * Fetches the express checkout wc-ajax nonce bundle, once per page.
+	 *
+	 * @return {Promise<Object>} Promise resolving to the nonce map (empty on failure).
+	 */
+	expressCheckoutFetchNonces() {
+		if ( ! this.expressCheckoutNoncesPromise ) {
+			this.expressCheckoutNoncesPromise = this.request(
+				getExpressCheckoutAjaxURL( 'get_express_checkout_nonces' ),
+				{}
+			)
+				.then( ( response ) => response?.data ?? {} )
+				.catch( () => ( {} ) );
+		}
+		return this.expressCheckoutNoncesPromise;
+	}
+
+	/**
+	 * Resolves a single express checkout wc-ajax nonce, falling back to the
+	 * localized params (pages cached before the bundle became lazy still
+	 * embed them) when the fetch fails.
+	 *
+	 * @param {string} key Nonce key.
+	 * @return {Promise<string|undefined>} Promise resolving to the nonce value.
+	 */
+	async expressCheckoutGetNonce( key ) {
+		const nonces = await this.expressCheckoutFetchNonces();
+		return nonces[ key ] ?? getExpressCheckoutData( 'nonce' )?.[ key ];
+	}
+
+	/**
 	 * Submits shipping address to get available shipping options
 	 * from Express Checkout ECE payment method.
 	 *
 	 * @param {Object} shippingAddress Shipping details.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutECECalculateShippingOptions( shippingAddress ) {
+	async expressCheckoutECECalculateShippingOptions( shippingAddress ) {
 		return this.request(
 			getExpressCheckoutAjaxURL( 'get_shipping_options' ),
 			{
-				security: getExpressCheckoutData( 'nonce' )?.shipping,
+				security: await this.expressCheckoutGetNonce( 'shipping' ),
 				is_product_page: getExpressCheckoutData( 'is_product_page' ),
 				...shippingAddress,
 			}
@@ -472,11 +502,12 @@ export default class WCStripeAPI {
 	 * @param {Object} shippingOption Shipping option.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutUpdateShippingDetails( shippingOption ) {
+	async expressCheckoutUpdateShippingDetails( shippingOption ) {
 		return this.request(
 			getExpressCheckoutAjaxURL( 'update_shipping_method' ),
 			{
-				security: getExpressCheckoutData( 'nonce' )?.update_shipping,
+				security:
+					await this.expressCheckoutGetNonce( 'update_shipping' ),
 				shipping_method: [ shippingOption.id ],
 				is_product_page: getExpressCheckoutData( 'is_product_page' ),
 			}
@@ -490,9 +521,9 @@ export default class WCStripeAPI {
 	 * @param {Object} shippingAddress Shipping address.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutNormalizeAddress( billingAddress, shippingAddress ) {
+	async expressCheckoutNormalizeAddress( billingAddress, shippingAddress ) {
 		return this.request( getExpressCheckoutAjaxURL( 'normalize_address' ), {
-			security: getExpressCheckoutData( 'nonce' )?.normalize_address,
+			security: await this.expressCheckoutGetNonce( 'normalize_address' ),
 			data: {
 				billing_address: billingAddress,
 				shipping_address: shippingAddress,
@@ -520,9 +551,9 @@ export default class WCStripeAPI {
 	 *
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutGetCartDetailsLegacy() {
+	async expressCheckoutGetCartDetailsLegacy() {
 		return this.request( getExpressCheckoutAjaxURL( 'get_cart_details' ), {
-			security: getExpressCheckoutData( 'nonce' )?.get_cart_details,
+			security: await this.expressCheckoutGetNonce( 'get_cart_details' ),
 		} );
 	}
 
@@ -558,9 +589,9 @@ export default class WCStripeAPI {
 	 * @param {Object} productData Product data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutAddToCartLegacy( productData ) {
+	async expressCheckoutAddToCartLegacy( productData ) {
 		return this.request( getExpressCheckoutAjaxURL( 'add_to_cart' ), {
-			security: getExpressCheckoutData( 'nonce' )?.add_to_cart,
+			security: await this.expressCheckoutGetNonce( 'add_to_cart' ),
 			...productData,
 		} );
 	}
@@ -600,9 +631,9 @@ export default class WCStripeAPI {
 	 * @param {number} params.bookingId Booking ID.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutEmptyCartLegacy( { bookingId = null } ) {
+	async expressCheckoutEmptyCartLegacy( { bookingId = null } ) {
 		return this.request( getExpressCheckoutAjaxURL( 'clear_cart' ), {
-			security: getExpressCheckoutData( 'nonce' )?.clear_cart,
+			security: await this.expressCheckoutGetNonce( 'clear_cart' ),
 			...( bookingId ? { booking_id: bookingId } : {} ),
 		} );
 	}
@@ -672,13 +703,13 @@ export default class WCStripeAPI {
 	 * @param {Object} productData Product data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutGetSelectedProductData( productData ) {
+	async expressCheckoutGetSelectedProductData( productData ) {
 		return this.request(
 			getExpressCheckoutAjaxURL( 'get_selected_product_data' ),
 			{
-				security:
-					getExpressCheckoutData( 'nonce' )
-						?.get_selected_product_data,
+				security: await this.expressCheckoutGetNonce(
+					'get_selected_product_data'
+				),
 				...productData,
 			}
 		);

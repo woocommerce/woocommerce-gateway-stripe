@@ -40,6 +40,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		add_action( 'wc_ajax_wc_stripe_get_selected_product_data', [ $this, 'ajax_get_selected_product_data' ] );
 		add_action( 'wc_ajax_wc_stripe_clear_cart', [ $this, 'ajax_clear_cart' ] );
 		add_action( 'wc_ajax_wc_stripe_log_errors', [ $this, 'ajax_log_errors' ] );
+		add_action( 'wc_ajax_wc_stripe_get_express_checkout_nonces', [ $this, 'ajax_get_express_checkout_nonces' ] );
 		add_filter( 'woocommerce_get_country_locale', [ $this, 'modify_country_locale_for_express_checkout' ], 20 );
 		add_filter( 'rest_pre_dispatch', [ $this, 'tokenized_cart_store_api_address_normalization' ], 10, 3 );
 	}
@@ -122,6 +123,30 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		}
 
 		return $valid;
+	}
+
+	/**
+	 * Serves the express checkout wc-ajax nonces on demand, so page caches
+	 * can't embed expired copies. Intentionally has no nonce check of its own:
+	 * nonces are per-session CSRF tokens, not secrets, and cross-origin
+	 * callers can't read the response.
+	 *
+	 * @return void
+	 */
+	public function ajax_get_express_checkout_nonces() {
+		nocache_headers();
+
+		wp_send_json_success(
+			[
+				'shipping'                  => wp_create_nonce( 'wc-stripe-express-checkout-shipping' ),
+				'normalize_address'         => wp_create_nonce( 'wc-stripe-express-checkout-normalize-address' ),
+				'get_cart_details'          => wp_create_nonce( 'wc-stripe-get-cart-details' ),
+				'update_shipping'           => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
+				'add_to_cart'               => wp_create_nonce( 'wc-stripe-add-to-cart' ),
+				'get_selected_product_data' => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
+				'clear_cart'                => wp_create_nonce( 'wc-stripe-clear-cart' ),
+			]
+		);
 	}
 
 	/**

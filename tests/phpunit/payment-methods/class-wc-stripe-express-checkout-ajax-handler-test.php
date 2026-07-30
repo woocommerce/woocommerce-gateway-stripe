@@ -102,6 +102,45 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The on-demand nonce endpoint must return a verifiable nonce for every
+	 * wc-ajax action the express checkout client can call.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_get_express_checkout_nonces_returns_verifiable_nonces() {
+		Ajax_Test_Helper::init_hooks();
+
+		try {
+			ob_start();
+			$this->ajax_handler->ajax_get_express_checkout_nonces();
+			$output = ob_get_clean();
+
+			$response = json_decode( $output, true );
+		} finally {
+			Ajax_Test_Helper::remove_hooks();
+		}
+
+		$this->assertIsArray( $response );
+		$this->assertTrue( $response['success'] );
+
+		$expected_actions = [
+			'shipping'                  => 'wc-stripe-express-checkout-shipping',
+			'normalize_address'         => 'wc-stripe-express-checkout-normalize-address',
+			'get_cart_details'          => 'wc-stripe-get-cart-details',
+			'update_shipping'           => 'wc-stripe-update-shipping-method',
+			'add_to_cart'               => 'wc-stripe-add-to-cart',
+			'get_selected_product_data' => 'wc-stripe-get-selected-product-data',
+			'clear_cart'                => 'wc-stripe-clear-cart',
+		];
+
+		$this->assertSame( array_keys( $expected_actions ), array_keys( $response['data'] ) );
+		foreach ( $expected_actions as $key => $action ) {
+			$this->assertNotFalse( wp_verify_nonce( $response['data'][ $key ], $action ), "Nonce '{$key}' must verify against '{$action}'." );
+		}
+	}
+
+	/**
 	 * Test ajax_add_to_cart sends wp_send_json_error payload on failure.
 	 *
 	 * @runInSeparateProcess
