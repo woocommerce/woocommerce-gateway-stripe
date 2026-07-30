@@ -833,6 +833,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$settings['test_secret_key'] = 'sk_test_fake';
 		update_option( 'woocommerce_stripe_settings', $settings );
 
+		// Onboarding must be complete for the sync to push (merchant toggle is set in set_up()).
+		update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test' );
+
 		// Create a simple product so the walker finds at least one.
 		$product = new WC_Product_Simple();
 		$product->set_name( 'Test Product' );
@@ -1467,6 +1470,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$settings['test_secret_key'] = 'sk_test_fake';
 		update_option( 'woocommerce_stripe_settings', $settings );
 
+		// Onboarding must be complete for the sync to push (merchant toggle is set in set_up()).
+		update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test' );
+
 		// Create a simple product so the walker finds at least one.
 		$product = new WC_Product_Simple();
 		$product->set_name( 'Test Product' );
@@ -1549,6 +1555,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$settings['testmode']        = 'yes';
 		$settings['test_secret_key'] = 'sk_test_fake';
 		update_option( 'woocommerce_stripe_settings', $settings );
+
+		// Onboarding must be complete for the sync to push (merchant toggle is set in set_up()).
+		update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test' );
 
 		$product = new WC_Product_Simple();
 		$product->set_name( 'Test Product' );
