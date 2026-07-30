@@ -66,7 +66,7 @@ const makeResponse = ( overrides = {} ) => ( {
 
 const EMPTY_RESPONSE = { last_sync: null, history: [], next_sync: null };
 
-const SETTINGS_RESPONSE = { is_enabled: true, webhook_secret: '' };
+const SETTINGS_RESPONSE = { is_enabled: true, webhook_secret: 'whsec_test' };
 
 /**
  * Set up apiFetch to route by path. Status calls return `statusResponse`
@@ -317,6 +317,44 @@ describe( 'AgenticCommerceSection', () => {
 				screen.getByRole( 'button', { name: /Sync Now/i } )
 			).toBeInTheDocument();
 		} );
+	} );
+
+	it( 'disables Sync Now and explains why when the webhook secret is missing', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		const syncBtn = await screen.findByRole( 'button', {
+			name: /Sync Now/i,
+		} );
+		expect( syncBtn ).toBeDisabled();
+		expect(
+			screen.getByText(
+				/Save your webhook secret above to finish setup/i
+			)
+		).toBeInTheDocument();
+	} );
+
+	it( 'enables Sync Now once onboarding is complete', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: 'whsec_test',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		const syncBtn = await screen.findByRole( 'button', {
+			name: /Sync Now/i,
+		} );
+		expect( syncBtn ).toBeEnabled();
+		expect(
+			screen.queryByText(
+				/Save your webhook secret above to finish setup/i
+			)
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'shows success notice and re-fetches after a successful sync', async () => {

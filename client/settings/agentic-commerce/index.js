@@ -68,6 +68,11 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	const mode = isTestMode ? 'test' : 'live';
 	const { data } = useAccount();
 	const webhookURLForDisplay = data?.configured_webhook_urls?.[ mode ] ?? '';
+
+	// The catalog sync only runs once onboarding is complete server-side
+	// (feature enabled + webhook secret saved), so mirror that in the UI.
+	const isOnboardingComplete =
+		isFeatureEnabled && webhookSecret.trim() !== '';
 	const agenticCommerceUrl = isTestMode
 		? 'https://dashboard.stripe.com/test/agentic-commerce'
 		: 'https://dashboard.stripe.com/agentic-commerce';
@@ -298,7 +303,11 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 				</Card>
 			</LoadableSettingsSection>
 
-			{ isFeatureEnabled && <AgenticCommerceSyncStatus /> }
+			{ isFeatureEnabled && (
+				<AgenticCommerceSyncStatus
+					isOnboardingComplete={ isOnboardingComplete }
+				/>
+			) }
 
 			{ isFeatureEnabled && <AgenticCommerceFeedPreview /> }
 		</SettingsSection>
