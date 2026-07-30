@@ -332,7 +332,7 @@ class WC_Stripe_Account {
 		// Delete any previously configured webhooks. Exclude the current webhook ID from the deletion.
 		$this->delete_previously_configured_webhooks( $response->id );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe::get_instance()->get_settings();
 
 		$webhook_secret_setting = 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret';
 		$webhook_data_setting   = 'live' === $mode ? 'webhook_data' : 'test_webhook_data';
@@ -345,7 +345,7 @@ class WC_Stripe_Account {
 			'secret' => WC_Stripe_API::get_secret_key(),
 		];
 
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe::get_instance()->update_settings( $settings );
 
 		// After reconfiguring webhooks, clear the webhook state.
 		WC_Stripe_Webhook_State::clear_state();
@@ -441,7 +441,7 @@ class WC_Stripe_Account {
 	 * @return bool
 	 */
 	public function is_webhook_enabled() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = WC_Stripe::get_instance()->get_settings();
 		$is_testmode     = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
 		$key             = $is_testmode ? 'test_webhook_data' : 'webhook_data';
 
@@ -556,7 +556,7 @@ class WC_Stripe_Account {
 	 * @return void
 	 */
 	public function maybe_reconfigure_webhooks_on_update( string $update_type = 'plugin' ) {
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe::get_instance()->get_settings();
 		$modes    = [ 'live', 'test' ];
 
 		foreach ( $modes as $mode ) {

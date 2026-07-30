@@ -25,12 +25,12 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$stripe_settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                    = WC_Stripe::get_instance()->get_settings();
 		$stripe_settings['enabled']         = 'yes';
 		$stripe_settings['testmode']        = 'yes';
 		$stripe_settings['secret_key']      = self::LIVE_SECRET_KEY;
 		$stripe_settings['test_secret_key'] = self::TEST_SECRET_KEY;
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		// Reset the invalid API keys count cache.
 		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
@@ -72,9 +72,9 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertEquals( self::TEST_SECRET_KEY, WC_Stripe_API::get_secret_key() );
 
 		// Enable live mode.
-		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings             = WC_Stripe::get_instance()->get_settings();
 		$stripe_settings['testmode'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		WC_Stripe_API::set_secret_key_for_mode();
 
@@ -96,9 +96,9 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertEquals( self::TEST_SECRET_KEY, WC_Stripe_API::get_secret_key() );
 
 		// Set the mode to live and test the invalid parameter.
-		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings             = WC_Stripe::get_instance()->get_settings();
 		$stripe_settings['testmode'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		WC_Stripe_API::set_secret_key_for_mode( 'invalid' );
 		$this->assertEquals( self::LIVE_SECRET_KEY, WC_Stripe_API::get_secret_key() );
@@ -494,9 +494,9 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	public function test_should_detach_payment_method_from_customer( bool $expected_return, bool $is_test_mode, bool $is_admin_request, bool $is_cron_request, bool $is_wc_sub_staging_site = false ) {
 		$initial_test_mode = \WC_Stripe_Mode::is_test();
 
-		$stripe_settings             = \WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings             = \WC_Stripe::get_instance()->get_settings();
 		$stripe_settings['testmode'] = $is_test_mode ? 'yes' : 'no';
-		\WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		\WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$initial_current_screen = null;
 		$reset_current_screen   = false;
@@ -524,9 +524,9 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		}
 
 		if ( $initial_test_mode !== $is_test_mode ) {
-			$stripe_settings             = \WC_Stripe_Helper::get_stripe_settings();
+			$stripe_settings             = \WC_Stripe::get_instance()->get_settings();
 			$stripe_settings['testmode'] = $initial_test_mode ? 'yes' : 'no';
-			\WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+			\WC_Stripe::get_instance()->update_settings( $stripe_settings );
 		}
 
 		remove_filter( 'wp_doing_cron', $cron_filter_return, 10 );

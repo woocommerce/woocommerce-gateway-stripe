@@ -378,10 +378,10 @@ class WC_Stripe_Checkout_Session_Context {
 	private static function disable_adaptive_pricing_after_amount_mismatch( string $session_id, WC_Order $order, array $context, $order_amount, string $order_currency ): void {
 		update_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION, 'yes', false );
 
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = WC_Stripe::get_instance()->get_settings();
 		if ( 'no' !== ( $stripe_settings['adaptive_pricing'] ?? 'no' ) ) {
 			$stripe_settings['adaptive_pricing'] = 'no';
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+			WC_Stripe::get_instance()->update_settings( $stripe_settings );
 		}
 
 		self::delete_context( $session_id );
