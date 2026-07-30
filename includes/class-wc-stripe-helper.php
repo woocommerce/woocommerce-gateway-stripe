@@ -36,11 +36,30 @@ class WC_Stripe_Helper {
 	public const OFFICIAL_PLUGIN_ID_KLARNA = 'klarna_payments';
 
 	/**
+	 * The Stripe.js SDK URL, pinned to a named major release.
+	 *
+	 * @var string
+	 */
+	protected const STRIPE_JS_URL = 'https://js.stripe.com/dahlia/stripe.js';
+
+	/**
 	 * List of legacy Stripe gateways.
 	 *
 	 * @var array
 	 */
 	public static $stripe_legacy_gateways = [];
+
+	/**
+	 * Register the shared Stripe.js SDK script under the 'stripe' handle.
+	 *
+	 * Single registration point so the handle, URL, and loading flags can't
+	 * drift between the surfaces that need the SDK.
+	 *
+	 * @return void
+	 */
+	public static function register_stripe_js() {
+		wp_register_script( 'stripe', self::STRIPE_JS_URL, [], null, true );
+	}
 
 	/**
 	 * Get the main Stripe settings option.

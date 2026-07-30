@@ -2673,4 +2673,20 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 	}
+
+	/**
+	 * The shared helper must produce the canonical 'stripe' handle.
+	 *
+	 * @return void
+	 */
+	public function test_register_stripe_js_registers_the_stripe_handle() {
+		wp_deregister_script( 'stripe' );
+
+		WC_Stripe_Helper::register_stripe_js();
+
+		$this->assertTrue( wp_script_is( 'stripe', 'registered' ) );
+		$registered = wp_scripts()->registered['stripe'];
+		$this->assertSame( 'https://js.stripe.com/dahlia/stripe.js', $registered->src );
+		$this->assertSame( 1, wp_scripts()->get_data( 'stripe', 'group' ), 'Stripe.js must load in the footer.' );
+	}
 }

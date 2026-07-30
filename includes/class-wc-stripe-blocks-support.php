@@ -101,13 +101,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 */
 	public function get_payment_method_script_handles() {
 		// Ensure Stripe JS is enqueued
-		wp_register_script(
-			'stripe',
-			'https://js.stripe.com/dahlia/stripe.js',
-			[],
-			null,
-			true
-		);
+		WC_Stripe_Helper::register_stripe_js();
 
 		$this->register_upe_payment_method_script_handles();
 

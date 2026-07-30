@@ -3577,12 +3577,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-element.php
 
 		-
-			message: '#^Parameter \#3 \$deps of function wp_register_script expects array\<string\>, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-element.php
-
-		-
 			message: '#^Property WooCommerce\:\:\$session \(WC_Session\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
 			count: 1
