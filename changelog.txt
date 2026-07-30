@@ -84,6 +84,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Prevent fatals during internal order check
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
 * Dev - Add WC_Stripe::get_settings()/update_settings() as the canonical accessors for the main Stripe settings, with the WC_Stripe_Helper shims delegating to them
+* Dev - Migrate payment method and gateway classes to the WC_Stripe settings accessors
 
 2026-07-14 - version 10.8.4
 * Fix - Improve Checkout Session amount integrity
