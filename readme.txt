@@ -241,5 +241,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent fatals during internal order check
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
 * Dev - Add WC_Stripe::get_settings()/update_settings() as the canonical accessors for the main Stripe settings, with the WC_Stripe_Helper shims delegating to them
+* Dev - Migrate admin controllers and settings migrations to the WC_Stripe settings accessors
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
