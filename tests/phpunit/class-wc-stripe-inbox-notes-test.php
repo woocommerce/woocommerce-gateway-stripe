@@ -34,7 +34,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			return;
 		}
 
-		WC_Stripe_Helper::update_main_stripe_settings(
+		WC_Stripe::get_instance()->update_settings(
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'no',
@@ -69,7 +69,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
 
-		WC_Stripe_Helper::update_main_stripe_settings(
+		WC_Stripe::get_instance()->update_settings(
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'yes',
@@ -84,7 +84,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	public function test_create_upe_notes_does_not_create_note_when_stripe_is_disabled() {
-		WC_Stripe_Helper::update_main_stripe_settings(
+		WC_Stripe::get_instance()->update_settings(
 			[
 				'enabled'                         => 'no',
 				'upe_checkout_experience_enabled' => 'no',
@@ -98,7 +98,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	public function test_create_stripelink_note_unavailable_if_cc_not_enabled() {
-		WC_Stripe_Helper::update_main_stripe_settings(
+		WC_Stripe::get_instance()->update_settings(
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'yes',
@@ -113,11 +113,13 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			->method( 'get_upe_enabled_payment_method_ids' )
 			->willReturn( [ WC_Stripe_Payment_Methods::KLARNA ] );
 
-			//get_upe_enabled_payment_method_ids
 		$mock_wc_stripe = $this->createMock( WC_Stripe::class );
 		$mock_wc_stripe->expects( $this->once() )
 			->method( 'get_main_stripe_gateway' )
 			->willReturn( $mock_gateway );
+		$mock_wc_stripe->expects( $this->any() )
+			->method( 'get_settings' )
+			->willReturn( [ 'enabled' => 'yes' ] );
 
 		$wc_stripe_instance_reflection = new ReflectionProperty( WC_Stripe::class, 'instance' );
 		$wc_stripe_instance_reflection->setAccessible( true );
@@ -134,7 +136,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	public function test_create_stripelink_note_unavailable_link_enabled() {
-		WC_Stripe_Helper::update_main_stripe_settings(
+		WC_Stripe::get_instance()->update_settings(
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'yes',

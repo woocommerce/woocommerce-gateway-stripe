@@ -253,7 +253,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
 		// Secret key lives in settings (test mode); check_setup() gates on it.
-		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings                    = WC_Stripe::get_instance()->get_settings();
 		$settings['testmode']        = 'yes';
 		$settings['test_secret_key'] = 'sk_test_fake';
 		update_option( 'woocommerce_stripe_settings', $settings );
