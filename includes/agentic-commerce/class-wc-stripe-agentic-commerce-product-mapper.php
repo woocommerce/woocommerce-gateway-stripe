@@ -1060,22 +1060,15 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			return $this->cached_shipping_zones;
 		}
 
-		// Get the main zones.
-		$this->cached_shipping_zones = \WC_Shipping_Zones::get_zones();
+		$zones = \WC_Shipping_Zones::get_zones();
 
-		if ( ! empty( $this->cached_shipping_zones ) ) {
-			return $this->cached_shipping_zones;
-		}
-
-		// There is the "Locations not covered by other zones" zone.
+		// get_zones() omits the built-in catch-all zone 0 ("Locations not covered
+		// by your other zones"), which still ships real orders. Append it so its
+		// shipping — or a missing flat rate — is mapped and diagnosed alongside the
+		// named zones, not only when a store has no named zones at all.
 		$generic_zone = \WC_Shipping_Zones::get_zone( 0 );
-		if ( ! $generic_zone || is_wp_error( $generic_zone ) || ! ( $generic_zone instanceof \WC_Shipping_Zone ) ) {
-			$this->cached_shipping_zones = [];
-			return $this->cached_shipping_zones;
-		}
-
-		$this->cached_shipping_zones = [
-			[
+		if ( $generic_zone instanceof \WC_Shipping_Zone ) {
+			$zones[] = [
 				'zone_name'        => __( 'Locations not covered by your other zones', 'woocommerce-gateway-stripe' ),
 				'zone_locations'   => [
 					(object) [
@@ -1084,9 +1077,10 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 					],
 				],
 				'shipping_methods' => $generic_zone->get_shipping_methods(),
-			],
-		];
+			];
+		}
 
+		$this->cached_shipping_zones = $zones;
 		return $this->cached_shipping_zones;
 	}
 

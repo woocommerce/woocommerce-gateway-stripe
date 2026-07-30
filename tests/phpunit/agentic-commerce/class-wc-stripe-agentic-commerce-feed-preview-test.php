@@ -458,6 +458,33 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 			$zone->delete();
 		}
 	}
+
+	/**
+	 * The catch-all zone 0 surfaces as a shipping warning even when a named zone
+	 * exists and ships, mirroring the get_shipping_diagnostics() behavior.
+	 *
+	 * @return void
+	 */
+	public function test_preview_flags_default_zone_alongside_named_zones(): void {
+		$named = new WC_Shipping_Zone();
+		$named->set_zone_name( 'Preview Covered Zone' );
+		$named->save();
+		// Free shipping counts as a static (flat) cost, so this zone ships.
+		$named->add_shipping_method( 'free_shipping' );
+
+		$product = $this->create_valid_product();
+		$this->scope_to( [ $product->get_id() ] );
+
+		try {
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+
+			$joined = implode( "\n", $preview['shipping_warnings'] );
+			$this->assertStringContainsString( 'Locations not covered by your other zones', $joined );
+			$this->assertStringNotContainsString( 'Preview Covered Zone', $joined );
+		} finally {
+			$named->delete();
+		}
+	}
 }
 
 /**
