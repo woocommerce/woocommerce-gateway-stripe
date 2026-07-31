@@ -472,7 +472,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// On product/cart pages the express checkout bundle injects the SDK
 		// lazily; keep the handle registered but skip the eager tag.
-		if ( ! ( new WC_Stripe_Express_Checkout_Helper() )->should_defer_stripe_js() ) {
+		if ( ! $this->get_express_checkout_helper()->should_defer_stripe_js() ) {
 			wp_enqueue_script( 'stripe' );
 		}
 
@@ -555,7 +555,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
+		$express_checkout_helper = $this->get_express_checkout_helper();
 
 		$is_signup_on_checkout_allowed = 'yes' === get_option( 'woocommerce_enable_signup_and_login_from_checkout', 'no' )
 			|| ( $this->is_subscription_item_in_cart() && 'yes' === get_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'no' ) );
