@@ -36,6 +36,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 
 	protected const STRIPE_EXPAND_PARAM = [
 		'latest_charge',
+		'latest_charge.balance_transaction',
 	];
 
 	/**
