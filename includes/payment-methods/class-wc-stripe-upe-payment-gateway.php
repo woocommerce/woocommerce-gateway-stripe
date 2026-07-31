@@ -493,10 +493,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				: $dependencies;
 		}
 
+		// A hard `stripe` dependency would make WordPress print the eager tag the
+		// deferral just skipped. Safe to drop while deferring: this bundle only
+		// reaches Stripe.js through WCStripeAPI::getStripe(), which instantiates
+		// on payment confirmation, and the deferred pages carry no payment form.
+		$stripe_dependency = $this->get_express_checkout_helper()->should_defer_stripe_js() ? [] : [ 'stripe' ];
+
 		wp_register_script(
 			'wc-stripe-upe-classic',
 			WC_STRIPE_PLUGIN_URL . '/build/upe-classic.js',
-			array_merge( [ 'stripe', 'wc-checkout' ], $dependencies ),
+			array_merge( $stripe_dependency, [ 'wc-checkout' ], $dependencies ),
 			$version,
 			true
 		);
