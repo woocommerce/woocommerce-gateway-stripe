@@ -96,6 +96,41 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$this->assertEquals( [], $this->account->get_cached_account_data() );
 	}
 
+	public function test_get_cached_account_data_preserves_cache_on_transient_failure() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		$account = [
+			'id'    => '1234',
+			'email' => 'test@example.com',
+		];
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
+
+		// A transient failure (network error / Stripe outage) makes retrieve() return a WP_Error.
+		WC_Helper_Stripe_Api::$retrieve_response = new WP_Error( 'stripe_api_outage', 'temporarily unavailable' );
+
+		// The failed forced fetch returns empty without overwriting the cache, so the next read
+		// still serves the previously cached account data.
+		$this->assertSame( [], $this->account->get_cached_account_data( null, true ) );
+		$this->assertSame( $account, $this->account->get_cached_account_data() );
+	}
+
+	public function test_get_cached_account_data_clears_cache_on_invalid_key() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		WC_Stripe_Database_Cache::set(
+			WC_Stripe_Account::ACCOUNT_CACHE_KEY,
+			[
+				'id'    => '1234',
+				'email' => 'test@example.com',
+			]
+		);
+
+		// An invalid API key makes retrieve() return null (Stripe responds with a 401); the stale
+		// data must not survive so the UI can surface the "reconnect" prompt.
+		WC_Helper_Stripe_Api::$retrieve_response = null;
+
+		$this->assertEmpty( $this->account->get_cached_account_data( null, true ) );
+		$this->assertEmpty( $this->account->get_cached_account_data() );
+	}
+
 	/**
 	 * Test for `has_pending_requirements` and `has_overdue_requirements`.
 	 *
