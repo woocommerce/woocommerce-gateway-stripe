@@ -8,9 +8,7 @@ defined( 'ABSPATH' ) || exit;
  * @since 10.9.0
  */
 abstract class WC_Stripe_REST_Response_Filter {
-
-	public const IDX_FORMAT_CALLBACK = 'format';
-	public const IDX_PATH            = 'path';
+	public const IDX_PATH = 'path';
 
 	/**
 	 * Filter a API response by a given allowed property list.
@@ -41,8 +39,6 @@ abstract class WC_Stripe_REST_Response_Filter {
 
 				$ref = &$ref[ static::IDX_PATH ][ $property_name ];
 			}
-
-			$ref[ static::IDX_FORMAT_CALLBACK ] = '';
 		}
 
 		return $expanded_allowed_properties;
@@ -58,18 +54,9 @@ abstract class WC_Stripe_REST_Response_Filter {
 	 */
 	protected static function filter_value( $value, array $allowed_properties ) {
 		if ( is_object( $value ) ) {
-			$format_callback = isset( $allowed_properties[ static::IDX_FORMAT_CALLBACK ] ) ? $allowed_properties[ static::IDX_FORMAT_CALLBACK ] : null;
-			$property_path   = isset( $allowed_properties[ static::IDX_PATH ] ) ? $allowed_properties[ static::IDX_PATH ] : null;
+			$property_path = isset( $allowed_properties[ static::IDX_PATH ] ) ? $allowed_properties[ static::IDX_PATH ] : null;
 
-			if ( ! is_null( $format_callback ) ) {
-				if ( is_callable( $format_callback ) ) {
-					$filtered_object = $format_callback( $value );
-				} else {
-					$filtered_object = self::deep_clone( $value );
-				}
-			} else {
-				$filtered_object = new stdClass();
-			}
+			$filtered_object = new stdClass();
 
 			if ( ! $property_path ) {
 				return $filtered_object;

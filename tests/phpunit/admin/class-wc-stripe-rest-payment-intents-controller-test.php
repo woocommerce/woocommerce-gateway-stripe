@@ -6,7 +6,7 @@
  * @preserveGlobalState disabled
  */
 class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
-	const ENDPOINT_URL = '/wc/v3/wc_stripe/payment_intents/pi_3TtPY4JlUF0dQbSB0Jb3hqkX';
+	private const SINGLE_INTENT_ENDPOINT_URL = '/wc/v3/wc_stripe/payment_intents/pi_test_9876543210';
 
 	/** Initialise REST API, make WC_Stripe_REST_Payment_Intents_Controller instance available for testing*/
 	public static function set_up_before_class() {
@@ -60,7 +60,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	private function send_request( $params = [] ) {
 		$request = new WP_REST_Request(
 			WP_REST_Server::READABLE,
-			self::ENDPOINT_URL
+			self::SINGLE_INTENT_ENDPOINT_URL
 		);
 
 		if ( $params ) {
@@ -135,5 +135,120 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		$response = $this->send_request();
 
 		$this->assertSame( 200, $response->get_status() );
+	}
+
+	public static function provide_filtering_test_data(): array {
+		$response_allowed_part = '"object": "payment_intent",
+			"id": "pi_3TbL9RJlUF0dQbSB00q0FJS2",
+			"amount": 2460,
+			"amount_received": 2500,
+			"currency": "usd",
+			"status": "succeeded",
+			"description": "Lorem ipsum",
+			"latest_charge": {
+				"balance_transaction": {
+					"fee": 1000,
+					"net": 2000,
+					"currency": "usd"
+				},
+				"billing_details": {
+					"address": {
+						"city": "Bucuresti Sector 3",
+						"country": "RO",
+						"line1": "Bd. Octavian Goga nr. 4",
+						"line2": "",
+						"postal_code": "030982",
+						"state": "B"
+					},
+					"email": "admin@example.com",
+					"name": "Adrian Dobrescu",
+					"phone": "+40722112945",
+					"tax_id": null
+				},
+				"payment_method_details": {
+					"card": {
+						"amount_authorized": 7900,
+						"authorization_code": "747254",
+						"brand": "visa",
+						"checks": {
+							"address_line1_check": "pass",
+							"address_postal_code_check": "pass",
+							"cvc_check": "pass"
+						}
+					},
+					"type": "card"
+				}
+			}';
+		$response_as_string    = '{
+			' . $response_allowed_part . ',
+			"amount_details": {
+				"tip": {}
+			},
+			"payment_details": {
+				"customer_reference": null,
+				"order_reference": "in_1TbKCUJlUF0dQbSBCq67mKfR"
+			},
+			"payment_method": null,
+			"payment_method_configuration_details": null,
+			"payment_method_options": {
+				"card": {
+					"installments": null,
+					"mandate_options": null,
+					"network": null,
+					"request_three_d_secure": "automatic"
+				},
+				"link": {
+					"persistent_token": null
+				}
+			},
+			"payment_method_types": [
+				"card",
+				"link"
+			]
+		}';
+		return [
+			[
+				$response_as_string,
+				'{' . $response_allowed_part . '}',
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_filtering_test_data
+	*/
+	public function test_response_filtering( $response_as_string, $response_allowed_part ) {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$http_code_401_mock = function ( $pre, $parsed_args, $url ) use ( $response_as_string ) {
+			return [
+				'headers'  => [],
+				'body'     => $response_as_string,
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+			];
+		};
+
+		add_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
+		$response               = $this->send_request();
+		$expected_response_data = json_decode( $response_allowed_part );
+
+		remove_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
+		$this->assertEquals( $expected_response_data, $response->data );
 	}
 }

@@ -6,7 +6,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * REST controller exposing a Stripe payment intent detais to the admin UI.
+ * REST controller exposing Stripe payment intent details to the admin UI.
  *
  * @since 10.9.0
  */
@@ -17,32 +17,24 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 *
 	 * @var string
 	 */
-	protected $rest_base = 'payment_intents';
+	protected $rest_base = 'wc_stripe/payment_intents';
 
-	protected array $stripe_response_allowed_fields = [
+	protected const STRIPE_RESPONSE_ALLOWED_FIELDS = [
 		'object',
 		'id',
 		'amount',
 		'amount_received',
 		'currency',
-		'payment_details.order_reference',
 		'status',
 		'description',
 		'latest_charge.balance_transaction.fee',
 		'latest_charge.balance_transaction.net',
 		'latest_charge.balance_transaction.currency',
 		'latest_charge.billing_details',
-		'latest_charge.payment_method_details.type',
-		'latest_charge.payment_method_details.card.last4',
-		'latest_charge.payment_method_details.card.exp_month',
-		'latest_charge.payment_method_details.card.exp_year',
-		'latest_charge.payment_method_details.card.checks.cvc_check',
-		'latest_charge.payment_method_details.card.brand',
-		'latest_charge.payment_method_details.card.funding',
-		'latest_charge.payment_method_details.card.country',
+		'latest_charge.payment_method_details',
 	];
 
-	protected array $stripe_expand_fields = [
+	protected const STRIPE_EXPAND_PARAM = [
 		'latest_charge',
 	];
 
@@ -53,7 +45,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 */
 	public function register_routes() {
 		register_rest_route(
-			$this->namespace . '/wc_stripe',
+			$this->namespace,
 			'/' . $this->rest_base . '(?:/(?P<id>.+))',
 			[
 				'methods'             => WP_REST_Server::READABLE,
@@ -72,13 +64,13 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_payment_intent( $request ) {
-		$response = $this->fetch_from_stripe( 'payment_intents/' . $request['id'], [ 'expand' => $this->stripe_expand_fields ] );
+		$response = $this->fetch_from_stripe( 'payment_intents/' . $request['id'], [ 'expand' => self::STRIPE_EXPAND_PARAM ] );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
 		}
 
-		$filtered_response = WC_Stripe_REST_Response_Filter::filter_response( $response, $this->stripe_response_allowed_fields );
+		$filtered_response = WC_Stripe_REST_Response_Filter::filter_response( $response, self::STRIPE_RESPONSE_ALLOWED_FIELDS );
 
 		return rest_ensure_response( $filtered_response );
 	}
@@ -92,9 +84,11 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @return StdClass|WP_Error
 	 */
 	protected function fetch_from_stripe( $endpoint, $params ) {
-		$query_string = http_build_query( $params );
+		$query_string = http_build_query( $params, '', '&', PHP_QUERY_RFC3986 );
 
-		$response = WC_Stripe_API::retrieve( $endpoint . ( $query_string ? '?' . $query_string : '' ) );
+		$stripe_resource_url = $endpoint . ( '' === $query_string ? '' : '?' . $query_string );
+
+		$response = WC_Stripe_API::retrieve( $stripe_resource_url );
 
 		if ( null === $response ) {
 			return new WP_Error(

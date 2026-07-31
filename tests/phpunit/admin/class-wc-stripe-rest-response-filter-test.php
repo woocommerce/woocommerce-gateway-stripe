@@ -39,9 +39,9 @@ class WC_Stripe_REST_Response_Filter_Test extends WP_UnitTestCase {
 			'filters_nested_payment_details' => [
 				$default_response_as_string,
 				[
-					'object'                               => '',
-					'data.id'                              => '',
-					'data.payment_details.order_reference' => '',
+					'object',
+					'data.id',
+					'data.payment_details.order_reference',
 				],
 				'{
 					"object": "list",
@@ -58,10 +58,10 @@ class WC_Stripe_REST_Response_Filter_Test extends WP_UnitTestCase {
 			'includes_allowed_array_leaf'    => [
 				$default_response_as_string,
 				[
-					'object'                               => '',
-					'data.id'                              => '',
-					'data.payment_details.order_reference' => '',
-					'data.payment_method_types'            => '',
+					'object',
+					'data.id',
+					'data.payment_details.order_reference',
+					'data.payment_method_types',
 				],
 				'{
 					"object": "list",
@@ -83,20 +83,20 @@ class WC_Stripe_REST_Response_Filter_Test extends WP_UnitTestCase {
 			'applies_money_format_callback'  => [
 				'{"object": "list", "data": [{"id": "pi_123", "amount": 2460}]}',
 				[
-					'object'      => '',
-					'data.id'     => '',
-					'data.amount' => [ WC_Stripe_REST_Response_Filter::class, 'money_format' ],
+					'object',
+					'data.id',
+					'data.amount',
 				],
-				'{"object": "list", "data": [{"id": "pi_123", "amount": "24.60"}]}',
+				'{"object": "list", "data": [{"id": "pi_123", "amount": "2460"}]}',
 			],
 
 			// Test null property value handling
 			'preserves_allowed_null_leaf'    => [
 				'{"object": "list", "data": [{"id": "pi_123", "payment_method": null}]}',
 				[
-					'object'              => '',
-					'data.id'             => '',
-					'data.payment_method' => '',
+					'object',
+					'data.id',
+					'data.payment_method',
 				],
 				'{"object": "list", "data": [{"id": "pi_123", "payment_method": null}]}',
 			],
