@@ -695,6 +695,91 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertSame( OrderStatus::FAILED, $renewal_order->get_status() );
 	}
 
+	public function test_renewal_stops_retrying_when_payment_lock_expires_during_backoff_sleep() {
+		$renewal_order                 = WC_Helper_Order::create_order();
+		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
+		$request_count                 = 0;
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		// A 3-second backoff sleep against a lock expiring in 1 second: the pre-sleep expiry
+		// check passes, so only the re-check after the sleep stands between this process and
+		// starting a Stripe call on a lapsed lock.
+		$this->set_gateway_retry_interval( 3 );
+		$lock_expiring_during_sleep = (string) ( time() + 1 );
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$order_helper_mock = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'lock_order_payment', 'unlock_order_payment', 'get_order_existing_payment_lock' ] )
+			->getMock();
+		$order_helper_mock->method( 'lock_order_payment' )->willReturn( false );
+		$order_helper_mock->method( 'get_order_existing_payment_lock' )->willReturn( $lock_expiring_during_sleep );
+		$order_helper_mock->method( 'unlock_order_payment' );
+
+		$instance_property = new ReflectionProperty( WC_Stripe_Order_Helper::class, 'instance' );
+		$instance_property->setAccessible( true );
+		$original_instance = $instance_property->getValue();
+		$instance_property->setValue( null, $order_helper_mock );
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $payments_intents_api_endpoint, &$request_count ) {
+			if ( $payments_intents_api_endpoint !== $url ) {
+				return $preempt;
+			}
+
+			++$request_count;
+
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'error' => [
+							'type'    => 'api_error',
+							'message' => 'Temporary Stripe API error.',
+						],
+					]
+				),
+				'response' => [
+					'code'    => 400,
+					'message' => 'Bad Request',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, true, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			$instance_property->setValue( null, $original_instance );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		// The lock lapsed during the backoff sleep, so no second attempt was started and the
+		// order was failed for WC Subscriptions to handle.
+		$this->assertSame( 1, $request_count );
+		$this->assertSame( OrderStatus::FAILED, $renewal_order->get_status() );
+	}
+
 	public function test_renewal_does_not_release_lock_held_by_another_process() {
 		$renewal_order = WC_Helper_Order::create_order();
 

@@ -611,11 +611,10 @@ trait WC_Stripe_Subscriptions_Trait {
 					// The retries below can outlive the 5-minute payment lock (up to 6 attempts,
 					// each bounded by the Stripe API timeout). Once the lock has lapsed a
 					// concurrent scheduled renewal can acquire its own lock and start charging,
-					// so stop retrying instead of risking a duplicate charge alongside it.
+					// so stop retrying instead of risking a duplicate charge alongside it. The
+					// expiry is checked again after the backoff sleep so an attempt is never
+					// started on a lock that lapsed while this process slept.
 					$lock_expired = $lock_expiry > 0 && time() > $lock_expiry;
-					if ( $lock_expired ) {
-						WC_Stripe_Logger::error( "Stripe: abandoning renewal payment retries for order {$order_id} because the payment lock has expired." );
-					}
 
 					if ( $retry && ! $lock_expired ) {
 						// Retry under the still-held lock so a concurrent scheduled renewal cannot
@@ -629,18 +628,25 @@ trait WC_Stripe_Subscriptions_Trait {
 
 						++$this->retry_interval;
 
-						$this->process_subscription_payment_attempt( $amount, $renewal_order, true, $response->error, $lock_expiry );
-						return;
-					} else {
-						$localized_message = sprintf(
-							/* translators: 1) error message from Stripe; 2) request log URL */
-							__( 'Sorry, we are unable to process the payment at this time. Reason: %1$s %2$s', 'woocommerce-gateway-stripe' ),
-							$response->error->message,
-							isset( $response->error->request_log_url ) ? '<a href="' . esc_url( $response->error->request_log_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $response->error->request_log_url ) . '</a>' : ''
-						);
-						$renewal_order->add_order_note( $localized_message );
-						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+						$lock_expired = $lock_expiry > 0 && time() > $lock_expiry;
+						if ( ! $lock_expired ) {
+							$this->process_subscription_payment_attempt( $amount, $renewal_order, true, $response->error, $lock_expiry );
+							return;
+						}
 					}
+
+					if ( $lock_expired ) {
+						WC_Stripe_Logger::error( "Stripe: abandoning renewal payment retries for order {$order_id} because the payment lock has expired." );
+					}
+
+					$localized_message = sprintf(
+						/* translators: 1) error message from Stripe; 2) request log URL */
+						__( 'Sorry, we are unable to process the payment at this time. Reason: %1$s %2$s', 'woocommerce-gateway-stripe' ),
+						$response->error->message,
+						isset( $response->error->request_log_url ) ? '<a href="' . esc_url( $response->error->request_log_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $response->error->request_log_url ) . '</a>' : ''
+					);
+					$renewal_order->add_order_note( $localized_message );
+					throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 				}
 
 				if ( 'payment_intent_mandate_invalid' === $response->error->type ) {
