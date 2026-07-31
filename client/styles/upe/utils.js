@@ -134,6 +134,12 @@ const STRIPE_PADDING_TOP = '4px';
 const STRIPE_PADDING_OFFSET = '1px';
 const STRIPE_FLOATING_LABEL_MARGIN_TOP = '3px';
 
+// Computed styles resolve to px; anything else means the value didn't resolve.
+const parsePx = ( value ) =>
+	typeof value === 'string' && value.endsWith( 'px' )
+		? parseFloat( value )
+		: NaN;
+
 /**
  * Modifies the appearance object to include styles for floating label.
  * Adjusts input padding to prevent fields from growing taller when labels
@@ -150,7 +156,10 @@ export const handleAppearanceForFloatingLabel = (
 	// Add floating label styles.
 	appearance.rules[ '.Label--floating' ] = floatingLabelStyles;
 
-	// Update line-height for floating label to account for scaling.
+	// Update line-height for floating label to account for scaling. Cleared
+	// when the label's rendered size can't be determined, so the padding
+	// logic below stands down instead of compensating with a wrong value.
+	let compensationPossible = true;
 	if (
 		appearance.rules[ '.Label--floating' ].transform &&
 		appearance.rules[ '.Label--floating' ].transform !== 'none'
@@ -162,40 +171,38 @@ export const handleAppearanceForFloatingLabel = (
 			const splitMatrixValues = matrixValues[ 1 ].split( /\s*,\s*/ );
 			const scaleX = parseFloat( splitMatrixValues[ 0 ] );
 			const scaleY = parseFloat( splitMatrixValues[ 3 ] );
-			if ( ! Number.isFinite( scaleX ) || ! Number.isFinite( scaleY ) ) {
-				delete appearance.rules[ '.Label--floating' ].transform;
-				return appearance;
-			}
-			const scale = ( scaleX + scaleY ) / 2;
-
-			const lineHeight = parseFloat(
+			const lineHeight = parsePx(
 				appearance.rules[ '.Label--floating' ].lineHeight
 			);
-			if ( isNaN( lineHeight ) ) {
-				delete appearance.rules[ '.Label--floating' ].transform;
-				return appearance;
+			if (
+				! Number.isFinite( scaleX ) ||
+				! Number.isFinite( scaleY ) ||
+				isNaN( lineHeight )
+			) {
+				compensationPossible = false;
+			} else {
+				const scale = ( scaleX + scaleY ) / 2;
+				const newLineHeight = Math.floor( lineHeight * scale );
+				appearance.rules[
+					'.Label--floating'
+				].lineHeight = `${ newLineHeight }px`;
+				appearance.rules[
+					'.Label--floating'
+				].fontSize = `${ newLineHeight }px`;
 			}
-			const newLineHeight = Math.floor( lineHeight * scale );
-			appearance.rules[
-				'.Label--floating'
-			].lineHeight = `${ newLineHeight }px`;
-			appearance.rules[
-				'.Label--floating'
-			].fontSize = `${ newLineHeight }px`;
 		}
 		delete appearance.rules[ '.Label--floating' ].transform;
 	}
 
 	// Reserve room for the floating label without letting the field grow taller.
-	const paddingTop = parseFloat( appearance.rules[ '.Input' ].paddingTop );
-	const paddingBottom = parseFloat(
-		appearance.rules[ '.Input' ].paddingBottom
-	);
-	const floatingLabelLineHeight = parseFloat(
+	const paddingTop = parsePx( appearance.rules[ '.Input' ].paddingTop );
+	const paddingBottom = parsePx( appearance.rules[ '.Input' ].paddingBottom );
+	const floatingLabelLineHeight = parsePx(
 		appearance.rules[ '.Label--floating' ].lineHeight
 	);
 
 	if (
+		compensationPossible &&
 		Number.isFinite( paddingTop ) &&
 		Number.isFinite( paddingBottom ) &&
 		Number.isFinite( floatingLabelLineHeight )

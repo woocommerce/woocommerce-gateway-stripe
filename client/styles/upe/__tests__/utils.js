@@ -244,27 +244,6 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 		);
 	} );
 
-	it( 'returns early when matrix scale components are non-finite', () => {
-		const appearance = makeAppearance();
-		const floatingStyles = {
-			transform: 'matrix(foo, 0, 0, 0.75, 0, -10)',
-			lineHeight: '20px',
-		};
-
-		const result = upeUtils.handleAppearanceForFloatingLabel(
-			appearance,
-			floatingStyles
-		);
-
-		// Early return path: transform removed, no padding/margin adjustments applied.
-		expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
-			'transform'
-		);
-		expect( result.rules[ '.Input' ].paddingTop ).toBe( '10px' );
-		expect( result.rules[ '.Input' ].paddingBottom ).toBe( '12px' );
-		expect( 'marginTop' in result.rules[ '.Label' ] ).toBe( false );
-	} );
-
 	it( 'skips transform processing when transform is absent', () => {
 		const appearance = makeAppearance();
 		const floatingStyles = {
@@ -320,25 +299,6 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 			'transform'
 		);
 		expect( result.rules[ '.Label--floating' ].lineHeight ).toBe( '20px' );
-	} );
-
-	it( 'returns early when lineHeight is NaN', () => {
-		const appearance = makeAppearance();
-		const floatingStyles = {
-			transform: 'matrix(0.75, 0, 0, 0.75, 0, -10)',
-			lineHeight: 'normal',
-		};
-
-		const result = upeUtils.handleAppearanceForFloatingLabel(
-			appearance,
-			floatingStyles
-		);
-
-		// NaN guard triggers early return — padding unchanged.
-		expect( result.rules[ '.Input' ].paddingTop ).toBe( '10px' );
-		expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
-			'transform'
-		);
 	} );
 
 	// When a value can't be resolved, both padding overrides come off
@@ -399,6 +359,55 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 			expect( overridesOn( result ) ).toEqual( NONE );
 		} );
 
+		it( 'drops the overrides when the matrix scale is not finite', () => {
+			const appearance = makeAppearance();
+
+			const result = upeUtils.handleAppearanceForFloatingLabel(
+				appearance,
+				{
+					transform: 'matrix(foo, 0, 0, 0.75, 0, -10)',
+					lineHeight: '20px',
+				}
+			);
+
+			expect( overridesOn( result ) ).toEqual( NONE );
+			expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
+				'transform'
+			);
+			// The label still floats, so it keeps its border offset.
+			expect( result.rules[ '.Label--floating' ].marginTop ).toBe(
+				'3px'
+			);
+		} );
+
+		it( 'drops the overrides when lineHeight is a keyword and a transform scales it', () => {
+			const appearance = makeAppearance();
+
+			const result = upeUtils.handleAppearanceForFloatingLabel(
+				appearance,
+				{
+					transform: 'matrix(0.75, 0, 0, 0.75, 0, -10)',
+					lineHeight: 'normal',
+				}
+			);
+
+			expect( overridesOn( result ) ).toEqual( NONE );
+			expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
+				'transform'
+			);
+		} );
+
+		it( 'drops the overrides when a padding is not in px', () => {
+			const appearance = makeAppearance( { paddingTop: '1.5rem' } );
+
+			const result = upeUtils.handleAppearanceForFloatingLabel(
+				appearance,
+				{ lineHeight: '20px' }
+			);
+
+			expect( overridesOn( result ) ).toEqual( NONE );
+		} );
+
 		it( 'drops the overrides when paddingTop is absent', () => {
 			const appearance = makeAppearance();
 			delete appearance.rules[ '.Input' ].paddingTop;
@@ -437,6 +446,11 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 				[
 					'var() padding',
 					{ paddingBottom: 'var(--pad)' },
+					{ lineHeight: '20px' },
+				],
+				[
+					'rem padding',
+					{ paddingTop: '1.5rem' },
 					{ lineHeight: '20px' },
 				],
 			];
