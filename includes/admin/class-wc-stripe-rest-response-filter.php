@@ -29,7 +29,7 @@ abstract class WC_Stripe_REST_Response_Filter {
 	protected static function expand_allowed_property_paths( array $allowed_property_paths ): array {
 		$expanded_allowed_properties = [];
 
-		foreach ( $allowed_property_paths as $path_as_string => $format_callback ) {
+		foreach ( $allowed_property_paths as $path_as_string ) {
 			$path = explode( '.', $path_as_string );
 
 			$ref = &$expanded_allowed_properties;
@@ -42,7 +42,7 @@ abstract class WC_Stripe_REST_Response_Filter {
 				$ref = &$ref[ static::IDX_PATH ][ $property_name ];
 			}
 
-			$ref[ static::IDX_FORMAT_CALLBACK ] = $format_callback;
+			$ref[ static::IDX_FORMAT_CALLBACK ] = '';
 		}
 
 		return $expanded_allowed_properties;
@@ -85,11 +85,6 @@ abstract class WC_Stripe_REST_Response_Filter {
 				if ( ! isset( $rule[ static::IDX_PATH ] ) || ! is_array( $rule[ static::IDX_PATH ] ) ) {
 					if ( is_object( $property_value ) ) {
 						$property_value = self::deep_clone( $property_value );
-					}
-
-					if ( is_callable( $rule[ static::IDX_FORMAT_CALLBACK ] ) ) {
-						$format_callback = $rule[ static::IDX_FORMAT_CALLBACK ];
-						$property_value  = $format_callback( $property_value );
 					}
 
 					$filtered_object->{$property} = $property_value;
