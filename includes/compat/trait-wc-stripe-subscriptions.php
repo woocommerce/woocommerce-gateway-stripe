@@ -510,14 +510,25 @@ trait WC_Stripe_Subscriptions_Trait {
 		// held mirrors the regular checkout handler. The finally guarantees release on every exit
 		// path (success, failure, retry exhaustion, or an unexpected error).
 		if ( $order_helper->lock_order_payment( $renewal_order ) ) {
-			WC_Stripe_Logger::warning( "Stripe: skipping duplicate renewal attempt for order {$order_id} because the payment lock is already held." );
+			// Logged as an error, not a warning: warnings are dropped unless debug logging is
+			// enabled, and a skipped renewal attempt must always leave a trace.
+			WC_Stripe_Logger::error( "Stripe: skipping duplicate renewal attempt for order {$order_id} because the payment lock is already held." );
+			$renewal_order->add_order_note( __( 'Stripe: skipped this renewal payment attempt because another payment attempt for this order was already in progress.', 'woocommerce-gateway-stripe' ) );
 			return;
 		}
 
+		// Remember the exact lock value this process wrote. The lock expires after 5 minutes while
+		// the retries below can run longer, so the expiry bounds the retry loop, and the finally
+		// must only release the lock while it is still ours — deleting the meta unconditionally
+		// could release a newer lock acquired by a concurrent process after ours lapsed.
+		$our_lock = (string) $order_helper->get_order_existing_payment_lock( $renewal_order );
+
 		try {
-			$this->process_subscription_payment_attempt( $amount, $renewal_order, $retry, $previous_error );
+			$this->process_subscription_payment_attempt( $amount, $renewal_order, $retry, $previous_error, (int) $our_lock );
 		} finally {
-			$order_helper->unlock_order_payment( $renewal_order );
+			if ( (string) $order_helper->get_order_existing_payment_lock( $renewal_order ) === $our_lock ) {
+				$order_helper->unlock_order_payment( $renewal_order );
+			}
 		}
 	}
 
@@ -532,9 +543,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param WC_Order     $renewal_order  The renewal order.
 	 * @param bool         $retry          Should we retry the process?
 	 * @param object|false $previous_error Previous error object.
+	 * @param int          $lock_expiry    Unix timestamp at which the caller's payment lock expires. 0 when unknown.
 	 * @return void
 	 */
-	private function process_subscription_payment_attempt( $amount, $renewal_order, $retry = true, $previous_error = false ) {
+	private function process_subscription_payment_attempt( $amount, $renewal_order, $retry = true, $previous_error = false, $lock_expiry = 0 ) {
 		$radar_reason = false;
 		$response     = null;
 
@@ -596,11 +608,20 @@ trait WC_Stripe_Subscriptions_Trait {
 				// We want to retry — unless Stripe Radar blocked the charge, in which case retrying
 				// would just create another blocked charge and inflate the block rate.
 				if ( $this->is_retryable_error( $response->error ) && false === $radar_reason ) {
-					if ( $retry ) {
+					// The retries below can outlive the 5-minute payment lock (up to 6 attempts,
+					// each bounded by the Stripe API timeout). Once the lock has lapsed a
+					// concurrent scheduled renewal can acquire its own lock and start charging,
+					// so stop retrying instead of risking a duplicate charge alongside it.
+					$lock_expired = $lock_expiry > 0 && time() > $lock_expiry;
+					if ( $lock_expired ) {
+						WC_Stripe_Logger::error( "Stripe: abandoning renewal payment retries for order {$order_id} because the payment lock has expired." );
+					}
+
+					if ( $retry && ! $lock_expired ) {
 						// Retry under the still-held lock so a concurrent scheduled renewal cannot
 						// charge in the gap. Don't do anymore retries after this.
 						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
-							$this->process_subscription_payment_attempt( $amount, $renewal_order, false, $response->error );
+							$this->process_subscription_payment_attempt( $amount, $renewal_order, false, $response->error, $lock_expiry );
 							return;
 						}
 
@@ -608,7 +629,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 						++$this->retry_interval;
 
-						$this->process_subscription_payment_attempt( $amount, $renewal_order, true, $response->error );
+						$this->process_subscription_payment_attempt( $amount, $renewal_order, true, $response->error, $lock_expiry );
 						return;
 					} else {
 						$localized_message = sprintf(
@@ -813,7 +834,21 @@ trait WC_Stripe_Subscriptions_Trait {
 				);
 
 				// Use the last charge within the intent or the full response body in case of SEPA.
-				$latest_charge   = $this->get_latest_charge_from_intent( $response );
+				$latest_charge = $this->get_latest_charge_from_intent( $response );
+
+				// get_latest_charge_from_intent() can return a bare charge id, and
+				// process_response() reads the charge via object property access, so a string
+				// must be resolved to the full charge object before it is handed over.
+				if ( is_string( $latest_charge ) && '' !== $latest_charge ) {
+					$latest_charge = $this->get_charge_object( $latest_charge ); // @phpstan-ignore-line (get_charge_object is defined in the gateway classes using this trait)
+				}
+
+				// Anything that still is not an object (e.g. an empty string) cannot be given to
+				// process_response(); fall back to the full response body instead.
+				if ( ! is_object( $latest_charge ) ) {
+					$latest_charge = null;
+				}
+
 				$charge_response = ( ! empty( $latest_charge ) ) ? $latest_charge : $response;
 
 				// process_response() reads the charge via object property access; mirror the SEPA
@@ -825,13 +860,6 @@ trait WC_Stripe_Subscriptions_Trait {
 					$charge_response = $decoded_charge instanceof stdClass ? $decoded_charge : (object) $charge_response;
 				}
 
-				/**
-				 * Although get_latest_charge_from_intent() is annotated string|object, a bare
-				 * charge id string is resolved to a charge object before it is returned, so an
-				 * object is what reaches this call.
-				 *
-				 * @var object $charge_response
-				 */
 				$this->process_response( $charge_response, $renewal_order );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
