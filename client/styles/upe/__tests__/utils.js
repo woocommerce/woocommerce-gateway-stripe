@@ -282,25 +282,6 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 		expect( result.rules[ '.Label--floating' ].transform ).toBe( 'none' );
 	} );
 
-	it( 'skips matrix block when transform is not a matrix', () => {
-		const appearance = makeAppearance();
-		const floatingStyles = {
-			transform: 'translateY(-10px)',
-			lineHeight: '20px',
-		};
-
-		const result = upeUtils.handleAppearanceForFloatingLabel(
-			appearance,
-			floatingStyles
-		);
-
-		// Matrix regex doesn't match — transform deleted but lineHeight unchanged.
-		expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
-			'transform'
-		);
-		expect( result.rules[ '.Label--floating' ].lineHeight ).toBe( '20px' );
-	} );
-
 	// When a value can't be resolved, both padding overrides come off
 	// together — a partial adjustment is worse than none.
 	describe( 'when an operand cannot be resolved', () => {
@@ -394,6 +375,30 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 			expect( overridesOn( result ) ).toEqual( NONE );
 			expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
 				'transform'
+			);
+		} );
+
+		it( 'drops the overrides when the transform is not a 2d matrix', () => {
+			// Computed transforms are always none, matrix() or matrix3d(). A
+			// 3d matrix may scale the label, but this code can't read it.
+			const appearance = makeAppearance();
+
+			const result = upeUtils.handleAppearanceForFloatingLabel(
+				appearance,
+				{
+					transform:
+						'matrix3d(0.82, 0, 0, 0, 0, 0.82, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)',
+					lineHeight: '20px',
+				}
+			);
+
+			expect( overridesOn( result ) ).toEqual( NONE );
+			expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
+				'transform'
+			);
+			// The unreadable transform is discarded, not applied unscaled.
+			expect( result.rules[ '.Label--floating' ].lineHeight ).toBe(
+				'20px'
 			);
 		} );
 

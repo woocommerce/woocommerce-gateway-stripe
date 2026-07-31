@@ -190,6 +190,10 @@ export const handleAppearanceForFloatingLabel = (
 					'.Label--floating'
 				].fontSize = `${ newLineHeight }px`;
 			}
+		} else {
+			// A transform we can't read — e.g. matrix3d() — may scale the
+			// label, so its rendered size is unknown.
+			compensationPossible = false;
 		}
 		delete appearance.rules[ '.Label--floating' ].transform;
 	}
