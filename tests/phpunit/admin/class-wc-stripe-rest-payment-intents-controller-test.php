@@ -57,10 +57,10 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	 *
 	 * If non-empty, adds the entries from $params to the request object.
 	 */
-	private function send_request( $params = [] ) {
+	private function send_request( $params = [], $url = self::SINGLE_INTENT_ENDPOINT_URL ) {
 		$request = new WP_REST_Request(
 			WP_REST_Server::READABLE,
-			self::SINGLE_INTENT_ENDPOINT_URL
+			$url
 		);
 
 		if ( $params ) {
@@ -250,5 +250,16 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		);
 
 		$this->assertEquals( $expected_response_data, $response->data );
+	}
+
+	/** Send a malformed payment intent id. */
+	public function test_malformed_payment_intent_id() {
+		$subscriber_id = $this->factory()->user->create( [ 'role' => 'subscriber' ] );
+
+		wp_set_current_user( $subscriber_id );
+
+		$response = $this->send_request( [], self::SINGLE_INTENT_ENDPOINT_URL . '/../../other' );
+
+		$this->assertSame( 404, $response->get_status() );
 	}
 }

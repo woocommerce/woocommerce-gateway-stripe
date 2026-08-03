@@ -47,7 +47,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	public function register_routes() {
 		register_rest_route(
 			$this->namespace,
-			'/' . $this->rest_base . '(?:/(?P<id>.+))',
+			'/' . $this->rest_base . '(?:/(?P<id>pi_[A-Za-z0-9_]+))?$',
 			[
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => [ $this, 'get_payment_intent' ],
@@ -65,7 +65,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_payment_intent( $request ) {
-		$response = $this->fetch_from_stripe( 'payment_intents/' . $request['id'], [ 'expand' => self::STRIPE_EXPAND_PARAM ] );
+		$response = $this->fetch_from_stripe( 'payment_intents/' . rawurlencode( $request['id'] ), [ 'expand' => self::STRIPE_EXPAND_PARAM ] );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
