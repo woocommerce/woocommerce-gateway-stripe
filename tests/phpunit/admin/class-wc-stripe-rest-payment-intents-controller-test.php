@@ -213,7 +213,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 			$request->set_param( $rest_param_name, $rest_param_value );
 		}
 
-		$passed_rest_params = $controller->build_http_query_array_from_request( $request );
+		$passed_rest_params = WC_Stripe_REST_Helper::build_http_query_array_from_request( $request, $controller->get_payment_intents_route_args() );
 
 		$pre_http_request = [];
 
@@ -249,5 +249,107 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 			$rest_params,
 			array_intersect_key( $pre_http_request['search_params'], $rest_params )
 		);
+	}
+
+	public static function provide_rest_wrong_query_params(): array {
+		return [
+			[
+				'',
+			],
+			[
+				[],
+			],
+			[
+				[
+					[ 'value' => '123' ],
+				],
+			],
+			[
+				[
+					[ 'field' => 'currency' ],
+				],
+			],
+			[
+				[
+					[
+						'value'    => '123',
+						'field'    => 'currency',
+						'operator' => 'test',
+					],
+				],
+			],
+			[
+				[
+					[
+						'value'     => '123',
+						'field'     => 'currency',
+						'operator'  => ':',
+						'extra_key' => '',
+					],
+				],
+			],
+		];
+	}
+
+	/**
+	 * Create an admin user and send requests containing wrong format query arg.
+	 *
+	 * @dataProvider provide_rest_wrong_query_params
+	*/
+	public function test_query_param_wrong_format( $query_param ) {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$response = $this->send_request( [ 'query' => $query_param ] );
+
+		$this->assertSame( 400, $response->get_status() );
+	}
+
+	public static function provide_rest_query_params(): array {
+		return [
+			[
+				[
+					[
+						'field'    => 'currency',
+						'value'    => 'usd',
+						'operator' => ':',
+					],
+					[
+						'field'    => 'amount',
+						'value'    => '1000',
+						'operator' => '=',
+					],
+					[
+						'field'    => 'created',
+						'value'    => '11201000',
+						'operator' => '>',
+					],
+					[
+						'field'    => 'customer',
+						'value'    => '1000',
+						'operator' => ':',
+					],
+					[
+						'field' => 'status',
+						'value' => '1000',
+					],
+				],
+			],
+		];
+	}
+
+	/**
+	 * Create an admin user and send requests containing correct query arg.
+	 *
+	 * @dataProvider provide_rest_query_params
+	*/
+	public function test_query_param( $query_param ) {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$this->mock_http_call();
+		$response = $this->send_request( [ 'query' => $query_param ] );
+
+		$this->assertSame( 200, $response->get_status() );
 	}
 }

@@ -21,6 +21,9 @@ abstract class WC_Stripe_REST_Response_Filter {
 	 * @return object|array
 	 */
 	public static function filter_response( object $response, array $allowed_properties ) {
+		if ( ! $allowed_properties ) {
+			return $response;
+		}
 		$expanded_allowed_properties = static::expand_allowed_property_paths( $allowed_properties );
 
 		return static::filter_value( $response, $expanded_allowed_properties );
@@ -131,5 +134,61 @@ abstract class WC_Stripe_REST_Response_Filter {
 	 */
 	public static function money_format( $value ) {
 		return number_format( round( $value / 100, 2 ), 2 );
+	}
+
+	/**
+	 * Format a unix timestamp as a date
+	 *
+	 * @param int $value The timestamp.
+	 *
+	 * @return string
+	 */
+	public static function date_format( $value ) {
+		return gmdate( 'F j, Y', $value );
+	}
+
+	/**
+	 * Format a payment method details as a string
+	 *
+	 * @param object $value The payment method details.
+	 *
+	 * @return string
+	 */
+	public static function payment_method_details_format( $value ) {
+		switch ( $value->type ?? '' ) {
+			case 'card':
+				$result = ucfirst( $value->card->network ?? '' );
+
+				if ( $value->card->last4 ?? '' ) {
+					$result .= ' (•••• ' . ( $value->card->last4 ?? '' ) . ')';
+				}
+				break;
+			default:
+				$result = '';
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Format a payment destination as a string
+	 *
+	 * @param object $value The payment method details.
+	 *
+	 * @return string
+	 */
+	public static function destination_bank_format( $value ) {
+		return ( ( $value->bank_name ?? '' ) ? ' ' . $value->bank_name : '' ) . '( •••• ' . ( $value->last4 ?? '••••' ) . ' )';
+	}
+
+	/**
+	 * Format a status
+	 *
+	 * @param string $value The payment method details.
+	 *
+	 * @return string
+	 */
+	public static function status_format( $value ) {
+		return ucfirst( str_replace( '_', ' ', $value ) );
 	}
 }
