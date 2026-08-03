@@ -159,6 +159,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.9.0 - xxxx-xx-xx =
 * Fix - Refresh account details re-evaluates Payment Method Configuration availability so a disabled pmc_enabled flag recovers automatically
+* Fix - Match the Google Pay express checkout button height to Apple Pay when using the Light or Outline button theme
 * Fix - Keep the currently loaded Stripe account details visible when an account refresh fails
 * Fix - Surface an error and block checkout when the Adaptive Pricing order total can't be synced with Stripe, instead of silently letting the buyer pay a stale amount
 * Fix - Stop attaching Level 3 data to captures and payments for non-card methods
