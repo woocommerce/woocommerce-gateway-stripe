@@ -1215,9 +1215,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			// for card — Link handles save consent via the Payment Element.
 			$hide_for_link = ! $show_optimized_checkout && WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this );
 			if ( $this->is_saved_cards_enabled() && ! empty( $methods_enabled_for_saved_payments ) && ! $hide_for_link ) {
-				/**
-				 * This filter is documented in includes/class-wc-stripe-blocks-support.php.
-				 */
+				/** This filter is documented in includes/class-wc-stripe-blocks-support.php. */
 				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page() || WC_Stripe_Helper::should_force_save_payment_method();
 				$this->save_payment_method_checkbox( $force_save_payment );
 			}
@@ -1952,9 +1950,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 
 				// Run the necessary filter to make sure mandate information is added when it's required.
-				/**
-				 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-				 */
+				/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 				$request = apply_filters(
 					'wc_stripe_generate_create_intent_request',
 					$request,
@@ -4740,9 +4736,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$order = wc_get_order( $order->get_id() );
 
 		if ( ! $order->has_status(
-			/**
-			 * This filter is documented in includes/class-wc-stripe-webhook-handler.php.
-			 */
+			/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
 			apply_filters(
 				'wc_stripe_allowed_payment_processing_statuses',
 				[ OrderStatus::PENDING, OrderStatus::FAILED ],

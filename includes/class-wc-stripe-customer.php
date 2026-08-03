@@ -533,9 +533,7 @@ class WC_Stripe_Customer {
 
 			$response = WC_Stripe_API::request( $create_customer_args, 'customers' );
 		} else {
-			/**
-			 * This filter is documented in includes/class-wc-stripe-customer.php.
-			 */
+			/** This filter is documented in includes/class-wc-stripe-customer.php. */
 			$update_customer_args = apply_filters( 'wc_stripe_update_customer_args', $args );
 			$response             = WC_Stripe_API::request( $update_customer_args, 'customers/' . $response->id );
 		}

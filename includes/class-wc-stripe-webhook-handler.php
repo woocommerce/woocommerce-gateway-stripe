@@ -1225,9 +1225,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			! $order_helper->is_stripe_status_final( $order ) &&
 			$order->has_status( OrderStatus::ON_HOLD ) &&
 			( ! empty( $notification->data->object->closed_reason ) && 'approved' === $notification->data->object->closed_reason ) &&
-			/**
-			 * This filter is documented in includes/class-wc-stripe-webhook-handler.php.
-			 */
+			/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
 			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification )
 		) {
 			// If the status we stored before hold is an incomplete status, restore the status to processing/completed instead.
@@ -1338,9 +1336,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( ! $order->has_status(
-			/**
-			 * This filter is documented in includes/class-wc-stripe-webhook-handler.php.
-			 */
+			/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
 			apply_filters(
 				'wc_stripe_allowed_payment_processing_statuses',
 				[ OrderStatus::PENDING, OrderStatus::FAILED ],
@@ -1661,9 +1657,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$order_cancelled = $order->has_status( OrderStatus::CANCELLED );
 
 					// Check if the order is still in a valid state to process the webhook.
-					/**
-					 * This filter is documented in includes/class-wc-stripe-webhook-handler.php.
-					 */
+					/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
 					if ( ! $order_cancelled && ! $order->has_status( apply_filters( 'wc_stripe_allowed_payment_processing_statuses', [ OrderStatus::PENDING, OrderStatus::FAILED ], $order ) ) ) {
 						WC_Stripe_Logger::debug( "Skipped processing deferred webhook for Stripe PaymentIntent {$intent_id} for order {$order->get_id()} - payment already complete." );
 						return;

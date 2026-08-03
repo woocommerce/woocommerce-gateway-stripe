@@ -1127,9 +1127,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	public function should_show_ece_on_cart_page() {
 		$should_show_on_cart_page = $this->should_show_ece_on_location( 'cart' );
 
-		/**
-		 * This filter is documented in includes/class-wc-stripe.php.
-		 */
+		/** This filter is documented in includes/class-wc-stripe.php. */
 		return apply_filters(
 			'wc_stripe_show_payment_request_on_cart',
 			$should_show_on_cart_page
@@ -1147,9 +1145,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		$should_show_on_checkout_page = $this->should_show_ece_on_location( 'checkout' );
 
-		/**
-		 * This filter is documented in includes/class-wc-stripe.php.
-		 */
+		/** This filter is documented in includes/class-wc-stripe.php. */
 		return apply_filters(
 			'wc_stripe_show_payment_request_on_checkout',
 			$should_show_on_checkout_page,
@@ -1178,9 +1174,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$should_show_on_product_page = $this->should_show_ece_on_location( 'product' );
 
 		// Note the negation because if the filter returns `true` that means we should hide the PRB.
-		/**
-		 * This filter is documented in includes/class-wc-stripe.php.
-		 */
+		/** This filter is documented in includes/class-wc-stripe.php. */
 		return ! apply_filters(
 			'wc_stripe_hide_payment_request_on_product_page',
 			! $should_show_on_product_page,

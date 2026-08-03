@@ -1126,9 +1126,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$stripe_source = $source_id;
 				$source_object = WC_Stripe_API::get_payment_method( $source_id );
 			} elseif (
-				/**
-				 * This filter is documented in includes/compat/trait-wc-stripe-subscriptions.php.
-				 */
+				/** This filter is documented in includes/compat/trait-wc-stripe-subscriptions.php. */
 				apply_filters( 'wc_stripe_use_default_customer_source', true )
 			) {
 				/*
@@ -2521,9 +2519,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 * @param string $notification_channel Mandate notification channel.
 		 */
 		$stripe_params['sepa_mandate_notification'] = apply_filters( 'wc_stripe_sepa_mandate_notification', 'email' );
-		/**
-		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-		 */
+		/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 		$stripe_params['allow_prepaid_card']   = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
 		$stripe_params['inline_cc_form']       = ( isset( $this->inline_cc_form ) && $this->inline_cc_form ) ? 'yes' : 'no';
 		$stripe_params['is_checkout']          = ( is_checkout() && empty( $_GET['pay_for_order'] ) ) ? 'yes' : 'no'; // wpcs: csrf ok.
