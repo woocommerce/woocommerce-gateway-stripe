@@ -1003,12 +1003,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$customer->set_id( $existing_customer_id );
 		}
 
-		/**
-		 * Filters whether a payment source should be saved.
-		 *
-		 * @param bool               $force_save_source Whether to force saving the source.
-		 * @param WC_Stripe_Customer $customer          Stripe customer object.
-		 */
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
 		$source_object     = '';
 		$source_id         = '';
@@ -1630,9 +1624,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$request = WC_Stripe_Helper::add_payment_method_to_request_array( $prepared_source->source, $request );
 
-		/**
-		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-		 */
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
 
 		if ( $this->save_payment_method_requested() || $this->has_subscription( $order->get_id() ) || $force_save_source ) {

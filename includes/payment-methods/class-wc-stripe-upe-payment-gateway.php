@@ -4682,9 +4682,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'redirect_to' => rawurlencode( $result['redirect'] ),
 		];
 
-		/**
-		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-		 */
 		$force_save_source_value = apply_filters( 'wc_stripe_force_save_source', false );
 
 		// We want to save the payment method if requested or forced, AND if we are not
