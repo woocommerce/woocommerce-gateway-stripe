@@ -517,6 +517,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
+			/**
+			 * Fires after a webhook payment is processed.
+			 * Deprecated in favor of wc_gateway_stripe_process_payment_charge.
+			 *
+			 * @deprecated 9.7.0
+			 * @param object   $response The response object.
+			 * @param WC_Order $order    The order object.
+			*/
 			do_action_deprecated(
 				'wc_gateway_stripe_process_webhook_payment',
 				[ $response, $order ],
@@ -1401,6 +1409,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				if ( $is_voucher_payment || $is_wallet_payment || $is_blik_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
 					$charge = $this->get_latest_charge_from_intent( $intent );
 
+					/**
+					 * Fires after a webhook charge is processed.
+					 * Deprecated in favor of wc_gateway_stripe_process_payment_charge.
+					 *
+					 * @deprecated 9.7.0
+					 * @param object   $charge The charge object.
+					 * @param WC_Order $order  The order object.
+					*/
 					do_action_deprecated(
 						'wc_gateway_stripe_process_payment',
 						[ $charge, $order ],
@@ -1482,6 +1498,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$allowed_payment_processing_statuses = [ OrderStatus::PENDING, OrderStatus::FAILED ];
 
+		/**
+		 * Filters the valid order statuses for payment processing.
+		 * Deprecated in favor of wc_stripe_allowed_payment_processing_statuses.
+		 *
+		 * @deprecated 9.7.0
+		 *
+		 * @param array    $allowed_payment_processing_statuses The allowed payment processing statuses.
+		 * @param WC_Order $order                               The order object.
+		 */
 		$allowed_payment_processing_statuses = apply_filters_deprecated(
 			'wc_gateway_stripe_allowed_payment_processing_statuses',
 			[ $allowed_payment_processing_statuses ],
@@ -1839,6 +1864,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		WC_Stripe_Logger::info( "Processing Stripe PaymentIntent {$intent_id} for order {$order->get_id()} via deferred webhook." );
 
+		/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
 		do_action_deprecated(
 			'wc_gateway_stripe_process_payment',
 			[ $charge, $order ],

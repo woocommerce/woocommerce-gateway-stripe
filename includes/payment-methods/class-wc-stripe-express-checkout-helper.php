@@ -1804,6 +1804,13 @@ class WC_Stripe_Express_Checkout_Helper {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
+		/**
+		 * Filters whether Express Checkout itemization should be hidden.
+		 * Deprecated in favor of wc_stripe_express_checkout_hide_itemization.
+		 *
+		 * @deprecated 10.6.0
+		 * @param bool $hide_itemization Whether itemization should be hidden.
+		 */
 		$hide_itemization = apply_filters_deprecated(
 			'wc_stripe_payment_request_hide_itemization',
 			[ true ],
@@ -1820,6 +1827,15 @@ class WC_Stripe_Express_Checkout_Helper {
 		$order_total      = WC()->cart->get_total( false );
 
 		$calculated_total = WC_Stripe_Helper::get_stripe_amount( $order_total );
+		/**
+		 * Filters the calculated total for the order.
+		 * Deprecated in favor of wc_stripe_calculated_total.
+		 *
+		 * @deprecated 9.6.0
+		 * @param float   $calculated_total The calculated total.
+		 * @param float   $order_total      The order total.
+		 * @param WC_Cart $cart             The cart object.
+		 */
 		$calculated_total = apply_filters_deprecated(
 			'woocommerce_stripe_calculated_total',
 			[ $calculated_total, $order_total, WC()->cart ],

@@ -310,6 +310,7 @@ class WC_Stripe_Express_Checkout_Element {
 		$items    = [];
 
 		// Allow third-party plugins to show itemization on express checkout (keep legacy hook for BC).
+		/** This filter is documented in includes/payment-methods/class-wc-stripe-express-checkout-helper.php. */
 		$hide_itemization = apply_filters_deprecated(
 			'wc_stripe_payment_request_hide_itemization',
 			[ true ],
