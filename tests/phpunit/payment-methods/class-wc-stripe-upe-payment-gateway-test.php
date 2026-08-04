@@ -4181,6 +4181,53 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return void
 	 * @throws Exception If test fails.
 	 */
+	/**
+	 * A Dynamic Payment Methods intent must never be reused on retry: `automatic_payment_methods`
+	 * is create-time only, and Stripe fills the intent's `payment_method_types` from the merchant's
+	 * configuration — so the compatibility check matches and the retry would send
+	 * `payment_method_types` to an intent that was never created with them.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_intent_for_order_does_not_reuse_a_dynamic_payment_methods_intent() {
+		$order = WC_Helper_Order::create_order();
+
+		// An intent Stripe returned for a DPM create: it carries the full configuration list, so the
+		// reuse compatibility check would consider it a match for a plain [ 'card' ] request.
+		$existing_intent = (object) wp_parse_args(
+			[
+				'id'                   => 'pi_dpm_existing',
+				'payment_method'       => 'pm_mock',
+				'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ],
+				'status'               => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD,
+				'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ),
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$this->mock_gateway->method( 'get_intent_from_order' )->willReturn( $existing_intent );
+		$this->mock_gateway->method( 'stripe_request' )->willReturn( $existing_intent );
+
+		// The retry must go to create, never to update: update would re-send payment_method_types.
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'update_and_confirm_payment_intent' );
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $existing_intent );
+
+		$payment_information = [
+			'payment_method_types'      => [ WC_Stripe_Payment_Methods::CARD ],
+			'automatic_payment_methods' => true,
+			'order'                     => $order,
+		];
+
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'process_payment_intent_for_order' );
+		$method->setAccessible( true );
+		$method->invoke( $this->mock_gateway, $order, $payment_information );
+	}
+
 	public function test_process_payment_reuses_successful_payment_intent() {
 		$customer_id = 'cus_mock';
 		$order       = WC_Helper_Order::create_order();

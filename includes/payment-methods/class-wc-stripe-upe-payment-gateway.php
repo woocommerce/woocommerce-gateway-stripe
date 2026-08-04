@@ -3282,7 +3282,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Check if the order has a payment intent that is compatible with the current payment method types.
-		$payment_intent = $this->get_existing_compatible_payment_intent( $order, $payment_information['payment_method_types'] );
+		// A Dynamic Payment Methods intent is never reused: `automatic_payment_methods` can only be set
+		// when the intent is created, and Stripe populates the intent's `payment_method_types` from the
+		// merchant's configuration — so the compatibility check below would match and the retry would
+		// then send `payment_method_types` to an intent that was never created with them.
+		$payment_intent = empty( $payment_information['automatic_payment_methods'] )
+			? $this->get_existing_compatible_payment_intent( $order, $payment_information['payment_method_types'] )
+			: null;
 
 		// If the payment intent is not compatible, we need to create a new one. Throws an exception on error.
 		if ( $payment_intent ) {
