@@ -161,7 +161,7 @@ test.describe( 'Adaptive Pricing checkout', () => {
 		await payWithAdaptivePricing( page, 'shortcode' );
 	} );
 
-	test( 'guest sees converted prices as a simulated French shopper', async ( {
+	test( 'guest sees converted prices as a simulated French shopper in classic checkout', async ( {
 		page,
 		context,
 		baseURL,
