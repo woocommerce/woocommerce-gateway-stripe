@@ -6,7 +6,7 @@
  * @preserveGlobalState disabled
  */
 class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
-	const ENDPOINT_URL = '/wc/v3/wc_stripe/payment_intents';
+	private const SINGLE_INTENT_ENDPOINT_URL = '/wc/v3/wc_stripe/payment_intents/pi_test_9876543210';
 
 	/** Initialise REST API, make WC_Stripe_REST_Payment_Intents_Controller instance available for testing*/
 	public static function set_up_before_class() {
@@ -57,10 +57,10 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	 *
 	 * If non-empty, adds the entries from $params to the request object.
 	 */
-	private function send_request( $params = [] ) {
+	private function send_request( $params = [], $url = self::SINGLE_INTENT_ENDPOINT_URL ) {
 		$request = new WP_REST_Request(
 			WP_REST_Server::READABLE,
-			self::ENDPOINT_URL
+			$url
 		);
 
 		if ( $params ) {
@@ -137,117 +137,129 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		$this->assertSame( 200, $response->get_status() );
 	}
 
-	public static function provide_created_param_wrong_format(): array {
+	public static function provide_filtering_test_data(): array {
+		$response_allowed_part = '"object": "payment_intent",
+			"id": "pi_3TbL9RJlUF0dQbSB00q0FJS2",
+			"amount": 2460,
+			"amount_received": 2500,
+			"currency": "usd",
+			"status": "succeeded",
+			"description": "Lorem ipsum",
+			"latest_charge": {
+				"balance_transaction": {
+					"fee": 1000,
+					"net": 2000,
+					"currency": "usd"
+				},
+				"billing_details": {
+					"address": {
+						"city": "Bucuresti Sector 3",
+						"country": "RO",
+						"line1": "Bd. Octavian Goga nr. 4",
+						"line2": "",
+						"postal_code": "030982",
+						"state": "B"
+					},
+					"email": "admin@example.com",
+					"name": "Adrian Dobrescu",
+					"phone": "+40722112945",
+					"tax_id": null
+				},
+				"payment_method_details": {
+					"card": {
+						"amount_authorized": 7900,
+						"authorization_code": "747254",
+						"brand": "visa",
+						"checks": {
+							"address_line1_check": "pass",
+							"address_postal_code_check": "pass",
+							"cvc_check": "pass"
+						}
+					},
+					"type": "card"
+				}
+			}';
+		$response_as_string    = '{
+			' . $response_allowed_part . ',
+			"amount_details": {
+				"tip": {}
+			},
+			"payment_details": {
+				"customer_reference": null,
+				"order_reference": "in_1TbKCUJlUF0dQbSBCq67mKfR"
+			},
+			"payment_method": null,
+			"payment_method_configuration_details": null,
+			"payment_method_options": {
+				"card": {
+					"installments": null,
+					"mandate_options": null,
+					"network": null,
+					"request_three_d_secure": "automatic"
+				},
+				"link": {
+					"persistent_token": null
+				}
+			},
+			"payment_method_types": [
+				"card",
+				"link"
+			]
+		}';
 		return [
 			[
-				'created',
-				[
-					'lt3' => '1779802569',
-				],
-			],
-			[
-				'created',
-				[
-					'lt'  => '1779802569',
-					'gt3' => '1779802569',
-				],
+				$response_as_string,
+				'{' . $response_allowed_part . '}',
 			],
 		];
 	}
+
 	/**
-	 * Create an admin user and send requests containing wrong format args.
-	 *
-	 * @dataProvider provide_created_param_wrong_format
+	 * @dataProvider provide_filtering_test_data
 	*/
-	public function test_created_param_wrong_format( $param_name, $param_value ) {
+	public function test_response_filtering( $response_as_string, $response_allowed_part ) {
 		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_id );
 
-		$response = $this->send_request( [ $param_name => $param_value ] );
-
-		$this->assertSame( 400, $response->get_status() );
-	}
-
-	public static function provide_rest_params(): array {
-		return [
-			[
-				[
-					'created'        =>
-						[
-							'lt' => '1779802569',
-						],
-					'starting_after' => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
-					'ending_before'  => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
+		$http_code_401_mock = function ( $pre, $parsed_args, $url ) use ( $response_as_string ) {
+			return [
+				'headers'  => [],
+				'body'     => $response_as_string,
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
 				],
-			],
-			[
-				[
-					'limit'            => 100,
-					'customer'         => 'cus_sad8s6dasd',
-					'customer_account' => 'cus_sad8s6dasdxsa123',
-					'created'          =>
-						[
-							'lt' => '1779802569',
-						],
-					'starting_after'   => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
-					'ending_before'    => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
-				],
-			],
-		];
-	}
-	/**
-	 * Send requests containing valid parameters and check they are forwarded correctly to the Stripe API
-	 * using a 'pre_http_request' hook.
-	 *
-	 * @dataProvider provide_rest_params
-	*/
-	public function test_pass_rest_params( $rest_params ) {
-		$controller = new WC_Stripe_REST_Payment_Intents_Controller();
-
-		$request = new WP_REST_Request(
-			WP_REST_Server::READABLE,
-			self::ENDPOINT_URL
-		);
-
-		foreach ( $rest_params as $rest_param_name => $rest_param_value ) {
-			$request->set_param( $rest_param_name, $rest_param_value );
-		}
-
-		$passed_rest_params = $controller->build_http_query_array_from_request( $request );
-
-		$pre_http_request = [];
-
-		$this->mock_http_call();
-		$http_stub = function ( $pre, $parsed_args, $url ) use ( &$pre_http_request ) {
-				$url_components = parse_url( $url );
-
-				parse_str( $url_components['query'], $pre_http_request['search_params'] );
-
-				return $pre;
+			];
 		};
+
 		add_filter(
 			'pre_http_request',
-			$http_stub,
+			$http_code_401_mock,
 			10,
 			3
 		);
 
-		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
-		wp_set_current_user( $admin_id );
-
-		rest_get_server()->dispatch( $request );
+		$response               = $this->send_request();
+		$expected_response_data = json_decode( $response_allowed_part );
 
 		remove_filter(
 			'pre_http_request',
-			$http_stub,
+			$http_code_401_mock,
 			10,
 			3
 		);
 
-		$this->assertEquals( $rest_params, $passed_rest_params );
-		$this->assertEquals(
-			$rest_params,
-			array_intersect_key( $pre_http_request['search_params'], $rest_params )
-		);
+		$this->assertEquals( $expected_response_data, $response->data );
+	}
+
+	/** Send a malformed payment intent id. */
+	public function test_malformed_payment_intent_id() {
+		$subscriber_id = $this->factory()->user->create( [ 'role' => 'subscriber' ] );
+
+		wp_set_current_user( $subscriber_id );
+
+		$response = $this->send_request( [], self::SINGLE_INTENT_ENDPOINT_URL . '/../../other' );
+
+		$this->assertSame( 404, $response->get_status() );
 	}
 }
