@@ -162,8 +162,8 @@ const CheckoutForm = ( {
 					} }
 				/>
 			) }
-			{ /* Wrapped so the selector is addressable from the DOM, matching the
-			     `wc-stripe-currency-selector` hook the classic checkout renders. */ }
+			{ /* Wrapped to give the selector a DOM hook for e2e tests. The class
+			     name mirrors the one classic renders; neither is styled. */ }
 			<div className="wc-stripe-currency-selector">
 				<CurrencySelectorElement />
 			</div>
