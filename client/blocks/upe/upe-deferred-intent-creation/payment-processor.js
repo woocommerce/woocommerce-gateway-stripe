@@ -313,7 +313,7 @@ const PaymentProcessor = ( {
 			savingPaymentMethodCheckbox?.addEventListener(
 				'change',
 				function () {
-					// `stripe.elements()` exposes `update()`; Adaptive Pricing uses `initCheckout()`, which
+					// `stripe.elements()` exposes `update()`; Adaptive Pricing uses `initCheckoutElementsSdk()`, which
 					// returns a Checkout object without that API — toggling save-for-later there requires handling the change in the server.
 					// not a client-side Elements update.
 					// We check for the existence of the `update` function here instead of the 'isAdaptivePricingEnabled' flag

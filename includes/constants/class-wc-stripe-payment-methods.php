@@ -109,6 +109,17 @@ class WC_Stripe_Payment_Methods {
 	];
 
 	/**
+	 * Payment method types that Stripe accepts Level 3 data for.
+	 * Level 3 is card-network only.
+	 *
+	 * @var array
+	 */
+	public const LEVEL3_SUPPORTED_PAYMENT_METHODS = [
+		self::CARD,
+		self::CARD_PRESENT,
+	];
+
+	/**
 	 * List of express payment methods labels. Amazon Pay and Link are not included,
 	 * as they have their own payment method classes.
 	 */

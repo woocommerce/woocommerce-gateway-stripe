@@ -122,8 +122,18 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @since 4.1.11
 	 */
 	public function display_update_subs_payment_checkout() {
+		/**
+		 * Filters the subscription statuses eligible for payment method updates from checkout.
+		 *
+		 * @param string[] $statuses Subscription statuses eligible for payment method updates.
+		 */
 		$statuses = apply_filters( 'wc_stripe_update_subs_payment_method_card_statuses', [ 'active' ] );
 
+		/**
+		 * Filters whether to display the checkbox for updating current subscriptions.
+		 *
+		 * @param bool $display Whether to display the checkbox.
+		 */
 		if ( ! apply_filters( 'wc_stripe_display_update_subs_payment_method_card_checkbox', true ) ) {
 			return;
 		}
@@ -133,6 +143,11 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		if ( function_exists( 'wcs_user_has_subscription' ) && wcs_user_has_subscription( get_current_user_id(), '', $statuses ) ) {
+			/**
+			 * Filters the checkbox label for updating current subscriptions.
+			 *
+			 * @param string $label Checkbox label.
+			 */
 			$label = esc_html( apply_filters( 'wc_stripe_save_to_subs_text', __( 'Update the payment method for all of my current subscriptions', 'woocommerce-gateway-stripe' ) ) );
 			$id    = sprintf( 'wc-%1$s-update-subs-payment-method-card', $this->id );
 			woocommerce_form_field(
@@ -140,6 +155,11 @@ trait WC_Stripe_Subscriptions_Trait {
 				[
 					'type'        => 'checkbox',
 					'label'       => $label,
+					/**
+					 * Filters whether the update-subscriptions checkbox is checked by default.
+					 *
+					 * @param bool $checked Whether the checkbox is checked by default.
+					 */
 					'default'     => apply_filters( 'wc_stripe_save_to_subs_checked', false ),
 					'input_class' => [ 'wc-stripe-update-all-subscriptions-payment-method' ],
 				]
@@ -187,6 +207,9 @@ trait WC_Stripe_Subscriptions_Trait {
 			return;
 		}
 
+		/**
+		 * This filter is documented in includes/compat/trait-wc-stripe-subscriptions.php.
+		 */
 		$statuses        = apply_filters( 'wc_stripe_update_subs_payment_method_card_statuses', [ 'active' ] );
 		$subscriptions   = function_exists( 'wcs_get_users_subscriptions' ) ? wcs_get_users_subscriptions( $user_id ) : [];
 		$stripe_customer = new WC_Stripe_Customer( $user_id );
@@ -257,6 +280,12 @@ trait WC_Stripe_Subscriptions_Trait {
 			$this->check_source( $prepared_source );
 			$this->save_source_to_order( $subscription, $prepared_source );
 
+			/**
+			 * Fires after a subscription payment method is changed successfully.
+			 *
+			 * @param string $source          Stripe source or payment method ID.
+			 * @param object $prepared_source Prepared source object.
+			 */
 			do_action( 'wc_stripe_change_subs_payment_method_success', $prepared_source->source, $prepared_source );
 
 			return [
@@ -371,7 +400,9 @@ trait WC_Stripe_Subscriptions_Trait {
 					WC_Stripe_Logger::error( 'Could not re-associate the saved token after change-payment for subscription: ' . $subscription_id );
 				}
 
-				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
+				/**
+				 * This action is documented in includes/compat/trait-wc-stripe-subscriptions.php.
+				 */
 				do_action(
 					'wc_stripe_change_subs_payment_method_success',
 					$payment_information['payment_method'],
@@ -509,6 +540,11 @@ trait WC_Stripe_Subscriptions_Trait {
 				add_filter( 'wc_stripe_idempotency_key', [ $this, 'change_idempotency_key' ], 10, 2 );
 			}
 
+			/**
+			 * Filters whether retrying a renewal should fall back to the customer's default source.
+			 *
+			 * @param bool $use_default_source Whether to use the customer's default source.
+			 */
 			if ( ( $this->is_no_such_source_error( $previous_error ) || $this->is_no_linked_source_error( $previous_error ) ) && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
 				// Passing empty source will charge customer default.
 				$prepared_source->source = '';
@@ -559,7 +595,7 @@ trait WC_Stripe_Subscriptions_Trait {
 							/* translators: 1) error message from Stripe; 2) request log URL */
 							__( 'Sorry, we are unable to process the payment at this time. Reason: %1$s %2$s', 'woocommerce-gateway-stripe' ),
 							$response->error->message,
-							isset( $response->error->request_log_url ) ? make_clickable( $response->error->request_log_url ) : ''
+							isset( $response->error->request_log_url ) ? '<a href="' . esc_url( $response->error->request_log_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $response->error->request_log_url ) . '</a>' : ''
 						);
 						$renewal_order->add_order_note( $localized_message );
 						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
@@ -576,7 +612,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				}
 
 				if ( isset( $response->error->request_log_url ) ) {
-					$localized_message .= ' ' . make_clickable( $response->error->request_log_url );
+					$localized_message .= ' <a href="' . esc_url( $response->error->request_log_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $response->error->request_log_url ) . '</a>';
 				}
 
 				$renewal_order->add_order_note( $localized_message );
@@ -594,6 +630,12 @@ trait WC_Stripe_Subscriptions_Trait {
 				]
 			);
 
+			/**
+			 * Fires after Stripe payment processing fails for an order.
+			 *
+			 * @param WC_Stripe_Exception $e     The exception raised during payment processing.
+			 * @param WC_Order            $order The order that failed payment processing.
+			 */
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 
 			$renewal_order->update_status( OrderStatus::FAILED );
@@ -691,6 +733,12 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// Either the charge was successfully captured, or it requires further authentication.
 			if ( $is_authentication_required ) {
+				/**
+				 * Fires when a Stripe payment requires customer authentication.
+				 *
+				 * @param WC_Order          $order    The order that requires authentication.
+				 * @param object|array|null $response Stripe API response.
+				 */
 				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order, $response );
 
 				$error_message = __( 'This transaction requires authentication.', 'woocommerce-gateway-stripe' );
@@ -733,6 +781,12 @@ trait WC_Stripe_Subscriptions_Trait {
 					$renewal_order->save();
 				}
 
+				/**
+				 * Fires when a subscription charge attempt is delayed by Stripe.
+				 *
+				 * @param object|array $response      Stripe API response.
+				 * @param WC_Order     $renewal_order Renewal order associated with the charge attempt.
+				 */
 				do_action( 'wc_gateway_stripe_process_payment_subscription_charge_attempt_delayed', $response, $renewal_order );
 			} else {
 				// The charge was successfully captured
@@ -759,6 +813,9 @@ trait WC_Stripe_Subscriptions_Trait {
 				]
 			);
 
+			/**
+			 * This action is documented in includes/compat/trait-wc-stripe-subscriptions.php.
+			 */
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 		}
 
@@ -1409,9 +1466,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		WC_Emails::instance();
 
 		/**
-		 * A payment attempt failed because SCA authentication is required.
-		 *
-		 * @param WC_Order $renewal_order The order that is being renewed.
+		 * This action is documented in includes/compat/trait-wc-stripe-subscriptions.php.
 		 */
 		do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order );
 
