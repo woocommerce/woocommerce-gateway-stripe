@@ -4,11 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 7.4
-<<<<<<< HEAD
-Stable tag: 10.8.4
-=======
 Stable tag: 10.8.5
->>>>>>> trunk
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -241,6 +237,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Show a clear message when manual capture is blocking Adaptive Pricing from being enabled
 * Fix - Lock the order while confirming a 3DS card payment so a concurrent webhook can't complete it twice, duplicating stock reduction, order notes, and emails
 * Fix - Store the Stripe refund ID on each WooCommerce refund record so orders with multiple partial refunds retain every refund ID
+* Dev - Add e2e coverage for Adaptive Pricing: shortcode and blocks purchases, address-less logged-in buyers, and the manual-capture settings gate
 * Fix - Prevent fatals during internal order check
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
 
