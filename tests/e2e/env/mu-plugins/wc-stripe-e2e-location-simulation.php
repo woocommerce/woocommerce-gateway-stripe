@@ -21,7 +21,10 @@ add_filter(
 			return $request;
 		}
 
-		$location = isset( $_COOKIE['wc_stripe_e2e_location'] ) ? strtoupper( sanitize_key( wp_unslash( $_COOKIE['wc_stripe_e2e_location'] ) ) ) : '';
+		if ( ! isset( $_COOKIE['wc_stripe_e2e_location'] ) ) {
+			return $request;
+		}
+		$location = strtoupper( sanitize_key( wp_unslash( $_COOKIE['wc_stripe_e2e_location'] ) ) );
 		if ( preg_match( '/^[A-Z]{2}$/', $location ) ) {
 			$request['customer_email'] = 'test+location_' . $location . '@example.com';
 		}
