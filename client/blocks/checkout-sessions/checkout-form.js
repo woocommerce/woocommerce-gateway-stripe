@@ -162,9 +162,9 @@ const CheckoutForm = ( {
 					} }
 				/>
 			) }
-			{ /* Wrapped to give the selector a DOM hook for e2e tests. The class
-			     name mirrors the one classic renders; neither is styled. */ }
-			<div className="wc-stripe-currency-selector">
+			{ /* Wrapped only to give e2e tests a DOM hook — classic exposes an
+			     equivalent element, but via a class rather than a test id. */ }
+			<div data-testid="wc-stripe-currency-selector">
 				<CurrencySelectorElement />
 			</div>
 			<PaymentElement

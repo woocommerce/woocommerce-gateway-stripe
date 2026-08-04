@@ -83,7 +83,10 @@ const payWithConvertedCurrency = async (
 
 	// The currency selector only offers a choice when Stripe converts
 	// the presentment currency, so EUR here proves the conversion ran.
-	const currencySelector = page.locator( '.wc-stripe-currency-selector' );
+	// Classic exposes it by class, blocks by test id.
+	const currencySelector = page.locator(
+		'.wc-stripe-currency-selector, [data-testid="wc-stripe-currency-selector"]'
+	);
 	await expect( currencySelector ).toBeVisible( { timeout: 20000 } );
 	await expect(
 		currencySelector
