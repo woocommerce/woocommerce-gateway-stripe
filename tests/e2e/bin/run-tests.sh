@@ -39,4 +39,14 @@ fi
 TEST_ENV="$TEST_ENV DOCKER=true E2E_ROOT=${E2E_ROOT} BASE_URL='http://localhost:8088'"
 TEST_ENV="$TEST_ENV ADMIN_USER='admin' ADMIN_PASSWORD='admin'"
 
+# The docker site can't receive real webhooks (no tunnel), so seed what the
+# Adaptive Pricing availability checks read: webhook data, the cached status
+# transient is_webhook_enabled() trusts without calling Stripe, and PMC.
+if [[ "adaptive-pricing" == "$project" ]]; then
+	echo "Seeding Adaptive Pricing prerequisites"
+	cli wp option patch insert woocommerce_stripe_settings pmc_enabled 'yes'
+	cli wp option patch insert woocommerce_stripe_settings test_webhook_data --format=json '{"id":"we_e2e_placeholder","secret":"whsec_e2e_placeholder"}'
+	cli wp transient set wcstripe_webhook_status_test enabled 7200
+fi
+
 cross-env $TEST_ENV playwright test --config=tests/e2e/config/playwright.config.js $TEST_ARGS ${project:+--project=$project}
