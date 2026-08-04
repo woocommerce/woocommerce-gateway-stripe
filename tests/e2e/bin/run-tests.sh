@@ -50,6 +50,7 @@ if [[ "adaptive-pricing" == "$project" ]]; then
 	# `set -e` would abort seeding on any re-run inside the TTL. Deleting a missing transient is a
 	# no-op, so this stays correct on a fresh site and refreshes the TTL on a repeat run.
 	cli wp transient delete wcstripe_webhook_status_test
+	cli wp transient delete wcstripe_webhook_status_test
 	cli wp transient set wcstripe_webhook_status_test enabled 7200
 	# Cookie-gated mu-plugin that simulates the shopper's country for
 	# conversion tests (Stripe's "+location_XX" customer_email test hook).
