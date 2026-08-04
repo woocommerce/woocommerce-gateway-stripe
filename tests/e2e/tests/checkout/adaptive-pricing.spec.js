@@ -140,15 +140,9 @@ test.describe( 'Adaptive Pricing checkout', () => {
 		const { context: adminContext, page: adminPage } =
 			await admin.getAdminPage( browser );
 		try {
-			// HPOS redirects this legacy edit URL to the new order screen.
-			await adminPage.goto(
-				`/wp-admin/post.php?post=${ orderId }&action=edit`
-			);
+			await admin.gotoOrderEditPage( adminPage, orderId );
 			await expect(
-				adminPage
-					.locator( '.wc-order-totals tr' )
-					.filter( { hasText: 'Paid by customer' } )
-					.locator( '.total' )
+				admin.getOrderTotalForLabel( adminPage, 'Paid by customer' )
 			).toContainText( '€' );
 		} finally {
 			await adminContext.close();

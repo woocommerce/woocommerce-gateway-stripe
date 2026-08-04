@@ -46,6 +46,10 @@ if [[ "adaptive-pricing" == "$project" ]]; then
 	echo "Seeding Adaptive Pricing prerequisites"
 	cli wp option patch insert woocommerce_stripe_settings pmc_enabled 'yes'
 	cli wp option patch insert woocommerce_stripe_settings test_webhook_data --format=json '{"id":"we_e2e_placeholder","secret":"whsec_e2e_placeholder"}'
+	# Delete first: `wp transient set` exits non-zero when the value is unchanged, which under
+	# `set -e` would abort seeding on any re-run inside the TTL. Deleting a missing transient is a
+	# no-op, so this stays correct on a fresh site and refreshes the TTL on a repeat run.
+	cli wp transient delete wcstripe_webhook_status_test
 	cli wp transient set wcstripe_webhook_status_test enabled 7200
 	# Cookie-gated mu-plugin that simulates the shopper's country for
 	# conversion tests (Stripe's "+location_XX" customer_email test hook).
