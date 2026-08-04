@@ -162,7 +162,11 @@ const CheckoutForm = ( {
 					} }
 				/>
 			) }
-			<CurrencySelectorElement />
+			{ /* Wrapped so the selector is addressable from the DOM, matching the
+			     `wc-stripe-currency-selector` hook the classic checkout renders. */ }
+			<div className="wc-stripe-currency-selector">
+				<CurrencySelectorElement />
+			</div>
 			<PaymentElement
 				options={ elementOptions }
 				onChange={ onSelectedPaymentMethodChange }

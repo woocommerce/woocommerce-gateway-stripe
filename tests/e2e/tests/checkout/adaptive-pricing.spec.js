@@ -51,6 +51,72 @@ const payWithAdaptivePricing = async ( page, checkoutType ) => {
 	).toContainText( expectedTotal );
 };
 
+/**
+ * Completes a converted-currency Adaptive Pricing purchase as a simulated
+ * French shopper and asserts the conversion is reflected on the checkout, the
+ * order received page and the admin order screen.
+ *
+ * @param {Page}    page         Playwright page fixture.
+ * @param {Object}  context      Playwright browser context, for the location cookie.
+ * @param {string}  baseURL      Site base URL, for cookie scoping.
+ * @param {Browser} browser      Playwright browser fixture, for the admin page.
+ * @param {string}  checkoutType 'shortcode' or 'blocks'.
+ */
+const payWithConvertedCurrency = async (
+	page,
+	context,
+	baseURL,
+	browser,
+	checkoutType
+) => {
+	// The e2e mu-plugin turns this cookie into Stripe's documented
+	// "+location_XX" customer_email test hook on the session request.
+	await context.addCookies( [
+		{ name: 'wc_stripe_e2e_location', value: 'FR', url: baseURL },
+	] );
+
+	await setupOptimizedCheckout( page, checkoutType, {
+		timeout: 10000,
+		skipCartSetup: false,
+		cardSelectionOptional: true,
+	} );
+
+	// The currency selector only offers a choice when Stripe converts
+	// the presentment currency, so EUR here proves the conversion ran.
+	const currencySelector = page.locator( '.wc-stripe-currency-selector' );
+	await expect( currencySelector ).toBeVisible( { timeout: 20000 } );
+	await expect(
+		currencySelector
+			.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
+			.locator( 'body' )
+	).toContainText( /EUR|€/, { timeout: 20000 } );
+
+	await fillOCDetails( page, config.get( 'cards.basic' ), checkoutType );
+	await clickPlaceOrder( page );
+	await waitForOrderReceivedPage( page );
+
+	// Both notices below read presentment meta populated by a lazy
+	// checkout-session fetch when the page renders, so they work
+	// without the settlement webhook CI can't receive.
+	await expect(
+		page.locator( '.woocommerce-info', {
+			hasText: 'Currency Conversion:',
+		} )
+	).toContainText( 'EUR' );
+
+	const orderId = getOrderIdFromOrderReceivedUrl( page.url() );
+	const { context: adminContext, page: adminPage } =
+		await admin.getAdminPage( browser );
+	try {
+		await admin.gotoOrderEditPage( adminPage, orderId );
+		await expect(
+			admin.getOrderTotalForLabel( adminPage, 'Paid by customer' )
+		).toContainText( '€' );
+	} finally {
+		await adminContext.close();
+	}
+};
+
 test.describe( 'Adaptive Pricing checkout', () => {
 	test.describe.configure( { mode: 'serial' } );
 
@@ -101,52 +167,28 @@ test.describe( 'Adaptive Pricing checkout', () => {
 		baseURL,
 		browser,
 	} ) => {
-		// The e2e mu-plugin turns this cookie into Stripe's documented
-		// "+location_XX" customer_email test hook on the session request.
-		await context.addCookies( [
-			{ name: 'wc_stripe_e2e_location', value: 'FR', url: baseURL },
-		] );
+		await payWithConvertedCurrency(
+			page,
+			context,
+			baseURL,
+			browser,
+			'shortcode'
+		);
+	} );
 
-		await setupOptimizedCheckout( page, 'shortcode', {
-			timeout: 10000,
-			skipCartSetup: false,
-			cardSelectionOptional: true,
-		} );
-
-		// The currency selector only offers a choice when Stripe converts
-		// the presentment currency, so EUR here proves the conversion ran.
-		const currencySelector = page.locator( '#wc-stripe-currency-selector' );
-		await expect( currencySelector ).toBeVisible( { timeout: 20000 } );
-		await expect(
-			currencySelector
-				.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
-				.locator( 'body' )
-		).toContainText( /EUR|€/, { timeout: 20000 } );
-
-		await fillOCDetails( page, config.get( 'cards.basic' ), 'shortcode' );
-		await clickPlaceOrder( page );
-		await waitForOrderReceivedPage( page );
-
-		// Both notices below read presentment meta populated by a lazy
-		// checkout-session fetch when the page renders, so they work
-		// without the settlement webhook CI can't receive.
-		await expect(
-			page.locator( '.woocommerce-info', {
-				hasText: 'Currency Conversion:',
-			} )
-		).toContainText( 'EUR' );
-
-		const orderId = getOrderIdFromOrderReceivedUrl( page.url() );
-		const { context: adminContext, page: adminPage } =
-			await admin.getAdminPage( browser );
-		try {
-			await admin.gotoOrderEditPage( adminPage, orderId );
-			await expect(
-				admin.getOrderTotalForLabel( adminPage, 'Paid by customer' )
-			).toContainText( '€' );
-		} finally {
-			await adminContext.close();
-		}
+	test( 'guest sees converted prices as a simulated French shopper on blocks checkout', async ( {
+		page,
+		context,
+		baseURL,
+		browser,
+	} ) => {
+		await payWithConvertedCurrency(
+			page,
+			context,
+			baseURL,
+			browser,
+			'blocks'
+		);
 	} );
 
 	test( 'manual capture blocks Adaptive Pricing in the settings with a clear reason', async ( {
