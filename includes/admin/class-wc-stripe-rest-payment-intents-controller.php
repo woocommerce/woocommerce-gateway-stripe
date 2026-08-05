@@ -269,7 +269,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
 	 * @param string $param_name The parameter name.
 	 *
-	 * @return bool
+	 * @return mixed
 	 */
 	public static function sanitize_created( $param_value, $request, $param_name ) {
 		if ( ! is_array( $param_value ) ) {
@@ -317,7 +317,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 				return false;
 			}
 
-			if ( ! is_scalar( $operand ) || preg_match( '/' . $unix_timestamp_pattern . '/', (string) $operand ) !== 1 ) {
+			if ( ! is_scalar( $operand ) || preg_match( '/^\d+$/', (string) $operand ) !== 1 ) {
 				return false;
 			}
 		}
