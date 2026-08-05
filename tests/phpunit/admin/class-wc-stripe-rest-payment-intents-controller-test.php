@@ -57,7 +57,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	 *
 	 * If non-empty, adds the entries from $params to the request object.
 	 */
-	private function send_request( $params = [], $url = self::SINGLE_INTENT_ENDPOINT_URL ) {
+	private function send_request( $url, $params = [] ) {
 		$request = new WP_REST_Request(
 			WP_REST_Server::READABLE,
 			$url
@@ -80,7 +80,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 
 		wp_set_current_user( $subscriber_id );
 
-		$response = $this->send_request();
+		$response = $this->send_request( self::SINGLE_INTENT_ENDPOINT_URL );
 
 		$this->assertSame( 403, $response->get_status() );
 	}
@@ -113,7 +113,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 			3
 		);
 
-		$response = $this->send_request();
+		$response = $this->send_request( self::SINGLE_INTENT_ENDPOINT_URL );
 
 		remove_filter(
 			'pre_http_request',
@@ -132,7 +132,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_id );
 
-		$response = $this->send_request();
+		$response = $this->send_request( self::SINGLE_INTENT_ENDPOINT_URL );
 
 		$this->assertSame( 200, $response->get_status() );
 	}
@@ -239,7 +239,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 			3
 		);
 
-		$response               = $this->send_request();
+		$response               = $this->send_request( self::SINGLE_INTENT_ENDPOINT_URL );
 		$expected_response_data = json_decode( $response_allowed_part );
 
 		remove_filter(
@@ -258,7 +258,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 
 		wp_set_current_user( $subscriber_id );
 
-		$response = $this->send_request( [], self::SINGLE_INTENT_ENDPOINT_URL . '/../../other' );
+		$response = $this->send_request( self::SINGLE_INTENT_ENDPOINT_URL . '/../../other' );
 
 		$this->assertSame( 404, $response->get_status() );
 	}
