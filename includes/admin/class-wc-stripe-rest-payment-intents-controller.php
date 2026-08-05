@@ -60,6 +60,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		'data.latest_charge.billing_details.name',
 		'data.latest_charge.payment_method_details',
 	];
+
 	/**
 	 * Configure REST API routes.
 	 *
@@ -214,7 +215,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 *
 	 * @param string $param_value The parameter value.
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
-	 * @param string $param The parameter name.
+	 * @param string $param_name The parameter name.
 	 *
 	 * @return bool
 	 */
@@ -227,7 +228,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 *
 	 * @param string $param_value The parameter value.
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
-	 * @param string $param The parameter name.
+	 * @param string $param_name The parameter name.
 	 *
 	 * @return bool
 	 */
@@ -240,7 +241,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 *
 	 * @param string $param_value The parameter value.
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
-	 * @param string $param The parameter name.
+	 * @param string $param_name The parameter name.
 	 *
 	 * @return bool
 	 */
@@ -253,7 +254,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 *
 	 * @param string $param_value The parameter value.
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
-	 * @param string $param The parameter name.
+	 * @param string $param_name The parameter name.
 	 *
 	 * @return bool
 	 */
@@ -266,7 +267,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 *
 	 * @param string $param_value The parameter value.
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
-	 * @param string $param The parameter name.
+	 * @param string $param_name The parameter name.
 	 *
 	 * @return bool
 	 */
@@ -292,7 +293,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 *
 	 * @param string $param_value The parameter value.
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
-	 * @param string $param The parameter name.
+	 * @param string $param_name The parameter name.
 	 *
 	 * @return bool
 	 */
