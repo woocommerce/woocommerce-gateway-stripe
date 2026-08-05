@@ -1,0 +1,62 @@
+{
+    "object": "list",
+    "has_more": false,
+    "data": [
+        {
+            "id": "pi_3S5MnyJlUF0dQbSB14zy576D",
+            "created": 1757406094,
+            "amount": 3789,
+            "currency": "usd",
+            "status": "succeeded",
+            "description": "Test WP (6.7) - Order 517",
+            "latest_charge": {
+                "billing_details": {
+                    "name": "J D"
+                },
+                "payment_method_details": {
+                    "card": {
+                        "amount_authorized": 3789,
+                        "authorization_code": "469071",
+                        "brand": "visa",
+                        "checks": {
+                            "address_line1_check": "pass",
+                            "address_postal_code_check": "pass",
+                            "cvc_check": null
+                        },
+                        "country": "US",
+                        "exp_month": 12,
+                        "exp_year": 2030,
+                        "extended_authorization": {
+                            "status": "disabled"
+                        },
+                        "fingerprint": "MIWqR4mqZ3SOrQyf",
+                        "funding": "credit",
+                        "incremental_authorization": {
+                            "status": "unavailable"
+                        },
+                        "installments": null,
+                        "last4": "4242",
+                        "mandate": null,
+                        "multicapture": {
+                            "status": "unavailable"
+                        },
+                        "network": "visa",
+                        "network_token": {
+                            "used": false
+                        },
+                        "network_transaction_id": "787411766889972",
+                        "overcapture": {
+                            "maximum_amount_capturable": 3789,
+                            "status": "unavailable"
+                        },
+                        "regulated_status": "unregulated",
+                        "three_d_secure": null,
+                        "transaction_link_id": null,
+                        "wallet": null
+                    },
+                    "type": "card"
+                }
+            }
+        }
+    ]
+}
