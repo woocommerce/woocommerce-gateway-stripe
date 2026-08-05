@@ -39,6 +39,24 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		'latest_charge.balance_transaction',
 	];
 
+	protected const STRIPE_LIST_EXPAND_PARAM = [
+		'data.latest_charge',
+		'data.latest_charge.balance_transaction',
+	];
+
+	protected const STRIPE_LIST_RESPONSE_ALLOWED_FIELDS = [
+		'object',
+		'has_more',
+		'data.id',
+		'data.payment_intent',
+		'data.created',
+		'data.amount',
+		'data.currency',
+		'data.status',
+		'data.description',
+		'data.latest_charge.billing_details.name',
+		'data.latest_charge.payment_method_details',
+	];
 	/**
 	 * Configure REST API routes.
 	 *
@@ -54,6 +72,57 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 				'permission_callback' => [ $this, 'check_permission' ],
 				'args'                => [],
 			]
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base,
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_payment_intents' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+				'args'                => [
+					'limit'            => [
+						'type'              => 'integer',
+						'required'          => false,
+						'default'           => 25,
+						'minimum'           => 1,
+						'maximum'           => 100,
+						'sanitize_callback' => 'absint',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'starting_after'   => [
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'ending_before'    => [
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'customer'         => [
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'customer_account' => [
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'created'          => [
+						'type'              => 'integer',
+						'required'          => false,
+						'sanitize_callback' => 'absint',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+				],
+			],
 		);
 	}
 
@@ -72,6 +141,25 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		}
 
 		$filtered_response = WC_Stripe_REST_Response_Filter::filter_response( $response, self::STRIPE_RESPONSE_ALLOWED_FIELDS );
+
+		return rest_ensure_response( $filtered_response );
+	}
+
+	/**
+	 * Retrieve, filters and return Stripe payment intents.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_payment_intents( $request ) {
+		$response = $this->fetch_from_stripe( 'payment_intents', [ 'expand' => self::STRIPE_LIST_EXPAND_PARAM ] );
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$filtered_response = WC_Stripe_REST_Response_Filter::filter_response( $response, self::STRIPE_LIST_RESPONSE_ALLOWED_FIELDS );
 
 		return rest_ensure_response( $filtered_response );
 	}
