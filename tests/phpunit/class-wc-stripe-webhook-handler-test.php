@@ -757,6 +757,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'object' => (object) [
 					'id'             => $checkout_session_id,
 					'payment_intent' => 'pi_test_locked',
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
 				],
 			],
 		];
@@ -830,6 +832,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'object' => (object) [
 					'id'             => $checkout_session_id,
 					'payment_intent' => 'pi_test_locked_no_action',
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
 				],
 			],
 		];
@@ -2173,6 +2177,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'object' => (object) [
 					'id'             => $checkout_session_id,
 					'payment_intent' => 'pi_test_abc',
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
 				],
 			],
 		];
@@ -2240,6 +2246,240 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A signed checkout.session.completed must not mark an order paid when the Session's settlement
+	 * amount/currency no longer matches the order total, while legitimate payments (including
+	 * Adaptive Pricing local-currency purchases, where only presentment_details differ) still settle.
+	 *
+	 * @dataProvider provide_settlement_verification_cases
+	 */
+	public function test_handle_checkout_session_success_verifies_settlement_amount_and_currency(
+		string $order_total,
+		string $order_currency,
+		$session_amount_total,
+		?string $session_currency,
+		?array $presentment_details,
+		bool $expect_settled,
+		string $initial_status = OrderStatus::PENDING,
+		?array $currency_conversion = null
+	): void {
+		$checkout_session_id = 'cs_test_settle_' . md5( $order_total . $order_currency . (string) $session_amount_total . (string) $session_currency . $initial_status . wp_json_encode( $currency_conversion ) );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( $order_currency );
+		$order->set_total( $order_total );
+		$order->set_status( $initial_status );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		// Clear per-session cache so handle_checkout_session_success() does not short-circuit on a
+		// stale lock (flaky under paratest/randomized ordering).
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$effective_session_amount   = $session_amount_total;
+		$effective_session_currency = $session_currency;
+
+		$session_object = [
+			'id'             => $checkout_session_id,
+			'payment_intent' => 'pi_test_settle',
+		];
+		if ( null !== $session_amount_total ) {
+			$session_object['amount_total'] = $session_amount_total;
+		}
+		if ( null !== $session_currency ) {
+			$session_object['currency'] = $session_currency;
+		}
+		if ( null !== $presentment_details ) {
+			$session_object['presentment_details'] = (object) $presentment_details;
+		}
+		if ( null !== $currency_conversion ) {
+			$session_object['currency_conversion'] = (object) $currency_conversion;
+			if ( array_key_exists( 'amount_total', $currency_conversion ) ) {
+				$effective_session_amount = $currency_conversion['amount_total'];
+			}
+			if ( array_key_exists( 'source_currency', $currency_conversion ) ) {
+				$effective_session_currency = $currency_conversion['source_currency'];
+			}
+		}
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [ 'object' => (object) $session_object ],
+		];
+
+		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+
+		// Include 'payment_method' to avoid an undefined-property notice (phpunit converts notices to exceptions).
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		// process_response is the call that runs payment_complete(). It must fire only when the
+		// settlement figures match; a mismatch has to return before reaching it.
+		$this->mock_webhook_handler->expects( $expect_settled ? $this->once() : $this->never() )
+			->method( 'process_response' );
+
+		// Keep the post-settlement metadata job off the real Action Scheduler in the settle case.
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$prop           = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
+
+		$this->mock_webhook_handler->process_checkout_session_success( $notification );
+
+		$notes          = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+		$mismatch_notes = array_filter(
+			$notes,
+			static function ( $note ) {
+				return str_contains( $note->content, 'does not match the order total' );
+			}
+		);
+
+		if ( $expect_settled ) {
+			$this->assertEmpty( $mismatch_notes, 'A matching settlement must not add the mismatch note.' );
+		} else {
+			$this->assertNotEmpty( $mismatch_notes, 'A mismatched settlement must add a note explaining why the order was not marked paid.' );
+			// On hold rather than pending: wc_cancel_unpaid_orders() would otherwise cancel the order
+			// and restore its stock even though Stripe captured the payment.
+			$this->assertTrue(
+				wc_get_order( $order->get_id() )->has_status( OrderStatus::ON_HOLD ),
+				'A mismatched settlement must leave the order on hold so it is not auto-cancelled as unpaid.'
+			);
+
+			// Settlement stops before the intent and charge are recorded on the order, so the note is
+			// the only place an admin can pick up the identifiers needed to reconcile in Stripe.
+			$mismatch_note = current( $mismatch_notes )->content;
+			$this->assertStringContainsString( $checkout_session_id, $mismatch_note, 'The note must name the Checkout Session to reconcile against.' );
+			$this->assertStringContainsString( 'pi_test_settle', $mismatch_note, 'The note must name the PaymentIntent to reconcile against.' );
+			$this->assertStringContainsString(
+				'href="https://dashboard.stripe.com/test/payments/pi_test_settle"',
+				$mismatch_note,
+				'The PaymentIntent must link to the Stripe dashboard.'
+			);
+			$this->assertStringContainsString( ' target="_blank"', $mismatch_note, 'The dashboard link must open in a new tab.' );
+			$this->assertStringContainsString( ' rel="noopener noreferrer"', $mismatch_note, 'The dashboard link must specify that no opener or referrer details should be included.' );
+
+			if ( null === $effective_session_amount ) {
+				$this->assertStringContainsString( 'the Checkout Session settlement amount (unknown)', $mismatch_note, 'The note must mention that the Session amount is unknown.' );
+			} elseif ( ! $effective_session_currency ) {
+				$this->assertStringContainsString( sprintf( 'the Checkout Session settlement amount (unknown currency; Stripe amount: %1$d)', $effective_session_amount ), $mismatch_note, 'The note must mention that the Session currency is unknown and include the Stripe amount.' );
+			} else {
+				$this->assertStringContainsString( 'the Checkout Session settlement amount (' . strtoupper( $effective_session_currency ) . ' ' . WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( $effective_session_amount, $effective_session_currency ) . ')', $mismatch_note, 'The note must mention the Session amount and currency.' );
+			}
+		}
+	}
+
+	/**
+	 * Data provider for test_handle_checkout_session_success_verifies_settlement_amount_and_currency.
+	 *
+	 * @return array
+	 */
+	public function provide_settlement_verification_cases(): array {
+		return [
+			// Session amount and currency match the order — settle normally.
+			'amount and currency match'    => [ '50.00', 'USD', 5000, 'usd', null, true ],
+			// The Session amount is higher than the order total.
+			'session amount higher'        => [ '50.00', 'USD', 6000, 'usd', null, false ],
+			// The Session amount is lower than the order total.
+			'session amount lower'         => [ '50.00', 'USD', 100, 'usd', null, false ],
+			// Same settlement amount but the wrong currency must not settle.
+			'currency mismatch'            => [ '50.00', 'USD', 5000, 'eur', null, false ],
+			// Valid Adaptive Pricing: amount_total stays in the store currency; only presentment differs.
+			'adaptive pricing presentment' => [
+				'20.00',
+				'USD',
+				2000,
+				'usd',
+				[
+					'presentment_currency' => 'eur',
+					'presentment_amount'   => 1500,
+				],
+				true,
+			],
+			// An unverifiable Session (no amount_total) must not settle.
+			'missing session amount_total' => [ '50.00', 'USD', null, 'usd', null, false ],
+			// An unverifiable Session (no currency) must not settle.
+			'missing session currency'     => [ '50.00', 'USD', 5000, '', null, false ],
+			// An order already on hold (async payment flow) still has to record why it was refused;
+			// update_status() alone would drop the note because the status does not change.
+			'mismatch on an on-hold order' => [ '50.00', 'USD', 100, 'usd', null, false, OrderStatus::ON_HOLD ],
+			// Legacy (pre-2025-03-31.basil) Adaptive Pricing shape: the buyer's currency is at the top
+			// level and the store's total sits in currency_conversion, which must still settle.
+			'legacy adaptive pricing'      => [
+				'50.00',
+				'USD',
+				4300,
+				'eur',
+				null,
+				true,
+				OrderStatus::PENDING,
+				[
+					'source_currency' => 'usd',
+					'amount_total'    => 5000,
+				],
+			],
+			// The legacy shape must not settle a Session that collected more than the order.
+			'legacy amount higher'         => [
+				'50.00',
+				'USD',
+				6450,
+				'eur',
+				null,
+				false,
+				OrderStatus::PENDING,
+				[
+					'source_currency' => 'usd',
+					'amount_total'    => 7500,
+				],
+			],
+			// The legacy shape must not settle a Session that collected less than the order.
+			'legacy amount lower'          => [
+				'50.00',
+				'USD',
+				86,
+				'eur',
+				null,
+				false,
+				OrderStatus::PENDING,
+				[
+					'source_currency' => 'usd',
+					'amount_total'    => 100,
+				],
+			],
+			'legacy no amount_total'       => [
+				'50.00',
+				'USD',
+				4300,
+				'eur',
+				null,
+				false,
+				OrderStatus::PENDING,
+				[
+					'source_currency' => 'usd',
+					'amount_total'    => null,
+				],
+			],
+			'legacy no currency'           => [
+				'50.00',
+				'USD',
+				4300,
+				'eur',
+				null,
+				false,
+				OrderStatus::PENDING,
+				[
+					'source_currency' => '',
+					'amount_total'    => 5000,
+				],
+			],
+		];
+	}
+
+	/**
 	 * Test that `process_checkout_session` does not schedule the metadata job when an exception is thrown during processing.
 	 *
 	 * @return void
@@ -2261,6 +2501,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'object' => (object) [
 					'id'             => $checkout_session_id,
 					'payment_intent' => 'pi_test_abc',
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
 				],
 			],
 		];
@@ -2324,6 +2566,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'object' => (object) [
 					'id'             => $checkout_session_id,
 					'payment_intent' => 'pi_test_abc',
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
 				],
 			],
 		];
@@ -2410,6 +2654,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'object' => (object) [
 					'id'             => $checkout_session_id,
 					'payment_intent' => 'pi_test_' . $payment_method_type,
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
 				],
 			],
 		];
@@ -2531,6 +2777,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'object' => (object) [
 					'id'             => $checkout_session_id,
 					'payment_intent' => 'pi_test_async_success',
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
 				],
 			],
 		];

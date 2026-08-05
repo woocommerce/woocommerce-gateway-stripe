@@ -1797,6 +1797,79 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
+		$order_currency = strtolower( $order->get_currency() );
+		$order_amount   = WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order_currency );
+
+		// Add conditional checks to make sure we handle situations where the webhook is sent using an
+		// older API version and schema. Before 2025-03-31.basil an Adaptive Pricing Session
+		// put the buyer's figures at the top level and the store's under currency_conversion; from Basil
+		// on it is the other way round, with the buyer's in presentment_details.
+		// When $checkout_session->currency_conversion is present, we assume we have the older schema.
+		if ( isset( $checkout_session->currency_conversion ) ) {
+			$settlement_currency = isset( $checkout_session->currency_conversion->source_currency ) ? strtolower( (string) $checkout_session->currency_conversion->source_currency ) : '';
+			$settlement_amount   = isset( $checkout_session->currency_conversion->amount_total ) ? (int) $checkout_session->currency_conversion->amount_total : null;
+		} else {
+			$settlement_currency = isset( $checkout_session->currency ) ? strtolower( (string) $checkout_session->currency ) : '';
+			$settlement_amount   = isset( $checkout_session->amount_total ) ? (int) $checkout_session->amount_total : null;
+		}
+
+		if ( $settlement_amount !== $order_amount || $settlement_currency !== $order_currency ) {
+			WC_Stripe_Logger::error(
+				'Refusing to settle Checkout Session: settlement amount/currency does not match the order.',
+				[
+					'checkout_session_id' => $session_id,
+					'order_id'            => $order->get_id(),
+					'settlement_amount'   => $settlement_amount,
+					'order_amount'        => $order_amount,
+					'settlement_currency' => $settlement_currency,
+					'order_currency'      => $order_currency,
+					'api_version'         => isset( $notification->api_version ) ? (string) $notification->api_version : '',
+				]
+			);
+
+			if ( null === $settlement_amount ) {
+				$session_display = __( 'unknown', 'woocommerce-gateway-stripe' );
+			} elseif ( ! $settlement_currency ) {
+				/* translators: 1) Stripe numeric amount, e.g. '1500'. */
+				$session_display = sprintf( __( 'unknown currency; Stripe amount: %1$d', 'woocommerce-gateway-stripe' ), $settlement_amount );
+			} else {
+				$session_display = strtoupper( $settlement_currency ) . ' ' . WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( $settlement_amount, $settlement_currency );
+			}
+
+			// The identifiers are the only handle on the payment this order gets: settlement stops here,
+			// so neither the intent nor the charge is ever recorded on the order for the admin to follow.
+			$session_intent_id = isset( $checkout_session->payment_intent ) ? (string) $checkout_session->payment_intent : '';
+			$intent_reference  = '';
+			if ( '' !== $session_intent_id ) {
+				$intent_reference = ' ' . sprintf(
+					/* translators: 1) opening anchor tag linking to the Stripe dashboard, 2) Stripe PaymentIntent ID, 3) closing anchor tag */
+					__( 'PaymentIntent: %1$s%2$s%3$s.', 'woocommerce-gateway-stripe' ),
+					'<a href="' . esc_url( WC_Stripe_Helper::get_transaction_url_for_id( $session_intent_id, empty( $checkout_session->livemode ) ) ) . '" target="_blank" rel="noopener noreferrer">',
+					esc_html( $session_intent_id ),
+					'</a>'
+				);
+			}
+
+			$order->add_order_note(
+				sprintf(
+					/* translators: 1) Checkout Session settlement amount and currency 2) expected order total and currency 3) Stripe Checkout Session ID */
+					__( 'Stripe payment was not marked complete: the Checkout Session settlement amount (%1$s) does not match the order total (%2$s). The order was placed on hold for manual review. Checkout Session: %3$s.', 'woocommerce-gateway-stripe' ),
+					$session_display,
+					strtoupper( $order_currency ) . ' ' . $order->get_total(),
+					esc_html( $session_id )
+				) . $intent_reference
+			);
+
+			// Hold the order rather than leaving it pending: wc_cancel_unpaid_orders() cancels pending
+			// orders and restores their stock once woocommerce_hold_stock_minutes elapses, which would
+			// discard an order whose payment Stripe already captured.
+			if ( ! $order->has_status( OrderStatus::ON_HOLD ) ) {
+				$order->update_status( OrderStatus::ON_HOLD );
+			}
+
+			return false;
+		}
+
 		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
