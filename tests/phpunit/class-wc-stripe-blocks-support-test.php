@@ -10,7 +10,7 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 	 *
 	 * @var WC_Stripe_UPE_Payment_Gateway|null
 	 */
-	private $original_main_gateway;
+	private $original_main_gateway = null;
 
 	/**
 	 * Script handles registered by a test, deregistered in tearDown.
