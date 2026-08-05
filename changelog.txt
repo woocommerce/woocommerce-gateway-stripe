@@ -1,6 +1,6 @@
 *** Changelog ***
 
-xxxx-xx-xx - version 10.8.5
+2026-08-05 - version 10.8.5
 * Update - Improve webhook handling
 
 2026-07-14 - version 10.8.4
