@@ -1,5 +1,9 @@
 <?php
 
+require_once __DIR__ . '/helpers/class-wc-stripe-option-inspector.php';
+require_once __DIR__ . '/helpers/class-wc-stripe-webhook-request-simulator.php';
+require_once __DIR__ . '/helpers/class-wc-stripe-webhook-state-fixtures.php';
+
 use Automattic\WooCommerce\Enums\OrderStatus;
 
 /**
@@ -10,6 +14,13 @@ use Automattic\WooCommerce\Enums\OrderStatus;
  * WC_Stripe_Webhook_State_Test class.
  */
 class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
+
+	/**
+	 * The webhook secret the simulated requests are signed with.
+	 *
+	 * @var string
+	 */
+	private const WEBHOOK_SECRET = 'whsec_1234567890';
 
 	/**
 	 * The webhook handler instance for testing.
@@ -2552,5 +2563,622 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$updated_order = wc_get_order( $order->get_id() );
 		$this->assertInstanceOf( WC_Order::class, $updated_order );
 		$this->assertTrue( $updated_order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED ] ) );
+	}
+	/**
+	 * An unsigned request must not update the pending webhook count.
+	 *
+	 * @param string $mode                   Whether we are in live or test mode.
+	 * @param mixed  $pending_webhooks_value Value placed on the forged event's `pending_webhooks` field.
+	 * @dataProvider provide_unsigned_pending_webhooks_payloads_with_mode
+	 */
+	public function test_check_for_webhook_ignores_pending_webhooks_count_from_unsigned_request( string $mode, $pending_webhooks_value ) {
+		$this->configure_webhook_secrets( 'test' === $mode ? 'yes' : 'no' );
+		WC_Stripe_Webhook_State_Fixtures::delete_all_options();
+
+		$status = $this->dispatch_unsigned_webhook( $this->build_webhook_event_body( [ 'pending_webhooks' => $pending_webhooks_value ] ) );
+
+		$this->assertSame( 204, $status, 'An unsigned webhook should be rejected with a 204.' );
+		$pending_webhooks_option_name = 'test' === $mode ? WC_Stripe_Webhook_State::OPTION_TEST_PENDING_WEBHOOKS : WC_Stripe_Webhook_State::OPTION_LIVE_PENDING_WEBHOOKS;
+		$this->assertNull(
+			WC_Stripe_Option_Inspector::read_option_as_string( $pending_webhooks_option_name ),
+			'An unsigned webhook must not create the pending webhooks option.'
+		);
+		$this->assertSame( 0, WC_Stripe_Webhook_State::get_pending_webhooks_count() );
+	}
+
+	/**
+	 * An unsigned request must not overwrite a count that a genuine webhook already established.
+	 *
+	 * @param string $mode                   Whether we are in live or test mode.
+	 * @param mixed  $pending_webhooks_value Value placed on the forged event's `pending_webhooks` field.
+	 * @dataProvider provide_unsigned_pending_webhooks_payloads_with_mode
+	 */
+	public function test_check_for_webhook_preserves_existing_pending_webhooks_count_on_unsigned_request( string $mode, $pending_webhooks_value ) {
+		$this->configure_webhook_secrets( 'test' === $mode ? 'yes' : 'no' );
+		WC_Stripe_Webhook_State_Fixtures::delete_all_options();
+		$pending_webhooks_option_name = 'test' === $mode ? WC_Stripe_Webhook_State::OPTION_TEST_PENDING_WEBHOOKS : WC_Stripe_Webhook_State::OPTION_LIVE_PENDING_WEBHOOKS;
+		update_option( $pending_webhooks_option_name, 7 );
+		$before = WC_Stripe_Option_Inspector::read_option_as_string( $pending_webhooks_option_name );
+
+		$this->dispatch_unsigned_webhook( $this->build_webhook_event_body( [ 'pending_webhooks' => $pending_webhooks_value ] ) );
+
+		$this->assertSame(
+			$before,
+			WC_Stripe_Option_Inspector::read_option_as_string( $pending_webhooks_option_name ),
+			'An unsigned webhook must leave an existing pending webhooks count untouched.'
+		);
+		$this->assertSame( 7, WC_Stripe_Webhook_State::get_pending_webhooks_count() );
+	}
+
+	/**
+	 * Data provider covering the payload shapes an attacker controls on an unsigned request.
+	 *
+	 * @return array
+	 */
+	public function provide_unsigned_pending_webhooks_payloads_with_mode(): array {
+		$payloads = [
+			'plain integer'      => 42,
+			'stringified digits' => '42',
+			'empty array'        => [],
+			'list array'         => [ 1, 2, 3 ],
+			'nested array'       => [ 'nested' => [ 'deep' => 'value' ] ],
+			'object'             => [ 'test' => 'value' ],
+			'alphabetic string'  => 'abc',
+			'negative integer'   => -1,
+			'float'              => 1.5,
+			'boolean true'       => true,
+			'null'               => null,
+		];
+
+		return $this->interpolate_live_and_test_modes( $payloads, 'value' );
+	}
+
+	/**
+	 * An unsigned request aimed at a store in either mode must not touch either mode's options.
+	 *
+	 * @param string $mode The mode to test. Either 'live' or 'test'.
+	 * @dataProvider provide_live_and_test_modes
+	 */
+	public function test_check_for_webhook_ignores_pending_webhooks_count_from_unsigned_request_with_empty_options( string $mode ): void {
+		$this->configure_webhook_secrets( 'test' === $mode ? 'yes' : 'no' );
+		WC_Stripe_Webhook_State_Fixtures::delete_all_options();
+
+		$this->dispatch_unsigned_webhook( $this->build_webhook_event_body( [ 'pending_webhooks' => 99 ] ) );
+
+		$this->assertNull( WC_Stripe_Option_Inspector::read_option_as_string( WC_Stripe_Webhook_State::OPTION_LIVE_PENDING_WEBHOOKS ) );
+		$this->assertNull( WC_Stripe_Option_Inspector::read_option_as_string( WC_Stripe_Webhook_State::OPTION_TEST_PENDING_WEBHOOKS ) );
+	}
+
+	/**
+	 * Data provider that returns both live and test modes.
+	 *
+	 * @return array
+	 */
+	public function provide_live_and_test_modes(): array {
+		return [
+			'live mode' => [ 'live' ],
+			'test mode' => [ 'test' ],
+		];
+	}
+
+	/**
+	 * A correctly signed webhook correctly updates the pending webhook count and success timestamp, and the
+	 * stored value is a plain integer regardless of whether Stripe sent it as one.
+	 *
+	 * @param string $mode The mode to test. Either 'live' or 'test'.
+	 * @param int|string $pending_webhooks Value sent on the signed event.
+	 * @param int        $expected         Expected value after processing.
+	 * @dataProvider provide_signed_integer_pending_webhooks_with_mode
+	 */
+	public function test_check_for_webhook_stores_integer_pending_webhooks_count_from_signed_request( string $mode, $pending_webhooks, int $expected ): void {
+		$this->configure_webhook_secrets( 'test' === $mode ? 'yes' : 'no' );
+		WC_Stripe_Webhook_State_Fixtures::delete_all_options();
+
+		$created = time();
+		$status  = $this->dispatch_signed_webhook(
+			$this->build_webhook_event_body(
+				[
+					'pending_webhooks' => $pending_webhooks,
+					'created'          => $created,
+				]
+			)
+		);
+
+		$this->assertSame( 200, $status, 'A correctly signed webhook should be acknowledged with a 200.' );
+		$this->assertSame( $expected, WC_Stripe_Webhook_State::get_pending_webhooks_count() );
+		$pending_webhooks_option_name = 'test' === $mode ? WC_Stripe_Webhook_State::OPTION_TEST_PENDING_WEBHOOKS : WC_Stripe_Webhook_State::OPTION_LIVE_PENDING_WEBHOOKS;
+		$this->assertSame(
+			(string) $expected,
+			WC_Stripe_Option_Inspector::read_option_as_string( $pending_webhooks_option_name ),
+			'The stored value should be a plain integer, not the raw payload value.'
+		);
+		$this->assertSame( $created, WC_Stripe_Webhook_State::get_last_webhook_success_at() );
+	}
+
+	/**
+	 * Data provider for {@see test_check_for_webhook_stores_integer_pending_webhooks_count_from_signed_request()}.
+	 *
+	 * @return array
+	 */
+	public function provide_signed_integer_pending_webhooks_with_mode(): array {
+		$basic_test_cases = [
+			'integer'             => [ 5, 5 ],
+			'zero'                => [ 0, 0 ],
+			'stringified integer' => [ '5', 5 ],
+			'stringified zero'    => [ '0', 0 ],
+			'large integer'       => [ 1234567890, 1234567890 ],
+			'stringified large'   => [ '1234567890', 1234567890 ],
+		];
+
+		return $this->interpolate_live_and_test_modes( $basic_test_cases, 'array' );
+	}
+
+	/**
+	 * A correctly signed webhook should ignore non-integer pending webhook counts.
+	 *
+	 * @param string $mode                   Whether we are in live or test mode.
+	 * @param mixed  $pending_webhooks_value Value sent on the signed event.
+	 * @dataProvider provide_signed_non_integer_pending_webhooks_with_mode
+	 */
+	public function test_check_for_webhook_ignores_non_integer_pending_webhooks_count_from_signed_request( string $mode, $pending_webhooks_value ): void {
+		$this->configure_webhook_secrets( 'test' === $mode ? 'yes' : 'no' );
+		WC_Stripe_Webhook_State_Fixtures::delete_all_options();
+		$pending_webhooks_option_name = 'test' === $mode ? WC_Stripe_Webhook_State::OPTION_TEST_PENDING_WEBHOOKS : WC_Stripe_Webhook_State::OPTION_LIVE_PENDING_WEBHOOKS;
+
+		$status = $this->dispatch_signed_webhook( $this->build_webhook_event_body( [ 'pending_webhooks' => $pending_webhooks_value ] ) );
+
+		$this->assertSame( 200, $status );
+		$this->assertNull(
+			WC_Stripe_Option_Inspector::read_option_as_string( $pending_webhooks_option_name ),
+			'A non-integer pending webhook count must not be written at all.'
+		);
+		$this->assertSame( 0, WC_Stripe_Webhook_State::get_pending_webhooks_count() );
+	}
+
+	/**
+	 * Data provider for {@see test_check_for_webhook_ignores_non_integer_pending_webhooks_count_from_signed_request()}.
+	 *
+	 * @return array
+	 */
+	public function provide_signed_non_integer_pending_webhooks_with_mode(): array {
+		$basic_test_cases = [
+			'empty array'       => [],
+			'list array'        => [ 1, 2, 3 ],
+			'nested array'      => [ 'nested' => [ 'deep' => 'value' ] ],
+			'object'            => [ 'test' => 'value' ],
+			'alphabetic string' => 'abc',
+			'negative integer'  => -1,
+			'float'             => 1.5,
+		];
+
+		return $this->interpolate_live_and_test_modes( $basic_test_cases, 'value' );
+	}
+
+	/**
+	 * A request that fails signature validation must not update the webhook state options.
+	 * The failure timestamp and the error reason should be updated to track error states.
+	 *
+	 * @param string $failure_mode How the request should fail validation.
+	 * @dataProvider provide_webhook_signature_failure_modes
+	 */
+	public function test_check_for_webhook_leaves_webhook_state_options_as_is_on_failed_signature( string $failure_mode ): void {
+		$this->configure_webhook_secrets();
+		WC_Stripe_Webhook_State_Fixtures::delete_all_options();
+		$this->seed_webhook_state_options();
+
+		$exempt = [
+			WC_Stripe_Webhook_State::OPTION_LIVE_LAST_FAILURE_AT,
+			WC_Stripe_Webhook_State::OPTION_LIVE_LAST_ERROR,
+		];
+
+		$start_time = time();
+		$before     = $this->snapshot_webhook_state_options();
+		$body       = $this->build_webhook_event_body( [ 'pending_webhooks' => [ 'test' => 'value' ] ] );
+
+		$status   = $this->dispatch_webhook(
+			'empty_body' === $failure_mode ? '' : $body,
+			$this->build_failing_webhook_headers( $failure_mode, $body )
+		);
+		$end_time = time();
+
+		$this->assertSame( 204, $status, 'A request that fails validation should be rejected with a 204.' );
+
+		$after = $this->snapshot_webhook_state_options();
+
+		foreach ( WC_Stripe_Webhook_State_Fixtures::get_all_option_names() as $option_name ) {
+			if ( in_array( $option_name, $exempt, true ) ) {
+				continue;
+			}
+
+			$this->assertSame(
+				$before[ $option_name ],
+				$after[ $option_name ],
+				sprintf( 'Option %s changed while handling a request with a failed signature.', $option_name )
+			);
+		}
+
+		$this->assertNotNull( $after[ WC_Stripe_Webhook_State::OPTION_LIVE_LAST_FAILURE_AT ] );
+		$this->assertMatchesRegularExpression(
+			'/^\d+$/',
+			(string) $after[ WC_Stripe_Webhook_State::OPTION_LIVE_LAST_FAILURE_AT ],
+			'The failure timestamp must be a plain integer generated by the plugin.'
+		);
+		$last_failure_time_as_int = (int) $after[ WC_Stripe_Webhook_State::OPTION_LIVE_LAST_FAILURE_AT ];
+		$this->assertGreaterThanOrEqual( $start_time, $last_failure_time_as_int );
+		$this->assertLessThanOrEqual( $end_time, $last_failure_time_as_int );
+
+		$expected_webhook_error_code = null;
+		switch ( $failure_mode ) {
+			case 'missing_signature':
+				$expected_webhook_error_code = WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID;
+				break;
+			case 'malformed_signature':
+				$expected_webhook_error_code = WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID;
+				break;
+			case 'wrong_secret':
+				$expected_webhook_error_code = WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_MISMATCH;
+				break;
+			case 'stale_timestamp':
+				$expected_webhook_error_code = WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH;
+				break;
+			case 'empty_headers':
+				$expected_webhook_error_code = WC_Stripe_Webhook_State::VALIDATION_FAILED_EMPTY_HEADERS;
+				break;
+			case 'empty_body':
+				$expected_webhook_error_code = WC_Stripe_Webhook_State::VALIDATION_FAILED_EMPTY_BODY;
+				break;
+			default:
+				$this->fail( 'Unknown failure mode: ' . $failure_mode );
+				break;
+		}
+
+		$this->assertSame(
+			$expected_webhook_error_code,
+			$after[ WC_Stripe_Webhook_State::OPTION_LIVE_LAST_ERROR ],
+			'The error reason must be the expected validation constant.'
+		);
+
+		foreach ( WC_Stripe_Webhook_State_Fixtures::get_all_option_names() as $option_name ) {
+			$this->assertIsScalar(
+				get_option( $option_name, '' ),
+				sprintf( 'Option %s holds a non-scalar value after a rejected request.', $option_name )
+			);
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_check_for_webhook_leaves_webhook_state_options_as_is_on_failed_signature()}.
+	 *
+	 * @return array
+	 */
+	public function provide_webhook_signature_failure_modes(): array {
+		return [
+			'missing signature header'      => [ 'missing_signature' ],
+			'malformed signature header'    => [ 'malformed_signature' ],
+			'signature from wrong secret'   => [ 'wrong_secret' ],
+			'signature outside time window' => [ 'stale_timestamp' ],
+			'empty headers'                 => [ 'empty_headers' ],
+			'empty body'                    => [ 'empty_body' ],
+		];
+	}
+
+	/**
+	 * Ensure that duplicate webhook detection works for standard webhooks with a signature mismatch.
+	 * This should return an HTTP 400 status and update the webhook state tracking.
+	 *
+	 * @param string $mode Whether we are in live or test mode.
+	 * @dataProvider provide_live_and_test_modes
+	 */
+	public function test_check_for_webhook_reports_duplicate_webhooks_on_signature_mismatch( string $mode ): void {
+		$this->configure_webhook_secrets( 'test' === $mode ? 'yes' : 'no' );
+		WC_Stripe_Webhook_State_Fixtures::delete_all_options();
+		$this->seed_webhook_state_options();
+
+		$status = $this->with_duplicate_webhook_endpoints(
+			function () {
+				return $this->dispatch_unsigned_webhook( $this->build_webhook_event_body() );
+			}
+		);
+
+		$this->assertSame( 400, $status, 'A signature mismatch on a store with duplicate endpoints should be reported to Stripe with a 400.' );
+		$this->assertSame(
+			WC_Stripe_Webhook_State::VALIDATION_FAILED_DUPLICATE_WEBHOOKS,
+			WC_Stripe_Option_Inspector::read_option_as_string(
+				'test' === $mode ? WC_Stripe_Webhook_State::OPTION_TEST_LAST_ERROR : WC_Stripe_Webhook_State::OPTION_LIVE_LAST_ERROR
+			)
+		);
+	}
+
+	/**
+	 * Constructing the handler must survive webhook state options that are already corrupt, and
+	 * repair the monitoring timestamp rather than leaving it to break the next read.
+	 *
+	 * WC_Stripe::init() constructs this handler on every request, so an unguarded read here is a
+	 * site-wide fatal rather than just a broken webhook endpoint.
+	 *
+	 * @param mixed $corrupt_value Value written directly into the webhook state options.
+	 * @dataProvider provide_corrupt_webhook_state_values
+	 */
+	public function test_constructor_survives_corrupt_webhook_state_options( $corrupt_value ) {
+		$this->configure_webhook_secrets();
+		WC_Stripe_Webhook_State_Fixtures::delete_all_options();
+		WC_Stripe_Webhook_State_Fixtures::corrupt_all_options( $corrupt_value );
+
+		new WC_Stripe_Webhook_Handler();
+
+		$stored = WC_Stripe_Option_Inspector::read_option_as_string( WC_Stripe_Webhook_State::OPTION_LIVE_MONITORING_BEGAN_AT );
+
+		$this->assertMatchesRegularExpression(
+			'/^\d+$/',
+			(string) $stored,
+			'Bootstrap should have replaced the corrupt monitoring timestamp with a plain integer.'
+		);
+		$this->assertGreaterThan( 0, (int) $stored );
+	}
+
+	/**
+	 * A signed webhook must still be processed when the options were already corrupt.
+	 *
+	 * @param mixed $corrupt_value Value written directly into the webhook state options.
+	 * @dataProvider provide_corrupt_webhook_state_values
+	 */
+	public function test_check_for_webhook_survives_corrupt_webhook_state_options( $corrupt_value ) {
+		$this->configure_webhook_secrets();
+		WC_Stripe_Webhook_State_Fixtures::delete_all_options();
+		WC_Stripe_Webhook_State_Fixtures::corrupt_all_options( $corrupt_value );
+
+		$status = $this->dispatch_signed_webhook( $this->build_webhook_event_body( [ 'pending_webhooks' => 2 ] ) );
+
+		$this->assertSame( 200, $status );
+		$this->assertSame( 2, WC_Stripe_Webhook_State::get_pending_webhooks_count() );
+	}
+
+	/**
+	 * Data provider for the corrupt-option handler tests.
+	 *
+	 * @return array
+	 */
+	public function provide_corrupt_webhook_state_values(): array {
+		return WC_Stripe_Webhook_State_Fixtures::get_corrupt_value_cases();
+	}
+
+	/**
+	 * Points the store's webhook secrets at the secret these tests sign with.
+	 *
+	 * @param string $testmode Value of the `testmode` setting.
+	 */
+	private function configure_webhook_secrets( string $testmode = 'no' ): void {
+		$stripe_settings                        = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['webhook_secret']      = self::WEBHOOK_SECRET;
+		$stripe_settings['test_webhook_secret'] = self::WEBHOOK_SECRET;
+		$stripe_settings['testmode']            = $testmode;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+	}
+
+	/**
+	 * Builds a Stripe-shaped event body.
+	 *
+	 * `invoice.paid` is deliberately chosen: process_webhook() has no case for it, so the success
+	 * path runs to completion without needing an order or any Stripe API calls.
+	 *
+	 * @param array $overrides Fields to merge onto the base event.
+	 * @return string JSON encoded event.
+	 */
+	private function build_webhook_event_body( array $overrides = [] ): string {
+		return wp_json_encode(
+			array_merge(
+				[
+					'id'      => 'evt_test_123',
+					'type'    => 'invoice.paid',
+					'created' => time(),
+				],
+				$overrides
+			)
+		);
+	}
+
+	/**
+	 * Helper function to temporarily mock the Stripe API to indicate two webhook endpoints exist.
+	 * Runs $callback while that context is set up and removes the mock after running the callback.
+	 *
+	 * @param callable $callback Callback to run.
+	 * @return mixed Whatever the callback returns.
+	 */
+	private function with_duplicate_webhook_endpoints( callable $callback ) {
+		$webhook_url = WC_Stripe_Helper::get_webhook_url();
+
+		$respond_with_duplicates = static function () use ( $webhook_url ) {
+			return [
+				'headers'  => [],
+				'cookies'  => [],
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => wp_json_encode(
+					[
+						'data' => [
+							[
+								'id'  => 'we_duplicate_1',
+								'url' => $webhook_url,
+							],
+							[
+								'id'  => 'we_duplicate_2',
+								'url' => $webhook_url,
+							],
+						],
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $respond_with_duplicates, 20 );
+
+		try {
+			return $callback();
+		} finally {
+			remove_filter( 'pre_http_request', $respond_with_duplicates, 20 );
+		}
+	}
+
+	/**
+	 * Dispatches a request through the real check_for_webhook() entry point with outbound HTTP
+	 * blocked, so the duplicate-webhook lookup on the signature-mismatch branch cannot hit the
+	 * network.
+	 *
+	 * @param string $body    Raw request body.
+	 * @param array  $headers Request headers, keyed as Stripe sends them.
+	 * @return int HTTP status code the handler terminated with.
+	 */
+	private function dispatch_webhook( string $body, array $headers ): int {
+		if ( ! WC_Stripe_Webhook_Request_Simulator::can_simulate_headers() ) {
+			$this->markTestSkipped( 'This SAPI defines getallheaders(), so request headers cannot be simulated via $_SERVER.' );
+		}
+
+		$block_http = static function () {
+			return new WP_Error( 'no_http_in_tests', 'Outbound HTTP is blocked in this test.' );
+		};
+		add_filter( 'pre_http_request', $block_http );
+
+		try {
+			return WC_Stripe_Webhook_Request_Simulator::dispatch( new WC_Stripe_Webhook_Handler(), $body, $headers );
+		} finally {
+			remove_filter( 'pre_http_request', $block_http );
+		}
+	}
+
+	/**
+	 * Dispatches a request whose signature does not verify.
+	 *
+	 * @param string $body Raw request body.
+	 * @return int HTTP status code the handler terminated with.
+	 */
+	private function dispatch_unsigned_webhook( string $body ): int {
+		return $this->dispatch_webhook( $body, $this->build_failing_webhook_headers( 'wrong_secret', $body ) );
+	}
+
+	/**
+	 * Dispatches a request signed with the store's configured webhook secret.
+	 *
+	 * @param string $body Raw request body.
+	 * @return int HTTP status code the handler terminated with.
+	 */
+	private function dispatch_signed_webhook( string $body, string $secret = self::WEBHOOK_SECRET ): int {
+		return $this->dispatch_webhook( $body, $this->build_signed_webhook_headers( $body, $secret ) );
+	}
+
+	/**
+	 * Builds request headers carrying a valid signature for the given body and secret.
+	 *
+	 * @param string $body   Raw request body.
+	 * @param string $secret Secret to sign with.
+	 * @return array
+	 */
+	private function build_signed_webhook_headers( string $body, string $secret ): array {
+		$timestamp = time();
+
+		return [
+			'USER-AGENT'       => 'Stripe/1.0 (+https://docs.stripe.com/webhooks)',
+			'CONTENT-TYPE'     => 'application/json; charset=utf-8',
+			'STRIPE-SIGNATURE' => 't=' . $timestamp . ',v1=' . hash_hmac( 'sha256', $timestamp . '.' . $body, $secret ),
+		];
+	}
+
+	/**
+	 * Builds request headers that fail validation in the requested way.
+	 *
+	 * @param string $failure_mode One of the modes in {@see provide_webhook_signature_failure_modes()}.
+	 * @param string $body         Raw request body, used when a signature still has to be computed.
+	 * @param string $secret       Secret the request is signed with in the modes where the signature
+	 *                             itself is meant to be correct, such as `stale_timestamp`.
+	 * @return array
+	 */
+	private function build_failing_webhook_headers( string $failure_mode, string $body, string $secret = self::WEBHOOK_SECRET ): array {
+		$headers = [
+			'USER-AGENT'   => 'Stripe/1.0 (+https://docs.stripe.com/webhooks)',
+			'CONTENT-TYPE' => 'application/json; charset=utf-8',
+		];
+
+		switch ( $failure_mode ) {
+			case 'empty_headers':
+				return [];
+			case 'missing_signature':
+				return $headers;
+			case 'malformed_signature':
+				$headers['STRIPE-SIGNATURE'] = 'not-a-signature';
+				return $headers;
+			case 'stale_timestamp':
+				$timestamp                   = time() - 600;
+				$headers['STRIPE-SIGNATURE'] = 't=' . $timestamp . ',v1=' . hash_hmac( 'sha256', $timestamp . '.' . $body, $secret );
+				return $headers;
+			case 'empty_body':
+			case 'wrong_secret':
+			default:
+				$timestamp                   = time();
+				$headers['STRIPE-SIGNATURE'] = 't=' . $timestamp . ',v1=' . hash_hmac( 'sha256', $timestamp . '.' . $body, 'whsec_attacker' );
+				return $headers;
+		}
+	}
+
+	/**
+	 * Populates every webhook state option so the modification checks have real values to compare.
+	 */
+	private function seed_webhook_state_options(): void {
+		$one_hour_ago = time() - HOUR_IN_SECONDS;
+
+		update_option( WC_Stripe_Webhook_State::OPTION_LIVE_MONITORING_BEGAN_AT, $one_hour_ago );
+		update_option( WC_Stripe_Webhook_State::OPTION_LIVE_LAST_SUCCESS_AT, $one_hour_ago + 60 );
+		update_option( WC_Stripe_Webhook_State::OPTION_LIVE_LAST_FAILURE_AT, $one_hour_ago + 30 );
+		update_option( WC_Stripe_Webhook_State::OPTION_LIVE_LAST_ERROR, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED );
+		update_option( WC_Stripe_Webhook_State::OPTION_LIVE_PENDING_WEBHOOKS, 4 );
+
+		update_option( WC_Stripe_Webhook_State::OPTION_TEST_MONITORING_BEGAN_AT, $one_hour_ago );
+		update_option( WC_Stripe_Webhook_State::OPTION_TEST_LAST_SUCCESS_AT, $one_hour_ago + 60 );
+		update_option( WC_Stripe_Webhook_State::OPTION_TEST_LAST_FAILURE_AT, $one_hour_ago + 30 );
+		update_option( WC_Stripe_Webhook_State::OPTION_TEST_LAST_ERROR, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED );
+		update_option( WC_Stripe_Webhook_State::OPTION_TEST_PENDING_WEBHOOKS, 4 );
+	}
+
+	/**
+	 * Reads every webhook state option straight from the database.
+	 *
+	 * @return array<string, string|null> Raw stored values keyed by option name.
+	 */
+	private function snapshot_webhook_state_options(): array {
+		$snapshot = [];
+
+		foreach ( WC_Stripe_Webhook_State_Fixtures::get_all_option_names() as $option_name ) {
+			$snapshot[ $option_name ] = WC_Stripe_Option_Inspector::read_option_as_string( $option_name );
+		}
+
+		return $snapshot;
+	}
+
+	/**
+	 * Helper method to interpolate test cases for live and test modes.
+	 *
+	 * @param array  $test_cases The test cases to interpolate.
+	 * @param string $value_type The type of value to interpolate. Either 'value' or 'array'.
+	 * @return array The interpolated test cases.
+	 */
+	private function interpolate_live_and_test_modes( array $test_cases, string $value_type ): array {
+		$combined_test_cases = [];
+
+		$interpolate_test = static function ( string $mode, $test_case ) use ( $value_type ) {
+			if ( 'value' === $value_type ) {
+				return [ $mode, $test_case ];
+			}
+			if ( 'array' === $value_type ) {
+				return array_merge( [ $mode ], $test_case );
+			}
+			throw new InvalidArgumentException( 'Invalid value type: ' . $value_type );
+		};
+
+		foreach ( $test_cases as $description => $test_case ) {
+			$combined_test_cases[ "[live] $description" ] = $interpolate_test( 'live', $test_case );
+			$combined_test_cases[ "[test] $description" ] = $interpolate_test( 'test', $test_case );
+		}
+
+		return $combined_test_cases;
 	}
 }

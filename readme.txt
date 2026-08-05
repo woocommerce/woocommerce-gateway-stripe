@@ -155,6 +155,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
+= 10.8.5 - xxxx-xx-xx =
+* Update - Improve webhook handling
+
 = 10.8.4 - 2026-07-14 =
 * Fix - Improve Checkout Session amount integrity
 * Fix - Update order status only on processing failure in the order status update request

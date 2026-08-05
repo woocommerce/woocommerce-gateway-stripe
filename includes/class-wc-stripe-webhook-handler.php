@@ -142,8 +142,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		WC_Stripe_Webhook_State::set_pending_webhooks_count( $event->pending_webhooks ?? 0 );
-
 		$is_agentic_hook = 0 === strpos( $event_type, 'v1.delegated_checkout.' );
 
 		$secret = $is_agentic_hook
@@ -187,6 +185,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$this->process_agentic_hook( $event );
 			return;
 		}
+
+		WC_Stripe_Webhook_State::set_pending_webhooks_count( $event->pending_webhooks ?? 0 );
 
 		WC_Stripe_Logger::debug( 'Webhook received (' . $event_type . ')', [ 'event' => $event ] );
 		$this->process_webhook( $request_body );

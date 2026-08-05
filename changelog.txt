@@ -1,5 +1,8 @@
 *** Changelog ***
 
+xxxx-xx-xx - version 10.8.5
+* Update - Improve webhook handling
+
 2026-07-14 - version 10.8.4
 * Fix - Improve Checkout Session amount integrity
 * Fix - Update order status only on processing failure in the order status update request
