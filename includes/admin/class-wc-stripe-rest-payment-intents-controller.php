@@ -12,6 +12,9 @@ defined( 'ABSPATH' ) || exit;
  */
 class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Controller {
 
+	protected const PAYMENT_INTENT_ID_PATTERN = 'pi_[A-Za-z0-9_]+';
+	protected const CUSTOMER_ID_PATTERN       = 'cus_[A-Za-z0-9_]+';
+
 	/**
 	 * Endpoint path.
 	 *
@@ -65,7 +68,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	public function register_routes() {
 		register_rest_route(
 			$this->namespace,
-			'/' . $this->rest_base . '/(?P<id>pi_[A-Za-z0-9_]+)$',
+			'/' . $this->rest_base . '/(?P<id>' . self::PAYMENT_INTENT_ID_PATTERN . ')$',
 			[
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => [ $this, 'get_payment_intent' ],
@@ -95,30 +98,29 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => 'rest_validate_request_arg',
+						'validate_callback' => [ self::class, 'validate_starting_after' ],
 					],
 					'ending_before'    => [
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => 'rest_validate_request_arg',
+						'validate_callback' => [ self::class, 'validate_ending_before' ],
 					],
 					'customer'         => [
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => 'rest_validate_request_arg',
+						'validate_callback' => [ self::class, 'validate_customer' ],
 					],
 					'customer_account' => [
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => 'rest_validate_request_arg',
+						'validate_callback' => [ self::class, 'validate_customer_account' ],
 					],
 					'created'          => [
-						'type'              => 'integer',
 						'required'          => false,
-						'sanitize_callback' => 'absint',
+						'sanitize_callback' => 'sanitize_text_field',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 				],
@@ -199,5 +201,18 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		}
 
 		return $response;
+	}
+
+	public static function validate_starting_after( $param_value, $request, $param_name ) {
+		return preg_match( '/^' . self::PAYMENT_INTENT_ID_PATTERN . '$/', $param_value ) === 1;
+	}
+	public static function validate_ending_before( $param_value, $request, $param_name ) {
+		return preg_match( '/^' . self::PAYMENT_INTENT_ID_PATTERN . '$/', $param_value ) === 1;
+	}
+	public static function validate_customer( $param_value, $request, $param_name ) {
+		return preg_match( '/^' . self::CUSTOMER_ID_PATTERN . '$/', $param_value ) === 1;
+	}
+	public static function validate_customer_account( $param_value, $request, $param_name ) {
+		return preg_match( '/^' . self::CUSTOMER_ID_PATTERN . '$/', $param_value ) === 1;
 	}
 }
