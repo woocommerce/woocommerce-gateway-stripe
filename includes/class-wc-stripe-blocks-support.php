@@ -206,7 +206,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 
 			if ( is_array( $asset ) ) {
 				$version      = $asset['version'] ?? $version;
-				$dependencies = $asset['dependencies'] ?? $dependencies;
+				$dependencies = is_array( $asset['dependencies'] ?? null ) ? $asset['dependencies'] : $dependencies;
 			}
 		}
 
