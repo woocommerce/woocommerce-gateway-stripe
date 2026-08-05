@@ -47,7 +47,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	public function register_routes() {
 		register_rest_route(
 			$this->namespace,
-			'/' . $this->rest_base . '(?:/(?P<id>pi_[A-Za-z0-9_]+))$',
+			'/' . $this->rest_base . '/(?P<id>pi_[A-Za-z0-9_]+)$',
 			[
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => [ $this, 'get_payment_intent' ],
