@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7914bea8bfd344fbc96257f6b02db22c",
+    "content-hash": "0237d0d14a279f109b48e54adf98276d",
     "packages": [],
     "packages-dev": [
         {
@@ -5471,23 +5471,23 @@
         },
         {
             "name": "woocommerce/woocommerce-sniffs",
-            "version": "1.0.1",
+            "version": "2.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/woocommerce/woocommerce-sniffs.git",
-                "reference": "e6da0c372573724806b270ec1d5d94988b8aec52"
+                "reference": "906c75a4127adeb835ddbc859a99a9dbff8891c0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/woocommerce/woocommerce-sniffs/zipball/e6da0c372573724806b270ec1d5d94988b8aec52",
-                "reference": "e6da0c372573724806b270ec1d5d94988b8aec52",
+                "url": "https://api.github.com/repos/woocommerce/woocommerce-sniffs/zipball/906c75a4127adeb835ddbc859a99a9dbff8891c0",
+                "reference": "906c75a4127adeb835ddbc859a99a9dbff8891c0",
                 "shasum": ""
             },
             "require": {
                 "dealerdirect/phpcodesniffer-composer-installer": "^1.0.0",
-                "php": ">=7.0",
-                "phpcompatibility/phpcompatibility-wp": "^2.1.0",
-                "wp-coding-standards/wpcs": "^3.0.0"
+                "php": ">=7.2",
+                "phpcompatibility/phpcompatibility-wp": "^2.1.7",
+                "wp-coding-standards/wpcs": "^3.4.1"
             },
             "type": "phpcodesniffer-standard",
             "notification-url": "https://packagist.org/downloads/",
@@ -5504,9 +5504,9 @@
             ],
             "support": {
                 "issues": "https://github.com/woocommerce/woocommerce-sniffs/issues",
-                "source": "https://github.com/woocommerce/woocommerce-sniffs/tree/1.0.1"
+                "source": "https://github.com/woocommerce/woocommerce-sniffs/tree/2.0.0"
             },
-            "time": "2025-09-03T13:34:27+00:00"
+            "time": "2026-07-31T13:27:58+00:00"
         },
         {
             "name": "wp-cli/cache-command",
