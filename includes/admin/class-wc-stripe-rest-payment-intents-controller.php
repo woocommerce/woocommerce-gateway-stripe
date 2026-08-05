@@ -120,8 +120,8 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 					],
 					'created'          => [
 						'required'          => false,
-						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => 'rest_validate_request_arg',
+						'sanitize_callback' => [ self::class, 'sanitize_created' ],
+						'validate_callback' => [ self::class, 'validate_created' ],
 					],
 				],
 			],
@@ -155,7 +155,13 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_payment_intents( $request ) {
-		$response = $this->fetch_from_stripe( 'payment_intents', [ 'expand' => self::STRIPE_LIST_EXPAND_PARAM ] );
+		$response = $this->fetch_from_stripe(
+			'payment_intents',
+			array_merge(
+				$request->get_params(),
+				[ 'expand' => self::STRIPE_LIST_EXPAND_PARAM ]
+			),
+		);
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
@@ -203,16 +209,118 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		return $response;
 	}
 
+	/**
+	 * Validate starting_after parameter value.
+	 *
+	 * @param string $param_value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param The parameter name.
+	 *
+	 * @return bool
+	 */
 	public static function validate_starting_after( $param_value, $request, $param_name ) {
 		return preg_match( '/^' . self::PAYMENT_INTENT_ID_PATTERN . '$/', $param_value ) === 1;
 	}
+
+	/**
+	 * Validate ending_before parameter value.
+	 *
+	 * @param string $param_value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param The parameter name.
+	 *
+	 * @return bool
+	 */
 	public static function validate_ending_before( $param_value, $request, $param_name ) {
 		return preg_match( '/^' . self::PAYMENT_INTENT_ID_PATTERN . '$/', $param_value ) === 1;
 	}
+
+	/**
+	 * Validate customer parameter value.
+	 *
+	 * @param string $param_value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param The parameter name.
+	 *
+	 * @return bool
+	 */
 	public static function validate_customer( $param_value, $request, $param_name ) {
 		return preg_match( '/^' . self::CUSTOMER_ID_PATTERN . '$/', $param_value ) === 1;
 	}
+
+	/**
+	 * Validate customer_account parameter value.
+	 *
+	 * @param string $param_value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param The parameter name.
+	 *
+	 * @return bool
+	 */
 	public static function validate_customer_account( $param_value, $request, $param_name ) {
 		return preg_match( '/^' . self::CUSTOMER_ID_PATTERN . '$/', $param_value ) === 1;
+	}
+
+	/**
+	 * Sanitize created parameter value.
+	 *
+	 * @param string $param_value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param The parameter name.
+	 *
+	 * @return bool
+	 */
+	public static function sanitize_created( $param_value, $request, $param_name ) {
+		if ( ! is_array( $param_value ) ) {
+			$sanitized_value = sanitize_text_field( $param_value );
+		} else {
+			$sanitized_value = [];
+
+			foreach ( $param_value as $operator => $operand ) {
+				$sanitized_value[ sanitize_key( $operator ) ] = sanitize_text_field( $operand );
+			}
+		}
+
+		return $sanitized_value;
+	}
+
+	/**
+	 * Validate created parameter value.
+	 *
+	 * Validates that the parameter is either a Unix timestamp containing digits only,
+	 * or an array of Unix timestamps keyed by comparison operators (gt, gte, lt, lte).
+	 *
+	 * @param string $param_value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param The parameter name.
+	 *
+	 * @return bool
+	 */
+	public static function validate_created( $param_value, $request, $param_name ) {
+		if ( empty( $param_value ) ) {
+			return true;
+		}
+
+		if ( is_string( $param_value ) ) {
+			return preg_match( '/^\d+$/', $param_value ) === 1;
+		}
+
+		if ( ! is_array( $param_value ) ) {
+			return false;
+		}
+
+		$allowed_operators = [ 'gt', 'gte', 'lt', 'lte' ];
+
+		foreach ( $param_value as $operator => $operand ) {
+			if ( ! in_array( $operator, $allowed_operators ) ) {
+				return false;
+			}
+
+			if ( ! is_scalar( $operand ) || preg_match( '/' . $unix_timestamp_pattern . '/', (string) $operand ) !== 1 ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 }
