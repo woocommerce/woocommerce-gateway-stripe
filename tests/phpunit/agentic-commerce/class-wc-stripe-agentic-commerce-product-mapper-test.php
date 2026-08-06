@@ -1003,8 +1003,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A password gate states who may view a product, so the feed must not carry
-	 * it: the exported `link` would only render a password prompt.
+	 * The exported `link` for a protected product only renders a password prompt.
 	 *
 	 * @return void
 	 */
@@ -1024,10 +1023,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A variation is a separate post and does NOT inherit the parent's
-	 * `post_password`, so the predicate has to resolve to the parent. Without
-	 * that, every variation of a password-protected variable product keeps
-	 * syncing — and variations are what the feed actually exports.
+	 * A variation does NOT inherit the parent's `post_password`, so the predicate
+	 * must resolve to the parent. Variations are what the feed exports, so without
+	 * that every variation of a protected variable product keeps syncing.
 	 *
 	 * @return void
 	 */
@@ -1056,8 +1054,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * `hidden` removes the product from both catalog and search — the strongest
-	 * "do not surface this" signal WooCommerce offers.
+	 * `hidden` removes the product from both catalog and search.
 	 *
 	 * @return void
 	 */
@@ -1084,9 +1081,8 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Only `hidden` is treated as an exclusion. The partial values still leave the
-	 * product reachable by the other route, so removing it from the feed would
-	 * overreach.
+	 * The partial values leave the product reachable by the other route, so
+	 * excluding it would overreach.
 	 *
 	 * @dataProvider provide_partial_catalog_visibility_values
 	 * @param string $visibility Catalog visibility value.
@@ -1103,8 +1099,8 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The new exclusions are defaults, not hard blocks: an adapter can opt a
-	 * password-protected product back in, matching the subscription contract.
+	 * The new exclusions are defaults, not hard blocks — matching the
+	 * subscription contract.
 	 *
 	 * @return void
 	 */

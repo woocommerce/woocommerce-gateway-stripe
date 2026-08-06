@@ -1030,14 +1030,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Whether the product sits behind a post password.
 	 *
-	 * The password gate states who may view the product, so an agent must not be
-	 * able to surface or quote it: the `link` the feed exports renders a password
-	 * prompt, which would send the buyer to a wall.
+	 * The gate states who may view the product, and the `link` the feed exports
+	 * would only render a password prompt.
 	 *
 	 * Unlike catalog visibility, a variation does NOT inherit the parent's
-	 * password — it is a separate post with its own (empty) `post_password`.
-	 * Resolve to the parent first, or every variation of a password-protected
-	 * variable product keeps syncing.
+	 * password — it is a separate post with its own (empty) value. Resolve to the
+	 * parent, or every variation of a protected variable product keeps syncing.
 	 *
 	 * @since 10.9.0
 	 * @param \WC_Product $product Product to check.
@@ -1058,12 +1056,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Whether the merchant hid the product from both the catalog and search.
 	 *
-	 * `hidden` is the strongest "do not surface this" signal WooCommerce offers.
-	 * The partial values (`catalog`, `search`) are deliberately not treated as
-	 * exclusions: the product is still meant to be reachable by the other route.
-	 *
-	 * Variations inherit the parent's catalog visibility, so no parent lookup is
-	 * needed here.
+	 * The partial values (`catalog`, `search`) are deliberately not exclusions:
+	 * the product is still reachable by the other route. Variations inherit this
+	 * from the parent, so no parent lookup is needed.
 	 *
 	 * @since 10.9.0
 	 * @param \WC_Product $product Product to check.
@@ -1080,9 +1075,8 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 *
 	 * Defaults to true, minus the built-in exclusions: subscriptions,
 	 * password-protected products, and products hidden from catalog and search.
-	 * Integrations such as WC AI Storefront can return false to exclude a product
-	 * based on merchant-configured visibility settings, or true to re-include one
-	 * the defaults dropped.
+	 * Integrations such as WC AI Storefront can return false to exclude a product,
+	 * or true to re-include one the defaults dropped.
 	 *
 	 * @since 10.8.0
 	 * @param \WC_Product $product Product to check.
@@ -1094,9 +1088,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		// they fail validation and downgrade every sync to a partial success.
 		// Excluded by default, still overridable via the filters below.
 		//
-		// The remaining three defaults mirror merchant intent that the feed query
-		// cannot express: the query selects on post status and type only, so a
-		// password-protected or hidden product is `publish` and reaches the feed.
+		// The other two express merchant intent the query cannot: it selects on
+		// post status and type only, so a protected or hidden product is still
+		// `publish` and reaches the feed.
 		$default_should_sync = ! self::is_subscription_product( $product )
 			&& ! self::is_password_protected( $product )
 			&& ! self::is_hidden_from_catalog( $product );
