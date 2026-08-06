@@ -51,7 +51,6 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		'object',
 		'has_more',
 		'data.id',
-		'data.payment_intent',
 		'data.created',
 		'data.amount',
 		'data.currency',
