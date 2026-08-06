@@ -800,6 +800,20 @@ export const getStaleCheckoutTotalMessage = () =>
 	);
 
 /**
+ * Remove a stale-total notice a prior failed resync left on the classic checkout.
+ *
+ * WooCommerce's `updated_checkout` refresh doesn't clear notices prepended to the
+ * notices wrapper, so a later successful resync must retract it itself. Matched by
+ * message text to avoid removing unrelated checkout errors.
+ */
+export const clearStaleCheckoutTotalNotice = () => {
+	const message = getStaleCheckoutTotalMessage();
+	jQuery( '.woocommerce-notices-wrapper .woocommerce-error' )
+		.filter( ( index, element ) => element.textContent.trim() === message )
+		.remove();
+};
+
+/**
  * Show error notice at top of checkout form.
  * Will try to use a translatable message using the message code if available.
  *
