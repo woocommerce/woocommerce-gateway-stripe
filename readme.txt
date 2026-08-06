@@ -4,7 +4,11 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.8
 Tested up to: 7.0
 Requires PHP: 7.4
+<<<<<<< HEAD
 Stable tag: 10.8.4
+=======
+Stable tag: 10.8.5
+>>>>>>> trunk
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
