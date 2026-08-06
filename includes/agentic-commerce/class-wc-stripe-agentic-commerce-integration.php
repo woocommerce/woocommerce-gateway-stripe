@@ -323,7 +323,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		try {
 			$this->run_feed_sync( true );
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $force_disable_checkout );
+			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $force_disable_checkout, 99999 );
 		}
 	}
 
@@ -644,7 +644,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Generate and upload the catalog feed. Callers are responsible for deciding whether
 	 * an upload should occur.
-	 * 
+	 *
 	 * May be called when the agentic commerce feature has been
 	 * disabled to ensure that the uploaded products are marked as unavailable.
 	 *

@@ -660,13 +660,13 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		};
 		add_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
 
-		// Priority 20 runs after the push's forcing filter (10), so it sees the final value.
+		// Must outrank the push's forcing filter (99999) so the spy sees the final value.
 		$captured = null;
 		$spy      = static function ( $disabled ) use ( &$captured ) {
 			$captured = $disabled;
 			return $disabled;
 		};
-		add_filter( 'woocommerce_agentic_commerce_disable_checkout', $spy, 20 );
+		add_filter( 'woocommerce_agentic_commerce_disable_checkout', $spy, 100000 );
 
 		$files_stub = static fn() => [ 'id' => 'file_stub' ];
 		add_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10, 2 );
@@ -694,7 +694,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			$this->assertSame( 1, (int) $last_sync['products'], 'Push must run and upload the catalog despite the merchant toggle being off.' );
 			$this->assertTrue( $captured, 'Push must force in-agent checkout off for every product.' );
 
-			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $spy, 20 );
+			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $spy, 100000 );
 			$this->assertFalse(
 				apply_filters( 'woocommerce_agentic_commerce_disable_checkout', false, $product ),
 				'Push must remove its forcing filter so it does not leak into later feed generation.'
