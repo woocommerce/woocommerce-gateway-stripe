@@ -201,8 +201,11 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 					continue;
 				}
 
-				// An empty row means should_sync_product() excluded it; split the
-				// count so auto-excluded subscriptions aren't mistaken for a filter.
+				// An empty row means should_sync_product() excluded it. Subscriptions
+				// get their own bucket because they have a specific explanation in
+				// the UI; every other reason — the per-product toggle, password
+				// protection, hidden visibility, a third-party filter — shares the
+				// generic one.
 				if ( empty( $row ) ) {
 					++$excluded_count;
 
