@@ -86,6 +86,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Prevent fatals during internal order check
 * Fix - Center the text and card icons inside the payment fields on the Blocks checkout
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
+* Fix - Only load the Blocks checkout stylesheet on pages that render the Cart or Checkout block, instead of on every page of the store
 
 2026-07-14 - version 10.8.4
 * Fix - Improve Checkout Session amount integrity
