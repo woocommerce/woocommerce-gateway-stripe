@@ -241,14 +241,30 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table {
 			return;
 		}
 
-		$is_excluded = WC_Stripe_Agentic_Commerce_Product_Exclusion::is_excluded( $product );
+		if ( WC_Stripe_Agentic_Commerce_Product_Exclusion::is_excluded( $product ) ) {
+			printf(
+				'<span data-excluded="yes">%s</span>',
+				esc_html__( 'Excluded', 'woocommerce-gateway-stripe' )
+			);
+			return;
+		}
+
+		// The exclude toggle is off, but the full eligibility verdict can still
+		// say no — sync rules like catalog visibility, or a third-party filter.
+		// Show that as its own state so "Synced" is never a lie; data-excluded
+		// stays "no" because the quick-edit checkbox mirrors the toggle alone.
+		if ( ! WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) ) {
+			printf(
+				'<span data-excluded="no" title="%s">%s</span>',
+				esc_attr__( 'Kept out of the catalog by sync eligibility rules, not by the exclude toggle.', 'woocommerce-gateway-stripe' ),
+				esc_html__( 'Not synced', 'woocommerce-gateway-stripe' )
+			);
+			return;
+		}
 
 		printf(
-			'<span data-excluded="%s">%s</span>',
-			esc_attr( $is_excluded ? 'yes' : 'no' ),
-			$is_excluded
-				? esc_html__( 'Excluded', 'woocommerce-gateway-stripe' )
-				: esc_html__( 'Synced', 'woocommerce-gateway-stripe' )
+			'<span data-excluded="no">%s</span>',
+			esc_html__( 'Synced', 'woocommerce-gateway-stripe' )
 		);
 	}
 
@@ -272,14 +288,19 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table {
 			esc_attr( self::FILTER_QUERY_VAR ),
 			esc_html__( 'Filter by Agentic Commerce', 'woocommerce-gateway-stripe' ),
 			selected( 'synced', $current, false ),
-			esc_html__( 'Synced products', 'woocommerce-gateway-stripe' ),
+			esc_html__( 'Not excluded', 'woocommerce-gateway-stripe' ),
 			selected( 'excluded', $current, false ),
 			esc_html__( 'Excluded products', 'woocommerce-gateway-stripe' )
 		);
 	}
 
 	/**
-	 * Narrow the Products list query to synced or excluded products.
+	 * Narrow the Products list query by the exclude toggle.
+	 *
+	 * The toggle is the only state that exists as queryable meta; the fuller
+	 * eligibility verdict the column shows is computed per row at render time
+	 * and cannot be expressed as SQL. Hence the option label "Not excluded"
+	 * rather than "Synced".
 	 *
 	 * @since 10.9.0
 	 * @param WP_Query $query Query being prepared.

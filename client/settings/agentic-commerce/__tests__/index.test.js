@@ -480,6 +480,47 @@ describe( 'AgenticCommerceSection', () => {
 		).not.toBeInTheDocument();
 	} );
 
+	it( 'links to the excluded products view when the feature is enabled', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		await waitFor( () => {
+			expect(
+				screen.getByRole( 'link', {
+					name: /View excluded products/i,
+				} )
+			).toBeInTheDocument();
+		} );
+		expect(
+			screen.getByRole( 'link', { name: /View excluded products/i } )
+		).toHaveAttribute(
+			'href',
+			'edit.php?post_type=product&wc_stripe_agentic_sync_status=excluded'
+		);
+	} );
+
+	it( 'hides the excluded products link when the feature is disabled', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: false,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		await waitFor( () => {
+			expect(
+				screen.queryByLabelText( /Webhook secret/i )
+			).not.toBeInTheDocument();
+		} );
+		expect(
+			screen.queryByRole( 'link', { name: /View excluded products/i } )
+		).not.toBeInTheDocument();
+	} );
+
 	it( 'shows onboarding steps when feature is enabled even with webhook secret saved', async () => {
 		mockFetchByPath( EMPTY_RESPONSE, {
 			is_enabled: true,

@@ -191,6 +191,25 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 								) }
 
 								{ isFeatureEnabled && (
+									<p>
+										{ interpolateComponents( {
+											mixedString: __(
+												'To keep specific products out of the catalog, exclude them on the Products screen — individually, via Quick Edit, or with the bulk actions. {{excludedLink}}View excluded products{{/excludedLink}}',
+												'woocommerce-gateway-stripe'
+											),
+											components: {
+												excludedLink: (
+													// Relative on purpose: the settings page lives in
+													// wp-admin, so this resolves on any install layout.
+													// eslint-disable-next-line jsx-a11y/anchor-has-content
+													<a href="edit.php?post_type=product&wc_stripe_agentic_sync_status=excluded" />
+												),
+											},
+										} ) }
+									</p>
+								) }
+
+								{ isFeatureEnabled && (
 									<>
 										<HorizontalRule
 											className="wcstripe-agentic-commerce-onboarding__separator"

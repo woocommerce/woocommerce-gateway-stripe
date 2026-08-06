@@ -335,6 +335,36 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 	}
 
 	/**
+	 * When the toggle is off but the eligibility verdict blocks the sync, the
+	 * column must not claim "Synced" — and the toggle state must win the label
+	 * when both apply, since the quick-edit checkbox mirrors the toggle alone.
+	 */
+	public function test_render_column_reflects_eligibility_verdict(): void {
+		$column  = $this->class_const( 'COLUMN_KEY' );
+		$table   = new WC_Stripe_Agentic_Commerce_Product_List_Table();
+		$product = WC_Helper_Product::create_simple_product();
+
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', '__return_false' );
+
+		ob_start();
+		$table->render_column( $column, $product->get_id() );
+		$output = ob_get_clean();
+		$this->assertStringContainsString( 'Not synced', $output );
+		$this->assertStringContainsString( 'data-excluded="no"', $output, 'The quick-edit source attribute must keep mirroring the toggle.' );
+
+		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), 'yes' );
+		ob_start();
+		$table->render_column( $column, $product->get_id() );
+		$output = ob_get_clean();
+		$this->assertStringContainsString( 'Excluded', $output );
+		$this->assertStringNotContainsString( 'Not synced', $output );
+
+		remove_filter( 'woocommerce_agentic_commerce_should_sync_product', '__return_false' );
+
+		$product->delete( true );
+	}
+
+	/**
 	 * The status filter narrows the main products query via meta_query.
 	 *
 	 * @dataProvider provide_sync_status_filter_scenarios
