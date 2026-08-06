@@ -60,6 +60,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		'data.latest_charge.payment_method_details',
 	];
 
+	protected const STRIPE_LIST_PARAMS_TO_FORWARD = [ 'limit', 'starting_after', 'ending_before', 'customer', 'customer_account', 'created' ];
 	/**
 	 * Configure REST API routes.
 	 *
@@ -148,6 +149,24 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	}
 
 	/**
+	 * Builds am array of parameters to forward to Stripe API.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request An incoming REST request.
+	 *
+	 * @return array
+	 */
+	public static function build_params_to_forward( $request, $params_to_forward, $expand_param ) {
+		$stripe_params = array_intersect_key(
+			$request->get_params(),
+			array_flip( $params_to_forward )
+		);
+
+		$stripe_params['expand'] = $expand_param;
+
+		return $stripe_params;
+	}
+
+	/**
 	 * Retrieve, filters and return Stripe payment intents.
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
@@ -157,10 +176,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	public function get_payment_intents( $request ) {
 		$response = $this->fetch_from_stripe(
 			'payment_intents',
-			array_merge(
-				$request->get_params(),
-				[ 'expand' => self::STRIPE_LIST_EXPAND_PARAM ]
-			),
+			self::build_params_to_forward( $request, self::STRIPE_LIST_PARAMS_TO_FORWARD, self::STRIPE_LIST_EXPAND_PARAM ),
 		);
 
 		if ( is_wp_error( $response ) ) {
