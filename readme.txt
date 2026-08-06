@@ -241,6 +241,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add e2e coverage for Adaptive Pricing: shortcode and blocks purchases, address-less logged-in buyers, and the manual-capture settings gate
 * Fix - Open the Stripe Dashboard links in subscription renewal failure order notes in a new tab
 * Fix - Prevent fatals during internal order check
+* Fix - Center the text and card icons inside the payment fields on the Blocks checkout
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
 * Fix - Only load the Blocks checkout stylesheet on pages that render the Cart or Checkout block
 
