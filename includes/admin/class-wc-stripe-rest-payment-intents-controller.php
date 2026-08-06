@@ -150,9 +150,11 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	}
 
 	/**
-	 * Builds am array of parameters to forward to Stripe API.
+	 * Builds an array of parameters to forward to Stripe API.
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request An incoming REST request.
+	 * @param array $params_to_forward Names of params to forward.
+	 * @param array $expand_param Array of value to populate the 'expand' Stripe AAPI param.
 	 *
 	 * @return array
 	 */
