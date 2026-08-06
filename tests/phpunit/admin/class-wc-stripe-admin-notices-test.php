@@ -661,6 +661,12 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				$this->assertSame( $expected_message, $notices->notices['upe_payment_methods']['message'] );
 				$this->assertSame( 'notice notice-error', $notices->notices['upe_payment_methods']['class'] );
 				$this->assertTrue( $notices->notices['upe_payment_methods']['dismissible'] );
+
+				$this->assertNotEmpty( $notices->notices['upe_payment_methods']['actions'] );
+				$this->assertCount( 1, $notices->notices['upe_payment_methods']['actions'] );
+				$action                      = reset( $notices->notices['upe_payment_methods']['actions'] );
+				$payment_method_settings_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods' );
+				$this->assertStringContainsString( '<a href="' . esc_url( $payment_method_settings_url ) . '" class="button button-secondary" style="margin:1em 2em 0.5em 0;">Review Stripe payment method settings</a>', $action );
 			}
 		} finally {
 			$this->set_main_stripe_gateway( null );

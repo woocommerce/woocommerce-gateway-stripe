@@ -512,7 +512,15 @@ class WC_Stripe_Admin_Notices {
 		}
 
 		if ( ! empty( $currency_messages ) ) {
-			$this->add_admin_notice( 'upe_payment_methods', 'notice notice-error', $currency_messages, true );
+			$settings_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods' );
+
+			$review_action = sprintf(
+				'<a href="%s" class="button button-secondary" style="margin:1em 2em 0.5em 0;">%s</a>',
+				esc_url( $settings_url ),
+				__( 'Review Stripe payment method settings', 'woocommerce-gateway-stripe' )
+			);
+
+			$this->add_admin_notice( 'upe_payment_methods', 'notice notice-error', $currency_messages, true, [ $review_action ] );
 		}
 	}
 
