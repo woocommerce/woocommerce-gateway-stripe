@@ -87,6 +87,10 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Center the text and card icons inside the payment fields on the Blocks checkout
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
 * Fix - Prevent dismissed admin banner notices from reappearing after navigating between Settings and Payment Methods tabs
+* Fix - Only load the Blocks checkout stylesheet on pages that render the Cart or Checkout block, instead of on every page of the store
+
+2026-08-05 - version 10.8.5
+* Update - Improve webhook handling
 
 2026-07-14 - version 10.8.4
 * Fix - Improve Checkout Session amount integrity
