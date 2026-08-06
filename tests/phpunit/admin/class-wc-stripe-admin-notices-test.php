@@ -735,6 +735,22 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					WC_Stripe_Payment_Methods::KLARNA,
 				],
 			],
+			'no notice when the store currency is empty'                                   => [
+				'is stripe settings page'               => false,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'FR',
+				'store currency'                        => '',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [],
+			],
 			'no notice when every method supports the store currency'                      => [
 				'is stripe settings page'               => false,
 				'dismiss option'                        => null,

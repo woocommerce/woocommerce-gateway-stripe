@@ -490,6 +490,11 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
+		$store_currency = get_woocommerce_currency();
+		if ( empty( $store_currency ) ) {
+			return;
+		}
+
 		foreach ( $gateway->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
 			if ( ! isset( $gateway->payment_methods[ $payment_method_id ] ) ) {
 				continue;
@@ -505,7 +510,7 @@ class WC_Stripe_Admin_Notices {
 				continue;
 			}
 
-			if ( ! in_array( get_woocommerce_currency(), $supported_currencies, true ) ) {
+			if ( ! in_array( $store_currency, $supported_currencies, true ) ) {
 				/* translators: %1$s Payment method, %2$s List of supported currencies */
 				$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s<br>', 'woocommerce-gateway-stripe' ), $upe_method->get_label(), implode( ', ', $supported_currencies ) );
 			}
