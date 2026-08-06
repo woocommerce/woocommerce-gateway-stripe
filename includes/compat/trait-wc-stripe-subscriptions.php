@@ -595,7 +595,7 @@ trait WC_Stripe_Subscriptions_Trait {
 							/* translators: 1) error message from Stripe; 2) request log URL */
 							__( 'Sorry, we are unable to process the payment at this time. Reason: %1$s %2$s', 'woocommerce-gateway-stripe' ),
 							$response->error->message,
-							isset( $response->error->request_log_url ) ? make_clickable( $response->error->request_log_url ) : ''
+							isset( $response->error->request_log_url ) ? '<a href="' . esc_url( $response->error->request_log_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $response->error->request_log_url ) . '</a>' : ''
 						);
 						$renewal_order->add_order_note( $localized_message );
 						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
@@ -612,7 +612,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				}
 
 				if ( isset( $response->error->request_log_url ) ) {
-					$localized_message .= ' ' . make_clickable( $response->error->request_log_url );
+					$localized_message .= ' <a href="' . esc_url( $response->error->request_log_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $response->error->request_log_url ) . '</a>';
 				}
 
 				$renewal_order->add_order_note( $localized_message );

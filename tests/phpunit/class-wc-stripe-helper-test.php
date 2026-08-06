@@ -886,6 +886,37 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `order_supports_level3_data` with invalid order data.
+	 *
+	 * @dataProvider provide_invalid_order_for_order_supports_level3_data
+	 * @param mixed $order The invalid order data.
+	 * @return void
+	 */
+	public function test_order_supports_level3_data_with_invalid_order( $order ): void {
+		$this->assertFalse( WC_Stripe_Helper::order_supports_level3_data( $order ) );
+	}
+
+	/**
+	 * Data provider for {@see test_order_supports_level3_data_with_invalid_order()}.
+	 *
+	 * @return array
+	 */
+	public function provide_invalid_order_for_order_supports_level3_data(): array {
+		return [
+			'null'            => [ null ],
+			'false'           => [ false ],
+			'string'          => [ 'invalid' ],
+			'int'             => [ 123 ],
+			'float'           => [ 123.45 ],
+			'true'            => [ true ],
+			'array'           => [ [ 'invalid' ] ],
+			'object'          => [ new stdClass() ],
+			'WP_Error'        => [ new WP_Error( 'invalid', 'Invalid order data' ) ],
+			'WC_Order_Refund' => [ $this->getMockBuilder( WC_Order_Refund::class )->disableOriginalConstructor()->getMock() ],
+		];
+	}
+
+	/**
 	 * Provider for `test_payment_method_allows_manual_capture`
 	 *
 	 * @return array
