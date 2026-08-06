@@ -620,6 +620,73 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Cancelling only removes a job that is still pending, so a job already claimed by
+	 * Action Scheduler reaches the push even after the merchant re-enables. The push
+	 * must bail rather than publish a checkout-disabled catalog for a live store.
+	 *
+	 * @return void
+	 */
+	public function test_push_final_checkout_disabled_feed_bails_when_merchant_re_enabled() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) || ! class_exists( 'WC_Product_Simple' ) ) {
+			$this->markTestSkipped( 'WooCommerce product/Action Scheduler not available.' );
+		}
+
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+		// The merchant turned it back on after the job was queued.
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+
+		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']        = 'yes';
+		$settings['test_secret_key'] = 'sk_test_fake';
+		update_option( 'woocommerce_stripe_settings', $settings );
+
+		// Same catalog setup as the toggle-off test, so reaching delivery is possible
+		// and only the re-enable guard can prevent it.
+		$term   = wp_insert_term( 'Stripe Final Feed Cat ' . uniqid(), 'product_cat' );
+		$cat_id = is_wp_error( $term ) ? 0 : (int) $term['term_id'];
+
+		$product = new WC_Product_Simple();
+		$product->set_name( 'Re-enabled Feed Product' );
+		$product->set_regular_price( '10.00' );
+		$product->set_status( 'publish' );
+		if ( $cat_id ) {
+			$product->set_category_ids( [ $cat_id ] );
+		}
+		$product->save();
+		$product_id = $product->get_id();
+
+		$scope = static function ( $args ) use ( $product_id ) {
+			$args['include'] = [ $product_id ];
+			return $args;
+		};
+		add_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
+
+		$delivered   = false;
+		$files_guard = static function () use ( &$delivered ) {
+			$delivered = true;
+			return [ 'id' => 'file_stub' ];
+		};
+		add_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_guard, 10, 2 );
+
+		try {
+			( new \WC_Stripe_Agentic_Commerce_Integration() )->push_final_checkout_disabled_feed();
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
+			remove_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_guard, 10 );
+		}
+
+		$this->assertFalse(
+			$delivered,
+			'The teardown push must not upload a checkout-disabled catalog once the merchant has re-enabled.'
+		);
+		$this->assertFalse(
+			apply_filters( 'woocommerce_agentic_commerce_disable_checkout', false ),
+			'Bailing early must not leave the disable-checkout filter attached.'
+		);
+	}
+
+	/**
 	 * The teardown push must run while the merchant toggle is off, force checkout
 	 * off for every product, and clean up its filter afterward.
 	 *

@@ -302,16 +302,25 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Re-upload the catalog with in-agent checkout disabled for every product.
 	 *
-	 * Runs from the toggle-off job. Gated on the feature flag only so it runs
-	 * while the merchant toggle is off, bypassing the sync_feed() merchant gate
-	 * via run_feed_sync(). Forces the disable-checkout filter and the upload so
-	 * dedup can't skip a change that's only the checkout flag.
+	 * Runs from the toggle-off job. Deliberately bypasses the sync_feed() merchant
+	 * gate via run_feed_sync() so it can run while the merchant toggle is off, but
+	 * bails if the merchant has turned it back on. Forces the disable-checkout
+	 * filter and the upload so dedup can't skip a change that's only the checkout
+	 * flag.
 	 *
 	 * @since 10.9.0
 	 * @return void
 	 */
 	public function push_final_checkout_disabled_feed(): void {
 		if ( ! $this->is_enabled() ) {
+			return;
+		}
+
+		// The merchant can re-enable between this job being queued and Action Scheduler
+		// running it. Cancellation only removes a job that is still pending, so a job
+		// already claimed by a runner reaches this point regardless — publishing a
+		// checkout-disabled catalog for a store that is live again.
+		if ( self::is_merchant_enabled() ) {
 			return;
 		}
 
