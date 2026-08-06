@@ -642,13 +642,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
-	 * Generate and upload the catalog feed, skipping the enablement gates.
-	 *
-	 * Extracted from sync_feed() so the teardown push can run while the merchant
-	 * toggle is off. Callers own the enablement checks; this guards delivery setup only.
+	 * Generate and upload the catalog feed. Callers are responsible for deciding whether
+	 * an upload should occur.
+	 * 
+	 * May be called when the agentic commerce feature has been
+	 * disabled to ensure that the uploaded products are marked as unavailable.
 	 *
 	 * @since 10.9.0
-	 * @param bool $force_upload When true, bypass the content-hash dedup and always upload.
+	 * @param bool $force_upload When true, bypass the content-hash deduplication and always upload.
 	 * @return bool True on successful delivery, false on early returns or failure.
 	 */
 	private function run_feed_sync( bool $force_upload = false ): bool {
