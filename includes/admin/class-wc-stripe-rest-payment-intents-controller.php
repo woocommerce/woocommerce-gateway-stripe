@@ -314,7 +314,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 */
 	public static function validate_created( $param_value, $request, $param_name ) {
 		if ( empty( $param_value ) ) {
-			return true;
+			return false;
 		}
 
 		if ( is_string( $param_value ) ) {
@@ -328,7 +328,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		$allowed_operators = [ 'gt', 'gte', 'lt', 'lte' ];
 
 		foreach ( $param_value as $operator => $operand ) {
-			if ( ! in_array( $operator, $allowed_operators ) ) {
+			if ( ! in_array( $operator, $allowed_operators, true ) ) {
 				return false;
 			}
 
