@@ -236,7 +236,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @return bool
 	 */
 	public static function validate_payment_intent_id( $param_value, $request, $param_name ) {
-		return preg_match( '/^' . self::PAYMENT_INTENT_ID_PATTERN . '$/', $param_value ) === 1;
+		return 1 === preg_match( '/^' . self::PAYMENT_INTENT_ID_PATTERN . '$/', $param_value );
 	}
 
 	/**
@@ -249,7 +249,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @return bool
 	 */
 	public static function validate_customer_id( $param_value, $request, $param_name ) {
-		return preg_match( '/^' . self::CUSTOMER_ID_PATTERN . '$/', $param_value ) === 1;
+		return 1 === preg_match( '/^' . self::CUSTOMER_ID_PATTERN . '$/', $param_value );
 	}
 
 	/**
