@@ -57,51 +57,6 @@ describe( 'dismissNotice', () => {
 		).toBe( '1' );
 	} );
 
-	it( 'should update wc_stripe_settings_params for OC promotion banner', async () => {
-		global.wc_stripe_settings_params = {
-			show_oc_promotional_banner: '1',
-		};
-
-		apiFetch.mockImplementation( () => Promise.resolve( {} ) );
-
-		dismissNotice( 'wc_stripe_show_oc_promotion_banner', jest.fn() );
-		await new Promise( process.nextTick );
-
-		expect(
-			global.wc_stripe_settings_params.show_oc_promotional_banner
-		).toBe( false );
-	} );
-
-	it( 'should update wc_stripe_settings_params for Stripe Tax banner', async () => {
-		global.wc_stripe_settings_params = {
-			show_stripe_tax_banner: '1',
-		};
-
-		apiFetch.mockImplementation( () => Promise.resolve( {} ) );
-
-		dismissNotice( 'wc_stripe_show_stripe_tax_banner', jest.fn() );
-		await new Promise( process.nextTick );
-
-		expect( global.wc_stripe_settings_params.show_stripe_tax_banner ).toBe(
-			false
-		);
-	} );
-
-	it( 'should update wc_stripe_settings_params for Stripe first position notice', async () => {
-		global.wc_stripe_settings_params = {
-			show_stripe_first_method_notice: '1',
-		};
-
-		apiFetch.mockImplementation( () => Promise.resolve( {} ) );
-
-		dismissNotice( 'wc_stripe_show_stripe_first_method_notice', jest.fn() );
-		await new Promise( process.nextTick );
-
-		expect(
-			global.wc_stripe_settings_params.show_stripe_first_method_notice
-		).toBe( false );
-	} );
-
 	it( 'should not throw when wc_stripe_settings_params is undefined', async () => {
 		apiFetch.mockImplementation( () => Promise.resolve( {} ) );
 
@@ -155,4 +110,46 @@ describe( 'dismissNotice', () => {
 		// can clean up regardless of success or failure.
 		expect( callback ).toHaveBeenCalled();
 	} );
+
+	it.each( [
+		[
+			'wc_stripe_show_bnpl_promotion_banner',
+			'show_bnpl_promotional_banner',
+		],
+		[ 'wc_stripe_show_oc_promotion_banner', 'show_oc_promotional_banner' ],
+		[ 'wc_stripe_show_stripe_tax_banner', 'show_stripe_tax_banner' ],
+		[ 'wc_stripe_show_customization_notice', 'show_customization_notice' ],
+		[
+			'wc_stripe_show_optimized_checkout_notice',
+			'show_optimized_checkout_notice',
+		],
+		[
+			'wc_stripe_show_stripe_first_method_notice',
+			'show_stripe_first_method_notice',
+		],
+	] )(
+		'should update wc_stripe_settings_params and send an api request for notice key %s',
+		async ( noticeKey, paramKey ) => {
+			global.wc_stripe_settings_params = {
+				[ paramKey ]: '1',
+			};
+
+			apiFetch.mockImplementation( () => Promise.resolve( {} ) );
+			const callback = jest.fn();
+
+			dismissNotice( noticeKey, callback );
+			await new Promise( process.nextTick );
+
+			expect( global.wc_stripe_settings_params[ paramKey ] ).toBe(
+				false
+			);
+			expect( apiFetch ).toHaveBeenCalledWith( {
+				path: '/wc/v3/wc_stripe/settings/notice',
+				method: 'POST',
+				data: { [ noticeKey ]: 'no' },
+			} );
+
+			expect( callback ).toHaveBeenCalled();
+		}
+	);
 } );
