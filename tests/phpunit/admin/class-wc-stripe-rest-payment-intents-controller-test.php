@@ -347,6 +347,24 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 					'ending_before'    => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
+			[
+				[
+					'created' =>
+						[
+							'lt' => '1779802821',
+							'gt' => '1779802569',
+						],
+				],
+			],
+			[
+				[
+					'created' =>
+						[
+							'lte' => '1779802821',
+							'gte' => '1779802569',
+						],
+				],
+			],
 		];
 	}
 
