@@ -15,8 +15,6 @@
 
 declare(strict_types=1);
 
-use Automattic\WooCommerce\Enums\ProductType;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -28,13 +26,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 10.9.0
  */
 class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
-
-	/**
-	 * Product types the toggle renders for, and the only types `save_meta()`
-	 * persists. The feed syncs `simple` and `variation`; a variation's parent is
-	 * `variable`, which is where the checkbox lives.
-	 */
-	private const SUPPORTED_TYPES = [ ProductType::SIMPLE, ProductType::VARIABLE ];
 
 	/**
 	 * Register the editor UI hooks. Admin-only — the should-sync filter that
@@ -78,7 +69,7 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 
 		global $product_object;
 		$type = $product_object instanceof WC_Product ? $product_object->get_type() : '';
-		if ( ! in_array( $type, self::SUPPORTED_TYPES, true ) ) {
+		if ( ! in_array( $type, WC_Stripe_Agentic_Commerce_Product_Exclusion::get_supported_types(), true ) ) {
 			return;
 		}
 
@@ -120,7 +111,7 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 		// Mirror render_checkbox()'s type gate so a type switch (e.g. simple →
 		// grouped) doesn't clobber a stored 'yes' or trigger a needless resync.
 		$product = wc_get_product( $product_id );
-		if ( ! $product instanceof WC_Product || ! in_array( $product->get_type(), self::SUPPORTED_TYPES, true ) ) {
+		if ( ! $product instanceof WC_Product || ! in_array( $product->get_type(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_supported_types(), true ) ) {
 			return;
 		}
 

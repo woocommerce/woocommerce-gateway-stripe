@@ -1053,6 +1053,9 @@ class WC_Stripe {
 		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_Meta_Box' ) ) {
 			( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->init();
 		}
+		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_List_Table' ) ) {
+			( new WC_Stripe_Agentic_Commerce_Product_List_Table() )->init();
+		}
 
 		/**
 		 * Fires after Agentic Commerce integration is initialized.
