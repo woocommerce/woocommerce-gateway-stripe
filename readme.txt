@@ -239,6 +239,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Lock the order while confirming a 3DS card payment so a concurrent webhook can't complete it twice, duplicating stock reduction, order notes, and emails
 * Fix - Store the Stripe refund ID on each WooCommerce refund record so orders with multiple partial refunds retain every refund ID
 * Dev - Add e2e coverage for Adaptive Pricing: shortcode and blocks purchases, address-less logged-in buyers, and the manual-capture settings gate
+* Update - Document that WooCommerce coupons do not apply to in-agent agentic purchases and reject discounted agentic sessions with an explicit error
 * Fix - Open the Stripe Dashboard links in subscription renewal failure order notes in a new tab
 * Fix - Prevent fatals during internal order check
 * Fix - Center the text and card icons inside the payment fields on the Blocks checkout
