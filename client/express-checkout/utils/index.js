@@ -13,6 +13,7 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 
 export * from './normalize';
+export * from './bookings';
 
 /**
  * Get error messages from WooCommerce notice.
@@ -120,8 +121,10 @@ export const getExpressCheckoutButtonAppearance = () => {
 
 /**
  * Returns the style settings for the Express Checkout buttons.
+ *
+ * @param {string} [expressPaymentType] The express payment method type.
  */
-export const getExpressCheckoutButtonStyleSettings = () => {
+export const getExpressCheckoutButtonStyleSettings = ( expressPaymentType ) => {
 	const buttonSettings = getExpressCheckoutData( 'button' );
 
 	// Maps the WC Stripe theme from settings to the button theme.
@@ -149,6 +152,21 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 			? 'plain'
 			: buttonSettings?.type ?? 'buy';
 
+	const getButtonHeight = () => {
+		// Link and Amazon Pay each carry their own size setting; every other
+		// method uses the shared Express Checkout (Apple/Google Pay) height.
+		if ( expressPaymentType === EXPRESS_PAYMENT_METHOD_SETTING_LINK ) {
+			return getExpressCheckoutData( 'link_button_height' ) ?? '48';
+		}
+		if (
+			expressPaymentType === EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY
+		) {
+			return getExpressCheckoutData( 'amazon_pay_button_height' ) ?? '48';
+		}
+		return buttonSettings?.height ?? '48';
+	};
+	const height = parseInt( getButtonHeight(), 10 );
+
 	return {
 		paymentMethods: {
 			amazonPay: 'auto',
@@ -173,10 +191,7 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 			applePay: buttonMethodType,
 		},
 		// Allowed height must be 40px to 55px.
-		buttonHeight: Math.min(
-			Math.max( parseInt( buttonSettings?.height ?? '48', 10 ), 40 ),
-			55
-		),
+		buttonHeight: Math.min( Math.max( height, 40 ), 55 ),
 	};
 };
 

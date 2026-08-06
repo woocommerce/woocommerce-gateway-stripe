@@ -11,6 +11,7 @@ import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import CopyButton from '../../components/copy-button';
 import AgenticCommerceSyncStatus from './sync-status';
+import AgenticCommerceFeedPreview from './feed-preview';
 import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
 import {
@@ -58,6 +59,7 @@ const AgenticCommerceDescription = () => (
 
 const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	const [ isFeatureEnabled, setIsFeatureEnabled ] = useState( false );
+	const [ disableCheckout, setDisableCheckout ] = useState( false );
 	const [ webhookSecret, setWebhookSecret ] = useState( '' );
 	const [ isLoadingSettings, setIsLoadingSettings ] = useState( true );
 	const [ settingsNotice, setSettingsNotice ] = useState( null );
@@ -77,6 +79,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 				path: '/wc/v3/wc_stripe/agentic-commerce/settings',
 			} );
 			setIsFeatureEnabled( result.is_enabled );
+			setDisableCheckout( result.disable_checkout ?? false );
 			setWebhookSecret( result.webhook_secret ?? '' );
 		} catch {
 			// Settings fetch failure is non-fatal; defaults remain.
@@ -97,15 +100,14 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 				method: 'POST',
 				data: {
 					is_enabled: isFeatureEnabled,
+					disable_checkout: disableCheckout,
 					webhook_secret: webhookSecret,
 				},
 			} );
 			setIsFeatureEnabled( result.is_enabled );
+			setDisableCheckout( result.disable_checkout ?? false );
 			setWebhookSecret( result.webhook_secret ?? '' );
-			setSettingsNotice( {
-				status: 'success',
-				message: __( 'Settings saved.', 'woocommerce-gateway-stripe' ),
-			} );
+			// No success notice: the global Save changes flow already shows a page-level toast.
 		} catch ( err ) {
 			setSettingsNotice( {
 				status: 'error',
@@ -117,7 +119,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 					),
 			} );
 		}
-	}, [ isFeatureEnabled, webhookSecret ] );
+	}, [ isFeatureEnabled, disableCheckout, webhookSecret ] );
 
 	// Expose save function to parent via ref so the global Save changes
 	// button can trigger it alongside the main settings save.
@@ -166,6 +168,21 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 									checked={ isFeatureEnabled }
 									onChange={ setIsFeatureEnabled }
 								/>
+
+								{ isFeatureEnabled && (
+									<CheckboxControl
+										label={ __(
+											'Redirect shoppers to my store to check out',
+											'woocommerce-gateway-stripe'
+										) }
+										help={ __(
+											'When enabled, agents send shoppers to the product page on your store to complete checkout instead of purchasing in the agent. Your products are still discoverable in the agent.',
+											'woocommerce-gateway-stripe'
+										) }
+										checked={ disableCheckout }
+										onChange={ setDisableCheckout }
+									/>
+								) }
 
 								{ isFeatureEnabled && (
 									<>
@@ -282,6 +299,8 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			</LoadableSettingsSection>
 
 			{ isFeatureEnabled && <AgenticCommerceSyncStatus /> }
+
+			{ isFeatureEnabled && <AgenticCommerceFeedPreview /> }
 		</SettingsSection>
 	);
 } );

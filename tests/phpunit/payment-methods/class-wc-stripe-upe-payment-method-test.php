@@ -496,6 +496,30 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
+	 * Payment methods have no description by default, but the standard WooCommerce
+	 * `woocommerce_gateway_description` filter must still fire so third parties can add one.
+	 */
+	public function test_get_description_runs_woocommerce_gateway_description_filter() {
+		$sepa_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::SEPA_DEBIT ];
+		$gateway_id  = WC_Stripe_UPE_Payment_Gateway::ID . '_' . $sepa_method->get_id();
+
+		// No filter hooked: the default description is empty.
+		$this->assertSame( '', $sepa_method->get_description() );
+
+		$received_id = null;
+		$filter      = function ( $description, $id ) use ( &$received_id ) {
+			$received_id = $id;
+			return 'SEPA approval can take a few days.';
+		};
+		add_filter( 'woocommerce_gateway_description', $filter, 10, 2 );
+
+		$this->assertSame( 'SEPA approval can take a few days.', $sepa_method->get_description() );
+		$this->assertSame( $gateway_id, $received_id );
+
+		remove_filter( 'woocommerce_gateway_description', $filter, 10 );
+	}
+
+	/**
 	 * Card payment method is always enabled.
 	 */
 	public function test_card_payment_method_capability_is_always_enabled() {
@@ -905,6 +929,29 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
+	 * The base SEPA token path must fail safely (catchable exception) instead of fataling with a
+	 * TypeError when handed a non-SEPA-shaped PaymentMethod.
+	 *
+	 * Regression for the Adaptive Pricing / Checkout Sessions webhook crash where a raw Bancontact
+	 * PaymentMethod (no `sepa_debit` child) reached create_payment_token_for_user() and
+	 * set_fingerprint( null ) fataled.
+	 *
+	 * @return void
+	 */
+	public function test_create_payment_token_for_user_throws_on_missing_sepa_fingerprint() {
+		$payment_method = new WC_Stripe_UPE_Payment_Method_Sepa();
+
+		// A raw Bancontact PaymentMethod has no sepa_debit child.
+		$bancontact_payment_method = (object) [
+			'id'   => 'pm_mock_bancontact',
+			'type' => WC_Stripe_Payment_Methods::BANCONTACT,
+		];
+
+		$this->expectException( WC_Stripe_Exception::class );
+		$payment_method->create_payment_token_for_user( 1, $bancontact_payment_method );
+	}
+
+	/**
 	 * Test for `update_payment_token` method.
 	 *
 	 * @return void
@@ -1174,11 +1221,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	/**
 	 * @dataProvider provide_test_is_available_for_billing_country
 	 *
-	 * @param string[] $supported_billing_countries Supported billing countries to seed on the method.
-	 * @param string   $country_code                Billing country to check.
-	 * @param bool     $expected                    Expected return value.
+	 * @param string[]    $supported_billing_countries Supported billing countries to seed on the method.
+	 * @param string|null $country_code                Billing country to check.
+	 * @param bool        $expected                    Expected return value.
 	 */
-	public function test_is_available_for_billing_country( array $supported_billing_countries, string $country_code, bool $expected ): void {
+	public function test_is_available_for_billing_country( array $supported_billing_countries, ?string $country_code, bool $expected ): void {
 		$method = $this->make_method_with_billing_countries( $supported_billing_countries );
 
 		$this->assertSame( $expected, $method->is_available_for_billing_country( $country_code ) );
@@ -1186,27 +1233,47 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 
 	public function provide_test_is_available_for_billing_country(): array {
 		return [
-			'empty list permits any country (US)' => [
+			'empty list permits any country (US)'    => [
 				[],
 				'US',
 				true,
 			],
-			'empty list permits any country (ZZ)' => [
+			'empty list permits any country (ZZ)'    => [
 				[],
 				'ZZ',
 				true,
 			],
-			'populated list matches'              => [
+			'empty list permits unknown country'     => [
+				[],
+				'',
+				true,
+			],
+			'populated list rejects unknown country' => [
+				[ 'US', 'CA' ],
+				'',
+				false,
+			],
+			'empty list permits null country'        => [
+				[],
+				null,
+				true,
+			],
+			'populated list rejects null country'    => [
+				[ 'US', 'CA', 'GB' ],
+				null,
+				false,
+			],
+			'populated list matches'                 => [
 				[ 'US', 'CA' ],
 				'CA',
 				true,
 			],
-			'populated list rejects miss'         => [
+			'populated list rejects miss'            => [
 				[ 'US', 'CA' ],
 				'GB',
 				false,
 			],
-			'case-sensitive comparison'           => [
+			'case-sensitive comparison'              => [
 				[ 'US' ],
 				'us',
 				true,

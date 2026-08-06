@@ -1,8 +1,11 @@
 import { React } from 'react';
 import {
-	RECONNECT_BANNER,
+	AP_ONLY_BANNER,
 	BNPL_PROMOTION_BANNER,
 	OC_PROMOTION_BANNER,
+	OCS_AP_BANNER,
+	OCS_ONLY_BANNER,
+	RECONNECT_BANNER,
 	STRIPE_TAX_BANNER,
 } from '../constants';
 import { ReConnectAccountBanner } from 'wcstripe/settings/payment-settings/promotional-banner/re-connect-account-banner';
@@ -10,6 +13,9 @@ import { BNPLPromotionBanner } from 'wcstripe/settings/payment-settings/promotio
 import { BannerCard } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
 import { OCPromotionBanner } from 'wcstripe/settings/payment-settings/promotional-banner/oc-promotion-banner';
 import { StripeTaxBanner } from 'wcstripe/settings/payment-settings/promotional-banner/stripe-tax-banner';
+import { OCSAndAPBanner } from 'wcstripe/settings/payment-settings/promotional-banner/ocs-ap-banner';
+import { APOnlyBanner } from 'wcstripe/settings/payment-settings/promotional-banner/ap-only-banner';
+import { OCSOnlyBanner } from 'wcstripe/settings/payment-settings/promotional-banner/ocs-only-banner';
 
 const PromotionalBanner = ( {
 	setShowPromotionalBanner,
@@ -20,6 +26,27 @@ const PromotionalBanner = ( {
 	switch ( promotionalBannerType ) {
 		case RECONNECT_BANNER:
 			BannerContent = <ReConnectAccountBanner />;
+			break;
+		case OCS_AP_BANNER:
+			BannerContent = (
+				<OCSAndAPBanner
+					setShowPromotionalBanner={ setShowPromotionalBanner }
+				/>
+			);
+			break;
+		case AP_ONLY_BANNER:
+			BannerContent = (
+				<APOnlyBanner
+					setShowPromotionalBanner={ setShowPromotionalBanner }
+				/>
+			);
+			break;
+		case OCS_ONLY_BANNER:
+			BannerContent = (
+				<OCSOnlyBanner
+					setShowPromotionalBanner={ setShowPromotionalBanner }
+				/>
+			);
 			break;
 		case STRIPE_TAX_BANNER:
 			BannerContent = (

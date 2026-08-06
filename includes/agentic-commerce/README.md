@@ -341,3 +341,26 @@ Common patterns:
 - **Categories:** `Electronics > Computers > Laptops`
 - **Variants:** `Size:Large,Color:Blue`
 - **Shipping:** `US:CA:Express:1-2:12.99 USD`
+
+## Checkout Mode (embedded vs. redirect)
+
+Stripe's feed supports two checkout behaviors per product via the `disable_checkout` field — the same feed and Files API delivery serve both, so this is not a separate ingestion path:
+
+- **Embedded / delegated checkout** (`disable_checkout=false`, the default): the shopper completes the purchase inside the AI agent.
+- **Feed-only / redirect** (`disable_checkout=true`): the product is still syndicated for discovery, but the agent sends the shopper to the product's `link` URL to check out on the store.
+
+The store-wide default is set in **Stripe settings → Agentic commerce → "Redirect shoppers to my store to check out"** (option `wc_stripe_agentic_commerce_disable_checkout`). Per-product overrides go through a filter:
+
+```php
+add_filter(
+    'woocommerce_agentic_commerce_disable_checkout',
+    function ( bool $disabled, WC_Product $product, ?WC_Product $parent ): bool {
+        // e.g. redirect only for a specific category.
+        return has_term( 'made-to-order', 'product_cat', $product->get_id() ) ? true : $disabled;
+    },
+    10,
+    3
+);
+```
+
+> The Stripe-prefixed `wc_stripe_agentic_commerce_disable_checkout` filter is **deprecated since 10.9.0** in favour of the shareable `woocommerce_agentic_commerce_disable_checkout` above (mirroring the `woocommerce_agentic_commerce_should_sync_product` migration). Existing hooks on the old name still run — they seed the new filter's default — but emit a deprecation notice.

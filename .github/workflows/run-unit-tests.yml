@@ -23,7 +23,7 @@ jobs:
       PHP_VERSION: ${{ inputs.php-version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Setup PHP and Node
         uses: ./.github/actions/setup-env

@@ -26,6 +26,31 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Store Checkout Session context that matches the current WooCommerce cart.
+	 *
+	 * @param string $session_id Stripe Checkout Session ID.
+	 * @param array  $overrides Context values to override.
+	 * @return void
+	 */
+	private function store_checkout_session_context_for_current_cart( string $session_id, array $overrides = [] ): void {
+		WC()->cart->calculate_totals();
+
+		$currency = get_woocommerce_currency();
+
+		WC_Stripe_Checkout_Session_Context::set_context(
+			$session_id,
+			array_merge(
+				[
+					'amount'   => WC_Stripe_Helper::get_stripe_amount( (float) WC()->cart->get_total( 'edit' ), $currency ),
+					'currency' => strtolower( $currency ),
+					'order_id' => 0,
+				],
+				$overrides
+			)
+		);
+	}
+
+	/**
 	 * Tests for the `create_checkout_session` method.
 	 *
 	 * @param bool        $user_is_logged_in          Whether the user is logged in or not.
@@ -106,6 +131,9 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 			throw $e;
 		} finally {
 			// Clean up.
+			if ( ! empty( $checkout_session_response->id ) ) {
+				WC_Stripe_Checkout_Session_Context::delete_context( $checkout_session_response->id );
+			}
 			remove_filter( 'pre_http_request', $test_request, 10, 3 );
 			Ajax_Test_Helper::remove_hooks();
 		}
@@ -142,6 +170,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 12.34 ] );
 		$product->save();
 		WC()->cart->add_to_cart( $product->get_id(), 2 );
+		WC()->cart->calculate_totals();
 
 		$captured_request = null;
 		$capture_body     = static function ( $request, $api ) use ( &$captured_request ) {
@@ -189,6 +218,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 		}
 
 		$this->assertIsArray( $captured_request );
+		$this->assertSame( 'elements', $captured_request['ui_mode'] );
 		$this->assertArrayHasKey( 'line_items', $captured_request );
 		$this->assertCount( 1, $captured_request['line_items'] );
 
@@ -198,6 +228,132 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 		$this->assertSame( __( 'Cart total', 'woocommerce-gateway-stripe' ), $line_item['price_data']['product_data']['name'] );
 		$this->assertSame( $expected_amount, $line_item['price_data']['unit_amount'] );
 		$this->assertSame( 1, $line_item['quantity'] );
+	}
+
+	/**
+	 * Checkout Session creation stores the owner and cart total used by later update/order-link validation.
+	 */
+	public function test_create_checkout_session_stores_checkout_session_context(): void {
+		Ajax_Test_Helper::init_hooks();
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 12.34 ] );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 2 );
+		WC()->cart->calculate_totals();
+
+		$expected_amount            = WC_Stripe_Helper::get_stripe_amount( (float) WC()->cart->get_total( 'edit' ), get_woocommerce_currency() );
+		$is_checkout_during_totals  = null;
+		$track_totals_recalculation = static function () use ( &$is_checkout_during_totals ): void {
+			$is_checkout_during_totals = is_checkout();
+		};
+		add_action( 'woocommerce_before_calculate_totals', $track_totals_recalculation );
+
+		$session_id   = 'cs_test_context_create';
+		$test_request = static function ( $return_value, $parsed_args, $url ) use ( $session_id ) {
+			if ( 'https://api.stripe.com/v1/checkout/sessions' === $url ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						(object) [
+							'client_secret' => 'cs_test_secret',
+							'id'            => $session_id,
+						]
+					),
+				];
+			}
+
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_create_checkout_session_nonce' );
+
+		$ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
+
+		try {
+			ob_start();
+			$ajax_handler->create_checkout_session();
+			ob_end_clean();
+		} finally {
+			remove_action( 'woocommerce_before_calculate_totals', $track_totals_recalculation );
+			remove_filter( 'pre_http_request', $test_request, 10, 3 );
+			Ajax_Test_Helper::remove_hooks();
+		}
+
+		$context = WC_Stripe_Checkout_Session_Context::get_context( $session_id );
+
+		$this->assertIsArray( $context );
+		$this->assertNotEmpty( $context['owner_key'] );
+		$this->assertNotEmpty( $context['owner_keys'] );
+		$this->assertSame( $expected_amount, $context['amount'] );
+		$this->assertSame( strtolower( get_woocommerce_currency() ), $context['currency'] );
+		$this->assertSame( 0, $context['order_id'] );
+		$this->assertTrue( $is_checkout_during_totals );
+
+		WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+	}
+
+	/**
+	 * Checkout Session updates recalculate cart totals in the same checkout context as WooCommerce's checkout AJAX.
+	 */
+	public function test_update_checkout_session_recalculates_totals_in_checkout_context(): void {
+		Ajax_Test_Helper::init_hooks();
+
+		$post_before = $_POST;
+		$session_id  = 'cs_test_checkout_context_update';
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+
+		$this->store_checkout_session_context_for_current_cart( $session_id );
+
+		$is_checkout_during_totals  = null;
+		$track_totals_recalculation = static function () use ( &$is_checkout_during_totals ): void {
+			$is_checkout_during_totals = is_checkout();
+		};
+		add_action( 'woocommerce_before_calculate_totals', $track_totals_recalculation );
+
+		$test_request = function ( $return_value, $parsed_args, $url ) use ( $session_id ) {
+			if ( is_string( $url ) && false !== strpos( $url, 'checkout/sessions/' . $session_id ) ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( (object) [ 'id' => $session_id ] ),
+				];
+			}
+
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$_REQUEST['_ajax_nonce']      = wp_create_nonce( 'wc_stripe_update_checkout_session_nonce' );
+		$_POST['checkout_session_id'] = $session_id;
+
+		$ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
+
+		try {
+			ob_start();
+			$ajax_handler->update_checkout_session();
+			$output = ob_get_clean();
+		} finally {
+			$_POST = $post_before;
+			remove_action( 'woocommerce_before_calculate_totals', $track_totals_recalculation );
+			remove_filter( 'pre_http_request', $test_request, 10, 3 );
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			Ajax_Test_Helper::remove_hooks();
+		}
+
+		$response = json_decode( $output );
+
+		$this->assertTrue( $response->success );
+		$this->assertTrue( $is_checkout_during_totals );
 	}
 
 	/**
@@ -245,6 +401,10 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 			add_filter( 'pre_http_request', $test_request, 10, 3 );
 		}
 
+		if ( $is_valid_nonce && $set_checkout_session_id && '' !== $checkout_session_id && null !== $checkout_session_response ) {
+			$this->store_checkout_session_context_for_current_cart( $checkout_session_id );
+		}
+
 		$_REQUEST['_ajax_nonce'] = $is_valid_nonce ? wp_create_nonce( 'wc_stripe_update_checkout_session_nonce' ) : 'invalid_nonce_value';
 
 		if ( $set_checkout_session_id ) {
@@ -264,6 +424,9 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 			throw $e;
 		} finally {
 			$_POST = $post_before;
+			if ( '' !== $checkout_session_id ) {
+				WC_Stripe_Checkout_Session_Context::delete_context( $checkout_session_id );
+			}
 			if ( null !== $test_request ) {
 				remove_filter( 'pre_http_request', $test_request, 10, 3 );
 			}
@@ -272,6 +435,151 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 
 		$response = json_decode( $output );
 		$this->assertEquals( (object) $expected_response, $response );
+	}
+
+	/**
+	 * Checkout Session updates require context from a session created by this browser session.
+	 */
+	public function test_update_checkout_session_requires_stored_context(): void {
+		Ajax_Test_Helper::init_hooks();
+
+		$post_before = $_POST;
+		$session_id  = 'cs_test_missing_context';
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+
+		$session_update_called = false;
+		$test_request          = function ( $return_value, $parsed_args, $url ) use ( $session_id, &$session_update_called ) {
+			if ( is_string( $url ) && false !== strpos( $url, 'checkout/sessions/' . $session_id ) ) {
+				$session_update_called = true;
+			}
+
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$_REQUEST['_ajax_nonce']      = wp_create_nonce( 'wc_stripe_update_checkout_session_nonce' );
+		$_POST['checkout_session_id'] = $session_id;
+
+		$ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
+
+		try {
+			ob_start();
+			$ajax_handler->update_checkout_session();
+			$output = ob_get_clean();
+		} finally {
+			$_POST = $post_before;
+			remove_filter( 'pre_http_request', $test_request, 10, 3 );
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			Ajax_Test_Helper::remove_hooks();
+		}
+
+		$response = json_decode( $output );
+		$this->assertFalse( $response->success );
+		$this->assertSame( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $response->data->message );
+		$this->assertFalse( $session_update_called );
+	}
+
+	/**
+	 * A Checkout Session cannot be updated after it has been linked to an order.
+	 */
+	public function test_update_checkout_session_rejects_order_linked_context(): void {
+		Ajax_Test_Helper::init_hooks();
+
+		$post_before = $_POST;
+		$session_id  = 'cs_test_locked_context';
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+
+		$this->store_checkout_session_context_for_current_cart( $session_id, [ 'order_id' => 123 ] );
+
+		$session_update_called = false;
+		$test_request          = function ( $return_value, $parsed_args, $url ) use ( $session_id, &$session_update_called ) {
+			if ( is_string( $url ) && false !== strpos( $url, 'checkout/sessions/' . $session_id ) ) {
+				$session_update_called = true;
+			}
+
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$_REQUEST['_ajax_nonce']      = wp_create_nonce( 'wc_stripe_update_checkout_session_nonce' );
+		$_POST['checkout_session_id'] = $session_id;
+
+		$ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
+
+		try {
+			ob_start();
+			$ajax_handler->update_checkout_session();
+			$output = ob_get_clean();
+		} finally {
+			$_POST = $post_before;
+			remove_filter( 'pre_http_request', $test_request, 10, 3 );
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			Ajax_Test_Helper::remove_hooks();
+		}
+
+		$response = json_decode( $output );
+		$this->assertFalse( $response->success );
+		$this->assertSame( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $response->data->message );
+		$this->assertFalse( $session_update_called );
+	}
+
+	/**
+	 * A browser session cannot update another browser session's Checkout Session.
+	 */
+	public function test_update_checkout_session_rejects_context_owned_by_another_session(): void {
+		Ajax_Test_Helper::init_hooks();
+
+		$post_before = $_POST;
+		$session_id  = 'cs_test_other_owner';
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+
+		$this->store_checkout_session_context_for_current_cart( $session_id, [ 'owner_key' => 'session:another-customer' ] );
+
+		$session_update_called = false;
+		$test_request          = function ( $return_value, $parsed_args, $url ) use ( $session_id, &$session_update_called ) {
+			if ( is_string( $url ) && false !== strpos( $url, 'checkout/sessions/' . $session_id ) ) {
+				$session_update_called = true;
+			}
+
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$_REQUEST['_ajax_nonce']      = wp_create_nonce( 'wc_stripe_update_checkout_session_nonce' );
+		$_POST['checkout_session_id'] = $session_id;
+
+		$ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
+
+		try {
+			ob_start();
+			$ajax_handler->update_checkout_session();
+			$output = ob_get_clean();
+		} finally {
+			$_POST = $post_before;
+			remove_filter( 'pre_http_request', $test_request, 10, 3 );
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			Ajax_Test_Helper::remove_hooks();
+		}
+
+		$response = json_decode( $output );
+		$this->assertFalse( $response->success );
+		$this->assertSame( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $response->data->message );
+		$this->assertFalse( $session_update_called );
 	}
 
 	/**
@@ -475,6 +783,111 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The Checkout Session request should opt into Stripe backfilling the Customer's address (customer_update)
+	 * only when the logged-in buyer has no saved billing address, to avoid overwriting it on every checkout.
+	 *
+	 * @param bool $has_saved_billing_address Whether the user has a saved billing address.
+	 * @param bool $expect_customer_update    Whether customer_update should be present in the request.
+	 * @dataProvider provide_test_customer_update_based_on_saved_address
+	 */
+	public function test_customer_update_based_on_saved_address(
+		bool $has_saved_billing_address,
+		bool $expect_customer_update
+	): void {
+		Ajax_Test_Helper::init_hooks();
+
+		wp_set_current_user( 1 );
+		WC()->customer = new \WC_Customer( 1 );
+
+		if ( $has_saved_billing_address ) {
+			update_user_meta( 1, 'billing_address_1', '123 Main St' );
+		} else {
+			delete_user_meta( 1, 'billing_address_1' );
+		}
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+
+		$captured_request = null;
+		$capture_body     = static function ( $request, $api ) use ( &$captured_request ) {
+			if ( 'checkout/sessions' === $api ) {
+				$captured_request = $request;
+			}
+			return $request;
+		};
+		add_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+
+		$test_request = static function ( $return_value, $parsed_args, $url ) {
+			if ( strpos( $url, '/v1/customers' ) !== false ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( (object) [ 'id' => 'cus_123' ] ),
+				];
+			}
+			if ( 'https://api.stripe.com/v1/checkout/sessions' === $url ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						(object) [
+							'client_secret' => 'cs_test_secret',
+							'id'            => 'cs_test_123',
+						]
+					),
+				];
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_create_checkout_session_nonce' );
+
+		$ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
+
+		try {
+			ob_start();
+			$ajax_handler->create_checkout_session();
+			ob_end_clean();
+		} finally {
+			remove_filter( 'pre_http_request', $test_request, 10, 3 );
+			remove_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+			delete_user_meta( 1, 'billing_address_1' );
+			Ajax_Test_Helper::remove_hooks();
+		}
+
+		$this->assertIsArray( $captured_request );
+
+		if ( $expect_customer_update ) {
+			$this->assertArrayHasKey( 'customer_update', $captured_request );
+			$this->assertSame( 'auto', $captured_request['customer_update']['address'] );
+		} else {
+			$this->assertArrayNotHasKey( 'customer_update', $captured_request );
+		}
+	}
+
+	/**
+	 * Data provider for `test_customer_update_based_on_saved_address`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_customer_update_based_on_saved_address(): array {
+		return [
+			'no saved billing address'  => [
+				'has_saved_billing_address' => false,
+				'expect_customer_update'    => true,
+			],
+			'has saved billing address' => [
+				'has_saved_billing_address' => true,
+				'expect_customer_update'    => false,
+			],
+		];
+	}
+
+	/**
 	 * Data provider for `test_create_checkout_session`.
 	 *
 	 * @return array
@@ -509,7 +922,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 		];
 
 		return [
-			'invalid nonce'               => [
+			'invalid nonce'                                => [
 				'user is logged-in'         => true,
 				'is valid nonce'            => false,
 				'customer data'             => [],
@@ -522,20 +935,23 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'missing customer data'       => [
+			// The session is created on page load before the buyer enters billing details, so a logged-in customer
+			// with no saved billing address must still be able to create one (Stripe collects the rest in the form).
+			'logged-in user without saved billing address' => [
 				'user is logged-in'         => true,
 				'is valid nonce'            => true,
 				'customer data'             => [],
 				'is cart empty'             => false,
-				'checkout session response' => null,
+				'checkout session response' => $checkout_session_success,
 				'expected response'         => (object) [
-					'success' => false,
+					'success' => true,
 					'data'    => (object) [
-						'message' => 'Unable to create or retrieve Stripe customer.',
+						'client_secret' => $mocked_secret,
+						'session_id'    => $mocked_session_id,
 					],
 				],
 			],
-			'cart is empty'               => [
+			'cart is empty'                                => [
 				'user is logged-in'         => true,
 				'is valid nonce'            => true,
 				'customer data'             => $customer_data,
@@ -548,7 +964,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'error creating session'      => [
+			'error creating session'                       => [
 				'user is logged-in'         => true,
 				'is valid nonce'            => true,
 				'customer data'             => $customer_data,
@@ -561,7 +977,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'session id is missing'       => [
+			'session id is missing'                        => [
 				'user is logged-in'         => true,
 				'is valid nonce'            => true,
 				'customer data'             => $customer_data,
@@ -576,7 +992,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'client secret is missing'    => [
+			'client secret is missing'                     => [
 				'user is logged-in'         => true,
 				'is valid nonce'            => true,
 				'customer data'             => $customer_data,
@@ -589,7 +1005,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'successful creation'         => [
+			'successful creation'                          => [
 				'user is logged-in'         => true,
 				'is valid nonce'            => true,
 				'customer data'             => $customer_data,
@@ -603,7 +1019,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'successful creation (guest)' => [
+			'successful creation (guest)'                  => [
 				'user is logged-in'         => false,
 				'is valid nonce'            => true,
 				'customer data'             => $customer_data,

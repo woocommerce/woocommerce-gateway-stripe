@@ -1,20 +1,20 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
-import { admin, api, payments, products, user } from '../../utils';
+import { api, payments, products, user } from '../../utils';
 
 const {
 	emptyCart,
 	clickAddToCartButton,
+	selectSubscriptionOption,
 	setupOptimizedCheckout,
 	fillOCDetails,
 	clickPlaceOrder,
+	getCartTotal,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
 let productId;
-
-// Subscription product ($9.99) + flat-rate shipping ($10.00).
-const EXPECTED_ORDER_TOTAL = '19.99';
 
 test.describe( 'Optimized Checkout subscription purchase tests @subscriptions', () => {
 	test.beforeAll( async () => {
@@ -62,7 +62,8 @@ test.describe( 'Optimized Checkout subscription purchase tests @subscriptions', 
 		// without letting the helper reset the cart to the default product.
 		await emptyCart( page );
 		await page.goto( `?p=${ productId }` );
-		await clickAddToCartButton( page );
+		await selectSubscriptionOption( page );
+		await clickAddToCartButton( page, 'Sign up' );
 
 		await setupOptimizedCheckout( page, checkoutType, {
 			timeout: 10000,
@@ -70,18 +71,14 @@ test.describe( 'Optimized Checkout subscription purchase tests @subscriptions', 
 		} );
 		await fillOCDetails( page, config.get( 'cards.basic' ), checkoutType );
 
-		await clickPlaceOrder( page );
-		await page.waitForURL( '**/checkout/order-received/**' );
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
+		const expectedTotal = await getCartTotal( page );
 
-		// As the admin, confirm the order was charged the expected amount.
-		const orderId = admin.getOrderIdFromOrderReceivedUrl( page.url() );
-		await admin.verifyOrderChargedAmount(
+		await clickPlaceOrder( page );
+
+		await waitForOrderReceivedPageAndConfirmExpectedTotal(
 			browser,
-			orderId,
-			EXPECTED_ORDER_TOTAL
+			page,
+			expectedTotal
 		);
 	}
 

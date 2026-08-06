@@ -393,6 +393,33 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_result'       => 'Via Dummy card ending in 0000',
 			],
+			'Google Pay card ending in 4040'          => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand'  => 'visa',
+					'last4'  => '4040',
+					'wallet' => [ 'type' => 'google_pay' ],
+				],
+				'expected_result'       => 'Via Google Pay (Visa) ending in 4040',
+			],
+			'Apple Pay card ending in 4444'           => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand'  => 'mastercard',
+					'last4'  => '4444',
+					'wallet' => [ 'type' => 'apple_pay' ],
+				],
+				'expected_result'       => 'Via Apple Pay (MasterCard) ending in 4444',
+			],
+			'Link wallet card stays bare'             => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand'  => 'visa',
+					'last4'  => '1881',
+					'wallet' => [ 'type' => 'link' ],
+				],
+				'expected_result'       => 'Via Visa card ending in 1881',
+			],
 			'SEPA Debit ending in 1234'               => [
 				'payment_method_type'   => 'sepa_debit',
 				'payment_method_fields' => [
@@ -540,6 +567,92 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * When a saved token backs the subscription's PaymentMethod, its pinned wallet_type
+	 * is authoritative over the live PaymentMethod's wallet, so the subscription row matches
+	 * the saved-token list.
+	 *
+	 * @see WC_Stripe_Subscriptions_Trait::maybe_render_subscription_payment_method()
+	 * @dataProvider provide_test_render_subscription_prefers_saved_token_wallet_type
+	 *
+	 * @param string $token_wallet_type   wallet_type pinned on the saved token.
+	 * @param string $live_wallet_type    wallet type reported by the live Stripe PaymentMethod.
+	 * @param string $expected_result     Expected rendered row text.
+	 */
+	public function test_render_subscription_prefers_saved_token_wallet_type( string $token_wallet_type, string $live_wallet_type, string $expected_result ) {
+		$user_id           = $this->factory()->user->create();
+		$payment_method_id = 'pm_mock_shared_card';
+
+		$mock_subscription = WC_Helper_Order::create_order( $user_id );
+		$mock_subscription->set_payment_method( 'stripe' );
+		$mock_subscription->update_meta_data( '_stripe_source_id', $payment_method_id );
+		$mock_subscription->update_meta_data( '_stripe_customer_id', 'cus_mock' );
+		$mock_subscription->save();
+
+		// Saved token for the same card, pinned to $token_wallet_type.
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( $payment_method_id );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+		$token->set_wallet_type( $token_wallet_type );
+		$token->set_user_id( $user_id );
+		$token->save();
+
+		$card_fields = [
+			'brand' => 'visa',
+			'last4' => '4242',
+		];
+		if ( '' !== $live_wallet_type ) {
+			$card_fields['wallet'] = [ 'type' => $live_wallet_type ];
+		}
+
+		$mock_payment_method_data = [
+			'id'       => $payment_method_id,
+			'type'     => WC_Stripe_Payment_Methods::CARD,
+			'customer' => 'cus_mock',
+			'card'     => $card_fields,
+		];
+
+		$expected_url            = '/v1/payment_methods/' . $payment_method_id;
+		$mock_payment_method_api = function ( $preempt, $request_args, $url ) use ( $expected_url, $mock_payment_method_data ) {
+			if ( str_ends_with( $url, $expected_url ) ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode( $mock_payment_method_data ),
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+				];
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $mock_payment_method_api, 10, 3 );
+
+		$result = $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription );
+
+		remove_filter( 'pre_http_request', $mock_payment_method_api );
+
+		$this->assertEquals( $expected_result, $result );
+	}
+
+	/**
+	 * Data provider for test_render_subscription_prefers_saved_token_wallet_type.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_render_subscription_prefers_saved_token_wallet_type(): array {
+		return [
+			'pinned bare card wins over live wallet' => [ '', 'google_pay', 'Via Visa card ending in 4242' ],
+			'pinned wallet wins over bare live card' => [ 'google_pay', '', 'Via Google Pay (Visa) ending in 4242' ],
+			'pinned wallet matches live wallet'      => [ 'apple_pay', 'apple_pay', 'Via Apple Pay (Visa) ending in 4242' ],
+		];
+	}
+
+	/**
 	 * Tests zero amount refunds.
 	 */
 	public function test_process_refund_on_zero_amount() {
@@ -607,7 +720,172 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
 		$this->assertTrue( $result );
 
+		// A direct call with no WC refund record (e.g. voiding via cancel_payment) must not fatal.
+		$this->assertCount( 0, wc_get_order( $order_id )->get_refunds() );
+
 		remove_filter( 'pre_http_request', $callback );
+	}
+
+	/**
+	 * Tests that process_refund stores the Stripe refund ID on the WC refund record.
+	 */
+	public function test_process_refund_stores_refund_id_on_refund_record() {
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		// WC core creates and saves the refund record before invoking the gateway.
+		$refund = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 10.00,
+				'reason'   => 'Customer requested',
+			]
+		);
+		$this->assertNotWPError( $refund );
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 're_123',
+						'object'   => 'refund',
+						'amount'   => 1000,
+						'currency' => 'usd',
+						'charge'   => 'ch_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
+		$this->assertTrue( $result );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$reloaded_refund = wc_get_order( $refund->get_id() );
+		$this->assertSame( 're_123', $reloaded_refund->get_meta( $refund_meta_key ) );
+		$this->assertSame( 're_123', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( wc_get_order( $order_id ) ) );
+	}
+
+	/**
+	 * Tests that multiple partial refunds each keep their own Stripe refund ID.
+	 */
+	public function test_process_refund_multiple_refunds_keep_distinct_ids() {
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$mock_refund_id     = 're_1';
+		$mock_refund_amount = 500;
+
+		$callback = function ( $preempt, $request_args, $url ) use ( &$mock_refund_id, &$mock_refund_amount ) {
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => $mock_refund_id,
+						'object'   => 'refund',
+						'amount'   => $mock_refund_amount,
+						'currency' => 'usd',
+						'charge'   => 'ch_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$wc_refund_1 = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 5.00,
+			]
+		);
+		$this->assertNotWPError( $wc_refund_1 );
+		$this->assertTrue( $this->gateway->process_refund( $order_id, 5.00 ) );
+
+		$mock_refund_id     = 're_2';
+		$mock_refund_amount = 700;
+
+		$wc_refund_2 = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 7.00,
+			]
+		);
+		$this->assertNotWPError( $wc_refund_2 );
+		$this->assertTrue( $this->gateway->process_refund( $order_id, 7.00 ) );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$this->assertSame( 're_1', wc_get_order( $wc_refund_1->get_id() )->get_meta( $refund_meta_key ) );
+		$this->assertSame( 're_2', wc_get_order( $wc_refund_2->get_id() )->get_meta( $refund_meta_key ) );
+		$this->assertSame( 're_2', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( wc_get_order( $order_id ) ) );
+	}
+
+	/**
+	 * Tests that a refund record whose amount does not match the Stripe response is left untagged.
+	 */
+	public function test_process_refund_skips_refund_record_on_amount_mismatch() {
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		// Record for a different amount than what Stripe reports refunded.
+		$refund = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 5.00,
+			]
+		);
+		$this->assertNotWPError( $refund );
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 're_123',
+						'object'   => 'refund',
+						'amount'   => 1000,
+						'currency' => 'usd',
+						'charge'   => 'ch_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00 );
+		$this->assertTrue( $result );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$this->assertSame( '', wc_get_order( $refund->get_id() )->get_meta( $refund_meta_key ) );
+		$this->assertSame( 're_123', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( wc_get_order( $order_id ) ) );
 	}
 
 	/**
@@ -1295,6 +1573,146 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected_fee' => 1.00,
 				'expected_net' => 49.00,
 			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_test_display_order_currency_cases
+	 *
+	 * @param string $order_currency                   The order currency.
+	 * @param string $stripe_currency                  The Stripe currency.
+	 * @param bool   $expect_stripe_currency_in_output Whether the Stripe currency is expected in the output.
+	 */
+	public function test_display_order_fee( string $order_currency, string $stripe_currency, bool $expect_stripe_currency_in_output ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( $order_currency );
+		$order->save();
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_fee( $order, '0.59' );
+		$order_helper->update_stripe_currency( $order, $stripe_currency );
+		$order->save();
+
+		ob_start();
+		$this->gateway->display_order_fee( $order->get_id() );
+		$output = ob_get_clean();
+
+		if ( $expect_stripe_currency_in_output ) {
+			$this->assertStringContainsString( ' ' . $stripe_currency, $output );
+		} else {
+			$this->assertStringNotContainsString( $stripe_currency, $output );
+		}
+	}
+
+	/**
+	 * @dataProvider provide_test_display_order_currency_cases
+	 *
+	 * @param string $order_currency                   The order currency.
+	 * @param string $stripe_currency                  The Stripe currency.
+	 * @param bool   $expect_stripe_currency_in_output Whether the Stripe currency is expected in the output.
+	 */
+	public function test_display_order_payout( string $order_currency, string $stripe_currency, bool $expect_stripe_currency_in_output ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( $order_currency );
+		$order->save();
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_net( $order, '19.41' );
+		$order_helper->update_stripe_currency( $order, $stripe_currency );
+		$order->save();
+
+		ob_start();
+		$this->gateway->display_order_payout( $order->get_id() );
+		$output = ob_get_clean();
+
+		if ( $expect_stripe_currency_in_output ) {
+			$this->assertStringContainsString( ' ' . $stripe_currency, $output );
+		} else {
+			$this->assertStringNotContainsString( $stripe_currency, $output );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_display_order_fee()} and {@see test_display_order_payout()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_display_order_currency_cases() {
+		return [
+			'same currency'      => [ 'USD', 'USD', false ],
+			'different currency' => [ 'USD', 'EUR', true ],
+		];
+	}
+
+	/**
+	 * display_order_fee() returns early and outputs nothing when the order does not exist.
+	 */
+	public function test_display_order_fee_invalid_order_returns_early() {
+		ob_start();
+		$this->gateway->display_order_fee( 999999 );
+		$output = ob_get_clean();
+
+		$this->assertEmpty( $output );
+	}
+
+	/**
+	 * display_order_payout() returns early and outputs nothing when the order does not exist.
+	 */
+	public function test_display_order_payout_invalid_order_returns_early() {
+		ob_start();
+		$this->gateway->display_order_payout( 999999 );
+		$output = ob_get_clean();
+
+		$this->assertEmpty( $output );
+	}
+
+	/**
+	 * Tests that generate_payment_request includes the shipping phone in the shipping object so it
+	 * reaches Stripe for risk decisioning (STRIPE-973).
+	 *
+	 * @dataProvider provide_test_generate_payment_request_shipping_phone_cases
+	 *
+	 * @param string $phone        The order shipping phone.
+	 * @param bool   $expect_phone Whether the shipping phone is expected in the request.
+	 */
+	public function test_generate_payment_request_includes_shipping_phone( string $phone, bool $expect_phone ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_shipping_first_name( 'Jane' );
+		$order->set_shipping_last_name( 'Doe' );
+		$order->set_shipping_address_1( '123 Ship St' );
+		$order->set_shipping_city( 'Shipville' );
+		$order->set_shipping_state( 'CA' );
+		$order->set_shipping_postcode( '90210' );
+		$order->set_shipping_country( 'US' );
+		$order->set_shipping_phone( $phone );
+		$order->save();
+
+		$prepared_payment_method = (object) [
+			'customer'       => 'cus_123',
+			'source'         => null,
+			'payment_method' => 'pm_123',
+		];
+
+		$post_data = $this->gateway->generate_payment_request( $order, $prepared_payment_method );
+
+		$this->assertArrayHasKey( 'shipping', $post_data, 'Shipping should be included when a shipping postcode is present' );
+		if ( $expect_phone ) {
+			$this->assertArrayHasKey( 'phone', $post_data['shipping'], 'Shipping object should include the shipping phone' );
+			$this->assertEquals( $phone, $post_data['shipping']['phone'], 'Shipping phone should match the order shipping phone' );
+		} else {
+			$this->assertArrayNotHasKey( 'phone', $post_data['shipping'], 'Shipping object should omit an empty phone' );
+		}
+	}
+
+	/**
+	 * Data provider for test_generate_payment_request_includes_shipping_phone.
+	 *
+	 * @return array
+	 */
+	public function provide_test_generate_payment_request_shipping_phone_cases(): array {
+		return [
+			'phone present' => [ '+1 555-333-4444', true ],
+			'phone empty'   => [ '', false ],
 		];
 	}
 }

@@ -108,6 +108,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
+					'link_button_size'                      => [
+						'description'       => __( 'Link by Stripe button size.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'enum'              => array_keys( $form_fields['link_button_size']['options'] ?? [] ),
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'link_button_locations'                 => [
+						'description'       => __( 'Link by Stripe button locations that should be enabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'array',
+						'items'             => [
+							'type' => 'string',
+							'enum' => array_keys( $form_fields['link_button_locations']['options'] ?? [] ),
+						],
+						'validate_callback' => 'rest_validate_request_arg',
+					],
 					'is_express_checkout_enabled'           => [
 						'description'       => __( 'If Stripe express checkouts should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
@@ -251,6 +266,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > Express checkouts */
 				'amazon_pay_button_size'                => $this->gateway->get_validated_option( 'amazon_pay_button_size' ),
 				'amazon_pay_button_locations'           => $this->gateway->get_validated_option( 'amazon_pay_button_locations' ),
+				'link_button_size'                      => $this->gateway->get_validated_option( 'link_button_size' ),
+				'link_button_locations'                 => $this->gateway->get_validated_option( 'link_button_locations' ),
 				'is_express_checkout_enabled'           => $this->gateway->is_express_checkout_enabled(),
 				'express_checkout_button_type'          => $this->gateway->get_validated_option( 'express_checkout_button_type' ),
 				'express_checkout_button_theme'         => $this->gateway->get_validated_option( 'express_checkout_button_theme' ),
@@ -298,6 +315,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 		$this->update_express_checkout_settings( $request );
 		$this->update_amazon_pay_settings( $request );
+		$this->update_link_settings( $request );
 
 		/* Settings > Payments & transactions */
 		$this->update_is_manual_capture_enabled( $request );
@@ -329,6 +347,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		// Card is required for Apple Pay and Google Pay.
 		if ( $is_upe_enabled &&
 			$is_express_checkout_enabled &&
+			is_array( $payment_method_ids_to_enable ) &&
 			in_array( WC_Stripe_Payment_Methods::CARD, $payment_method_ids_to_enable, true )
 		) {
 			$payment_method_ids_to_enable = array_merge(
@@ -563,18 +582,33 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return void
 	 */
 	private function update_amazon_pay_settings( WP_REST_Request $request ) {
-		$attributes = [
-			'amazon_pay_button_size'      => 'amazon_pay_button_size',
-			'amazon_pay_button_locations' => 'amazon_pay_button_locations',
-		];
+		$attributes = [ 'amazon_pay_button_size', 'amazon_pay_button_locations' ];
 
-		foreach ( $attributes as $request_key => $attribute ) {
-			if ( null === $request->get_param( $request_key ) ) {
+		foreach ( $attributes as $attribute ) {
+			if ( null === $request->get_param( $attribute ) ) {
 				continue;
 			}
 
-			$value = $request->get_param( $request_key );
-			$this->gateway->update_validated_option( $attribute, $value );
+			$this->gateway->update_validated_option( $attribute, $request->get_param( $attribute ) );
+		}
+	}
+
+	/**
+	 * Updates appearance attributes of the Link by Stripe button.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 *
+	 * @return void
+	 */
+	private function update_link_settings( WP_REST_Request $request ) {
+		$attributes = [ 'link_button_size', 'link_button_locations' ];
+
+		foreach ( $attributes as $attribute ) {
+			if ( null === $request->get_param( $attribute ) ) {
+				continue;
+			}
+
+			$this->gateway->update_validated_option( $attribute, $request->get_param( $attribute ) );
 		}
 	}
 
@@ -688,9 +722,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		// Map of supported request parameters to the corresponding option names.
 		// For now, parameters map directly to option names, but we should decouple them in the future.
 		$notice_parameters = [
+			'wc_stripe_show_ap_only_banner'             => 'wc_stripe_show_ap_only_banner',
 			'wc_stripe_show_bnpl_promotion_banner'      => 'wc_stripe_show_bnpl_promotion_banner',
 			'wc_stripe_show_customization_notice'       => 'wc_stripe_show_customization_notice',
 			'wc_stripe_show_oc_promotion_banner'        => 'wc_stripe_show_oc_promotion_banner',
+			'wc_stripe_show_ocs_ap_banner'              => 'wc_stripe_show_ocs_ap_banner',
+			'wc_stripe_show_ocs_only_banner'            => 'wc_stripe_show_ocs_only_banner',
 			'wc_stripe_show_optimized_checkout_notice'  => 'wc_stripe_show_optimized_checkout_notice',
 			'wc_stripe_show_stripe_first_method_notice' => 'wc_stripe_show_stripe_first_method_notice',
 			'wc_stripe_show_stripe_tax_banner'          => 'wc_stripe_show_stripe_tax_banner',

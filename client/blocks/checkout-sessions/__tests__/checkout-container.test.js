@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { render } from '@testing-library/react';
-import { CheckoutProvider } from '@stripe/react-stripe-js/checkout';
+import { CheckoutElementsProvider } from '@stripe/react-stripe-js/checkout';
 import { CheckoutContainer } from 'wcstripe/blocks/checkout-sessions/checkout-container';
 import { initializeUPEAppearance } from 'wcstripe/stripe-utils/upe-appearance';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
@@ -19,7 +19,7 @@ jest.mock(
 );
 
 jest.mock( '@stripe/react-stripe-js/checkout', () => ( {
-	CheckoutProvider: jest.fn( ( { children, ...props } ) => (
+	CheckoutElementsProvider: jest.fn( ( { children, ...props } ) => (
 		<div { ...props }>{ children }</div>
 	) ),
 } ) );
@@ -34,6 +34,10 @@ jest.mock( 'wcstripe/styles/upe' );
 
 jest.mock( 'wcstripe/blocks/load-stripe', () => ( {
 	loadStripe: jest.fn( () => Promise.resolve( true ) ),
+} ) );
+
+jest.mock( 'wcstripe/blocks/utils', () => ( {
+	getBlocksConfiguration: jest.fn( () => ( { isAdmin: false } ) ),
 } ) );
 
 describe( 'CheckoutSessionsContainer', () => {
@@ -58,7 +62,7 @@ describe( 'CheckoutSessionsContainer', () => {
 			/>
 		);
 
-		expect( CheckoutProvider ).toHaveBeenCalledWith(
+		expect( CheckoutElementsProvider ).toHaveBeenCalledWith(
 			expect.objectContaining( {
 				stripe: expect.any( Promise ),
 				options: expect.objectContaining( {

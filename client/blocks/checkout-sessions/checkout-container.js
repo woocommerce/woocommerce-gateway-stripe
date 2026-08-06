@@ -1,9 +1,10 @@
-import { CheckoutProvider } from '@stripe/react-stripe-js/checkout';
+import { CheckoutElementsProvider } from '@stripe/react-stripe-js/checkout';
 import React, { useMemo } from 'react';
 import CheckoutForm from 'wcstripe/blocks/checkout-sessions/checkout-form';
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import { initializeUPEAppearance } from 'wcstripe/stripe-utils/upe-appearance';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 const stripePromise = loadStripe();
 
@@ -33,12 +34,16 @@ export const CheckoutContainer = ( props ) => {
 		return clientSecret;
 	}, [ api, setShouldLoadStripeElements ] );
 
+	// Render an editor-safe appearance in the block editor preview, where the
+	// checkout DOM does not reflect the live storefront. See STRIPE-1061.
+	const isEditor = getBlocksConfiguration()?.isAdmin ?? false;
+
 	const providerOptions = useMemo(
 		() => ( {
 			clientSecret: checkoutSessionPromise,
 			adaptivePricing: { allowed: true },
 			elementsOptions: {
-				appearance: initializeUPEAppearance( 'true' ),
+				appearance: initializeUPEAppearance( 'true', false, isEditor ),
 				fonts: getFontRulesFromPage(),
 				savedPaymentMethod: {
 					// Stripe must not list saved customer payment methods inside the Payment Element; the gateway surfaces the saved payment methods instead.
@@ -48,15 +53,18 @@ export const CheckoutContainer = ( props ) => {
 				},
 			},
 		} ),
-		[ checkoutSessionPromise ]
+		[ checkoutSessionPromise, isEditor ]
 	);
 
 	return (
-		<CheckoutProvider stripe={ stripePromise } options={ providerOptions }>
+		<CheckoutElementsProvider
+			stripe={ stripePromise }
+			options={ providerOptions }
+		>
 			<CheckoutForm
 				{ ...props }
 				onLoadError={ setPaymentProcessorLoadErrorMessage }
 			/>
-		</CheckoutProvider>
+		</CheckoutElementsProvider>
 	);
 };
