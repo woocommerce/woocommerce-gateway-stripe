@@ -1054,6 +1054,13 @@ class WC_Stripe {
 			( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->init();
 		}
 
+		// Converges Stripe's catalog when a product crosses the sync-eligibility
+		// boundary. Not admin-gated like the meta box above: the properties it
+		// watches are editable from Quick Edit, REST, and CLI too.
+		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_Visibility' ) ) {
+			( new WC_Stripe_Agentic_Commerce_Product_Visibility() )->init();
+		}
+
 		/**
 		 * Fires after Agentic Commerce integration is initialized.
 		 *

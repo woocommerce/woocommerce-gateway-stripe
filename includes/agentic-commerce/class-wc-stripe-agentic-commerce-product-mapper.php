@@ -1028,11 +1028,61 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	}
 
 	/**
+	 * Whether the product sits behind a post password.
+	 *
+	 * The password gate states who may view the product, so an agent must not be
+	 * able to surface or quote it: the `link` the feed exports renders a password
+	 * prompt, which would send the buyer to a wall.
+	 *
+	 * Unlike catalog visibility, a variation does NOT inherit the parent's
+	 * password — it is a separate post with its own (empty) `post_password`.
+	 * Resolve to the parent first, or every variation of a password-protected
+	 * variable product keeps syncing.
+	 *
+	 * @since 10.9.0
+	 * @param \WC_Product $product Product to check.
+	 * @return bool
+	 */
+	public static function is_password_protected( \WC_Product $product ): bool {
+		$parent_id = $product->get_parent_id();
+		if ( $parent_id > 0 ) {
+			$parent = wc_get_product( $parent_id );
+			if ( $parent instanceof \WC_Product ) {
+				$product = $parent;
+			}
+		}
+
+		return '' !== (string) $product->get_post_password();
+	}
+
+	/**
+	 * Whether the merchant hid the product from both the catalog and search.
+	 *
+	 * `hidden` is the strongest "do not surface this" signal WooCommerce offers.
+	 * The partial values (`catalog`, `search`) are deliberately not treated as
+	 * exclusions: the product is still meant to be reachable by the other route.
+	 *
+	 * Variations inherit the parent's catalog visibility, so no parent lookup is
+	 * needed here.
+	 *
+	 * @since 10.9.0
+	 * @param \WC_Product $product Product to check.
+	 * @return bool
+	 */
+	public static function is_hidden_from_catalog( \WC_Product $product ): bool {
+		return 'hidden' === $product->get_catalog_visibility();
+	}
+
+
+	/**
 	 * Whether the given product should be included in any Agentic Commerce sync
 	 * (full feed, inventory updates, archive events).
 	 *
-	 * Default is true; integrations such as WC AI Storefront can return false to
-	 * exclude a product based on merchant-configured visibility settings.
+	 * Defaults to true, minus the built-in exclusions: subscriptions,
+	 * password-protected products, and products hidden from catalog and search.
+	 * Integrations such as WC AI Storefront can return false to exclude a product
+	 * based on merchant-configured visibility settings, or true to re-include one
+	 * the defaults dropped.
 	 *
 	 * @since 10.8.0
 	 * @param \WC_Product $product Product to check.
@@ -1043,7 +1093,13 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		// post type, so the feed's simple/variation query returns them; left in,
 		// they fail validation and downgrade every sync to a partial success.
 		// Excluded by default, still overridable via the filters below.
-		$default_should_sync = ! self::is_subscription_product( $product );
+		//
+		// The remaining three defaults mirror merchant intent that the feed query
+		// cannot express: the query selects on post status and type only, so a
+		// password-protected or hidden product is `publish` and reaches the feed.
+		$default_should_sync = ! self::is_subscription_product( $product )
+			&& ! self::is_password_protected( $product )
+			&& ! self::is_hidden_from_catalog( $product );
 
 		// The Stripe-prefixed filter is retained for backward compatibility. Its
 		// result seeds the default for the canonical filter below, so existing
@@ -1084,7 +1140,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * enqueue an immediate full-catalog sync.
 		 *
 		 * @since 10.9.0
-		 * @param bool        $should_sync Whether to include the product. Default true (false for subscriptions).
+		 * @param bool        $should_sync Whether to include the product. Default true, except for
+		 *                                 subscriptions, password-protected products, and products
+		 *                                 hidden from catalog and search.
 		 * @param \WC_Product $product     Product being evaluated.
 		 */
 		return wp_validate_boolean( apply_filters( 'woocommerce_agentic_commerce_should_sync_product', $should_sync, $product ) );
