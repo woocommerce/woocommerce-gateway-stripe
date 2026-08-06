@@ -2,7 +2,7 @@
     "object": "list",
     "data": [
         {
-            "id": "pi_3S5MnyJlUF0dQbSB14zy576D",
+            "id": "pi_NNNNNNNNNN",
             "object": "payment_intent",
             "allowed_payment_method_types": null,
             "amount": 3789,
@@ -11,32 +11,32 @@
                 "tip": {}
             },
             "amount_received": 3789,
-            "application": "ca_BC3QunyBFJIQULdxege9Gyg8WjKI1vXD",
+            "application": "ca_NNNNNNNNNN",
             "application_fee_amount": null,
             "automatic_payment_methods": null,
             "canceled_at": null,
             "cancellation_reason": null,
             "capture_method": "automatic",
-            "client_secret": "pi_3S5MnyJlUF0dQbSB14zy576D_secret_ujVZI7w2hxK81GOVDsNrztOrh",
+            "client_secret": "pi_NNNNNNNNNN",
             "confirmation_method": "automatic",
             "created": 1757406094,
             "currency": "usd",
-            "customer": "cus_RIJ4MXsySNm58c",
+            "customer": "cus_NNNNNNNNNNNNNNNNNNNN",
             "customer_account": null,
             "description": "Test WP (6.7) - Order 517",
             "excluded_payment_method_types": null,
             "last_payment_error": null,
             "latest_charge": {
-                "id": "ch_3S5MnyJlUF0dQbSB1uOyZ7Vh",
+                "id": "ch_NNNNNNNNNNNNNNNNNNNN",
                 "object": "charge",
                 "amount": 3789,
                 "amount_captured": 3789,
                 "amount_refunded": 0,
-                "application": "ca_BC3QunyBFJIQULdxege9Gyg8WjKI1vXD",
+                "application": "ca_abcXYZ",
                 "application_fee": null,
                 "application_fee_amount": null,
                 "balance_transaction": {
-                    "id": "txn_3S5MnyJlUF0dQbSB11ue7eIk",
+                    "id": "txn_NNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
                     "object": "balance_transaction",
                     "amount": 3789,
                     "available_on": 1757980800,
@@ -57,29 +57,29 @@
                     ],
                     "net": 3636,
                     "reporting_category": "charge",
-                    "source": "ch_3S5MnyJlUF0dQbSB1uOyZ7Vh",
+                    "source": "ch_NNNNNNNNNNNNNNNNNNNN",
                     "status": "available",
                     "type": "charge"
                 },
                 "billing_details": {
                     "address": {
-                        "city": "Austin",
+                        "city": "US City",
                         "country": "US",
-                        "line1": "9024 Northgate Blvd",
+                        "line1": "123 A Blvd",
                         "line2": null,
-                        "postal_code": "78758",
+                        "postal_code": "10101",
                         "state": "TX"
                     },
-                    "email": "adi.dobrescu@gmail.com",
+                    "email": "john.doe@email.com",
                     "name": "J D",
-                    "phone": "5122023376",
+                    "phone": "512000",
                     "tax_id": null
                 },
                 "calculated_statement_descriptor": "WERDE",
                 "captured": true,
                 "created": 1757406094,
                 "currency": "usd",
-                "customer": "cus_RIJ4MXsySNm58c",
+                "customer": "cus_NNNN",
                 "description": "Test WP (6.7) - Order 517",
                 "destination": null,
                 "dispute": null,
@@ -99,19 +99,19 @@
                             "unit_cost": 2500
                         }
                     ],
-                    "merchant_reference": "517",
-                    "shipping_address_zip": "78758",
+                    "merchant_reference": "5NNNNNNNNNN",
+                    "shipping_address_zip": "700",
                     "shipping_amount": 1083
                 },
                 "livemode": false,
                 "metadata": {
-                    "customer_email": "adi.dobrescu@gmail.com",
+                    "customer_email": "john.doe@email.com",
                     "customer_name": "J D",
                     "order_id": "517",
-                    "order_key": "wc_order_SqkgZDf57WVag",
+                    "order_key": "wc_order_NNNNNN",
                     "payment_type": "single",
-                    "signature": "517:b2513fed67ddadcb32a817a7bf3ded2c",
-                    "site_url": "http://localhost:7772",
+                    "signature": "517:NNNNNNNNNNNNNNNNNN",
+                    "site_url": "http://host",
                     "tax_amount": "289"
                 },
                 "on_behalf_of": null,
@@ -128,12 +128,12 @@
                     "type": "authorized"
                 },
                 "paid": true,
-                "payment_intent": "pi_3S5MnyJlUF0dQbSB14zy576D",
-                "payment_method": "pm_1RmD3QJlUF0dQbSBxgzaPQni",
+                "payment_intent": "pi_NNNNNNNNNN",
+                "payment_method": "pm_NNNNNNNNNN",
                 "payment_method_details": {
                     "card": {
                         "amount_authorized": 3789,
-                        "authorization_code": "469071",
+                        "authorization_code": "444444",
                         "brand": "visa",
                         "checks": {
                             "address_line1_check": "pass",
@@ -146,7 +146,7 @@
                         "extended_authorization": {
                             "status": "disabled"
                         },
-                        "fingerprint": "MIWqR4mqZ3SOrQyf",
+                        "fingerprint": "NNNNNNNNNNNNNNN",
                         "funding": "credit",
                         "incremental_authorization": {
                             "status": "unavailable"
@@ -161,7 +161,7 @@
                         "network_token": {
                             "used": false
                         },
-                        "network_transaction_id": "787411766889972",
+                        "network_transaction_id": "777777777777777",
                         "overcapture": {
                             "maximum_amount_capturable": 3789,
                             "status": "unavailable"
@@ -176,16 +176,16 @@
                 "radar_options": {},
                 "receipt_email": null,
                 "receipt_number": null,
-                "receipt_url": "https://pay.stripe.com/receipts/payment/CAcaFwoVYWNjdF8xUHk4eFpKbFVGMGRRYlNCKJnpzNMGMgb4mKyfkCk6LBa5aSqaOLzASGyutQkyeKDm1SsvYa4S6wB5Q8S-91JXfBcSTJtWIks8j_zh",
+                "receipt_url": "https://stripelink",
                 "refunded": false,
                 "review": null,
                 "shipping": {
                     "address": {
-                        "city": "Austin",
+                        "city": "A City",
                         "country": "US",
-                        "line1": "9024 Northgate Blvd",
+                        "line1": "123 Some Street",
                         "line2": "",
-                        "postal_code": "78758",
+                        "postal_code": "88888",
                         "state": "TX"
                     },
                     "carrier": null,
@@ -212,8 +212,8 @@
                         "unit_cost": 2500
                     }
                 ],
-                "merchant_reference": "517",
-                "shipping_address_zip": "78758",
+                "merchant_reference": "123",
+                "shipping_address_zip": "88888",
                 "shipping_amount": 1083
             },
             "livemode": false,
@@ -221,18 +221,18 @@
                 "enabled": false
             },
             "metadata": {
-                "customer_email": "adi.dobrescu@gmail.com",
+                "customer_email": "john.doe@email.com",
                 "customer_name": "J D",
-                "order_id": "517",
-                "order_key": "wc_order_SqkgZDf57WVag",
+                "order_id": "555",
+                "order_key": "wc_order_NNNNNNNNNNNNNN",
                 "payment_type": "single",
-                "signature": "517:b2513fed67ddadcb32a817a7bf3ded2c",
-                "site_url": "http://localhost:7772",
+                "signature": "517:NNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+                "site_url": "http://host",
                 "tax_amount": "289"
             },
             "next_action": null,
             "on_behalf_of": null,
-            "payment_method": "pm_1RmD3QJlUF0dQbSBxgzaPQni",
+            "payment_method": "pm_NNNNNNNNNNNNNNNNNNNNNNNNNNNN",
             "payment_method_configuration_details": null,
             "payment_method_options": {
                 "card": {
@@ -256,11 +256,11 @@
             "shared_payment_granted_token": null,
             "shipping": {
                 "address": {
-                    "city": "Austin",
+                    "city": "City",
                     "country": "US",
-                    "line1": "9024 Northgate Blvd",
+                    "line1": "000 N Blvd",
                     "line2": "",
-                    "postal_code": "78758",
+                    "postal_code": "77777",
                     "state": "TX"
                 },
                 "carrier": null,

@@ -3,7 +3,7 @@
     "has_more": false,
     "data": [
         {
-            "id": "pi_3S5MnyJlUF0dQbSB14zy576D",
+            "id": "pi_NNNNNNNNNN",
             "created": 1757406094,
             "amount": 3789,
             "currency": "usd",
@@ -16,7 +16,7 @@
                 "payment_method_details": {
                     "card": {
                         "amount_authorized": 3789,
-                        "authorization_code": "469071",
+                        "authorization_code": "444444",
                         "brand": "visa",
                         "checks": {
                             "address_line1_check": "pass",
@@ -29,7 +29,7 @@
                         "extended_authorization": {
                             "status": "disabled"
                         },
-                        "fingerprint": "MIWqR4mqZ3SOrQyf",
+                        "fingerprint": "NNNNNNNNNNNNNNN",
                         "funding": "credit",
                         "incremental_authorization": {
                             "status": "unavailable"
@@ -44,7 +44,7 @@
                         "network_token": {
                             "used": false
                         },
-                        "network_transaction_id": "787411766889972",
+                        "network_transaction_id": "777777777777777",
                         "overcapture": {
                             "maximum_amount_capturable": 3789,
                             "status": "unavailable"
