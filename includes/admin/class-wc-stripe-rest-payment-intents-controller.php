@@ -265,12 +265,12 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 */
 	public static function sanitize_created( $param_value, $request, $param_name ) {
 		if ( ! is_array( $param_value ) ) {
-			$sanitized_value = absint( $param_value );
+			$sanitized_value = (int) $param_value;
 		} else {
 			$sanitized_value = [];
 
 			foreach ( $param_value as $operator => $operand ) {
-				$sanitized_value[ sanitize_key( $operator ) ] = absint( $operand );
+				$sanitized_value[ sanitize_key( $operator ) ] = (int) $operand;
 			}
 		}
 
