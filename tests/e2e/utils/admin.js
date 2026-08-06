@@ -206,6 +206,30 @@ export const initializeAdaptivePricing = async (
 };
 
 /**
+ * Open the admin order edit screen. Uses the legacy post edit URL, which
+ * redirects to the new order screen when HPOS is enabled.
+ *
+ * @param {Page}   page    Playwright page already authenticated as admin.
+ * @param {string} orderId The WooCommerce order ID.
+ */
+export const gotoOrderEditPage = async ( page, orderId ) => {
+	await page.goto( `/wp-admin/post.php?post=${ orderId }&action=edit` );
+};
+
+/**
+ * Locate a row in the order totals table by its label and return its amount cell.
+ *
+ * @param {Page}   page  Playwright page on the order edit screen.
+ * @param {string} label The row label, e.g. "Order Total" or "Paid by customer".
+ * @return {Locator} The amount cell for that row.
+ */
+export const getOrderTotalForLabel = ( page, label ) =>
+	page
+		.locator( '.wc-order-totals tr' )
+		.filter( { hasText: label } )
+		.locator( '.total' );
+
+/**
  * Open the admin order edit page for an order and confirm the expected amount
  * was charged.
  *
@@ -227,14 +251,10 @@ export const verifyOrderChargedAmount = async (
 	const { context, page } = await getAdminPage( browser );
 
 	try {
-		// Access via the post edit screen - we should be redirected if HPOS is enabled.
-		await page.goto( `/wp-admin/post.php?post=${ orderId }&action=edit` );
+		await gotoOrderEditPage( page, orderId );
 
 		const totalElementForLabel = ( label ) =>
-			page
-				.locator( '.wc-order-totals tr' )
-				.filter( { hasText: label } )
-				.locator( '.total' );
+			getOrderTotalForLabel( page, label );
 
 		// The order is recorded for the expected total...
 		await expect( totalElementForLabel( 'Order Total' ) ).toContainText(
