@@ -22,7 +22,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 */
 	protected $rest_base = 'wc_stripe/payment_intents';
 
-	protected const STRIPE_RESPONSE_ALLOWED_FIELDS = [
+	protected const STRIPE_SINGLE_RESPONSE_ALLOWED_FIELDS = [
 		'object',
 		'id',
 		'amount',
@@ -37,7 +37,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		'latest_charge.payment_method_details',
 	];
 
-	protected const STRIPE_EXPAND_PARAM = [
+	protected const STRIPE_SINGLE_EXPAND_PARAM = [
 		'latest_charge',
 		'latest_charge.balance_transaction',
 	];
@@ -138,13 +138,13 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_payment_intent( $request ) {
-		$response = $this->fetch_from_stripe( 'payment_intents/' . rawurlencode( $request['id'] ), [ 'expand' => self::STRIPE_EXPAND_PARAM ] );
+		$response = $this->fetch_from_stripe( 'payment_intents/' . rawurlencode( $request['id'] ), [ 'expand' => self::STRIPE_SINGLE_EXPAND_PARAM ] );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
 		}
 
-		$filtered_response = WC_Stripe_REST_Response_Filter::filter_response( $response, self::STRIPE_RESPONSE_ALLOWED_FIELDS );
+		$filtered_response = WC_Stripe_REST_Response_Filter::filter_response( $response, self::STRIPE_SINGLE_RESPONSE_ALLOWED_FIELDS );
 
 		return rest_ensure_response( $filtered_response );
 	}
