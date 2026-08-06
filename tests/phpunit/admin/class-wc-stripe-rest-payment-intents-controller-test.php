@@ -353,7 +353,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	 *
 	 * @dataProvider provide_intent_list_params
 	*/
-	public function test_pass_intent_list_params( $rest_params ) {
+	public function test_pass_intent_list_params( array $rest_params ) {
 		$controller = new WC_Stripe_REST_Payment_Intents_Controller();
 
 		$reflection_class = new ReflectionClass( WC_Stripe_REST_Payment_Intents_Controller::class );
@@ -393,26 +393,33 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_id );
 
-		rest_get_server()->dispatch( $request );
-
-		remove_filter(
-			'pre_http_request',
-			$http_stub,
-			10,
-			3
-		);
+		try {
+			rest_get_server()->dispatch( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10, 3 );
+		}
 
 		$this->assertEquals( $rest_params, $passed_rest_params );
 		$this->assertEquals(
 			$rest_params,
 			array_intersect_key( $pre_http_request_params['search_params'], $rest_params )
 		);
+		$test = array_diff_key( $pre_http_request_params['search_params'], $rest_params );
+
+		if ( array_key_exists( 'limit', $rest_params ) ) {
+			$this->assertEmpty( array_diff_key( $pre_http_request_params['search_params'], $rest_params ) );
+		} else {
+			$this->assertEquals(
+				[ 'limit' => 25 ],
+				array_diff_key( $pre_http_request_params['search_params'], $rest_params )
+			);
+		}
 	}
 
 	public static function provide_intent_list_filtering_test_data(): Generator {
 		$test_data_directory = __DIR__ . '/stripe-api-test-response-payloads';
 
-		$test_data_files = glob( $test_data_directory . '/*' );
+		$test_data_files = glob( $test_data_directory . '/*.json' );
 
 		$test_data_groups = [];
 
@@ -440,7 +447,12 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 				}
 			}
 
-			yield "case {$id}" => [
+			$test_file_description     = str_replace( [ '-', '_', '.json' ], ' ', preg_replace( '/^[0-9]+/', '', basename( $test_file ) ) );
+			$expected_file_description = str_replace( [ '-', '_', '.json' ], ' ', preg_replace( '/^[0-9]+/', '', basename( $expected_file ) ) );
+
+			$test_description = 'Received: ' . ucfirst( trim( $test_file_description ) ) . PHP_EOL . 'Expected: ' . ucfirst( trim( $expected_file_description ) );
+
+			yield "case {$test_description}" => [
 				file_get_contents( $test_file ),
 				file_get_contents( $expected_file ),
 			];
