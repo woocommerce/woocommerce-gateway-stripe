@@ -244,5 +244,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Center the text and card icons inside the payment fields on the Blocks checkout
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
 * Fix - Only load the Blocks checkout stylesheet on pages that render the Cart or Checkout block
+* Fix - Don't show currency admin notices for payment methods when Adaptive Pricing is active
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
