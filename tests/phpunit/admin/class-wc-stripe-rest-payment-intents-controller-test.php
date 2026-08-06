@@ -25,7 +25,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		);
 	}
 
-	public static function pre_http_request_mock_handler( $preempt, $request_args, $url ) {
+	public static function pre_http_request_mock_handler( bool $preempt, array $request_args, $url ) {
 		if ( false === strpos( $url, 'payment_intents' ) ) {
 			return $preempt;
 		}
@@ -58,7 +58,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	 *
 	 * If non-empty, adds the entries from $params to the request object.
 	 */
-	private function send_request( $url, $params = [] ) {
+	private function send_request( string $url, array $params = [] ) {
 		$request = new WP_REST_Request(
 			WP_REST_Server::READABLE,
 			$url
@@ -218,7 +218,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * @dataProvider provide_single_intent_filtering_test_data
 	*/
-	public function test_single_intent_response_filtering( $response_as_string, $response_allowed_part ) {
+	public function test_single_intent_response_filtering( string $response_as_string, string $response_allowed_part ) {
 		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_id );
 
@@ -299,8 +299,11 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	 * Create an admin user and send requests containing wrong format args.
 	 *
 	 * @dataProvider provide_intent_list_malformed_param
+	 *
+	 * @param string $param_name
+	 * @param mixed $param_value
 	*/
-	public function test_intent_list_malformed_param( $param_name, $param_value ) {
+	public function test_intent_list_malformed_param( string $param_name, $param_value ) {
 		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_id );
 
@@ -462,7 +465,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * @dataProvider provide_intent_list_filtering_test_data
 	*/
-	public function test_intent_list_response_filtering( $response_as_string, $response_allowed_part ) {
+	public function test_intent_list_response_filtering( string $response_as_string, string $response_allowed_part ) {
 		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_id );
 
