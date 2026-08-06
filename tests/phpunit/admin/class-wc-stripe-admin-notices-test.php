@@ -571,21 +571,34 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Test that the currency notice is shown when UPE methods are enabled.
+	 * The currency notice lists every enabled UPE payment method whose supported
+	 * currencies don't include the store currency, and is suppressed on the Stripe
+	 * settings page, once dismissed, or when Adaptive Pricing is active.
+	 *
+	 * @param bool        $is_stripe_settings_page                Whether the request is for the Stripe settings page.
+	 * @param string|null $dismiss_option                         Value for `wc_stripe_show_upe_payment_methods_notice`; null deletes the option.
+	 * @param bool        $checkout_sessions_available            Whether the Stripe Checkout Sessions feature is available.
+	 * @param string      $adaptive_pricing                       Value for the `adaptive_pricing` setting.
+	 * @param string      $account_country                        The country of the connected account.
+	 * @param string      $store_currency                         The store currency.
+	 * @param string[]    $enabled_payment_method_ids             The IDs of the enabled payment methods.
+	 * @param string[]    $expected_payment_method_ids_in_notice  The IDs of the payment methods that are expected in the notice.
+	 *
+	 * @dataProvider provide_test_currency_notices_scenarios
 	 *
 	 * @return void
 	 */
-	public function test_currency_notice_is_shown_for_upe_methods(): void {
-		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
-
-		$this->mock_payment_method_configurations(
-			[
-				WC_Stripe_Payment_Methods::CARD,
-				WC_Stripe_Payment_Methods::GIROPAY,
-				WC_Stripe_Payment_Methods::BANCONTACT,
-				WC_Stripe_Payment_Methods::EPS,
-			]
-		);
+	public function test_currency_notices(
+		bool $is_stripe_settings_page,
+		?string $dismiss_option,
+		bool $checkout_sessions_available,
+		string $adaptive_pricing,
+		string $account_country,
+		string $store_currency,
+		array $enabled_payment_method_ids,
+		array $expected_payment_method_ids_in_notice
+	): void {
+		$this->mock_payment_method_configurations( $enabled_payment_method_ids );
 
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
@@ -595,24 +608,319 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'test_secret_key'                 => 'sk_test_valid_test_key',
 				'upe_checkout_experience_enabled' => 'yes',
 				'connection_type'                 => 'connect',
+				'pmc_enabled'                     => 'yes',
+				'optimized_checkout_element'      => $checkout_sessions_available ? 'yes' : 'no',
+				'capture'                         => 'yes',
+				'adaptive_pricing'                => $adaptive_pricing,
 			]
 		);
 
-		update_option( 'wc_stripe_show_style_notice', 'no' );
-		update_option( 'home', 'https://...' );
-		update_option( 'wc_stripe_show_sca_notice', 'no' );
+		// Clear the cache while we are still in test mode to ensure the right values are cleared.
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 
-		$notices = new WC_Stripe_Admin_Notices();
-		ob_start();
-		$notices->admin_notices();
-		ob_end_clean();
-		if ( WC_Stripe_Helper::is_wc_lt( WC_STRIPE_FUTURE_MIN_WC_VER ) ) {
-			$this->assertCount( 2, $notices->notices );
-			$this->assertArrayHasKey( 'wcver', $notices->notices );
+		if ( null === $dismiss_option ) {
+			delete_option( 'wc_stripe_show_upe_payment_methods_notice' );
 		} else {
-			$this->assertCount( 1, $notices->notices );
+			update_option( 'wc_stripe_show_upe_payment_methods_notice', $dismiss_option );
 		}
-		$this->assertArrayHasKey( 'upe_payment_methods', $notices->notices );
+
+		$original_get = $_GET;
+		if ( $is_stripe_settings_page ) {
+			$_GET['page']    = 'wc-settings';
+			$_GET['section'] = 'stripe';
+		}
+
+		$account_backup = WC_Stripe::get_instance()->account;
+		$account        = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_account_country', 'is_webhook_enabled', 'get_cached_account_data' ] )
+			->getMock();
+		$account->method( 'get_account_country' )->willReturn( $account_country );
+		$account->method( 'is_webhook_enabled' )->willReturn( true );
+		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => $account_country ] );
+		WC_Stripe::get_instance()->account = $account;
+
+		$currency_filter = static function () use ( $store_currency ) {
+			return $store_currency;
+		};
+		add_filter( 'woocommerce_currency', $currency_filter );
+
+		// Force a fresh gateway so it picks up the mocked payment method configuration.
+		$this->set_main_stripe_gateway( null );
+
+		try {
+			$notices = new WC_Stripe_Admin_Notices();
+			$notices->payment_methods_check_environment();
+
+			$expected_message = $this->build_expected_currency_notice_message( $expected_payment_method_ids_in_notice );
+
+			if ( '' === $expected_message ) {
+				$this->assertArrayNotHasKey( 'upe_payment_methods', $notices->notices );
+			} else {
+				$this->assertArrayHasKey( 'upe_payment_methods', $notices->notices );
+				$this->assertSame( $expected_message, $notices->notices['upe_payment_methods']['message'] );
+				$this->assertSame( 'notice notice-error', $notices->notices['upe_payment_methods']['class'] );
+				$this->assertTrue( $notices->notices['upe_payment_methods']['dismissible'] );
+			}
+		} finally {
+			$this->set_main_stripe_gateway( null );
+			remove_filter( 'woocommerce_currency', $currency_filter );
+			WC_Stripe::get_instance()->account = $account_backup;
+			$_GET                              = $original_get;
+			delete_option( 'wc_stripe_show_upe_payment_methods_notice' );
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+			WC_Stripe_Helper::delete_main_stripe_settings();
+		}
+	}
+
+	/**
+	 * Builds the currency notice message expected for a set of payment method IDs.
+	 *
+	 * @param string[] $expected_payment_method_ids_in_notice The IDs of the payment methods that are expected in the notice.
+	 *
+	 * @return string The expected message, or an empty string when no notice is expected.
+	 */
+	private function build_expected_currency_notice_message( array $expected_payment_method_ids_in_notice ): string {
+		if ( [] === $expected_payment_method_ids_in_notice ) {
+			return '';
+		}
+
+		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$message = '';
+
+		foreach ( $expected_payment_method_ids_in_notice as $payment_method_id ) {
+			$payment_method = $gateway->payment_methods[ $payment_method_id ];
+			$message       .= sprintf(
+				'%1$s is enabled - it requires store currency to be set to %2$s<br>',
+				$payment_method->get_label(),
+				implode( ', ', $payment_method->get_supported_currencies() )
+			);
+		}
+
+		return $message;
+	}
+
+	/**
+	 * Data provider for {@see test_currency_notices()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_currency_notices_scenarios(): array {
+		return [
+			'methods that do not support the store currency are listed'                    => [
+				'is stripe settings page'               => false,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::ALIPAY,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+			],
+			'no notice when every method supports the store currency'                      => [
+				'is stripe settings page'               => false,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'FR',
+				'store currency'                        => 'EUR',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [],
+			],
+			'notice when a the store currency is not supported for the account country'    => [
+				'is stripe settings page'               => false,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'EUR',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [
+					WC_Stripe_Payment_Methods::KLARNA, // US merchants can only offer Klarna for USD purchases.
+				],
+			],
+			'card and Link are never flagged'                                              => [
+				'is stripe settings page'               => false,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'AAA', // Invalid currency.
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::LINK,
+					WC_Stripe_Payment_Methods::BOLETO,
+					WC_Stripe_Payment_Methods::OXXO,
+				],
+				'expected payment method IDs in notice' => [
+					WC_Stripe_Payment_Methods::BOLETO,
+					WC_Stripe_Payment_Methods::OXXO,
+				],
+			],
+			'methods the gateway does not expose are skipped'                              => [
+				// Giropay is only instantiated on order details/refund requests, so it is
+				// enabled in the configuration but absent from the gateway's methods.
+				'is stripe settings page'               => false,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::GIROPAY,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+			],
+			'no notice when no restricted method is enabled'                               => [
+				'is stripe settings page'               => false,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::LINK,
+				],
+				'expected payment method IDs in notice' => [],
+			],
+			'suppressed on the Stripe settings page'                                       => [
+				'is stripe settings page'               => true,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [],
+			],
+			'suppressed once dismissed'                                                    => [
+				'is stripe settings page'               => false,
+				'dismiss option'                        => 'no',
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [],
+			],
+			'shown while the dismiss option is yes'                                        => [
+				'is stripe settings page'               => false,
+				'dismiss option'                        => 'yes',
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+			],
+			'suppressed when Adaptive Pricing is enabled'                                  => [
+				'is stripe settings page'               => false,
+				'dismiss option'                        => '',
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'yes',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [],
+			],
+			'shown when Adaptive Pricing is enabled but Checkout Sessions are unavailable' => [
+				'is stripe settings page'               => false,
+				'dismiss option'                        => '',
+				'checkout sessions available'           => false,
+				'adaptive pricing'                      => 'yes',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+			],
+			'shown when Adaptive Pricing is enabled but unavailable for the account'       => [
+				'is stripe settings page'                => false,
+				'dismiss option'                         => '',
+				'checkout sessions available'            => true,
+				'adaptive pricing'                       => 'yes',
+				'adaptive pricing available for account' => 'IN',
+				'store currency'                         => 'USD',
+				'enabled payment method IDs'             => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice'  => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+			],
+		];
 	}
 
 	/**

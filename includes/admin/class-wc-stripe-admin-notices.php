@@ -461,28 +461,57 @@ class WC_Stripe_Admin_Notices {
 	 * @return void
 	 */
 	public function payment_methods_check_environment() {
-		// phpcs:ignore
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$is_stripe_settings_page = isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 0 === strpos( $_GET['section'], 'stripe' );
-		$currency_messages       = '';
 
-		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
-			if ( WC_Stripe_UPE_Payment_Method_CC::class === $method_class || WC_Stripe_UPE_Payment_Method_Link::class === $method_class ) {
-				continue;
-			}
-			$method     = $method_class::STRIPE_ID;
-			$upe_method = new $method_class();
-			if ( ! $upe_method->is_enabled() ) {
-				continue;
-			}
-
-			if ( ! $is_stripe_settings_page && ! in_array( get_woocommerce_currency(), $upe_method->get_supported_currencies(), true ) ) {
-				/* translators: %1$s Payment method, %2$s List of supported currencies */
-				$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s<br>', 'woocommerce-gateway-stripe' ), $upe_method->get_label(), implode( ', ', $upe_method->get_supported_currencies() ) );
-			}
+		if ( $is_stripe_settings_page ) {
+			return;
 		}
 
 		$show_notice = get_option( 'wc_stripe_show_upe_payment_methods_notice' );
-		if ( ! empty( $currency_messages ) && 'no' !== $show_notice ) {
+		if ( 'no' === $show_notice ) {
+			return;
+		}
+
+		// If Adaptive Pricing is enabled, we should not show currency compatibility notices.
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		if (
+			WC_Stripe_Helper::is_checkout_sessions_available() &&
+			'yes' === ( $settings['adaptive_pricing'] ?? 'no' ) &&
+			WC_Stripe_Helper::is_adaptive_pricing_available_for_account()
+		) {
+			return;
+		}
+
+		$currency_messages = '';
+
+		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		if ( ! $gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
+			return;
+		}
+
+		foreach ( $gateway->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
+			if ( ! isset( $gateway->payment_methods[ $payment_method_id ] ) ) {
+				continue;
+			}
+
+			$upe_method = $gateway->payment_methods[ $payment_method_id ];
+			if ( ! $upe_method instanceof WC_Stripe_UPE_Payment_Method ) {
+				continue;
+			}
+
+			$supported_currencies = $upe_method->get_supported_currencies();
+			if ( null === $supported_currencies ) {
+				continue;
+			}
+
+			if ( ! in_array( get_woocommerce_currency(), $supported_currencies, true ) ) {
+				/* translators: %1$s Payment method, %2$s List of supported currencies */
+				$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s<br>', 'woocommerce-gateway-stripe' ), $upe_method->get_label(), implode( ', ', $supported_currencies ) );
+			}
+		}
+
+		if ( ! empty( $currency_messages ) ) {
 			$this->add_admin_notice( 'upe_payment_methods', 'notice notice-error', $currency_messages, true );
 		}
 	}
