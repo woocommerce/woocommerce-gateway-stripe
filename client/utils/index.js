@@ -57,7 +57,7 @@ export const dismissNotice = ( noticeKey, callback ) => {
 			// The callback in .finally() handles caller cleanup.
 		} )
 		.finally( () => {
-			if ( callback ) {
+			if ( typeof callback === 'function' ) {
 				callback();
 			}
 		} );
