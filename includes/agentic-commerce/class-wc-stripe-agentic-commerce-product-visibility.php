@@ -14,8 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Watches product saves and schedules a full resync when a product's
- * `should_sync_product()` outcome flips.
+ * Watches product saves and exclude-flag writes, and schedules a full resync
+ * when a product's `should_sync_product()` outcome flips.
  *
  * The filter only governs what is *sent*, so an already-exported product stays
  * live until a full feed replacement. The tracker can't close that gap — its
@@ -53,6 +53,17 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility {
 		add_action( 'woocommerce_update_product', [ $this, 'handle_product_save' ], 10, 2 );
 		add_action( 'woocommerce_new_product', [ $this, 'handle_product_save' ], 10, 2 );
 		add_action( 'post_updated', [ $this, 'handle_post_update' ], 10, 2 );
+
+		// The save hooks all fire BEFORE the exclusion surfaces write the
+		// per-product exclude flag (the meta box persists on
+		// `woocommerce_process_product_meta`, after `$product->save()`; bulk edit
+		// writes the meta with no product save at all). Watching the meta write
+		// itself is the only ordering-proof way to keep the marker current — a
+		// stale marker makes the next ordinary edit fire the redundant full
+		// resync this class exists to prevent.
+		add_action( 'added_post_meta', [ $this, 'handle_exclude_meta_change' ], 10, 3 );
+		add_action( 'updated_post_meta', [ $this, 'handle_exclude_meta_change' ], 10, 3 );
+		add_action( 'deleted_post_meta', [ $this, 'handle_exclude_meta_change' ], 10, 3 );
 	}
 
 	/**
@@ -69,6 +80,26 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility {
 		}
 
 		$this->reconcile( $product );
+	}
+
+	/**
+	 * Re-evaluate eligibility when the per-product exclude flag itself changes.
+	 *
+	 * No recursion risk: reconcile() writes only the state marker, whose key
+	 * fails the guard here.
+	 *
+	 * @since 10.9.0
+	 * @param int|int[] $meta_ids  Meta row ID(s); unused, present for the hook signature.
+	 * @param int       $object_id Post the meta belongs to.
+	 * @param string    $meta_key  Meta key that changed.
+	 * @return void
+	 */
+	public function handle_exclude_meta_change( $meta_ids, $object_id, $meta_key ): void {
+		if ( WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key() !== $meta_key ) {
+			return;
+		}
+
+		$this->reconcile( wc_get_product( (int) $object_id ) );
 	}
 
 	/**

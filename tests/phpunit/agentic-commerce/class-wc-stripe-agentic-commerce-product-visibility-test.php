@@ -44,6 +44,10 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility_Test extends WP_UnitTestCase
 		remove_all_actions( 'woocommerce_update_product' );
 		remove_all_actions( 'woocommerce_new_product' );
 		remove_all_actions( 'post_updated' );
+		remove_all_actions( 'added_post_meta' );
+		remove_all_actions( 'updated_post_meta' );
+		remove_all_actions( 'deleted_post_meta' );
+		remove_all_filters( 'woocommerce_agentic_commerce_should_sync_product' );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
 
 		parent::tearDown();
@@ -155,6 +159,48 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility_Test extends WP_UnitTestCase
 		$product->save();
 
 		$this->assertSame( 0, $this->resync_count );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Writing the per-product exclude flag must converge immediately and keep the
+	 * marker current, so a later ordinary edit doesn't fire a redundant resync.
+	 *
+	 * The exclusion surfaces write the flag AFTER every product-save hook this
+	 * class watches (meta box) or with no product save at all (bulk edit), so
+	 * only the meta-write hooks can observe the change.
+	 *
+	 * @return void
+	 */
+	public function test_exclude_flag_write_converges_and_keeps_marker_current(): void {
+		// The exclude flag only affects should_sync_product() through the
+		// exclusion class's filter, which the plugin bootstrap registers in
+		// production but this suite must register itself.
+		( new WC_Stripe_Agentic_Commerce_Product_Exclusion() )->init();
+
+		$product            = WC_Helper_Product::create_simple_product();
+		$this->resync_count = 0;
+
+		WC_Stripe_Agentic_Commerce_Product_Exclusion::set_excluded( $product->get_id(), true );
+
+		$this->assertGreaterThan( 0, $this->resync_count, 'An exclude-flag write must converge the catalog.' );
+		$this->assertSame(
+			'yes',
+			get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Visibility::get_state_meta_key(), true ),
+			'The eligibility marker must track the exclude-flag write.'
+		);
+
+		// With the marker current, an unrelated edit stays quiet.
+		$this->resync_count = 0;
+		$product            = wc_get_product( $product->get_id() );
+		$product->set_regular_price( '42.00' );
+		$product->save();
+		$this->assertSame( 0, $this->resync_count, 'An ordinary edit after the exclusion must not re-fire.' );
+
+		// Re-including converges again.
+		WC_Stripe_Agentic_Commerce_Product_Exclusion::set_excluded( $product->get_id(), false );
+		$this->assertGreaterThan( 0, $this->resync_count, 'Clearing the exclude flag must converge too.' );
 
 		$product->delete( true );
 	}

@@ -382,7 +382,7 @@ A variation inherits its parent's catalog visibility but **not** its `post_passw
 
 All of these are defaults rather than hard blocks: `woocommerce_agentic_commerce_should_sync_product` can return `true` to opt a product back in.
 
-Because the filter only governs what is *sent*, a product that was already exported and later becomes ineligible stays in Stripe's catalog until a full feed replacement. `WC_Stripe_Agentic_Commerce_Product_Visibility` watches product saves and fires `wc_stripe_agentic_commerce_schedule_full_resync` when a product crosses that boundary — adapters whose own filter verdict changes must fire the same action.
+Because the filter only governs what is *sent*, a product that was already exported and later becomes ineligible stays in Stripe's catalog until a full feed replacement. `WC_Stripe_Agentic_Commerce_Product_Visibility` watches product saves and per-product exclude-flag writes, and fires `wc_stripe_agentic_commerce_schedule_full_resync` when a product crosses that boundary — adapters whose own filter verdict changes must fire the same action.
 
 ## Coupons and discounts
 
