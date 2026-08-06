@@ -249,5 +249,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Only load the Blocks checkout stylesheet on pages that render the Cart or Checkout block
 * Fix - Reserve stock when completing agentic checkout orders so concurrent sessions cannot oversell; orders losing the race are set on-hold instead of driving stock negative
 * Fix - Exclude password-protected products and products hidden from the catalog from the Agentic Commerce feed
+* Fix - Name password protection and hidden visibility as their own reasons in the Agentic Commerce feed preview
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
