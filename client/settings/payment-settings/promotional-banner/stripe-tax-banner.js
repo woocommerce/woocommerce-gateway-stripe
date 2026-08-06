@@ -2,7 +2,6 @@ import { React } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import styled from '@emotion/styled';
 import { external } from '@wordpress/icons';
-import apiFetch from '@wordpress/api-fetch';
 import { ExternalLink } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import CardBody from 'wcstripe/settings/card-body';
@@ -15,6 +14,7 @@ import {
 	DismissButton,
 	MainCTALink,
 } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
+import { dismissNotice } from 'wcstripe/utils';
 import { recordEvent } from 'wcstripe/tracking';
 
 const BannerIllustrationStripeTax = styled( BannerIllustration )`
@@ -44,11 +44,7 @@ const TitleStripeTax = styled.h4`
 
 export const StripeTaxBanner = ( { setShowPromotionalBanner } ) => {
 	const handleBannerDismiss = () => {
-		apiFetch( {
-			path: '/wc/v3/wc_stripe/settings/notice',
-			method: 'POST',
-			data: { wc_stripe_show_stripe_tax_banner: 'no' },
-		} ).finally( () => {
+		dismissNotice( 'wc_stripe_show_stripe_tax_banner', () => {
 			setShowPromotionalBanner( false );
 		} );
 	};
