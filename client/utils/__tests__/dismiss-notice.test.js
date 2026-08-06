@@ -74,20 +74,31 @@ describe( 'dismissNotice', () => {
 		expect( global.wc_stripe_settings_params ).toBeUndefined();
 	} );
 
-	it( 'should handle null callback gracefully', async () => {
-		apiFetch.mockImplementation( () => Promise.resolve( {} ) );
+	it.each( [
+		[ 'null', null ],
+		[ 'undefined', undefined ],
+		[ 'number', 1 ],
+		[ 'string', '1' ],
+		[ 'truthy boolean', true ],
+		[ 'object', { a: 1 } ],
+		[ 'array', [ 1 ] ],
+	] )(
+		'should handle invalid callback argument gracefully: %s',
+		async ( description, invalidCallback ) => {
+			apiFetch.mockImplementation( () => Promise.resolve( {} ) );
 
-		dismissNotice( 'wc_stripe_show_test_notice', null );
-		await new Promise( process.nextTick );
+			dismissNotice( 'wc_stripe_show_test_notice', invalidCallback );
+			await new Promise( process.nextTick );
 
-		// The API call should still be made with null callback.
-		expect( apiFetch ).toHaveBeenCalledTimes( 1 );
-		expect( apiFetch ).toHaveBeenCalledWith( {
-			path: '/wc/v3/wc_stripe/settings/notice',
-			method: 'POST',
-			data: { wc_stripe_show_test_notice: 'no' },
-		} );
-	} );
+			// The API call should still be made with the invalid callback.
+			expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+			expect( apiFetch ).toHaveBeenCalledWith( {
+				path: '/wc/v3/wc_stripe/settings/notice',
+				method: 'POST',
+				data: { wc_stripe_show_test_notice: 'no' },
+			} );
+		}
+	);
 
 	it( 'should not update wc_stripe_settings_params when apiFetch rejects', async () => {
 		global.wc_stripe_settings_params = {
