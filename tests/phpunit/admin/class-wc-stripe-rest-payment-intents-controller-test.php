@@ -267,6 +267,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	public static function provide_intent_list_malformed_param(): array {
 		return [
 			[ 'created', '' ],
+			[ 'created', -1779802569 ],
 			[ 'created', 'a1779802569' ],
 			[
 				'created',
@@ -310,6 +311,9 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 
 	public static function provide_intent_list_params(): array {
 		return [
+			[
+				[ 'created' => 0 ],
+			],
 			[
 				[
 					'created'        => '1779802569',

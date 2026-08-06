@@ -61,6 +61,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	];
 
 	protected const STRIPE_LIST_PARAMS_TO_FORWARD = [ 'limit', 'starting_after', 'ending_before', 'customer', 'customer_account', 'created' ];
+
 	/**
 	 * Configure REST API routes.
 	 *
@@ -99,25 +100,25 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => [ self::class, 'validate_starting_after' ],
+						'validate_callback' => [ self::class, 'validate_payment_intent_id' ],
 					],
 					'ending_before'    => [
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => [ self::class, 'validate_ending_before' ],
+						'validate_callback' => [ self::class, 'validate_payment_intent_id' ],
 					],
 					'customer'         => [
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => [ self::class, 'validate_customer' ],
+						'validate_callback' => [ self::class, 'validate_customer_id' ],
 					],
 					'customer_account' => [
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => [ self::class, 'validate_customer_account' ],
+						'validate_callback' => [ self::class, 'validate_customer_id' ],
 					],
 					'created'          => [
 						'required'          => false,
@@ -226,7 +227,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	}
 
 	/**
-	 * Validate starting_after parameter value.
+	 * Validate a parameter value that should be a payment intent ID.
 	 *
 	 * @param string $param_value The parameter value.
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
@@ -234,12 +235,12 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 *
 	 * @return bool
 	 */
-	public static function validate_starting_after( $param_value, $request, $param_name ) {
+	public static function validate_payment_intent_id( $param_value, $request, $param_name ) {
 		return preg_match( '/^' . self::PAYMENT_INTENT_ID_PATTERN . '$/', $param_value ) === 1;
 	}
 
 	/**
-	 * Validate ending_before parameter value.
+	 * Validate a parameter value that should be a customer ID.
 	 *
 	 * @param string $param_value The parameter value.
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
@@ -247,33 +248,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 *
 	 * @return bool
 	 */
-	public static function validate_ending_before( $param_value, $request, $param_name ) {
-		return preg_match( '/^' . self::PAYMENT_INTENT_ID_PATTERN . '$/', $param_value ) === 1;
-	}
-
-	/**
-	 * Validate customer parameter value.
-	 *
-	 * @param string $param_value The parameter value.
-	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
-	 * @param string $param_name The parameter name.
-	 *
-	 * @return bool
-	 */
-	public static function validate_customer( $param_value, $request, $param_name ) {
-		return preg_match( '/^' . self::CUSTOMER_ID_PATTERN . '$/', $param_value ) === 1;
-	}
-
-	/**
-	 * Validate customer_account parameter value.
-	 *
-	 * @param string $param_value The parameter value.
-	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
-	 * @param string $param_name The parameter name.
-	 *
-	 * @return bool
-	 */
-	public static function validate_customer_account( $param_value, $request, $param_name ) {
+	public static function validate_customer_id( $param_value, $request, $param_name ) {
 		return preg_match( '/^' . self::CUSTOMER_ID_PATTERN . '$/', $param_value ) === 1;
 	}
 
@@ -288,12 +263,12 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 */
 	public static function sanitize_created( $param_value, $request, $param_name ) {
 		if ( ! is_array( $param_value ) ) {
-			$sanitized_value = sanitize_text_field( $param_value );
+			$sanitized_value = absint( $param_value );
 		} else {
 			$sanitized_value = [];
 
 			foreach ( $param_value as $operator => $operand ) {
-				$sanitized_value[ sanitize_key( $operator ) ] = sanitize_text_field( $operand );
+				$sanitized_value[ sanitize_key( $operator ) ] = absint( $operand );
 			}
 		}
 
@@ -313,12 +288,8 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @return bool
 	 */
 	public static function validate_created( $param_value, $request, $param_name ) {
-		if ( empty( $param_value ) ) {
-			return false;
-		}
-
-		if ( is_string( $param_value ) ) {
-			return preg_match( '/^\d+$/', $param_value ) === 1;
+		if ( self::is_valid_timestamp( $param_value ) ) {
+			return true;
 		}
 
 		if ( ! is_array( $param_value ) ) {
@@ -332,11 +303,32 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 				return false;
 			}
 
-			if ( ! is_scalar( $operand ) || preg_match( '/^\d+$/', (string) $operand ) !== 1 ) {
+			if ( ! self::is_valid_timestamp( $operand ) ) {
 				return false;
 			}
 		}
 
 		return true;
+	}
+
+	/**
+	 * Validate a timestamp value.
+	 *
+	 * Validates that the value is either a int greater than 0 or a non-empty string containing digits only.
+	 *
+	 * @param mixed $value The value.
+	 *
+	 * @return bool
+	 */
+	public static function is_valid_timestamp( $value ) {
+		if ( is_int( $value ) ) {
+			return $value >= 0;
+		}
+
+		if ( ! is_string( $value ) || '' === $value ) {
+			return false;
+		}
+
+		return 1 === preg_match( '/^\d+$/', $value );
 	}
 }
