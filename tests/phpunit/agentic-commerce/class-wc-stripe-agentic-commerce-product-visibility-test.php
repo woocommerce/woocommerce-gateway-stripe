@@ -19,8 +19,7 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility_Test extends WP_UnitTestCase
 	private int $resync_count = 0;
 
 	/**
-	 * Count the convergence action instead of letting it reach Action Scheduler,
-	 * which isn't loaded in the unit suite.
+	 * Count the convergence action instead of letting it reach Action Scheduler.
 	 */
 	public function setUp(): void {
 		parent::setUp();
@@ -62,7 +61,7 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility_Test extends WP_UnitTestCase
 	/**
 	 * Password-protecting a synced product must converge Stripe's catalog.
 	 *
-	 * Otherwise it only drops out on the next scheduled sync, and the tracker's
+	 * Otherwise it lingers until the next scheduled sync, and the tracker's
 	 * archive path bails on the same predicate so a later trash never lands.
 	 *
 	 * @return void
@@ -101,8 +100,8 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * An edit that doesn't cross the boundary must NOT enqueue a full-catalog
-	 * resync — that is the work the tracker's delta batching exists to avoid.
+	 * An edit that doesn't cross the boundary must NOT enqueue a resync — that is
+	 * the work the tracker's delta batching exists to avoid.
 	 *
 	 * @return void
 	 */
@@ -120,8 +119,8 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * Re-including converges too: the product has to be pushed back into Stripe's
-	 * catalog, not just stop being suppressed.
+	 * Re-including converges too: the product has to be pushed back, not just
+	 * stop being suppressed.
 	 *
 	 * @return void
 	 */
@@ -161,8 +160,8 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * The marker is what makes the watcher idempotent across the hooks it listens
-	 * on, several of which fire for the same save.
+	 * The marker keeps the watcher idempotent across the hooks it listens on,
+	 * several of which fire for the same save.
 	 *
 	 * @return void
 	 */

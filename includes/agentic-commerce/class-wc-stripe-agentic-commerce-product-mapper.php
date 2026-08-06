@@ -1030,9 +1030,6 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Whether the product sits behind a post password.
 	 *
-	 * The gate states who may view the product, and the `link` the feed exports
-	 * would only render a password prompt.
-	 *
 	 * Unlike catalog visibility, a variation does NOT inherit the parent's
 	 * password — it is a separate post with its own (empty) value. Resolve to the
 	 * parent, or every variation of a protected variable product keeps syncing.
@@ -1057,8 +1054,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * Whether the merchant hid the product from both the catalog and search.
 	 *
 	 * The partial values (`catalog`, `search`) are deliberately not exclusions:
-	 * the product is still reachable by the other route. Variations inherit this
-	 * from the parent, so no parent lookup is needed.
+	 * the product is still reachable by the other route.
 	 *
 	 * @since 10.9.0
 	 * @param \WC_Product $product Product to check.
@@ -1067,7 +1063,6 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	public static function is_hidden_from_catalog( \WC_Product $product ): bool {
 		return 'hidden' === $product->get_catalog_visibility();
 	}
-
 
 	/**
 	 * Whether the given product should be included in any Agentic Commerce sync
@@ -1088,9 +1083,8 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		// they fail validation and downgrade every sync to a partial success.
 		// Excluded by default, still overridable via the filters below.
 		//
-		// The other two express merchant intent the query cannot: it selects on
-		// post status and type only, so a protected or hidden product is still
-		// `publish` and reaches the feed.
+		// The other two express intent the query cannot: it selects on status and
+		// type only, so a protected or hidden product is still `publish`.
 		$default_should_sync = ! self::is_subscription_product( $product )
 			&& ! self::is_password_protected( $product )
 			&& ! self::is_hidden_from_catalog( $product );

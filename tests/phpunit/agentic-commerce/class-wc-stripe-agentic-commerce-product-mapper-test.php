@@ -1023,9 +1023,8 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A variation does NOT inherit the parent's `post_password`, so the predicate
-	 * must resolve to the parent. Variations are what the feed exports, so without
-	 * that every variation of a protected variable product keeps syncing.
+	 * A variation does NOT inherit the parent's `post_password`. Variations are
+	 * what the feed exports, so the predicate must resolve to the parent.
 	 *
 	 * @return void
 	 */
