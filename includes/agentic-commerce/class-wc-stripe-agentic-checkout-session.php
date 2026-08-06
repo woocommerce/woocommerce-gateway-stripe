@@ -94,6 +94,16 @@ class WC_Stripe_Agentic_Checkout_Session {
 	}
 
 	/**
+	 * Returns the aggregate discount amount in the smallest currency unit, or 0 when absent.
+	 *
+	 * @since 10.9.0
+	 * @return int
+	 */
+	public function get_amount_discount(): int {
+		return (int) ( $this->session->total_details->amount_discount ?? 0 );
+	}
+
+	/**
 	 * Returns the customer email, falling back from customer_details to customer_email.
 	 * Returns null when neither source is present.
 	 *
