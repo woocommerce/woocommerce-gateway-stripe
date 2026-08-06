@@ -604,7 +604,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 
 		// The merchant gate must short-circuit before any delivery.
 		$http_guard = function () {
-			$this->fail( 'sync_feed() must not reach Stripe delivery while the merchant toggle is off.' );
+			$this->fail( 'sync_feed() must not make an API call to Stripe when the merchant toggle is off.' );
 		};
 		add_filter( 'pre_http_request', $http_guard );
 
