@@ -50,9 +50,10 @@ class WC_Stripe_Remote_Config_Scheduler {
 	/**
 	 * Ensures the daily recurring action is scheduled.
 	 *
-	 * The first run is randomized within a ±1h window around 01:00 to spread out
-	 * traffic across the merchant base. The offset is chosen once per store
-	 * and inherited by every subsequent recurrence.
+	 * The first run is randomized within a ±1h window around 01:00 UTC (WP pins
+	 * PHP's timezone to UTC, so local DST transitions can't make the anchor
+	 * ambiguous) to spread out traffic across the merchant base. The offset is
+	 * chosen once per store and inherited by every subsequent recurrence.
 	 */
 	public function maybe_schedule_daily_sync(): void {
 		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {

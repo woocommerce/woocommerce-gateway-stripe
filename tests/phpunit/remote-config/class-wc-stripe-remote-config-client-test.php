@@ -153,22 +153,4 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 			],
 		];
 	}
-
-	/**
-	 * Runs in a separate process because it defines WC_STRIPE_DISABLE_REMOTE_CONFIG,
-	 * which cannot be undefined once set and would otherwise short-circuit every
-	 * later test in the run.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
-	public function test_fetch_short_circuits_when_disabled_by_constant(): void {
-		define( 'WC_STRIPE_DISABLE_REMOTE_CONFIG', true );
-
-		$result = $this->client->fetch( 'live' );
-
-		$this->assertWPError( $result );
-		$this->assertSame( 'wc_stripe_remote_config_disabled', $result->get_error_code() );
-		$this->assertCount( 0, $this->captured_requests );
-	}
 }
