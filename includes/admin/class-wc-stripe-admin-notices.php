@@ -473,20 +473,8 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
-		// If Adaptive Pricing is enabled, we should not show currency compatibility notices.
-		$settings = WC_Stripe_Helper::get_stripe_settings();
-		if (
-			WC_Stripe_Helper::is_checkout_sessions_available() &&
-			'yes' === ( $settings['adaptive_pricing'] ?? 'no' ) &&
-			WC_Stripe_Helper::is_adaptive_pricing_available_for_account()
-		) {
-			return;
-		}
-
-		$currency_messages = '';
-
 		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
-		if ( ! $gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
+		if ( ! $gateway instanceof WC_Stripe_UPE_Payment_Gateway || ! $gateway->is_enabled() ) {
 			return;
 		}
 
@@ -494,6 +482,8 @@ class WC_Stripe_Admin_Notices {
 		if ( empty( $store_currency ) ) {
 			return;
 		}
+
+		$currency_messages = '';
 
 		foreach ( $gateway->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
 			if ( ! isset( $gateway->payment_methods[ $payment_method_id ] ) ) {
@@ -517,6 +507,18 @@ class WC_Stripe_Admin_Notices {
 		}
 
 		if ( ! empty( $currency_messages ) ) {
+			// If Adaptive Pricing is enabled, we should not show currency compatibility notices.
+			// Note that we run these checks here because is_adaptive_pricing_available_for_account() can trigger API calls
+			// when checking on webhook status.
+			$settings = WC_Stripe_Helper::get_stripe_settings();
+			if (
+				WC_Stripe_Helper::is_checkout_sessions_available() &&
+				'yes' === ( $settings['adaptive_pricing'] ?? 'no' ) &&
+				WC_Stripe_Helper::is_adaptive_pricing_available_for_account()
+			) {
+				return;
+			}
+
 			$settings_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods' );
 
 			$review_action = sprintf(

@@ -191,7 +191,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function options_to_notices_map(): array {
 		return [
-			[
+			'style notice is shown when the Stripe gateway is enabled'              => [
 				[
 					'woocommerce_stripe_settings' => [ 'enabled' => 'yes' ],
 				],
@@ -502,7 +502,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'changed_keys',
 				],
 			],
-			[
+			'changed key notice is shown when option is set and OAuth is connected' => [
 				[
 					'woocommerce_stripe_settings'        => [
 						'enabled'         => 'yes',
@@ -533,25 +533,8 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'wc_stripe_show_sca_notice'   => 'no',
 				],
 			],
-			[
-				[
-					'woocommerce_stripe_settings' => [
-						'enabled'                                   => 'yes',
-						'testmode'                                  => 'no',
-						'publishable_key'                           => 'pk_live_valid_test_key',
-						'secret_key'                                => 'sk_live_valid_test_key',
-						'upe_checkout_experience_accepted_payments' => [ 'card', 'eps' ],
-					],
-					'wc_stripe_show_style_notice' => 'no',
-					'home'                        => 'https://...',
-					'wc_stripe_show_sca_notice'   => 'no',
-				],
-				'is oauth connected' => true,
-				[
-					'upe_payment_methods',
-				],
-			],
-			'OAuth required notice' => [
+			/* Note that currency notices are handled via test_currency_notices(). */
+			'OAuth required notice'                                                 => [
 				[
 					'woocommerce_stripe_settings' => [
 						'enabled'         => 'yes',
@@ -576,6 +559,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * settings page, once dismissed, or when Adaptive Pricing is active.
 	 *
 	 * @param bool        $is_stripe_settings_page                Whether the request is for the Stripe settings page.
+	 * @param bool        $is_gateway_enabled                     Whether the Stripe gateway is enabled.
 	 * @param string|null $dismiss_option                         Value for `wc_stripe_show_upe_payment_methods_notice`; null deletes the option.
 	 * @param bool        $checkout_sessions_available            Whether the Stripe Checkout Sessions feature is available.
 	 * @param string      $adaptive_pricing                       Value for the `adaptive_pricing` setting.
@@ -590,6 +574,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function test_currency_notices(
 		bool $is_stripe_settings_page,
+		bool $is_gateway_enabled,
 		?string $dismiss_option,
 		bool $checkout_sessions_available,
 		string $adaptive_pricing,
@@ -602,7 +587,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
-				'enabled'                         => 'yes',
+				'enabled'                         => $is_gateway_enabled ? 'yes' : 'no',
 				'testmode'                        => 'yes',
 				'test_publishable_key'            => 'pk_test_valid_test_key',
 				'test_secret_key'                 => 'sk_test_valid_test_key',
@@ -713,8 +698,26 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_currency_notices_scenarios(): array {
 		return [
+			'no notice when the Stripe gateway is disabled'                                => [
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => false,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'FR',
+				'store currency'                        => '',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [],
+			],
 			'methods that do not support the store currency are listed'                    => [
 				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
 				'dismiss option'                        => null,
 				'checkout sessions available'           => true,
 				'adaptive pricing'                      => 'no',
@@ -737,6 +740,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			'no notice when the store currency is empty'                                   => [
 				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
 				'dismiss option'                        => null,
 				'checkout sessions available'           => true,
 				'adaptive pricing'                      => 'no',
@@ -753,6 +757,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			'no notice when every method supports the store currency'                      => [
 				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
 				'dismiss option'                        => null,
 				'checkout sessions available'           => true,
 				'adaptive pricing'                      => 'no',
@@ -769,6 +774,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			'notice when a the store currency is not supported for the account country'    => [
 				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
 				'dismiss option'                        => null,
 				'checkout sessions available'           => true,
 				'adaptive pricing'                      => 'no',
@@ -787,6 +793,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			'card and Link are never flagged'                                              => [
 				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
 				'dismiss option'                        => null,
 				'checkout sessions available'           => true,
 				'adaptive pricing'                      => 'no',
@@ -807,6 +814,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				// Giropay is only instantiated on order details/refund requests, so it is
 				// enabled in the configuration but absent from the gateway's methods.
 				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
 				'dismiss option'                        => null,
 				'checkout sessions available'           => true,
 				'adaptive pricing'                      => 'no',
@@ -826,6 +834,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			'no notice when no restricted method is enabled'                               => [
 				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
 				'dismiss option'                        => null,
 				'checkout sessions available'           => true,
 				'adaptive pricing'                      => 'no',
@@ -839,6 +848,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			'suppressed on the Stripe settings page'                                       => [
 				'is stripe settings page'               => true,
+				'is gateway enabled'                    => true,
 				'dismiss option'                        => null,
 				'checkout sessions available'           => true,
 				'adaptive pricing'                      => 'no',
@@ -854,6 +864,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			'suppressed once dismissed'                                                    => [
 				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
 				'dismiss option'                        => 'no',
 				'checkout sessions available'           => true,
 				'adaptive pricing'                      => 'no',
@@ -869,6 +880,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			'shown while the dismiss option is yes'                                        => [
 				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
 				'dismiss option'                        => 'yes',
 				'checkout sessions available'           => true,
 				'adaptive pricing'                      => 'no',
@@ -889,6 +901,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			'suppressed when Adaptive Pricing is enabled'                                  => [
 				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
 				'dismiss option'                        => '',
 				'checkout sessions available'           => true,
 				'adaptive pricing'                      => 'yes',
@@ -904,6 +917,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			'shown when Adaptive Pricing is enabled but Checkout Sessions are unavailable' => [
 				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
 				'dismiss option'                        => '',
 				'checkout sessions available'           => false,
 				'adaptive pricing'                      => 'yes',
@@ -923,19 +937,20 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 			],
 			'shown when Adaptive Pricing is enabled but unavailable for the account'       => [
-				'is stripe settings page'                => false,
-				'dismiss option'                         => '',
-				'checkout sessions available'            => true,
-				'adaptive pricing'                       => 'yes',
-				'adaptive pricing available for account' => 'IN',
-				'store currency'                         => 'USD',
-				'enabled payment method IDs'             => [
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
+				'dismiss option'                        => '',
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'yes',
+				'account country'                       => 'IN',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
 					WC_Stripe_Payment_Methods::EPS,
 					WC_Stripe_Payment_Methods::BANCONTACT,
 					WC_Stripe_Payment_Methods::IDEAL,
 					WC_Stripe_Payment_Methods::KLARNA,
 				],
-				'expected payment method IDs in notice'  => [
+				'expected payment method IDs in notice' => [
 					WC_Stripe_Payment_Methods::EPS,
 					WC_Stripe_Payment_Methods::BANCONTACT,
 					WC_Stripe_Payment_Methods::IDEAL,
