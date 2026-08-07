@@ -104,7 +104,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		?bool $remote_value,
 		bool $expected
 	): void {
-		add_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
 		PMC_Test_Helper::cache_mocked_configuration();
 		if ( $pmc_enabled ) {
 			PMC_Test_Helper::enable_pmc();
@@ -133,7 +133,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$actual = WC_Stripe_Feature_Flags::is_oc_offered();
 
 		// Cleanup
-		remove_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
 		PMC_Test_Helper::disable_pmc();
 		PMC_Test_Helper::delete_cached_configuration();
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
@@ -173,7 +173,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * flag value — the runtime predicate is_oc_offered() is the one that flips.
 	 */
 	public function test_is_oc_available_ignores_remote_flag(): void {
-		add_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
 		PMC_Test_Helper::cache_mocked_configuration();
 		PMC_Test_Helper::enable_pmc();
 
@@ -196,7 +196,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$is_offered   = WC_Stripe_Feature_Flags::is_oc_offered();
 
 		// Cleanup
-		remove_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
 		PMC_Test_Helper::disable_pmc();
 		PMC_Test_Helper::delete_cached_configuration();
 		WC_Stripe_Remote_Config::reset_in_memory_cache();

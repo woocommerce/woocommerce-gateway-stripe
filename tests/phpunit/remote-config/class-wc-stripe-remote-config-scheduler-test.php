@@ -14,7 +14,7 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
-		add_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
 		$this->original_stripe_settings = get_option( 'woocommerce_stripe_settings' );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
@@ -25,7 +25,7 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down(): void {
-		remove_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
 		if ( function_exists( 'as_unschedule_all_actions' ) ) {
 			as_unschedule_all_actions( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], 'woocommerce-gateway-stripe' );
 		}
@@ -177,12 +177,12 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	public function test_run_skips_when_disabled_and_swallows_errors(): void {
 		$this->configure_modes( true, false );
 
-		// Disabled by filter: client must not be called.
-		add_filter( 'wc_stripe_remote_config_enabled', '__return_false' );
+		// Disabled by override: client must not be called.
+		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'no' );
 		$disabled_client = $this->createMock( WC_Stripe_Remote_Config_Client::class );
 		$disabled_client->expects( $this->never() )->method( 'fetch' );
 		( new WC_Stripe_Remote_Config_Scheduler( $disabled_client, new WC_Stripe_Remote_Config() ) )->run();
-		remove_filter( 'wc_stripe_remote_config_enabled', '__return_false' );
+		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
 
 		// Enabled but client returns WP_Error: must not throw, cache stays empty.
 		$err_client = $this->createMock( WC_Stripe_Remote_Config_Client::class );

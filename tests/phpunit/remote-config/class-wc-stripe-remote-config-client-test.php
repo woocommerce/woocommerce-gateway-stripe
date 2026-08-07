@@ -13,13 +13,13 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
-		add_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
 		$this->client            = new WC_Stripe_Remote_Config_Client();
 		$this->captured_requests = [];
 	}
 
 	public function tear_down(): void {
-		remove_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
 		remove_all_filters( 'pre_http_request' );
 		parent::tear_down();
 	}
@@ -77,13 +77,13 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		$this->assertSame( 10, $args['timeout'] );
 	}
 
-	public function test_fetch_short_circuits_when_disabled_by_filter(): void {
-		add_filter( 'wc_stripe_remote_config_enabled', '__return_false' );
+	public function test_fetch_short_circuits_when_disabled_by_override(): void {
+		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'no' );
 
 		$result = $this->client->fetch( 'live' );
 
-		// Clean up before asserting so a failed assertion can't leak the filter into later tests.
-		remove_filter( 'wc_stripe_remote_config_enabled', '__return_false' );
+		// Clean up before asserting so a failed assertion can't leak the override into later tests.
+		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'wc_stripe_remote_config_disabled', $result->get_error_code() );

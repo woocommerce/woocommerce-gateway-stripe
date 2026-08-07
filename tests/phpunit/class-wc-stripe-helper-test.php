@@ -2063,7 +2063,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		set_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
 
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
-		add_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 
@@ -2085,7 +2085,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$this->assertFalse( WC_Stripe_Helper::is_adaptive_pricing_supported(), 'AP must be severed by the remote OC disable' );
 		} finally {
 			remove_filter( 'woocommerce_is_checkout', '__return_true' );
-			remove_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+			delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
 			WC_Stripe_Remote_Config::reset_in_memory_cache();
 			delete_option( '_wcstripe_remote_config_live' );
 			delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );

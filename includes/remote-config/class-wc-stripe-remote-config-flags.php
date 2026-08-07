@@ -52,27 +52,36 @@ class WC_Stripe_Remote_Config_Flags {
 	}
 
 	/**
+	 * Option that force-enables ('yes') or force-disables ('no') the
+	 * remote-config channel on this site; any other value falls through to
+	 * the environment default. Internal tooling seam (wp-cli, phased rollout,
+	 * support) — deliberately not a merchant-facing opt-out: a public escape
+	 * hatch would fragment incident coverage and force a patch release for
+	 * exactly the sites a remote disable needs to reach.
+	 */
+	public const ENABLED_OVERRIDE_OPTION = '_wcstripe_remote_config_enabled';
+
+	/**
 	 * Whether the remote-config feature is enabled on this site.
 	 *
-	 * The `wc_stripe_remote_config_enabled` filter is the single opt-out: a
-	 * constant would be too easy to bake into fleet-wide wp-config templates,
-	 * permanently cutting those sites off from incident mitigations. The filter
-	 * default is `false` on development environments (WP_DEBUG sites, or sites
-	 * whose `wp_get_environment_type()` is local/development/staging) and
-	 * `true` everywhere else.
+	 * Enabled everywhere except development environments (WP_DEBUG sites, or
+	 * sites whose `wp_get_environment_type()` is local/development/staging),
+	 * unless the ENABLED_OVERRIDE_OPTION option overrides the default in
+	 * either direction. There is intentionally no public filter or constant.
 	 */
 	public static function is_remote_config_enabled(): bool {
+		$override = get_option( self::ENABLED_OVERRIDE_OPTION, '' );
+		if ( 'yes' === $override ) {
+			return true;
+		}
+		if ( 'no' === $override ) {
+			return false;
+		}
+
 		$is_dev_environment = ( defined( 'WP_DEBUG' ) && WP_DEBUG )
 			|| in_array( wp_get_environment_type(), [ 'development', 'staging', 'local' ], true );
 
-		/**
-		 * Filters whether the Stripe remote-config channel is enabled.
-		 *
-		 * @since 10.8.0
-		 *
-		 * @param bool $enabled Default `false` on development environments, `true` elsewhere.
-		 */
-		return (bool) apply_filters( 'wc_stripe_remote_config_enabled', ! $is_dev_environment );
+		return ! $is_dev_environment;
 	}
 
 	/**
