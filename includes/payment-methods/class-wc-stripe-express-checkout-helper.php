@@ -15,8 +15,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	use WC_Stripe_Pre_Orders_Trait;
 
 	/**
-	 * Express checkout methods in their canonical display order, exposed via
-	 * get_express_checkout_methods().
+	 * Express checkout methods in canonical display order.
 	 *
 	 * @var string[]
 	 */
@@ -205,9 +204,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Gets the Link button height.
 	 *
-	 * All express checkout methods share a single button size so buttons rendered
-	 * together on a page stay visually consistent, so this delegates to the
-	 * unified height. Kept as a named method for the values localized to JS.
+	 * All express checkout methods share one button size; kept as a named method
+	 * for the values localized to JS.
 	 *
 	 * @return string
 	 */
@@ -218,7 +216,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Gets the Amazon Pay button height.
 	 *
-	 * Shares the single express checkout button size; see get_link_button_height().
+	 * Shares the single express checkout button size.
 	 *
 	 * @return string
 	 */
@@ -1872,17 +1870,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Returns the unified express checkout locations map: location => list of
-	 * methods enabled there, in canonical order.
+	 * Returns the unified express checkout locations map (location => enabled methods).
 	 *
-	 * Migrated installs store this map under `express_checkout_button_locations`.
-	 * It is authoritative even when empty (the merchant disabled every location),
-	 * which is distinguished from a fresh install by the absence of the separate
-	 * legacy `link_button_locations`/`amazon_pay_button_locations` options that the
-	 * migration removes. Before migration the value is still a flat per-method list,
-	 * so the map is derived from the legacy options on the fly — falling back to the
-	 * default placement when nothing is configured — to keep rendering correct
-	 * during the upgrade window.
+	 * Post-migration the stored map is authoritative, even when empty. Pre-migration
+	 * (legacy per-method options still present) the map is derived from those options
+	 * on the fly, falling back to the default placement when nothing is configured.
 	 *
 	 * @return array<string, string[]>
 	 */
@@ -1890,9 +1882,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$stored = $this->stripe_settings['express_checkout_button_locations'] ?? null;
 
 		if ( is_array( $stored ) && self::is_locations_map( $stored ) ) {
-			// A non-empty map is authoritative. An empty one is only authoritative
-			// once the per-method options are gone; otherwise fall through to derive
-			// the map from them (pre-migration).
+			// An empty map is only authoritative once the legacy per-method options are gone.
 			if ( ! empty( $stored ) || ! $this->has_legacy_per_method_locations() ) {
 				return $stored;
 			}
@@ -1906,8 +1896,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Default location => methods map used when no placement has been configured,
-	 * preserving the historical default of showing every method on product and cart.
+	 * Default map: every method on product and cart, matching the historical default.
 	 *
 	 * @return array<string, string[]>
 	 */
@@ -1941,9 +1930,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Whether the stored value is already a unified locations map rather than a
-	 * legacy flat list. An empty array is treated as a (possibly intentionally
-	 * empty) map; a non-empty list with integer keys is legacy flat location data.
+	 * Whether the value is a unified locations map rather than a legacy flat list
+	 * (integer keys). An empty array counts as a map.
 	 *
 	 * @param array $value The stored value.
 	 * @return bool
@@ -1959,10 +1947,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Builds the unified locations map from the legacy per-method options,
-	 * preserving the canonical method order within each location.
-	 *
-	 * Shared by the migration (to persist the map) and the runtime fallback above.
+	 * Builds the unified locations map from the legacy per-method options.
+	 * Shared by the migration and the runtime pre-migration fallback.
 	 *
 	 * @param array $settings The Stripe settings array.
 	 * @return array<string, string[]>
@@ -1990,8 +1976,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Express checkout methods in their canonical display order. Buttons within a
-	 * location render in this order, and only these keys are valid map values.
+	 * Express checkout methods in canonical display order — buttons render in this order.
 	 *
 	 * @return string[]
 	 */
@@ -2001,9 +1986,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 	/**
 	 * Pages where the express checkout buttons should be displayed.
-	 *
-	 * With no type, returns every location that has at least one enabled method.
-	 * With a type, returns the locations where that method is enabled.
+	 * Without a type, returns every location with at least one enabled method.
 	 *
 	 * @param string|null $express_checkout_type The type of express checkout.
 	 * @return array
@@ -2040,9 +2023,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Normalizes a caller-supplied express checkout type to the canonical method
-	 * key used in the locations map. Apple/Google Pay is referred to as both
-	 * `payment_request` and `express_checkout` across the codebase; anything that
+	 * Normalizes an express checkout type to its canonical map key; anything that
 	 * is not Link or Amazon Pay maps to `payment_request`.
 	 *
 	 * @param string $express_checkout_type The type of express checkout.

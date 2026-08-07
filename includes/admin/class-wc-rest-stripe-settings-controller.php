@@ -236,8 +236,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$available_payment_method_ids = $this->gateway->get_upe_available_payment_methods();
 		$ordered_payment_method_ids   = WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this->gateway );
 
-		// Per-method button locations are derived from the unified locations map so
-		// the existing per-method settings pages keep their flat-array contract.
+		// Derives the per-method button locations from the unified map, keeping the flat-array response contract.
 		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
 
 		return new WP_REST_Response(
@@ -564,12 +563,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Collapses the per-method express checkout button location params into the
-	 * unified location => methods map.
-	 *
-	 * The settings pages still send a flat location array per method; methods
-	 * absent from the request keep their current locations so partial updates are
-	 * non-destructive.
+	 * Collapses the per-method button location params into the unified location => methods map.
+	 * Methods absent from the request keep their current locations, so partial updates are non-destructive.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 *
