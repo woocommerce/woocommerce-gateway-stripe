@@ -64,10 +64,10 @@ class WC_Stripe_Remote_Config_Flags {
 	/**
 	 * Whether the remote-config feature is enabled on this site.
 	 *
-	 * Enabled everywhere except development environments (WP_DEBUG sites, or
-	 * sites whose `wp_get_environment_type()` is local/development/staging),
-	 * unless the ENABLED_OVERRIDE_OPTION option overrides the default in
-	 * either direction. There is intentionally no public filter or constant.
+	 * Disabled by default while the rollout is in phase 1; the
+	 * ENABLED_OVERRIDE_OPTION option force-enables ('yes') or force-disables
+	 * ('no') an individual site. There is intentionally no public filter or
+	 * constant.
 	 */
 	public static function is_remote_config_enabled(): bool {
 		$override = get_option( self::ENABLED_OVERRIDE_OPTION, '' );
@@ -78,10 +78,12 @@ class WC_Stripe_Remote_Config_Flags {
 			return false;
 		}
 
-		$is_dev_environment = ( defined( 'WP_DEBUG' ) && WP_DEBUG )
-			|| in_array( wp_get_environment_type(), [ 'development', 'staging', 'local' ], true );
-
-		return ! $is_dev_environment;
+		// Phase 1 of the phased rollout: the code ships with the channel
+		// globally disabled and our test sites are enabled by hand via the
+		// override option. Later phases flip this default via patch releases —
+		// test-mode sites first, then a progressive live ramp — and must
+		// re-exclude development environments when they do.
+		return false;
 	}
 
 	/**

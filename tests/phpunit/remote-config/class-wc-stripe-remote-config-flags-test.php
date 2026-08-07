@@ -12,7 +12,7 @@ class WC_Stripe_Remote_Config_Flags_Test extends WP_UnitTestCase {
 
 	/**
 	 * The internal override option must force the channel on with 'yes' and
-	 * off with 'no', regardless of the environment default.
+	 * off with 'no'; without an override the phase-1 default keeps it off.
 	 *
 	 * @param string $override Value stored in the override option.
 	 * @param bool   $expected Expected is_remote_config_enabled() result.
@@ -32,8 +32,21 @@ class WC_Stripe_Remote_Config_Flags_Test extends WP_UnitTestCase {
 	 */
 	public function provide_override_values(): array {
 		return [
-			'yes forces enabled' => [ 'yes', true ],
-			'no forces disabled' => [ 'no', false ],
+			'yes forces enabled'                  => [ 'yes', true ],
+			'no forces disabled'                  => [ 'no', false ],
+			'no override: phase-1 default is off' => [ '', false ],
 		];
+	}
+
+	/**
+	 * With the option absent entirely, the phase-1 default must keep the
+	 * channel off.
+	 *
+	 * @return void
+	 */
+	public function test_disabled_by_default(): void {
+		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
+
+		$this->assertFalse( WC_Stripe_Remote_Config_Flags::is_remote_config_enabled() );
 	}
 }
