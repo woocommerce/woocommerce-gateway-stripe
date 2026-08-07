@@ -103,18 +103,16 @@ const dependenciesReady = () => requiredGlobalPaths.every( globalPathReady );
 // Retry once on a transient chunk-load failure; log a hard failure rather than
 // leave an unhandled rejection.
 const loadInit = ( retriesLeft = 1 ) =>
-	import( /* webpackMode: "eager" */ './init' ).catch(
-		( error ) => {
-			if ( retriesLeft > 0 ) {
-				return loadInit( retriesLeft - 1 );
-			}
-			// eslint-disable-next-line no-console
-			console.error(
-				'WooCommerce Stripe: failed to load the classic checkout init chunk.',
-				error
-			);
+	import( /* webpackMode: "eager" */ './init' ).catch( ( error ) => {
+		if ( retriesLeft > 0 ) {
+			return loadInit( retriesLeft - 1 );
 		}
-	);
+		// eslint-disable-next-line no-console
+		console.error(
+			'WooCommerce Stripe: failed to load the classic checkout init chunk.',
+			error
+		);
+	} );
 
 if ( dependenciesReady() ) {
 	loadInit();
