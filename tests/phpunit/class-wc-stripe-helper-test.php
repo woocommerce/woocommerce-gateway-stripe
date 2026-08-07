@@ -2035,6 +2035,65 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * A remote disable of Optimized Checkout must also sever Adaptive Pricing,
+	 * which rides the checkout-sessions flow outside the OC element gates.
+	 *
+	 * @return void
+	 */
+	public function test_is_adaptive_pricing_supported_respects_remote_oc_disable(): void {
+		$original_stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$new_stripe_settings = array_merge(
+			is_array( $original_stripe_settings ) ? $original_stripe_settings : [],
+			[
+				'testmode'                   => 'no',
+				'adaptive_pricing'           => 'yes',
+				'optimized_checkout_element' => 'yes',
+				'capture'                    => 'yes',
+				'pmc_enabled'                => 'yes',
+				'webhook_data'               => [
+					'id'     => 'we_live',
+					'secret' => 'whsec_live',
+				],
+			]
+		);
+		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
+
+		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
+		set_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+		add_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		WC_Stripe_Remote_Config::reset_in_memory_cache();
+		delete_option( '_wcstripe_remote_config_live' );
+
+		WC()->cart->empty_cart();
+		$this->set_stripe_account_data( [ 'country' => 'US' ] );
+
+		try {
+			// Baseline: with no remote flag cached, all local conditions pass.
+			$this->assertTrue( WC_Stripe_Helper::is_adaptive_pricing_supported(), 'AP must be supported before the remote disable' );
+
+			WC_Stripe_Remote_Config::get_instance()->apply(
+				'live',
+				[
+					'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
+					'generated_at' => '2026-05-09T12:00:00Z',
+				]
+			);
+
+			$this->assertFalse( WC_Stripe_Helper::is_adaptive_pricing_supported(), 'AP must be severed by the remote OC disable' );
+		} finally {
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+			remove_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+			WC_Stripe_Remote_Config::reset_in_memory_cache();
+			delete_option( '_wcstripe_remote_config_live' );
+			delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
+			WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
+		}
+	}
+
+	/**
 	 * Data provider for `test_is_adaptive_pricing_supported`.
 	 *
 	 * @return array
