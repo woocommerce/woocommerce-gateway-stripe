@@ -1,0 +1,9 @@
+{
+	"id": "dcpe_test_12345",
+	"type": "delegated_commerce.product_price_availability",
+	"livemode": false,
+	"context": "acct_test_12345",
+	"data": {
+		"sku_id": "PRICE-AVAIL-TEST-SKU"
+	}
+}

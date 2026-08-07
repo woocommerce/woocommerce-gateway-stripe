@@ -91,6 +91,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Prevent dismissed admin banner notices from reappearing after navigating between Settings and Payment Methods tabs
 * Fix - Only load the Blocks checkout stylesheet on pages that render the Cart or Checkout block, instead of on every page of the store
 * Fix - Reserve stock when completing agentic checkout orders so concurrent sessions cannot oversell; orders losing the race are set on-hold instead of driving stock negative
+* Add - Answer the Stripe Agentic Commerce pricing and availability hook with real-time product price and stock so agents don't act on stale catalog feed data
 
 2026-08-05 - version 10.8.5
 * Update - Improve webhook handling
