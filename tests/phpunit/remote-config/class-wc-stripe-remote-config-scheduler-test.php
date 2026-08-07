@@ -65,6 +65,68 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 
 		$this->assertNotFalse( has_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [ $scheduler, 'run' ] ) );
 		$this->assertNotFalse( has_action( 'woocommerce_stripe_updated', [ WC_Stripe_Remote_Config_Scheduler::class, 'on_plugin_upgrade' ] ) );
+		$this->assertNotFalse( has_action( 'update_option_woocommerce_stripe_settings', [ WC_Stripe_Remote_Config_Scheduler::class, 'maybe_sync_on_connection_change' ] ) );
+	}
+
+	/**
+	 * A settings change that affects the connection (keys or test/live mode)
+	 * must enqueue an immediate sync; unrelated settings churn must not.
+	 *
+	 * @param mixed $old_value    Previous settings option value.
+	 * @param mixed $new_value    New settings option value.
+	 * @param bool  $expects_sync Whether a sync action must be enqueued.
+	 *
+	 * @dataProvider provide_connection_change_scenarios
+	 */
+	public function test_connection_change_enqueues_sync( $old_value, $new_value, bool $expects_sync ): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		WC_Stripe_Remote_Config_Scheduler::maybe_sync_on_connection_change( $old_value, $new_value );
+
+		$this->assertSame( $expects_sync, as_has_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION ) );
+	}
+
+	/**
+	 * Data provider for {@see test_connection_change_enqueues_sync()}.
+	 *
+	 * @return array
+	 */
+	public function provide_connection_change_scenarios(): array {
+		return [
+			'live secret key added'     => [
+				[ 'secret_key' => '' ],
+				[ 'secret_key' => 'sk_live_xx' ],
+				true,
+			],
+			'test secret key added'     => [
+				[],
+				[ 'test_secret_key' => 'sk_test_xx' ],
+				true,
+			],
+			'mode switched'             => [
+				[ 'testmode' => 'yes' ],
+				[ 'testmode' => 'no' ],
+				true,
+			],
+			'non-array previous value'  => [
+				false,
+				[ 'secret_key' => 'sk_live_xx' ],
+				true,
+			],
+			'unrelated setting changed' => [
+				[
+					'title'      => 'Cards',
+					'secret_key' => 'sk_live_xx',
+				],
+				[
+					'title'      => 'Credit cards',
+					'secret_key' => 'sk_live_xx',
+				],
+				false,
+			],
+		];
 	}
 
 	public function test_on_plugin_upgrade_enqueues_async_sync(): void {

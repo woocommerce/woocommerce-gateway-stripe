@@ -8,6 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * - Daily Action Scheduler job (`wc_stripe_remote_config_sync`).
  * - Immediate single-action enqueue on plugin upgrade
+ * - Immediate single-action enqueue when API keys or the test/live mode change
  *
  * On each run, iterates over connected Stripe modes (live/test) and calls
  * Client::fetch -> Remote_Config::apply for each.
@@ -33,7 +34,7 @@ class WC_Stripe_Remote_Config_Scheduler {
 
 	public function __construct( ?WC_Stripe_Remote_Config_Client $client = null, ?WC_Stripe_Remote_Config $remote_config = null ) {
 		$this->client        = null === $client ? new WC_Stripe_Remote_Config_Client() : $client;
-		$this->remote_config = null === $remote_config ? new WC_Stripe_Remote_Config() : $remote_config;
+		$this->remote_config = null === $remote_config ? WC_Stripe_Remote_Config::get_instance() : $remote_config;
 	}
 
 	/**
@@ -42,6 +43,7 @@ class WC_Stripe_Remote_Config_Scheduler {
 	public function init_hooks(): void {
 		add_action( self::SYNC_ACTION, [ $this, 'run' ] );
 		add_action( 'woocommerce_stripe_updated', [ self::class, 'on_plugin_upgrade' ] );
+		add_action( 'update_option_woocommerce_stripe_settings', [ self::class, 'maybe_sync_on_connection_change' ], 10, 2 );
 		add_action( 'init', [ $this, 'maybe_schedule_daily_sync' ] );
 		// Re-arm the recurring action if the schedule is purged.
 		add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ $this, 'maybe_schedule_daily_sync' ] );
@@ -107,6 +109,34 @@ class WC_Stripe_Remote_Config_Scheduler {
 		}
 
 		as_enqueue_async_action( self::SYNC_ACTION, [], self::SCHEDULER_GROUP );
+	}
+
+	/**
+	 * Hook callback for `update_option_woocommerce_stripe_settings`. Enqueues an
+	 * immediate sync when API keys or the test/live mode change.
+	 *
+	 * The config is cached per mode and run() skips modes without keys, so a
+	 * store that connects a new mode (e.g. goes live after being test-only)
+	 * would otherwise serve local fallbacks for that mode until the next daily
+	 * run — leaving a remote disable inert for up to a day.
+	 *
+	 * @param mixed $old_value Previous value of the settings option.
+	 * @param mixed $value     New value of the settings option.
+	 */
+	public static function maybe_sync_on_connection_change( $old_value, $value ): void {
+		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
+			return;
+		}
+
+		$old = is_array( $old_value ) ? $old_value : [];
+		$new = is_array( $value ) ? $value : [];
+
+		foreach ( [ 'testmode', 'secret_key', 'test_secret_key' ] as $field ) {
+			if ( ( $old[ $field ] ?? '' ) !== ( $new[ $field ] ?? '' ) ) {
+				as_enqueue_async_action( self::SYNC_ACTION, [], self::SCHEDULER_GROUP );
+				return;
+			}
+		}
 	}
 
 	/**

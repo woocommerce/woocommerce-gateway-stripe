@@ -221,7 +221,7 @@ class WC_Stripe_Feature_Flags {
 			return false;
 		}
 
-		return (bool) ( new WC_Stripe_Remote_Config() )->resolve( 'optimized_checkout', true );
+		return (bool) WC_Stripe_Remote_Config::get_instance()->resolve( 'optimized_checkout', true );
 	}
 
 	/**

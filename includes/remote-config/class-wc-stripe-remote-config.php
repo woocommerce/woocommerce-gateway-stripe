@@ -24,6 +24,28 @@ class WC_Stripe_Remote_Config {
 	private const SCHEMA_VERSION = 1;
 
 	/**
+	 * Memoized shared instance.
+	 *
+	 * @var self|null
+	 */
+	private static $instance = null;
+
+	/**
+	 * Shared instance accessor.
+	 *
+	 * Safe to memoize: instances hold no state of their own (the cache is
+	 * static + options), so callers never need a private copy.
+	 *
+	 * @return self
+	 */
+	public static function get_instance(): self {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
+
+	/**
 	 * In-process per-request cache of decoded options, keyed by mode.
 	 *
 	 * @var array<string, array|null>
