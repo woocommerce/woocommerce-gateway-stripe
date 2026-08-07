@@ -103,7 +103,7 @@ const dependenciesReady = () => requiredGlobalPaths.every( globalPathReady );
 // Retry once on a transient chunk-load failure; log a hard failure rather than
 // leave an unhandled rejection.
 const loadInit = ( retriesLeft = 1 ) =>
-	import( /* webpackChunkName: "upe-classic-init" */ './init' ).catch(
+	import( /* webpackMode: "eager" */ './init' ).catch(
 		( error ) => {
 			if ( retriesLeft > 0 ) {
 				return loadInit( retriesLeft - 1 );
