@@ -353,7 +353,7 @@ The store-wide default is set in **Stripe settings → Agentic commerce → "Red
 
 ```php
 add_filter(
-    'wc_stripe_agentic_commerce_disable_checkout',
+    'woocommerce_agentic_commerce_disable_checkout',
     function ( bool $disabled, WC_Product $product, ?WC_Product $parent ): bool {
         // e.g. redirect only for a specific category.
         return has_term( 'made-to-order', 'product_cat', $product->get_id() ) ? true : $disabled;
@@ -362,3 +362,17 @@ add_filter(
     3
 );
 ```
+
+> The Stripe-prefixed `wc_stripe_agentic_commerce_disable_checkout` filter is **deprecated since 10.9.0** in favour of the shareable `woocommerce_agentic_commerce_disable_checkout` above (mirroring the `woocommerce_agentic_commerce_should_sync_product` migration). Existing hooks on the old name still run — they seed the new filter's default — but emit a deprecation notice.
+
+## Coupons and discounts
+
+WooCommerce coupons do not participate in delegated (in-agent) checkout. Prices come from the synced product feed and are computed by Stripe, the shopper pays inside the AI agent, and the WooCommerce order is only created afterwards from the completed session. Consequences merchants should be aware of:
+
+- No WooCommerce coupon is ever applied to an agentic order — agentic shoppers pay the feed price.
+- WooCommerce coupon **usage limits are neither enforced nor consumed** by agentic sales. A limited-use coupon promotion does not cap, count, or discount purchases completed inside an agent.
+- Stripe-side discounts are rejected at order creation: a session whose `total_details.amount_discount` is non-zero fails with an explicit error (WooCommerce recalculates full catalog prices, so such an order could never pass total verification). Because Stripe captures payment before the webhook fires, the failure surfaces in logs for manual resolution.
+
+This limitation only affects delegated (in-agent) purchases. In feed-only / redirect mode (see [Checkout Mode](#checkout-mode-embedded-vs-redirect) above) the shopper completes checkout on the store, where WooCommerce coupons and their usage limits apply as usual.
+
+Whether to support promotions in delegated checkout (mapping Stripe discounts to WooCommerce coupons and enforcing usage limits at `finalize_checkout`) is an open product decision, tracked in STRIPE-1257.

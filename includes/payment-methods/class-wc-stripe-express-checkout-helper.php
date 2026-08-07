@@ -69,6 +69,11 @@ class WC_Stripe_Express_Checkout_Helper {
 		$this->testmode        = WC_Stripe_Mode::is_test();
 		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
 
+		/**
+		 * Filters the suffix appended to the Express Checkout total label.
+		 *
+		 * @param string $suffix Total label suffix.
+		 */
 		$this->total_label = str_replace( "'", '', $this->total_label ) . apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
 	}
 
@@ -78,6 +83,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return string
 	 */
 	public static function get_payment_method_title_suffix() {
+		/**
+		 * Filters the suffix used for Express Checkout payment method titles.
+		 *
+		 * @param string $suffix Payment method title suffix.
+		 */
 		$suffix = apply_filters( 'wc_stripe_payment_request_payment_method_title_suffix', 'Stripe' );
 		if ( ! empty( $suffix ) ) {
 			$suffix = " ($suffix)";
@@ -328,6 +338,9 @@ class WC_Stripe_Express_Checkout_Helper {
 
 			if ( ! empty( $variation_id ) ) {
 				$product = wc_get_product( $variation_id );
+				if ( ! ( $product instanceof WC_Product ) ) {
+					return false;
+				}
 			}
 		}
 
@@ -364,6 +377,11 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		$data['displayItems'] = $items;
 		$data['total']        = [
+			/**
+			 * Filters the Express Checkout total label.
+			 *
+			 * @param string $label Total label.
+			 */
 			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
 			'amount'  => WC_Stripe_Helper::get_stripe_amount( $price + $total_tax, $currency ),
 			'pending' => true,
@@ -376,6 +394,12 @@ class WC_Stripe_Express_Checkout_Helper {
 		// On product page load, if there's a variation already selected, check if it's supported.
 		$data['validVariationSelected'] = ! empty( $variation_id ) ? $this->is_product_supported( $product ) : true;
 
+		/**
+		 * Filters product data passed to Express Checkout.
+		 *
+		 * @param array      $data    Express Checkout product data.
+		 * @param WC_Product $product Product object.
+		 */
 		return apply_filters( 'wc_stripe_payment_request_product_data', $data, $product );
 	}
 
@@ -521,6 +545,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  array
 	 */
 	public function supported_product_types() {
+		/**
+		 * Filters product types supported by Express Checkout.
+		 *
+		 * @param string[] $supported_types Supported product types.
+		 */
 		return apply_filters(
 			'wc_stripe_payment_request_supported_types',
 			[
@@ -963,7 +992,12 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		// Hide if cart/product doesn't require shipping and tax is based on billing or shipping address.
-		$hide_based_on_tax          = $this->should_hide_ece_based_on_tax_setup();
+		$hide_based_on_tax = $this->should_hide_ece_based_on_tax_setup();
+		/**
+		 * Filters whether Express Checkout should be hidden based on the store tax setup.
+		 *
+		 * @param bool $hide Whether Express Checkout should be hidden.
+		 */
 		$hide_based_on_tax_filtered = apply_filters( 'wc_stripe_should_hide_express_checkout_button_based_on_tax_setup', $hide_based_on_tax );
 		if ( $hide_based_on_tax_filtered ) {
 			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
@@ -1089,6 +1123,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	public function should_show_ece_on_cart_page() {
 		$should_show_on_cart_page = $this->should_show_ece_on_location( 'cart' );
 
+		/**
+		 * This filter is documented in includes/class-wc-stripe.php.
+		 */
 		return apply_filters(
 			'wc_stripe_show_payment_request_on_cart',
 			$should_show_on_cart_page
@@ -1106,6 +1143,9 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		$should_show_on_checkout_page = $this->should_show_ece_on_location( 'checkout' );
 
+		/**
+		 * This filter is documented in includes/class-wc-stripe.php.
+		 */
 		return apply_filters(
 			'wc_stripe_show_payment_request_on_checkout',
 			$should_show_on_checkout_page,
@@ -1134,6 +1174,9 @@ class WC_Stripe_Express_Checkout_Helper {
 		$should_show_on_product_page = $this->should_show_ece_on_location( 'product' );
 
 		// Note the negation because if the filter returns `true` that means we should hide the PRB.
+		/**
+		 * This filter is documented in includes/class-wc-stripe.php.
+		 */
 		return ! apply_filters(
 			'wc_stripe_hide_payment_request_on_product_page',
 			! $should_show_on_product_page,
@@ -1212,6 +1255,11 @@ class WC_Stripe_Express_Checkout_Helper {
 
 			// Remember current shipping method before resetting.
 			$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods', [] );
+			/**
+			 * Filters the posted shipping address values used for Express Checkout shipping calculations.
+			 *
+			 * @param array $shipping_address Shipping address values.
+			 */
 			$this->calculate_shipping( apply_filters( 'wc_stripe_payment_request_shipping_posted_values', $shipping_address ) );
 
 			$packages          = WC()->shipping->get_packages();
@@ -1382,6 +1430,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return string The sanitized string.
 	 */
 	public function sanitize_string( $string ) {
+		// Remap apostrophe variants to U+0027 APOSTROPHE so the comparison is insensitive to
+		// which glyph the customer's keyboard produced.
+		// See https://www.unicode.org/Public/security/latest/confusables.txt.
+		$string = str_replace( [ "\u{2019}", "\u{2018}", "\u{02BC}", "\u{FF07}", "\u{00B4}", '`' ], "'", $string );
+
 		return trim( wc_strtolower( remove_accents( $string ) ) );
 	}
 
@@ -1401,8 +1454,8 @@ class WC_Stripe_Express_Checkout_Helper {
 			return $state;
 		}
 
+		$sanitized_state_string = $this->sanitize_string( $state );
 		foreach ( $pr_states[ $country ] as $wc_state_abbr => $pr_state ) {
-			$sanitized_state_string = $this->sanitize_string( $state );
 			// Checks if input state matches with Payment Request state code (0), name (1) or localName (2).
 			if (
 				( ! empty( $pr_state[0] ) && $sanitized_state_string === $this->sanitize_string( $pr_state[0] ) ) ||
@@ -1662,6 +1715,11 @@ class WC_Stripe_Express_Checkout_Helper {
 			'height' => $this->get_button_height(),
 			'radius' => $this->get_button_radius(),
 			// Default format is en_US.
+			/**
+			 * Filters the Express Checkout button locale.
+			 *
+			 * @param string $locale Two-letter locale code.
+			 */
 			'locale' => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ),
 		];
 	}
@@ -1748,6 +1806,11 @@ class WC_Stripe_Express_Checkout_Helper {
 			'10.6.0',
 			'wc_stripe_express_checkout_hide_itemization'
 		);
+		/**
+		 * Filters whether Express Checkout itemization should be hidden.
+		 *
+		 * @param bool $hide_itemization Whether itemization should be hidden.
+		 */
 		$hide_itemization = apply_filters( 'wc_stripe_express_checkout_hide_itemization', $hide_itemization );
 		$display_items    = ! $hide_itemization || $itemized_display_items;
 		$order_total      = WC()->cart->get_total( false );

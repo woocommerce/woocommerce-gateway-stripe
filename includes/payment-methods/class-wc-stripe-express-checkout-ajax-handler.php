@@ -404,13 +404,23 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 			// Force quantity to 1 if sold individually and check for existing item in cart.
 			if ( $product->is_sold_individually() ) {
-				$qty     = apply_filters_deprecated(
+				$qty = apply_filters_deprecated(
 					'wc_stripe_payment_request_add_to_cart_sold_individually_quantity',
 					[ 1, $qty, $product_id, $variation_id ],
 					'10.6.0',
 					'wc_stripe_express_checkout_add_to_cart_sold_individually_quantity'
 				);
-					$qty = apply_filters( 'wc_stripe_express_checkout_add_to_cart_sold_individually_quantity', $qty, $qty, $product_id, $variation_id );
+				/**
+				 * Filters the quantity for sold-individually products in Express Checkout add-to-cart previews.
+				 *
+				 * @since 10.6.0
+				 *
+				 * @param int|float $quantity     Quantity to add.
+				 * @param int|float $requested    Requested quantity.
+				 * @param int       $product_id   Product ID.
+				 * @param int|null  $variation_id Variation ID, if any.
+				 */
+				$qty = apply_filters( 'wc_stripe_express_checkout_add_to_cart_sold_individually_quantity', $qty, $qty, $product_id, $variation_id );
 			}
 
 			if ( ! $product->has_enough_stock( $qty ) ) {
@@ -520,6 +530,11 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 		// List of countries where postcode is optional in express checkouts (Google Pay, Apple Pay).
 		// These countries allow addresses without postal codes, but WooCommerce requires them by default.
+		/**
+		 * Filters countries where postcodes are optional in Express Checkout.
+		 *
+		 * @param string[] $country_codes Country codes where postcodes are optional.
+		 */
 		$countries_with_optional_postcode = apply_filters(
 			'wc_stripe_express_checkout_countries_with_optional_postcode',
 			[

@@ -20,6 +20,11 @@ if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 	$wc_stripe_default_express_checkout_locations[] = 'change_payment_method';
 }
 
+/**
+ * Filters the Stripe gateway settings fields.
+ *
+ * @param array $settings Stripe gateway settings fields.
+ */
 return apply_filters(
 	'wc_stripe_settings',
 	[
