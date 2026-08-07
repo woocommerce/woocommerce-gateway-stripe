@@ -36,8 +36,7 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 The following items note specific versions that include important changes, features, or deprecations.
 
 * 10.9.0
-   - Express checkout button locations are stored in a single location-based setting; the per-method location options are migrated automatically
-   - Express checkout buttons (Apple Pay / Google Pay, Link, Amazon Pay) now share one button size; the separate Link and Amazon Pay size settings were removed
+   - Express checkout buttons now share one location setting and one size setting; per-method options are migrated automatically and the separate Link and Amazon Pay size settings were removed
    - Express checkout processes classic checkout custom fields by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
 * 10.8.0
    - Optimized Checkout Suite enabled by default for eligible existing stores
@@ -214,7 +213,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - When enabling manual capture, clarify to agentic commerce merchants that Agentic Commerce purchases follow the capture setting in the Stripe agentic commerce dashboard
 * Fix - Stop retrying the Stripe App connection refresh when the connection has permanently expired
 * Dev - Centralize agentic commerce feed scheduling in integration class
-* Update - Unify express checkout button placement into a single location-based setting and apply one shared button size across Apple Pay / Google Pay, Link, and Amazon Pay so buttons shown together always match
+* Update - Unify express checkout button locations and sizing across Apple Pay / Google Pay, Link, and Amazon Pay
 * Fix - Enforce and save custom required checkout fields when paying with express checkout on classic checkout
 * Update - Process classic checkout custom fields in express checkout by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
 * Dev - Update subscription E2E fixtures to use WooCommerce Subscriptions product plans
