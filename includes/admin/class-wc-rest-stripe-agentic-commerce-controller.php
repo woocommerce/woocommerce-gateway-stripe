@@ -174,15 +174,28 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		// Refresh any pending entries from Stripe before reading.
 		$this->refresh_pending_sync_statuses();
 
-		$last_sync   = WC_Stripe_Agentic_Commerce_Integration::get_last_sync();
 		$history_raw = WC_Stripe_Agentic_Commerce_Integration::get_sync_history();
 
 		// Syncs from the other mode describe a different Stripe environment's
 		// catalog; showing them here would report the wrong catalog as synced.
-		if ( ! $this->is_entry_for_current_mode( $last_sync ) ) {
-			$last_sync = [];
-		}
-		$history_raw = array_values( array_filter( $history_raw, [ $this, 'is_entry_for_current_mode' ] ) );
+		$current_mode = WC_Stripe_Agentic_Commerce_Integration::get_current_mode();
+		$history_raw  = array_values(
+			array_filter(
+				$history_raw,
+				function ( $entry ) use ( $current_mode ) {
+					return $this->is_entry_for_mode( $entry, $current_mode );
+				}
+			)
+		);
+
+		// Derive the snapshot from the mode-filtered history instead of the
+		// last-sync option: that option is only rewritten when a sync
+		// completes, so after switching modes and back it can still hold the
+		// other mode's entry until the queued resync runs (minutes, or never
+		// if that mode's keys are missing) — and the card would say "No syncs
+		// yet" while this mode has history.
+		$last_sync = end( $history_raw );
+		$last_sync = is_array( $last_sync ) ? $last_sync : [];
 
 		// Return the most recent history entries, newest first.
 		$history = array_map(
@@ -392,7 +405,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		}
 
 		$status_updates = [];
+		$mode_updates   = [];
 		$delivery       = null;
+		$current_mode   = WC_Stripe_Agentic_Commerce_Integration::get_current_mode();
 
 		foreach ( $history as $entry ) {
 			$current_status = $entry['status'] ?? '';
@@ -402,7 +417,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 
 			// An ImportSet from the other mode can't be retrieved with the
 			// current mode's key (Stripe returns a 404).
-			if ( ! $this->is_entry_for_current_mode( $entry ) ) {
+			if ( ! $this->is_entry_for_mode( $entry, $current_mode ) ) {
 				continue;
 			}
 
@@ -420,6 +435,21 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 					$status_updates[ $import_set_id ] = $new_status;
 				}
 			} catch ( Exception $e ) {
+				// A 404 under this mode's key means the ImportSet lives in the
+				// other Stripe environment — legacy entries recorded no mode,
+				// so they are polled here on the chance they belong. Stamp the
+				// other mode so the entry stops being retried with a key that
+				// can never resolve it; it becomes pollable again if that mode
+				// is activated.
+				if ( 404 === $e->getCode() && '' === ( $entry['mode'] ?? '' ) ) {
+					$mode_updates[ $import_set_id ] = 'test' === $current_mode ? 'live' : 'test';
+					WC_Stripe_Logger::info(
+						'Agentic Commerce: ImportSet not found in the active mode; attributing the legacy history entry to the other mode.',
+						[ 'import_set_id' => $import_set_id ]
+					);
+					continue;
+				}
+
 				WC_Stripe_Logger::error(
 					'Agentic Commerce: Failed to refresh ImportSet status',
 					[
@@ -430,7 +460,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			}
 		}
 
-		WC_Stripe_Agentic_Commerce_Integration::update_pending_statuses( $status_updates );
+		WC_Stripe_Agentic_Commerce_Integration::update_pending_statuses( $status_updates, $mode_updates );
 	}
 
 	/**
@@ -470,19 +500,22 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	}
 
 	/**
-	 * Whether a persisted sync entry belongs to the currently active mode.
+	 * Whether a persisted sync entry belongs to the given mode.
 	 *
-	 * Entries with no recorded mode predate mode tracking and are kept, since
-	 * their mode can no longer be determined.
+	 * The mode is passed in rather than re-read per entry so one resolved
+	 * value applies to a whole filtering pass. Entries with no recorded mode
+	 * predate mode tracking and are kept, since their mode can no longer be
+	 * determined.
 	 *
 	 * @since 10.9.0
-	 * @param array $entry Raw entry from the options table.
+	 * @param array  $entry Raw entry from the options table.
+	 * @param string $mode  Mode to compare against ('test' or 'live').
 	 * @return bool
 	 */
-	private function is_entry_for_current_mode( array $entry ): bool {
-		$mode = $entry['mode'] ?? '';
+	private function is_entry_for_mode( array $entry, string $mode ): bool {
+		$entry_mode = $entry['mode'] ?? '';
 
-		return '' === $mode || WC_Stripe_Agentic_Commerce_Integration::get_current_mode() === $mode;
+		return '' === $entry_mode || $mode === $entry_mode;
 	}
 
 	/**

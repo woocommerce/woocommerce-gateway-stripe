@@ -827,6 +827,68 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * An explicitly passed mode wins over the mode at write time, so records
+	 * from a sync that outlived a testmode flip stay attributed to the
+	 * environment the sync actually delivered to.
+	 *
+	 * @return void
+	 */
+	public function test_store_sync_result_uses_captured_mode_over_current(): void {
+		$integration  = new \WC_Stripe_Agentic_Commerce_Integration();
+		$current_mode = \WC_Stripe_Agentic_Commerce_Integration::get_current_mode();
+		$other_mode   = 'test' === $current_mode ? 'live' : 'test';
+
+		$integration->store_sync_result(
+			[
+				'products' => 1,
+				'status'   => 'succeeded',
+			],
+			$other_mode
+		);
+
+		$history = get_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
+
+		$this->assertSame( $other_mode, $history[0]['mode'] );
+	}
+
+	/**
+	 * Mode updates stamp only entries with no recorded mode; a recorded mode
+	 * is never overwritten by an after-the-fact reclassification.
+	 *
+	 * @return void
+	 */
+	public function test_update_pending_statuses_stamps_mode_on_modeless_entries_only(): void {
+		update_option(
+			\WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION,
+			[
+				[
+					'status'        => 'pending',
+					'import_set_id' => 'impset_modeless',
+				],
+				[
+					'status'        => 'pending',
+					'import_set_id' => 'impset_recorded',
+					'mode'          => 'test',
+				],
+			],
+			false
+		);
+
+		\WC_Stripe_Agentic_Commerce_Integration::update_pending_statuses(
+			[],
+			[
+				'impset_modeless' => 'live',
+				'impset_recorded' => 'live',
+			]
+		);
+
+		$history = get_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+
+		$this->assertSame( 'live', $history[0]['mode'] );
+		$this->assertSame( 'test', $history[1]['mode'] );
+	}
+
+	/**
 	 * A test↔live switch invalidates the dedup record and queues an immediate
 	 * resync, so the newly active mode's environment receives the feed even
 	 * when its content hash is unchanged.

@@ -572,6 +572,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return false;
 		}
 
+		// Capture the mode once, alongside the delivery client, and hold it for
+		// the whole run: a settings save can flip testmode while the sync is
+		// generating the feed, and every record this run persists must describe
+		// the environment it actually delivered to, not the mode at write time.
+		$mode = self::get_current_mode();
+
 		// Check delivery setup before generating the feed.
 		$delivery = $this->get_push_delivery_method();
 
@@ -718,7 +724,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			// can't claim "this catalog is on Stripe". Storing the hash in those
 			// cases would suppress the next upload that could have recovered.
 			if ( ! empty( $feed_hash ) && '' !== $import_set_id && 'failed' !== $status ) {
-				$this->remember_feed_upload( $feed_hash, $result );
+				$this->remember_feed_upload( $feed_hash, $result, $mode );
 			}
 
 			// Delete the file to prevent accumulation.
@@ -736,7 +742,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					'import_set_id'    => $import_set_id,
 					'error'            => '',
 					'skipped_products' => $skipped_count,
-				]
+				],
+				$mode
 			);
 
 			return true;
@@ -760,7 +767,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					'import_set_id'    => '',
 					'error'            => $e->getMessage(),
 					'skipped_products' => 0,
-				]
+				],
+				$mode
 			);
 
 			return false;
@@ -786,9 +794,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 *                                    to `succeeded_with_errors` once the
 	 *                                    ImportSet completes.
 	 * }
+	 * @param string|null $mode The mode ('test'/'live') the sync ran against, as
+	 *                          captured when it started; null falls back to the
+	 *                          current mode for callers outside a sync run.
 	 * @return void
 	 */
-	public function store_sync_result( array $result ): void {
+	public function store_sync_result( array $result, ?string $mode = null ): void {
 		$history = get_option( self::SYNC_HISTORY_OPTION, [] );
 
 		if ( ! is_array( $history ) ) {
@@ -803,7 +814,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			'import_set_id'    => $result['import_set_id'] ?? '',
 			'error'            => $result['error'] ?? '',
 			'skipped_products' => isset( $result['skipped_products'] ) ? max( 0, (int) $result['skipped_products'] ) : 0,
-			'mode'             => self::get_current_mode(),
+			'mode'             => $mode ?? self::get_current_mode(),
 		];
 
 		$history[] = $entry;
@@ -922,10 +933,15 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 *
 	 * @since 10.7.0
 	 * @param array<string, string> $status_updates Map of import_set_id to new status.
+	 * @param array<string, string> $mode_updates   Map of import_set_id to a mode
+	 *                                              learned after the fact. Only
+	 *                                              stamped onto entries that have
+	 *                                              no recorded mode; a recorded
+	 *                                              mode is never overwritten.
 	 * @return void
 	 */
-	public static function update_pending_statuses( array $status_updates ): void {
-		if ( empty( $status_updates ) ) {
+	public static function update_pending_statuses( array $status_updates, array $mode_updates = [] ): void {
+		if ( empty( $status_updates ) && empty( $mode_updates ) ) {
 			return;
 		}
 
@@ -935,12 +951,25 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		$changed = false;
 
 		foreach ( $history as &$entry ) {
+			$import_set_id = $entry['import_set_id'] ?? '';
+			if ( '' === $import_set_id ) {
+				continue;
+			}
+
+			// A mode learned after the fact (e.g. a 404 under the active key
+			// proving a legacy entry belongs to the other environment) is
+			// stamped so the entry stops being polled with a key that can
+			// never resolve it.
+			if ( isset( $mode_updates[ $import_set_id ] ) && '' === ( $entry['mode'] ?? '' ) ) {
+				$entry['mode'] = $mode_updates[ $import_set_id ];
+				$changed       = true;
+			}
+
 			if ( ! in_array( $entry['status'] ?? '', $non_terminal_statuses, true ) ) {
 				continue;
 			}
 
-			$import_set_id = $entry['import_set_id'] ?? '';
-			if ( '' === $import_set_id || ! isset( $status_updates[ $import_set_id ] ) ) {
+			if ( ! isset( $status_updates[ $import_set_id ] ) ) {
 				continue;
 			}
 
@@ -1054,11 +1083,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Record the hash, timestamp, and Stripe file id of a successful upload.
 	 *
 	 * @since 10.8.0
-	 * @param string $hash   SHA-256 hex digest of the uploaded feed content.
-	 * @param array  $result Delivery result array returned by the Files API delivery method.
+	 * @param string      $hash   SHA-256 hex digest of the uploaded feed content.
+	 * @param array       $result Delivery result array returned by the Files API delivery method.
+	 * @param string|null $mode   The mode captured at sync start; null falls back
+	 *                            to the current mode.
 	 * @return void
 	 */
-	protected function remember_feed_upload( string $hash, array $result ): void {
+	protected function remember_feed_upload( string $hash, array $result, ?string $mode = null ): void {
 		update_option(
 			self::LAST_UPLOAD_OPTION,
 			[
@@ -1066,7 +1097,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				'uploaded_at'   => time(),
 				'file_id'       => is_string( $result['file_id'] ?? null ) ? $result['file_id'] : '',
 				'import_set_id' => is_string( $result['import_set_id'] ?? null ) ? $result['import_set_id'] : '',
-				'mode'          => self::get_current_mode(),
+				'mode'          => $mode ?? self::get_current_mode(),
 			],
 			false
 		);

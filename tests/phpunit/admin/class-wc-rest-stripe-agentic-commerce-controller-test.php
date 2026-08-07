@@ -144,19 +144,21 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * GET returns formatted last_sync when option is set.
+	 * GET returns formatted last_sync derived from the newest history entry.
 	 */
 	public function test_get_status_returns_last_sync(): void {
 		$now = time();
 		update_option(
-			WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION,
+			WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION,
 			[
-				'status'        => 'succeeded',
-				'timestamp'     => $now,
-				'products'      => 42,
-				'import_set_id' => 'impset_abc',
-				'file_id'       => 'file_xyz',
-				'error'         => '',
+				[
+					'status'        => 'succeeded',
+					'timestamp'     => $now,
+					'products'      => 42,
+					'import_set_id' => 'impset_abc',
+					'file_id'       => 'file_xyz',
+					'error'         => '',
+				],
 			]
 		);
 
@@ -178,7 +180,10 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * Entries recorded under the other mode describe a different Stripe
 	 * environment's catalog and must be hidden from status and history;
-	 * legacy entries with no recorded mode stay visible.
+	 * legacy entries with no recorded mode stay visible. The last-sync
+	 * snapshot is derived from the mode-filtered history, so a stale
+	 * other-mode snapshot option (test → live → test before the queued
+	 * resync ran) never blanks out this mode's real last sync.
 	 */
 	public function test_get_status_filters_out_other_mode_entries(): void {
 		$current_mode = WC_Stripe_Agentic_Commerce_Integration::get_current_mode();
@@ -222,11 +227,69 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 		$data = $response->get_data();
 
-		// The other-mode snapshot must not masquerade as the current mode's state.
-		$this->assertNull( $data['last_sync'] );
+		// The other-mode snapshot must not masquerade as the current mode's
+		// state; the newest current-mode entry takes its place.
+		$this->assertNotNull( $data['last_sync'] );
+		$this->assertSame( 'impset_current', $data['last_sync']['import_set_id'] );
 
 		$returned_ids = array_column( $data['history'], 'import_set_id' );
 		$this->assertSame( [ 'impset_current', 'impset_legacy' ], $returned_ids );
+	}
+
+	/**
+	 * A legacy mode-less entry whose ImportSet 404s under the active mode's key
+	 * is attributed to the other mode: it disappears from this mode's status
+	 * view and is not polled again on subsequent reads.
+	 */
+	public function test_get_status_reclassifies_legacy_entry_on_404(): void {
+		update_option(
+			WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION,
+			[
+				[
+					'status'        => 'pending',
+					'timestamp'     => 1000,
+					'products'      => 5,
+					'import_set_id' => 'impset_legacy404',
+					'file_id'       => 'file_legacy',
+					'error'         => '',
+				],
+			]
+		);
+
+		$http_calls = 0;
+		$http_stub  = function () use ( &$http_calls ) {
+			++$http_calls;
+			return [
+				'response' => [
+					'code'    => 404,
+					'message' => 'Not Found',
+				],
+				'body'     => wp_json_encode( [ 'error' => [ 'message' => 'No such import set' ] ] ),
+				'headers'  => [],
+			];
+		};
+		add_filter( 'pre_http_request', $http_stub );
+
+		try {
+			$response = rest_do_request( new WP_REST_Request( 'GET', self::STATUS_ROUTE ) );
+			$this->assertEquals( 200, $response->get_status() );
+
+			// The 404 attributed the entry to the other mode and hid it here.
+			$this->assertSame( 1, $http_calls );
+			$this->assertNull( $response->get_data()['last_sync'] );
+			$this->assertSame( [], $response->get_data()['history'] );
+
+			$current_mode = WC_Stripe_Agentic_Commerce_Integration::get_current_mode();
+			$other_mode   = 'test' === $current_mode ? 'live' : 'test';
+			$history      = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+			$this->assertSame( $other_mode, $history[0]['mode'] );
+
+			// A second read must not poll the reclassified entry again.
+			rest_do_request( new WP_REST_Request( 'GET', self::STATUS_ROUTE ) );
+			$this->assertSame( 1, $http_calls );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub );
+		}
 	}
 
 	/**
@@ -316,14 +379,16 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_status_casts_numeric_fields(): void {
 		update_option(
-			WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION,
+			WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION,
 			[
-				'status'        => 'succeeded',
-				'timestamp'     => '1700000000', // string from old storage
-				'products'      => '99',
-				'import_set_id' => 'impset_cast',
-				'file_id'       => '',
-				'error'         => '',
+				[
+					'status'        => 'succeeded',
+					'timestamp'     => '1700000000', // string from old storage
+					'products'      => '99',
+					'import_set_id' => 'impset_cast',
+					'file_id'       => '',
+					'error'         => '',
+				],
 			]
 		);
 
@@ -342,8 +407,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_status_returns_null_for_missing_optional_fields(): void {
 		update_option(
-			WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION,
-			[ 'status' => 'pending' ] // minimal entry, no other keys
+			WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION,
+			[ [ 'status' => 'pending' ] ] // minimal entry, no other keys
 		);
 
 		$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
