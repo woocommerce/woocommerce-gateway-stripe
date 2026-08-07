@@ -916,14 +916,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * A wc_stripe_upe_params filter callback returning a non-array must not
-	 * fatal payment_scripts(); the unfiltered params are used instead.
+	 * fatal payment_scripts(); the unfiltered params are used instead, without
+	 * re-running the side-effectful javascript_params().
 	 */
 	public function test_payment_scripts_survives_non_array_upe_params_filter(): void {
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->setConstructorArgs( [] )
 			->onlyMethods( [ 'javascript_params', 'get_return_url' ] )
 			->getMock();
-		$gateway->method( 'javascript_params' )->willReturn( [ 'isCheckout' => true ] );
+		$gateway->expects( $this->once() )->method( 'javascript_params' )->willReturn( [ 'isCheckout' => true ] );
 		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
 		$gateway->enabled = 'yes';
 

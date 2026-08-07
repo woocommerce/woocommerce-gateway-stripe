@@ -500,16 +500,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'woocommerce-gateway-stripe'
 		);
 
+		$default_upe_params = $this->javascript_params();
+
 		/**
 		 * Filters the UPE classic checkout JavaScript parameters.
 		 *
 		 * @param array $params UPE JavaScript parameters.
 		 */
-		$upe_params = apply_filters( 'wc_stripe_upe_params', $this->javascript_params() );
+		$upe_params = apply_filters( 'wc_stripe_upe_params', $default_upe_params );
 
 		// A filter callback returning a non-array must not fatal the checkout.
+		// Reuse the pre-filter params rather than regenerating them:
+		// javascript_params() has side effects (on the setup-intent success
+		// redirect it creates a payment token from the setup intent).
 		if ( ! is_array( $upe_params ) ) {
-			$upe_params = $this->javascript_params();
+			$upe_params = $default_upe_params;
 		}
 
 		// The bootstrap waits for these dependencies' globals before loading the
