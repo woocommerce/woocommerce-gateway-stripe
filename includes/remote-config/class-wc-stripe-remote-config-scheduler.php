@@ -10,8 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * - Immediate single-action enqueue on plugin upgrade
  * - Immediate single-action enqueue when API keys or the test/live mode change
  *
- * On each run, iterates over connected Stripe modes (live/test) and calls
- * Client::fetch -> Remote_Config::apply for each.
+ * On each run (skipped entirely when no mode has keys), makes one combined
+ * Client::fetch_all call and applies each mode's payload.
  */
 class WC_Stripe_Remote_Config_Scheduler {
 
@@ -72,27 +72,41 @@ class WC_Stripe_Remote_Config_Scheduler {
 	}
 
 	/**
-	 * Runs the sync for every connected mode. Safe to call directly.
+	 * Runs the sync. Safe to call directly.
+	 *
+	 * One combined fetch covers both modes, and both payloads are cached even
+	 * when only one mode has keys, so a later mode switch or go-live starts
+	 * from a warm cache instead of local fallbacks.
 	 */
 	public function run(): void {
 		if ( ! WC_Stripe_Remote_Config_Flags::is_remote_config_enabled() ) {
 			return;
 		}
 
-		foreach ( $this->connected_modes() as $mode ) {
-			$response = $this->client->fetch( $mode );
-			if ( is_wp_error( $response ) ) {
-				WC_Stripe_Logger::debug(
-					'Stripe remote-config: fetch failed; keeping previous cache.',
-					[
-						'mode'           => $mode,
-						'error'          => $response->get_error_code(),
-						'previous_cache' => $this->remote_config->get_cache_snapshot( $mode ),
-					]
-				);
-				continue;
+		// Don't phone home from stores with no Stripe connection at all.
+		if ( [] === $this->connected_modes() ) {
+			return;
+		}
+
+		$response = $this->client->fetch_all();
+		if ( is_wp_error( $response ) ) {
+			WC_Stripe_Logger::debug(
+				'Stripe remote-config: fetch failed; keeping previous cache.',
+				[
+					'error'          => $response->get_error_code(),
+					'previous_cache' => [
+						'live' => $this->remote_config->get_cache_snapshot( 'live' ),
+						'test' => $this->remote_config->get_cache_snapshot( 'test' ),
+					],
+				]
+			);
+			return;
+		}
+
+		foreach ( [ 'live', 'test' ] as $mode ) {
+			if ( isset( $response['modes'][ $mode ] ) && is_array( $response['modes'][ $mode ] ) ) {
+				$this->remote_config->apply( $mode, $response['modes'][ $mode ] );
 			}
-			$this->remote_config->apply( $mode, $response );
 		}
 	}
 

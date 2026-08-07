@@ -26,9 +26,9 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 
 	/**
 	 * Stubs `pre_http_request` to capture each outbound request and return a
-	 * canned 200 response, so a test can assert the request shape without a
-	 * live network call. Kept out of set_up() so each test opts into the HTTP
-	 * behaviour it needs explicitly.
+	 * canned 200 combined envelope, so a test can assert the request shape
+	 * without a live network call. Kept out of set_up() so each test opts into
+	 * the HTTP behaviour it needs explicitly.
 	 */
 	private function stub_successful_response(): void {
 		add_filter(
@@ -45,7 +45,16 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 					],
 					'body'     => wp_json_encode(
 						[
-							'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
+							'modes'        => [
+								'live' => [
+									'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
+									'generated_at' => '2026-05-09T12:00:00Z',
+								],
+								'test' => [
+									'flags'        => [ 'optimized_checkout' => [ 'value' => true ] ],
+									'generated_at' => '2026-05-09T12:00:00Z',
+								],
+							],
 							'generated_at' => '2026-05-09T12:00:00Z',
 						]
 					),
@@ -57,20 +66,21 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		);
 	}
 
-	public function test_fetch_request_shape_and_decoded_body(): void {
+	public function test_fetch_all_request_shape_and_decoded_body(): void {
 		$this->stub_successful_response();
 
-		$result = $this->client->fetch( 'live' );
+		$result = $this->client->fetch_all();
 
 		$this->assertIsArray( $result );
-		$this->assertSame( false, $result['flags']['optimized_checkout']['value'] );
+		$this->assertSame( false, $result['modes']['live']['flags']['optimized_checkout']['value'] );
+		$this->assertSame( true, $result['modes']['test']['flags']['optimized_checkout']['value'] );
 
 		$this->assertCount( 1, $this->captured_requests );
 		$url  = $this->captured_requests[0]['url'];
 		$args = $this->captured_requests[0]['args'];
 
 		$this->assertStringStartsWith( 'https://public-api.wordpress.com/wpcom/v2/woocommerce/stripe/remote-config', $url );
-		$this->assertStringContainsString( 'mode=live', $url );
+		$this->assertStringContainsString( 'mode=all', $url );
 		$this->assertStringContainsString( 'plugin_version=' . WC_STRIPE_VERSION, $url );
 		$this->assertTrue( $args['sslverify'] );
 		$this->assertSame( 'GET', $args['method'] );
@@ -80,7 +90,7 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 	public function test_fetch_short_circuits_when_disabled_by_override(): void {
 		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'no' );
 
-		$result = $this->client->fetch( 'live' );
+		$result = $this->client->fetch_all();
 
 		// Clean up before asserting so a failed assertion can't leak the override into later tests.
 		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
@@ -102,7 +112,7 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 			}
 		);
 
-		$result = $this->client->fetch( 'live' );
+		$result = $this->client->fetch_all();
 
 		$this->assertWPError( $result );
 		if ( null !== $expected_code ) {
@@ -145,7 +155,7 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 							'code'    => 200,
 							'message' => 'OK',
 						],
-						'body'     => str_repeat( 'a', WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES + 1 ),
+						'body'     => str_repeat( 'a', 2 * WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES + 1 ),
 						'headers'  => [],
 					];
 				},

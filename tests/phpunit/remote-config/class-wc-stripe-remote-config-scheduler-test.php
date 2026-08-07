@@ -59,6 +59,16 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 		];
 	}
 
+	private function get_mock_combined_payload( bool $live_flag_value, bool $test_flag_value ): array {
+		return [
+			'modes'        => [
+				'live' => $this->get_mock_payload( $live_flag_value ),
+				'test' => $this->get_mock_payload( $test_flag_value ),
+			],
+			'generated_at' => '2026-05-09T12:00:00Z',
+		];
+	}
+
 	public function test_init_hooks_registers_action_callback(): void {
 		$scheduler = new WC_Stripe_Remote_Config_Scheduler();
 		$scheduler->init_hooks();
@@ -139,33 +149,17 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 		$this->assertTrue( as_has_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION ) );
 	}
 
-	public function test_run_iterates_only_connected_modes(): void {
+	/**
+	 * One combined fetch caches both modes' payloads — including the mode
+	 * without keys, so a later go-live starts from a warm cache.
+	 */
+	public function test_run_fetches_once_and_caches_both_modes(): void {
 		$this->configure_modes( true, false );
 
 		$client = $this->createMock( WC_Stripe_Remote_Config_Client::class );
 		$client->expects( $this->once() )
-			->method( 'fetch' )
-			->with( 'live' )
-			->willReturn( $this->get_mock_payload( false ) );
-
-		$rc = new WC_Stripe_Remote_Config();
-		( new WC_Stripe_Remote_Config_Scheduler( $client, $rc ) )->run();
-
-		$this->assertSame( false, $rc->get_flag( 'optimized_checkout', 'live' ) );
-		$this->assertNull( $rc->get_flag( 'optimized_checkout', 'test' ) );
-	}
-
-	public function test_run_iterates_both_modes_when_both_connected(): void {
-		$this->configure_modes( true, true );
-
-		$client = $this->createMock( WC_Stripe_Remote_Config_Client::class );
-		$client->expects( $this->exactly( 2 ) )
-			->method( 'fetch' )
-			->willReturnCallback(
-				function ( string $mode ): array {
-					return $this->get_mock_payload( 'test' === $mode );
-				}
-			);
+			->method( 'fetch_all' )
+			->willReturn( $this->get_mock_combined_payload( false, true ) );
 
 		$rc = new WC_Stripe_Remote_Config();
 		( new WC_Stripe_Remote_Config_Scheduler( $client, $rc ) )->run();
@@ -174,23 +168,57 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 		$this->assertSame( true, $rc->get_flag( 'optimized_checkout', 'test' ) );
 	}
 
+	/**
+	 * A store with no Stripe keys in either mode must not phone home.
+	 */
+	public function test_run_skips_when_no_mode_connected(): void {
+		$this->configure_modes( false, false );
+
+		$client = $this->createMock( WC_Stripe_Remote_Config_Client::class );
+		$client->expects( $this->never() )->method( 'fetch_all' );
+
+		( new WC_Stripe_Remote_Config_Scheduler( $client, new WC_Stripe_Remote_Config() ) )->run();
+	}
+
 	public function test_run_skips_when_disabled_and_swallows_errors(): void {
 		$this->configure_modes( true, false );
 
 		// Disabled by override: client must not be called.
 		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'no' );
 		$disabled_client = $this->createMock( WC_Stripe_Remote_Config_Client::class );
-		$disabled_client->expects( $this->never() )->method( 'fetch' );
+		$disabled_client->expects( $this->never() )->method( 'fetch_all' );
 		( new WC_Stripe_Remote_Config_Scheduler( $disabled_client, new WC_Stripe_Remote_Config() ) )->run();
 		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
 
 		// Enabled but client returns WP_Error: must not throw, cache stays empty.
 		$err_client = $this->createMock( WC_Stripe_Remote_Config_Client::class );
 		$err_client->expects( $this->once() )
-			->method( 'fetch' )
+			->method( 'fetch_all' )
 			->willReturn( new WP_Error( 'wc_stripe_remote_config_http_error', 'boom' ) );
 		$rc = new WC_Stripe_Remote_Config();
 		( new WC_Stripe_Remote_Config_Scheduler( $err_client, $rc ) )->run();
 		$this->assertNull( $rc->get_flag( 'optimized_checkout', 'live' ) );
+	}
+
+	/**
+	 * A combined response missing one mode's payload must apply the other and
+	 * leave the missing mode's cache untouched.
+	 */
+	public function test_run_applies_partial_combined_response(): void {
+		$this->configure_modes( true, true );
+
+		$partial = $this->get_mock_combined_payload( false, true );
+		unset( $partial['modes']['test'] );
+
+		$client = $this->createMock( WC_Stripe_Remote_Config_Client::class );
+		$client->expects( $this->once() )
+			->method( 'fetch_all' )
+			->willReturn( $partial );
+
+		$rc = new WC_Stripe_Remote_Config();
+		( new WC_Stripe_Remote_Config_Scheduler( $client, $rc ) )->run();
+
+		$this->assertSame( false, $rc->get_flag( 'optimized_checkout', 'live' ) );
+		$this->assertNull( $rc->get_flag( 'optimized_checkout', 'test' ) );
 	}
 }
