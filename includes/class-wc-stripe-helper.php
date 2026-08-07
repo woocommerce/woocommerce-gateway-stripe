@@ -166,6 +166,11 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_localized_messages() {
+		/**
+		 * Filters the localized Stripe error messages exposed to checkout JavaScript.
+		 *
+		 * @param array $messages Stripe error code to localized message map.
+		 */
 		return apply_filters(
 			'wc_stripe_localized_messages',
 			[
@@ -830,10 +835,19 @@ class WC_Stripe_Helper {
 	public static function get_order_by_refund_id( $refund_id ) {
 		global $wpdb;
 
+		if ( empty( $refund_id ) ) {
+			return false;
+		}
+
+		// The refund ID can live on the parent order (which tracks the latest refund, and is the only
+		// location for orders refunded before per-refund storage existed) or on the refund record
+		// itself. Callers expect the parent WC_Order, never a WC_Order_Refund, so refund-record
+		// matches resolve to their parent. Parents are checked first to keep historical lookups cheap.
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
 			$orders   = wc_get_orders(
 				[
 					'limit'      => 1,
+					'type'       => 'shop_order',
 					'meta_query' => [
 						[
 							'key'   => '_stripe_refund_id',
@@ -843,8 +857,28 @@ class WC_Stripe_Helper {
 				]
 			);
 			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
+
+			if ( empty( $order_id ) ) {
+				$refunds  = wc_get_orders(
+					[
+						'limit'      => 1,
+						'type'       => 'shop_order_refund',
+						'meta_query' => [
+							[
+								'key'   => '_stripe_refund_id',
+								'value' => $refund_id,
+							],
+						],
+					]
+				);
+				$order_id = current( $refunds ) ? current( $refunds )->get_parent_id() : false;
+			}
 		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $refund_id, '_stripe_refund_id' ) );
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s AND posts.post_type = 'shop_order'", $refund_id, '_stripe_refund_id' ) );
+
+			if ( empty( $order_id ) ) {
+				$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT posts.post_parent FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s AND posts.post_type = 'shop_order_refund'", $refund_id, '_stripe_refund_id' ) );
+			}
 		}
 
 		if ( ! empty( $order_id ) ) {
@@ -1194,6 +1228,16 @@ class WC_Stripe_Helper {
 			return 'webhooks-disabled';
 		}
 
+		// If Adaptive Pricing was disabled due to an amount mismatch, keep Adaptive Pricing disabled.
+		if ( WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected() ) {
+			return 'amount-mismatch-detected';
+		}
+
+		// Adaptive Pricing requires automatic capture.
+		if ( 'yes' !== ( self::get_stripe_settings()['capture'] ?? 'yes' ) ) {
+			return 'manual-capture';
+		}
+
 		// If we are in test mode, payout details are often missing and currency-based rules
 		// are not enforced.
 		if ( WC_Stripe_Mode::is_test() ) {
@@ -1225,13 +1269,16 @@ class WC_Stripe_Helper {
 	 * - A pre-order product that will be charged upon release.
 	 * - A deposit product.
 	 *
+	 * There's a hook to additionally opt out (but not back in) via the
+	 * `wc_stripe_is_adaptive_pricing_supported` filter.
+	 *
 	 * @return bool True if adaptive pricing is supported for the current checkout, false otherwise.
 	 * @since 10.6.0
 	 */
 	public static function is_adaptive_pricing_supported(): bool {
 
 		// False if checkout session feature flag is disabled.
-		if ( ! WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
+		if ( ! self::is_checkout_sessions_available() ) {
 			return false;
 		}
 
@@ -1250,40 +1297,55 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		if ( ! WC()->cart || WC()->cart->is_empty() ) {
-			return true;
+		$is_supported = true;
+
+		if ( WC()->cart && ! WC()->cart->is_empty() ) {
+			$subscriptions_available = class_exists( 'WC_Subscriptions_Product' ) && method_exists( 'WC_Subscriptions_Product', 'is_subscription' );
+			$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' );
+			$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' );
+
+			// Use a single loop over cart items to check all cases where adaptive pricing is unsupported:
+			// subscriptions, pre-orders charged upon release, and deposits.
+			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+				$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
+
+				if ( ! is_object( $product ) || ! ( $product instanceof WC_Product ) ) {
+					continue;
+				}
+
+				// Subscriptions are not supported with adaptive pricing.
+				if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) {
+					$is_supported = false;
+					break;
+				}
+
+				// Pre-order (charge upon release) is not supported with adaptive pricing.
+				if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
+					$is_supported = false;
+					break;
+				}
+
+				// Deposits are not supported with adaptive pricing.
+				if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) && ! empty( $cart_item['is_deposit'] ) ) {
+					$is_supported = false;
+					break;
+				}
+			}
 		}
 
-		$subscriptions_available = class_exists( 'WC_Subscriptions_Product' ) && method_exists( 'WC_Subscriptions_Product', 'is_subscription' );
-		$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' );
-		$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' );
-
-		// Use a single loop over cart items to check all cases where adaptive pricing is unsupported:
-		// subscriptions, pre-orders charged upon release, and deposits.
-		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
-			$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
-
-			if ( ! is_object( $product ) || ! ( $product instanceof WC_Product ) ) {
-				continue;
-			}
-
-			// Subscriptions are not supported with adaptive pricing.
-			if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) {
-				return false;
-			}
-
-			// Pre-order (charge upon release) is not supported with adaptive pricing.
-			if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
-				return false;
-			}
-
-			// Deposits are not supported with adaptive pricing.
-			if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) && ! empty( $cart_item['is_deposit'] ) ) {
-				return false;
-			}
+		if ( $is_supported ) {
+			/**
+			 * Filter to opt out from Adaptive Pricing for the current cart content.
+			 *
+			 * @since 10.9.0
+			 *
+			 * @param bool         $is_supported Whether Adaptive Pricing is supported for the current cart. Always true.
+			 * @param WC_Cart|null $cart         The current cart, or null if unavailable.
+			 */
+			$is_supported = (bool) apply_filters( 'wc_stripe_is_adaptive_pricing_supported', true, WC()->cart );
 		}
 
-		return true;
+		return $is_supported;
 	}
 
 	/**
@@ -1321,6 +1383,11 @@ class WC_Stripe_Helper {
 			return true;
 		}
 
+		/**
+		 * Filters whether Stripe scripts load on product pages when payment request buttons are disabled.
+		 *
+		 * @param bool $should_load Whether Stripe scripts should load.
+		 */
 		return apply_filters( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', true );
 	}
 
@@ -1338,6 +1405,11 @@ class WC_Stripe_Helper {
 			return true;
 		}
 
+		/**
+		 * Filters whether Stripe scripts load on cart pages when payment request buttons are disabled.
+		 *
+		 * @param bool $should_load Whether Stripe scripts should load.
+		 */
 		return apply_filters( 'wc_stripe_load_scripts_on_cart_page_when_prbs_disabled', true );
 	}
 
@@ -1527,6 +1599,32 @@ class WC_Stripe_Helper {
 			],
 			true
 		);
+	}
+
+	/**
+	 * Determines whether Level 3 data should be sent to Stripe for the given order.
+	 *
+	 * Level 3 is card-network only. Sending it for a non-card method draws a rejection that
+	 * sets the account-wide wc_stripe_level3_not_allowed transient, disabling level3 for
+	 * legitimate card orders too — so gate strictly to card payment types.
+	 *
+	 * @param WC_Order $order The order being processed.
+	 * @return bool Whether Level 3 data applies to the order's payment method.
+	 */
+	public static function order_supports_level3_data( $order ) {
+		if ( ! $order instanceof WC_Order ) {
+			return false;
+		}
+
+		$payment_method_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
+
+		// Legacy WC_Gateway_Stripe orders and the charge-based capture fallback never write the
+		// UPE payment-type meta but are card payments, so an unset type must keep sending level3.
+		if ( empty( $payment_method_type ) ) {
+			return true;
+		}
+
+		return in_array( $payment_method_type, WC_Stripe_Payment_Methods::LEVEL3_SUPPORTED_PAYMENT_METHODS, true );
 	}
 
 	/**
@@ -1849,9 +1947,7 @@ class WC_Stripe_Helper {
 		 *
 		 * @param bool   $force_save Whether the payment method must be saved.
 		 * @param string $order_id   Order ID.
-		 *
-		 * @return bool Whether the payment method must be saved in all situations.
-		*/
+		 */
 		$force_save_payment_method = apply_filters( 'wc_stripe_force_save_payment_method', $force_save_payment_method, $order_id );
 
 		return $force_save_payment_method;
@@ -2069,9 +2165,7 @@ class WC_Stripe_Helper {
 		 * @since 10.1.0
 		 *
 		 * @param bool $enabled True if enabled, false otherwise.
-		 *
-		 * @return bool True if enabled, false otherwise.
-		*/
+		 */
 		return apply_filters( 'wc_stripe_is_verbose_debug_mode_enabled', false );
 	}
 
@@ -2217,5 +2311,28 @@ class WC_Stripe_Helper {
 			'wc_version'             => defined( 'WC_VERSION' ) ? WC_VERSION : '',
 			'wp_version'             => get_bloginfo( 'version' ),
 		];
+	}
+
+	/**
+	 * Checks if the Stripe Checkout Sessions feature is available.
+	 *
+	 * @return bool True if the checkout sessions feature is available, false otherwise.
+	 */
+	public static function is_checkout_sessions_available(): bool {
+		$stripe_settings              = self::get_stripe_settings();
+		$is_pmc_enabled               = $stripe_settings['pmc_enabled'] ?? 'no';
+		$is_oc_enabled                = $stripe_settings['optimized_checkout_element'] ?? 'no';
+		$is_automatic_capture_enabled = $stripe_settings['capture'] ?? 'yes';
+
+		// Stripe checkout sessions feature can only be available if:
+		// - PMC is enabled
+		// - OC Suite is enabled
+		// - Automatic capture is enabled (i.e. manual capture or later capture is disabled)
+		// If any of the above conditions are not met, the feature is not available.
+		if ( 'yes' !== $is_pmc_enabled || 'yes' !== $is_oc_enabled || 'yes' !== $is_automatic_capture_enabled ) {
+			return false;
+		}
+
+		return true;
 	}
 }

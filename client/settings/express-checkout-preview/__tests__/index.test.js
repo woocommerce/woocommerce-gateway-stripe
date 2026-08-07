@@ -300,4 +300,24 @@ describe( 'ExpressCheckoutPreview', () => {
 		const wrapper = screen.getByTestId( 'stripe-elements' ).parentElement;
 		expect( wrapper ).toHaveStyle( { minHeight: '40px', width: '100%' } );
 	} );
+
+	it.each( [ [ 'dark' ], [ 'light' ], [ 'light-outline' ] ] )(
+		'tags the wrapper with the "%s" theme so the SCSS can pick a contrasting background',
+		( theme ) => {
+			render(
+				<ExpressCheckoutPreview { ...eceProps } theme={ theme } />
+			);
+
+			const wrapper =
+				screen.getByTestId( 'stripe-elements' ).parentElement;
+			expect( wrapper ).toHaveAttribute( 'data-theme', theme );
+		}
+	);
+
+	it( 'leaves the wrapper untagged when no theme is supplied (Amazon Pay / Link previews)', () => {
+		render( <ExpressCheckoutPreview { ...amazonProps } /> );
+
+		const wrapper = screen.getByTestId( 'stripe-elements' ).parentElement;
+		expect( wrapper ).not.toHaveAttribute( 'data-theme' );
+	} );
 } );

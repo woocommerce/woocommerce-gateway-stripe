@@ -3,6 +3,10 @@ name: PHP tests
 on:
   pull_request
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   changes:
     name: Check for code changes
@@ -13,7 +17,7 @@ jobs:
     outputs:
       code: ${{ steps.detect.outputs.code }}
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.1
       - id: detect
         uses: ./.github/actions/detect-code-changes
 
@@ -25,7 +29,7 @@ jobs:
         woocommerce-versions-json: ${{ steps.get-released-woocommerce-versions.outputs.versions-json }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@v7.0.1
 
       - name: Get WooCommerce plugin versions
         id: get-released-woocommerce-versions
@@ -41,7 +45,7 @@ jobs:
       wordpress-versions-json: ${{ steps.get-wordpress-versions.outputs.versions-json }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@v7.0.1
 
       - name: Get WordPress versions
         id: get-wordpress-versions
@@ -86,16 +90,16 @@ jobs:
       WC_VERSION:  ${{ matrix.woocommerce }}
     steps:
       - name: Testing with PHP=${{ matrix.php }}, WP=${{ matrix.wordpress }}, WC=${{ matrix.woocommerce }}
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@v7.0.1
 
       - name: Set up dependencies caching
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/composer/
           key:  ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
 
       - name: Cache WordPress core and test suite
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             /tmp/wordpress
@@ -110,7 +114,10 @@ jobs:
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: ${{ matrix.php }}
-          coverage:    xdebug
+          # Tests run with --no-coverage (bin/phpunit.sh); coverage reports come from
+          # the dedicated php-code-coverage workflow. Loading xdebug here only slows
+          # the matrix down.
+          coverage:    none
 
       - name: Run CI checks
         run: bash bin/run-ci-tests.bash

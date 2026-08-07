@@ -11,6 +11,7 @@ import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import CopyButton from '../../components/copy-button';
 import AgenticCommerceSyncStatus from './sync-status';
+import AgenticCommerceFeedPreview from './feed-preview';
 import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
 import {
@@ -38,17 +39,23 @@ const OnboardingSteps = styled.ol`
 
 const AgenticCommerceDescription = () => (
 	<>
-		<h2>{ __( 'Agentic commerce', 'woocommerce-gateway-stripe' ) }</h2>
+		<h2>{ __( 'Agentic Commerce', 'woocommerce-gateway-stripe' ) }</h2>
 		<p>
 			{ __(
-				'Enable and configure agentic commerce for your store.',
+				'Enable and configure Agentic Commerce for your store.',
+				'woocommerce-gateway-stripe'
+			) }
+		</p>
+		<p>
+			{ __(
+				'WooCommerce coupons and their usage limits do not apply to purchases completed inside AI agents. Purchases redirected to your store use the standard checkout, where coupons work as usual.',
 				'woocommerce-gateway-stripe'
 			) }
 		</p>
 		<p>
 			<ExternalLink href="https://docs.stripe.com/agentic-commerce">
 				{ __(
-					'Learn more about agentic commerce',
+					'Learn more about Agentic Commerce',
 					'woocommerce-gateway-stripe'
 				) }
 			</ExternalLink>
@@ -157,7 +164,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 							<>
 								<CheckboxControl
 									label={ __(
-										'Enable agentic commerce',
+										'Enable Agentic Commerce',
 										'woocommerce-gateway-stripe'
 									) }
 									help={ __(
@@ -252,7 +259,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 													  } )
 													: interpolateComponents( {
 															mixedString: __(
-																'Setup webhooks in {{strong}}Account details{{/strong}} above, then set endpoint URL to your webhook URL',
+																'Set up webhooks in {{strong}}Account details{{/strong}} on the Settings tab, then set endpoint URL to your webhook URL',
 																'woocommerce-gateway-stripe'
 															),
 															components: {
@@ -277,7 +284,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 
 										<TextControl
 											label={ __(
-												'Agentic commerce webhook secret',
+												'Agentic Commerce webhook secret',
 												'woocommerce-gateway-stripe'
 											) }
 											help={ __(
@@ -298,6 +305,8 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			</LoadableSettingsSection>
 
 			{ isFeatureEnabled && <AgenticCommerceSyncStatus /> }
+
+			{ isFeatureEnabled && <AgenticCommerceFeedPreview /> }
 		</SettingsSection>
 	);
 } );

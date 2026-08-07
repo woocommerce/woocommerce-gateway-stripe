@@ -54,6 +54,14 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	private const REFRESHABLE_STATUSES = [ 'queued', 'validating', 'validating_records', 'pending', 'creating_records', 'unknown' ];
 
 	/**
+	 * Number of most-recent sync history entries the dashboard table shows.
+	 *
+	 * @var int
+	 * @since 10.9.0
+	 */
+	private const RECENT_HISTORY_LIMIT = 5;
+
+	/**
 	 * Endpoint path.
 	 *
 	 * @var string
@@ -103,6 +111,16 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			[
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => [ $this, 'trigger_sync' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/preview',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_preview' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 			]
 		);
@@ -159,10 +177,10 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		$last_sync   = WC_Stripe_Agentic_Commerce_Integration::get_last_sync();
 		$history_raw = WC_Stripe_Agentic_Commerce_Integration::get_sync_history();
 
-		// Return the 20 most recent history entries, newest first.
+		// Return the most recent history entries, newest first.
 		$history = array_map(
 			[ $this, 'format_entry' ],
-			array_reverse( array_slice( $history_raw, -20 ) )
+			array_reverse( array_slice( $history_raw, -self::RECENT_HISTORY_LIMIT ) )
 		);
 
 		$next_sync = null;
@@ -180,6 +198,39 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				'next_sync' => $next_sync,
 			]
 		);
+	}
+
+	/**
+	 * Return an upload-free preview of the next sync: how many products would be
+	 * included vs. excluded, plus the products the feed validator would reject
+	 * and why.
+	 *
+	 * Read-only and gated only on the developer feature flag (not the merchant
+	 * toggle) so merchants can inspect feed health before enabling the feature.
+	 *
+	 * @since 10.9.0
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_preview() {
+		if ( ! $this->is_available() ) {
+			return $this->get_unavailable_error();
+		}
+
+		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Feed_Preview' ) ) {
+			return $this->get_unavailable_error();
+		}
+
+		try {
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+		} catch ( Exception $e ) {
+			return new WP_Error(
+				'stripe_agentic_commerce_preview_failed',
+				$e->getMessage(),
+				[ 'status' => 500 ]
+			);
+		}
+
+		return rest_ensure_response( $preview );
 	}
 
 	/**
@@ -244,8 +295,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			}
 
 			// This manual sync already produced a full upload, so drop any pending
-			// adapter-fired one-off resync — it lives in a separate Action Scheduler
-			// group the recurring reschedule above does not clear.
+			// adapter-fired one-off resync — it lives under a separate Action Scheduler
+			// hook the recurring reschedule above does not clear.
 			$integration->cancel_pending_full_resync();
 		} catch ( Exception $e ) {
 			return new WP_Error(

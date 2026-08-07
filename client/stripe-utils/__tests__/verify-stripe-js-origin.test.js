@@ -44,7 +44,7 @@ describe( 'verifyStripeJsOrigin', () => {
 	it( 'accepts the official origin with a release train path', () => {
 		const doc = createDocumentWithScript( {
 			id: 'stripe-js',
-			src: 'https://js.stripe.com/clover/stripe.js',
+			src: 'https://js.stripe.com/dahlia/stripe.js',
 		} );
 
 		expect( verifyStripeJsOrigin( doc ) ).toMatchObject( {
@@ -94,7 +94,7 @@ describe( 'verifyStripeJsOrigin', () => {
 			{ src: 'https://js.stripe.com/v3/extras.js' },
 			{
 				id: 'stripe-js',
-				src: 'https://js.stripe.com.evil.example/clover/stripe.js',
+				src: 'https://js.stripe.com.evil.example/dahlia/stripe.js',
 			}
 		);
 
@@ -197,7 +197,7 @@ describe( 'assertStripeJsOrigin', () => {
 			.mockImplementation( () => {} );
 		const doc = createDocumentWithScript( {
 			id: 'stripe-js',
-			src: 'https://js.stripe.com/clover/stripe.js',
+			src: 'https://js.stripe.com/dahlia/stripe.js',
 		} );
 
 		expect( () => assertStripeJsOrigin( doc ) ).not.toThrow();
@@ -210,7 +210,7 @@ describe( 'assertStripeJsOrigin', () => {
 			.mockImplementation( () => {} );
 		const doc = createDocumentWithScript( {
 			id: 'stripe-js',
-			src: 'https://js.stripe.com.evil.example/clover/stripe.js',
+			src: 'https://js.stripe.com.evil.example/dahlia/stripe.js',
 		} );
 
 		// The thrown message can be rendered to shoppers by checkout error
@@ -221,7 +221,7 @@ describe( 'assertStripeJsOrigin', () => {
 		expect( () => assertStripeJsOrigin( doc ) ).not.toThrow( /evil/ );
 		expect( warnSpy ).toHaveBeenCalledWith(
 			expect.stringContaining(
-				'https://js.stripe.com.evil.example/clover/stripe.js'
+				'https://js.stripe.com.evil.example/dahlia/stripe.js'
 			)
 		);
 	} );
