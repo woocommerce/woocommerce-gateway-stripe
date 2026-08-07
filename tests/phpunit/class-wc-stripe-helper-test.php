@@ -2673,4 +2673,173 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 	}
+
+	/**
+	 * Sets the Stripe settings used by the platform-fee-stripping tests.
+	 *
+	 * @param string $connection_type The connection type to store ('connect', 'app', 'manual' or '').
+	 * @param bool   $test_mode       Whether the store is in test mode.
+	 * @param bool   $connected       Whether API keys should be present.
+	 * @return void
+	 */
+	private function set_up_connection( string $connection_type, bool $test_mode = false, bool $connected = true ) {
+		$settings = [
+			'testmode' => $test_mode ? 'yes' : 'no',
+		];
+
+		if ( $connected ) {
+			$settings['publishable_key']      = 'pk_live_123';
+			$settings['secret_key']           = 'sk_live_123';
+			$settings['test_publishable_key'] = 'pk_test_123';
+			$settings['test_secret_key']      = 'sk_test_123';
+		}
+
+		$key              = $test_mode ? 'test_connection_type' : 'connection_type';
+		$settings[ $key ] = $connection_type;
+
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+	}
+
+	/**
+	 * Platform fee fields injected by third-party code are removed when the store is connected
+	 * through the Stripe App OAuth flow, because the fee would go to the plugin platform account.
+	 *
+	 * @param string $connection_type The stored connection type.
+	 * @return void
+	 * @dataProvider provide_oauth_connection_types
+	 */
+	public function test_strip_platform_fee_fields_removes_fees_when_connected_via_oauth( string $connection_type ) {
+		$this->set_up_connection( $connection_type );
+
+		$request = [
+			'amount'                 => 1000,
+			'currency'               => 'usd',
+			'application_fee_amount' => 250,
+			'application_fee'        => 100,
+		];
+
+		$result = WC_Stripe_Helper::strip_platform_fee_fields( $request );
+
+		$this->assertArrayNotHasKey( 'application_fee_amount', $result );
+		$this->assertArrayNotHasKey( 'application_fee', $result );
+		$this->assertSame( 1000, $result['amount'] );
+		$this->assertSame( 'usd', $result['currency'] );
+	}
+
+	/**
+	 * Data provider for the OAuth connection types.
+	 *
+	 * @return array
+	 */
+	public function provide_oauth_connection_types(): array {
+		return [
+			'Stripe Connect OAuth' => [ 'connect' ],
+			'Stripe App OAuth'     => [ 'app' ],
+		];
+	}
+
+	/**
+	 * Stores using their own API keys are left alone. They may legitimately be their own Connect
+	 * platform, for example a multi-vendor marketplace charging vendor commission.
+	 *
+	 * @param string $connection_type The stored connection type.
+	 * @return void
+	 * @dataProvider provide_non_oauth_connection_types
+	 */
+	public function test_strip_platform_fee_fields_keeps_fees_for_manual_keys( string $connection_type ) {
+		$this->set_up_connection( $connection_type );
+
+		$request = [
+			'amount'                 => 1000,
+			'application_fee_amount' => 250,
+		];
+
+		$result = WC_Stripe_Helper::strip_platform_fee_fields( $request );
+
+		$this->assertSame( 250, $result['application_fee_amount'] );
+	}
+
+	/**
+	 * Data provider for the non-OAuth connection types.
+	 *
+	 * @return array
+	 */
+	public function provide_non_oauth_connection_types(): array {
+		return [
+			'Manual keys'      => [ 'manual' ],
+			'No type recorded' => [ '' ],
+		];
+	}
+
+	/**
+	 * Nothing is stripped when the store has no API keys at all.
+	 *
+	 * @return void
+	 */
+	public function test_strip_platform_fee_fields_keeps_fees_when_not_connected() {
+		$this->set_up_connection( 'connect', false, false );
+
+		$request = [ 'application_fee_amount' => 250 ];
+
+		$result = WC_Stripe_Helper::strip_platform_fee_fields( $request );
+
+		$this->assertSame( 250, $result['application_fee_amount'] );
+	}
+
+	/**
+	 * The test-mode connection type is honoured when the store is in test mode.
+	 *
+	 * @return void
+	 */
+	public function test_strip_platform_fee_fields_uses_the_test_mode_connection_type() {
+		$this->set_up_connection( 'connect', true );
+
+		$request = [ 'application_fee_amount' => 250 ];
+
+		$result = WC_Stripe_Helper::strip_platform_fee_fields( $request );
+
+		$this->assertArrayNotHasKey( 'application_fee_amount', $result );
+	}
+
+	/**
+	 * Fields the filter is meant to be used for are never touched.
+	 *
+	 * @return void
+	 */
+	public function test_strip_platform_fee_fields_leaves_supported_fields_untouched() {
+		$this->set_up_connection( 'connect' );
+
+		$request = [
+			'amount'                 => 1000,
+			'metadata'               => [ 'order_id' => 42 ],
+			'payment_method_options' => [ 'card' => [ 'mandate_options' => [ 'reference' => 'abc' ] ] ],
+			'transfer_data'          => [ 'destination' => 'acct_123' ],
+			'on_behalf_of'           => 'acct_123',
+			'application_fee_amount' => 250,
+		];
+
+		$result = WC_Stripe_Helper::strip_platform_fee_fields( $request );
+
+		$this->assertArrayNotHasKey( 'application_fee_amount', $result );
+		$this->assertSame( [ 'order_id' => 42 ], $result['metadata'] );
+		$this->assertSame( [ 'card' => [ 'mandate_options' => [ 'reference' => 'abc' ] ] ], $result['payment_method_options'] );
+		$this->assertSame( [ 'destination' => 'acct_123' ], $result['transfer_data'] );
+		$this->assertSame( 'acct_123', $result['on_behalf_of'] );
+	}
+
+	/**
+	 * A request that carries no fee fields is returned unchanged.
+	 *
+	 * @return void
+	 */
+	public function test_strip_platform_fee_fields_returns_request_unchanged_when_no_fees_present() {
+		$this->set_up_connection( 'connect' );
+
+		$request = [
+			'amount'   => 1000,
+			'currency' => 'usd',
+		];
+
+		$this->assertSame( $request, WC_Stripe_Helper::strip_platform_fee_fields( $request ) );
+	}
 }

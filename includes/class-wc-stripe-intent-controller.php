@@ -993,6 +993,8 @@ class WC_Stripe_Intent_Controller {
 			null // $prepared_source parameter is not necessary for adding mandate information.
 		);
 
+		$request = WC_Stripe_Helper::strip_platform_fee_fields( $request );
+
 		$payment_intent = WC_Stripe_API::request_with_level3_data(
 			$request,
 			'payment_intents',
@@ -1048,6 +1050,8 @@ class WC_Stripe_Intent_Controller {
 				null, // $prepared_source parameter is not necessary for adding mandate information.
 				true // $is_setup_intent parameter is true for setup intents.
 			);
+
+			$request = WC_Stripe_Helper::strip_platform_fee_fields( $request );
 		}
 
 		return $request;
@@ -1103,6 +1107,8 @@ class WC_Stripe_Intent_Controller {
 			$order,
 			null // $prepared_source parameter is not necessary for adding mandate information.
 		);
+
+		$request = WC_Stripe_Helper::strip_platform_fee_fields( $request );
 
 		return WC_Stripe_API::request_with_level3_data(
 			$request,

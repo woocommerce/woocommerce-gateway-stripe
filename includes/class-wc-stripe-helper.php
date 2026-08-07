@@ -1461,6 +1461,64 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * The platform-level fee fields that this gateway never sets itself.
+	 *
+	 * @var string[]
+	 */
+	public const PLATFORM_FEE_FIELDS = [ 'application_fee_amount', 'application_fee' ];
+
+	/**
+	 * Removes platform-level fee fields from an intent request.
+	 *
+	 * The `wc_stripe_generate_create_intent_request` filter hands the entire request array to
+	 * third-party code immediately before it is sent to Stripe. Some plugins use that to inject
+	 * `application_fee_amount`, which on a Connect direct charge transfers to the *platform*
+	 * account rather than to the merchant. Stores connected through the Stripe App OAuth flow use
+	 * the plugin's own platform account, so those fees are collected by a platform that never
+	 * intended to charge them, and the merchant nets less on the sale.
+	 *
+	 * Stores connected with their own API keys are left untouched: they may legitimately be their
+	 * own Connect platform (multi-vendor marketplaces charging vendor commission, for example),
+	 * and stripping the field there would break a supported setup.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param array $request The intent request array, after the filter has run.
+	 * @return array         The request array, with platform-level fee fields removed where applicable.
+	 */
+	public static function strip_platform_fee_fields( array $request ): array {
+		$stripe = function_exists( 'woocommerce_gateway_stripe' ) ? woocommerce_gateway_stripe() : null;
+
+		if ( ! $stripe || ! isset( $stripe->connect ) ) {
+			return $request;
+		}
+
+		$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+
+		if ( ! $stripe->connect->is_connected_via_oauth( $mode ) ) {
+			return $request;
+		}
+
+		foreach ( self::PLATFORM_FEE_FIELDS as $field ) {
+			if ( ! isset( $request[ $field ] ) ) {
+				continue;
+			}
+
+			WC_Stripe_Logger::warning(
+				sprintf(
+					'Removed %1$s (value: %2$s) from an intent request. It was added by third-party code hooking wc_stripe_generate_create_intent_request. This store is connected via Stripe App OAuth, so the fee would have been collected by the plugin platform account rather than by this store.',
+					$field,
+					wp_json_encode( $request[ $field ] )
+				)
+			);
+
+			unset( $request[ $field ] );
+		}
+
+		return $request;
+	}
+
+	/**
 	 * Evaluates whether the object passed to this function is a Stripe Payment Method.
 	 *
 	 * @param stdClass $object  The object that should be evaluated.
