@@ -24,7 +24,18 @@ class WC_Stripe_Account {
 	 */
 	public const ACCOUNT_CACHE_EXPIRATION = 2 * HOUR_IN_SECONDS;
 
+	/**
+	 * The transient key that was previously used to cache the live mode webhook status.
+	 *
+	 * @deprecated 11.0.0
+	 */
 	public const LIVE_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_live';
+
+	/**
+	 * The transient key that was previously used to cache the test mode webhook status.
+	 *
+	 * @deprecated 11.0.0
+	 */
 	public const TEST_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_test';
 
 	public const STATUS_COMPLETE        = 'complete';
@@ -179,8 +190,8 @@ class WC_Stripe_Account {
 	 * Wipes the cached webhook status for both modes.
 	 */
 	private function clear_webhook_status_cache(): void {
-		delete_transient( self::LIVE_WEBHOOK_STATUS_OPTION );
-		delete_transient( self::TEST_WEBHOOK_STATUS_OPTION );
+		WC_Stripe_Database_Cache::delete_with_mode( 'webhook_status', 'live' );
+		WC_Stripe_Database_Cache::delete_with_mode( 'webhook_status', 'test' );
 	}
 
 	/**
@@ -450,9 +461,9 @@ class WC_Stripe_Account {
 		}
 
 		// Check if we have a cached status.
-		$cache_key     = $is_testmode ? self::TEST_WEBHOOK_STATUS_OPTION : self::LIVE_WEBHOOK_STATUS_OPTION;
-		$cached_status = get_transient( $cache_key );
-		if ( false !== $cached_status ) {
+		$cache_key     = 'webhook_status';
+		$cached_status = WC_Stripe_Database_Cache::get( $cache_key );
+		if ( null !== $cached_status ) {
 			return 'enabled' === $cached_status;
 		}
 
@@ -466,7 +477,7 @@ class WC_Stripe_Account {
 			$webhook_status = ! empty( $webhook->status ) && 'enabled' === $webhook->status ?
 				'enabled' :
 				'disabled';
-			set_transient( $cache_key, $webhook_status, 2 * HOUR_IN_SECONDS );
+			WC_Stripe_Database_Cache::set( $cache_key, $webhook_status, 2 * HOUR_IN_SECONDS );
 
 			return 'enabled' === $webhook_status;
 		} catch ( Exception $e ) {

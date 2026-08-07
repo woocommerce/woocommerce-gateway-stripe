@@ -59,8 +59,8 @@ class WC_REST_Stripe_Account_Controller_Test extends WP_UnitTestCase {
 		WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
 		WC_Stripe_Helper::delete_main_stripe_settings();
 
-		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
-		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
+		WC_Stripe_Database_Cache::delete_with_mode( 'webhook_status', 'live' );
+		WC_Stripe_Database_Cache::delete_with_mode( 'webhook_status', 'test' );
 
 		WC_Helper_Stripe_Api::reset();
 
@@ -68,13 +68,13 @@ class WC_REST_Stripe_Account_Controller_Test extends WP_UnitTestCase {
 	}
 
 	public function test_refresh_account_clears_the_cached_webhook_status() {
-		set_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
-		set_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
+		WC_Stripe_Database_Cache::set_with_mode( 'webhook_status', 'enabled', HOUR_IN_SECONDS, 'live' );
+		WC_Stripe_Database_Cache::set_with_mode( 'webhook_status', 'enabled', HOUR_IN_SECONDS, 'test' );
 
 		$this->controller->refresh_account();
 
-		$this->assertFalse( get_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION ) );
-		$this->assertFalse( get_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION ) );
+		$this->assertNull( WC_Stripe_Database_Cache::get_with_mode( 'webhook_status', 'live' ) );
+		$this->assertNull( WC_Stripe_Database_Cache::get_with_mode( 'webhook_status', 'test' ) );
 	}
 
 	public function test_refresh_account_stores_the_freshly_fetched_account_data() {

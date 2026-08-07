@@ -485,8 +485,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	private function clear_webhook_status_cache() {
-		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
-		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
+		WC_Stripe_Database_Cache::delete_with_mode( 'webhook_status', 'test' );
+		WC_Stripe_Database_Cache::delete_with_mode( 'webhook_status', 'live' );
 	}
 
 	/**
