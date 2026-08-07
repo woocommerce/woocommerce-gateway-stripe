@@ -127,7 +127,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array
 	 */
 	public function get_payment_method_script_handles(): array {
-		// Ensure Stripe JS is enqueued
+		// Ensure Stripe JS is registered
 		WC_Stripe_Helper::register_stripe_js();
 
 		$this->register_upe_payment_method_script_handles();
