@@ -158,7 +158,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.9.0 - xxxx-xx-xx =
-* Add - Remote configuration system for managing feature flags
 * Fix - Match the Google Pay express checkout button height to Apple Pay when using the Light or Outline button theme
 * Fix - Keep the currently loaded Stripe account details visible when an account refresh fails
 * Fix - Surface an error and block checkout when the Adaptive Pricing order total can't be synced with Stripe, instead of silently letting the buyer pay a stale amount
@@ -249,5 +248,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent dismissed admin banner notices from reappearing after navigating between Settings and Payment Methods tabs
 * Fix - Only load the Blocks checkout stylesheet on pages that render the Cart or Checkout block
 * Fix - Reserve stock when completing agentic checkout orders so concurrent sessions cannot oversell; orders losing the race are set on-hold instead of driving stock negative
+* Add - Remote configuration system for managing feature availability during incidents
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

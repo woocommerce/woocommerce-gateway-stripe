@@ -1,7 +1,6 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.9.0
-* Add - Remote configuration system for managing feature availability during incidents
 * Fix - Match the Google Pay express checkout button height to Apple Pay when using the Light or Outline button theme
 * Fix - Keep the currently loaded Stripe account details visible when an account refresh fails
 * Fix - Surface an error and block checkout when the Adaptive Pricing order total can't be synced with Stripe, instead of silently letting the buyer pay a stale amount
@@ -92,6 +91,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Prevent dismissed admin banner notices from reappearing after navigating between Settings and Payment Methods tabs
 * Fix - Only load the Blocks checkout stylesheet on pages that render the Cart or Checkout block, instead of on every page of the store
 * Fix - Reserve stock when completing agentic checkout orders so concurrent sessions cannot oversell; orders losing the race are set on-hold instead of driving stock negative
+* Add - Remote configuration system for managing feature availability during incidents
 
 2026-08-05 - version 10.8.5
 * Update - Improve webhook handling
