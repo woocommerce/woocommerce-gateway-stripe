@@ -10,14 +10,15 @@ import { applyFilters } from '@wordpress/hooks';
  */
 export async function resolveExpressCheckoutCurrency( fallback, ctx ) {
 	const fallbackLower = ( fallback || '' ).toLowerCase();
-	const piped = applyFilters(
-		'wc-stripe.express-checkout.resolved-currency',
-		Promise.resolve( fallbackLower ),
-		ctx
-	);
-
 	let resolved = fallbackLower;
+
 	try {
+		const piped = applyFilters(
+			'wc-stripe.express-checkout.resolved-currency',
+			Promise.resolve( fallbackLower ),
+			ctx
+		);
+
 		const value = await piped;
 		if ( typeof value === 'string' && value ) {
 			resolved = value.toLowerCase();

@@ -36,6 +36,16 @@ describe( 'resolveExpressCheckoutCurrency', () => {
 		expect( result ).toBe( 'usd' );
 	} );
 
+	test( 'a resolver that throws synchronously does not break ECE init', async () => {
+		addFilter( FILTER, 'test/sync-throw', () => {
+			throw new Error( 'boom' );
+		} );
+
+		const result = await resolveExpressCheckoutCurrency( 'USD', {} );
+
+		expect( result ).toBe( 'usd' );
+	} );
+
 	test( 'resolvers chain, later resolver receives earlier promise', async () => {
 		addFilter( FILTER, 'test/first', () => Promise.resolve( 'eur' ) );
 		addFilter( FILTER, 'test/second', ( upstream ) =>
