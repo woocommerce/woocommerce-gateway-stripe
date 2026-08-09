@@ -46,6 +46,19 @@ describe( 'resolveExpressCheckoutCurrency', () => {
 		expect( result ).toBe( 'usd' );
 	} );
 
+	test( 'falls back to the fallback when a resolver never settles', async () => {
+		jest.useFakeTimers();
+		addFilter( FILTER, 'test/hang', () => new Promise( () => {} ) );
+
+		const promise = resolveExpressCheckoutCurrency( 'USD', {} );
+		await jest.advanceTimersByTimeAsync( 8000 );
+		const result = await promise;
+
+		expect( result ).toBe( 'usd' );
+
+		jest.useRealTimers();
+	} );
+
 	test( 'resolvers chain, later resolver receives earlier promise', async () => {
 		addFilter( FILTER, 'test/first', () => Promise.resolve( 'eur' ) );
 		addFilter( FILTER, 'test/second', ( upstream ) =>
