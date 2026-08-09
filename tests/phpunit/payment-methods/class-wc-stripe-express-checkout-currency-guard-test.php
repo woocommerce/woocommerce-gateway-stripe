@@ -44,7 +44,7 @@ class WC_Stripe_Express_Checkout_Currency_Guard_Test extends WP_UnitTestCase {
 		$order = $this->build_order( $order_currency );
 		$req   = $this->createMock( WP_REST_Request::class );
 
-		$guard->assert_currency_matches_element( $order, $req );
+		$guard->maybe_assert_order_currency_matches_express_checkout_currency( $order, $req );
 
 		$this->assertTrue( true );
 	}
@@ -87,7 +87,7 @@ class WC_Stripe_Express_Checkout_Currency_Guard_Test extends WP_UnitTestCase {
 		$req   = $this->createMock( WP_REST_Request::class );
 
 		try {
-			$guard->assert_currency_matches_element( $order, $req );
+			$guard->maybe_assert_order_currency_matches_express_checkout_currency( $order, $req );
 			$this->fail( 'Expected RouteException, none thrown.' );
 		} catch ( RouteException $e ) {
 			$this->assertSame( 'wc_stripe_express_checkout_currency_mismatch', $e->getErrorCode() );

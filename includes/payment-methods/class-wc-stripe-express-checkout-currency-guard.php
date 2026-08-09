@@ -45,7 +45,7 @@ class WC_Stripe_Express_Checkout_Currency_Guard {
 	public function init() {
 		add_action(
 			'woocommerce_store_api_checkout_update_order_from_request',
-			[ $this, 'assert_currency_matches_element' ],
+			[ $this, 'maybe_assert_order_currency_matches_express_checkout_currency' ],
 			20,
 			2
 		);
@@ -63,7 +63,7 @@ class WC_Stripe_Express_Checkout_Currency_Guard {
 	 *
 	 * @throws RouteException When the currencies disagree.
 	 */
-	public function assert_currency_matches_element( $order, $request ) {
+	public function maybe_assert_order_currency_matches_express_checkout_currency( $order, $request ) {
 		if ( ! $this->express_checkout_helper->is_express_checkout_context() ) {
 			return;
 		}
