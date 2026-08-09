@@ -2,7 +2,14 @@
 
 import { addFilter } from '@wordpress/hooks';
 
+// WCPBC tells us the visitor's currency through a body event. it usually fires on
+// its own, but if we started listening after it already fired, we missed it - so
+// we poke it once after this delay to make it fire again.
 const RETRIGGER_AFTER_MS = 3000;
+// if WCPBC never answers, stop waiting after this so init doesn't hang. keeping it
+// long on purpose. when we give up we fall back to the base currency, and the button
+// would then charge the wrong currency and get rejected at checkout. better to
+// wait than to charge wrong.
 const BAIL_AFTER_MS = 6000;
 
 // Rides WCPBC's AJAX geolocation mode: the `wc_price_based_country_ajax_geo_params`
