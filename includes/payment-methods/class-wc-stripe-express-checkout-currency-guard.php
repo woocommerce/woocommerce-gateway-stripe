@@ -46,7 +46,7 @@ class WC_Stripe_Express_Checkout_Currency_Guard {
 		add_action(
 			'woocommerce_store_api_checkout_update_order_from_request',
 			[ $this, 'assert_currency_matches_element' ],
-			10,
+			20,
 			2
 		);
 	}
