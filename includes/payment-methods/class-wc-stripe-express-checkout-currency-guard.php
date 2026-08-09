@@ -96,7 +96,7 @@ class WC_Stripe_Express_Checkout_Currency_Guard {
 			sprintf(
 				/* translators: 1: expected currency code, 2: actual currency code */
 				__(
-					'Your shipping address requires a different currency (%2$s) than this payment was started in (%1$s). You haven\'t been charged. Please reload the page and try again.',
+					'Your shipping address requires a different currency (%2$s) than this payment was started in (%1$s). You have not been charged. Please reload the page and try again.',
 					'woocommerce-gateway-stripe'
 				),
 				strtoupper( $expected ),
