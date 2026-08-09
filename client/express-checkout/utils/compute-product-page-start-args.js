@@ -1,7 +1,6 @@
 /**
  * Builds the args object passed to `startExpressCheckout` on a shortcode
- * product page. Extracted from the entrypoint so the resolver-aware start path
- * is testable without standing up the entire jQuery/Stripe.js shell.
+ * product page. Extracted into a dedicated file to support testing.
  *
  * Returns `null` when the current variation isn't supported and ECE should
  * skip starting entirely.
