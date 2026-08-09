@@ -20,7 +20,7 @@ export async function resolveExpressCheckoutCurrency( fallback, ctx ) {
 
 	try {
 		const piped = applyFilters(
-			'wc-stripe.express-checkout.resolved-currency',
+			'wcstripe.express-checkout.resolved-currency',
 			Promise.resolve( fallbackLower ),
 			ctx
 		);

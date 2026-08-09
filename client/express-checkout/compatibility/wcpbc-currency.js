@@ -65,7 +65,7 @@ const waitForWCPBCCurrency = ( upstream ) =>
 	} );
 
 addFilter(
-	'wc-stripe.express-checkout.resolved-currency',
+	'wcstripe.express-checkout.resolved-currency',
 	'automattic/wc-stripe/express-checkout/wcpbc',
 	( upstream ) =>
 		isWCPBCAjaxModeActive() ? waitForWCPBCCurrency( upstream ) : upstream

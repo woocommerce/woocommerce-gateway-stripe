@@ -1,6 +1,6 @@
 import { applyFilters, removeAllFilters } from '@wordpress/hooks';
 
-const FILTER = 'wc-stripe.express-checkout.resolved-currency';
+const FILTER = 'wcstripe.express-checkout.resolved-currency';
 const SET_CURRENCY_EVENT = 'wc_price_based_country_set_currency_params';
 const RETRIGGER_EVENT = 'wc_price_based_country_ajax_geolocation';
 

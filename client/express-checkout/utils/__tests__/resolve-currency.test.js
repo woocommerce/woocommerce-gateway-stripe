@@ -1,7 +1,7 @@
 import { resolveExpressCheckoutCurrency } from '../resolve-currency';
 import { addFilter, removeAllFilters } from '@wordpress/hooks';
 
-const FILTER = 'wc-stripe.express-checkout.resolved-currency';
+const FILTER = 'wcstripe.express-checkout.resolved-currency';
 
 describe( 'resolveExpressCheckoutCurrency', () => {
 	afterEach( () => {
