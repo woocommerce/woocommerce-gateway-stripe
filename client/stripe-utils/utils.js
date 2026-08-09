@@ -256,11 +256,15 @@ export const isAmazonPayEnabled = () => {
  * @return {boolean} True if Amazon Pay supports the currency; false otherwise.
  */
 export const isAmazonPaySupportedForCurrency = ( currency ) => {
+	if ( ! currency ) {
+		return false;
+	}
+
 	const supported =
 		// eslint-disable-next-line camelcase, no-undef
 		wc_stripe_express_checkout_params?.stripe
 			?.amazon_pay_supported_currencies ?? [];
-	return supported.includes( ( currency || '' ).toLowerCase() );
+	return supported.includes( currency.toLowerCase() );
 };
 
 /**
