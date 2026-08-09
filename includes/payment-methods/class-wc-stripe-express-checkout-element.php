@@ -55,9 +55,6 @@ class WC_Stripe_Express_Checkout_Element {
 		$this->express_checkout_helper       = $express_checkout_helper;
 		$this->express_checkout_ajax_handler = $express_checkout_ajax_handler;
 		$this->express_checkout_ajax_handler->init();
-
-		$currency_guard = new WC_Stripe_Express_Checkout_Currency_Guard( $this->express_checkout_helper );
-		$currency_guard->init();
 	}
 
 	/**
@@ -75,6 +72,10 @@ class WC_Stripe_Express_Checkout_Element {
 		if ( ! $this->express_checkout_helper->is_express_checkout_enabled() ) {
 			return;
 		}
+
+		// Guard against express checkout currency drift at order placement (e.g. a
+		// multi-currency plugin flipping the cart from the address chosen in the sheet).
+		( new WC_Stripe_Express_Checkout_Currency_Guard( $this->express_checkout_helper ) )->init();
 
 		// Apply the express checkout title after intent confirmation (e.g. 3DS) for the
 		// subscription change-payment-method flow. Registered unconditionally because the
