@@ -615,6 +615,8 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECECreateOrder( orderData ) {
+		const elementCurrency = getElementCurrency();
+
 		return this.postToStoreApi(
 			'/wc/store/v1/checkout',
 			{
@@ -626,8 +628,8 @@ export default class WCStripeAPI {
 				'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE':
 					getExpressCheckoutData( 'nonce' )
 						?.wc_store_api_express_checkout,
-				...( getElementCurrency() && {
-					'X-WCSTRIPE-PAYMENT-CURRENCY': getElementCurrency(),
+				...( elementCurrency && {
+					'X-WCSTRIPE-PAYMENT-CURRENCY': elementCurrency,
 				} ),
 			}
 		);
@@ -647,13 +649,15 @@ export default class WCStripeAPI {
 		const billingEmail = orderDetails.billingEmail ?? '';
 		const key = orderDetails.orderKey ?? '';
 		const url = `/wc/store/v1/checkout/${ order }?key=${ key }&billing_email=${ billingEmail }`;
+		const elementCurrency = getElementCurrency();
+
 		return this.postToStoreApi( url, paymentData, {
 			'X-WCSTRIPE-EXPRESS-CHECKOUT': true,
 			'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE':
 				getExpressCheckoutData( 'nonce' )
 					?.wc_store_api_express_checkout,
-			...( getElementCurrency() && {
-				'X-WCSTRIPE-PAYMENT-CURRENCY': getElementCurrency(),
+			...( elementCurrency && {
+				'X-WCSTRIPE-PAYMENT-CURRENCY': elementCurrency,
 			} ),
 		} );
 	}
