@@ -55,6 +55,11 @@ export async function computeProductPageStartArgs( {
 			// resolved currency. Bail rather than render a base-currency amount
 			// under the resolved-currency label; the shopper falls back to the
 			// regular checkout.
+			// eslint-disable-next-line no-console
+			console.warn(
+				`WC Stripe: Express Checkout skipped on the product page. Could not re-fetch product data in the resolved currency (${ resolvedCurrency }).`,
+				e
+			);
 			return null;
 		}
 
@@ -69,6 +74,12 @@ export async function computeProductPageStartArgs( {
 			fresh.currency !== resolvedCurrency ||
 			fresh.total?.amount === undefined
 		) {
+			// eslint-disable-next-line no-console
+			console.warn(
+				`WC Stripe: Express Checkout skipped on the product page. Re-fetched product data did not match the resolved currency (expected ${ resolvedCurrency }, got ${
+					fresh?.currency ?? 'none'
+				}).`
+			);
 			return null;
 		}
 
