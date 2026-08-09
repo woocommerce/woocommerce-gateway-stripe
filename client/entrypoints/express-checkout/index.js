@@ -256,14 +256,10 @@ jQuery( function ( $ ) {
 				''
 			).toLowerCase();
 
-			// is_amazon_pay_enabled() is currency-aware server-side, but on product
-			// pages it reflects the rendered base currency, not the one resolved
-			// after render. When the currency changed, re-check it against the
-			// supported set: a currency Amazon Pay can't take would make Stripe
-			// reject the whole element, while a supported one keeps it offered.
-			// Check the currency the element is actually built with (options.currency)
-			// rather than the resolved-currency global, which an overlapping init()
-			// could overwrite between here and element creation.
+			// Add a client-side check to make sure the resolved customer-facing currency
+			// is actually supported by Amazon Pay, as it may change in the client.
+			// Note that we check `options.currency` to make sure we avoid race conditions
+			// involving updates to global values that may not have propagated yet.
 			const hasCurrencyChanged = options.currency !== localizedCurrency;
 			const amazonPaySupportsCurrency =
 				! hasCurrencyChanged ||
