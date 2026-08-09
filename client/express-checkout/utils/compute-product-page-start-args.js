@@ -30,8 +30,8 @@ export async function computeProductPageStartArgs( {
 		getExpressCheckoutData( 'product' )?.currency || ''
 	).toLowerCase();
 
-	// let any registered resolver (e.g. WCPBC) settle the visitor's currency
-	// before we create the Stripe Element. fast-path when no resolver participates.
+	// Let any registered resolver (e.g. WCPBC) settle the visitor's currency
+	// before we create the Stripe Element. Fast-path when no resolver participates.
 	const resolvedCurrency = await resolveExpressCheckoutCurrency(
 		localizedCurrency,
 		{ buttonContext: 'product' }
@@ -43,23 +43,23 @@ export async function computeProductPageStartArgs( {
 	let requestShipping =
 		getExpressCheckoutData( 'product' )?.requestShipping ?? false;
 
-	// if the resolver settled on a different currency, the localized product
-	// data was rendered against the wrong one. the AJAX call below will now see
+	// If the resolver settled on a different currency, the localized product
+	// data was rendered against the wrong one. The AJAX call below will now see
 	// WCPBC's cookie and return converted values.
 	if ( hasCurrencyChanged ) {
 		let fresh;
 		try {
 			fresh = await getSelectedProductData();
 		} catch ( e ) {
-			// the re-fetch failed, so we have no trustworthy amount in the
-			// resolved currency. bail rather than render a base-currency amount
+			// The re-fetch failed, so we have no trustworthy amount in the
+			// resolved currency. Bail rather than render a base-currency amount
 			// under the resolved-currency label; the shopper falls back to the
 			// regular checkout.
 			return null;
 		}
 
-		// only trust the re-fetched payload when the server actually returned
-		// amounts in the resolved currency. an error, a missing total, or a
+		// Only trust the re-fetched payload when the server actually returned
+		// amounts in the resolved currency. An error, a missing total, or a
 		// currency mismatch (e.g. the zone wasn't persisted before this call)
 		// would mean a base-currency amount shown as the resolved currency, so
 		// bail instead of misleading the shopper.
