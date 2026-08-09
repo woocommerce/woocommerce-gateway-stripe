@@ -1,8 +1,4 @@
 import { resolveExpressCheckoutCurrency } from '../resolve-currency';
-import {
-	getResolvedCurrency,
-	__resetResolvedCurrencyForTests,
-} from '../resolved-currency-cache';
 import { addFilter, removeAllFilters } from '@wordpress/hooks';
 
 const FILTER = 'wc-stripe.express-checkout.resolved-currency';
@@ -10,7 +6,6 @@ const FILTER = 'wc-stripe.express-checkout.resolved-currency';
 describe( 'resolveExpressCheckoutCurrency', () => {
 	afterEach( () => {
 		removeAllFilters( FILTER );
-		__resetResolvedCurrencyForTests();
 	} );
 
 	test( 'returns the lowercase fallback when no resolver is registered', async () => {
@@ -39,14 +34,6 @@ describe( 'resolveExpressCheckoutCurrency', () => {
 		const result = await resolveExpressCheckoutCurrency( 'USD', {} );
 
 		expect( result ).toBe( 'usd' );
-	} );
-
-	test( 'writes the resolved value to the module cache', async () => {
-		addFilter( FILTER, 'test/cache', () => Promise.resolve( 'gbp' ) );
-
-		await resolveExpressCheckoutCurrency( 'USD', {} );
-
-		expect( getResolvedCurrency( 'fallback' ) ).toBe( 'gbp' );
 	} );
 
 	test( 'resolvers chain, later resolver receives earlier promise', async () => {

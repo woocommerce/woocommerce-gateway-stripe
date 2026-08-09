@@ -1,4 +1,3 @@
-import { setResolvedCurrency } from './resolved-currency-cache';
 import { applyFilters } from '@wordpress/hooks';
 
 /**
@@ -27,6 +26,5 @@ export async function resolveExpressCheckoutCurrency( fallback, ctx ) {
 		// A misbehaving resolver shouldn't break ECE init.
 	}
 
-	setResolvedCurrency( resolved );
 	return resolved;
 }
