@@ -165,19 +165,6 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 					"name": "Adrian Dobrescu",
 					"phone": "+40722112945",
 					"tax_id": null
-				},
-				"payment_method_details": {
-					"card": {
-						"amount_authorized": 7900,
-						"authorization_code": "747254",
-						"brand": "visa",
-						"checks": {
-							"address_line1_check": "pass",
-							"address_postal_code_check": "pass",
-							"cvc_check": "pass"
-						}
-					},
-					"type": "card"
 				}
 			}';
 		$response_as_string    = '{

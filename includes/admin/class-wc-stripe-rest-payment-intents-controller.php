@@ -34,7 +34,6 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		'latest_charge.balance_transaction.net',
 		'latest_charge.balance_transaction.currency',
 		'latest_charge.billing_details',
-		'latest_charge.payment_method_details',
 	];
 
 	protected const STRIPE_SINGLE_EXPAND_PARAM = [
@@ -57,7 +56,6 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		'data.status',
 		'data.description',
 		'data.latest_charge.billing_details.name',
-		'data.latest_charge.payment_method_details',
 	];
 
 	protected const STRIPE_LIST_PARAMS_TO_FORWARD = [ 'limit', 'starting_after', 'ending_before', 'customer', 'customer_account', 'created' ];
@@ -331,6 +329,6 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 			return false;
 		}
 
-		return 1 === preg_match( '/^\d+$/', $value );
+		return ctype_digit( $value ) && ( (int) $value >= 0 );
 	}
 }
