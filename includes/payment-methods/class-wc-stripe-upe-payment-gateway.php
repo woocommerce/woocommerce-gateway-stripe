@@ -2587,6 +2587,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			throw new Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 		}
 
+		// A SetupIntent has no charge, so an empty last_setup_error does not mean success.
+		// Intermediate states stay retryable and are finalized by the webhook.
+		if ( ! $payment_needed && ( 'setup_intent' !== ( $intent->object ?? '' ) || WC_Stripe_Intent_Status::SUCCEEDED !== ( $intent->status ?? '' ) ) ) {
+			return;
+		}
+
 		list( $payment_method_type, $payment_method_details ) = $this->get_payment_method_data_from_intent( $intent );
 
 		if ( ! isset( $this->payment_methods[ $payment_method_type ] ) ) {
