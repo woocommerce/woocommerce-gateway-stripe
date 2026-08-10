@@ -247,6 +247,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Move the Agentic Commerce settings to their own tab on the Stripe settings page
 * Fix - Register Multibanco, OXXO, Boleto, Link, and Cash App Pay hooks only once per request so email instructions and thank-you page content are not duplicated
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
+* Dev - Register Stripe.js through a single shared helper
 * Fix - Prevent dismissed admin banner notices from reappearing after navigating between Settings and Payment Methods tabs
 * Fix - Only load the Blocks checkout stylesheet on pages that render the Cart or Checkout block
 * Fix - Don't show currency admin notices for payment methods when Adaptive Pricing is active
