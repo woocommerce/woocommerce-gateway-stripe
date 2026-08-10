@@ -9,6 +9,68 @@
  */
 class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
+	 * get_settings() returns the stored option as an array.
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_returns_stored_option(): void {
+		update_option( WC_Stripe::SETTINGS_OPTION_NAME, [ 'enabled' => 'yes' ] );
+
+		// Compare against the stored option rather than the literal written
+		// above: the pre_update_option filter merges defaults into the write.
+		$updated_settings = WC_Stripe::get_instance()->get_settings();
+		$this->assertSame(
+			get_option( WC_Stripe::SETTINGS_OPTION_NAME ),
+			$updated_settings
+		);
+		$this->assertSame( 'yes', $updated_settings['enabled'] );
+	}
+
+	/**
+	 * get_settings() always returns an array, even when the option holds a non-array value.
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_normalizes_non_array_option(): void {
+		$force_scalar = static function () {
+			return 'not-an-array';
+		};
+		add_filter( 'option_' . WC_Stripe::SETTINGS_OPTION_NAME, $force_scalar );
+
+		try {
+			$this->assertSame( [], WC_Stripe::get_instance()->get_settings() );
+		} finally {
+			remove_filter( 'option_' . WC_Stripe::SETTINGS_OPTION_NAME, $force_scalar );
+		}
+	}
+
+	/**
+	 * update_settings() writes through to the underlying option, asserted via
+	 * get_option() so the test holds even if get_settings() grows a cache.
+	 *
+	 * @return void
+	 */
+	public function test_update_settings_persists_option(): void {
+		WC_Stripe::get_instance()->update_settings( [ 'enabled' => 'yes' ] );
+		$this->assertSame( 'yes', get_option( WC_Stripe::SETTINGS_OPTION_NAME )['enabled'] );
+
+		WC_Stripe::get_instance()->update_settings( [ 'enabled' => 'no' ] );
+		$this->assertSame( 'no', get_option( WC_Stripe::SETTINGS_OPTION_NAME )['enabled'] );
+	}
+
+	/**
+	 * get_settings() reflects a raw update_option() write that bypasses
+	 * update_settings() — the accessor introduces no divergent state.
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_reflects_raw_option_write(): void {
+		update_option( WC_Stripe::SETTINGS_OPTION_NAME, [ 'enabled' => 'no' ] );
+
+		$this->assertSame( 'no', WC_Stripe::get_instance()->get_settings()['enabled'] );
+	}
+
+	/**
 	 * Tests that the plugin constants are defined.
 	 *
 	 * @return void
@@ -210,7 +272,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
 
 		// Set initial settings.
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
 			->disableOriginalConstructor()
@@ -225,7 +287,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$wc_stripe->install();
 
-		$actual_settings = WC_Stripe_Helper::get_stripe_settings();
+		$actual_settings = WC_Stripe::get_instance()->get_settings();
 		foreach ( $expected_settings as $key => $value ) {
 			if ( null == $value ) {
 				$this->assertArrayNotHasKey( $key, $actual_settings );
@@ -410,14 +472,14 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			->onlyMethods( [ 'get_main_stripe_gateway' ] )
 			->getMock();
 
-		$mock_main_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+		// add_gateways() keys OCS filtering off the instantiated gateway class, mirroring the
+		// selection done in get_main_stripe_gateway(): the OCS gateway when OC is enabled.
+		$main_gateway_class = $oc_enabled ? WC_Stripe_OCS_Payment_Gateway::class : WC_Stripe_UPE_Payment_Gateway::class;
+		$mock_main_gateway  = $this->getMockBuilder( $main_gateway_class )
 			->disableOriginalConstructor()
 			->getMock();
 
 		$mock_main_gateway->payment_methods = $payment_methods;
-		$mock_main_gateway->method( 'get_option' )
-			->with( 'optimized_checkout_element', 'no' )
-			->willReturn( $oc_enabled ? 'yes' : 'no' );
 
 		$wc_stripe->method( 'get_main_stripe_gateway' )
 			->willReturn( $mock_main_gateway );
@@ -679,6 +741,67 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		} finally {
 			$stripe->account = $original_account;
 		}
+	}
+
+	/**
+	 * Tests that get_main_stripe_gateway() returns the OCS gateway when OCS is enabled
+	 * and the base UPE gateway otherwise.
+	 *
+	 * @dataProvider provide_test_get_main_stripe_gateway
+	 */
+	public function test_get_main_stripe_gateway_returns_expected_class( array $settings, string $expected_class ): void {
+		$original_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe            = WC_Stripe::get_instance();
+
+		$reflection = new ReflectionClass( WC_Stripe::class );
+		$property   = $reflection->getProperty( 'stripe_gateway' );
+		$property->setAccessible( true );
+		$previous_gateway = $property->getValue( $stripe );
+
+		try {
+			WC_Stripe_Helper::update_main_stripe_settings( $settings );
+			$property->setValue( $stripe, null );
+
+			$gateway = $stripe->get_main_stripe_gateway();
+
+			$this->assertInstanceOf( $expected_class, $gateway );
+		} finally {
+			$property->setValue( $stripe, $previous_gateway );
+			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+		}
+	}
+
+	/**
+	 * Data provider for {@see self::test_get_main_stripe_gateway_returns_expected_class()}.
+	 */
+	public function provide_test_get_main_stripe_gateway(): array {
+		return [
+			'OCS disabled by setting' => [
+				'settings'       => [
+					'pmc_enabled'                => 'yes',
+					'optimized_checkout_element' => 'no',
+				],
+				'expected_class' => WC_Stripe_UPE_Payment_Gateway::class,
+			],
+			'OCS setting missing'     => [
+				'settings'       => [ 'pmc_enabled' => 'yes' ],
+				'expected_class' => WC_Stripe_UPE_Payment_Gateway::class,
+			],
+			'OCS gated by pmc flag'   => [
+				'settings'       => [
+					'pmc_enabled'                => 'no',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expected_class' => WC_Stripe_UPE_Payment_Gateway::class,
+			],
+			'OCS enabled'             => [
+				'settings'       => [
+					'pmc_enabled'                => 'yes',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expected_class' => WC_Stripe_OCS_Payment_Gateway::class,
+			],
+		];
 	}
 
 	/**
