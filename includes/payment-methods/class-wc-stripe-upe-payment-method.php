@@ -183,6 +183,33 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Runs $register only for the first instance of this payment method, so
+	 * repeated instantiation (the gateway constructor, factories, admin
+	 * checks) doesn't stack duplicate hook callbacks.
+	 *
+	 * @param callable $register Registers this instance's hooks.
+	 * @return void
+	 */
+	protected function register_instance_hooks_once( callable $register ): void {
+		$hook_manager = WC_Stripe_Hook_Manager::get_instance();
+
+		// The manager only tracks Stripe-prefixed ids. A third-party subclass
+		// with a foreign id can't be deduplicated, so fail open and register
+		// per instance rather than silently dropping its hooks.
+		if ( ! $hook_manager->is_valid_payment_method_id( $this->id ) ) {
+			$register();
+			return;
+		}
+
+		// Key on the concrete class too: a third-party subclass that keeps a
+		// core id must still register its (possibly overridden) callbacks, and
+		// must not suppress the core instance's — whichever constructs first.
+		if ( $hook_manager->register_payment_method_hooks( $this->id . ':' . get_class( $this ), WC_Stripe_Hook_Categories::GENERAL ) ) {
+			$register();
+		}
+	}
+
+	/**
 	 * Magic method to get properties.
 	 * Used for backwards compatibility with deprecated properties.
 	 *
@@ -304,7 +331,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		}
 
 		// When OC is enabled _and_ we are on a page where OC is permitted, we use the OC payment container to render all the methods.
-		if ( $this->oc_enabled && $main_stripe_gateway->is_valid_optimized_checkout_page() ) {
+		if ( $main_stripe_gateway->is_optimized_checkout_active() ) {
 			$enabled_methods     = $main_stripe_gateway->get_upe_enabled_at_checkout_payment_method_ids();
 			$non_express_methods = array_filter(
 				$enabled_methods,
