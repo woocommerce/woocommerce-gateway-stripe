@@ -572,14 +572,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return false;
 		}
 
-		// Capture the mode once, alongside the delivery client, and hold it for
-		// the whole run: a settings save can flip testmode while the sync is
-		// generating the feed, and every record this run persists must describe
-		// the environment it actually delivered to, not the mode at write time.
-		$mode = self::get_current_mode();
-
-		// Check delivery setup before generating the feed.
-		$delivery = $this->get_push_delivery_method();
+		// One settings snapshot supplies both the mode label and the delivery
+		// key, held for the whole run: separate reads could straddle a
+		// concurrent settings save and pair one mode's label with the other
+		// mode's key, and every record this run persists must describe the
+		// environment it actually delivered to, not the mode at write time.
+		$context  = self::get_delivery_context();
+		$mode     = $context['mode'];
+		$delivery = new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $context['secret_key'] );
 
 		if ( ! $delivery->check_setup() ) {
 			WC_Stripe_Logger::error( 'Agentic Commerce: Sync skipped - Stripe API key not configured' );
@@ -1117,19 +1117,31 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
+	 * Captures the Stripe mode and its matching secret key from a single settings read.
+	 *
+	 * Both values derive from one snapshot so a concurrent settings save can
+	 * never pair one mode's label with the other mode's key.
+	 *
+	 * @since 10.9.0
+	 * @return array{mode: string, secret_key: string}
+	 */
+	public static function get_delivery_context(): array {
+		$settings  = WC_Stripe_Helper::get_stripe_settings();
+		$test_mode = isset( $settings['testmode'] ) && 'yes' === $settings['testmode'];
+
+		return [
+			'mode'       => $test_mode ? 'test' : 'live',
+			'secret_key' => $test_mode ? ( $settings['test_secret_key'] ?? '' ) : ( $settings['secret_key'] ?? '' ),
+		];
+	}
+
+	/**
 	 * Get Stripe secret key from settings.
 	 *
 	 * @since 10.5.0
 	 * @return string Stripe secret key.
 	 */
 	private function get_secret_key(): string {
-		$settings  = WC_Stripe_Helper::get_stripe_settings();
-		$test_mode = isset( $settings['testmode'] ) && 'yes' === $settings['testmode'];
-
-		if ( $test_mode ) {
-			return $settings['test_secret_key'] ?? '';
-		}
-
-		return $settings['secret_key'] ?? '';
+		return self::get_delivery_context()['secret_key'];
 	}
 }

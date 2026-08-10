@@ -407,7 +407,13 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		$status_updates = [];
 		$mode_updates   = [];
 		$delivery       = null;
-		$current_mode   = WC_Stripe_Agentic_Commerce_Integration::get_current_mode();
+
+		// One settings snapshot supplies both the mode used to filter entries
+		// and the key used to poll them: separate reads could straddle a
+		// concurrent settings save and poll this mode's entries with the other
+		// mode's key, misreading the resulting 404s as cross-mode entries.
+		$context      = WC_Stripe_Agentic_Commerce_Integration::get_delivery_context();
+		$current_mode = $context['mode'];
 
 		foreach ( $history as $entry ) {
 			$current_status = $entry['status'] ?? '';
@@ -427,7 +433,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			}
 
 			try {
-				$delivery   = $delivery ?? $this->create_delivery();
+				$delivery   = $delivery ?? new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $context['secret_key'] );
 				$import_set = $delivery->get_import_set( $import_set_id );
 				$new_status = $import_set['status'] ?? $current_status;
 
@@ -461,22 +467,6 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		}
 
 		WC_Stripe_Agentic_Commerce_Integration::update_pending_statuses( $status_updates, $mode_updates );
-	}
-
-	/**
-	 * Create a Files API delivery instance using the current Stripe settings.
-	 *
-	 * @since 10.7.0
-	 * @return WC_Stripe_Agentic_Commerce_Files_Api_Delivery
-	 */
-	private function create_delivery(): WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
-		$settings  = WC_Stripe_Helper::get_stripe_settings();
-		$test_mode = isset( $settings['testmode'] ) && 'yes' === $settings['testmode'];
-		$secret    = $test_mode
-			? ( $settings['test_secret_key'] ?? '' )
-			: ( $settings['secret_key'] ?? '' );
-
-		return new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $secret );
 	}
 
 	/**

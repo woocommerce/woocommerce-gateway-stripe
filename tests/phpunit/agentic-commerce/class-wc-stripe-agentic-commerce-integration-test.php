@@ -336,6 +336,107 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A settings save that flips testmode while the sync is generating the
+	 * feed must not leak into the run: the upload authenticates with the key
+	 * captured at sync start and the history entry records the matching mode.
+	 *
+	 * @return void
+	 */
+	public function test_sync_feed_binds_mode_and_key_to_sync_start() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) || ! class_exists( 'WC_Product_Simple' ) ) {
+			$this->markTestSkipped( 'WooCommerce product/Action Scheduler not available.' );
+		}
+
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'testmode'        => 'yes',
+				'test_secret_key' => 'sk_test_snapshot',
+				'secret_key'      => 'sk_live_snapshot',
+			]
+		);
+
+		$term   = wp_insert_term( 'Stripe Snapshot Cat ' . uniqid(), 'product_cat' );
+		$cat_id = is_wp_error( $term ) ? 0 : (int) $term['term_id'];
+
+		$product = new WC_Product_Simple();
+		$product->set_name( 'Snapshot Product' );
+		$product->set_regular_price( '10.00' );
+		$product->set_status( 'publish' );
+		if ( $cat_id ) {
+			$product->set_category_ids( [ $cat_id ] );
+		}
+		$product->save();
+
+		$product_id = $product->get_id();
+		$scope      = static function ( $args ) use ( $product_id ) {
+			$args['include'] = [ $product_id ];
+			return $args;
+		};
+		add_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
+
+		// The should-sync filter fires per product during the walk — after the
+		// sync captured its context — so it stands in for a concurrent
+		// settings save landing mid-run.
+		$flip = static function ( $sync ) {
+			$settings             = get_option( 'woocommerce_stripe_settings', [] );
+			$settings['testmode'] = 'no';
+			update_option( 'woocommerce_stripe_settings', $settings );
+			return $sync;
+		};
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $flip );
+
+		$files_stub = fn() => [ 'id' => 'file_stub' ];
+		add_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10, 2 );
+
+		$captured_auth = [];
+		$http_stub     = function ( $preempt, $args ) use ( &$captured_auth ) {
+			$captured_auth[] = $args['headers']['Authorization'] ?? '';
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'id'     => 'impset_stub',
+						'status' => 'pending',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+			$result      = $integration->sync_feed( true );
+
+			$this->assertTrue( $result, 'Sync should succeed with the stubbed Files API.' );
+
+			$last_sync = \WC_Stripe_Agentic_Commerce_Integration::get_last_sync();
+			$this->assertSame( 'test', $last_sync['mode'], 'The record must keep the mode captured at sync start, not the flipped mode.' );
+
+			$this->assertNotEmpty( $captured_auth );
+			foreach ( $captured_auth as $auth ) {
+				$this->assertSame( 'Bearer sk_test_snapshot', $auth, 'Delivery must authenticate with the key captured alongside the recorded mode.' );
+			}
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $flip );
+			remove_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10 );
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+			delete_option( 'woocommerce_stripe_settings' );
+			$product->delete( true );
+			if ( $cat_id ) {
+				wp_delete_term( $cat_id, 'product_cat' );
+			}
+		}
+	}
+
+	/**
 	 * Test is_enabled returns false by default.
 	 *
 	 * @return void
@@ -849,6 +950,43 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$history = get_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
 
 		$this->assertSame( $other_mode, $history[0]['mode'] );
+	}
+
+	/**
+	 * get_delivery_context derives the mode label and the secret key from one
+	 * settings read, so even when every read observes a different testmode
+	 * (simulating a concurrent settings save), the pair is never split.
+	 *
+	 * @return void
+	 */
+	public function test_get_delivery_context_pairs_mode_and_key_from_one_read(): void {
+		// The option_{name} filter only runs when the option exists, so seed it.
+		update_option( 'woocommerce_stripe_settings', [ 'testmode' => 'yes' ] );
+
+		$read_count = 0;
+		$alternate  = function ( $value ) use ( &$read_count ) {
+			++$read_count;
+			$test_mode = 1 === $read_count % 2;
+
+			return [
+				'testmode'        => $test_mode ? 'yes' : 'no',
+				'test_secret_key' => 'sk_test_snapshot',
+				'secret_key'      => 'sk_live_snapshot',
+			];
+		};
+		add_filter( 'option_woocommerce_stripe_settings', $alternate );
+
+		try {
+			for ( $i = 0; $i < 4; $i++ ) {
+				$context = \WC_Stripe_Agentic_Commerce_Integration::get_delivery_context();
+
+				$expected_key = 'test' === $context['mode'] ? 'sk_test_snapshot' : 'sk_live_snapshot';
+				$this->assertSame( $expected_key, $context['secret_key'], 'The key must always belong to the mode captured in the same snapshot.' );
+			}
+		} finally {
+			remove_filter( 'option_woocommerce_stripe_settings', $alternate );
+			delete_option( 'woocommerce_stripe_settings' );
+		}
 	}
 
 	/**

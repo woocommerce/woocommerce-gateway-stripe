@@ -293,6 +293,75 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A settings save landing while the refresh runs must not split the mode
+	 * used to filter entries from the key used to poll them: the current-mode
+	 * entry is polled with the matching key, refreshed, and never reclassified.
+	 */
+	public function test_refresh_polls_with_the_key_matching_the_filtering_mode(): void {
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'testmode'        => 'yes',
+				'test_secret_key' => 'sk_test_snapshot',
+				'secret_key'      => 'sk_live_snapshot',
+			]
+		);
+		update_option(
+			WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION,
+			[
+				[
+					'status'        => 'pending',
+					'timestamp'     => 1000,
+					'products'      => 5,
+					'import_set_id' => 'impset_snapshot',
+					'file_id'       => 'file_snapshot',
+					'error'         => '',
+					'mode'          => 'test',
+				],
+			]
+		);
+
+		$captured_auth = [];
+		$http_stub     = function ( $preempt, $args ) use ( &$captured_auth ) {
+			$captured_auth[] = $args['headers']['Authorization'] ?? '';
+
+			// Simulate a concurrent settings save flipping the mode mid-refresh.
+			$settings             = get_option( 'woocommerce_stripe_settings', [] );
+			$settings['testmode'] = 'no';
+			update_option( 'woocommerce_stripe_settings', $settings );
+
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'id'     => 'impset_snapshot',
+						'status' => 'succeeded',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$response = rest_do_request( new WP_REST_Request( 'GET', self::STATUS_ROUTE ) );
+			$this->assertEquals( 200, $response->get_status() );
+
+			$this->assertSame( [ 'Bearer sk_test_snapshot' ], $captured_auth, 'The poll must use the key from the same snapshot as the filtering mode.' );
+
+			$history = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+			$this->assertSame( 'succeeded', $history[0]['status'], 'The current-mode entry must be refreshed, not skipped.' );
+			$this->assertSame( 'test', $history[0]['mode'], 'The entry must never be reclassified to the other mode.' );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+			delete_option( 'woocommerce_stripe_settings' );
+		}
+	}
+
+	/**
 	 * GET returns history newest-first, capped at the 5 most recent.
 	 */
 	public function test_get_status_returns_history_newest_first_capped_at_5(): void {
