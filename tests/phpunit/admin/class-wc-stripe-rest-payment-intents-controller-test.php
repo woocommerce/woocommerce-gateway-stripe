@@ -299,6 +299,27 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		$this->assertSame( 400, $response->get_status() );
 	}
 
+	/**
+	 * Create an admin user and send requests containing wrong format args.
+	 *
+	 * @param string $param_name
+	 * @param mixed $param_value
+	*/
+	public function test_intent_list_with_both_starting_after_and_ending_before() {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$response = $this->send_request(
+			self::ALL_INTENTS_ENDPOINT_URL,
+			[
+				'starting_after' => 'pi_test',
+				'ending_before'  => 'pi_test2',
+			]
+		);
+
+		$this->assertSame( 400, $response->get_status() );
+	}
+
 	public static function provide_intent_list_params(): array {
 		return [
 			[
@@ -308,17 +329,15 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 				[
 					'created'        => '1779802569',
 					'starting_after' => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
-					'ending_before'  => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
 			[
 				[
-					'created'        =>
+					'created'       =>
 						[
 							'lt' => '1779802569',
 						],
-					'starting_after' => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
-					'ending_before'  => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
+					'ending_before' => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
 			[
@@ -330,7 +349,6 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 						[
 							'lt' => '1779802569',
 						],
-					'starting_after'   => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
 					'ending_before'    => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],

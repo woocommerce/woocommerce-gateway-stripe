@@ -41,11 +41,6 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		'latest_charge.balance_transaction',
 	];
 
-	protected const STRIPE_LIST_EXPAND_PARAM = [
-		'data.latest_charge',
-		'data.latest_charge.balance_transaction',
-	];
-
 	protected const STRIPE_LIST_RESPONSE_ALLOWED_FIELDS = [
 		'object',
 		'has_more',
@@ -56,6 +51,11 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		'data.status',
 		'data.description',
 		'data.latest_charge.billing_details.name',
+	];
+
+	protected const STRIPE_LIST_EXPAND_PARAM = [
+		'data.latest_charge',
+		'data.latest_charge.balance_transaction',
 	];
 
 	protected const STRIPE_LIST_PARAMS_TO_FORWARD = [ 'limit', 'starting_after', 'ending_before', 'customer', 'customer_account', 'created' ];
@@ -98,13 +98,13 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => [ self::class, 'validate_payment_intent_id' ],
+						'validate_callback' => [ self::class, 'validate_starting_after' ],
 					],
 					'ending_before'    => [
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => [ self::class, 'validate_payment_intent_id' ],
+						'validate_callback' => [ self::class, 'validate_ending_before' ],
 					],
 					'customer'         => [
 						'type'              => 'string',
@@ -156,7 +156,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 *
 	 * @return array
 	 */
-	public static function build_params_to_forward( $request, $params_to_forward, $expand_param ) {
+	private static function build_params_to_forward( $request, $params_to_forward, $expand_param ) {
 		$stripe_params = array_intersect_key(
 			$request->get_params(),
 			array_flip( $params_to_forward )
@@ -227,6 +227,48 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	}
 
 	/**
+	 * Validate starting_after parameter value that should be a payment intent ID.
+	 * Also raise an error if the ending_before parameter is also specified.
+	 *
+	 * @param string $param_value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param_name The parameter name.
+	 *
+	 * @return bool
+	 */
+	public static function validate_starting_after( $param_value, $request, $param_name ) {
+		if ( $request->has_param( 'ending_before' ) ) {
+			return new WP_Error(
+				'invalid_starting_after',
+				'Received both starting_after and ending_before parameters. Please pass in only one.'
+			);
+		}
+
+		return self::validate_payment_intent_id( $param_value, $request, $param_name );
+	}
+
+	/**
+	 * Validate ending_before parameter value that should be a payment intent ID.
+	 * Also raise an error if the starting_after parameter is also specified.
+	 *
+	 * @param string $param_value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param_name The parameter name.
+	 *
+	 * @return bool
+	 */
+	public static function validate_ending_before( $param_value, $request, $param_name ) {
+		if ( $request->has_param( 'starting_after' ) ) {
+			return new WP_Error(
+				'invalid_ending_before',
+				'Received both starting_after and ending_before parameters. Please pass in only one.'
+			);
+		}
+
+		return self::validate_payment_intent_id( $param_value, $request, $param_name );
+	}
+
+	/**
 	 * Validate a parameter value that should be a payment intent ID.
 	 *
 	 * @param string $param_value The parameter value.
@@ -235,7 +277,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 *
 	 * @return bool
 	 */
-	public static function validate_payment_intent_id( $param_value, $request, $param_name ) {
+	private static function validate_payment_intent_id( $param_value, $request, $param_name ) {
 		return 1 === preg_match( '/^' . self::PAYMENT_INTENT_ID_PATTERN . '$/', $param_value );
 	}
 
@@ -324,7 +366,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 *
 	 * @return bool
 	 */
-	public static function is_valid_timestamp( $value ) {
+	private static function is_valid_timestamp( $value ) {
 		if ( is_int( $value ) ) {
 			return $value >= 0;
 		}
