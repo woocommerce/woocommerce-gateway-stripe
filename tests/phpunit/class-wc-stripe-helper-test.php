@@ -1949,13 +1949,15 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		}
 		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
 
+		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+
 		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
 		if ( $webhook_enabled ) {
-			set_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
-			set_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
+			WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'live' );
+			WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'test' );
 		} else {
-			delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
-			delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
+			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
+			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
 		}
 
 		$is_checkout_filter = function () use ( $is_checkout ) {
@@ -2015,8 +2017,9 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 		WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
-		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
-		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
+		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
+		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
 		\WC_Subscriptions_Product::set_is_subscription( false );
 		\WC_Subscriptions_Product::set_subscription_product_ids( [] );
 		\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
@@ -2221,13 +2224,15 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		}
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
+		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+
 		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
 		if ( $webhook_enabled ) {
-			set_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
-			set_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
+			WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'live' );
+			WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'test' );
 		} else {
-			delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
-			delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
+			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
+			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
 		}
 
 		if ( $amount_mismatch_detected ) {
@@ -2247,8 +2252,10 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( 'woocommerce_currency', $original_currency );
 		delete_option( 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected' );
 		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
-		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
-		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
+
+		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
+		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
 
 		$this->assertSame( $expected, $actual );
 	}
