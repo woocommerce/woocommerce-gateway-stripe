@@ -48,7 +48,7 @@ if [[ "adaptive-pricing" == "$project" ]]; then
 	cli wp option patch insert woocommerce_stripe_settings test_webhook_data --format=json '{"id":"we_e2e_placeholder","secret":"whsec_e2e_placeholder"}'
 	# Mark test webhooks as enabled to allow Adaptive Pricing to be enabled.
 	# Note that we use wp shell so we run after plugins are loaded.
-	cli wp shell <<< "WC_Stripe_Database_Cache::set_with_mode( 'webhook_status', 'enabled', 7200, 'test' ); echo WC_Stripe_Database_Cache::get_with_mode( 'webhook_status', 'test' ); exit";
+	cli wp shell <<< "WC_Stripe_Database_Cache::set_with_mode( 'webhook_status', 'enabled', 7200, 'test' ); exit";
 	# Cookie-gated mu-plugin that simulates the shopper's country for
 	# conversion tests (Stripe's "+location_XX" customer_email test hook).
 	cli sh -c "mkdir -p /var/www/html/wp-content/mu-plugins && cp /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/mu-plugins/wc-stripe-e2e-location-simulation.php /var/www/html/wp-content/mu-plugins/"
