@@ -12,6 +12,10 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 	getBillingDetailsForDeferredFlow: jest.fn().mockReturnValue( null ),
 	getDefaultValues: jest.fn().mockReturnValue( {} ),
 	getExcludedPaymentMethodTypes: jest.fn().mockReturnValue( [] ),
+	getExcludedPaymentMethodTypesForBillingCountry: jest
+		.fn()
+		.mockReturnValue( [] ),
+	getCurrentBillingCountry: jest.fn().mockReturnValue( '' ),
 	getPaymentMethodTypes: jest.fn().mockReturnValue( [ 'card' ] ),
 	getUserDataForCheckoutSession: jest.fn().mockReturnValue( {} ),
 	normalizeReturnUrl: jest.requireActual(
@@ -167,6 +171,7 @@ const createMockElements = () => {
 	};
 	return {
 		create: jest.fn( () => createMockPaymentElement() ),
+		update: jest.fn(),
 		submit: jest.fn( () => Promise.resolve( {} ) ),
 		loadActions: jest.fn( () =>
 			Promise.resolve( { type: 'success', actions: checkoutActions } )
@@ -2079,5 +2084,113 @@ describe( 'ensureUPEElementMounted', () => {
 				'https://shop.com/checkout/order-received/123/'
 			);
 		} );
+	} );
+} );
+
+describe( 'maybeUpdateOptimizedCheckoutExclusions', () => {
+	beforeEach( () => {
+		jest.clearAllMocks();
+		stripeUtils.getStripeServerData.mockReturnValue( {
+			...BASE_SERVER_DATA,
+			shouldShowOptimizedCheckout: true,
+		} );
+		stripeUtils.getCurrentBillingCountry.mockReturnValue( 'US' );
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[]
+		);
+		paymentProcessing.initializeUPEComponents();
+	} );
+
+	const mountOCElement = async () => {
+		const api = createMockApi( createMockElements() );
+		const dom = document.createElement( 'div' );
+		dom.dataset.paymentMethodType = 'card';
+		await paymentProcessing.mountStripePaymentElement( api, dom );
+		return api._standardElements;
+	};
+
+	it( 'updates the element with the exclusions recomputed for the current country', async () => {
+		const elements = await mountOCElement();
+		stripeUtils.getCurrentBillingCountry.mockReturnValue( 'NL' );
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[ 'affirm' ]
+		);
+
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		expect(
+			stripeUtils.getExcludedPaymentMethodTypesForBillingCountry
+		).toHaveBeenCalledWith( 'NL' );
+		expect( elements.update ).toHaveBeenCalledWith( {
+			excludedPaymentMethodTypes: [ 'affirm' ],
+		} );
+	} );
+
+	it( 'skips the Stripe update when the exclusions are unchanged', async () => {
+		const elements = await mountOCElement();
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[ 'affirm' ]
+		);
+
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		expect( elements.update ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'does not re-send the exclusions already applied at element creation', async () => {
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[ 'affirm' ]
+		);
+		const elements = await mountOCElement();
+
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		expect( elements.update ).not.toHaveBeenCalled();
+	} );
+
+	it( 'pushes new exclusions when the billing country changes', async () => {
+		const elements = await mountOCElement();
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[ 'ideal' ]
+		);
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		// A hidden method must re-surface when the new country allows it.
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[]
+		);
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		expect( elements.update ).toHaveBeenCalledTimes( 2 );
+		expect( elements.update ).toHaveBeenLastCalledWith( {
+			excludedPaymentMethodTypes: [],
+		} );
+	} );
+
+	it( 'is a no-op when Optimized Checkout is disabled', () => {
+		stripeUtils.getStripeServerData.mockReturnValue( {
+			...BASE_SERVER_DATA,
+			shouldShowOptimizedCheckout: false,
+		} );
+
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		expect(
+			stripeUtils.getExcludedPaymentMethodTypesForBillingCountry
+		).not.toHaveBeenCalled();
+	} );
+
+	it( 'is a no-op when the elements instance has no update()', async () => {
+		const elements = await mountOCElement();
+		delete elements.update;
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockClear();
+
+		expect( () =>
+			paymentProcessing.maybeUpdateOptimizedCheckoutExclusions()
+		).not.toThrow();
+		expect(
+			stripeUtils.getExcludedPaymentMethodTypesForBillingCountry
+		).not.toHaveBeenCalled();
 	} );
 } );

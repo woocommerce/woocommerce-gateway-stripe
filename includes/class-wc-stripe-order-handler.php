@@ -510,8 +510,17 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Bail if the order doesn't have an intent yet.
-		if ( ! $this->get_intent_from_order( $order ) ) {
+		$intent = $this->get_intent_from_order( $order );
+		if ( ! $intent ) {
 			return $cancel_order;
+		}
+
+		// A SetupIntent still awaiting verification outlives the one-day window below: bank
+		// microdeposits take days to confirm. Cancelling here would strand the shopper with a
+		// verified payment method at Stripe and a cancelled order, because the later
+		// setup_intent.succeeded webhook skips orders that are no longer payable.
+		if ( self::is_setup_intent_awaiting_verification( $intent ) ) {
+			return false;
 		}
 
 		// If the order is awaiting action and was modified within the last day, don't cancel it.
@@ -520,6 +529,30 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $cancel_order;
+	}
+
+	/**
+	 * Whether the intent is a SetupIntent that Stripe has not settled yet.
+	 *
+	 * Only intents that can still succeed count; a failed or cancelled one stays cancellable.
+	 *
+	 * @param stdClass|object $intent The intent retrieved for the order.
+	 * @return bool
+	 */
+	private static function is_setup_intent_awaiting_verification( $intent ): bool {
+		if ( 'setup_intent' !== ( $intent->object ?? '' ) ) {
+			return false;
+		}
+
+		return in_array(
+			$intent->status ?? '',
+			[
+				WC_Stripe_Intent_Status::REQUIRES_ACTION,
+				WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION,
+				WC_Stripe_Intent_Status::PROCESSING,
+			],
+			true
+		);
 	}
 
 	/**
