@@ -263,12 +263,16 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 */
 	public static function sanitize_created( $param_value, $request, $param_name ) {
 		if ( ! is_array( $param_value ) ) {
-			$sanitized_value = (int) $param_value;
+			$sanitized_value = self::is_valid_timestamp( $param_value ) ? (int) $param_value : 0;
 		} else {
 			$sanitized_value = [];
 
 			foreach ( $param_value as $operator => $operand ) {
-				$sanitized_value[ sanitize_key( $operator ) ] = (int) $operand;
+				if ( self::is_valid_timestamp( $operand ) ) {
+					$sanitized_value[ sanitize_key( $operator ) ] = (int) $operand;
+				} else {
+					$sanitized_value[ sanitize_key( $operator ) ] = 0;
+				}
 			}
 		}
 
