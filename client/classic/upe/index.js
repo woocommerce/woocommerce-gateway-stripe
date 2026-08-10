@@ -5,28 +5,18 @@
  * "Defer render-blocking JS" optimizers can run our bundle before the WP/WC
  * globals ./init imports exist, throwing at load. Wait for those globals (the
  * list is derived from the build's declared dependencies so it can't drift),
- * then load ./init as an async chunk. This file imports no WP/WC external.
+ * then execute ./init — bundled eagerly, so no extra request is involved.
+ * This file imports no WP/WC external.
  */
 import './style.scss';
 
-// Pin the async-chunk base URL to the plugin build dir; webpack's default "auto"
-// publicPath would resolve ./init against the optimizer's rewritten entry path.
+// Read once for the dependency list below; the readiness gate re-checks the
+// live global instead, since an optimizer can reorder the inline settings
+// script to run after this bundle.
 // eslint-disable-next-line camelcase
 const bootstrapParams =
 	// eslint-disable-next-line camelcase
 	typeof wc_stripe_upe_params !== 'undefined' ? wc_stripe_upe_params : null;
-
-// Guard the webpack-only magic identifier so this is a no-op outside a bundle.
-// eslint-disable-next-line no-undef, camelcase
-const hasWebpackPublicPath = typeof __webpack_public_path__ !== 'undefined';
-if (
-	hasWebpackPublicPath &&
-	bootstrapParams &&
-	bootstrapParams.pluginBuildUrl
-) {
-	// eslint-disable-next-line no-undef, camelcase
-	__webpack_public_path__ = bootstrapParams.pluginBuildUrl;
-}
 
 // Give up after this long and load anyway, so a real missing dependency fails
 // as it would without this gate.
@@ -98,18 +88,20 @@ const globalPathReady = ( path ) => {
 	return true;
 };
 
-const dependenciesReady = () => requiredGlobalPaths.every( globalPathReady );
+// ./init reads the params global at eval, so gate on it appearing too — not
+// just the WP/WC globals — in case an optimizer runs this bundle first.
+const dependenciesReady = () =>
+	// eslint-disable-next-line camelcase
+	typeof wc_stripe_upe_params !== 'undefined' &&
+	requiredGlobalPaths.every( globalPathReady );
 
-// Retry once on a transient chunk-load failure; log a hard failure rather than
-// leave an unhandled rejection.
-const loadInit = ( retriesLeft = 1 ) =>
+// ./init is bundled eagerly, so a rejection here is an initialization failure,
+// not a network miss: log it rather than leave an unhandled rejection.
+const loadInit = () =>
 	import( /* webpackMode: "eager" */ './init' ).catch( ( error ) => {
-		if ( retriesLeft > 0 ) {
-			return loadInit( retriesLeft - 1 );
-		}
 		// eslint-disable-next-line no-console
 		console.error(
-			'WooCommerce Stripe: failed to load the classic checkout init chunk.',
+			'WooCommerce Stripe: failed to load the classic checkout init module.',
 			error
 		);
 	} );

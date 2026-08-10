@@ -553,15 +553,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$is_change_payment_method = $this->is_changing_payment_method_for_subscription();
 		$stripe_params            = [
-			'gatewayId'      => self::ID,
-			'title'          => $this->title,
-			'isUPEEnabled'   => true,
-			'key'            => $this->publishable_key,
-			'locale'         => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-			'apiVersion'     => WC_Stripe_API::STRIPE_API_VERSION,
-			// Base URL the bootstrap pins webpack's publicPath to, so the async init
-			// chunk loads from the plugin even when an optimizer rewrites the path.
-			'pluginBuildUrl' => trailingslashit( WC_STRIPE_PLUGIN_URL ) . 'build/',
+			'gatewayId'    => self::ID,
+			'title'        => $this->title,
+			'isUPEEnabled' => true,
+			'key'          => $this->publishable_key,
+			'locale'       => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+			'apiVersion'   => WC_Stripe_API::STRIPE_API_VERSION,
 		];
 
 		$enabled_billing_fields = [];

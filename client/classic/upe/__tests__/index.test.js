@@ -18,6 +18,7 @@ jest.mock(
 const setDependenciesReady = () => {
 	window.wp = { data: {}, i18n: {} };
 	window.wc = { wcSettings: {} };
+	global.wc_stripe_upe_params = {};
 };
 
 const clearDependencies = () => {
@@ -75,12 +76,33 @@ describe( 'classic UPE bootstrap', () => {
 			await flushPromises();
 
 			// Only wp present — wc.wcSettings still missing: stay gated.
+			global.wc_stripe_upe_params = {};
 			window.wp = { data: {}, i18n: {} };
 			jest.advanceTimersByTime( 50 );
 			await flushPromises();
 			expect( global.__upeInitLoadCount ).toBe( 0 );
 
 			window.wc = { wcSettings: {} };
+			jest.advanceTimersByTime( 50 );
+			await flushPromises();
+			expect( global.__upeInitLoadCount ).toBe( 1 );
+		} );
+	} );
+
+	it( 'waits for the params global, which init reads at eval', async () => {
+		await jest.isolateModulesAsync( async () => {
+			require( '../index' );
+			await flushPromises();
+
+			// WP/WC globals ready but the inline settings script hasn't run yet
+			// (an optimizer reordered it): stay gated.
+			window.wp = { data: {}, i18n: {} };
+			window.wc = { wcSettings: {} };
+			jest.advanceTimersByTime( 50 );
+			await flushPromises();
+			expect( global.__upeInitLoadCount ).toBe( 0 );
+
+			global.wc_stripe_upe_params = {};
 			jest.advanceTimersByTime( 50 );
 			await flushPromises();
 			expect( global.__upeInitLoadCount ).toBe( 1 );
