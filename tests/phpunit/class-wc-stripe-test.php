@@ -472,14 +472,14 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			->onlyMethods( [ 'get_main_stripe_gateway' ] )
 			->getMock();
 
-		$mock_main_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+		// add_gateways() keys OCS filtering off the instantiated gateway class, mirroring the
+		// selection done in get_main_stripe_gateway(): the OCS gateway when OC is enabled.
+		$main_gateway_class = $oc_enabled ? WC_Stripe_OCS_Payment_Gateway::class : WC_Stripe_UPE_Payment_Gateway::class;
+		$mock_main_gateway  = $this->getMockBuilder( $main_gateway_class )
 			->disableOriginalConstructor()
 			->getMock();
 
 		$mock_main_gateway->payment_methods = $payment_methods;
-		$mock_main_gateway->method( 'get_option' )
-			->with( 'optimized_checkout_element', 'no' )
-			->willReturn( $oc_enabled ? 'yes' : 'no' );
 
 		$wc_stripe->method( 'get_main_stripe_gateway' )
 			->willReturn( $mock_main_gateway );
@@ -741,6 +741,67 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		} finally {
 			$stripe->account = $original_account;
 		}
+	}
+
+	/**
+	 * Tests that get_main_stripe_gateway() returns the OCS gateway when OCS is enabled
+	 * and the base UPE gateway otherwise.
+	 *
+	 * @dataProvider provide_test_get_main_stripe_gateway
+	 */
+	public function test_get_main_stripe_gateway_returns_expected_class( array $settings, string $expected_class ): void {
+		$original_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe            = WC_Stripe::get_instance();
+
+		$reflection = new ReflectionClass( WC_Stripe::class );
+		$property   = $reflection->getProperty( 'stripe_gateway' );
+		$property->setAccessible( true );
+		$previous_gateway = $property->getValue( $stripe );
+
+		try {
+			WC_Stripe_Helper::update_main_stripe_settings( $settings );
+			$property->setValue( $stripe, null );
+
+			$gateway = $stripe->get_main_stripe_gateway();
+
+			$this->assertInstanceOf( $expected_class, $gateway );
+		} finally {
+			$property->setValue( $stripe, $previous_gateway );
+			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+		}
+	}
+
+	/**
+	 * Data provider for {@see self::test_get_main_stripe_gateway_returns_expected_class()}.
+	 */
+	public function provide_test_get_main_stripe_gateway(): array {
+		return [
+			'OCS disabled by setting' => [
+				'settings'       => [
+					'pmc_enabled'                => 'yes',
+					'optimized_checkout_element' => 'no',
+				],
+				'expected_class' => WC_Stripe_UPE_Payment_Gateway::class,
+			],
+			'OCS setting missing'     => [
+				'settings'       => [ 'pmc_enabled' => 'yes' ],
+				'expected_class' => WC_Stripe_UPE_Payment_Gateway::class,
+			],
+			'OCS gated by pmc flag'   => [
+				'settings'       => [
+					'pmc_enabled'                => 'no',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expected_class' => WC_Stripe_UPE_Payment_Gateway::class,
+			],
+			'OCS enabled'             => [
+				'settings'       => [
+					'pmc_enabled'                => 'yes',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expected_class' => WC_Stripe_OCS_Payment_Gateway::class,
+			],
+		];
 	}
 
 	/**
