@@ -3868,14 +3868,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Test that a successful payment intent is reused instead of creating a new one.
-	 * This prevents duplicate charges when the shopper retries a payment after
-	 * a successful charge but failed order completion.
-	 *
-	 * @return void
-	 * @throws Exception If test fails.
-	 */
-	/**
 	 * A Dynamic Payment Methods intent must never be reused on retry: `automatic_payment_methods`
 	 * is create-time only, and Stripe fills the intent's `payment_method_types` from the merchant's
 	 * configuration — so the compatibility check matches and the retry would send
@@ -3922,6 +3914,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$method->invoke( $this->mock_gateway, $order, $payment_information );
 	}
 
+	/**
+	 * Test that a successful payment intent is reused instead of creating a new one.
+	 * This prevents duplicate charges when the shopper retries a payment after
+	 * a successful charge but failed order completion.
+	 *
+	 * @return void
+	 * @throws Exception If test fails.
+	 */
 	public function test_process_payment_reuses_successful_payment_intent() {
 		$customer_id = 'cus_mock';
 		$order       = WC_Helper_Order::create_order();
