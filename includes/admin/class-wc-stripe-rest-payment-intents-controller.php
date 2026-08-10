@@ -314,7 +314,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	/**
 	 * Validate a timestamp value.
 	 *
-	 * Validates that the value is either a int greater than 0 or a non-empty string containing digits only.
+	 * Validates that the value represents a non-negative integer, either as an int or as a non-empty string containing digits only.
 	 *
 	 * @param mixed $value The value.
 	 *
