@@ -1,3 +1,4 @@
+import { extensionCartUpdate } from '@woocommerce/blocks-checkout';
 import { useState } from 'react';
 import { render } from '@testing-library/react';
 import { CheckoutElementsProvider } from '@stripe/react-stripe-js/checkout';
@@ -14,6 +15,14 @@ jest.mock(
 	'@woocommerce/blocks-checkout',
 	() => ( {
 		StoreNotice: jest.fn( ( { children } ) => <div>{ children }</div> ),
+		extensionCartUpdate: jest.fn().mockResolvedValue( {
+			extensions: {
+				'wc-stripe/checkout-session': {
+					client_secret: 'test_secret',
+					status: 'success',
+				},
+			},
+		} ),
 	} ),
 	{ virtual: true }
 );
@@ -47,14 +56,25 @@ describe( 'CheckoutSessionsContainer', () => {
 		} ),
 	};
 	const setShouldLoadStripeElements = jest.fn();
+	let consoleErrorSpy;
 
 	beforeEach( () => {
+		consoleErrorSpy = jest
+			.spyOn( console, 'error' )
+			.mockImplementation( () => {} );
 		initializeUPEAppearance.mockReturnValue( {} );
 		getFontRulesFromPage.mockReturnValue( [] );
 		useState.mockReturnValue( [ null, jest.fn() ] );
+		extensionCartUpdate.mockClear();
+		CheckoutElementsProvider.mockClear();
+		setShouldLoadStripeElements.mockClear();
 	} );
 
-	it( 'should render the container', () => {
+	afterEach( () => {
+		consoleErrorSpy.mockRestore();
+	} );
+
+	it( 'initializes from the Checkout Session embedded in the Store API response', async () => {
 		render(
 			<CheckoutContainer
 				api={ api }
@@ -76,5 +96,37 @@ describe( 'CheckoutSessionsContainer', () => {
 			} ),
 			{}
 		);
+		expect( extensionCartUpdate ).toHaveBeenCalledWith( {
+			namespace: 'wc-stripe/checkout-session',
+			data: { action: 'sync' },
+		} );
+		expect( api.checkoutSessionsCreateSession ).not.toHaveBeenCalled();
+		await expect(
+			CheckoutElementsProvider.mock.calls[ 0 ][ 0 ].options.clientSecret
+		).resolves.toBe( 'test_secret' );
+	} );
+
+	it( 'falls back when the Store API reports a synchronization error', async () => {
+		extensionCartUpdate.mockResolvedValueOnce( {
+			extensions: {
+				'wc-stripe/checkout-session': {
+					client_secret: 'stale_secret',
+					status: 'error',
+				},
+			},
+		} );
+
+		render(
+			<CheckoutContainer
+				api={ api }
+				setShouldLoadStripeElements={ setShouldLoadStripeElements }
+			/>
+		);
+
+		await expect(
+			CheckoutElementsProvider.mock.calls[ 0 ][ 0 ].options.clientSecret
+		).resolves.toBeNull();
+		expect( setShouldLoadStripeElements ).toHaveBeenCalledWith( true );
+		expect( consoleErrorSpy ).toHaveBeenCalled();
 	} );
 } );

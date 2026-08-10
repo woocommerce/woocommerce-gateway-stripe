@@ -1,3 +1,4 @@
+import { extensionCartUpdate } from '@woocommerce/blocks-checkout';
 import { CheckoutElementsProvider } from '@stripe/react-stripe-js/checkout';
 import React, { useMemo } from 'react';
 import CheckoutForm from 'wcstripe/blocks/checkout-sessions/checkout-form';
@@ -15,15 +16,20 @@ const stripePromise = loadStripe();
  * @return {JSX.Element} The Checkout Sessions Container component.
  */
 export const CheckoutContainer = ( props ) => {
-	const {
-		api,
-		setPaymentProcessorLoadErrorMessage,
-		setShouldLoadStripeElements,
-	} = props;
+	const { setPaymentProcessorLoadErrorMessage, setShouldLoadStripeElements } =
+		props;
 
 	const checkoutSessionPromise = useMemo( async () => {
-		const response = await api.checkoutSessionsCreateSession();
-		const clientSecret = response?.data?.client_secret;
+		const response = await extensionCartUpdate( {
+			namespace: 'wc-stripe/checkout-session',
+			data: { action: 'sync' },
+		} );
+		const sessionData =
+			response?.extensions?.[ 'wc-stripe/checkout-session' ];
+		const clientSecret =
+			sessionData?.status === 'success'
+				? sessionData?.client_secret
+				: null;
 		if ( ! clientSecret ) {
 			setShouldLoadStripeElements( true );
 			// eslint-disable-next-line no-console
@@ -32,7 +38,7 @@ export const CheckoutContainer = ( props ) => {
 			);
 		}
 		return clientSecret;
-	}, [ api, setShouldLoadStripeElements ] );
+	}, [ setShouldLoadStripeElements ] );
 
 	// Render an editor-safe appearance in the block editor preview, where the
 	// checkout DOM does not reflect the live storefront. See STRIPE-1061.

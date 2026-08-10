@@ -1,7 +1,7 @@
 import jQuery from 'jquery';
 import { useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { dispatch, select, useSelect } from '@wordpress/data';
+import { dispatch, select } from '@wordpress/data';
 import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
 import { normalizeReturnUrl } from 'wcstripe/stripe-utils/normalize-return-url';
 import { getStaleCheckoutTotalMessage } from 'wcstripe/stripe-utils/utils';
@@ -315,64 +315,52 @@ export const usePaymentFailHandler = ( onCheckoutFail, emitResponse ) => {
 };
 
 /**
- * Keeps the Stripe Checkout Session in sync with WooCommerce cart totals (price, tax, shipping) on block checkout.
- * Uses Custom Checkout `runServerUpdate` when available (same pattern as classic checkout).
+ * Notifies Stripe.js after a native Store API cart response embeds a newer Checkout Session revision.
+ * The Store API extension synchronizes Stripe while WooCommerce serializes its fully calculated cart.
  *
- * @param {Object|null} api               WCStripeAPI instance (with checkoutSessionsUpdateSession).
  * @param {string|null} checkoutSessionId Stripe Checkout Session id once the session is ready.
  * @param {Object}      checkoutState     Result of useCheckout() from @stripe/react-stripe-js/checkout.
  * @param {Object}      [syncFailedRef]   Optional ref flagged true when a resync fails (stale session) and false once it succeeds.
+ * @param {Object}      [sessionData]     Session data embedded in cartData.extensions.
  */
 export const useCheckoutSessionTotalsSync = (
-	api,
 	checkoutSessionId,
 	checkoutState,
-	syncFailedRef = null
+	syncFailedRef = null,
+	sessionData = {}
 ) => {
-	const cartTotals = useSelect( ( selectCart ) => {
-		const cartStoreKey = window.wc?.wcBlocksData?.cartStore;
-		if ( ! cartStoreKey ) {
-			return '';
-		}
-
-		const cartStore = selectCart( cartStoreKey );
-		if ( typeof cartStore?.getCartTotals !== 'function' ) {
-			return '';
-		}
-		const totals = cartStore.getCartTotals();
-
-		return totals?.total_price;
-	}, [] );
-
 	const checkoutStateRef = useRef( checkoutState );
 	checkoutStateRef.current = checkoutState;
 
 	const prevSessionIdRef = useRef( null );
-	const prevCartTotalsRef = useRef( null );
+	const prevSessionStateRef = useRef( null );
+	const sessionState = `${ sessionData?.revision ?? 0 }:${
+		sessionData?.status ?? 'uninitialized'
+	}`;
 
-	// Update the previous session ID and totals signature when the checkout session ID changes.
+	// A replacement session has its own revision sequence, so do not compare it with the previous one.
 	useEffect( () => {
 		if ( prevSessionIdRef.current !== checkoutSessionId ) {
 			prevSessionIdRef.current = checkoutSessionId;
-			prevCartTotalsRef.current = null;
+			prevSessionStateRef.current = null;
 		}
 	}, [ checkoutSessionId ] );
 
 	useEffect( () => {
-		if ( ! checkoutSessionId || cartTotals === '' ) {
+		if ( ! checkoutSessionId ) {
 			return;
 		}
 
-		if ( prevCartTotalsRef.current === null ) {
-			prevCartTotalsRef.current = cartTotals;
+		if ( prevSessionStateRef.current === null ) {
+			prevSessionStateRef.current = sessionState;
 			return;
 		}
 
-		if ( prevCartTotalsRef.current === cartTotals ) {
+		if ( prevSessionStateRef.current === sessionState ) {
 			return;
 		}
 
-		prevCartTotalsRef.current = cartTotals;
+		prevSessionStateRef.current = sessionState;
 
 		const state = checkoutStateRef.current;
 		if ( state?.type !== 'success' ) {
@@ -412,24 +400,23 @@ export const useCheckoutSessionTotalsSync = (
 
 		const run = async () => {
 			try {
+				if ( sessionData?.status === 'error' ) {
+					markSyncFailed();
+					return;
+				}
+
 				blockUI(
 					jQuery(
 						'.wc-block-checkout__payment-method, .wc-block-components-checkout-place-order-button'
 					)
 				);
 				const { checkout } = state;
-				if (
-					typeof api?.checkoutSessionsUpdateSession !== 'function' ||
-					typeof checkout?.runServerUpdate !== 'function'
-				) {
+				if ( typeof checkout?.runServerUpdate !== 'function' ) {
+					markSyncFailed();
 					return;
 				}
 
-				const result = await checkout.runServerUpdate( async () => {
-					await api.checkoutSessionsUpdateSession(
-						checkoutSessionId
-					);
-				} );
+				const result = await checkout.runServerUpdate( async () => {} );
 				if ( ! cancelled && result && result.type === 'error' ) {
 					markSyncFailed();
 					// eslint-disable-next-line no-console
@@ -462,7 +449,12 @@ export const useCheckoutSessionTotalsSync = (
 		return () => {
 			cancelled = true;
 		};
-	}, [ api, cartTotals, checkoutSessionId, syncFailedRef ] );
+	}, [
+		checkoutSessionId,
+		sessionData?.status,
+		sessionState,
+		syncFailedRef,
+	] );
 };
 
 /**

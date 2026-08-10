@@ -6,7 +6,7 @@ import {
 	useCheckoutSessionTotalsSync,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
 import { useEffect } from '@wordpress/element';
-import { dispatch, select, useSelect } from '@wordpress/data';
+import { dispatch, select } from '@wordpress/data';
 import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
 
 jest.mock( '@wordpress/element', () => ( {
@@ -19,7 +19,6 @@ jest.mock( '@wordpress/data', () => {
 	const removeNotice = jest.fn();
 	return {
 		select: jest.fn(),
-		useSelect: jest.fn( () => '' ),
 		dispatch: jest.fn( () => ( { createErrorNotice, removeNotice } ) ),
 	};
 } );
@@ -661,36 +660,11 @@ describe( 'CheckoutSessions hook tests', () => {
 	} );
 
 	describe( 'useCheckoutSessionTotalsSync hook', () => {
-		let cartPrice;
-
-		beforeEach( () => {
-			cartPrice = '1000';
-			window.wc = {
-				wcBlocksData: { cartStore: 'wc/store/cart' },
-			};
-			useSelect.mockImplementation( ( mapSelect ) => {
-				const mockSelect = ( storeKey ) =>
-					storeKey === window.wc.wcBlocksData.cartStore
-						? {
-								getCartTotals: () => ( {
-									total_price: cartPrice,
-								} ),
-						  }
-						: {};
-				return mapSelect( mockSelect );
-			} );
-		} );
-
 		afterEach( () => {
 			useEffect.mockImplementation( ( fn ) => fn() );
 		} );
 
-		it( 'does not call update on the first totals snapshot', () => {
-			const api = {
-				checkoutSessionsUpdateSession: jest.fn( () =>
-					Promise.resolve( {} )
-				),
-			};
+		it( 'does not notify Stripe.js for the first embedded revision', () => {
 			const checkoutState = {
 				type: 'success',
 				checkout: {
@@ -703,18 +677,19 @@ describe( 'CheckoutSessions hook tests', () => {
 			};
 
 			renderHook( () =>
-				useCheckoutSessionTotalsSync( api, 'cs_test', checkoutState )
+				useCheckoutSessionTotalsSync( 'cs_test', checkoutState, null, {
+					revision: 1,
+					status: 'success',
+				} )
 			);
 
-			expect( api.checkoutSessionsUpdateSession ).not.toHaveBeenCalled();
+			expect(
+				checkoutState.checkout.runServerUpdate
+			).not.toHaveBeenCalled();
 		} );
 
-		it( 'calls checkoutSessionsUpdateSession when cart totals change', async () => {
-			const api = {
-				checkoutSessionsUpdateSession: jest.fn( () =>
-					Promise.resolve( {} )
-				),
-			};
+		it( 'notifies Stripe.js when the Store API embeds a newer revision', async () => {
+			let sessionData = { revision: 1, status: 'success' };
 			const checkoutState = {
 				type: 'success',
 				checkout: {
@@ -727,50 +702,47 @@ describe( 'CheckoutSessions hook tests', () => {
 			};
 
 			const { rerender } = renderHook( () =>
-				useCheckoutSessionTotalsSync( api, 'cs_test', checkoutState )
+				useCheckoutSessionTotalsSync(
+					'cs_test',
+					checkoutState,
+					null,
+					sessionData
+				)
 			);
 
-			cartPrice = '2000';
+			sessionData = { revision: 2, status: 'success' };
 			rerender();
 
 			await waitFor( () => {
 				expect(
-					api.checkoutSessionsUpdateSession
-				).toHaveBeenCalledWith( 'cs_test' );
+					checkoutState.checkout.runServerUpdate
+				).toHaveBeenCalled();
 			} );
-			expect( checkoutState.checkout.runServerUpdate ).toHaveBeenCalled();
 		} );
 
-		it( 'flags the ref and shows a notice when the resync fails', async () => {
+		it( 'flags the ref when the embedded Store API sync failed', async () => {
 			const createErrorNotice = dispatch().createErrorNotice;
 			createErrorNotice.mockClear();
 			const syncFailedRef = { current: false };
-			const api = {
-				checkoutSessionsUpdateSession: jest.fn( () =>
-					Promise.resolve( {} )
-				),
-			};
+			let sessionData = { revision: 1, status: 'success' };
 			const checkoutState = {
 				type: 'success',
 				checkout: {
 					id: 'cs_test',
-					runServerUpdate: jest.fn( async ( fn ) => {
-						await fn();
-						return { type: 'error', error: { message: 'boom' } };
-					} ),
+					runServerUpdate: jest.fn(),
 				},
 			};
 
 			const { rerender } = renderHook( () =>
 				useCheckoutSessionTotalsSync(
-					api,
 					'cs_test',
 					checkoutState,
-					syncFailedRef
+					syncFailedRef,
+					sessionData
 				)
 			);
 
-			cartPrice = '2000';
+			sessionData = { revision: 1, status: 'error' };
 			rerender();
 
 			await waitFor( () => {
@@ -783,15 +755,14 @@ describe( 'CheckoutSessions hook tests', () => {
 					context: 'wc/checkout/payments',
 				}
 			);
+			expect(
+				checkoutState.checkout.runServerUpdate
+			).not.toHaveBeenCalled();
 		} );
 
-		it( 'clears the stale flag after a successful resync', async () => {
+		it( 'clears the stale flag after Stripe.js accepts a newer revision', async () => {
 			const syncFailedRef = { current: true };
-			const api = {
-				checkoutSessionsUpdateSession: jest.fn( () =>
-					Promise.resolve( {} )
-				),
-			};
+			let sessionData = { revision: 1, status: 'error' };
 			const checkoutState = {
 				type: 'success',
 				checkout: {
@@ -805,14 +776,14 @@ describe( 'CheckoutSessions hook tests', () => {
 
 			const { rerender } = renderHook( () =>
 				useCheckoutSessionTotalsSync(
-					api,
 					'cs_test',
 					checkoutState,
-					syncFailedRef
+					syncFailedRef,
+					sessionData
 				)
 			);
 
-			cartPrice = '2000';
+			sessionData = { revision: 2, status: 'success' };
 			rerender();
 
 			await waitFor( () => {

@@ -253,6 +253,9 @@ class WC_Stripe {
 
 			$checkout_sessions_ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
 			$checkout_sessions_ajax_handler->init_hooks();
+
+			$checkout_session_lifecycle = new WC_Stripe_Checkout_Session_Lifecycle();
+			$checkout_session_lifecycle->init_classic_hooks();
 			WC_Stripe_Checkout_Session_Context::init_hooks();
 		}
 
