@@ -15,7 +15,8 @@ import {
 	resetBlockCheckoutPaymentState,
 	getAdditionalSetupIntentData,
 	validateBlikCode,
-	getExcludedPaymentMethodTypes,
+	getExcludedPaymentMethodTypesForBillingCountry,
+	getCurrentBillingCountry,
 	getUserDataForCheckoutSession,
 	getBillingDetailsForDeferredFlow,
 	normalizeReturnUrl,
@@ -61,6 +62,18 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
  */
 const gatewayUPEComponents = {};
 let hasCheckoutCompleted = false;
+
+/**
+ * OC exclusions last applied to each Elements instance (as a sorted key), so
+ * redundant `elements.update()` calls can be skipped. Keyed by instance: a
+ * re-mounted element starts fresh and stale state can't leak across mounts.
+ *
+ * @type {WeakMap<Object, string>}
+ */
+const appliedOptimizedCheckoutExclusions = new WeakMap();
+
+const getExclusionsKey = ( excludedPaymentMethodTypes ) =>
+	[ ...excludedPaymentMethodTypes ].sort().join( ',' );
 
 /**
  * Tracks an in-flight Payment Element (re)mount.
@@ -380,8 +393,11 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				...options,
 				paymentMethodConfiguration:
 					stripeServerData?.paymentMethodConfigurationId,
-				// Exclude unsupported payment methods - calculated dynamically on server side
-				excludedPaymentMethodTypes: getExcludedPaymentMethodTypes(),
+				// Server exclusions plus country-restricted methods; refreshed on country change.
+				excludedPaymentMethodTypes:
+					getExcludedPaymentMethodTypesForBillingCountry(
+						getCurrentBillingCountry()
+					),
 			};
 
 			const setupFutureUsage =
@@ -458,6 +474,15 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	if ( shouldLoadStripeElements ) {
 		gatewayUPEComponents[ paymentMethodType ].checkoutSessionId = null;
 		elements = stripe.elements( options );
+
+		// Creation already applied these exclusions; seed the memo so the first
+		// `updated_checkout` doesn't re-send an identical update.
+		if ( options.excludedPaymentMethodTypes ) {
+			appliedOptimizedCheckoutExclusions.set(
+				elements,
+				getExclusionsKey( options.excludedPaymentMethodTypes )
+			);
+		}
 	}
 
 	// After web fonts finish loading, re-compute appearance with correct
@@ -1022,6 +1047,39 @@ export function getMountedUPEComponent( paymentMethodType ) {
 	}
 
 	return null;
+}
+
+/**
+ * Pushes recomputed country exclusions to the live OC Elements instance.
+ * No-op outside OC and on Adaptive Pricing (`initCheckout` has no `update()`).
+ */
+export function maybeUpdateOptimizedCheckoutExclusions() {
+	if ( ! getStripeServerData()?.shouldShowOptimizedCheckout ) {
+		return;
+	}
+
+	const elements = gatewayUPEComponents[ PAYMENT_METHOD_CARD ]?.elements;
+	if ( ! elements || typeof elements.update !== 'function' ) {
+		return;
+	}
+
+	const excludedPaymentMethodTypes =
+		getExcludedPaymentMethodTypesForBillingCountry(
+			getCurrentBillingCountry()
+		);
+
+	// `updated_checkout` fires for many unrelated changes (coupon, shipping,
+	// quantity); skip the Stripe round-trip when the exclusions are unchanged.
+	const exclusionsKey = getExclusionsKey( excludedPaymentMethodTypes );
+	if (
+		appliedOptimizedCheckoutExclusions.get( elements ) === exclusionsKey
+	) {
+		return;
+	}
+
+	elements.update( { excludedPaymentMethodTypes } );
+	// Recorded only after a successful update, so a throw doesn't poison the memo.
+	appliedOptimizedCheckoutExclusions.set( elements, exclusionsKey );
 }
 
 /**
