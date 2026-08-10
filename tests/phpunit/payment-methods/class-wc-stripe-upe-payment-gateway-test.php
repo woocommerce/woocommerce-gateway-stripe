@@ -5557,6 +5557,132 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * In wp-admin (block editor preview) no shopper country exists and the
+	 * preview has no recompute path, so no country exclusions may be seeded.
+	 *
+	 * @return void
+	 */
+	public function test_get_country_excluded_payment_method_types_skips_admin() {
+		set_current_screen( 'edit-post' );
+
+		try {
+			$gateway = new WC_Stripe_UPE_Payment_Gateway();
+			$method  = new ReflectionMethod( $gateway, 'get_country_excluded_payment_method_types' );
+			$method->setAccessible( true );
+
+			$this->assertSame( [], $method->invoke( $gateway ) );
+		} finally {
+			set_current_screen( 'front' );
+		}
+	}
+
+	/**
+	 * Methods must be excluded when their get_available_billing_countries() list —
+	 * including domestic-only and Klarna narrowing — omits the billing country.
+	 *
+	 * @param string      $billing_country Billing country supplied to the gateway.
+	 * @param string[]    $enabled_methods Enabled-at-checkout method IDs.
+	 * @param string[]    $expected        Expected excluded method IDs.
+	 * @param string|null $account_country Stripe account country to mock, if needed.
+	 * @param string|null $store_currency  Store currency to set, if needed.
+	 * @return void
+	 * @dataProvider provide_test_get_country_restricted_excluded_payment_method_types
+	 */
+	public function test_get_country_restricted_excluded_payment_method_types( string $billing_country, array $enabled_methods, array $expected, ?string $account_country = null, ?string $store_currency = null ) {
+		$original_account = WC_Stripe::get_instance()->account;
+
+		if ( null !== $account_country ) {
+			$this->set_stripe_account_data( [ 'country' => $account_country ] );
+		}
+
+		if ( null !== $store_currency ) {
+			update_option( 'woocommerce_currency', $store_currency );
+		}
+
+		try {
+			$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+				->onlyMethods( [ 'get_upe_enabled_at_checkout_payment_method_ids' ] )
+				->getMock();
+			$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( $enabled_methods );
+
+			$method = new ReflectionMethod( $gateway, 'get_country_restricted_excluded_payment_method_types' );
+			$method->setAccessible( true );
+
+			$this->assertSame( $expected, array_values( $method->invoke( $gateway, $billing_country ) ) );
+		} finally {
+			WC_Stripe::get_instance()->account = $original_account;
+		}
+	}
+
+	/**
+	 * The billing country seeding OC exclusions must come from the order on
+	 * pay-for-order and from the session customer elsewhere.
+	 *
+	 * @param bool   $is_pay_for_order Whether the pay-for-order endpoint is active.
+	 * @param string $order_country    Billing country set on the order.
+	 * @param string $customer_country Billing country set on the session customer.
+	 * @param string $expected         Expected resolved billing country.
+	 * @return void
+	 * @dataProvider provide_test_get_billing_country_for_checkout
+	 */
+	public function test_get_billing_country_for_checkout( bool $is_pay_for_order, string $order_country, string $customer_country, string $expected ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_billing_country( $order_country );
+		$order->save();
+
+		$previous_customer_country = WC()->customer->get_billing_country();
+		set_query_var( 'order-pay', $order->get_id() );
+		WC()->customer->set_billing_country( $customer_country );
+
+		try {
+			$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+				->onlyMethods( [ 'is_valid_pay_for_order_endpoint' ] )
+				->getMock();
+			$gateway->method( 'is_valid_pay_for_order_endpoint' )->willReturn( $is_pay_for_order );
+
+			$method = new ReflectionMethod( $gateway, 'get_billing_country_for_checkout' );
+			$method->setAccessible( true );
+
+			$this->assertSame( $expected, $method->invoke( $gateway ) );
+		} finally {
+			set_query_var( 'order-pay', 0 );
+			WC()->customer->set_billing_country( $previous_customer_country );
+		}
+	}
+
+	/**
+	 * Data provider for `test_get_billing_country_for_checkout`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_billing_country_for_checkout(): array {
+		return [
+			'order country wins on pay-for-order'     => [ true, 'NL', 'DE', 'NL' ],
+			'customer country used off pay-for-order' => [ false, 'NL', 'DE', 'DE' ],
+			'empty order country stays empty'         => [ true, '', 'DE', '' ],
+		];
+	}
+
+	/**
+	 * Data provider for `test_get_country_restricted_excluded_payment_method_types`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_country_restricted_excluded_payment_method_types(): array {
+		return [
+			'iDEAL excluded outside NL'          => [ 'US', [ 'card', 'ideal' ], [ 'ideal' ] ],
+			'iDEAL kept in NL'                   => [ 'NL', [ 'card', 'ideal' ], [] ],
+			'iDEAL kept for lowercase input'     => [ 'nl', [ 'card', 'ideal' ], [] ],
+			'unknown country excludes iDEAL'     => [ '', [ 'card', 'ideal' ], [ 'ideal' ] ],
+			'card never excluded'                => [ 'US', [ 'card' ], [] ],
+			'Affirm excluded for CA, US account' => [ 'CA', [ 'card', 'affirm' ], [ 'affirm' ], 'US' ],
+			'Affirm kept for US, US account'     => [ 'US', [ 'card', 'affirm' ], [], 'US' ],
+			'Klarna excluded for SE, FR/EUR'     => [ 'SE', [ 'card', 'klarna' ], [ 'klarna' ], 'FR', 'EUR' ],
+			'Klarna kept for DE, FR/EUR'         => [ 'DE', [ 'card', 'klarna' ], [], 'FR', 'EUR' ],
+		];
+	}
+
+	/**
 	 * Data provider for test_payment_scripts_enqueues_correct_assets.
 	 *
 	 * @return array[]
