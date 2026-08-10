@@ -10,6 +10,38 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe {
 
 	/**
+	 * The option name that stores the main Stripe gateway settings array.
+	 *
+	 * @since 10.9.0
+	 */
+	public const SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
+
+	/**
+	 * Get the Stripe settings option. Always returns an array.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @return array
+	 */
+	public function get_settings(): array {
+		$settings = get_option( self::SETTINGS_OPTION_NAME, [] );
+
+		return is_array( $settings ) ? $settings : [];
+	}
+
+	/**
+	 * Persists the main Stripe settings.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param array $settings The settings to persist.
+	 * @return bool Whether the option was actually written (matches `update_option`).
+	 */
+	public function update_settings( array $settings ): bool {
+		return update_option( self::SETTINGS_OPTION_NAME, $settings );
+	}
+
+	/**
 	 * The *Singleton* instance of this class
 	 *
 	 * @var WC_Stripe
@@ -277,7 +309,7 @@ class WC_Stripe {
 
 		if ( self::$instance === $this ) {
 			add_filter( 'woocommerce_payment_gateways', [ $this, 'add_gateways' ] );
-			add_filter( 'pre_update_option_woocommerce_stripe_settings', [ $this, 'gateway_settings_update' ], 10, 2 );
+			add_filter( 'pre_update_option_' . self::SETTINGS_OPTION_NAME, [ $this, 'gateway_settings_update' ], 10, 2 );
 			add_filter( 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), [ $this, 'plugin_action_links' ] );
 			add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
 			add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
@@ -320,7 +352,7 @@ class WC_Stripe {
 			add_action( 'wc_payment_gateways_initialized', [ $this, 'maybe_toggle_payment_methods' ] );
 
 			// Reconfigure webhooks when Adaptive Pricing is enabled in the settings.
-			add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
+			add_action( 'update_option_' . self::SETTINGS_OPTION_NAME, [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
 
 			add_action( WC_Stripe_Database_Cache::ASYNC_CLEANUP_ACTION, [ WC_Stripe_Database_Cache::class, 'delete_all_stale_entries_async' ], 10, 2 );
 			add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ], 10, 0 );
@@ -428,11 +460,11 @@ class WC_Stripe {
 
 		// If we have previously disabled settings synchronization, remove the flag after the upgrade,
 		// just to make sure we are still ineligible for settings synchronization.
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = $this->get_settings();
 		if ( isset( $stripe_settings['pmc_enabled'] ) && 'no' === $stripe_settings['pmc_enabled'] ) {
 			unset( $stripe_settings['pmc_enabled'] );
 			$stripe_settings['skip_pmc_express_checkout_defaults'] = 'yes';
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+			$this->update_settings( $stripe_settings );
 			WC_Stripe_Logger::error( 'Settings synchronization eligibility will be re-checked after upgrade' );
 		}
 	}
@@ -478,11 +510,11 @@ class WC_Stripe {
 	 * @version 9.6.0
 	 */
 	public function migrate_to_new_checkout_experience() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = $this->get_settings();
 		// If the flag is not set or not set to yes (set to no/disabled), it means the site was using the legacy checkout experience.
 		if ( empty( $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) || 'yes' !== $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
 			$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+			$this->update_settings( $stripe_settings );
 
 			if ( class_exists( 'WC_Tracks' ) ) {
 				WC_Tracks::record_event( 'wcstripe_migrated_to_new_checkout_experience' );
@@ -501,7 +533,7 @@ class WC_Stripe {
 	 * @version 5.5.0
 	 */
 	public function update_prb_location_settings() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = $this->get_settings();
 		$prb_locations   = isset( $stripe_settings['express_checkout_button_locations'] )
 			? $stripe_settings['express_checkout_button_locations']
 			: [];
@@ -510,7 +542,7 @@ class WC_Stripe {
 			if ( array_key_exists( 'payment_request_button_locations', $stripe_settings ) ) {
 				$stripe_settings['express_checkout_button_locations'] = $stripe_settings['payment_request_button_locations'];
 				unset( $stripe_settings['payment_request_button_locations'] );
-				WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+				$this->update_settings( $stripe_settings );
 				return;
 			}
 
@@ -553,7 +585,7 @@ class WC_Stripe {
 			}
 
 			$stripe_settings['express_checkout_button_locations'] = $new_prb_locations;
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+			$this->update_settings( $stripe_settings );
 		}
 	}
 
@@ -596,9 +628,10 @@ class WC_Stripe {
 	 * @version 5.6.0
 	 */
 	public function add_gateways( $methods ) {
-		$main_gateway  = $this->get_main_stripe_gateway();
-		$methods[]     = $main_gateway;
-		$is_oc_enabled = 'yes' === $main_gateway->get_option( 'optimized_checkout_element', 'no' );
+		$main_gateway = $this->get_main_stripe_gateway();
+		$methods[]    = $main_gateway;
+		// Use the type of the gateway instance to determine whether OCS is enabled.
+		$is_oc_enabled = $main_gateway instanceof WC_Stripe_OCS_Payment_Gateway;
 
 		// The $main_gateway represents the card gateway so we don't want to include it in the list of UPE gateways.
 		$upe_payment_methods = $main_gateway->payment_methods;
@@ -927,14 +960,36 @@ class WC_Stripe {
 	/**
 	 * Returns the main Stripe payment gateway class instance.
 	 *
+	 * Returns a {@see WC_Stripe_OCS_Payment_Gateway} when Optimized Checkout is enabled,
+	 * otherwise the classic {@see WC_Stripe_UPE_Payment_Gateway}.
+	 *
 	 * @return WC_Stripe_UPE_Payment_Gateway
 	 */
 	public function get_main_stripe_gateway() {
 		if ( ! $this->stripe_gateway ) {
-			$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway();
+			$this->stripe_gateway = $this->is_optimized_checkout_enabled()
+				? new WC_Stripe_OCS_Payment_Gateway()
+				: new WC_Stripe_UPE_Payment_Gateway();
 		}
 
 		return $this->stripe_gateway;
+	}
+
+	/**
+	 * Whether the Optimized Checkout feature is enabled for this store.
+	 *
+	 * Checks the feature flag and the `optimized_checkout_element` gateway setting without
+	 * requiring a gateway instance to already exist — used by {@see self::get_main_stripe_gateway()}
+	 * to pick which gateway class to instantiate.
+	 *
+	 * @return bool
+	 */
+	protected function is_optimized_checkout_enabled(): bool {
+		if ( ! WC_Stripe_Feature_Flags::is_oc_available() ) {
+			return false;
+		}
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		return isset( $settings['optimized_checkout_element'] ) && 'yes' === $settings['optimized_checkout_element'];
 	}
 
 	/**
