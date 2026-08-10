@@ -1207,18 +1207,6 @@ parameters:
 			path: includes/admin/class-wc-stripe-admin-notices.php
 
 		-
-			message: '#^Parameter \#2 \$haystack of function in_array expects array, array\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Parameter \#2 \$pieces of function implode expects array, array\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
 			message: '#^Call to an undefined method WC_Data_Store\:\:get_notes_with_name\(\)\.$#'
 			identifier: method.notFound
 			count: 3
@@ -3572,12 +3560,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$value of function wc_setcookie expects string, null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-element.php
-
-		-
-			message: '#^Parameter \#3 \$deps of function wp_register_script expects array\<string\>, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-element.php
