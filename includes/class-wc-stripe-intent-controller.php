@@ -1178,10 +1178,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return array The request parameters for creating/updating and confirming a payment intent.
 	 */
 	private function build_base_payment_intent_request_params( $payment_information ) {
-		$selected_payment_type = $payment_information['selected_payment_type'];
-		if ( $this->get_upe_gateway()->is_oc_enabled() && isset( $payment_information['payment_method_details']->type ) ) {
-			$selected_payment_type = $payment_information['payment_method_details']->type;
-		}
+		$selected_payment_type = $this->get_upe_gateway()->get_selected_payment_type_from_info( $payment_information );
 
 		$payment_method_types = $payment_information['payment_method_types'];
 

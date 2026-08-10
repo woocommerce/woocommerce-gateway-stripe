@@ -1,0 +1,9 @@
+name: context-engineering
+version: 1.0.0
+description: Tools and techniques for maximizing GitHub Copilot effectiveness through
+  better context management. Includes guidelines for structuring code, an agent for
+  planning multi-file changes, and prompts for context-aware development.
+author: Awesome Copilot Community
+license: MIT
+repository: https://github.com/github/awesome-copilot
+type: hybrid
