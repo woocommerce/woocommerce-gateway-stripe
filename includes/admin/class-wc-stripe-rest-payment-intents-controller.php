@@ -240,7 +240,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		if ( $request->has_param( 'ending_before' ) ) {
 			return new WP_Error(
 				'invalid_starting_after',
-				'Received both starting_after and ending_before parameters. Please pass in only one.'
+				__( 'Received both starting_after and ending_before parameters. Please pass in only one.', 'woocommerce-gateway-stripe' )
 			);
 		}
 
@@ -261,7 +261,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		if ( $request->has_param( 'starting_after' ) ) {
 			return new WP_Error(
 				'invalid_ending_before',
-				'Received both starting_after and ending_before parameters. Please pass in only one.'
+				__( 'Received both starting_after and ending_before parameters. Please pass in only one.', 'woocommerce-gateway-stripe' )
 			);
 		}
 
@@ -305,7 +305,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 */
 	public static function sanitize_created( $param_value, $request, $param_name ) {
 		if ( ! is_array( $param_value ) ) {
-			$sanitized_value = self::is_valid_timestamp( $param_value ) ? (int) $param_value : 0;
+			$sanitized_value = self::is_valid_timestamp( $param_value ) ? (int) $param_value : '';
 		} else {
 			$sanitized_value = [];
 
@@ -313,7 +313,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 				if ( self::is_valid_timestamp( $operand ) ) {
 					$sanitized_value[ sanitize_key( $operator ) ] = (int) $operand;
 				} else {
-					$sanitized_value[ sanitize_key( $operator ) ] = 0;
+					$sanitized_value[ sanitize_key( $operator ) ] = '';
 				}
 			}
 		}
@@ -322,7 +322,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	}
 
 	/**
-	 * Validate created parameter value.
+	 * Validate created parameter value
 	 *
 	 * Validates that the parameter is either a Unix timestamp containing digits only,
 	 * or an array of Unix timestamps keyed by comparison operators (gt, gte, lt, lte).
