@@ -88,7 +88,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 					'limit'            => [
 						'type'              => 'integer',
 						'required'          => false,
-						'default'           => 25,
+						'default'           => 10,
 						'minimum'           => 1,
 						'maximum'           => 100,
 						'sanitize_callback' => 'absint',

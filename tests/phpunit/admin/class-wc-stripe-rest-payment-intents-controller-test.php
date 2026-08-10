@@ -451,7 +451,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		} else {
 			// We default the `limit` argument when not supplied by the caller.
 			$this->assertEquals(
-				[ 'limit' => 25 ],
+				[ 'limit' => 10 ],
 				array_diff_key( $pre_http_request_params['search_params'], $rest_params )
 			);
 		}
