@@ -234,7 +234,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
 	 * @param string $param_name The parameter name.
 	 *
-	 * @return bool
+	 * @return WP_Error|bool
 	 */
 	public static function validate_starting_after( $param_value, $request, $param_name ) {
 		if ( $request->has_param( 'ending_before' ) ) {
@@ -255,7 +255,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
 	 * @param string $param_name The parameter name.
 	 *
-	 * @return bool
+	 * @return WP_Error|bool
 	 */
 	public static function validate_ending_before( $param_value, $request, $param_name ) {
 		if ( $request->has_param( 'starting_after' ) ) {
