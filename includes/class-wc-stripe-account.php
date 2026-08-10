@@ -74,6 +74,15 @@ class WC_Stripe_Account {
 	];
 
 	/**
+	 * The webhook status cache key.
+	 *
+	 * @internal
+	 *
+	 * @var string
+	 */
+	protected const WEBHOOK_STATUS_CACHE_KEY = 'webhook_status';
+
+	/**
 	 * The Stripe connect instance.
 	 *
 	 * @var WC_Stripe_Connect
@@ -190,8 +199,8 @@ class WC_Stripe_Account {
 	 * Wipes the cached webhook status for both modes.
 	 */
 	private function clear_webhook_status_cache(): void {
-		WC_Stripe_Database_Cache::delete_with_mode( 'webhook_status', 'live' );
-		WC_Stripe_Database_Cache::delete_with_mode( 'webhook_status', 'test' );
+		WC_Stripe_Database_Cache::delete_with_mode( self::WEBHOOK_STATUS_CACHE_KEY, 'live' );
+		WC_Stripe_Database_Cache::delete_with_mode( self::WEBHOOK_STATUS_CACHE_KEY, 'test' );
 	}
 
 	/**
@@ -461,8 +470,7 @@ class WC_Stripe_Account {
 		}
 
 		// Check if we have a cached status.
-		$cache_key     = 'webhook_status';
-		$cached_status = WC_Stripe_Database_Cache::get( $cache_key );
+		$cached_status = WC_Stripe_Database_Cache::get( self::WEBHOOK_STATUS_CACHE_KEY );
 		if ( null !== $cached_status ) {
 			return 'enabled' === $cached_status;
 		}
@@ -477,7 +485,7 @@ class WC_Stripe_Account {
 			$webhook_status = ! empty( $webhook->status ) && 'enabled' === $webhook->status ?
 				'enabled' :
 				'disabled';
-			WC_Stripe_Database_Cache::set( $cache_key, $webhook_status, 2 * HOUR_IN_SECONDS );
+			WC_Stripe_Database_Cache::set( self::WEBHOOK_STATUS_CACHE_KEY, $webhook_status, 2 * HOUR_IN_SECONDS );
 
 			return 'enabled' === $webhook_status;
 		} catch ( Exception $e ) {

@@ -46,6 +46,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 	public function tear_down() {
 		WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+		$this->clear_webhook_status_cache();
 		WC_Stripe_Helper::delete_main_stripe_settings();
 
 		WC_Helper_Stripe_Api::reset();
@@ -485,8 +486,9 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	private function clear_webhook_status_cache() {
-		WC_Stripe_Database_Cache::delete_with_mode( 'webhook_status', 'test' );
-		WC_Stripe_Database_Cache::delete_with_mode( 'webhook_status', 'live' );
+		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
+		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
 	}
 
 	/**
