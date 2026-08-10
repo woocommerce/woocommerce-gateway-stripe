@@ -704,8 +704,8 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'dismiss option'                        => null,
 				'checkout sessions available'           => true,
 				'adaptive pricing'                      => 'no',
-				'account country'                       => 'FR',
-				'store currency'                        => '',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
 				'enabled payment method IDs'            => [
 					WC_Stripe_Payment_Methods::CARD,
 					WC_Stripe_Payment_Methods::EPS,
