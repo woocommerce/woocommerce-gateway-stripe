@@ -113,10 +113,13 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		$stripe_params['isAdaptivePricingEnabled']      = $should_show_optimized_checkout && $this->is_adaptive_pricing_supported();
 
 		if ( $should_show_optimized_checkout ) {
-			$stripe_params['OCLayout']                      = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
-			$stripe_params['paymentMethodConfigurationId']  = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
-			$stripe_params['excludedPaymentMethodTypes']    = $this->get_excluded_payment_method_types();
-			$stripe_params['optimizedCheckoutClassicTitle'] = WC_Stripe_UPE_Payment_Method_OC::get_classic_title();
+			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
+			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+			$stripe_params['excludedPaymentMethodTypes']   = $this->get_excluded_payment_method_types();
+			// The country-derived portion on its own, so the client recompute can
+			// subtract exactly it from the seed and preserve third-party additions.
+			$stripe_params['countryExcludedPaymentMethodTypes'] = $this->get_country_excluded_payment_method_types();
+			$stripe_params['optimizedCheckoutClassicTitle']     = WC_Stripe_UPE_Payment_Method_OC::get_classic_title();
 		}
 
 		return $stripe_params;
@@ -152,8 +155,13 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		// Pricing, methods saved as a different type (Bancontact → SEPA) are not savable: the
 		// Checkout Sessions flow cannot request `setup_future_usage` for them.
 		$show_save_option_by_method = [];
+
+		// OC hides each method's `countries` config from the frontend; expose a map so it
+		// can recompute `excludedPaymentMethodTypes` on billing-country changes.
+		$countries_by_method = [];
 		if ( $this->should_render_optimized_checkout() ) {
 			$is_adaptive_pricing_active = $this->is_adaptive_pricing_supported();
+			$non_excludable_methods     = $this->get_non_excludable_payment_method_types();
 			foreach ( $original_method_ids as $method_id ) {
 				if ( isset( $this->payment_methods[ $method_id ] ) ) {
 					$payment_method                 = $this->payment_methods[ $method_id ];
@@ -162,6 +170,13 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 
 					$show_save_option_by_method[ $method_id ] = ! $is_blocked_by_adaptive_pricing
 						&& $this->should_upe_payment_method_show_save_option( $payment_method );
+
+					// Leave non-excludable methods out of the map so the client
+					// recompute can never re-exclude what the server refuses to.
+					$method_countries = $payment_method->get_available_billing_countries();
+					if ( ! empty( $method_countries ) && ! in_array( $method_id, $non_excludable_methods, true ) ) {
+						$countries_by_method[ $method_id ] = $method_countries;
+					}
 				}
 			}
 		}
@@ -180,8 +195,14 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 				'enabledPaymentMethods'  => $original_method_ids,
 			];
 
-			if ( ! empty( $show_save_option_by_method ) && $payment_method instanceof WC_Stripe_UPE_Payment_Method_OC ) {
-				$settings[ $payment_method_id ]['showSaveOptionByMethod'] = $show_save_option_by_method;
+			if ( $payment_method instanceof WC_Stripe_UPE_Payment_Method_OC ) {
+				if ( ! empty( $show_save_option_by_method ) ) {
+					$settings[ $payment_method_id ]['showSaveOptionByMethod'] = $show_save_option_by_method;
+				}
+
+				if ( ! empty( $countries_by_method ) ) {
+					$settings[ $payment_method_id ]['countriesByMethod'] = $countries_by_method;
+				}
 			}
 		}
 

@@ -123,12 +123,12 @@ class WC_Stripe_Express_Checkout_Element {
 
 		/**
 		 * Determines whether express checkout orders should process or ignore
-		 * custom, classic checkout fields. Disabled by default.
+		 * custom, classic checkout fields. Enabled by default; return false to opt out.
 		 *
 		 * @since 9.7.0
 		 */
-		if ( apply_filters( 'wc_stripe_express_checkout_enable_classic_checkout_custom_fields', false ) ) {
-			$custom_checkout_fields_support = new WC_Stripe_Express_Checkout_Custom_Fields();
+		if ( apply_filters( 'wc_stripe_express_checkout_enable_classic_checkout_custom_fields', true ) ) {
+			$custom_checkout_fields_support = new WC_Stripe_Express_Checkout_Custom_Fields( $this->express_checkout_helper );
 			$custom_checkout_fields_support->init();
 		}
 	}
@@ -216,6 +216,9 @@ class WC_Stripe_Express_Checkout_Element {
 			'ajax_url'                   => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'                     => [
 				'publishable_key'             => $publishable_key,
+				/**
+				 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
+				 */
 				'allow_prepaid_card'          => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				'locale'                      => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 				'is_link_enabled'             => $this->express_checkout_helper->is_link_enabled(),
@@ -313,6 +316,9 @@ class WC_Stripe_Express_Checkout_Element {
 			'10.6.0',
 			'wc_stripe_express_checkout_hide_itemization'
 		);
+		/**
+		 * This filter is documented in includes/payment-methods/class-wc-stripe-express-checkout-helper.php.
+		 */
 		$hide_itemization = apply_filters( 'wc_stripe_express_checkout_hide_itemization', $hide_itemization );
 		if ( $hide_itemization ) {
 			$items[] = [
@@ -430,7 +436,7 @@ class WC_Stripe_Express_Checkout_Element {
 	private function register_express_checkout_script() {
 		$asset_data = $this->get_asset_data();
 
-		wp_register_script( 'stripe', 'https://js.stripe.com/clover/stripe.js', '', null, true );
+		WC_Stripe_Helper::register_stripe_js();
 		wp_register_script(
 			'wc_stripe_express_checkout',
 			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',
@@ -552,6 +558,9 @@ class WC_Stripe_Express_Checkout_Element {
 		wp_localize_script(
 			'wc_stripe_express_checkout',
 			'wc_stripe_express_checkout_params',
+			/**
+			 * This filter is documented in includes/class-wc-stripe-blocks-support.php.
+			 */
 			apply_filters(
 				'wc_stripe_express_checkout_params',
 				$this->javascript_params()

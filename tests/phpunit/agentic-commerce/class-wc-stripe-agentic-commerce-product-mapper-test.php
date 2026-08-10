@@ -1214,11 +1214,66 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The `wc_stripe_agentic_commerce_disable_checkout` filter overrides the store-wide default.
+	 * The `woocommerce_agentic_commerce_disable_checkout` filter overrides the store-wide default.
 	 *
 	 * @return void
 	 */
 	public function test_disable_checkout_filter_overrides_store_wide_default() {
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$callback = static fn() => true;
+		add_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback );
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$result = $mapper->map_product( $product );
+
+			$this->assertSame( 'true', $result['disable_checkout'] );
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * The canonical filter can also override the store-wide redirect default
+	 * *down* — when the store-wide setting forces redirect on, a filter returning
+	 * false restores embedded checkout for that product.
+	 *
+	 * @return void
+	 */
+	public function test_disable_checkout_filter_overrides_store_wide_default_down() {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION, 'yes' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$callback = static fn() => false;
+		add_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback );
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$result = $mapper->map_product( $product );
+
+			$this->assertSame( 'false', $result['disable_checkout'] );
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback );
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * The deprecated `wc_stripe_agentic_commerce_disable_checkout` filter still
+	 * seeds the canonical filter's default, so existing hooks keep working.
+	 *
+	 * @return void
+	 */
+	public function test_disable_checkout_deprecated_filter_still_applies() {
+		$this->setExpectedDeprecated( 'wc_stripe_agentic_commerce_disable_checkout' );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
 
 		$product = WC_Helper_Product::create_simple_product();
@@ -1254,7 +1309,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$product->save();
 
 		$callback = static fn() => $filter_value;
-		add_filter( 'wc_stripe_agentic_commerce_disable_checkout', $callback );
+		add_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback );
 
 		try {
 			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
@@ -1262,7 +1317,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 
 			$this->assertSame( 'false', $result['disable_checkout'] );
 		} finally {
-			remove_filter( 'wc_stripe_agentic_commerce_disable_checkout', $callback );
+			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback );
 			$product->delete( true );
 		}
 	}
@@ -1278,5 +1333,45 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 			'string zero'  => [ '0' ],
 			'empty string' => [ '' ],
 		];
+	}
+
+	/**
+	 * A variation receives its parent in the disable_checkout filter, so a hook
+	 * keyed off the parent can apply one redirect decision to every variation in
+	 * the group.
+	 *
+	 * @return void
+	 */
+	public function test_disable_checkout_variation_inherits_parent_via_filter() {
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+
+		$parent     = WC_Helper_Product::create_variation_product();
+		$variations = $parent->get_children();
+		$variation  = wc_get_product( $variations[0] );
+		$parent_id  = $parent->get_id();
+
+		$callback = static function ( $disabled, $product, $parent_product ) use ( $parent_id ) {
+			// Redirect every variation whose parent is the product under test,
+			// proving the filter receives both the variation and its parent.
+			if (
+				$product instanceof WC_Product
+				&& $parent_product instanceof WC_Product
+				&& $parent_product->get_id() === $parent_id
+			) {
+				return true;
+			}
+			return $disabled;
+		};
+		add_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback, 10, 3 );
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$result = $mapper->map_product( $variation );
+
+			$this->assertSame( 'true', $result['disable_checkout'] );
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback, 10 );
+			$parent->delete( true );
+		}
 	}
 }

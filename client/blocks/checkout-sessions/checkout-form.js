@@ -65,6 +65,9 @@ const CheckoutForm = ( {
 	// Live value for onPaymentSetup's once-registered callback, which would
 	// otherwise close over a stale isPaymentElementComplete.
 	const isCompleteRef = useRef( false );
+	// Set when a totals resync leaves the session stale; blocks payment setup so
+	// the buyer isn't charged an out-of-date total.
+	const syncFailedRef = useRef( false );
 	const setHasLoadError = ( event ) => {
 		hasLoadErrorRef.current = true;
 		onLoadError( event );
@@ -77,7 +80,8 @@ const CheckoutForm = ( {
 		hasLoadErrorRef,
 		isPaymentElementComplete,
 		selectedPaymentType,
-		isCompleteRef
+		isCompleteRef,
+		syncFailedRef
 	);
 	useCheckoutSuccessHandler(
 		checkoutState,
@@ -88,7 +92,12 @@ const CheckoutForm = ( {
 		shippingData
 	);
 	usePaymentFailHandler( onCheckoutFail, emitResponse );
-	useCheckoutSessionTotalsSync( api, checkoutSessionId, checkoutState );
+	useCheckoutSessionTotalsSync(
+		api,
+		checkoutSessionId,
+		checkoutState,
+		syncFailedRef
+	);
 
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 
@@ -153,7 +162,11 @@ const CheckoutForm = ( {
 					} }
 				/>
 			) }
-			<CurrencySelectorElement />
+			{ /* Wrapped only to give e2e tests a DOM hook — classic exposes an
+			     equivalent element, but via a class rather than a test id. */ }
+			<div data-testid="wc-stripe-currency-selector">
+				<CurrencySelectorElement />
+			</div>
 			<PaymentElement
 				options={ elementOptions }
 				onChange={ onSelectedPaymentMethodChange }

@@ -10,6 +10,38 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe {
 
 	/**
+	 * The option name that stores the main Stripe gateway settings array.
+	 *
+	 * @since 10.9.0
+	 */
+	public const SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
+
+	/**
+	 * Get the Stripe settings option. Always returns an array.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @return array
+	 */
+	public function get_settings(): array {
+		$settings = get_option( self::SETTINGS_OPTION_NAME, [] );
+
+		return is_array( $settings ) ? $settings : [];
+	}
+
+	/**
+	 * Persists the main Stripe settings.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param array $settings The settings to persist.
+	 * @return bool Whether the option was actually written (matches `update_option`).
+	 */
+	public function update_settings( array $settings ): bool {
+		return update_option( self::SETTINGS_OPTION_NAME, $settings );
+	}
+
+	/**
 	 * The *Singleton* instance of this class
 	 *
 	 * @var WC_Stripe
@@ -43,9 +75,9 @@ class WC_Stripe {
 	public $connect;
 
 	/**
-	 * Stripe Payment Request configurations.
+	 * Stripe Payment Request configurations. Holds a WC_Stripe_Payment_Request_Compat no-op shim.
 	 *
-	 * @var null
+	 * @var WC_Stripe_Payment_Request_Compat
 	 *
 	 * @deprecated 10.4.0 Use express_checkout_configuration instead. This will be removed in a future release.
 	 */
@@ -128,6 +160,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-helper.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-helper.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-checkout-session-context.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-payment-method-configurations.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache-prefetch.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-api.php';
@@ -205,6 +238,10 @@ class WC_Stripe {
 		$this->connect = new WC_Stripe_Connect( $this->api );
 		$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
+		// No-op shim so third parties that register the removed WC_Stripe_Payment_Request methods as
+		// hook callbacks via this property don't fatal on a null callback. See the compat class.
+		$this->payment_request_configuration = new WC_Stripe_Payment_Request_Compat();
+
 		if ( self::$instance === $this ) {
 			// Initialize Express Checkout after translations are loaded
 			add_action( 'init', [ $this, 'init_express_checkout' ], 11 );
@@ -216,6 +253,7 @@ class WC_Stripe {
 
 			$checkout_sessions_ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
 			$checkout_sessions_ajax_handler->init_hooks();
+			WC_Stripe_Checkout_Session_Context::init_hooks();
 		}
 
 		if ( is_admin() ) {
@@ -271,7 +309,7 @@ class WC_Stripe {
 
 		if ( self::$instance === $this ) {
 			add_filter( 'woocommerce_payment_gateways', [ $this, 'add_gateways' ] );
-			add_filter( 'pre_update_option_woocommerce_stripe_settings', [ $this, 'gateway_settings_update' ], 10, 2 );
+			add_filter( 'pre_update_option_' . self::SETTINGS_OPTION_NAME, [ $this, 'gateway_settings_update' ], 10, 2 );
 			add_filter( 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), [ $this, 'plugin_action_links' ] );
 			add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
 			add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
@@ -314,7 +352,7 @@ class WC_Stripe {
 			add_action( 'wc_payment_gateways_initialized', [ $this, 'maybe_toggle_payment_methods' ] );
 
 			// Reconfigure webhooks when Adaptive Pricing is enabled in the settings.
-			add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
+			add_action( 'update_option_' . self::SETTINGS_OPTION_NAME, [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
 
 			add_action( WC_Stripe_Database_Cache::ASYNC_CLEANUP_ACTION, [ WC_Stripe_Database_Cache::class, 'delete_all_stale_entries_async' ], 10, 2 );
 			add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ], 10, 0 );
@@ -422,11 +460,11 @@ class WC_Stripe {
 
 		// If we have previously disabled settings synchronization, remove the flag after the upgrade,
 		// just to make sure we are still ineligible for settings synchronization.
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = $this->get_settings();
 		if ( isset( $stripe_settings['pmc_enabled'] ) && 'no' === $stripe_settings['pmc_enabled'] ) {
 			unset( $stripe_settings['pmc_enabled'] );
 			$stripe_settings['skip_pmc_express_checkout_defaults'] = 'yes';
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+			$this->update_settings( $stripe_settings );
 			WC_Stripe_Logger::error( 'Settings synchronization eligibility will be re-checked after upgrade' );
 		}
 	}
@@ -472,11 +510,11 @@ class WC_Stripe {
 	 * @version 9.6.0
 	 */
 	public function migrate_to_new_checkout_experience() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = $this->get_settings();
 		// If the flag is not set or not set to yes (set to no/disabled), it means the site was using the legacy checkout experience.
 		if ( empty( $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) || 'yes' !== $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
 			$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+			$this->update_settings( $stripe_settings );
 
 			if ( class_exists( 'WC_Tracks' ) ) {
 				WC_Tracks::record_event( 'wcstripe_migrated_to_new_checkout_experience' );
@@ -495,7 +533,7 @@ class WC_Stripe {
 	 * @version 5.5.0
 	 */
 	public function update_prb_location_settings() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = $this->get_settings();
 		$prb_locations   = isset( $stripe_settings['express_checkout_button_locations'] )
 			? $stripe_settings['express_checkout_button_locations']
 			: [];
@@ -504,15 +542,32 @@ class WC_Stripe {
 			if ( array_key_exists( 'payment_request_button_locations', $stripe_settings ) ) {
 				$stripe_settings['express_checkout_button_locations'] = $stripe_settings['payment_request_button_locations'];
 				unset( $stripe_settings['payment_request_button_locations'] );
-				WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+				$this->update_settings( $stripe_settings );
 				return;
 			}
 
 			// Fall back to filter defaults only if no existing setting.
 			global $post;
 
-			$should_show_on_product_page  = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post );
-			$should_show_on_cart_page     = apply_filters( 'wc_stripe_show_payment_request_on_cart', true );
+			/**
+			 * Filters whether payment request buttons should be hidden on product pages.
+			 *
+			 * @param bool         $hide Whether to hide payment request buttons.
+			 * @param WP_Post|null $post Current post object, if available.
+			 */
+			$should_show_on_product_page = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post );
+			/**
+			 * Filters whether payment request buttons should be shown on the cart page.
+			 *
+			 * @param bool $show Whether to show payment request buttons.
+			 */
+			$should_show_on_cart_page = apply_filters( 'wc_stripe_show_payment_request_on_cart', true );
+			/**
+			 * Filters whether payment request buttons should be shown on the checkout page.
+			 *
+			 * @param bool         $show Whether to show payment request buttons.
+			 * @param WP_Post|null $post Current post object, if available.
+			 */
 			$should_show_on_checkout_page = apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post );
 
 			$new_prb_locations = [];
@@ -530,7 +585,7 @@ class WC_Stripe {
 			}
 
 			$stripe_settings['express_checkout_button_locations'] = $new_prb_locations;
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+			$this->update_settings( $stripe_settings );
 		}
 	}
 
@@ -1042,6 +1097,16 @@ class WC_Stripe {
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			WP_CLI::add_command( 'stripe agentic-commerce', 'WC_Stripe_Agentic_Commerce_CLI' );
+		}
+
+		// Per-product exclude toggle. The exclusion storage registers the feed
+		// filter in every context; the meta box is the admin-only editor UI on top
+		// of it.
+		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_Exclusion' ) ) {
+			( new WC_Stripe_Agentic_Commerce_Product_Exclusion() )->init();
+		}
+		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_Meta_Box' ) ) {
+			( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->init();
 		}
 
 		/**

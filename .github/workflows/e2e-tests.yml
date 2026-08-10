@@ -17,7 +17,7 @@ jobs:
     outputs:
       code: ${{ steps.detect.outputs.code }}
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.1
       - id: detect
         uses: ./.github/actions/detect-code-changes
 
@@ -29,12 +29,12 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        project: ['default', 'isk', 'acss', 'optimized-checkout', 'blik', 'becs']
+        project: ['default', 'isk', 'acss', 'optimized-checkout', 'adaptive-pricing', 'blik', 'becs']
 
     name: E2E - ${{ matrix.project }} WP=latest, WC=latest, PHP=7.4
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@v7.0.1
 
       # PHP
 
@@ -47,7 +47,7 @@ jobs:
 
       - name: Cache Composer deps
         id: composer-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ./vendor
           key: ${{ runner.os }}-vendor-${{ hashFiles('composer.lock') }}
@@ -60,13 +60,13 @@ jobs:
       # Node
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
 
       - name: Cache Node deps
         id: node-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ./node_modules

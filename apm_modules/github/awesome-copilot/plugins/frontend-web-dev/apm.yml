@@ -1,0 +1,8 @@
+name: frontend-web-dev
+version: 1.0.0
+description: Essential prompts, instructions, and chat modes for modern frontend web
+  development including React, Angular, Vue, TypeScript, and CSS frameworks.
+author: Awesome Copilot Community
+license: MIT
+repository: https://github.com/github/awesome-copilot
+type: hybrid

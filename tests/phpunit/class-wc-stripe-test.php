@@ -9,6 +9,68 @@
  */
 class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
+	 * get_settings() returns the stored option as an array.
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_returns_stored_option(): void {
+		update_option( WC_Stripe::SETTINGS_OPTION_NAME, [ 'enabled' => 'yes' ] );
+
+		// Compare against the stored option rather than the literal written
+		// above: the pre_update_option filter merges defaults into the write.
+		$updated_settings = WC_Stripe::get_instance()->get_settings();
+		$this->assertSame(
+			get_option( WC_Stripe::SETTINGS_OPTION_NAME ),
+			$updated_settings
+		);
+		$this->assertSame( 'yes', $updated_settings['enabled'] );
+	}
+
+	/**
+	 * get_settings() always returns an array, even when the option holds a non-array value.
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_normalizes_non_array_option(): void {
+		$force_scalar = static function () {
+			return 'not-an-array';
+		};
+		add_filter( 'option_' . WC_Stripe::SETTINGS_OPTION_NAME, $force_scalar );
+
+		try {
+			$this->assertSame( [], WC_Stripe::get_instance()->get_settings() );
+		} finally {
+			remove_filter( 'option_' . WC_Stripe::SETTINGS_OPTION_NAME, $force_scalar );
+		}
+	}
+
+	/**
+	 * update_settings() writes through to the underlying option, asserted via
+	 * get_option() so the test holds even if get_settings() grows a cache.
+	 *
+	 * @return void
+	 */
+	public function test_update_settings_persists_option(): void {
+		WC_Stripe::get_instance()->update_settings( [ 'enabled' => 'yes' ] );
+		$this->assertSame( 'yes', get_option( WC_Stripe::SETTINGS_OPTION_NAME )['enabled'] );
+
+		WC_Stripe::get_instance()->update_settings( [ 'enabled' => 'no' ] );
+		$this->assertSame( 'no', get_option( WC_Stripe::SETTINGS_OPTION_NAME )['enabled'] );
+	}
+
+	/**
+	 * get_settings() reflects a raw update_option() write that bypasses
+	 * update_settings() — the accessor introduces no divergent state.
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_reflects_raw_option_write(): void {
+		update_option( WC_Stripe::SETTINGS_OPTION_NAME, [ 'enabled' => 'no' ] );
+
+		$this->assertSame( 'no', WC_Stripe::get_instance()->get_settings()['enabled'] );
+	}
+
+	/**
 	 * Tests that the plugin constants are defined.
 	 *
 	 * @return void
@@ -20,6 +82,49 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertTrue( defined( 'WC_STRIPE_MAIN_FILE' ) );
 		$this->assertTrue( defined( 'WC_STRIPE_PLUGIN_URL' ) );
 		$this->assertTrue( defined( 'WC_STRIPE_PLUGIN_PATH' ) );
+	}
+
+	/**
+	 * Legacy callbacks registered against the removed WC_Stripe_Payment_Request class via the
+	 * `payment_request_configuration` property must resolve to a valid object, not fatal,
+	 * and each call must log a deprecation so remaining third-party usage stays visible.
+	 *
+	 * @return void
+	 */
+	public function test_payment_request_configuration_legacy_callbacks_do_not_fatal() {
+		$config = WC_Stripe::get_instance()->payment_request_configuration;
+
+		$this->assertIsObject( $config, 'payment_request_configuration should be an object, not null.' );
+
+		$legacy_methods = [
+			'display_payment_request_button_html',
+			'display_payment_request_button_separator_html',
+		];
+
+		foreach ( $legacy_methods as $method ) {
+			$this->setExpectedDeprecated( "WC_Stripe_Payment_Request::{$method}" );
+		}
+
+		// Register the removed class's methods as hook callbacks the way a third party would.
+		foreach ( $legacy_methods as $method ) {
+			$this->assertTrue(
+				is_callable( [ $config, $method ] ),
+				"[ \$payment_request_configuration, '{$method}' ] should be a valid callback."
+			);
+			add_action( 'woocommerce_review_order_before_submit', [ $config, $method ] );
+		}
+
+		// No TypeError when the hook fires means the shim held.
+		do_action( 'woocommerce_review_order_before_submit' );
+		$this->assertTrue( true );
+
+		// Any other removed method falls through to __call: no fatal, and still logged.
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Request::some_removed_method' );
+		$this->assertNull( $config->some_removed_method() );
+
+		foreach ( $legacy_methods as $method ) {
+			remove_action( 'woocommerce_review_order_before_submit', [ $config, $method ] );
+		}
 	}
 
 	/**
@@ -167,7 +272,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
 
 		// Set initial settings.
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
 			->disableOriginalConstructor()
@@ -182,7 +287,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$wc_stripe->install();
 
-		$actual_settings = WC_Stripe_Helper::get_stripe_settings();
+		$actual_settings = WC_Stripe::get_instance()->get_settings();
 		foreach ( $expected_settings as $key => $value ) {
 			if ( null == $value ) {
 				$this->assertArrayNotHasKey( $key, $actual_settings );
