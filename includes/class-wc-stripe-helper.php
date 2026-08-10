@@ -64,25 +64,41 @@ class WC_Stripe_Helper {
 	/**
 	 * Get the main Stripe settings option.
 	 *
+	 * Delegates to the canonical accessor on WC_Stripe so there is a single
+	 * settings code path.
+	 *
+	 * @deprecated 10.9.0 Use WC_Stripe::get_instance()->get_settings() instead. The per-method
+	 *                    form has no replacement — those options were only used by the
+	 *                    pre-UPE legacy gateways.
+	 *
 	 * @param string $method (Optional) The payment method to get the settings from.
 	 * @return array $settings The Stripe settings.
 	 */
 	public static function get_stripe_settings( $method = null ) {
-		$settings = null === $method ? get_option( self::SETTINGS_OPTION, [] ) : get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
-		if ( ! is_array( $settings ) ) {
-			$settings = [];
+		if ( null === $method ) {
+			return WC_Stripe::get_instance()->get_settings();
 		}
-		return $settings;
+
+		$settings = get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
+
+		return is_array( $settings ) ? $settings : [];
 	}
 
 	/**
 	 * Update the main Stripe settings option.
 	 *
+	 * Delegates to the canonical accessor on WC_Stripe so there is a single
+	 * settings code path.
+	 *
+	 * @deprecated 10.9.0 Use WC_Stripe::get_instance()->update_settings() instead.
+	 *
 	 * @param $options array The Stripe settings.
 	 * @return void
 	 */
 	public static function update_main_stripe_settings( $options ) {
-		update_option( self::SETTINGS_OPTION, $options );
+		if ( is_array( $options ) ) {
+			WC_Stripe::get_instance()->update_settings( $options );
+		}
 	}
 
 	/**

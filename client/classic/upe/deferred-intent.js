@@ -18,6 +18,7 @@ import {
 	hasEmptyRequiredFields,
 	initializeUPEComponents,
 	maybeUpdateAdaptivePricingCheckoutSession,
+	maybeUpdateOptimizedCheckoutExclusions,
 	mountStripePaymentElement,
 	processPayment,
 	trackMountInProgress,
@@ -92,6 +93,8 @@ jQuery( function ( $ ) {
 		const updateChain = ( async () => {
 			await maybeUpdateAdaptivePricingCheckoutSession( api );
 			await maybeMountStripePaymentElement();
+			// Remounting skips an already-mounted OC element; refresh its exclusions.
+			maybeUpdateOptimizedCheckoutExclusions();
 		} )();
 		trackMountInProgress( updateChain );
 		void updateChain;
