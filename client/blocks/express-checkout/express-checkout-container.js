@@ -1,13 +1,14 @@
 import React from 'react';
 import { Elements } from '@stripe/react-stripe-js';
 import ExpressCheckoutComponent from './express-checkout-component';
-import { useMemo } from '@wordpress/element';
+import { useEffect, useMemo } from '@wordpress/element';
 import {
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutData,
 	getPaymentMethodTypesForExpressMethod,
 	isManualPaymentMethodCreation,
 } from 'wcstripe/express-checkout/utils';
+import { setElementCurrency } from 'wcstripe/express-checkout/utils/element-currency-cache';
 import { transformPriceWithMinorUnits } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
 export const ExpressCheckoutContainer = ( props ) => {
@@ -18,6 +19,12 @@ export const ExpressCheckoutContainer = ( props ) => {
 		billing.currency.minorUnit
 	);
 	const currency = billing.currency.code.toLowerCase();
+
+	// Record the currency the Element was created with only after commit, so the
+	// server-side mismatch guard reads the currency that's actually on screen.
+	useEffect( () => {
+		setElementCurrency( currency );
+	}, [ currency ] );
 
 	// Memoise on the values Stripe consumes so <Elements> only updates when the
 	// amount/currency change, not on every cart tick.

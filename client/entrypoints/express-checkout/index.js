@@ -30,6 +30,11 @@ import { getAddToCartVariationParams } from 'wcstripe/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import 'wcstripe/express-checkout/compatibility/classic-checkout-custom-fields';
 import 'wcstripe/express-checkout/compatibility/wc-product-page';
+import 'wcstripe/express-checkout/compatibility/wcpbc-currency';
+import { resolveExpressCheckoutCurrency } from 'wcstripe/express-checkout/utils/resolve-currency';
+import { setElementCurrency } from 'wcstripe/express-checkout/utils/element-currency-cache';
+import { computeProductPageStartArgs } from 'wcstripe/express-checkout/utils/compute-product-page-start-args';
+import { isAmazonPaySupportedForCurrency } from 'wcstripe/stripe-utils';
 import './styles.scss';
 import {
 	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
@@ -245,6 +250,21 @@ jQuery( function ( $ ) {
 				'is_change_payment_method'
 			);
 
+			const localizedCurrency = (
+				getExpressCheckoutData( 'product' )?.currency ||
+				getExpressCheckoutData( 'checkout' )?.currency_code ||
+				''
+			).toLowerCase();
+
+			// Add a client-side check to make sure the resolved customer-facing currency
+			// is actually supported by Amazon Pay, as it may change in the client.
+			// Note that we check `options.currency` to make sure we avoid race conditions
+			// involving updates to global values that may not have propagated yet.
+			const hasCurrencyChanged = options.currency !== localizedCurrency;
+			const amazonPaySupportsCurrency =
+				! hasCurrencyChanged ||
+				isAmazonPaySupportedForCurrency( options.currency );
+
 			// For each supported express payment type, create their own
 			// express checkout element. This is necessary as some express payment types
 			// may require different options or configurations, e.g. Amazon Pay
@@ -255,6 +275,7 @@ jQuery( function ( $ ) {
 				isExpressCheckoutEnabled &&
 					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 				isAmazonPayEnabled &&
+					amazonPaySupportsCurrency &&
 					! areTaxesBasedOnBillingAddress &&
 					! isChangePaymentMethod &&
 					EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
@@ -403,6 +424,7 @@ jQuery( function ( $ ) {
 				paymentMethodTypes:
 					getPaymentMethodTypesForExpressMethod( expressPaymentType ),
 			} );
+			setElementCurrency( options.currency );
 
 			// A product page can mount several express buttons (Apple Pay,
 			// Google Pay, …), each with its own Elements group. Track them so a
@@ -462,6 +484,9 @@ jQuery( function ( $ ) {
 				return await handleProductPageECEButtonClick( event, options );
 			} );
 
+			const onShippingError = ( message ) =>
+				displayExpressCheckoutNotice( message, 'error' );
+
 			const handleProductPageShippingAddressChange = async (
 				event,
 				stripeElements
@@ -473,7 +498,11 @@ jQuery( function ( $ ) {
 					);
 				}
 
-				return shippingAddressChangeHandler( event, stripeElements );
+				return shippingAddressChangeHandler(
+					event,
+					stripeElements,
+					onShippingError
+				);
 			};
 
 			eceButton.on( 'shippingaddresschange', async ( event ) => {
@@ -483,13 +512,21 @@ jQuery( function ( $ ) {
 						elements
 					);
 				}
-				return await shippingAddressChangeHandler( event, elements );
+				return await shippingAddressChangeHandler(
+					event,
+					elements,
+					onShippingError
+				);
 			} );
 
 			eceButton.on(
 				'shippingratechange',
 				async ( event ) =>
-					await shippingRateChangeHandler( event, elements )
+					await shippingRateChangeHandler(
+						event,
+						elements,
+						onShippingError
+					)
 			);
 
 			eceButton.on( 'confirm', async ( event ) => {
@@ -545,14 +582,14 @@ jQuery( function ( $ ) {
 			} );
 
 			if ( getExpressCheckoutData( 'is_product_page' ) ) {
-				wcStripeECE.attachProductPageEventListeners();
+				wcStripeECE.attachProductPageEventListeners( options.currency );
 			}
 		},
 
 		/**
 		 * Initialize event handlers and UI state
 		 */
-		init: () => {
+		init: async () => {
 			if ( getExpressCheckoutData( 'is_change_payment_method' ) ) {
 				const currency =
 					getExpressCheckoutData( 'checkout' )?.currency_code ??
@@ -606,27 +643,19 @@ jQuery( function ( $ ) {
 					orderDetails,
 				} );
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
-				const isProductSupported =
-					getExpressCheckoutData( 'product' )
-						?.validVariationSelected ?? true;
-				if ( isProductSupported ) {
-					const displayItems =
-						getExpressCheckoutData( 'product' ).displayItems ?? [];
-					wcStripeECE.startExpressCheckout( {
-						total: getExpressCheckoutData( 'product' )?.total
-							.amount,
-						currency: getExpressCheckoutData( 'product' )?.currency,
-						requestShipping:
-							getExpressCheckoutData( 'product' )
-								?.requestShipping ?? false,
-						requestPhone:
-							getExpressCheckoutData( 'checkout' )
-								?.needs_payer_phone ?? false,
-						displayItems: useLegacyDisplayItems
-							? displayItems
-							: transformLabeledDisplayItems( displayItems ),
-					} );
+				const args = await computeProductPageStartArgs( {
+					getExpressCheckoutData,
+					resolveExpressCheckoutCurrency,
+					getSelectedProductData: () =>
+						wcStripeECE.getSelectedProductData(),
+					transformLabeledDisplayItems,
+					useLegacyDisplayItems,
+				} );
+				if ( ! args ) {
+					return;
 				}
+
+				wcStripeECE.startExpressCheckout( args );
 			} else {
 				// Cart and Checkout page specific initialization.
 				const cartBootstrap = getExpressCheckoutData( 'cart' );
@@ -880,7 +909,18 @@ jQuery( function ( $ ) {
 			displayExpressCheckoutNotice( message, 'error' );
 		},
 
-		attachProductPageEventListeners: () => {
+		attachProductPageEventListeners: ( currentCurrency ) => {
+			// updateExpressCheckoutAmount pushes a new amount but can't change
+			// currency, so a variation/quantity switch that lands on a different
+			// currency has to rebuild the element instead of updating it.
+			const normalizedCurrent = ( currentCurrency || '' ).toLowerCase();
+			const hasCurrencyChanged = ( response ) => {
+				const responseCurrency = (
+					response.currency || normalizedCurrent
+				).toLowerCase();
+				return responseCurrency !== normalizedCurrent;
+			};
+
 			// WooCommerce Deposits support.
 			// Trigger the "woocommerce_variation_has_changed" event when the deposit option is changed.
 			// Needs to be defined before the `woocommerce_variation_has_changed` event handler is set.
@@ -907,7 +947,7 @@ jQuery( function ( $ ) {
 					wcStripeECE.blockExpressCheckoutButton();
 
 					$.when( wcStripeECE.getSelectedProductData() )
-						.then( ( response ) => {
+						.then( async ( response ) => {
 							if ( response.error ) {
 								wcStripeECE.hide();
 							} else {
@@ -925,15 +965,21 @@ jQuery( function ( $ ) {
 									getExpressCheckoutData( 'product' )
 										.requestShipping ===
 										response.requestShipping;
+								const currencyChanged =
+									hasCurrencyChanged( response );
 
-								if ( ! isDeposits && needsShipping ) {
+								if (
+									! isDeposits &&
+									needsShipping &&
+									! currencyChanged
+								) {
 									// Refresh stored items so the click breakdown matches this variation.
 									wcStripeECE.refreshTotals( response );
 									wcStripeECE.updateExpressCheckoutAmount(
 										response.total.amount
 									);
 								} else {
-									wcStripeECE.reInitExpressCheckoutElement(
+									await wcStripeECE.reInitExpressCheckoutElement(
 										response
 									);
 								}
@@ -968,17 +1014,25 @@ jQuery( function ( $ ) {
 
 						$.when( wcStripeECE.getSelectedProductData() )
 							.then(
-								( response ) => {
+								async ( response ) => {
 									// In case the server returns an unexpected response
-									if ( typeof response !== 'object' ) {
+									if (
+										typeof response !== 'object' ||
+										response === null
+									) {
 										wcStripeECEError = defaultErrorMessage;
+										return;
 									}
+
+									const currencyChanged =
+										hasCurrencyChanged( response );
 
 									if (
 										! wcStripeECE.paymentAborted &&
 										getExpressCheckoutData( 'product' )
 											.requestShipping ===
-											response.requestShipping
+											response.requestShipping &&
+										! currencyChanged
 									) {
 										// Refresh stored items so the click breakdown matches the new qty.
 										wcStripeECE.refreshTotals( response );
@@ -986,7 +1040,7 @@ jQuery( function ( $ ) {
 											response.total.amount
 										);
 									} else {
-										wcStripeECE.reInitExpressCheckoutElement(
+										await wcStripeECE.reInitExpressCheckoutElement(
 											response
 										);
 									}
@@ -1007,11 +1061,17 @@ jQuery( function ( $ ) {
 				);
 		},
 
-		reInitExpressCheckoutElement: ( response ) => {
+		reInitExpressCheckoutElement: async ( response ) => {
 			getExpressCheckoutData( 'product' ).requestShipping =
 				response.requestShipping;
 			wcStripeECE.refreshTotals( response );
-			wcStripeECE.init();
+			// carry the new currency forward so the next init() reads it
+			// and the resolver settles on it (cache short-circuits).
+			if ( response.currency ) {
+				getExpressCheckoutData( 'product' ).currency =
+					response.currency;
+			}
+			await wcStripeECE.init();
 		},
 
 		// Keep the cached product breakdown in sync with the latest server response so the

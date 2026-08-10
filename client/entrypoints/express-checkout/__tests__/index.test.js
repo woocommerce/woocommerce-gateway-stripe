@@ -261,6 +261,9 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		const { handlers } = stubStripeButton();
 
 		loadEntrypoint();
+		// Product-page init resolves the currency before mounting the button and
+		// binding the variation handler, so let it settle before triggering.
+		await flushPromises();
 
 		// eslint-disable-next-line global-require
 		require( 'jquery' )( document.body ).trigger(
@@ -296,6 +299,9 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		const { handlers } = stubStripeButton();
 
 		loadEntrypoint();
+		// Product-page init is async (currency resolves before the .qty handler is
+		// bound); flush the microtask queue under fake timers before driving input.
+		await jest.advanceTimersByTimeAsync( 0 );
 
 		// eslint-disable-next-line global-require
 		const jq = require( 'jquery' );
@@ -335,6 +341,8 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		const { elementsList } = stubStripeButton();
 
 		loadEntrypoint();
+		// Product-page init resolves the currency before mounting the buttons.
+		await flushPromises();
 
 		// Apple Pay and Google Pay each mount their own Elements group.
 		expect( elementsList.length ).toBeGreaterThan( 1 );

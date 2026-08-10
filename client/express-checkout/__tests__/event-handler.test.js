@@ -8,6 +8,10 @@ import {
 	shippingRateChangeHandler,
 	setCartApiHandler,
 } from 'wcstripe/express-checkout/event-handler';
+import {
+	setElementCurrency,
+	__resetElementCurrencyForTests,
+} from 'wcstripe/express-checkout/utils/element-currency-cache';
 
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
@@ -98,6 +102,7 @@ describe( 'Express checkout event handlers', () => {
 
 		afterEach( () => {
 			jest.clearAllMocks();
+			__resetElementCurrencyForTests();
 		} );
 
 		test( 'should call cartApi.updateCustomer with transformed address', async () => {
@@ -144,6 +149,40 @@ describe( 'Express checkout event handlers', () => {
 			expect( event.reject ).toHaveBeenCalled();
 			expect( event.resolve ).not.toHaveBeenCalled();
 		} );
+
+		test( 'should reject and surface a message when the cart currency drifts from the element currency', async () => {
+			setElementCurrency( 'usd' );
+			mockCartApi.updateCustomer.mockResolvedValue( {
+				...cartResponse,
+				totals: { ...cartResponse.totals, currency_code: 'EUR' },
+			} );
+			const onError = jest.fn();
+
+			await shippingAddressChangeHandler( event, elements, onError );
+
+			expect( event.reject ).toHaveBeenCalled();
+
+			expect( event.resolve ).not.toHaveBeenCalled();
+
+			expect( onError ).toHaveBeenCalledWith(
+				expect.stringContaining( 'USD' )
+			);
+		} );
+
+		test( 'should resolve normally when the cart currency matches the element currency', async () => {
+			setElementCurrency( 'usd' );
+			mockCartApi.updateCustomer.mockResolvedValue( {
+				...cartResponse,
+				totals: { ...cartResponse.totals, currency_code: 'USD' },
+			} );
+			const onError = jest.fn();
+
+			await shippingAddressChangeHandler( event, elements, onError );
+
+			expect( onError ).not.toHaveBeenCalled();
+
+			expect( event.resolve ).toHaveBeenCalled();
+		} );
 	} );
 
 	describe( 'shippingRateChangeHandler', () => {
@@ -180,6 +219,7 @@ describe( 'Express checkout event handlers', () => {
 
 		afterEach( () => {
 			jest.clearAllMocks();
+			__resetElementCurrencyForTests();
 		} );
 
 		test( 'should call cartApi.selectShippingRate with correct data', async () => {
@@ -225,6 +265,25 @@ describe( 'Express checkout event handlers', () => {
 
 			expect( event.reject ).toHaveBeenCalled();
 			expect( event.resolve ).not.toHaveBeenCalled();
+		} );
+
+		test( 'should reject and surface a message when the cart currency drifts from the element currency', async () => {
+			setElementCurrency( 'usd' );
+			mockCartApi.selectShippingRate.mockResolvedValue( {
+				...cartResponse,
+				totals: { ...cartResponse.totals, currency_code: 'EUR' },
+			} );
+			const onError = jest.fn();
+
+			await shippingRateChangeHandler( event, elements, onError );
+
+			expect( event.reject ).toHaveBeenCalled();
+
+			expect( event.resolve ).not.toHaveBeenCalled();
+
+			expect( onError ).toHaveBeenCalledWith(
+				expect.stringContaining( 'EUR' )
+			);
 		} );
 	} );
 

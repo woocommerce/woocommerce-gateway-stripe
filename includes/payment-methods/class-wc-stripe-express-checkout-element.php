@@ -73,6 +73,10 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
+		// Guard against express checkout currency drift at order placement (e.g. a
+		// multi-currency plugin flipping the cart from the address chosen in the sheet).
+		( new WC_Stripe_Express_Checkout_Currency_Guard( $this->express_checkout_helper ) )->init();
+
 		// Apply the express checkout title after intent confirmation (e.g. 3DS) for the
 		// subscription change-payment-method flow. Registered unconditionally because the
 		// AJAX confirmation request doesn't run through the change-payment-method page check.
@@ -215,15 +219,22 @@ class WC_Stripe_Express_Checkout_Element {
 		return [
 			'ajax_url'                   => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'                     => [
-				'publishable_key'             => $publishable_key,
+				'publishable_key'                 => $publishable_key,
 				/**
 				 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
 				 */
-				'allow_prepaid_card'          => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
-				'locale'                      => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-				'is_link_enabled'             => $this->express_checkout_helper->is_link_enabled(),
-				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
-				'is_amazon_pay_enabled'       => $this->express_checkout_helper->is_amazon_pay_enabled(),
+				'allow_prepaid_card'              => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
+				'locale'                          => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+				'is_link_enabled'                 => $this->express_checkout_helper->is_link_enabled(),
+				'is_express_checkout_enabled'     => $this->express_checkout_helper->is_express_checkout_enabled(),
+				'is_amazon_pay_enabled'           => $this->express_checkout_helper->is_amazon_pay_enabled(),
+				// The set Amazon Pay supports is fixed per account country, so the
+				// client can re-check it against a currency resolved after render
+				// (e.g. country pricing) instead of trusting the localized currency.
+				'amazon_pay_supported_currencies' => array_map(
+					'strtolower',
+					WC_Stripe_UPE_Payment_Method_Amazon_Pay::get_amazon_pay_supported_currencies()
+				),
 			],
 			'nonce'                      => [
 				'payment'                       => wp_create_nonce( 'wc-stripe-express-checkout' ),
