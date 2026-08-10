@@ -1537,11 +1537,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_id = $order->get_id();
 		if ( 'setup_intent.succeeded' === $notification->type ) {
 			WC_Stripe_Logger::info( "Stripe SetupIntent $intent->id succeeded for order $order_id" );
-			if ( $this->has_pre_order( $order ) ) {
-				$this->mark_order_as_pre_ordered( $order );
-			} else {
-				$order->payment_complete();
-			}
+			$this->complete_order_for_succeeded_setup_intent( $order, $intent );
 		} else {
 			$error_message = $intent->last_setup_error ? $intent->last_setup_error->message : '';
 
@@ -1561,6 +1557,42 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$order_helper->unlock_order_payment( $order );
+	}
+
+	/**
+	 * Completes an order whose SetupIntent has succeeded.
+	 *
+	 * Delegates to the gateway so the token, mandate and payment-method-title work that follows a
+	 * confirmed intent runs here too. A SetupIntent that only reaches `succeeded` asynchronously
+	 * (bank microdeposits, SEPA) never passes through the redirect handler, so completing the order
+	 * without that step would leave the shopper paid up but without a saved payment method.
+	 *
+	 * @param WC_Order $order  The order to complete.
+	 * @param stdClass $intent The SetupIntent from the webhook payload.
+	 * @return void
+	 */
+	private function complete_order_for_succeeded_setup_intent( $order, $intent ) {
+		try {
+			WC_Stripe::get_instance()->get_main_stripe_gateway()->process_order_for_confirmed_intent( $order, $intent->id, true );
+			return;
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error(
+				'Could not finalize the payment method for a succeeded SetupIntent; completing the order without it.',
+				[
+					'order_id'        => $order->get_id(),
+					'setup_intent_id' => $intent->id ?? '',
+					'error_message'   => $e->getMessage(),
+				]
+			);
+		}
+
+		// Fall back to the previous behaviour so a failure above can't leave a verified payment unsettled.
+		if ( $this->has_pre_order( $order ) ) {
+			$this->mark_order_as_pre_ordered( $order );
+			return;
+		}
+
+		$order->payment_complete();
 	}
 
 	/**
