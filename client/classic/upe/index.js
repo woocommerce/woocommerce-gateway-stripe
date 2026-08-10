@@ -98,7 +98,7 @@ const globalPathReady = ( path ) => {
 	return true;
 };
 
-const dependenciesReady = () => requiredGlobalPaths.every( globalPathReady );
+const dependenciesReady = () => typeof wc_stripe_upe_params !== 'undefined' && requiredGlobalPaths.every( globalPathReady );
 
 // Retry once on a transient chunk-load failure; log a hard failure rather than
 // leave an unhandled rejection.
