@@ -1062,23 +1062,140 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that Link tokens have an empty expires value to avoid showing "N/A"
-	 * in the My Account > Payment Methods table.
+	 * Only card tokens carry a real expiry date, so the "Expires" cell must be blanked for
+	 * every other Stripe token rather than left with WooCommerce core's "N/A" default.
+	 * Card tokens — including Apple Pay and Google Pay, which are stored as cards — keep
+	 * the expiry core already resolved, and tokens from other gateways are left untouched.
 	 *
+	 * @param WC_Payment_Token $payment_token    Payment token.
+	 * @param string           $initial_expires  Value of `expires` as WooCommerce core seeds it.
+	 * @param string           $expected_expires Expected value of `expires` after filtering.
+	 * @return void
 	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4007
+	 * @dataProvider provide_test_get_account_saved_payment_methods_list_item_expires
 	 */
-	public function test_link_token_clears_expires(): void {
-		$link_token = new WC_Payment_Token_Link();
-		$link_token->set_email( 'test@example.com' );
-
+	public function test_get_account_saved_payment_methods_list_item_expires( WC_Payment_Token $payment_token, string $initial_expires, string $expected_expires ): void {
 		$initial_item = [
 			'method'  => [],
-			'expires' => 'N/A',
+			'expires' => $initial_expires,
 		];
 
-		$result = $this->stripe_payment_tokens->get_account_saved_payment_methods_list_item( $initial_item, $link_token );
+		$result = $this->stripe_payment_tokens->get_account_saved_payment_methods_list_item( $initial_item, $payment_token );
 
 		$this->assertArrayHasKey( 'expires', $result );
-		$this->assertSame( '', $result['expires'] );
+		$this->assertSame( $expected_expires, $result['expires'] );
+	}
+
+	/**
+	 * Data provider for {@see test_get_account_saved_payment_methods_list_item_expires()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_account_saved_payment_methods_list_item_expires(): array {
+		// WooCommerce core seeds every token with "N/A" and only overwrites it for cards,
+		// where it resolves a real MM/YY value.
+		$core_default = 'N/A';
+		$card_expiry  = '12/28';
+
+		$sepa_token = new \WC_Payment_Token_SEPA();
+		$sepa_token->set_last4( '1234' );
+
+		$bacs_debit_token = new \WC_Payment_Token_Bacs_Debit();
+		$bacs_debit_token->set_last4( '2345' );
+
+		$ach_token = new \WC_Payment_Token_ACH();
+		$ach_token->set_last4( '3456' );
+		$ach_token->set_bank_name( 'Test ACH Bank' );
+
+		$acss_token = new \WC_Payment_Token_ACSS();
+		$acss_token->set_last4( '4567' );
+		$acss_token->set_bank_name( 'Test ACSS Bank' );
+
+		$becs_debit_token = new \WC_Payment_Token_Becs_Debit();
+		$becs_debit_token->set_last4( '5678' );
+
+		$link_token = new \WC_Payment_Token_Link();
+		$link_token->set_email( 'link.test@example.com' );
+
+		$amazon_pay_token = new \WC_Payment_Token_Amazon_Pay();
+		$amazon_pay_token->set_email( 'amazon.test@example.com' );
+
+		$apple_pay_cc_token = new \WC_Stripe_Payment_Token_CC();
+		$apple_pay_cc_token->set_wallet_type( 'apple_pay' );
+
+		$google_pay_cc_token = new \WC_Stripe_Payment_Token_CC();
+		$google_pay_cc_token->set_wallet_type( 'google_pay' );
+
+		// A non-card token belonging to some other gateway: it does not implement the Stripe
+		// comparison interface, so this plugin must leave its "N/A" alone.
+		$non_stripe_token = $this->getMockBuilder( \WC_Payment_Token::class )->getMock();
+
+		return [
+			'SEPA token'                    => [
+				'payment_token'    => $sepa_token,
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'Bacs Direct Debit token'       => [
+				'payment_token'    => $bacs_debit_token,
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'Cash App Pay token'            => [
+				'payment_token'    => new \WC_Payment_Token_CashApp(),
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'ACH token'                     => [
+				'payment_token'    => $ach_token,
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'ACSS Debit token'              => [
+				'payment_token'    => $acss_token,
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'BECS Direct Debit token'       => [
+				'payment_token'    => $becs_debit_token,
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'Link token'                    => [
+				'payment_token'    => $link_token,
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'Amazon Pay token'              => [
+				'payment_token'    => $amazon_pay_token,
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'Klarna token'                  => [
+				'payment_token'    => new \WC_Stripe_Klarna_Payment_Token(),
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'Card token keeps its expiry'   => [
+				'payment_token'    => new \WC_Stripe_Payment_Token_CC(),
+				'initial_expires'  => $card_expiry,
+				'expected_expires' => $card_expiry,
+			],
+			'Apple Pay card keeps expiry'   => [
+				'payment_token'    => $apple_pay_cc_token,
+				'initial_expires'  => $card_expiry,
+				'expected_expires' => $card_expiry,
+			],
+			'Google Pay card keeps expiry'  => [
+				'payment_token'    => $google_pay_cc_token,
+				'initial_expires'  => $card_expiry,
+				'expected_expires' => $card_expiry,
+			],
+			'Non-Stripe token is untouched' => [
+				'payment_token'    => $non_stripe_token,
+				'initial_expires'  => $core_default,
+				'expected_expires' => $core_default,
+			],
+		];
 	}
 }
