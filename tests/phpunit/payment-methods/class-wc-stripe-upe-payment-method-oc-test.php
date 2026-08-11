@@ -76,6 +76,54 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * `wc_stripe_optimized_checkout_title` filter overrides the Blocks/pay-for-order title.
+	 *
+	 * @return void
+	 */
+	public function test_get_alternative_title_filter_overrides_blocks_title() {
+		$original_get = $_GET;
+		$_GET         = array_merge( $_GET, [ 'pay_for_order' => 'true' ] );
+
+		$captured_context = null;
+		$callback         = function ( $title, $context ) use ( &$captured_context ) {
+			$captured_context = $context;
+			return 'Pay with Stripe';
+		};
+		add_filter( 'wc_stripe_optimized_checkout_title', $callback, 10, 2 );
+
+		try {
+			$this->assertSame( 'Pay with Stripe', WC_Stripe_UPE_Payment_Method_OC::get_alternative_title() );
+			$this->assertSame( 'blocks', $captured_context );
+		} finally {
+			remove_filter( 'wc_stripe_optimized_checkout_title', $callback, 10 );
+			$_GET = $original_get;
+		}
+	}
+
+	/**
+	 * `get_classic_title` returns the default and respects the filter with classic context.
+	 *
+	 * @return void
+	 */
+	public function test_get_classic_title() {
+		$this->assertSame( 'Payment options', WC_Stripe_UPE_Payment_Method_OC::get_classic_title() );
+
+		$captured_context = null;
+		$callback         = function ( $title, $context ) use ( &$captured_context ) {
+			$captured_context = $context;
+			return 'Pay with Stripe';
+		};
+		add_filter( 'wc_stripe_optimized_checkout_title', $callback, 10, 2 );
+
+		try {
+			$this->assertSame( 'Pay with Stripe', WC_Stripe_UPE_Payment_Method_OC::get_classic_title() );
+			$this->assertSame( 'classic', $captured_context );
+		} finally {
+			remove_filter( 'wc_stripe_optimized_checkout_title', $callback, 10 );
+		}
+	}
+
+	/**
 	 * Tests for `is_available`, `get_retrievable_type`, `is_capability_active`, and `requires_automatic_capture` methods.
 	 * @return void
 	 */

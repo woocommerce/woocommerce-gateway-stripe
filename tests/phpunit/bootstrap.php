@@ -45,6 +45,7 @@ function _manually_load_plugin() {
 	// REST API.
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-base-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
+	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php';
 	// Stub WooCommerce ProductFeed interfaces/classes when running against an older WooCommerce
@@ -109,6 +110,8 @@ require_once __DIR__ . '/helpers/class-ajax-test-helper.php';
 require_once __DIR__ . '/helpers/class-oc-test-helper.php';
 require_once __DIR__ . '/helpers/class-pmc-test-helper.php';
 require_once __DIR__ . '/helpers/class-upe-test-helper.php';
+require_once __DIR__ . '/helpers/class-wc-stripe-test-helper.php';
+require_once __DIR__ . '/helpers/trait-wc-stripe-hook-manager-reset.php';
 
 // Pre-create HPOS (Custom Orders Table) schema so that parallel workers don't
 // race to create it when tests toggle `woocommerce_custom_orders_table_enabled`.

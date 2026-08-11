@@ -3,7 +3,7 @@
 /**
  * These tests make assertions against class WC_Stripe_UPE_Payment_Method_Link.
  */
-class WC_Stripe_UPE_Payment_Method_Link_Test extends WP_UnitTestCase {
+class WC_Stripe_UPE_Payment_Method_Link_Test extends WC_Stripe_UPE_Payment_Method_Test_Case {
 	/**
 	 * Test that `should_show_save_option` always returns false.
 	 *
@@ -43,6 +43,37 @@ class WC_Stripe_UPE_Payment_Method_Link_Test extends WP_UnitTestCase {
 		return [
 			'saved cards enabled'  => [ 'saved_cards' => 'yes' ],
 			'saved cards disabled' => [ 'saved_cards' => 'no' ],
+		];
+	}
+
+	/**
+	 * Test that {@see WC_Stripe_UPE_Payment_Method_Link::is_available_for_account_country()}
+	 * behaves as expected.
+	 *
+	 * @param string $account_country The account country.
+	 * @param bool   $expected_result The expected result.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_is_available_for_account_country
+	 */
+	public function test_is_available_for_account_country( string $account_country, bool $expected_result ): void {
+		$this->run_is_available_for_account_country_test( WC_Stripe_UPE_Payment_Method_Link::class, $account_country, $expected_result );
+	}
+
+	/**
+	 * Data provider for {@see test_is_available_for_account_country()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_available_for_account_country(): array {
+		return [
+			'US is supported'     => [ WC_Stripe_Country_Code::UNITED_STATES, true ],
+			'GB is supported'     => [ WC_Stripe_Country_Code::UNITED_KINGDOM, true ],
+			'ES is supported'     => [ WC_Stripe_Country_Code::SPAIN, true ],
+			'JP is supported'     => [ WC_Stripe_Country_Code::JAPAN, true ],
+			'BR is not supported' => [ WC_Stripe_Country_Code::BRAZIL, false ],
+			'TH is not supported' => [ WC_Stripe_Country_Code::THAILAND, false ],
+			'ZZ is supported'     => [ 'ZZ', true ],
 		];
 	}
 }

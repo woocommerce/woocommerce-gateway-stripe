@@ -158,7 +158,6 @@ class WC_Stripe_Settings_Controller {
 		// TODO: refactor this to a regex approach, we will need to touch `should_enqueue_in_current_tab_section` to support it
 		if ( ! ( WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe' )
 			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_sepa' )
-			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_giropay' )
 			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_ideal' )
 			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_bancontact' )
 			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_eps' )
@@ -216,7 +215,28 @@ class WC_Stripe_Settings_Controller {
 			// Show the Stripe Tax banner only if OC is enabled
 			&& $is_oc_enabled;
 
-		$is_ap_available_for_account = WC_Stripe_Helper::is_adaptive_pricing_available_for_account();
+		$is_ap_enabled    = 'yes' === $this->get_gateway()->get_option( 'adaptive_pricing' );
+		$is_india_account = 'IN' === $this->account->get_account_country();
+
+		$show_ocs_ap_banner = $is_oc_enabled
+			&& $is_ap_enabled
+			&& ! $is_india_account
+			&& 'yes' === get_option( 'wc_stripe_show_ocs_ap_banner', 'no' );
+
+		$show_ap_only_banner = $is_oc_enabled
+			&& $is_ap_enabled
+			&& ! $is_india_account
+			&& 'yes' === get_option( 'wc_stripe_show_ap_only_banner', 'no' );
+
+		$show_ocs_only_banner = $is_oc_enabled
+			&& ! $is_ap_enabled
+			&& 'yes' === get_option( 'wc_stripe_show_ocs_only_banner', 'no' );
+
+		$adaptive_pricing_unavailable_reason = WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason();
+		if ( null === $adaptive_pricing_unavailable_reason && ! WC_Stripe_Helper::is_checkout_sessions_available() ) {
+			$adaptive_pricing_unavailable_reason = 'disabled';
+		}
+		$is_checkout_sessions_available = null === $adaptive_pricing_unavailable_reason;
 
 		$params = [
 			'time'                                  => time(),
@@ -231,10 +251,10 @@ class WC_Stripe_Settings_Controller {
 			'plugin_version'                        => WC_STRIPE_VERSION,
 			'account_country'                       => $this->account->get_account_country(),
 			'are_apms_deprecated'                   => false,
-			'is_amazon_pay_available'               => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
 			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
 			'is_oc_enabled'                         => $is_oc_enabled,
-			'is_cs_available'                       => WC_Stripe_Feature_Flags::is_checkout_sessions_available() && $is_ap_available_for_account,
+			'is_cs_available'                       => $is_checkout_sessions_available,
+			'adaptive_pricing_unavailable_reason'   => $adaptive_pricing_unavailable_reason,
 			'oc_layout'                             => $this->get_gateway()->get_validated_option( 'optimized_checkout_layout' ),
 			'oauth_nonce'                           => wp_create_nonce( 'wc_stripe_get_oauth_url' ),
 			'is_sepa_tokens_for_ideal_enabled'      => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_ideal', 'no' ),
@@ -246,6 +266,7 @@ class WC_Stripe_Settings_Controller {
 			'taxes_based_on_billing'                => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
 			'is_card_method_enabled'                => in_array( WC_Stripe_Payment_Methods::CARD, $enabled_payment_methods, true ),
 			'is_agentic_commerce_enabled'           => WC_Stripe_Feature_Flags::is_agentic_commerce_enabled(),
+			'is_agentic_commerce_merchant_enabled'  => WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled(),
 			'agentic_commerce_import_sets_url'      => $this->get_gateway()->is_in_test_mode()
 				? 'https://dashboard.stripe.com/test/data-management/import-sets'
 				: 'https://dashboard.stripe.com/data-management/import-sets',

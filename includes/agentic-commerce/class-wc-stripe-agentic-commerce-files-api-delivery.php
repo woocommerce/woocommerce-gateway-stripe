@@ -34,21 +34,21 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	 *
 	 * @var string
 	 */
-	const FILES_API_ENDPOINT = 'https://files.stripe.com/v1/files';
+	public const FILES_API_ENDPOINT = 'https://files.stripe.com/v1/files';
 
 	/**
 	 * Stripe Data Management API endpoint.
 	 *
 	 * @var string
 	 */
-	const IMPORT_SETS_ENDPOINT = 'https://api.stripe.com/v1/data_management/import_sets';
+	public const IMPORT_SETS_ENDPOINT = 'https://api.stripe.com/v1/data_management/import_sets';
 
 	/**
 	 * Stripe Files API content endpoint.
 	 *
 	 * @var string
 	 */
-	const FILES_CONTENT_ENDPOINT = 'https://files.stripe.com/v1/files/';
+	public const FILES_CONTENT_ENDPOINT = 'https://files.stripe.com/v1/files/';
 
 	/**
 	 * Stripe API version for Data Management (preview).
@@ -56,7 +56,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	 *
 	 * @var string
 	 */
-	const API_VERSION = '2025-09-30.clover;udap_beta=v1';
+	public const API_VERSION = '2026-03-25.dahlia;udap_beta=v1';
 
 	/**
 	 * Stripe secret key.
@@ -174,9 +174,13 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 		);
 
 		// Step 2: Create ImportSet to trigger processing.
+		// Pass missing/null status through as an empty string so the integration
+		// can fall back to `pending` when an import_set_id was returned. Coercing
+		// to the literal `'unknown'` here would defeat that fallback and surface
+		// the dashboard's "?" badge for in-flight syncs.
 		$import_set    = $this->create_import_set( $file_id, $standard_data_format );
 		$import_set_id = $import_set['id'] ?? '';
-		$status        = $import_set['status'] ?? 'unknown';
+		$status        = $import_set['status'] ?? '';
 
 		WC_Stripe_Logger::info(
 			"Agentic Commerce: {$log_prefix} ImportSet created",
@@ -208,7 +212,6 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 		 * @since 10.5.0
 		 * @param array|null $pre       Short-circuit response or null.
 		 * @param string     $file_path The path to the feed file.
-		 * @return array|null
 		 */
 		$pre = apply_filters( 'wc_stripe_agentic_commerce_files_api_pre_request', null, $file_path );
 		if ( ! is_null( $pre ) ) {
@@ -306,7 +309,6 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 		 * @param array|null $pre                  Short-circuit response or null.
 		 * @param string     $file_id              Stripe file ID.
 		 * @param string     $standard_data_format Feed format string.
-		 * @return array|null
 		 */
 		$pre = apply_filters( 'wc_stripe_agentic_commerce_import_set_pre_request', null, $file_id, $standard_data_format );
 		if ( ! is_null( $pre ) ) {
@@ -395,12 +397,16 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 		$body      = wp_remote_retrieve_body( $response );
 
 		if ( $http_code < 200 || $http_code > 299 ) {
+			// The HTTP status rides on the exception code so callers can react
+			// to specific statuses (the refresh poll treats 404 as "wrong
+			// mode's key") without parsing the message.
 			throw new Exception(
 				sprintf(
 					'Stripe ImportSet status API returned HTTP %d: %s',
 					$http_code,
 					$this->parse_stripe_error( $body )
-				)
+				),
+				(int) $http_code
 			);
 		}
 

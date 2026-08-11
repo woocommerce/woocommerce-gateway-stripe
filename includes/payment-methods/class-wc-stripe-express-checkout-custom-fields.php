@@ -13,6 +13,22 @@ use Automattic\WooCommerce\StoreApi\Exceptions\RouteException;
 
 class WC_Stripe_Express_Checkout_Custom_Fields {
 	/**
+	 * Express checkout helper, used to gate processing to express checkout requests.
+	 *
+	 * @var WC_Stripe_Express_Checkout_Helper
+	 */
+	private $express_checkout_helper;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param WC_Stripe_Express_Checkout_Helper|null $express_checkout_helper Helper; created on demand when omitted.
+	 */
+	public function __construct( $express_checkout_helper = null ) {
+		$this->express_checkout_helper = $express_checkout_helper ?? new WC_Stripe_Express_Checkout_Helper();
+	}
+
+	/**
 	 * Perform necessary setup steps for supporting custom checkout fields in express checkout,
 	 * including registering space for the data in the Store API,
 	 * and hooking into the action that will let us process the data and update the order.
@@ -49,6 +65,12 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 	 * @return void
 	 */
 	public function process_custom_checkout_data( $order, $request ) {
+		// This hook fires for every Store API checkout, so skip non-express requests;
+		// otherwise required custom fields would block normal block/classic orders.
+		if ( ! $this->express_checkout_helper->is_express_checkout_context() ) {
+			return;
+		}
+
 		$custom_checkout_data = $this->get_custom_checkout_data_from_request( $request );
 
 		// Enforce required fields.
@@ -65,6 +87,12 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 		}
 
 		if ( ! empty( $required_field_errors ) ) {
+			// Only the classic checkout form can collect these values, so a request
+			// without the custom-data payload came from a page without that form
+			// (e.g. product or cart), where the buyer has no way to fill the fields in.
+			if ( ! $this->request_has_custom_checkout_data( $request ) ) {
+				$required_field_errors[] = __( 'Please go to the checkout page, fill in the required fields, and complete your order from there.', 'woocommerce-gateway-stripe' );
+			}
 			$error_messages = implode( "\n", $required_field_errors );
 			throw new RouteException( 'wc_stripe_express_checkout_missing_required_fields', $error_messages, 400 );
 		}
@@ -87,6 +115,19 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 			throw new RouteException( 'wc_stripe_express_checkout_invalid_data', $error_messages, 400 );
 		}
 
+		// Persist entered values only when no handler is hooked to the action
+		// below — hooked handlers own persistence, and writing from both sides
+		// duplicates the meta row. Skip unregistered keys: the payload is
+		// client-controlled and must not overwrite internal WC/Stripe meta.
+		if ( ! has_action( 'wc_stripe_express_checkout_update_order_meta' ) ) {
+			foreach ( $custom_checkout_data as $key => $value ) {
+				if ( ! isset( $custom_checkout_fields[ $key ] ) ) {
+					continue;
+				}
+				$order->update_meta_data( $key, $value );
+			}
+		}
+
 		/**
 		 * Allow third-party plugins to add custom checkout data for express checkout orders.
 		 *
@@ -98,6 +139,21 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 		 * @param array $custom_checkout_data The custom checkout data.
 		 */
 		do_action( 'wc_stripe_express_checkout_update_order_meta', $order->get_id(), $custom_checkout_data );
+	}
+
+	/**
+	 * Whether the request carries the express checkout custom-data payload.
+	 *
+	 * The client attaches the payload (even when empty) whenever a classic
+	 * checkout form is present on the page, so its absence identifies flows
+	 * started on pages where custom fields are not rendered.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return bool
+	 */
+	private function request_has_custom_checkout_data( $request ) {
+		$extensions = $request->get_param( 'extensions' );
+		return ! empty( $extensions['wc-stripe/express-checkout']['custom_checkout_data'] );
 	}
 
 	/**

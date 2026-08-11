@@ -24,7 +24,7 @@ class WC_REST_Stripe_Exit_Survey_Controller extends WC_Stripe_REST_Base_Controll
 	 *
 	 * @var string
 	 */
-	const OPTION_NAME = 'wc_stripe_exit_survey_last_shown';
+	public const OPTION_NAME = 'wc_stripe_exit_survey_last_shown';
 
 	/**
 	 * Register routes.

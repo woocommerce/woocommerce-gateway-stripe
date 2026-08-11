@@ -65,11 +65,11 @@ trait WC_Stripe_Pre_Orders_Trait {
 	 *
 	 * @since 5.8.0
 	 *
-	 * @param  int $order_id
+	 * @param  int|WC_Order $order_or_order_id The order ID or order object.
 	 * @return bool
 	 */
-	public function has_pre_order( $order_id ) {
-		return $this->is_pre_orders_enabled() && class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Order::order_contains_pre_order( $order_id );
+	public function has_pre_order( $order_or_order_id ) {
+		return $this->is_pre_orders_enabled() && class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Order::order_contains_pre_order( $order_or_order_id );
 	}
 
 	/**
@@ -269,7 +269,16 @@ trait WC_Stripe_Pre_Orders_Trait {
 			$is_authentication_required = $this->is_authentication_required_for_payment( $response ); // @phpstan-ignore-line (is_authentication_required_for_payment is defined in the classes that use this trait)
 
 			if ( ! empty( $response->error ) && ! $is_authentication_required ) {
-				if ( ! $retry ) {
+				// Fall back to the customer's default source only when the order's own
+				// source no longer exists in Stripe; any other error (e.g. a decline)
+				// fails the order. WC_Stripe_Subscriptions_Trait applies the same gate
+				// to renewal retries.
+				$gateway        = WC_Stripe::get_instance()->get_main_stripe_gateway();
+				$source_is_gone = $gateway->is_no_such_source_error( $response->error )
+					|| $gateway->is_no_linked_source_error( $response->error );
+
+				/** This filter is documented in includes/compat/trait-wc-stripe-subscriptions.php. */
+				if ( ! $retry || ! $source_is_gone || ! apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
 					throw new Exception( $response->error->message );
 				}
 				$this->remove_order_source_before_retry( $order );
@@ -287,6 +296,9 @@ trait WC_Stripe_Pre_Orders_Trait {
 
 				WC_Emails::instance();
 
+				/**
+				 * This action is documented in includes/compat/trait-wc-stripe-subscriptions.php.
+				 */
 				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $order );
 
 				throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );

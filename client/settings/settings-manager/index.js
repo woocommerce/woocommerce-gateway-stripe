@@ -6,6 +6,7 @@ import { isEmpty } from 'lodash';
 import SettingsLayout from '../settings-layout';
 import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';
+import AgenticCommerceSection from '../agentic-commerce';
 import SaveSettingsSection from '../save-settings-section';
 import { useEnabledPaymentMethodIds, useSettings } from '../../data';
 import { TabPanel } from '@wordpress/components';
@@ -14,11 +15,6 @@ import { useEffect } from '@wordpress/element';
 import { useAccount } from 'wcstripe/data/account';
 import OCToggleContext from 'wcstripe/settings/oc-toggle/context';
 import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
-import {
-	BNPL_PROMOTION_BANNER,
-	OC_PROMOTION_BANNER,
-	STRIPE_TAX_BANNER,
-} from 'wcstripe/settings/payment-settings/constants';
 import ExitSurveyModal, {
 	isCooldownActive,
 } from 'wcstripe/components/exit-survey-modal';
@@ -30,7 +26,7 @@ const StyledTabPanel = styled( TabPanel )`
 	}
 `;
 
-const TABS = [
+const getTabs = ( isAgenticCommerceEnabled ) => [
 	{
 		name: 'methods',
 		title: __( 'Payment Methods', 'woocommerce-gateway-stripe' ),
@@ -39,6 +35,17 @@ const TABS = [
 		name: 'settings',
 		title: __( 'Settings', 'woocommerce-gateway-stripe' ),
 	},
+	...( isAgenticCommerceEnabled
+		? [
+				{
+					name: 'agentic-commerce',
+					title: __(
+						'Agentic Commerce',
+						'woocommerce-gateway-stripe'
+					),
+				},
+		  ]
+		: [] ),
 ];
 
 const SettingsManager = () => {
@@ -57,28 +64,7 @@ const SettingsManager = () => {
 		isOCEnabled,
 		enabledPaymentMethodIds
 	);
-	let initialBannerState;
-	if (
-		promotionalBannerType === BNPL_PROMOTION_BANNER &&
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.show_bnpl_promotional_banner === '1'
-	) {
-		initialBannerState = true;
-	}
-	if (
-		promotionalBannerType === STRIPE_TAX_BANNER &&
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.show_stripe_tax_banner === '1'
-	) {
-		initialBannerState = true;
-	}
-	if (
-		promotionalBannerType === OC_PROMOTION_BANNER &&
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.show_oc_promotional_banner === '1'
-	) {
-		initialBannerState = true;
-	}
+	const initialBannerState = promotionalBannerType !== null;
 	const [ showPromotionalBanner, setShowPromotionalBanner ] =
 		useState( initialBannerState );
 
@@ -122,12 +108,12 @@ const SettingsManager = () => {
 		updateQueryString( { panel: tabName }, '/', getQuery() );
 	};
 
-	const getInitialTab = () => {
-		if ( panel === 'settings' ) {
-			return 'settings';
-		}
+	const tabs = getTabs( isAgenticCommerceEnabled );
 
-		return 'methods';
+	const getInitialTab = () => {
+		const requestedTab = tabs.find( ( { name } ) => name === panel );
+
+		return requestedTab ? requestedTab.name : 'methods';
 	};
 
 	return (
@@ -145,7 +131,7 @@ const SettingsManager = () => {
 			<StyledTabPanel
 				className="wc-stripe-account-settings-panel"
 				initialTabName={ getInitialTab() }
-				tabs={ TABS }
+				tabs={ tabs }
 				onSelect={ updatePanelUri }
 			>
 				{ ( tab ) => (
@@ -159,10 +145,6 @@ const SettingsManager = () => {
 								promotionalBannerType={ promotionalBannerType }
 								isOCEnabled={ isOCEnabled }
 								setIsOCEnabled={ setIsOCEnabled }
-								isAgenticCommerceEnabled={
-									isAgenticCommerceEnabled
-								}
-								agenticSaveRef={ agenticSaveRef }
 							/>
 						) }
 						{ tab.name === 'methods' && (
@@ -177,10 +159,13 @@ const SettingsManager = () => {
 								setIsOCEnabled={ setIsOCEnabled }
 							/>
 						) }
+						{ tab.name === 'agentic-commerce' && (
+							<AgenticCommerceSection ref={ agenticSaveRef } />
+						) }
 						<SaveSettingsSection
 							onSettingsSave={ onSettingsSave }
 							agenticSaveRef={
-								tab.name === 'settings'
+								tab.name === 'agentic-commerce'
 									? agenticSaveRef
 									: undefined
 							}

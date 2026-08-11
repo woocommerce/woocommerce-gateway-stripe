@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/helpers/class-wc-stripe-option-inspector.php';
+require_once __DIR__ . '/helpers/class-wc-stripe-webhook-state-fixtures.php';
+
 /**
  * These tests make assertions against class WC_Stripe_Webhook_State.
  *
@@ -294,5 +297,390 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 			'timestamp mismatch' => [ 'timestamp_mismatch', '/timestamp in the webhook differed more than five minutes/', false ],
 			'signature mismatch' => [ 'signature_mismatch', '/was not signed with the expected signing secret/', false ],
 		];
+	}
+
+	/**
+	 * Tests the integer getter methods correctly return integer values
+	 * for stored integer and stringified integer values.
+	 *
+	 * @param string     $option_constant Constant name on WC_Stripe_Webhook_State that references the option name.
+	 * @param string     $getter_method   Static getter under test.
+	 * @param int|string $stored_value    Value to store via update_option.
+	 * @param int        $expected        Expected return value.
+	 * @dataProvider provide_integer_getter_integer_values
+	 */
+	public function test_integer_getters_coerce_integer_values( string $option_constant, string $getter_method, $stored_value, int $expected ) {
+		$this->set_testmode( 'no' );
+		$option_name = constant( 'WC_Stripe_Webhook_State::' . $option_constant );
+		update_option( $option_name, $stored_value );
+
+		$actual = call_user_func( [ 'WC_Stripe_Webhook_State', $getter_method ] );
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Data provider for {@see test_integer_getters_coerce_integer_values()}.
+	 *
+	 * @return array
+	 */
+	public function provide_integer_getter_integer_values(): array {
+		$getters = [
+			[ 'OPTION_LIVE_LAST_SUCCESS_AT', 'get_last_webhook_success_at' ],
+			[ 'OPTION_LIVE_LAST_FAILURE_AT', 'get_last_webhook_failure_at' ],
+			[ 'OPTION_LIVE_PENDING_WEBHOOKS', 'get_pending_webhooks_count' ],
+		];
+
+		$cases = [];
+		foreach ( $getters as [ $option_constant, $method ] ) {
+			$cases[ $method . ' / integer' ]             = [ $option_constant, $method, 1234567890, 1234567890 ];
+			$cases[ $method . ' / stringified integer' ] = [ $option_constant, $method, '1234567890', 1234567890 ];
+			$cases[ $method . ' / zero integer' ]        = [ $option_constant, $method, 0, 0 ];
+			$cases[ $method . ' / stringified zero' ]    = [ $option_constant, $method, '0', 0 ];
+		}
+
+		return $cases;
+	}
+
+	/**
+	 * Tests that the integer getters return 0 for any non-integer stored value.
+	 *
+	 * @param string $option_constant Constant suffix on WC_Stripe_Webhook_State for the option name.
+	 * @param string $getter_method   Static getter under test.
+	 * @param mixed  $stored_value    Value to store via update_option.
+	 * @dataProvider provide_integer_getter_non_integer_values
+	 */
+	public function test_integer_getters_return_zero_for_non_integer_values( string $option_constant, string $getter_method, $stored_value ) {
+		$this->set_testmode( 'no' );
+		$option_name = constant( 'WC_Stripe_Webhook_State::' . $option_constant );
+		update_option( $option_name, $stored_value );
+
+		$actual = call_user_func( [ 'WC_Stripe_Webhook_State', $getter_method ] );
+		$this->assertSame( 0, $actual );
+	}
+
+	/**
+	 * Data provider for {@see test_integer_getters_return_zero_for_non_integer_values()}.
+	 *
+	 * @return array
+	 */
+	public function provide_integer_getter_non_integer_values(): array {
+		$getters = [
+			[ 'OPTION_LIVE_LAST_SUCCESS_AT', 'get_last_webhook_success_at' ],
+			[ 'OPTION_LIVE_LAST_FAILURE_AT', 'get_last_webhook_failure_at' ],
+			[ 'OPTION_LIVE_PENDING_WEBHOOKS', 'get_pending_webhooks_count' ],
+		];
+
+		$invalid_values = [
+			'negative integer string' => '-1',
+			'float'                   => 1.5,
+			'float string'            => '1.5',
+			'leading whitespace'      => ' 123',
+			'trailing whitespace'     => '123 ',
+			'alphabetic string'       => 'abc',
+			'alphanumeric string'     => '123abc',
+			'empty string'            => '',
+			// Note: true is stored as '1' in the database, so it's handled as an integer.
+			'boolean false'           => false,
+		];
+
+		$cases = [];
+		foreach ( $getters as [ $option_constant, $method ] ) {
+			foreach ( $invalid_values as $description => $value ) {
+				$cases[ $method . ' / ' . $description ] = [ $option_constant, $method, $value ];
+			}
+		}
+
+		return $cases;
+	}
+	/**
+	 * The integer getters must handle options that have unexpected values, including non-scalar values.
+	 *
+	 * @param string $mode            The mode the test should be run in.
+	 * @param string $option_constant Constant on WC_Stripe_Webhook_State naming the option.
+	 * @param string $getter_method   Static getter under test.
+	 * @param mixed  $stored_value    Corrupt value written directly to the option.
+	 * @dataProvider provide_integer_getter_non_scalar_values
+	 */
+	public function test_integer_getters_return_zero_for_non_scalar_values( string $mode, string $option_constant, string $getter_method, $stored_value ) {
+		$this->set_testmode( 'test' === $mode ? 'yes' : 'no' );
+		update_option( constant( 'WC_Stripe_Webhook_State::' . $option_constant ), $stored_value );
+
+		$this->assertSame( 0, call_user_func( [ 'WC_Stripe_Webhook_State', $getter_method ] ) );
+	}
+
+	/**
+	 * Data provider for {@see test_integer_getters_return_zero_for_non_scalar_values()}.
+	 *
+	 * @return array
+	 */
+	public function provide_integer_getter_non_scalar_values(): array {
+		// get_monitoring_began_at() inserts a fresh timestamp when it reads 0, so it gets its own
+		// test below rather than appearing here.
+		$getters = [
+			[ 'live', 'OPTION_LIVE_LAST_SUCCESS_AT', 'get_last_webhook_success_at' ],
+			[ 'live', 'OPTION_LIVE_LAST_FAILURE_AT', 'get_last_webhook_failure_at' ],
+			[ 'live', 'OPTION_LIVE_PENDING_WEBHOOKS', 'get_pending_webhooks_count' ],
+			[ 'test', 'OPTION_TEST_LAST_SUCCESS_AT', 'get_last_webhook_success_at' ],
+			[ 'test', 'OPTION_TEST_LAST_FAILURE_AT', 'get_last_webhook_failure_at' ],
+			[ 'test', 'OPTION_TEST_PENDING_WEBHOOKS', 'get_pending_webhooks_count' ],
+		];
+
+		$cases = [];
+		foreach ( $getters as [ $mode, $option_constant, $method ] ) {
+			foreach ( self::get_non_scalar_option_values() as $description => $value ) {
+				$cases[ $method . "[$mode] / " . $description ] = [ $mode, $option_constant, $method, $value ];
+			}
+		}
+
+		return $cases;
+	}
+
+	/**
+	 * A corrupt monitoring timestamp must be treated as "never set" and replaced with a real one.
+	 *
+	 * @param string $mode         The mode the test should be run in.
+	 * @param mixed  $stored_value Corrupt value written directly to the option.
+	 * @dataProvider provide_non_scalar_option_values_with_mode
+	 */
+	public function test_get_monitoring_began_at_recovers_from_non_scalar_values( string $mode, $stored_value ) {
+		$this->set_testmode( 'test' === $mode ? 'yes' : 'no' );
+		$option_name = 'test' === $mode ? WC_Stripe_Webhook_State::OPTION_TEST_MONITORING_BEGAN_AT : WC_Stripe_Webhook_State::OPTION_LIVE_MONITORING_BEGAN_AT;
+		update_option( $option_name, $stored_value );
+
+		$start_time = time();
+		$began_at   = WC_Stripe_Webhook_State::get_monitoring_began_at();
+		$end_time   = time();
+
+		$this->assertIsInt( $began_at );
+		$this->assertGreaterThanOrEqual( $start_time, $began_at, 'A corrupt monitoring timestamp should be replaced with the current time.' );
+		$this->assertLessThanOrEqual( $end_time, $began_at, 'A corrupt monitoring timestamp should be replaced with the current time.' );
+		$this->assertSame(
+			(string) $began_at,
+			WC_Stripe_Option_Inspector::read_option_as_string( $option_name ),
+			'The corrupt value should have been overwritten with a plain integer.'
+		);
+	}
+
+	/**
+	 * The integer setters must ignore anything that is not an unsigned integer, leaving the option as-is.
+	 *
+	 * @param string $mode            The mode the test should be run in.
+	 * @param string $option_constant Constant on WC_Stripe_Webhook_State naming the option.
+	 * @param string $setter_method   Static setter under test.
+	 * @param mixed  $value           Value passed to the setter.
+	 * @dataProvider provide_integer_setter_invalid_values
+	 */
+	public function test_integer_setters_ignore_invalid_values( string $mode, string $option_constant, string $setter_method, $value ) {
+		$this->set_testmode( 'test' === $mode ? 'yes' : 'no' );
+		$option_name = constant( 'WC_Stripe_Webhook_State::' . $option_constant );
+		delete_option( $option_name );
+
+		call_user_func( [ 'WC_Stripe_Webhook_State', $setter_method ], $value );
+
+		$this->assertNull(
+			WC_Stripe_Option_Inspector::read_option_as_string( $option_name ),
+			'An invalid value must not create the option.'
+		);
+	}
+
+	/**
+	 * The same rejection must not clobber a value a legitimate webhook already stored.
+	 *
+	 * @param string $mode            The mode the test should be run in.
+	 * @param string $option_constant Constant on WC_Stripe_Webhook_State naming the option.
+	 * @param string $setter_method   Static setter under test.
+	 * @param mixed  $value           Value passed to the setter.
+	 * @dataProvider provide_integer_setter_invalid_values
+	 */
+	public function test_integer_setters_preserve_existing_values_when_given_invalid_input( string $mode, string $option_constant, string $setter_method, $value ) {
+		$this->set_testmode( 'test' === $mode ? 'yes' : 'no' );
+		$option_name = constant( 'WC_Stripe_Webhook_State::' . $option_constant );
+		update_option( $option_name, 1700000000 );
+		$before = WC_Stripe_Option_Inspector::read_option_as_string( $option_name );
+
+		call_user_func( [ 'WC_Stripe_Webhook_State', $setter_method ], $value );
+
+		$this->assertSame(
+			$before,
+			WC_Stripe_Option_Inspector::read_option_as_string( $option_name ),
+			'An invalid value must leave the stored value unchanged.'
+		);
+	}
+
+	/**
+	 * Data provider for the invalid-input setter tests.
+	 *
+	 * @return array
+	 */
+	public function provide_integer_setter_invalid_values(): array {
+		$setters = [
+			[ 'live', 'OPTION_LIVE_LAST_SUCCESS_AT', 'set_last_webhook_success_at' ],
+			[ 'live', 'OPTION_LIVE_LAST_FAILURE_AT', 'set_last_webhook_failure_at' ],
+			[ 'live', 'OPTION_LIVE_PENDING_WEBHOOKS', 'set_pending_webhooks_count' ],
+			[ 'test', 'OPTION_TEST_LAST_SUCCESS_AT', 'set_last_webhook_success_at' ],
+			[ 'test', 'OPTION_TEST_LAST_FAILURE_AT', 'set_last_webhook_failure_at' ],
+			[ 'test', 'OPTION_TEST_PENDING_WEBHOOKS', 'set_pending_webhooks_count' ],
+		];
+
+		$invalid_values = array_merge(
+			self::get_non_scalar_option_values(),
+			[
+				'negative integer'        => -1,
+				'negative integer string' => '-1',
+				'float'                   => 1.5,
+				'float string'            => '1.5',
+				'leading whitespace'      => ' 123',
+				'trailing whitespace'     => '123 ',
+				'alphabetic string'       => 'abc',
+				'alphanumeric string'     => '123abc',
+				'empty string'            => '',
+				'boolean false'           => false,
+				'hex string'              => '0x1A',
+				'scientific notation'     => '1e3',
+			]
+		);
+
+		$cases = [];
+		foreach ( $setters as [ $mode, $option_constant, $method ] ) {
+			foreach ( $invalid_values as $description => $value ) {
+				$cases[ $method . "[$mode] / " . $description ] = [ $mode, $option_constant, $method, $value ];
+			}
+		}
+
+		return $cases;
+	}
+
+	/**
+	 * Valid input must still round-trip, and must be normalised to a plain integer on the way in so
+	 * later reads never have to guess at the stored type.
+	 *
+	 * @param string     $mode            The mode the test should be run in.
+	 * @param string     $option_constant Constant on WC_Stripe_Webhook_State naming the option.
+	 * @param string     $setter_method   Static setter under test.
+	 * @param string     $getter_method   Matching static getter.
+	 * @param int|string $value           Value passed to the setter.
+	 * @param int        $expected        Expected stored and returned value.
+	 * @dataProvider provide_integer_setter_valid_values
+	 */
+	public function test_integer_setters_store_valid_values_as_integers( string $mode, string $option_constant, string $setter_method, string $getter_method, $value, int $expected ) {
+		$this->set_testmode( 'test' === $mode ? 'yes' : 'no' );
+		$option_name = constant( 'WC_Stripe_Webhook_State::' . $option_constant );
+		delete_option( $option_name );
+
+		call_user_func( [ 'WC_Stripe_Webhook_State', $setter_method ], $value );
+
+		$this->assertSame( (string) $expected, WC_Stripe_Option_Inspector::read_option_as_string( $option_name ) );
+		$this->assertSame( $expected, call_user_func( [ 'WC_Stripe_Webhook_State', $getter_method ] ) );
+	}
+
+	/**
+	 * Data provider for {@see test_integer_setters_store_valid_values_as_integers()}.
+	 *
+	 * @return array
+	 */
+	public function provide_integer_setter_valid_values(): array {
+		$accessors = [
+			[ 'live', 'OPTION_LIVE_LAST_SUCCESS_AT', 'set_last_webhook_success_at', 'get_last_webhook_success_at' ],
+			[ 'live', 'OPTION_LIVE_LAST_FAILURE_AT', 'set_last_webhook_failure_at', 'get_last_webhook_failure_at' ],
+			[ 'live', 'OPTION_LIVE_PENDING_WEBHOOKS', 'set_pending_webhooks_count', 'get_pending_webhooks_count' ],
+			[ 'test', 'OPTION_TEST_LAST_SUCCESS_AT', 'set_last_webhook_success_at', 'get_last_webhook_success_at' ],
+			[ 'test', 'OPTION_TEST_LAST_FAILURE_AT', 'set_last_webhook_failure_at', 'get_last_webhook_failure_at' ],
+			[ 'test', 'OPTION_TEST_PENDING_WEBHOOKS', 'set_pending_webhooks_count', 'get_pending_webhooks_count' ],
+		];
+
+		$valid_values = [
+			'integer'             => [ 1700000000, 1700000000 ],
+			'stringified integer' => [ '1700000000', 1700000000 ],
+			'zero integer'        => [ 0, 0 ],
+			'stringified zero'    => [ '0', 0 ],
+			// true is stringified to '1' by WordPress before storage, so it is a valid integer here.
+			'boolean true'        => [ true, 1 ],
+		];
+
+		$cases = [];
+		foreach ( $accessors as [ $mode, $option_constant, $setter, $getter ] ) {
+			foreach ( $valid_values as $description => [ $value, $expected ] ) {
+				$cases[ $setter . "[$mode] / " . $description ] = [ $mode, $option_constant, $setter, $getter, $value, $expected ];
+			}
+		}
+
+		return $cases;
+	}
+
+	/**
+	 * The reporting methods must render a usable status from already-corrupt options rather than
+	 * fataling. These are what the admin status surfaces and the account REST controller render, so
+	 * a fatal here takes out the whole screen.
+	 *
+	 * @param mixed $corrupt_value Value written directly into the webhook health options.
+	 * @dataProvider provide_non_scalar_option_values_with_mode
+	 */
+	public function test_status_reporting_survives_corrupt_options( string $mode, $corrupt_value ) {
+		$this->set_testmode( 'test' === $mode ? 'yes' : 'no' );
+
+		WC_Stripe_Webhook_State_Fixtures::corrupt_all_options( $corrupt_value );
+
+		$this->assertIsInt( WC_Stripe_Webhook_State::get_webhook_status_code() );
+		$this->assertIsString( WC_Stripe_Webhook_State::get_webhook_status_message() );
+		$this->assertIsString( WC_Stripe_Webhook_State::get_last_error_reason() );
+		$this->assertIsArray( WC_Stripe_Webhook_State::get_configured_webhook_urls() );
+		$this->assertIsInt( WC_Stripe_Webhook_State::get_last_webhook_success_at() );
+		$this->assertIsInt( WC_Stripe_Webhook_State::get_last_webhook_failure_at() );
+		$this->assertIsInt( WC_Stripe_Webhook_State::get_pending_webhooks_count() );
+	}
+
+	/**
+	 * clear_state() must remove corrupt values rather than tripping over them.
+	 *
+	 * @param mixed $corrupt_value Value written directly into the webhook health options.
+	 * @dataProvider provide_non_scalar_option_values
+	 */
+	public function test_clear_state_removes_corrupt_options( $corrupt_value ) {
+		WC_Stripe_Webhook_State_Fixtures::corrupt_all_options( $corrupt_value );
+
+		WC_Stripe_Webhook_State::clear_state();
+
+		foreach ( WC_Stripe_Webhook_State_Fixtures::get_all_option_names() as $option_name ) {
+			$this->assertNull( WC_Stripe_Option_Inspector::read_option_as_string( $option_name ) );
+		}
+	}
+
+	/**
+	 * Data provider exposing {@see self::get_non_scalar_option_values()} directly.
+	 *
+	 * @return array
+	 */
+	public function provide_non_scalar_option_values(): array {
+		$cases = [];
+		foreach ( self::get_non_scalar_option_values() as $description => $value ) {
+			$cases[ $description ] = [ $value ];
+		}
+
+		return $cases;
+	}
+
+	/**
+	 * Data provider exposing {@see self::get_non_scalar_option_values()} along with the mode the test should be run in.
+	 *
+	 * @return array
+	 */
+	public function provide_non_scalar_option_values_with_mode(): array {
+		$cases = [];
+		foreach ( self::get_non_scalar_option_values() as $description => $value ) {
+			$cases[ $description . ' [live]' ] = [ 'live', $value ];
+			$cases[ $description . ' [test]' ] = [ 'test', $value ];
+		}
+
+		return $cases;
+	}
+	/**
+	 * The non-scalar shapes an integer-typed option must never accept or choke on.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function get_non_scalar_option_values(): array {
+		// `null` is only meaningful for the setters: update_option() stores it as an empty string,
+		// so it can never come back out of the database as null.
+		return array_merge( WC_Stripe_Webhook_State_Fixtures::get_corrupt_non_integer_values(), [ 'null' => null ] );
 	}
 }

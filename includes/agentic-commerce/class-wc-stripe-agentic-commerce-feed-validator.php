@@ -30,6 +30,14 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	private const VARIANT_ATTRIBUTES = [ 'color', 'size', 'material', 'gender', 'size_system' ];
 
 	/**
+	 * Cap on the number of failing products retained in detail by
+	 * {@see self::$collected_errors}. Anything past the cap is counted in
+	 * {@see self::$overflow_count} so the eventual log entry stays bounded
+	 * regardless of catalog size.
+	 */
+	protected const MAX_COLLECTED_ERRORS = 50;
+
+	/**
 	 * Stripe feed schema definition.
 	 *
 	 * @var array
@@ -44,6 +52,43 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	 * @var array<string, string[]>
 	 */
 	protected array $variant_attribute_sets = [];
+
+	/**
+	 * Per-product validation failures accumulated during this validator's
+	 * lifetime. Maps product_id => list of error messages. Capped at
+	 * {@see self::MAX_COLLECTED_ERRORS}; subsequent failures bump
+	 * {@see self::$overflow_count} instead.
+	 *
+	 * @var array<int, string[]>
+	 */
+	protected array $collected_errors = [];
+
+	/**
+	 * Number of additional products with validation failures beyond
+	 * {@see self::MAX_COLLECTED_ERRORS} — used to expose a "+ N truncated"
+	 * trailer to the caller without keeping the full payload.
+	 *
+	 * @var int
+	 */
+	protected int $overflow_count = 0;
+
+	/**
+	 * Products dropped by the visibility filter, not by validation. The caller
+	 * subtracts this from the skip total so exclusions don't log as failures or
+	 * trigger "Partial success".
+	 *
+	 * @since 10.8.0
+	 * @var int
+	 */
+	protected int $excluded_count = 0;
+
+	/**
+	 * Non-empty return from {@see self::validate_entry()} for an excluded product,
+	 * so the walker drops the row without recording it as a validation error.
+	 *
+	 * @since 10.8.0
+	 */
+	private const EXCLUDED_SENTINEL = '__excluded_by_filter__';
 
 	/**
 	 * Initialize validator with schema.
@@ -63,6 +108,15 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	 * @return array Array of validation error messages (empty if valid).
 	 */
 	public function validate_entry( array $row, \WC_Product $product ): array {
+		// An excluded product arrives as an empty row (map_product()'s skip signal):
+		// drop it as an exclusion, not a validation failure. The non-empty return
+		// makes the walker skip add_entry; the empty-row guard keeps the filter
+		// check off the normal path.
+		if ( empty( $row ) && ! WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) ) {
+			++$this->excluded_count;
+			return [ self::EXCLUDED_SENTINEL ];
+		}
+
 		$errors = array_merge(
 			// Validate required fields.
 			$this->validate_required_fields( $row ),
@@ -82,7 +136,47 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 		 * @param array       $row     Product data row.
 		 * @param \WC_Product $product Product object.
 		 */
-		return apply_filters( 'wc_stripe_agentic_commerce_validation_errors', $errors, $row, $product );
+		$errors = apply_filters( 'wc_stripe_agentic_commerce_validation_errors', $errors, $row, $product );
+
+		// Accumulate failing rows so the caller can emit a single rolled-up log
+		// entry per sync rather than one line per product (which would bloat
+		// logs on a catalog with systemic schema issues). Cap retained detail
+		// at MAX_COLLECTED_ERRORS; everything past the cap is counted into
+		// $overflow_count instead.
+		if ( ! empty( $errors ) ) {
+			if ( count( $this->collected_errors ) < self::MAX_COLLECTED_ERRORS ) {
+				$this->collected_errors[ $product->get_id() ] = $errors;
+			} else {
+				++$this->overflow_count;
+			}
+		}
+
+		return $errors;
+	}
+
+	/**
+	 * Return the per-product validation failures accumulated by this
+	 * validator. Intended for the caller (the integration) to log once at
+	 * the end of a sync, rather than the validator logging per-row.
+	 *
+	 * @since 10.7.0
+	 * @return array{products: array<int, string[]>, truncated: int}
+	 */
+	public function get_collected_errors(): array {
+		return [
+			'products'  => $this->collected_errors,
+			'truncated' => $this->overflow_count,
+		];
+	}
+
+	/**
+	 * Count of products dropped by the visibility filter this run.
+	 *
+	 * @since 10.8.0
+	 * @return int
+	 */
+	public function get_excluded_count(): int {
+		return $this->excluded_count;
 	}
 
 	/**

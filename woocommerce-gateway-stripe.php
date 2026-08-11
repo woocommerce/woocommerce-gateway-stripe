@@ -5,12 +5,12 @@
  * Description: Accept debit and credit card payments in 135+ currencies, as well as Apple Pay, Google Pay, Klarna, Affirm, P24, ACH, and more.
  * Author: Stripe
  * Author URI: https://stripe.com/
- * Version: 10.6.1
+ * Version: 10.8.5
  * Requires Plugins: woocommerce
- * Requires at least: 6.7
- * Tested up to: 6.9.4
- * WC requires at least: 10.5
- * WC tested up to: 10.7
+ * Requires at least: 6.8
+ * Tested up to: 7.0
+ * WC requires at least: 10.8
+ * WC tested up to: 11.0
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -22,10 +22,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '10.6.1' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '10.8.5' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.4' );
-define( 'WC_STRIPE_MIN_WC_VER', '10.3' );
-define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '10.4' );
+define( 'WC_STRIPE_MIN_WC_VER', '10.8' );
+define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '10.9' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
 define( 'WC_STRIPE_ABSPATH', __DIR__ . '/' );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugin_dir_url( WC_STRIPE_MAIN_FILE ) ) );
@@ -76,16 +76,34 @@ function woocommerce_stripe_wc_not_supported() {
 	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), esc_html( WC_STRIPE_MIN_WC_VER ), esc_html( WC_VERSION ) ) . '</strong></p></div>';
 }
 
+/**
+ * Initialize the autoloader for the plugin.
+ *
+ * @since 10.8.0
+ * @return bool Return whether the autoloader is available.
+ */
+function woocommerce_stripe_init_autoloader(): bool {
+	static $autoloader_initialized = null;
+	if ( true === $autoloader_initialized ) {
+		return true;
+	}
+
+	$autoloader_initialized = false;
+
+	if ( file_exists( WC_STRIPE_PLUGIN_PATH . '/vendor/autoload.php' ) ) {
+		$autoloader_initialized = true;
+		require_once WC_STRIPE_PLUGIN_PATH . '/vendor/autoload.php';
+	}
+
+	return $autoloader_initialized;
+}
+
 function woocommerce_gateway_stripe() {
 
 	static $plugin;
 
 	if ( ! isset( $plugin ) ) {
-		// Attempts to include the default composer autoloader.
-		$autoload_filepath = WC_STRIPE_PLUGIN_PATH . '/vendor/autoload.php';
-		if ( file_exists( $autoload_filepath ) ) {
-			require $autoload_filepath;
-		}
+		woocommerce_stripe_init_autoloader();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe.php';
 
@@ -138,14 +156,16 @@ function wc_stripe_set_settings_redirection_transient(): void {
 }
 
 function wcstripe_deactivated(): void {
+	// If we don't have the autoloader available, return early before we call any dependent code.
+	// This should only occur in development environments.
+	if ( ! woocommerce_stripe_init_autoloader() ) {
+		return;
+	}
+
 	// admin notes are not supported on older versions of WooCommerce.
-	require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
 	if ( class_exists( 'WC_Stripe_Inbox_Notes' ) && WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
 		// requirements for the note
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
-		WC_Stripe_UPE_Availability_Note::possibly_delete_note();
-
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
 		WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
 	}

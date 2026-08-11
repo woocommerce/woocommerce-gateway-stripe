@@ -5,6 +5,8 @@
  * @package WooCommerce\Stripe\Tests
  */
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 /**
  * Class WC_Stripe_Agentic_Commerce_Order_Mapper_Test
  *
@@ -27,6 +29,13 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	private $default_product;
 
 	/**
+	 * Filter callback that allowlists the agentic `created_via` value for `payment_complete()`.
+	 *
+	 * @var callable|null
+	 */
+	private $payment_complete_filter;
+
+	/**
 	 * Setup test environment before each test.
 	 *
 	 * @return void
@@ -47,6 +56,17 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 				'sku'           => 'MAPPER-DEFAULT-' . uniqid(),
 			]
 		);
+
+		// WC 10.8+ blocks payment_complete() unless `created_via` is allowlisted.
+		// In production the integration's register_hooks() wires this up; mirror it here.
+		$this->payment_complete_filter = function ( $allowed ) {
+			if ( ! is_array( $allowed ) ) {
+				$allowed = [];
+			}
+			$allowed[] = WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA;
+			return $allowed;
+		};
+		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', $this->payment_complete_filter );
 	}
 
 	/**
@@ -55,6 +75,10 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function tearDown(): void {
+		if ( $this->payment_complete_filter ) {
+			remove_filter( 'woocommerce_payment_complete_allowed_created_via_values', $this->payment_complete_filter );
+			$this->payment_complete_filter = null;
+		}
 		if ( $this->default_product ) {
 			$this->default_product->delete( true );
 		}
@@ -106,6 +130,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		$this->assertGreaterThan( 0, $order->get_id() );
 		$this->assertEquals( '25.00', $order->get_total() );
 		$this->assertEquals( 'processing', $order->get_status() );
+		$this->assertEquals( WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA, $order->get_created_via() );
 
 		$order->delete( true );
 		$product->delete( true );
@@ -1033,6 +1058,27 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that a session carrying a Stripe-side discount is rejected with an
+	 * explicit error before the order is built.
+	 */
+	public function test_exception_thrown_for_discounted_session() {
+		$session = $this->build_checkout_session(
+			[
+				'total_details' => (object) [
+					'amount_shipping' => 0,
+					'amount_tax'      => 0,
+					'amount_discount' => 500,
+				],
+			]
+		);
+
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'discounts are not supported' );
+
+		$this->mapper->create_order_from_checkout_session( $session );
+	}
+
+	/**
 	 * Test creating an order with multiple line items.
 	 *
 	 * @return void
@@ -1406,18 +1452,28 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that map_shipping throws when no matching rate is found.
-	 *
-	 * Disables shipping entirely so WC returns no rates, guaranteeing
-	 * the "not available" exception regardless of leaked zones.
+	 * Falls back to a free-form shipping line built from the Stripe rate when
+	 * WC returns no matching rate. Disables shipping entirely so the fallback
+	 * path runs regardless of any zones leaked from prior tests.
 	 */
-	public function test_shipping_throws_when_no_matching_rate() {
+	public function test_shipping_falls_back_to_free_form_line_when_no_match() {
 		$original = get_option( 'woocommerce_ship_to_countries' );
 		update_option( 'woocommerce_ship_to_countries', 'disabled' );
 
+		\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		WC()->shipping()->reset_shipping();
+
 		$session = $this->build_checkout_session(
 			[
-				'shipping_cost' => (object) [
+				// Default product is $10; add $9.99 shipping → $19.99 total.
+				'amount_total'    => 1999,
+				'amount_subtotal' => 1000,
+				'total_details'   => (object) [
+					'amount_shipping' => 999,
+					'amount_tax'      => 0,
+					'amount_discount' => 0,
+				],
+				'shipping_cost'   => (object) [
 					'shipping_rate' => (object) [
 						'display_name' => 'Nonexistent Method',
 						'metadata'     => (object) [],
@@ -1426,13 +1482,92 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'not available' );
-
 		try {
-			$this->mapper->create_order_from_checkout_session( $session );
+			$order = $this->mapper->create_order_from_checkout_session( $session );
+
+			$shipping_items = $order->get_items( 'shipping' );
+			$this->assertCount( 1, $shipping_items );
+
+			$shipping_item = reset( $shipping_items );
+			$this->assertEquals( 'Nonexistent Method', $shipping_item->get_method_title() );
+			$this->assertEquals( 'stripe_agentic', $shipping_item->get_method_id() );
+			$this->assertEqualsWithDelta( 9.99, (float) $shipping_item->get_total(), 0.001 );
+
+			// The fallback should also leave a contextual note on the order so
+			// support can spot why this order has a free-form shipping line.
+			$notes      = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+			$note_texts = array_column( $notes, 'content' );
+			$this->assertNotEmpty(
+				array_filter(
+					$note_texts,
+					static function ( $content ) {
+						return false !== strpos( $content, 'Nonexistent Method' )
+							&& false !== strpos( $content, 'did not match any configured WooCommerce shipping method' );
+					}
+				),
+				'Expected fallback order note mentioning the unmatched shipping rate.'
+			);
+
+			$order->delete( true );
 		} finally {
 			update_option( 'woocommerce_ship_to_countries', $original );
+			\WC_Cache_Helper::get_transient_version( 'shipping', true );
+			WC()->shipping()->reset_shipping();
+		}
+	}
+
+	/**
+	 * Recovers when WC shipping calculation throws an Error (not Exception):
+	 * the outer mapper handler only catches Exception, so without the inner
+	 * Throwable guard the order would be deleted instead of getting the
+	 * free-form shipping line.
+	 */
+	public function test_shipping_falls_back_to_free_form_line_when_calculation_throws() {
+		$thrower = static function () {
+			throw new \Error( 'Simulated shipping method failure' );
+		};
+		add_filter( 'woocommerce_package_rates', $thrower );
+
+		\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		WC()->shipping()->reset_shipping();
+
+		$session = $this->build_checkout_session(
+			[
+				// Default product is $10; add $9.99 shipping → $19.99 total.
+				'amount_total'    => 1999,
+				'amount_subtotal' => 1000,
+				'total_details'   => (object) [
+					'amount_shipping' => 999,
+					'amount_tax'      => 0,
+					'amount_discount' => 0,
+				],
+				'shipping_cost'   => (object) [
+					'shipping_rate' => (object) [
+						'display_name' => 'Throwing Method',
+						'metadata'     => (object) [],
+					],
+				],
+			]
+		);
+
+		try {
+			$order = $this->mapper->create_order_from_checkout_session( $session );
+
+			$this->assertInstanceOf( WC_Order::class, $order );
+
+			$shipping_items = $order->get_items( 'shipping' );
+			$this->assertCount( 1, $shipping_items );
+
+			$shipping_item = reset( $shipping_items );
+			$this->assertEquals( 'Throwing Method', $shipping_item->get_method_title() );
+			$this->assertEquals( 'stripe_agentic', $shipping_item->get_method_id() );
+			$this->assertEqualsWithDelta( 9.99, (float) $shipping_item->get_total(), 0.001 );
+
+			$order->delete( true );
+		} finally {
+			remove_filter( 'woocommerce_package_rates', $thrower );
+			\WC_Cache_Helper::get_transient_version( 'shipping', true );
+			WC()->shipping()->reset_shipping();
 		}
 	}
 
@@ -1457,6 +1592,187 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		$this->expectExceptionMessage( 'total mismatch' );
 
 		$this->mapper->create_order_from_checkout_session( $session );
+	}
+
+	/**
+	 * Test that completion places a stock hold, reduces stock via
+	 * payment_complete(), and leaves no lingering reservation.
+	 */
+	public function test_completion_reserves_and_reduces_stock() {
+		update_option( 'woocommerce_manage_stock', 'yes' );
+		$product = $this->create_managed_stock_product( 3 );
+		$session = $this->build_stock_session( $product, 2 );
+
+		$order = $this->mapper->create_order_from_checkout_session( $session );
+
+		$this->assertEquals( OrderStatus::PROCESSING, $order->get_status() );
+		$this->assertSame( 1, wc_get_product( $product->get_id() )->get_stock_quantity() );
+		$this->assertSame( 0, (int) wc_get_held_stock_quantity( wc_get_product( $product->get_id() ) ) );
+
+		$order->delete( true );
+		$product->delete( true );
+	}
+
+	/**
+	 * Regression test for the concurrent-session oversell race: when another
+	 * order already holds the last unit, completion must park the paid order
+	 * on-hold with the transaction id, leaving stock untouched.
+	 */
+	public function test_completion_holds_order_when_stock_already_reserved_by_concurrent_order() {
+		update_option( 'woocommerce_manage_stock', 'yes' );
+		$product = $this->create_managed_stock_product( 1 );
+
+		// Simulate the concurrent session that won the race.
+		$competing = wc_create_order( [ 'status' => OrderStatus::PENDING ] );
+		$competing->add_product( wc_get_product( $product->get_id() ), 1 );
+		$competing->save();
+		( new \Automattic\WooCommerce\Checkout\Helpers\ReserveStock() )->reserve_stock_for_order( $competing, 10 );
+
+		$session = $this->build_stock_session( $product, 1 );
+		$order   = $this->mapper->create_order_from_checkout_session( $session );
+
+		$this->assertEquals( OrderStatus::ON_HOLD, $order->get_status() );
+		$this->assertSame( 1, wc_get_product( $product->get_id() )->get_stock_quantity(), 'Stock must not be reduced for the oversold order.' );
+		$this->assertSame( 'pi_test_456', $order->get_transaction_id() );
+
+		$notes = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+		$this->assertNotEmpty(
+			array_filter(
+				$notes,
+				static function ( $note ) {
+					return false !== strpos( $note->content, 'stock could not be secured' );
+				}
+			),
+			'The on-hold order must carry a note explaining the stock failure.'
+		);
+
+		// Cancelling the parked order must not restock units that were never
+		// taken — the reason woocommerce_payment_complete_reduce_order_stock
+		// (not woocommerce_can_reduce_order_stock) suppresses the reduction.
+		$order->update_status( OrderStatus::CANCELLED );
+		$this->assertSame( 1, wc_get_product( $product->get_id() )->get_stock_quantity(), 'Cancelling must not restock never-taken units.' );
+
+		$order->delete( true );
+		$competing->delete( true );
+		$product->delete( true );
+	}
+
+	/**
+	 * Test that a non-ReserveStockException failure inside the reservation
+	 * (e.g. a third-party callback) also parks the paid order on-hold instead
+	 * of escaping with neither payment_complete() nor the fallback run.
+	 */
+	public function test_completion_holds_order_when_reservation_throws_generic_error() {
+		update_option( 'woocommerce_manage_stock', 'yes' );
+		$product = $this->create_managed_stock_product( 3 );
+		$session = $this->build_stock_session( $product, 1 );
+
+		$thrower = static function () {
+			throw new RuntimeException( 'third-party callback failure' );
+		};
+		add_filter( 'woocommerce_order_hold_stock_minutes', $thrower );
+
+		try {
+			$order = $this->mapper->create_order_from_checkout_session( $session );
+		} finally {
+			remove_filter( 'woocommerce_order_hold_stock_minutes', $thrower );
+		}
+
+		$this->assertEquals( OrderStatus::ON_HOLD, $order->get_status() );
+		$this->assertSame( 3, wc_get_product( $product->get_id() )->get_stock_quantity() );
+		$this->assertSame( 'pi_test_456', $order->get_transaction_id() );
+
+		$order->delete( true );
+		$product->delete( true );
+	}
+
+	/**
+	 * Test that completing more units than are in stock parks the order
+	 * on-hold instead of driving stock negative.
+	 */
+	public function test_completion_holds_order_when_stock_insufficient() {
+		update_option( 'woocommerce_manage_stock', 'yes' );
+		$product = $this->create_managed_stock_product( 1 );
+		$session = $this->build_stock_session( $product, 2 );
+
+		$order = $this->mapper->create_order_from_checkout_session( $session );
+
+		$this->assertEquals( OrderStatus::ON_HOLD, $order->get_status() );
+		$this->assertSame( 1, wc_get_product( $product->get_id() )->get_stock_quantity(), 'Stock must not go negative.' );
+
+		$order->delete( true );
+		$product->delete( true );
+	}
+
+	/**
+	 * Test that backorder-enabled products complete normally and may go negative.
+	 */
+	public function test_completion_allows_backordered_products() {
+		update_option( 'woocommerce_manage_stock', 'yes' );
+		$product = $this->create_managed_stock_product( 1, [ 'backorders' => 'yes' ] );
+		$session = $this->build_stock_session( $product, 3 );
+
+		$order = $this->mapper->create_order_from_checkout_session( $session );
+
+		$this->assertEquals( OrderStatus::PROCESSING, $order->get_status() );
+		$this->assertSame( -2, wc_get_product( $product->get_id() )->get_stock_quantity() );
+
+		$order->delete( true );
+		$product->delete( true );
+	}
+
+	/**
+	 * Creates a managed-stock product priced at 10.00.
+	 *
+	 * @param int   $stock Stock quantity.
+	 * @param array $extra Additional product props.
+	 * @return \WC_Product
+	 */
+	private function create_managed_stock_product( int $stock, array $extra = [] ): \WC_Product {
+		return WC_Helper_Product::create_simple_product(
+			true,
+			array_merge(
+				[
+					'regular_price'  => '10.00',
+					'price'          => '10.00',
+					'sku'            => 'MAPPER-STOCK-' . uniqid(),
+					'manage_stock'   => true,
+					'stock_quantity' => $stock,
+				],
+				$extra
+			)
+		);
+	}
+
+	/**
+	 * Builds a session for $quantity units of a 10.00 product with matching totals.
+	 *
+	 * @param \WC_Product $product  The product to order.
+	 * @param int         $quantity Units to order.
+	 * @return WC_Stripe_Agentic_Checkout_Session
+	 */
+	private function build_stock_session( \WC_Product $product, int $quantity ): WC_Stripe_Agentic_Checkout_Session {
+		$amount = 1000 * $quantity;
+
+		return $this->build_checkout_session(
+			[
+				'amount_total'    => $amount,
+				'amount_subtotal' => $amount,
+				'line_items'      => $this->build_line_items(
+					[
+						[
+							'lookup_key'      => (string) $product->get_sku(),
+							'quantity'        => $quantity,
+							'unit_amount'     => 1000,
+							'amount_total'    => $amount,
+							'amount_subtotal' => $amount,
+							'amount_tax'      => 0,
+						],
+					]
+				),
+			],
+			$product
+		);
 	}
 
 	/**

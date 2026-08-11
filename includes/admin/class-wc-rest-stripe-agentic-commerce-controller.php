@@ -41,7 +41,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	/**
 	 * ImportSet statuses that are non-terminal and should be re-polled.
 	 *
-	 * Stripe advances an ImportSet through `queued` → `validating` →
+	 * Stripe advances an ImportSet through `queued` → `validating_records` →
 	 * `pending` → `creating_records` → one of the terminal states
 	 * (`succeeded`, `succeeded_with_errors`, or `failed`). Entries in any
 	 * non-terminal state get refreshed on dashboard load. `unknown` is also
@@ -51,7 +51,15 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 * @since 10.7.0
 	 * @var string[]
 	 */
-	private const REFRESHABLE_STATUSES = [ 'queued', 'validating', 'pending', 'creating_records', 'unknown' ];
+	private const REFRESHABLE_STATUSES = [ 'queued', 'validating', 'validating_records', 'pending', 'creating_records', 'unknown' ];
+
+	/**
+	 * Number of most-recent sync history entries the dashboard table shows.
+	 *
+	 * @var int
+	 * @since 10.9.0
+	 */
+	private const RECENT_HISTORY_LIMIT = 5;
 
 	/**
 	 * Endpoint path.
@@ -70,7 +78,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 * @var string
 	 * @since 10.7.0
 	 */
-	const MASKED_WEBHOOK_SECRET = 'whsec_********************************';
+	public const MASKED_WEBHOOK_SECRET = 'whsec_********************************';
 
 	/**
 	 * Configure REST API routes.
@@ -109,6 +117,16 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 
 		register_rest_route(
 			$this->namespace,
+			'/' . $this->rest_base . '/preview',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_preview' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
+
+		register_rest_route(
+			$this->namespace,
 			'/' . $this->rest_base . '/settings',
 			[
 				[
@@ -121,12 +139,17 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 					'callback'            => [ $this, 'update_agentic_settings' ],
 					'permission_callback' => [ $this, 'check_permission' ],
 					'args'                => [
-						'is_enabled'     => [
+						'is_enabled'       => [
 							'description'       => __( 'Whether Agentic Commerce is enabled.', 'woocommerce-gateway-stripe' ),
 							'type'              => 'boolean',
 							'validate_callback' => 'rest_validate_request_arg',
 						],
-						'webhook_secret' => [
+						'disable_checkout' => [
+							'description'       => __( 'Whether to redirect shoppers to the store to check out instead of completing checkout in the agent.', 'woocommerce-gateway-stripe' ),
+							'type'              => 'boolean',
+							'validate_callback' => 'rest_validate_request_arg',
+						],
+						'webhook_secret'   => [
 							'description'       => __( 'Webhook signing secret for Agentic Commerce delegated checkout events.', 'woocommerce-gateway-stripe' ),
 							'type'              => 'string',
 							'validate_callback' => 'rest_validate_request_arg',
@@ -151,13 +174,33 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		// Refresh any pending entries from Stripe before reading.
 		$this->refresh_pending_sync_statuses();
 
-		$last_sync   = WC_Stripe_Agentic_Commerce_Integration::get_last_sync();
 		$history_raw = WC_Stripe_Agentic_Commerce_Integration::get_sync_history();
 
-		// Return the 20 most recent history entries, newest first.
+		// Syncs from the other mode describe a different Stripe environment's
+		// catalog; showing them here would report the wrong catalog as synced.
+		$current_mode = WC_Stripe_Agentic_Commerce_Integration::get_current_mode();
+		$history_raw  = array_values(
+			array_filter(
+				$history_raw,
+				function ( $entry ) use ( $current_mode ) {
+					return $this->is_entry_for_mode( $entry, $current_mode );
+				}
+			)
+		);
+
+		// Derive the snapshot from the mode-filtered history instead of the
+		// last-sync option: that option is only rewritten when a sync
+		// completes, so after switching modes and back it can still hold the
+		// other mode's entry until the queued resync runs (minutes, or never
+		// if that mode's keys are missing) — and the card would say "No syncs
+		// yet" while this mode has history.
+		$last_sync = end( $history_raw );
+		$last_sync = is_array( $last_sync ) ? $last_sync : [];
+
+		// Return the most recent history entries, newest first.
 		$history = array_map(
 			[ $this, 'format_entry' ],
-			array_reverse( array_slice( $history_raw, -20 ) )
+			array_reverse( array_slice( $history_raw, -self::RECENT_HISTORY_LIMIT ) )
 		);
 
 		$next_sync = null;
@@ -175,6 +218,39 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				'next_sync' => $next_sync,
 			]
 		);
+	}
+
+	/**
+	 * Return an upload-free preview of the next sync: how many products would be
+	 * included vs. excluded, plus the products the feed validator would reject
+	 * and why.
+	 *
+	 * Read-only and gated only on the developer feature flag (not the merchant
+	 * toggle) so merchants can inspect feed health before enabling the feature.
+	 *
+	 * @since 10.9.0
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_preview() {
+		if ( ! $this->is_available() ) {
+			return $this->get_unavailable_error();
+		}
+
+		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Feed_Preview' ) ) {
+			return $this->get_unavailable_error();
+		}
+
+		try {
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+		} catch ( Exception $e ) {
+			return new WP_Error(
+				'stripe_agentic_commerce_preview_failed',
+				$e->getMessage(),
+				[ 'status' => 500 ]
+			);
+		}
+
+		return rest_ensure_response( $preview );
 	}
 
 	/**
@@ -208,8 +284,12 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		}
 
 		try {
-			$integration = new WC_Stripe_Agentic_Commerce_Integration();
-			$success     = $integration->sync_feed();
+			$sync_start_time = time();
+			$integration     = new WC_Stripe_Agentic_Commerce_Integration();
+			// $force_upload = true so a manual click always lands an upload even
+			// when the catalog hash matches the last successful upload — the
+			// scheduled sync still uses dedup.
+			$success = $integration->sync_feed( true );
 
 			if ( ! $success ) {
 				$last_sync = WC_Stripe_Agentic_Commerce_Integration::get_last_sync();
@@ -224,33 +304,20 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				);
 			}
 
-			// Reset the automatic sync window so the next scheduled run starts
-			// from now, rather than running again shortly after a manual sync.
-			if ( function_exists( 'as_unschedule_action' ) && function_exists( 'as_schedule_recurring_action' ) ) {
-				/**
-				 * Filter the recurring sync interval (in seconds) used when the
-				 * next scheduled action is rebuilt after a manual sync.
-				 *
-				 * @since 10.7.0
-				 * @param int $sync_interval Default sync interval in seconds.
-				 */
-				$sync_interval = apply_filters(
-					'wc_stripe_agentic_commerce_feed_sync_interval',
-					WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL
-				);
-				if ( ! is_int( $sync_interval ) || $sync_interval <= 0 ) {
-					$sync_interval = WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL;
-				}
-
-				as_unschedule_action( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
-				as_schedule_recurring_action(
-					time() + $sync_interval,
-					$sync_interval,
-					WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION,
-					[],
-					'wc-stripe'
+			// Reset the automatic sync window so the next scheduled run follows
+			// the standard sync interval and doesn't run shortly after a manual sync.
+			if ( ! $integration->reschedule_next_feed_sync( $sync_start_time + $integration->get_feed_sync_interval() ) ) {
+				return new WP_Error(
+					'stripe_agentic_commerce_sync_reschedule_failed',
+					__( 'Feed upload succeeded, but the next feed sync was not scheduled.', 'woocommerce-gateway-stripe' ),
+					[ 'status' => 500 ]
 				);
 			}
+
+			// This manual sync already produced a full upload, so drop any pending
+			// adapter-fired one-off resync — it lives under a separate Action Scheduler
+			// hook the recurring reschedule above does not clear.
+			$integration->cancel_pending_full_resync();
 		} catch ( Exception $e ) {
 			return new WP_Error(
 				'stripe_agentic_commerce_sync_failed',
@@ -274,11 +341,12 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		$secret = (string) get_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, '' );
 		return rest_ensure_response(
 			[
-				'is_enabled'     => 'yes' === get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' ),
+				'is_enabled'       => 'yes' === get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' ),
+				'disable_checkout' => WC_Stripe_Agentic_Commerce_Integration::is_checkout_disabled(),
 				// Never expose the real secret. Return a Stripe-style `whsec_`
 				// prefixed mask when one is stored so the field looks familiar
 				// without round-tripping the value to the client.
-				'webhook_secret' => '' !== $secret ? self::MASKED_WEBHOOK_SECRET : '',
+				'webhook_secret'   => '' !== $secret ? self::MASKED_WEBHOOK_SECRET : '',
 			]
 		);
 	}
@@ -294,6 +362,11 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		if ( $request->has_param( 'is_enabled' ) ) {
 			$value = $request->get_param( 'is_enabled' ) ? 'yes' : 'no';
 			update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, $value );
+		}
+
+		if ( $request->has_param( 'disable_checkout' ) ) {
+			$value = $request->get_param( 'disable_checkout' ) ? 'yes' : 'no';
+			update_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION, $value );
 		}
 
 		if ( $request->has_param( 'webhook_secret' ) ) {
@@ -332,11 +405,25 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		}
 
 		$status_updates = [];
+		$mode_updates   = [];
 		$delivery       = null;
+
+		// One settings snapshot supplies both the mode used to filter entries
+		// and the key used to poll them: separate reads could straddle a
+		// concurrent settings save and poll this mode's entries with the other
+		// mode's key, misreading the resulting 404s as cross-mode entries.
+		$context      = WC_Stripe_Agentic_Commerce_Integration::get_delivery_context();
+		$current_mode = $context['mode'];
 
 		foreach ( $history as $entry ) {
 			$current_status = $entry['status'] ?? '';
 			if ( ! in_array( $current_status, self::REFRESHABLE_STATUSES, true ) ) {
+				continue;
+			}
+
+			// An ImportSet from the other mode can't be retrieved with the
+			// current mode's key (Stripe returns a 404).
+			if ( ! $this->is_entry_for_mode( $entry, $current_mode ) ) {
 				continue;
 			}
 
@@ -346,7 +433,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			}
 
 			try {
-				$delivery   = $delivery ?? $this->create_delivery();
+				$delivery   = $delivery ?? new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $context['secret_key'] );
 				$import_set = $delivery->get_import_set( $import_set_id );
 				$new_status = $import_set['status'] ?? $current_status;
 
@@ -354,6 +441,21 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 					$status_updates[ $import_set_id ] = $new_status;
 				}
 			} catch ( Exception $e ) {
+				// A 404 under this mode's key means the ImportSet lives in the
+				// other Stripe environment — legacy entries recorded no mode,
+				// so they are polled here on the chance they belong. Stamp the
+				// other mode so the entry stops being retried with a key that
+				// can never resolve it; it becomes pollable again if that mode
+				// is activated.
+				if ( 404 === $e->getCode() && '' === ( $entry['mode'] ?? '' ) ) {
+					$mode_updates[ $import_set_id ] = 'test' === $current_mode ? 'live' : 'test';
+					WC_Stripe_Logger::info(
+						'Agentic Commerce: ImportSet not found in the active mode; attributing the legacy history entry to the other mode.',
+						[ 'import_set_id' => $import_set_id ]
+					);
+					continue;
+				}
+
 				WC_Stripe_Logger::error(
 					'Agentic Commerce: Failed to refresh ImportSet status',
 					[
@@ -364,23 +466,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			}
 		}
 
-		WC_Stripe_Agentic_Commerce_Integration::update_pending_statuses( $status_updates );
-	}
-
-	/**
-	 * Create a Files API delivery instance using the current Stripe settings.
-	 *
-	 * @since 10.7.0
-	 * @return WC_Stripe_Agentic_Commerce_Files_Api_Delivery
-	 */
-	private function create_delivery(): WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
-		$settings  = WC_Stripe_Helper::get_stripe_settings();
-		$test_mode = isset( $settings['testmode'] ) && 'yes' === $settings['testmode'];
-		$secret    = $test_mode
-			? ( $settings['test_secret_key'] ?? '' )
-			: ( $settings['secret_key'] ?? '' );
-
-		return new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $secret );
+		WC_Stripe_Agentic_Commerce_Integration::update_pending_statuses( $status_updates, $mode_updates );
 	}
 
 	/**
@@ -401,6 +487,25 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			'file_id'       => $entry['file_id'] ?? null,
 			'error'         => $entry['error'] ?? null,
 		];
+	}
+
+	/**
+	 * Whether a persisted sync entry belongs to the given mode.
+	 *
+	 * The mode is passed in rather than re-read per entry so one resolved
+	 * value applies to a whole filtering pass. Entries with no recorded mode
+	 * predate mode tracking and are kept, since their mode can no longer be
+	 * determined.
+	 *
+	 * @since 10.9.0
+	 * @param array  $entry Raw entry from the options table.
+	 * @param string $mode  Mode to compare against ('test' or 'live').
+	 * @return bool
+	 */
+	private function is_entry_for_mode( array $entry, string $mode ): bool {
+		$entry_mode = $entry['mode'] ?? '';
+
+		return '' === $entry_mode || $mode === $entry_mode;
 	}
 
 	/**
