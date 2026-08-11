@@ -209,7 +209,8 @@ class WC_Stripe_Checkout_Session_Lifecycle {
 		}
 
 		return sprintf(
-			'<div id="wc-stripe-checkout-session-data" data-checkout-session="%s" hidden></div>',
+			'<div id="%s" data-checkout-session="%s" hidden></div>',
+			esc_attr( ltrim( self::CLASSIC_FRAGMENT_SELECTOR, '#' ) ),
 			esc_attr( $encoded_data )
 		);
 	}
