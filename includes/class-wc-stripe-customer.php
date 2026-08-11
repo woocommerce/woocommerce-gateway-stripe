@@ -482,11 +482,15 @@ class WC_Stripe_Customer {
 	/**
 	 * Search for an existing customer in Stripe account by email and name.
 	 *
+	 * @deprecated 10.9.0 No longer used internally and no replacement is provided.
+	 *
 	 * @param string $email Customer email.
 	 * @param string $name  Customer name.
 	 * @return array
 	 */
 	public function get_existing_customer( $email, $name ) {
+		wc_deprecated_function( __METHOD__, '10.9.0' );
+
 		$search_query    = [ 'query' => 'name:\'' . $name . '\' AND email:\'' . $email . '\'' ];
 		$search_response = WC_Stripe_API::request( $search_query, 'customers/search', 'GET' );
 
@@ -511,32 +515,24 @@ class WC_Stripe_Customer {
 	public function create_customer( $args = [], $current_context = null, $order = null ) {
 		$args = $this->generate_customer_request( $args, $order );
 
-		// For guest users, check if a customer already exists with the same email and name in Stripe account before creating a new one.
-		if ( ! $this->get_id() && 0 === $this->get_user_id() && ! empty( $args['email'] ) && ! empty( $args['name'] ) ) {
-			$response = $this->get_existing_customer( $args['email'], $args['name'] );
-		}
-
 		// $current_context was initially introduced as a boolean flag, so check for old callers.
 		$current_context = $this->normalize_current_context( $current_context );
 
-		if ( empty( $response ) ) {
-			/**
-			 * Filters the arguments used to create a customer.
-			 *
-			 * @since 4.0.0
-			 *
-			 * @param array $args The arguments used to create a customer.
-			 */
-			$create_customer_args = apply_filters( 'wc_stripe_create_customer_args', $args );
+		// Logged-in customers should already be resolved by ID.
+		// Guests always get a fresh customer.
 
-			$this->validate_create_customer_request( $create_customer_args, $current_context );
+		/**
+		 * Filters the arguments used to create a customer.
+		 *
+		 * @since 4.0.0
+		 *
+		 * @param array $args The arguments used to create a customer.
+		 */
+		$create_customer_args = apply_filters( 'wc_stripe_create_customer_args', $args );
 
-			$response = WC_Stripe_API::request( $create_customer_args, 'customers' );
-		} else {
-			/** This filter is documented in includes/class-wc-stripe-customer.php. */
-			$update_customer_args = apply_filters( 'wc_stripe_update_customer_args', $args );
-			$response             = WC_Stripe_API::request( $update_customer_args, 'customers/' . $response->id );
-		}
+		$this->validate_create_customer_request( $create_customer_args, $current_context );
+
+		$response = WC_Stripe_API::request( $create_customer_args, 'customers' );
 
 		if ( ! empty( $response->error ) ) {
 			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );

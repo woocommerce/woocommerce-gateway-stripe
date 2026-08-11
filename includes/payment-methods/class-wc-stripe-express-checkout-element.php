@@ -433,7 +433,7 @@ class WC_Stripe_Express_Checkout_Element {
 	private function register_express_checkout_script() {
 		$asset_data = $this->get_asset_data();
 
-		wp_register_script( 'stripe', 'https://js.stripe.com/dahlia/stripe.js', '', null, true );
+		WC_Stripe_Helper::register_stripe_js();
 		wp_register_script(
 			'wc_stripe_express_checkout',
 			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',
