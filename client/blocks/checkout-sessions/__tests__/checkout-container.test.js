@@ -129,4 +129,27 @@ describe( 'CheckoutSessionsContainer', () => {
 		expect( setShouldLoadStripeElements ).toHaveBeenCalledWith( true );
 		expect( consoleErrorSpy ).toHaveBeenCalled();
 	} );
+
+	it( 'falls back when the Store API request rejects', async () => {
+		const requestError = new Error( 'Network request failed' );
+		extensionCartUpdate.mockRejectedValueOnce( requestError );
+
+		render(
+			<CheckoutContainer
+				api={ api }
+				setShouldLoadStripeElements={ setShouldLoadStripeElements }
+			/>
+		);
+
+		await expect(
+			CheckoutElementsProvider.mock.calls[ 0 ][ 0 ].options.clientSecret
+		).resolves.toBeNull();
+		expect( setShouldLoadStripeElements ).toHaveBeenCalledWith( true );
+		expect( consoleErrorSpy ).toHaveBeenCalledWith(
+			expect.stringContaining(
+				'Unable to initialize a checkout session'
+			),
+			requestError
+		);
+	} );
 } );

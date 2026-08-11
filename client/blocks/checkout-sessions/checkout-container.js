@@ -20,21 +20,30 @@ export const CheckoutContainer = ( props ) => {
 		props;
 
 	const checkoutSessionPromise = useMemo( async () => {
-		const response = await extensionCartUpdate( {
-			namespace: 'wc-stripe/checkout-session',
-			data: { action: 'sync' },
-		} );
-		const sessionData =
-			response?.extensions?.[ 'wc-stripe/checkout-session' ];
-		const clientSecret =
-			sessionData?.status === 'success'
-				? sessionData?.client_secret
-				: null;
+		let clientSecret = null;
+		let error = null;
+
+		try {
+			const response = await extensionCartUpdate( {
+				namespace: 'wc-stripe/checkout-session',
+				data: { action: 'sync' },
+			} );
+			const sessionData =
+				response?.extensions?.[ 'wc-stripe/checkout-session' ];
+			clientSecret =
+				sessionData?.status === 'success'
+					? sessionData?.client_secret
+					: null;
+		} catch ( e ) {
+			error = e;
+		}
+
 		if ( ! clientSecret ) {
 			setShouldLoadStripeElements( true );
 			// eslint-disable-next-line no-console
 			console.error(
-				'Unable to initialize a checkout session. Please refresh the page and try again.'
+				'Unable to initialize a checkout session. Please refresh the page and try again.',
+				...( error ? [ error ] : [] )
 			);
 		}
 		return clientSecret;
