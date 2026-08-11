@@ -109,7 +109,7 @@ class WC_Stripe_Checkout_Session_Lifecycle {
 
 		try {
 			$data = $this->manager->synchronize();
-		} catch ( Exception $e ) {
+		} catch ( Throwable $e ) {
 			WC_Stripe_Logger::error( 'Native classic checkout session synchronization failed.', [ 'error_message' => $e->getMessage() ] );
 			$data = $this->manager->mark_failed( $e->getMessage() );
 		}
