@@ -1,5 +1,6 @@
 import { NAMESPACE, STORE_NAME } from '../constants';
 import PaymentMethodsMap from '../../payment-methods-map';
+import { updateSettings } from '../settings/actions';
 import ACTION_TYPES from './action-types';
 import { dispatch, select } from '@wordpress/data';
 import { __, sprintf } from '@wordpress/i18n';
@@ -32,6 +33,14 @@ export function* refreshAccount() {
 		} );
 
 		yield updateAccount( data );
+
+		// The account refresh can change which payment methods the account has available, so pull
+		// the reconciled settings back in. Re-fetch and write them directly rather than invalidating
+		// the `getSettings` resolver: invalidation flips `hasFinishedResolution` back to false, which
+		// collapses every LoadableSettingsSection on the page into a skeleton until the fetch lands,
+		// and it only refetches at all while something is subscribed to `getSettings`.
+		const settings = yield apiFetch( { path: `${ NAMESPACE }/settings` } );
+		yield updateSettings( settings );
 
 		const activeCapabilitiesAfterRefresh =
 			select( STORE_NAME ).getAccountCapabilitiesByStatus( 'active' );
