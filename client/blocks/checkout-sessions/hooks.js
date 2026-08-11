@@ -336,6 +336,7 @@ export const useCheckoutSessionTotalsSync = (
 	const sessionState = `${ sessionData?.revision ?? 0 }:${
 		sessionData?.status ?? 'uninitialized'
 	}`;
+	const isCheckoutReady = checkoutState?.type === 'success';
 
 	useEffect( () => {
 		if ( checkoutStateRef.current !== checkoutState ) {
@@ -365,12 +366,13 @@ export const useCheckoutSessionTotalsSync = (
 			return;
 		}
 
-		prevSessionStateRef.current = sessionState;
-
+		// If the checkout is not ready, do not proceed with the resync.
 		const state = checkoutStateRef.current;
 		if ( state?.type !== 'success' ) {
 			return;
 		}
+
+		prevSessionStateRef.current = sessionState;
 
 		let cancelled = false;
 
@@ -456,6 +458,7 @@ export const useCheckoutSessionTotalsSync = (
 		};
 	}, [
 		checkoutSessionId,
+		isCheckoutReady,
 		sessionData?.status,
 		sessionState,
 		syncFailedRef,

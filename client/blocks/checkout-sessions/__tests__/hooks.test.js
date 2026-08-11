@@ -760,6 +760,41 @@ describe( 'CheckoutSessions hook tests', () => {
 			).not.toHaveBeenCalled();
 		} );
 
+		it( 'notifies Stripe.js about a revision that landed before Checkout was ready', async () => {
+			const runServerUpdate = jest.fn( async ( fn ) => {
+				await fn();
+				return { type: 'success' };
+			} );
+			let sessionData = { revision: 1, status: 'success' };
+			let checkoutState = { type: 'loading' };
+
+			const { rerender } = renderHook( () =>
+				useCheckoutSessionTotalsSync(
+					'cs_test',
+					checkoutState,
+					null,
+					sessionData
+				)
+			);
+
+			// A newer revision lands while the Checkout instance is still initializing.
+			sessionData = { revision: 2, status: 'success' };
+			rerender();
+
+			expect( runServerUpdate ).not.toHaveBeenCalled();
+
+			// Once Checkout is ready the revision must still be treated as pending.
+			checkoutState = {
+				type: 'success',
+				checkout: { id: 'cs_test', runServerUpdate },
+			};
+			rerender();
+
+			await waitFor( () => {
+				expect( runServerUpdate ).toHaveBeenCalled();
+			} );
+		} );
+
 		it( 'clears the stale flag after Stripe.js accepts a newer revision', async () => {
 			const syncFailedRef = { current: true };
 			let sessionData = { revision: 1, status: 'error' };
