@@ -982,6 +982,29 @@ class WC_Stripe_Intent_Controller {
 			unset( $request['return_url'], $request['mandate_data'] );
 		}
 
+		// Under Optimized Checkout + PMC, let Stripe surface every eligible method from the merchant's
+		// Payment Method Configuration (Dynamic Payment Methods) instead of the explicit list. The
+		// eligibility decision is made in WC_Stripe_UPE_Payment_Gateway::prepare_payment_information_from_request(),
+		// here we only apply it to the request.
+		if ( ! empty( $payment_information['automatic_payment_methods'] ) ) {
+			unset( $request['payment_method_types'] );
+
+			$request['automatic_payment_methods'] = [
+				'enabled'         => 'true',
+				'allow_redirects' => 'always',
+			];
+
+			// Mirror the client Payment Element's exclusion list so PMC methods the plugin doesn't support are never accepted by the intent.
+			if ( ! empty( $payment_information['excluded_payment_method_types'] ) ) {
+				$request['excluded_payment_method_types'] = $payment_information['excluded_payment_method_types'];
+			}
+
+			// allow_redirects => always with confirm => true requires a return_url, which build_base_payment_intent_request_params() only sets for the single-redirect-method case.
+			if ( empty( $request['return_url'] ) && ! empty( $payment_information['return_url'] ) ) {
+				$request['return_url'] = $payment_information['return_url'];
+			}
+		}
+
 		// Run the necessary filter to make sure mandate information is added when it's required.
 		/**
 		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
@@ -1178,10 +1201,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return array The request parameters for creating/updating and confirming a payment intent.
 	 */
 	private function build_base_payment_intent_request_params( $payment_information ) {
-		$selected_payment_type = $payment_information['selected_payment_type'];
-		if ( $this->get_upe_gateway()->is_oc_enabled() && isset( $payment_information['payment_method_details']->type ) ) {
-			$selected_payment_type = $payment_information['payment_method_details']->type;
-		}
+		$selected_payment_type = $this->get_upe_gateway()->get_selected_payment_type_from_info( $payment_information );
 
 		$payment_method_types = $payment_information['payment_method_types'];
 
@@ -1530,7 +1550,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return boolean
 	 */
 	private function is_delayed_confirmation_required( $payment_methods ) {
-		return ! empty( array_intersect( $payment_methods, [ WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::MULTIBANCO, WC_Stripe_Payment_Methods::CASHAPP_PAY ] ) );
+		return ! empty( array_intersect( $payment_methods, WC_Stripe_Payment_Methods::DELAYED_CONFIRMATION_PAYMENT_METHODS ) );
 	}
 
 	/**
