@@ -760,7 +760,69 @@ describe( 'CheckoutSessions hook tests', () => {
 			).not.toHaveBeenCalled();
 		} );
 
-		it( 'notifies Stripe.js about a revision that landed before Checkout was ready', async () => {
+		it( 'reports a sync failure when the first embedded session state has an error', async () => {
+			const createErrorNotice = dispatch().createErrorNotice;
+			createErrorNotice.mockClear();
+			const syncFailedRef = { current: false };
+			const checkoutState = {
+				type: 'success',
+				checkout: {
+					id: 'cs_test',
+					runServerUpdate: jest.fn(),
+				},
+			};
+
+			renderHook( () =>
+				useCheckoutSessionTotalsSync(
+					'cs_test',
+					checkoutState,
+					syncFailedRef,
+					{ revision: 1, status: 'error' }
+				)
+			);
+
+			await waitFor( () => {
+				expect( syncFailedRef.current ).toBe( true );
+			} );
+			expect( createErrorNotice ).toHaveBeenCalledWith(
+				STALE_TOTAL_MESSAGE,
+				{
+					id: 'wc-stripe-stale-checkout-total',
+					context: 'wc/checkout/payments',
+				}
+			);
+			expect(
+				checkoutState.checkout.runServerUpdate
+			).not.toHaveBeenCalled();
+		} );
+
+		it( 'reports a sync failure for a failed initial state when Checkout is not ready yet', async () => {
+			const createErrorNotice = dispatch().createErrorNotice;
+			createErrorNotice.mockClear();
+			const syncFailedRef = { current: false };
+
+			renderHook( () =>
+				useCheckoutSessionTotalsSync(
+					'cs_test',
+					{ type: 'loading' },
+					syncFailedRef,
+					{ revision: 1, status: 'error' }
+				)
+			);
+
+			await waitFor( () => {
+				expect( syncFailedRef.current ).toBe( true );
+			} );
+			expect( createErrorNotice ).toHaveBeenCalledWith(
+				STALE_TOTAL_MESSAGE,
+				{
+					id: 'wc-stripe-stale-checkout-total',
+					context: 'wc/checkout/payments',
+				}
+			);
+		} );
+
+		it( 'runs the server update for a revision that landed before Checkout was ready', async () => {
 			const runServerUpdate = jest.fn( async ( fn ) => {
 				await fn();
 				return { type: 'success' };
@@ -795,7 +857,7 @@ describe( 'CheckoutSessions hook tests', () => {
 			} );
 		} );
 
-		it( 'clears the stale flag after Stripe.js accepts a newer revision', async () => {
+		it( 'clears the sync failure flag after a newer revision is received', async () => {
 			const syncFailedRef = { current: true };
 			let sessionData = { revision: 1, status: 'error' };
 			const checkoutState = {

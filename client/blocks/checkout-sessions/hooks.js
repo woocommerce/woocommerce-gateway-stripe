@@ -357,23 +357,6 @@ export const useCheckoutSessionTotalsSync = (
 			return;
 		}
 
-		if ( prevSessionStateRef.current === null ) {
-			prevSessionStateRef.current = sessionState;
-			return;
-		}
-
-		if ( prevSessionStateRef.current === sessionState ) {
-			return;
-		}
-
-		// If the checkout is not ready, do not proceed with the resync.
-		const state = checkoutStateRef.current;
-		if ( state?.type !== 'success' ) {
-			return;
-		}
-
-		prevSessionStateRef.current = sessionState;
-
 		let cancelled = false;
 
 		// Stable id so a later successful resync can retract the notice a failed one showed.
@@ -404,6 +387,28 @@ export const useCheckoutSessionTotalsSync = (
 				'wc/checkout/payments'
 			);
 		};
+
+		if ( prevSessionStateRef.current === null ) {
+			prevSessionStateRef.current = sessionState;
+			// If the session has an error, ensure we mark the sync as failed, as errors
+			// may not bump the revision, and may not be distinguishable from each other.
+			if ( sessionData?.status === 'error' ) {
+				markSyncFailed();
+			}
+			return;
+		}
+
+		if ( prevSessionStateRef.current === sessionState ) {
+			return;
+		}
+
+		// If the checkout is not ready, do not trigger the (re)sync.
+		const state = checkoutStateRef.current;
+		if ( state?.type !== 'success' ) {
+			return;
+		}
+
+		prevSessionStateRef.current = sessionState;
 
 		const run = async () => {
 			try {
