@@ -278,12 +278,8 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 			}
 
 			foreach ( $all_fields as $fieldset => $fields ) {
-				// Core's account fieldset (account_username/account_password when
-				// auto-generation is off) is marked required unconditionally, but core
-				// only enforces it when an account is actually being created. The
-				// express sheet can never collect these values — express flows rely on
-				// auto-generated credentials — so treating them as required custom
-				// fields would block every express payment.
+				// Core only enforces account fields when creating an account; the
+				// express sheet can't collect them, so never treat them as required.
 				if ( 'account' === $fieldset ) {
 					continue;
 				}

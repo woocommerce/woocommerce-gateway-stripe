@@ -460,9 +460,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Core's conditionally-required account fields (added when auto-generation is
-	 * off) must not be treated as merchant custom fields, while genuine custom
-	 * fields keep being detected.
+	 * Core account fields are not custom fields; merchant fields still are.
 	 *
 	 * @return void
 	 */
@@ -498,9 +496,8 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Regression: with auto-generated passwords disabled, an express payment with
-	 * no custom-field payload must not be rejected over core's account_password
-	 * field, which the express sheet can never collect.
+	 * Regression: express payments must not require account_password when
+	 * auto-generated passwords are disabled.
 	 *
 	 * @return void
 	 */
