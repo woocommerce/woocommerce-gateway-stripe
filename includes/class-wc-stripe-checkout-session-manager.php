@@ -135,8 +135,6 @@ class WC_Stripe_Checkout_Session_Manager {
 			throw new Exception( __( 'Checkout session ID is required.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		$record = $this->get_record();
-
 		WC_Stripe_Checkout_Session_Context::with_mutation_lock(
 			$session_id,
 			function () use ( $session_id ): void {
@@ -158,17 +156,21 @@ class WC_Stripe_Checkout_Session_Manager {
 				}
 
 				WC_Stripe_Checkout_Session_Context::store_for_cart( $session_id, $cart_context );
+
+				// Make sure we read the record while we have the lock.
+				$record = $this->get_record();
+
+				if ( is_array( $record ) && (string) ( $record['session_id'] ?? '' ) === $session_id ) {
+					$record['revision'] = (int) ( $record['revision'] ?? 0 ) + 1;
+					$record['status']   = 'success';
+					$record['message']  = '';
+					$this->set_record( $record );
+				}
 			}
 		);
 
-		if ( is_array( $record ) && (string) ( $record['session_id'] ?? '' ) === $session_id ) {
-			$record['revision'] = (int) ( $record['revision'] ?? 0 ) + 1;
-			$record['status']   = 'success';
-			$record['message']  = '';
-			$this->set_record( $record );
-		}
-
-		return $this->get_public_data( $record );
+		// Ensure we (re)fetch the current data.
+		return $this->get_current_data();
 	}
 
 	/**
