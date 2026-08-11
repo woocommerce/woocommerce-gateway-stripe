@@ -458,4 +458,72 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 		WC()->checkout()->checkout_fields = null;
 		WC()->checkout()->get_checkout_fields();
 	}
+
+	/**
+	 * Core's conditionally-required account fields (added when auto-generation is
+	 * off) must not be treated as merchant custom fields, while genuine custom
+	 * fields keep being detected.
+	 *
+	 * @return void
+	 */
+	public function test_get_custom_checkout_fields_classic_excludes_core_account_fields() {
+		update_option( 'woocommerce_registration_generate_username', 'no' );
+		update_option( 'woocommerce_registration_generate_password', 'no' );
+
+		$custom_checkout_fields = function ( $fields ) {
+			$fields['billing']['billing_custom_field1'] = [
+				'type'     => 'text',
+				'label'    => 'Billing Custom Field 1',
+				'required' => true,
+			];
+			return $fields;
+		};
+		add_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
+
+		try {
+			$fields = $this->get_custom_fields_support()->get_custom_checkout_fields( 'classic' );
+
+			$this->assertArrayNotHasKey( 'account_username', $fields );
+			$this->assertArrayNotHasKey( 'account_password', $fields );
+			$this->assertArrayHasKey( 'billing_custom_field1', $fields );
+		} finally {
+			remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+			update_option( 'woocommerce_registration_generate_username', 'yes' );
+			update_option( 'woocommerce_registration_generate_password', 'yes' );
+			WC()->checkout()->checkout_fields = null;
+			WC()->checkout()->get_checkout_fields();
+		}
+	}
+
+	/**
+	 * Regression: with auto-generated passwords disabled, an express payment with
+	 * no custom-field payload must not be rejected over core's account_password
+	 * field, which the express sheet can never collect.
+	 *
+	 * @return void
+	 */
+	public function test_process_custom_checkout_data_allows_express_payment_when_password_generation_disabled() {
+		update_option( 'woocommerce_registration_generate_password', 'no' );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
+
+		$request = new \WP_REST_Request( 'POST', '/wc/stripe-ece/v1/test-request' );
+		$request->set_param( 'extensions', [] );
+
+		$order                 = WC_Helper_Order::create_order();
+		$custom_fields_support = $this->get_custom_fields_support();
+
+		try {
+			$custom_fields_support->process_custom_checkout_data( $order, $request );
+			$this->assertTrue( true );
+		} catch ( Exception $e ) {
+			$this->fail( 'Express payment must not require account_password, but got: ' . $e->getMessage() );
+		} finally {
+			update_option( 'woocommerce_registration_generate_password', 'yes' );
+			WC()->checkout()->checkout_fields = null;
+			WC()->checkout()->get_checkout_fields();
+		}
+	}
 }
