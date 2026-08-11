@@ -3868,6 +3868,53 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * A Dynamic Payment Methods intent must never be reused on retry: `automatic_payment_methods`
+	 * is create-time only, and Stripe fills the intent's `payment_method_types` from the merchant's
+	 * configuration — so the compatibility check matches and the retry would send
+	 * `payment_method_types` to an intent that was never created with them.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_intent_for_order_does_not_reuse_a_dynamic_payment_methods_intent() {
+		$order = WC_Helper_Order::create_order();
+
+		// An intent Stripe returned for a DPM create: it carries the full configuration list, so the
+		// reuse compatibility check would consider it a match for a plain [ 'card' ] request.
+		$existing_intent = (object) wp_parse_args(
+			[
+				'id'                   => 'pi_dpm_existing',
+				'payment_method'       => 'pm_mock',
+				'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ],
+				'status'               => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD,
+				'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ),
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$this->mock_gateway->method( 'get_intent_from_order' )->willReturn( $existing_intent );
+		$this->mock_gateway->method( 'stripe_request' )->willReturn( $existing_intent );
+
+		// The retry must go to create, never to update: update would re-send payment_method_types.
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'update_and_confirm_payment_intent' );
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $existing_intent );
+
+		$payment_information = [
+			'payment_method_types'      => [ WC_Stripe_Payment_Methods::CARD ],
+			'automatic_payment_methods' => true,
+			'order'                     => $order,
+		];
+
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'process_payment_intent_for_order' );
+		$method->setAccessible( true );
+		$method->invoke( $this->mock_gateway, $order, $payment_information );
+	}
+
+	/**
 	 * Test that a successful payment intent is reused instead of creating a new one.
 	 * This prevents duplicate charges when the shopper retries a payment after
 	 * a successful charge but failed order completion.
@@ -7044,6 +7091,66 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		return [
 			'phone present' => [ '+1 555-333-4444', true ],
 			'phone empty'   => [ '', false ],
+		];
+	}
+
+	/**
+	 * Dynamic Payment Methods eligibility gate.
+	 *
+	 * @dataProvider provide_is_automatic_payment_methods_eligible
+	 *
+	 * @param bool        $oc_enabled           Whether Optimized Checkout is enabled.
+	 * @param string      $pmc_enabled          The pmc_enabled setting value.
+	 * @param string      $selected_type        The resolved payment method type.
+	 * @param bool        $is_using_saved       Whether a saved token is used.
+	 * @param bool        $has_subscription     Whether the order has a subscription.
+	 * @param string|null $express_payment_type The express payment type, if any.
+	 * @param bool        $expected             Expected eligibility.
+	 */
+	public function test_is_automatic_payment_methods_eligible( bool $oc_enabled, string $pmc_enabled, string $selected_type, bool $is_using_saved, bool $has_subscription, ?string $express_payment_type, bool $expected ) {
+		$this->mock_gateway->oc_enabled = $oc_enabled;
+
+		// PMC::is_enabled() requires a connected account and pmc_enabled !== 'no'. Force these at read
+		// time; writing them via update_main_stripe_settings() fires a sync hook that resets pmc_enabled.
+		add_filter(
+			'option_' . WC_Stripe_Helper::SETTINGS_OPTION,
+			function ( $settings ) use ( $pmc_enabled ) {
+				$settings                         = is_array( $settings ) ? $settings : [];
+				$settings['testmode']             = 'yes';
+				$settings['test_publishable_key'] = 'pk_test_mock';
+				$settings['test_secret_key']      = 'sk_test_mock';
+				$settings['pmc_enabled']          = $pmc_enabled;
+				return $settings;
+			}
+		);
+
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'is_automatic_payment_methods_eligible' );
+		$method->setAccessible( true );
+
+		$this->assertSame(
+			$expected,
+			$method->invoke( $this->mock_gateway, $selected_type, $is_using_saved, $has_subscription, $express_payment_type )
+		);
+	}
+
+	/**
+	 * Data provider for test_is_automatic_payment_methods_eligible.
+	 *
+	 * @return array
+	 */
+	public function provide_is_automatic_payment_methods_eligible(): array {
+		$card = WC_Stripe_Payment_Methods::CARD;
+
+		return [
+			'eligible: OC + PMC, plain card'        => [ true, 'yes', $card, false, false, null, true ],
+			'eligible: non-voucher redirect method' => [ true, 'yes', WC_Stripe_Payment_Methods::IDEAL, false, false, null, true ],
+			'not eligible: OC disabled'             => [ false, 'yes', $card, false, false, null, false ],
+			'not eligible: PMC disabled'            => [ true, 'no', $card, false, false, null, false ],
+			'not eligible: saved token'             => [ true, 'yes', $card, true, false, null, false ],
+			'not eligible: subscription'            => [ true, 'yes', $card, false, true, null, false ],
+			'not eligible: express payment'         => [ true, 'yes', $card, false, false, WC_Stripe_Payment_Methods::GOOGLE_PAY, false ],
+			'not eligible: boleto voucher'          => [ true, 'yes', WC_Stripe_Payment_Methods::BOLETO, false, false, null, false ],
+			'not eligible: cashapp delayed confirm' => [ true, 'yes', WC_Stripe_Payment_Methods::CASHAPP_PAY, false, false, null, false ],
 		];
 	}
 }
