@@ -1,7 +1,7 @@
 import { getSetting } from '@woocommerce/settings';
 import React, { useMemo } from 'react';
 import styled from '@emotion/styled';
-import classnames from 'classnames';
+import clsx from 'clsx';
 import { Icon as IconComponent, dragHandle } from '@wordpress/icons';
 import { Reorder } from 'framer-motion';
 import PaymentMethodsMap from '../../payment-methods-map';
@@ -15,7 +15,6 @@ import {
 	useManualCapture,
 } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
-import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import { PAYMENT_METHOD_UNAVAILABLE_REASONS } from 'wcstripe/stripe-utils/constants';
 import { getFormattedPaymentMethodDescription } from 'wcstripe/settings/general-settings-section/get-formatted-payment-method-description';
 
@@ -117,10 +116,6 @@ const PaymentMethodWrapper = styled.div`
 	}
 `;
 
-const StyledFees = styled( PaymentMethodFeesPill )`
-	flex: 1 0 auto;
-`;
-
 /**
  * Hook to sort the payment methods based on whether the payment method is supported by the store currency.
  * Unsupported payment methods are placed at the end of the list so irrelevant payment methods don't clutter the screen.
@@ -210,7 +205,7 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 					<DraggableListElement
 						key={ method }
 						value={ method }
-						className={ classnames( {
+						className={ clsx( {
 							'has-overlay':
 								! isAllowingManualCapture &&
 								isManualCaptureEnabled,
@@ -232,9 +227,7 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 								label={ label }
 								supportsRecurring={ supportsRecurring }
 							/>
-							<StyledFees id={ method } />
 						</PaymentMethodWrapper>
-						<StyledFees id={ method } />
 					</DraggableListElement>
 				);
 			} ) }

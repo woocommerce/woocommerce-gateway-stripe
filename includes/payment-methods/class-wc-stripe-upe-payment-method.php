@@ -183,6 +183,33 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Runs $register only for the first instance of this payment method, so
+	 * repeated instantiation (the gateway constructor, factories, admin
+	 * checks) doesn't stack duplicate hook callbacks.
+	 *
+	 * @param callable $register Registers this instance's hooks.
+	 * @return void
+	 */
+	protected function register_instance_hooks_once( callable $register ): void {
+		$hook_manager = WC_Stripe_Hook_Manager::get_instance();
+
+		// The manager only tracks Stripe-prefixed ids. A third-party subclass
+		// with a foreign id can't be deduplicated, so fail open and register
+		// per instance rather than silently dropping its hooks.
+		if ( ! $hook_manager->is_valid_payment_method_id( $this->id ) ) {
+			$register();
+			return;
+		}
+
+		// Key on the concrete class too: a third-party subclass that keeps a
+		// core id must still register its (possibly overridden) callbacks, and
+		// must not suppress the core instance's — whichever constructs first.
+		if ( $hook_manager->register_payment_method_hooks( $this->id . ':' . get_class( $this ), WC_Stripe_Hook_Categories::GENERAL ) ) {
+			$register();
+		}
+	}
+
+	/**
 	 * Magic method to get properties.
 	 * Used for backwards compatibility with deprecated properties.
 	 *
@@ -304,7 +331,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		}
 
 		// When OC is enabled _and_ we are on a page where OC is permitted, we use the OC payment container to render all the methods.
-		if ( $this->oc_enabled && $main_stripe_gateway->is_valid_optimized_checkout_page() ) {
+		if ( $main_stripe_gateway->is_optimized_checkout_active() ) {
 			$enabled_methods     = $main_stripe_gateway->get_upe_enabled_at_checkout_payment_method_ids();
 			$non_express_methods = array_filter(
 				$enabled_methods,
@@ -344,7 +371,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_description() {
-		return '';
+		return apply_filters( 'woocommerce_gateway_description', '', $this->id );
 	}
 
 	/**
@@ -469,16 +496,20 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool True when no restriction is set or the country is in the supported list.
 	 */
 	public function is_available_for_billing_country( $country_code ): bool {
+		// Methods with no country restriction (e.g. card, Link) are available everywhere,
+		// including when the billing country is unknown — an empty country must not block
+		// them, or checkout fails for orders that carry no billing country.
+		if ( [] === $this->supported_billing_countries ) {
+			return true;
+		}
+
+		// A restricted method can't be confirmed available without knowing the country.
 		$country_code = is_string( $country_code ) ? strtoupper( $country_code ) : '';
 		if ( '' === $country_code ) {
 			return false;
 		}
 
-		if ( ! empty( $this->supported_billing_countries ) ) {
-			return in_array( $country_code, $this->supported_billing_countries, true );
-		}
-
-		return true;
+		return in_array( $country_code, $this->supported_billing_countries, true );
 	}
 
 	/**
@@ -544,6 +575,16 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return WC_Payment_Token_SEPA
 	 */
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
+		// Guard against non-SEPA-shaped PaymentMethods so set_fingerprint() throws a catchable exception
+		// instead of fataling on null.
+		$sepa_debit = $payment_method->sepa_debit ?? null;
+		if ( ! is_object( $sepa_debit ) || ! isset( $sepa_debit->fingerprint ) ) {
+			throw new WC_Stripe_Exception(
+				sprintf( 'Cannot create a SEPA payment token from payment method %s: missing sepa_debit fingerprint.', $payment_method->id ?? 'unknown' ),
+				__( "We're not able to save this payment method. Please try again.", 'woocommerce-gateway-stripe' )
+			);
+		}
+
 		$token = new WC_Payment_Token_SEPA();
 		$token->set_last4( $payment_method->sepa_debit->last4 );
 		$token->set_gateway_id( $this->id );
@@ -574,8 +615,17 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return array|null
 	 */
 	public function get_supported_currencies() {
+		$payment_method_id = static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
+
+		/**
+		 * Filters the currencies supported by a UPE payment method.
+		 *
+		 * The dynamic portion of the hook name is the Stripe payment method ID.
+		 *
+		 * @param string[]|null $supported_currencies Supported currency codes, or null for no currency restrictions.
+		 */
 		return apply_filters(
-			'wc_stripe_' . static::STRIPE_ID . '_upe_supported_currencies', // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
+			"wc_stripe_{$payment_method_id}_upe_supported_currencies",
 			$this->supported_currencies
 		);
 	}
@@ -802,13 +852,24 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			</fieldset>
 			<?php
 			if ( $this->should_show_save_option() ) {
+				/**
+				 * This filter is documented in includes/class-wc-stripe-blocks-support.php.
+				 */
 				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page() || WC_Stripe_Helper::should_force_save_payment_method();
 				if ( is_user_logged_in() ) {
 					$this->save_payment_method_checkbox( $force_save_payment );
 				}
 			}
 
-			do_action( 'wc_stripe_payment_fields_' . $this->id, $this->id );
+			$gateway_id = $this->id;
+			/**
+			 * Fires after Stripe payment fields are rendered.
+			 *
+			 * The dynamic portion of the hook name is the gateway ID, which will generally be 'stripe'.
+			 *
+			 * @param string $gateway_id Gateway ID.
+			 */
+			do_action( "wc_stripe_payment_fields_{$gateway_id}", $gateway_id );
 		} catch ( Exception $e ) {
 			// Output the error message.
 			WC_Stripe_Logger::error( 'Error in UPE payment fields', [ 'error_message' => $e->getMessage() ] );
@@ -944,7 +1005,12 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			<p class="form-row woocommerce-SavedPaymentMethods-saveNew" <?php echo ! is_user_logged_in() ? 'style="display:none;"' : ''; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>>
 				<input id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $id ); ?>" type="checkbox" value="true" style="width:auto;" <?php echo $force_checked ? 'checked' : ''; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?> />
 				<label for="<?php echo esc_attr( $id ); ?>" style="display:inline;">
-					<?php echo esc_html( apply_filters( 'wc_stripe_save_to_account_text', __( 'Save payment information to my account for future purchases.', 'woocommerce-gateway-stripe' ) ) ); ?>
+					<?php
+					/**
+					 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
+					 */
+					echo esc_html( apply_filters( 'wc_stripe_save_to_account_text', __( 'Save payment information to my account for future purchases.', 'woocommerce-gateway-stripe' ) ) );
+					?>
 				</label>
 			</p>
 		</fieldset>

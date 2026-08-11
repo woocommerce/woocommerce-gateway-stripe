@@ -1,10 +1,16 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
 import { api, payments, products } from '../../../utils';
 
-const { setupBlocksCheckout, fillCreditCardDetails, clickAddToCartButton } =
-	payments;
+const {
+	setupBlocksCheckout,
+	fillCreditCardDetails,
+	clickAddToCartButton,
+	selectSubscriptionOption,
+	getCartTotal,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
+} = payments;
 
 let productId;
 
@@ -18,9 +24,11 @@ test.afterAll( async () => {
 
 test( 'customer can purchase a subscription product @smoke @blocks @subscriptions', async ( {
 	page,
+	browser,
 } ) => {
 	await page.goto( `?p=${ productId }` );
-	await clickAddToCartButton( page );
+	await selectSubscriptionOption( page );
+	await clickAddToCartButton( page, 'Sign up' );
 
 	const randomString = randomUUID();
 	// Subscriptions will create an account for this checkout, we need a random email.
@@ -35,10 +43,13 @@ test( 'customer can purchase a subscription product @smoke @blocks @subscription
 	await setupBlocksCheckout( page, customerData );
 	await fillCreditCardDetails( page, config.get( 'cards.no-3ds' ) );
 
-	await page.locator( 'text=Place order' ).click();
-	await page.waitForURL( '**/checkout/order-received/**' );
+	const expectedTotal = await getCartTotal( page );
 
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
+	await page.locator( 'text=Place order' ).click();
+
+	await waitForOrderReceivedPageAndConfirmExpectedTotal(
+		browser,
+		page,
+		expectedTotal
 	);
 } );

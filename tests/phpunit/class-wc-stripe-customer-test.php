@@ -198,6 +198,22 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'expected_exception_string'  => 'Missing required customer field: email',
 				'current_context'            => \WC_Stripe_Customer::CUSTOMER_CONTEXT_PAY_FOR_ORDER,
 			],
+			'checkout session, only email present and required, no overrides'                     => [
+				'billing_fields'             => [], // only email is required
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+				'current_context'            => \WC_Stripe_Customer::CUSTOMER_CONTEXT_CHECKOUT_SESSION,
+			],
+			'checkout session, only email is empty string'                                        => [
+				'billing_fields'             => [ 'email' => '' ],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: email',
+				'expected_exception_string'  => 'Missing required customer field: email',
+				'current_context'            => \WC_Stripe_Customer::CUSTOMER_CONTEXT_CHECKOUT_SESSION,
+			],
 			'all fields present and required, no overrides, context is false'                     => [
 				'billing_fields'             => [],
 				'woo_billing_fields'         => null,
@@ -693,6 +709,71 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 			$this->assertArrayNotHasKey( 'order', $captured_update_request, 'Order should not be sent to Stripe API in update_customer' );
 		} finally {
 			remove_filter( 'pre_http_request', $mock_update_call, 10 );
+		}
+	}
+
+	/**
+	 * A guest checkout (user id 0) creates a fresh Stripe customer rather than
+	 * reusing one matched by billing name + email.
+	 *
+	 * @return void
+	 */
+	public function test_guest_checkout_does_not_reuse_customer_by_name_and_email() {
+		wp_set_current_user( 0 );
+
+		$customer   = new \WC_Stripe_Customer(); // Guest: user id 0.
+		$mock_order = $this->create_mock_order(
+			[
+				'email'      => 'victim@example.com',
+				'first_name' => 'Jane',
+				'last_name'  => 'Victim',
+			]
+		);
+
+		$search_called = false;
+		$update_called = false;
+		$create_called = false;
+
+		$spy = function ( $return_value, $parsed_args, $url ) use ( &$search_called, &$update_called, &$create_called ) {
+			$method = $parsed_args['method'] ?? '';
+			if ( 'GET' === $method && str_starts_with( $url, 'https://api.stripe.com/v1/customers/search' ) ) {
+				$search_called = true;
+				// Return a match so a regression would take the reuse branch.
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode( [ 'data' => [ [ 'id' => 'cus_victim' ] ] ] ),
+				];
+			}
+			if ( 'POST' === $method && 'https://api.stripe.com/v1/customers' === $url ) {
+				$create_called = true;
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode( [ 'id' => 'cus_fresh_guest' ] ),
+				];
+			}
+			if ( 'POST' === $method && 'https://api.stripe.com/v1/customers/cus_victim' === $url ) {
+				$update_called = true;
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode( [ 'id' => 'cus_victim' ] ),
+				];
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $spy, 10, 3 );
+
+		try {
+			$id = $customer->create_customer( [], null, $mock_order );
+
+			$this->assertFalse( $search_called, 'Guest checkout must not query customers/search.' );
+			$this->assertFalse( $update_called, 'Guest checkout must not overwrite a matched customer.' );
+			$this->assertTrue( $create_called, 'Guest checkout must create a fresh customer.' );
+			$this->assertSame( 'cus_fresh_guest', $id, 'The order must bind to the freshly created customer, not a matched one.' );
+		} finally {
+			remove_filter( 'pre_http_request', $spy, 10 );
 		}
 	}
 }

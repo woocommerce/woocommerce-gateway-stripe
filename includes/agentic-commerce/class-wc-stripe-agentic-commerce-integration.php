@@ -45,19 +45,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_feed';
 
 	/**
-	 * Action Scheduler group for adapter-fired one-off resyncs.
-	 *
-	 * Kept distinct from the recurring `wc-stripe` group so the idempotency
-	 * guard in {@see self::schedule_full_resync_now()} can ask "is another
-	 * adapter-fired resync already pending?" without matching the recurring
-	 * full-feed occurrence — `as_has_scheduled_action()` filters by group,
-	 * so a shared group would make the one-off a no-op whenever the cron
-	 * tick is queued.
+	 * Action Scheduler hook for an immediate, one-off full resync. Kept distinct
+	 * from {@see self::SCHEDULED_ACTION} — the recurring action is always pending,
+	 * so sharing it would make `as_has_scheduled_action()` drop every immediate resync.
 	 *
 	 * @var string
 	 * @since 10.8.0
 	 */
-	private const ASYNC_RESYNC_GROUP = 'wc-stripe-agentic-resync';
+	protected const IMMEDIATE_SYNC_ACTION = 'wc_stripe_agentic_commerce_sync_feed_now';
 
 	/**
 	 * Option name to track whether the sync is scheduled.
@@ -77,6 +72,15 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @since 10.6.0
 	 */
 	public const ENABLED_OPTION = 'wc_stripe_agentic_commerce_enabled';
+
+	/**
+	 * Option key for the store-wide checkout mode. `yes` emits
+	 * `disable_checkout=true` for every product so agents redirect to the store.
+	 *
+	 * @var string
+	 * @since 10.9.0
+	 */
+	public const DISABLE_CHECKOUT_OPTION = 'wc_stripe_agentic_commerce_disable_checkout';
 
 	/**
 	 * Option key storing the content hash, upload timestamp, and Stripe file id
@@ -183,13 +187,15 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 */
 	public function register_hooks(): void {
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
+		add_action( self::IMMEDIATE_SYNC_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 
 		// Adapter-fired hook for converging Stripe's catalog when the
-		// `wc_stripe_agentic_commerce_should_sync_product` filter outcome changes.
+		// `woocommerce_agentic_commerce_should_sync_product` filter outcome changes.
 		// See the filter docblock for the contract — without this, a previously
 		// exported product that becomes excluded would only drop out of Stripe's
 		// catalog on the next scheduled full sync.
 		add_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $this, 'schedule_full_resync_now' ] );
+		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_resync_after_mode_switch' ], 10, 2 );
 
 		// WC 10.8+ requires `created_via` to be in an allowlist for `payment_complete()` to run.
 		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $this, 'allow_agentic_payment_complete' ] );
@@ -199,12 +205,37 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
-	 * Enqueue an immediate full-feed sync if one is not already pending.
+	 * Resync the catalog when the test/live mode toggles.
 	 *
-	 * Idempotent: when a sync is already pending (recurring cron tick or a
-	 * previous call within the same request), this is a no-op. Adapters can
-	 * call it cheaply on every visibility-setting save without worrying about
-	 * stacking Action Scheduler entries.
+	 * The new mode's Stripe environment has its own catalog: the dedup record
+	 * belongs to the previous mode, and without a fresh upload the newly
+	 * active environment would stay empty until the feed content changes.
+	 *
+	 * @since 10.9.0
+	 * @param mixed $old_value Previous settings option value.
+	 * @param mixed $value     New settings option value.
+	 * @return void
+	 */
+	public function maybe_resync_after_mode_switch( $old_value, $value ): void {
+		$mode_of = function ( $settings ) {
+			return is_array( $settings ) && 'yes' === ( $settings['testmode'] ?? 'no' ) ? 'test' : 'live';
+		};
+
+		if ( $mode_of( $old_value ) === $mode_of( $value ) || ! self::is_merchant_enabled() ) {
+			return;
+		}
+
+		delete_option( self::LAST_UPLOAD_OPTION );
+		$this->schedule_full_resync_now();
+	}
+
+	/**
+	 * Enqueue an immediate full-feed sync unless one is already queued.
+	 *
+	 * Idempotent against other immediate resyncs only, so adapters can call it on
+	 * every visibility-setting save. It does NOT dedupe against the recurring
+	 * {@see self::SCHEDULED_ACTION}, which would otherwise leave the catalog stale
+	 * until the next cron tick.
 	 *
 	 * @since 10.8.0
 	 * @return void
@@ -214,22 +245,18 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		if ( as_has_scheduled_action( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP ) ) {
+		if ( as_has_scheduled_action( self::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' ) ) {
 			return;
 		}
 
-		as_enqueue_async_action( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP );
+		as_enqueue_async_action( self::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
 	}
 
 	/**
-	 * Cancel any pending adapter-fired one-off resync.
-	 *
-	 * A full sync that has just run — e.g. a manual sync from the settings UI —
-	 * already produces a complete upload reflecting current visibility, so a
-	 * queued {@see self::schedule_full_resync_now()} action would only repeat
-	 * that work. It lives in {@see self::ASYNC_RESYNC_GROUP}, which the manual
-	 * sync's `wc-stripe`-group reschedule does not touch, so it must be cleared
-	 * explicitly. Idempotent: a no-op when nothing is queued.
+	 * Cancel any pending immediate resync. A just-run full sync already reflects
+	 * current visibility, so a queued {@see self::IMMEDIATE_SYNC_ACTION} would only
+	 * repeat the work; the manual sync's reschedule doesn't touch it, so clear it
+	 * explicitly. Idempotent.
 	 *
 	 * @since 10.8.0
 	 * @return void
@@ -239,7 +266,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP );
+		as_unschedule_all_actions( self::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
 	}
 
 	/**
@@ -270,19 +297,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		if ( ! as_has_scheduled_action( self::SCHEDULED_ACTION ) ) {
-			as_schedule_recurring_action(
-				time(),
-				self::SYNC_INTERVAL,
-				self::SCHEDULED_ACTION,
-				[],
-				'wc-stripe'
-			);
-
-			WC_Stripe_Logger::info( 'Agentic Commerce: Scheduled recurring feed sync every ' . ( self::SYNC_INTERVAL / MINUTE_IN_SECONDS ) . ' minutes' );
-		}
-
-		update_option( self::SCHEDULED_OPTION, 'yes', true );
+		$this->schedule_recurring_feed_sync();
 	}
 
 	/**
@@ -297,7 +312,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		}
 
 		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], 'wc-stripe' );
-		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], self::ASYNC_RESYNC_GROUP );
+		as_unschedule_all_actions( self::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
 		delete_option( self::SCHEDULED_OPTION );
 		delete_option( self::LAST_UPLOAD_OPTION );
 
@@ -305,25 +320,155 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
+	 * Schedule the recurring feed sync.
+	 *
+	 * @since 10.9.0
+	 * @param int|null $start_time The timestamp to start the sync. Defaults to the current time when null is supplied.
+	 * @return bool True if the sync was scheduled, false otherwise.
+	 */
+	public function schedule_recurring_feed_sync( ?int $start_time = null ): bool {
+		// NOTE: The checks in this function MUST be added to can_schedule_recurring_feed_sync(),
+		// as we need to be able to check for any exit conditions from reschedule_next_feed_sync()
+		// so we can prevent situations where we remove the recurring sync but won't reschedule it.
+		if ( ! $this->can_schedule_recurring_feed_sync() ) {
+			return false;
+		}
+
+		if ( null === $start_time ) {
+			$start_time = time();
+		}
+
+		if ( ! as_has_scheduled_action( self::SCHEDULED_ACTION, null, 'wc-stripe' ) ) {
+			$sync_interval = $this->get_feed_sync_interval();
+
+			$schedule_result = as_schedule_recurring_action(
+				$start_time,
+				$sync_interval,
+				self::SCHEDULED_ACTION,
+				[],
+				'wc-stripe'
+			);
+
+			if ( 0 === $schedule_result ) {
+				WC_Stripe_Logger::error( 'Agentic Commerce: Failed to schedule recurring feed sync' );
+				return false;
+			}
+
+			WC_Stripe_Logger::info( 'Agentic Commerce: Scheduled recurring feed sync every ' . ( $sync_interval / MINUTE_IN_SECONDS ) . ' minutes' );
+		}
+
+		update_option( self::SCHEDULED_OPTION, 'yes', true );
+
+		return true;
+	}
+
+	/**
+	 * Check if the integration can schedule a recurring feed sync.
+	 *
+	 * @return bool True if the integration can schedule a recurring feed sync, false otherwise.
+	 */
+	private function can_schedule_recurring_feed_sync(): bool {
+		return did_action( 'action_scheduler_init' ) && function_exists( 'as_has_scheduled_action' ) && function_exists( 'as_schedule_recurring_action' );
+	}
+
+	/**
+	 * Reschedule the next feed sync.
+	 *
+	 * @since 10.9.0
+	 * @param int|null $start_time The start timestamp to use when computing the next sync time. Defaults to the current item time.
+	 * @return bool True if the sync was rescheduled, false otherwise.
+	 */
+	public function reschedule_next_feed_sync( ?int $start_time = null ): bool {
+		// Note that we bail early if we can't reschedule the recurring sync from the current context.
+		if ( ! function_exists( 'as_unschedule_all_actions' ) || ! $this->can_schedule_recurring_feed_sync() ) {
+			return false;
+		}
+
+		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], 'wc-stripe' );
+		delete_option( self::SCHEDULED_OPTION );
+
+		$current_time  = time();
+		$sync_interval = $this->get_feed_sync_interval();
+		if ( null === $start_time || $start_time <= $current_time ) {
+			$start_time = $current_time + $sync_interval;
+		}
+
+		return $this->schedule_recurring_feed_sync( $start_time );
+	}
+
+	/**
+	 * Get the feed sync interval in seconds.
+	 *
+	 * @since 10.9.0
+	 * @return int Feed sync interval in seconds.
+	 */
+	public function get_feed_sync_interval(): int {
+		/**
+		 * Filter the recurring sync interval (in seconds) used when scheduling
+		 * or rescheduling Agentic Commerce product synchronization.
+		 *
+		 * @since 10.7.0
+		 * @param int $sync_interval Default sync interval in seconds.
+		 */
+		$sync_interval = apply_filters(
+			'wc_stripe_agentic_commerce_feed_sync_interval',
+			self::SYNC_INTERVAL
+		);
+		if ( ! is_int( $sync_interval ) || $sync_interval <= 0 ) {
+			$sync_interval = self::SYNC_INTERVAL;
+		}
+
+		return $sync_interval;
+	}
+
+	/**
 	 * Get product feed query arguments.
+	 *
+	 * Constructs the `wc_get_products()` argument set passed to the walker.
+	 * When a {@see WC_Stripe_Agentic_Commerce_Product_Filter} has been
+	 * configured (via stored options or the
+	 * `wc_stripe_agentic_commerce_product_filter` filter), the query arguments
+	 * are built from those criteria.
+	 * Those parameters can then be modified via the `wc_stripe_agentic_commerce_product_query_args` filter.
 	 *
 	 * @since 10.5.0
 	 * @return array WP_Query arguments for product selection.
 	 */
 	public function get_product_feed_query_args(): array {
+		$args = [
+			'type'   => [
+				\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
+				\Automattic\WooCommerce\Enums\ProductType::VARIATION,
+			],
+			'status' => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+		];
+
+		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
+		if ( $filter->has_filters() ) {
+			$filter_args = $filter->get_query_args();
+
+			if ( is_array( $filter_args ) && [] !== $filter_args ) {
+				$args = $filter_args;
+			}
+		}
+
 		/**
-		 * Filter product feed query arguments.
+		 * Filter product feed query arguments. Note that complex filters
+		 * may already exist, so care should be taken to ensure that any overrides
+		 * applied via this filter don't clash with the existing values in a way
+		 * that would generate no results.
 		 *
 		 * @since 10.5.0
-		 * @param array $args WP_Query arguments.
+		 * @param array $args WC_Product_Query arguments.
 		 */
-		return apply_filters(
-			'wc_stripe_agentic_commerce_product_query_args',
-			[
-				'type'   => [ 'simple', 'variation' ],
-				'status' => [ 'publish' ],
-			]
-		);
+		$result = apply_filters( 'wc_stripe_agentic_commerce_product_query_args', $args );
+
+		if ( is_array( $result ) ) {
+			return $result;
+		}
+
+		// Invalid filter result, return the arguments from before the filter was applied.
+		return $args;
 	}
 
 	/**
@@ -395,6 +540,17 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
+	 * Whether the store-wide default disables in-agent checkout (feed-only / redirect).
+	 * Per-product overrides live in the mapper's filter.
+	 *
+	 * @since 10.9.0
+	 * @return bool
+	 */
+	public static function is_checkout_disabled(): bool {
+		return 'yes' === get_option( self::DISABLE_CHECKOUT_OPTION, 'no' );
+	}
+
+	/**
 	 * Execute feed sync process.
 	 *
 	 * Generates product feed using ProductWalker.
@@ -416,8 +572,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return false;
 		}
 
-		// Check delivery setup before generating the feed.
-		$delivery = $this->get_push_delivery_method();
+		// One settings snapshot supplies both the mode label and the delivery
+		// key, held for the whole run: separate reads could straddle a
+		// concurrent settings save and pair one mode's label with the other
+		// mode's key, and every record this run persists must describe the
+		// environment it actually delivered to, not the mode at write time.
+		$context  = self::get_delivery_context();
+		$mode     = $context['mode'];
+		$delivery = new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $context['secret_key'] );
 
 		if ( ! $delivery->check_setup() ) {
 			WC_Stripe_Logger::error( 'Agentic Commerce: Sync skipped - Stripe API key not configured' );
@@ -562,7 +724,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			// can't claim "this catalog is on Stripe". Storing the hash in those
 			// cases would suppress the next upload that could have recovered.
 			if ( ! empty( $feed_hash ) && '' !== $import_set_id && 'failed' !== $status ) {
-				$this->remember_feed_upload( $feed_hash, $result );
+				$this->remember_feed_upload( $feed_hash, $result, $mode );
 			}
 
 			// Delete the file to prevent accumulation.
@@ -580,7 +742,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					'import_set_id'    => $import_set_id,
 					'error'            => '',
 					'skipped_products' => $skipped_count,
-				]
+				],
+				$mode
 			);
 
 			return true;
@@ -604,7 +767,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					'import_set_id'    => '',
 					'error'            => $e->getMessage(),
 					'skipped_products' => 0,
-				]
+				],
+				$mode
 			);
 
 			return false;
@@ -630,9 +794,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 *                                    to `succeeded_with_errors` once the
 	 *                                    ImportSet completes.
 	 * }
+	 * @param string|null $mode The mode ('test'/'live') the sync ran against, as
+	 *                          captured when it started; null falls back to the
+	 *                          current mode for callers outside a sync run.
 	 * @return void
 	 */
-	public function store_sync_result( array $result ): void {
+	public function store_sync_result( array $result, ?string $mode = null ): void {
 		$history = get_option( self::SYNC_HISTORY_OPTION, [] );
 
 		if ( ! is_array( $history ) ) {
@@ -647,6 +814,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			'import_set_id'    => $result['import_set_id'] ?? '',
 			'error'            => $result['error'] ?? '',
 			'skipped_products' => isset( $result['skipped_products'] ) ? max( 0, (int) $result['skipped_products'] ) : 0,
+			'mode'             => $mode ?? self::get_current_mode(),
 		];
 
 		$history[] = $entry;
@@ -765,10 +933,15 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 *
 	 * @since 10.7.0
 	 * @param array<string, string> $status_updates Map of import_set_id to new status.
+	 * @param array<string, string> $mode_updates   Map of import_set_id to a mode
+	 *                                              learned after the fact. Only
+	 *                                              stamped onto entries that have
+	 *                                              no recorded mode; a recorded
+	 *                                              mode is never overwritten.
 	 * @return void
 	 */
-	public static function update_pending_statuses( array $status_updates ): void {
-		if ( empty( $status_updates ) ) {
+	public static function update_pending_statuses( array $status_updates, array $mode_updates = [] ): void {
+		if ( empty( $status_updates ) && empty( $mode_updates ) ) {
 			return;
 		}
 
@@ -778,12 +951,25 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		$changed = false;
 
 		foreach ( $history as &$entry ) {
+			$import_set_id = $entry['import_set_id'] ?? '';
+			if ( '' === $import_set_id ) {
+				continue;
+			}
+
+			// A mode learned after the fact (e.g. a 404 under the active key
+			// proving a legacy entry belongs to the other environment) is
+			// stamped so the entry stops being polled with a key that can
+			// never resolve it.
+			if ( isset( $mode_updates[ $import_set_id ] ) && '' === ( $entry['mode'] ?? '' ) ) {
+				$entry['mode'] = $mode_updates[ $import_set_id ];
+				$changed       = true;
+			}
+
 			if ( ! in_array( $entry['status'] ?? '', $non_terminal_statuses, true ) ) {
 				continue;
 			}
 
-			$import_set_id = $entry['import_set_id'] ?? '';
-			if ( '' === $import_set_id || ! isset( $status_updates[ $import_set_id ] ) ) {
+			if ( ! isset( $status_updates[ $import_set_id ] ) ) {
 				continue;
 			}
 
@@ -864,15 +1050,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return false;
 		}
 
-		/**
-		 * Filter the max age of the cached upload record before dedup is bypassed.
-		 *
-		 * Defaults to one week. Applied as a safety valve so a stale or lost Stripe
-		 * file id still gets refreshed on a predictable cadence.
-		 *
-		 * @since 10.8.0
-		 * @param int $ttl_seconds Default self::FEED_CACHE_TTL.
-		 */
+		// A record from the other mode (or a legacy record with no mode) says
+		// nothing about the current mode's environment — its catalog may have
+		// never received this feed, so an identical hash must still upload.
+		if ( ( $last['mode'] ?? '' ) !== self::get_current_mode() ) {
+			return false;
+		}
+
 		if ( ! isset( $last['uploaded_at'] ) || ! is_numeric( $last['uploaded_at'] ) ) {
 			return false;
 		}
@@ -880,6 +1064,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		if ( $uploaded_at <= 0 ) {
 			return false;
 		}
+		/**
+		 * Filters the max age of the cached upload record before dedup is bypassed.
+		 *
+		 * @since 10.8.0
+		 *
+		 * @param int $ttl_seconds Default self::FEED_CACHE_TTL.
+		 */
 		$max_age = (int) apply_filters( 'wc_stripe_agentic_commerce_feed_cache_ttl', self::FEED_CACHE_TTL );
 		if ( $max_age > 0 && ( time() - $uploaded_at ) > $max_age ) {
 			return false;
@@ -892,11 +1083,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Record the hash, timestamp, and Stripe file id of a successful upload.
 	 *
 	 * @since 10.8.0
-	 * @param string $hash   SHA-256 hex digest of the uploaded feed content.
-	 * @param array  $result Delivery result array returned by the Files API delivery method.
+	 * @param string      $hash   SHA-256 hex digest of the uploaded feed content.
+	 * @param array       $result Delivery result array returned by the Files API delivery method.
+	 * @param string|null $mode   The mode captured at sync start; null falls back
+	 *                            to the current mode.
 	 * @return void
 	 */
-	protected function remember_feed_upload( string $hash, array $result ): void {
+	protected function remember_feed_upload( string $hash, array $result, ?string $mode = null ): void {
 		update_option(
 			self::LAST_UPLOAD_OPTION,
 			[
@@ -904,9 +1097,42 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				'uploaded_at'   => time(),
 				'file_id'       => is_string( $result['file_id'] ?? null ) ? $result['file_id'] : '',
 				'import_set_id' => is_string( $result['import_set_id'] ?? null ) ? $result['import_set_id'] : '',
+				'mode'          => $mode ?? self::get_current_mode(),
 			],
 			false
 		);
+	}
+
+	/**
+	 * Returns the Stripe mode the sync flow is currently operating in.
+	 *
+	 * Test and live are separate Stripe environments with separate catalogs,
+	 * so any persisted sync state must be attributable to one of them.
+	 *
+	 * @since 10.9.0
+	 * @return string Either 'test' or 'live'.
+	 */
+	public static function get_current_mode(): string {
+		return WC_Stripe_Mode::is_test() ? 'test' : 'live';
+	}
+
+	/**
+	 * Captures the Stripe mode and its matching secret key from a single settings read.
+	 *
+	 * Both values derive from one snapshot so a concurrent settings save can
+	 * never pair one mode's label with the other mode's key.
+	 *
+	 * @since 10.9.0
+	 * @return array{mode: string, secret_key: string}
+	 */
+	public static function get_delivery_context(): array {
+		$settings  = WC_Stripe_Helper::get_stripe_settings();
+		$test_mode = isset( $settings['testmode'] ) && 'yes' === $settings['testmode'];
+
+		return [
+			'mode'       => $test_mode ? 'test' : 'live',
+			'secret_key' => $test_mode ? ( $settings['test_secret_key'] ?? '' ) : ( $settings['secret_key'] ?? '' ),
+		];
 	}
 
 	/**
@@ -916,13 +1142,6 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return string Stripe secret key.
 	 */
 	private function get_secret_key(): string {
-		$settings  = WC_Stripe_Helper::get_stripe_settings();
-		$test_mode = isset( $settings['testmode'] ) && 'yes' === $settings['testmode'];
-
-		if ( $test_mode ) {
-			return $settings['test_secret_key'] ?? '';
-		}
-
-		return $settings['secret_key'] ?? '';
+		return self::get_delivery_context()['secret_key'];
 	}
 }

@@ -2,6 +2,7 @@ import {
 	normalizeLineItems,
 	normalizeOrderData,
 	normalizeShippingAddress,
+	transformVariationAttributesForStoreApi,
 } from '../normalize';
 import { select } from '@wordpress/data';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
@@ -774,5 +775,44 @@ describe( 'Express checkout normalization', () => {
 				expectedNormalizedAddress
 			);
 		} );
+	} );
+
+	describe( 'transformVariationAttributesForStoreApi', () => {
+		test( 'maps the attribute/value object to the Store API pair list', () => {
+			const attributes = {
+				attribute_pa_color: 'blue',
+				attribute_size: 'large',
+			};
+
+			expect(
+				transformVariationAttributesForStoreApi( attributes )
+			).toEqual( [
+				{ attribute: 'attribute_pa_color', value: 'blue' },
+				{ attribute: 'attribute_size', value: 'large' },
+			] );
+		} );
+
+		test( 'preserves empty "any" attribute values', () => {
+			const attributes = {
+				attribute_pa_color: '',
+				attribute_size: 'large',
+			};
+
+			expect(
+				transformVariationAttributesForStoreApi( attributes )
+			).toEqual( [
+				{ attribute: 'attribute_pa_color', value: '' },
+				{ attribute: 'attribute_size', value: 'large' },
+			] );
+		} );
+
+		test.each( [ [ undefined ], [ null ], [ {} ] ] )(
+			'returns an empty array for %p',
+			( input ) => {
+				expect(
+					transformVariationAttributesForStoreApi( input )
+				).toEqual( [] );
+			}
+		);
 	} );
 } );
