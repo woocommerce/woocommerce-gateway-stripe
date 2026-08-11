@@ -330,13 +330,18 @@ export const useCheckoutSessionTotalsSync = (
 	sessionData = {}
 ) => {
 	const checkoutStateRef = useRef( checkoutState );
-	checkoutStateRef.current = checkoutState;
 
 	const prevSessionIdRef = useRef( null );
 	const prevSessionStateRef = useRef( null );
 	const sessionState = `${ sessionData?.revision ?? 0 }:${
 		sessionData?.status ?? 'uninitialized'
 	}`;
+
+	useEffect( () => {
+		if ( checkoutStateRef.current !== checkoutState ) {
+			checkoutStateRef.current = checkoutState;
+		}
+	}, [ checkoutState, checkoutStateRef ] );
 
 	// A replacement session has its own revision sequence, so do not compare it with the previous one.
 	useEffect( () => {
