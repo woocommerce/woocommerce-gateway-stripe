@@ -1459,13 +1459,11 @@ class WC_Stripe_Helper {
 		// Make sure location parameter is sanitized.
 		$location         = in_array( $location, [ 'product', 'cart' ], true ) ? $location : '';
 		$are_prbs_enabled = self::get_settings( null, 'express_checkout' ) ?? 'yes';
-		$prb_locations    = self::get_settings( null, 'express_checkout_button_locations' ) ?? [ 'product', 'cart' ];
 
-		// The scripts should be loaded when all of the following are true:
-		//   1. The PRBs are enabled; and
-		//   2. The PRB location settings have an array value (saving an empty option in the GUI results in non-array value); and
-		//   3. The PRBs are enabled at $location.
-		return 'yes' === $are_prbs_enabled && is_array( $prb_locations ) && in_array( $location, $prb_locations, true );
+		// The stored locations can be the legacy flat list or the unified
+		// location => methods map; the express checkout helper reads both shapes.
+		return 'yes' === $are_prbs_enabled
+			&& ( new WC_Stripe_Express_Checkout_Helper() )->is_enabled_for_location( 'payment_request', $location );
 	}
 
 	/**
