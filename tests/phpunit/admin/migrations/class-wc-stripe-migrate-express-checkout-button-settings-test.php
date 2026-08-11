@@ -81,4 +81,46 @@ class WC_Stripe_Migrate_Express_Checkout_Button_Settings_Test extends WP_UnitTes
 		$this->assertArrayNotHasKey( 'express_checkout_button_locations', $settings );
 		$this->assertSame( 'yes', get_option( WC_Stripe_Migrate_Express_Checkout_Button_Settings::MIGRATED_OPTION ) );
 	}
+
+	/**
+	 * A second pass over an already-unified map (lost one-shot flag) leaves it unchanged.
+	 *
+	 * @return void
+	 */
+	public function test_second_pass_leaves_unified_map_unchanged() {
+		$map = [
+			'product' => [ 'amazon_pay', 'link', 'payment_request' ],
+			'cart'    => [ 'payment_request' ],
+		];
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'express_checkout_button_locations' => $map ] );
+
+		( new WC_Stripe_Migrate_Express_Checkout_Button_Settings() )->maybe_migrate();
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( $map, $settings['express_checkout_button_locations'] );
+		$this->assertSame( 'yes', get_option( WC_Stripe_Migrate_Express_Checkout_Button_Settings::MIGRATED_OPTION ) );
+	}
+
+	/**
+	 * Per-method leftovers next to a unified map are dropped without rebuilding the map.
+	 *
+	 * @return void
+	 */
+	public function test_drops_leftovers_without_rebuilding_unified_map() {
+		$map = [ 'cart' => [ 'link' ] ];
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'express_checkout_button_locations' => $map,
+				'link_button_locations'             => [ 'product' ],
+				'link_button_size'                  => 'large',
+			]
+		);
+
+		( new WC_Stripe_Migrate_Express_Checkout_Button_Settings() )->maybe_migrate();
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( $map, $settings['express_checkout_button_locations'] );
+		$this->assertArrayNotHasKey( 'link_button_locations', $settings );
+		$this->assertArrayNotHasKey( 'link_button_size', $settings );
+	}
 }

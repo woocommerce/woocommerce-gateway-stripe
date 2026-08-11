@@ -32,15 +32,33 @@ class WC_Stripe_Migrate_Express_Checkout_Button_Settings {
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 
-		// Fresh installs have no legacy data to collapse; they pick up the default map at render time.
-		$has_legacy_locations = isset( $settings['express_checkout_button_locations'] )
-			|| isset( $settings['link_button_locations'] )
-			|| isset( $settings['amazon_pay_button_locations'] );
+		$stored_locations = $settings['express_checkout_button_locations'] ?? null;
 
-		if ( $has_legacy_locations ) {
+		// A unified map means a previous (or concurrent) pass already migrated —
+		// possible when the one-shot flag is lost. Feeding the map back through the
+		// legacy converter would corrupt it, so it is kept authoritative as-is.
+		$already_unified = is_array( $stored_locations )
+			&& WC_Stripe_Express_Checkout_Helper::is_locations_map( $stored_locations );
+
+		$has_per_method_leftovers = isset( $settings['link_button_locations'] )
+			|| isset( $settings['amazon_pay_button_locations'] )
+			|| isset( $settings['link_button_size'] )
+			|| isset( $settings['amazon_pay_button_size'] );
+
+		// Fresh installs have no legacy data to collapse; they pick up the default map
+		// at render time. Orphan per-method sizes alone must not trigger a conversion,
+		// which would store an empty map and suppress that default.
+		$needs_conversion = ! $already_unified
+			&& ( null !== $stored_locations
+				|| isset( $settings['link_button_locations'] )
+				|| isset( $settings['amazon_pay_button_locations'] ) );
+
+		if ( $needs_conversion ) {
 			// Build the map before overwriting the option it partly derives from.
 			$settings['express_checkout_button_locations'] = WC_Stripe_Express_Checkout_Helper::build_locations_map_from_legacy( $settings );
+		}
 
+		if ( $needs_conversion || $has_per_method_leftovers ) {
 			// Per-method sizes are dropped; the shared `express_checkout_button_size` is left untouched.
 			unset(
 				$settings['link_button_locations'],

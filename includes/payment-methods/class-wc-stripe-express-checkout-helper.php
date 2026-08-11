@@ -1936,7 +1936,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @param array $value The stored value.
 	 * @return bool
 	 */
-	private static function is_locations_map( array $value ): bool {
+	public static function is_locations_map( array $value ): bool {
 		foreach ( array_keys( $value ) as $key ) {
 			if ( is_int( $key ) ) {
 				return false;
@@ -1968,7 +1968,14 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 
 			foreach ( $locations as $location ) {
-				$map[ $location ][] = $method;
+				// Values come from stored options or REST input: only non-empty string
+				// locations are usable keys, and repeats must not duplicate a method.
+				if ( ! is_string( $location ) || '' === $location ) {
+					continue;
+				}
+				if ( ! in_array( $method, $map[ $location ] ?? [], true ) ) {
+					$map[ $location ][] = $method;
+				}
 			}
 		}
 
@@ -1985,8 +1992,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Pages where the express checkout buttons should be displayed.
-	 * Without a type, returns every location with at least one enabled method.
+	 * Pages where the express checkout buttons should be displayed for a method.
+	 * Without a type, returns the Apple Pay / Google Pay locations — preserving the
+	 * pre-unification no-argument behavior for external callers.
 	 *
 	 * @param string|null $express_checkout_type The type of express checkout.
 	 * @return array
@@ -1994,11 +2002,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	public function get_button_locations( ?string $express_checkout_type = null ): array {
 		$map = $this->get_express_checkout_locations_map();
 
-		if ( null === $express_checkout_type ) {
-			return array_keys( array_filter( $map, static fn( $methods ) => ! empty( $methods ) ) );
-		}
-
-		$method = self::normalize_express_checkout_method( $express_checkout_type );
+		$method = self::normalize_express_checkout_method( (string) $express_checkout_type );
 
 		$locations = [];
 		foreach ( $map as $location => $methods ) {

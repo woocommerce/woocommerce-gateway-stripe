@@ -1139,6 +1139,41 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Without a type, the Apple Pay / Google Pay locations are returned,
+	 * preserving the pre-unification no-argument behavior.
+	 *
+	 * @return void
+	 */
+	public function test_get_button_locations_defaults_to_payment_request(): void {
+		$helper                  = new WC_Stripe_Express_Checkout_Helper();
+		$helper->stripe_settings = [
+			'express_checkout_button_locations' => [
+				'product'  => [ 'payment_request' ],
+				'checkout' => [ 'link' ],
+			],
+		];
+
+		$this->assertSame( [ 'product' ], $helper->get_button_locations() );
+	}
+
+	/**
+	 * Non-string legacy entries are skipped and repeated locations deduplicated,
+	 * so an already-unified map fed back through the converter cannot fatal.
+	 *
+	 * @return void
+	 */
+	public function test_build_locations_map_from_legacy_skips_malformed_entries(): void {
+		$map = WC_Stripe_Express_Checkout_Helper::build_locations_map_from_legacy(
+			[
+				'express_checkout_button_locations' => [ 'product', 'product', '', 5, [ 'cart' ] ],
+				'link_button_locations'             => [ 'product' ],
+			]
+		);
+
+		$this->assertSame( [ 'product' => [ 'link', 'payment_request' ] ], $map );
+	}
+
+	/**
 	 * Provider for `test_get_button_locations`.
 	 *
 	 * @return array

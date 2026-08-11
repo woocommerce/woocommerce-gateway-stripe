@@ -760,6 +760,42 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * The deprecated per-method size params still update the (now shared) size.
+	 *
+	 * @return void
+	 */
+	public function test_legacy_button_size_params_update_shared_size() {
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'link_button_size', 'large' );
+
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( 'large', $this->get_gateway()->get_option( 'express_checkout_button_size' ) );
+
+		// GET keeps exposing the deprecated fields, aliased to the shared size.
+		$data = $this->rest_get_settings()->get_data();
+		$this->assertSame( 'large', $data['link_button_size'] );
+		$this->assertSame( 'large', $data['amazon_pay_button_size'] );
+	}
+
+	/**
+	 * When both the shared and a deprecated size param are present, the shared one wins.
+	 *
+	 * @return void
+	 */
+	public function test_shared_button_size_param_wins_over_legacy_alias() {
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'express_checkout_button_size', 'small' );
+		$request->set_param( 'amazon_pay_button_size', 'large' );
+
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( 'small', $this->get_gateway()->get_option( 'express_checkout_button_size' ) );
+	}
+
+	/**
 	 * The per-method location params collapse into the unified map on update, and
 	 * the GET response exposes each method's flat locations derived from that map.
 	 *

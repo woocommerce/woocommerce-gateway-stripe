@@ -135,6 +135,20 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'enum'              => array_keys( isset( $form_fields['express_checkout_button_size']['options'] ) ? $form_fields['express_checkout_button_size']['options'] : [] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
+					// Deprecated aliases for `express_checkout_button_size`, kept so
+					// pre-unification clients can still update the (now shared) size.
+					'link_button_size'                      => [
+						'description'       => __( 'Deprecated alias of express_checkout_button_size.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'enum'              => array_keys( isset( $form_fields['express_checkout_button_size']['options'] ) ? $form_fields['express_checkout_button_size']['options'] : [] ),
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'amazon_pay_button_size'                => [
+						'description'       => __( 'Deprecated alias of express_checkout_button_size.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'enum'              => array_keys( isset( $form_fields['express_checkout_button_size']['options'] ) ? $form_fields['express_checkout_button_size']['options'] : [] ),
+						'validate_callback' => 'rest_validate_request_arg',
+					],
 					'express_checkout_button_locations'     => [
 						'description'       => __( 'Express checkout locations that should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
@@ -261,6 +275,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'express_checkout_button_type'          => $this->gateway->get_validated_option( 'express_checkout_button_type' ),
 				'express_checkout_button_theme'         => $this->gateway->get_validated_option( 'express_checkout_button_theme' ),
 				'express_checkout_button_size'          => $this->gateway->get_validated_option( 'express_checkout_button_size' ),
+				// Deprecated aliases: per-method sizes collapsed into the shared size.
+				'link_button_size'                      => $this->gateway->get_validated_option( 'express_checkout_button_size' ),
+				'amazon_pay_button_size'                => $this->gateway->get_validated_option( 'express_checkout_button_size' ),
 				'express_checkout_button_locations'     => $express_checkout_helper->get_button_locations( 'payment_request' ),
 
 				/* Settings > Payments & transactions */
@@ -623,6 +640,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 			$value = $request->get_param( $request_key );
 			$this->gateway->update_validated_option( $attribute, $value );
+		}
+
+		// Deprecated aliases: pre-unification clients may still send a per-method
+		// size. They update the shared size, but the shared parameter wins.
+		if ( null === $request->get_param( 'express_checkout_button_size' ) ) {
+			$legacy_size = $request->get_param( 'link_button_size' ) ?? $request->get_param( 'amazon_pay_button_size' );
+			if ( null !== $legacy_size ) {
+				$this->gateway->update_validated_option( 'express_checkout_button_size', $legacy_size );
+			}
 		}
 	}
 
