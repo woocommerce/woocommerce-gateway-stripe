@@ -562,6 +562,80 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * The bootstrap derives its readiness gate from `scriptDependencies`, so the
+	 * localized list must match the script's registered build dependencies.
+	 */
+	public function test_payment_scripts_localizes_script_dependencies(): void {
+		$asset_path            = WC_STRIPE_PLUGIN_PATH . '/build/upe-classic.asset.php';
+		$expected_dependencies = [];
+		if ( file_exists( $asset_path ) ) {
+			$asset = require $asset_path;
+			if ( is_array( $asset ) && isset( $asset['dependencies'] ) && is_array( $asset['dependencies'] ) ) {
+				$expected_dependencies = $asset['dependencies'];
+			}
+		}
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'javascript_params', 'get_return_url' ] )
+			->getMock();
+		$gateway->method( 'javascript_params' )->willReturn( [] );
+		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
+		$gateway->enabled = 'yes';
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+
+		$gateway->payment_scripts();
+		$localized = wp_scripts()->get_data( 'wc-stripe-upe-classic', 'data' );
+
+		remove_filter( 'woocommerce_is_checkout', '__return_true' );
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+
+		$this->assertIsString( $localized, 'wc_stripe_upe_params was not localized' );
+		$this->assertMatchesRegularExpression( '/var wc_stripe_upe_params = (\{.*\});/s', $localized );
+		preg_match( '/var wc_stripe_upe_params = (\{.*\});/s', $localized, $matches );
+		$params = json_decode( $matches[1], true );
+
+		$this->assertArrayHasKey( 'scriptDependencies', $params );
+		$this->assertSame( $expected_dependencies, $params['scriptDependencies'] );
+	}
+
+	/**
+	 * A wc_stripe_upe_params filter callback returning a non-array must not
+	 * fatal payment_scripts(); the unfiltered params are used instead, without
+	 * re-running the side-effectful javascript_params().
+	 */
+	public function test_payment_scripts_survives_non_array_upe_params_filter(): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'javascript_params', 'get_return_url' ] )
+			->getMock();
+		$gateway->expects( $this->once() )->method( 'javascript_params' )->willReturn( [ 'isCheckout' => true ] );
+		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
+		$gateway->enabled = 'yes';
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+		add_filter( 'wc_stripe_upe_params', '__return_null' );
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+
+		$gateway->payment_scripts();
+		$localized = wp_scripts()->get_data( 'wc-stripe-upe-classic', 'data' );
+
+		remove_filter( 'wc_stripe_upe_params', '__return_null' );
+		remove_filter( 'woocommerce_is_checkout', '__return_true' );
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+
+		$this->assertIsString( $localized, 'wc_stripe_upe_params was not localized' );
+		preg_match( '/var wc_stripe_upe_params = (\{.*\});/s', $localized, $matches );
+		$params = json_decode( $matches[1], true );
+
+		// wp_localize_script() casts scalar values to strings.
+		$this->assertSame( '1', $params['isCheckout'] );
+		$this->assertArrayHasKey( 'scriptDependencies', $params );
+	}
+
+	/**
 	 * The billing source for the deferred-payment flows is selected all-or-nothing:
 	 * the order on a validated pay-for-order page (so guests still get full address
 	 * details), otherwise the customer, with a wholesale fallback to the customer when
