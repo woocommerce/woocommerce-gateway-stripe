@@ -1,6 +1,7 @@
 import React from 'react';
 import { Icon, check, close, info } from '@wordpress/icons';
 import { STATUS } from './build-checks';
+import { VisuallyHidden } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import './style.scss';
 
@@ -8,6 +9,13 @@ const STATUS_ICON = {
 	[ STATUS.PASS ]: check,
 	[ STATUS.FAIL ]: close,
 	[ STATUS.INFO ]: info,
+};
+
+// Screen-reader status per row; the icon and modifier class are not accessible.
+const STATUS_TEXT = {
+	[ STATUS.PASS ]: __( 'Passed:', 'woocommerce-gateway-stripe' ),
+	[ STATUS.FAIL ]: __( 'Failed:', 'woocommerce-gateway-stripe' ),
+	[ STATUS.INFO ]: __( 'Information:', 'woocommerce-gateway-stripe' ),
 };
 
 /**
@@ -61,6 +69,9 @@ const ExpressCheckoutSimulator = ( { checks, locations } ) => {
 						className={ `express-checkout-simulator__check is-${ c.status }` }
 					>
 						<Icon icon={ STATUS_ICON[ c.status ] } size={ 20 } />
+						<VisuallyHidden>
+							{ STATUS_TEXT[ c.status ] }
+						</VisuallyHidden>
 						<span className="express-checkout-simulator__check-label">
 							{ c.label }
 						</span>
