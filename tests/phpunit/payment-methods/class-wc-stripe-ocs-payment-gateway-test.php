@@ -259,6 +259,69 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * On a non-EUR store the currency-filtered list omits EUR-only converting methods,
+	 * but Adaptive Pricing can still present them — the map must carry an explicit
+	 * false so the client's not-in-map fallback cannot show the checkbox.
+	 *
+	 * @dataProvider provide_show_save_option_currency_filtered_scenarios
+	 *
+	 * @param bool $adaptive_pricing_active Whether Adaptive Pricing is supported.
+	 * @param bool $expects_entries         Whether converting methods must be force-mapped.
+	 */
+	public function test_show_save_option_by_method_covers_currency_filtered_converting_methods(
+		bool $adaptive_pricing_active,
+		bool $expects_entries
+	): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_OCS_Payment_Gateway::class )
+			->onlyMethods( [ 'is_valid_optimized_checkout_page', 'is_adaptive_pricing_supported', 'get_upe_enabled_at_checkout_payment_method_ids', 'get_upe_enabled_payment_method_ids' ] )
+			->getMock();
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( true );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( $adaptive_pricing_active );
+		// USD store: EUR-only methods never pass the at-checkout currency filter.
+		$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( [ WC_Stripe_Payment_Methods::CARD ] );
+		$gateway->method( 'get_upe_enabled_payment_method_ids' )->willReturn(
+			[
+				WC_Stripe_Payment_Methods::CARD,
+				WC_Stripe_Payment_Methods::BANCONTACT,
+				WC_Stripe_Payment_Methods::IDEAL,
+			]
+		);
+
+		$get_config = new ReflectionMethod( WC_Stripe_OCS_Payment_Gateway::class, 'get_enabled_payment_method_config' );
+		$get_config->setAccessible( true );
+		$config = $get_config->invoke( $gateway );
+
+		$by_method = $config[ WC_Stripe_Payment_Methods::CARD ]['showSaveOptionByMethod'] ?? [];
+
+		if ( $expects_entries ) {
+			$this->assertFalse( $by_method[ WC_Stripe_Payment_Methods::BANCONTACT ] );
+			$this->assertFalse( $by_method[ WC_Stripe_Payment_Methods::IDEAL ] );
+		} else {
+			$this->assertArrayNotHasKey( WC_Stripe_Payment_Methods::BANCONTACT, $by_method );
+			$this->assertArrayNotHasKey( WC_Stripe_Payment_Methods::IDEAL, $by_method );
+		}
+		$this->assertTrue( $by_method[ WC_Stripe_Payment_Methods::CARD ] );
+	}
+
+	/**
+	 * Data provider for test_show_save_option_by_method_covers_currency_filtered_converting_methods.
+	 *
+	 * @return array[]
+	 */
+	public function provide_show_save_option_currency_filtered_scenarios(): array {
+		return [
+			'Adaptive Pricing active: filtered converting methods force-mapped' => [
+				'adaptive_pricing_active' => true,
+				'expects_entries'         => true,
+			],
+			'Adaptive Pricing inactive: map keeps only at-checkout methods'     => [
+				'adaptive_pricing_active' => false,
+				'expects_entries'         => false,
+			],
+		];
+	}
+
+	/**
 	 * Under OCS, save_payment_method_to_store must be re-evaluated against the resolved method type, not the OC pseudo-method.
 	 *
 	 * @dataProvider provide_test_prepare_payment_information_oc_drops_save_flag_when_resolved_method_not_reusable

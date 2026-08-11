@@ -179,6 +179,24 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 					}
 				}
 			}
+
+			// Adaptive Pricing presents the buyer's currency, so the element can offer
+			// methods the store-currency-filtered list above excludes (e.g. Bancontact
+			// on a USD store). Give those an explicit entry, or the client's not-in-map
+			// fallback shows the checkbox for methods that cannot be saved.
+			if ( $is_adaptive_pricing_active ) {
+				foreach ( $this->get_upe_enabled_payment_method_ids() as $method_id ) {
+					if ( ! isset( $this->payment_methods[ $method_id ] )
+						|| array_key_exists( $method_id, $show_save_option_by_method ) ) {
+						continue;
+					}
+
+					$payment_method = $this->payment_methods[ $method_id ];
+					if ( $payment_method->get_id() !== $payment_method->get_retrievable_type() ) {
+						$show_save_option_by_method[ $method_id ] = false;
+					}
+				}
+			}
 		}
 
 		foreach ( $enabled_payment_methods as $payment_method_id ) {
