@@ -12,6 +12,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		WC()->session->init();
 		WC()->session->set( 'wc_stripe_checkout_session', null );
 		WC()->cart->empty_cart();
+		$this->set_store_api_sync_requested( false );
 	}
 
 	/**
@@ -25,7 +26,39 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 
 		WC()->session->set( 'wc_stripe_checkout_session', null );
 		WC()->cart->empty_cart();
+		$this->set_store_api_sync_requested( false );
 		parent::tear_down();
+	}
+
+	/**
+	 * Get a reflection for the store_api_sync_requested property.
+	 *
+	 * @return ReflectionProperty
+	 */
+	private function get_store_api_sync_requested_reflection(): ReflectionProperty {
+		$property = new ReflectionProperty( WC_Stripe_Checkout_Session_Lifecycle::class, 'store_api_sync_requested' );
+		$property->setAccessible( true );
+
+		return $property;
+	}
+
+	/**
+	 * Set the store_api_sync_requested property value.
+	 *
+	 * @param bool $requested The value to set for the flag.
+	 * @return void
+	 */
+	private function set_store_api_sync_requested( bool $requested ): void {
+		$this->get_store_api_sync_requested_reflection()->setValue( null, $requested );
+	}
+
+	/**
+	 * Read the value of the store_api_sync_requested property.
+	 *
+	 * @return bool
+	 */
+	private function is_store_api_sync_requested(): bool {
+		return (bool) $this->get_store_api_sync_requested_reflection()->getValue();
 	}
 
 	/**
@@ -138,7 +171,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 			$created = $manager->synchronize();
 			$reused  = $manager->synchronize();
 		} finally {
-			remove_filter( 'pre_http_request', $mock_request, 10, 3 );
+			remove_filter( 'pre_http_request', $mock_request, 10 );
 		}
 
 		$this->assertSame( 1, $request_count );
@@ -173,7 +206,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 			return $request;
 		};
 		$mock_request     = static function ( $return_value, $parsed_args, $url ) use ( &$requested_urls, $session_id ) {
-			if ( false === strpos( $url, '/v1/checkout/sessions' ) ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions' ) ) {
 				return $return_value;
 			}
 
@@ -200,8 +233,8 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 			WC()->cart->calculate_totals();
 			$updated = $manager->synchronize();
 		} finally {
-			remove_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
-			remove_filter( 'pre_http_request', $mock_request, 10, 3 );
+			remove_filter( 'wc_stripe_request_body', $capture_body, 10 );
+			remove_filter( 'pre_http_request', $mock_request, 10 );
 		}
 
 		$this->assertCount( 2, $requested_urls );
@@ -227,7 +260,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		$session_id     = 'cs_test_drifted_context';
 		$requested_urls = [];
 		$mock_request   = static function ( $return_value, $parsed_args, $url ) use ( &$requested_urls, $session_id ) {
-			if ( false === strpos( $url, '/v1/checkout/sessions' ) ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions' ) ) {
 				return $return_value;
 			}
 
@@ -257,7 +290,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 
 			$manager->synchronize();
 		} finally {
-			remove_filter( 'pre_http_request', $mock_request, 10, 3 );
+			remove_filter( 'pre_http_request', $mock_request, 10 );
 		}
 
 		$this->assertCount( 2, $requested_urls, 'A drifted context must trigger a Stripe update.' );
@@ -304,7 +337,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 			$lifecycle = new WC_Stripe_Checkout_Session_Lifecycle();
 			$fragments = $lifecycle->add_classic_fragment( [] );
 		} finally {
-			remove_filter( 'pre_http_request', $mock_request, 10, 3 );
+			remove_filter( 'pre_http_request', $mock_request, 10 );
 			$restore();
 		}
 
@@ -352,5 +385,332 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 
 		remove_action( 'woocommerce_review_order_after_payment', [ $lifecycle, 'render_classic_placeholder' ] );
 		remove_filter( 'woocommerce_update_order_review_fragments', [ $lifecycle, 'add_classic_fragment' ], 20 );
+	}
+
+	public function test_classic_fragment_reports_stripe_api_error(): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 25 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$restore = $this->enable_adaptive_pricing();
+
+		$mock_request = static function ( $return_value, $parsed_args, $url ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions' ) ) {
+				return $return_value;
+			}
+
+			return [
+				'response' => [
+					'code'    => 402,
+					'message' => 'Payment Required',
+				],
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					(object) [
+						'error' => (object) [
+							'type'    => 'card_error',
+							'message' => 'Checkout Session creation was declined.',
+						],
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		$original_logger = WC_Stripe_Logger::$logger;
+		$mock_logger     = $this->createMock( WC_Logger::class );
+		$mock_logger->expects( $this->once() )
+			->method( 'error' )
+			->with(
+				'Native classic checkout session synchronization failed.',
+				$this->callback(
+					static function ( $context ): bool {
+						return 'Checkout Session creation was declined.' === ( $context['error_message'] ?? '' );
+					}
+				)
+			);
+		WC_Stripe_Logger::$logger = $mock_logger;
+
+		try {
+			$lifecycle = new WC_Stripe_Checkout_Session_Lifecycle();
+			$fragments = $lifecycle->add_classic_fragment( [] );
+		} finally {
+			WC_Stripe_Logger::$logger = $original_logger;
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			$restore();
+		}
+
+		$this->assertArrayHasKey( '#wc-stripe-checkout-session-data', $fragments );
+		$data = json_decode( $this->get_fragment_session_data( $fragments['#wc-stripe-checkout-session-data'] ), true );
+		$this->assertSame( 'error', $data['status'] );
+		$this->assertSame( 'Checkout Session creation was declined.', $data['message'] );
+		$this->assertSame( '', $data['session_id'] );
+		$this->assertSame( '', $data['client_secret'] );
+
+		// Confirm that the error was written to the session data.
+		$record = WC()->session->get( 'wc_stripe_checkout_session' );
+		$this->assertSame( 'error', $record['status'] );
+	}
+
+	public function test_classic_fragment_reports_an_empty_cart_before_calling_stripe(): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 25 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$restore       = $this->enable_adaptive_pricing();
+		$session_id    = 'cs_test_emptied_cart';
+		$request_count = 0;
+		$mock_request  = static function ( $return_value, $parsed_args, $url ) use ( &$request_count, $session_id ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions' ) ) {
+				return $return_value;
+			}
+
+			++$request_count;
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					(object) [
+						'id'            => $session_id,
+						'client_secret' => 'cs_test_emptied_cart_secret',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			$lifecycle = new WC_Stripe_Checkout_Session_Lifecycle();
+			$lifecycle->add_classic_fragment( [] );
+
+			WC()->cart->empty_cart();
+			$fragments = $lifecycle->add_classic_fragment( [] );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			$restore();
+		}
+
+		$this->assertSame( 1, $request_count, 'Only initial call should call Stripe; an empty cart should not call Stripe.' );
+
+		$data = json_decode( $this->get_fragment_session_data( $fragments['#wc-stripe-checkout-session-data'] ), true );
+		$this->assertSame( 'error', $data['status'] );
+		$this->assertSame( 'Your cart is currently empty.', $data['message'] );
+
+		$this->assertSame( $session_id, $data['session_id'] );
+	}
+
+	public function test_store_api_data_stays_uninitialized_until_sync_is_requested(): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 25 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$restore       = $this->enable_adaptive_pricing();
+		$request_count = 0;
+		$mock_request  = static function ( $return_value, $parsed_args, $url ) use ( &$request_count ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions' ) ) {
+				return $return_value;
+			}
+
+			++$request_count;
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			$data = WC_Stripe_Checkout_Session_Lifecycle::get_store_api_data();
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			$restore();
+		}
+
+		$this->assertSame( 0, $request_count );
+		$this->assertSame( 'uninitialized', $data['status'] );
+		$this->assertSame( '', $data['session_id'] );
+		$this->assertSame( '', $data['client_secret'] );
+		$this->assertSame( 0, $data['revision'] );
+	}
+
+	public function test_store_api_data_creates_the_session_when_sync_is_requested(): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 25 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$restore       = $this->enable_adaptive_pricing();
+		$session_id    = 'cs_test_store_api_sync';
+		$request_count = 0;
+		$mock_request  = static function ( $return_value, $parsed_args, $url ) use ( &$request_count, $session_id ) {
+			if ( 'https://api.stripe.com/v1/checkout/sessions' !== $url ) {
+				return $return_value;
+			}
+
+			++$request_count;
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					(object) [
+						'id'            => $session_id,
+						'client_secret' => 'cs_test_store_api_secret',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			$initial_data = WC_Stripe_Checkout_Session_Lifecycle::get_store_api_data();
+
+			WC_Stripe_Checkout_Session_Lifecycle::request_store_api_sync( [ 'action' => 'sync' ] );
+			$this->assertTrue( $this->is_store_api_sync_requested() );
+
+			$data = WC_Stripe_Checkout_Session_Lifecycle::get_store_api_data();
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			$restore();
+		}
+
+		$this->assertSame( 1, $request_count );
+		$this->assertSame( 'uninitialized', $initial_data['status'] );
+		$this->assertSame( '', $initial_data['session_id'] );
+		$this->assertSame( '', $initial_data['client_secret'] );
+		$this->assertSame( 0, $initial_data['revision'] );
+
+		$this->assertSame( 'success', $data['status'] );
+		$this->assertSame( $session_id, $data['session_id'] );
+		$this->assertSame( 'cs_test_store_api_secret', $data['client_secret'] );
+		$this->assertSame( 1, $data['revision'] );
+	}
+
+	/**
+	 * Only valid sync requests should trigger synchronization.
+	 *
+	 * @dataProvider provide_store_api_sync_requests
+	 *
+	 * @param array $request_data             Extension request data.
+	 * @param bool  $adaptive_pricing_enabled Whether Adaptive Pricing is enabled.
+	 * @param bool  $expected_flag_value      The expected value of the store_api_sync_requested property.
+	 */
+	public function test_request_store_api_sync_only_handles_valid_sync_requests( array $request_data, bool $adaptive_pricing_enabled, bool $expected_flag_value ): void {
+		$restore = null;
+		if ( $adaptive_pricing_enabled ) {
+			$restore = $this->enable_adaptive_pricing();
+		}
+
+		try {
+			WC_Stripe_Checkout_Session_Lifecycle::request_store_api_sync( $request_data );
+		} finally {
+			if ( null !== $restore ) {
+				$restore();
+			}
+		}
+
+		$this->assertSame( $expected_flag_value, $this->is_store_api_sync_requested() );
+	}
+
+	/**
+	 * Data provider for {@see test_request_store_api_sync_only_handles_valid_sync_requests()}.
+	 *
+	 * @return array[]
+	 */
+	public function provide_store_api_sync_requests(): array {
+		return [
+			'sync request on an eligible store'   => [ [ 'action' => 'sync' ], true, true ],
+			'sync request on an ineligible store' => [ [ 'action' => 'sync' ], false, false ],
+			'unrelated action'                    => [ [ 'action' => 'refresh' ], true, false ],
+			'no action'                           => [ [], true, false ],
+		];
+	}
+
+	public function test_store_api_data_reports_failure_when_adaptive_pricing_gets_disabled(): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 25 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$request_count = 0;
+		$mock_request  = static function ( $return_value, $parsed_args, $url ) use ( &$request_count ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions' ) ) {
+				return $return_value;
+			}
+
+			++$request_count;
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			// Set flag to true to mock the session having been set up previously.
+			$this->set_store_api_sync_requested( true );
+			$data = WC_Stripe_Checkout_Session_Lifecycle::get_store_api_data();
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+		}
+
+		$this->assertSame( 0, $request_count );
+		$this->assertSame( 'error', $data['status'] );
+		$this->assertSame( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $data['message'] );
+	}
+
+	public function test_store_api_data_reports_stripe_api_error(): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 25 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$restore = $this->enable_adaptive_pricing();
+
+		$mock_request = static function ( $return_value, $parsed_args, $url ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions' ) ) {
+				return $return_value;
+			}
+
+			return [
+				'response' => [
+					'code'    => 402,
+					'message' => 'Payment Required',
+				],
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					(object) [
+						'error' => (object) [
+							'type'    => 'invalid_request_error',
+							'message' => 'Checkout Session creation was rejected.',
+						],
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		$original_logger = WC_Stripe_Logger::$logger;
+		$mock_logger     = $this->createMock( WC_Logger::class );
+		$mock_logger->expects( $this->once() )
+			->method( 'error' )
+			->with(
+				'Native Store API checkout session synchronization failed.',
+				$this->callback(
+					static function ( $context ): bool {
+						return 'Checkout Session creation was rejected.' === ( $context['error_message'] ?? '' );
+					}
+				)
+			);
+		WC_Stripe_Logger::$logger = $mock_logger;
+
+		try {
+			WC_Stripe_Checkout_Session_Lifecycle::request_store_api_sync( [ 'action' => 'sync' ] );
+			$data = WC_Stripe_Checkout_Session_Lifecycle::get_store_api_data();
+		} finally {
+			WC_Stripe_Logger::$logger = $original_logger;
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			$restore();
+		}
+
+		$this->assertSame( 'error', $data['status'] );
+		$this->assertSame( 'Checkout Session creation was rejected.', $data['message'] );
+		$this->assertSame( '', $data['client_secret'] );
 	}
 }
