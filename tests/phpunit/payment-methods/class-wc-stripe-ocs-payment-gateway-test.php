@@ -273,6 +273,7 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		bool $expects_entries
 	): void {
 		$gateway = $this->getMockBuilder( WC_Stripe_OCS_Payment_Gateway::class )
+			->disableOriginalConstructor()
 			->onlyMethods( [ 'is_valid_optimized_checkout_page', 'is_adaptive_pricing_supported', 'get_upe_enabled_at_checkout_payment_method_ids', 'get_upe_enabled_payment_method_ids' ] )
 			->getMock();
 		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( true );
@@ -286,6 +287,10 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				WC_Stripe_Payment_Methods::IDEAL,
 			]
 		);
+
+		// The real constructor consumes get_upe_enabled_payment_method_ids(); run it
+		// only after the stub above is configured, or it reads null and fatals.
+		( new ReflectionClass( WC_Stripe_OCS_Payment_Gateway::class ) )->getConstructor()->invoke( $gateway );
 
 		$get_config = new ReflectionMethod( WC_Stripe_OCS_Payment_Gateway::class, 'get_enabled_payment_method_config' );
 		$get_config->setAccessible( true );
