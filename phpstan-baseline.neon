@@ -1645,12 +1645,6 @@ parameters:
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^Cannot access property \$id on array\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
 			message: '#^Cannot access property \$id on array\|stdClass\.$#'
 			identifier: property.nonObject
 			count: 3
