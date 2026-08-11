@@ -1,15 +1,9 @@
 import { extensionCartUpdate } from '@woocommerce/blocks-checkout';
-import { useState } from 'react';
 import { render } from '@testing-library/react';
 import { CheckoutElementsProvider } from '@stripe/react-stripe-js/checkout';
 import { CheckoutContainer } from 'wcstripe/blocks/checkout-sessions/checkout-container';
 import { initializeUPEAppearance } from 'wcstripe/stripe-utils/upe-appearance';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
-
-jest.mock( 'react', () => ( {
-	...jest.requireActual( 'react' ),
-	useState: jest.fn(),
-} ) );
 
 jest.mock(
 	'@woocommerce/blocks-checkout',
@@ -64,7 +58,6 @@ describe( 'CheckoutSessionsContainer', () => {
 			.mockImplementation( () => {} );
 		initializeUPEAppearance.mockReturnValue( {} );
 		getFontRulesFromPage.mockReturnValue( [] );
-		useState.mockReturnValue( [ null, jest.fn() ] );
 		extensionCartUpdate.mockClear();
 		CheckoutElementsProvider.mockClear();
 		setShouldLoadStripeElements.mockClear();
@@ -151,5 +144,30 @@ describe( 'CheckoutSessionsContainer', () => {
 			),
 			requestError
 		);
+	} );
+
+	it( 'ignores a sync failure that completes after unmount', async () => {
+		let rejectUpdate;
+		extensionCartUpdate.mockImplementationOnce(
+			() =>
+				new Promise( ( resolve, reject ) => {
+					rejectUpdate = reject;
+				} )
+		);
+
+		const { unmount } = render(
+			<CheckoutContainer
+				api={ api }
+				setShouldLoadStripeElements={ setShouldLoadStripeElements }
+			/>
+		);
+
+		unmount();
+		rejectUpdate( new Error( 'Network request failed' ) );
+		// Give the in-flight synchronization a chance to observe the rejection.
+		await new Promise( ( resolve ) => setTimeout( resolve, 0 ) );
+
+		expect( setShouldLoadStripeElements ).not.toHaveBeenCalled();
+		expect( consoleErrorSpy ).not.toHaveBeenCalled();
 	} );
 } );
