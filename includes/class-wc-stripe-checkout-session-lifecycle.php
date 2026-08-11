@@ -175,7 +175,7 @@ class WC_Stripe_Checkout_Session_Lifecycle {
 
 		try {
 			return $manager->synchronize();
-		} catch ( Exception $e ) {
+		} catch ( Throwable $e ) {
 			WC_Stripe_Logger::error( 'Native Store API checkout session synchronization failed.', [ 'error_message' => $e->getMessage() ] );
 			return $manager->mark_failed( $e->getMessage() );
 		}
