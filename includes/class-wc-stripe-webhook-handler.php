@@ -1496,12 +1496,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		/**
 		 * Filters the valid order statuses for payment processing.
-		 * Deprecated in favor of wc_stripe_allowed_payment_processing_statuses.
+		 * Deprecated in favor of wc_stripe_allowed_payment_processing_statuses, which also includes the order object.
 		 *
 		 * @deprecated 9.7.0
 		 *
 		 * @param array    $allowed_payment_processing_statuses The allowed payment processing statuses.
-		 * @param WC_Order $order                               The order object.
 		 */
 		$allowed_payment_processing_statuses = apply_filters_deprecated(
 			'wc_gateway_stripe_allowed_payment_processing_statuses',
