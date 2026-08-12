@@ -121,7 +121,7 @@ class WC_Stripe_Checkout_Session_Manager {
 		$record = [
 			'session_id'    => (string) $checkout_session->id,
 			'client_secret' => (string) $checkout_session->client_secret,
-			'revision'      => 1,
+			'revision'      => $this->generate_revision_token(),
 			'status'        => 'success',
 			'message'       => '',
 		];
@@ -166,11 +166,11 @@ class WC_Stripe_Checkout_Session_Manager {
 
 				WC_Stripe_Checkout_Session_Context::store_for_cart( $session_id, $cart_context );
 
-				// Make sure we read the record while we have the lock.
 				$record = $this->get_record();
 
 				if ( is_array( $record ) && (string) ( $record['session_id'] ?? '' ) === $session_id ) {
-					$record['revision'] = (int) ( $record['revision'] ?? 0 ) + 1;
+					// Generate a new revision token.
+					$record['revision'] = $this->generate_revision_token();
 					$record['status']   = 'success';
 					$record['message']  = '';
 					$this->set_record( $record );
@@ -293,6 +293,18 @@ class WC_Stripe_Checkout_Session_Manager {
 	}
 
 	/**
+	 * Generate an opaque revision token for the session record.
+	 * The token is a unique string to ensure that concurrent writes
+	 * always result in a new revision value, and clients will need to
+	 * update in response, regardless of which write is persisted.
+	 *
+	 * @return string
+	 */
+	private function generate_revision_token(): string {
+		return wp_generate_uuid4();
+	}
+
+	/**
 	 * Ensure checkout services needed by the manager exist in this request context.
 	 *
 	 * @return void
@@ -344,7 +356,7 @@ class WC_Stripe_Checkout_Session_Manager {
 		return [
 			'session_id'    => (string) ( $record['session_id'] ?? '' ),
 			'client_secret' => (string) ( $record['client_secret'] ?? '' ),
-			'revision'      => (int) ( $record['revision'] ?? 0 ),
+			'revision'      => (string) ( $record['revision'] ?? '' ),
 			'status'        => (string) ( $record['status'] ?? 'uninitialized' ),
 			'message'       => (string) ( $record['message'] ?? '' ),
 		];

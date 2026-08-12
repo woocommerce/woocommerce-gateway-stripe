@@ -170,7 +170,7 @@ const setNativeCheckoutSessionData = ( overrides = {} ) => {
 	dataElement.dataset.checkoutSession = JSON.stringify( {
 		session_id: MOCK_AP_CHECKOUT_SESSION_ID,
 		client_secret: MOCK_AP_CHECKOUT_CLIENT_SECRET,
-		revision: 1,
+		revision: 'rev_1',
 		status: 'success',
 		message: '',
 		...overrides,
@@ -1299,7 +1299,7 @@ describe( 'payment-processing', () => {
 				setNativeCheckoutSessionData( {
 					session_id: '',
 					client_secret: '',
-					revision: 0,
+					revision: '',
 					status: 'uninitialized',
 				} );
 				stripeUtils.showErrorCheckout.mockClear();

@@ -139,8 +139,8 @@ class WC_Stripe_Checkout_Session_Lifecycle {
 				'readonly'    => true,
 			],
 			'revision'      => [
-				'description' => __( 'Checkout Session revision.', 'woocommerce-gateway-stripe' ),
-				'type'        => 'integer',
+				'description' => __( 'Checkout Session revision token.', 'woocommerce-gateway-stripe' ),
+				'type'        => 'string',
 				'readonly'    => true,
 			],
 			'status'        => [

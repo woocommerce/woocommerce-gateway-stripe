@@ -177,7 +177,8 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		$this->assertSame( 1, $request_count );
 		$this->assertSame( $session_id, $created['session_id'] );
 		$this->assertSame( 'cs_test_native_secret', $created['client_secret'] );
-		$this->assertSame( 1, $created['revision'] );
+		$this->assertIsString( $created['revision'] );
+		$this->assertNotSame( '', $created['revision'] );
 		$this->assertSame( $created, $reused );
 
 		$context = WC_Stripe_Checkout_Session_Context::get_context( $session_id );
@@ -227,7 +228,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 
 		try {
 			$manager = new WC_Stripe_Checkout_Session_Manager();
-			$manager->synchronize();
+			$created = $manager->synchronize();
 
 			WC()->cart->set_quantity( $cart_item_key, 2 );
 			WC()->cart->calculate_totals();
@@ -239,7 +240,8 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 
 		$this->assertCount( 2, $requested_urls );
 		$this->assertStringEndsWith( "/v1/checkout/sessions/$session_id", $requested_urls[1] );
-		$this->assertSame( 2, $updated['revision'] );
+		$this->assertNotSame( '', $updated['revision'] );
+		$this->assertNotSame( $created['revision'], $updated['revision'], 'An update must issue a new revision token.' );
 		$this->assertSame( $session_id, $updated['session_id'] );
 		$this->assertCount( 1, $captured_updates );
 
@@ -363,7 +365,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 			[
 				'session_id'    => 'cs_test_embedded',
 				'client_secret' => 'cs_test_embedded_secret',
-				'revision'      => 3,
+				'revision'      => 'rev_embedded',
 				'status'        => 'success',
 				'message'       => '',
 			]
@@ -531,7 +533,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		$this->assertSame( 'uninitialized', $data['status'] );
 		$this->assertSame( '', $data['session_id'] );
 		$this->assertSame( '', $data['client_secret'] );
-		$this->assertSame( 0, $data['revision'] );
+		$this->assertSame( '', $data['revision'] );
 	}
 
 	public function test_store_api_data_creates_the_session_when_sync_is_requested(): void {
@@ -580,12 +582,13 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		$this->assertSame( 'uninitialized', $initial_data['status'] );
 		$this->assertSame( '', $initial_data['session_id'] );
 		$this->assertSame( '', $initial_data['client_secret'] );
-		$this->assertSame( 0, $initial_data['revision'] );
+		$this->assertSame( '', $initial_data['revision'] );
 
 		$this->assertSame( 'success', $data['status'] );
 		$this->assertSame( $session_id, $data['session_id'] );
 		$this->assertSame( 'cs_test_store_api_secret', $data['client_secret'] );
-		$this->assertSame( 1, $data['revision'] );
+		$this->assertIsString( $data['revision'] );
+		$this->assertNotSame( '', $data['revision'] );
 	}
 
 	/**

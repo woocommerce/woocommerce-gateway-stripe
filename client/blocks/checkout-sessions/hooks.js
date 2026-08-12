@@ -333,7 +333,7 @@ export const useCheckoutSessionTotalsSync = (
 
 	const prevSessionIdRef = useRef( null );
 	const prevSessionStateRef = useRef( null );
-	const sessionState = `${ sessionData?.revision ?? 0 }:${
+	const sessionState = `${ sessionData?.revision ?? '' }:${
 		sessionData?.status ?? 'uninitialized'
 	}`;
 	const isCheckoutReady = checkoutState?.type === 'success';

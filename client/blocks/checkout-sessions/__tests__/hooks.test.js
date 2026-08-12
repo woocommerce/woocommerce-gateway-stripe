@@ -679,7 +679,7 @@ describe( 'CheckoutSessions hook tests', () => {
 
 			renderHook( () =>
 				useCheckoutSessionTotalsSync( 'cs_test', checkoutState, null, {
-					revision: 1,
+					revision: 'rev_1',
 					status: 'success',
 				} )
 			);
@@ -690,7 +690,7 @@ describe( 'CheckoutSessions hook tests', () => {
 		} );
 
 		it( 'notifies Stripe.js when the Store API embeds a newer revision', async () => {
-			let sessionData = { revision: 1, status: 'success' };
+			let sessionData = { revision: 'rev_1', status: 'success' };
 			const checkoutState = {
 				type: 'success',
 				checkout: {
@@ -711,7 +711,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				)
 			);
 
-			sessionData = { revision: 2, status: 'success' };
+			sessionData = { revision: 'rev_2', status: 'success' };
 			rerender();
 
 			await waitFor( () => {
@@ -725,7 +725,7 @@ describe( 'CheckoutSessions hook tests', () => {
 			const createErrorNotice = dispatch().createErrorNotice;
 			createErrorNotice.mockClear();
 			const syncFailedRef = { current: false };
-			let sessionData = { revision: 1, status: 'success' };
+			let sessionData = { revision: 'rev_1', status: 'success' };
 			const checkoutState = {
 				type: 'success',
 				checkout: {
@@ -743,7 +743,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				)
 			);
 
-			sessionData = { revision: 1, status: 'error' };
+			sessionData = { revision: 'rev_1', status: 'error' };
 			rerender();
 
 			await waitFor( () => {
@@ -778,7 +778,7 @@ describe( 'CheckoutSessions hook tests', () => {
 					'cs_test',
 					checkoutState,
 					syncFailedRef,
-					{ revision: 1, status: 'error' }
+					{ revision: 'rev_1', status: 'error' }
 				)
 			);
 
@@ -807,7 +807,7 @@ describe( 'CheckoutSessions hook tests', () => {
 					'cs_test',
 					{ type: 'loading' },
 					syncFailedRef,
-					{ revision: 1, status: 'error' }
+					{ revision: 'rev_1', status: 'error' }
 				)
 			);
 
@@ -828,7 +828,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				await fn();
 				return { type: 'success' };
 			} );
-			let sessionData = { revision: 1, status: 'success' };
+			let sessionData = { revision: 'rev_1', status: 'success' };
 			let checkoutState = { type: 'loading' };
 
 			const { rerender } = renderHook( () =>
@@ -841,7 +841,7 @@ describe( 'CheckoutSessions hook tests', () => {
 			);
 
 			// A newer revision lands while the Checkout instance is still initializing.
-			sessionData = { revision: 2, status: 'success' };
+			sessionData = { revision: 'rev_2', status: 'success' };
 			rerender();
 
 			expect( runServerUpdate ).not.toHaveBeenCalled();
@@ -860,7 +860,7 @@ describe( 'CheckoutSessions hook tests', () => {
 
 		it( 'clears the sync failure flag after a newer revision is received', async () => {
 			const syncFailedRef = { current: true };
-			let sessionData = { revision: 1, status: 'error' };
+			let sessionData = { revision: 'rev_1', status: 'error' };
 			const checkoutState = {
 				type: 'success',
 				checkout: {
@@ -881,7 +881,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				)
 			);
 
-			sessionData = { revision: 2, status: 'success' };
+			sessionData = { revision: 'rev_2', status: 'success' };
 			rerender();
 
 			await waitFor( () => {
@@ -923,7 +923,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				() => new Promise( ( resolve ) => resolvers.push( resolve ) )
 			);
 			const syncFailedRef = { current: false };
-			let sessionData = { revision: 1, status: 'success' };
+			let sessionData = { revision: 'rev_1', status: 'success' };
 			let checkoutState = {
 				type: 'success',
 				checkout: { id: 'cs_test', runServerUpdate },
@@ -942,7 +942,7 @@ describe( 'CheckoutSessions hook tests', () => {
 			expect( countJQueryCalls( 'unblock' ) ).toBe( 0 );
 
 			// A newer revision starts a resync that blocks the payment UI.
-			sessionData = { revision: 2, status: 'success' };
+			sessionData = { revision: 'rev_2', status: 'success' };
 			rerender();
 			await waitFor( () => {
 				expect( runServerUpdate ).toHaveBeenCalledTimes( 1 );
@@ -983,7 +983,7 @@ describe( 'CheckoutSessions hook tests', () => {
 			jQuery.mockClear();
 
 			const runServerUpdate = jest.fn( () => new Promise( () => {} ) );
-			let sessionData = { revision: 1, status: 'success' };
+			let sessionData = { revision: 'rev_1', status: 'success' };
 			const checkoutState = {
 				type: 'success',
 				checkout: { id: 'cs_test', runServerUpdate },
@@ -1001,7 +1001,7 @@ describe( 'CheckoutSessions hook tests', () => {
 			expect( countJQueryCalls( 'block' ) ).toBe( 0 );
 			expect( countJQueryCalls( 'unblock' ) ).toBe( 0 );
 
-			sessionData = { revision: 2, status: 'success' };
+			sessionData = { revision: 'rev_2', status: 'success' };
 			rerender();
 			await waitFor( () => {
 				expect( runServerUpdate ).toHaveBeenCalledTimes( 1 );

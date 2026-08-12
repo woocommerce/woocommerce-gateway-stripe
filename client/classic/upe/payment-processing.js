@@ -47,7 +47,7 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
  * @typedef {Object} UPEComponent
  * @property {string|null}          intentId                The ID of the intent.
  * @property {string|null}          checkoutSessionId       Stripe Checkout Session id (cs_…) embedded by WooCommerce.
- * @property {number}               checkoutSessionRevision Revision embedded by the native WooCommerce checkout response.
+ * @property {string}               checkoutSessionRevision Revision token embedded by the native WooCommerce checkout response.
  * @property {Object|null}          elements                The Stripe elements object.
  * @property {Object|null}          upeElement              The Stripe payment element.
  * @property {boolean}              hasLoadError            Whether the payment element has a load error.
@@ -133,7 +133,7 @@ export function initializeUPEComponents() {
 		gatewayUPEComponents[ paymentMethodType ] = {
 			intentId: null,
 			checkoutSessionId: null,
-			checkoutSessionRevision: 0,
+			checkoutSessionRevision: '',
 			elements: null,
 			upeElement: null,
 			hasLoadError: false,
@@ -501,9 +501,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			shouldLoadStripeElements = false;
 		} catch ( error ) {
 			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId = null;
-			gatewayUPEComponents[
-				paymentMethodType
-			].checkoutSessionRevision = 0;
+			gatewayUPEComponents[ paymentMethodType ].checkoutSessionRevision =
+				'';
 			// eslint-disable-next-line no-console
 			console.error( error );
 			shouldLoadStripeElements = true;
@@ -514,7 +513,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	// load the Stripe elements as fallback.
 	if ( shouldLoadStripeElements ) {
 		gatewayUPEComponents[ paymentMethodType ].checkoutSessionId = null;
-		gatewayUPEComponents[ paymentMethodType ].checkoutSessionRevision = 0;
+		gatewayUPEComponents[ paymentMethodType ].checkoutSessionRevision = '';
 		elements = stripe.elements( options );
 
 		// Creation already applied these exclusions; seed the memo so the first
