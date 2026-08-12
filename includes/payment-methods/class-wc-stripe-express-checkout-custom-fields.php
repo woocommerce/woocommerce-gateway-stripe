@@ -267,7 +267,8 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 			}
 		}
 
-		// Classic checkout page
+		// Classic checkout page. This branch also feeds the cart/product merge below,
+		// where the legacy field definitions apply even on block-based stores.
 		if ( is_checkout() || 'classic' === $context ) {
 			$classic_custom_checkout_fields = [];
 			$standard_checkout_fields       = $this->get_standard_checkout_fields();
@@ -278,8 +279,9 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 			}
 
 			foreach ( $all_fields as $fieldset => $fields ) {
-				// Core only enforces account fields when creating an account; the
-				// express sheet can't collect them, so never treat them as required.
+				// Core only enforces account fields when creating an account, and the
+				// express sheet can't collect any field in this fieldset — including
+				// third-party additions — so never treat them as required.
 				if ( 'account' === $fieldset ) {
 					continue;
 				}
