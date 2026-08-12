@@ -121,9 +121,7 @@ class WC_Stripe_Intent_Controller {
 
 			// Validate order status.
 			if ( ! $order->has_status(
-				/**
-				 * This filter is documented in includes/class-wc-stripe-webhook-handler.php.
-				 */
+				/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
 				apply_filters(
 					'wc_stripe_allowed_payment_processing_statuses',
 					[ OrderStatus::PENDING, OrderStatus::FAILED ],
@@ -983,9 +981,7 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		// Run the necessary filter to make sure mandate information is added when it's required.
-		/**
-		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-		 */
+		/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 		$request = apply_filters(
 			'wc_stripe_generate_create_intent_request',
 			$request,
@@ -1038,9 +1034,7 @@ class WC_Stripe_Intent_Controller {
 
 		if ( WC_Stripe_Payment_Methods::CARD === $payment_method_type && $order && $is_setup_intent ) {
 			// Run the necessary filter to make sure correct mandate information is added for recurring card payments for subscriptions.
-			/**
-			 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-			 */
+			/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 			$request = apply_filters(
 				'wc_stripe_generate_create_intent_request',
 				$request,
@@ -1094,9 +1088,7 @@ class WC_Stripe_Intent_Controller {
 		// parameters — they can only be set at PaymentIntent creation time.
 
 		// Run the necessary filter to make sure mandate information is added when it's required.
-		/**
-		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-		 */
+		/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 		$request = apply_filters(
 			'wc_stripe_generate_create_intent_request',
 			$request,
