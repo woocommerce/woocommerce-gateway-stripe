@@ -43,6 +43,15 @@ class WC_Stripe_Checkout_Session_Manager {
 	}
 
 	/**
+	 * Return a runtime error message when we cannot create, initialize, or update a Stripe Checkout Session.
+	 *
+	 * @return string
+	 */
+	public static function get_runtime_error_message(): string {
+		return __( 'Unable to enable Adaptive Pricing.', 'woocommerce-gateway-stripe' );
+	}
+
+	/**
 	 * Create a new Stripe Checkout Session for the current WooCommerce cart.
 	 *
 	 * @return array Public session data.
@@ -76,7 +85,7 @@ class WC_Stripe_Checkout_Session_Manager {
 				$stripe_customer = new WC_Stripe_Customer( WC()->customer->get_id() );
 				$stripe_customer->maybe_create_customer( WC_Stripe_Customer::CUSTOMER_CONTEXT_CHECKOUT_SESSION );
 			} catch ( Exception $e ) {
-				throw new Exception( __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception( $e->getMessage(), __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			$request['customer']                     = $stripe_customer->get_id();
@@ -96,12 +105,12 @@ class WC_Stripe_Checkout_Session_Manager {
 
 		$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );
 		if ( ! empty( $checkout_session->error ) ) {
-			$message = empty( $checkout_session->error->message ) ? __( 'Checkout Sessions API returned an error', 'woocommerce-gateway-stripe' ) : $checkout_session->error->message;
-			throw new Exception( $message );
+			$message = empty( $checkout_session->error->message ) ? '(No error message returned from Stripe)' : $checkout_session->error->message;
+			throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() );
 		}
 
 		if ( empty( $checkout_session->client_secret ) || empty( $checkout_session->id ) ) {
-			throw new Exception( __( 'Unable to create Stripe Checkout Session.', 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( 'Failed to create Stripe Checkout Session.', self::get_runtime_error_message() );
 		}
 
 		WC_Stripe_Checkout_Session_Context::store_for_cart( $checkout_session->id, $cart_context );
@@ -132,7 +141,7 @@ class WC_Stripe_Checkout_Session_Manager {
 		$this->validate_cart();
 
 		if ( '' === $session_id ) {
-			throw new Exception( __( 'Checkout session ID is required.', 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( 'Checkout session ID is required.', self::get_runtime_error_message() );
 		}
 
 		WC_Stripe_Checkout_Session_Context::with_mutation_lock(
@@ -151,8 +160,8 @@ class WC_Stripe_Checkout_Session_Manager {
 				);
 
 				if ( ! empty( $checkout_session->error ) ) {
-					$message = empty( $checkout_session->error->message ) ? __( 'Checkout Sessions update API returned an error', 'woocommerce-gateway-stripe' ) : $checkout_session->error->message;
-					throw new Exception( $message );
+					$message = empty( $checkout_session->error->message ) ? '(No error message returned from Stripe)' : $checkout_session->error->message;
+					throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() );
 				}
 
 				WC_Stripe_Checkout_Session_Context::store_for_cart( $session_id, $cart_context );
@@ -287,15 +296,15 @@ class WC_Stripe_Checkout_Session_Manager {
 	 * Ensure checkout services needed by the manager exist in this request context.
 	 *
 	 * @return void
-	 * @throws Exception When the cart or WooCommerce session is unavailable.
+	 * @throws WC_Stripe_Exception When the cart or WooCommerce session is unavailable.
 	 */
 	private function validate_cart(): void {
 		if ( ! WC()->session ) {
-			throw new Exception( WC_Stripe_Checkout_Session_Context::get_unavailable_message() );
+			throw new WC_Stripe_Exception( 'No WooCommerce session found.', self::get_runtime_error_message() );
 		}
 
 		if ( ! WC()->cart || WC()->cart->is_empty() ) {
-			throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( 'Cart is empty.', __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
 		}
 	}
 

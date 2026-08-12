@@ -111,7 +111,10 @@ class WC_Stripe_Checkout_Session_Lifecycle {
 			$data = $this->manager->synchronize();
 		} catch ( Throwable $e ) {
 			WC_Stripe_Logger::error( 'Native classic checkout session synchronization failed.', [ 'error_message' => $e->getMessage() ] );
-			$data = $this->manager->mark_failed( $e->getMessage() );
+
+			$message = ( $e instanceof WC_Stripe_Exception ) ? $e->getLocalizedMessage() : WC_Stripe_Checkout_Session_Manager::get_runtime_error_message();
+
+			$data = $this->manager->mark_failed( $message );
 		}
 
 		$fragments[ self::CLASSIC_FRAGMENT_SELECTOR ] = $this->get_classic_fragment_html( $data );
@@ -170,14 +173,17 @@ class WC_Stripe_Checkout_Session_Lifecycle {
 		}
 
 		if ( ! self::is_adaptive_pricing_enabled() ) {
-			return $manager->mark_failed( WC_Stripe_Checkout_Session_Context::get_unavailable_message() );
+			return $manager->mark_failed( WC_Stripe_Checkout_Session_Manager::get_runtime_error_message() );
 		}
 
 		try {
 			return $manager->synchronize();
 		} catch ( Throwable $e ) {
 			WC_Stripe_Logger::error( 'Native Store API checkout session synchronization failed.', [ 'error_message' => $e->getMessage() ] );
-			return $manager->mark_failed( $e->getMessage() );
+
+			$message = ( $e instanceof WC_Stripe_Exception ) ? $e->getLocalizedMessage() : WC_Stripe_Checkout_Session_Manager::get_runtime_error_message();
+
+			return $manager->mark_failed( $message );
 		}
 	}
 

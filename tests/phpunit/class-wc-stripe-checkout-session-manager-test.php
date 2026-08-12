@@ -443,7 +443,8 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( '#wc-stripe-checkout-session-data', $fragments );
 		$data = json_decode( $this->get_fragment_session_data( $fragments['#wc-stripe-checkout-session-data'] ), true );
 		$this->assertSame( 'error', $data['status'] );
-		$this->assertSame( 'Checkout Session creation was declined.', $data['message'] );
+		// The raw Stripe message is log-only; shoppers get the curated message.
+		$this->assertSame( WC_Stripe_Checkout_Session_Manager::get_runtime_error_message(), $data['message'] );
 		$this->assertSame( '', $data['session_id'] );
 		$this->assertSame( '', $data['client_secret'] );
 
@@ -653,7 +654,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 
 		$this->assertSame( 0, $request_count );
 		$this->assertSame( 'error', $data['status'] );
-		$this->assertSame( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $data['message'] );
+		$this->assertSame( WC_Stripe_Checkout_Session_Manager::get_runtime_error_message(), $data['message'] );
 	}
 
 	public function test_store_api_data_reports_stripe_api_error(): void {
@@ -710,7 +711,156 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		}
 
 		$this->assertSame( 'error', $data['status'] );
-		$this->assertSame( 'Checkout Session creation was rejected.', $data['message'] );
+		$this->assertSame( WC_Stripe_Checkout_Session_Manager::get_runtime_error_message(), $data['message'] );
 		$this->assertSame( '', $data['client_secret'] );
+	}
+
+	/**
+	 * Replace the manager singleton instance for testing purposes.
+	 *
+	 * @param WC_Stripe_Checkout_Session_Manager|null $manager Manager to install, or null so get_instance() rebuilds a real one.
+	 * @return void
+	 */
+	private function set_manager_instance( ?WC_Stripe_Checkout_Session_Manager $manager ): void {
+		$property = new ReflectionProperty( WC_Stripe_Checkout_Session_Manager::class, 'instance' );
+		$property->setAccessible( true );
+		$property->setValue( null, $manager );
+	}
+
+	/**
+	 * Build a manager instance where synchronize() will fail with the given throwable,
+	 * while mark_failed() should still be run.
+	 *
+	 * @param Throwable $error Error synchronize() should throw.
+	 * @return WC_Stripe_Checkout_Session_Manager
+	 */
+	private function get_manager_with_failing_synchronize( Throwable $error ): WC_Stripe_Checkout_Session_Manager {
+		$manager = $this->getMockBuilder( WC_Stripe_Checkout_Session_Manager::class )
+			->onlyMethods( [ 'synchronize' ] )
+			->getMock();
+		$manager->method( 'synchronize' )->willReturnCallback(
+			static function () use ( $error ): void {
+				throw $error;
+			}
+		);
+
+		return $manager;
+	}
+
+	/**
+	 * Build a logger double that requires the expected log message to be logged.
+	 *
+	 * @param string    $expected_log_message Log entry that should be logged.
+	 * @param Throwable $error                Error whose raw message content must appear in the log context.
+	 * @return WC_Logger
+	 */
+	private function get_logger_expecting_error( string $expected_log_message, Throwable $error ): WC_Logger {
+		$mock_logger = $this->createMock( WC_Logger::class );
+		$mock_logger->expects( $this->once() )
+			->method( 'error' )
+			->with(
+				$expected_log_message,
+				$this->callback(
+					static function ( $context ) use ( $error ): bool {
+						return $error->getMessage() === ( $context['error_message'] ?? '' );
+					}
+				)
+			);
+
+		return $mock_logger;
+	}
+
+	/**
+	 * The classic fragment error handling must limit messages returned to callers while logging details.
+	 *
+	 * @dataProvider provide_synchronization_failures
+	 *
+	 * @param Throwable   $error                   Error that should be thrown and handled.
+	 * @param string|null $expected_public_message Expected shopper-facing message, or null for the generic runtime error message.
+	 */
+	public function test_classic_fragment_handles_errors( Throwable $error, ?string $expected_public_message ): void {
+		$expected_message = $expected_public_message ?? WC_Stripe_Checkout_Session_Manager::get_runtime_error_message();
+		$restore          = $this->enable_adaptive_pricing();
+
+		$original_logger          = WC_Stripe_Logger::$logger;
+		WC_Stripe_Logger::$logger = $this->get_logger_expecting_error( 'Native classic checkout session synchronization failed.', $error );
+
+		try {
+			$lifecycle = new WC_Stripe_Checkout_Session_Lifecycle( $this->get_manager_with_failing_synchronize( $error ) );
+			$fragments = $lifecycle->add_classic_fragment( [] );
+		} finally {
+			WC_Stripe_Logger::$logger = $original_logger;
+			$restore();
+		}
+
+		$this->assertArrayHasKey( '#wc-stripe-checkout-session-data', $fragments );
+		$data = json_decode( $this->get_fragment_session_data( $fragments['#wc-stripe-checkout-session-data'] ), true );
+		$this->assertSame( 'error', $data['status'] );
+		$this->assertSame( $expected_message, $data['message'] );
+		foreach ( $data as $value ) {
+			if ( is_scalar( $value ) ) {
+				$this->assertStringNotContainsString( $error->getMessage(), (string) $value );
+			}
+		}
+
+		// The persisted record feeds later renders, so the masking must hold there too.
+		$record = WC()->session->get( 'wc_stripe_checkout_session' );
+		$this->assertSame( $expected_message, $record['message'] );
+	}
+
+	/**
+	 * The Store API error handling must limit messages returned to callers while logging details.
+	 *
+	 * @dataProvider provide_synchronization_failures
+	 *
+	 * @param Throwable   $error                   Error that should be thrown and handled.
+	 * @param string|null $expected_public_message Expected shopper-facing message, or null for the generic runtime error message.
+	 */
+	public function test_store_api_data_handles_errors( Throwable $error, ?string $expected_public_message ): void {
+		$expected_message = $expected_public_message ?? WC_Stripe_Checkout_Session_Manager::get_runtime_error_message();
+		$restore          = $this->enable_adaptive_pricing();
+		$this->set_store_api_sync_requested( true );
+		$this->set_manager_instance( $this->get_manager_with_failing_synchronize( $error ) );
+
+		$original_logger          = WC_Stripe_Logger::$logger;
+		WC_Stripe_Logger::$logger = $this->get_logger_expecting_error( 'Native Store API checkout session synchronization failed.', $error );
+
+		try {
+			$data = WC_Stripe_Checkout_Session_Lifecycle::get_store_api_data();
+		} finally {
+			WC_Stripe_Logger::$logger = $original_logger;
+			$this->set_manager_instance( null );
+			$restore();
+		}
+
+		$this->assertSame( 'error', $data['status'] );
+		$this->assertSame( $expected_message, $data['message'] );
+		foreach ( $data as $value ) {
+			if ( is_scalar( $value ) ) {
+				$this->assertStringNotContainsString( $error->getMessage(), (string) $value );
+			}
+		}
+	}
+
+	/**
+	 * Data provider for the error handling tests.
+	 *
+	 * @return array[]
+	 */
+	public function provide_synchronization_failures(): array {
+		return [
+			'PHP engine error is logged and masked'                               => [
+				new TypeError( 'WC_Stripe_Checkout_Session_Manager::build_line_items(): Argument #1 ($cart_context) must be of type array, null given, called in /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/includes/class-wc-stripe-checkout-session-manager.php on line 123' ),
+				null,
+			],
+			'standard Exception is logged and masked'                             => [
+				new Exception( 'SQLSTATE[HY000] [2002] Connection refused in /var/www/html/wp-content/plugins/some-plugin/includes/class-db.php:87' ),
+				null,
+			],
+			'Localised WC_Stripe_Exception is logged and shows localized message' => [
+				new WC_Stripe_Exception( 'Array ( [body] => raw Stripe response dump )', 'There was a problem sending a request to the Stripe API endpoint.' ),
+				'There was a problem sending a request to the Stripe API endpoint.',
+			],
+		];
 	}
 }
