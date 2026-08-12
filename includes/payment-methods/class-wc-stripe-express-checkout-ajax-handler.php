@@ -404,6 +404,17 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 			// Force quantity to 1 if sold individually and check for existing item in cart.
 			if ( $product->is_sold_individually() ) {
+				/**
+				 * Filters the quantity for sold-individually products in Payment Request add-to-cart previews.
+				 * Deprecated in favor of wc_stripe_express_checkout_add_to_cart_sold_individually_quantity.
+				 *
+				 * @deprecated 10.6.0
+				 *
+				 * @param int|float $quantity     Quantity to add. Defaults to 1, not the requested quantity.
+				 * @param int|float $requested    Requested quantity.
+				 * @param int       $product_id   Product ID.
+				 * @param int|null  $variation_id Variation ID, if any.
+				 */
 				$qty = apply_filters_deprecated(
 					'wc_stripe_payment_request_add_to_cart_sold_individually_quantity',
 					[ 1, $qty, $product_id, $variation_id ],
