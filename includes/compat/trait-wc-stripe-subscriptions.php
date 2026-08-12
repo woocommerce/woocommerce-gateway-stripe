@@ -788,7 +788,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				do_action( 'wc_gateway_stripe_process_payment_subscription_charge_attempt_delayed', $response, $renewal_order );
 			} else {
 				// The charge was successfully captured
-				/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
+				/** This action is documented in includes/class-wc-stripe-webhook-handler.php. */
 				do_action_deprecated(
 					'wc_gateway_stripe_process_payment',
 					[ $response, $renewal_order ],
