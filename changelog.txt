@@ -101,6 +101,7 @@ xxxx-xx-xx - version 10.9.0
 * Tweak - Use database cache for webhook status tracking
 * Dev - Add WC_Stripe::get_settings()/update_settings() as the canonical accessors for the main Stripe settings, with the WC_Stripe_Helper shims delegating to them
 * Update - Use WooCommerce Core hooks for Adaptive Pricing session management
+* Fix - Render classic-checkout card fields when a host optimizer defers render-blocking JavaScript (e.g. SiteGround Speed Optimizer)
 
 2026-08-05 - version 10.8.5
 * Update - Improve webhook handling
