@@ -1715,4 +1715,101 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'phone empty'   => [ '', false ],
 		];
 	}
+
+	/**
+	 * The source-specific replacement receives both pieces of context before a
+	 * token is attached, while the deprecated callback retains its customer argument.
+	 */
+	public function test_prepare_source_exposes_consistent_customer_and_source_context(): void {
+		$_POST = [
+			'payment_method' => 'stripe',
+			'stripe_token'   => 'pm_context_test',
+		];
+
+		$deprecated_customer = null;
+		$new_filter_args     = [];
+		$deprecated_filter   = static function ( $force_save, $customer ) use ( &$deprecated_customer ) {
+			$deprecated_customer = $customer;
+			return $force_save;
+		};
+		$new_filter          = static function ( $should_save, $customer, $source_id ) use ( &$new_filter_args ) {
+			$new_filter_args = [ $should_save, $customer, $source_id ];
+			return false;
+		};
+		$api_filter          = static function ( $preempt, $request_args, $url ) {
+			if ( false === strpos( $url, 'customers/cus_context_test' ) ) {
+				return $preempt;
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( [ 'id' => 'cus_context_test' ] ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+			];
+		};
+
+		add_filter( 'wc_stripe_force_save_source', $deprecated_filter, 10, 2 );
+		add_filter( 'wc_stripe_should_save_payment_source_for_customer', $new_filter, 10, 3 );
+		add_filter( 'pre_http_request', $api_filter, 10, 3 );
+		$this->setExpectedDeprecated( 'wc_stripe_force_save_source' );
+
+		try {
+			$prepared_source = $this->gateway->prepare_source( 0, false, 'cus_context_test' );
+		} finally {
+			remove_filter( 'wc_stripe_force_save_source', $deprecated_filter, 10 );
+			remove_filter( 'wc_stripe_should_save_payment_source_for_customer', $new_filter, 10 );
+			remove_filter( 'pre_http_request', $api_filter, 10 );
+			$_POST = [];
+		}
+
+		$this->assertInstanceOf( WC_Stripe_Customer::class, $deprecated_customer );
+		$this->assertFalse( $new_filter_args[0] );
+		$this->assertSame( $deprecated_customer, $new_filter_args[1] );
+		$this->assertSame( 'pm_context_test', $new_filter_args[2] );
+		$this->assertSame( 'pm_context_test', $prepared_source->source );
+	}
+
+	/**
+	 * Source-dependent legacy intent callbacks retain their source ID while being
+	 * directed to the request filter that exposes the complete intent context.
+	 */
+	public function test_generate_create_intent_request_deprecates_source_filter_without_changing_its_context(): void {
+		$order              = WC_Helper_Order::create_order();
+		$prepared_source    = (object) [
+			'customer' => 'cus_context_test',
+			'source'   => 'pm_context_test',
+		];
+		$user_id            = $this->factory()->user->create();
+		$received_source    = null;
+		$received_order_id  = null;
+		$deprecated_filter  = static function ( $force_save, $source_id ) use ( &$received_source ) {
+			$received_source = $source_id;
+			return true;
+		};
+		$replacement_filter = static function ( $force_save, $order_id ) use ( &$received_order_id ) {
+			$received_order_id = $order_id;
+			return $force_save;
+		};
+
+		add_filter( 'wc_stripe_force_save_source', $deprecated_filter, 10, 2 );
+		add_filter( 'wc_stripe_force_save_payment_method', $replacement_filter, 10, 2 );
+		wp_set_current_user( $user_id );
+		$this->setExpectedDeprecated( 'wc_stripe_force_save_source' );
+
+		try {
+			$request = $this->gateway->generate_create_intent_request( $order, $prepared_source );
+		} finally {
+			remove_filter( 'wc_stripe_force_save_source', $deprecated_filter, 10 );
+			remove_filter( 'wc_stripe_force_save_payment_method', $replacement_filter, 10 );
+			wp_set_current_user( 0 );
+		}
+
+		$this->assertSame( 'pm_context_test', $received_source );
+		$this->assertSame( $order->get_id(), $received_order_id );
+		$this->assertSame( 'off_session', $request['setup_future_usage'] );
+		$this->assertSame( 'true', $request['metadata']['save_payment_method'] );
+	}
 }
