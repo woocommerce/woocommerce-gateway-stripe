@@ -1,4 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react';
+import jQuery from 'jquery';
 import {
 	usePaymentSetupHandler,
 	useCheckoutSuccessHandler,
@@ -892,6 +893,125 @@ describe( 'CheckoutSessions hook tests', () => {
 				'wc-stripe-stale-checkout-total',
 				'wc/checkout/payments'
 			);
+		} );
+
+		// The jQuery mock returns a fresh chain per call, so block/unblock
+		// invocations are summed across every chain it handed out.
+		const countJQueryCalls = ( method ) =>
+			jQuery.mock.results.reduce(
+				( count, result ) =>
+					count +
+					( result.value?.[ method ]?.mock?.calls?.length ?? 0 ),
+				0
+			);
+
+		// Allow the cancellation tests that need real effects to get that behaviour.
+		const useRealEffects = () => {
+			const { useEffect: actualUseEffect } =
+				jest.requireActual( '@wordpress/element' );
+			useEffect.mockImplementation( actualUseEffect );
+		};
+
+		it( 'retries a resync cancelled by a checkout state change and lifts the UI block', async () => {
+			useRealEffects();
+			jQuery.mockClear();
+			const createErrorNotice = dispatch().createErrorNotice;
+			createErrorNotice.mockClear();
+
+			const resolvers = [];
+			const runServerUpdate = jest.fn(
+				() => new Promise( ( resolve ) => resolvers.push( resolve ) )
+			);
+			const syncFailedRef = { current: false };
+			let sessionData = { revision: 1, status: 'success' };
+			let checkoutState = {
+				type: 'success',
+				checkout: { id: 'cs_test', runServerUpdate },
+			};
+
+			const { rerender } = renderHook( () =>
+				useCheckoutSessionTotalsSync(
+					'cs_test',
+					checkoutState,
+					syncFailedRef,
+					sessionData
+				)
+			);
+
+			expect( countJQueryCalls( 'block' ) ).toBe( 0 );
+			expect( countJQueryCalls( 'unblock' ) ).toBe( 0 );
+
+			// A newer revision starts a resync that blocks the payment UI.
+			sessionData = { revision: 2, status: 'success' };
+			rerender();
+			await waitFor( () => {
+				expect( runServerUpdate ).toHaveBeenCalledTimes( 1 );
+			} );
+			expect( countJQueryCalls( 'block' ) ).toBe( 1 );
+			expect( countJQueryCalls( 'unblock' ) ).toBe( 0 );
+
+			// Checkout state changes while the resync is in flight.
+			checkoutState = { type: 'loading' };
+			rerender();
+
+			// The cancelled run must unblock the UI immediately and must not
+			// show a failure notice to the shopper.
+			expect( countJQueryCalls( 'block' ) ).toBe( 1 );
+			expect( countJQueryCalls( 'unblock' ) ).toBe( 1 );
+			expect( createErrorNotice ).not.toHaveBeenCalled();
+
+			// Once checkout recovers, the pending revision must be retried.
+			checkoutState = {
+				type: 'success',
+				checkout: { id: 'cs_test', runServerUpdate },
+			};
+			rerender();
+			await waitFor( () => {
+				expect( runServerUpdate ).toHaveBeenCalledTimes( 2 );
+			} );
+
+			resolvers[ 1 ]( { type: 'success' } );
+			await waitFor( () => {
+				expect( countJQueryCalls( 'block' ) ).toBe( 2 );
+			} );
+			expect( countJQueryCalls( 'unblock' ) ).toBe( 2 );
+			expect( syncFailedRef.current ).toBe( false );
+		} );
+
+		it( 'lifts the UI block when unmounted during an in-flight resync', async () => {
+			useRealEffects();
+			jQuery.mockClear();
+
+			const runServerUpdate = jest.fn( () => new Promise( () => {} ) );
+			let sessionData = { revision: 1, status: 'success' };
+			const checkoutState = {
+				type: 'success',
+				checkout: { id: 'cs_test', runServerUpdate },
+			};
+
+			const { rerender, unmount } = renderHook( () =>
+				useCheckoutSessionTotalsSync(
+					'cs_test',
+					checkoutState,
+					null,
+					sessionData
+				)
+			);
+
+			expect( countJQueryCalls( 'block' ) ).toBe( 0 );
+			expect( countJQueryCalls( 'unblock' ) ).toBe( 0 );
+
+			sessionData = { revision: 2, status: 'success' };
+			rerender();
+			await waitFor( () => {
+				expect( runServerUpdate ).toHaveBeenCalledTimes( 1 );
+			} );
+			expect( countJQueryCalls( 'block' ) ).toBe( 1 );
+			expect( countJQueryCalls( 'unblock' ) ).toBe( 0 );
+
+			unmount();
+			expect( countJQueryCalls( 'unblock' ) ).toBe( 1 );
+			expect( countJQueryCalls( 'block' ) ).toBe( 1 );
 		} );
 	} );
 } );

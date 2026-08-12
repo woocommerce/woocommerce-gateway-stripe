@@ -408,7 +408,15 @@ export const useCheckoutSessionTotalsSync = (
 			return;
 		}
 
+		const uiBlockSelector =
+			'.wc-block-checkout__payment-method, .wc-block-components-checkout-place-order-button';
+
+		// Keep a reference to the previous session state so we can restore it
+		// if we cancel the current resync before it completes.
+		const prevSessionState = prevSessionStateRef.current;
 		prevSessionStateRef.current = sessionState;
+
+		let syncCompleted = false;
 
 		const run = async () => {
 			try {
@@ -417,11 +425,7 @@ export const useCheckoutSessionTotalsSync = (
 					return;
 				}
 
-				blockUI(
-					jQuery(
-						'.wc-block-checkout__payment-method, .wc-block-components-checkout-place-order-button'
-					)
-				);
+				blockUI( jQuery( uiBlockSelector ) );
 				const { checkout } = state;
 				if ( typeof checkout?.runServerUpdate !== 'function' ) {
 					markSyncFailed();
@@ -444,14 +448,11 @@ export const useCheckoutSessionTotalsSync = (
 					console.error( error );
 				}
 			} finally {
-				// A superseded resync must not lift the block a newer, still
-				// in-flight resync is holding on the payment area.
+				syncCompleted = true;
+				// Only unblock the UI if we don't have a newer resync in flight,
+				// which is indicated by the cancelled flag remaining false.
 				if ( ! cancelled ) {
-					unblockUI(
-						jQuery(
-							'.wc-block-checkout__payment-method, .wc-block-components-checkout-place-order-button'
-						)
-					);
+					unblockUI( jQuery( uiBlockSelector ) );
 				}
 			}
 		};
@@ -460,6 +461,12 @@ export const useCheckoutSessionTotalsSync = (
 
 		return () => {
 			cancelled = true;
+			// If the run was cancelled mid-flight and the sync has not completed yet,
+			// we need to restore the previous session state and unblock the UI.
+			if ( ! syncCompleted ) {
+				prevSessionStateRef.current = prevSessionState;
+				unblockUI( jQuery( uiBlockSelector ) );
+			}
 		};
 	}, [
 		checkoutSessionId,
