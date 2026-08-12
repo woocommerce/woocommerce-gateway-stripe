@@ -1956,8 +1956,8 @@ class WC_Stripe_Helper {
 	 * Checks if the payment method should be saved.
 	 *
 	 * @since 9.6.0
-	 * @param bool $force_save Whether the payment method should be saved.
-	 * @param string $order_id Order ID.
+	 * @param bool     $force_save Whether the payment method should be saved.
+	 * @param int|null $order_id   Order ID when one exists; null while rendering checkout.
 	 * @return bool
 	 */
 	public static function should_force_save_payment_method( $force_save = false, $order_id = null ) {
@@ -1966,7 +1966,18 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		// Backward compatibility for deprecated 'wc_stripe_force_save_source' filter.
+		/**
+		 * Filters whether Stripe should force saving a payment source.
+		 *
+		 * @deprecated 9.6.0 The second parameter was historically inconsistent. Use
+		 *                   wc_stripe_force_save_payment_method for order-level policy,
+		 *                   wc_stripe_should_save_payment_source_for_customer for
+		 *                   customer/source decisions, or wc_stripe_generate_create_intent_request
+		 *                   for intent request changes.
+		 *
+		 * @param bool                                      $force_save Whether to force saving the source.
+		 * @param WC_Stripe_Customer|int|string|null         $context    Stripe customer, order ID, source ID, or null depending on the call site.
+		 */
 		$force_save_payment_method = apply_filters_deprecated(
 			'wc_stripe_force_save_source',
 			[ $force_save, $order_id ],
@@ -1980,8 +1991,8 @@ class WC_Stripe_Helper {
 		 *
 		 * @since 9.6.0
 		 *
-		 * @param bool   $force_save Whether the payment method must be saved.
-		 * @param string $order_id   Order ID.
+		 * @param bool     $force_save Whether the payment method must be saved.
+		 * @param int|null $order_id   Order ID when one exists; null while rendering checkout.
 		 */
 		$force_save_payment_method = apply_filters( 'wc_stripe_force_save_payment_method', $force_save_payment_method, $order_id );
 

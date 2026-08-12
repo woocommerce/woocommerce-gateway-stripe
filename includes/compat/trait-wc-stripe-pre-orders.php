@@ -231,6 +231,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 			$intent_secret = $this->setup_intent( $order, $prepared_source ); // @phpstan-ignore-line (setup_intent is defined in the classes that use this trait)
 			if ( ! empty( $intent_secret ) ) {
 				$response['setup_intent_secret'] = $intent_secret;
+				$response['save_payment_method'] = true;
 				return $response;
 			}
 

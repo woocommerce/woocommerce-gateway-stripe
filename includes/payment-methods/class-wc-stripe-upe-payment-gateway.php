@@ -210,6 +210,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	private $order_pay_intent;
 
 	/**
+	 * Save decision made at the process_payment entry point for the active deferred flow.
+	 *
+	 * @var bool|null
+	 */
+	private $save_payment_method_to_store_for_request;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -1548,22 +1555,31 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
 		}
 
-		return $this->process_payment_with_deferred_intent( $order_id );
+		return $this->process_payment_with_deferred_intent( $order_id, $save_payment_method );
 	}
 
 	/**
 	 * Process the payment for an order using a deferred intent.
 	 *
-	 * @param int $order_id WC Order ID to be paid for.
+	 * @param int  $order_id            WC Order ID to be paid for.
+	 * @param bool $save_payment_method Whether to save the payment method.
 	 *
 	 * @return array An array with the result of the payment processing, and a redirect URL on success.
 	 */
-	private function process_payment_with_deferred_intent( int $order_id ) {
-		if ( ! empty( $_POST['wc-stripe-confirmation-token'] ) ) {
-			return $this->process_payment_with_confirmation_token( $order_id );
-		}
+	private function process_payment_with_deferred_intent( int $order_id, bool $save_payment_method ) {
+		$previous_save_decision                         = $this->save_payment_method_to_store_for_request;
+		$this->save_payment_method_to_store_for_request = $save_payment_method;
 
-		return $this->process_payment_with_payment_method( $order_id );
+		try {
+			if ( ! empty( $_POST['wc-stripe-confirmation-token'] ) ) {
+				return $this->process_payment_with_confirmation_token( $order_id );
+			}
+
+			return $this->process_payment_with_payment_method( $order_id );
+		} finally {
+			// Gateway instances can be reused within a request, so the decision must not leak into another order.
+			$this->save_payment_method_to_store_for_request = $previous_save_decision;
+		}
 	}
 
 	/**
@@ -3490,7 +3506,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$shipping_details      = null;
 		$token                 = false;
 
-		$save_payment_method_to_store  = $this->should_save_payment_method_from_request( $order->get_id(), $selected_payment_type );
+		$save_payment_method_to_store = null !== $this->save_payment_method_to_store_for_request
+			? $this->save_payment_method_to_store_for_request
+			: $this->should_save_payment_method_from_request( $order->get_id(), $selected_payment_type );
+
 		$is_using_saved_payment_method = $this->is_using_saved_payment_method();
 
 		// If order requires shipping, add the shipping address details to the payment intent request.
@@ -4539,6 +4558,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					'result'              => 'success',
 					'redirect'            => $this->get_return_url( $order ),
 					'setup_intent_secret' => $intent_secret,
+					'save_payment_method' => true,
 				];
 			}
 		}
@@ -4751,14 +4771,23 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		];
 
 		/**
-		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
+		 * This filter is documented in includes/class-wc-stripe-helper.php.
 		 */
-		$force_save_source_value = apply_filters( 'wc_stripe_force_save_source', false );
+		$force_save_source_value = apply_filters_deprecated(
+			'wc_stripe_force_save_source',
+			[ false, $order_id ],
+			'9.6.0',
+			'wc_stripe_force_save_payment_method',
+			'The wc_stripe_force_save_source filter is deprecated. Use wc_stripe_force_save_payment_method instead.'
+		);
 
-		// We want to save the payment method if requested or forced, AND if we are not
-		// already using a saved payment method.
-		if ( ( $this->save_payment_method_requested() || $force_save_source_value ) &&
-			! $this->is_using_saved_payment_method() ) {
+		// Older result producers do not carry the decision, so retain the request fallback
+		// while allowing current flows to keep intent creation and verification in sync.
+		$save_payment_method = array_key_exists( 'save_payment_method', $result )
+			? (bool) $result['save_payment_method']
+			: $this->save_payment_method_requested();
+
+		if ( ( $save_payment_method || $force_save_source_value ) && ! $this->is_using_saved_payment_method() ) {
 			$query_params['save_payment_method'] = true;
 		}
 
