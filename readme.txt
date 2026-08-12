@@ -260,5 +260,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Use WooCommerce Core hooks for Adaptive Pricing session management
 * Fix - Render classic-checkout card fields when a host optimizer defers render-blocking JavaScript (e.g. SiteGround Speed Optimizer)
 * Fix - Allow express checkout payments when automatic account password generation is disabled
+* Tweak - Add PHPDoc for some deprecated hooks
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

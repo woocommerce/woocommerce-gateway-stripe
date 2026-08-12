@@ -103,6 +103,7 @@ xxxx-xx-xx - version 10.9.0
 * Update - Use WooCommerce Core hooks for Adaptive Pricing session management
 * Fix - Render classic-checkout card fields when a host optimizer defers render-blocking JavaScript (e.g. SiteGround Speed Optimizer)
 * Fix - Allow express checkout payments when automatic account password generation is disabled
+* Tweak - Add PHPDoc for some deprecated hooks
 
 2026-08-05 - version 10.8.5
 * Update - Improve webhook handling
