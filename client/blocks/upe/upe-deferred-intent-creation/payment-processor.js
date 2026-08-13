@@ -453,7 +453,10 @@ const PaymentProcessor = ( {
 			isCompleteRef.current = complete;
 			if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 				handleDisplayOfPaymentInstructions( value.type, 'blocks' );
-				handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );
+				handleDisplayOfSavingCheckbox(
+					value.type,
+					paymentMethodsConfig
+				);
 			}
 		},
 		[ stripeServerData, paymentMethodsConfig ]
