@@ -36,6 +36,13 @@ class WC_Stripe_Helper {
 	public const OFFICIAL_PLUGIN_ID_KLARNA = 'klarna_payments';
 
 	/**
+	 * The Stripe.js SDK URL, pinned to a named major release.
+	 *
+	 * @var string
+	 */
+	protected const STRIPE_JS_URL = 'https://js.stripe.com/dahlia/stripe.js';
+
+	/**
 	 * List of legacy Stripe gateways.
 	 *
 	 * @var array
@@ -43,27 +50,55 @@ class WC_Stripe_Helper {
 	public static $stripe_legacy_gateways = [];
 
 	/**
+	 * Register the shared Stripe.js SDK script under the 'stripe' handle.
+	 *
+	 * Single registration point so the handle, URL, and loading flags can't
+	 * drift between the surfaces that need the SDK.
+	 *
+	 * @return void
+	 */
+	public static function register_stripe_js() {
+		wp_register_script( 'stripe', self::STRIPE_JS_URL, [], null, true );
+	}
+
+	/**
 	 * Get the main Stripe settings option.
+	 *
+	 * Delegates to the canonical accessor on WC_Stripe so there is a single
+	 * settings code path.
+	 *
+	 * @deprecated 10.9.0 Use WC_Stripe::get_instance()->get_settings() instead. The per-method
+	 *                    form has no replacement — those options were only used by the
+	 *                    pre-UPE legacy gateways.
 	 *
 	 * @param string $method (Optional) The payment method to get the settings from.
 	 * @return array $settings The Stripe settings.
 	 */
 	public static function get_stripe_settings( $method = null ) {
-		$settings = null === $method ? get_option( self::SETTINGS_OPTION, [] ) : get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
-		if ( ! is_array( $settings ) ) {
-			$settings = [];
+		if ( null === $method ) {
+			return WC_Stripe::get_instance()->get_settings();
 		}
-		return $settings;
+
+		$settings = get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
+
+		return is_array( $settings ) ? $settings : [];
 	}
 
 	/**
 	 * Update the main Stripe settings option.
 	 *
+	 * Delegates to the canonical accessor on WC_Stripe so there is a single
+	 * settings code path.
+	 *
+	 * @deprecated 10.9.0 Use WC_Stripe::get_instance()->update_settings() instead.
+	 *
 	 * @param $options array The Stripe settings.
 	 * @return void
 	 */
 	public static function update_main_stripe_settings( $options ) {
-		update_option( self::SETTINGS_OPTION, $options );
+		if ( is_array( $options ) ) {
+			WC_Stripe::get_instance()->update_settings( $options );
+		}
 	}
 
 	/**
@@ -1612,6 +1647,10 @@ class WC_Stripe_Helper {
 	 * @return bool Whether Level 3 data applies to the order's payment method.
 	 */
 	public static function order_supports_level3_data( $order ) {
+		if ( ! $order instanceof WC_Order ) {
+			return false;
+		}
+
 		$payment_method_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
 
 		// Legacy WC_Gateway_Stripe orders and the charge-based capture fallback never write the

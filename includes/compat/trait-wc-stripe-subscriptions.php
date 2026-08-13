@@ -207,9 +207,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			return;
 		}
 
-		/**
-		 * This filter is documented in includes/compat/trait-wc-stripe-subscriptions.php.
-		 */
+		/** This filter is documented in includes/compat/trait-wc-stripe-subscriptions.php. */
 		$statuses        = apply_filters( 'wc_stripe_update_subs_payment_method_card_statuses', [ 'active' ] );
 		$subscriptions   = function_exists( 'wcs_get_users_subscriptions' ) ? wcs_get_users_subscriptions( $user_id ) : [];
 		$stripe_customer = new WC_Stripe_Customer( $user_id );
@@ -595,7 +593,7 @@ trait WC_Stripe_Subscriptions_Trait {
 							/* translators: 1) error message from Stripe; 2) request log URL */
 							__( 'Sorry, we are unable to process the payment at this time. Reason: %1$s %2$s', 'woocommerce-gateway-stripe' ),
 							$response->error->message,
-							isset( $response->error->request_log_url ) ? make_clickable( $response->error->request_log_url ) : ''
+							isset( $response->error->request_log_url ) ? '<a href="' . esc_url( $response->error->request_log_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $response->error->request_log_url ) . '</a>' : ''
 						);
 						$renewal_order->add_order_note( $localized_message );
 						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
@@ -612,7 +610,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				}
 
 				if ( isset( $response->error->request_log_url ) ) {
-					$localized_message .= ' ' . make_clickable( $response->error->request_log_url );
+					$localized_message .= ' <a href="' . esc_url( $response->error->request_log_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $response->error->request_log_url ) . '</a>';
 				}
 
 				$renewal_order->add_order_note( $localized_message );
@@ -790,6 +788,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				do_action( 'wc_gateway_stripe_process_payment_subscription_charge_attempt_delayed', $response, $renewal_order );
 			} else {
 				// The charge was successfully captured
+				/** This action is documented in includes/class-wc-stripe-webhook-handler.php. */
 				do_action_deprecated(
 					'wc_gateway_stripe_process_payment',
 					[ $response, $renewal_order ],
