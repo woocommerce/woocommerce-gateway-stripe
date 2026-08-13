@@ -2150,8 +2150,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * A Checkout Session amount mismatch fails only that checkout: the Session is invalidated and
-	 * the customer session is flagged, while storewide settings and the legacy marker stay untouched.
+	 * A Checkout Session amount mismatch fails only that checkout: the Session is invalidated and the customer session is flagged.
 	 */
 	public function test_process_payment_with_checkout_session_rejects_amount_mismatch() {
 		$session_id       = 'cs_test_amount_mismatch';

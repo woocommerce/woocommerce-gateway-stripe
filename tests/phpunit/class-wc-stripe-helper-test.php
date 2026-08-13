@@ -2238,7 +2238,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param string  $store_currency           WooCommerce store currency code.
 	 * @param ?string $expected                 Expected return value.
 	 * @param bool    $webhook_enabled          Whether the Stripe webhook endpoint is enabled. Defaults to true.
-	 * @param bool    $amount_mismatch_detected Whether the legacy storewide amount-mismatch marker option is set. Defaults to false.
+	 * @param bool    $amount_mismatch_detected Whether the legacy amount-mismatch marker option is set. Defaults to false.
 	 * @param bool    $manual_capture           Whether manual capture is enabled. Defaults to false.
 	 * @return void
 	 * @dataProvider provide_test_get_adaptive_pricing_account_unavailable_reason
