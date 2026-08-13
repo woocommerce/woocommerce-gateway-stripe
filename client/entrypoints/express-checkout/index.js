@@ -14,6 +14,8 @@ import {
 	getPaymentMethodTypesForExpressMethod,
 	isManualPaymentMethodCreation,
 	normalizeLineItems,
+	transformVariationAttributesForStoreApi,
+	buildBookingConfiguration,
 } from 'wcstripe/express-checkout/utils';
 import {
 	onAbortPaymentHandler,
@@ -24,7 +26,6 @@ import {
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
 } from 'wcstripe/express-checkout/event-handler';
-import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
 import { diagnostics } from 'wcstripe/diagnostics/wiring';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
@@ -52,7 +53,8 @@ jQuery( function ( $ ) {
 		return;
 	}
 
-	const publishableKey = getExpressCheckoutData( 'stripe' ).publishable_key;
+	const stripeParams = getExpressCheckoutData( 'stripe' );
+	const publishableKey = stripeParams?.publishable_key;
 	const quantityInputSelector = '.quantity .qty[type=number]';
 
 	if ( ! publishableKey ) {
@@ -61,7 +63,11 @@ jQuery( function ( $ ) {
 	}
 
 	const api = new WCStripeAPI(
-		getStripeServerData(),
+		{
+			key: publishableKey,
+			locale: stripeParams.locale,
+			ajax_url: getExpressCheckoutData( 'ajax_url' ),
+		},
 		// A promise-based interface to jQuery.post.
 		( url, args ) => {
 			return new Promise( ( resolve, reject ) => {
@@ -76,17 +82,16 @@ jQuery( function ( $ ) {
 		'woocommerce-gateway-stripe'
 	);
 
-	/**
-	 * @todo Using the legacy endpoint (non-StoreAPI) and data format when variations are present.
-	 * StoreAPI will support this form correctly only after WC 9.7.0.
-	 * See https://github.com/woocommerce/woocommerce-gateway-stripe/pull/3780#issuecomment-2632051359
-	 *
-	 * @todo Using the legacy endpoint (non-StoreAPI) for booking products. Can be
-	 * removed once booking product flows have been fully migrated to StoreAPI.
-	 */
-	const useLegacyCartEndpoints =
-		$( '.variations_form' ).length > 0 ||
-		$( '.wc-bookings-booking-form' ).length > 0;
+	// Snapshot is first-paint only; re-inits reconcile via AJAX (see init() below).
+	let cartBootstrapConsumed = false;
+
+	const hasVariationForm = $( '.variations_form' ).length > 0;
+	const hasBookingForm = $( '.wc-bookings-booking-form' ).length > 0;
+
+	// Variable and booking products keep the legacy display-item format: their
+	// product-page preview comes from `get_selected_product_data`, which has no
+	// Store API equivalent. Add-to-cart routing is handled separately in `addToCart()`.
+	const useLegacyDisplayItems = hasVariationForm || hasBookingForm;
 
 	const resolveClickEvent = ( event, options ) => {
 		const getDefaultShippingRates = () => {
@@ -99,10 +104,19 @@ jQuery( function ( $ ) {
 			'allowed_shipping_countries'
 		);
 
+		// The fast-path on variation/qty change updates only the element amount,
+		// not this click closure, so read the latest items from the store to keep
+		// the wallet breakdown in sync. Legacy (variable/booking) format only.
+		const displayItems =
+			useLegacyDisplayItems && getExpressCheckoutData( 'is_product_page' )
+				? getExpressCheckoutData( 'product' )?.displayItems ??
+				  options.displayItems
+				: options.displayItems;
+
 		const clickOptions = {
-			lineItems: useLegacyCartEndpoints
-				? normalizeLineItems( options.displayItems )
-				: options.displayItems,
+			lineItems: useLegacyDisplayItems
+				? normalizeLineItems( displayItems )
+				: displayItems,
 			emailRequired: true,
 			shippingAddressRequired: options.requestShipping,
 			phoneNumberRequired: options.requestPhone,
@@ -206,7 +220,7 @@ jQuery( function ( $ ) {
 					.map( ( i ) => ( {
 						id: 'rate-shipping',
 						amount: i.amount,
-						displayName: useLegacyCartEndpoints
+						displayName: useLegacyDisplayItems
 							? i.label ?? i.name
 							: i.name,
 					} ) );
@@ -225,6 +239,12 @@ jQuery( function ( $ ) {
 			const areTaxesBasedOnBillingAddress = getExpressCheckoutData(
 				'taxes_based_on_billing'
 			);
+			// Amazon Pay needs a confirmation-token flow that
+			// `handleChangePaymentMethodFlow` does not implement, so it must not
+			// be offered on the subscription change-payment page.
+			const isChangePaymentMethod = getExpressCheckoutData(
+				'is_change_payment_method'
+			);
 
 			// For each supported express payment type, create their own
 			// express checkout element. This is necessary as some express payment types
@@ -237,9 +257,14 @@ jQuery( function ( $ ) {
 					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 				isAmazonPayEnabled &&
 					! areTaxesBasedOnBillingAddress &&
+					! isChangePaymentMethod &&
 					EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			].filter( Boolean );
+
+			// Reset the registry so variation/qty updates only touch the buttons
+			// mounted for this render.
+			wcStripeECE.expressCheckoutElements = [];
 
 			expressPaymentTypes.forEach( ( expressPaymentType ) => {
 				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {
@@ -353,7 +378,16 @@ jQuery( function ( $ ) {
 				elementsMode = 'payment';
 			}
 
-			const elements = api.getStripe().elements( {
+			let stripe;
+			try {
+				stripe = api.getStripe();
+			} catch ( error ) {
+				// Stripe.js failed the origin assertion (fail closed): skip
+				// rendering the express checkout button instead of throwing.
+				return;
+			}
+
+			const elements = stripe.elements( {
 				mode: elementsMode,
 				...( elementsMode !== 'setup' && {
 					amount: options.total,
@@ -371,8 +405,16 @@ jQuery( function ( $ ) {
 					getPaymentMethodTypesForExpressMethod( expressPaymentType ),
 			} );
 
+			// A product page can mount several express buttons (Apple Pay,
+			// Google Pay, …), each with its own Elements group. Track them so a
+			// variation/qty change updates every group's amount.
+			wcStripeECE.expressCheckoutElements.push( elements );
+
+			const buttonStyleSettings =
+				getExpressCheckoutButtonStyleSettings( expressPaymentType );
+
 			const eceButton = wcStripeECE.createButton( elements, {
-				...getExpressCheckoutButtonStyleSettings(),
+				...buttonStyleSettings,
 				paymentMethods: {
 					amazonPay:
 						expressPaymentType ===
@@ -434,11 +476,7 @@ jQuery( function ( $ ) {
 					);
 				}
 
-				return shippingAddressChangeHandler(
-					api,
-					event,
-					stripeElements
-				);
+				return shippingAddressChangeHandler( event, stripeElements );
 			};
 
 			eceButton.on( 'shippingaddresschange', async ( event ) => {
@@ -448,17 +486,13 @@ jQuery( function ( $ ) {
 						elements
 					);
 				}
-				return await shippingAddressChangeHandler(
-					api,
-					event,
-					elements
-				);
+				return await shippingAddressChangeHandler( event, elements );
 			} );
 
 			eceButton.on(
 				'shippingratechange',
 				async ( event ) =>
-					await shippingRateChangeHandler( api, event, elements )
+					await shippingRateChangeHandler( event, elements )
 			);
 
 			eceButton.on( 'confirm', async ( event ) => {
@@ -514,7 +548,7 @@ jQuery( function ( $ ) {
 			} );
 
 			if ( getExpressCheckoutData( 'is_product_page' ) ) {
-				wcStripeECE.attachProductPageEventListeners( elements );
+				wcStripeECE.attachProductPageEventListeners();
 			}
 		},
 
@@ -545,13 +579,14 @@ jQuery( function ( $ ) {
 
 				const {
 					total: { amount: total },
+					currency,
 					displayItems,
 					order,
 					orderDetails,
 				} = wcStripeExpressCheckoutPayForOrderParams;
 
 				// When paying as guest, the order key and billing email are required by the
-				// Blocks API Pay for Order endpoint, which ECE uses.
+				// Store API Pay for Order endpoint, which ECE uses.
 				// These fields are both present when the user is logged in.
 				if (
 					! orderDetails?.orderKey ||
@@ -563,6 +598,7 @@ jQuery( function ( $ ) {
 				wcStripeECE.startExpressCheckout( {
 					total,
 					currency:
+						currency ??
 						getExpressCheckoutData( 'checkout' ).currency_code,
 					appearance: getExpressCheckoutButtonAppearance(),
 					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
@@ -589,13 +625,35 @@ jQuery( function ( $ ) {
 						requestPhone:
 							getExpressCheckoutData( 'checkout' )
 								?.needs_payer_phone ?? false,
-						displayItems: useLegacyCartEndpoints
+						displayItems: useLegacyDisplayItems
 							? displayItems
 							: transformLabeledDisplayItems( displayItems ),
 					} );
 				}
 			} else {
 				// Cart and Checkout page specific initialization.
+				const cartBootstrap = getExpressCheckoutData( 'cart' );
+
+				// First paint renders from the snapshot, skipping GET /wc/store/v1/cart;
+				// re-inits fall through to the AJAX path below for live cart updates.
+				if ( cartBootstrap && ! cartBootstrapConsumed ) {
+					cartBootstrapConsumed = true;
+
+					wcStripeECE.startExpressCheckout( {
+						total: cartBootstrap.total,
+						currency: cartBootstrap.currency,
+						requestShipping: cartBootstrap.requestShipping,
+						requestPhone: cartBootstrap.requestPhone,
+						displayItems: transformLabeledDisplayItems(
+							cartBootstrap.displayItems ?? []
+						),
+					} );
+
+					// After initializing a new express checkout button, we need to reset the paymentAborted flag.
+					wcStripeECE.paymentAborted = false;
+					return;
+				}
+
 				api.expressCheckoutGetCartDetails().then( ( cart ) => {
 					const total = transformPrice(
 						parseInt( cart.totals.total_price, 10 ) -
@@ -750,17 +808,45 @@ jQuery( function ( $ ) {
 				}
 			} );
 
-			// Legacy support for variations.
-			if ( useLegacyCartEndpoints ) {
-				data.product_id = productId;
-				data.attributes = wcStripeECE.getAttributes().data;
+			if ( hasBookingForm ) {
+				// Use the Store API only when Bookings supports it and the booking
+				// maps to a `booking_configuration`; otherwise fall back to legacy.
+				const bookingConfiguration = getExpressCheckoutData(
+					'has_bookings_store_api'
+				)
+					? buildBookingConfiguration(
+							document.querySelector(
+								'.wc-bookings-booking-form'
+							)
+					  )
+					: null;
 
-				return api.expressCheckoutAddToCartLegacy( data );
+				// Clear the cart first (with the booking id) so prior items don't
+				// skew the total, matching the variable/simple path below.
+				await api.expressCheckoutEmptyCartLegacy( emptyCartParams );
+
+				if ( ! bookingConfiguration ) {
+					data.product_id = productId;
+					data.attributes = wcStripeECE.getAttributes().data;
+
+					return api.expressCheckoutAddToCartLegacy( data );
+				}
+
+				data.id = productId;
+				data.booking_configuration = bookingConfiguration;
+
+				return api.expressCheckoutAddToCart( data );
 			}
 
-			// BlocksAPI partial support (lacking support for variations).
 			data.id = productId;
-			data.variation = [];
+
+			// Variable products: `productId` is the parent id, so pass the chosen
+			// attributes for the Store API to resolve the variation (incl. "any" attributes).
+			data.variation = hasVariationForm
+				? transformVariationAttributesForStoreApi(
+						wcStripeECE.getAttributes().data
+				  )
+				: [];
 
 			// Clear the cart, so items that are currently in it
 			//  do not interfere with computed totals.
@@ -797,7 +883,7 @@ jQuery( function ( $ ) {
 			displayExpressCheckoutNotice( message, 'error' );
 		},
 
-		attachProductPageEventListeners: ( elements ) => {
+		attachProductPageEventListeners: () => {
 			// WooCommerce Deposits support.
 			// Trigger the "woocommerce_variation_has_changed" event when the deposit option is changed.
 			// Needs to be defined before the `woocommerce_variation_has_changed` event handler is set.
@@ -844,9 +930,11 @@ jQuery( function ( $ ) {
 										response.requestShipping;
 
 								if ( ! isDeposits && needsShipping ) {
-									elements.update( {
-										amount: response.total.amount,
-									} );
+									// Refresh stored items so the click breakdown matches this variation.
+									wcStripeECE.refreshTotals( response );
+									wcStripeECE.updateExpressCheckoutAmount(
+										response.total.amount
+									);
 								} else {
 									wcStripeECE.reInitExpressCheckoutElement(
 										response
@@ -895,9 +983,11 @@ jQuery( function ( $ ) {
 											.requestShipping ===
 											response.requestShipping
 									) {
-										elements.update( {
-											amount: response.total.amount,
-										} );
+										// Refresh stored items so the click breakdown matches the new qty.
+										wcStripeECE.refreshTotals( response );
+										wcStripeECE.updateExpressCheckoutAmount(
+											response.total.amount
+										);
 									} else {
 										wcStripeECE.reInitExpressCheckoutElement(
 											response
@@ -923,10 +1013,26 @@ jQuery( function ( $ ) {
 		reInitExpressCheckoutElement: ( response ) => {
 			getExpressCheckoutData( 'product' ).requestShipping =
 				response.requestShipping;
-			getExpressCheckoutData( 'product' ).total = response.total;
-			getExpressCheckoutData( 'product' ).displayItems =
-				response.displayItems;
+			wcStripeECE.refreshTotals( response );
 			wcStripeECE.init();
+		},
+
+		// Keep the cached product breakdown in sync with the latest server response so the
+		// click-time wallet line items match the selected variation/quantity.
+		refreshTotals: ( response ) => {
+			const product = getExpressCheckoutData( 'product' );
+			product.total = response.total;
+			product.displayItems = response.displayItems;
+		},
+
+		// Every mounted express button has its own Elements group, so the amount
+		// has to be pushed to all of them. Updating only one leaves the others at
+		// the previous amount, and the wallet then rejects the click because the
+		// refreshed line items exceed that stale amount.
+		updateExpressCheckoutAmount: ( amount ) => {
+			( wcStripeECE.expressCheckoutElements ?? [] ).forEach(
+				( elements ) => elements.update( { amount } )
+			);
 		},
 
 		blockExpressCheckoutButton: () => {
@@ -954,7 +1060,8 @@ jQuery( function ( $ ) {
 	if (
 		getExpressCheckoutData( 'is_product_page' ) ||
 		getExpressCheckoutData( 'is_pay_for_order' ) ||
-		getExpressCheckoutData( 'is_cart_page' )
+		getExpressCheckoutData( 'is_cart_page' ) ||
+		getExpressCheckoutData( 'is_change_payment_method' )
 	) {
 		wcStripeECE.init();
 	}

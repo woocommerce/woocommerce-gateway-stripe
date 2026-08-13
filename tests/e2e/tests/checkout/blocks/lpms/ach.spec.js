@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
 import { admin, payments, api, user } from '../../../../utils';
@@ -9,6 +9,7 @@ const {
 	setupBlocksCheckout,
 	fillACHBankDetails,
 	setupACHCheckout,
+	waitForOrderReceivedPage,
 } = payments;
 
 test.describe( 'ACH payment tests @blocks', () => {
@@ -49,10 +50,7 @@ test.describe( 'ACH payment tests @blocks', () => {
 		await fillACHBankDetails( page );
 
 		await page.locator( 'text=Place order' ).click();
-		await page.waitForURL( '**/checkout/order-received/**' );
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
+		await waitForOrderReceivedPage( page );
 	} );
 
 	test( 'customer can save and reuse ACH payment method @smoke', async ( {
@@ -74,10 +72,7 @@ test.describe( 'ACH payment tests @blocks', () => {
 				.click();
 
 			await page.locator( 'text=Place order' ).click();
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
+			await waitForOrderReceivedPage( page );
 		} );
 
 		// Second order - Use saved payment method
@@ -94,10 +89,7 @@ test.describe( 'ACH payment tests @blocks', () => {
 				.click();
 
 			await page.locator( 'text=Place order' ).click();
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
+			await waitForOrderReceivedPage( page );
 		} );
 	} );
 } );

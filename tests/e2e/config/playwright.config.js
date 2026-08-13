@@ -87,7 +87,8 @@ const config = {
 			testMatch: '**/*.spec.js',
 			testIgnore: [
 				'**/acss.spec.js',
-				'**/optimized-checkout.spec.js',
+				'**/*optimized-checkout.spec.js',
+				'**/adaptive-pricing.spec.js',
 				'**/blik.spec.js',
 				'**/becs.spec.js',
 				'**/isk.spec.js',
@@ -131,8 +132,25 @@ const config = {
 		},
 		{
 			name: 'optimized-checkout',
-			testMatch: '**/optimized-checkout.spec.js',
+			testMatch: '**/*optimized-checkout.spec.js',
 			dependencies: [ 'oc-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'adaptive-pricing-setup',
+			testMatch: '/adaptive-pricing.setup.js',
+			teardown: 'adaptive-pricing-teardown',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'adaptive-pricing',
+			testMatch: '**/adaptive-pricing.spec.js',
+			dependencies: [ 'adaptive-pricing-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'adaptive-pricing-teardown',
+			testMatch: '/adaptive-pricing.teardown.js',
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 		{

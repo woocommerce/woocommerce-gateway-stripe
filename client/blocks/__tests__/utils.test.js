@@ -1,3 +1,4 @@
+import { getSetting } from '@woocommerce/settings';
 import { render } from '@testing-library/react';
 import {
 	extractOrderAttributionData,
@@ -6,6 +7,10 @@ import {
 	shouldSetupOffSessionPayment,
 } from 'wcstripe/blocks/utils';
 import { isLinkEnabled } from 'wcstripe/stripe-utils';
+
+jest.mock( '@woocommerce/settings', () => ( {
+	getSetting: jest.fn(),
+} ) );
 
 jest.mock( 'wcstripe/stripe-utils', () => ( {
 	isLinkEnabled: jest.fn().mockReturnValue( false ),
@@ -55,12 +60,8 @@ describe( 'Blocks Utils', () => {
 		let mockGetSetting;
 
 		beforeEach( () => {
-			mockGetSetting = jest.fn();
-			global.wc = {
-				wcSettings: {
-					getSetting: mockGetSetting,
-				},
-			};
+			mockGetSetting = getSetting;
+			mockGetSetting.mockClear();
 			isLinkEnabled.mockReturnValue( false );
 		} );
 
@@ -101,7 +102,7 @@ describe( 'Blocks Utils', () => {
 				const options = getStripeElementOptions();
 
 				expect( options.layout.type ).toBe( 'accordion' );
-				expect( options.layout.radios ).toBe( false );
+				expect( options.layout.radios ).toBe( 'never' );
 				expect( options.layout.spacedAccordionItems ).toBe( false );
 			} );
 
@@ -127,7 +128,7 @@ describe( 'Blocks Utils', () => {
 				const options = getStripeElementOptions();
 
 				expect( options.layout.type ).toBe( 'accordion' );
-				expect( options.layout.radios ).toBe( false );
+				expect( options.layout.radios ).toBe( 'never' );
 				expect( options.layout.spacedAccordionItems ).toBe( false );
 			} );
 		} );
@@ -137,12 +138,8 @@ describe( 'Blocks Utils', () => {
 		let mockGetSetting;
 
 		beforeEach( () => {
-			mockGetSetting = jest.fn().mockReturnValue( {} );
-			global.wc = {
-				wcSettings: {
-					getSetting: mockGetSetting,
-				},
-			};
+			mockGetSetting = getSetting;
+			mockGetSetting.mockReturnValue( {} );
 		} );
 
 		test( 'cart has auto renewal subscription', () => {

@@ -96,7 +96,7 @@ class WC_Stripe_Intent_Controller {
 		// Retrieve the order.
 		$order = wc_get_order( $order_id );
 
-		if ( ! $order ) {
+		if ( ! $order instanceof WC_Order ) {
 			throw new WC_Stripe_Exception( 'missing-order', __( 'Missing order ID for payment confirmation', 'woocommerce-gateway-stripe' ) );
 		}
 
@@ -121,6 +121,7 @@ class WC_Stripe_Intent_Controller {
 
 			// Validate order status.
 			if ( ! $order->has_status(
+				/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
 				apply_filters(
 					'wc_stripe_allowed_payment_processing_statuses',
 					[ OrderStatus::PENDING, OrderStatus::FAILED ],
@@ -397,7 +398,23 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		$gateway                 = $this->get_upe_gateway();
-		$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
+		$enabled_payment_methods = $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
+		if ( $payment_method_type ) {
+			$enabled_payment_methods = in_array( $payment_method_type, $enabled_payment_methods, true ) ? [ $payment_method_type ] : [];
+		}
+		$enabled_payment_methods = array_values(
+			array_filter(
+				$enabled_payment_methods,
+				function ( $payment_method_id ) use ( $gateway ) {
+					$payment_method = $gateway->payment_methods[ $payment_method_id ] ?? null;
+					return $payment_method && ! $payment_method->supports_deferred_intent();
+				}
+			)
+		);
+
+		if ( empty( $enabled_payment_methods ) ) {
+			throw new Exception( __( 'Unable to process your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
+		}
 
 		$capture = $gateway->is_automatic_capture_enabled();
 		$request = [
@@ -406,6 +423,13 @@ class WC_Stripe_Intent_Controller {
 			'payment_method_types' => $enabled_payment_methods,
 			'capture_method'       => $capture ? 'automatic' : 'manual',
 		];
+
+		if ( ! empty( $payment_method_type ) && WC_Stripe_Payment_Methods::CARD !== $payment_method_type ) {
+			$statement_descriptor = $gateway->get_full_statement_descriptor();
+			if ( ! empty( $statement_descriptor ) ) {
+				$request['statement_descriptor'] = $statement_descriptor;
+			}
+		}
 
 		$request = $this->maybe_add_mandate_options( $request, $payment_method_type );
 
@@ -509,8 +533,7 @@ class WC_Stripe_Intent_Controller {
 		if ( $intent_id ) {
 			$request = [
 				'metadata'    => $gateway->get_metadata_from_order( $order ),
-				/* translators: 1) blog name 2) order number */
-				'description' => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+				'description' => WC_Stripe_Helper::get_payment_intent_description( $order ),
 			];
 
 			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
@@ -639,7 +662,27 @@ class WC_Stripe_Intent_Controller {
 	 * @throws Exception If customer for the current user cannot be read/found.
 	 */
 	public function init_setup_intent( $payment_method_type = null ) {
-		// Determine the customer managing the payment methods, create one if we don't have one already.
+		// Resolve enabled methods before creating the customer so a rejected request creates no Stripe customer.
+		$gateway                 = $this->get_upe_gateway();
+		$enabled_payment_methods = array_values( array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] ) );
+		if ( $payment_method_type ) {
+			$enabled_payment_methods = in_array( $payment_method_type, $enabled_payment_methods, true ) ? [ $payment_method_type ] : [];
+		}
+
+		$enabled_payment_methods = array_values(
+			array_filter(
+				$enabled_payment_methods,
+				function ( $payment_method_id ) use ( $gateway ) {
+					$payment_method = $gateway->payment_methods[ $payment_method_id ] ?? null;
+					return $payment_method && ! $payment_method->supports_deferred_intent();
+				}
+			)
+		);
+
+		if ( empty( $enabled_payment_methods ) ) {
+			throw new Exception( __( 'Unable to process your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
+		}
+
 		$user     = wp_get_current_user();
 		$customer = new WC_Stripe_Customer( $user->ID );
 
@@ -648,9 +691,6 @@ class WC_Stripe_Intent_Controller {
 		} else {
 			$customer_id = $customer->update_customer();
 		}
-
-		$gateway                 = $this->get_upe_gateway();
-		$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : array_values( array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] ) );
 
 		$request = [
 			'customer'             => $customer_id,
@@ -687,9 +727,10 @@ class WC_Stripe_Intent_Controller {
 	 * @return void
 	 */
 	public function update_order_status_ajax() {
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$order        = false;
-		$order_id     = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : false;
+		$order_helper       = WC_Stripe_Order_Helper::get_instance();
+		$order              = false;
+		$order_id           = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : false;
+		$processing_started = false;
 
 		try {
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_order_status_nonce', false, false );
@@ -698,36 +739,50 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			$order = wc_get_order( $order_id );
-			if ( ! $order ) {
+			if ( ! $order instanceof WC_Order ) {
 				throw new WC_Stripe_Exception( 'order_not_found', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
 			$intent_id          = $order_helper->get_intent_id_from_order( $order );
 			$intent_id_received = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : null;
+			// A mismatch here is still untrusted POST data (order_id/intent_id), so it must not mutate
+			// the order: no note, and no status change to failed below.
 			if ( empty( $intent_id_received ) || $intent_id_received !== $intent_id ) {
-				$note = sprintf(
-					/* translators: %1: transaction ID of the payment or a translated string indicating an unknown ID. */
-					__( 'A payment with ID %s was used in an attempt to pay for this order. This payment intent ID does not match any payments for this order, so it was ignored and the order was not updated.', 'woocommerce-gateway-stripe' ),
-					$intent_id_received
-				);
-				$order->add_order_note( $note );
 				throw new WC_Stripe_Exception( 'invalid_intent_id', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 			$save_payment_method = isset( $_POST['payment_method_id'] ) && ! empty( wc_clean( wp_unslash( $_POST['payment_method_id'] ) ) );
 
 			$gateway = $this->get_upe_gateway();
-			$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
-			wp_send_json_success(
-				[
-					'return_url' => $gateway->get_return_url( $order ),
-				],
-				200
-			);
-		} catch ( WC_Stripe_Payment_Cancelled_Exception $e ) {
-			if ( $order instanceof WC_Order ) {
-				$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
-				$order_helper->remove_payment_awaiting_action( $order );
+
+			// A concurrent request (typically the deferred payment_intent.succeeded webhook) can
+			// settle this order in parallel, which would complete it twice — duplicating stock
+			// reduction, order notes, and emails. The status/redirect-processed guards catch a
+			// request that already finished; the lock serializes against one still in flight.
+			// Mirrors WC_Stripe_UPE_Payment_Gateway::process_upe_redirect_payment(). In every case
+			// the customer is sent to the thank-you page.
+			$already_settled = $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ] )
+				|| $order_helper->get_stripe_upe_redirect_processed( $order );
+
+			if ( ! $already_settled ) {
+				// lock_order_payment() returns true when another request already holds the lock.
+				if ( $order_helper->lock_order_payment( $order ) ) {
+					// Bail without unlocking — releasing the winner's lock would defeat the mutual exclusion.
+					WC_Stripe_Logger::info( "Skipping update_order_status_ajax for order $order_id; order payment is already locked." );
+				} else {
+					$processing_started = true; // Past validation; a failure from here on is a genuine payment failure.
+					try {
+						$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
+					} finally {
+						// This request owns the lock (we just acquired it above), so it must release it.
+						$order_helper->unlock_order_payment( $order );
+					}
+				}
 			}
+
+			wp_send_json_success( [ 'return_url' => $gateway->get_return_url( $order ) ], 200 );
+		} catch ( WC_Stripe_Payment_Cancelled_Exception $e ) {
+			$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
+			$order_helper->remove_payment_awaiting_action( $order );
 
 			// Customer-initiated cancellation (e.g. closed Klarna popup). Do not fail the
 			// order — leave it retryable and return an error so the frontend can notify the customer.
@@ -751,9 +806,10 @@ class WC_Stripe_Intent_Controller {
 				]
 			);
 
-			/* translators: error message */
-			if ( $order ) {
-				// Remove the awaiting confirmation order meta, don't save the order since it'll be saved in the next `update_status()` call.
+			if ( $order && $processing_started ) {
+				// Only fail the order for failures raised during gateway processing; failures before that
+				// (nonce/CSRF, order lookup, intent mismatch) act on untrusted POST data and must not fail
+				// an order the caller may not own. Skip saving here; update_status() below persists it.
 				$order_helper->remove_payment_awaiting_action( $order, false );
 				$order->update_status( OrderStatus::FAILED );
 			}
@@ -832,6 +888,9 @@ class WC_Stripe_Intent_Controller {
 				]
 			);
 
+			/**
+			 * This action is documented in includes/compat/trait-wc-stripe-subscriptions.php.
+			 */
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 			if ( $order ) {
@@ -893,8 +952,7 @@ class WC_Stripe_Intent_Controller {
 				'confirm'              => 'true',
 				'currency'             => $payment_information['currency'],
 				'customer'             => $payment_information['customer'],
-				/* translators: 1) blog name 2) order number */
-				'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+				'description'          => WC_Stripe_Helper::get_payment_intent_description( $order ),
 				'metadata'             => $payment_information['metadata'],
 				'payment_method_types' => $payment_method_types,
 			]
@@ -902,6 +960,10 @@ class WC_Stripe_Intent_Controller {
 
 		if ( isset( $payment_information['statement_descriptor_suffix'] ) ) {
 			$request['statement_descriptor_suffix'] = $payment_information['statement_descriptor_suffix'];
+		}
+
+		if ( isset( $payment_information['statement_descriptor'] ) ) {
+			$request['statement_descriptor'] = $payment_information['statement_descriptor'];
 		}
 
 		if ( ! empty( $payment_information['payment_method_options'] ) ) {
@@ -918,7 +980,31 @@ class WC_Stripe_Intent_Controller {
 			unset( $request['return_url'], $request['mandate_data'] );
 		}
 
+		// Under Optimized Checkout + PMC, let Stripe surface every eligible method from the merchant's
+		// Payment Method Configuration (Dynamic Payment Methods) instead of the explicit list. The
+		// eligibility decision is made in WC_Stripe_UPE_Payment_Gateway::prepare_payment_information_from_request(),
+		// here we only apply it to the request.
+		if ( ! empty( $payment_information['automatic_payment_methods'] ) ) {
+			unset( $request['payment_method_types'] );
+
+			$request['automatic_payment_methods'] = [
+				'enabled'         => 'true',
+				'allow_redirects' => 'always',
+			];
+
+			// Mirror the client Payment Element's exclusion list so PMC methods the plugin doesn't support are never accepted by the intent.
+			if ( ! empty( $payment_information['excluded_payment_method_types'] ) ) {
+				$request['excluded_payment_method_types'] = $payment_information['excluded_payment_method_types'];
+			}
+
+			// allow_redirects => always with confirm => true requires a return_url, which build_base_payment_intent_request_params() only sets for the single-redirect-method case.
+			if ( empty( $request['return_url'] ) && ! empty( $payment_information['return_url'] ) ) {
+				$request['return_url'] = $payment_information['return_url'];
+			}
+		}
+
 		// Run the necessary filter to make sure mandate information is added when it's required.
+		/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 		$request = apply_filters(
 			'wc_stripe_generate_create_intent_request',
 			$request,
@@ -971,6 +1057,7 @@ class WC_Stripe_Intent_Controller {
 
 		if ( WC_Stripe_Payment_Methods::CARD === $payment_method_type && $order && $is_setup_intent ) {
 			// Run the necessary filter to make sure correct mandate information is added for recurring card payments for subscriptions.
+			/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 			$request = apply_filters(
 				'wc_stripe_generate_create_intent_request',
 				$request,
@@ -1019,7 +1106,12 @@ class WC_Stripe_Intent_Controller {
 
 		$order = $payment_information['order'];
 
+		// Note: statement_descriptor and statement_descriptor_suffix are intentionally
+		// NOT forwarded here. The Stripe /confirm endpoint does not accept these
+		// parameters — they can only be set at PaymentIntent creation time.
+
 		// Run the necessary filter to make sure mandate information is added when it's required.
+		/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 		$request = apply_filters(
 			'wc_stripe_generate_create_intent_request',
 			$request,
@@ -1101,10 +1193,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return array The request parameters for creating/updating and confirming a payment intent.
 	 */
 	private function build_base_payment_intent_request_params( $payment_information ) {
-		$selected_payment_type = $payment_information['selected_payment_type'];
-		if ( $this->get_upe_gateway()->is_oc_enabled() && isset( $payment_information['payment_method_details']->type ) ) {
-			$selected_payment_type = $payment_information['payment_method_details']->type;
-		}
+		$selected_payment_type = $this->get_upe_gateway()->get_selected_payment_type_from_info( $payment_information );
 
 		$payment_method_types = $payment_information['payment_method_types'];
 
@@ -1394,6 +1483,12 @@ class WC_Stripe_Intent_Controller {
 			$gateway->set_customer_id_for_subscription( $subscription, $customer->get_id() );
 			$gateway->set_payment_method_id_for_subscription( $subscription, $token->get_token() );
 
+			// Update the saved token details to capture the current details for display purposes.
+			// Errors are intentionally ignored as the changes are cosmetic and don't impact renewals.
+			if ( ! WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $token->get_token() ) ) {
+				WC_Stripe_Logger::error( 'Could not re-associate the saved token after 3DS change-payment for subscription: ' . $subscription_id );
+			}
+
 			// Check if the subscription has the delayed update all flag and attempt to update all subscriptions after the intent has been confirmed. If successful, display the "updated all subscriptions" notice.
 			if ( WC_Subscriptions_Change_Payment_Gateway::will_subscription_update_all_payment_methods( $subscription ) && WC_Subscriptions_Change_Payment_Gateway::update_all_payment_methods_from_subscription( $subscription, $token->get_gateway_id() ) ) {
 				$notice = __( 'Payment method updated for all your current subscriptions.', 'woocommerce-gateway-stripe' );
@@ -1447,7 +1542,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return boolean
 	 */
 	private function is_delayed_confirmation_required( $payment_methods ) {
-		return ! empty( array_intersect( $payment_methods, [ WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::MULTIBANCO, WC_Stripe_Payment_Methods::CASHAPP_PAY ] ) );
+		return ! empty( array_intersect( $payment_methods, WC_Stripe_Payment_Methods::DELAYED_CONFIRMATION_PAYMENT_METHODS ) );
 	}
 
 	/**

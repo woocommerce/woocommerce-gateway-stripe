@@ -1,7 +1,7 @@
 import { ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import { useExpressCheckout } from './hooks';
 import { PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT } from './constants';
-import { useCallback } from '@wordpress/element';
+import { useCallback, useMemo } from '@wordpress/element';
 import {
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
@@ -36,31 +36,24 @@ const getPaymentMethodsOverride = ( enabledPaymentMethod ) => {
 	};
 };
 
-// Visual adjustments to horizontally align the buttons.
+// Visual adjustments to horizontally align the buttons. Returns a copy — mutating
+// the memoised buttonOptions would re-apply these deltas every render.
 const adjustButtonHeights = ( buttonOptions, expressPaymentMethod ) => {
-	// Apple Pay has a nearly imperceptible height difference. We increase it by 1px here.
-	if ( buttonOptions.buttonTheme.applePay === 'black' ) {
-		if (
-			expressPaymentMethod === EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY
-		) {
-			buttonOptions.buttonHeight = buttonOptions.buttonHeight + 0.4;
-		}
-	}
+	let buttonHeight = buttonOptions.buttonHeight;
 
-	// GooglePay with the white theme has a 2px height difference due to its border.
+	// Apple Pay has a nearly imperceptible height difference. We increase it by 0.4px here.
 	if (
-		expressPaymentMethod === EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY &&
-		buttonOptions.buttonTheme.googlePay === 'white'
+		buttonOptions.buttonTheme.applePay === 'black' &&
+		expressPaymentMethod === EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY
 	) {
-		buttonOptions.buttonHeight = buttonOptions.buttonHeight - 2;
+		buttonHeight = buttonHeight + 0.4;
 	}
 
-	// Clamp the button height to the allowed range 40px to 55px.
-	buttonOptions.buttonHeight = Math.max(
-		40,
-		Math.min( buttonOptions.buttonHeight, 55 )
-	);
-	return buttonOptions;
+	return {
+		...buttonOptions,
+		// Clamp the button height to the allowed range 40px to 55px.
+		buttonHeight: Math.max( 40, Math.min( buttonHeight, 55 ) ),
+	};
 };
 
 const ExpressCheckoutComponent = ( {
@@ -80,16 +73,17 @@ const ExpressCheckoutComponent = ( {
 			onClick,
 			onClose,
 			setExpressPaymentError,
+			expressPaymentMethod,
 		} );
 
 	const onShippingAddressChange = useCallback(
-		( event ) => shippingAddressChangeHandler( api, event, elements ),
-		[ api, elements ]
+		( event ) => shippingAddressChangeHandler( event, elements ),
+		[ elements ]
 	);
 
 	const onShippingRateChange = useCallback(
-		( event ) => shippingRateChangeHandler( api, event, elements ),
-		[ api, elements ]
+		( event ) => shippingRateChangeHandler( event, elements ),
+		[ elements ]
 	);
 
 	const onElementsReady = useCallback(
@@ -150,12 +144,18 @@ const ExpressCheckoutComponent = ( {
 		[ onShippingRateChange ]
 	);
 
+	// Stable across cart ticks; only rebuilds when styling or method changes.
+	const elementOptions = useMemo(
+		() => ( {
+			...adjustButtonHeights( buttonOptions, expressPaymentMethod ),
+			...getPaymentMethodsOverride( expressPaymentMethod ),
+		} ),
+		[ buttonOptions, expressPaymentMethod ]
+	);
+
 	return (
 		<ExpressCheckoutElement
-			options={ {
-				...adjustButtonHeights( buttonOptions, expressPaymentMethod ),
-				...getPaymentMethodsOverride( expressPaymentMethod ),
-			} }
+			options={ elementOptions }
 			onClick={ handleClick }
 			onConfirm={ handleConfirm }
 			onReady={ onElementsReady }
