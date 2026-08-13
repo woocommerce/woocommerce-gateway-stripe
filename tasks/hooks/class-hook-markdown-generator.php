@@ -419,6 +419,8 @@ final class Hook_Markdown_Generator {
 				);
 			}
 			$lines[] = '';
+			$lines[] = '---';
+			$lines[] = '';
 		}
 
 		return $lines;
