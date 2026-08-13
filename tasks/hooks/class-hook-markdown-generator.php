@@ -198,17 +198,56 @@ final class Hook_Markdown_Generator {
 		$grouped_actions = $this->group_hooks_by_name( $actions );
 		$grouped_filters = $this->group_hooks_by_name( $filters );
 
+		$deprecated_actions = $this->extract_deprecated_hooks( 'action', $grouped_actions );
+		$deprecated_filters = $this->extract_deprecated_hooks( 'filter', $grouped_filters );
+
+		$lines[] = '> [!NOTE]';
+		$lines[] = '> We are unable to provide support for custom code under [our Support Policy](https://woocommerce.com/support-policy/#customization). If you need assistance with custom code, we highly recommend [Codeable](https://www.codeable.io/partners/woocommerce/?ref=OaWImk) or a [Certified WooExpert](https://partners.woocommerce.com/English/marketplace/).';
+		$lines[] = '';
+
 		$lines[] = '## Contents';
 		$lines[] = '';
-		$lines[] = ' * [Actions](#actions)';
+
+		$action_index_lines = [];
 		foreach ( array_keys( $grouped_actions ) as $action_name ) {
-			$lines[] = $this->render_index_entry( $action_name );
+			$action_index_lines[] = $this->render_index_entry( $action_name );
 		}
-		$lines[] = ' * [Filters](#filters)';
+		$lines = array_merge(
+			$lines,
+			$this->render_details_index_section( 'Actions', '#actions', $action_index_lines )
+		);
+
+		$filter_index_lines = [];
 		foreach ( array_keys( $grouped_filters ) as $filter_name ) {
-			$lines[] = $this->render_index_entry( $filter_name );
+			$filter_index_lines[] = $this->render_index_entry( $filter_name );
 		}
-		$lines[] = '';
+		$lines = array_merge(
+			$lines,
+			$this->render_details_index_section( 'Filters', '#filters', $filter_index_lines )
+		);
+
+		if ( [] !== $deprecated_actions ) {
+			$deprecated_action_index_lines = [];
+
+			foreach ( array_keys( $deprecated_actions ) as $deprecated_action_name ) {
+				$deprecated_action_index_lines[] = $this->render_index_entry( $deprecated_action_name );
+			}
+			$lines = array_merge(
+				$lines,
+				$this->render_details_index_section( 'Deprecated Actions', '#deprecated-actions', $deprecated_action_index_lines )
+			);
+		}
+
+		if ( [] !== $deprecated_filters ) {
+			$deprecated_filter_index_lines = [];
+			foreach ( array_keys( $deprecated_filters ) as $deprecated_filter_name ) {
+				$deprecated_filter_index_lines[] = $this->render_index_entry( $deprecated_filter_name );
+			}
+			$lines = array_merge(
+				$lines,
+				$this->render_details_index_section( 'Deprecated Filters', '#deprecated-filters', $deprecated_filter_index_lines )
+			);
+		}
 
 		$lines = array_merge(
 			$lines,
@@ -217,7 +256,42 @@ final class Hook_Markdown_Generator {
 			$this->render_section( 'Filters', $grouped_filters )
 		);
 
+		if ( [] !== $deprecated_actions ) {
+			$lines = array_merge(
+				$lines,
+				[ '' ],
+				$this->render_section( 'Deprecated Actions', $deprecated_actions )
+			);
+		}
+		if ( [] !== $deprecated_filters ) {
+			$lines = array_merge(
+				$lines,
+				[ '' ],
+				$this->render_section( 'Deprecated Filters', $deprecated_filters )
+			);
+		}
+
 		return rtrim( implode( "\n", $lines ) ) . "\n";
+	}
+
+	/**
+	 * Renders a details wrapper for a section of the document that contains an index.
+	 *
+	 * @param string   $title         The title of the section.
+	 * @param string   $anchor        The anchor of the section.
+	 * @param string[] $content_lines The lines of the section.
+	 * @return string[] The markdown lines of the details section.
+	 */
+	private function render_details_index_section( string $title, string $anchor, array $content_lines ): array {
+		return [
+			'<details>',
+			'<summary><strong>' . $title . ' <a href="' . $anchor . '">#</a></strong></summary>',
+			'',
+			...$content_lines,
+			'',
+			'</details>',
+			'',
+		];
 	}
 
 	/**
@@ -258,6 +332,28 @@ final class Hook_Markdown_Generator {
 
 			$lines[] = '### `' . $this->escape_markdown_inline( (string) $name ) . '`';
 			$lines[] = '';
+
+			$deprecated_hook = $this->get_deprecated_hook_from_group( $entries );
+			if ( null !== $deprecated_hook ) {
+				if ( empty( $deprecated_hook['deprecated_version'] ) ) {
+					$lines[] = '**Deprecated**';
+				} else {
+					$lines[] = '**Deprecated:** Since ' . $this->escape_markdown_inline( (string) $deprecated_hook['deprecated_version'] );
+				}
+				$lines[] = '';
+				if ( isset( $deprecated_hook['deprecated_replacement'] ) ) {
+					$replacement = $this->escape_markdown_inline( (string) $deprecated_hook['deprecated_replacement'] );
+					if ( 1 === preg_match( '/^[a-z]+(_[a-z]+)+$/', $replacement ) ) {
+						$replacement = $replacement . ' - [documentation](#' . $replacement . ')';
+					}
+					$lines[] = '**Replacement:** ' . $replacement;
+					$lines[] = '';
+				}
+				if ( isset( $deprecated_hook['deprecated_message'] ) ) {
+					$lines[] = '_' . $this->escape_markdown_inline( (string) $deprecated_hook['deprecated_message'] ) . '_';
+				}
+				$lines[] = '';
+			}
 
 			$description = $this->normalize_text( (string) $doc['description'] );
 			if ( '' !== $description ) {
@@ -347,6 +443,39 @@ final class Hook_Markdown_Generator {
 		ksort( $groups, SORT_NATURAL | SORT_FLAG_CASE );
 
 		return $groups;
+	}
+
+	/**
+	 * Extracts deprecated hooks from a set of grouped hooks.
+	 *
+	 * @param string                                       $hook_type      The type of hook to extract deprecated hooks from. Either 'action' or 'filter'.
+	 * @param array<string,array<int,array<string,mixed>>> &$grouped_hooks The grouped hooks to extract deprecated hooks from.
+	 * @return array<string,array<int,array<string,mixed>>> The deprecated hook groups.
+	 */
+	private function extract_deprecated_hooks( string $hook_type, array &$grouped_hooks ): array {
+		$deprecated_hooks = [];
+		foreach ( $grouped_hooks as $name => $entries ) {
+			if ( null !== $this->get_deprecated_hook_from_group( $entries ) ) {
+				$deprecated_hooks[ $name ] = $entries;
+				unset( $grouped_hooks[ $name ] );
+			}
+		}
+		return $deprecated_hooks;
+	}
+
+	/**
+	 * Gets the first deprecated hook from a group of hooks. Returns null if no deprecated hook is found.
+	 *
+	 * @param array<int,array<string,mixed>> $group The group of hooks to get the deprecated hook from.
+	 * @return array<string,mixed>|null The deprecated hook, or null if no deprecated hook is found.
+	 */
+	private function get_deprecated_hook_from_group( array $group ): ?array {
+		foreach ( $group as $entry ) {
+			if ( isset( $entry['type'] ) && str_ends_with( $entry['type'], '_deprecated' ) ) {
+				return $entry;
+			}
+		}
+		return null;
 	}
 
 	/**
