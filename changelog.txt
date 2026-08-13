@@ -82,7 +82,6 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Clear the Adaptive Pricing order total error notice once a later update succeeds
 * Fix - Accept express checkout addresses whose province is entered with a curly apostrophe, so Apple Pay no longer rejects them
 * Update - Show a clear message when manual capture is blocking Adaptive Pricing from being enabled
-* Dev - Remove the deprecated @woocommerce/settings npm package; settings are still read from the wc-settings script WooCommerce provides at runtime
 * Fix - Lock the order while confirming a 3DS card payment so a concurrent webhook can't complete it twice, duplicating stock reduction, order notes, and emails
 * Fix - Store the Stripe refund ID on each WooCommerce refund record so orders with multiple partial refunds retain every refund ID
 * Dev - Add e2e coverage for Adaptive Pricing: shortcode and blocks purchases, address-less logged-in buyers, and the manual-capture settings gate
@@ -104,6 +103,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Render classic-checkout card fields when a host optimizer defers render-blocking JavaScript (e.g. SiteGround Speed Optimizer)
 * Fix - Allow express checkout payments when automatic account password generation is disabled
 * Tweak - Add PHPDoc for some deprecated hooks
+* Dev - Remove the deprecated @woocommerce/settings npm package; settings are still read from the wc-settings script WooCommerce provides at runtime
 
 2026-08-05 - version 10.8.5
 * Update - Improve webhook handling
