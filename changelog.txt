@@ -92,6 +92,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Only load the Blocks checkout stylesheet on pages that render the Cart or Checkout block, instead of on every page of the store
 * Fix - Reserve stock when completing agentic checkout orders so concurrent sessions cannot oversell; orders losing the race are set on-hold instead of driving stock negative
 * Tweak - Use database cache for webhook status tracking
+* Update - Use WooCommerce Core hooks for Adaptive Pricing session management
 
 2026-08-05 - version 10.8.5
 * Update - Improve webhook handling
