@@ -36,6 +36,16 @@ We use [Playwright](https://playwright.dev/) as our test runner.
 - Copy the file `/tests/e2e/config/local.env.example` to `/tests/e2e/config/local.env`.
 - Edit the variables on the `local.env` file.
 
+**Woo Subscriptions and Woo Pre-Orders**
+
+The local Docker setup (`npm run test:e2e-setup` with no `--base_url`) installs both plugins, which live in private repositories. It gets them from the first available of:
+
+1. `GITHUB_TOKEN` in `local.env` — a token with access to both repositories.
+2. The [GitHub CLI](https://cli.github.com/), if you are logged in (`gh auth login`).
+3. `woocommerce-subscriptions.zip` and `woocommerce-pre-orders.zip` placed in `/tests/e2e/deps/`.
+
+Downloads are kept in `/tests/e2e/deps/` (gitignored), so once you have run the setup with a token or the `gh` CLI, later runs can reuse those copies offline. Delete them to force a fresh download of the latest versions.
+
 ### Running tests
 
 **Test Setup**

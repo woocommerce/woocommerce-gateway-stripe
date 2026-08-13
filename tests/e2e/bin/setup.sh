@@ -21,6 +21,8 @@ DEBUG=false
 ADMIN_USER=admin
 ADMIN_PASSWORD=admin
 
+DEPS_DIR="$E2E_ROOT/deps"
+
 cd "$CWD"
 
 check_dep 'docker'
@@ -28,10 +30,94 @@ check_dep 'curl'
 check_dep 'jq'
 check_dep 'php'
 
+gh_authenticated() {
+	command -v gh > /dev/null 2>&1 && gh auth status > /dev/null 2>&1
+}
+
+missing_plugin_zip_error() {
+	error "Cannot obtain $1."
+	echo "  Set GITHUB_TOKEN in tests/e2e/config/local.env, run 'gh auth login',"
+	echo "  or place the zip at tests/e2e/deps/$1"
+}
+
+# Downloads <repo>'s latest release asset to tests/e2e/deps/<zip-name>, unless a
+# local copy is the only source available.
+#
+# Sources are tried in order: GITHUB_TOKEN, the gh CLI, then an existing zip in
+# tests/e2e/deps. A token that fails to authenticate aborts instead of falling
+# through, so a stale token surfaces as an auth error rather than silently
+# installing whatever stale zip happens to be cached.
+fetch_plugin_zip() {
+	local repo=$1
+	local zip=$2
+	local dest="$DEPS_DIR/$zip"
+	# Downloads land on a temp path so a failed fetch cannot truncate the cached
+	# zip we may still need to fall back to.
+	local tmp="$dest.part"
+
+	mkdir -p "$DEPS_DIR"
+
+	if [[ -n "$GITHUB_TOKEN" ]]; then
+		echo " - Fetching latest version"
+
+		local asset_id
+		asset_id=$(curl -sfH "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/releases/latest" | jq -r '.assets[0].id')
+
+		if [[ -z "$asset_id" || "$asset_id" == "null" ]]; then
+			error "Could not resolve the latest $repo release. Check that GITHUB_TOKEN is valid and has access to the repository."
+			exit 1
+		fi
+
+		if ! redirect_output curl -sfLJ \
+			-H "Authorization: token $GITHUB_TOKEN" \
+			-H "Accept: application/octet-stream" \
+			--output "$tmp" \
+			"https://api.github.com/repos/$repo/releases/assets/$asset_id"; then
+			rm -f "$tmp"
+			error "Failed to download $zip from $repo."
+			exit 1
+		fi
+
+		mv "$tmp" "$dest"
+		return
+	fi
+
+	if gh_authenticated; then
+		echo " - Fetching latest version with the gh CLI"
+
+		if redirect_output gh release download --repo "$repo" --pattern '*.zip' --output "$tmp" --clobber; then
+			mv "$tmp" "$dest"
+			return
+		fi
+
+		rm -f "$tmp"
+		echo " - gh could not download $zip, falling back to tests/e2e/deps/"
+	fi
+
+	if [[ -f "$dest" ]]; then
+		echo " - Using tests/e2e/deps/$zip"
+		return
+	fi
+
+	missing_plugin_zip_error "$zip"
+	exit 1
+}
+
 if ! docker info > /dev/null 2>&1; then
 	echo
 	error "Docker is not running, please start it and try again."
 	exit 1
+fi
+
+# Fail before the environment is built, rather than minutes later at the install step.
+if [[ -z "$GITHUB_TOKEN" ]] && ! gh_authenticated; then
+	for zip in woocommerce-subscriptions.zip woocommerce-pre-orders.zip; do
+		if [[ ! -f "$DEPS_DIR/$zip" ]]; then
+			echo
+			missing_plugin_zip_error "$zip"
+			exit 1
+		fi
+	done
 fi
 
 step "Starting E2E docker containers"
@@ -159,35 +245,19 @@ echo " - Enabling the Optimized Checkout feature flag"
 redirect_output cli wp option update _wcstripe_feature_oc 'yes'
 
 step "Installing Woo Subscriptions"
-echo " - Fetching latest version"
-LATEST_RELEASE_ASSET_ID=$(curl -sH "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/woocommerce/woocommerce-subscriptions/releases/latest | jq -r '.assets[0].id')
+fetch_plugin_zip "woocommerce/woocommerce-subscriptions" "woocommerce-subscriptions.zip"
 
-redirect_output curl -sLJ \
-	-H "Authorization: token $GITHUB_TOKEN" \
-	-H "Accept: application/octet-stream" \
-	--output $E2E_ROOT/woocommerce-subscriptions.zip \
-	https://api.github.com/repos/woocommerce/woocommerce-subscriptions/releases/assets/"$LATEST_RELEASE_ASSET_ID"
+echo " - Installing"
+redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/deps/woocommerce-subscriptions.zip --force
 
-redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/woocommerce-subscriptions.zip --force
-rm -rf $E2E_ROOT/woocommerce-subscriptions.zip
-
+echo " - Activating"
 redirect_output cli wp plugin activate woocommerce-subscriptions
 
 step "Installing Woo Pre-Orders"
-echo " - Fetching latest version"
-LATEST_RELEASE_ASSET_ID=$(curl -sH "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/woocommerce/woocommerce-pre-orders/releases/latest | jq -r '.assets[0].id')
-
-redirect_output curl -sLJ \
-	-H "Authorization: token $GITHUB_TOKEN" \
-	-H "Accept: application/octet-stream" \
-	--output $E2E_ROOT/woocommerce-pre-orders.zip \
-	https://api.github.com/repos/woocommerce/woocommerce-pre-orders/releases/assets/"$LATEST_RELEASE_ASSET_ID"
+fetch_plugin_zip "woocommerce/woocommerce-pre-orders" "woocommerce-pre-orders.zip"
 
 echo " - Installing"
-redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/woocommerce-pre-orders.zip --force
-
-echo " - Removing lingering zip"
-rm -rf $E2E_ROOT/woocommerce-pre-orders.zip
+redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/deps/woocommerce-pre-orders.zip --force
 
 echo " - Activating"
 redirect_output cli wp plugin activate woocommerce-pre-orders
