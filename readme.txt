@@ -260,5 +260,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Render classic-checkout card fields when a host optimizer defers render-blocking JavaScript (e.g. SiteGround Speed Optimizer)
 * Fix - Allow express checkout payments when automatic account password generation is disabled
 * Tweak - Add PHPDoc for some deprecated hooks
+* Dev - Remove the deprecated @woocommerce/settings npm package; settings are still read from the wc-settings script WooCommerce provides at runtime
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
