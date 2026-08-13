@@ -55,6 +55,7 @@
         "includes/migrations/class-wc-stripe-express-checkout-add-change-payment-method-location-update.php",
         "includes/migrations/class-wc-stripe-migrate-link-button-locations.php",
         "includes/migrations/class-wc-stripe-ocs-ap-default-on-update.php",
+        "includes/migrations/class-wc-stripe-restore-adaptive-pricing-after-amount-mismatch-update.php",
         "includes/notes/class-wc-stripe-whats-new-note.php",
         "includes/payment-methods/class-wc-stripe-express-checkout-custom-fields.php",
         "includes/payment-methods/class-wc-stripe-ocs-payment-gateway.php",
