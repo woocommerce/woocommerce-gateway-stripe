@@ -7,6 +7,7 @@
  */
 class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	private const SINGLE_INTENT_ENDPOINT_URL = '/wc/v3/wc_stripe/payment_intents/pi_test_9876543210';
+	private const ALL_INTENTS_ENDPOINT_URL   = '/wc/v3/wc_stripe/payment_intents';
 
 	/** Initialise REST API, make WC_Stripe_REST_Payment_Intents_Controller instance available for testing*/
 	public static function set_up_before_class() {
@@ -24,7 +25,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		);
 	}
 
-	public static function pre_http_request_mock_handler( $preempt, $request_args, $url ) {
+	public static function pre_http_request_mock_handler( bool $preempt, array $request_args, $url ) {
 		if ( false === strpos( $url, 'payment_intents' ) ) {
 			return $preempt;
 		}
@@ -57,7 +58,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	 *
 	 * If non-empty, adds the entries from $params to the request object.
 	 */
-	private function send_request( $params = [], $url = self::SINGLE_INTENT_ENDPOINT_URL ) {
+	private function send_request( string $url, array $params = [] ) {
 		$request = new WP_REST_Request(
 			WP_REST_Server::READABLE,
 			$url
@@ -80,7 +81,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 
 		wp_set_current_user( $subscriber_id );
 
-		$response = $this->send_request();
+		$response = $this->send_request( self::SINGLE_INTENT_ENDPOINT_URL );
 
 		$this->assertSame( 403, $response->get_status() );
 	}
@@ -113,7 +114,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 			3
 		);
 
-		$response = $this->send_request();
+		$response = $this->send_request( self::SINGLE_INTENT_ENDPOINT_URL );
 
 		remove_filter(
 			'pre_http_request',
@@ -132,12 +133,12 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_id );
 
-		$response = $this->send_request();
+		$response = $this->send_request( self::SINGLE_INTENT_ENDPOINT_URL );
 
 		$this->assertSame( 200, $response->get_status() );
 	}
 
-	public static function provide_filtering_test_data(): array {
+	public static function provide_single_intent_filtering_test_data(): array {
 		$response_allowed_part = '"object": "payment_intent",
 			"id": "pi_3TbL9RJlUF0dQbSB00q0FJS2",
 			"amount": 2460,
@@ -164,19 +165,6 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 					"name": "Adrian Dobrescu",
 					"phone": "+40722112945",
 					"tax_id": null
-				},
-				"payment_method_details": {
-					"card": {
-						"amount_authorized": 7900,
-						"authorization_code": "747254",
-						"brand": "visa",
-						"checks": {
-							"address_line1_check": "pass",
-							"address_postal_code_check": "pass",
-							"cvc_check": "pass"
-						}
-					},
-					"type": "card"
 				}
 			}';
 		$response_as_string    = '{
@@ -215,9 +203,9 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @dataProvider provide_filtering_test_data
+	 * @dataProvider provide_single_intent_filtering_test_data
 	*/
-	public function test_response_filtering( $response_as_string, $response_allowed_part ) {
+	public function test_single_intent_response_filtering( string $response_as_string, string $response_allowed_part ) {
 		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_id );
 
@@ -239,7 +227,7 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 			3
 		);
 
-		$response               = $this->send_request();
+		$response               = $this->send_request( self::SINGLE_INTENT_ENDPOINT_URL );
 		$expected_response_data = json_decode( $response_allowed_part );
 
 		remove_filter(
@@ -258,8 +246,295 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 
 		wp_set_current_user( $subscriber_id );
 
-		$response = $this->send_request( [], self::SINGLE_INTENT_ENDPOINT_URL . '/../../other' );
+		$response = $this->send_request( self::SINGLE_INTENT_ENDPOINT_URL . '/../../other' );
 
 		$this->assertSame( 404, $response->get_status() );
+	}
+
+	public static function provide_intent_list_malformed_param(): array {
+		return [
+			[ 'created', '' ],
+			[ 'created', -1779802569 ],
+			[ 'created', 'a1779802569' ],
+			[
+				'created',
+				[
+					0 => '1779802569',
+				],
+			],
+			[
+				'created',
+				[
+					'lt3' => '1779802569',
+				],
+			],
+			[
+				'created',
+				[
+					'lt'  => '1779802569',
+					'gt3' => '1779802569',
+				],
+			],
+			[ 'starting_after', 'xyz' ],
+			[ 'ending_before', 'xyz' ],
+			[ 'customer', 'xyz' ],
+			[ 'customer_account', 'xyz' ],
+		];
+	}
+
+	/**
+	 * Create an admin user and send requests containing wrong format args.
+	 *
+	 * @dataProvider provide_intent_list_malformed_param
+	 *
+	 * @param string $param_name
+	 * @param mixed $param_value
+	*/
+	public function test_intent_list_malformed_param( string $param_name, $param_value ) {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$response = $this->send_request( self::ALL_INTENTS_ENDPOINT_URL, [ $param_name => $param_value ] );
+
+		$this->assertSame( 400, $response->get_status() );
+	}
+
+	/**
+	 * Create an admin user and send requests containing wrong format args.
+	 *
+	 * @param string $param_name
+	 * @param mixed $param_value
+	*/
+	public function test_intent_list_with_both_starting_after_and_ending_before() {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$response = $this->send_request(
+			self::ALL_INTENTS_ENDPOINT_URL,
+			[
+				'starting_after' => 'pi_test',
+				'ending_before'  => 'pi_test2',
+			]
+		);
+
+		$this->assertSame( 400, $response->get_status() );
+	}
+
+	public static function provide_intent_list_params(): array {
+		return [
+			[
+				[ 'created' => 0 ],
+			],
+			[
+				[
+					'created'        => '1779802569',
+					'starting_after' => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
+			],
+			[
+				[
+					'created'       =>
+						[
+							'lt' => '1779802569',
+						],
+					'ending_before' => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
+			],
+			[
+				[
+					'limit'            => 100,
+					'customer'         => 'cus_sad8s6dasd',
+					'customer_account' => 'cus_sad8s6dasdxsa123',
+					'created'          =>
+						[
+							'lt' => '1779802569',
+						],
+					'ending_before'    => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
+			],
+			[
+				[
+					'created' =>
+						[
+							'lt' => '1779802821',
+							'gt' => '1779802569',
+						],
+				],
+			],
+			[
+				[
+					'created' =>
+						[
+							'lte' => '1779802821',
+							'gte' => '1779802569',
+						],
+				],
+				[
+					'created' =>
+						[
+							'lte' => '1779802821',
+							'gte' => '0',
+						],
+				],
+				[
+					'created' =>
+						[
+							'lte' => '0',
+							'gte' => '0',
+						],
+				],
+			],
+		];
+	}
+
+	/**
+	 * Send requests containing valid parameters and check they are forwarded correctly to the Stripe API
+	 * using a 'pre_http_request' hook.
+	 *
+	 * @dataProvider provide_intent_list_params
+	*/
+	public function test_pass_intent_list_params( array $rest_params ) {
+		$controller = new WC_Stripe_REST_Payment_Intents_Controller();
+
+		$reflection_class = new ReflectionClass( WC_Stripe_REST_Payment_Intents_Controller::class );
+		$r_const          = $reflection_class->getReflectionConstant( 'STRIPE_LIST_EXPAND_PARAM' );
+
+		$expand                = $r_const->getValue();
+		$rest_params['expand'] = $expand;
+
+		$request = new WP_REST_Request(
+			WP_REST_Server::READABLE,
+			self::ALL_INTENTS_ENDPOINT_URL,
+		);
+
+		foreach ( $rest_params as $rest_param_name => $rest_param_value ) {
+			$request->set_param( $rest_param_name, $rest_param_value );
+		}
+
+		$passed_rest_params = $request->get_params();
+
+		$pre_http_request_params = [];
+
+		$this->mock_http_call();
+		$http_stub = function ( $pre, $parsed_args, $url ) use ( &$pre_http_request_params ) {
+				$url_components = parse_url( $url );
+
+				parse_str( $url_components['query'], $pre_http_request_params['search_params'] );
+
+				return $pre;
+		};
+		add_filter(
+			'pre_http_request',
+			$http_stub,
+			10,
+			3
+		);
+
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		try {
+			rest_get_server()->dispatch( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10, 3 );
+		}
+
+		$this->assertEquals( $rest_params, $passed_rest_params );
+		$this->assertEquals(
+			$rest_params,
+			array_intersect_key( $pre_http_request_params['search_params'], $rest_params )
+		);
+		$test = array_diff_key( $pre_http_request_params['search_params'], $rest_params );
+
+		if ( array_key_exists( 'limit', $rest_params ) ) {
+			$this->assertEmpty( array_diff_key( $pre_http_request_params['search_params'], $rest_params ) );
+		} else {
+			// We default the `limit` argument when not supplied by the caller.
+			$this->assertEquals(
+				[ 'limit' => 10 ],
+				array_diff_key( $pre_http_request_params['search_params'], $rest_params )
+			);
+		}
+	}
+
+	public static function provide_intent_list_filtering_test_data(): Generator {
+		$test_data_directory = __DIR__ . '/stripe-api-test-response-payloads';
+
+		$test_data_files = glob( $test_data_directory . '/*.json' );
+
+		$test_data_groups = [];
+
+		foreach ( $test_data_files as $test_data_file ) {
+			$name = basename( $test_data_file );
+
+			if ( ! preg_match( '/^(\d+)-/', $name, $matches ) ) {
+				continue;
+			}
+
+			$test_data_groups[ $matches[1] ][] = $test_data_file;
+		}
+
+		ksort( $test_data_groups, SORT_NUMERIC );
+
+		foreach ( $test_data_groups as $id => $files ) {
+			$test_file     = null;
+			$expected_file = null;
+
+			foreach ( $files as $file ) {
+				if ( str_contains( basename( $file ), 'expected' ) ) {
+					$expected_file = $file;
+				} else {
+					$test_file = $file;
+				}
+			}
+
+			$test_file_description     = str_replace( [ '-', '_', '.json' ], ' ', preg_replace( '/^[0-9]+/', '', basename( $test_file ) ) );
+			$expected_file_description = str_replace( [ '-', '_', '.json' ], ' ', preg_replace( '/^[0-9]+/', '', basename( $expected_file ) ) );
+
+			$test_description = 'Received: ' . ucfirst( trim( $test_file_description ) ) . PHP_EOL . 'Expected: ' . ucfirst( trim( $expected_file_description ) );
+
+			yield "case {$test_description}" => [
+				file_get_contents( $test_file ),
+				file_get_contents( $expected_file ),
+			];
+		}
+	}
+
+	/**
+	 * @dataProvider provide_intent_list_filtering_test_data
+	*/
+	public function test_intent_list_response_filtering( string $response_as_string, string $response_allowed_part ) {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$http_code_401_mock = function ( $pre, $parsed_args, $url ) use ( $response_as_string ) {
+			return [
+				'headers'  => [],
+				'body'     => $response_as_string,
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+			];
+		};
+
+		add_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
+		$response               = $this->send_request( self::ALL_INTENTS_ENDPOINT_URL );
+		$expected_response_data = json_decode( $response_allowed_part );
+
+		remove_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
+		$this->assertEquals( $expected_response_data, $response->data );
 	}
 }
