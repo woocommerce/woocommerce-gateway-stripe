@@ -20,7 +20,7 @@ class WC_Stripe_Diagnostics_Cleanup {
 	 *
 	 * @var string
 	 */
-	public const DAILY_ACTION = 'wc_stripe_diagnostics_daily_cleanup';
+	protected const DAILY_ACTION = 'wc_stripe_diagnostics_daily_cleanup';
 
 	/**
 	 * Action Scheduler group. Shared with the rest of the plugin's jobs so
@@ -29,7 +29,7 @@ class WC_Stripe_Diagnostics_Cleanup {
 	 *
 	 * @var string
 	 */
-	public const GROUP = 'woocommerce-gateway-stripe';
+	protected const GROUP = 'woocommerce-gateway-stripe';
 
 	/**
 	 * Maximum age of a trace before the daily sweep deletes it. Bounds
@@ -37,7 +37,7 @@ class WC_Stripe_Diagnostics_Cleanup {
 	 *
 	 * @var int
 	 */
-	public const TRACE_TTL_SECONDS = 7 * DAY_IN_SECONDS;
+	protected const TRACE_TTL_SECONDS = 7 * DAY_IN_SECONDS;
 
 	/**
 	 * Trace store dependency.

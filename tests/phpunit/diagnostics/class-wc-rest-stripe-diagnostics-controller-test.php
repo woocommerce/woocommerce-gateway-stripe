@@ -358,7 +358,7 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 	}
 
 	public function test_ingest_evicts_oldest_trace_when_store_is_full() {
-		for ( $i = 0; $i < WC_Stripe_Diagnostics_Trace_Store::MAX_TRACES; $i++ ) {
+		for ( $i = 0; $i < WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Diagnostics_Trace_Store::class, 'MAX_TRACES', 'int' ); $i++ ) {
 			$this->store->create( 'full' . $i );
 		}
 		$request = $this->make_request(

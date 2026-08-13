@@ -446,15 +446,18 @@ const PaymentProcessor = ( {
 		emitResponse
 	);
 
-	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
-		setSelectedPaymentMethodType( value.type );
-		setIsPaymentElementComplete( complete );
-		isCompleteRef.current = complete;
-		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
-			handleDisplayOfPaymentInstructions( value.type, 'blocks' );
-			handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );
-		}
-	};
+	const onSelectedPaymentMethodChange = useCallback(
+		( { value, complete } ) => {
+			setSelectedPaymentMethodType( value.type );
+			setIsPaymentElementComplete( complete );
+			isCompleteRef.current = complete;
+			if ( stripeServerData?.shouldShowOptimizedCheckout ) {
+				handleDisplayOfPaymentInstructions( value.type, 'blocks' );
+				handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );
+			}
+		},
+		[ stripeServerData, paymentMethodsConfig ]
+	);
 
 	const handlePaymentElementReady = useCallback( () => {
 		const el = elements?.getElement( 'payment' );

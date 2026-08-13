@@ -45,7 +45,7 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 	private function clear_state() {
 		$this->store->delete_all();
 		if ( WC()->session instanceof WC_Session ) {
-			WC()->session->set( WC_Stripe_Diagnostics_Recorder::SESSION_KEY, null );
+			WC()->session->set( WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Diagnostics_Recorder::class, 'SESSION_KEY', 'string' ), null );
 		}
 	}
 
@@ -211,7 +211,7 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 	 * session silently fail later when the first event tries to land.
 	 */
 	public function test_start_session_fails_when_store_is_full() {
-		for ( $i = 0; $i < WC_Stripe_Diagnostics_Trace_Store::MAX_TRACES; $i++ ) {
+		for ( $i = 0; $i < WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Diagnostics_Trace_Store::class, 'MAX_TRACES', 'int' ); $i++ ) {
 			$this->store->create( 'f' . $i );
 		}
 		$this->assertFalse( $this->recorder->start_session( 'too-late' ) );
@@ -223,7 +223,7 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 	 * an earlier request persisted.
 	 */
 	public function test_current_session_id_reads_from_wc_session_between_requests() {
-		WC()->session->set( WC_Stripe_Diagnostics_Recorder::SESSION_KEY, 'resumed' );
+		WC()->session->set( WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Diagnostics_Recorder::class, 'SESSION_KEY', 'string' ), 'resumed' );
 		$recorder = new WC_Stripe_Diagnostics_Recorder( $this->store, new WC_Stripe_Diagnostics_Redactor() );
 		$this->assertSame( 'resumed', $recorder->current_session_id() );
 	}
@@ -234,7 +234,7 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 	 */
 	public function test_start_session_persists_id_in_wc_session() {
 		$this->recorder->start_session( 'persisted' );
-		$this->assertSame( 'persisted', WC()->session->get( WC_Stripe_Diagnostics_Recorder::SESSION_KEY ) );
+		$this->assertSame( 'persisted', WC()->session->get( WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Diagnostics_Recorder::class, 'SESSION_KEY', 'string' ) ) );
 	}
 
 	/**

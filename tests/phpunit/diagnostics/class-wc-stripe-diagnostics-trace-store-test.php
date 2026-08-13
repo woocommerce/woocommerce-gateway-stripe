@@ -48,17 +48,17 @@ class WC_Stripe_Diagnostics_Trace_Store_Test extends WP_UnitTestCase {
 
 	public function test_append_event_drops_past_event_cap() {
 		$this->store->create( 'capped' );
-		for ( $i = 0; $i < WC_Stripe_Diagnostics_Trace_Store::MAX_EVENTS_PER_TRACE; $i++ ) {
+		for ( $i = 0; $i < WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Diagnostics_Trace_Store::class, 'MAX_EVENTS_PER_TRACE', 'int' ); $i++ ) {
 			$this->assertTrue( $this->store->append_event( 'capped', [ 'n' => $i ] ) );
 		}
 		$this->assertFalse( $this->store->append_event( 'capped', [ 'n' => 'overflow' ] ) );
 		$trace = $this->store->get( 'capped' );
-		$this->assertCount( WC_Stripe_Diagnostics_Trace_Store::MAX_EVENTS_PER_TRACE, $trace['events'] );
+		$this->assertCount( WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Diagnostics_Trace_Store::class, 'MAX_EVENTS_PER_TRACE', 'int' ), $trace['events'] );
 	}
 
 	public function test_append_event_drops_past_size_cap() {
 		$this->store->create( 'big' );
-		$big_event = [ 'payload' => str_repeat( 'x', WC_Stripe_Diagnostics_Trace_Store::MAX_TRACE_BYTES + 1 ) ];
+		$big_event = [ 'payload' => str_repeat( 'x', WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Diagnostics_Trace_Store::class, 'MAX_TRACE_BYTES', 'int' ) + 1 ) ];
 		$this->assertFalse( $this->store->append_event( 'big', $big_event ) );
 		$trace = $this->store->get( 'big' );
 		$this->assertCount( 0, $trace['events'] );
@@ -148,7 +148,7 @@ class WC_Stripe_Diagnostics_Trace_Store_Test extends WP_UnitTestCase {
 	}
 
 	public function test_fifo_eviction_at_trace_cap() {
-		$cap      = WC_Stripe_Diagnostics_Trace_Store::MAX_TRACES;
+		$cap      = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Diagnostics_Trace_Store::class, 'MAX_TRACES', 'int' );
 		$overflow = 3;
 		for ( $i = 0; $i < $cap + $overflow; $i++ ) {
 			$this->store->create( 'id' . $i );
@@ -203,7 +203,7 @@ class WC_Stripe_Diagnostics_Trace_Store_Test extends WP_UnitTestCase {
 
 	public function test_is_full_reflects_trace_count() {
 		$this->assertFalse( $this->store->is_full() );
-		for ( $i = 0; $i < WC_Stripe_Diagnostics_Trace_Store::MAX_TRACES; $i++ ) {
+		for ( $i = 0; $i < WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Diagnostics_Trace_Store::class, 'MAX_TRACES', 'int' ); $i++ ) {
 			$this->store->create( 'f' . $i );
 		}
 		$this->assertTrue( $this->store->is_full() );

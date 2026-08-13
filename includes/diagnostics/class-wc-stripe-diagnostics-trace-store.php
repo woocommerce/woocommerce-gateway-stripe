@@ -23,14 +23,14 @@ defined( 'ABSPATH' ) || exit;
  */
 class WC_Stripe_Diagnostics_Trace_Store {
 
-	public const STORAGE_SUBDIR = 'wc-stripe-diagnostics';
-	public const INDEX_FILENAME = 'index.json';
-	public const LOCK_FILENAME  = '.index.lock';
-	public const TRACE_SUFFIX   = '.json';
+	protected const STORAGE_SUBDIR = 'wc-stripe-diagnostics';
+	protected const INDEX_FILENAME = 'index.json';
+	protected const LOCK_FILENAME  = '.index.lock';
+	protected const TRACE_SUFFIX   = '.json';
 
-	public const MAX_TRACES           = 200;
-	public const MAX_EVENTS_PER_TRACE = 200;
-	public const MAX_TRACE_BYTES      = 102400; // 100 KB.
+	protected const MAX_TRACES           = 200;
+	protected const MAX_EVENTS_PER_TRACE = 200;
+	protected const MAX_TRACE_BYTES      = 102400; // 100 KB.
 
 	public const STATUS_PENDING   = 'pending';
 	public const STATUS_COMPLETED = 'completed';
