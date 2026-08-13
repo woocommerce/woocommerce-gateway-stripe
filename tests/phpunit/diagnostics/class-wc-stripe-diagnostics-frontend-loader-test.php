@@ -24,7 +24,7 @@ class WC_Stripe_Diagnostics_Frontend_Loader_Test extends WP_UnitTestCase {
 
 	public function tear_down() {
 		$this->set_diagnostics_enabled( false );
-		WC()->session->set( WC_Stripe_Diagnostics_Frontend_Loader::SESSION_KEY, null );
+		WC()->session->set( WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Diagnostics_Frontend_Loader::class, 'SESSION_KEY', 'string' ), null );
 		unset( $_COOKIE[ 'wp_woocommerce_session_' . COOKIEHASH ] );
 		wp_set_current_user( 0 );
 		parent::tear_down();
@@ -91,14 +91,14 @@ class WC_Stripe_Diagnostics_Frontend_Loader_Test extends WP_UnitTestCase {
 		$id = $this->loader->get_or_create_session_id();
 		$this->assertSame(
 			$id,
-			WC()->session->get( WC_Stripe_Diagnostics_Frontend_Loader::SESSION_KEY )
+			WC()->session->get( WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Diagnostics_Frontend_Loader::class, 'SESSION_KEY', 'string' ) )
 		);
 	}
 
 	public function test_session_id_regenerates_when_stored_value_is_invalid() {
 		$this->simulate_active_wc_session();
 		WC()->session->set(
-			WC_Stripe_Diagnostics_Frontend_Loader::SESSION_KEY,
+			WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Diagnostics_Frontend_Loader::class, 'SESSION_KEY', 'string' ),
 			'not-a-uuid'
 		);
 

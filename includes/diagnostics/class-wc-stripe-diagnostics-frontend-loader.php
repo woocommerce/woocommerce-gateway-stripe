@@ -13,7 +13,7 @@ class WC_Stripe_Diagnostics_Frontend_Loader {
 	 * inline `wcStripeDiag` global to whichever of these is enqueued on
 	 * the current page.
 	 */
-	const SCRIPT_HANDLES = [
+	protected const SCRIPT_HANDLES = [
 		'wc-stripe-upe-classic',
 		'wc-stripe-blocks-integration',
 	];
@@ -23,7 +23,7 @@ class WC_Stripe_Diagnostics_Frontend_Loader {
 	 * Tying the id to the WC session keeps it stable across pageviews
 	 * (including 3DS redirects) for the same shopper.
 	 */
-	const SESSION_KEY = 'wc_stripe_diag_session_id';
+	protected const SESSION_KEY = 'wc_stripe_diag_session_id';
 
 	/**
 	 * Cached inline-config string for this request.
