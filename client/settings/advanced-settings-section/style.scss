@@ -249,7 +249,9 @@ $diagnostics-bg-toolbar: styles.$wp-gray-0;
 
 .wc-stripe-diagnostics-trace-row {
 	display: grid;
-	grid-template-columns: 14px 1fr auto auto;
+	// First column fits the longest status label ("Abandoned") so the
+	// status text stays aligned across rows.
+	grid-template-columns: 90px 1fr auto auto;
 	align-items: center;
 	gap: 12px;
 	padding: 10px 16px;
@@ -299,6 +301,15 @@ $diagnostics-bg-toolbar: styles.$wp-gray-0;
 .wc-stripe-diagnostics-trace-row__actions {
 	display: inline-flex;
 	gap: 4px;
+}
+
+.wc-stripe-diagnostics-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	color: $diagnostics-strong-fg;
+	white-space: nowrap;
 }
 
 .wc-stripe-diagnostics-status-dot {

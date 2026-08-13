@@ -112,13 +112,19 @@ const DiagnosticsTraceRow = ( { trace, nowSeconds, onCopy, onView } ) => {
 		>
 			<span
 				className={ classNames(
-					'wc-stripe-diagnostics-status-dot',
-					`wc-stripe-diagnostics-status-dot--${ status }`
+					'wc-stripe-diagnostics-status',
+					`wc-stripe-diagnostics-status--${ status }`
 				) }
-				role="img"
-				aria-label={ statusLabel }
-				title={ statusLabel }
-			/>
+			>
+				<span
+					className={ classNames(
+						'wc-stripe-diagnostics-status-dot',
+						`wc-stripe-diagnostics-status-dot--${ status }`
+					) }
+					aria-hidden="true"
+				/>
+				{ statusLabel }
+			</span>
 			<div className="wc-stripe-diagnostics-trace-row__main">
 				<div className="wc-stripe-diagnostics-trace-row__heading">
 					<span className="wc-stripe-diagnostics-trace-row__id">
@@ -136,7 +142,13 @@ const DiagnosticsTraceRow = ( { trace, nowSeconds, onCopy, onView } ) => {
 					{ getSummary( trace ) }
 				</div>
 			</div>
-			<span className="wc-stripe-diagnostics-trace-row__duration">
+			<span
+				className="wc-stripe-diagnostics-trace-row__duration"
+				title={ __(
+					'Session duration (first to last event)',
+					'woocommerce-gateway-stripe'
+				) }
+			>
 				{ formatDuration( trace.created_at, trace.updated_at ) }
 			</span>
 			<div className="wc-stripe-diagnostics-trace-row__actions">
