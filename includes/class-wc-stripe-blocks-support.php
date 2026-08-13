@@ -368,9 +368,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			$js_configuration = $main_gateway->javascript_params();
 		}
 
-		/**
-		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-		 */
+		/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 		return apply_filters(
 			'wc_stripe_params',
 			$js_configuration

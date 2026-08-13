@@ -502,15 +502,31 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'woocommerce-gateway-stripe'
 		);
 
+		$default_upe_params = $this->javascript_params();
+
+		/**
+		 * Filters the UPE classic checkout JavaScript parameters.
+		 *
+		 * @param array $params UPE JavaScript parameters.
+		 */
+		$upe_params = apply_filters( 'wc_stripe_upe_params', $default_upe_params );
+
+		// A filter callback returning a non-array must not fatal the checkout.
+		// Reuse the pre-filter params rather than regenerating them:
+		// javascript_params() has side effects (on the setup-intent success
+		// redirect it creates a payment token from the setup intent).
+		if ( ! is_array( $upe_params ) ) {
+			$upe_params = $default_upe_params;
+		}
+
+		// The bootstrap waits for these dependencies' globals before loading the
+		// async init chunk; sourcing the list from the build keeps it in sync.
+		$upe_params['scriptDependencies'] = $dependencies;
+
 		wp_localize_script(
 			'wc-stripe-upe-classic',
 			'wc_stripe_upe_params',
-			/**
-			 * Filters the UPE classic checkout JavaScript parameters.
-			 *
-			 * @param array $params UPE JavaScript parameters.
-			 */
-			apply_filters( 'wc_stripe_upe_params', $this->javascript_params() )
+			$upe_params
 		);
 
 		wp_register_style(
@@ -929,6 +945,32 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Whether an on-session PaymentIntent should use Dynamic Payment Methods (`automatic_payment_methods`)
+	 * instead of an explicit `payment_method_types` list. Requires Optimized Checkout + PMC.
+	 *
+	 * Excludes flows that already target a known method (saved tokens, express wallets, subscriptions)
+	 * and delayed-confirmation methods, whose voucher/QR flow needs the type known before confirmation.
+	 *
+	 * @param string      $selected_payment_type         The resolved payment method type for the order.
+	 * @param bool        $is_using_saved_payment_method  Whether the customer is paying with a saved token.
+	 * @param bool        $has_subscription               Whether the order contains a subscription.
+	 * @param string|null $express_payment_type           The express payment type, if this is an express payment.
+	 *
+	 * @return bool
+	 */
+	private function is_automatic_payment_methods_eligible( string $selected_payment_type, bool $is_using_saved_payment_method, bool $has_subscription, ?string $express_payment_type ): bool {
+		if ( ! $this->oc_enabled || ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
+			return false;
+		}
+
+		if ( $is_using_saved_payment_method || $has_subscription || null !== $express_payment_type ) {
+			return false;
+		}
+
+		return ! in_array( $selected_payment_type, WC_Stripe_Payment_Methods::DELAYED_CONFIRMATION_PAYMENT_METHODS, true );
+	}
+
+	/**
 	 * Checks if we are currently on the "Add payment method" page.
 	 *
 	 * Extracted as a protected method to allow overriding in tests.
@@ -1179,9 +1221,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			<?php
 			$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
 			if ( $this->is_saved_cards_enabled() && ! empty( $methods_enabled_for_saved_payments ) && ! $this->should_hide_save_payment_method_checkbox() ) {
-				/**
-				 * This filter is documented in includes/class-wc-stripe-blocks-support.php.
-				 */
+				/** This filter is documented in includes/class-wc-stripe-blocks-support.php. */
 				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page() || WC_Stripe_Helper::should_force_save_payment_method();
 				$this->save_payment_method_checkbox( $force_save_payment );
 			}
@@ -1991,9 +2031,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 
 				// Run the necessary filter to make sure mandate information is added when it's required.
-				/**
-				 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-				 */
+				/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 				$request = apply_filters(
 					'wc_stripe_generate_create_intent_request',
 					$request,
@@ -2559,6 +2597,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$order_helper->validate_intent_for_order( $order, $intent );
 		} catch ( Exception $e ) {
 			throw new Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+		}
+
+		// A SetupIntent has no charge, so an empty last_setup_error does not mean success.
+		// Intermediate states stay retryable and are finalized by the webhook.
+		if ( ! $payment_needed && ( 'setup_intent' !== ( $intent->object ?? '' ) || WC_Stripe_Intent_Status::SUCCEEDED !== ( $intent->status ?? '' ) ) ) {
+			return;
 		}
 
 		list( $payment_method_type, $payment_method_details ) = $this->get_payment_method_data_from_intent( $intent );
@@ -3292,7 +3336,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Check if the order has a payment intent that is compatible with the current payment method types.
-		$payment_intent = $this->get_existing_compatible_payment_intent( $order, $payment_information['payment_method_types'] );
+		// A Dynamic Payment Methods intent is never reused: `automatic_payment_methods` can only be set
+		// when the intent is created, and Stripe populates the intent's `payment_method_types` from the
+		// merchant's configuration — so the compatibility check below would match and the retry would
+		// then send `payment_method_types` to an intent that was never created with them.
+		$payment_intent = empty( $payment_information['automatic_payment_methods'] )
+			? $this->get_existing_compatible_payment_intent( $order, $payment_information['payment_method_types'] )
+			: null;
 
 		// If the payment intent is not compatible, we need to create a new one. Throws an exception on error.
 		if ( $payment_intent ) {
@@ -3501,6 +3551,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'save_payment_method_to_store'  => $save_payment_method_to_store,
 			'capture_method'                => $capture_method,
 		];
+
+		// The exclusion list keeps plugin-unsupported PMC methods off the intent, mirroring the client Payment Element.
+		if ( $this->is_automatic_payment_methods_eligible( $selected_payment_type, $is_using_saved_payment_method, (bool) $payment_information['has_subscription'], $express_payment_type ) ) {
+			$payment_information['automatic_payment_methods']     = true;
+			$payment_information['excluded_payment_method_types'] = $this->get_excluded_payment_method_types();
+		}
 
 		if ( WC_Stripe_Payment_Methods::ACH === $selected_payment_type ) {
 			WC_Stripe_API::attach_payment_method_to_customer( $payment_information['customer'], $payment_method_id );
@@ -4690,9 +4746,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'redirect_to' => rawurlencode( $result['redirect'] ),
 		];
 
-		/**
-		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-		 */
 		$force_save_source_value = apply_filters( 'wc_stripe_force_save_source', false );
 
 		// We want to save the payment method if requested or forced, AND if we are not
@@ -4751,9 +4804,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$order = wc_get_order( $order->get_id() );
 
 		if ( ! $order->has_status(
-			/**
-			 * This filter is documented in includes/class-wc-stripe-webhook-handler.php.
-			 */
+			/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
 			apply_filters(
 				'wc_stripe_allowed_payment_processing_statuses',
 				[ OrderStatus::PENDING, OrderStatus::FAILED ],
