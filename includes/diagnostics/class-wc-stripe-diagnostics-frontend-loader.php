@@ -16,6 +16,9 @@ class WC_Stripe_Diagnostics_Frontend_Loader {
 	protected const SCRIPT_HANDLES = [
 		'wc-stripe-upe-classic',
 		'wc-stripe-blocks-integration',
+		// Express checkout is the only Stripe bundle on product pages, so
+		// without it as a host the recorder never activates there.
+		'wc_stripe_express_checkout',
 	];
 
 	/**

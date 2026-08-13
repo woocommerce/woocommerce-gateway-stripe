@@ -110,4 +110,22 @@ class WC_Stripe_Diagnostics_Frontend_Loader_Test extends WP_UnitTestCase {
 			$id
 		);
 	}
+
+	/**
+	 * The express checkout bundle is the only Stripe script on product
+	 * pages, so the recorder config must attach to it or express events
+	 * are never recorded there.
+	 */
+	public function test_inline_config_attaches_to_express_checkout_handle() {
+		$this->simulate_active_wc_session();
+		wp_register_script( 'wc_stripe_express_checkout', 'https://example.com/ece.js', [], '1.0', true );
+
+		$this->loader->maybe_localize();
+
+		$before = wp_scripts()->get_data( 'wc_stripe_express_checkout', 'before' );
+		$this->assertNotEmpty( $before );
+		$this->assertStringContainsString( 'window.wcStripeDiag', implode( '', (array) $before ) );
+
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+	}
 }
