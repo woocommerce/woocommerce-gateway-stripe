@@ -788,8 +788,9 @@ class WC_Stripe {
 			return;
 		}
 
-		// The merchant is changing the Adaptive Pricing setting, so we need to mark the amount mismatch migration as complete.
-		WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::mark_migration_complete();
+		if ( WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::delete_amount_mismatch_option() ) {
+			WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::mark_migration_complete();
+		}
 	}
 
 	/**

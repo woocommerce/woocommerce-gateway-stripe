@@ -53,13 +53,9 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update {
 			return;
 		}
 
-		// A failed marker deletion must remain retryable on a later plugin update.
-		if ( ! delete_option( self::AMOUNT_MISMATCH_OPTION ) ) {
-			// If the option still exists, then return early.
-			if ( false !== get_option( self::AMOUNT_MISMATCH_OPTION, false ) ) {
-				return;
-			}
-			// Otherwise the option no longer exists, mark the migration as complete.
+		// If we can't delete the amount mismatch option, then we can't mark the migration as complete.
+		if ( ! self::delete_amount_mismatch_option() ) {
+			return;
 		}
 
 		self::mark_migration_complete();
@@ -99,5 +95,20 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update {
 		}
 
 		return 'yes' === get_option( self::AMOUNT_MISMATCH_OPTION, 'no' );
+	}
+
+	/**
+	 * Deletes the amount mismatch option if it exists.
+	 *
+	 * @return bool True if the option was deleted, false otherwise.
+	 */
+	public static function delete_amount_mismatch_option(): bool {
+		$delete_result = delete_option( self::AMOUNT_MISMATCH_OPTION );
+		if ( $delete_result ) {
+			return true;
+		}
+
+		// Check whether the option does not exist by confirming we always get the fallback value.
+		return ( false === get_option( self::AMOUNT_MISMATCH_OPTION, false ) && 'no' === get_option( self::AMOUNT_MISMATCH_OPTION, 'no' ) );
 	}
 }
