@@ -15,7 +15,7 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update {
 	/**
 	 * Option flag used to ensure the migration only runs once.
 	 */
-	private const MIGRATION_FLAG_OPTION = 'wc_stripe_restore_adaptive_pricing_after_amount_mismatch_migration_ran';
+	private const MIGRATION_FLAG_OPTION = 'wc_stripe_restored_adaptive_pricing_after_amount_mismatch';
 
 	/**
 	 * This marker is the only reliable distinction between an automatic safety disable and a merchant's setting choice.
