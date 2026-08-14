@@ -5,8 +5,6 @@
  */
 class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update_Test extends WP_UnitTestCase {
 
-	private const MIGRATION_FLAG_OPTION = 'wc_stripe_restore_adaptive_pricing_after_amount_mismatch_migration_ran';
-
 	private const AMOUNT_MISMATCH_OPTION = 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected';
 
 	private const LOG_MESSAGE = 'Adaptive Pricing re-enabled during plugin update after a previous automatic disable caused by a Checkout Session amount mismatch.';
@@ -22,14 +20,14 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update_Test exten
 		parent::set_up();
 
 		$this->original_logger = WC_Stripe_Logger::$logger;
-		delete_option( self::MIGRATION_FLAG_OPTION );
+		delete_option( $this->get_migration_flag_option_name() );
 		delete_option( self::AMOUNT_MISMATCH_OPTION );
 		WC_Stripe_Helper::delete_main_stripe_settings();
 	}
 
 	public function tear_down(): void {
 		WC_Stripe_Logger::$logger = $this->original_logger;
-		delete_option( self::MIGRATION_FLAG_OPTION );
+		delete_option( $this->get_migration_flag_option_name() );
 		delete_option( self::AMOUNT_MISMATCH_OPTION );
 		WC_Stripe_Helper::delete_main_stripe_settings();
 
@@ -49,6 +47,7 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update_Test exten
 	 * @param bool         $expect_log Whether the migration should log the restoration.
 	 */
 	public function test_migration_scenarios( $previous_version, ?string $mismatch_marker, ?string $migration_flag, string $adaptive_pricing, string $expected_adaptive_pricing, $expected_marker, $expected_migration_flag, bool $expect_log ): void {
+		$migration_flag_option = $this->get_migration_flag_option_name();
 		add_option(
 			WC_Stripe::SETTINGS_OPTION_NAME,
 			[
@@ -63,7 +62,7 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update_Test exten
 			update_option( self::AMOUNT_MISMATCH_OPTION, $mismatch_marker, false );
 		}
 		if ( null !== $migration_flag ) {
-			update_option( self::MIGRATION_FLAG_OPTION, $migration_flag, false );
+			update_option( $migration_flag_option, $migration_flag, false );
 		}
 
 		$logger      = $this->createMock( WC_Logger::class );
@@ -92,7 +91,16 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update_Test exten
 		$this->assertSame( $expected_adaptive_pricing, $stored_settings['adaptive_pricing'] );
 		$this->assertSame( 'yes', $stored_settings['pmc_enabled'], 'Unrelated settings must survive the migration.' );
 		$this->assertSame( $expected_marker, get_option( self::AMOUNT_MISMATCH_OPTION ) );
-		$this->assertSame( $expected_migration_flag, get_option( self::MIGRATION_FLAG_OPTION ) );
+		$this->assertSame( $expected_migration_flag, get_option( $migration_flag_option ) );
+	}
+
+	/**
+	 * Helper method to get the migration flag option name.
+	 *
+	 * @return string
+	 */
+	private function get_migration_flag_option_name(): string {
+		return WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::class, 'MIGRATION_FLAG_OPTION', 'string' );
 	}
 
 	/**
@@ -198,6 +206,6 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update_Test exten
 
 		$this->assertSame( 'no', WC_Stripe::get_instance()->get_settings()['adaptive_pricing'] );
 		$this->assertSame( 'yes', get_option( self::AMOUNT_MISMATCH_OPTION ) );
-		$this->assertFalse( get_option( self::MIGRATION_FLAG_OPTION ) );
+		$this->assertFalse( get_option( $this->get_migration_flag_option_name() ) );
 	}
 }
