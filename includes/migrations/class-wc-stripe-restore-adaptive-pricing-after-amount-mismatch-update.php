@@ -58,7 +58,7 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update {
 		// A failed marker deletion must remain retryable on a later plugin update.
 		if ( ! delete_option( self::AMOUNT_MISMATCH_OPTION ) ) {
 			// If the option still exists, then return early.
-			if ( false !== get_option( self::AMOUNT_MISMATCH_OPTION, false ) ) ) {
+			if ( false !== get_option( self::AMOUNT_MISMATCH_OPTION, false ) ) {
 				return;
 			}
 			// Otherwise the option no longer exists, mark the migration as complete.
