@@ -31,6 +31,9 @@ const SummaryRow = styled( Flex )`
 	margin: 16px 0;
 	flex-wrap: wrap;
 	gap: 24px;
+	/* The Excluded stat is taller when its Details toggle shows; top-align so
+	   the values still sit on a common line instead of centering apart. */
+	align-items: flex-start;
 `;
 
 const SummaryStat = styled.div`
@@ -49,6 +52,9 @@ const SummaryStat = styled.div`
 	}
 
 	.wc-stripe-agentic-preview__excluded-details-toggle {
+		/* Own line under the label; inline it would sit beside "Excluded" and
+		   stretch that stat's label row taller than its siblings'. */
+		display: flex;
 		height: auto;
 		margin-top: 4px;
 		padding: 0;
