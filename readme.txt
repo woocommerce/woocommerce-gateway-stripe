@@ -172,6 +172,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add a wc_stripe_is_adaptive_pricing_supported filter so extensions can disable Adaptive Pricing for carts their flows are incompatible with
 * Add - Add a wc_stripe_subscription_renewal_blocked_by_radar action hook that fires when Stripe Radar blocks a subscription renewal payment
 * Add - Verify that Stripe.js was served from the official Stripe origin before processing checkout payments
+* Fix - Re-enable Adaptive Pricing if it was automatically disabled after a Checkout Session amount mismatch
 * Fix - Surface an error and block checkout when the Adaptive Pricing order total can't be synced with Stripe, instead of silently letting the buyer pay a stale amount
 * Fix - Lock the order while confirming a 3DS card payment so a concurrent webhook can't complete it twice, duplicating stock reduction, order notes, and emails
 * Fix - Stop attaching Level 3 data to captures and payments for non-card methods
