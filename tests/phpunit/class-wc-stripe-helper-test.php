@@ -11,13 +11,6 @@ use Automattic\WooCommerce\Enums\OrderStatus;
  */
 class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
-	 * Mirrors the WC session key WC_Stripe_Checkout_Session_Context uses to flag a customer amount mismatch.
-	 *
-	 * @var string
-	 */
-	private const AMOUNT_MISMATCH_SESSION_KEY = 'wc_stripe_checkout_session_amount_mismatch';
-
-	/**
 	 * @var UPE_Test_Helper
 	 */
 	private $upe_helper;
@@ -1988,7 +1981,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		if ( $customer_mismatch ) {
 			WC()->session->init();
-			WC()->session->set( self::AMOUNT_MISMATCH_SESSION_KEY, 'yes' );
+			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
+			WC()->session->set( $amount_mismatch_session_key, 'yes' );
 		}
 
 		$is_checkout_filter = function () use ( $is_checkout ) {
@@ -2052,7 +2046,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
 		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
 		if ( WC()->session ) {
-			WC()->session->set( self::AMOUNT_MISMATCH_SESSION_KEY, null );
+			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
+			WC()->session->set( $amount_mismatch_session_key, null );
 		}
 		\WC_Subscriptions_Product::set_is_subscription( false );
 		\WC_Subscriptions_Product::set_subscription_product_ids( [] );

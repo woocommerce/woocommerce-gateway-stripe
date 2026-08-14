@@ -14,13 +14,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	private const ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION = 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected';
 
 	/**
-	 * Asserts the exact persisted WC session flag without exposing a production setter only for tests.
-	 *
-	 * @var string
-	 */
-	private const AMOUNT_MISMATCH_SESSION_KEY = 'wc_stripe_checkout_session_amount_mismatch';
-
-	/**
 	 * Mock UPE Gateway
 	 *
 	 * @var WC_Stripe_UPE_Payment_Gateway
@@ -242,7 +235,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		delete_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION );
 
 		if ( WC()->session ) {
-			WC()->session->set( self::AMOUNT_MISMATCH_SESSION_KEY, null );
+			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
+			WC()->session->set( $amount_mismatch_session_key, null );
 		}
 
 		// The tests in this file do not mock ALL the calls to the Stripe API, and as we use mocked API keys they trigger the 401 rate-limiter,
@@ -2184,7 +2178,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'] );
 			WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
 			delete_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION );
-			WC()->session->set( self::AMOUNT_MISMATCH_SESSION_KEY, null );
+			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
+			WC()->session->set( $amount_mismatch_session_key, null );
 		}
 
 		$this->assertSame( 'failure', $result['result'] );
