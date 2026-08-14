@@ -264,4 +264,32 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility_Test extends WP_UnitTestCase
 
 		$variable->delete( true );
 	}
+
+	/**
+	 * A parent flip must bring the variations' markers current too: they
+	 * inherit the parent's password/visibility, the scheduled full resync
+	 * already covers them, and a stale marker would make the next unrelated
+	 * variation save fire a redundant full resync.
+	 *
+	 * @return void
+	 */
+	public function test_parent_flip_syncs_variation_markers(): void {
+		$variable           = WC_Helper_Product::create_variation_product();
+		$this->resync_count = 0;
+
+		$variable->set_catalog_visibility( 'hidden' );
+		$variable->save();
+
+		$this->assertGreaterThan( 0, $this->resync_count, 'Hiding the parent must converge the catalog.' );
+
+		$this->resync_count = 0;
+		$children           = $variable->get_children();
+		$variation          = wc_get_product( (int) $children[0] );
+		$variation->set_regular_price( '19.00' );
+		$variation->save();
+
+		$this->assertSame( 0, $this->resync_count, 'A variation save with unchanged eligibility must stay quiet.' );
+
+		$variable->delete( true );
+	}
 }

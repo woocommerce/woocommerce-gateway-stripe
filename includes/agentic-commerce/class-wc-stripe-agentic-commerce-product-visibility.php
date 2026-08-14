@@ -157,6 +157,23 @@ final class WC_Stripe_Agentic_Commerce_Product_Visibility {
 
 		update_post_meta( $product_id, self::STATE_META_KEY, $new_state );
 
+		// Variations inherit password protection and catalog visibility from
+		// their parent, so a variable parent crossing the boundary flips their
+		// eligibility too. Bring their markers current now — the resync
+		// scheduled below already covers them, and a stale marker would make
+		// the next unrelated variation save fire a redundant full resync.
+		if ( $product->is_type( 'variable' ) ) {
+			foreach ( $product->get_children() as $child_id ) {
+				$child = wc_get_product( $child_id );
+				if ( ! $child instanceof WC_Product ) {
+					continue;
+				}
+
+				$child_excluded = ! WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $child );
+				update_post_meta( $child_id, self::STATE_META_KEY, $child_excluded ? 'yes' : 'no' );
+			}
+		}
+
 		// Fire the documented contract rather than calling the integration, so
 		// this path behaves identically to an adapter's.
 		do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' );
