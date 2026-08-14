@@ -31,9 +31,6 @@ const SummaryRow = styled( Flex )`
 	margin: 16px 0;
 	flex-wrap: wrap;
 	gap: 24px;
-	/* The Excluded stat is taller when its Details toggle shows; top-align so
-	   the values still sit on a common line instead of centering apart. */
-	align-items: flex-start;
 `;
 
 const SummaryStat = styled.div`
@@ -217,7 +214,10 @@ const AgenticCommerceFeedPreview = () => {
 							</Notice>
 						) }
 
-						<SummaryRow justify="flex-start">
+						{ /* Top-align via the prop: Flex's own emotion class wins
+						     over styled() CSS, and its default centering floats the
+						     taller Excluded stat's value above its siblings. */ }
+						<SummaryRow justify="flex-start" align="flex-start">
 							<SummaryStat className="is-included">
 								<span className="wc-stripe-agentic-preview__stat-value">
 									{ includedCount.toLocaleString() }
