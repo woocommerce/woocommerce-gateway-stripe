@@ -314,15 +314,31 @@ class WC_Stripe_API {
 		}
 
 		$response_body = json_decode( $response_body_raw );
+		$request_id    = self::get_stripe_request_id( $response );
 
 		WC_Stripe_Logger::debug(
 			"Stripe API response: {$method} {$api}",
 			[
 				'stripe_api_key'    => $masked_secret_key,
-				'stripe_request_id' => self::get_stripe_request_id( $response ),
+				'stripe_request_id' => $request_id,
 				'response'          => $response_body,
 			]
 		);
+
+		/**
+		 * Fires after the Stripe API returns a successful response, before it is
+		 * returned to the caller. Observe-only: handlers must not mutate the
+		 * response. Used by diagnostics to capture API exchanges.
+		 *
+		 * @since 10.8.0
+		 *
+		 * @param mixed  $response_body The decoded response body.
+		 * @param string $api           The Stripe API endpoint.
+		 * @param string $method        The HTTP method.
+		 * @param array  $request       The request body sent to the Stripe API.
+		 * @param string $request_id    The Stripe Request-Id response header value (empty when absent).
+		 */
+		do_action( 'wc_stripe_api_response_received', $response_body, $api, $method, $request, $request_id );
 
 		if ( $with_headers ) {
 			return [

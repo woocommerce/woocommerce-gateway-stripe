@@ -27,6 +27,7 @@ import {
 	shippingRateChangeHandler,
 } from 'wcstripe/express-checkout/event-handler';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
+import { diagnostics } from 'wcstripe/diagnostics/wiring';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import 'wcstripe/express-checkout/compatibility/classic-checkout-custom-fields';
 import 'wcstripe/express-checkout/compatibility/wc-product-page';
@@ -435,6 +436,8 @@ jQuery( function ( $ ) {
 			} );
 
 			wcStripeECE.renderButton( eceButton, expressPaymentType );
+
+			diagnostics.attachExpress( eceButton );
 
 			eceButton.on( 'click', async function ( event ) {
 				// If login is required for checkout, display redirect confirmation dialog.

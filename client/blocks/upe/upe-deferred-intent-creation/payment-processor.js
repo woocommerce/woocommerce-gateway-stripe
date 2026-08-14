@@ -8,7 +8,7 @@ import {
 	useStripe,
 	Elements,
 } from '@stripe/react-stripe-js';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 /**
  * Internal dependencies
  */
@@ -22,6 +22,7 @@ import {
 	getStripeElementOptions,
 } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
+import { diagnostics } from 'wcstripe/diagnostics/wiring';
 import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
@@ -129,7 +130,9 @@ const PaymentProcessor = ( {
 
 	useEffect(
 		() =>
-			onPaymentSetup( () => {
+			onPaymentSetup( async () => {
+				const diagHandle =
+					diagnostics.blocksPaymentSetupStart( 'payment_processor' );
 				async function handlePaymentProcessing() {
 					if (
 						upeMethods[ paymentMethodId ] !== activePaymentMethod
@@ -221,9 +224,14 @@ const PaymentProcessor = ( {
 								type: selectedPaymentMethodType,
 						  }
 						: { elements, params };
-					const paymentMethodObject = await api
-						.getStripe()
-						.createPaymentMethod( paymentMethodData );
+					const paymentMethodObject =
+						await diagnostics.aroundStripeCall(
+							'createPaymentMethod',
+							() =>
+								api
+									.getStripe()
+									.createPaymentMethod( paymentMethodData )
+						);
 
 					if ( paymentMethodObject.error ) {
 						return {
@@ -266,7 +274,17 @@ const PaymentProcessor = ( {
 						},
 					};
 				}
-				return handlePaymentProcessing();
+				try {
+					const result = await handlePaymentProcessing();
+					diagnostics.blocksPaymentSetupEnd( diagHandle, result );
+					return result;
+				} catch ( err ) {
+					diagnostics.blocksPaymentSetupEnd( diagHandle, {
+						type: 'error',
+						message: err?.message,
+					} );
+					throw err;
+				}
 			} ),
 		[
 			activePaymentMethod,
@@ -428,15 +446,28 @@ const PaymentProcessor = ( {
 		emitResponse
 	);
 
-	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
-		setSelectedPaymentMethodType( value.type );
-		setIsPaymentElementComplete( complete );
-		isCompleteRef.current = complete;
-		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
-			handleDisplayOfPaymentInstructions( value.type, 'blocks' );
-			handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );
+	const onSelectedPaymentMethodChange = useCallback(
+		( { value, complete } ) => {
+			setSelectedPaymentMethodType( value.type );
+			setIsPaymentElementComplete( complete );
+			isCompleteRef.current = complete;
+			if ( stripeServerData?.shouldShowOptimizedCheckout ) {
+				handleDisplayOfPaymentInstructions( value.type, 'blocks' );
+				handleDisplayOfSavingCheckbox(
+					value.type,
+					paymentMethodsConfig
+				);
+			}
+		},
+		[ stripeServerData, paymentMethodsConfig ]
+	);
+
+	const handlePaymentElementReady = useCallback( () => {
+		const el = elements?.getElement( 'payment' );
+		if ( el ) {
+			diagnostics.attachAfterReady( el, 'payment' );
 		}
-	};
+	}, [ elements ] );
 
 	return (
 		<>
@@ -464,6 +495,7 @@ const PaymentProcessor = ( {
 						options={ getStripeElementOptions() }
 						onChange={ onSelectedPaymentMethodChange }
 						onLoadError={ setHasLoadError }
+						onReady={ handlePaymentElementReady }
 						className="wcstripe-payment-element"
 					/>
 					{ paymentMethodId === PAYMENT_METHOD_ACSS && (

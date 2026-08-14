@@ -396,6 +396,9 @@ class WC_Stripe_Express_Checkout_Element {
 			'pending' => true,
 		];
 
+		/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php */
+		$data = apply_filters( 'wc_stripe_localized_data', $data, 'wc_stripe_express_checkout', 'wcStripeExpressCheckoutPayForOrderParams' );
+
 		wp_localize_script( 'wc_stripe_express_checkout', 'wcStripeExpressCheckoutPayForOrderParams', $data );
 	}
 
@@ -552,15 +555,13 @@ class WC_Stripe_Express_Checkout_Element {
 			$asset_data['version']
 		);
 
-		wp_localize_script(
-			'wc_stripe_express_checkout',
-			'wc_stripe_express_checkout_params',
-			/** This filter is documented in includes/class-wc-stripe-blocks-support.php. */
-			apply_filters(
-				'wc_stripe_express_checkout_params',
-				$this->javascript_params()
-			)
-		);
+		/** This filter is documented in includes/class-wc-stripe-blocks-support.php. */
+		$wc_stripe_express_checkout_params = apply_filters( 'wc_stripe_express_checkout_params', $this->javascript_params() );
+
+		/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php */
+		$wc_stripe_express_checkout_params = apply_filters( 'wc_stripe_localized_data', $wc_stripe_express_checkout_params, 'wc_stripe_express_checkout', 'wc_stripe_express_checkout_params' );
+
+		wp_localize_script( 'wc_stripe_express_checkout', 'wc_stripe_express_checkout_params', $wc_stripe_express_checkout_params );
 
 		wp_enqueue_script( 'wc_stripe_express_checkout' );
 	}

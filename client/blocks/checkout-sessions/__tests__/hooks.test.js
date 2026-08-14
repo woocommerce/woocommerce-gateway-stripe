@@ -6,6 +6,7 @@ import {
 	usePaymentFailHandler,
 	useCheckoutSessionTotalsSync,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
+import { diagnostics } from 'wcstripe/diagnostics/wiring';
 import { useEffect } from '@wordpress/element';
 import { dispatch, select } from '@wordpress/data';
 import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
@@ -29,6 +30,14 @@ const STALE_TOTAL_MESSAGE =
 
 jest.mock( 'wcstripe/blocks/wait-for-payment-element-completion', () => ( {
 	waitForPaymentElementCompletion: jest.fn(),
+} ) );
+
+jest.mock( 'wcstripe/diagnostics/wiring', () => ( {
+	diagnostics: {
+		blocksPaymentSetupStart: jest.fn(),
+		blocksPaymentSetupEnd: jest.fn(),
+		aroundStripeCall: jest.fn( ( _method, fn ) => fn() ),
+	},
 } ) );
 
 // hooks.js imports jQuery; mock the module with a chainable so the
@@ -286,6 +295,109 @@ describe( 'CheckoutSessions hook tests', () => {
 				'yes'
 			);
 		} );
+
+		describe( 'diagnostics integration', () => {
+			beforeEach( () => {
+				diagnostics.blocksPaymentSetupStart.mockReset();
+				diagnostics.blocksPaymentSetupEnd.mockReset();
+			} );
+
+			it( 'brackets the handler with start/end calls, forwarding the result to end', async () => {
+				const fakeHandle = {
+					startMs: 0,
+					site: 'checkout_sessions',
+				};
+				diagnostics.blocksPaymentSetupStart.mockReturnValue(
+					fakeHandle
+				);
+
+				const hasLoadErrorRef = { current: false };
+				usePaymentSetupHandler(
+					onPaymentSetup,
+					checkoutSessionId,
+					null,
+					hasLoadErrorRef,
+					true,
+					'card'
+				);
+
+				expect(
+					diagnostics.blocksPaymentSetupStart
+				).toHaveBeenCalledWith( 'checkout_sessions' );
+
+				const result = await onPaymentSetupResultPromise;
+
+				expect(
+					diagnostics.blocksPaymentSetupEnd
+				).toHaveBeenCalledTimes( 1 );
+				expect(
+					diagnostics.blocksPaymentSetupEnd
+				).toHaveBeenCalledWith( fakeHandle, result );
+			} );
+
+			it( 'still returns the original result through the wrapped handler', async () => {
+				diagnostics.blocksPaymentSetupStart.mockReturnValue( null );
+
+				const hasLoadErrorRef = { current: false };
+				usePaymentSetupHandler(
+					onPaymentSetup,
+					checkoutSessionId,
+					null,
+					hasLoadErrorRef,
+					true,
+					'card'
+				);
+
+				const result = await onPaymentSetupResultPromise;
+				expect( result.type ).toBe( 'success' );
+			} );
+
+			it( 'still calls end with type=error and error message when the handler throws, then re-throws', async () => {
+				const fakeHandle = {
+					startMs: 0,
+					site: 'checkout_sessions',
+				};
+				diagnostics.blocksPaymentSetupStart.mockReturnValue(
+					fakeHandle
+				);
+
+				// Force the handler to throw by making the validation-store
+				// lookup throw synchronously inside handlePaymentProcessing.
+				window.wc = {
+					wcBlocksData: { validationStore: 'wc/store/validation' },
+				};
+				select.mockImplementation( () => {
+					throw new Error( 'boom' );
+				} );
+
+				const hasLoadErrorRef = { current: false };
+				usePaymentSetupHandler(
+					onPaymentSetup,
+					checkoutSessionId,
+					null,
+					hasLoadErrorRef,
+					true,
+					'card'
+				);
+
+				await expect( onPaymentSetupResultPromise ).rejects.toThrow(
+					'boom'
+				);
+
+				expect(
+					diagnostics.blocksPaymentSetupEnd
+				).toHaveBeenCalledTimes( 1 );
+				expect(
+					diagnostics.blocksPaymentSetupEnd
+				).toHaveBeenCalledWith(
+					fakeHandle,
+					expect.objectContaining( {
+						type: 'error',
+						message: 'boom',
+					} )
+				);
+			} );
+		} );
 	} );
 
 	describe( 'useCheckoutSuccessHandler hook', () => {
@@ -467,6 +579,36 @@ describe( 'CheckoutSessions hook tests', () => {
 			expect( await onCheckoutSuccessResultPromise ).toEqual( {
 				type: 'success',
 			} );
+		} );
+
+		it( 'wraps checkout.confirm with diagnostics.aroundStripeCall so the SDK timing is captured', async () => {
+			diagnostics.aroundStripeCall.mockClear();
+			const mockConfirm = jest.fn().mockResolvedValue( {
+				type: 'success',
+			} );
+			const checkoutState = {
+				type: 'success',
+				checkout: {
+					email: 'test@example.com',
+					confirm: mockConfirm,
+				},
+			};
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				true,
+				false,
+				shippingData
+			);
+
+			await onCheckoutSuccessResultPromise;
+
+			expect( diagnostics.aroundStripeCall ).toHaveBeenCalledTimes( 1 );
+			expect( diagnostics.aroundStripeCall.mock.calls[ 0 ][ 0 ] ).toBe(
+				'confirm'
+			);
+			expect( mockConfirm ).toHaveBeenCalledTimes( 1 );
 		} );
 
 		it( 'includes email from DOM when checkout.email is absent', async () => {

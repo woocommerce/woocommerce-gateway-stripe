@@ -523,6 +523,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// async init chunk; sourcing the list from the build keeps it in sync.
 		$upe_params['scriptDependencies'] = $dependencies;
 
+		/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php */
+		$upe_params = apply_filters( 'wc_stripe_localized_data', $upe_params, 'wc-stripe-upe-classic', 'wc_stripe_upe_params' );
+
 		wp_localize_script(
 			'wc-stripe-upe-classic',
 			'wc_stripe_upe_params',

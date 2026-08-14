@@ -1,31 +1,356 @@
+@use '../../styles/abstracts/styles';
+
 .wc-stripe-optimized-checkout-first-method-notice {
-    border: 1px solid #DFB085;
-    border-radius: 8px;
-    padding: 12px;
-    background-color: #FFF3E0;
+	border: 1px solid #dfb085;
+	border-radius: 8px;
+	padding: 12px;
+	background-color: #fff3e0;
 
-    .notice-content {
-        display: flex;
-        align-items: flex-start;
-        gap: 6px;
-    }
+	.notice-content {
+		display: flex;
+		align-items: flex-start;
+		gap: 6px;
+	}
 
-    .components-notice__dismiss {
-        min-width: 18px !important;
-        width: 18px;
-        height: 18px;
-        margin-top: 6px;
-    }
+	.components-notice__dismiss {
+		min-width: 18px !important;
+		width: 18px;
+		height: 18px;
+		margin-top: 6px;
+	}
 
 	.components-notice__actions {
 		.components-notice__action {
 			margin-top: 0.5rem;
-            color: #1e1e1e;
-            box-shadow: none;
-            border: 1px solid #898989;
-            border-radius: 2px;
+			color: #1e1e1e;
+			box-shadow: none;
+			border: 1px solid #898989;
+			border-radius: 2px;
 		}
 	}
+}
+
+$diagnostics-failed: styles.$alert-red;
+$diagnostics-success: styles.$wp-green-50;
+$diagnostics-pending: styles.$wp-yellow-30;
+$diagnostics-abandoned: styles.$wp-gray-20;
+$diagnostics-muted-fg: styles.$wp-gray-50;
+$diagnostics-strong-fg: styles.$gray-900;
+$diagnostics-border: styles.$wp-gray-2;
+$diagnostics-border-strong: styles.$wp-gray-5;
+$diagnostics-bg-toolbar: styles.$wp-gray-0;
+
+.wc-stripe-diagnostics-header {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
+}
+
+.wc-stripe-diagnostics-header__text {
+	flex: 1;
+}
+
+.wc-stripe-diagnostics-header__text h4 {
+	margin-top: 0;
+	margin-bottom: 4px;
+}
+
+.wc-stripe-diagnostics-header__text p {
+	margin: 0;
+	color: $diagnostics-muted-fg;
+	font-size: 13px;
+	line-height: 18px;
+	max-width: 520px;
+}
+
+.wc-stripe-diagnostics-header .components-toggle-control {
+	margin-bottom: 0;
+	flex-shrink: 0;
+}
+
+// `<ToggleControl>` in this `@wordpress/components` version does not honour
+// `hideLabelFromVision`, so we visually hide the label here while keeping it
+// in the DOM as the toggle's accessible name.
+.wc-stripe-diagnostics-header .components-toggle-control__label {
+	display: none;
+}
+
+.wc-stripe-diagnostics-traces {
+	margin-top: 16px;
+	border: 1px solid $diagnostics-border-strong;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.wc-stripe-diagnostics-traces--empty {
+	padding: 16px;
+	background: $diagnostics-bg-toolbar;
+	color: $diagnostics-muted-fg;
+	font-size: 13px;
+	text-align: center;
+}
+
+.wc-stripe-diagnostics-traces--empty p {
+	margin: 0;
+}
+
+.wc-stripe-diagnostics-toolbar {
+	background: $diagnostics-bg-toolbar;
+	border-bottom: 1px solid $diagnostics-border;
+	font-size: 13px;
+}
+
+.wc-stripe-diagnostics-toolbar__row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	padding: 8px 12px;
+}
+
+.wc-stripe-diagnostics-toolbar__row--actions {
+	border-top: 1px solid $diagnostics-border;
+}
+
+.wc-stripe-diagnostics-toolbar__status {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: $diagnostics-strong-fg;
+	flex-wrap: wrap;
+}
+
+.wc-stripe-diagnostics-toolbar__status-label {
+	white-space: nowrap;
+}
+
+.wc-stripe-diagnostics-toolbar__separator {
+	color: $diagnostics-border-strong;
+}
+
+.wc-stripe-diagnostics-toolbar__count {
+	color: $diagnostics-muted-fg;
+	white-space: nowrap;
+}
+
+.wc-stripe-diagnostics-toolbar__failed-count {
+	color: $diagnostics-failed;
+	font-weight: 500;
+}
+
+.wc-stripe-diagnostics-toolbar__actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	margin-left: auto;
+}
+
+.wc-stripe-diagnostics-toolbar__limit {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-left: auto;
+	color: $diagnostics-muted-fg;
+	white-space: nowrap;
+}
+
+.wc-stripe-diagnostics-toolbar__limit-select {
+	padding: 3px 6px;
+	font-size: 12px;
+	border: 1px solid $diagnostics-border-strong;
+	border-radius: 2px;
+	background: #fff;
+	color: $diagnostics-strong-fg;
+	font-family: inherit; // some browsers ignore inherited font on <select>.
+	cursor: pointer;
+}
+
+.wc-stripe-diagnostics-toolbar__progress {
+	height: 3px;
+	background: $diagnostics-border;
+	overflow: hidden;
+}
+
+.wc-stripe-diagnostics-toolbar__progress-bar {
+	height: 100%;
+	background: styles.$wp-blue-50;
+	transition: width 0.2s ease-out;
+}
+
+.wc-stripe-diagnostics-recording-indicator {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: transparent;
+	border: 1.5px solid styles.$wp-gray-30;
+	flex-shrink: 0;
+}
+
+.wc-stripe-diagnostics-recording-indicator.is-recording {
+	background: $diagnostics-failed;
+	border-color: $diagnostics-failed;
+	box-shadow: 0 0 0 4px rgba( $diagnostics-failed, 0.12 );
+	animation: wc-stripe-diagnostics-pulse 1.6s ease-out infinite;
+}
+
+@keyframes wc-stripe-diagnostics-pulse {
+	0% {
+		box-shadow: 0 0 0 0 rgba( $diagnostics-failed, 0.4 );
+	}
+	70% {
+		box-shadow: 0 0 0 6px rgba( $diagnostics-failed, 0 );
+	}
+	100% {
+		box-shadow: 0 0 0 0 rgba( $diagnostics-failed, 0 );
+	}
+}
+
+.wc-stripe-diagnostics-segmented {
+	display: inline-flex;
+	background: #fff;
+	border: 1px solid $diagnostics-border-strong;
+	border-radius: 2px;
+	padding: 2px;
+	gap: 2px;
+}
+
+.wc-stripe-diagnostics-segmented__option {
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: 2px;
+	padding: 2px 10px;
+	font-size: 12px;
+	line-height: 20px;
+	color: $diagnostics-muted-fg;
+	cursor: pointer;
+}
+
+.wc-stripe-diagnostics-segmented__option:hover {
+	color: $diagnostics-strong-fg;
+}
+
+.wc-stripe-diagnostics-segmented__option.is-active {
+	background: $diagnostics-bg-toolbar;
+	border-color: $diagnostics-border-strong;
+	color: $diagnostics-strong-fg;
+	font-weight: 500;
+}
+
+.wc-stripe-diagnostics-trace-list {
+	background: #fff;
+}
+
+.wc-stripe-diagnostics-trace-list__empty {
+	padding: 24px 16px;
+	font-size: 13px;
+	color: $diagnostics-muted-fg;
+	text-align: center;
+}
+
+.wc-stripe-diagnostics-trace-row {
+	display: grid;
+	// First column fits the longest status label ("Abandoned") so the
+	// status text stays aligned across rows.
+	grid-template-columns: 90px 1fr auto auto;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 16px;
+	border-top: 1px solid $diagnostics-border;
+	font-size: 13px;
+}
+
+.wc-stripe-diagnostics-trace-row:first-of-type {
+	border-top: none;
+}
+
+.wc-stripe-diagnostics-trace-row__main {
+	overflow: hidden;
+}
+
+.wc-stripe-diagnostics-trace-row__heading {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.wc-stripe-diagnostics-trace-row__id {
+	font-family: styles.$font-family-mono;
+	font-size: 12px;
+	color: $diagnostics-strong-fg;
+}
+
+.wc-stripe-diagnostics-trace-row__when {
+	color: $diagnostics-muted-fg;
+	font-size: 12px;
+}
+
+.wc-stripe-diagnostics-trace-row__summary {
+	color: $diagnostics-strong-fg;
+	margin-top: 2px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.wc-stripe-diagnostics-trace-row__duration {
+	color: $diagnostics-muted-fg;
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+}
+
+.wc-stripe-diagnostics-trace-row__actions {
+	display: inline-flex;
+	gap: 4px;
+}
+
+.wc-stripe-diagnostics-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	color: $diagnostics-strong-fg;
+	white-space: nowrap;
+}
+
+.wc-stripe-diagnostics-status-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.wc-stripe-diagnostics-status-dot--failed {
+	background: $diagnostics-failed;
+}
+
+.wc-stripe-diagnostics-status-dot--completed {
+	background: $diagnostics-success;
+}
+
+.wc-stripe-diagnostics-status-dot--pending {
+	background: $diagnostics-pending;
+}
+
+.wc-stripe-diagnostics-status-dot--abandoned {
+	background: $diagnostics-abandoned;
+}
+
+.wc-stripe-diagnostics-view-modal .components-modal__content {
+	max-width: 720px;
+}
+
+.wc-stripe-diagnostics-view-modal__json {
+	max-height: 60vh;
+	overflow: auto;
+	background: $diagnostics-bg-toolbar;
+	border: 1px solid $diagnostics-border-strong;
+	border-radius: 2px;
+	padding: 12px;
+	font-family: styles.$font-family-mono;
+	font-size: 12px;
+	line-height: 1.5;
+	white-space: pre;
+	margin: 0;
 }
 
 .wc-stripe-adaptive-pricing-unavailable-reason {

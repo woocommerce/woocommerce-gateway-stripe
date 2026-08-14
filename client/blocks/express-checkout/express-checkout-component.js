@@ -10,6 +10,7 @@ import {
 	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 } from 'wcstripe/stripe-utils/constants';
+import { diagnostics } from 'wcstripe/diagnostics/wiring';
 
 const getPaymentMethodsOverride = ( enabledPaymentMethod ) => {
 	const allDisabled = {
@@ -103,6 +104,46 @@ const ExpressCheckoutComponent = ( {
 		[ expressPaymentMethod ]
 	);
 
+	const handleClick = useCallback(
+		( event ) => {
+			diagnostics.recordExpressEvent( 'click', event );
+			return onButtonClick( event );
+		},
+		[ onButtonClick ]
+	);
+
+	const handleConfirm = useCallback(
+		( event ) => {
+			diagnostics.recordExpressEvent( 'confirm', event );
+			return onConfirm( event );
+		},
+		[ onConfirm ]
+	);
+
+	const handleCancel = useCallback(
+		( event ) => {
+			diagnostics.recordExpressEvent( 'cancel', event );
+			return onCancel( event );
+		},
+		[ onCancel ]
+	);
+
+	const handleShippingAddressChange = useCallback(
+		( event ) => {
+			diagnostics.recordExpressEvent( 'shippingaddresschange', event );
+			return onShippingAddressChange( event );
+		},
+		[ onShippingAddressChange ]
+	);
+
+	const handleShippingRateChange = useCallback(
+		( event ) => {
+			diagnostics.recordExpressEvent( 'shippingratechange', event );
+			return onShippingRateChange( event );
+		},
+		[ onShippingRateChange ]
+	);
+
 	// Stable across cart ticks; only rebuilds when styling or method changes.
 	const elementOptions = useMemo(
 		() => ( {
@@ -115,12 +156,12 @@ const ExpressCheckoutComponent = ( {
 	return (
 		<ExpressCheckoutElement
 			options={ elementOptions }
-			onClick={ onButtonClick }
-			onConfirm={ onConfirm }
+			onClick={ handleClick }
+			onConfirm={ handleConfirm }
 			onReady={ onElementsReady }
-			onCancel={ onCancel }
-			onShippingAddressChange={ onShippingAddressChange }
-			onShippingRateChange={ onShippingRateChange }
+			onCancel={ handleCancel }
+			onShippingAddressChange={ handleShippingAddressChange }
+			onShippingRateChange={ handleShippingRateChange }
 		/>
 	);
 };

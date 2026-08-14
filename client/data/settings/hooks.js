@@ -174,6 +174,17 @@ export const useIsShortAccountStatementEnabled = makeSettingsHook(
 	'is_short_statement_descriptor_enabled'
 );
 export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
+export const useDiagnosticsMode = makeSettingsHook( 'is_diagnostics_enabled' );
+// 10 mirrors PHP DEFAULT_CAPTURE_LIMIT for pre-fetch render.
+export const useDiagnosticsCaptureLimit = makeSettingsHook(
+	'diagnostics_capture_limit',
+	10
+);
+// Fallback only - real values come from the settings REST payload.
+export const useDiagnosticsCaptureLimitPresets = makeReadOnlySettingsHook(
+	'diagnostics_capture_limit_presets',
+	[ 5, 10, 25, 50 ]
+);
 export const useIsOCEnabled = makeSettingsHook( 'is_oc_enabled' );
 export const useIsAdaptivePricingEnabled = makeSettingsHook( 'is_ap_enabled' );
 export const useOCLayout = makeSettingsHook( 'oc_layout' );

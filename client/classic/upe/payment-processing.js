@@ -29,6 +29,7 @@ import {
 } from '../../stripe-utils/upe-appearance';
 import { getFontRulesFromPage, sampleFontFamily } from '../../styles/upe';
 import { getPaymentMethodRadioStyles } from '../../styles/upe/utils';
+import { diagnostics } from 'wcstripe/diagnostics/wiring';
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
@@ -632,6 +633,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	gatewayUPEComponents[ paymentMethodType ].upeElement =
 		createdStripePaymentElement;
 
+	diagnostics.attach( createdStripePaymentElement, paymentMethodType );
+
 	// When email or phone is updated and Link is enabled, we need to
 	// update the payment element to update its default values.
 	if (
@@ -746,9 +749,11 @@ function createStripePaymentMethod(
 			  }
 			: { elements, params };
 
-	return api
-		.getStripe( paymentMethodType )
-		.createPaymentMethod( paymentMethodData )
+	const stripe = api.getStripe( paymentMethodType );
+	return diagnostics
+		.aroundStripeCall( 'createPaymentMethod', () =>
+			stripe.createPaymentMethod( paymentMethodData )
+		)
 		.then( ( paymentMethod ) => {
 			if ( paymentMethod.error ) {
 				throw paymentMethod.error;
@@ -1613,17 +1618,23 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 				break;
 			case PAYMENT_METHOD_CASHAPP:
 				if ( intentType === 'setup_intent' ) {
-					confirmPayment = await api
-						.getStripe()
-						.confirmCashappSetup( clientSecret, {
-							return_url: returnURL,
-						} );
+					confirmPayment = await diagnostics.aroundStripeCall(
+						'confirmCashappSetup',
+						() =>
+							api.getStripe().confirmCashappSetup( clientSecret, {
+								return_url: returnURL,
+							} )
+					);
 				} else {
-					confirmPayment = await api
-						.getStripe()
-						.confirmCashappPayment( clientSecret, {
-							return_url: returnURL,
-						} );
+					confirmPayment = await diagnostics.aroundStripeCall(
+						'confirmCashappPayment',
+						() =>
+							api
+								.getStripe()
+								.confirmCashappPayment( clientSecret, {
+									return_url: returnURL,
+								} )
+					);
 				}
 				break;
 			default:

@@ -138,6 +138,42 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * Round-trips the diagnostics capture-limit REST field — presets in, 0
+	 * and off-menu values rejected.
+	 */
+	public function test_diagnostics_capture_limit_round_trip() {
+		$response = $this->rest_get_settings();
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame(
+			WC_REST_Stripe_Diagnostics_Controller::DEFAULT_CAPTURE_LIMIT,
+			$response->get_data()['diagnostics_capture_limit']
+		);
+		$this->assertSame(
+			WC_REST_Stripe_Diagnostics_Controller::CAPTURE_LIMIT_PRESETS,
+			$response->get_data()['diagnostics_capture_limit_presets']
+		);
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'diagnostics_capture_limit', 25 );
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( 25, $this->rest_get_settings()->get_data()['diagnostics_capture_limit'] );
+
+		// 0 is rejected — auto-off can't be disabled.
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'diagnostics_capture_limit', 0 );
+		$response = rest_do_request( $request );
+		$this->assertEquals( 400, $response->get_status() );
+		$this->assertSame( 25, $this->rest_get_settings()->get_data()['diagnostics_capture_limit'] );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'diagnostics_capture_limit', 7 );
+		$response = rest_do_request( $request );
+		$this->assertEquals( 400, $response->get_status() );
+		$this->assertSame( 25, $this->rest_get_settings()->get_data()['diagnostics_capture_limit'] );
+	}
+
+	/**
 	 * Test mode cannot be turned off unless a live account is connected.
 	 *
 	 * @param bool   $live_connected  Whether live API keys are present.
@@ -749,6 +785,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 				'is_short_statement_descriptor_enabled',
 			],
 			'is_debug_log_enabled'                  => [ 'is_debug_log_enabled', 'logging' ],
+			'is_diagnostics_enabled'                => [ 'is_diagnostics_enabled', 'diagnostics' ],
 		];
 	}
 

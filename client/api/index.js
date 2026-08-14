@@ -16,6 +16,7 @@ import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
+import { diagnostics } from 'wcstripe/diagnostics/wiring';
 
 /**
  * Handles generic connections to the server and Stripe.
@@ -231,10 +232,15 @@ export default class WCStripeAPI {
 					response.data.return_url
 				);
 
-				return this.getStripe()
-					.confirmCashappSetup( response.data.client_secret, {
-						return_url: returnURL,
-					} )
+				return diagnostics
+					.aroundStripeCall( 'confirmCashappSetup', () =>
+						this.getStripe().confirmCashappSetup(
+							response.data.client_secret,
+							{
+								return_url: returnURL,
+							}
+						)
+					)
 					.then( ( confirmedSetupIntent ) => {
 						const { setupIntent, error } = confirmedSetupIntent;
 						if ( error ) {
@@ -252,11 +258,13 @@ export default class WCStripeAPI {
 			}
 
 			// Card Payments.
-			return this.getStripe()
-				.confirmSetup( {
-					clientSecret: response.data.client_secret,
-					redirect: 'if_required',
-				} )
+			return diagnostics
+				.aroundStripeCall( 'confirmSetup', () =>
+					this.getStripe().confirmSetup( {
+						clientSecret: response.data.client_secret,
+						redirect: 'if_required',
+					} )
+				)
 				.then( ( confirmedSetupIntent ) => {
 					const { setupIntent, error } = confirmedSetupIntent;
 					if ( error ) {
@@ -355,9 +363,10 @@ export default class WCStripeAPI {
 			redirect: 'if_required',
 		};
 
-		const confirmAction = isSetupIntent
-			? this.getStripe().confirmSetup( confirmArgs )
-			: this.getStripe( true ).confirmPayment( confirmArgs );
+		const stripeMethod = isSetupIntent ? 'confirmSetup' : 'confirmPayment';
+		const confirmAction = diagnostics.aroundStripeCall( stripeMethod, () =>
+			this.getStripe()[ stripeMethod ]( confirmArgs )
+		);
 
 		const request = confirmAction
 			// ToDo: Switch to an async function once it works with webpack.
