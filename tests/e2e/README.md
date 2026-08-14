@@ -1,6 +1,6 @@
 # WooCommerce Gateway Stripe End to End Tests
 
-We use [Playwright](https://playwright.dev/) as our test runner. 
+We use [Playwright](https://playwright.dev/) as our test runner.
 
 ## Table of contents
 
@@ -15,7 +15,7 @@ We use [Playwright](https://playwright.dev/) as our test runner.
   - [Guide for writing e2e tests](#guide-for-writing-e2e-tests)
     - [Creating the test structure](#creating-the-test-structure)
     - [Writing the test](#writing-the-test)
-  
+
 ## Running E2E Tests
 
 ### Pre-requisites
@@ -44,7 +44,10 @@ The local Docker setup (`npm run test:e2e-setup` with no `--base_url`) installs 
 2. The [GitHub CLI](https://cli.github.com/), if you are logged in (`gh auth login`).
 3. `woocommerce-subscriptions.zip` and `woocommerce-pre-orders.zip` placed in `/tests/e2e/deps/`.
 
-Downloads are kept in `/tests/e2e/deps/` (gitignored), so once you have run the setup with a token or the `gh` CLI, later runs can reuse those copies offline. Delete them to force a fresh download of the latest versions.
+Downloads are kept in /tests/e2e/deps/ (gitignored).
+The latest release is fetched on every run whenever a token or the gh CLI is available, so these copies act as a fallback rather than a cache. This is also how you pin specific plugin versions for a run.
+
+NOTE: a GITHUB_TOKEN that fails to authenticate aborts the setup instead of falling back, so an expired token surfaces as an auth error rather than a silent downgrade to an older zip.
 
 ### Running tests
 
@@ -58,7 +61,7 @@ This command will perform the following actions:
 
 - Connect to the test server using SSH and the credentials in the `/tests/e2e/config/local.env` file.
 - Install the latest version of WooCommerce from the official WordPress repository.
-- Install the latest version of the WooCommerce Gateway Stripe plugin from the official WordPress repository. 
+- Install the latest version of the WooCommerce Gateway Stripe plugin from the official WordPress repository.
   **Note:** you can specify a different version to test by using the `--version` flag. In this case, the plugin will be downloaded from GitHub instead.
 - Install and activate the StoreFront theme.
 - Configure WooCommerce on the test site (e.g. store address, currency, shipping methods).
@@ -66,7 +69,7 @@ This command will perform the following actions:
 - Create pages for the Cart blocks and Checkout blocks from WooCommerce Blocks.
 - Set up the Stripe gateway using the keys from the `/tests/e2e/config/local.env` file and create a webhook endpoint on Stripe.
 
-**Note:** To run this command, SSH and admin credentials are required. 
+**Note:** To run this command, SSH and admin credentials are required.
 
 The SSH and admin credentials are mandatory (view the parameters `--with_woo_setup` and `--with_stripe_setup` below for more info).
 
