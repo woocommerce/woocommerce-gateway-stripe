@@ -152,12 +152,33 @@ class WC_Stripe_Account {
 	}
 
 	/**
+	 * Re-reads the account data from Stripe and drops the cached webhook status.
+	 *
+	 * A failed fetch (network error, Stripe outage) leaves the previously cached account data in
+	 * place so the UI keeps rendering the last known account; an invalid API key does not, so the
+	 * reconnect prompt can still surface.
+	 *
+	 * @return array Account data or empty if failed to retrieve account data.
+	 */
+	public function refresh_cache() {
+		$this->clear_webhook_status_cache();
+
+		return $this->get_cached_account_data( null, true );
+	}
+
+	/**
 	 * Wipes the account data option.
 	 */
 	public function clear_cache() {
 		WC_Stripe_Database_Cache::delete( self::ACCOUNT_CACHE_KEY );
 
-		// Clear the webhook status cache.
+		$this->clear_webhook_status_cache();
+	}
+
+	/**
+	 * Wipes the cached webhook status for both modes.
+	 */
+	private function clear_webhook_status_cache(): void {
 		delete_transient( self::LIVE_WEBHOOK_STATUS_OPTION );
 		delete_transient( self::TEST_WEBHOOK_STATUS_OPTION );
 	}

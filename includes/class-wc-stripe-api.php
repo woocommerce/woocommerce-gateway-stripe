@@ -151,6 +151,13 @@ class WC_Stripe_API {
 			'Stripe-Version' => self::STRIPE_API_VERSION,
 		];
 
+		/**
+		 * Filters the request headers sent to the Stripe API. Deprecated in favor of wc_stripe_request_headers.
+		 *
+		 * @deprecated 9.7.0
+		 *
+		 * @param array $headers The headers to send to the Stripe API.
+		 */
 		$headers = apply_filters_deprecated(
 			'woocommerce_stripe_request_headers',
 			[ $headers ],
@@ -224,6 +231,14 @@ class WC_Stripe_API {
 			$headers['Idempotency-Key'] = $idempotency_key;
 		}
 
+		/**
+		 * Filters the request body sent to the Stripe API. Deprecated in favor of wc_stripe_request_body.
+		 *
+		 * @deprecated 9.7.0
+		 *
+		 * @param array $request The request body to send to the Stripe API.
+		 * @param string $api The Stripe API endpoint.
+		 */
 		$request = apply_filters_deprecated(
 			'woocommerce_stripe_request_body',
 			[ $request, $api ],

@@ -44,16 +44,17 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
 
 /**
  * @typedef {Object} UPEComponent
- * @property {string|null}          intentId          The ID of the intent.
- * @property {string|null}          checkoutSessionId Stripe Checkout Session id (cs_…) from create session; same value passed to initCheckoutElementsSdk as clientSecret.
- * @property {Object|null}          elements          The Stripe elements object.
- * @property {Object|null}          upeElement        The Stripe payment element.
- * @property {boolean}              hasLoadError      Whether the payment element has a load error.
- * @property {Promise<Object|null>} upeElementPromise Promise that resolves to the Stripe payment element.
- * @property {Promise<Object>|null} mountPromise      Promise that resolves once the element is fully (re)mounted, or null when no mount is in flight.
- * @property {Object|null}          mountTarget       The DOM node the in-flight mount targets, used to dedupe concurrent mounts of the same element.
- * @property {number}               mountToken        Monotonic id of the latest mount; an older mount whose token no longer matches skips its side-effects.
- * @property {boolean}              listenersAttached Whether the one-time element listeners (loaderror/change) have been wired, so remounts don't stack duplicates on the cached element.
+ * @property {string|null}          intentId                The ID of the intent.
+ * @property {string|null}          checkoutSessionId       Stripe Checkout Session id (cs_…) embedded by WooCommerce.
+ * @property {string}               checkoutSessionRevision Revision token embedded by the native WooCommerce checkout response.
+ * @property {Object|null}          elements                The Stripe elements object.
+ * @property {Object|null}          upeElement              The Stripe payment element.
+ * @property {boolean}              hasLoadError            Whether the payment element has a load error.
+ * @property {Promise<Object|null>} upeElementPromise       Promise that resolves to the Stripe payment element.
+ * @property {Promise<Object>|null} mountPromise            Promise that resolves once the element is fully (re)mounted, or null when no mount is in flight.
+ * @property {Object|null}          mountTarget             The DOM node the in-flight mount targets, used to dedupe concurrent mounts of the same element.
+ * @property {number}               mountToken              Monotonic id of the latest mount; an older mount whose token no longer matches skips its side-effects.
+ * @property {boolean}              listenersAttached       Whether the one-time element listeners (loaderror/change) have been wired, so remounts don't stack duplicates on the cached element.
  */
 
 /**
@@ -119,6 +120,7 @@ export function initializeUPEComponents() {
 		gatewayUPEComponents[ paymentMethodType ] = {
 			intentId: null,
 			checkoutSessionId: null,
+			checkoutSessionRevision: '',
 			elements: null,
 			upeElement: null,
 			hasLoadError: false,
@@ -137,21 +139,23 @@ export function initializeUPEComponents() {
 }
 
 /**
- * After classic checkout AJAX refresh (e.g. shipping or coupon), sync line items on the Stripe Checkout Session
- * so the Payment Element amount matches the cart. Uses checkoutSessionId from the create-session response.
+ * After WooCommerce refreshes classic checkout, notify Stripe.js that the native response finished synchronizing
+ * the Checkout Session. The PHP lifecycle hook has already applied WooCommerce's current cart to Stripe.
  *
  * Wraps the server request in Stripe Custom Checkout {@link https://docs.stripe.com/js/custom_checkout/run_server_update runServerUpdate}
  * when available so the embedded session state stays consistent after the update.
  *
- * @param {Object} api WCStripeAPI instance.
  * @return {Promise<void>}
  */
-export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
+export async function maybeUpdateAdaptivePricingCheckoutSession() {
 	if ( ! getStripeServerData()?.isAdaptivePricingEnabled ) {
 		return;
 	}
 
 	const generation = ++adaptivePricingSyncGeneration;
+	const nativeSession = getNativeCheckoutSessionData();
+	// Only an element that actually holds a session can go stale. A store that fell back to
+	// standard elements has nothing to resync, so it must not be warned about a stale total.
 	let resyncFailed = false;
 
 	const seen = new Set();
@@ -162,6 +166,16 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 			continue;
 		}
 		seen.add( sessionId );
+
+		// The mounted element cannot update the checkout session ID once it has been set.
+		// So we show an error when we failed to get a session OR we got a new session.
+		if (
+			nativeSession?.status !== 'success' ||
+			nativeSession?.session_id !== sessionId
+		) {
+			resyncFailed = true;
+			continue;
+		}
 
 		const checkout = component?.elements;
 
@@ -176,16 +190,15 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 						blockUI( jQuery( 'form.checkout #payment' ) );
 						const updateResult =
 							await loadResult.actions.runServerUpdate(
-								async () => {
-									await api.checkoutSessionsUpdateSession(
-										sessionId
-									);
-								}
+								async () => {}
 							);
 						if ( updateResult.type === 'error' ) {
 							resyncFailed = true;
 							// eslint-disable-next-line no-console
 							console.error( updateResult.error );
+						} else {
+							component.checkoutSessionRevision =
+								nativeSession.revision;
 						}
 					} catch ( error ) {
 						resyncFailed = true;
@@ -207,13 +220,9 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 			}
 		}
 
-		try {
-			await api.checkoutSessionsUpdateSession( sessionId );
-		} catch ( error ) {
-			resyncFailed = true;
-			// eslint-disable-next-line no-console
-			console.error( error );
-		}
+		// initCheckoutElementsSdk exposes runServerUpdate; without it Stripe.js cannot be told
+		// to fetch the session revision that WooCommerce just synchronized.
+		resyncFailed = true;
 	}
 
 	// A newer resync started while we were awaiting; let it own the result.
@@ -232,6 +241,29 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 	} else {
 		// Retract the notice a prior failed resync left behind now that totals sync.
 		clearStaleCheckoutTotalNotice();
+	}
+}
+
+/**
+ * Read Checkout Session data embedded in the latest native checkout fragment.
+ *
+ * @return {Object|null} Parsed session data.
+ */
+function getNativeCheckoutSessionData() {
+	const dataElement = document.getElementById(
+		'wc-stripe-checkout-session-data'
+	);
+	const serializedData = dataElement?.dataset?.checkoutSession;
+	if ( ! serializedData ) {
+		return null;
+	}
+
+	try {
+		return JSON.parse( serializedData );
+	} catch ( error ) {
+		// eslint-disable-next-line no-console
+		console.error( error );
+		return null;
 	}
 }
 
@@ -411,11 +443,15 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		typeof stripe?.initCheckoutElementsSdk === 'function'
 	) {
 		try {
-			const response = await api.checkoutSessionsCreateSession();
-			const clientSecret = response?.data?.client_secret;
-			const sessionId = response?.data?.session_id;
+			const nativeSession = getNativeCheckoutSessionData();
+			const clientSecret = nativeSession?.client_secret;
+			const sessionId = nativeSession?.session_id;
 
-			if ( ! clientSecret || ! sessionId ) {
+			if (
+				! clientSecret ||
+				! sessionId ||
+				nativeSession?.status !== 'success'
+			) {
 				throw new Error(
 					__(
 						'Failed to load payment method due to missing client secret or session id.',
@@ -426,6 +462,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 
 			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId =
 				sessionId;
+			gatewayUPEComponents[ paymentMethodType ].checkoutSessionRevision =
+				nativeSession.revision;
 
 			elements = await stripe.initCheckoutElementsSdk( {
 				clientSecret,
@@ -447,6 +485,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			shouldLoadStripeElements = false;
 		} catch ( error ) {
 			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId = null;
+			gatewayUPEComponents[ paymentMethodType ].checkoutSessionRevision =
+				'';
 			// eslint-disable-next-line no-console
 			console.error( error );
 			shouldLoadStripeElements = true;
@@ -457,6 +497,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	// load the Stripe elements as fallback.
 	if ( shouldLoadStripeElements ) {
 		gatewayUPEComponents[ paymentMethodType ].checkoutSessionId = null;
+		gatewayUPEComponents[ paymentMethodType ].checkoutSessionRevision = '';
 		elements = stripe.elements( options );
 	}
 
