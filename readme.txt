@@ -262,5 +262,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Allow express checkout payments when automatic account password generation is disabled
 * Tweak - Add PHPDoc for some deprecated hooks
 * Dev - Remove the deprecated @woocommerce/settings npm package; settings are still read from the wc-settings script WooCommerce provides at runtime
+* Dev - Make GITHUB_TOKEN optional for the local E2E Docker setup by falling back to the gh CLI and then to plugin zips cached in tests/e2e/deps
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
