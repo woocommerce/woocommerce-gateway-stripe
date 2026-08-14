@@ -216,6 +216,14 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
+			/**
+			 * Fires after a redirect payment is processed.
+			 * Deprecated in favor of wc_gateway_stripe_process_payment_charge.
+			 *
+			 * @deprecated 9.7.0
+			 * @param object   $response The response object.
+			 * @param WC_Order $order    The order object.
+			*/
 			do_action_deprecated(
 				'wc_gateway_stripe_process_redirect_payment',
 				[ $response, $order ],
