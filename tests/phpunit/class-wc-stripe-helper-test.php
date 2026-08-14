@@ -999,6 +999,24 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * get_stripe_settings( $method ) reads the raw per-method option and always
+	 * returns an array, including when the option is missing or malformed.
+	 *
+	 * @return void
+	 */
+	public function test_get_stripe_settings_reads_per_method_option() {
+		update_option( 'woocommerce_stripe_boleto_settings', [ 'foo' => 'bar' ] );
+		$this->assertEquals( [ 'foo' => 'bar' ], WC_Stripe_Helper::get_stripe_settings( WC_Stripe_Payment_Methods::BOLETO ) );
+
+		delete_option( 'woocommerce_stripe_boleto_settings' );
+		$this->assertSame( [], WC_Stripe_Helper::get_stripe_settings( WC_Stripe_Payment_Methods::BOLETO ) );
+
+		update_option( 'woocommerce_stripe_boleto_settings', 'not-an-array' );
+		$this->assertSame( [], WC_Stripe_Helper::get_stripe_settings( WC_Stripe_Payment_Methods::BOLETO ) );
+		delete_option( 'woocommerce_stripe_boleto_settings' );
+	}
+
+	/**
 	 * Test for `get_klarna_preferred_locale`.
 	 * @return void
 	 */
@@ -2679,5 +2697,21 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'          => false,
 			],
 		];
+	}
+
+	/**
+	 * The shared helper must produce the canonical 'stripe' handle.
+	 *
+	 * @return void
+	 */
+	public function test_register_stripe_js_registers_the_stripe_handle() {
+		wp_deregister_script( 'stripe' );
+
+		WC_Stripe_Helper::register_stripe_js();
+
+		$this->assertTrue( wp_script_is( 'stripe', 'registered' ) );
+		$registered = wp_scripts()->registered['stripe'];
+		$this->assertSame( 'https://js.stripe.com/dahlia/stripe.js', $registered->src );
+		$this->assertSame( 1, wp_scripts()->get_data( 'stripe', 'group' ), 'Stripe.js must load in the footer.' );
 	}
 }
