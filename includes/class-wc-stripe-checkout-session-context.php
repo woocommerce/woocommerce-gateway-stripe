@@ -387,11 +387,12 @@ class WC_Stripe_Checkout_Session_Context {
 
 		self::delete_context( $session_id );
 
-		WC_Stripe_Logger::warning(
+		WC_Stripe_Logger::error(
 			'Checkout Session amount mismatch; Session invalidated.',
 			[
 				'checkout_session_id' => $session_id,
 				'order_id'            => $order->get_id(),
+				'customer_id'         => $order->get_customer_id(),
 				'session_amount'      => $context['amount'],
 				'order_amount'        => $order_amount,
 				'session_currency'    => $context['currency'],

@@ -108,6 +108,8 @@ xxxx-xx-xx - version 10.9.0
 * Tweak - Add PHPDoc for some deprecated hooks
 * Dev - Remove the deprecated @woocommerce/settings npm package; settings are still read from the wc-settings script WooCommerce provides at runtime
 * Fix - Ensure that manual Adaptive Pricing changes after upgrades get precedence
+* Fix - Exclude password-protected products and products hidden from the catalog from the Agentic Commerce feed
+* Fix - Name password protection and hidden visibility as their own reasons in the Agentic Commerce feed preview
 
 2026-08-05 - version 10.8.5
 * Update - Improve webhook handling
