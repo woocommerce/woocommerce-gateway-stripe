@@ -2505,6 +2505,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		$restore_hooks = null;
 		try {
 			if ( $order_helper->is_stripe_status_final( $order ) ) {
 				return;
@@ -2520,6 +2521,24 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$message             = __( 'The checkout session has expired.', 'woocommerce-gateway-stripe' );
 				$target_order_status = OrderStatus::CANCELLED;
 				$is_error            = false;
+
+				/**
+				 * Should we send a cancelled order email to the customer after the checkout session expired?
+				 *
+				 * @param bool     $should_send_cancelled_email Whether to send a cancelled order email to the customer. Default false.
+				 * @param WC_Order $order                       The order object.
+				 * @param object   $notification                The webhook notification object.
+				 *
+				 * @since 10.9.0
+				 */
+				$should_send_cancelled_email = (bool) apply_filters( 'wc_stripe_checkout_session_expired_should_send_cancelled_order_email', false, $order, $notification );
+
+				if ( ! $should_send_cancelled_email ) {
+					add_filter( 'woocommerce_email_enabled_customer_cancelled_order', '__return_false' );
+					$restore_hooks = function () {
+						remove_filter( 'woocommerce_email_enabled_customer_cancelled_order', '__return_false' );
+					};
+				}
 			} else {
 				$message             = __( 'The async payment for this checkout session has failed.', 'woocommerce-gateway-stripe' );
 				$target_order_status = OrderStatus::FAILED;
@@ -2540,6 +2559,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 		} finally {
 			$order_helper->unlock_order_payment( $order );
+
+			if ( is_callable( $restore_hooks ) ) {
+				$restore_hooks();
+			}
 		}
 	}
 
