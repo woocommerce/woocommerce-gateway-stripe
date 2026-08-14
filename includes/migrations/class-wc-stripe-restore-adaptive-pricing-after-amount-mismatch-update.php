@@ -49,8 +49,7 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update {
 		$stripe_settings['adaptive_pricing'] = 'yes';
 		$stripe->update_settings( $stripe_settings );
 
-		// Get the updated settings data.
-		// If adaptive pricing is still disabled, return _without_ setting the migration flag so we can run at a later time.
+		// Re-read persisted settings. Leave the migration flag unset if the update did not take effect so a later update can retry.
 		if ( 'yes' !== ( $stripe->get_settings()['adaptive_pricing'] ?? 'no' ) ) {
 			return;
 		}
