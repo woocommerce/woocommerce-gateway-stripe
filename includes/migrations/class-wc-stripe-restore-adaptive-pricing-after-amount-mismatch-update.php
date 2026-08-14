@@ -49,19 +49,25 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update {
 		$stripe_settings['adaptive_pricing'] = 'yes';
 		$stripe->update_settings( $stripe_settings );
 
-		// Keep the safety marker in place unless the canonical settings read confirms the write.
+		// Get the updated settings data.
+		// If adaptive pricing is still disabled, return _without_ setting the migration flag so we can run at a later time.
 		if ( 'yes' !== ( $stripe->get_settings()['adaptive_pricing'] ?? 'no' ) ) {
 			return;
 		}
 
 		// A failed marker deletion must remain retryable on a later plugin update.
 		if ( ! delete_option( self::AMOUNT_MISMATCH_OPTION ) ) {
+			// If the option still exists, then return early.
+			if ( false !== get_option( self::AMOUNT_MISMATCH_OPTION, false ) ) ) {
+				return;
+			}
+			// Otherwise the option no longer exists, mark the migration as complete.
 			return;
 		}
 
 		update_option( self::MIGRATION_FLAG_OPTION, 'yes' );
 
-		WC_Stripe_Logger::info(
+		WC_Stripe_Logger::error(
 			'Adaptive Pricing re-enabled during plugin update after a previous automatic disable caused by a Checkout Session amount mismatch.',
 			[ 'previous_version' => (string) $previous_version ]
 		);
