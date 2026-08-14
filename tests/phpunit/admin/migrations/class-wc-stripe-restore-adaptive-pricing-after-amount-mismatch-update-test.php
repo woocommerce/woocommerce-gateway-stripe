@@ -67,14 +67,17 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update_Test exten
 		}
 
 		$logger      = $this->createMock( WC_Logger::class );
-		$expectation = $logger->expects( $expect_log ? $this->once() : $this->never() )->method( 'info' );
+		$expectation = $logger->expects( $expect_log ? $this->once() : $this->never() )->method( 'error' );
 
 		if ( $expect_log ) {
 			$expectation->with(
 				self::LOG_MESSAGE,
 				array_merge(
 					WC_Stripe_Logger::LOG_CONTEXT,
-					[ 'previous_version' => (string) $previous_version ]
+					[
+						'previous_version' => (string) $previous_version,
+						'backtrace'        => true,
+					]
 				)
 			);
 		}
