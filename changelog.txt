@@ -107,6 +107,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Allow express checkout payments when automatic account password generation is disabled
 * Tweak - Add PHPDoc for some deprecated hooks
 * Dev - Remove the deprecated @woocommerce/settings npm package; settings are still read from the wc-settings script WooCommerce provides at runtime
+* Fix - Ensure that manual Adaptive Pricing changes after upgrades get precedence
 
 2026-08-05 - version 10.8.5
 * Update - Improve webhook handling
