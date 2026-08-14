@@ -194,7 +194,7 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update_Test exten
 		add_filter( 'pre_update_option_woocommerce_stripe_settings', $prevent_ap_restore, PHP_INT_MAX );
 
 		$logger = $this->createMock( WC_Logger::class );
-		$logger->expects( $this->never() )->method( 'info' );
+		$logger->expects( $this->never() )->method( 'error' );
 		WC_Stripe_Logger::$logger = $logger;
 
 		try {
