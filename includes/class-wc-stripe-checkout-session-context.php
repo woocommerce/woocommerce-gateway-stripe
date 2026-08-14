@@ -392,6 +392,7 @@ class WC_Stripe_Checkout_Session_Context {
 			[
 				'checkout_session_id' => $session_id,
 				'order_id'            => $order->get_id(),
+				'customer_id'         => $order->get_customer_id(),
 				'session_amount'      => $context['amount'],
 				'order_amount'        => $order_amount,
 				'session_currency'    => $context['currency'],
