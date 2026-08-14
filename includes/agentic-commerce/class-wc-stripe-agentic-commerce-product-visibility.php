@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @internal
  * @since 10.9.0
  */
-class WC_Stripe_Agentic_Commerce_Product_Visibility {
+final class WC_Stripe_Agentic_Commerce_Product_Visibility {
 
 	/**
 	 * Last-exported eligibility ('yes' = excluded).
@@ -32,7 +32,7 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility {
 	 * Keyed on state, not raw property changes, so ordinary price edits don't
 	 * enqueue a resync.
 	 */
-	protected const STATE_META_KEY = '_wc_stripe_agentic_commerce_sync_excluded';
+	private const STATE_META_KEY = '_wc_stripe_agentic_commerce_sync_excluded';
 
 	/**
 	 * Register the save hooks.
@@ -50,8 +50,11 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility {
 			return;
 		}
 
-		add_action( 'woocommerce_update_product', [ $this, 'handle_product_save' ], 10, 2 );
-		add_action( 'woocommerce_new_product', [ $this, 'handle_product_save' ], 10, 2 );
+		add_action( 'woocommerce_update_product', [ $this, 'handle_product_save' ] );
+		add_action( 'woocommerce_new_product', [ $this, 'handle_product_save' ] );
+		// Variations fire their own CRUD actions, never the product ones.
+		add_action( 'woocommerce_update_product_variation', [ $this, 'handle_product_save' ] );
+		add_action( 'woocommerce_new_product_variation', [ $this, 'handle_product_save' ] );
 		add_action( 'post_updated', [ $this, 'handle_post_update' ], 10, 2 );
 
 		// The save hooks all fire BEFORE the exclusion surfaces write the
@@ -67,26 +70,26 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility {
 	}
 
 	/**
-	 * Re-evaluate eligibility after a product CRUD save.
+	 * Re-evaluate eligibility after a product or variation CRUD save.
+	 *
+	 * Always re-reads by ID instead of using the object the hook supplies: on
+	 * the variation creation hook that object can lack the parent-data snapshot
+	 * `WC_Product_Variation::get_catalog_visibility()` reads, which only a
+	 * data-store read hydrates.
 	 *
 	 * @since 10.9.0
-	 * @param int             $product_id Saved product ID.
-	 * @param WC_Product|null $product    Saved product, when the hook supplies it.
+	 * @param int $product_id Saved product or variation ID.
 	 * @return void
 	 */
-	public function handle_product_save( $product_id, $product = null ): void {
-		if ( ! $product instanceof WC_Product ) {
-			$product = wc_get_product( (int) $product_id );
-		}
-
-		$this->reconcile( $product );
+	public function handle_product_save( $product_id ): void {
+		$this->maybe_schedule_resync( wc_get_product( (int) $product_id ) );
 	}
 
 	/**
 	 * Re-evaluate eligibility when the per-product exclude flag itself changes.
 	 *
-	 * No recursion risk: reconcile() writes only the state marker, whose key
-	 * fails the guard here.
+	 * No recursion risk: maybe_schedule_resync() writes only the state marker,
+	 * whose key fails the guard here.
 	 *
 	 * @since 10.9.0
 	 * @param int|int[] $meta_ids  Meta row ID(s); unused, present for the hook signature.
@@ -99,7 +102,7 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility {
 			return;
 		}
 
-		$this->reconcile( wc_get_product( (int) $object_id ) );
+		$this->maybe_schedule_resync( wc_get_product( (int) $object_id ) );
 	}
 
 	/**
@@ -111,11 +114,11 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility {
 	 * @return void
 	 */
 	public function handle_post_update( $post_id, $post_after = null ): void {
-		if ( ! $post_after instanceof WP_Post || 'product' !== $post_after->post_type ) {
+		if ( ! $post_after instanceof WP_Post || ! in_array( $post_after->post_type, [ 'product', 'product_variation' ], true ) ) {
 			return;
 		}
 
-		$this->reconcile( wc_get_product( (int) $post_id ) );
+		$this->maybe_schedule_resync( wc_get_product( (int) $post_id ) );
 	}
 
 	/**
@@ -125,16 +128,16 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility {
 	 * third-party filter's verdict converges too.
 	 *
 	 * @since 10.9.0
-	 * @param WC_Product|false|null $product Product to reconcile.
-	 * @return bool True when a resync was scheduled.
+	 * @param WC_Product|false|null $product Product to re-evaluate.
+	 * @return void
 	 */
-	protected function reconcile( $product ): bool {
+	private function maybe_schedule_resync( $product ): void {
 		if ( ! $product instanceof WC_Product ) {
-			return false;
+			return;
 		}
 
 		if ( ! WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled() ) {
-			return false;
+			return;
 		}
 
 		$is_excluded = ! WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product );
@@ -149,7 +152,7 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility {
 		}
 
 		if ( $previous_state === $new_state ) {
-			return false;
+			return;
 		}
 
 		update_post_meta( $product_id, self::STATE_META_KEY, $new_state );
@@ -157,17 +160,5 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility {
 		// Fire the documented contract rather than calling the integration, so
 		// this path behaves identically to an adapter's.
 		do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' );
-
-		return true;
-	}
-
-	/**
-	 * The eligibility-marker meta key.
-	 *
-	 * @since 10.9.0
-	 * @return string
-	 */
-	public static function get_state_meta_key(): string {
-		return self::STATE_META_KEY;
 	}
 }

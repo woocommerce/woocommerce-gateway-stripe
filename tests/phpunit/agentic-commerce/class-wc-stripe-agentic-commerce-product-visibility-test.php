@@ -48,6 +48,8 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility_Test extends WP_UnitTestCase
 		remove_all_actions( 'updated_post_meta' );
 		remove_all_actions( 'deleted_post_meta' );
 		remove_all_filters( 'woocommerce_agentic_commerce_should_sync_product' );
+		remove_all_actions( 'woocommerce_update_product_variation' );
+		remove_all_actions( 'woocommerce_new_product_variation' );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
 
 		parent::tearDown();
@@ -185,13 +187,9 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility_Test extends WP_UnitTestCase
 		WC_Stripe_Agentic_Commerce_Product_Exclusion::set_excluded( $product->get_id(), true );
 
 		$this->assertGreaterThan( 0, $this->resync_count, 'An exclude-flag write must converge the catalog.' );
-		$this->assertSame(
-			'yes',
-			get_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Visibility::get_state_meta_key(), true ),
-			'The eligibility marker must track the exclude-flag write.'
-		);
 
-		// With the marker current, an unrelated edit stays quiet.
+		// The marker tracking the write is observable behaviorally: an unrelated
+		// edit right after must stay quiet.
 		$this->resync_count = 0;
 		$product            = wc_get_product( $product->get_id() );
 		$product->set_regular_price( '42.00' );
@@ -228,5 +226,42 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility_Test extends WP_UnitTestCase
 		$this->assertSame( $first_count, $this->resync_count );
 
 		$product->delete( true );
+	}
+
+	/**
+	 * Variations fire their own CRUD hooks (`woocommerce_*_product_variation`),
+	 * so an eligibility flip on a variation must converge like a top-level
+	 * product's.
+	 *
+	 * @return void
+	 */
+	public function test_variation_eligibility_flip_schedules_a_resync(): void {
+		$variable     = WC_Helper_Product::create_variation_product();
+		$children     = $variable->get_children();
+		$variation_id = (int) $children[0];
+
+		// Make eligibility depend on variation-level data, since the built-in
+		// predicates (password, catalog visibility) live on the parent.
+		add_filter(
+			'woocommerce_agentic_commerce_should_sync_product',
+			function ( $should_sync, $product ) use ( $variation_id ) {
+				if ( $product->get_id() === $variation_id && (float) $product->get_regular_price() > 100 ) {
+					return false;
+				}
+				return $should_sync;
+			},
+			10,
+			2
+		);
+
+		$this->resync_count = 0;
+
+		$variation = wc_get_product( $variation_id );
+		$variation->set_regular_price( '150.00' );
+		$variation->save();
+
+		$this->assertGreaterThan( 0, $this->resync_count );
+
+		$variable->delete( true );
 	}
 }
