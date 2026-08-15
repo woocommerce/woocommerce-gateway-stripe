@@ -982,6 +982,10 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$expect_marked ? 'yes' : ( $flag_before ?? false ),
 			get_option( $flag_option )
 		);
+		$this->assertSame(
+			$expect_marked ? false : ( $amount_mismatch_before ?? false ),
+			get_option( $amount_mismatch_option, false )
+		);
 	}
 
 	/**
