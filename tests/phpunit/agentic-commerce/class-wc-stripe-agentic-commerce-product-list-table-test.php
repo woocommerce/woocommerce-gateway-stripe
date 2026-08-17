@@ -506,7 +506,8 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * The quick-edit box renders the checkbox for our column on products only.
+	 * The quick-edit box renders the checkbox for our column on products only,
+	 * with both fields disabled until the quick-edit script enables them.
 	 */
 	public function test_render_quick_edit_field(): void {
 		$column = $this->class_const( 'COLUMN_KEY' );
@@ -518,6 +519,7 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 		$this->assertStringContainsString( 'type="checkbox"', $output );
 		$this->assertStringContainsString( WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), $output );
 		$this->assertStringContainsString( WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key() . '_present', $output, 'The rendered-field marker must travel with the checkbox.' );
+		$this->assertSame( 2, substr_count( $output, ' disabled' ), 'Both fields must ship disabled so a row the quick-edit script never enables stays out of the POST.' );
 
 		ob_start();
 		$table->render_quick_edit_field( $column, 'post' );

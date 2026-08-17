@@ -392,8 +392,13 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table {
 		// The hidden marker travels with the checkbox so the save handler can
 		// tell "field never rendered" (skip) from "checkbox unchecked" (clear
 		// the flag) — an unchecked checkbox is simply absent from the POST.
+		// Both ship disabled: the quick-edit script enables them only after it
+		// has populated the checkbox from the row's real state, so if the
+		// script never runs (deregistered, or quick edit replaced by another
+		// plugin) the untouched fields stay out of the POST instead of
+		// submitting an always-unchecked box that would clear a stored flag.
 		printf(
-			'<fieldset class="inline-edit-col-right"><div class="inline-edit-col"><label class="alignleft"><input type="hidden" name="%1$s" value="1"><input type="checkbox" name="%2$s" value="yes"><span class="checkbox-title">%3$s</span></label></div></fieldset>',
+			'<fieldset class="inline-edit-col-right"><div class="inline-edit-col"><label class="alignleft"><input type="hidden" name="%1$s" value="1" disabled><input type="checkbox" name="%2$s" value="yes" disabled><span class="checkbox-title">%3$s</span></label></div></fieldset>',
 			esc_attr( self::quick_edit_marker_field() ),
 			esc_attr( WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key() ),
 			esc_html__( 'Exclude from the Stripe Agentic Commerce catalog sync', 'woocommerce-gateway-stripe' )
@@ -435,9 +440,10 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table {
 		}
 
 		// No marker means the field never made it into the submission — the
-		// quick-edit script disabled it, or another plugin removed the column
-		// so the field never rendered. Treating that like an unchecked
-		// checkbox would clobber a stored 'yes'.
+		// quick-edit script never enabled it (unsupported type, script not
+		// run), or another plugin removed the column so the field never
+		// rendered. Treating that like an unchecked checkbox would clobber a
+		// stored 'yes'.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- WC verified its quick-edit nonce before firing this hook.
 		if ( ! isset( $_POST[ self::quick_edit_marker_field() ] ) ) {
 			return;

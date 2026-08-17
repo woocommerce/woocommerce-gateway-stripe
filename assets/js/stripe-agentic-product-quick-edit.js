@@ -5,8 +5,10 @@
  * quick edit. WP clones the quick-edit template with every checkbox unchecked,
  * so the current state is copied from the row's hidden inline-data div
  * (rendered by WC_Stripe_Agentic_Commerce_Product_List_Table::render_inline_data).
- * The div only exists for supported product types; without it the field is
- * hidden and disabled so the save handler skips the row entirely.
+ * The template ships the field disabled; it is enabled here only after the
+ * checkbox reflects the row's real state, so a row this script never touches
+ * (unsupported type, or the script not running at all) stays out of the
+ * submission and the save handler skips it.
  */
 ( function ( $ ) {
 	'use strict';
@@ -39,14 +41,14 @@
 		);
 
 		if ( ! $state.length ) {
-			// Unsupported product type: hide the field and keep it out of the
-			// submission so the server can't mistake it for an unchecked box.
+			// Unsupported product type: hide the field; it ships disabled, so
+			// it stays out of the submission untouched.
 			$checkbox.closest( 'fieldset' ).hide();
-			$checkbox.prop( 'disabled', true );
-			$marker.prop( 'disabled', true );
 			return;
 		}
 
 		$checkbox.prop( 'checked', 'yes' === $state.text() );
+		$checkbox.prop( 'disabled', false );
+		$marker.prop( 'disabled', false );
 	};
 } )( jQuery );
