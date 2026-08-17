@@ -46,6 +46,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 	public function tear_down() {
 		WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+		$this->clear_webhook_status_cache();
 		WC_Stripe_Helper::delete_main_stripe_settings();
 
 		WC_Helper_Stripe_Api::reset();
@@ -94,6 +95,41 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		$this->account->clear_cache();
 		$this->assertEquals( [], $this->account->get_cached_account_data() );
+	}
+
+	public function test_get_cached_account_data_preserves_cache_on_transient_failure() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		$account = [
+			'id'    => '1234',
+			'email' => 'test@example.com',
+		];
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
+
+		// A transient failure (network error / Stripe outage) makes retrieve() return a WP_Error.
+		WC_Helper_Stripe_Api::$retrieve_response = new WP_Error( 'stripe_api_outage', 'temporarily unavailable' );
+
+		// The failed forced fetch returns empty without overwriting the cache, so the next read
+		// still serves the previously cached account data.
+		$this->assertSame( [], $this->account->get_cached_account_data( null, true ) );
+		$this->assertSame( $account, $this->account->get_cached_account_data() );
+	}
+
+	public function test_get_cached_account_data_clears_cache_on_invalid_key() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		WC_Stripe_Database_Cache::set(
+			WC_Stripe_Account::ACCOUNT_CACHE_KEY,
+			[
+				'id'    => '1234',
+				'email' => 'test@example.com',
+			]
+		);
+
+		// An invalid API key makes retrieve() return null (Stripe responds with a 401); the stale
+		// data must not survive so the UI can surface the "reconnect" prompt.
+		WC_Helper_Stripe_Api::$retrieve_response = null;
+
+		$this->assertEmpty( $this->account->get_cached_account_data( null, true ) );
+		$this->assertEmpty( $this->account->get_cached_account_data() );
 	}
 
 	/**
@@ -450,8 +486,9 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	private function clear_webhook_status_cache() {
-		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
-		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
+		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
+		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
 	}
 
 	/**
