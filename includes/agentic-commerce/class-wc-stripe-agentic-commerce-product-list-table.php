@@ -39,11 +39,17 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table {
 	private const ACTION_INCLUDE = 'wc_stripe_agentic_include';
 
 	/**
-	 * List-table column key. Also the CSS class hook the quick-edit script uses
-	 * to read the row's current state, so it must stay in sync with
-	 * `assets/js/stripe-agentic-product-quick-edit.js`.
+	 * List-table column key.
 	 */
 	private const COLUMN_KEY = 'wc_stripe_agentic_sync';
+
+	/**
+	 * Hidden inline-data class carrying each row's exclude state for the
+	 * quick-edit script. Rendered only for supported types, so its absence
+	 * tells the script to hide the checkbox. Must stay in sync with
+	 * `assets/js/stripe-agentic-product-quick-edit.js`.
+	 */
+	private const INLINE_DATA_CLASS = 'wc_stripe_agentic_excluded';
 
 	/**
 	 * GET parameter for the sync-status filter dropdown ('synced' or 'excluded').
@@ -82,6 +88,7 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table {
 		// Register the column late so it lands after WooCommerce's own columns.
 		add_filter( 'manage_edit-product_columns', [ $this, 'register_column' ], 20 );
 		add_action( 'manage_product_posts_custom_column', [ $this, 'render_column' ], 10, 2 );
+		add_action( 'add_inline_data', [ $this, 'render_inline_data' ], 10, 2 );
 
 		add_action( 'restrict_manage_posts', [ $this, 'render_sync_status_filter' ] );
 		add_action( 'pre_get_posts', [ $this, 'filter_products_by_sync_status' ] );
@@ -142,7 +149,7 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table {
 			}
 
 			$product = wc_get_product( $post_id );
-			if ( ! $product instanceof WC_Product || ! in_array( $product->get_type(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_supported_types(), true ) ) {
+			if ( ! WC_Stripe_Agentic_Commerce_Product_Exclusion::supports( $product ) ) {
 				continue;
 			}
 
@@ -219,11 +226,9 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table {
 	}
 
 	/**
-	 * Render the sync-status column for a row.
-	 *
-	 * The data-excluded attribute doubles as the quick-edit script's data
-	 * source; unsupported types render a plain dash without it so the script
-	 * leaves their (ignored) checkbox unchecked.
+	 * Render the sync-status column for a row. Display only — the quick-edit
+	 * script reads its state from the inline-data div, not this column, so a
+	 * plugin unsetting the column can't break quick edit.
 	 *
 	 * @since 10.9.0
 	 * @param string $column  Column key being rendered.
@@ -236,35 +241,59 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table {
 		}
 
 		$product = wc_get_product( (int) $post_id );
-		if ( ! $product instanceof WC_Product || ! in_array( $product->get_type(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_supported_types(), true ) ) {
+		if ( ! WC_Stripe_Agentic_Commerce_Product_Exclusion::supports( $product ) ) {
 			echo '<span aria-hidden="true">&mdash;</span>';
 			return;
 		}
 
 		if ( WC_Stripe_Agentic_Commerce_Product_Exclusion::is_excluded( $product ) ) {
-			printf(
-				'<span data-excluded="yes">%s</span>',
-				esc_html__( 'Excluded', 'woocommerce-gateway-stripe' )
-			);
+			esc_html_e( 'Excluded', 'woocommerce-gateway-stripe' );
 			return;
 		}
 
 		// The exclude toggle is off, but the full eligibility verdict can still
 		// say no — sync rules like catalog visibility, or a third-party filter.
-		// Show that as its own state so "Synced" is never a lie; data-excluded
-		// stays "no" because the quick-edit checkbox mirrors the toggle alone.
+		// Show that as its own state so "Synced" is never a lie; the quick-edit
+		// checkbox is unaffected because it reads the toggle alone from the
+		// inline-data div.
 		if ( ! WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) ) {
 			printf(
-				'<span data-excluded="no" title="%s">%s</span>',
+				'<span title="%s">%s</span>',
 				esc_attr__( 'Kept out of the catalog by sync eligibility rules, not by the exclude toggle.', 'woocommerce-gateway-stripe' ),
 				esc_html__( 'Not synced', 'woocommerce-gateway-stripe' )
 			);
 			return;
 		}
 
+		esc_html_e( 'Synced', 'woocommerce-gateway-stripe' );
+	}
+
+	/**
+	 * Emit the row's exclude state into WP's hidden `#inline_{id}` div.
+	 *
+	 * This is the quick-edit script's data source: rendered only for supported
+	 * types, so a missing div tells the script to hide and disable the
+	 * checkbox for that row.
+	 *
+	 * @since 10.9.0
+	 * @param WP_Post      $post             Row's post.
+	 * @param WP_Post_Type $post_type_object Post type of the current screen.
+	 * @return void
+	 */
+	public function render_inline_data( $post, $post_type_object ): void {
+		if ( ! $post_type_object instanceof WP_Post_Type || 'product' !== $post_type_object->name ) {
+			return;
+		}
+
+		$product = wc_get_product( $post instanceof WP_Post ? $post->ID : 0 );
+		if ( ! WC_Stripe_Agentic_Commerce_Product_Exclusion::supports( $product ) ) {
+			return;
+		}
+
 		printf(
-			'<span data-excluded="no">%s</span>',
-			esc_html__( 'Synced', 'woocommerce-gateway-stripe' )
+			'<div class="%s">%s</div>',
+			esc_attr( self::INLINE_DATA_CLASS ),
+			WC_Stripe_Agentic_Commerce_Product_Exclusion::is_excluded( $product ) ? 'yes' : 'no'
 		);
 	}
 
@@ -343,6 +372,19 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table {
 					'compare' => '!=',
 				],
 			];
+
+			// Drafts and unsupported types can never sync regardless of the
+			// toggle, so even the "Not excluded" view keeps them out rather
+			// than padding the results with rows the feed will never export.
+			$tax_query   = $query->get( 'tax_query' );
+			$tax_query   = is_array( $tax_query ) ? $tax_query : [];
+			$tax_query[] = [
+				'taxonomy' => 'product_type',
+				'field'    => 'slug',
+				'terms'    => WC_Stripe_Agentic_Commerce_Product_Exclusion::get_supported_types(),
+			];
+			$query->set( 'tax_query', $tax_query );
+			$query->set( 'post_status', 'publish' );
 		}
 
 		// The unset query var is '' — normalize without wrapping that into [ '' ].
@@ -369,11 +411,31 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table {
 			return;
 		}
 
+		// The hidden marker travels with the checkbox so the save handler can
+		// tell "field never rendered" (skip) from "checkbox unchecked" (clear
+		// the flag) — an unchecked checkbox is simply absent from the POST.
+		// Both ship disabled: the quick-edit script enables them only after it
+		// has populated the checkbox from the row's real state, so if the
+		// script never runs (deregistered, or quick edit replaced by another
+		// plugin) the untouched fields stay out of the POST instead of
+		// submitting an always-unchecked box that would clear a stored flag.
 		printf(
-			'<fieldset class="inline-edit-col-right"><div class="inline-edit-col"><label class="alignleft"><input type="checkbox" name="%s" value="yes"><span class="checkbox-title">%s</span></label></div></fieldset>',
+			'<fieldset class="inline-edit-col-right"><div class="inline-edit-col"><label class="alignleft"><input type="hidden" name="%1$s" value="1" disabled><input type="checkbox" name="%2$s" value="yes" disabled><span class="checkbox-title">%3$s</span></label></div></fieldset>',
+			esc_attr( self::quick_edit_marker_field() ),
 			esc_attr( WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key() ),
 			esc_html__( 'Exclude from the Stripe Agentic Commerce catalog sync', 'woocommerce-gateway-stripe' )
 		);
+	}
+
+	/**
+	 * POST field marking that the quick-edit exclude field was rendered and
+	 * enabled for the submitted row.
+	 *
+	 * @since 10.9.0
+	 * @return string
+	 */
+	private static function quick_edit_marker_field(): string {
+		return WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key() . '_present';
 	}
 
 	/**
@@ -382,14 +444,10 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table {
 	 * vetted the user's capability for this post.
 	 *
 	 * @since 10.9.0
-	 * @param WC_Product $product Product being quick-edited.
+	 * @param mixed $product Product being quick-edited (hook input, validated here).
 	 * @return void
 	 */
 	public function save_quick_edit( $product ): void {
-		if ( ! $product instanceof WC_Product ) {
-			return;
-		}
-
 		// Defensive: init() only hooks this when the feature is on, but the
 		// callback is public, so re-check before an absent checkbox could clobber
 		// a stored 'yes'.
@@ -399,7 +457,17 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table {
 
 		// Mirror the meta box's type gate so quick edit can't clobber a stored
 		// 'yes' on a type the checkbox never renders a state for.
-		if ( ! in_array( $product->get_type(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_supported_types(), true ) ) {
+		if ( ! WC_Stripe_Agentic_Commerce_Product_Exclusion::supports( $product ) ) {
+			return;
+		}
+
+		// No marker means the field never made it into the submission — the
+		// quick-edit script never enabled it (unsupported type, script not
+		// run), or another plugin removed the column so the field never
+		// rendered. Treating that like an unchecked checkbox would clobber a
+		// stored 'yes'.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- WC verified its quick-edit nonce before firing this hook.
+		if ( ! isset( $_POST[ self::quick_edit_marker_field() ] ) ) {
 			return;
 		}
 
@@ -441,6 +509,13 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table {
 			[ 'jquery', 'inline-edit-post' ],
 			WC_STRIPE_VERSION,
 			true
+		);
+
+		// Without an explicit width the fixed-layout list table can crush the
+		// column until its text wraps vertically at larger font sizes.
+		wp_add_inline_style(
+			'list-tables',
+			'.wp-list-table .column-' . self::COLUMN_KEY . ' { width: 10%; }'
 		);
 	}
 }

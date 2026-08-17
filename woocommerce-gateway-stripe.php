@@ -187,6 +187,9 @@ register_deactivation_hook( __FILE__, 'wcstripe_deactivated' );
 add_action( 'woocommerce_blocks_loaded', 'woocommerce_gateway_stripe_woocommerce_block_support' );
 
 function woocommerce_gateway_stripe_woocommerce_block_support() {
+	woocommerce_stripe_init_autoloader();
+	WC_Stripe_Checkout_Session_Lifecycle::init_store_api();
+
 	if ( class_exists( 'Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-blocks-support.php';
 		// priority is important here because this ensures this integration is

@@ -158,6 +158,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.9.0 - xxxx-xx-xx =
+* Fix - Re-enable Adaptive Pricing if it was automatically disabled after a Checkout Session amount mismatch
 * Add - Bulk edit, quick edit, and a sync-status column and filter on the Products list for excluding products from the Agentic Commerce catalog sync
 * Fix - Match the Google Pay express checkout button height to Apple Pay when using the Light or Outline button theme
 * Fix - Keep the currently loaded Stripe account details visible when an account refresh fails
@@ -176,6 +177,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Ignore incoming webhook events whose Stripe account does not match the connected account to avoid acting on another account's data
 * Fix - When changing a subscription's payment method, reflect the new card and its Apple Pay/Google Pay branding on My Account and clarify the admin order note
 * Dev - Use a shared hook manager to prevent duplicate subscription hook registrations
+* Add - Use Stripe Dynamic Payment Methods for on-session Optimized Checkout payments so eligible methods follow your Stripe Payment Method Configuration
 * Dev - Initial infrastructure for more complex Agentic feed filtering
 * Dev - Agentic Commerce: add the shareable woocommerce_agentic_commerce_disable_checkout filter, deprecating the wc_stripe_-prefixed twin
 * Fix - Prevent unnecessary Stripe payment method creation when shortcode checkout has empty required fields
@@ -194,6 +196,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add a Code Comment Conventions section to AGENTS.md to standardize agent and contributor comment guidance
 * Fix - Show an error notice when a Stripe OAuth connection attempt fails its security check
 * Fix - Run the woocommerce_gateway_description filter for Stripe payment methods so third parties can add or replace their checkout descriptions
+* Dev - Extract Optimized Checkout into a dedicated payment gateway class so the classic UPE and Optimized Checkout flows are handled independently
 * Dev - Deprecate the internal WC_Stripe_Feature_Flags::is_amazon_pay_available() helper now that Amazon Pay is permanently enabled
 * Fix - Show correct tax in the Apple Pay / Google Pay product preview for higher quantities, add-ons, and non-taxable products
 * Fix - Preserve decimal product quantities for products when adding to the cart through Apple Pay / Google Pay express checkout
@@ -224,6 +227,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Show the selected variation's line items in the Apple Pay/Google Pay payment sheet on variable product pages, instead of the previously selected variation's breakdown
 * Tweak - Break down the Agentic Commerce feed preview's excluded product count by reason so subscriptions are no longer mistaken for a merchant-configured filter
 * Fix - Render the Express Checkout settings button preview background based on the button color
+* Fix - Hide country-restricted payment methods (e.g. iDEAL) from Optimized Checkout when the billing country can't use them
 * Update - Update the Stripe API version and the Stripe.js release train to 2026-03-25 (dahlia)
 * Fix - Fall back to the standard Stripe payment form when another plugin loads an older, incompatible version of Stripe.js, so Adaptive Pricing and Optimized Checkout keep working
 * Update - Move the checkout sessions availability check to WC_Stripe_Helper and remove the deprecated wc_stripe_is_checkout_sessions_available filter
@@ -245,9 +249,24 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent fatals during internal order check
 * Fix - Center the text and card icons inside the payment fields on the Blocks checkout
 * Tweak - Move the Agentic Commerce settings to their own tab on the Stripe settings page
+* Fix - Register Multibanco, OXXO, Boleto, Link, and Cash App Pay hooks only once per request so email instructions and thank-you page content are not duplicated
+* Fix - Resync the Agentic Commerce catalog when switching between test and live mode, and scope the sync status shown in settings to the active mode
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
+* Fix - Temporarily disable Adaptive Pricing for a customer's session after a 3rd party plugin incompatibility error
+* Dev - Register Stripe.js through a single shared helper
 * Fix - Prevent dismissed admin banner notices from reappearing after navigating between Settings and Payment Methods tabs
 * Fix - Only load the Blocks checkout stylesheet on pages that render the Cart or Checkout block
+* Fix - Don't show currency admin notices for payment methods when Adaptive Pricing is active
 * Fix - Reserve stock when completing agentic checkout orders so concurrent sessions cannot oversell; orders losing the race are set on-hold instead of driving stock negative
+* Tweak - Use database cache for webhook status tracking
+* Dev - Add WC_Stripe::get_settings()/update_settings() as the canonical accessors for the main Stripe settings, with the WC_Stripe_Helper shims delegating to them
+* Update - Use WooCommerce Core hooks for Adaptive Pricing session management
+* Fix - Render classic-checkout card fields when a host optimizer defers render-blocking JavaScript (e.g. SiteGround Speed Optimizer)
+* Fix - Allow express checkout payments when automatic account password generation is disabled
+* Tweak - Add PHPDoc for some deprecated hooks
+* Dev - Remove the deprecated @woocommerce/settings npm package; settings are still read from the wc-settings script WooCommerce provides at runtime
+* Fix - Ensure that manual Adaptive Pricing changes after upgrades get precedence
+* Fix - Exclude password-protected products and products hidden from the catalog from the Agentic Commerce feed
+* Fix - Name password protection and hidden visibility as their own reasons in the Agentic Commerce feed preview
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

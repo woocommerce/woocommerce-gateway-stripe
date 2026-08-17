@@ -68,8 +68,7 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 		}
 
 		global $product_object;
-		$type = $product_object instanceof WC_Product ? $product_object->get_type() : '';
-		if ( ! in_array( $type, WC_Stripe_Agentic_Commerce_Product_Exclusion::get_supported_types(), true ) ) {
+		if ( ! WC_Stripe_Agentic_Commerce_Product_Exclusion::supports( $product_object ) ) {
 			return;
 		}
 
@@ -111,7 +110,7 @@ class WC_Stripe_Agentic_Commerce_Product_Meta_Box {
 		// Mirror render_checkbox()'s type gate so a type switch (e.g. simple →
 		// grouped) doesn't clobber a stored 'yes' or trigger a needless resync.
 		$product = wc_get_product( $product_id );
-		if ( ! $product instanceof WC_Product || ! in_array( $product->get_type(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_supported_types(), true ) ) {
+		if ( ! WC_Stripe_Agentic_Commerce_Product_Exclusion::supports( $product ) ) {
 			return;
 		}
 

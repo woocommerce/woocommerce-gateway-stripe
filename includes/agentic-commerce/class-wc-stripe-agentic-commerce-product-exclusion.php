@@ -61,6 +61,24 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion {
 	}
 
 	/**
+	 * Whether the exclude flag applies to this product.
+	 *
+	 * Single gate for every editor surface (meta box, bulk edit, quick edit,
+	 * column) so a save through one surface can't clobber a flag another
+	 * surface would have refused to touch.
+	 *
+	 * @since 10.9.0
+	 * @param mixed $product Candidate product; anything but a supported WC_Product fails.
+	 * @return bool
+	 *
+	 * @phpstan-assert-if-true WC_Product $product
+	 */
+	public static function supports( $product ): bool {
+		return $product instanceof WC_Product
+			&& in_array( $product->get_type(), self::SUPPORTED_TYPES, true );
+	}
+
+	/**
 	 * Register the should-sync filter. Runs in every context (cron/CLI included)
 	 * so sync honors the flag regardless of how it was triggered.
 	 *

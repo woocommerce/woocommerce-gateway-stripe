@@ -226,29 +226,41 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * Quick-edit save scenarios: posted values, type gate, and the feature gate.
+	 * Quick-edit save scenarios: posted values, the rendered-field marker, the
+	 * type gate, and the feature gate.
 	 *
 	 * @dataProvider provide_quick_edit_save_scenarios
 	 *
-	 * @param string      $product_type  'simple' or 'grouped'.
-	 * @param string      $stored_value  Pre-existing meta value ('' = unset).
-	 * @param string|null $posted_value  Posted checkbox value (null = absent key).
-	 * @param bool        $enabled       Whether the merchant feature is on.
-	 * @param string      $expected_meta Meta value expected after the save.
+	 * @param string      $product_type   'simple', 'variable', or 'grouped'.
+	 * @param string      $stored_value   Pre-existing meta value ('' = unset).
+	 * @param string|null $posted_value   Posted checkbox value (null = absent key).
+	 * @param bool        $marker_present Whether the rendered-field marker was submitted.
+	 * @param bool        $enabled        Whether the merchant feature is on.
+	 * @param string      $expected_meta  Meta value expected after the save.
 	 */
-	public function test_save_quick_edit( string $product_type, string $stored_value, ?string $posted_value, bool $enabled, string $expected_meta ): void {
+	public function test_save_quick_edit( string $product_type, string $stored_value, ?string $posted_value, bool $marker_present, bool $enabled, string $expected_meta ): void {
 		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, $enabled ? 'yes' : 'no' );
 
 		$meta_key = WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key();
-		$product  = 'grouped' === $product_type
-			? WC_Helper_Product::create_grouped_product()
-			: WC_Helper_Product::create_simple_product();
+		switch ( $product_type ) {
+			case 'grouped':
+				$product = WC_Helper_Product::create_grouped_product();
+				break;
+			case 'variable':
+				$product = WC_Helper_Product::create_variation_product();
+				break;
+			default:
+				$product = WC_Helper_Product::create_simple_product();
+		}
 
 		if ( '' !== $stored_value ) {
 			update_post_meta( $product->get_id(), $meta_key, $stored_value );
 		}
 
 		$_POST = null === $posted_value ? [] : [ $meta_key => $posted_value ];
+		if ( $marker_present ) {
+			$_POST[ $meta_key . '_present' ] = '1';
+		}
 
 		( new WC_Stripe_Agentic_Commerce_Product_List_Table() )->save_quick_edit( $product );
 
@@ -262,11 +274,13 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 	 */
 	public function provide_quick_edit_save_scenarios(): array {
 		return [
-			'checked checkbox persists yes'         => [ 'simple', '', 'yes', true, 'yes' ],
-			'absent checkbox collapses to no'       => [ 'simple', 'yes', null, true, 'no' ],
-			'tampered value collapses to no'        => [ 'simple', 'yes', 'forged', true, 'no' ],
-			'unsupported type is left untouched'    => [ 'grouped', 'yes', null, true, 'yes' ],
-			'feature off leaves stored value alone' => [ 'simple', 'yes', null, false, 'yes' ],
+			'checked checkbox persists yes'         => [ 'simple', '', 'yes', true, true, 'yes' ],
+			'variable type passes the gate'         => [ 'variable', '', 'yes', true, true, 'yes' ],
+			'absent checkbox collapses to no'       => [ 'simple', 'yes', null, true, true, 'no' ],
+			'tampered value collapses to no'        => [ 'simple', 'yes', 'forged', true, true, 'no' ],
+			'missing marker leaves stored value'    => [ 'simple', 'yes', null, false, true, 'yes' ],
+			'unsupported type is left untouched'    => [ 'grouped', 'yes', null, true, true, 'yes' ],
+			'feature off leaves stored value alone' => [ 'simple', 'yes', null, true, false, 'yes' ],
 		];
 	}
 
@@ -285,7 +299,10 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 		$product  = WC_Helper_Product::create_simple_product();
 		$table    = new WC_Stripe_Agentic_Commerce_Product_List_Table();
 
-		$_POST = [ $meta_key => 'yes' ];
+		$_POST = [
+			$meta_key              => 'yes',
+			$meta_key . '_present' => '1',
+		];
 		$table->save_quick_edit( $product );
 		$this->assertNotFalse( as_has_scheduled_action( $immediate ), 'A real change must enqueue an immediate resync.' );
 
@@ -307,23 +324,17 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 
 		ob_start();
 		$table->render_column( $column, $product->get_id() );
-		$output = ob_get_clean();
-		$this->assertStringContainsString( 'data-excluded="no"', $output );
-		$this->assertStringContainsString( 'Synced', $output );
+		$this->assertStringContainsString( 'Synced', ob_get_clean() );
 
 		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), 'yes' );
 		ob_start();
 		$table->render_column( $column, $product->get_id() );
-		$output = ob_get_clean();
-		$this->assertStringContainsString( 'data-excluded="yes"', $output );
-		$this->assertStringContainsString( 'Excluded', $output );
+		$this->assertStringContainsString( 'Excluded', ob_get_clean() );
 
 		$grouped = WC_Helper_Product::create_grouped_product();
 		ob_start();
 		$table->render_column( $column, $grouped->get_id() );
-		$output = ob_get_clean();
-		$this->assertStringNotContainsString( 'data-excluded', $output, 'Unsupported types must not expose a toggleable state.' );
-		$this->assertStringContainsString( '&mdash;', $output );
+		$this->assertStringContainsString( '&mdash;', ob_get_clean(), 'Unsupported types must render the dash.' );
 
 		// A foreign column must produce no output.
 		ob_start();
@@ -348,9 +359,13 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 
 		ob_start();
 		$table->render_column( $column, $product->get_id() );
-		$output = ob_get_clean();
-		$this->assertStringContainsString( 'Not synced', $output );
-		$this->assertStringContainsString( 'data-excluded="no"', $output, 'The quick-edit source attribute must keep mirroring the toggle.' );
+		$this->assertStringContainsString( 'Not synced', ob_get_clean() );
+
+		// The quick-edit source must keep mirroring the toggle alone, so the
+		// eligibility verdict must not leak into the inline-data state.
+		ob_start();
+		$table->render_inline_data( get_post( $product->get_id() ), get_post_type_object( 'product' ) );
+		$this->assertStringContainsString( '>no<', ob_get_clean() );
 
 		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), 'yes' );
 		ob_start();
@@ -365,14 +380,49 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 	}
 
 	/**
+	 * The inline-data div carries the exclude state for supported product rows
+	 * only — its absence is the quick-edit script's cue to hide the checkbox.
+	 */
+	public function test_render_inline_data_states(): void {
+		$table        = new WC_Stripe_Agentic_Commerce_Product_List_Table();
+		$product_type = get_post_type_object( 'product' );
+		$product      = WC_Helper_Product::create_simple_product();
+		$post         = get_post( $product->get_id() );
+
+		ob_start();
+		$table->render_inline_data( $post, $product_type );
+		$output = ob_get_clean();
+		$this->assertStringContainsString( 'wc_stripe_agentic_excluded', $output );
+		$this->assertStringContainsString( '>no<', $output );
+
+		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), 'yes' );
+		ob_start();
+		$table->render_inline_data( $post, $product_type );
+		$this->assertStringContainsString( '>yes<', ob_get_clean() );
+
+		$grouped = WC_Helper_Product::create_grouped_product();
+		ob_start();
+		$table->render_inline_data( get_post( $grouped->get_id() ), $product_type );
+		$this->assertSame( '', ob_get_clean(), 'Unsupported types must not expose a toggleable state.' );
+
+		ob_start();
+		$table->render_inline_data( $post, get_post_type_object( 'post' ) );
+		$this->assertSame( '', ob_get_clean(), 'Other post types must produce no output.' );
+
+		$product->delete( true );
+		$grouped->delete( true );
+	}
+
+	/**
 	 * The status filter narrows the main products query via meta_query.
 	 *
 	 * @dataProvider provide_sync_status_filter_scenarios
 	 *
-	 * @param string $status          Filter dropdown value.
-	 * @param bool   $expects_clause  Whether a meta_query clause should be added.
+	 * @param string $status              Filter dropdown value.
+	 * @param bool   $expects_clause      Whether a meta_query clause should be added.
+	 * @param bool   $expects_constraints Whether the synced-only type/status constraints should be added.
 	 */
-	public function test_filter_products_by_sync_status( string $status, bool $expects_clause ): void {
+	public function test_filter_products_by_sync_status( string $status, bool $expects_clause, bool $expects_constraints ): void {
 		set_current_screen( 'edit-product' );
 		$_GET[ $this->class_const( 'FILTER_QUERY_VAR' ) ] = $status;
 
@@ -391,6 +441,13 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 			$this->assertEmpty( $meta_query );
 		}
 
+		if ( $expects_constraints ) {
+			$this->assertCount( 1, $query->get( 'tax_query' ), 'Synced must constrain to supported product types.' );
+			$this->assertSame( 'publish', $query->get( 'post_status' ), 'Synced must constrain to published products.' );
+		} else {
+			$this->assertEmpty( $query->get( 'tax_query' ) );
+		}
+
 		unset( $GLOBALS['wp_the_query'], $GLOBALS['current_screen'] );
 	}
 
@@ -399,10 +456,10 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 	 */
 	public function provide_sync_status_filter_scenarios(): array {
 		return [
-			'excluded filter adds clause'  => [ 'excluded', true ],
-			'synced filter adds clause'    => [ 'synced', true ],
-			'no filter leaves query alone' => [ '', false ],
-			'unknown value is ignored'     => [ 'bogus', false ],
+			'excluded filter adds clause'    => [ 'excluded', true, false ],
+			'synced filter adds constraints' => [ 'synced', true, true ],
+			'no filter leaves query alone'   => [ '', false, false ],
+			'unknown value is ignored'       => [ 'bogus', false, false ],
 		];
 	}
 
@@ -416,13 +473,17 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 		$excluded  = WC_Helper_Product::create_simple_product();
 		$included  = WC_Helper_Product::create_simple_product();
 		$untouched = WC_Helper_Product::create_simple_product();
+		$draft     = WC_Helper_Product::create_simple_product();
+		$grouped   = WC_Helper_Product::create_grouped_product();
 		$meta_key  = WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key();
 		update_post_meta( $excluded->get_id(), $meta_key, 'yes' );
 		update_post_meta( $included->get_id(), $meta_key, 'no' );
+		$draft->set_status( 'draft' );
+		$draft->save();
 
 		// Scope the query to this test's fixtures — the suite pre-seeds other
 		// products, and the clause under test must compose with existing vars.
-		$fixture_ids = [ $excluded->get_id(), $included->get_id(), $untouched->get_id() ];
+		$fixture_ids = [ $excluded->get_id(), $included->get_id(), $untouched->get_id(), $draft->get_id(), $grouped->get_id() ];
 
 		$_GET[ $this->class_const( 'FILTER_QUERY_VAR' ) ] = 'excluded';
 		$this->assertSame(
@@ -435,13 +496,15 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 		$this->assertSame(
 			[ $included->get_id(), $untouched->get_id() ],
 			$this->run_filtered_product_query( $fixture_ids ),
-			'The synced filter must match unset meta as well as a stored no.'
+			'The synced filter must match unset meta and a stored no, but never drafts or unsupported types.'
 		);
 
 		unset( $GLOBALS['current_screen'] );
 		$excluded->delete( true );
 		$included->delete( true );
 		$untouched->delete( true );
+		$draft->delete( true );
+		$grouped->delete( true );
 	}
 
 	/**
@@ -460,6 +523,9 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 		$ids = $query->query(
 			[
 				'post_type'      => 'product',
+				// 'any' so the synced filter's publish constraint is what
+				// keeps drafts out, not this fixture query's own default.
+				'post_status'    => 'any',
 				'post__in'       => $fixture_ids,
 				'fields'         => 'ids',
 				'posts_per_page' => -1,
@@ -474,7 +540,8 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * The quick-edit box renders the checkbox for our column on products only.
+	 * The quick-edit box renders the checkbox for our column on products only,
+	 * with both fields disabled until the quick-edit script enables them.
 	 */
 	public function test_render_quick_edit_field(): void {
 		$column = $this->class_const( 'COLUMN_KEY' );
@@ -485,6 +552,8 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 		$output = ob_get_clean();
 		$this->assertStringContainsString( 'type="checkbox"', $output );
 		$this->assertStringContainsString( WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), $output );
+		$this->assertStringContainsString( WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key() . '_present', $output, 'The rendered-field marker must travel with the checkbox.' );
+		$this->assertSame( 2, substr_count( $output, ' disabled' ), 'Both fields must ship disabled so a row the quick-edit script never enables stays out of the POST.' );
 
 		ob_start();
 		$table->render_quick_edit_field( $column, 'post' );
