@@ -110,32 +110,7 @@ class WC_Stripe_Subscriptions_Hook_Registration_Test extends WP_UnitTestCase {
 		],
 	];
 
-	/**
-	 * @inheritDoc
-	 */
-	public function set_up() {
-		parent::set_up();
-		$this->reset_hook_manager_singleton();
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public function tear_down() {
-		$this->reset_hook_manager_singleton();
-		parent::tear_down();
-	}
-
-	/**
-	 * Resets the hook manager singleton so each test starts from a clean slate.
-	 *
-	 * @return void
-	 */
-	private function reset_hook_manager_singleton() {
-		$reflection = new ReflectionProperty( WC_Stripe_Hook_Manager::class, 'instance' );
-		$reflection->setAccessible( true );
-		$reflection->setValue( null, null );
-	}
+	use WC_Stripe_Hook_Manager_Reset_Trait;
 
 	/**
 	 * Builds a UPE gateway instance with the constructor disabled and a test ID.
