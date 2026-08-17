@@ -53,3 +53,7 @@ phpstan-tmp/
 
 # Temp files for doc generator
 tasks/hooks/tmp/*.json
+
+# Local agent tooling (personal, never committed)
+/.agents/
+/apm_modules/
