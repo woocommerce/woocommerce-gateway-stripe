@@ -806,6 +806,165 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		];
 	}
 
+	/**
+	 * Toggling the Adaptive Pricing setting marks the amount mismatch migration as
+	 * complete, so a later plugin update cannot override the merchant's explicit choice.
+	 *
+	 * @param array|false $old_value              Previous option value passed by the hook.
+	 * @param array|false $new_value              New option value passed by the hook.
+	 * @param string|null $flag_before            Migration flag stored before the update; null when absent.
+	 * @param string|null $amount_mismatch_before Amount mismatch option stored before the update; null when absent.
+	 * @param bool        $expect_marked Whether the migration should be marked complete.
+	 *
+	 * @dataProvider provide_test_maybe_mark_adaptive_pricing_migration_complete
+	 */
+	public function test_maybe_mark_adaptive_pricing_migration_complete( $old_value, $new_value, ?string $flag_before, ?string $amount_mismatch_before, bool $expect_marked ): void {
+		$flag_option = $this->get_adaptive_pricing_migration_flag_option_name();
+
+		if ( null === $flag_before ) {
+			delete_option( $flag_option );
+		} else {
+			update_option( $flag_option, $flag_before );
+		}
+
+		$amount_mismatch_option = WC_Stripe_Test_Helper::get_class_const_value(
+			WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::class,
+			'AMOUNT_MISMATCH_OPTION',
+			'string'
+		);
+		if ( null === $amount_mismatch_before ) {
+			delete_option( $amount_mismatch_option );
+		} else {
+			update_option( $amount_mismatch_option, $amount_mismatch_before );
+		}
+
+		// mark_migration_complete() is a static call, so observe it through the
+		// pre_update_option filter its update_option() always applies — the stored
+		// value alone cannot distinguish "left at yes" from "redundantly re-written".
+		$mark_migration_complete_calls = 0;
+		$mark_migration_complete_spy   = function ( $value ) use ( &$mark_migration_complete_calls ) {
+			++$mark_migration_complete_calls;
+			return $value;
+		};
+		add_filter( 'pre_update_option_' . $flag_option, $mark_migration_complete_spy );
+
+		try {
+			do_action( 'update_option_woocommerce_stripe_settings', $old_value, $new_value, 'woocommerce_stripe_settings' );
+		} finally {
+			remove_filter( 'pre_update_option_' . $flag_option, $mark_migration_complete_spy );
+		}
+
+		$this->assertSame( $expect_marked ? 1 : 0, $mark_migration_complete_calls );
+		$this->assertSame(
+			$expect_marked ? 'yes' : ( $flag_before ?? false ),
+			get_option( $flag_option )
+		);
+		$this->assertSame(
+			$expect_marked ? false : ( $amount_mismatch_before ?? false ),
+			get_option( $amount_mismatch_option, false )
+		);
+	}
+
+	/**
+	 * Data provider for {@see test_maybe_mark_adaptive_pricing_migration_complete()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_maybe_mark_adaptive_pricing_migration_complete(): array {
+		return [
+			'AP enabled, migration incomplete'       => [
+				'old_value'              => [ 'adaptive_pricing' => 'no' ],
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => true,
+			],
+			'AP disabled, migration incomplete'      => [
+				'old_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'new_value'              => [ 'adaptive_pricing' => 'no' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => true,
+			],
+			'AP set for the first time'              => [
+				'old_value'              => [ 'enabled' => 'yes' ],
+				'new_value'              => [ 'adaptive_pricing' => 'no' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => true,
+			],
+			'AP unchanged'                           => [
+				'old_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => false,
+			],
+			'new value missing the AP key'           => [
+				'old_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'new_value'              => [ 'enabled' => 'yes' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => false,
+			],
+			'old value not an array'                 => [
+				'old_value'              => false,
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => false,
+			],
+			'new value not an array'                 => [
+				'old_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'new_value'              => false,
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => false,
+			],
+			'migration already complete, AP toggled' => [
+				'old_value'              => [ 'adaptive_pricing' => 'no' ],
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => 'yes',
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => false,
+			],
+			'non-yes flag is treated as incomplete'  => [
+				'old_value'              => [ 'adaptive_pricing' => 'no' ],
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => 'no',
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => true,
+			],
+			'AP enabled, migration not needed'       => [
+				'old_value'              => [ 'adaptive_pricing' => 'no' ],
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => null,
+				'expect_marked'          => false,
+			],
+			'AP disabled, migration not needed'      => [
+				'old_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'new_value'              => [ 'adaptive_pricing' => 'no' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'no',
+				'expect_marked'          => false,
+			],
+		];
+	}
+
+	/**
+	 * Helper: resolve the migration flag option name from the migration class's private const.
+	 *
+	 * @return string
+	 */
+	private function get_adaptive_pricing_migration_flag_option_name(): string {
+		return WC_Stripe_Test_Helper::get_class_const_value(
+			WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::class,
+			'MIGRATION_FLAG_OPTION',
+			'string'
+		);
+	}
+
 	/* -----------------------------------------------------------------
 	 * Plugin initialization guards
 	 *
@@ -890,6 +1049,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			[ 'woocommerce_init', 'initialize_agentic_commerce', 10 ],
 			[ 'wc_payment_gateways_initialized', 'maybe_toggle_payment_methods', 10 ],
 			[ 'update_option_woocommerce_stripe_settings', 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled', 10 ],
+			[ 'update_option_woocommerce_stripe_settings', 'maybe_mark_adaptive_pricing_migration_complete', 10 ],
 		];
 
 		$first = WC_Stripe::get_instance();

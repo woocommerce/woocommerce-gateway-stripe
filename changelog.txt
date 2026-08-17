@@ -89,12 +89,14 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Center the text and card icons inside the payment fields on the Blocks checkout
 * Tweak - Move the Agentic Commerce settings to their own tab on the Stripe settings page
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
+* Fix - Temporarily disable Adaptive Pricing for a customer's session after a 3rd party plugin incompatibility error
 * Fix - Prevent dismissed admin banner notices from reappearing after navigating between Settings and Payment Methods tabs
 * Fix - Only load the Blocks checkout stylesheet on pages that render the Cart or Checkout block, instead of on every page of the store
 * Fix - Reserve stock when completing agentic checkout orders so concurrent sessions cannot oversell; orders losing the race are set on-hold instead of driving stock negative
 * Tweak - Add PHPDoc for some deprecated hooks
 * Update - Use WooCommerce Core hooks for Adaptive Pricing session management
 * Update - Multiple security hardening improvements
+* Fix - Ensure that manual Adaptive Pricing changes after upgrades get precedence
 
 2026-08-05 - version 10.8.5
 * Update - Improve webhook handling

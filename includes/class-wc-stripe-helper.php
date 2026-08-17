@@ -1276,11 +1276,6 @@ class WC_Stripe_Helper {
 			return 'webhooks-disabled';
 		}
 
-		// If Adaptive Pricing was disabled due to an amount mismatch, keep Adaptive Pricing disabled.
-		if ( WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected() ) {
-			return 'amount-mismatch-detected';
-		}
-
 		// Adaptive Pricing requires automatic capture.
 		if ( 'yes' !== ( self::get_stripe_settings()['capture'] ?? 'yes' ) ) {
 			return 'manual-capture';
@@ -1337,6 +1332,12 @@ class WC_Stripe_Helper {
 
 		// False if adaptive pricing option is disabled.
 		if ( 'yes' !== self::get_settings( null, 'adaptive_pricing' ) ) {
+			return false;
+		}
+
+		// If this customer previously hit a Checkout Session amount mismatch,
+		// disable Adaptive Pricing for the session.
+		if ( WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected() ) {
 			return false;
 		}
 
