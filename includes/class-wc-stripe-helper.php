@@ -43,6 +43,54 @@ class WC_Stripe_Helper {
 	public static $stripe_legacy_gateways = [];
 
 	/**
+	 * Validates a value against the expected Stripe object ID shape: `{prefix}_{token}`,
+	 * word characters only, at most 255 characters (Stripe's documented ceiling).
+	 *
+	 * @see https://docs.stripe.com/upgrades#what-changes-does-stripe-consider-to-be-backwards-compatible
+	 *
+	 * @param mixed             $id       The value to validate.
+	 * @param string|array|null $prefixes Allowed prefix or prefixes (e.g. 'cus' or [ 'pm', 'src', 'card' ]).
+	 *                                    When null, any lowercase-letter prefix is accepted.
+	 * @return bool True when the value is a syntactically valid Stripe identifier.
+	 */
+	public static function is_valid_stripe_id( $id, $prefixes = null ): bool {
+		// The whole identifier (prefix included) is bounded to Stripe's documented 255-character maximum.
+		if ( ! is_string( $id ) || '' === $id || strlen( $id ) > 255 ) {
+			return false;
+		}
+
+		if ( null === $prefixes ) {
+			$prefix_pattern = '[a-z]+';
+		} else {
+			// Drop empty prefixes: an empty allow-list (or an empty prefix string) must validate
+			// nothing, not match a bare "_token".
+			$prefixes = array_filter(
+				is_array( $prefixes ) ? $prefixes : [ $prefixes ],
+				static function ( $prefix ) {
+					return is_string( $prefix ) && '' !== $prefix;
+				}
+			);
+			if ( empty( $prefixes ) ) {
+				return false;
+			}
+			$prefix_pattern = '(' . implode(
+				'|',
+				array_map(
+					static function ( $prefix ) {
+						// Pass the '/' delimiter so a prefix containing it can't break out of the pattern.
+						return preg_quote( $prefix, '/' );
+					},
+					$prefixes
+				)
+			) . ')';
+		}
+
+		// Anchor with \A ... \z rather than ^ ... $: a bare $ also matches before a trailing newline,
+		// which would let a control character slip through. The length ceiling is enforced above.
+		return 1 === preg_match( "/\A{$prefix_pattern}_\w+\z/", $id );
+	}
+
+	/**
 	 * Get the main Stripe settings option.
 	 *
 	 * @param string $method (Optional) The payment method to get the settings from.

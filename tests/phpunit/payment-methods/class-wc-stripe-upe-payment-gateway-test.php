@@ -4684,6 +4684,140 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Malformed payment method IDs must be rejected before any Stripe request is sent.
+	 *
+	 * @param string $payment_method_id The malformed payment method ID.
+	 * @dataProvider provide_malformed_payment_method_ids
+	 */
+	public function test_prepare_payment_information_rejects_malformed_payment_method_id_before_api_request( string $payment_method_id ) {
+		$order         = WC_Helper_Order::create_order();
+		$request_count = 0;
+		$exception     = null;
+
+		$_POST = [
+			'payment_method'           => 'stripe_us_bank_account',
+			'wc-stripe-payment-method' => $payment_method_id,
+		];
+
+		$count_requests = static function ( $preempt, $args, $url ) use ( &$request_count ) {
+			++$request_count;
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => '{}',
+			];
+		};
+		add_filter( 'pre_http_request', $count_requests, 10, 3 );
+
+		$reflection = new \ReflectionClass( WC_Stripe_UPE_Payment_Gateway::class );
+		$method     = $reflection->getMethod( 'prepare_payment_information_from_request' );
+		$method->setAccessible( true );
+
+		try {
+			$method->invoke( $this->mock_gateway, $order );
+		} catch ( WC_Stripe_Exception $caught_exception ) {
+			$exception = $caught_exception;
+		} finally {
+			remove_filter( 'pre_http_request', $count_requests );
+			$_POST = [];
+		}
+
+		// Assert the specific boundary rejection, not merely that some WC_Stripe_Exception was thrown.
+		$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+		$this->assertStringContainsString( 'Invalid payment method ID in request', $exception->getMessage() );
+		$this->assertSame( 0, $request_count );
+	}
+
+	/**
+	 * Provides prefix-compatible IDs containing URL structural characters.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public function provide_malformed_payment_method_ids(): array {
+		return [
+			'full repro payload' => [ '../setup_intents?payment_method_types[]=card&usage=on_session&metadata[p14]=1#' ],
+			'path traversal'     => [ 'pm_1AbC/../setup_intents' ],
+			'slash'              => [ 'pm_1AbC/extra' ],
+			'dot'                => [ 'pm_1AbC.extra' ],
+			'query delimiter'    => [ 'pm_1AbC?foo' ],
+			'ampersand'          => [ 'pm_1AbC&foo' ],
+			'equals'             => [ 'pm_1AbC=foo' ],
+			'fragment'           => [ 'pm_1AbC#foo' ],
+			'opening bracket'    => [ 'pm_1AbC[foo' ],
+			'closing bracket'    => [ 'pm_1AbC]foo' ],
+			'control byte'       => [ "pm_1AbC\nfoo" ],
+		];
+	}
+
+	/**
+	 * A valid PaymentMethod ID passes the boundary check and the ACH flow proceeds unchanged: the
+	 * preliminary PaymentMethod lookup fires first, then the attach. This proves the security check
+	 * does not break the checkout flow it protects.
+	 */
+	public function test_prepare_payment_information_allows_valid_ach_id_and_attaches_after_lookup() {
+		$order = WC_Helper_Order::create_order();
+		$pm_id = 'pm_1MqLiJLkdIwHu7ixUEgbFdYF';
+
+		// Seed the Stripe customer so customer resolution makes no additional API call.
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_test123' );
+
+		$_POST = [
+			'payment_method'           => 'stripe_us_bank_account',
+			'wc-stripe-payment-method' => $pm_id,
+		];
+
+		$requests = [];
+		$capture  = static function ( $preempt, $args, $url ) use ( &$requests, $pm_id ) {
+			$requests[] = $url;
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => wp_json_encode(
+					[
+						'id'   => $pm_id,
+						'type' => 'us_bank_account',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $capture, 10, 3 );
+
+		$reflection = new \ReflectionClass( WC_Stripe_UPE_Payment_Gateway::class );
+		$method     = $reflection->getMethod( 'prepare_payment_information_from_request' );
+		$method->setAccessible( true );
+
+		$exception = null;
+		try {
+			$method->invoke( $this->mock_gateway, $order );
+		} catch ( WC_Stripe_Exception $caught_exception ) {
+			$exception = $caught_exception;
+		} finally {
+			remove_filter( 'pre_http_request', $capture, 10 );
+			$_POST = [];
+		}
+
+		// The valid ID is accepted (no boundary rejection).
+		$this->assertNull( $exception );
+
+		// Exactly one lookup and one attach, in that order.
+		$pm_calls = array_values(
+			array_filter(
+				$requests,
+				static function ( $url ) {
+					return false !== strpos( $url, 'payment_methods/' );
+				}
+			)
+		);
+		$this->assertCount( 2, $pm_calls );
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'payment_methods/' . $pm_id, $pm_calls[0] );
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'payment_methods/' . $pm_id . '/attach', $pm_calls[1] );
+	}
+
+	/**
 	 * The confirmation token flow must still send Klarna's preferred_locale, so cross-border
 	 * customers aren't routed through the Stripe account country's identity verification.
 	 */
