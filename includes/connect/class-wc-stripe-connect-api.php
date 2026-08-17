@@ -84,6 +84,11 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 				return $this->request( 'POST', '/stripe/app-oauth-keys', $request );
 			}
 
+			// Ask the Connect server to additionally return the account's test-mode keys
+			if ( 'live' === $mode ) {
+				$request['fetchTestKeys'] = true;
+			}
+
 			$path = 'test' === $mode ? '/stripe-sandbox/oauth-keys' : '/stripe/oauth-keys';
 			return $this->request( 'POST', $path, $request );
 		}

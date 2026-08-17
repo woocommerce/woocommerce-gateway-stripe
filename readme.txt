@@ -197,6 +197,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Run the woocommerce_gateway_description filter for Stripe payment methods so third parties can add or replace their checkout descriptions
 * Dev - Extract Optimized Checkout into a dedicated payment gateway class so the classic UPE and Optimized Checkout flows are handled independently
 * Dev - Deprecate the internal WC_Stripe_Feature_Flags::is_amazon_pay_available() helper now that Amazon Pay is permanently enabled
+* Add - Automatically configure test-mode when onboarding to a live account
 * Fix - Show correct tax in the Apple Pay / Google Pay product preview for higher quantities, add-ons, and non-taxable products
 * Fix - Preserve decimal product quantities for products when adding to the cart through Apple Pay / Google Pay express checkout
 * Add - Show a "What's new" inbox note after the plugin updates, including via auto-update
