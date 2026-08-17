@@ -525,9 +525,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		// A lost or misrouted webhook leaves a paid order looking unpaid locally, so ask
-		// Stripe before cancelling — cancelling would orphan the captured payment.
+		// Stripe before cancelling — cancelling would orphan the captured payment. Async
+		// methods (e.g. Cash App Pay, ACH) sit at `processing` while the charge clears and
+		// count as paid here too; process_response() parks those orders on-hold until the
+		// charge settles.
 		if ( 'payment_intent' === ( $intent->object ?? '' )
-			&& in_array( $intent->status ?? '', [ WC_Stripe_Intent_Status::SUCCEEDED, WC_Stripe_Intent_Status::REQUIRES_CAPTURE ], true )
+			&& in_array( $intent->status ?? '', WC_Stripe_Intent_Status::SUCCESSFUL_STATUSES, true )
 		) {
 			$this->settle_paid_order_instead_of_cancelling( $order, $intent );
 			return false;
@@ -550,7 +553,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Settles a pending order whose PaymentIntent Stripe reports as paid, via process_response()
+	 * Settles a pending order whose PaymentIntent Stripe reports as paid (or as an async
+	 * payment still processing), via process_response()
 	 * — the same path a webhook would take. If a concurrent process holds the payment lock,
 	 * nothing is settled here; blocking the cancellation is enough and the lock holder finishes.
 	 *
@@ -579,7 +583,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			WC_Stripe_Logger::info( "Settling order {$order->get_id()} from PaymentIntent {$intent_id} ({$intent_status}) instead of cancelling it as unpaid." );
 
-			$order->add_order_note( __( 'Stripe reports this payment as successful, but the payment confirmation never reached this site (e.g. a missed webhook). The order was updated from Stripe instead of being auto-cancelled as unpaid.', 'woocommerce-gateway-stripe' ) );
+			$order->add_order_note( __( 'Stripe reports this payment as successful or still processing, but the payment confirmation never reached this site (e.g. a missed webhook). The order was updated from Stripe instead of being auto-cancelled as unpaid.', 'woocommerce-gateway-stripe' ) );
 
 			$this->process_response( $charge, $order );
 		} catch ( Exception $e ) {

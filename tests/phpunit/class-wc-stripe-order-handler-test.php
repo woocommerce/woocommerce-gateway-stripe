@@ -244,6 +244,7 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 		return [
 			'captured payment'         => [ WC_Stripe_Intent_Status::SUCCEEDED ],
 			'uncaptured authorization' => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE ],
+			'async payment processing' => [ WC_Stripe_Intent_Status::PROCESSING ],
 		];
 	}
 
