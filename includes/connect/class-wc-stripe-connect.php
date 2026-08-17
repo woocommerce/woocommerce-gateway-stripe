@@ -386,8 +386,10 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * Gets default Stripe settings
 		 */
 		private function get_default_stripe_config() {
-			$result  = [];
-			$gateway = new WC_Stripe_UPE_Payment_Gateway();
+			$result = [];
+			// The shared instance, not `new`: the constructor registers hooks,
+			// so every extra instantiation duplicates their callbacks.
+			$gateway = woocommerce_gateway_stripe()->get_main_stripe_gateway();
 			foreach ( $gateway->form_fields as $key => $value ) {
 				if ( isset( $value['default'] ) ) {
 					$result[ $key ] = $value['default'];

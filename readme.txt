@@ -158,6 +158,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.9.0 - xxxx-xx-xx =
+* Fix - Reuse the shared Stripe gateway instance in the settings, key-update, and Connect flows so its hooks are not registered twice (duplicated admin order rows and email notices)
 * Fix - Re-enable Adaptive Pricing if it was automatically disabled after a Checkout Session amount mismatch
 * Add - Bulk edit, quick edit, and a sync-status column and filter on the Products list for excluding products from the Agentic Commerce catalog sync
 * Fix - Match the Google Pay express checkout button height to Apple Pay when using the Light or Outline button theme

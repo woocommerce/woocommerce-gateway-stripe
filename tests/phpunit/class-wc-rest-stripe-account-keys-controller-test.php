@@ -50,6 +50,60 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		);
 	}
 
+	/**
+	 * Changed keys route through the shared gateway, whose settings snapshot
+	 * predates the key write; with the PMC API disabled,
+	 * update_enabled_payment_methods() persists that whole snapshot, so
+	 * without the init_settings() refresh the just-saved keys would be
+	 * clobbered. Also guards that no gateway hooks are re-registered.
+	 */
+	public function test_set_account_keys_preserves_new_keys_via_shared_gateway() {
+		// PMC off forces update_enabled_payment_methods() onto the DB-fallback
+		// path that persists the gateway's whole settings snapshot.
+		$settings                = WC_Stripe_Helper::get_stripe_settings();
+		$settings['pmc_enabled'] = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		// Memoize the shared gateway with the pre-update snapshot.
+		WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$hooks_before = $this->count_gateway_hook_callbacks();
+
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( 'publishable_key', 'pk_live_new-key-123' );
+		$request->set_param( 'secret_key', 'sk_live_new-secret-123' );
+
+		$response = $this->controller->set_account_keys( $request );
+		$this->assertEquals( 200, $response->get_status() );
+
+		$saved = WC_Stripe_Helper::get_stripe_settings();
+
+		// The fallback write ran (payment methods were persisted)…
+		$this->assertEquals( [ 'card', 'link' ], $saved['upe_checkout_experience_accepted_payments'] );
+
+		// …and did not clobber the just-saved keys with the stale snapshot.
+		$this->assertEquals( 'pk_live_new-key-123', $saved['publishable_key'] );
+		$this->assertEquals( 'sk_live_new-secret-123', $saved['secret_key'] );
+
+		$this->assertSame( $hooks_before, $this->count_gateway_hook_callbacks() );
+	}
+
+	/**
+	 * Counts callbacks at priority 5 on the admin totals hook — registered only
+	 * by the UPE gateway constructor, so growth means a duplicate instance.
+	 *
+	 * @return int
+	 */
+	private function count_gateway_hook_callbacks(): int {
+		global $wp_filter;
+
+		$hook = 'woocommerce_admin_order_totals_after_total';
+		if ( ! isset( $wp_filter[ $hook ]->callbacks[5] ) ) {
+			return 0;
+		}
+
+		return count( $wp_filter[ $hook ]->callbacks[5] );
+	}
+
 	public function test_get_account_keys_returns_status_code_200() {
 		$request = new WP_REST_Request( 'GET', self::ROUTE );
 

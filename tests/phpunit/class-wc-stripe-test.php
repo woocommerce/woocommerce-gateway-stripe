@@ -1284,6 +1284,43 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * gateway_settings_update() with no prior settings must read form fields
+	 * from the shared gateway — a fresh instance re-registers every gateway
+	 * constructor hook.
+	 *
+	 * Priority 5 on the admin totals hook is registered only by the UPE
+	 * gateway constructor (display_paid_by_customer_amount).
+	 *
+	 * @return void
+	 */
+	public function test_gateway_settings_update_does_not_duplicate_gateway_hooks(): void {
+		WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$before = $this->count_hook_callbacks( 'woocommerce_admin_order_totals_after_total', 5 );
+
+		WC_Stripe::get_instance()->gateway_settings_update( [ 'enabled' => 'no' ], false );
+
+		$this->assertSame( $before, $this->count_hook_callbacks( 'woocommerce_admin_order_totals_after_total', 5 ) );
+	}
+
+	/**
+	 * The UPE-disable settings path must reuse the shared gateway instead of
+	 * constructing a new one.
+	 *
+	 * @return void
+	 */
+	public function test_disable_upe_does_not_duplicate_gateway_hooks(): void {
+		WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$before = $this->count_hook_callbacks( 'woocommerce_admin_order_totals_after_total', 5 );
+
+		WC_Stripe::get_instance()->gateway_settings_update(
+			[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no' ],
+			[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'yes' ]
+		);
+
+		$this->assertSame( $before, $this->count_hook_callbacks( 'woocommerce_admin_order_totals_after_total', 5 ) );
+	}
+
+	/**
 	 * Helper: count callbacks registered on `$hook` at `$priority`.
 	 *
 	 * @param string $hook     Hook name.

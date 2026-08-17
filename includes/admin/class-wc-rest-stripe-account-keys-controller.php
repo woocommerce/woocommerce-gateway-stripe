@@ -320,7 +320,13 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			|| $current_account_keys['test_publishable_key'] !== $settings['test_publishable_key']
 			|| $current_account_keys['test_secret_key'] !== $settings['test_secret_key'] ) {
 
-			$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
+			// The shared instance, not `new`: the constructor registers hooks, so
+			// every extra instantiation duplicates their callbacks. Its settings
+			// snapshot predates update_main_stripe_settings() above, and
+			// update_option() below persists the whole snapshot — refresh it
+			// first so the just-saved keys aren't clobbered with stale values.
+			$upe_gateway = woocommerce_gateway_stripe()->get_main_stripe_gateway();
+			$upe_gateway->init_settings();
 			$upe_gateway->update_enabled_payment_methods( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
 
 			WC_Stripe::get_instance()->connect->clear_caches_after_key_update();
