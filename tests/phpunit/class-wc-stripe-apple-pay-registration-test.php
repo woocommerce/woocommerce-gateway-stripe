@@ -226,4 +226,147 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 			'malformed url yields empty string' => [ 'not-a-valid-url', '' ],
 		];
 	}
+
+	/**
+	 * Registration is recorded only for a well-formed 2xx response; asserting the
+	 * exact exception message pins each failure to the check that threw.
+	 *
+	 * @param array|WP_Error $http_response          The mocked wp_remote_post() response.
+	 * @param string|null    $expected_error_message Expected exception message, or null when registration should succeed.
+	 * @dataProvider provide_test_register_domain_response_validation
+	 */
+	public function test_register_domain_response_validation( $http_response, ?string $expected_error_message ) {
+		$registration = new WC_Stripe_Apple_Pay_Registration();
+
+		$mock_response = function () use ( $http_response ) {
+			return $http_response;
+		};
+		add_filter( 'pre_http_request', $mock_response, 10, 3 );
+
+		$request_method = new ReflectionMethod( WC_Stripe_Apple_Pay_Registration::class, 'make_domain_registration_request' );
+		$request_method->setAccessible( true );
+
+		$actual_error_message = null;
+		try {
+			$request_method->invoke( $registration, '123' );
+		} catch ( Exception $e ) {
+			$actual_error_message = $e->getMessage();
+		}
+
+		$result = $registration->register_domain( '123' );
+
+		remove_filter( 'pre_http_request', $mock_response, 10 );
+
+		$this->assertSame( $expected_error_message, $actual_error_message );
+
+		$expected_success = null === $expected_error_message;
+		$this->assertSame( $expected_success, $result );
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( $expected_success ? 'yes' : 'no', $settings['apple_pay_domain_set'] );
+	}
+
+	/**
+	 * Data provider for `test_register_domain_response_validation`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_register_domain_response_validation(): array {
+		// Bodies mirror Stripe's payment_method_domain object:
+		// https://docs.stripe.com/api/payment_method_domains/object
+		$success_body = wp_json_encode(
+			[
+				'id'        => 'pmd_123',
+				'object'    => 'payment_method_domain',
+				'apple_pay' => [ 'status' => 'active' ],
+			]
+		);
+
+		return [
+			'well-formed 2xx response records success'         => [
+				[
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'body'     => $success_body,
+				],
+				null,
+			],
+			'transport error records failure'                  => [
+				new WP_Error( 'http_request_failed', 'cURL error 28: Operation timed out' ),
+				'Unable to register domain - cURL error 28: Operation timed out',
+			],
+			'401 with top-level Stripe error records failure'  => [
+				[
+					'response' => [
+						'code'    => 401,
+						'message' => 'Unauthorized',
+					],
+					'body'     => wp_json_encode(
+						[
+							'error' => [
+								'type'    => 'invalid_request_error',
+								'message' => 'Invalid API Key provided',
+							],
+						]
+					),
+				],
+				'Unable to register domain - Invalid API Key provided',
+			],
+			'500 with non-JSON body records failure'           => [
+				[
+					'response' => [
+						'code'    => 500,
+						'message' => 'Internal Server Error',
+					],
+					'body'     => '<html>Internal Server Error</html>',
+				],
+				'Unable to register domain - Stripe returned an unexpected HTTP status code: 500.',
+			],
+			'2xx with top-level Stripe error records failure'  => [
+				[
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'body'     => wp_json_encode(
+						[
+							'error' => [ 'message' => 'Something went wrong' ],
+						]
+					),
+				],
+				'Unable to register domain - Something went wrong',
+			],
+			'2xx without a domain object records failure'      => [
+				[
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'body'     => 'OK',
+				],
+				'Unable to register domain - unexpected response from Stripe.',
+			],
+			'2xx with Apple Pay error message records failure' => [
+				[
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'body'     => wp_json_encode(
+						[
+							'id'        => 'pmd_123',
+							'object'    => 'payment_method_domain',
+							'apple_pay' => [
+								'status'         => 'inactive',
+								'status_details' => [ 'error_message' => 'Unable to verify domain' ],
+							],
+						]
+					),
+				],
+				'Unable to register domain - Unable to verify domain',
+			],
+		];
+	}
 }
