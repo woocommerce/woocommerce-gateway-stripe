@@ -98,7 +98,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 	 *     total_count: int,
 	 *     included_count: int,
 	 *     excluded_count: int,
-	 *     excluded_breakdown: array{subscriptions:int, filtered:int},
+	 *     excluded_breakdown: array{subscriptions:int, password_protected:int, hidden:int, filtered:int},
 	 *     invalid_count: int,
 	 *     validation_errors: array<int, array{product_id:int, product_name:string, edit_link:string, errors:string[]}>,
 	 *     truncated: int,
@@ -145,6 +145,8 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 		$included_count         = 0;
 		$excluded_count         = 0;
 		$excluded_subscriptions = 0;
+		$excluded_password      = 0;
+		$excluded_hidden        = 0;
 		$excluded_filtered      = 0;
 		$invalid_count          = 0;
 		$truncated              = 0;
@@ -215,13 +217,24 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 					continue;
 				}
 
-				// An empty row means should_sync_product() excluded it; split the
-				// count so auto-excluded subscriptions aren't mistaken for a filter.
+				// An empty row means should_sync_product() excluded it. Attribute it
+				// to the reason the merchant can act on, so the UI can say which
+				// setting hid the product rather than just "a store rule".
+				//
+				// First match wins, so the buckets always sum to $excluded_count
+				// even when a product trips several. The per-product toggle and
+				// third-party filters share the generic bucket: the toggle is
+				// already a deliberate act, and a filter's reason is unknowable
+				// from here.
 				if ( empty( $row ) ) {
 					++$excluded_count;
 
 					if ( WC_Stripe_Agentic_Commerce_Product_Mapper::is_subscription_product( $product ) ) {
 						++$excluded_subscriptions;
+					} elseif ( WC_Stripe_Agentic_Commerce_Product_Mapper::is_password_protected( $product ) ) {
+						++$excluded_password;
+					} elseif ( WC_Stripe_Agentic_Commerce_Product_Mapper::is_hidden_from_catalog( $product ) ) {
+						++$excluded_hidden;
 					} else {
 						++$excluded_filtered;
 					}
@@ -241,8 +254,10 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 			'included_count'     => $included_count,
 			'excluded_count'     => $excluded_count,
 			'excluded_breakdown' => [
-				'subscriptions' => $excluded_subscriptions,
-				'filtered'      => $excluded_filtered,
+				'subscriptions'      => $excluded_subscriptions,
+				'password_protected' => $excluded_password,
+				'hidden'             => $excluded_hidden,
+				'filtered'           => $excluded_filtered,
 			],
 			'invalid_count'      => $invalid_count,
 			'validation_errors'  => $validation_errors,

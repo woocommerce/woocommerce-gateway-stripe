@@ -1099,11 +1099,50 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	}
 
 	/**
+	 * Whether the product sits behind a post password.
+	 *
+	 * Unlike catalog visibility, a variation does NOT inherit the parent's
+	 * password — it is a separate post with its own (empty) value. Resolve to the
+	 * parent, or every variation of a protected variable product keeps syncing.
+	 *
+	 * @since 10.9.0
+	 * @param \WC_Product $product Product to check.
+	 * @return bool
+	 */
+	public static function is_password_protected( \WC_Product $product ): bool {
+		$parent_id = $product->get_parent_id();
+		if ( $parent_id > 0 ) {
+			$parent = wc_get_product( $parent_id );
+			if ( $parent instanceof \WC_Product ) {
+				$product = $parent;
+			}
+		}
+
+		return '' !== (string) $product->get_post_password();
+	}
+
+	/**
+	 * Whether the merchant hid the product from both the catalog and search.
+	 *
+	 * The partial values (`catalog`, `search`) are deliberately not exclusions:
+	 * the product is still reachable by the other route.
+	 *
+	 * @since 10.9.0
+	 * @param \WC_Product $product Product to check.
+	 * @return bool
+	 */
+	public static function is_hidden_from_catalog( \WC_Product $product ): bool {
+		return 'hidden' === $product->get_catalog_visibility();
+	}
+
+	/**
 	 * Whether the given product should be included in any Agentic Commerce sync
 	 * (full feed, inventory updates, archive events).
 	 *
-	 * Default is true; integrations such as WC AI Storefront can return false to
-	 * exclude a product based on merchant-configured visibility settings.
+	 * Defaults to true, minus the built-in exclusions: subscriptions,
+	 * password-protected products, and products hidden from catalog and search.
+	 * Integrations such as WC AI Storefront can return false to exclude a product,
+	 * or true to re-include one the defaults dropped.
 	 *
 	 * @since 10.8.0
 	 * @param \WC_Product $product Product to check.
@@ -1114,7 +1153,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		// post type, so the feed's simple/variation query returns them; left in,
 		// they fail validation and downgrade every sync to a partial success.
 		// Excluded by default, still overridable via the filters below.
-		$default_should_sync = ! self::is_subscription_product( $product );
+		//
+		// The other two express intent the query cannot: it selects on status and
+		// type only, so a protected or hidden product is still `publish`.
+		$default_should_sync = ! self::is_subscription_product( $product )
+			&& ! self::is_password_protected( $product )
+			&& ! self::is_hidden_from_catalog( $product );
 
 		// The Stripe-prefixed filter is retained for backward compatibility. Its
 		// result seeds the default for the canonical filter below, so existing
@@ -1155,7 +1199,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * enqueue an immediate full-catalog sync.
 		 *
 		 * @since 10.9.0
-		 * @param bool        $should_sync Whether to include the product. Default true (false for subscriptions).
+		 * @param bool        $should_sync Whether to include the product. Default true, except for
+		 *                                 subscriptions, password-protected products, and products
+		 *                                 hidden from catalog and search.
 		 * @param \WC_Product $product     Product being evaluated.
 		 */
 		return wp_validate_boolean( apply_filters( 'woocommerce_agentic_commerce_should_sync_product', $should_sync, $product ) );

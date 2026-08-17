@@ -157,6 +157,26 @@ const createMockPaymentElement = () => ( {
 const MOCK_AP_CHECKOUT_CLIENT_SECRET = 'cs_test_ap_client_secret';
 const MOCK_AP_CHECKOUT_SESSION_ID = 'cs_test_abc';
 
+const setNativeCheckoutSessionData = ( overrides = {} ) => {
+	let dataElement = document.getElementById(
+		'wc-stripe-checkout-session-data'
+	);
+	if ( ! dataElement ) {
+		dataElement = document.createElement( 'div' );
+		dataElement.id = 'wc-stripe-checkout-session-data';
+		document.body.appendChild( dataElement );
+	}
+
+	dataElement.dataset.checkoutSession = JSON.stringify( {
+		session_id: MOCK_AP_CHECKOUT_SESSION_ID,
+		client_secret: MOCK_AP_CHECKOUT_CLIENT_SECRET,
+		revision: 'rev_1',
+		status: 'success',
+		message: '',
+		...overrides,
+	} );
+};
+
 const createMockElements = () => {
 	const checkoutActions = {
 		runServerUpdate: jest.fn( async ( userFunction ) => {
@@ -518,6 +538,7 @@ describe( 'payment-processing', () => {
 
 	describe( 'adaptive pricing enabled (isAdaptivePricingEnabled = true)', () => {
 		beforeEach( () => {
+			setNativeCheckoutSessionData();
 			stripeUtils.getStripeServerData.mockReturnValue( {
 				...BASE_SERVER_DATA,
 				isAdaptivePricingEnabled: true,
@@ -526,6 +547,9 @@ describe( 'payment-processing', () => {
 		} );
 
 		afterEach( () => {
+			document
+				.getElementById( 'wc-stripe-checkout-session-data' )
+				?.remove();
 			jest.clearAllMocks();
 		} );
 
@@ -544,7 +568,9 @@ describe( 'payment-processing', () => {
 
 				await paymentProcessing.mountStripePaymentElement( api, dom );
 
-				expect( api.checkoutSessionsCreateSession ).toHaveBeenCalled();
+				expect(
+					api.checkoutSessionsCreateSession
+				).not.toHaveBeenCalled();
 				expect(
 					api._stripe.initCheckoutElementsSdk
 				).toHaveBeenCalledWith(
@@ -636,9 +662,10 @@ describe( 'payment-processing', () => {
 			it( 'falls back to standard elements when session creation fails', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
-				api.checkoutSessionsCreateSession.mockRejectedValue(
-					new Error( 'Network error' )
-				);
+				setNativeCheckoutSessionData( {
+					client_secret: '',
+					status: 'error',
+				} );
 				const dom = document.createElement( 'div' );
 				dom.dataset.paymentMethodType = 'card';
 
@@ -653,8 +680,9 @@ describe( 'payment-processing', () => {
 			it( 'falls back to standard elements when client_secret or session_id is absent', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
-				api.checkoutSessionsCreateSession.mockResolvedValue( {
-					data: {},
+				setNativeCheckoutSessionData( {
+					client_secret: '',
+					session_id: '',
 				} );
 				const dom = document.createElement( 'div' );
 				dom.dataset.paymentMethodType = 'card';
@@ -670,8 +698,8 @@ describe( 'payment-processing', () => {
 			it( 'falls back to standard elements when session_id is absent', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
-				api.checkoutSessionsCreateSession.mockResolvedValue( {
-					data: { client_secret: MOCK_AP_CHECKOUT_CLIENT_SECRET },
+				setNativeCheckoutSessionData( {
+					session_id: '',
 				} );
 				const dom = document.createElement( 'div' );
 				dom.dataset.paymentMethodType = 'card';
@@ -684,7 +712,7 @@ describe( 'payment-processing', () => {
 				).not.toHaveBeenCalled();
 			} );
 
-			it( 'uses runServerUpdate to call checkoutSessionsUpdateSession after maybeUpdateAdaptivePricingCheckoutSession', async () => {
+			it( 'uses runServerUpdate without calling the custom update endpoint', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
 				const dom = document.createElement( 'div' );
@@ -700,7 +728,7 @@ describe( 'payment-processing', () => {
 				).toHaveBeenCalled();
 				expect(
 					api.checkoutSessionsUpdateSession
-				).toHaveBeenCalledWith( MOCK_AP_CHECKOUT_SESSION_ID );
+				).not.toHaveBeenCalled();
 			} );
 
 			it( 'does not call checkoutSessionsUpdateSession when adaptive pricing is disabled', async () => {
@@ -1074,10 +1102,7 @@ describe( 'payment-processing', () => {
 			it( 'falls back to standard payment flow when session ID is missing from mount', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
-				// Override to not return a session_id — triggers fallback to stripe.elements().
-				api.checkoutSessionsCreateSession.mockResolvedValue( {
-					data: { client_secret: 'cs_test_abc' },
-				} );
+				setNativeCheckoutSessionData( { session_id: '' } );
 				// Fallback elements should NOT have loadActions (like real stripe.elements()).
 				const bareElements = createMockElements();
 				delete bareElements.loadActions;
@@ -1105,10 +1130,7 @@ describe( 'payment-processing', () => {
 			it( 'shows error if checkoutSessionId is null but loadActions exists (defensive)', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
-				// Override to not return a session_id.
-				api.checkoutSessionsCreateSession.mockResolvedValue( {
-					data: { client_secret: 'cs_test_abc' },
-				} );
+				setNativeCheckoutSessionData( { session_id: '' } );
 
 				await mountAndConfigureForProcess( api, checkoutElements, {
 					type: 'success',
@@ -1246,12 +1268,9 @@ describe( 'payment-processing', () => {
 					},
 				],
 				[
-					'the direct session update rejects',
-					( checkoutElements, api ) => {
+					'the element cannot expose runServerUpdate',
+					( checkoutElements ) => {
 						delete checkoutElements.loadActions;
-						api.checkoutSessionsUpdateSession.mockRejectedValueOnce(
-							new Error( 'boom' )
-						);
 					},
 				],
 			] )(
@@ -1273,6 +1292,60 @@ describe( 'payment-processing', () => {
 					).toHaveBeenCalledWith( STALE_TOTAL_MESSAGE );
 				}
 			);
+
+			it( 'stays silent when no element holds a checkout session', async () => {
+				// Nothing mounted through initCheckoutElementsSdk, so the store is on standard
+				// elements and has no session that could go stale.
+				setNativeCheckoutSessionData( {
+					session_id: '',
+					client_secret: '',
+					revision: '',
+					status: 'uninitialized',
+				} );
+				stripeUtils.showErrorCheckout.mockClear();
+
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession();
+
+				expect( stripeUtils.showErrorCheckout ).not.toHaveBeenCalled();
+			} );
+
+			it( 'shows a notice when the server reports a failed synchronization', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				await mountElement( api, checkoutElements );
+
+				setNativeCheckoutSessionData( { status: 'error' } );
+				stripeUtils.showErrorCheckout.mockClear();
+
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession();
+
+				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
+					STALE_TOTAL_MESSAGE
+				);
+				expect(
+					checkoutElements.checkoutActions.runServerUpdate
+				).not.toHaveBeenCalled();
+			} );
+
+			it( 'shows a notice when the server replaced the session the element is bound to', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				await mountElement( api, checkoutElements );
+
+				setNativeCheckoutSessionData( {
+					session_id: 'cs_test_replacement',
+				} );
+				stripeUtils.showErrorCheckout.mockClear();
+
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession();
+
+				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
+					STALE_TOTAL_MESSAGE
+				);
+				expect(
+					checkoutElements.checkoutActions.runServerUpdate
+				).not.toHaveBeenCalled();
+			} );
 
 			it( 'ignores a stale failing resync that settles after a newer successful one', async () => {
 				const checkoutElements = createMockElements();
@@ -1467,6 +1540,10 @@ describe( 'payment-processing', () => {
 				expect( mockJQueryAjax ).not.toHaveBeenCalled();
 
 				// A clean resync lifts the block and the order is created.
+				checkoutElements.loadActions.mockResolvedValue( {
+					type: 'success',
+					actions: checkoutElements.checkoutActions,
+				} );
 				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
 					api
 				);
