@@ -2580,14 +2580,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 */
 		$send_to_merchant = (bool) apply_filters( 'wc_stripe_checkout_session_expired_should_send_cancelled_order_email_to_merchant', false, $order );
 
-		add_filter( 'woocommerce_email_enabled_customer_cancelled_order', '__return_false' );
-		add_filter( 'woocommerce_email_enabled_cancelled_order', '__return_false' );
+		$order_id = $order->get_id();
+
+		$return_false_for_order = static function ( $enabled, $email_order ) use ( $order_id ) {
+			if ( $email_order instanceof WC_Order && $email_order->get_id() === $order_id ) {
+				return false;
+			}
+			return $enabled;
+		};
+		add_filter( 'woocommerce_email_enabled_customer_cancelled_order', $return_false_for_order, 10, 2 );
+		add_filter( 'woocommerce_email_enabled_cancelled_order', $return_false_for_order, 10, 2 );
 
 		try {
 			$order->update_status( OrderStatus::CANCELLED, __( 'The checkout session has expired.', 'woocommerce-gateway-stripe' ) );
 		} finally {
-			remove_filter( 'woocommerce_email_enabled_customer_cancelled_order', '__return_false' );
-			remove_filter( 'woocommerce_email_enabled_cancelled_order', '__return_false' );
+			remove_filter( 'woocommerce_email_enabled_customer_cancelled_order', $return_false_for_order, 10 );
+			remove_filter( 'woocommerce_email_enabled_cancelled_order', $return_false_for_order, 10 );
 		}
 
 		$emails         = WC()->mailer()->get_emails();
