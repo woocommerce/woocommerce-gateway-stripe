@@ -25,11 +25,19 @@ abstract class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 	private $payment_method_configurations_response = null;
 
 	/**
+	 * The account service as it was before this test replaced it.
+	 *
+	 * @var WC_Stripe_Account|null
+	 */
+	private $original_account = null;
+
+	/**
 	 * Set up.
 	 */
 	public function set_up() {
 		parent::set_up();
-		$this->stripe_api = $this->createMock( WC_Stripe_API::class );
+		$this->original_account = WC_Stripe::get_instance()->account;
+		$this->stripe_api       = $this->createMock( WC_Stripe_API::class );
 		$this->stripe_api->method( 'get_payment_method_configurations' )->willReturnCallback(
 			function () {
 				return $this->payment_method_configurations_response;
@@ -43,6 +51,15 @@ abstract class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 	 * Tear down.
 	 */
 	public function tear_down() {
+		// Tests here swap the WC_Stripe singleton's account for a partial mock built with
+		// disableOriginalConstructor(). Nothing else resets that singleton, so a mock left
+		// installed keeps answering later tests, and its unstubbed real methods run against a
+		// null $connect — a fatal in whichever test next reaches the account.
+		if ( null !== $this->original_account ) {
+			WC_Stripe::get_instance()->account = $this->original_account;
+			$this->original_account            = null;
+		}
+
 		parent::tear_down();
 		$this->reset_payment_method_configuration_state();
 		// Restore the real API singleton: the mock's stub closure is bound to this test case, so
