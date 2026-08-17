@@ -111,6 +111,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Ensure that manual Adaptive Pricing changes after upgrades get precedence
 * Fix - Exclude password-protected products and products hidden from the catalog from the Agentic Commerce feed
 * Fix - Name password protection and hidden visibility as their own reasons in the Agentic Commerce feed preview
+* Fix - Treat an expired Stripe Checkout Session as an abandoned order and cancel it, instead of marking it failed
 
 2026-08-05 - version 10.8.5
 * Update - Improve webhook handling

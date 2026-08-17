@@ -268,5 +268,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Ensure that manual Adaptive Pricing changes after upgrades get precedence
 * Fix - Exclude password-protected products and products hidden from the catalog from the Agentic Commerce feed
 * Fix - Name password protection and hidden visibility as their own reasons in the Agentic Commerce feed preview
+* Fix - Treat an expired Stripe Checkout Session as an abandoned order and cancel it, instead of marking it failed
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
