@@ -2445,7 +2445,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * This includes:
 	 * - checkout.session.expired event; Fires when a Stripe Checkout session expires before the customer completes payment.
 	 * - checkout.session.async_payment_failed event; Fires when an asynchronous payment method on a Stripe Checkout session fails.
-	 * Marks the associated WooCommerce order as failed.
+	 * When the checkout session has expired, we mark the order as cancelled.
+	 * When the checkout session has a failed payment method, we mark the order as failed.
 	 *
 	 * @param object $notification The Stripe notification containing the checkout session data.
 	 */
@@ -2560,7 +2561,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	private function cancel_expired_checkout_session_order( WC_Order $order ): void {
 		/**
 		 * Whether to email the customer when an order is cancelled because its Stripe Checkout
-		 * Session expired.
+		 * Session expired. This only applies to immediate, non-deferred WooCommerce email sends when the
+		 * customer cancelled order email is enabled.
 		 *
 		 * @param bool     $should_send Whether to send the email. Default false.
 		 * @param WC_Order $order       The cancelled order.
@@ -2571,7 +2573,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		/**
 		 * Whether to email the merchant when an order is cancelled because its Stripe Checkout
-		 * Session expired.
+		 * Session expired. This only applies to immediate, non-deferred WooCommerce email sends when the
+		 * merchant cancelled order email is enabled.
 		 *
 		 * @param bool     $should_send Whether to send the email. Default false.
 		 * @param WC_Order $order       The cancelled order.
