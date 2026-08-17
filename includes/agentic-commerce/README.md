@@ -384,6 +384,26 @@ All of these are defaults rather than hard blocks: `woocommerce_agentic_commerce
 
 Because the filter only governs what is *sent*, a product that was already exported and later becomes ineligible stays in Stripe's catalog until a full feed replacement. `WC_Stripe_Agentic_Commerce_Product_Visibility` watches product saves and per-product exclude-flag writes, and fires `wc_stripe_agentic_commerce_schedule_full_resync` when a product crosses that boundary — adapters whose own filter verdict changes must fire the same action.
 
+## Shipping diagnostics
+
+Only methods with a static numeric cost (flat rate, free shipping) are written
+to the feed's `shipping` column. Live-rate, calculated, and most third-party
+methods price at checkout and are omitted. When that leaves a zone with no
+shipping in the feed, agents see no shipping for that destination.
+
+This is discoverable two ways:
+
+- **Logs** (WooCommerce → Status → Logs, `wc-stripe` source):
+  - *info* — "shipping method has no flat rate and was omitted from the feed"
+    (with the zone, method id, and method title), once per sync.
+  - *warning* — "shipping zone has no flat-rate method; it contributes no
+    shipping options to the feed" (with the zone name).
+- **Feed preview** (**Stripe settings → Agentic commerce → Preview feed**): the
+  `shipping_warnings` array names every zone with no flat-rate fallback.
+
+**Recommended fix:** add a low-cost or representative flat-rate method to each
+live-rate-only zone as a feed fallback, so the catalog advertises a shipping
+price while WooCommerce still computes the real live rate at checkout.
 ## Coupons and discounts
 
 WooCommerce coupons do not participate in delegated (in-agent) checkout. Prices come from the synced product feed and are computed by Stripe, the shopper pays inside the AI agent, and the WooCommerce order is only created afterwards from the completed session. Consequences merchants should be aware of:

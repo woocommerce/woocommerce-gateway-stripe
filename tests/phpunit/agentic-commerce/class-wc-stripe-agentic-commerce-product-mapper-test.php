@@ -1496,4 +1496,60 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 			$parent->delete( true );
 		}
 	}
+
+	/**
+	 * get_shipping_diagnostics() flags a zone with no flat-rate method as
+	 * contributing no shipping to the feed.
+	 *
+	 * @return void
+	 */
+	public function test_get_shipping_diagnostics_flags_zone_without_flat_rate() {
+		$zone = new WC_Shipping_Zone();
+		$zone->set_zone_name( 'Diagnostics Test Zone' );
+		$zone->save();
+
+		try {
+			$mapper      = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$diagnostics = $mapper->get_shipping_diagnostics();
+
+			$this->assertArrayHasKey( 'zones_without_flat_rate', $diagnostics );
+			$this->assertContains( 'Diagnostics Test Zone', $diagnostics['zones_without_flat_rate'] );
+		} finally {
+			$zone->delete();
+		}
+	}
+
+	/**
+	 * The built-in catch-all zone 0 ("Locations not covered by your other zones")
+	 * is diagnosed alongside named zones, not only when a store has none — so a
+	 * shipping-capable named zone is not flagged while zone 0's missing flat rate
+	 * still is.
+	 *
+	 * @return void
+	 */
+	public function test_get_shipping_diagnostics_includes_default_zone_alongside_named_zones() {
+		$named = new WC_Shipping_Zone();
+		$named->set_zone_name( 'Covered Zone' );
+		$named->save();
+		// Free shipping counts as a static (flat) cost, so this zone ships.
+		$named->add_shipping_method( 'free_shipping' );
+
+		try {
+			$mapper      = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$diagnostics = $mapper->get_shipping_diagnostics();
+
+			$this->assertNotContains(
+				'Covered Zone',
+				$diagnostics['zones_without_flat_rate'],
+				'A named zone with a flat-cost method must not be flagged.'
+			);
+			$this->assertContains(
+				'Locations not covered by your other zones',
+				$diagnostics['zones_without_flat_rate'],
+				'Zone 0 must still be diagnosed when named zones exist.'
+			);
+		} finally {
+			$named->delete();
+		}
+	}
 }
