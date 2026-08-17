@@ -234,6 +234,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
 		delete_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION );
 
+		if ( WC()->session ) {
+			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
+			WC()->session->set( $amount_mismatch_session_key, null );
+		}
+
 		// The tests in this file do not mock ALL the calls to the Stripe API, and as we use mocked API keys they trigger the 401 rate-limiter,
 		// this is not a problem for these tests as they don't depend on the reponses.
 		//
@@ -2139,7 +2144,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Checkout Session payment processing rejects sessions whose amount no longer matches the order total.
+	 * A Checkout Session amount mismatch fails only that checkout: the Session is invalidated and the customer session is flagged.
 	 */
 	public function test_process_payment_with_checkout_session_rejects_amount_mismatch() {
 		$session_id       = 'cs_test_amount_mismatch';
@@ -2163,20 +2168,26 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->store_checkout_session_context_for_order( $session_id, $order, [ 'amount' => 100 ] );
 
 		try {
-			$result                   = $this->mock_gateway->process_payment( $order->get_id() );
-			$adaptive_pricing_setting = WC_Stripe_Helper::get_settings( null, 'adaptive_pricing' );
-			$mismatch_detected        = WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected();
+			$result                     = $this->mock_gateway->process_payment( $order->get_id() );
+			$adaptive_pricing_setting   = WC_Stripe_Helper::get_settings( null, 'adaptive_pricing' );
+			$customer_mismatch_detected = WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected();
+			$legacy_marker_option       = get_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION, 'no' );
+			$remaining_context          = WC_Stripe_Checkout_Session_Context::get_context( $session_id );
 		} finally {
 			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
 			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'] );
 			WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
 			delete_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION );
+			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
+			WC()->session->set( $amount_mismatch_session_key, null );
 		}
 
 		$this->assertSame( 'failure', $result['result'] );
 		$this->assertSame( $expected_message, $result['message'] );
-		$this->assertSame( 'no', $adaptive_pricing_setting );
-		$this->assertTrue( $mismatch_detected );
+		$this->assertSame( 'yes', $adaptive_pricing_setting );
+		$this->assertSame( 'no', $legacy_marker_option );
+		$this->assertTrue( $customer_mismatch_detected );
+		$this->assertNull( $remaining_context );
 		$this->assert_checkout_session_failure_notice( $expected_message );
 		$this->assertEmpty(
 			WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) )

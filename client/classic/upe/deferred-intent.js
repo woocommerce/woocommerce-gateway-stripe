@@ -91,7 +91,7 @@ jQuery( function ( $ ) {
 	$( document.body ).on( 'updated_checkout', () => {
 		// Track the re-render → re-mount chain so a mid-update submission waits.
 		const updateChain = ( async () => {
-			await maybeUpdateAdaptivePricingCheckoutSession( api );
+			await maybeUpdateAdaptivePricingCheckoutSession();
 			await maybeMountStripePaymentElement();
 			// Remounting skips an already-mounted OC element; refresh its exclusions.
 			maybeUpdateOptimizedCheckoutExclusions();

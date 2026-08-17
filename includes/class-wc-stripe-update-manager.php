@@ -83,6 +83,7 @@ class WC_Stripe_Update_Manager {
 			// Runs after the per-method location migrations above so it collapses their final values.
 			[ new WC_Stripe_Migrate_Express_Checkout_Button_Settings(), 'maybe_migrate' ],
 			[ new WC_Stripe_OCS_AP_Default_On_Update(), 'maybe_migrate' ],
+			[ new WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update(), 'maybe_migrate' ],
 		];
 
 		return $functions;
