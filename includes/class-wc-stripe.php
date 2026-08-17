@@ -43,9 +43,9 @@ class WC_Stripe {
 	public $connect;
 
 	/**
-	 * Stripe Payment Request configurations.
+	 * Stripe Payment Request configurations. Holds a WC_Stripe_Payment_Request_Compat no-op shim.
 	 *
-	 * @var null
+	 * @var WC_Stripe_Payment_Request_Compat
 	 *
 	 * @deprecated 10.4.0 Use express_checkout_configuration instead. This will be removed in a future release.
 	 */
@@ -206,6 +206,10 @@ class WC_Stripe {
 		$this->connect = new WC_Stripe_Connect( $this->api );
 		$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
+		// No-op shim so third parties that register the removed WC_Stripe_Payment_Request methods as
+		// hook callbacks via this property don't fatal on a null callback. See the compat class.
+		$this->payment_request_configuration = new WC_Stripe_Payment_Request_Compat();
+
 		if ( self::$instance === $this ) {
 			// Initialize Express Checkout after translations are loaded
 			add_action( 'init', [ $this, 'init_express_checkout' ], 11 );
@@ -217,6 +221,9 @@ class WC_Stripe {
 
 			$checkout_sessions_ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
 			$checkout_sessions_ajax_handler->init_hooks();
+
+			$checkout_session_lifecycle = new WC_Stripe_Checkout_Session_Lifecycle();
+			$checkout_session_lifecycle->init_classic_hooks();
 			WC_Stripe_Checkout_Session_Context::init_hooks();
 		}
 
@@ -228,16 +235,21 @@ class WC_Stripe {
 
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-settings-controller.php';
 
-			if ( isset( $_GET['area'] ) && in_array( $_GET['area'], [ 'express_checkout', 'payment_requests' ], true ) ) {
+			$area = isset( $_GET['area'] ) ? sanitize_key( wp_unslash( $_GET['area'] ) ) : '';
+			if ( in_array( $area, [ 'express_checkout', 'payment_requests' ], true ) ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-express-checkout-controller.php';
-
 				if ( self::$instance === $this ) {
 					new WC_Stripe_Express_Checkout_Controller();
 				}
-			} elseif ( isset( $_GET['area'] ) && 'amazon_pay' === $_GET['area'] && WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
+			} elseif ( 'amazon_pay' === $area ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-amazon-pay-controller.php';
 				if ( self::$instance === $this ) {
 					new WC_Stripe_Amazon_Pay_Controller();
+				}
+			} elseif ( 'link' === $area ) {
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-link-controller.php';
+				if ( self::$instance === $this ) {
+					new WC_Stripe_Link_Controller();
 				}
 			} elseif ( self::$instance === $this ) {
 				new WC_Stripe_Settings_Controller( $this->account );
@@ -250,6 +262,11 @@ class WC_Stripe {
 
 			if ( self::$instance === $this ) {
 				new WC_Stripe_Plugins_Page_Controller( $this->account );
+			}
+
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-command-palette-controller.php';
+			if ( self::$instance === $this ) {
+				new WC_Stripe_Command_Palette_Controller();
 			}
 
 			if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
@@ -267,6 +284,7 @@ class WC_Stripe {
 			add_filter( 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), [ $this, 'plugin_action_links' ] );
 			add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
 			add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
+			add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_mark_adaptive_pricing_migration_complete' ], 10, 2 );
 		}
 
 		// Update the email field position.
@@ -381,6 +399,10 @@ class WC_Stripe {
 			update_option( 'wc_stripe_amazon_pay_default_on', 'yes' );
 			update_option( 'wc_stripe_optimized_checkout_default_on', 'yes' );
 		}
+
+		// Seed the "What's new" note baseline here: this upgrade routine is the
+		// reliable place to detect the bump for auto-updaters.
+		WC_Stripe_Whats_New_Note::record_install_version( $previous_version );
 
 		add_woocommerce_inbox_variant();
 		$this->update_plugin_version();
@@ -499,8 +521,25 @@ class WC_Stripe {
 			// Fall back to filter defaults only if no existing setting.
 			global $post;
 
-			$should_show_on_product_page  = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post );
-			$should_show_on_cart_page     = apply_filters( 'wc_stripe_show_payment_request_on_cart', true );
+			/**
+			 * Filters whether payment request buttons should be hidden on product pages.
+			 *
+			 * @param bool         $hide Whether to hide payment request buttons.
+			 * @param WP_Post|null $post Current post object, if available.
+			 */
+			$should_show_on_product_page = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post );
+			/**
+			 * Filters whether payment request buttons should be shown on the cart page.
+			 *
+			 * @param bool $show Whether to show payment request buttons.
+			 */
+			$should_show_on_cart_page = apply_filters( 'wc_stripe_show_payment_request_on_cart', true );
+			/**
+			 * Filters whether payment request buttons should be shown on the checkout page.
+			 *
+			 * @param bool         $show Whether to show payment request buttons.
+			 * @param WP_Post|null $post Current post object, if available.
+			 */
 			$should_show_on_checkout_page = apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post );
 
 			$new_prb_locations = [];
@@ -610,15 +649,16 @@ class WC_Stripe {
 	/**
 	 * Whether the request is editing a post that hosts the Cart or Checkout block.
 	 *
-	 * ECE and OCS render as inner blocks of those, so either parent's presence on the edited
-	 * post is what {@see add_gateways()} keys on to suppress block-support warnings — and only there.
+	 * ECE and OCS render as inner blocks of those, so either parent's presence on the edited post is
+	 * what {@see add_gateways()} keys on to suppress block-support warnings. The OC Blocks config
+	 * builder keys on the same check so the gateway list and registered Blocks methods stay in lockstep.
 	 *
 	 * The post ID is read from the request rather than the global $post because this filter runs
 	 * during the editor page load before $post is populated.
 	 *
 	 * @return bool
 	 */
-	private function is_editing_cart_or_checkout_block(): bool {
+	public function is_editing_cart_or_checkout_block(): bool {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only check, no state change.
 		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
 
@@ -686,6 +726,38 @@ class WC_Stripe {
 		$this->maybe_reset_stripe_in_memory_key( $settings, $old_settings );
 
 		return $this->toggle_upe( $settings, $old_settings );
+	}
+
+
+	/**
+	 * When the Adaptive Pricing amount mismatch migration is incomplete and
+	 * the merchant toggles the Adaptive Pricing setting, we need to mark the
+	 * amount mismatch migration as complete.
+	 *
+	 * @param array|false $old_settings Previous settings; false if no previous settings existed.
+	 * @param array       $settings     New settings that were saved.
+	 * @return void
+	 */
+	public function maybe_mark_adaptive_pricing_migration_complete( $old_settings, $settings ): void {
+		// Note that we tackle all in-memory checks first so we only check options when we are making relevant changes.
+		if ( ! is_array( $old_settings ) || ! is_array( $settings ) || ! isset( $settings['adaptive_pricing'] ) ) {
+			return;
+		}
+
+		$old_adaptive_pricing = $old_settings['adaptive_pricing'] ?? null;
+		$new_adaptive_pricing = $settings['adaptive_pricing'] ?? null;
+
+		if ( $old_adaptive_pricing === $new_adaptive_pricing ) {
+			return;
+		}
+
+		if ( ! WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::is_migration_needed() ) {
+			return;
+		}
+
+		if ( WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::delete_amount_mismatch_option() ) {
+			WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::mark_migration_complete();
+		}
 	}
 
 	/**
@@ -1008,6 +1080,16 @@ class WC_Stripe {
 			WP_CLI::add_command( 'stripe agentic-commerce', 'WC_Stripe_Agentic_Commerce_CLI' );
 		}
 
+		// Per-product exclude toggle. The exclusion storage registers the feed
+		// filter in every context; the meta box is the admin-only editor UI on top
+		// of it.
+		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_Exclusion' ) ) {
+			( new WC_Stripe_Agentic_Commerce_Product_Exclusion() )->init();
+		}
+		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_Meta_Box' ) ) {
+			( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->init();
+		}
+
 		/**
 		 * Fires after Agentic Commerce integration is initialized.
 		 *
@@ -1038,12 +1120,6 @@ class WC_Stripe {
 		$payment_method_ids_to_disable = array_merge(
 			$payment_method_ids_to_disable,
 			$this->maybe_deactivate_bnpls( $gateways->payment_gateways, $enabled_payment_methods )
-		);
-
-		// Check if Amazon Pay should be deactivated.
-		$payment_method_ids_to_disable = array_merge(
-			$payment_method_ids_to_disable,
-			$this->maybe_deactivate_amazon_pay( $enabled_payment_methods )
 		);
 
 		if ( [] === $payment_method_ids_to_disable ) {
@@ -1085,29 +1161,5 @@ class WC_Stripe {
 		}
 
 		return $payment_method_ids_to_disable;
-	}
-
-	/**
-	 * Deactivate Amazon Pay if it's not available, i.e. unreleased.
-	 *
-	 * TODO: Remove this method once Amazon Pay is released.
-	 *
-	 * @param array $enabled_payment_methods The enabled payment methods.
-	 * @return array Amazon Pay payment method ID, if it should be disabled.
-	 */
-	private function maybe_deactivate_amazon_pay( $enabled_payment_methods ) {
-		// Safety guard only. Ideally, we will remove this method once Amazon Pay is released.
-		if ( WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
-			// Nothing to do if Amazon Pay is already released.
-			return [];
-		}
-
-		if ( ! in_array( WC_Stripe_Payment_Methods::AMAZON_PAY, $enabled_payment_methods, true ) ) {
-			// Nothing to do if Amazon Pay is not enabled.
-			return [];
-		}
-
-		// Disable Amazon Pay.
-		return [ WC_Stripe_Payment_Methods::AMAZON_PAY ];
 	}
 }

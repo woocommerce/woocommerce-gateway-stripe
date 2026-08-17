@@ -23,6 +23,8 @@ const TestModeCheckbox = () => {
 	// otherwise the gateway would run in test mode without test keys.
 	const isLockedToLiveMode = ! isTestModeEnabled && ! isTestAccountConnected;
 
+	const isLocked = isLockedToTestMode || isLockedToLiveMode;
+
 	const handleCheckboxChange = ( isChecked ) => {
 		setTestMode( isChecked );
 	};
@@ -49,7 +51,7 @@ const TestModeCheckbox = () => {
 			<h4>{ __( 'Test mode', 'woocommerce-gateway-stripe' ) }</h4>
 			<CheckboxControl
 				checked={ isTestModeEnabled }
-				disabled={ isLockedToTestMode || isLockedToLiveMode }
+				disabled={ isLocked }
 				onChange={ handleCheckboxChange }
 				label={ __( 'Enable test mode', 'woocommerce-gateway-stripe' ) }
 				help={
