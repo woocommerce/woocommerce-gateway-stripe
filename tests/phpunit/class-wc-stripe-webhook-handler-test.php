@@ -1600,6 +1600,342 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Adaptive Pricing Checkout Session PaymentIntents can arrive without order metadata. When
+	 * Stripe includes the Checkout Session reference on the event, the handler should use that
+	 * direct link instead of depending on a second API lookup.
+	 *
+	 * @dataProvider provide_process_adaptive_pricing_payment_intent_order_reference_fallback
+	 *
+	 * @param string      $event_type           The PaymentIntent event type.
+	 * @param string|null $checkout_type        Checkout type metadata to include on the intent.
+	 * @param string      $expected_status      The order status after processing.
+	 * @param bool        $expect_deferred      Whether the event should schedule deferred settlement.
+	 * @param bool        $expect_intent_stored Whether the PaymentIntent ID should be stored on the order.
+	 * @param bool        $order_ref_resolves   Whether order_reference should resolve the order directly.
+	 * @param bool        $expect_lookup        Whether the PaymentIntent session lookup should be attempted.
+	 */
+	public function test_process_adaptive_pricing_payment_intent_order_reference_fallback(
+		string $event_type,
+		?string $checkout_type,
+		string $expected_status,
+		bool $expect_deferred,
+		bool $expect_intent_stored,
+		bool $order_ref_resolves,
+		bool $expect_lookup
+	): void {
+		$event_slug          = str_replace( [ 'payment_intent.', '_' ], '', $event_type );
+		$checkout_session_id = 'cs_test_pi_reference_' . $event_slug;
+		$intent_id           = 'pi_test_pi_reference_' . $event_slug;
+		$order_reference     = $order_ref_resolves ? $checkout_session_id : 'cs_test_stale_' . $event_slug;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		$lookup_called   = false;
+		$pre_http_filter = $this->stub_checkout_session_lookup( $intent_id, $checkout_session_id, $lookup_called );
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		if ( $expect_deferred ) {
+			$mock_scheduler->expects( $this->once() )
+				->method( 'schedule_job' )
+				->with(
+					$this->isType( 'int' ),
+					'wc_stripe_deferred_webhook',
+					$this->callback(
+						function ( $args ) use ( $event_type, $intent_id, $order ) {
+							return ( $args['type'] ?? '' ) === $event_type
+								&& ( $args['data']['intent_id'] ?? '' ) === $intent_id
+								&& $order->get_id() === ( $args['data']['order_id'] ?? 0 )
+								&& isset( $args['notification'] );
+						}
+					)
+				);
+		} else {
+			$mock_scheduler->expects( $this->never() )->method( 'schedule_job' );
+		}
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
+
+		$metadata = (object) [];
+		if ( null !== $checkout_type ) {
+			$metadata->checkout_type = $checkout_type;
+		}
+
+		$notification = (object) [
+			'type' => $event_type,
+			'data' => (object) [
+				'object' => (object) [
+					'id'                 => $intent_id,
+					'metadata'           => $metadata,
+					'payment_details'    => (object) [
+						'order_reference' => $order_reference,
+					],
+					'last_payment_error' => (object) [ 'message' => 'Your card was declined.' ],
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_payment_intent( $notification );
+		remove_filter( 'pre_http_request', $pre_http_filter );
+
+		$final_order        = wc_get_order( $order->get_id() );
+		$stored_intent_id   = WC_Stripe_Order_Helper::get_instance()->get_intent_id_from_order( $final_order );
+		$expected_intent_id = $expect_intent_stored ? $intent_id : '';
+
+		$this->assertSame( $expect_lookup, $lookup_called );
+		$this->assertSame( $expected_status, $final_order->get_status() );
+		$this->assertSame( $expected_intent_id, $stored_intent_id );
+	}
+
+	/**
+	 * Data provider for `test_process_adaptive_pricing_payment_intent_order_reference_fallback`.
+	 *
+	 * @return array<string, array{0: string, 1: string|null, 2: string, 3: bool, 4: bool, 5: bool, 6: bool}>
+	 */
+	public function provide_process_adaptive_pricing_payment_intent_order_reference_fallback(): array {
+		return [
+			'AP succeeded intent -> order linked and deferred'              => [
+				'payment_intent.succeeded',
+				WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE,
+				OrderStatus::PENDING,
+				true,
+				true,
+				true,
+				false,
+			],
+			'AP succeeded intent, stale reference -> lookup resolves order' => [
+				'payment_intent.succeeded',
+				WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE,
+				OrderStatus::PENDING,
+				true,
+				true,
+				false,
+				true,
+			],
+			'AP capturable intent -> order linked and deferred'             => [
+				'payment_intent.amount_capturable_updated',
+				WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE,
+				OrderStatus::PENDING,
+				true,
+				true,
+				true,
+				false,
+			],
+			'AP failed intent -> order failed'                              => [
+				'payment_intent.payment_failed',
+				WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE,
+				OrderStatus::FAILED,
+				false,
+				false,
+				true,
+				false,
+			],
+			'standard checkout succeeded intent -> order ignored'           => [
+				'payment_intent.succeeded',
+				'standard_checkout',
+				OrderStatus::PENDING,
+				false,
+				false,
+				true,
+				false,
+			],
+			'unmarked succeeded intent -> order ignored'                    => [
+				'payment_intent.succeeded',
+				null,
+				OrderStatus::PENDING,
+				false,
+				false,
+				true,
+				false,
+			],
+		];
+	}
+
+	public function test_process_adaptive_pricing_payment_intent_ignores_non_checkout_session_order_reference(): void {
+		$suffix              = str_replace( '-', '', wp_generate_uuid4() );
+		$checkout_session_id = 'cs_test_pi_reference_' . $suffix;
+		$intent_id           = 'pi_test_pi_reference_' . $suffix;
+		$invalid_reference   = 'order_reference_' . $suffix;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		$conflicting_order = WC_Helper_Order::create_order();
+		$conflicting_order->set_status( OrderStatus::PENDING );
+		$conflicting_order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $conflicting_order, $invalid_reference );
+		$conflicting_order->save_meta_data();
+
+		$lookup_called   = false;
+		$pre_http_filter = $this->stub_checkout_session_lookup( $intent_id, $checkout_session_id, $lookup_called );
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->isType( 'int' ),
+				'wc_stripe_deferred_webhook',
+				$this->callback(
+					function ( $args ) use ( $intent_id, $order ) {
+						return 'payment_intent.succeeded' === ( $args['type'] ?? '' )
+							&& ( $args['data']['intent_id'] ?? '' ) === $intent_id
+							&& $order->get_id() === ( $args['data']['order_id'] ?? 0 );
+					}
+				)
+			);
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
+
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) [
+					'id'              => $intent_id,
+					'metadata'        => (object) [
+						'checkout_type' => WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE,
+					],
+					'payment_details' => (object) [
+						'order_reference' => $invalid_reference,
+					],
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_payment_intent( $notification );
+		remove_filter( 'pre_http_request', $pre_http_filter );
+
+		$final_order             = wc_get_order( $order->get_id() );
+		$final_conflicting_order = wc_get_order( $conflicting_order->get_id() );
+
+		$this->assertTrue( $lookup_called );
+		$this->assertSame( $intent_id, WC_Stripe_Order_Helper::get_instance()->get_intent_id_from_order( $final_order ) );
+		$this->assertSame( '', WC_Stripe_Order_Helper::get_instance()->get_intent_id_from_order( $final_conflicting_order ) );
+	}
+
+	/**
+	 * Checkout Session-recovered successful PaymentIntents must be retried through
+	 * process_payment_intent() when the order lock is held, because the intent has not been stored yet.
+	 */
+	public function test_process_adaptive_pricing_payment_intent_order_reference_requeues_when_order_locked(): void {
+		$suffix              = str_replace( '-', '', wp_generate_uuid4() );
+		$checkout_session_id = 'cs_test_pi_reference_locked_' . substr( $suffix, 0, 12 );
+		$intent_id           = 'pi_test_pi_reference_locked_' . substr( $suffix, 0, 12 );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		$this->assertSame( $order->get_id(), WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session_id )->get_id() );
+		$this->assertTrue( $order->has_status( OrderStatus::PENDING ) );
+
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+		$order_helper->method( 'lock_order_payment' )->willReturn( true );
+		$order_helper->method( 'unlock_order_payment' );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) [
+					'id'              => $intent_id,
+					'metadata'        => (object) [
+						'checkout_type' => WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE,
+					],
+					'payment_details' => (object) [
+						'order_reference' => $checkout_session_id,
+					],
+				],
+			],
+		];
+
+		$start               = time();
+		$scheduled_timestamp = null;
+		$scheduled_hook      = null;
+		$scheduled_args      = null;
+		$mock_scheduler      = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )
+			->method( 'schedule_job' )
+			->willReturnCallback(
+				function ( $timestamp, $hook, $args ) use ( &$scheduled_timestamp, &$scheduled_hook, &$scheduled_args ) {
+					$scheduled_timestamp = $timestamp;
+					$scheduled_hook      = $hook;
+					$scheduled_args      = $args;
+				}
+			);
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
+
+		$this->mock_webhook_handler->process_payment_intent( $notification );
+
+		$final_order      = wc_get_order( $order->get_id() );
+		$stored_intent_id = WC_Stripe_Order_Helper::get_instance()->get_intent_id_from_order( $final_order );
+
+		$this->assertIsInt( $scheduled_timestamp );
+		$this->assertGreaterThanOrEqual( $start + 10, $scheduled_timestamp );
+		$this->assertLessThan( $start + MINUTE_IN_SECONDS, $scheduled_timestamp );
+		$this->assertSame( 'wc_stripe_deferred_webhook', $scheduled_hook );
+		$this->assertSame( 'payment_intent.succeeded', $scheduled_args['type'] ?? '' );
+		$this->assertSame( $intent_id, $scheduled_args['data']['intent_id'] ?? '' );
+		$this->assertSame( $order->get_id(), $scheduled_args['data']['order_id'] ?? 0 );
+		$this->assertTrue( $scheduled_args['data']['retry_process_payment_intent'] ?? false );
+		$this->assertSame( $notification, $scheduled_args['notification'] ?? null );
+		$this->assertSame( OrderStatus::PENDING, $final_order->get_status() );
+		$this->assertEmpty( $stored_intent_id );
+	}
+
+	/**
+	 * Lock retry jobs need to recover and store the intent before the normal deferred settlement path can run.
+	 */
+	public function test_process_deferred_webhook_retries_payment_intent_processing_when_requested(): void {
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) [
+					'id' => 'pi_test_retry_process_payment_intent',
+				],
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'process_payment_intent', 'handle_deferred_payment_intent_succeeded' ] )
+			->getMock();
+
+		$handler->expects( $this->once() )
+			->method( 'process_payment_intent' )
+			->with( $notification );
+
+		$handler->expects( $this->never() )
+			->method( 'handle_deferred_payment_intent_succeeded' );
+
+		$handler->process_deferred_webhook(
+			'payment_intent.succeeded',
+			[
+				'retry_process_payment_intent' => true,
+			],
+			$notification
+		);
+	}
+
+	/**
 	 * charge.failed is intentionally not used to resolve declined Adaptive Pricing orders — the
 	 * paired payment_intent.payment_failed event handles that — so it must not run the session lookup.
 	 */

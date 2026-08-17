@@ -1321,13 +1321,26 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$intent = $notification->data->object;
 		$order  = $this->get_order_from_intent( $intent );
 
-		$checkout_type = $intent->metadata->checkout_type ?? '';
+		$checkout_type                       = $intent->metadata->checkout_type ?? '';
+		$resolved_order_via_checkout_session = false;
+		$checkout_session_intent_event_types = [
+			'payment_intent.payment_failed',
+			'payment_intent.succeeded',
+			'payment_intent.amount_capturable_updated',
+		];
+		$is_adaptive_pricing_checkout_intent = WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE === $checkout_type;
+		$should_resolve_via_checkout_session = ! $order
+			&& $is_adaptive_pricing_checkout_intent
+			&& in_array( $notification->type, $checkout_session_intent_event_types, true );
+		$checkout_session_order_reference    = $intent->payment_details->order_reference ?? '';
+		$checkout_session_order_reference    = is_string( $checkout_session_order_reference ) && 0 === strpos( $checkout_session_order_reference, 'cs_' )
+			? $checkout_session_order_reference
+			: '';
 
-		// For AP, attempt to find the order via the checkout session.
-		if ( ! $order
-			&& 'payment_intent.payment_failed' === $notification->type
-			&& WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE === $checkout_type ) {
-			$order = $this->get_order_by_intent_checkout_session( isset( $intent->id ) ? (string) $intent->id : '' );
+		// Checkout Session PaymentIntents can arrive without order metadata; the session remains the durable order link.
+		if ( $should_resolve_via_checkout_session ) {
+			$order                               = $this->get_order_by_intent_checkout_session( isset( $intent->id ) ? (string) $intent->id : '', $checkout_session_order_reference );
+			$resolved_order_via_checkout_session = $order instanceof WC_Order;
 		}
 
 		if ( ! $order ) {
@@ -1349,10 +1362,29 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper                 = WC_Stripe_Order_Helper::get_instance();
+		$is_recoverable_success_event = $resolved_order_via_checkout_session
+			&& isset( $intent->id )
+			&& in_array( $notification->type, [ 'payment_intent.succeeded', 'payment_intent.amount_capturable_updated' ], true );
 
 		if ( $order_helper->lock_order_payment( $order ) ) {
+			if ( $is_recoverable_success_event ) {
+				$this->defer_webhook_processing(
+					$notification,
+					[
+						'order_id'                     => $order->get_id(),
+						'intent_id'                    => (string) $intent->id,
+						'retry_process_payment_intent' => true,
+					],
+					$this->locked_order_retry_delay
+				);
+			}
+
 			return;
+		}
+
+		if ( $is_recoverable_success_event ) {
+			$order_helper->add_payment_intent_to_order( (string) $intent->id, $order );
 		}
 
 		$order_id           = $order->get_id();
@@ -1624,22 +1656,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * object-shaped payload.
 	 *
 	 * @param array|object $notification Raw notification from the scheduled job.
-	 * @return object      The normalized notification object.
+	 * @return stdClass    The normalized notification object.
 	 * @throws Exception When the payload cannot be normalized.
 	 */
 	private function normalize_deferred_webhook_notification_to_object( $notification ) {
-		if ( is_object( $notification ) ) {
+		if ( $notification instanceof stdClass ) {
 			return $notification;
 		}
 
-		if ( is_array( $notification ) ) {
+		if ( is_array( $notification ) || is_object( $notification ) ) {
 			$json = wp_json_encode( $notification );
 			if ( false === $json ) {
 				throw new Exception( 'Failed to encode deferred webhook notification for object restoration.' );
 			}
 
 			$object = json_decode( $json );
-			if ( ! is_object( $object ) ) {
+			if ( ! $object instanceof stdClass ) {
 				throw new Exception( 'Failed to restore deferred webhook notification to an object.' );
 			}
 
@@ -1669,6 +1701,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			switch ( $webhook_type ) {
 				case 'payment_intent.succeeded':
 				case 'payment_intent.amount_capturable_updated':
+					if ( ! empty( $additional_data['retry_process_payment_intent'] ) ) {
+						$this->process_payment_intent( $notification );
+						return;
+					}
+
 					$order     = isset( $additional_data['order_id'] ) ? wc_get_order( $additional_data['order_id'] ) : null;
 					$intent_id = $additional_data['intent_id'] ?? '';
 
@@ -2728,10 +2765,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Resolves the order behind a PaymentIntent via its Checkout Session.
 	 *
-	 * @param string $intent_id PaymentIntent ID from the failed event.
+	 * @param string $intent_id           PaymentIntent ID from the event.
+	 * @param string $checkout_session_id Checkout Session ID from the event, when available.
 	 * @return WC_Order|null
 	 */
-	private function get_order_by_intent_checkout_session( string $intent_id ): ?WC_Order {
+	private function get_order_by_intent_checkout_session( string $intent_id, string $checkout_session_id = '' ): ?WC_Order {
+		if ( '' !== $checkout_session_id ) {
+			$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session_id );
+			if ( $order instanceof WC_Order ) {
+				return $order;
+			}
+		}
+
 		if ( '' === $intent_id ) {
 			return null;
 		}

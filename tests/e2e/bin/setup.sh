@@ -172,6 +172,9 @@ redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommer
 rm -rf $E2E_ROOT/woocommerce-subscriptions.zip
 
 redirect_output cli wp plugin activate woocommerce-subscriptions
+echo " - Enabling legacy subscription product types"
+redirect_output cli wp option update woocommerce_subscriptions_enable_simple_subscription 'yes'
+redirect_output cli wp option update woocommerce_subscriptions_enable_variable_subscription 'yes'
 
 step "Installing Woo Pre-Orders"
 echo " - Fetching latest version"
