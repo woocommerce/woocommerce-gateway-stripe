@@ -20,7 +20,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	/**
 	 * Current domain name.
 	 *
-	 * @var bool
+	 * @var string
 	 */
 	private $domain_name;
 
@@ -36,7 +36,8 @@ class WC_Stripe_Apple_Pay_Registration {
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'register_domain_on_updated_settings' ], 10, 2 );
 		add_action( 'admin_notices', [ $this, 'admin_notices' ] );
 
-		$this->domain_name                   = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : str_replace( array( 'https://', 'http://' ), '', get_site_url() ); // @codingStandardsIgnoreLine
+		$this->domain_name = (string) wp_parse_url( get_site_url(), PHP_URL_HOST );
+
 		$this->apple_pay_registration_notice = '';
 	}
 
@@ -113,6 +114,11 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @since 4.9.0
 	 */
 	public function register_domain_on_domain_name_change() {
+		// Require WooCommerce admin permissions for registration.
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+
 		if ( $this->domain_name !== $this->get_option( 'apple_pay_verified_domain' ) ) {
 			$this->register_domain_if_configured();
 		}
@@ -218,7 +224,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	public function register_domain_if_configured() {
 		$secret_key = $this->get_secret_key();
 
-		if ( ! $this->is_enabled() || empty( $secret_key ) ) {
+		if ( empty( $this->domain_name ) || ! $this->is_enabled() || empty( $secret_key ) ) {
 			return;
 		}
 
