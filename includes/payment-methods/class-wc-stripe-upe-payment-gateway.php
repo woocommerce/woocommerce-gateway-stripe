@@ -720,6 +720,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$order_currency                  = $order->get_currency();
 				$stripe_params['currency']       = $order_currency;
 				$stripe_params['cartTotal']      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order_currency );
+				$stripe_params['orderKey']       = $order->get_order_key();
 				$stripe_params['orderReturnURL'] = esc_url_raw(
 					add_query_arg(
 						[

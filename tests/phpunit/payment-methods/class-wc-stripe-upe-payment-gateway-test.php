@@ -5836,6 +5836,43 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Tests that order authorization data is localized only for a validated pay-for-order endpoint.
+	 */
+	public function test_javascript_params_localizes_order_key_only_for_valid_pay_for_order_endpoint(): void {
+		global $wp, $wp_query;
+
+		$gateway                     = $this->create_gateway_mock_for_javascript_params();
+		$order                       = WC_Helper_Order::create_order( 0 );
+		$original_get                = $_GET;
+		$original_wp_query_vars      = $wp->query_vars;
+		$original_query_vars         = $wp_query->query_vars;
+		$original_current_user_id    = get_current_user_id();
+		$wp->query_vars['order-pay'] = $order->get_id();
+		$wp_query->set( 'order-pay', $order->get_id() );
+		$_GET['pay_for_order'] = 'true';
+		$_GET['key']           = $order->get_order_key();
+		wp_set_current_user( 0 );
+
+		try {
+			$params = $gateway->javascript_params();
+
+			$this->assertSame( $order->get_id(), $params['orderId'] );
+			$this->assertSame( $order->get_order_key(), $params['orderKey'] );
+
+			$_GET['key'] = 'wc_order_wrong_key';
+			$params      = $gateway->javascript_params();
+
+			$this->assertArrayNotHasKey( 'orderId', $params );
+			$this->assertArrayNotHasKey( 'orderKey', $params );
+		} finally {
+			$_GET                 = $original_get;
+			$wp->query_vars       = $original_wp_query_vars;
+			$wp_query->query_vars = $original_query_vars;
+			wp_set_current_user( $original_current_user_id );
+		}
+	}
+
+	/**
 	 * Tests that `javascript_params()` handles the `wc_stripe_upe_permitted_font_domains` filter correctly.
 	 *
 	 * @dataProvider provide_test_javascript_params_permitted_font_domains
