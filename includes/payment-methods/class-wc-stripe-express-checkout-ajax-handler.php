@@ -578,21 +578,18 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	}
 
 	/**
-	 * Log errors coming from express checkout elements
+	 * Deprecated no-op for the former express checkout error-logging endpoint.
+	 *
+	 * @deprecated 10.9.0 No longer called by the plugin; the endpoint no longer logs anything.
 	 *
 	 * @return void
 	 */
 	public function ajax_log_errors() {
 		check_ajax_referer( 'wc-stripe-log-errors', 'security' );
+		_deprecated_function( __METHOD__, '10.9.0' );
 
-		$errors = isset( $_POST['errors'] ) ? wc_clean( wp_unslash( $_POST['errors'] ) ) : '';
-
-		if ( is_array( $errors ) ) {
-			$errors = wp_json_encode( $errors );
-		}
-
-		WC_Stripe_Logger::error( (string) $errors );
-
+		// No-op: this endpoint is deprecated and nothing in the plugin calls it anymore. Keep the
+		// original empty 200 so any remaining third-party caller is not broken mid-deprecation.
 		exit;
 	}
 	/**
