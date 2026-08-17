@@ -169,6 +169,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Update the Stripe API version and the Stripe.js release train to 2026-03-25 (dahlia)
 * Update - Process classic checkout custom fields in express checkout by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
 * Update - Use WooCommerce Core hooks for Adaptive Pricing session management
+* Update - Multiple security hardening improvements
 * Add - Add a wc_stripe_is_adaptive_pricing_supported filter so extensions can disable Adaptive Pricing for carts their flows are incompatible with
 * Add - Add a wc_stripe_subscription_renewal_blocked_by_radar action hook that fires when Stripe Radar blocks a subscription renewal payment
 * Add - Verify that Stripe.js was served from the official Stripe origin before processing checkout payments

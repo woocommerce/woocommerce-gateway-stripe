@@ -94,6 +94,7 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Reserve stock when completing agentic checkout orders so concurrent sessions cannot oversell; orders losing the race are set on-hold instead of driving stock negative
 * Tweak - Add PHPDoc for some deprecated hooks
 * Update - Use WooCommerce Core hooks for Adaptive Pricing session management
+* Update - Multiple security hardening improvements
 
 2026-08-05 - version 10.8.5
 * Update - Improve webhook handling
