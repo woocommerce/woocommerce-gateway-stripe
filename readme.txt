@@ -239,20 +239,20 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 * Add - Per-product "Agentic Commerce" exclude toggle on the product editor's Inventory tab
 * Add - Add an Agentic Commerce checkout mode that redirects shoppers to your store to check out instead of completing the purchase in the AI agent
-* Fix - Only create an agentic commerce order on the site that produced the checkout, preventing duplicate or wrong-site orders when multiple stores share one Stripe account
+* Fix - Only create an Agentic Commerce order on the site that produced the checkout, preventing duplicate or wrong-site orders when multiple stores share one Stripe account
 * Fix - Exclude WooCommerce Subscriptions products from the Agentic Commerce product feed so they no longer make every sync report a partial success
 * Fix - Reserve stock when completing agentic checkout orders so concurrent sessions cannot oversell; orders losing the race are set on-hold instead of driving stock negative
 * Fix - Prevent fatals during internal order check
 * Tweak - Consolidate the default payment intent metadata fields into a shared method so they stay consistent across payment flows
 * Tweak - Add PHPDoc for some deprecated hooks
-* Tweak - When enabling manual capture, clarify to agentic commerce merchants that Agentic Commerce purchases follow the capture setting in the Stripe agentic commerce dashboard
+* Tweak - When enabling manual capture, clarify to Agentic Commerce merchants that Agentic Commerce purchases follow the capture setting in the Stripe Agentic Commerce dashboard
 * Tweak - Cap the Agentic Commerce feed preview scan so it stays responsive on large catalogs instead of timing out
 * Tweak - Break down the Agentic Commerce feed preview's excluded product count by reason so subscriptions are no longer mistaken for a merchant-configured filter
 * Tweak - Move the Agentic Commerce settings to their own tab on the Stripe settings page
 * Dev - Use a shared hook manager to prevent duplicate subscription hook registrations
 * Dev - Initial infrastructure for more complex Agentic feed filtering
 * Dev - Agentic Commerce: add the shareable woocommerce_agentic_commerce_disable_checkout filter, deprecating the wc_stripe_-prefixed twin
-* Dev - Centralize agentic commerce feed scheduling in integration class
+* Dev - Centralize Agentic Commerce feed scheduling in integration class
 * Dev - Use clsx library instead of classnames
 * Dev - Add more robust purchase checks in e2e tests
 * Dev - Make the Express Checkout entrypoint bootstrap test deterministic to remove a CI flake
