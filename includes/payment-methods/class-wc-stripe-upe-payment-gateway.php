@@ -502,15 +502,31 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'woocommerce-gateway-stripe'
 		);
 
+		$default_upe_params = $this->javascript_params();
+
+		/**
+		 * Filters the UPE classic checkout JavaScript parameters.
+		 *
+		 * @param array $params UPE JavaScript parameters.
+		 */
+		$upe_params = apply_filters( 'wc_stripe_upe_params', $default_upe_params );
+
+		// A filter callback returning a non-array must not fatal the checkout.
+		// Reuse the pre-filter params rather than regenerating them:
+		// javascript_params() has side effects (on the setup-intent success
+		// redirect it creates a payment token from the setup intent).
+		if ( ! is_array( $upe_params ) ) {
+			$upe_params = $default_upe_params;
+		}
+
+		// The bootstrap waits for these dependencies' globals before loading the
+		// async init chunk; sourcing the list from the build keeps it in sync.
+		$upe_params['scriptDependencies'] = $dependencies;
+
 		wp_localize_script(
 			'wc-stripe-upe-classic',
 			'wc_stripe_upe_params',
-			/**
-			 * Filters the UPE classic checkout JavaScript parameters.
-			 *
-			 * @param array $params UPE JavaScript parameters.
-			 */
-			apply_filters( 'wc_stripe_upe_params', $this->javascript_params() )
+			$upe_params
 		);
 
 		wp_register_style(
@@ -1205,9 +1221,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			<?php
 			$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
 			if ( $this->is_saved_cards_enabled() && ! empty( $methods_enabled_for_saved_payments ) && ! $this->should_hide_save_payment_method_checkbox() ) {
-				/**
-				 * This filter is documented in includes/class-wc-stripe-blocks-support.php.
-				 */
+				/** This filter is documented in includes/class-wc-stripe-blocks-support.php. */
 				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page() || WC_Stripe_Helper::should_force_save_payment_method();
 				$this->save_payment_method_checkbox( $force_save_payment );
 			}
@@ -1528,7 +1542,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		if ( is_string( $checkout_session_id ) && ! empty( $checkout_session_id ) && ! WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected() ) {
+		if ( is_string( $checkout_session_id ) && ! empty( $checkout_session_id ) ) {
 			return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
 		}
 
@@ -2017,9 +2031,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 
 				// Run the necessary filter to make sure mandate information is added when it's required.
-				/**
-				 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-				 */
+				/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 				$request = apply_filters(
 					'wc_stripe_generate_create_intent_request',
 					$request,
@@ -4734,9 +4746,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'redirect_to' => rawurlencode( $result['redirect'] ),
 		];
 
-		/**
-		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-		 */
 		$force_save_source_value = apply_filters( 'wc_stripe_force_save_source', false );
 
 		// We want to save the payment method if requested or forced, AND if we are not
@@ -4795,9 +4804,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$order = wc_get_order( $order->get_id() );
 
 		if ( ! $order->has_status(
-			/**
-			 * This filter is documented in includes/class-wc-stripe-webhook-handler.php.
-			 */
+			/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
 			apply_filters(
 				'wc_stripe_allowed_payment_processing_statuses',
 				[ OrderStatus::PENDING, OrderStatus::FAILED ],
