@@ -159,6 +159,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.9.0 - xxxx-xx-xx =
 * Fix - Re-enable Adaptive Pricing if it was automatically disabled after a Checkout Session amount mismatch
+* Add - Bulk edit, quick edit, and a sync-status column and filter on the Products list for excluding products from the Agentic Commerce catalog sync
 * Fix - Match the Google Pay express checkout button height to Apple Pay when using the Light or Outline button theme
 * Fix - Keep the currently loaded Stripe account details visible when an account refresh fails
 * Fix - Surface an error and block checkout when the Adaptive Pricing order total can't be synced with Stripe, instead of silently letting the buyer pay a stale amount
@@ -251,6 +252,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Register Multibanco, OXXO, Boleto, Link, and Cash App Pay hooks only once per request so email instructions and thank-you page content are not duplicated
 * Fix - Resync the Agentic Commerce catalog when switching between test and live mode, and scope the sync status shown in settings to the active mode
 * Fix - Ensure that settings with checked, disabled checkboxes look disabled
+* Fix - Temporarily disable Adaptive Pricing for a customer's session after a 3rd party plugin incompatibility error
 * Dev - Register Stripe.js through a single shared helper
 * Fix - Prevent dismissed admin banner notices from reappearing after navigating between Settings and Payment Methods tabs
 * Fix - Only load the Blocks checkout stylesheet on pages that render the Cart or Checkout block
@@ -263,6 +265,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Allow express checkout payments when automatic account password generation is disabled
 * Tweak - Add PHPDoc for some deprecated hooks
 * Dev - Remove the deprecated @woocommerce/settings npm package; settings are still read from the wc-settings script WooCommerce provides at runtime
+* Fix - Ensure that manual Adaptive Pricing changes after upgrades get precedence
 * Fix - Exclude password-protected products and products hidden from the catalog from the Agentic Commerce feed
 * Fix - Name password protection and hidden visibility as their own reasons in the Agentic Commerce feed preview
 * Fix - Treat an expired Stripe Checkout Session as an abandoned order and cancel it, instead of marking it failed
