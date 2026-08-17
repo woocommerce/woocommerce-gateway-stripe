@@ -157,7 +157,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 10.9.0 - xxxx-xx-xx =
+= 10.9.0 - 2026-08-17 =
 
 **New Features**
 
