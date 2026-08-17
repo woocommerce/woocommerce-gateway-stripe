@@ -35,7 +35,7 @@ xxxx-xx-xx - version 10.9.0
 * Dev - Use clsx library instead of classnames
 * Fix - Append the 3-letter currency code to the Stripe Fee and Stripe Payout amounts in WP Admin order totals when the Stripe account currency differs from the order currency
 * Dev - Add more robust purchase checks in e2e tests
-* Fix - Only create an agentic commerce order on the site that produced the checkout, preventing duplicate or wrong-site orders when multiple stores share one Stripe account
+* Fix - Only create an Agentic Commerce order on the site that produced the checkout, preventing duplicate or wrong-site orders when multiple stores share one Stripe account
 * Dev - Add a Code Comment Conventions section to AGENTS.md to standardize agent and contributor comment guidance
 * Fix - Run the woocommerce_gateway_description filter for Stripe payment methods so third parties can add or replace their checkout descriptions
 * Fix - Show an error notice when a Stripe OAuth connection attempt fails its security check
@@ -55,9 +55,9 @@ xxxx-xx-xx - version 10.9.0
 * Add - Verify that Stripe.js was served from the official Stripe origin before processing checkout payments
 * Fix - Exclude WooCommerce Subscriptions products from the Agentic Commerce product feed so they no longer make every sync report a partial success
 * Add - Add an Agentic Commerce checkout mode that redirects shoppers to your store to check out instead of completing the purchase in the AI agent
-* Tweak - When enabling manual capture, clarify to agentic commerce merchants that Agentic Commerce purchases follow the capture setting in the Stripe agentic commerce dashboard
+* Tweak - When enabling manual capture, clarify to Agentic Commerce merchants that Agentic Commerce purchases follow the capture setting in the Stripe Agentic Commerce dashboard
 * Fix - Stop retrying the Stripe App connection refresh when the connection has permanently expired
-* Dev - Centralize agentic commerce feed scheduling in integration class
+* Dev - Centralize Agentic Commerce feed scheduling in integration class
 * Fix - Enforce and save custom required checkout fields when paying with express checkout on classic checkout
 * Update - Process classic checkout custom fields in express checkout by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
 * Dev - Update subscription E2E fixtures to use WooCommerce Subscriptions product plans
@@ -92,8 +92,9 @@ xxxx-xx-xx - version 10.9.0
 * Fix - Prevent dismissed admin banner notices from reappearing after navigating between Settings and Payment Methods tabs
 * Fix - Only load the Blocks checkout stylesheet on pages that render the Cart or Checkout block, instead of on every page of the store
 * Fix - Reserve stock when completing agentic checkout orders so concurrent sessions cannot oversell; orders losing the race are set on-hold instead of driving stock negative
-* Tweak - Use database cache for webhook status tracking
+* Tweak - Add PHPDoc for some deprecated hooks
 * Update - Use WooCommerce Core hooks for Adaptive Pricing session management
+* Update - Multiple security hardening improvements
 
 2026-08-05 - version 10.8.5
 * Update - Improve webhook handling
