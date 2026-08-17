@@ -2601,6 +2601,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			remove_filter( 'woocommerce_email_enabled_cancelled_order', $return_false_for_order, 10 );
 		}
 
+		if ( ! $send_to_customer && ! $send_to_merchant ) {
+			return;
+		}
+
 		$emails         = WC()->mailer()->get_emails();
 		$customer_email = $emails['WC_Email_Customer_Cancelled_Order'] ?? null;
 		$merchant_email = $emails['WC_Email_Cancelled_Order'] ?? null;
