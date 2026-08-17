@@ -97,6 +97,7 @@ xxxx-xx-xx - version 10.9.0
 * Update - Use WooCommerce Core hooks for Adaptive Pricing session management
 * Update - Multiple security hardening improvements
 * Fix - Ensure that manual Adaptive Pricing changes after upgrades get precedence
+* Fix - Treat an expired Stripe Checkout Session as an abandoned order and cancel it, instead of marking it failed
 
 2026-08-05 - version 10.8.5
 * Update - Improve webhook handling
