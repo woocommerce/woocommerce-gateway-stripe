@@ -59,16 +59,28 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 	 */
 	private function upe_checkout_setup( $payment_request_enabled = true ) {
 		$this->upe_helper->enable_upe();
-		$this->upe_helper->reload_payment_gateways();
 
+		// Mock before reloading: the settings write in reload_payment_gateways() triggers a PMC
+		// fetch via update_option hooks, and an unmocked (empty) fetch disables PMC sync entirely.
 		if ( $payment_request_enabled ) {
 			$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::APPLE_PAY ] );
 		} else {
 			$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
 		}
+
+		$this->upe_helper->reload_payment_gateways();
 	}
 
-	public function test_register_domain_if_configured_supported_country() {
+	/**
+	 * Stripe Elements does not support Apple Pay for accounts in India, so registration must be
+	 * skipped for that account country even when everything else is configured.
+	 *
+	 * @dataProvider provide_account_country_scenarios
+	 *
+	 * @param string $country         Stripe account country.
+	 * @param bool   $should_register Whether domain registration should be attempted.
+	 */
+	public function test_register_domain_if_configured_account_country_gate( $country, $should_register ) {
 		$this->upe_checkout_setup();
 
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
@@ -83,13 +95,23 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 		WC_Stripe::get_instance()->account
 			->expects( $this->any() )
 			->method( 'get_cached_account_data' )
-			->willReturn( [ 'country' => 'US' ] );
+			->willReturn( [ 'country' => $country ] );
 
 		$this->mock_wc_apple_pay_registration
-			->expects( $this->once() )
+			->expects( $should_register ? $this->once() : $this->never() )
 			->method( 'register_domain' );
 
 		$this->mock_wc_apple_pay_registration->register_domain_if_configured();
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: bool}>
+	 */
+	public function provide_account_country_scenarios() {
+		return [
+			'supported country (US)' => [ WC_Stripe_Country_Code::UNITED_STATES, true ],
+			'India is unsupported'   => [ WC_Stripe_Country_Code::INDIA, false ],
+		];
 	}
 
 	/**
@@ -111,11 +133,11 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 	public function test_register_domain_if_configured_upe_apple_pay_disabled() {
 		$this->upe_checkout_setup( false );
 
-		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::CARD ] );
-
 		$this->mock_wc_apple_pay_registration
 			->expects( $this->never() )
 			->method( 'register_domain' );
+
+		$this->mock_wc_apple_pay_registration->register_domain_if_configured();
 	}
 
 	/**
