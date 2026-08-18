@@ -230,9 +230,11 @@ jQuery( function ( $ ) {
 			// Deliberately not `is_express_checkout_enabled`: that aggregate is true when
 			// any wallet's locations cover this page, which would render Apple/Google Pay
 			// on pages where only another wallet (e.g. Amazon Pay) is enabled.
-			const isApplePayGooglePayEnabled =
+			const isApplePayEnabled =
+				wc_stripe_express_checkout_params?.stripe?.is_apple_pay_enabled; // eslint-disable-line camelcase
+			const isGooglePayEnabled =
 				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
-					?.is_apple_google_pay_enabled;
+					?.is_google_pay_enabled;
 			const isAmazonPayEnabled =
 				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
 					?.is_amazon_pay_enabled;
@@ -253,10 +255,8 @@ jQuery( function ( $ ) {
 			// may require different options or configurations, e.g. Amazon Pay
 			// does not support paymentMethodCreation: 'manual'.
 			const expressPaymentTypes = [
-				isApplePayGooglePayEnabled &&
-					EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
-				isApplePayGooglePayEnabled &&
-					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+				isApplePayEnabled && EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+				isGooglePayEnabled && EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 				isAmazonPayEnabled &&
 					! areTaxesBasedOnBillingAddress &&
 					! isChangePaymentMethod &&

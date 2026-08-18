@@ -222,10 +222,14 @@ class WC_Stripe_Express_Checkout_Element {
 				'is_link_enabled'             => $this->express_checkout_helper->is_link_enabled(),
 				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
 				'is_amazon_pay_enabled'       => $this->express_checkout_helper->is_amazon_pay_enabled(),
-				// Apple/Google Pay need their own flag: `is_express_checkout_enabled` is the
+				// Apple/Google Pay need their own flags: `is_express_checkout_enabled` is the
 				// any-method aggregate, so it stays true when only another wallet's locations
 				// cover this page and must not decide whether these two buttons render.
-				'is_apple_google_pay_enabled' => $this->express_checkout_helper->is_apple_google_pay_enabled(),
+				// Both flags are currently backed by the shared Apple/Google Pay setting, so
+				// they are always equal — per-wallet keys so a future settings split only has
+				// to change how each value is computed, not the frontend contract.
+				'is_apple_pay_enabled'        => $this->express_checkout_helper->is_apple_google_pay_enabled(),
+				'is_google_pay_enabled'       => $this->express_checkout_helper->is_apple_google_pay_enabled(),
 			],
 			'nonce'                      => [
 				'payment'                       => wp_create_nonce( 'wc-stripe-express-checkout' ),
