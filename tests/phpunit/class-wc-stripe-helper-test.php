@@ -2780,4 +2780,54 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertSame( 'https://js.stripe.com/dahlia/stripe.js', $registered->src );
 		$this->assertSame( 1, wp_scripts()->get_data( 'stripe', 'group' ), 'Stripe.js must load in the footer.' );
 	}
+
+	/**
+	 * The replacement filter always receives an optional order ID, and remains the
+	 * final authority while the deprecated filter is bridged for compatibility.
+	 *
+	 * @dataProvider provide_should_force_save_payment_method_context
+	 *
+	 * @param int|null $order_id Order ID when available.
+	 */
+	public function test_should_force_save_payment_method_has_consistent_context( ?int $order_id ): void {
+		$user_id = $this->factory()->user->create();
+		wp_set_current_user( $user_id );
+
+		$deprecated_context = null;
+		$new_context        = null;
+		$deprecated_filter  = static function ( $force_save, $context ) use ( &$deprecated_context ) {
+			$deprecated_context = $context;
+			return true;
+		};
+		$new_filter         = static function ( $force_save, $context ) use ( &$new_context ) {
+			$new_context = $context;
+			return false;
+		};
+
+		add_filter( 'wc_stripe_force_save_source', $deprecated_filter, 10, 2 );
+		add_filter( 'wc_stripe_force_save_payment_method', $new_filter, 10, 2 );
+		$this->setExpectedDeprecated( 'wc_stripe_force_save_source' );
+
+		try {
+			$result = WC_Stripe_Helper::should_force_save_payment_method( false, $order_id );
+		} finally {
+			remove_filter( 'wc_stripe_force_save_source', $deprecated_filter, 10 );
+			remove_filter( 'wc_stripe_force_save_payment_method', $new_filter, 10 );
+			wp_set_current_user( 0 );
+		}
+
+		$this->assertFalse( $result );
+		$this->assertSame( $order_id, $deprecated_context );
+		$this->assertSame( $order_id, $new_context );
+	}
+
+	/**
+	 * @return array<string, array{int|null}>
+	 */
+	public function provide_should_force_save_payment_method_context(): array {
+		return [
+			'checkout rendering without an order' => [ null ],
+			'checkout processing with an order'   => [ 123 ],
+		];
+	}
 }

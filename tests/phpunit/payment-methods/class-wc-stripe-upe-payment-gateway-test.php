@@ -4743,6 +4743,71 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Deferred processing must reuse the decision made at the process_payment entry
+	 * point so stateful filters cannot produce different intent and storage behavior.
+	 */
+	public function test_prepare_payment_information_reuses_precomputed_save_decision(): void {
+		$order             = WC_Helper_Order::create_order();
+		$payment_method_id = 'pm_test_precomputed_save';
+		$gateway           = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'get_stripe_customer_id' ] )
+			->getMock();
+		$gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => $payment_method_id,
+			'wc-stripe-new-payment-method' => 'true',
+		];
+
+		$payment_method_pre_http_filter = static function ( $result, $args, $url ) use ( $payment_method_id ) {
+			if ( false === strpos( $url, 'payment_methods/' . $payment_method_id ) ) {
+				return $result;
+			}
+
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => wp_json_encode(
+					[
+						'id'     => $payment_method_id,
+						'object' => 'payment_method',
+						'type'   => WC_Stripe_Payment_Methods::CARD,
+					]
+				),
+			];
+		};
+		$policy_filter_calls            = 0;
+		$policy_filter                  = static function ( $force_save ) use ( &$policy_filter_calls ) {
+			++$policy_filter_calls;
+			return true;
+		};
+
+		add_filter( 'pre_http_request', $payment_method_pre_http_filter, 10, 3 );
+		add_filter( 'wc_stripe_force_save_payment_method', $policy_filter );
+
+		$save_decision = new ReflectionProperty( WC_Stripe_UPE_Payment_Gateway::class, 'save_payment_method_to_store_for_request' );
+		$save_decision->setAccessible( true );
+		$save_decision->setValue( $gateway, false );
+
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'prepare_payment_information_from_request' );
+		$method->setAccessible( true );
+
+		try {
+			$payment_information = $method->invoke( $gateway, $order );
+		} finally {
+			remove_filter( 'pre_http_request', $payment_method_pre_http_filter, 10 );
+			remove_filter( 'wc_stripe_force_save_payment_method', $policy_filter );
+			$_POST = [];
+		}
+
+		$this->assertSame( 0, $policy_filter_calls );
+		$this->assertFalse( $payment_information['save_payment_method_to_store'] );
+	}
+
+	/**
 	 * Test for `filter_saved_payment_methods_list`
 	 *
 	 * @param bool $saved_cards Whether saved cards are enabled.
@@ -4901,6 +4966,98 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertEquals( 'Credit / Debit Card', $order->get_payment_method_title() );
 
 		$this->mock_gateway->oc_enabled = $init_oc_enabled;
+	}
+
+	/**
+	 * Verification plumbing uses the save decision carried by the payment result and
+	 * supplies an order ID to the deprecated compatibility callback.
+	 */
+	public function test_modify_successful_payment_result_uses_propagated_save_decision(): void {
+		$order_id          = WC_Helper_Order::create_order()->get_id();
+		$received_order_id = null;
+		$deprecated_filter = static function ( $force_save, $context ) use ( &$received_order_id ) {
+			$received_order_id = $context;
+			return $force_save;
+		};
+
+		add_filter( 'wc_stripe_force_save_source', $deprecated_filter, 10, 2 );
+		$this->setExpectedDeprecated( 'wc_stripe_force_save_source' );
+
+		try {
+			$result = $this->mock_gateway->modify_successful_payment_result(
+				[
+					'result'              => 'success',
+					'redirect'            => self::MOCK_RETURN_URL,
+					'setup_intent_secret' => 'seti_secret_context_test',
+					'save_payment_method' => true,
+				],
+				$order_id
+			);
+		} finally {
+			remove_filter( 'wc_stripe_force_save_source', $deprecated_filter, 10 );
+		}
+
+		$encoded_verification_url = explode( ':', $result['redirect'], 2 )[1];
+		$query_string             = wp_parse_url( rawurldecode( $encoded_verification_url ), PHP_URL_QUERY );
+		parse_str( is_string( $query_string ) ? $query_string : '', $query );
+
+		$this->assertSame( $order_id, $received_order_id );
+		$this->assertSame( '1', $query['save_payment_method'] );
+	}
+
+	/**
+	 * A propagated false value must not be replaced by stale request data because the
+	 * intent and verification endpoint need to use the same server-side decision.
+	 */
+	public function test_modify_successful_payment_result_prefers_propagated_false_over_request(): void {
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-new-payment-method' => 'true',
+		];
+
+		try {
+			$result = $this->mock_gateway->modify_successful_payment_result(
+				[
+					'result'              => 'success',
+					'redirect'            => self::MOCK_RETURN_URL,
+					'setup_intent_secret' => 'seti_secret_context_test',
+					'save_payment_method' => false,
+				],
+				WC_Helper_Order::create_order()->get_id()
+			);
+		} finally {
+			$_POST = [];
+		}
+
+		$encoded_verification_url = explode( ':', $result['redirect'], 2 )[1];
+		$query_string             = wp_parse_url( rawurldecode( $encoded_verification_url ), PHP_URL_QUERY );
+		parse_str( is_string( $query_string ) ? $query_string : '', $query );
+
+		$this->assertArrayNotHasKey( 'save_payment_method', $query );
+	}
+
+	/**
+	 * Setup-intent result producers carry the decision consumed by redirect verification.
+	 */
+	public function test_complete_free_order_propagates_forced_save_decision(): void {
+		$order   = WC_Helper_Order::create_order();
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'get_return_url', 'setup_intent' ] )
+			->getMock();
+		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
+		$gateway->method( 'setup_intent' )->willReturn( 'seti_secret_context_test' );
+
+		$result = $gateway->complete_free_order(
+			$order,
+			(object) [
+				'customer'      => 'cus_context_test',
+				'source'        => 'pm_context_test',
+				'source_object' => (object) [ 'type' => WC_Stripe_Payment_Methods::CARD ],
+			],
+			true
+		);
+
+		$this->assertTrue( $result['save_payment_method'] );
 	}
 
 	/**

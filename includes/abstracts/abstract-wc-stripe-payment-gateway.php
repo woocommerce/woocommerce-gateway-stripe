@@ -1003,7 +1003,17 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$customer->set_id( $existing_customer_id );
 		}
 
-		$force_save_source = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
+		/**
+		 * This filter is documented in includes/class-wc-stripe-helper.php.
+		 */
+		$force_save_source = apply_filters_deprecated(
+			'wc_stripe_force_save_source',
+			[ $force_save_source, $customer ],
+			'9.6.0',
+			'wc_stripe_should_save_payment_source_for_customer',
+			'The wc_stripe_force_save_source filter is deprecated. Use wc_stripe_should_save_payment_source_for_customer for customer/source decisions, or wc_stripe_force_save_payment_method for order-level policy.'
+		);
+
 		$source_object     = '';
 		$source_id         = '';
 		$wc_token_id       = false;
@@ -1019,7 +1029,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			// Check if the customer opted to save the payment method to file.
 			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
 
-			if ( $force_save_source || ( $user_id && $this->saved_cards && $maybe_saved_card ) ) {
+			$should_save_source = $force_save_source || ( $user_id && $this->saved_cards && $maybe_saved_card );
+			$should_save_source = $this->should_save_payment_source_for_customer( $should_save_source, $customer, $source_id );
+
+			if ( $should_save_source ) {
 				$was_attached = $this->maybe_attach_source_to_customer( $source_object, $customer );
 				if ( $was_attached ) {
 					// Save the payment method to the customer.
@@ -1042,11 +1055,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$is_token = true;
 			}
 		} elseif ( isset( $_POST['stripe_token'] ) && 'new' !== $_POST['stripe_token'] ) {
-			$stripe_token     = wc_clean( wp_unslash( $_POST['stripe_token'] ) );
-			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
+			$stripe_token = wc_clean( wp_unslash( $_POST['stripe_token'] ) );
+			if ( ! is_string( $stripe_token ) ) {
+				throw new WC_Stripe_Exception( 'Invalid payment method', __( 'Invalid payment method. Please input a new card number.', 'woocommerce-gateway-stripe' ) );
+			}
+			$maybe_saved_card   = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
+			$should_save_source = $force_save_source || ( $user_id && $this->saved_cards && $maybe_saved_card ); // @phpstan-ignore-line (saved_cards is defined in the classes that use this class)
+			$should_save_source = $this->should_save_payment_source_for_customer( $should_save_source, $customer, $stripe_token );
 
 			// This is true if the user wants to store the card to their account.
-			if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_save_source ) { // @phpstan-ignore-line (saved_cards is defined in the classes that use this class)
+			if ( $should_save_source ) {
 				$response = $customer->attach_source( $stripe_token );
 
 				if ( ! empty( $response->error ) ) {
@@ -1079,6 +1097,30 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'source_object'  => $source_object,
 			'payment_method' => null,
 		];
+	}
+
+	/**
+	 * Returns whether a new Stripe source should be saved for a customer.
+	 *
+	 * @param bool               $should_save Whether the source should be saved.
+	 * @param WC_Stripe_Customer $customer    Stripe customer object.
+	 * @param string             $source_id   Stripe source, token, or payment method ID.
+	 * @return bool
+	 */
+	private function should_save_payment_source_for_customer( $should_save, WC_Stripe_Customer $customer, $source_id ) {
+		/**
+		 * Filters whether a new Stripe source should be saved for a customer.
+		 *
+		 * The source ID is resolved before this filter runs so callbacks do not need to
+		 * infer it from request globals or from the customer object.
+		 *
+		 * @since 10.9.0
+		 *
+		 * @param bool               $should_save Whether the source should be saved.
+		 * @param WC_Stripe_Customer $customer    Stripe customer object.
+		 * @param string             $source_id   Stripe source, token, or payment method ID.
+		 */
+		return (bool) apply_filters( 'wc_stripe_should_save_payment_source_for_customer', $should_save, $customer, $source_id );
 	}
 
 	/**
@@ -1622,7 +1664,23 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$request = WC_Stripe_Helper::add_payment_method_to_request_array( $prepared_source->source, $request );
 
-		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
+		/**
+		 * This filter is documented in includes/class-wc-stripe-helper.php.
+		 */
+		$force_save_source = apply_filters_deprecated(
+			'wc_stripe_force_save_source',
+			[ false, $prepared_source->source ],
+			'9.6.0',
+			'wc_stripe_force_save_payment_method',
+			'The wc_stripe_force_save_source filter is deprecated. Use wc_stripe_generate_create_intent_request for source-dependent intent changes, or wc_stripe_force_save_payment_method for order-level policy.'
+		);
+
+		if ( is_user_logged_in() ) {
+			/**
+			 * This filter is documented in includes/class-wc-stripe-helper.php.
+			 */
+			$force_save_source = apply_filters( 'wc_stripe_force_save_payment_method', $force_save_source, $order->get_id() );
+		}
 
 		if ( $this->save_payment_method_requested() || $this->has_subscription( $order->get_id() ) || $force_save_source ) {
 			$request['setup_future_usage']              = 'off_session';
