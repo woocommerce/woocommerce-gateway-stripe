@@ -162,13 +162,15 @@ export default class WCStripeAPI {
 	 *
 	 * @param {number|null} orderId           The id of the order if creating the intent on Order Pay page.
 	 * @param {string|null} paymentMethodType The type of payment method.
+	 * @param {string|null} orderKey          The key of the order if creating the intent on Order Pay page.
 	 *
 	 * @return {Promise} The final promise for the request to the server.
 	 */
-	createIntent( orderId = null, paymentMethodType = null ) {
+	createIntent( orderId = null, paymentMethodType = null, orderKey = null ) {
 		return this.request( this.getAjaxUrl( 'create_payment_intent' ), {
 			stripe_order_id: orderId,
 			payment_method_type: paymentMethodType,
+			order_key: orderKey,
 			_ajax_nonce: this.options?.createPaymentIntentNonce,
 		} )
 			.then( ( response ) => {
