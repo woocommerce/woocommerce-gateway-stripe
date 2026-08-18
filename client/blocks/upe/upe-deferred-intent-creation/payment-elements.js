@@ -62,7 +62,8 @@ const ElementsContainer = ( props ) => {
 				const response = paymentNeeded
 					? await api.createIntent(
 							stripeServerData?.orderId,
-							paymentMethodId
+							paymentMethodId,
+							stripeServerData?.orderKey
 					  )
 					: await api.initSetupIntent( paymentMethodId );
 
