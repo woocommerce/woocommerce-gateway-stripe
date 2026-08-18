@@ -2241,26 +2241,29 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function provide_checkout_session_failure_event_types(): array {
 		return [
 			'checkout.session.expired'              => [
-				'event_type'    => 'checkout.session.expired',
-				'expected_note' => 'The checkout session has expired.',
+				'event_type'      => 'checkout.session.expired',
+				'expected_note'   => 'The checkout session has expired.',
+				'expected_status' => OrderStatus::CANCELLED,
 			],
 			'checkout.session.async_payment_failed' => [
-				'event_type'    => 'checkout.session.async_payment_failed',
-				'expected_note' => 'The async payment for this checkout session has failed.',
+				'event_type'      => 'checkout.session.async_payment_failed',
+				'expected_note'   => 'The async payment for this checkout session has failed.',
+				'expected_status' => OrderStatus::FAILED,
 			],
 		];
 	}
 
 	/**
-	 * Test that checkout session failure marks pending orders as failed for both event types.
+	 * Test that checkout session failure moves pending orders to the expected status per event type.
 	 *
 	 * @dataProvider provide_checkout_session_failure_event_types
 	 *
 	 * @param string $event_type Event type.
 	 * @param string $expected_note Expected note content.
+	 * @param string $expected_status Expected resulting order status.
 	 * @return void
 	 */
-	public function test_process_checkout_session_failure_marks_order_as_failed_for_event_type( string $event_type, string $expected_note ): void {
+	public function test_process_checkout_session_failure_sets_expected_status_for_event_type( string $event_type, string $expected_note, string $expected_status ): void {
 		$checkout_session_id = 'cs_test_failed';
 		$order               = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::PENDING );
@@ -2284,10 +2287,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$hook_calls = 0;
-		$hook       = function ( $hook_order, $hook_notification ) use ( $order, $notification, &$hook_calls ) {
+		$hook       = function ( $hook_order, $hook_notification ) use ( $order, $notification, $expected_status, &$hook_calls ) {
 			++$hook_calls;
 			$this->assertSame( $order->get_id(), $hook_order->get_id() );
 			$this->assertSame( $notification, $hook_notification );
+			// The action must fire after the status transition; see handle_checkout_session_failure().
+			$this->assertSame( $expected_status, $hook_order->get_status() );
 		};
 		add_action( 'wc_gateway_stripe_process_webhook_payment_error', $hook, 10, 2 );
 
@@ -2295,7 +2300,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		remove_action( 'wc_gateway_stripe_process_webhook_payment_error', $hook, 10 );
 
 		$order = wc_get_order( $order->get_id() );
-		$this->assertSame( OrderStatus::FAILED, $order->get_status() );
+		$this->assertSame( $expected_status, $order->get_status() );
 		$this->assertSame( 1, $hook_calls );
 
 		$this->assert_order_has_note_containing( $expected_note, $order->get_id() );
@@ -2350,9 +2355,10 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 *
 	 * @param string $event_type Event type.
 	 * @param string $unused_note Unused; provider shares rows with other tests.
+	 * @param string $unused_status Unused; provider shares rows with other tests.
 	 * @return void
 	 */
-	public function test_process_checkout_session_failure_returns_early_when_order_already_failed( string $event_type, string $unused_note ): void {
+	public function test_process_checkout_session_failure_returns_early_when_order_already_failed( string $event_type, string $unused_note, string $unused_status ): void {
 		$checkout_session_id = 'cs_test_duplicate';
 		$order               = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::FAILED );
@@ -2409,6 +2415,208 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			]
 		);
 		$this->assertCount( count( $notes_before ), $notes_after );
+	}
+
+	/**
+	 * Builds a pending order linked to a checkout session, with `is_stripe_status_final` stubbed false.
+	 *
+	 * @param string $checkout_session_id Checkout session ID to link.
+	 * @param string $status              Status to start the order in.
+	 * @return WC_Order
+	 */
+	private function create_checkout_session_order( string $checkout_session_id, string $status = OrderStatus::PENDING ): WC_Order {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( $status );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		$order_helper = $this->createPartialMock( WC_Stripe_Order_Helper::class, [ 'is_stripe_status_final' ] );
+		$order_helper->expects( $this->any() )
+			->method( 'is_stripe_status_final' )
+			->willReturn( false );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		return $order;
+	}
+
+	/**
+	 * Builds a checkout session notification.
+	 *
+	 * @param string $event_type          Event type.
+	 * @param string $checkout_session_id Checkout session ID.
+	 * @return object
+	 */
+	private function build_checkout_session_notification( string $event_type, string $checkout_session_id ) {
+		return (object) [
+			'type' => $event_type,
+			'data' => (object) [
+				'object' => (object) [
+					'id' => $checkout_session_id,
+				],
+			],
+		];
+	}
+
+	/**
+	 * Test that an expired checkout session never sends the failed order email.
+	 *
+	 * @return void
+	 */
+	public function test_expired_checkout_session_does_not_send_failed_order_email(): void {
+		$order = $this->create_checkout_session_order( 'cs_test_expired_no_email' );
+
+		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'send_failed_order_email' ] )
+			->getMock();
+		$webhook_handler->expects( $this->never() )->method( 'send_failed_order_email' );
+
+		$webhook_handler->process_checkout_session_failure( $this->build_checkout_session_notification( 'checkout.session.expired', 'cs_test_expired_no_email' ) );
+
+		$this->assertSame( OrderStatus::CANCELLED, wc_get_order( $order->get_id() )->get_status() );
+	}
+
+	/**
+	 * Test that an async payment failure still sends the failed order email.
+	 *
+	 * @return void
+	 */
+	public function test_async_payment_failed_still_sends_failed_order_email(): void {
+		$order = $this->create_checkout_session_order( 'cs_test_async_email' );
+
+		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'send_failed_order_email' ] )
+			->getMock();
+		$webhook_handler->expects( $this->once() )
+			->method( 'send_failed_order_email' )
+			->with(
+				$order->get_id(),
+				[
+					'from' => OrderStatus::PENDING,
+					'to'   => OrderStatus::FAILED,
+				]
+			);
+
+		$webhook_handler->process_checkout_session_failure( $this->build_checkout_session_notification( 'checkout.session.async_payment_failed', 'cs_test_async_email' ) );
+
+		$this->assertSame( OrderStatus::FAILED, wc_get_order( $order->get_id() )->get_status() );
+	}
+
+	/**
+	 * Test that an expired checkout session leaves an already cancelled order untouched.
+	 *
+	 * @return void
+	 */
+	public function test_expired_checkout_session_returns_early_when_order_already_cancelled(): void {
+		$order = $this->create_checkout_session_order( 'cs_test_already_cancelled', OrderStatus::CANCELLED );
+
+		$notes_before = wc_get_order_notes(
+			[
+				'order_id' => $order->get_id(),
+				'limit'    => 100,
+			]
+		);
+
+		$hook_calls = 0;
+		$hook       = function () use ( &$hook_calls ) {
+			++$hook_calls;
+		};
+		add_action( 'wc_gateway_stripe_process_webhook_payment_error', $hook, 10, 2 );
+
+		$this->mock_webhook_handler->process_checkout_session_failure( $this->build_checkout_session_notification( 'checkout.session.expired', 'cs_test_already_cancelled' ) );
+
+		remove_action( 'wc_gateway_stripe_process_webhook_payment_error', $hook, 10 );
+
+		$this->assertSame( OrderStatus::CANCELLED, wc_get_order( $order->get_id() )->get_status() );
+		$this->assertSame( 0, $hook_calls );
+
+		$notes_after = wc_get_order_notes(
+			[
+				'order_id' => $order->get_id(),
+				'limit'    => 100,
+			]
+		);
+		$this->assertCount( count( $notes_before ), $notes_after );
+	}
+
+	/**
+	 * Test that an async payment failure still fails an already cancelled order.
+	 *
+	 * Core's `wc_cancel_unpaid_orders()` can cancel a pending order before a delayed notification
+	 * payment method reports its failure, and that failure must still be recorded.
+	 *
+	 * @return void
+	 */
+	public function test_async_payment_failed_still_fails_an_already_cancelled_order(): void {
+		$order = $this->create_checkout_session_order( 'cs_test_cancelled_then_async', OrderStatus::CANCELLED );
+
+		$this->mock_webhook_handler->process_checkout_session_failure( $this->build_checkout_session_notification( 'checkout.session.async_payment_failed', 'cs_test_cancelled_then_async' ) );
+
+		$this->assertSame( OrderStatus::FAILED, wc_get_order( $order->get_id() )->get_status() );
+		$this->assert_order_has_note_containing( 'The async payment for this checkout session has failed.', $order->get_id() );
+	}
+
+	/**
+	 * Provider for cancelled order email expectations on expired checkout sessions.
+	 *
+	 * @return array
+	 */
+	public function provide_expired_checkout_session_email_expectations(): array {
+		return [
+			'no filters, from pending'    => [ OrderStatus::PENDING, false, false, 0 ],
+			'no filters, from on-hold'    => [ OrderStatus::ON_HOLD, false, false, 0 ],
+			'customer only, from pending' => [ OrderStatus::PENDING, true, false, 1 ],
+			'customer only, from on-hold' => [ OrderStatus::ON_HOLD, true, false, 1 ],
+			'merchant only, from pending' => [ OrderStatus::PENDING, false, true, 1 ],
+			'merchant only, from on-hold' => [ OrderStatus::ON_HOLD, false, true, 1 ],
+			'both, from pending'          => [ OrderStatus::PENDING, true, true, 2 ],
+			'both, from on-hold'          => [ OrderStatus::ON_HOLD, true, true, 2 ],
+		];
+	}
+
+	/**
+	 * Test which cancelled order emails an expired checkout session sends.
+	 *
+	 * The on-hold rows matter because WooCommerce fires its own cancelled order emails on that
+	 * transition; they prove the suppression prevents duplicates rather than adding to them.
+	 *
+	 * @dataProvider provide_expired_checkout_session_email_expectations
+	 *
+	 * @param string $initial_status   Status the order starts in.
+	 * @param bool   $send_to_customer Value returned by the customer filter.
+	 * @param bool   $send_to_merchant Value returned by the merchant filter.
+	 * @param int    $expected_emails  Number of emails expected.
+	 * @return void
+	 */
+	public function test_expired_checkout_session_cancelled_order_emails( string $initial_status, bool $send_to_customer, bool $send_to_merchant, int $expected_emails ): void {
+		$session_id = 'cs_test_emails_' . md5( $initial_status . (int) $send_to_customer . (int) $send_to_merchant );
+		$this->create_checkout_session_order( $session_id, $initial_status );
+
+		// The customer cancelled order email ships disabled, so opting in via the filter is not
+		// enough on its own.
+		$emails = WC()->mailer()->get_emails();
+		$emails['WC_Email_Customer_Cancelled_Order']->enabled = 'yes';
+		$emails['WC_Email_Cancelled_Order']->enabled          = 'yes';
+
+		$customer_filter = $send_to_customer ? '__return_true' : '__return_false';
+		$merchant_filter = $send_to_merchant ? '__return_true' : '__return_false';
+		add_filter( 'wc_stripe_checkout_session_expired_should_send_cancelled_order_email_to_customer', $customer_filter );
+		add_filter( 'wc_stripe_checkout_session_expired_should_send_cancelled_order_email_to_merchant', $merchant_filter );
+
+		reset_phpmailer_instance();
+
+		$this->mock_webhook_handler->process_checkout_session_failure( $this->build_checkout_session_notification( 'checkout.session.expired', $session_id ) );
+
+		$sent = tests_retrieve_phpmailer_instance()->mock_sent;
+
+		remove_filter( 'wc_stripe_checkout_session_expired_should_send_cancelled_order_email_to_customer', $customer_filter );
+		remove_filter( 'wc_stripe_checkout_session_expired_should_send_cancelled_order_email_to_merchant', $merchant_filter );
+
+		$this->assertCount( $expected_emails, $sent );
+
+		// The suppression filters must not outlive the webhook.
+		$this->assertTrue( (bool) apply_filters( 'woocommerce_email_enabled_customer_cancelled_order', true, null ) );
+		$this->assertTrue( (bool) apply_filters( 'woocommerce_email_enabled_cancelled_order', true, null ) );
 	}
 
 	/**
