@@ -137,16 +137,19 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A discounted session is a permanent rejection, signalled with the dedicated
-	 * exception type so the webhook handler refunds instead of retrying.
+	 * A session-level discount corroborated by a charge below the catalog total is a
+	 * permanent rejection, signalled with the dedicated exception type so the webhook
+	 * handler refunds instead of retrying.
 	 */
-	public function test_discounted_session_throws_the_rejected_exception() {
+	public function test_discounted_session_charged_below_catalog_total_throws_the_rejected_exception() {
 		$session = $this->build_checkout_session(
 			[
-				'total_details' => (object) [
+				'amount_total'    => 800,
+				'amount_subtotal' => 1000,
+				'total_details'   => (object) [
 					'amount_shipping' => 0,
 					'amount_tax'      => 0,
-					'amount_discount' => 500,
+					'amount_discount' => 200,
 				],
 			]
 		);
@@ -155,6 +158,80 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		$this->expectExceptionMessage( 'discounts are not supported' );
 
 		$this->mapper->create_order_from_checkout_session( $session );
+	}
+
+	/**
+	 * A per-line discount (line charged below catalog price) is also a corroborated,
+	 * permanent rejection.
+	 */
+	public function test_discounted_line_item_throws_the_rejected_exception() {
+		$session = $this->build_checkout_session(
+			[
+				'amount_total'    => 800,
+				'amount_subtotal' => 800,
+				'line_items'      => $this->build_line_items(
+					[
+						[
+							'lookup_key'   => (string) $this->default_product->get_sku(),
+							'quantity'     => 1,
+							'unit_amount'  => 800,
+							'amount_total' => 800,
+						],
+					]
+				),
+				'total_details'   => (object) [
+					'amount_shipping' => 0,
+					'amount_tax'      => 0,
+					'amount_discount' => 200,
+				],
+			]
+		);
+
+		$this->expectException( WC_Stripe_Agentic_Order_Rejected_Exception::class );
+		$this->expectExceptionMessage( 'discounts are not supported' );
+
+		$this->mapper->create_order_from_checkout_session( $session );
+	}
+
+	/**
+	 * An uncorroborated discount field — the shopper paid full catalog price — must not
+	 * reject the session (and trigger a refund); the order proceeds.
+	 */
+	public function test_discount_field_without_reduced_charge_still_creates_the_order() {
+		$session = $this->build_checkout_session(
+			[
+				'total_details' => (object) [
+					'amount_shipping' => 0,
+					'amount_tax'      => 0,
+					'amount_discount' => 200,
+				],
+			]
+		);
+
+		$order = $this->mapper->create_order_from_checkout_session( $session );
+
+		$this->assertInstanceOf( 'WC_Order', $order );
+		$order->delete( true );
+	}
+
+	/**
+	 * A total mismatch without a discount keeps the generic exception, so the webhook
+	 * handler retries instead of refunding.
+	 */
+	public function test_total_mismatch_without_discount_keeps_the_generic_exception() {
+		$session = $this->build_checkout_session(
+			[
+				'amount_total' => 800,
+			]
+		);
+
+		try {
+			$this->mapper->create_order_from_checkout_session( $session );
+			$this->fail( 'Expected an exception for the total mismatch.' );
+		} catch ( Exception $e ) {
+			$this->assertNotInstanceOf( WC_Stripe_Agentic_Order_Rejected_Exception::class, $e );
+			$this->assertStringContainsString( 'total mismatch', $e->getMessage() );
+		}
 	}
 
 	/**
@@ -1074,27 +1151,6 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 
 		$this->expectException( Exception::class );
 		$this->expectExceptionMessage( 'has no line items' );
-
-		$this->mapper->create_order_from_checkout_session( $session );
-	}
-
-	/**
-	 * Test that a session carrying a Stripe-side discount is rejected with an
-	 * explicit error before the order is built.
-	 */
-	public function test_exception_thrown_for_discounted_session() {
-		$session = $this->build_checkout_session(
-			[
-				'total_details' => (object) [
-					'amount_shipping' => 0,
-					'amount_tax'      => 0,
-					'amount_discount' => 500,
-				],
-			]
-		);
-
-		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'discounts are not supported' );
 
 		$this->mapper->create_order_from_checkout_session( $session );
 	}

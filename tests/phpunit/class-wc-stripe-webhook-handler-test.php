@@ -4261,6 +4261,32 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The escape-hatch filter disables the automatic refund entirely.
+	 */
+	public function test_refund_rejected_agentic_payment_respects_the_disable_filter() {
+		$refund_requested = false;
+		$mock_request     = static function ( $return_value, $parsed_args, $url ) use ( &$refund_requested ) {
+			if ( 'https://api.stripe.com/v1/refunds' === $url ) {
+				$refund_requested = true;
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+		add_filter( 'wc_stripe_agentic_auto_refund_rejected_session', '__return_false' );
+
+		try {
+			$method = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'refund_rejected_agentic_payment' );
+			$method->setAccessible( true );
+			$method->invoke( new WC_Stripe_Webhook_Handler(), 'pi_rejected_123', 'cs_rejected_456' );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			remove_filter( 'wc_stripe_agentic_auto_refund_rejected_session', '__return_false' );
+		}
+
+		$this->assertFalse( $refund_requested );
+	}
+
+	/**
 	 * Data provider for {@see test_refund_rejected_agentic_payment()}.
 	 *
 	 * @return array<string, array{0: object}>

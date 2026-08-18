@@ -3156,6 +3156,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return void
 	 */
 	protected function refund_rejected_agentic_payment( string $payment_intent_id, string $session_id ): void {
+		/**
+		 * Filters whether the captured payment of a permanently rejected agentic checkout
+		 * session is refunded automatically. Return false to fall back to log-only, leaving
+		 * the refund to be issued manually.
+		 *
+		 * @since 11.0.0
+		 *
+		 * @param bool   $auto_refund       Whether to refund automatically. Default true.
+		 * @param string $payment_intent_id The captured PaymentIntent.
+		 * @param string $session_id        The rejected checkout session.
+		 */
+		if ( ! apply_filters( 'wc_stripe_agentic_auto_refund_rejected_session', true, $payment_intent_id, $session_id ) ) {
+			WC_Stripe_Logger::info( "Automatic refund disabled by filter for rejected agentic payment {$payment_intent_id} (session {$session_id}); please refund it manually in the Stripe dashboard." );
+			return;
+		}
+
 		try {
 			$response = WC_Stripe_API::request( [ 'payment_intent' => $payment_intent_id ], 'refunds' );
 		} catch ( Exception $e ) {

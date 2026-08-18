@@ -150,15 +150,15 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			);
 		}
 
-		// WooCommerce coupons don't participate in delegated checkout, so a
-		// Stripe-side discount can't be represented on the order — WC
-		// recalculates full catalog prices, and the total verification would
-		// reject the order anyway after it was built. Fail fast with an
-		// explicit reason instead of an opaque total mismatch.
+		// WooCommerce coupons don't participate in delegated checkout, so a Stripe-side
+		// discount can't be represented on the order. Rejection is deferred to the amount
+		// checks below: the discount field alone must not trigger a rejection (and the
+		// refund that follows) — only a charged amount actually below catalog price,
+		// corroborating the field, does. A discount flag on a full-price charge proceeds.
 		if ( $session->get_amount_discount() > 0 ) {
-			throw new WC_Stripe_Agentic_Order_Rejected_Exception(
+			WC_Stripe_Logger::info(
 				sprintf(
-					'Checkout session %s includes a discount (%d): discounts are not supported for agentic checkout orders.',
+					'Checkout session %s reports a discount (%d); deferring to amount verification.',
 					$session->get_id(),
 					$session->get_amount_discount()
 				)
@@ -286,6 +286,22 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			// Verify WC-calculated total matches Stripe's pre-tax line total.
 			$wc_line_total = (float) $item->get_total();
 			if ( abs( $wc_line_total - $line_total ) > 0.001 ) {
+				// A line charged below catalog price while the session reports a discount is
+				// a corroborated discount: permanently rejected (refund path). Any other
+				// mismatch keeps the generic exception and the retry path.
+				if ( $session->get_amount_discount() > 0 && $wc_line_total - $line_total > 0.001 ) {
+					throw new WC_Stripe_Agentic_Order_Rejected_Exception(
+						sprintf(
+							'Checkout session %s charged product %d below catalog price (%s vs %s) with a reported discount (%d): discounts are not supported for agentic checkout orders.',
+							$session->get_id(),
+							$product_id,
+							wc_format_decimal( $line_total ),
+							wc_format_decimal( $wc_line_total ),
+							$session->get_amount_discount()
+						)
+					);
+				}
+
 				throw new Exception(
 					sprintf(
 						'Line item price mismatch for product %d: WC calculated %s, Stripe expected %s.',
@@ -690,6 +706,21 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$order_total    = (float) $order->get_total();
 
 		if ( abs( $order_total - $expected_total ) > 0.001 ) {
+			// A charge below the catalog-derived order total while the session reports a
+			// discount is a corroborated discount: permanently rejected (refund path).
+			// Any other mismatch keeps the generic exception and the retry path.
+			if ( $session->get_amount_discount() > 0 && $order_total - $expected_total > 0.001 ) {
+				throw new WC_Stripe_Agentic_Order_Rejected_Exception(
+					sprintf(
+						'Checkout session %s charged %s against a catalog total of %s with a reported discount (%d): discounts are not supported for agentic checkout orders.',
+						$session->get_id(),
+						wc_format_decimal( $expected_total ),
+						wc_format_decimal( $order_total ),
+						$session->get_amount_discount()
+					)
+				);
+			}
+
 			throw new Exception(
 				sprintf(
 					'Order total mismatch for session %s: WC total %s, Stripe total %s.',
