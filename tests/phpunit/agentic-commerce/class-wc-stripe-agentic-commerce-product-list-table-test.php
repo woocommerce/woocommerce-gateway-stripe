@@ -380,6 +380,35 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 	}
 
 	/**
+	 * Non-published products must not claim "Synced": the feed only exports
+	 * published products.
+	 */
+	public function test_render_column_labels_unpublished_as_not_synced(): void {
+		$column  = $this->class_const( 'COLUMN_KEY' );
+		$table   = new WC_Stripe_Agentic_Commerce_Product_List_Table();
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_status( 'draft' );
+		$product->save();
+
+		ob_start();
+		$table->render_column( $column, $product->get_id() );
+		$this->assertStringContainsString( 'Not synced', ob_get_clean() );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * The excluded-products URL getter must carry the same query var and value
+	 * the filter dropdown reads.
+	 */
+	public function test_get_excluded_products_url_matches_filter_query_var(): void {
+		$url = WC_Stripe_Agentic_Commerce_Product_List_Table::get_excluded_products_url();
+
+		$this->assertStringContainsString( 'edit.php?post_type=product', $url );
+		$this->assertStringContainsString( $this->class_const( 'FILTER_QUERY_VAR' ) . '=excluded', $url );
+	}
+
+	/**
 	 * The inline-data div carries the exclude state for supported product rows
 	 * only — its absence is the quick-edit script's cue to hide the checkbox.
 	 */

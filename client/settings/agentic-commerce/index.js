@@ -199,10 +199,15 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 											),
 											components: {
 												excludedLink: (
-													// Relative on purpose: the settings page lives in
-													// wp-admin, so this resolves on any install layout.
 													// eslint-disable-next-line jsx-a11y/anchor-has-content
-													<a href="edit.php?post_type=product&wc_stripe_agentic_sync_status=excluded" />
+													<a
+														href={
+															window
+																.wc_stripe_settings_params
+																?.agentic_commerce_excluded_products_url ||
+															'edit.php?post_type=product&wc_stripe_agentic_sync_status=excluded'
+														}
+													/>
 												),
 											},
 										} ) }

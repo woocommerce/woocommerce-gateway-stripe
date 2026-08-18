@@ -214,6 +214,19 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table {
 	}
 
 	/**
+	 * URL of the Products list pre-filtered to excluded products.
+	 *
+	 * Single source for the filter query var, so links elsewhere (settings page)
+	 * can't drift from the dropdown's key/value.
+	 *
+	 * @since 10.9.0
+	 * @return string
+	 */
+	public static function get_excluded_products_url(): string {
+		return admin_url( 'edit.php?post_type=product&' . self::FILTER_QUERY_VAR . '=excluded' );
+	}
+
+	/**
 	 * Add the sync-status column to the Products list table.
 	 *
 	 * @since 10.9.0
@@ -248,6 +261,17 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table {
 
 		if ( WC_Stripe_Agentic_Commerce_Product_Exclusion::is_excluded( $product ) ) {
 			esc_html_e( 'Excluded', 'woocommerce-gateway-stripe' );
+			return;
+		}
+
+		// The feed query only selects published products, so anything else is
+		// never exported regardless of the flag or the eligibility verdict.
+		if ( 'publish' !== $product->get_status() ) {
+			printf(
+				'<span title="%s">%s</span>',
+				esc_attr__( 'Only published products are synced.', 'woocommerce-gateway-stripe' ),
+				esc_html__( 'Not synced', 'woocommerce-gateway-stripe' )
+			);
 			return;
 		}
 
