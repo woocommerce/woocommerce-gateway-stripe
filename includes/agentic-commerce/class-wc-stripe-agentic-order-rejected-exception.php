@@ -12,9 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Signals that an agentic checkout session was permanently rejected during order
- * creation — no retry can succeed. The webhook handler treats it differently from a
- * transient failure: the shopper was already charged (payment is captured before the
- * webhook fires), so the payment is refunded and the job is not retried.
+ * creation. The shopper was already charged, so the webhook handler refunds the
+ * payment instead of retrying.
  *
  * @since 11.0.0
  */

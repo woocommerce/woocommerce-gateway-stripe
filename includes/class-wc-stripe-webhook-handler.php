@@ -3088,9 +3088,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				 */
 				do_action( 'wc_stripe_agentic_order_created', $order, $session );
 			} catch ( WC_Stripe_Agentic_Order_Rejected_Exception $e ) {
-				// A permanent rejection (e.g. a discounted session): retrying can never
-				// succeed, and Stripe captured the payment before this webhook fired, so
-				// refund the shopper instead of leaving a charge with no order behind it.
+				// Permanent rejection: retrying can never succeed and the payment is
+				// already captured, so refund the shopper instead of retrying.
 				WC_Stripe_Logger::error(
 					'Agentic checkout session was rejected; refunding the captured payment.',
 					[
@@ -3146,10 +3145,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Refunds the captured payment of a permanently rejected agentic checkout session.
-	 * There is no WooCommerce order to route through process_refund(), so the refund
-	 * goes straight to the Stripe API by payment intent. A redelivered webhook may
-	 * retry an already-refunded charge, which Stripe reports as an error we treat
-	 * as success.
+	 * No order exists to route through process_refund(), so the refund goes straight to
+	 * the Stripe API; an already-refunded charge (webhook redelivery) counts as success.
 	 *
 	 * @param string $payment_intent_id The captured PaymentIntent to refund.
 	 * @param string $session_id        The rejected checkout session, for logging.
@@ -3157,9 +3154,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	protected function refund_rejected_agentic_payment( string $payment_intent_id, string $session_id ): void {
 		/**
-		 * Filters whether the captured payment of a permanently rejected agentic checkout
-		 * session is refunded automatically. Return false to fall back to log-only, leaving
-		 * the refund to be issued manually.
+		 * Filters whether the captured payment of a rejected agentic checkout session is
+		 * refunded automatically. Return false to log only and refund manually.
 		 *
 		 * @since 11.0.0
 		 *

@@ -137,9 +137,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A session-level discount corroborated by a charge below the catalog total is a
-	 * permanent rejection, signalled with the dedicated exception type so the webhook
-	 * handler refunds instead of retrying.
+	 * A discount corroborated by a charge below the catalog total is a permanent rejection.
 	 */
 	public function test_discounted_session_charged_below_catalog_total_throws_the_rejected_exception() {
 		$session = $this->build_checkout_session(
@@ -194,8 +192,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * An uncorroborated discount field — the shopper paid full catalog price — must not
-	 * reject the session (and trigger a refund); the order proceeds.
+	 * An uncorroborated discount field (full catalog price charged) must not reject.
 	 */
 	public function test_discount_field_without_reduced_charge_still_creates_the_order() {
 		$session = $this->build_checkout_session(

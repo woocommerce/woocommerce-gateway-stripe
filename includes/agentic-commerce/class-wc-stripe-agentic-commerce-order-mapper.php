@@ -150,11 +150,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			);
 		}
 
-		// WooCommerce coupons don't participate in delegated checkout, so a Stripe-side
-		// discount can't be represented on the order. Rejection is deferred to the amount
-		// checks below: the discount field alone must not trigger a rejection (and the
-		// refund that follows) — only a charged amount actually below catalog price,
-		// corroborating the field, does. A discount flag on a full-price charge proceeds.
+		// Rejection is deferred to the amount checks: the discount field alone must not
+		// trigger a refund — only a charge actually below catalog price corroborates it.
 		if ( $session->get_amount_discount() > 0 ) {
 			WC_Stripe_Logger::info(
 				sprintf(
@@ -286,9 +283,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			// Verify WC-calculated total matches Stripe's pre-tax line total.
 			$wc_line_total = (float) $item->get_total();
 			if ( abs( $wc_line_total - $line_total ) > 0.001 ) {
-				// A line charged below catalog price while the session reports a discount is
-				// a corroborated discount: permanently rejected (refund path). Any other
-				// mismatch keeps the generic exception and the retry path.
+				// Charged below catalog price with a reported discount = corroborated
+				// discount: permanent rejection (refund path). Other mismatches retry.
 				if ( $session->get_amount_discount() > 0 && $wc_line_total - $line_total > 0.001 ) {
 					throw new WC_Stripe_Agentic_Order_Rejected_Exception(
 						sprintf(
@@ -706,9 +702,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$order_total    = (float) $order->get_total();
 
 		if ( abs( $order_total - $expected_total ) > 0.001 ) {
-			// A charge below the catalog-derived order total while the session reports a
-			// discount is a corroborated discount: permanently rejected (refund path).
-			// Any other mismatch keeps the generic exception and the retry path.
+			// Same corroboration as the line-level check: only a charge below the
+			// catalog total with a reported discount takes the refund path.
 			if ( $session->get_amount_discount() > 0 && $order_total - $expected_total > 0.001 ) {
 				throw new WC_Stripe_Agentic_Order_Rejected_Exception(
 					sprintf(
