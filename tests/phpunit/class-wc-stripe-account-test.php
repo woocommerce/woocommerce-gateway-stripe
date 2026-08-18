@@ -384,8 +384,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$webhook_url = WC_Stripe_Helper::get_webhook_url();
 		$plugin_meta = (object) [ WC_Stripe_Account::WEBHOOK_METADATA_CREATED_BY_KEY => WC_Stripe_Account::WEBHOOK_METADATA_CREATED_BY_VALUE ];
 
-		// An endpoint recorded in settings is plugin-created even without the metadata stamp
-		// (it predates the stamp), so it must stay eligible for cleanup.
+		// A settings-recorded endpoint predating the metadata stamp stays eligible for cleanup.
 		$settings                 = WC_Stripe_Helper::get_stripe_settings();
 		$settings['webhook_data'] = [
 			'id'     => 'wh_456',
@@ -619,8 +618,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A signing secret the plugin didn't write means the merchant configured webhooks
-	 * manually; automatic reconfiguration must not clobber it, and must tell the merchant.
+	 * A manually set signing secret must block silent reconfiguration and raise the notice.
 	 *
 	 * @param array $webhook_data Stored test_webhook_data for the scenario.
 	 * @dataProvider provide_manually_configured_webhook_data
@@ -689,8 +687,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Legacy webhook_data without a recorded signing_secret keeps the pre-existing
-	 * reconfigure behavior instead of treating every legacy store as manually configured.
+	 * Legacy webhook_data without a recorded signing_secret keeps the pre-existing behavior.
 	 */
 	public function test_reconfigure_webhooks_proceeds_for_legacy_webhook_data() {
 		$settings                        = WC_Stripe_Helper::get_stripe_settings();
@@ -715,8 +712,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * When the stored webhook endpoint no longer exists in the account, the merchant gets
-	 * an actionable notice instead of the settings displaying a ghost ID forever.
+	 * A stored webhook ID that no longer exists in the account must raise the missing notice.
 	 */
 	public function test_reconfigure_webhooks_flags_missing_stored_webhook() {
 		$settings                        = WC_Stripe_Helper::get_stripe_settings();
@@ -754,8 +750,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * configure_webhooks() must stamp the endpoint as plugin-created, record the signing
-	 * secret it wrote, and clear any pending webhook notices.
+	 * configure_webhooks() must stamp the endpoint, record the signing secret, and clear notices.
 	 */
 	public function test_configure_webhooks_records_signing_secret_and_stamps_endpoint() {
 		update_option( WC_Stripe_Account::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION, 'yes' );
