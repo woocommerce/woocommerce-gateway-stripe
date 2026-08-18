@@ -198,21 +198,28 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 
 				$errors = $validator->validate_entry( $row, $product );
 
-				if ( empty( $errors ) ) {
+				// An excluded product surfaces as a `delete=true` removal row
+				// (which validates clean — it enters the feed to pull the product
+				// out of Stripe's catalog) or, from external mappers, as the
+				// legacy empty-row skip signal. Either way it counts as excluded
+				// here, not included.
+				$is_removal = empty( $row ) || WC_Stripe_Agentic_Commerce_Product_Mapper::is_delete_row( $row );
+
+				if ( empty( $errors ) && ! $is_removal ) {
 					++$included_count;
 					continue;
 				}
 
-				// An empty row means should_sync_product() excluded it. Attribute it
-				// to the reason the merchant can act on, so the UI can say which
-				// setting hid the product rather than just "a store rule".
+				// Attribute the exclusion to the reason the merchant can act on,
+				// so the UI can say which setting hid the product rather than
+				// just "a store rule".
 				//
 				// First match wins, so the buckets always sum to $excluded_count
 				// even when a product trips several. The per-product toggle and
 				// third-party filters share the generic bucket: the toggle is
 				// already a deliberate act, and a filter's reason is unknowable
 				// from here.
-				if ( empty( $row ) ) {
+				if ( $is_removal ) {
 					++$excluded_count;
 
 					if ( WC_Stripe_Agentic_Commerce_Product_Mapper::is_subscription_product( $product ) ) {

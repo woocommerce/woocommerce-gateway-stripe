@@ -17,6 +17,7 @@ xxxx-xx-xx - version 11.0.0
 * Dev - Remove the deprecated @woocommerce/settings npm package; settings are still read from the wc-settings script WooCommerce provides at runtime
 * Fix - Exclude password-protected products and products hidden from the catalog from the Agentic Commerce feed
 * Fix - Name password protection and hidden visibility as their own reasons in the Agentic Commerce feed preview
+* Fix - Remove excluded, trashed, deleted, and unpublished products from the Stripe Agentic Commerce catalog by sending explicit removal rows, instead of leaving them visible to AI agents indefinitely
 
 2026-08-17 - version 10.9.0
 * Fix - Re-enable Adaptive Pricing if it was automatically disabled after a Checkout Session amount mismatch

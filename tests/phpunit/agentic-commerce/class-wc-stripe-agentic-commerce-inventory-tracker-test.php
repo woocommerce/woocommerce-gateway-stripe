@@ -60,7 +60,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			remove_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::SCHEDULED_ACTION, [ $this->sut, 'sync_inventory' ] );
 			remove_action( 'before_delete_post', [ $this->sut, 'maybe_track_product_archive' ] );
 			remove_action( 'wp_trash_post', [ $this->sut, 'maybe_track_product_archive' ] );
-			remove_action( 'untrash_post', [ $this->sut, 'maybe_cancel_pending_archive' ] );
+			remove_action( 'transition_post_status', [ $this->sut, 'handle_status_transition' ] );
 			remove_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION, [ $this->sut, 'sync_archives' ] );
 		}
 
@@ -145,7 +145,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 		$this->assertNotFalse( has_action( 'before_delete_post', [ $this->sut, 'maybe_track_product_archive' ] ) );
 		$this->assertNotFalse( has_action( 'wp_trash_post', [ $this->sut, 'maybe_track_product_archive' ] ) );
-		$this->assertNotFalse( has_action( 'untrash_post', [ $this->sut, 'maybe_cancel_pending_archive' ] ) );
+		$this->assertNotFalse( has_action( 'transition_post_status', [ $this->sut, 'handle_status_transition' ] ) );
 		$this->assertNotFalse(
 			has_action(
 				WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION,
@@ -209,7 +209,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
 		$this->assertArrayHasKey( $variation->get_id(), $pending );
-		$this->assertEquals( 'out_of_stock', $pending[ $variation->get_id() ]['availability'] );
+		$this->assertEquals( 'true', $pending[ $variation->get_id() ]['delete'] );
 	}
 
 	// -------------------------------------------------------------------------
@@ -830,23 +830,18 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 		$this->assertArrayHasKey( $product->get_id(), $pending );
 		$this->assertEquals( (string) $product->get_id(), $pending[ $product->get_id() ]['id'] );
-		$this->assertEquals( 'out_of_stock', $pending[ $product->get_id() ]['availability'] );
-		$this->assertArrayHasKey( 'title', $pending[ $product->get_id() ] );
-		$this->assertArrayHasKey( 'description', $pending[ $product->get_id() ] );
-		$this->assertArrayHasKey( 'link', $pending[ $product->get_id() ] );
-		$this->assertArrayHasKey( 'price', $pending[ $product->get_id() ] );
+		$this->assertEquals( 'true', $pending[ $product->get_id() ]['delete'] );
 		$this->assertArrayHasKey( 'timestamp', $pending[ $product->get_id() ] );
 	}
 
 	/**
-	 * Test that `track_product_archive` skips products an adapter excluded via
-	 * `woocommerce_agentic_commerce_should_sync_product`. An excluded product was
-	 * never on Stripe in the first place, so emitting an out_of_stock entry for
-	 * it on deletion would surface a SKU Stripe doesn't recognise.
+	 * A removal for an excluded product still queues: a `delete=true` row is
+	 * idempotent, and bailing on eligibility would mean exclude-then-trash
+	 * inside one resync window never lands a removal on Stripe at all.
 	 *
 	 * @return void
 	 */
-	public function test_track_product_archive_skips_excluded_product() {
+	public function test_track_product_archive_queues_delete_for_excluded_product() {
 		$product  = $this->create_simple_product_with_stock( 3 );
 		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
 		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
@@ -854,30 +849,29 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		try {
 			$this->sut->track_product_archive( $product );
 
-			$this->assertSame( [], get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
+			$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+			$this->assertArrayHasKey( $product->get_id(), $pending );
+			$this->assertEquals( 'true', $pending[ $product->get_id() ]['delete'] );
 		} finally {
 			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
 		}
 	}
 
 	/**
-	 * Test that `track_product_archive` evicts previously-queued inventory and
-	 * archive entries for a product whose visibility just flipped to excluded.
-	 * Guards both stale-entry families: a hidden product that had been queued
-	 * for an inventory delta or an archive must not flush to Stripe on the
-	 * next batch.
+	 * A removal event for a product whose visibility flipped to excluded evicts
+	 * its stale inventory delta (that data must not flush) but keeps the
+	 * archive queue populated with the removal itself.
 	 *
 	 * @return void
 	 */
-	public function test_track_product_archive_evicts_stale_entries_when_filter_now_excludes() {
+	public function test_track_product_archive_evicts_stale_inventory_when_filter_now_excludes() {
 		$product = $this->create_simple_product_with_stock( 7 );
 
-		// Seed both queues while the filter still allows it.
+		// Seed the inventory queue while the filter still allows it.
 		$this->sut->track_stock_change( $product );
-		$this->sut->track_product_archive( $product );
-		$this->assertArrayHasKey( $product->get_id(), get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
+		$this->assertArrayHasKey( $product->get_id(), get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] ) );
 
-		// Flip the filter, then trigger another archive event.
+		// Flip the filter, then trigger an archive event.
 		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
 		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
@@ -885,7 +879,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			$this->sut->track_product_archive( $product );
 
 			$this->assertSame( [], get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] ) );
-			$this->assertSame( [], get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
+			$this->assertArrayHasKey( $product->get_id(), get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
 		} finally {
 			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
 		}
@@ -996,7 +990,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	}
 
 	/**
-	 * Test generate_archive_feed CSV contains correct id and availability columns.
+	 * Test generate_archive_feed CSV carries the id and a `delete=true` flag.
 	 *
 	 * @return void
 	 */
@@ -1020,17 +1014,14 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		$expected_headers = WC_Stripe_Agentic_Commerce_Feed_Schema::get_csv_headers();
 		$this->assertEquals( $expected_headers, $header_cols );
 
-		// Verify data row contains the expected product data.
+		// Verify the data row is a removal: Stripe reads only id + delete.
 		$data_row = str_getcsv( reset( $lines ) );
 		$row      = array_combine( $header_cols, $data_row );
 
 		$this->assertEquals( (string) $product->get_id(), $row['id'] );
-		$this->assertEquals( 'out_of_stock', $row['availability'] );
-		$this->assertNotEmpty( $row['title'] );
-		$this->assertNotEmpty( $row['description'] );
-		$this->assertNotEmpty( $row['link'] );
-		$this->assertNotEmpty( $row['price'] );
-		$this->assertNotEmpty( $row['image_link'] );
+		$this->assertEquals( 'true', $row['delete'] );
+		$this->assertEmpty( $row['title'] );
+		$this->assertEmpty( $row['price'] );
 
 		wp_delete_file( $file_path );
 	}
@@ -1099,23 +1090,44 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 *
 	 * @return void
 	 */
-	public function test_sync_archives_clears_pending_when_threshold_exceeded() {
+	public function test_sync_archives_flushes_full_queue_at_threshold() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
 
 		$max     = WC_Stripe_Agentic_Commerce_Inventory_Tracker::MAX_PENDING_UPDATES;
 		$pending = [];
 		for ( $i = 1; $i <= $max; $i++ ) {
 			$pending[ $i ] = [
-				'id'        => $i,
+				'id'        => (string) $i,
+				'delete'    => 'true',
 				'timestamp' => time(),
 			];
 		}
 		update_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, $pending );
 
+		$uploaded = false;
+		add_filter(
+			'wc_stripe_agentic_commerce_files_api_pre_request',
+			function () use ( &$uploaded ) {
+				$uploaded = true;
+				return [ 'id' => 'file_test_123' ];
+			}
+		);
+		add_filter(
+			'wc_stripe_agentic_commerce_import_set_pre_request',
+			fn() => [
+				'id'     => 'impset_test_456',
+				'status' => 'pending',
+			]
+		);
+
 		$this->sut->sync_archives();
 
-		$after = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
-		$this->assertEmpty( $after );
+		// A full queue must upload, not defer: the full catalog sync cannot
+		// delete products that already left the feed query, so dropping the
+		// queue here would permanently orphan those entries on Stripe.
+		$this->assertTrue( $uploaded );
+		$this->assertEmpty( get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
 	}
 
 	/**
@@ -1171,14 +1183,13 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 * @return void
 	 */
 	/**
-	 * Same race as the inventory side: an archive event queued before the
-	 * filter flipped must not still ship if the merchant has since hidden
-	 * the product. Only fires when the product is still resolvable — the
-	 * permanent-delete case is covered separately.
+	 * Unlike the inventory side, an archive entry ships even when the filter has
+	 * since flipped to excluded: it is a `delete=true` removal signal, and an
+	 * excluded product is exactly one that should not stay on Stripe.
 	 *
 	 * @return void
 	 */
-	public function test_sync_archives_prunes_entries_whose_filter_now_excludes() {
+	public function test_sync_archives_ships_entries_even_when_filter_now_excludes() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
 
@@ -1215,20 +1226,19 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
 		}
 
-		$this->assertNotNull( $uploaded_ids, 'A feed should have been uploaded for the kept product.' );
+		$this->assertNotNull( $uploaded_ids, 'A feed should have been uploaded.' );
 		$this->assertContains( (string) $kept_product->get_id(), $uploaded_ids, 'Kept archive must be in the uploaded feed.' );
-		$this->assertNotContains( (string) $flipped_id, $uploaded_ids, 'Pruned archive must not be in the uploaded feed.' );
+		$this->assertContains( (string) $flipped_id, $uploaded_ids, 'The removal for the now-excluded product must still ship.' );
 
 		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
-		$this->assertEmpty( $pending, 'Both entries cleared post-sync — kept was uploaded, flipped was pruned.' );
+		$this->assertEmpty( $pending, 'Both entries cleared post-sync after upload.' );
 	}
 
 	/**
 	 * Opposite policy from the inventory path: when an archive entry is queued
-	 * and the product is then permanently deleted, the row data has already
-	 * been mapped (Mapper output captured at archive time) and Stripe still
-	 * has the product in its catalog. We can't re-check the filter against a
-	 * non-existent product, so we keep the entry and let it ship.
+	 * and the product is then permanently deleted, the feed id was already
+	 * captured at archive time and Stripe still has the product in its catalog,
+	 * so the `delete=true` row must ship.
 	 *
 	 * @return void
 	 */
@@ -1274,21 +1284,16 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	}
 
 	/**
-	 * Guards the one case prune can't cover: a product excluded by the filter
-	 * and then permanently deleted. prune keeps archive rows for unresolvable
-	 * products (it has no `WC_Product` to re-check), so the only place the
-	 * filter is honored for a to-be-deleted product is `track_product_archive`,
-	 * which evicts the queued row at delete time while the product still loads.
+	 * A product excluded by the filter and then permanently deleted still ships
+	 * its `delete=true` row: the removal is the exact outcome the exclusion
+	 * wanted, and it is the only signal that pulls the product off Stripe.
 	 *
-	 * Sequence: included → archived (row queued) → excluded → permanently
-	 * deleted. Without the eviction, prune's keep-policy would re-ship the
-	 * `out_of_stock` row for a product the merchant hid — the leak this filter
-	 * exists to close. Distinct from the eager track-time assertion: this drives
-	 * the full flush after the product is gone.
+	 * Sequence: included → archived (row queued) → excluded → delete-time
+	 * archive event → permanently deleted → flush.
 	 *
 	 * @return void
 	 */
-	public function test_sync_archives_does_not_ship_excluded_product_after_permanent_delete() {
+	public function test_sync_archives_ships_excluded_product_after_permanent_delete() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
 
@@ -1305,13 +1310,22 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $id;
 		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
-		$uploaded = false;
+		$uploaded_ids = null;
 		add_filter(
 			'wc_stripe_agentic_commerce_files_api_pre_request',
-			function () use ( &$uploaded ) {
-				$uploaded = true;
+			function ( $pre, $file_path ) use ( &$uploaded_ids ) {
+				$uploaded_ids = $this->read_column_from_csv( $file_path, 'id' );
 				return [ 'id' => 'file_test_123' ];
-			}
+			},
+			10,
+			2
+		);
+		add_filter(
+			'wc_stripe_agentic_commerce_import_set_pre_request',
+			fn() => [
+				'id'     => 'impset_test_456',
+				'status' => 'pending',
+			]
 		);
 
 		try {
@@ -1323,8 +1337,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
 		}
 
-		$this->assertFalse( $uploaded, 'Excluded product evicted at delete time must not ship despite prune keeping rows for deleted products.' );
-		$this->assertEmpty( get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ), 'Eviction emptied the archive queue, so nothing remains to flush.' );
+		$this->assertNotNull( $uploaded_ids, 'The removal must upload despite the exclusion and permanent delete.' );
+		$this->assertContains( (string) $id, $uploaded_ids, 'The delete row must target the removed product.' );
+		$this->assertEmpty( get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ), 'Queue cleared after a successful flush.' );
 	}
 
 	public function test_sync_archives_retains_pending_on_failure() {
@@ -1411,5 +1426,114 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 */
 	private function read_sku_ids_from_csv( string $file_path ): array {
 		return $this->read_column_from_csv( $file_path, 'sku_id' );
+	}
+
+	// -------------------------------------------------------------------------
+	// handle_status_transition
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Unpublishing a product queues its `delete=true` row: a draft product
+	 * leaves the feed query, so no full sync could remove it otherwise.
+	 *
+	 * @dataProvider provide_leaving_publish_statuses
+	 * @param string $new_status Status the product moves to.
+	 * @return void
+	 */
+	public function test_handle_status_transition_queues_delete_when_leaving_publish( string $new_status ) {
+		$product = $this->create_simple_product_with_stock( 5 );
+
+		$this->sut->handle_status_transition( $new_status, 'publish', get_post( $product->get_id() ) );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertArrayHasKey( $product->get_id(), $pending );
+		$this->assertEquals( 'true', $pending[ $product->get_id() ]['delete'] );
+	}
+
+	/**
+	 * Data provider of statuses a published product can move to that must queue
+	 * a removal.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_leaving_publish_statuses(): array {
+		return [
+			'draft'   => [ 'draft' ],
+			'private' => [ 'private' ],
+			'pending' => [ 'pending' ],
+		];
+	}
+
+	/**
+	 * Returning to `publish` cancels a queued removal so a quick unpublish and
+	 * republish doesn't delete a live product from Stripe's catalog.
+	 *
+	 * @return void
+	 */
+	public function test_handle_status_transition_cancels_pending_on_republish() {
+		$product = $this->create_simple_product_with_stock( 5 );
+
+		$this->sut->handle_status_transition( 'draft', 'publish', get_post( $product->get_id() ) );
+		$this->assertArrayHasKey( $product->get_id(), get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
+
+		$this->sut->handle_status_transition( 'publish', 'draft', get_post( $product->get_id() ) );
+		$this->assertArrayNotHasKey( $product->get_id(), get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
+	}
+
+	/**
+	 * The trash transition is left to the `wp_trash_post` hook (which fires
+	 * while the product still loads), and transitions between two non-publish
+	 * statuses or on non-product posts must not queue anything.
+	 *
+	 * @return void
+	 */
+	public function test_handle_status_transition_ignores_trash_non_publish_and_non_products() {
+		$product = $this->create_simple_product_with_stock( 5 );
+		$page_id = $this->factory()->post->create( [ 'post_type' => 'page' ] );
+
+		$this->sut->handle_status_transition( 'trash', 'publish', get_post( $product->get_id() ) );
+		$this->sut->handle_status_transition( 'draft', 'pending', get_post( $product->get_id() ) );
+		$this->sut->handle_status_transition( 'draft', 'publish', get_post( $page_id ) );
+
+		$this->assertEmpty( get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
+	}
+
+	/**
+	 * Unpublishing (or trashing) a variable parent expands to its variations:
+	 * they are the actual feed entries, and WordPress doesn't cascade the
+	 * parent's status change to them.
+	 *
+	 * @return void
+	 */
+	public function test_track_product_archive_expands_variable_parent_to_variations() {
+		$parent        = WC_Helper_Product::create_variation_product();
+		$variation_ids = $parent->get_children();
+
+		$this->sut->track_product_archive( $parent );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+
+		$this->assertArrayNotHasKey( $parent->get_id(), $pending, 'The parent itself was never a feed entry.' );
+		foreach ( $variation_ids as $variation_id ) {
+			$this->assertArrayHasKey( $variation_id, $pending );
+			$this->assertEquals( 'true', $pending[ $variation_id ]['delete'] );
+		}
+	}
+
+	/**
+	 * The queued removal targets the feed id the product was exported under:
+	 * the SKU when one exists, not the numeric product ID.
+	 *
+	 * @return void
+	 */
+	public function test_track_product_archive_uses_sku_feed_id() {
+		$product = $this->create_simple_product_with_stock( 5 );
+		$product->set_sku( 'ARCHIVE-SKU-1' );
+		$product->save();
+
+		$this->sut->track_product_archive( $product );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertEquals( 'ARCHIVE-SKU-1', $pending[ $product->get_id() ]['id'] );
 	}
 }

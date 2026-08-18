@@ -83,6 +83,17 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	protected int $excluded_count = 0;
 
 	/**
+	 * `delete=true` rows waved into the feed. Counted separately because they
+	 * are feed entries (unlike exclusions) but not synced products — the caller
+	 * subtracts this from the entry count when reporting how many products the
+	 * catalog holds.
+	 *
+	 * @since 11.0.0
+	 * @var int
+	 */
+	protected int $removed_count = 0;
+
+	/**
 	 * Non-empty return from {@see self::validate_entry()} for an excluded product,
 	 * so the walker drops the row without recording it as a validation error.
 	 *
@@ -115,6 +126,16 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 		if ( empty( $row ) && ! WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) ) {
 			++$this->excluded_count;
 			return [ self::EXCLUDED_SENTINEL ];
+		}
+
+		// A delete row is a removal signal, not product data: Stripe reads only
+		// `id` and `delete` from it, so the required-field and format checks
+		// below would wrongly reject its null-filled columns. Wave it into the
+		// feed as long as it can actually target something; without an id it
+		// falls through and fails required-field validation like any bad row.
+		if ( WC_Stripe_Agentic_Commerce_Product_Mapper::is_delete_row( $row ) && ! empty( $row['id'] ) ) {
+			++$this->removed_count;
+			return [];
 		}
 
 		$errors = array_merge(
@@ -177,6 +198,16 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	 */
 	public function get_excluded_count(): int {
 		return $this->excluded_count;
+	}
+
+	/**
+	 * Count of `delete=true` removal rows admitted into the feed this run.
+	 *
+	 * @since 11.0.0
+	 * @return int
+	 */
+	public function get_removed_count(): int {
+		return $this->removed_count;
 	}
 
 	/**

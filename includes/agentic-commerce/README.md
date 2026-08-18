@@ -375,6 +375,7 @@ The feed query selects published simple products and variations, so grouped, ext
 | Password-protected products | The password gate states who may view the product, and the exported `link` would only render a password prompt. |
 | Products hidden from catalog **and** search | `hidden` is the strongest "do not surface this" signal WooCommerce offers. |
 | Products with the per-product exclude flag | The merchant opted the product out explicitly. |
+| Unpublished products, and variations of an unpublished parent | The feed query only checks the row's own status, so variations of a draft or private variable product would otherwise keep syncing with a `link` that 404s. |
 
 Catalog visibility values that hide a product from only one surface (`catalog`, `search`) are **not** treated as exclusions — the product is still meant to be reachable by the other route.
 
@@ -382,7 +383,18 @@ A variation inherits its parent's catalog visibility but **not** its `post_passw
 
 All of these are defaults rather than hard blocks: `woocommerce_agentic_commerce_should_sync_product` can return `true` to opt a product back in.
 
-Because the filter only governs what is *sent*, a product that was already exported and later becomes ineligible stays in Stripe's catalog until a full feed replacement. `WC_Stripe_Agentic_Commerce_Product_Visibility` watches product saves and per-product exclude-flag writes, and fires `wc_stripe_agentic_commerce_schedule_full_resync` when a product crosses that boundary — adapters whose own filter verdict changes must fire the same action.
+## Removing products from Stripe's catalog
+
+Stripe processes catalog imports in **upsert mode**: omitting a product from an uploaded feed leaves it in the catalog unchanged, indefinitely. The only removal signal is a row with `delete=true`, from which Stripe reads just `id` and `delete` and ignores every other column.
+
+The integration therefore emits delete rows on two paths:
+
+- **Full feed:** the mapper exports every ineligible product still in the feed query (excluded, password-protected, hidden, filtered out) as a `delete=true` row instead of omitting it. The rows recur on every sync by design — deletes are idempotent, and a stateless feed self-heals if an earlier removal upload was lost.
+- **Archive batches:** products that leave the feed query entirely (trashed, permanently deleted, or unpublished, including a variable parent expanded into its variations) are captured by `WC_Stripe_Agentic_Commerce_Inventory_Tracker`, which queues a `delete=true` row per feed id and flushes them as a small product_catalog_feed upload about a minute later. Republishing before the flush cancels the queued removal.
+
+`WC_Stripe_Agentic_Commerce_Product_Visibility` watches product saves and per-product exclude-flag writes, and fires `wc_stripe_agentic_commerce_schedule_full_resync` when a product crosses the eligibility boundary so the sync carrying the delete row runs promptly — adapters whose own filter verdict changes must fire the same action.
+
+Known gap: a published product whose *type* changes out of the feed query (for example simple to grouped or external) neither stays in the query nor changes post status, so no delete row is emitted for it until it is unpublished, trashed, or removed some other way.
 
 ## Coupons and discounts
 
