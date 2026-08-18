@@ -288,8 +288,16 @@ class WC_Stripe_Checkout_Session_Manager {
 			'checkout_type' => self::ADAPTIVE_PRICING_CHECKOUT_TYPE,
 		];
 
-		/** Documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php */
-		return [ 'metadata' => apply_filters( 'wc_stripe_payment_metadata', $metadata, null, null ) ];
+		return [
+			// The session is created from the cart, before an order exists, so the order
+			// reference can't be included yet. Stripe's automatic receipt email renders the
+			// intent description at charge time — before the post-payment backfill can land —
+			// so seed the store name here; the backfill later replaces it with the full
+			// "store - Order N" description.
+			'description' => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+			/** Documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php */
+			'metadata'    => apply_filters( 'wc_stripe_payment_metadata', $metadata, null, null ),
+		];
 	}
 
 	/**

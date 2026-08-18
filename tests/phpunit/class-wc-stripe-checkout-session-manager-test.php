@@ -191,6 +191,52 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Session creation must seed the store name as the intent description: Stripe's automatic
+	 * receipt email renders the description at charge time, before the post-payment backfill
+	 * can replace it with the full order reference.
+	 */
+	public function test_create_session_seeds_the_store_name_as_intent_description(): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 12.34 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$captured_body = null;
+		$mock_request  = static function ( $return_value, $parsed_args, $url ) use ( &$captured_body ) {
+			if ( 'https://api.stripe.com/v1/checkout/sessions' !== $url ) {
+				return $return_value;
+			}
+
+			$captured_body = $parsed_args['body'];
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					(object) [
+						'id'            => 'cs_test_description_seed',
+						'client_secret' => 'cs_test_description_secret',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			( new WC_Stripe_Checkout_Session_Manager() )->synchronize();
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+		}
+
+		if ( is_string( $captured_body ) ) {
+			parse_str( $captured_body, $captured_body );
+		}
+
+		$this->assertSame(
+			wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+			$captured_body['payment_intent_data']['description'] ?? null
+		);
+	}
+
+	/**
 	 * A later native cart total updates the server-owned session and increments its embedded revision.
 	 */
 	public function test_synchronize_updates_existing_session_after_cart_total_changes(): void {
