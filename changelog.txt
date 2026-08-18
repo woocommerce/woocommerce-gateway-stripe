@@ -17,6 +17,7 @@ xxxx-xx-xx - version 11.0.0
 * Dev - Remove the deprecated @woocommerce/settings npm package; settings are still read from the wc-settings script WooCommerce provides at runtime
 * Fix - Exclude password-protected products and products hidden from the catalog from the Agentic Commerce feed
 * Fix - Name password protection and hidden visibility as their own reasons in the Agentic Commerce feed preview
+* Fix - Stop webhook auto-configuration from deleting webhook endpoints the plugin did not create, and warn instead of silently replacing a manually entered signing secret or displaying a webhook that no longer exists
 
 2026-08-17 - version 10.9.0
 * Fix - Re-enable Adaptive Pricing if it was automatically disabled after a Checkout Session amount mismatch

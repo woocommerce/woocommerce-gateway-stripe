@@ -83,6 +83,25 @@ class WC_Stripe_Account {
 	protected const WEBHOOK_STATUS_CACHE_KEY = 'webhook_status';
 
 	/**
+	 * Metadata key/value stamped on webhook endpoints this plugin creates, so cleanup can
+	 * tell them apart from endpoints the merchant created at the same URL by hand.
+	 */
+	public const WEBHOOK_METADATA_CREATED_BY_KEY   = 'created_by';
+	public const WEBHOOK_METADATA_CREATED_BY_VALUE = 'woocommerce_gateway_stripe';
+
+	/**
+	 * Option set when automatic reconfiguration is skipped because the stored signing
+	 * secret was entered manually; read by WC_Stripe_Admin_Notices.
+	 */
+	public const WEBHOOK_MANUAL_SECRET_NOTICE_OPTION = 'wc_stripe_show_webhook_manual_secret_notice';
+
+	/**
+	 * Option set when the stored webhook endpoint no longer exists in the connected
+	 * Stripe account; read by WC_Stripe_Admin_Notices.
+	 */
+	public const WEBHOOK_MISSING_NOTICE_OPTION = 'wc_stripe_show_webhook_missing_notice';
+
+	/**
 	 * The Stripe connect instance.
 	 *
 	 * @var WC_Stripe_Connect
@@ -336,6 +355,9 @@ class WC_Stripe_Account {
 			'enabled_events' => self::WEBHOOK_EVENTS,
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
 			'api_version'    => self::get_webhooks_api_version(),
+			// Stamp the endpoint so later cleanup only ever deletes endpoints this plugin
+			// created, never ones the merchant added at the same URL by hand.
+			'metadata'       => [ self::WEBHOOK_METADATA_CREATED_BY_KEY => self::WEBHOOK_METADATA_CREATED_BY_VALUE ],
 		];
 
 		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
@@ -360,12 +382,20 @@ class WC_Stripe_Account {
 		// Save the Webhook secret and ID.
 		$settings[ $webhook_secret_setting ] = wc_clean( $response->secret );
 		$settings[ $webhook_data_setting ]   = [
-			'id'     => wc_clean( $response->id ),
-			'url'    => wc_clean( $response->url ),
-			'secret' => WC_Stripe_API::get_secret_key(),
+			'id'             => wc_clean( $response->id ),
+			'url'            => wc_clean( $response->url ),
+			'secret'         => WC_Stripe_API::get_secret_key(),
+			// Record the signing secret this configuration wrote, so automatic
+			// reconfiguration can tell a plugin-written secret from one the merchant
+			// pasted in manually and avoid clobbering the latter without warning.
+			'signing_secret' => wc_clean( $response->secret ),
 		];
 
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		// A successful (re)configuration resolves whatever the webhook notices were flagging.
+		delete_option( self::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION );
+		delete_option( self::WEBHOOK_MISSING_NOTICE_OPTION );
 
 		// After reconfiguring webhooks, clear the webhook state.
 		WC_Stripe_Webhook_State::clear_state();
@@ -388,7 +418,17 @@ class WC_Stripe_Account {
 		$webhook_url = WC_Stripe_Helper::get_webhook_url();
 
 		WC_Stripe_Logger::info(
-			$exclude_webhook_id ? "Deleting all webhooks sent to {$webhook_url} except for {$exclude_webhook_id}" : "Deleting all webhooks sent to {$webhook_url}"
+			$exclude_webhook_id ? "Deleting this plugin's webhooks sent to {$webhook_url} except for {$exclude_webhook_id}" : "Deleting this plugin's webhooks sent to {$webhook_url}"
+		);
+
+		// Endpoints the plugin recorded in settings are plugin-created even when they predate
+		// the metadata stamp, so they stay eligible for cleanup.
+		$settings            = WC_Stripe_Helper::get_stripe_settings();
+		$plugin_recorded_ids = array_filter(
+			[
+				$settings['webhook_data']['id'] ?? '',
+				$settings['test_webhook_data']['id'] ?? '',
+			]
 		);
 
 		foreach ( $webhooks->data as $webhook ) {
@@ -401,15 +441,28 @@ class WC_Stripe_Account {
 				continue;
 			}
 
-			// Delete the webhook if it matches the current site's webhook URL.
-			if ( WC_Stripe_Helper::is_webhook_url( $webhook->url, $webhook_url ) ) {
-				$this->stripe_api::request(
-					[],
-					"webhook_endpoints/{$webhook->id}",
-					'DELETE'
-				);
-				WC_Stripe_Logger::info( "Deleted webhook {$webhook->id} because it was being sent to this site's webhook URL." );
+			if ( ! WC_Stripe_Helper::is_webhook_url( $webhook->url, $webhook_url ) ) {
+				continue;
 			}
+
+			// Only delete endpoints this plugin created. Merchants are instructed by the
+			// settings page and docs to create an endpoint at this exact URL when
+			// configuring webhooks manually, so an unrecognized endpoint here is likely
+			// theirs — deleting it silently breaks their manual configuration.
+			$is_plugin_created = in_array( $webhook->id, $plugin_recorded_ids, true )
+				|| self::WEBHOOK_METADATA_CREATED_BY_VALUE === ( $webhook->metadata->{self::WEBHOOK_METADATA_CREATED_BY_KEY} ?? '' );
+
+			if ( ! $is_plugin_created ) {
+				WC_Stripe_Logger::info( "Skipped deleting webhook {$webhook->id}: it points at this site's webhook URL but was not created by this plugin." );
+				continue;
+			}
+
+			$this->stripe_api::request(
+				[],
+				"webhook_endpoints/{$webhook->id}",
+				'DELETE'
+			);
+			WC_Stripe_Logger::info( "Deleted webhook {$webhook->id} because this plugin created it for this site's webhook URL." );
 		}
 	}
 
@@ -564,6 +617,30 @@ class WC_Stripe_Account {
 	}
 
 	/**
+	 * Whether a webhook endpoint still exists in the connected Stripe account.
+	 *
+	 * Only a definitive resource_missing answer counts as gone; transport or other API
+	 * errors report the endpoint as existing so a transient failure can't raise a false
+	 * "webhook missing" alarm.
+	 *
+	 * @param string $webhook_id The webhook endpoint ID to check.
+	 * @return bool
+	 */
+	public function webhook_endpoint_exists( string $webhook_id ): bool {
+		$response = $this->stripe_api::retrieve( "webhook_endpoints/{$webhook_id}" );
+
+		if ( is_wp_error( $response ) || ! is_object( $response ) ) {
+			return true;
+		}
+
+		if ( isset( $response->error ) ) {
+			return 'resource_missing' !== ( $response->error->code ?? '' );
+		}
+
+		return isset( $response->id );
+	}
+
+	/**
 	 * Reconfigures webhooks during plugin update or when admin enables Adaptive Pricing in the settings.
 	 * This ensures webhooks are updated with any new events that may have been added.
 	 * Only reconfigures if there's an existing webhook and its events differ from desired events.
@@ -591,8 +668,27 @@ class WC_Stripe_Account {
 				$previous_secret = WC_Stripe_API::get_secret_key();
 				WC_Stripe_API::set_secret_key( $secret_key );
 
+				$webhook_secret_setting = 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret';
+				$webhook_data_setting   = 'live' === $mode ? 'webhook_data' : 'test_webhook_data';
+				$stored_secret          = $settings[ $webhook_secret_setting ] ?? '';
+				$webhook_data           = is_array( $settings[ $webhook_data_setting ] ?? null ) ? $settings[ $webhook_data_setting ] : [];
+				$stored_webhook_id      = $webhook_data['id'] ?? '';
+
 				// Check for existing webhook
 				$existing_webhook = $this->get_existing_webhook();
+
+				// The stored endpoint can vanish (deleted in the Dashboard, or created under a
+				// previously connected account). Without this check the settings keep displaying
+				// the ghost ID and validating against its dead secret with no signal to the
+				// merchant, so surface an actionable notice instead.
+				if (
+					'' !== $stored_webhook_id
+					&& ( ! $existing_webhook || ( $existing_webhook->id ?? '' ) !== $stored_webhook_id )
+					&& ! $this->webhook_endpoint_exists( $stored_webhook_id )
+				) {
+					update_option( self::WEBHOOK_MISSING_NOTICE_OPTION, 'yes' );
+					WC_Stripe_Logger::info( "Stored webhook {$stored_webhook_id} for {$mode} mode no longer exists in the Stripe account." );
+				}
 
 				if ( ! $existing_webhook ) {
 					continue;
@@ -603,6 +699,22 @@ class WC_Stripe_Account {
 					! $this->do_webhook_events_differ( $existing_webhook )
 					&& ! $this->does_webhooks_api_version_differ( $existing_webhook )
 				) {
+					continue;
+				}
+
+				// A secret the plugin didn't write means the merchant configured webhooks
+				// manually (the settings page instructs exactly that). Reconfiguring would
+				// silently replace it and break their endpoint's deliveries, so leave the
+				// configuration alone and tell them instead. Legacy webhook_data without a
+				// recorded signing_secret keeps the pre-existing reconfigure behavior.
+				$secret_is_manual = '' !== $stored_secret && (
+					'' === $stored_webhook_id
+					|| ( isset( $webhook_data['signing_secret'] ) && $webhook_data['signing_secret'] !== $stored_secret )
+				);
+
+				if ( $secret_is_manual ) {
+					update_option( self::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION, 'yes' );
+					WC_Stripe_Logger::info( "Skipped automatic webhook reconfiguration for {$mode} mode: the stored signing secret was set manually." );
 					continue;
 				}
 

@@ -50,6 +50,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		WC_Stripe_Helper::delete_main_stripe_settings();
 
 		WC_Helper_Stripe_Api::reset();
+		delete_option( WC_Stripe_Account::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION );
+		delete_option( WC_Stripe_Account::WEBHOOK_MISSING_NOTICE_OPTION );
 
 		parent::tear_down();
 	}
@@ -313,6 +315,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 */
 	public function test_delete_previously_configured_webhooks_with_exclusion() {
 		$webhook_url = WC_Stripe_Helper::get_webhook_url();
+		$plugin_meta = (object) [ WC_Stripe_Account::WEBHOOK_METADATA_CREATED_BY_KEY => WC_Stripe_Account::WEBHOOK_METADATA_CREATED_BY_VALUE ];
 
 		// Mock the API retrieve.
 		WC_Helper_Stripe_Api::$retrieve_response = (object) [
@@ -321,31 +324,41 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 					'id' => 'wh_000', // Invalid data - no URL.
 				],
 				(object) [
-					'id'  => 'wh_123',
-					'url' => $webhook_url, // Should be deleted.
+					'id'       => 'wh_123',
+					'url'      => $webhook_url, // Should be deleted.
+					'metadata' => $plugin_meta,
 				],
 				(object) [
-					'id'  => 'wh_456',
-					'url' => $webhook_url, // Should not be deleted - excluded.
+					'id'       => 'wh_456',
+					'url'      => $webhook_url, // Should not be deleted - excluded.
+					'metadata' => $plugin_meta,
 				],
 				(object) [
-					'id'  => 'wh_789',
-					'url' => 'https://some-other-site.com', // Should not be deleted - different URL.
+					'id'       => 'wh_789',
+					'url'      => 'https://some-other-site.com', // Should not be deleted - different URL.
+					'metadata' => $plugin_meta,
 				],
 				(object) [
-					'id'  => 'wh_101112',
-					'url' => $webhook_url . '&foo=bar', // Should be deleted.
+					'id'       => 'wh_101112',
+					'url'      => $webhook_url . '&foo=bar', // Should be deleted.
+					'metadata' => $plugin_meta,
 				],
 				(object) [
 					'url' => $webhook_url, // Invalid data - no ID.
 				],
 				(object) [
-					'id'  => 'wh_131415',
-					'url' => str_replace( 'https', 'http', $webhook_url ), // Should be deleted - different protocol.
+					'id'       => 'wh_131415',
+					'url'      => str_replace( 'https', 'http', $webhook_url ), // Should be deleted - different protocol.
+					'metadata' => $plugin_meta,
 				],
 				(object) [
-					'id'  => 'wh_161718',
-					'url' => explode( '?', $webhook_url )[0], // Should be deleted - matching host with empty path.
+					'id'       => 'wh_161718',
+					'url'      => explode( '?', $webhook_url )[0], // Should be deleted - matching host with empty path.
+					'metadata' => $plugin_meta,
+				],
+				(object) [
+					'id'  => 'wh_merchant',
+					'url' => $webhook_url, // Should not be deleted - not created by this plugin.
 				],
 			],
 		];
@@ -369,6 +382,16 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 */
 	public function test_delete_previously_configured_webhooks_without_exclusion() {
 		$webhook_url = WC_Stripe_Helper::get_webhook_url();
+		$plugin_meta = (object) [ WC_Stripe_Account::WEBHOOK_METADATA_CREATED_BY_KEY => WC_Stripe_Account::WEBHOOK_METADATA_CREATED_BY_VALUE ];
+
+		// An endpoint recorded in settings is plugin-created even without the metadata stamp
+		// (it predates the stamp), so it must stay eligible for cleanup.
+		$settings                 = WC_Stripe_Helper::get_stripe_settings();
+		$settings['webhook_data'] = [
+			'id'     => 'wh_456',
+			'secret' => 'sk_test_key',
+		];
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
 		// Mock the API retrieve.
 		WC_Helper_Stripe_Api::$retrieve_response = (object) [
@@ -377,12 +400,13 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 					'id' => 'wh_000', // Invalid data - no URL.
 				],
 				(object) [
-					'id'  => 'wh_123',
-					'url' => $webhook_url, // Should be deleted.
+					'id'       => 'wh_123',
+					'url'      => $webhook_url, // Should be deleted - metadata stamp.
+					'metadata' => $plugin_meta,
 				],
 				(object) [
 					'id'  => 'wh_456',
-					'url' => $webhook_url, // Should be deleted.
+					'url' => $webhook_url, // Should be deleted - recorded in settings.
 				],
 				(object) [
 					'id'  => 'wh_789',
@@ -390,7 +414,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 				],
 				(object) [
 					'id'  => 'wh_101112',
-					'url' => $webhook_url, // Should be deleted.
+					'url' => $webhook_url, // Should not be deleted - not created by this plugin.
 				],
 				(object) [
 					'url' => $webhook_url, // Invalid data - no ID.
@@ -402,7 +426,6 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		WC_Helper_Stripe_Api::$expected_request_call_params = [
 			[ [], 'webhook_endpoints/wh_123', 'DELETE' ],
 			[ [], 'webhook_endpoints/wh_456', 'DELETE' ],
-			[ [], 'webhook_endpoints/wh_101112', 'DELETE' ],
 		];
 
 		$this->account->delete_previously_configured_webhooks();
@@ -579,6 +602,213 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 * Tests that webhook reconfiguration is triggered when the agentic flag
 	 * causes the desired API version to differ from the existing webhook.
 	 */
+	/**
+	 * Builds an outdated existing webhook so the reconfigure path is reached.
+	 *
+	 * @param string $id The webhook endpoint ID.
+	 * @return object
+	 */
+	private function build_outdated_webhook( $id = 'we_123' ) {
+		return (object) [
+			'id'             => $id,
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
+			'enabled_events' => [ 'charge.succeeded', 'charge.failed' ],
+			'api_version'    => \WC_Stripe_API::STRIPE_API_VERSION,
+			'status'         => 'enabled',
+		];
+	}
+
+	/**
+	 * A signing secret the plugin didn't write means the merchant configured webhooks
+	 * manually; automatic reconfiguration must not clobber it, and must tell the merchant.
+	 *
+	 * @param array $webhook_data Stored test_webhook_data for the scenario.
+	 * @dataProvider provide_manually_configured_webhook_data
+	 */
+	public function test_reconfigure_webhooks_skips_and_notices_when_secret_was_set_manually( array $webhook_data ) {
+		$settings                        = WC_Stripe_Helper::get_stripe_settings();
+		$settings['test_webhook_secret'] = 'whsec_manual';
+		$settings['test_webhook_data']   = $webhook_data;
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
+			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks', 'webhook_endpoint_exists' ] )
+			->getMock();
+		$this->account->method( 'get_existing_webhook' )->willReturn( $this->build_outdated_webhook() );
+		$this->account->method( 'webhook_endpoint_exists' )->willReturn( true );
+		$this->account->expects( $this->never() )->method( 'configure_webhooks' );
+
+		$this->account->maybe_reconfigure_webhooks_on_update();
+
+		$this->assertSame( 'yes', get_option( WC_Stripe_Account::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION ) );
+	}
+
+	/**
+	 * Data provider for {@see test_reconfigure_webhooks_skips_and_notices_when_secret_was_set_manually()}.
+	 *
+	 * @return array<string, array{0: array}>
+	 */
+	public function provide_manually_configured_webhook_data() {
+		return [
+			'secret pasted over an auto-configured one' => [
+				[
+					'id'             => 'we_123',
+					'secret'         => 'sk_test_key',
+					'signing_secret' => 'whsec_auto',
+				],
+			],
+			'secret set with no plugin webhook at all'  => [ [] ],
+		];
+	}
+
+	/**
+	 * A signing secret the plugin wrote itself keeps the automatic reconfigure behavior.
+	 */
+	public function test_reconfigure_webhooks_proceeds_when_secret_was_written_by_plugin() {
+		$settings                        = WC_Stripe_Helper::get_stripe_settings();
+		$settings['test_webhook_secret'] = 'whsec_auto';
+		$settings['test_webhook_data']   = [
+			'id'             => 'we_123',
+			'secret'         => 'sk_test_key',
+			'signing_secret' => 'whsec_auto',
+		];
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
+			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks', 'webhook_endpoint_exists' ] )
+			->getMock();
+		$this->account->method( 'get_existing_webhook' )->willReturn( $this->build_outdated_webhook() );
+		$this->account->method( 'webhook_endpoint_exists' )->willReturn( true );
+		$this->account->expects( $this->once() )->method( 'configure_webhooks' )->with( 'test' );
+
+		$this->account->maybe_reconfigure_webhooks_on_update();
+
+		$this->assertFalse( get_option( WC_Stripe_Account::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION ) );
+	}
+
+	/**
+	 * Legacy webhook_data without a recorded signing_secret keeps the pre-existing
+	 * reconfigure behavior instead of treating every legacy store as manually configured.
+	 */
+	public function test_reconfigure_webhooks_proceeds_for_legacy_webhook_data() {
+		$settings                        = WC_Stripe_Helper::get_stripe_settings();
+		$settings['test_webhook_secret'] = 'whsec_legacy';
+		$settings['test_webhook_data']   = [
+			'id'     => 'we_123',
+			'secret' => 'sk_test_key',
+		];
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
+			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks', 'webhook_endpoint_exists' ] )
+			->getMock();
+		$this->account->method( 'get_existing_webhook' )->willReturn( $this->build_outdated_webhook() );
+		$this->account->method( 'webhook_endpoint_exists' )->willReturn( true );
+		$this->account->expects( $this->once() )->method( 'configure_webhooks' )->with( 'test' );
+
+		$this->account->maybe_reconfigure_webhooks_on_update();
+
+		$this->assertFalse( get_option( WC_Stripe_Account::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION ) );
+	}
+
+	/**
+	 * When the stored webhook endpoint no longer exists in the account, the merchant gets
+	 * an actionable notice instead of the settings displaying a ghost ID forever.
+	 */
+	public function test_reconfigure_webhooks_flags_missing_stored_webhook() {
+		$settings                        = WC_Stripe_Helper::get_stripe_settings();
+		$settings['test_webhook_secret'] = 'whsec_auto';
+		$settings['test_webhook_data']   = [
+			'id'             => 'we_ghost',
+			'secret'         => 'sk_test_key',
+			'signing_secret' => 'whsec_auto',
+		];
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$api_version_method = new ReflectionMethod( WC_Stripe_Account::class, 'get_webhooks_api_version' );
+		$api_version_method->setAccessible( true );
+
+		// The URL-matched endpoint is someone else's; the stored one is gone.
+		$up_to_date_webhook = (object) [
+			'id'             => 'we_other',
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
+			'enabled_events' => WC_Stripe_Account::WEBHOOK_EVENTS,
+			'api_version'    => $api_version_method->invoke( null ),
+			'status'         => 'enabled',
+		];
+
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
+			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks', 'webhook_endpoint_exists' ] )
+			->getMock();
+		$this->account->method( 'get_existing_webhook' )->willReturn( $up_to_date_webhook );
+		$this->account->method( 'webhook_endpoint_exists' )->with( 'we_ghost' )->willReturn( false );
+		$this->account->expects( $this->never() )->method( 'configure_webhooks' );
+
+		$this->account->maybe_reconfigure_webhooks_on_update();
+
+		$this->assertSame( 'yes', get_option( WC_Stripe_Account::WEBHOOK_MISSING_NOTICE_OPTION ) );
+	}
+
+	/**
+	 * configure_webhooks() must stamp the endpoint as plugin-created, record the signing
+	 * secret it wrote, and clear any pending webhook notices.
+	 */
+	public function test_configure_webhooks_records_signing_secret_and_stamps_endpoint() {
+		update_option( WC_Stripe_Account::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION, 'yes' );
+		update_option( WC_Stripe_Account::WEBHOOK_MISSING_NOTICE_OPTION, 'yes' );
+
+		// No pre-existing endpoints for the post-create cleanup pass.
+		WC_Helper_Stripe_Api::$retrieve_response = (object) [ 'data' => [] ];
+
+		$captured_body = null;
+		$mock_request  = static function ( $return_value, $parsed_args, $url ) use ( &$captured_body ) {
+			if ( 'https://api.stripe.com/v1/webhook_endpoints' !== $url ) {
+				return $return_value;
+			}
+
+			$captured_body = $parsed_args['body'];
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					(object) [
+						'id'     => 'we_new',
+						'url'    => WC_Stripe_Helper::get_webhook_url(),
+						'secret' => 'whsec_new',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			$this->account->configure_webhooks( 'test' );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+		}
+
+		if ( is_string( $captured_body ) ) {
+			parse_str( $captured_body, $captured_body );
+		}
+
+		$this->assertSame(
+			WC_Stripe_Account::WEBHOOK_METADATA_CREATED_BY_VALUE,
+			$captured_body['metadata'][ WC_Stripe_Account::WEBHOOK_METADATA_CREATED_BY_KEY ] ?? null
+		);
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( 'whsec_new', $settings['test_webhook_secret'] );
+		$this->assertSame( 'whsec_new', $settings['test_webhook_data']['signing_secret'] );
+		$this->assertSame( 'we_new', $settings['test_webhook_data']['id'] );
+
+		$this->assertFalse( get_option( WC_Stripe_Account::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION ) );
+		$this->assertFalse( get_option( WC_Stripe_Account::WEBHOOK_MISSING_NOTICE_OPTION ) );
+	}
+
 	public function test_reconfigure_webhooks_on_update_with_agentic_flag_enabled() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 
