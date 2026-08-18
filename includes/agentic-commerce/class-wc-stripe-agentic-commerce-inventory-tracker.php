@@ -15,6 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Automattic\WooCommerce\Enums\ProductStatus;
+
 /**
  * Tracks product stock changes and syncs incremental inventory updates to Stripe.
  *
@@ -182,18 +184,18 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 			return;
 		}
 
-		if ( $new_status === $old_status || 'trash' === $new_status ) {
+		if ( $new_status === $old_status || ProductStatus::TRASH === $new_status ) {
 			return;
 		}
 
-		if ( 'publish' === $new_status ) {
+		if ( ProductStatus::PUBLISH === $new_status ) {
 			// The next full sync re-adds the product anyway; an unflushed
 			// removal would only cause pointless delete/re-add churn.
 			$this->maybe_cancel_pending_archive( (int) $post->ID );
 			return;
 		}
 
-		if ( 'publish' !== $old_status ) {
+		if ( ProductStatus::PUBLISH !== $old_status ) {
 			return;
 		}
 

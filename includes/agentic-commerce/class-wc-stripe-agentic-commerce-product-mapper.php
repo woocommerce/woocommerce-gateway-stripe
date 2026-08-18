@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Automattic\WooCommerce\Enums\ProductStatus;
 use Automattic\WooCommerce\Enums\ProductStockStatus;
 use Automattic\WooCommerce\Enums\ProductType;
 use Automattic\WooCommerce\Internal\ProductFeed\Feed\ProductMapperInterface;
@@ -1117,12 +1118,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * @return bool
 	 */
 	public static function is_unpublished( \WC_Product $product ): bool {
-		if ( 'publish' !== $product->get_status() ) {
+		if ( ProductStatus::PUBLISH !== $product->get_status() ) {
 			return true;
 		}
 
 		$parent_id = $product->get_parent_id();
-		return $parent_id > 0 && 'publish' !== get_post_status( $parent_id );
+		return $parent_id > 0 && ProductStatus::PUBLISH !== get_post_status( $parent_id );
 	}
 
 	/**
