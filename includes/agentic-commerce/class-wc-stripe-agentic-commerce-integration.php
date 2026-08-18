@@ -627,6 +627,15 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			$dropped_count  = max( 0, $iterated_products - $total_products );
 			$skipped_count  = max( 0, $dropped_count - $excluded_count );
 
+			// Delete rows are feed entries but not catalog products: subtract
+			// them so "products synced" keeps meaning what merchants read it as.
+			$removed_count   = $validator instanceof WC_Stripe_Agentic_Commerce_Feed_Validator
+				? $validator->get_removed_count()
+				: 0;
+			$synced_products = max( 0, $total_products - $removed_count );
+
+			// Entry count, not $synced_products: a feed holding only delete rows
+			// must still upload, or the removals would never reach Stripe.
 			if ( 0 === $total_products ) {
 				WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - no products to sync' );
 				$file_path = $feed->get_file_path();
@@ -649,10 +658,11 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			WC_Stripe_Logger::info(
 				'Agentic Commerce: Feed generated successfully',
 				[
-					'total_products'    => $total_products,
+					'total_products'    => $synced_products,
 					'iterated_products' => $iterated_products,
 					'skipped_products'  => $skipped_count,
 					'excluded_products' => $excluded_count,
+					'removed_products'  => $removed_count,
 					'generation_time'   => round( $generation_time, 2 ) . 's',
 					'file_path'         => $file_path,
 					'file_size_mb'      => round( $file_size / 1024 / 1024, 2 ),
@@ -736,12 +746,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			// Persist sync result for dashboard display.
 			$this->store_sync_result(
 				[
-					'products'         => $total_products,
+					'products'         => $synced_products,
 					'status'           => $status,
 					'file_id'          => $result['file_id'] ?? '',
 					'import_set_id'    => $import_set_id,
 					'error'            => '',
 					'skipped_products' => $skipped_count,
+					'removed_products' => $removed_count,
 				],
 				$mode
 			);
@@ -793,6 +804,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 *                                    can upgrade a Stripe-reported `succeeded`
 	 *                                    to `succeeded_with_errors` once the
 	 *                                    ImportSet completes.
+	 *     @type int    $removed_products Count of `delete=true` removal rows the
+	 *                                    feed carried for ineligible products.
 	 * }
 	 * @param string|null $mode The mode ('test'/'live') the sync ran against, as
 	 *                          captured when it started; null falls back to the
@@ -814,6 +827,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			'import_set_id'    => $result['import_set_id'] ?? '',
 			'error'            => $result['error'] ?? '',
 			'skipped_products' => isset( $result['skipped_products'] ) ? max( 0, (int) $result['skipped_products'] ) : 0,
+			'removed_products' => isset( $result['removed_products'] ) ? max( 0, (int) $result['removed_products'] ) : 0,
 			'mode'             => $mode ?? self::get_current_mode(),
 		];
 

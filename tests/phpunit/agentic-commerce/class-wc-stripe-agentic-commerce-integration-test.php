@@ -240,9 +240,10 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * An excluded product must stay out of the feed without counting as a
-	 * validation skip: `skipped_products` (which drives the "Partial success"
-	 * badge) must persist as 0 for a pure exclusion.
+	 * An excluded product ships as a `delete=true` removal row, not as product
+	 * data, and must count as neither a synced product nor a validation skip:
+	 * `skipped_products` (which drives the "Partial success" badge) must persist
+	 * as 0 and `products` must reflect only real catalog rows.
 	 *
 	 * @return void
 	 */
@@ -318,7 +319,8 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 
 			$last_sync = \WC_Stripe_Agentic_Commerce_Integration::get_last_sync();
 			$this->assertSame( 0, (int) $last_sync['skipped_products'], 'An excluded product must not be counted as a validation skip.' );
-			$this->assertSame( 1, (int) $last_sync['products'], 'Only the kept product belongs in the feed; the excluded one is dropped.' );
+			$this->assertSame( 1, (int) $last_sync['products'], 'Only the kept product counts as synced; the excluded one ships as a removal.' );
+			$this->assertSame( 1, (int) $last_sync['removed_products'], 'The excluded product must be recorded as a removal.' );
 			$this->assertNotSame( 'succeeded_with_errors', $last_sync['status'], 'A pure exclusion must not flip the sync to Partial success.' );
 		} finally {
 			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $filter, 10 );

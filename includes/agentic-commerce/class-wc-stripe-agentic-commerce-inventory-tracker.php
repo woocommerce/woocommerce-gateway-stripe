@@ -15,6 +15,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Automattic\WooCommerce\Enums\ProductStatus;
+use Automattic\WooCommerce\Enums\ProductType;
+
 /**
  * Tracks product stock changes and syncs incremental inventory updates to Stripe.
  *
@@ -87,7 +90,15 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		// $product->delete() calls, not through the WordPress admin UI.
 		add_action( 'before_delete_post', [ $this, 'maybe_track_product_archive' ] );
 		add_action( 'wp_trash_post', [ $this, 'maybe_track_product_archive' ] );
-		add_action( 'untrash_post', [ $this, 'maybe_cancel_pending_archive' ] );
+		// One transition hook covers both directions: leaving `publish` queues a
+		// removal (the feed query stops selecting the product, so only a delete
+		// row can pull it off Stripe), entering `publish` cancels one. Untrash
+		// restores to draft by default, so an unconditional `untrash_post`
+		// cancel would leave a draft product live on Stripe.
+		add_action( 'transition_post_status', [ $this, 'handle_status_transition' ], 10, 3 );
+		// A type change out of the feed query (e.g. simple→grouped) fires no
+		// status transition, so it needs its own removal hook.
+		add_action( 'woocommerce_product_type_changed', [ $this, 'handle_product_type_change' ], 10, 3 );
 		add_action( self::ARCHIVE_SCHEDULED_ACTION, [ $this, 'sync_archives' ] );
 	}
 
@@ -140,7 +151,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 *
 	 * Hooked to before_delete_post and wp_trash_post so that product removals via the
 	 * WordPress admin UI are captured in addition to programmatic / REST API deletions.
-	 * Loads the full WC_Product so that all required feed fields can be captured before
+	 * Loads the WC_Product so the feed id (SKU or product ID) can be captured before
 	 * the product is permanently deleted.
 	 *
 	 * @since 10.6.0
@@ -161,11 +172,51 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	}
 
 	/**
-	 * Remove a product from the pending archives queue when it is restored from trash.
+	 * Queue or cancel a removal when a product's post status changes.
 	 *
-	 * If a merchant trashes a product and then restores it before the 60-second
-	 * batch window elapses, this prevents the product from being synced to Stripe
-	 * as out_of_stock.
+	 * Trash is skipped here: `wp_trash_post` fires before the status is written,
+	 * while the product still loads cleanly, and handles that path.
+	 *
+	 * @since 11.0.0
+	 * @param string  $new_status Status the post is entering.
+	 * @param string  $old_status Status the post is leaving.
+	 * @param WP_Post $post       The post being transitioned.
+	 * @return void
+	 */
+	public function handle_status_transition( $new_status, $old_status, $post ): void {
+		if ( ! $post instanceof WP_Post || ! in_array( $post->post_type, [ 'product', 'product_variation' ], true ) ) {
+			return;
+		}
+
+		if ( $new_status === $old_status || ProductStatus::TRASH === $new_status ) {
+			return;
+		}
+
+		if ( ProductStatus::PUBLISH === $new_status ) {
+			// The next full sync re-adds the product anyway; an unflushed
+			// removal would only cause pointless delete/re-add churn.
+			$this->maybe_cancel_pending_archive( (int) $post->ID );
+			return;
+		}
+
+		if ( ProductStatus::PUBLISH !== $old_status ) {
+			return;
+		}
+
+		$product = wc_get_product( $post->ID );
+		if ( ! $product ) {
+			return;
+		}
+
+		$this->track_product_archive( $product );
+	}
+
+	/**
+	 * Remove a product from the pending archives queue when it returns to `publish`.
+	 *
+	 * If a merchant trashes or unpublishes a product and then republishes it
+	 * before the 60-second batch window elapses, this prevents the queued
+	 * `delete=true` row from removing a live product from Stripe's catalog.
 	 *
 	 * @since 10.6.0
 	 * @param int $post_id The ID of the post being restored.
@@ -188,11 +239,12 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	}
 
 	/**
-	 * Remove any pending inventory or archive entry queued for $product_id.
+	 * Remove any pending inventory entry queued for $product_id.
 	 *
-	 * Called from the track_* methods when the visibility filter votes false so
-	 * a product that was queued before the filter flipped doesn't still flush
-	 * to Stripe on the next batch.
+	 * Called when the visibility filter votes false so a product queued before
+	 * the filter flipped doesn't still flush a stock delta on the next batch.
+	 * Pending archives are deliberately left alone: they are `delete=true`
+	 * removal signals, valid for excluded products.
 	 *
 	 * @since 10.8.0
 	 * @param int $product_id Product ID to evict.
@@ -208,40 +260,23 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 				update_option( self::PENDING_UPDATES_OPTION, $updates, false );
 			}
 		}
-
-		$archives = get_option( self::PENDING_ARCHIVES_OPTION, [] );
-		if ( isset( $archives[ $product_id ] ) ) {
-			unset( $archives[ $product_id ] );
-			if ( empty( $archives ) ) {
-				delete_option( self::PENDING_ARCHIVES_OPTION );
-			} else {
-				update_option( self::PENDING_ARCHIVES_OPTION, $archives, false );
-			}
-		}
 	}
 
 	/**
-	 * Re-check `should_sync_product()` for each pending entry and drop the
-	 * ones whose filter outcome flipped to false between enqueue and flush.
+	 * Re-check `should_sync_product()` for each pending inventory entry and drop
+	 * the ones whose filter outcome flipped to false between enqueue and flush.
 	 *
-	 * The event-driven eviction in `track_stock_change()` and `track_product_archive()`
-	 * only fires when a follow-up event arrives. If a merchant hides a product
-	 * during the 60-second batch window and no further event lands for it, the
-	 * queued row would otherwise still ship on the next flush — defeating the
-	 * filter's "this product should not be synced" contract. Reading the option
-	 * blind at flush time isn't enough; the visibility decision can move.
-	 *
-	 * For permanently-deleted products (`wc_get_product()` returns false): inventory
-	 * entries are dropped (the stock delta references a SKU that no longer exists),
-	 * but archive entries are kept because the row data was already captured at
-	 * archive time and Stripe still has the product to mark out_of_stock.
+	 * The event-driven eviction in `track_stock_change()` only fires when a
+	 * follow-up event arrives, so a product hidden mid-window would otherwise
+	 * still ship its queued row. Permanently-deleted products are dropped too:
+	 * the delta references a SKU that no longer exists. Pending archives are
+	 * never pruned — `delete=true` rows stay valid regardless of eligibility.
 	 *
 	 * @since 10.8.0
 	 * @param string $option_key Pending option to prune.
-	 * @param bool   $is_archive Whether the option holds archive entries (changes the missing-product policy).
 	 * @return array Pruned pending entries — also persisted back to `$option_key` if anything changed.
 	 */
-	private function prune_stale_pending_entries( string $option_key, bool $is_archive ): array {
+	private function prune_stale_pending_entries( string $option_key ): array {
 		$pending = get_option( $option_key, [] );
 		if ( empty( $pending ) ) {
 			return [];
@@ -250,13 +285,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		$kept = [];
 		foreach ( $pending as $id => $row ) {
 			$product = wc_get_product( $id );
-			if ( ! $product ) {
-				if ( $is_archive ) {
-					$kept[ $id ] = $row;
-				}
-				continue;
-			}
-			if ( WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) ) {
+			if ( $product && WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) ) {
 				$kept[ $id ] = $row;
 			}
 		}
@@ -274,64 +303,132 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	}
 
 	/**
-	 * Track a product deletion (permanent delete or trash) for archiving on Stripe.
+	 * Track a product removal (permanent delete, trash, or unpublish) for deletion on Stripe.
 	 *
-	 * Uses the product mapper to capture all required feed fields (title, description,
-	 * link, price, image, etc.) before the product is permanently deleted, then stores
-	 * the full mapped row in the pending archives option. This is necessary because
-	 * Stripe's product_catalog_feed ImportSet requires all mandatory fields even when
-	 * the purpose is to mark a product as out_of_stock.
-	 *
-	 * Schedules a sync 60 seconds later if one is not already scheduled. The product
-	 * is also removed from any pending inventory updates since the stock quantity is
-	 * no longer relevant once the product is removed.
+	 * Captures the feed id before the product disappears and queues a
+	 * `delete=true` row. Runs even for excluded products — a delete is
+	 * idempotent, and bailing on eligibility would mean exclude-then-trash
+	 * inside one resync window never lands a removal. Also evicts the product's
+	 * pending inventory delta and schedules the flush.
 	 *
 	 * @since 10.6.0
-	 * @param \WC_Product $product The product being deleted or trashed.
+	 * @param \WC_Product $product The product being deleted, trashed, or unpublished.
 	 * @return void
 	 */
 	public function track_product_archive( \WC_Product $product ): void {
-		if ( ! WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) ) {
-			// Evict any stale entries that were queued before the visibility filter
-			// flipped — otherwise a now-excluded product would still flush to Stripe
-			// on the next batch.
-			$this->evict_pending_entries( $product->get_id() );
+		// Variations are the actual feed entries and a parent's status change
+		// doesn't cascade to them — expand the parent into its children.
+		$products = [ $product ];
+		if ( $product->is_type( ProductType::VARIABLE ) ) {
+			$products = $this->load_variations( $product->get_id() );
+		}
+
+		$this->queue_removals( $products );
+	}
+
+	/**
+	 * Queue a removal when a product's type change takes it out of the feed query.
+	 *
+	 * Only leaving-the-feed transitions matter: entering ones are picked up by
+	 * the next full sync, and a product that was never in the feed has nothing
+	 * to remove.
+	 *
+	 * @since 11.0.0
+	 * @param \WC_Product|mixed $product  The saved product, carrying the new type.
+	 * @param string            $old_type Product type before the change.
+	 * @param string            $new_type Product type after the change.
+	 * @return void
+	 */
+	public function handle_product_type_change( $product, $old_type, $new_type ): void {
+		if ( ! $product instanceof \WC_Product ) {
 			return;
 		}
 
-		$product_id = $product->get_id();
-
-		// Remove from pending inventory updates — stock quantity is irrelevant for archived products.
-		$pending_inventory = get_option( self::PENDING_UPDATES_OPTION, [] );
-		if ( isset( $pending_inventory[ $product_id ] ) ) {
-			unset( $pending_inventory[ $product_id ] );
-			update_option( self::PENDING_UPDATES_OPTION, $pending_inventory, false );
+		if ( ProductType::SIMPLE === $old_type ) {
+			// For simple→variable on a SKU'd product, SKU-less variations inherit
+			// the parent SKU as their feed id, so a delete could remove the live
+			// variation row — and on that id collision the variation's upsert
+			// overwrites the stale simple row anyway.
+			$sku_collision = ProductType::VARIABLE === $new_type && '' !== $product->get_sku();
+			if ( ! $sku_collision ) {
+				$this->queue_removals( [ $product ] );
+			}
+			return;
 		}
 
+		if ( ProductType::VARIABLE === $old_type ) {
+			// The variation posts survive the type switch; the orphaned-variation
+			// eligibility check also converges them on the next full sync.
+			$this->queue_removals( $this->load_variations( $product->get_id() ) );
+		}
+	}
+
+	/**
+	 * Load the variation products attached to a parent, regardless of the
+	 * parent's current type — `WC_Product::get_children()` is only populated
+	 * for variable products, and removal paths run after the parent stopped
+	 * being one.
+	 *
+	 * @since 11.0.0
+	 * @param int $parent_id Parent product ID.
+	 * @return \WC_Product[]
+	 */
+	private function load_variations( int $parent_id ): array {
+		$variation_ids = get_posts(
+			[
+				'post_type'   => 'product_variation',
+				'post_parent' => $parent_id,
+				'post_status' => 'any',
+				'numberposts' => -1,
+				'fields'      => 'ids',
+			]
+		);
+
+		$variations = [];
+		foreach ( $variation_ids as $variation_id ) {
+			$variation = wc_get_product( $variation_id );
+			if ( $variation instanceof \WC_Product ) {
+				$variations[] = $variation;
+			}
+		}
+		return $variations;
+	}
+
+	/**
+	 * Queue `delete=true` rows for the given products and schedule the flush.
+	 *
+	 * @since 11.0.0
+	 * @param \WC_Product[] $products Products to remove from Stripe's catalog.
+	 * @return void
+	 */
+	private function queue_removals( array $products ): void {
 		$pending = get_option( self::PENDING_ARCHIVES_OPTION, [] );
+		$queued  = false;
 
-		if ( count( $pending ) >= self::MAX_PENDING_UPDATES ) {
+		foreach ( $products as $item ) {
+			$this->evict_pending_entries( $item->get_id() );
+
+			if ( count( $pending ) >= self::MAX_PENDING_UPDATES && ! isset( $pending[ $item->get_id() ] ) ) {
+				WC_Stripe_Logger::warning(
+					'Agentic Commerce: Pending archive threshold reached - removal not queued',
+					[ 'product_id' => $item->get_id() ]
+				);
+				continue;
+			}
+
+			// Stripe reads only `id` and `delete` from a removal row, so the feed
+			// id is the only product data worth capturing before deletion.
+			$pending[ $item->get_id() ] = [
+				'id'        => WC_Stripe_Agentic_Commerce_Product_Mapper::get_feed_id( $item ),
+				'delete'    => 'true',
+				'timestamp' => time(),
+			];
+			$queued                     = true;
+		}
+
+		if ( ! $queued ) {
 			return;
 		}
-
-		// Capture full product data now, before the product is deleted. The mapper
-		// populates all required fields (title, description, link, price, image_link,
-		// mpn/gtin, product_category, inventory) that Stripe requires.
-		$mapper = new WC_Stripe_Agentic_Commerce_Product_Mapper();
-		try {
-			$row = $mapper->map_product( $product );
-		} catch ( \RuntimeException $e ) {
-			// If mapping fails (e.g. missing parent for variation), store minimal data.
-			// The sync will still attempt delivery with the fields we have.
-			$row = [ 'id' => (string) $product_id ];
-		}
-
-		// Force availability to out_of_stock regardless of current stock status.
-		$row['availability'] = 'out_of_stock';
-
-		$row['timestamp'] = time();
-
-		$pending[ $product_id ] = $row;
 
 		update_option( self::PENDING_ARCHIVES_OPTION, $pending, false );
 
@@ -419,7 +516,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		// the outcome can flip between enqueue and the batch window elapsing,
 		// and the event-driven eviction only catches products that get a
 		// follow-up stock or archive event in that window.
-		$pending = $this->prune_stale_pending_entries( self::PENDING_UPDATES_OPTION, false );
+		$pending = $this->prune_stale_pending_entries( self::PENDING_UPDATES_OPTION );
 
 		if ( empty( $pending ) ) {
 			WC_Stripe_Logger::info( 'Agentic Commerce: Inventory sync skipped - all pending updates pruned by visibility filter' );
@@ -492,13 +589,10 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	}
 
 	/**
-	 * Generate an archive feed CSV from pending product archives.
+	 * Generate an archive feed CSV of `delete=true` rows from pending archives.
 	 *
-	 * Returns a finalized CSV feed containing all product catalog fields with
-	 * availability set to out_of_stock. The full field set is required because
-	 * Stripe's product_catalog_feed ImportSet validates all mandatory columns
-	 * (title, description, link, price, image_link, mpn/gtin, product_category,
-	 * inventory_quantity/inventory_not_tracked).
+	 * Keeps the full column set to match the standard product_catalog_feed
+	 * header layout; Stripe reads only `id` and `delete` from a removal row.
 	 *
 	 * @since 10.6.0
 	 * @return WC_Stripe_Agentic_Commerce_Csv_Feed|null Finalized feed, or null if nothing to sync.
@@ -520,8 +614,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 			foreach ( $columns as $column ) {
 				$entry[ $column ] = $archive[ $column ] ?? null;
 			}
-			// Ensure availability is always out_of_stock.
-			$entry['availability'] = 'out_of_stock';
+			// Forced unconditionally so entries queued by an older plugin version
+			// (full out_of_stock rows) also flush as removals.
+			$entry['delete'] = 'true';
 			$feed->add_entry( $entry );
 		}
 
@@ -533,17 +628,11 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	/**
 	 * Execute archive sync process.
 	 *
-	 * Called by Action Scheduler one minute after the first tracked product deletion
-	 * or trash event. Generates a minimal product catalog CSV (id + availability:
-	 * out_of_stock) and uploads it to Stripe as a product_catalog_feed ImportSet,
-	 * marking each product as unavailable without permanently removing it.
-	 *
-	 * On success, pending archives are cleared. On failure they are retained so
-	 * the next scheduled sync can retry.
-	 *
-	 * If the number of pending archives exceeds MAX_PENDING_UPDATES, the queue
-	 * is cleared and the regular full catalog sync will handle the backlog on its
-	 * next run.
+	 * Runs one minute after the first tracked deletion, trash, or unpublish and
+	 * uploads the pending `delete=true` rows as a product_catalog_feed
+	 * ImportSet. On failure the queue is retained for retry. Unlike inventory,
+	 * it is neither deferred to the full sync (which cannot delete out-of-query
+	 * products) nor pruned by eligibility (removals stay valid when excluded).
 	 *
 	 * @since 10.6.0
 	 * @return void
@@ -558,29 +647,6 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 
 		if ( empty( $pending ) ) {
 			WC_Stripe_Logger::info( 'Agentic Commerce: Archive sync skipped - no pending archives' );
-			return;
-		}
-
-		// Too many pending archives — fall back to full catalog sync on its next scheduled run.
-		// Run this before the visibility re-check so an enormous queue still defers cleanly
-		// instead of paying the per-row product load cost.
-		if ( count( $pending ) >= self::MAX_PENDING_UPDATES ) {
-			WC_Stripe_Logger::info(
-				'Agentic Commerce: Archive sync - pending archive threshold exceeded, deferring to full catalog sync',
-				[ 'pending_count' => count( $pending ) ]
-			);
-			delete_option( self::PENDING_ARCHIVES_OPTION );
-			return;
-		}
-
-		// Re-check the visibility filter for each pending entry before flushing —
-		// see the matching note in sync_inventory(). For permanently-deleted
-		// products the helper keeps archive entries (the mapped row was captured
-		// before the delete) so Stripe still receives the out_of_stock signal.
-		$pending = $this->prune_stale_pending_entries( self::PENDING_ARCHIVES_OPTION, true );
-
-		if ( empty( $pending ) ) {
-			WC_Stripe_Logger::info( 'Agentic Commerce: Archive sync skipped - all pending archives pruned by visibility filter' );
 			return;
 		}
 
