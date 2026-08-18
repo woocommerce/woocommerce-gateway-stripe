@@ -4219,4 +4219,102 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		return $combined_test_cases;
 	}
+
+	/**
+	 * The refund helper for rejected agentic payments posts the payment intent to the
+	 * refunds API, and treats an already-refunded charge as success (webhook redelivery).
+	 *
+	 * @param object $refund_response  Stripe response for the refunds call.
+	 * @dataProvider provide_rejected_agentic_refund_responses
+	 */
+	public function test_refund_rejected_agentic_payment( $refund_response ) {
+		$captured_body = null;
+		$mock_request  = static function ( $return_value, $parsed_args, $url ) use ( &$captured_body, $refund_response ) {
+			if ( 'https://api.stripe.com/v1/refunds' !== $url ) {
+				return $return_value;
+			}
+
+			$captured_body = $parsed_args['body'];
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode( $refund_response ),
+			];
+		};
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			$method = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'refund_rejected_agentic_payment' );
+			$method->setAccessible( true );
+			$method->invoke( new WC_Stripe_Webhook_Handler(), 'pi_rejected_123', 'cs_rejected_456' );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+		}
+
+		if ( is_string( $captured_body ) ) {
+			parse_str( $captured_body, $captured_body );
+		}
+
+		// Never throws — a failed refund must not crash webhook processing — and always
+		// targets the rejected session's payment intent.
+		$this->assertSame( 'pi_rejected_123', $captured_body['payment_intent'] ?? null );
+	}
+
+	/**
+	 * The escape-hatch filter disables the automatic refund entirely.
+	 */
+	public function test_refund_rejected_agentic_payment_respects_the_disable_filter() {
+		$refund_requested = false;
+		$mock_request     = static function ( $return_value, $parsed_args, $url ) use ( &$refund_requested ) {
+			if ( 'https://api.stripe.com/v1/refunds' === $url ) {
+				$refund_requested = true;
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+		add_filter( 'wc_stripe_agentic_auto_refund_rejected_session', '__return_false' );
+
+		try {
+			$method = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'refund_rejected_agentic_payment' );
+			$method->setAccessible( true );
+			$method->invoke( new WC_Stripe_Webhook_Handler(), 'pi_rejected_123', 'cs_rejected_456' );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			remove_filter( 'wc_stripe_agentic_auto_refund_rejected_session', '__return_false' );
+		}
+
+		$this->assertFalse( $refund_requested );
+	}
+
+	/**
+	 * Data provider for {@see test_refund_rejected_agentic_payment()}.
+	 *
+	 * @return array<string, array{0: object}>
+	 */
+	public function provide_rejected_agentic_refund_responses() {
+		return [
+			'refund succeeds'  => [
+				(object) [
+					'id'     => 're_1',
+					'status' => 'succeeded',
+				],
+			],
+			'already refunded' => [
+				(object) [
+					'error' => (object) [
+						'code'    => 'charge_already_refunded',
+						'message' => 'Charge has already been refunded.',
+					],
+				],
+			],
+			'other API error'  => [
+				(object) [
+					'error' => (object) [
+						'code'    => 'processing_error',
+						'message' => 'Try again later.',
+					],
+				],
+			],
+		];
+	}
 }

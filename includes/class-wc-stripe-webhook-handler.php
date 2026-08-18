@@ -3087,6 +3087,23 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 				 */
 				do_action( 'wc_stripe_agentic_order_created', $order, $session );
+			} catch ( WC_Stripe_Agentic_Order_Rejected_Exception $e ) {
+				// Permanent rejection: retrying can never succeed and the payment is
+				// already captured, so refund the shopper instead of retrying.
+				WC_Stripe_Logger::error(
+					'Agentic checkout session was rejected; refunding the captured payment.',
+					[
+						'session_id' => $session->get_id(),
+						'error'      => $e->getMessage(),
+					]
+				);
+
+				/** This action is documented below in the generic failure catch. */
+				do_action( 'wc_stripe_agentic_order_creation_failed', $e, $session );
+
+				$this->refund_rejected_agentic_payment( (string) $payment_intent_id, (string) $session->get_id() );
+
+				// Deliberately not re-thrown: the job must not retry a permanent rejection.
 			} catch ( Throwable $e ) {
 				// Cap trace length to avoid overwhelming log handlers that may
 				// truncate or reject very large context fields.
@@ -3124,6 +3141,57 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		} finally {
 			remove_filter( 'wc_stripe_request_headers', $override_version );
 		}
+	}
+
+	/**
+	 * Refunds the captured payment of a permanently rejected agentic checkout session.
+	 * No order exists to route through process_refund(), so the refund goes straight to
+	 * the Stripe API; an already-refunded charge (webhook redelivery) counts as success.
+	 *
+	 * @param string $payment_intent_id The captured PaymentIntent to refund.
+	 * @param string $session_id        The rejected checkout session, for logging.
+	 * @return void
+	 */
+	protected function refund_rejected_agentic_payment( string $payment_intent_id, string $session_id ): void {
+		/**
+		 * Filters whether the captured payment of a rejected agentic checkout session is
+		 * refunded automatically. Return false to log only and refund manually.
+		 *
+		 * @since 11.0.0
+		 *
+		 * @param bool   $auto_refund       Whether to refund automatically. Default true.
+		 * @param string $payment_intent_id The captured PaymentIntent.
+		 * @param string $session_id        The rejected checkout session.
+		 */
+		if ( ! apply_filters( 'wc_stripe_agentic_auto_refund_rejected_session', true, $payment_intent_id, $session_id ) ) {
+			WC_Stripe_Logger::info( "Automatic refund disabled by filter for rejected agentic payment {$payment_intent_id} (session {$session_id}); please refund it manually in the Stripe dashboard." );
+			return;
+		}
+
+		try {
+			$response = WC_Stripe_API::request( [ 'payment_intent' => $payment_intent_id ], 'refunds' );
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error(
+				"Failed to refund rejected agentic payment {$payment_intent_id} (session {$session_id}); please refund it manually in the Stripe dashboard.",
+				[ 'error' => $e->getMessage() ]
+			);
+			return;
+		}
+
+		if ( ! empty( $response->error ) ) {
+			if ( 'charge_already_refunded' === ( $response->error->code ?? '' ) ) {
+				WC_Stripe_Logger::info( "Rejected agentic payment {$payment_intent_id} (session {$session_id}) was already refunded." );
+				return;
+			}
+
+			WC_Stripe_Logger::error(
+				"Failed to refund rejected agentic payment {$payment_intent_id} (session {$session_id}); please refund it manually in the Stripe dashboard.",
+				[ 'error' => $response->error->message ?? '(no message)' ]
+			);
+			return;
+		}
+
+		WC_Stripe_Logger::info( "Refunded rejected agentic payment {$payment_intent_id} (session {$session_id})." );
 	}
 
 	/**
