@@ -43,6 +43,9 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		// Reset the invalid API keys count cache.
 		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 
+		// Clear any outage state recorded during the test run.
+		delete_transient( WC_Stripe_API_Outage_Status::OUTAGE_TRANSIENT_KEY );
+
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		WC_Stripe_API::set_secret_key( null );
 
@@ -332,14 +335,25 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		remove_filter( 'pre_http_request', $pre_http_filter );
 		\WC_Stripe_Logger::$logger = null;
 
+		$is_outage = WC_Stripe_API_Outage_Status::is_outage_response( $response );
+
 		if ( 'GET' === $method ) {
 			$this->assertInstanceof( \WP_Error::class, $result );
-			$this->assertEquals( 'stripe_error', $result->get_error_code() );
-			$this->assertEquals( __( 'There was a problem retrieving data from the Stripe API endpoint.', 'woocommerce-gateway-stripe' ), $result->get_error_message() );
+			if ( $is_outage ) {
+				$this->assertEquals( 'stripe_api_outage', $result->get_error_code() );
+				$this->assertEquals( __( 'The Stripe API is temporarily unavailable. Please try again in a few minutes.', 'woocommerce-gateway-stripe' ), $result->get_error_message() );
+			} else {
+				$this->assertEquals( 'stripe_error', $result->get_error_code() );
+				$this->assertEquals( __( 'There was a problem retrieving data from the Stripe API endpoint.', 'woocommerce-gateway-stripe' ), $result->get_error_message() );
+			}
 		} else {
 			$this->assertInstanceof( \WC_Stripe_Exception::class, $caught_exception );
 			$this->assertEquals( print_r( $response, true ), $caught_exception->getMessage() );
-			$this->assertEquals( __( 'There was a problem sending a request to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ), $caught_exception->getLocalizedMessage() );
+			if ( $is_outage ) {
+				$this->assertEquals( __( 'The Stripe API is temporarily unavailable. Please try again in a few minutes.', 'woocommerce-gateway-stripe' ), $caught_exception->getLocalizedMessage() );
+			} else {
+				$this->assertEquals( __( 'There was a problem sending a request to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ), $caught_exception->getLocalizedMessage() );
+			}
 		}
 	}
 
@@ -520,5 +534,153 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		\WCS_Staging::set_is_duplicate_site( false );
 
 		$this->assertEquals( $expected_return, $result );
+	}
+
+	/**
+	 * Filter helper that returns a fixed wp_remote response.
+	 *
+	 * @param array|WP_Error $response The response to return.
+	 * @return Closure
+	 */
+	private function return_response( $response ) {
+		return function () use ( $response ) {
+			return $response;
+		};
+	}
+
+	/**
+	 * A 5xx response from Stripe records an outage and surfaces a
+	 * stripe_api_outage WP_Error from retrieve().
+	 */
+	public function test_retrieve_records_outage_on_5xx() {
+		$response = [
+			'response' => [
+				'code'    => 503,
+				'message' => 'Service Unavailable',
+			],
+			'headers'  => [],
+			'body'     => '{"error":"service unavailable"}',
+		];
+
+		$filter = $this->return_response( $response );
+		add_filter( 'pre_http_request', $filter );
+
+		$result = WC_Stripe_API::retrieve( 'account' );
+
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertEquals( 'stripe_api_outage', $result->get_error_code() );
+		$this->assertTrue( WC_Stripe_API_Outage_Status::is_in_outage() );
+	}
+
+	/**
+	 * A network failure (WP_Error from wp_remote_*) records an outage.
+	 */
+	public function test_retrieve_records_outage_on_network_error() {
+		$filter = $this->return_response( new \WP_Error( 'http_request_failed', 'Connection refused' ) );
+		add_filter( 'pre_http_request', $filter );
+
+		$result = WC_Stripe_API::retrieve( 'account' );
+
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertEquals( 'stripe_api_outage', $result->get_error_code() );
+		$this->assertTrue( WC_Stripe_API_Outage_Status::is_in_outage() );
+	}
+
+	/**
+	 * A successful response clears any prior outage flag.
+	 */
+	public function test_retrieve_clears_outage_on_success() {
+		WC_Stripe_API_Outage_Status::record_outage();
+		$this->assertTrue( WC_Stripe_API_Outage_Status::is_in_outage() );
+
+		$filter = $this->return_response(
+			[
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'headers'  => [],
+				'body'     => '{"id":"acct_123"}',
+			]
+		);
+		add_filter( 'pre_http_request', $filter );
+
+		WC_Stripe_API::retrieve( 'account' );
+
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertFalse( WC_Stripe_API_Outage_Status::is_in_outage() );
+	}
+
+	/**
+	 * A 4xx response is NOT an outage — Stripe is alive, just rejecting us.
+	 * The transient should be cleared.
+	 */
+	public function test_retrieve_4xx_is_not_outage() {
+		WC_Stripe_API_Outage_Status::record_outage();
+
+		$filter = $this->return_response(
+			[
+				'response' => [
+					'code'    => 400,
+					'message' => 'Bad Request',
+				],
+				'headers'  => [],
+				'body'     => '{"error":{"message":"bad request"}}',
+			]
+		);
+		add_filter( 'pre_http_request', $filter );
+
+		WC_Stripe_API::retrieve( 'account' );
+
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertFalse( WC_Stripe_API_Outage_Status::is_in_outage() );
+	}
+
+	/**
+	 * request() throws a WC_Stripe_Exception with the outage-specific
+	 * localized message when Stripe responds with 5xx.
+	 */
+	public function test_request_throws_outage_exception_on_5xx() {
+		$response = [
+			'response' => [
+				'code'    => 502,
+				'message' => 'Bad Gateway',
+			],
+			'headers'  => [],
+			'body'     => '{"error":"bad gateway"}',
+		];
+
+		$filter = $this->return_response( $response );
+		add_filter( 'pre_http_request', $filter );
+
+		$caught = null;
+		try {
+			WC_Stripe_API::request(
+				[
+					'amount'   => 100,
+					'metadata' => [ 'order_id' => 1 ],
+				],
+				'charges',
+				'POST',
+				false
+			);
+		} catch ( \WC_Stripe_Exception $e ) {
+			$caught = $e;
+		}
+
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertInstanceOf( \WC_Stripe_Exception::class, $caught );
+		$this->assertEquals(
+			__( 'The Stripe API is temporarily unavailable. Please try again in a few minutes.', 'woocommerce-gateway-stripe' ),
+			$caught->getLocalizedMessage()
+		);
+		$this->assertTrue( WC_Stripe_API_Outage_Status::is_in_outage() );
 	}
 }

@@ -11,6 +11,7 @@ import {
 	getStripeServerData,
 	getStripeDevWidgetOptions,
 } from 'wcstripe/stripe-utils';
+import { assertStripeJsOrigin } from 'wcstripe/stripe-utils/verify-stripe-js-origin';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_CASHAPP,
@@ -95,6 +96,8 @@ export default class WCStripeAPI {
 	 * @return {Object} The Stripe instance.
 	 */
 	createStripe( key, locale, betas = [] ) {
+		assertStripeJsOrigin();
+
 		const options = {
 			locale,
 			...getStripeDevWidgetOptions(),
@@ -533,22 +536,24 @@ export default class WCStripeAPI {
 		// Rename qty to quantity to match StoreAPI expected parameter.
 		const { qty, ...rest } = productData;
 		const quantity = qty ?? 1;
-		const blocksApiProductData = {
+		const storeApiProductData = {
 			...rest,
 			quantity,
 		};
 
 		const data = applyFilters(
 			'wcstripe.express-checkout.cart-add-item',
-			blocksApiProductData
+			storeApiProductData
 		);
-		return this.postToBlocksAPI( '/wc/store/v1/cart/add-item', data );
+		return this.postToStoreApi( '/wc/store/v1/cart/add-item', data );
 	}
 
 	/**
 	 * Add product to cart from product page (legacy version, non-StoreAPI).
 	 *
-	 * @todo Remove this once WC 9.7.0 is the min. required version.
+	 * Fallback for booking products that can't be expressed as a Store API
+	 * `booking_configuration` (persons / customer-defined duration); the
+	 * representable ones go through `expressCheckoutAddToCart`.
 	 *
 	 * @param {Object} productData Product data.
 	 * @return {Promise} Promise for the request to the server.
@@ -576,7 +581,7 @@ export default class WCStripeAPI {
 				},
 			} );
 			const removeItemsPromises = cartData.items.map( ( item ) => {
-				return this.postToBlocksAPI( '/wc/store/v1/cart/remove-item', {
+				return this.postToStoreApi( '/wc/store/v1/cart/remove-item', {
 					key: item.key,
 					booking_id: bookingId,
 				} );
@@ -609,7 +614,7 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECECreateOrder( orderData ) {
-		return this.postToBlocksAPI(
+		return this.postToStoreApi(
 			'/wc/store/v1/checkout',
 			{
 				...orderData,
@@ -638,18 +643,18 @@ export default class WCStripeAPI {
 		const billingEmail = orderDetails.billingEmail ?? '';
 		const key = orderDetails.orderKey ?? '';
 		const url = `/wc/store/v1/checkout/${ order }?key=${ key }&billing_email=${ billingEmail }`;
-		return this.postToBlocksAPI( url, paymentData );
+		return this.postToStoreApi( url, paymentData );
 	}
 
 	/**
-	 * Posts data to the Blocks API.
+	 * Posts data to the Store API.
 	 *
 	 * @param {string} path    The path to post to.
 	 * @param {Object} data    The data to post.
 	 * @param {Object} headers The headers for the request.
 	 * @return {Promise} The promise for the request to the server.
 	 */
-	postToBlocksAPI( path, data, headers = {} ) {
+	postToStoreApi( path, data, headers = {} ) {
 		return apiFetch( {
 			method: 'POST',
 			path,
@@ -695,11 +700,21 @@ export default class WCStripeAPI {
 	 *
 	 * @param {string} sessionId The ID of the checkout session to update.
 	 * @return {Promise} Promise for the request to the server.
+	 * @throws {Error} When the server responds with an application-level error.
 	 */
-	checkoutSessionsUpdateSession( sessionId ) {
-		return this.request( this.getAjaxUrl( 'update_checkout_session' ), {
-			security: this.options?.updateCheckoutSessionNonce,
-			checkout_session_id: sessionId,
-		} );
+	async checkoutSessionsUpdateSession( sessionId ) {
+		const response = await this.request(
+			this.getAjaxUrl( 'update_checkout_session' ),
+			{
+				security: this.options?.updateCheckoutSessionNonce,
+				checkout_session_id: sessionId,
+			}
+		);
+
+		if ( response && response.success === false ) {
+			throw new Error( response.data?.message );
+		}
+
+		return response;
 	}
 }

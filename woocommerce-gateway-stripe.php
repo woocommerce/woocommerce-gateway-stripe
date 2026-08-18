@@ -5,12 +5,12 @@
  * Description: Accept debit and credit card payments in 135+ currencies, as well as Apple Pay, Google Pay, Klarna, Affirm, P24, ACH, and more.
  * Author: Stripe
  * Author URI: https://stripe.com/
- * Version: 10.7.0
+ * Version: 10.8.5
  * Requires Plugins: woocommerce
- * Requires at least: 6.7
- * Tested up to: 6.9.4
- * WC requires at least: 10.5
- * WC tested up to: 10.7
+ * Requires at least: 6.8
+ * Tested up to: 7.0
+ * WC requires at least: 10.8
+ * WC tested up to: 11.0
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -22,10 +22,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '10.7.0' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '10.8.5' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.4' );
-define( 'WC_STRIPE_MIN_WC_VER', '10.3' );
-define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '10.4' );
+define( 'WC_STRIPE_MIN_WC_VER', '10.8' );
+define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '10.9' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
 define( 'WC_STRIPE_ABSPATH', __DIR__ . '/' );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugin_dir_url( WC_STRIPE_MAIN_FILE ) ) );
@@ -166,9 +166,6 @@ function wcstripe_deactivated(): void {
 	if ( class_exists( 'WC_Stripe_Inbox_Notes' ) && WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
 		// requirements for the note
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
-		WC_Stripe_UPE_Availability_Note::possibly_delete_note();
-
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
 		WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
 	}
@@ -190,6 +187,9 @@ register_deactivation_hook( __FILE__, 'wcstripe_deactivated' );
 add_action( 'woocommerce_blocks_loaded', 'woocommerce_gateway_stripe_woocommerce_block_support' );
 
 function woocommerce_gateway_stripe_woocommerce_block_support() {
+	woocommerce_stripe_init_autoloader();
+	WC_Stripe_Checkout_Session_Lifecycle::init_store_api();
+
 	if ( class_exists( 'Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-blocks-support.php';
 		// priority is important here because this ensures this integration is

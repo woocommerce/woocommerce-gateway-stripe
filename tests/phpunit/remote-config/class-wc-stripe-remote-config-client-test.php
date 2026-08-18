@@ -13,10 +13,24 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
-		add_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
 		$this->client            = new WC_Stripe_Remote_Config_Client();
 		$this->captured_requests = [];
+	}
 
+	public function tear_down(): void {
+		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
+		remove_all_filters( 'pre_http_request' );
+		parent::tear_down();
+	}
+
+	/**
+	 * Stubs `pre_http_request` to capture each outbound request and return a
+	 * canned 200 combined envelope, so a test can assert the request shape
+	 * without a live network call. Kept out of set_up() so each test opts into
+	 * the HTTP behaviour it needs explicitly.
+	 */
+	private function stub_successful_response(): void {
 		add_filter(
 			'pre_http_request',
 			function ( $preempt, $args, $url ) {
@@ -31,7 +45,16 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 					],
 					'body'     => wp_json_encode(
 						[
-							'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
+							'modes'        => [
+								'live' => [
+									'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
+									'generated_at' => '2026-05-09T12:00:00Z',
+								],
+								'test' => [
+									'flags'        => [ 'optimized_checkout' => [ 'value' => true ] ],
+									'generated_at' => '2026-05-09T12:00:00Z',
+								],
+							],
 							'generated_at' => '2026-05-09T12:00:00Z',
 						]
 					),
@@ -43,68 +66,77 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		);
 	}
 
-	public function tear_down(): void {
-		remove_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
-		remove_all_filters( 'pre_http_request' );
-		parent::tear_down();
-	}
+	public function test_fetch_all_request_shape_and_decoded_body(): void {
+		$this->stub_successful_response();
 
-	public function test_fetch_request_shape_and_decoded_body(): void {
-		$result = $this->client->fetch( 'live' );
+		$result = $this->client->fetch_all();
 
 		$this->assertIsArray( $result );
-		$this->assertSame( false, $result['flags']['optimized_checkout']['value'] );
+		$this->assertSame( false, $result['modes']['live']['flags']['optimized_checkout']['value'] );
+		$this->assertSame( true, $result['modes']['test']['flags']['optimized_checkout']['value'] );
 
 		$this->assertCount( 1, $this->captured_requests );
 		$url  = $this->captured_requests[0]['url'];
 		$args = $this->captured_requests[0]['args'];
 
 		$this->assertStringStartsWith( 'https://public-api.wordpress.com/wpcom/v2/woocommerce/stripe/remote-config', $url );
+		$this->assertStringContainsString( 'mode=all', $url );
+		$this->assertStringContainsString( 'plugin_version=' . WC_STRIPE_VERSION, $url );
 		$this->assertTrue( $args['sslverify'] );
 		$this->assertSame( 'GET', $args['method'] );
 		$this->assertSame( 10, $args['timeout'] );
 	}
 
-	public function test_fetch_sends_store_identity_query_params(): void {
+	public function test_fetch_all_sends_store_identity_query_params(): void {
+		$this->stub_successful_response();
+		// The account country can differ between a dual-keyed store's live and
+		// test accounts, so both travel under mode-prefixed params.
 		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, [ 'country' => 'US' ], DAY_IN_SECONDS, 'live' );
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, [ 'country' => 'BR' ], DAY_IN_SECONDS, 'test' );
 
-		$this->client->fetch( 'live' );
+		$this->client->fetch_all();
 
 		$query = [];
 		wp_parse_str( (string) wp_parse_url( $this->captured_requests[0]['url'], PHP_URL_QUERY ), $query );
 
-		$this->assertSame( 'live', $query['mode'] );
+		$this->assertSame( 'all', $query['mode'] );
 		$this->assertSame( WC_STRIPE_VERSION, $query['plugin_version'] );
 		$this->assertSame( WC_VERSION, $query['wc_version'] );
-		$this->assertSame( 'US', $query['account_country'] );
+		$this->assertSame( 'US', $query['live_account_country'] );
+		$this->assertSame( 'BR', $query['test_account_country'] );
 		$this->assertSame( get_woocommerce_currency(), $query['store_currency'] );
 		// `WC_Subscriptions` stub is loaded by the test bootstrap; `WC_Pre_Orders` has no stub.
 		$this->assertSame( '1', $query['subscriptions_enabled'] );
 		$this->assertSame( '0', $query['pre_orders_enabled'] );
 
 		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'live' );
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'test' );
 	}
 
-	public function test_fetch_omits_account_country_when_cache_missing(): void {
+	public function test_fetch_all_omits_account_countries_when_cache_missing(): void {
+		$this->stub_successful_response();
 		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'live' );
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'test' );
 
-		$this->client->fetch( 'live' );
+		$this->client->fetch_all();
 
 		$query = [];
 		wp_parse_str( (string) wp_parse_url( $this->captured_requests[0]['url'], PHP_URL_QUERY ), $query );
-		$this->assertArrayNotHasKey( 'account_country', $query );
+		$this->assertArrayNotHasKey( 'live_account_country', $query );
+		$this->assertArrayNotHasKey( 'test_account_country', $query );
 	}
 
-	public function test_fetch_short_circuits_when_disabled_by_filter(): void {
-		add_filter( 'wc_stripe_remote_config_enabled', '__return_false' );
+	public function test_fetch_short_circuits_when_disabled_by_override(): void {
+		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'no' );
 
-		$result = $this->client->fetch( 'live' );
+		$result = $this->client->fetch_all();
+
+		// Clean up before asserting so a failed assertion can't leak the override into later tests.
+		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'wc_stripe_remote_config_disabled', $result->get_error_code() );
 		$this->assertCount( 0, $this->captured_requests );
-
-		remove_filter( 'wc_stripe_remote_config_enabled', '__return_false' );
 	}
 
 	/**
@@ -119,7 +151,7 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 			}
 		);
 
-		$result = $this->client->fetch( 'live' );
+		$result = $this->client->fetch_all();
 
 		$this->assertWPError( $result );
 		if ( null !== $expected_code ) {
@@ -162,26 +194,12 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 							'code'    => 200,
 							'message' => 'OK',
 						],
-						'body'     => str_repeat( 'a', WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES + 1 ),
+						'body'     => str_repeat( 'a', 2 * WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES + 1 ),
 						'headers'  => [],
 					];
 				},
 				'wc_stripe_remote_config_payload_too_large',
 			],
 		];
-	}
-
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
-	public function test_fetch_short_circuits_when_disabled_by_constant(): void {
-		define( 'WC_STRIPE_DISABLE_REMOTE_CONFIG', true );
-
-		$result = $this->client->fetch( 'live' );
-
-		$this->assertWPError( $result );
-		$this->assertSame( 'wc_stripe_remote_config_disabled', $result->get_error_code() );
-		$this->assertCount( 0, $this->captured_requests );
 	}
 }

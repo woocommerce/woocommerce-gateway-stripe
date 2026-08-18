@@ -37,7 +37,7 @@ class WC_Stripe_Remote_Config_Flags {
 	 */
 	private const FLAGS = [
 		'optimized_checkout' => [
-			'reader' => 'WC_Stripe_Feature_Flags::is_oc_available',
+			'reader' => 'WC_Stripe_Feature_Flags::is_oc_offered',
 			'type'   => 'bool',
 		],
 	];
@@ -52,30 +52,38 @@ class WC_Stripe_Remote_Config_Flags {
 	}
 
 	/**
+	 * Option that force-enables ('yes') or force-disables ('no') the
+	 * remote-config channel on this site; any other value falls through to
+	 * the environment default. Internal tooling seam (wp-cli, phased rollout,
+	 * support) — deliberately not a merchant-facing opt-out: a public escape
+	 * hatch would fragment incident coverage and force a patch release for
+	 * exactly the sites a remote disable needs to reach.
+	 */
+	public const ENABLED_OVERRIDE_OPTION = '_wcstripe_remote_config_enabled';
+
+	/**
 	 * Whether the remote-config feature is enabled on this site.
 	 *
-	 * The `WC_STRIPE_DISABLE_REMOTE_CONFIG` constant takes precedence; if not
-	 * defined, the `wc_stripe_remote_config_enabled` filter is consulted with
-	 * a default of `false` on development environments (WP_DEBUG sites, or
-	 * sites whose `wp_get_environment_type()` is local/development/staging)
-	 * and `true` everywhere else.
+	 * Disabled by default while the rollout is in phase 1; the
+	 * ENABLED_OVERRIDE_OPTION option force-enables ('yes') or force-disables
+	 * ('no') an individual site. There is intentionally no public filter or
+	 * constant.
 	 */
 	public static function is_remote_config_enabled(): bool {
-		if ( defined( 'WC_STRIPE_DISABLE_REMOTE_CONFIG' ) && WC_STRIPE_DISABLE_REMOTE_CONFIG ) {
+		$override = get_option( self::ENABLED_OVERRIDE_OPTION, '' );
+		if ( 'yes' === $override ) {
+			return true;
+		}
+		if ( 'no' === $override ) {
 			return false;
 		}
 
-		$is_dev_environment = ( defined( 'WP_DEBUG' ) && WP_DEBUG )
-			|| in_array( wp_get_environment_type(), [ 'development', 'staging', 'local' ], true );
-
-		/**
-		 * Filters whether the Stripe remote-config channel is enabled.
-		 *
-		 * @since 10.8.0
-		 *
-		 * @param bool $enabled Default `false` on development environments, `true` elsewhere.
-		 */
-		return (bool) apply_filters( 'wc_stripe_remote_config_enabled', ! $is_dev_environment );
+		// Phase 1 of the phased rollout: the code ships with the channel
+		// globally disabled and our test sites are enabled by hand via the
+		// override option. Later phases flip this default via patch releases —
+		// test-mode sites first, then a progressive live ramp — and must
+		// re-exclude development environments when they do.
+		return false;
 	}
 
 	/**

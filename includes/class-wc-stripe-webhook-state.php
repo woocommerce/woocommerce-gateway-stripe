@@ -11,42 +11,27 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 5.0.0
  */
 class WC_Stripe_Webhook_State {
-	const OPTION_LIVE_MONITORING_BEGAN_AT = 'wc_stripe_wh_monitor_began_at';
-	const OPTION_LIVE_LAST_SUCCESS_AT     = 'wc_stripe_wh_last_success_at';
-	const OPTION_LIVE_LAST_FAILURE_AT     = 'wc_stripe_wh_last_failure_at';
-	const OPTION_LIVE_LAST_ERROR          = 'wc_stripe_wh_last_error';
-	const OPTION_LIVE_PENDING_WEBHOOKS    = 'wc_stripe_wh_live_pending_webhooks';
+	public const OPTION_LIVE_MONITORING_BEGAN_AT = 'wc_stripe_wh_monitor_began_at';
+	public const OPTION_LIVE_LAST_SUCCESS_AT     = 'wc_stripe_wh_last_success_at';
+	public const OPTION_LIVE_LAST_FAILURE_AT     = 'wc_stripe_wh_last_failure_at';
+	public const OPTION_LIVE_LAST_ERROR          = 'wc_stripe_wh_last_error';
+	public const OPTION_LIVE_PENDING_WEBHOOKS    = 'wc_stripe_wh_live_pending_webhooks';
 
-	const OPTION_TEST_MONITORING_BEGAN_AT = 'wc_stripe_wh_test_monitor_began_at';
-	const OPTION_TEST_LAST_SUCCESS_AT     = 'wc_stripe_wh_test_last_success_at';
-	const OPTION_TEST_LAST_FAILURE_AT     = 'wc_stripe_wh_test_last_failure_at';
-	const OPTION_TEST_LAST_ERROR          = 'wc_stripe_wh_test_last_error';
-	const OPTION_TEST_PENDING_WEBHOOKS    = 'wc_stripe_wh_test_pending_webhooks';
+	public const OPTION_TEST_MONITORING_BEGAN_AT = 'wc_stripe_wh_test_monitor_began_at';
+	public const OPTION_TEST_LAST_SUCCESS_AT     = 'wc_stripe_wh_test_last_success_at';
+	public const OPTION_TEST_LAST_FAILURE_AT     = 'wc_stripe_wh_test_last_failure_at';
+	public const OPTION_TEST_LAST_ERROR          = 'wc_stripe_wh_test_last_error';
+	public const OPTION_TEST_PENDING_WEBHOOKS    = 'wc_stripe_wh_test_pending_webhooks';
 
-	const VALIDATION_SUCCEEDED                 = 'validation_succeeded';
-	const VALIDATION_FAILED_EMPTY_HEADERS      = 'empty_headers';
-	const VALIDATION_FAILED_EMPTY_BODY         = 'empty_body';
-	const VALIDATION_FAILED_EMPTY_SECRET       = 'empty_secret';
-	const VALIDATION_FAILED_USER_AGENT_INVALID = 'user_agent_invalid';
-	const VALIDATION_FAILED_SIGNATURE_INVALID  = 'signature_invalid';
-	const VALIDATION_FAILED_DUPLICATE_WEBHOOKS = 'duplicate_webhooks';
-	const VALIDATION_FAILED_TIMESTAMP_MISMATCH = 'timestamp_out_of_range';
-	const VALIDATION_FAILED_SIGNATURE_MISMATCH = 'signature_mismatch';
-
-	/**
-	 * Gets whether Stripe is in test mode or not
-	 *
-	 * @since 5.0.0
-	 * @return bool
-	 *
-	 * @deprecated 8.9.0
-	 */
-	public static function get_testmode() {
-		wc_deprecated_function( __METHOD__, '8.9.0', 'WC_Stripe_Mode::is_test()' );
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		return ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
-	}
+	public const VALIDATION_SUCCEEDED                 = 'validation_succeeded';
+	public const VALIDATION_FAILED_EMPTY_HEADERS      = 'empty_headers';
+	public const VALIDATION_FAILED_EMPTY_BODY         = 'empty_body';
+	public const VALIDATION_FAILED_EMPTY_SECRET       = 'empty_secret';
+	public const VALIDATION_FAILED_USER_AGENT_INVALID = 'user_agent_invalid';
+	public const VALIDATION_FAILED_SIGNATURE_INVALID  = 'signature_invalid';
+	public const VALIDATION_FAILED_DUPLICATE_WEBHOOKS = 'duplicate_webhooks';
+	public const VALIDATION_FAILED_TIMESTAMP_MISMATCH = 'timestamp_out_of_range';
+	public const VALIDATION_FAILED_SIGNATURE_MISMATCH = 'signature_mismatch';
 
 	/**
 	 * Clears the webhook state.
@@ -103,7 +88,7 @@ class WC_Stripe_Webhook_State {
 	 */
 	public static function set_last_webhook_success_at( $timestamp ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_SUCCESS_AT;
-		update_option( $option, $timestamp );
+		self::update_int_option( $option, $timestamp );
 	}
 
 	/**
@@ -126,7 +111,7 @@ class WC_Stripe_Webhook_State {
 	 */
 	public static function set_last_webhook_failure_at( $timestamp ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
-		update_option( $option, $timestamp );
+		self::update_int_option( $option, $timestamp );
 	}
 
 	/**
@@ -240,7 +225,7 @@ class WC_Stripe_Webhook_State {
 	 */
 	public static function set_pending_webhooks_count( $pending_webhooks ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_PENDING_WEBHOOKS : self::OPTION_LIVE_PENDING_WEBHOOKS;
-		update_option( $option, $pending_webhooks );
+		self::update_int_option( $option, $pending_webhooks );
 	}
 
 	/**
@@ -375,10 +360,45 @@ class WC_Stripe_Webhook_State {
 	 */
 	protected static function get_int_option( string $option_name ): int {
 		$option_value = get_option( $option_name, 0 );
-		if ( ! ctype_digit( (string) $option_value ) ) {
+
+		$validated_value = self::validate_int_value( $option_value );
+		if ( null === $validated_value ) {
 			return 0;
 		}
 
-		return (int) $option_value;
+		return $validated_value;
+	}
+
+	/**
+	 * Update an option with an integer value.
+	 *
+	 * @param string $option_name The name of the option to update.
+	 * @param mixed  $value       The value to update the option with. Should be a scalar integer.
+	 * @return void
+	 */
+	protected static function update_int_option( string $option_name, $value ): void {
+		$int_value = self::validate_int_value( $value );
+		if ( null === $int_value ) {
+			return;
+		}
+		update_option( $option_name, $int_value );
+	}
+
+	/**
+	 * Validate that a value is an integer.
+	 *
+	 * @param mixed $value The value to validate.
+	 * @return int|null The integer value of the value, or null if the value is not an integer.
+	 */
+	protected static function validate_int_value( $value ): ?int {
+		if ( ! is_scalar( $value ) ) {
+			return null;
+		}
+
+		if ( ! ctype_digit( (string) $value ) ) {
+			return null;
+		}
+
+		return (int) $value;
 	}
 }

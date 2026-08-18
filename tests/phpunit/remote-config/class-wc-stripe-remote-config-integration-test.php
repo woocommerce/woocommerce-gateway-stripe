@@ -12,7 +12,7 @@ class WC_Stripe_Remote_Config_Integration_Test extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
-		add_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 		delete_option( '_wcstripe_remote_config_test' );
@@ -27,7 +27,7 @@ class WC_Stripe_Remote_Config_Integration_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down(): void {
-		remove_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 		delete_option( '_wcstripe_remote_config_test' );
@@ -45,7 +45,16 @@ class WC_Stripe_Remote_Config_Integration_Test extends WP_UnitTestCase {
 					],
 					'body'     => wp_json_encode(
 						[
-							'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
+							'modes'        => [
+								'live' => [
+									'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
+									'generated_at' => '2026-05-09T12:00:00Z',
+								],
+								'test' => [
+									'flags'        => [ 'optimized_checkout' => [ 'value' => true ] ],
+									'generated_at' => '2026-05-09T12:00:00Z',
+								],
+							],
 							'generated_at' => '2026-05-09T12:00:00Z',
 						]
 					),
@@ -63,5 +72,7 @@ class WC_Stripe_Remote_Config_Integration_Test extends WP_UnitTestCase {
 		$this->assertTrue( $rc->resolve( 'optimized_checkout', true, 'live' ) );
 		$scheduler->run();
 		$this->assertFalse( $rc->resolve( 'optimized_checkout', true, 'live' ) );
+		// The unconnected test mode is cached from the same combined fetch.
+		$this->assertTrue( $rc->resolve( 'optimized_checkout', false, 'test' ) );
 	}
 }

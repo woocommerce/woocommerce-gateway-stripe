@@ -7,30 +7,30 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
-		add_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 		delete_option( '_wcstripe_remote_config_test' );
 	}
 
 	public function tear_down(): void {
-		remove_filter( 'wc_stripe_remote_config_enabled', '__return_true' );
+		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 		delete_option( '_wcstripe_remote_config_test' );
 		parent::tear_down();
 	}
 
-	private function valid_payload( bool $oc_value = false ): array {
+	private function get_valid_payload( bool $optimized_checkout_flag_value = false ): array {
 		return [
-			'flags'        => [ 'optimized_checkout' => [ 'value' => $oc_value ] ],
+			'flags'        => [ 'optimized_checkout' => [ 'value' => $optimized_checkout_flag_value ] ],
 			'generated_at' => '2026-05-09T12:00:00Z',
 		];
 	}
 
 	public function test_apply_writes_to_per_mode_option_and_returns_true(): void {
 		$rc = new WC_Stripe_Remote_Config();
-		$this->assertTrue( $rc->apply( 'live', $this->valid_payload( false ) ) );
+		$this->assertTrue( $rc->apply( 'live', $this->get_valid_payload( false ) ) );
 
 		$stored = get_option( '_wcstripe_remote_config_live' );
 		$this->assertIsArray( $stored );
@@ -44,7 +44,7 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 	 */
 	public function test_apply_rejects_invalid_payload( callable $mutate ): void {
 		$rc      = new WC_Stripe_Remote_Config();
-		$payload = $this->valid_payload();
+		$payload = $this->get_valid_payload();
 		$mutate( $payload );
 
 		$this->assertFalse( $rc->apply( 'live', $payload ) );
@@ -78,7 +78,7 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 
 	public function test_apply_drops_unknown_flag_names_silently(): void {
 		$rc                               = new WC_Stripe_Remote_Config();
-		$payload                          = $this->valid_payload();
+		$payload                          = $this->get_valid_payload();
 		$payload['flags']['unknown_flag'] = [ 'value' => true ];
 
 		$this->assertTrue( $rc->apply( 'live', $payload ) );
@@ -89,9 +89,9 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 
 	public function test_apply_circuit_breaker_keeps_previous_cache_on_validation_failure(): void {
 		$rc = new WC_Stripe_Remote_Config();
-		$rc->apply( 'live', $this->valid_payload( false ) );
+		$rc->apply( 'live', $this->get_valid_payload( false ) );
 
-		$bad_payload = $this->valid_payload();
+		$bad_payload = $this->get_valid_payload();
 		$bad_payload['flags']['optimized_checkout']['value'] = 'string-not-bool';
 
 		$this->assertFalse( $rc->apply( 'live', $bad_payload ) );
@@ -108,7 +108,7 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 	public function test_get_cache_snapshot_returns_flags_and_timestamp_after_apply(): void {
 		$before = time();
 		$rc     = new WC_Stripe_Remote_Config();
-		$rc->apply( 'live', $this->valid_payload( false ) );
+		$rc->apply( 'live', $this->get_valid_payload( false ) );
 		$after = time();
 
 		$snapshot = $rc->get_cache_snapshot( 'live' );
@@ -127,14 +127,14 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 		$this->assertSame( 'local', $rc->resolve( 'no_such_flag', 'local', 'live' ) );
 
 		// Remote present: remote wins.
-		$rc->apply( 'live', $this->valid_payload( false ) );
+		$rc->apply( 'live', $this->get_valid_payload( false ) );
 		$this->assertFalse( $rc->resolve( 'optimized_checkout', true, 'live' ) );
 	}
 
 	public function test_resolve_modes_are_isolated(): void {
 		$rc = new WC_Stripe_Remote_Config();
-		$rc->apply( 'live', $this->valid_payload( false ) );
-		$rc->apply( 'test', $this->valid_payload( true ) );
+		$rc->apply( 'live', $this->get_valid_payload( false ) );
+		$rc->apply( 'test', $this->get_valid_payload( true ) );
 
 		$this->assertFalse( $rc->resolve( 'optimized_checkout', true, 'live' ) );
 		$this->assertTrue( $rc->resolve( 'optimized_checkout', false, 'test' ) );
@@ -193,7 +193,7 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 
 	public function test_get_flag_returns_value_from_cache(): void {
 		$rc = new WC_Stripe_Remote_Config();
-		$rc->apply( 'live', $this->valid_payload( false ) );
+		$rc->apply( 'live', $this->get_valid_payload( false ) );
 		$this->assertSame( false, $rc->get_flag( 'optimized_checkout', 'live' ) );
 	}
 }

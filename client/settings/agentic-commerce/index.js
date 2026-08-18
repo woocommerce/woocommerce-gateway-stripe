@@ -11,6 +11,7 @@ import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import CopyButton from '../../components/copy-button';
 import AgenticCommerceSyncStatus from './sync-status';
+import AgenticCommerceFeedPreview from './feed-preview';
 import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
 import {
@@ -38,17 +39,23 @@ const OnboardingSteps = styled.ol`
 
 const AgenticCommerceDescription = () => (
 	<>
-		<h2>{ __( 'Agentic commerce', 'woocommerce-gateway-stripe' ) }</h2>
+		<h2>{ __( 'Agentic Commerce', 'woocommerce-gateway-stripe' ) }</h2>
 		<p>
 			{ __(
-				'Enable and configure agentic commerce for your store.',
+				'Enable and configure Agentic Commerce for your store.',
+				'woocommerce-gateway-stripe'
+			) }
+		</p>
+		<p>
+			{ __(
+				'WooCommerce coupons and their usage limits do not apply to purchases completed inside AI agents. Purchases redirected to your store use the standard checkout, where coupons work as usual.',
 				'woocommerce-gateway-stripe'
 			) }
 		</p>
 		<p>
 			<ExternalLink href="https://docs.stripe.com/agentic-commerce">
 				{ __(
-					'Learn more about agentic commerce',
+					'Learn more about Agentic Commerce',
 					'woocommerce-gateway-stripe'
 				) }
 			</ExternalLink>
@@ -58,6 +65,7 @@ const AgenticCommerceDescription = () => (
 
 const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	const [ isFeatureEnabled, setIsFeatureEnabled ] = useState( false );
+	const [ disableCheckout, setDisableCheckout ] = useState( false );
 	const [ webhookSecret, setWebhookSecret ] = useState( '' );
 	const [ isLoadingSettings, setIsLoadingSettings ] = useState( true );
 	const [ settingsNotice, setSettingsNotice ] = useState( null );
@@ -77,6 +85,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 				path: '/wc/v3/wc_stripe/agentic-commerce/settings',
 			} );
 			setIsFeatureEnabled( result.is_enabled );
+			setDisableCheckout( result.disable_checkout ?? false );
 			setWebhookSecret( result.webhook_secret ?? '' );
 		} catch {
 			// Settings fetch failure is non-fatal; defaults remain.
@@ -97,15 +106,14 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 				method: 'POST',
 				data: {
 					is_enabled: isFeatureEnabled,
+					disable_checkout: disableCheckout,
 					webhook_secret: webhookSecret,
 				},
 			} );
 			setIsFeatureEnabled( result.is_enabled );
+			setDisableCheckout( result.disable_checkout ?? false );
 			setWebhookSecret( result.webhook_secret ?? '' );
-			setSettingsNotice( {
-				status: 'success',
-				message: __( 'Settings saved.', 'woocommerce-gateway-stripe' ),
-			} );
+			// No success notice: the global Save changes flow already shows a page-level toast.
 		} catch ( err ) {
 			setSettingsNotice( {
 				status: 'error',
@@ -117,7 +125,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 					),
 			} );
 		}
-	}, [ isFeatureEnabled, webhookSecret ] );
+	}, [ isFeatureEnabled, disableCheckout, webhookSecret ] );
 
 	// Expose save function to parent via ref so the global Save changes
 	// button can trigger it alongside the main settings save.
@@ -156,7 +164,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 							<>
 								<CheckboxControl
 									label={ __(
-										'Enable agentic commerce',
+										'Enable Agentic Commerce',
 										'woocommerce-gateway-stripe'
 									) }
 									help={ __(
@@ -166,6 +174,21 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 									checked={ isFeatureEnabled }
 									onChange={ setIsFeatureEnabled }
 								/>
+
+								{ isFeatureEnabled && (
+									<CheckboxControl
+										label={ __(
+											'Redirect shoppers to my store to check out',
+											'woocommerce-gateway-stripe'
+										) }
+										help={ __(
+											'When enabled, agents send shoppers to the product page on your store to complete checkout instead of purchasing in the agent. Your products are still discoverable in the agent.',
+											'woocommerce-gateway-stripe'
+										) }
+										checked={ disableCheckout }
+										onChange={ setDisableCheckout }
+									/>
+								) }
 
 								{ isFeatureEnabled && (
 									<>
@@ -236,7 +259,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 													  } )
 													: interpolateComponents( {
 															mixedString: __(
-																'Setup webhooks in {{strong}}Account details{{/strong}} above, then set endpoint URL to your webhook URL',
+																'Set up webhooks in {{strong}}Account details{{/strong}} on the Settings tab, then set endpoint URL to your webhook URL',
 																'woocommerce-gateway-stripe'
 															),
 															components: {
@@ -261,7 +284,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 
 										<TextControl
 											label={ __(
-												'Agentic commerce webhook secret',
+												'Agentic Commerce webhook secret',
 												'woocommerce-gateway-stripe'
 											) }
 											help={ __(
@@ -282,6 +305,8 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			</LoadableSettingsSection>
 
 			{ isFeatureEnabled && <AgenticCommerceSyncStatus /> }
+
+			{ isFeatureEnabled && <AgenticCommerceFeedPreview /> }
 		</SettingsSection>
 	);
 } );

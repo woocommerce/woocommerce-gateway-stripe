@@ -12,9 +12,9 @@ import { useEffect, useState } from '@wordpress/element';
 import WCStripeAPI from 'wcstripe/api';
 import {
 	getPaymentMethodTypes,
-	initializeUPEAppearance,
 	getExcludedPaymentMethodTypes,
 } from 'wcstripe/stripe-utils';
+import { initializeUPEAppearance } from 'wcstripe/stripe-utils/upe-appearance';
 import {
 	getBlocksConfiguration,
 	shouldSetupOffSessionPayment,
@@ -112,9 +112,14 @@ const ElementsContainer = ( props ) => {
 		);
 	}
 
+	// In the block editor (Site/Full Site Editor) the checkout preview DOM does
+	// not reflect the live storefront, so appearance must be computed in
+	// editor-safe mode to avoid a dark/black Payment Element. See STRIPE-1061.
+	const isEditor = stripeServerData?.isAdmin ?? false;
+
 	// Build options object.
 	let options = {
-		appearance: initializeUPEAppearance( 'true' ),
+		appearance: initializeUPEAppearance( 'true', false, isEditor ),
 		paymentMethodCreation: 'manual',
 		fonts: getFontRulesFromPage(),
 	};
@@ -205,8 +210,14 @@ const PaymentElements = ( {
 	...props
 } ) => {
 	const stripeServerData = getBlocksConfiguration();
+	// Adaptive Pricing renders <CheckoutElementsProvider>, which calls initCheckoutElementsSdk() on mount.
+	// Older versions of Stripe.js do not support initCheckoutElementsSdk, so we check for it and
+	// fall back to the standard elements flow before the provider mounts.
+	const stripeSupportsInitCheckout =
+		typeof api.getStripe()?.initCheckoutElementsSdk === 'function';
 	const isAdaptivePricingSupported =
-		stripeServerData?.isAdaptivePricingEnabled;
+		stripeServerData?.isAdaptivePricingEnabled &&
+		stripeSupportsInitCheckout;
 
 	const [ errorMessage, setErrorMessage ] = useState( null );
 	const [
@@ -214,7 +225,7 @@ const PaymentElements = ( {
 		setPaymentProcessorLoadErrorMessage,
 	] = useState( null );
 	const [ shouldLoadStripeElements, setShouldLoadStripeElements ] = useState(
-		! stripeServerData?.isAdaptivePricingEnabled
+		! isAdaptivePricingSupported
 	);
 
 	if ( errorMessage ) {

@@ -24,23 +24,24 @@ class WC_Stripe_Remote_Config_Client {
 	private const TIMEOUT = 10;
 
 	/**
-	 * Fetches the current remote-config payload for the given mode.
+	 * Fetches the combined remote-config envelope covering both modes.
 	 *
-	 * @param string $mode 'live' or 'test'.
+	 * `mode=all` returns `{ modes: { live: <envelope>, test: <envelope> }, generated_at }`,
+	 * where each per-mode envelope is byte-for-byte the single-mode response shape.
 	 *
 	 * @return array|WP_Error Decoded JSON array on success, WP_Error on failure
-	 *                        (including opt-out short-circuit).
+	 *                        (including the disabled short-circuit).
 	 */
-	public function fetch( string $mode ) {
+	public function fetch_all() {
 		if ( ! WC_Stripe_Remote_Config_Flags::is_remote_config_enabled() ) {
 			return new WP_Error(
 				'wc_stripe_remote_config_disabled',
-				'Remote config is disabled via constant or filter.'
+				'Remote config is disabled on this site.'
 			);
 		}
 
 		$url = add_query_arg(
-			$this->build_query_args( $mode ),
+			$this->build_query_args(),
 			self::BASE_URL . self::PATH
 		);
 
@@ -70,7 +71,10 @@ class WC_Stripe_Remote_Config_Client {
 		}
 
 		$body = (string) wp_remote_retrieve_body( $response );
-		if ( strlen( $body ) > WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES ) {
+		// The combined envelope carries one payload per mode; each is validated
+		// against MAX_PAYLOAD_BYTES individually in WC_Stripe_Remote_Config::apply(),
+		// so the wire-level bound is twice the per-mode cap.
+		if ( strlen( $body ) > 2 * WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES ) {
 			return new WP_Error(
 				'wc_stripe_remote_config_payload_too_large',
 				'Remote-config payload exceeds maximum allowed size.'
@@ -89,18 +93,23 @@ class WC_Stripe_Remote_Config_Client {
 	}
 
 	/**
-	 * Builds the query arguments for the remote-config request.
+	 * Builds the query arguments for the combined `mode=all` request.
 	 *
-	 * @param string $mode 'live' or 'test'.
+	 * Mode-independent signals travel unprefixed; the account country can
+	 * differ between a dual-keyed store's live and test accounts, so it is
+	 * sent per mode under the prefixed names the endpoint contract reserves
+	 * for diverging params (`live_account_country` / `test_account_country`).
+	 * Empty values are dropped from the request entirely.
 	 *
 	 * @return array<string, string>
 	 */
-	private function build_query_args( string $mode ): array {
+	private function build_query_args(): array {
 		$args = [
-			'mode'                  => $mode,
+			'mode'                  => 'all',
 			'plugin_version'        => WC_STRIPE_VERSION,
 			'wc_version'            => WC_VERSION,
-			'account_country'       => $this->get_account_country( $mode ),
+			'live_account_country'  => $this->get_account_country( 'live' ),
+			'test_account_country'  => $this->get_account_country( 'test' ),
 			'store_currency'        => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : '',
 			'subscriptions_enabled' => $this->bool_param( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ),
 			'pre_orders_enabled'    => $this->bool_param( class_exists( 'WC_Pre_Orders' ) ),

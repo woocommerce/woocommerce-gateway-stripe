@@ -13,9 +13,9 @@ class WC_Stripe_API {
 	/**
 	 * Stripe API Endpoint
 	 */
-	const ENDPOINT                     = 'https://api.stripe.com/v1/';
-	const STRIPE_API_VERSION           = '2025-09-30.clover';
-	const AGENTIC_COMMERCE_API_VERSION = '2025-12-15.preview';
+	public const ENDPOINT                     = 'https://api.stripe.com/v1/';
+	public const STRIPE_API_VERSION           = '2026-03-25.dahlia';
+	public const AGENTIC_COMMERCE_API_VERSION = '2025-12-15.preview';
 
 	/**
 	 * The invalid API key error count cache key.
@@ -151,6 +151,13 @@ class WC_Stripe_API {
 			'Stripe-Version' => self::STRIPE_API_VERSION,
 		];
 
+		/**
+		 * Filters the request headers sent to the Stripe API. Deprecated in favor of wc_stripe_request_headers.
+		 *
+		 * @deprecated 9.7.0
+		 *
+		 * @param array $headers The headers to send to the Stripe API.
+		 */
 		$headers = apply_filters_deprecated(
 			'woocommerce_stripe_request_headers',
 			[ $headers ],
@@ -213,11 +220,25 @@ class WC_Stripe_API {
 	public static function request( $request, $api = 'charges', $method = 'POST', $with_headers = false ) {
 		$headers = self::get_headers();
 
+		/**
+		 * Filters the idempotency key sent with a Stripe API request.
+		 *
+		 * @param string|null $idempotency_key Generated idempotency key.
+		 * @param array       $request         Stripe API request body.
+		 */
 		$idempotency_key = apply_filters( 'wc_stripe_idempotency_key', self::get_idempotency_key( $api, $method, $request ), $request );
 		if ( $idempotency_key ) {
 			$headers['Idempotency-Key'] = $idempotency_key;
 		}
 
+		/**
+		 * Filters the request body sent to the Stripe API. Deprecated in favor of wc_stripe_request_body.
+		 *
+		 * @deprecated 9.7.0
+		 *
+		 * @param array $request The request body to send to the Stripe API.
+		 * @param string $api The Stripe API endpoint.
+		 */
 		$request = apply_filters_deprecated(
 			'woocommerce_stripe_request_body',
 			[ $request, $api ],
@@ -262,7 +283,26 @@ class WC_Stripe_API {
 
 		$response_headers = wp_remote_retrieve_headers( $response );
 
-		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
+		if ( WC_Stripe_API_Outage_Status::is_outage_response( $response ) ) {
+			WC_Stripe_API_Outage_Status::record_outage();
+
+			$error_data = [
+				'stripe_api_key'  => $masked_secret_key,
+				'request'         => $request,
+				'idempotency_key' => $idempotency_key,
+			];
+			self::log_error_response( $response, $api, $method, $error_data );
+
+			throw new WC_Stripe_Exception(
+				print_r( $response, true ),
+				__( 'The Stripe API is temporarily unavailable. Please try again in a few minutes.', 'woocommerce-gateway-stripe' )
+			);
+		}
+
+		WC_Stripe_API_Outage_Status::record_success();
+
+		$response_body_raw = wp_remote_retrieve_body( $response );
+		if ( empty( $response_body_raw ) ) {
 			$error_data = [
 				'stripe_api_key'  => $masked_secret_key,
 				'request'         => $request,
@@ -273,7 +313,7 @@ class WC_Stripe_API {
 			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem sending a request to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		$response_body = json_decode( $response['body'] );
+		$response_body = json_decode( $response_body_raw );
 
 		WC_Stripe_Logger::debug(
 			"Stripe API response: {$method} {$api}",
@@ -337,6 +377,19 @@ class WC_Stripe_API {
 			]
 		);
 
+		if ( WC_Stripe_API_Outage_Status::is_outage_response( $response ) ) {
+			WC_Stripe_API_Outage_Status::record_outage();
+
+			self::log_error_response( $response, $api, 'GET' );
+
+			return new WP_Error(
+				'stripe_api_outage',
+				__( 'The Stripe API is temporarily unavailable. Please try again in a few minutes.', 'woocommerce-gateway-stripe' )
+			);
+		}
+
+		WC_Stripe_API_Outage_Status::record_success();
+
 		// If we get a 401 error, we know the secret key is not valid.
 		if ( is_array( $response ) && isset( $response['response'] ) && is_array( $response['response'] ) && isset( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
 			// Stripe redacts API keys in the response.
@@ -375,7 +428,8 @@ class WC_Stripe_API {
 			WC_Stripe_Database_Cache::delete( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 		}
 
-		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
+		$response_body_raw = wp_remote_retrieve_body( $response );
+		if ( empty( $response_body_raw ) ) {
 			$error_data = [
 				'stripe_api_key' => $masked_secret_key,
 			];
@@ -384,7 +438,7 @@ class WC_Stripe_API {
 			return new WP_Error( 'stripe_error', __( 'There was a problem retrieving data from the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		$response_body = json_decode( $response['body'] );
+		$response_body = json_decode( $response_body_raw );
 
 		WC_Stripe_Logger::debug(
 			"Stripe API response: GET {$api}",
@@ -421,10 +475,14 @@ class WC_Stripe_API {
 		// 3. Do not try to add level3 data if merchant is not based in the US.
 		// https://docs.stripe.com/level3#level-iii-usage-requirements
 		// (Needs to be authenticated with a level3 gated account to see above docs).
+		// 4. Do not add level3 data for non-card payment methods (e.g. Affirm,
+		// Klarna, Afterpay/Clearpay, Amazon Pay). Level 3 is card-network only, and
+		// Stripe rejects the request when it's attached to those methods.
 		if (
 			empty( $level3_data ) ||
 			get_transient( 'wc_stripe_level3_not_allowed' ) ||
-			'US' !== WC()->countries->get_base_country()
+			'US' !== WC()->countries->get_base_country() ||
+			! WC_Stripe_Helper::order_supports_level3_data( $order )
 		) {
 			return self::request(
 				$request,

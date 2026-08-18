@@ -43,6 +43,16 @@ class WC_Stripe_Express_Checkout_Helper {
 	private $gateway;
 
 	/**
+	 * Request-scoped cache for `should_show_express_checkout_button()`.
+	 *
+	 * Keys in the array capture specific contexts that may apply within a request.
+	 * Once such case is for handling One Page Checkout, which can affect when we are in checkout via runtime hooks.
+	 *
+	 * @var array<string, bool>
+	 */
+	private $should_show_cache = [];
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -51,6 +61,11 @@ class WC_Stripe_Express_Checkout_Helper {
 		$this->testmode        = WC_Stripe_Mode::is_test();
 		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
 
+		/**
+		 * Filters the suffix appended to the Express Checkout total label.
+		 *
+		 * @param string $suffix Total label suffix.
+		 */
 		$this->total_label = str_replace( "'", '', $this->total_label ) . apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
 	}
 
@@ -60,6 +75,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return string
 	 */
 	public static function get_payment_method_title_suffix() {
+		/**
+		 * Filters the suffix used for Express Checkout payment method titles.
+		 *
+		 * @param string $suffix Payment method title suffix.
+		 */
 		$suffix = apply_filters( 'wc_stripe_payment_request_payment_method_title_suffix', 'Stripe' );
 		if ( ! empty( $suffix ) ) {
 			$suffix = " ($suffix)";
@@ -168,6 +188,42 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		if ( 'large' === $height ) {
+			return '56';
+		}
+
+		return '48';
+	}
+
+	/**
+	 * Gets the Link button height.
+	 *
+	 * @return string
+	 */
+	public function get_link_button_height() {
+		$size = isset( $this->stripe_settings['link_button_size'] ) ? $this->stripe_settings['link_button_size'] : 'default';
+		if ( 'small' === $size ) {
+			return '40';
+		}
+
+		if ( 'large' === $size ) {
+			return '56';
+		}
+
+		return '48';
+	}
+
+	/**
+	 * Gets the Amazon Pay button height.
+	 *
+	 * @return string
+	 */
+	public function get_amazon_pay_button_height() {
+		$size = isset( $this->stripe_settings['amazon_pay_button_size'] ) ? $this->stripe_settings['amazon_pay_button_size'] : 'default';
+		if ( 'small' === $size ) {
+			return '40';
+		}
+
+		if ( 'large' === $size ) {
 			return '56';
 		}
 
@@ -286,6 +342,9 @@ class WC_Stripe_Express_Checkout_Helper {
 
 			if ( ! empty( $variation_id ) ) {
 				$product = wc_get_product( $variation_id );
+				if ( ! ( $product instanceof WC_Product ) ) {
+					return false;
+				}
 			}
 		}
 
@@ -322,6 +381,11 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		$data['displayItems'] = $items;
 		$data['total']        = [
+			/**
+			 * Filters the Express Checkout total label.
+			 *
+			 * @param string $label Total label.
+			 */
 			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
 			'amount'  => WC_Stripe_Helper::get_stripe_amount( $price + $total_tax, $currency ),
 			'pending' => true,
@@ -334,7 +398,53 @@ class WC_Stripe_Express_Checkout_Helper {
 		// On product page load, if there's a variation already selected, check if it's supported.
 		$data['validVariationSelected'] = ! empty( $variation_id ) ? $this->is_product_supported( $product ) : true;
 
+		/**
+		 * Filters product data passed to Express Checkout.
+		 *
+		 * @param array      $data    Express Checkout product data.
+		 * @param WC_Product $product Product object.
+		 */
 		return apply_filters( 'wc_stripe_payment_request_product_data', $data, $product );
+	}
+
+	/**
+	 * Render-time cart snapshot that lets the cart/checkout Express Checkout button
+	 * paint without the initial `GET /wc/store/v1/cart` fetch. Built from the same
+	 * helpers the AJAX path uses, so it matches what the fetch would return. Returns
+	 * null when the button must not render (wrong page, empty cart, or zero total
+	 * without a free trial); the client then falls back to its AJAX path.
+	 *
+	 * @return array|null
+	 */
+	public function get_cart_render_data() {
+		if ( ! $this->is_cart() && ! $this->is_checkout() ) {
+			return null;
+		}
+
+		if ( is_null( WC()->cart ) || WC()->cart->is_empty() ) {
+			return null;
+		}
+
+		$display_items = $this->build_display_items();
+		// Round before casting: the total passes through the `wc_stripe_calculated_total`
+		// filter, which can hand back a non-integer minor-unit value. A bare (int) cast
+		// would truncate it and drop a minor unit from the first-paint total.
+		$total = (int) round( (float) $display_items['total']['amount'] );
+
+		// Mirror the client's zero-total hide; free trials still render.
+		if ( 0 === $total && ! $this->has_free_trial() ) {
+			return null;
+		}
+
+		$checkout = $this->get_checkout_data();
+
+		return [
+			'total'           => $total,
+			'currency'        => $checkout['currency_code'],
+			'requestShipping' => 'yes' === $checkout['needs_shipping'],
+			'requestPhone'    => (bool) $checkout['needs_payer_phone'],
+			'displayItems'    => $display_items['displayItems'],
+		];
 	}
 
 	/**
@@ -376,6 +486,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			'needs_shipping'          => 'no',
 			'needs_payer_phone'       => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
 			'default_shipping_option' => $this->get_default_shipping_option(),
+			'display_prices_with_tax' => 'incl' === get_option( 'woocommerce_tax_display_cart' ),
 		];
 
 		if ( ! is_null( WC()->cart ) && WC()->cart->needs_shipping() ) {
@@ -411,39 +522,22 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return string The normalized postal code.
 	 */
 	public function get_normalized_postal_code( $postcode, $country ) {
-		/**
-		 * Currently, Apple Pay truncates the UK and Canadian postal codes to the first 4 and 3 characters respectively
-		 * Apple Pay also truncates Canadian postal codes to the first 4 characters.
-		 * when passing it back from the shippingcontactselected object. This causes WC to invalidate
-		 * the postal code and not calculate shipping zones correctly.
-		 */
+		// Apple Pay truncates UK/CA postcodes (e.g. `E2L` for `E2L 3C4`), which fails WC validation
+		// and breaks shipping zones. Pad with `0` so it stays valid-looking; `*` would be rejected by
+		// WC_Validation::is_postcode() before the `woocommerce_validate_postcode` bypass can run.
 		if ( WC_Stripe_Country_Code::UNITED_KINGDOM === $country ) {
-			// UK Postcodes returned from Apple Pay can be alpha numeric 2 chars, 3 chars, or 4 chars long will optionally have a trailing space,
-			// depending on whether the customer put a space in their postcode between the outcode and incode part.
-			// See https://assets.publishing.service.gov.uk/media/5a7b997d40f0b62826a049e0/ILRSpecification2013_14Appendix_C_Dec2012_v1.pdf for more details.
-
-			// Here is a table showing the functionality by example:
-			//  Original  | Apple Pay |  Normalized
-			// 'LN10 1AA' |  'LN10 '  |  'LN10 ***'
-			// 'LN101AA'  |  'LN10'   |  'LN10 ***'
-			// 'W10 2AA'  |  'W10 '   |  'W10 ***'
-			// 'W102AA'   |  'W10'    |  'W10 ***'
-			// 'N2 3AA    |  'N2 '    |  'N2 ***'
-			// 'N23AA     |  'N2'     |  'N2 ***'
-
 			$spaceless_postcode = preg_replace( '/\s+/', '', $postcode );
 
 			if ( strlen( $spaceless_postcode ) < 5 ) {
-				// Always reintroduce the space so that Shipping Zones regex like 'N1 *' work to match N1 postcodes like N1 1AA, but don't match N10 postcodes like N10 1AA
-				return $spaceless_postcode . ' ***';
+				// Keep the space so Shipping Zone patterns like 'N1 *' match N1 1AA but not N10 1AA.
+				return $spaceless_postcode . ' 000';
 			}
 
-			return $postcode; // 5 or more chars means it probably wasn't redacted and will likely validate unchanged.
+			return $postcode; // 5+ chars: probably not redacted.
 		}
 
 		if ( WC_Stripe_Country_Code::CANADA === $country ) {
-			// Replaces a redacted string with something like L4Y***.
-			return str_pad( preg_replace( '/\s+/', '', $postcode ), 6, '*' );
+			return str_pad( preg_replace( '/\s+/', '', $postcode ), 6, '0' ); // e.g. L4Y000.
 		}
 
 		return $postcode;
@@ -455,6 +549,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  array
 	 */
 	public function supported_product_types() {
+		/**
+		 * Filters product types supported by Express Checkout.
+		 *
+		 * @param string[] $supported_types Supported product types.
+		 */
 		return apply_filters(
 			'wc_stripe_payment_request_supported_types',
 			[
@@ -745,6 +844,25 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  boolean  True if express checkout elements are supported on current page, false otherwise
 	 */
 	public function should_show_express_checkout_button() {
+		// One Page Checkout can make a page act as a checkout page via runtime hooks.
+		// We need a separate cache key for that case to ensure we enable express checkout.
+		$cache_key = doing_action( 'woocommerce_after_add_to_cart_form' ) ? 'after_add_to_cart' : 'default';
+
+		if ( array_key_exists( $cache_key, $this->should_show_cache ) ) {
+			return $this->should_show_cache[ $cache_key ];
+		}
+
+		$this->should_show_cache[ $cache_key ] = $this->compute_should_show_express_checkout_button();
+		return $this->should_show_cache[ $cache_key ];
+	}
+
+	/**
+	 * Evaluate every guard for showing the Express Checkout button. Do not call directly;
+	 * go through `should_show_express_checkout_button()` so the result is cached.
+	 *
+	 * @return boolean
+	 */
+	protected function compute_should_show_express_checkout_button() {
 		// For subscription change payment method, only check basic requirements.
 		if ( $this->is_change_payment_method_page() ) {
 			return $this->should_show_ece_on_change_payment_method_page();
@@ -878,7 +996,12 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		// Hide if cart/product doesn't require shipping and tax is based on billing or shipping address.
-		$hide_based_on_tax          = $this->should_hide_ece_based_on_tax_setup();
+		$hide_based_on_tax = $this->should_hide_ece_based_on_tax_setup();
+		/**
+		 * Filters whether Express Checkout should be hidden based on the store tax setup.
+		 *
+		 * @param bool $hide Whether Express Checkout should be hidden.
+		 */
 		$hide_based_on_tax_filtered = apply_filters( 'wc_stripe_should_hide_express_checkout_button_based_on_tax_setup', $hide_based_on_tax );
 		if ( $hide_based_on_tax_filtered ) {
 			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
@@ -1004,6 +1127,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	public function should_show_ece_on_cart_page() {
 		$should_show_on_cart_page = $this->should_show_ece_on_location( 'cart' );
 
+		/** This filter is documented in includes/class-wc-stripe.php. */
 		return apply_filters(
 			'wc_stripe_show_payment_request_on_cart',
 			$should_show_on_cart_page
@@ -1021,6 +1145,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		$should_show_on_checkout_page = $this->should_show_ece_on_location( 'checkout' );
 
+		/** This filter is documented in includes/class-wc-stripe.php. */
 		return apply_filters(
 			'wc_stripe_show_payment_request_on_checkout',
 			$should_show_on_checkout_page,
@@ -1049,6 +1174,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$should_show_on_product_page = $this->should_show_ece_on_location( 'product' );
 
 		// Note the negation because if the filter returns `true` that means we should hide the PRB.
+		/** This filter is documented in includes/class-wc-stripe.php. */
 		return ! apply_filters(
 			'wc_stripe_hide_payment_request_on_product_page',
 			! $should_show_on_product_page,
@@ -1066,7 +1192,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	private function should_show_ece_on_location( string $location ): bool {
 		return $this->is_enabled_for_location( 'payment_request', $location ) ||
-				$this->is_enabled_for_location( 'amazon_pay', $location );
+				$this->is_enabled_for_location( 'amazon_pay', $location ) ||
+				$this->is_enabled_for_location( 'link', $location );
 	}
 
 	/**
@@ -1126,6 +1253,11 @@ class WC_Stripe_Express_Checkout_Helper {
 
 			// Remember current shipping method before resetting.
 			$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods', [] );
+			/**
+			 * Filters the posted shipping address values used for Express Checkout shipping calculations.
+			 *
+			 * @param array $shipping_address Shipping address values.
+			 */
 			$this->calculate_shipping( apply_filters( 'wc_stripe_payment_request_shipping_posted_values', $shipping_address ) );
 
 			$packages          = WC()->shipping->get_packages();
@@ -1296,6 +1428,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return string The sanitized string.
 	 */
 	public function sanitize_string( $string ) {
+		// Remap apostrophe variants to U+0027 APOSTROPHE so the comparison is insensitive to
+		// which glyph the customer's keyboard produced.
+		// See https://www.unicode.org/Public/security/latest/confusables.txt.
+		$string = str_replace( [ "\u{2019}", "\u{2018}", "\u{02BC}", "\u{FF07}", "\u{00B4}", '`' ], "'", $string );
+
 		return trim( wc_strtolower( remove_accents( $string ) ) );
 	}
 
@@ -1315,8 +1452,8 @@ class WC_Stripe_Express_Checkout_Helper {
 			return $state;
 		}
 
+		$sanitized_state_string = $this->sanitize_string( $state );
 		foreach ( $pr_states[ $country ] as $wc_state_abbr => $pr_state ) {
-			$sanitized_state_string = $this->sanitize_string( $state );
 			// Checks if input state matches with Payment Request state code (0), name (1) or localName (2).
 			if (
 				( ! empty( $pr_state[0] ) && $sanitized_state_string === $this->sanitize_string( $pr_state[0] ) ) ||
@@ -1576,6 +1713,11 @@ class WC_Stripe_Express_Checkout_Helper {
 			'height' => $this->get_button_height(),
 			'radius' => $this->get_button_radius(),
 			// Default format is en_US.
+			/**
+			 * Filters the Express Checkout button locale.
+			 *
+			 * @param string $locale Two-letter locale code.
+			 */
 			'locale' => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ),
 		];
 	}
@@ -1656,17 +1798,38 @@ class WC_Stripe_Express_Checkout_Helper {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
+		/**
+		 * Filters whether Express Checkout itemization should be hidden.
+		 * Deprecated in favor of wc_stripe_express_checkout_hide_itemization.
+		 *
+		 * @deprecated 10.6.0
+		 * @param bool $hide_itemization Whether itemization should be hidden.
+		 */
 		$hide_itemization = apply_filters_deprecated(
 			'wc_stripe_payment_request_hide_itemization',
 			[ true ],
 			'10.6.0',
 			'wc_stripe_express_checkout_hide_itemization'
 		);
+		/**
+		 * Filters whether Express Checkout itemization should be hidden.
+		 *
+		 * @param bool $hide_itemization Whether itemization should be hidden.
+		 */
 		$hide_itemization = apply_filters( 'wc_stripe_express_checkout_hide_itemization', $hide_itemization );
 		$display_items    = ! $hide_itemization || $itemized_display_items;
 		$order_total      = WC()->cart->get_total( false );
 
 		$calculated_total = WC_Stripe_Helper::get_stripe_amount( $order_total );
+		/**
+		 * Filters the calculated total for the order.
+		 * Deprecated in favor of wc_stripe_calculated_total.
+		 *
+		 * @deprecated 9.6.0
+		 * @param float   $calculated_total The calculated total.
+		 * @param float   $order_total      The order total.
+		 * @param WC_Cart $cart             The cart object.
+		 */
 		$calculated_total = apply_filters_deprecated(
 			'woocommerce_stripe_calculated_total',
 			[ $calculated_total, $order_total, WC()->cart ],
@@ -1733,8 +1896,10 @@ class WC_Stripe_Express_Checkout_Helper {
 			case 'amazon_pay':
 				$key = 'amazon_pay_button_locations';
 				break;
+			case 'link':
+				$key = 'link_button_locations';
+				break;
 			case 'payment_request':
-			case 'link': // Link does not yet have its own Customize page. It shares the same location settings as Apple Pay and Google Pay.
 			default:
 				$key = 'express_checkout_button_locations';
 				break;
@@ -1866,18 +2031,6 @@ class WC_Stripe_Express_Checkout_Helper {
 		$is_enabled = WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this->gateway );
 
 		return $is_enabled && $this->is_enabled_for_current_context( 'link' );
-	}
-
-	/**
-	 * Returns whether Stripe express checkout element should use the Blocks API.
-	 *
-	 * @return boolean
-	 *
-	 * @deprecated 9.2.0 Feature flag enable by default.
-	 */
-	public function use_blocks_api() {
-		_deprecated_function( __METHOD__, '9.2.0' );
-		return isset( $this->stripe_settings['express_checkout_use_blocks_api'] ) && 'yes' === $this->stripe_settings['express_checkout_use_blocks_api'];
 	}
 
 	/**
@@ -2039,7 +2192,10 @@ class WC_Stripe_Express_Checkout_Helper {
 		if ( empty( $GLOBALS['wp']->query_vars['rest_route'] ) ) {
 			return false;
 		}
-		return 0 === strpos( $GLOBALS['wp']->query_vars['rest_route'], '/wc/store/v1/checkout' );
+
+		$route = $GLOBALS['wp']->query_vars['rest_route'];
+		return 0 === strpos( $route, '/wc/store/v1/checkout' )
+			|| 0 === strpos( $route, '/wc/store/v1/cart' );
 	}
 
 	/**

@@ -5,37 +5,48 @@
 
 class WC_Stripe_Remote_Config_Flags_Test extends WP_UnitTestCase {
 
-	public function test_is_known_flag_returns_true_for_declared_flag(): void {
-		$this->assertTrue( WC_Stripe_Remote_Config_Flags::is_known_flag( 'optimized_checkout' ) );
-	}
-
-	public function test_is_known_flag_returns_false_for_unknown_flag(): void {
-		$this->assertFalse( WC_Stripe_Remote_Config_Flags::is_known_flag( 'no_such_flag' ) );
-	}
-
-	public function test_validate_value_accepts_correct_type(): void {
-		$this->assertTrue( WC_Stripe_Remote_Config_Flags::validate_value( 'optimized_checkout', true ) );
-		$this->assertTrue( WC_Stripe_Remote_Config_Flags::validate_value( 'optimized_checkout', false ) );
+	public function tear_down(): void {
+		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
+		parent::tear_down();
 	}
 
 	/**
-	 * @dataProvider provide_invalid_values
+	 * The internal override option must force the channel on with 'yes' and
+	 * off with 'no'; without an override the phase-1 default keeps it off.
+	 *
+	 * @param string $override Value stored in the override option.
+	 * @param bool   $expected Expected is_remote_config_enabled() result.
+	 *
+	 * @dataProvider provide_override_values
 	 */
-	public function test_validate_value_rejects_wrong_type( $value ): void {
-		$this->assertFalse( WC_Stripe_Remote_Config_Flags::validate_value( 'optimized_checkout', $value ) );
+	public function test_enabled_override_option( string $override, bool $expected ): void {
+		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, $override );
+
+		$this->assertSame( $expected, WC_Stripe_Remote_Config_Flags::is_remote_config_enabled() );
 	}
 
-	public function provide_invalid_values(): array {
+	/**
+	 * Data provider for {@see test_enabled_override_option()}.
+	 *
+	 * @return array
+	 */
+	public function provide_override_values(): array {
 		return [
-			'string' => [ 'true' ],
-			'int'    => [ 1 ],
-			'null'   => [ null ],
-			'array'  => [ [ true ] ],
-			'object' => [ new stdClass() ],
+			'yes forces enabled'                  => [ 'yes', true ],
+			'no forces disabled'                  => [ 'no', false ],
+			'no override: phase-1 default is off' => [ '', false ],
 		];
 	}
 
-	public function test_validate_value_returns_false_for_unknown_flag(): void {
-		$this->assertFalse( WC_Stripe_Remote_Config_Flags::validate_value( 'no_such_flag', true ) );
+	/**
+	 * With the option absent entirely, the phase-1 default must keep the
+	 * channel off.
+	 *
+	 * @return void
+	 */
+	public function test_disabled_by_default(): void {
+		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
+
+		$this->assertFalse( WC_Stripe_Remote_Config_Flags::is_remote_config_enabled() );
 	}
 }

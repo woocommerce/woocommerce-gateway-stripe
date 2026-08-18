@@ -688,7 +688,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_collected_errors_caps_detail_at_max() {
 		$validator = new \WC_Stripe_Agentic_Commerce_Feed_Validator();
-		$max       = \WC_Stripe_Agentic_Commerce_Feed_Validator::MAX_COLLECTED_ERRORS;
+		$max       = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Agentic_Commerce_Feed_Validator::class, 'MAX_COLLECTED_ERRORS', 'int' );
 		$products  = [];
 
 		try {
@@ -713,5 +713,51 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator_Test extends WP_UnitTestCase {
 				$product->delete( true );
 			}
 		}
+	}
+
+	/**
+	 * An excluded product arrives as an empty row: validate_entry() must drop it
+	 * (non-empty return) without per-field errors, counting it as an exclusion
+	 * rather than a validation failure.
+	 *
+	 * @return void
+	 */
+	public function test_validate_entry_treats_excluded_product_as_silent_skip() {
+		$product = WC_Helper_Product::create_simple_product();
+
+		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
+
+		try {
+			$validator = new \WC_Stripe_Agentic_Commerce_Feed_Validator();
+			$result    = $validator->validate_entry( [], $product );
+
+			$this->assertNotEmpty( $result, 'Return must be non-empty so the walker drops the row from the feed.' );
+			$this->assertSame( 1, $validator->get_excluded_count(), 'The exclusion must be counted.' );
+			$this->assertSame( [], $validator->get_collected_errors()['products'], 'An exclusion must not be recorded as a validation failure.' );
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * An empty row for a NON-excluded product is still a real validation failure:
+	 * collected and counted as such, with excluded_count untouched.
+	 *
+	 * @return void
+	 */
+	public function test_validate_entry_empty_row_without_exclusion_is_a_failure() {
+		$product = WC_Helper_Product::create_simple_product();
+
+		$validator = new \WC_Stripe_Agentic_Commerce_Feed_Validator();
+		$errors    = $validator->validate_entry( [], $product );
+
+		$this->assertNotEmpty( $errors, 'An empty row for a non-excluded product is a validation failure.' );
+		$this->assertGreaterThan( 1, count( $errors ), 'Missing required fields should produce multiple errors.' );
+		$this->assertSame( 0, $validator->get_excluded_count(), 'A real failure must not be counted as an exclusion.' );
+		$this->assertArrayHasKey( $product->get_id(), $validator->get_collected_errors()['products'], 'A real failure must be collected.' );
+
+		$product->delete( true );
 	}
 }

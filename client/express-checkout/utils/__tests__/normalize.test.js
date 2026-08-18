@@ -2,6 +2,7 @@ import {
 	normalizeLineItems,
 	normalizeOrderData,
 	normalizeShippingAddress,
+	transformVariationAttributesForStoreApi,
 } from '../normalize';
 import { select } from '@wordpress/data';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
@@ -497,7 +498,7 @@ describe( 'Express checkout normalization', () => {
 					country: '',
 					email: '',
 					first_name: 'John',
-					last_name: '',
+					last_name: '-',
 					phone: '',
 					postcode: '',
 					state: '',
@@ -545,6 +546,83 @@ describe( 'Express checkout normalization', () => {
 			expect(
 				normalizeOrderData( { event: minimumEvent, paymentMethodId } )
 			).toEqual( expectedNormalizedDataWithMinimumFields );
+		} );
+
+		test( 'should use the billing last name fallback for empty billing names', () => {
+			const emptyBillingNameEvent = {
+				billingDetails: {
+					name: '',
+				},
+			};
+
+			const normalizedData = normalizeOrderData( {
+				event: emptyBillingNameEvent,
+				paymentMethodId,
+			} );
+
+			expect( normalizedData.billing_address ).toMatchObject( {
+				first_name: '',
+				last_name: '-',
+			} );
+		} );
+
+		test( 'should use the placeholder fallback instead of an existing billing last name', () => {
+			select.mockImplementation( () => ( {
+				getExtensionData: () => ( {} ),
+				getAdditionalFields: () => ( {} ),
+				getCustomerData: () => ( {
+					billingAddress: {
+						first_name: 'John',
+						last_name: 'Doe',
+					},
+				} ),
+			} ) );
+
+			const emptyBillingLastNameEvent = {
+				billingDetails: {
+					name: 'John',
+				},
+			};
+
+			const normalizedData = normalizeOrderData( {
+				event: emptyBillingLastNameEvent,
+				paymentMethodId,
+			} );
+
+			expect( normalizedData.billing_address ).toMatchObject( {
+				first_name: 'John',
+				last_name: '-',
+			} );
+		} );
+
+		test( 'should not use the shipping name as the billing name for Amazon Pay', () => {
+			const amazonPayEvent = {
+				billingDetails: {
+					name: 'John',
+				},
+				shippingAddress: {
+					name: 'Jane Doe',
+					address: {
+						line1: 'Some Company',
+						line2: '123 Main St',
+						city: 'New York',
+						state: 'NY',
+						postal_code: '10001',
+						country: 'US',
+					},
+				},
+				expressPaymentType: 'amazon_pay',
+			};
+
+			const normalizedData = normalizeOrderData( {
+				event: amazonPayEvent,
+				paymentMethodId,
+			} );
+
+			expect( normalizedData.billing_address ).toMatchObject( {
+				first_name: 'John',
+				last_name: '-',
+			} );
 		} );
 	} );
 
@@ -697,5 +775,44 @@ describe( 'Express checkout normalization', () => {
 				expectedNormalizedAddress
 			);
 		} );
+	} );
+
+	describe( 'transformVariationAttributesForStoreApi', () => {
+		test( 'maps the attribute/value object to the Store API pair list', () => {
+			const attributes = {
+				attribute_pa_color: 'blue',
+				attribute_size: 'large',
+			};
+
+			expect(
+				transformVariationAttributesForStoreApi( attributes )
+			).toEqual( [
+				{ attribute: 'attribute_pa_color', value: 'blue' },
+				{ attribute: 'attribute_size', value: 'large' },
+			] );
+		} );
+
+		test( 'preserves empty "any" attribute values', () => {
+			const attributes = {
+				attribute_pa_color: '',
+				attribute_size: 'large',
+			};
+
+			expect(
+				transformVariationAttributesForStoreApi( attributes )
+			).toEqual( [
+				{ attribute: 'attribute_pa_color', value: '' },
+				{ attribute: 'attribute_size', value: 'large' },
+			] );
+		} );
+
+		test.each( [ [ undefined ], [ null ], [ {} ] ] )(
+			'returns an empty array for %p',
+			( input ) => {
+				expect(
+					transformVariationAttributesForStoreApi( input )
+				).toEqual( [] );
+			}
+		);
 	} );
 } );

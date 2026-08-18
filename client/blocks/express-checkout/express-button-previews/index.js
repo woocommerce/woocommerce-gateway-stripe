@@ -1,4 +1,4 @@
-import classNames from 'classnames';
+import clsx from 'clsx';
 import amazonPayIcon from '../../../payment-method-icons/amazon-pay/icon.svg';
 import applePayIcon from '../../../payment-method-icons/apple-pay/icon-white.svg';
 import googlePayIcon from '../../../payment-method-icons/google-pay/icon-white.svg';
@@ -14,12 +14,7 @@ import './style.scss';
  * @return {JSX.Element} The rendered component.
  */
 const PaymentButtonPreview = ( { icon, className } ) => (
-	<div
-		className={ classNames(
-			'wc-stripe-payment-button-preview',
-			className
-		) }
-	>
+	<div className={ clsx( 'wc-stripe-payment-button-preview', className ) }>
 		<img src={ icon } alt="Payment Method Icon" />
 	</div>
 );

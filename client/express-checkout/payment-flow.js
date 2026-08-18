@@ -139,15 +139,15 @@ export const handleManualPaymentMethodFlow = async ( {
 	order = 0,
 	orderDetails = {},
 } ) => {
-	const { paymentMethod, error } = await stripe.createPaymentMethod( {
-		elements,
-	} );
-
-	if ( error ) {
-		return abortPayment( event, error.message );
-	}
-
 	try {
+		const { paymentMethod, error } = await stripe.createPaymentMethod( {
+			elements,
+		} );
+
+		if ( error ) {
+			return abortPayment( event, error.message );
+		}
+
 		// Kick off checkout processing step.
 		const { result, errorMessage, redirect } = await processOrder( {
 			api,
@@ -207,20 +207,21 @@ export const handleConfirmationTokenFlow = async ( {
 	order = 0,
 	orderDetails = {},
 } ) => {
-	// Create a ConfirmationToken that we can use later to create and confirm the payment intent.
-	const { error, confirmationToken } = await stripe.createConfirmationToken( {
-		elements,
-	} );
-
-	if ( error ) {
-		return abortPayment(
-			event,
-			getErrorMessageFromNotice( error.message ),
-			true
-		);
-	}
-
 	try {
+		// Create a ConfirmationToken that we can use later to create and confirm the payment intent.
+		const { error, confirmationToken } =
+			await stripe.createConfirmationToken( {
+				elements,
+			} );
+
+		if ( error ) {
+			return abortPayment(
+				event,
+				getErrorMessageFromNotice( error.message ),
+				true
+			);
+		}
+
 		const { result, errorMessage, redirect } = await processOrder( {
 			api,
 			event,
@@ -271,15 +272,9 @@ export const handleChangePaymentMethodFlow = async ( {
 	abortPayment,
 	event,
 } ) => {
-	const { paymentMethod, error } = await stripe.createPaymentMethod( {
-		elements,
-	} );
-
-	if ( error ) {
-		return abortPayment( event, error.message );
-	}
-
 	try {
+		// Resolve the target form before talking to Stripe so we don't pay for an
+		// API round-trip on shopper-facing pages where the form never renders.
 		const form = jQuery( 'form#order_review, form.checkout' );
 		if ( ! form.length ) {
 			return abortPayment(
@@ -289,6 +284,14 @@ export const handleChangePaymentMethodFlow = async ( {
 					'woocommerce-gateway-stripe'
 				)
 			);
+		}
+
+		const { paymentMethod, error } = await stripe.createPaymentMethod( {
+			elements,
+		} );
+
+		if ( error ) {
+			return abortPayment( event, error.message );
 		}
 
 		// Populate the hidden fields that the UPE gateway expects.
