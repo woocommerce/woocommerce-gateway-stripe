@@ -227,9 +227,12 @@ jQuery( function ( $ ) {
 
 			const shippingRates = getShippingRates();
 
-			const isExpressCheckoutEnabled =
+			// Deliberately not `is_express_checkout_enabled`: that aggregate is true when
+			// any wallet's locations cover this page, which would render Apple/Google Pay
+			// on pages where only another wallet (e.g. Amazon Pay) is enabled.
+			const isApplePayGooglePayEnabled =
 				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
-					?.is_express_checkout_enabled;
+					?.is_apple_google_pay_enabled;
 			const isAmazonPayEnabled =
 				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
 					?.is_amazon_pay_enabled;
@@ -250,9 +253,9 @@ jQuery( function ( $ ) {
 			// may require different options or configurations, e.g. Amazon Pay
 			// does not support paymentMethodCreation: 'manual'.
 			const expressPaymentTypes = [
-				isExpressCheckoutEnabled &&
+				isApplePayGooglePayEnabled &&
 					EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
-				isExpressCheckoutEnabled &&
+				isApplePayGooglePayEnabled &&
 					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 				isAmazonPayEnabled &&
 					! areTaxesBasedOnBillingAddress &&

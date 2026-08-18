@@ -603,6 +603,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isExpressCheckoutEnabled']          = $express_checkout_helper->is_express_checkout_enabled();
 		$stripe_params['isAmazonPayEnabled']                = $express_checkout_helper->is_amazon_pay_enabled();
 		$stripe_params['isLinkEnabled']                     = $express_checkout_helper->is_link_enabled();
+		// Apple/Google Pay need their own flag: `isExpressCheckoutEnabled` is the any-method
+		// aggregate, so it stays true when only another wallet's locations cover this page
+		// and must not decide whether the Apple/Google Pay buttons register.
+		$stripe_params['isApplePayGooglePayEnabled'] = $express_checkout_helper->is_apple_google_pay_enabled();
 
 		if ( $this->testmode ) {
 			/**
