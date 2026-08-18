@@ -18,6 +18,9 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 	getCurrentBillingCountry: jest.fn().mockReturnValue( '' ),
 	getPaymentMethodTypes: jest.fn().mockReturnValue( [ 'card' ] ),
 	getUserDataForCheckoutSession: jest.fn().mockReturnValue( {} ),
+	getAdaptivePricingSavedTokenPaymentMethod: jest
+		.fn()
+		.mockReturnValue( null ),
 	normalizeReturnUrl: jest.requireActual(
 		'wcstripe/stripe-utils/normalize-return-url'
 	).normalizeReturnUrl,
@@ -981,6 +984,56 @@ describe( 'payment-processing', () => {
 					redirect: 'if_required',
 					savePaymentMethod: true,
 				} );
+			} );
+
+			it( 'confirms with the saved token PaymentMethod id and never re-requests saving', async () => {
+				const orderReceivedUrl =
+					'https://shop.com/checkout/order-received/123/';
+				const mockActions = {
+					getSession: jest.fn().mockResolvedValue( {} ),
+					confirm: jest.fn().mockResolvedValue( {
+						session: { id: 'cs_session_xyz' },
+					} ),
+				};
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+
+				mockJQueryAjax.mockResolvedValue( {
+					result: 'success',
+					redirect: orderReceivedUrl,
+				} );
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: mockActions,
+				} );
+
+				stripeUtils.getStripeServerData.mockReturnValue( {
+					...BASE_SERVER_DATA,
+					isAdaptivePricingEnabled: true,
+					isLoggedIn: true,
+				} );
+				stripeUtils.getAdaptivePricingSavedTokenPaymentMethod.mockReturnValue(
+					'pm_saved_card_12'
+				);
+
+				try {
+					const form = createMockForm( {
+						savePaymentMethodChecked: true,
+					} );
+					paymentProcessing.processPayment( api, form, 'card' );
+					await flushPromises();
+
+					expect( mockActions.confirm ).toHaveBeenCalledWith( {
+						returnUrl: orderReceivedUrl,
+						redirect: 'if_required',
+						paymentMethod: 'pm_saved_card_12',
+					} );
+				} finally {
+					stripeUtils.getAdaptivePricingSavedTokenPaymentMethod.mockReturnValue(
+						null
+					);
+				}
 			} );
 
 			it( 'does not pass savePaymentMethod for guests even when the save card checkbox is checked', async () => {

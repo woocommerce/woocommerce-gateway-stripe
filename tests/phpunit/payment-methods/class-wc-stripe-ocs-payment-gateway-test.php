@@ -722,4 +722,76 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'not a valid OC page: OCS keys absent' => [ 'valid_oc_page' => false ],
 		];
 	}
+
+	/**
+	 * With Adaptive Pricing on, javascript_params() maps the logged-in user's saved
+	 * CARD tokens to their PaymentMethod ids and leaves other token types out —
+	 * single-currency methods can't settle a converted presentment currency. Guests
+	 * get no map at all.
+	 */
+	public function test_javascript_params_exposes_adaptive_pricing_saved_card_tokens() {
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+
+		// The Stripe-side token sync would delete the fixture tokens (the test
+		// account has no PaymentMethods behind them), so keep it out of the way.
+		$stripe_payment_tokens = WC_Stripe_Payment_Tokens::get_instance();
+		remove_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens, 'woocommerce_get_customer_payment_tokens' ], 10 );
+
+		$card_token = new WC_Payment_Token_CC();
+		$card_token->set_user_id( $user_id );
+		$card_token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$card_token->set_token( 'pm_ap_card_123' );
+		$card_token->set_card_type( 'visa' );
+		$card_token->set_last4( '4242' );
+		$card_token->set_expiry_month( '12' );
+		$card_token->set_expiry_year( '2030' );
+		$card_token->save();
+
+		$cashapp_token = new WC_Payment_Token_CashApp();
+		$cashapp_token->set_user_id( $user_id );
+		$cashapp_token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$cashapp_token->set_token( 'pm_ap_cashapp_123' );
+		$cashapp_token->save();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_OCS_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods(
+				[
+					'get_return_url',
+					'get_stripe_return_url',
+					'is_changing_payment_method_for_subscription',
+					'is_subscription_item_in_cart',
+					'is_valid_optimized_checkout_page',
+					'is_adaptive_pricing_supported',
+					'get_excluded_payment_method_types',
+				]
+			)
+			->getMock();
+
+		$gateway->method( 'get_return_url' )->willReturn( '' );
+		$gateway->method( 'get_stripe_return_url' )->willReturn( '' );
+		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( false );
+		$gateway->method( 'is_subscription_item_in_cart' )->willReturn( false );
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( true );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( true );
+		$gateway->method( 'get_excluded_payment_method_types' )->willReturn( [] );
+
+		$this->set_stripe_account_data( [ 'country' => 'US' ] );
+
+		try {
+			$params = $gateway->javascript_params();
+
+			$this->assertTrue( $params['isAdaptivePricingEnabled'] );
+			$this->assertArrayHasKey( 'adaptivePricingSavedTokens', $params );
+			$this->assertSame( 'pm_ap_card_123', $params['adaptivePricingSavedTokens'][ $card_token->get_id() ] ?? null );
+			$this->assertArrayNotHasKey( $cashapp_token->get_id(), $params['adaptivePricingSavedTokens'] );
+
+			wp_set_current_user( 0 );
+			$this->assertArrayNotHasKey( 'adaptivePricingSavedTokens', $gateway->javascript_params() );
+		} finally {
+			add_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
+			wp_set_current_user( 0 );
+		}
+	}
 }

@@ -2,6 +2,7 @@ import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
 import {
 	generateCheckoutEventNames,
+	getAdaptivePricingSavedTokenPaymentMethod,
 	getSelectedUPEGatewayPaymentMethod,
 	getStripeServerData,
 	isPaymentMethodRestrictedToLocation,
@@ -15,6 +16,7 @@ import {
 	confirmWalletPayment,
 	createAndConfirmSetupIntent,
 	getMountedUPEComponent,
+	hasActiveCheckoutSession,
 	hasEmptyRequiredFields,
 	initializeUPEComponents,
 	maybeUpdateAdaptivePricingCheckoutSession,
@@ -103,6 +105,17 @@ jQuery( function ( $ ) {
 	function processPaymentIfNotUsingSavedMethod( $form ) {
 		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
 		if ( ! isUsingSavedPaymentMethod( paymentMethodType ) ) {
+			return processPayment( api, $form, paymentMethodType );
+		}
+
+		// An Adaptive Pricing-eligible saved card pays the live Checkout
+		// Session via confirm( { paymentMethod } ). Without a live session
+		// (mount fell back to classic Elements) the native submit proceeds
+		// and the server charges the store currency as before.
+		if (
+			hasActiveCheckoutSession( paymentMethodType ) &&
+			getAdaptivePricingSavedTokenPaymentMethod( paymentMethodType )
+		) {
 			return processPayment( api, $form, paymentMethodType );
 		}
 	}
@@ -241,9 +254,9 @@ jQuery( function ( $ ) {
 			}
 		} );
 
-		// TODO: Remove this once we support saved payment methods with adaptive pricing.
-		// Hide the Adaptive Pricing currency selector when a saved payment method is selected,
-		// since no new Checkout Session is created in that flow.
+		// Hide the Adaptive Pricing currency selector when the selected saved
+		// method can't pay the Checkout Session (non-card tokens stay on the
+		// store-currency flow, where no conversion applies).
 		const maybeShowCurrencySelector = () => {
 			const currencySelector = document.getElementById(
 				'wc-stripe-currency-selector'
@@ -251,10 +264,10 @@ jQuery( function ( $ ) {
 			if ( ! currencySelector ) {
 				return;
 			}
+			const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
 			if (
-				isUsingSavedPaymentMethod(
-					getSelectedUPEGatewayPaymentMethod()
-				)
+				isUsingSavedPaymentMethod( paymentMethodType ) &&
+				! getAdaptivePricingSavedTokenPaymentMethod( paymentMethodType )
 			) {
 				$( currencySelector ).hide();
 			} else {

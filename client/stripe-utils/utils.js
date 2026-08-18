@@ -390,6 +390,39 @@ export const isUsingSavedPaymentMethod = ( paymentMethodType ) => {
 };
 
 /**
+ * The Stripe PaymentMethod id behind the selected saved token when it can pay
+ * an Adaptive Pricing Checkout Session, or null.
+ *
+ * The server only maps card tokens: single-currency methods (e.g. SEPA) can't
+ * settle a converted presentment currency, so their tokens stay on the
+ * store-currency intent flow.
+ *
+ * @param {string} paymentMethodType The payment method type ('card', 'ideal', etc.).
+ * @return {string|null} The Stripe PaymentMethod id, or null when the selection isn't an eligible saved token.
+ */
+export const getAdaptivePricingSavedTokenPaymentMethod = (
+	paymentMethodType
+) => {
+	if ( ! isUsingSavedPaymentMethod( paymentMethodType ) ) {
+		return null;
+	}
+
+	const paymentMethod = getPaymentMethodName( paymentMethodType );
+	const checkedToken = document.querySelector(
+		`input[name="wc-${ paymentMethod }-payment-token"]:checked`
+	);
+	if ( ! checkedToken || checkedToken.value === 'new' ) {
+		return null;
+	}
+
+	return (
+		getStripeServerData()?.adaptivePricingSavedTokens?.[
+			checkedToken.value
+		] ?? null
+	);
+};
+
+/**
  * Finds selected payment gateway and returns matching Stripe payment method for gateway.
  *
  * @return {string} Stripe payment method type

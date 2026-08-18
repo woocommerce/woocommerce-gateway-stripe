@@ -18,6 +18,7 @@ import {
 	getExcludedPaymentMethodTypesForBillingCountry,
 	getCurrentBillingCountry,
 	getUserDataForCheckoutSession,
+	getAdaptivePricingSavedTokenPaymentMethod,
 	getBillingDetailsForDeferredFlow,
 	normalizeReturnUrl,
 	getStaleCheckoutTotalMessage,
@@ -1066,6 +1067,19 @@ export async function ensureUPEElementMounted( api, paymentMethodType ) {
 }
 
 /**
+ * Whether a live Adaptive Pricing Checkout Session backs the payment method's
+ * mounted component. False when the mount fell back to classic Stripe Elements.
+ *
+ * @param {string} paymentMethodType The payment method type.
+ * @return {boolean} True when a Checkout Session id was captured at mount time.
+ */
+export function hasActiveCheckoutSession( paymentMethodType ) {
+	return Boolean(
+		gatewayUPEComponents[ paymentMethodType ]?.checkoutSessionId
+	);
+}
+
+/**
  * Gets the mounted UPE element for a payment method type.
  *
  * @param {string} paymentMethodType The payment method type.
@@ -1309,7 +1323,16 @@ export const processPayment = (
 					redirect: 'if_required',
 				};
 
-				if ( getStripeServerData()?.isLoggedIn ) {
+				// A saved token pays the session directly: `paymentMethod` makes
+				// confirm() ignore the Payment Element, and an already-saved
+				// method must not request saving again.
+				const savedTokenPaymentMethod =
+					getAdaptivePricingSavedTokenPaymentMethod(
+						paymentMethodType
+					);
+				if ( savedTokenPaymentMethod ) {
+					confirmArgs.paymentMethod = savedTokenPaymentMethod;
+				} else if ( getStripeServerData()?.isLoggedIn ) {
 					confirmArgs.savePaymentMethod = jQueryForm
 						.find( '#wc-stripe-new-payment-method' )
 						.is( ':checked' );

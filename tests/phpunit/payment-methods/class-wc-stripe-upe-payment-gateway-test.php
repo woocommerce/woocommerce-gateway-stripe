@@ -2100,6 +2100,105 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * A saved card token pays the Checkout Session: the order links to the session,
+	 * records the token's PaymentMethod id (which the client passes to
+	 * `confirm( { paymentMethod } )`), attaches the token, and never requests
+	 * saving an already-saved method.
+	 */
+	public function test_process_payment_with_checkout_session_accepts_saved_card_token() {
+		$session_id = 'cs_test_saved_token';
+		$user_id    = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+
+		// The Stripe-side token sync would delete the fixture token (the test
+		// account has no PaymentMethods behind it), so keep it out of the way.
+		$stripe_payment_tokens = WC_Stripe_Payment_Tokens::get_instance();
+		remove_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens, 'woocommerce_get_customer_payment_tokens' ], 10 );
+
+		$token = WC_Helper_Token::create_token( 'pm_saved_ap_123', $user_id );
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-token']       = (string) $token->get_id();
+
+		$order = WC_Helper_Order::create_order( $user_id );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$this->store_checkout_session_context_for_order( $session_id, $order );
+
+		try {
+			$result = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'], $_POST['wc-stripe-payment-token'] );
+			add_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
+			wp_set_current_user( 0 );
+		}
+
+		$this->assertSame( 'success', $result['result'] );
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$fresh_order  = wc_get_order( $order->get_id() );
+		$this->assertSame( $session_id, $order_helper->get_stripe_checkout_session_id( $fresh_order ) );
+		$this->assertSame( 'pm_saved_ap_123', $order_helper->get_stripe_source_id( $fresh_order ) );
+		$this->assertContains( $token->get_id(), $fresh_order->get_payment_tokens() );
+		$this->assertFalse( $order_helper->get_should_save_stripe_payment_method( $fresh_order ) );
+	}
+
+	/**
+	 * A non-card token cannot pay a Checkout Session (single-currency methods can't
+	 * settle a converted presentment currency), so the checkout fails with a notice
+	 * instead of silently charging the wrong flow.
+	 */
+	public function test_process_payment_with_checkout_session_rejects_non_card_token() {
+		$session_id = 'cs_test_non_card_token';
+		wc_clear_notices();
+
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+
+		// Keep the Stripe-side token sync from deleting the fixture token.
+		$stripe_payment_tokens = WC_Stripe_Payment_Tokens::get_instance();
+		remove_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens, 'woocommerce_get_customer_payment_tokens' ], 10 );
+
+		$token = new WC_Payment_Token_CashApp();
+		$token->set_user_id( $user_id );
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( 'pm_cashapp_ap_123' );
+		$token->save();
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-token']       = (string) $token->get_id();
+
+		$order = WC_Helper_Order::create_order( $user_id );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$this->store_checkout_session_context_for_order( $session_id, $order );
+
+		try {
+			$result = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'], $_POST['wc-stripe-payment-token'] );
+			add_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
+			wp_set_current_user( 0 );
+		}
+
+		$this->assertSame( 'failure', $result['result'] );
+		$this->assert_checkout_session_failure_notice( 'The selected payment method cannot be used for this purchase. Please choose a different one.' );
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( wc_get_order( $order->get_id() ) ) );
+
+		wc_clear_notices();
+	}
+
+	/**
 	 * Checkout Session payment processing requires context from the session creation request.
 	 */
 	public function test_process_payment_with_checkout_session_rejects_missing_context() {

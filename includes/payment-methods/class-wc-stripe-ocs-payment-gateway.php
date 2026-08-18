@@ -112,6 +112,13 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		$stripe_params['shouldExpandOptimizedCheckout'] = $should_show_optimized_checkout && WC_Stripe_Feature_Flags::should_expand_ocs_in_legacy_checkout();
 		$stripe_params['isAdaptivePricingEnabled']      = $should_show_optimized_checkout && $this->is_adaptive_pricing_supported();
 
+		// Card tokens the buyer may pay with under Adaptive Pricing. The client
+		// confirms the Checkout Session with the mapped PaymentMethod id; a
+		// token absent from the map falls back to the store-currency intent flow.
+		if ( $stripe_params['isAdaptivePricingEnabled'] && is_user_logged_in() ) {
+			$stripe_params['adaptivePricingSavedTokens'] = $this->get_adaptive_pricing_saved_token_payment_methods();
+		}
+
 		if ( $should_show_optimized_checkout ) {
 			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
 			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
@@ -123,6 +130,29 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		}
 
 		return $stripe_params;
+	}
+
+	/**
+	 * Maps the current user's saved card token ids to their Stripe PaymentMethod ids
+	 * for use with Adaptive Pricing.
+	 *
+	 * Cards only: single-currency methods (e.g. SEPA) cannot settle a converted
+	 * presentment currency, so their tokens keep using the store-currency flow.
+	 * Exposing the ids is safe — they are the logged-in user's own, and Stripe
+	 * rejects a confirm() whose PaymentMethod the session's customer doesn't own.
+	 *
+	 * @return array<int, string> Token id => Stripe PaymentMethod id.
+	 */
+	protected function get_adaptive_pricing_saved_token_payment_methods(): array {
+		$map = [];
+
+		foreach ( $this->get_tokens() as $token ) {
+			if ( $token instanceof WC_Payment_Token_CC ) {
+				$map[ $token->get_id() ] = $token->get_token();
+			}
+		}
+
+		return $map;
 	}
 
 	/**
