@@ -18,6 +18,9 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 	getCurrentBillingCountry: jest.fn().mockReturnValue( '' ),
 	getPaymentMethodTypes: jest.fn().mockReturnValue( [ 'card' ] ),
 	getUserDataForCheckoutSession: jest.fn().mockReturnValue( {} ),
+	getAdaptivePricingSavedTokenPaymentMethod: jest
+		.fn()
+		.mockReturnValue( null ),
 	normalizeReturnUrl: jest.requireActual(
 		'wcstripe/stripe-utils/normalize-return-url'
 	).normalizeReturnUrl,
@@ -981,6 +984,56 @@ describe( 'payment-processing', () => {
 					redirect: 'if_required',
 					savePaymentMethod: true,
 				} );
+			} );
+
+			it( 'confirms with the saved token PaymentMethod id and never re-requests saving', async () => {
+				const orderReceivedUrl =
+					'https://shop.com/checkout/order-received/123/';
+				const mockActions = {
+					getSession: jest.fn().mockResolvedValue( {} ),
+					confirm: jest.fn().mockResolvedValue( {
+						session: { id: 'cs_session_xyz' },
+					} ),
+				};
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+
+				mockJQueryAjax.mockResolvedValue( {
+					result: 'success',
+					redirect: orderReceivedUrl,
+				} );
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: mockActions,
+				} );
+
+				stripeUtils.getStripeServerData.mockReturnValue( {
+					...BASE_SERVER_DATA,
+					isAdaptivePricingEnabled: true,
+					isLoggedIn: true,
+				} );
+				stripeUtils.getAdaptivePricingSavedTokenPaymentMethod.mockReturnValue(
+					'pm_saved_card_12'
+				);
+
+				try {
+					const form = createMockForm( {
+						savePaymentMethodChecked: true,
+					} );
+					paymentProcessing.processPayment( api, form, 'card' );
+					await flushPromises();
+
+					expect( mockActions.confirm ).toHaveBeenCalledWith( {
+						returnUrl: orderReceivedUrl,
+						redirect: 'if_required',
+						paymentMethod: 'pm_saved_card_12',
+					} );
+				} finally {
+					stripeUtils.getAdaptivePricingSavedTokenPaymentMethod.mockReturnValue(
+						null
+					);
+				}
 			} );
 
 			it( 'does not pass savePaymentMethod for guests even when the save card checkbox is checked', async () => {
@@ -2269,5 +2322,75 @@ describe( 'maybeUpdateOptimizedCheckoutExclusions', () => {
 		expect(
 			stripeUtils.getExcludedPaymentMethodTypesForBillingCountry
 		).not.toHaveBeenCalled();
+	} );
+} );
+
+describe( 'relocateCurrencySelector', () => {
+	const buildDom = ( checkedValue ) => {
+		document.body.innerHTML = `
+			<div id="selector-home-area">
+				<div id="wc-stripe-currency-selector"></div>
+			</div>
+			<ul>
+				<li id="token-item-12">
+					<input id="wc-stripe-payment-token-1" name="wc-stripe-payment-token" value="12" type="radio" ${
+						checkedValue === '12' ? 'checked' : ''
+					} />
+				</li>
+				<li id="token-item-new">
+					<input id="wc-stripe-payment-token-new" name="wc-stripe-payment-token" value="new" type="radio" ${
+						checkedValue === 'new' ? 'checked' : ''
+					} />
+				</li>
+			</ul>
+		`;
+	};
+
+	afterEach( () => {
+		document.body.innerHTML = '';
+	} );
+
+	it( 'nests the selector inside the selected token row', () => {
+		buildDom( '12' );
+
+		paymentProcessing.relocateCurrencySelector( true );
+
+		const container = document.getElementById(
+			'wc-stripe-currency-selector'
+		);
+		expect( container.parentNode.id ).toBe( 'token-item-12' );
+		expect( container.classList ).toContain(
+			'wc-stripe-currency-selector--nested'
+		);
+	} );
+
+	it( 'returns the selector to its server-rendered position for a new payment method', () => {
+		buildDom( '12' );
+		paymentProcessing.relocateCurrencySelector( true );
+
+		// Shopper switches to "Use a new payment method".
+		document.getElementById( 'wc-stripe-payment-token-1' ).checked = false;
+		document.getElementById( 'wc-stripe-payment-token-new' ).checked = true;
+
+		paymentProcessing.relocateCurrencySelector( false );
+
+		const container = document.getElementById(
+			'wc-stripe-currency-selector'
+		);
+		expect( container.parentNode.id ).toBe( 'selector-home-area' );
+		expect( container.previousElementSibling.id ).toBe(
+			'wc-stripe-currency-selector-home'
+		);
+		expect( container.classList ).not.toContain(
+			'wc-stripe-currency-selector--nested'
+		);
+	} );
+
+	it( 'is a no-op when the selector container is absent', () => {
+		document.body.innerHTML = '<ul></ul>';
+
+		expect( () =>
+			paymentProcessing.relocateCurrencySelector( true )
+		).not.toThrow();
 	} );
 } );

@@ -1627,6 +1627,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $response;
 		}
 
+		// A saved token pays the session via `confirm( { paymentMethod } )` on the client,
+		// so the token stands in for anything the Payment Element would have collected.
+		if ( $this->is_using_saved_payment_method() ) {
+			return $this->link_checkout_session_order_to_saved_token( $order );
+		}
+
 		// Resolve the method the customer actually picked: for Optimized Checkout the gateway type is
 		// always 'card', so prefer the hidden `wc_stripe_selected_upe_payment_type` input when present.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -1662,6 +1668,50 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// disambiguation params + a nonce so process_checkout_session_redirect() can run on return
 		// from a redirect-based payment method and decide whether to land the customer on the
 		// order-received page (success) or bounce them back to /checkout (cancel/failure).
+		return [
+			'result'   => 'success',
+			'redirect' => $this->get_return_url_for_checkout_session( $order ),
+		];
+	}
+
+	/**
+	 * Attach a saved token to a Checkout Session order before the client confirms with it.
+	 *
+	 * Only card tokens are accepted: single-currency methods (e.g. SEPA) cannot settle
+	 * a converted presentment currency. Ownership is enforced twice — here via
+	 * `get_token_from_request()` and by Stripe, which rejects a confirm() whose
+	 * PaymentMethod the session's customer doesn't own.
+	 *
+	 * @param WC_Order $order The order being paid.
+	 * @return array Result array for process_payment().
+	 */
+	private function link_checkout_session_order_to_saved_token( WC_Order $order ): array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$token = WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
+
+		if ( ! $token instanceof WC_Payment_Token_CC ) {
+			$message  = __( 'The selected payment method cannot be used for this purchase. Please choose a different one.', 'woocommerce-gateway-stripe' );
+			$response = [
+				'result'   => 'failure',
+				'redirect' => '',
+			];
+
+			if ( WC()->is_store_api_request() ) {
+				$response['errorMessage'] = $message;
+			} else {
+				wc_add_notice( $message, 'error' );
+				$response['message'] = $message;
+			}
+
+			return $response;
+		}
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_source_id( $order, $token->get_token() );
+		$this->set_payment_method_title_for_order( $order, WC_Stripe_Payment_Methods::CARD );
+		$order->add_payment_token( $token );
+		$order->save_meta_data();
+
 		return [
 			'result'   => 'success',
 			'redirect' => $this->get_return_url_for_checkout_session( $order ),

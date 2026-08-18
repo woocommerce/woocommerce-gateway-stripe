@@ -131,3 +131,12 @@ body:has( > .wp-site-blocks ) form.woocommerce-checkout #wc-stripe_acss_debit-up
 body.wc-stripe-hide-save-checkbox .woocommerce-SavedPaymentMethods-saveNew {
 	display: none !important;
 }
+
+/*
+ * Adaptive Pricing currency selector nested inside the selected saved token's
+ * row (relocateCurrencySelector()): indent past the radio to align with the
+ * token label.
+ */
+.wc-stripe-currency-selector--nested {
+	margin: 8px 0 4px 24px;
+}

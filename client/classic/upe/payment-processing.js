@@ -18,6 +18,7 @@ import {
 	getExcludedPaymentMethodTypesForBillingCountry,
 	getCurrentBillingCountry,
 	getUserDataForCheckoutSession,
+	getAdaptivePricingSavedTokenPaymentMethod,
 	getBillingDetailsForDeferredFlow,
 	normalizeReturnUrl,
 	getStaleCheckoutTotalMessage,
@@ -653,6 +654,15 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 }
 
 /**
+ * The mounted Currency Selector Element instance, kept so
+ * relocateCurrencySelector() can remount it after moving its container
+ * (a moved iframe reloads blank).
+ *
+ * @type {Object|null}
+ */
+let currencySelectorElement = null;
+
+/**
  * Mounts the currency selector element to the DOM element.
  *
  * @param {Object} elements The Stripe elements object.
@@ -666,6 +676,58 @@ function mountCurrencySelectorElement( elements ) {
 	}
 	const currencySelector = elements.createCurrencySelectorElement();
 	currencySelector.mount( currencySelectorContainer );
+	currencySelectorElement = currencySelector;
+}
+
+/**
+ * Moves the currency selector into the selected saved token's list item, or
+ * back to its server-rendered position when no eligible token is selected —
+ * the design nests the selector inside the selected token's row.
+ *
+ * @param {boolean} nestInSelectedToken Whether an Adaptive Pricing-eligible saved token is selected.
+ */
+export function relocateCurrencySelector( nestInSelectedToken ) {
+	const container = document.getElementById( 'wc-stripe-currency-selector' );
+	if ( ! container ) {
+		return;
+	}
+
+	// Mark the server-rendered position once, so the selector can return when
+	// the shopper switches back to a new payment method.
+	let home = document.getElementById( 'wc-stripe-currency-selector-home' );
+	if ( ! home ) {
+		home = document.createElement( 'span' );
+		home.id = 'wc-stripe-currency-selector-home';
+		container.parentNode.insertBefore( home, container );
+	}
+
+	const checkedToken = document.querySelector(
+		'input[name="wc-stripe-payment-token"]:checked'
+	);
+	const tokenItem =
+		nestInSelectedToken && checkedToken
+			? checkedToken.closest( 'li' )
+			: null;
+
+	if ( tokenItem ) {
+		if ( container.parentNode === tokenItem ) {
+			return;
+		}
+		container.classList.add( 'wc-stripe-currency-selector--nested' );
+		tokenItem.appendChild( container );
+	} else {
+		if ( container.previousElementSibling === home ) {
+			return;
+		}
+		container.classList.remove( 'wc-stripe-currency-selector--nested' );
+		home.after( container );
+	}
+
+	// Moving a mounted iframe reloads it blank; remount the Stripe element.
+	if ( currencySelectorElement && container.childElementCount > 0 ) {
+		currencySelectorElement.unmount();
+		currencySelectorElement.mount( container );
+	}
 }
 
 /**
@@ -1066,6 +1128,19 @@ export async function ensureUPEElementMounted( api, paymentMethodType ) {
 }
 
 /**
+ * Whether a live Adaptive Pricing Checkout Session backs the payment method's
+ * mounted component. False when the mount fell back to classic Stripe Elements.
+ *
+ * @param {string} paymentMethodType The payment method type.
+ * @return {boolean} True when a Checkout Session id was captured at mount time.
+ */
+export function hasActiveCheckoutSession( paymentMethodType ) {
+	return Boolean(
+		gatewayUPEComponents[ paymentMethodType ]?.checkoutSessionId
+	);
+}
+
+/**
  * Gets the mounted UPE element for a payment method type.
  *
  * @param {string} paymentMethodType The payment method type.
@@ -1309,7 +1384,16 @@ export const processPayment = (
 					redirect: 'if_required',
 				};
 
-				if ( getStripeServerData()?.isLoggedIn ) {
+				// A saved token pays the session directly: `paymentMethod` makes
+				// confirm() ignore the Payment Element, and an already-saved
+				// method must not request saving again.
+				const savedTokenPaymentMethod =
+					getAdaptivePricingSavedTokenPaymentMethod(
+						paymentMethodType
+					);
+				if ( savedTokenPaymentMethod ) {
+					confirmArgs.paymentMethod = savedTokenPaymentMethod;
+				} else if ( getStripeServerData()?.isLoggedIn ) {
 					confirmArgs.savePaymentMethod = jQueryForm
 						.find( '#wc-stripe-new-payment-method' )
 						.is( ':checked' );
