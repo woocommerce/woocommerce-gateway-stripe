@@ -87,13 +87,11 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		// $product->delete() calls, not through the WordPress admin UI.
 		add_action( 'before_delete_post', [ $this, 'maybe_track_product_archive' ] );
 		add_action( 'wp_trash_post', [ $this, 'maybe_track_product_archive' ] );
-		// One transition hook covers both directions: leaving `publish` (draft,
-		// private, pending — statuses the feed query stops selecting, so only an
-		// explicit delete row can pull the product out of Stripe's catalog) and
-		// entering `publish`, which cancels a queued removal. Untrash routes
-		// through here too: WordPress restores to draft by default, and in that
-		// case the queued delete must survive — cancelling on `untrash_post`
-		// unconditionally would leave a draft product live on Stripe.
+		// One transition hook covers both directions: leaving `publish` queues a
+		// removal (the feed query stops selecting the product, so only a delete
+		// row can pull it off Stripe), entering `publish` cancels one. Untrash
+		// restores to draft by default, so an unconditional `untrash_post`
+		// cancel would leave a draft product live on Stripe.
 		add_action( 'transition_post_status', [ $this, 'handle_status_transition' ], 10, 3 );
 		add_action( self::ARCHIVE_SCHEDULED_ACTION, [ $this, 'sync_archives' ] );
 	}
@@ -189,9 +187,8 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		}
 
 		if ( 'publish' === $new_status ) {
-			// The next full sync re-adds the product (the visibility watcher
-			// schedules one when eligibility flips back), so a queued removal
-			// that hasn't flushed yet only risks a pointless delete/re-add churn.
+			// The next full sync re-adds the product anyway; an unflushed
+			// removal would only cause pointless delete/re-add churn.
 			$this->maybe_cancel_pending_archive( (int) $post->ID );
 			return;
 		}
@@ -264,17 +261,10 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * the ones whose filter outcome flipped to false between enqueue and flush.
 	 *
 	 * The event-driven eviction in `track_stock_change()` only fires when a
-	 * follow-up event arrives. If a merchant hides a product during the
-	 * 60-second batch window and no further event lands for it, the queued row
-	 * would otherwise still ship on the next flush — defeating the filter's
-	 * "this product should not be synced" contract. Reading the option blind at
-	 * flush time isn't enough; the visibility decision can move.
-	 *
-	 * Permanently-deleted products (`wc_get_product()` returns false) are
-	 * dropped too: the stock delta references a SKU that no longer exists.
-	 *
-	 * Only inventory entries are pruned this way. Pending archives are
-	 * `delete=true` removal signals, valid regardless of eligibility.
+	 * follow-up event arrives, so a product hidden mid-window would otherwise
+	 * still ship its queued row. Permanently-deleted products are dropped too:
+	 * the delta references a SKU that no longer exists. Pending archives are
+	 * never pruned — `delete=true` rows stay valid regardless of eligibility.
 	 *
 	 * @since 10.8.0
 	 * @param string $option_key Pending option to prune.
@@ -309,24 +299,19 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	/**
 	 * Track a product removal (permanent delete, trash, or unpublish) for deletion on Stripe.
 	 *
-	 * Captures the feed id (SKU or product ID) before the product disappears and
-	 * queues a `delete=true` row, which removes the product from Stripe's
-	 * catalog. Runs even for excluded products: a delete is idempotent, and
-	 * bailing on eligibility here would mean an exclude-then-trash inside one
-	 * resync window never lands a removal at all.
-	 *
-	 * Schedules a sync 60 seconds later if one is not already scheduled. The
-	 * product is also removed from any pending inventory updates since the stock
-	 * quantity is no longer relevant once the product is removed.
+	 * Captures the feed id before the product disappears and queues a
+	 * `delete=true` row. Runs even for excluded products — a delete is
+	 * idempotent, and bailing on eligibility would mean exclude-then-trash
+	 * inside one resync window never lands a removal. Also evicts the product's
+	 * pending inventory delta and schedules the flush.
 	 *
 	 * @since 10.6.0
 	 * @param \WC_Product $product The product being deleted, trashed, or unpublished.
 	 * @return void
 	 */
 	public function track_product_archive( \WC_Product $product ): void {
-		// Variations are the actual feed entries, but trashing or drafting a
-		// variable parent doesn't cascade a status change to them — expand the
-		// parent into its children so each exported row gets a removal.
+		// Variations are the actual feed entries and a parent's status change
+		// doesn't cascade to them — expand the parent into its children.
 		$products = [ $product ];
 		if ( $product->is_type( 'variable' ) ) {
 			$products = [];
@@ -525,12 +510,10 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	}
 
 	/**
-	 * Generate an archive feed CSV from pending product archives.
+	 * Generate an archive feed CSV of `delete=true` rows from pending archives.
 	 *
-	 * Returns a finalized CSV feed of `delete=true` rows. The full column set is
-	 * kept so the file matches the standard product_catalog_feed header layout;
-	 * Stripe reads only `id` and `delete` from a removal row and ignores the
-	 * rest.
+	 * Keeps the full column set to match the standard product_catalog_feed
+	 * header layout; Stripe reads only `id` and `delete` from a removal row.
 	 *
 	 * @since 10.6.0
 	 * @return WC_Stripe_Agentic_Commerce_Csv_Feed|null Finalized feed, or null if nothing to sync.
@@ -566,18 +549,11 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	/**
 	 * Execute archive sync process.
 	 *
-	 * Called by Action Scheduler one minute after the first tracked product
-	 * deletion, trash, or unpublish event. Generates a product catalog CSV of
-	 * `delete=true` rows and uploads it to Stripe as a product_catalog_feed
-	 * ImportSet, removing each product from Stripe's catalog.
-	 *
-	 * On success, pending archives are cleared. On failure they are retained so
-	 * the next scheduled sync can retry.
-	 *
-	 * Unlike inventory, the queue is neither deferred to the full catalog sync
-	 * (which cannot delete products no longer in the feed query) nor pruned by
-	 * eligibility (a removal is valid for an excluded product); republished
-	 * products are already cancelled out at transition time.
+	 * Runs one minute after the first tracked deletion, trash, or unpublish and
+	 * uploads the pending `delete=true` rows as a product_catalog_feed
+	 * ImportSet. On failure the queue is retained for retry. Unlike inventory,
+	 * it is neither deferred to the full sync (which cannot delete out-of-query
+	 * products) nor pruned by eligibility (removals stay valid when excluded).
 	 *
 	 * @since 10.6.0
 	 * @return void

@@ -17,11 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Watches product saves and exclude-flag writes, and schedules a full resync
  * when a product's `should_sync_product()` outcome flips.
  *
- * Stripe processes imports in upsert mode, so an already-exported product only
- * leaves the catalog when a feed carries its `delete=true` row. The mapper
- * emits that row for every ineligible product still in the feed query; this
- * class exists so the sync carrying it runs promptly after the flip rather
- * than at the next scheduled interval.
+ * Upsert-mode imports only drop a product when a feed carries its
+ * `delete=true` row; the mapper emits one for every in-query ineligible
+ * product, and this class makes the sync carrying it run promptly.
  *
  * @internal
  * @since 10.9.0

@@ -67,12 +67,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * @throws RuntimeException If the parent product is not found.
 	 */
 	public function map_product( \WC_Product $product ): array {
-		// Per-product visibility gate. Stripe processes catalog imports in upsert
-		// mode, where omitting a product leaves it in the catalog indefinitely —
-		// so an ineligible product maps to a `delete=true` row (the explicit
-		// removal signal) rather than being dropped from the feed. Emitting the
-		// row on every sync is deliberate: deletes are idempotent, and a
-		// stateless feed self-heals if an earlier removal upload was lost.
+		// Stripe imports run in upsert mode, so omission never removes a product —
+		// ineligible products map to an explicit `delete=true` row instead.
+		// Re-emitted every sync: deletes are idempotent and self-heal a lost upload.
 		if ( ! self::should_sync_product( $product ) ) {
 			return $this->map_delete_row( $product );
 		}
@@ -102,9 +99,8 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		/**
 		 * Filter mapped product data before validation.
 		 *
-		 * Not applied to delete rows: excluded products historically never
-		 * reached this filter, and callbacks written against full rows should
-		 * not start receiving null-filled removal rows.
+		 * Not applied to delete rows: excluded products never reached this
+		 * filter, and its callbacks expect full rows.
 		 *
 		 * @since 10.5.0
 		 * @param array            $row             Mapped product data.
@@ -117,8 +113,8 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Build a `delete=true` removal row for an ineligible product.
 	 *
-	 * Stripe reads only `id` and `delete` from such a row; the remaining
-	 * columns stay null purely to keep the CSV aligned with the feed headers.
+	 * Stripe reads only `id` and `delete`; the other columns stay null just to
+	 * keep the CSV aligned with the feed headers.
 	 *
 	 * @since 11.0.0
 	 * @param \WC_Product $product Product to remove from Stripe's catalog.
@@ -219,8 +215,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * The catalog row id for a product: SKU when present, product ID otherwise.
 	 *
-	 * Static so removal paths (delete rows queued outside a full feed walk) can
-	 * target the same id the product was originally exported under.
+	 * Static so removal paths queued outside a feed walk target the exported id.
 	 *
 	 * @since 11.0.0
 	 * @param \WC_Product $product Product object.
@@ -1114,10 +1109,8 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Whether the product, or a variation's parent, is not published.
 	 *
-	 * The feed query already selects `publish` status, but only on the row
-	 * itself: variations of a draft or private variable product still match the
-	 * variation query, and without this check they would keep syncing with a
-	 * `link` that 404s for shoppers.
+	 * The feed query checks `publish` only on the row itself, so variations of
+	 * a draft or private parent would otherwise keep syncing with a dead link.
 	 *
 	 * @since 11.0.0
 	 * @param \WC_Product $product Product to check.
@@ -1189,14 +1182,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * to scope the full-feed query — that avoids loading the product at all
 		 * and keeps the validator's skipped-product log unpolluted.
 		 *
-		 * Lifecycle contract: a product this filter excludes is exported as a
-		 * `delete=true` row, which removes it from Stripe's catalog on the next
-		 * full sync (Stripe's default upsert mode ignores mere omission). The
-		 * inventory tracker still drops delta events for excluded products.
-		 * Adapters that want immediate convergence when their filter outcome
-		 * changes (e.g. a merchant flips a visibility setting) MUST fire
-		 * `do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' )` to
-		 * enqueue an immediate full-catalog sync.
+		 * Lifecycle contract: an excluded product is exported as a `delete=true`
+		 * row, removing it from Stripe's catalog on the next full sync (upsert
+		 * mode ignores mere omission); the inventory tracker still drops delta
+		 * events for it. Adapters whose filter outcome changes MUST fire
+		 * `do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' )` for
+		 * immediate convergence.
 		 *
 		 * Also runs per row on the admin Products list (sync-status column),
 		 * so callbacks must be fast.

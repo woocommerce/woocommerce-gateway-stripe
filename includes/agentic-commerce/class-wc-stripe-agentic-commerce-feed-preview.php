@@ -199,10 +199,8 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 				$errors = $validator->validate_entry( $row, $product );
 
 				// An excluded product surfaces as a `delete=true` removal row
-				// (which validates clean — it enters the feed to pull the product
-				// out of Stripe's catalog) or, from external mappers, as the
-				// legacy empty-row skip signal. Either way it counts as excluded
-				// here, not included.
+				// (which validates clean) or, from external mappers, as the legacy
+				// empty-row skip signal. Either way it counts as excluded here.
 				$is_removal = empty( $row ) || WC_Stripe_Agentic_Commerce_Product_Mapper::is_delete_row( $row );
 
 				if ( empty( $errors ) && ! $is_removal ) {
