@@ -519,10 +519,27 @@ trait WC_Stripe_Subscriptions_Trait {
 		// the retries below can run longer, so the expiry bounds the retry loop, and the finally
 		// must only release the lock while it is still ours — deleting the meta unconditionally
 		// could release a newer lock acquired by a concurrent process after ours lapsed.
-		$our_lock = (string) $order_helper->get_order_existing_payment_lock( $renewal_order );
+		$our_lock      = $order_helper->get_order_existing_payment_lock( $renewal_order );
+		$is_valid_lock = ( is_int( $our_lock ) && 0 < $our_lock )
+			|| ( is_string( $our_lock ) && ctype_digit( $our_lock ) && 0 < (int) $our_lock );
+
+		if ( ! $is_valid_lock ) {
+			WC_Stripe_Logger::error(
+				"Stripe: cannot process subscription renewal for order {$order_id} because the acquired payment lock is invalid.",
+				[
+					'order_id'     => $order_id,
+					'payment_lock' => $our_lock,
+				]
+			);
+			$renewal_order->add_order_note( __( 'Stripe: this renewal payment could not be processed because its payment lock could not be verified.', 'woocommerce-gateway-stripe' ) );
+			return;
+		}
+
+		$lock_expiry = (int) $our_lock;
+		$our_lock    = (string) $our_lock;
 
 		try {
-			$this->process_subscription_payment_attempt( $amount, $renewal_order, $retry, $previous_error, (int) $our_lock );
+			$this->process_subscription_payment_attempt( $amount, $renewal_order, $retry, $previous_error, $lock_expiry );
 		} finally {
 			if ( (string) $order_helper->get_order_existing_payment_lock( $renewal_order ) === $our_lock ) {
 				$order_helper->unlock_order_payment( $renewal_order );
@@ -544,7 +561,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param int          $lock_expiry    Unix timestamp at which the caller's payment lock expires. 0 when unknown.
 	 * @return void
 	 */
-	private function process_subscription_payment_attempt( $amount, $renewal_order, $retry = true, $previous_error = false, $lock_expiry = 0 ) {
+	private function process_subscription_payment_attempt( $amount, $renewal_order, $retry = true, $previous_error = false, int $lock_expiry = 0 ) {
 		$radar_reason = false;
 		$response     = null;
 
@@ -845,7 +862,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				// process_response() reads the charge via object property access, so a string
 				// must be resolved to the full charge object before it is handed over.
 				if ( is_string( $latest_charge ) && '' !== $latest_charge ) {
-					$latest_charge = $this->get_charge_object( $latest_charge ); // @phpstan-ignore-line (get_charge_object is defined in the gateway classes using this trait)
+					$latest_charge = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_charge_object( $latest_charge );
 				}
 
 				// Anything that still is not an object (e.g. an empty string) cannot be given to
@@ -856,13 +873,8 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				$charge_response = ( ! empty( $latest_charge ) ) ? $latest_charge : $response;
 
-				// process_response() reads the charge via object property access; mirror the SEPA
-				// normalization so an associative-array response becomes an object and cannot fatal
-				// there. JSON lists stay arrays, as the readers expect.
 				if ( is_array( $charge_response ) ) {
-					$encoded_charge  = wp_json_encode( $charge_response );
-					$decoded_charge  = is_string( $encoded_charge ) ? json_decode( $encoded_charge ) : null;
-					$charge_response = $decoded_charge instanceof stdClass ? $decoded_charge : (object) $charge_response;
+					$charge_response = $this->convert_subscription_renewal_response_to_object( $charge_response );
 				}
 
 				$this->process_response( $charge_response, $renewal_order );
@@ -906,15 +918,8 @@ trait WC_Stripe_Subscriptions_Trait {
 			$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
 			$response           = WC_Stripe_API::request( $request );
 
-			// WC_Stripe_API::request() returns the decoded response body, which is not
-			// guaranteed to be an object; the renewal flow and process_response() read the
-			// charge via object property access. Round-tripping through json_decode() turns
-			// associative arrays (including nested ones) into objects while leaving JSON lists
-			// as arrays, which is what the downstream readers expect.
 			if ( is_array( $response ) ) {
-				$encoded_response = wp_json_encode( $response );
-				$decoded_response = is_string( $encoded_response ) ? json_decode( $encoded_response ) : null;
-				$response         = $decoded_response instanceof stdClass ? $decoded_response : (object) $response;
+				$response = $this->convert_subscription_renewal_response_to_object( $response );
 			}
 
 			return [
@@ -936,6 +941,33 @@ trait WC_Stripe_Subscriptions_Trait {
 			'response'                   => $response,
 			'is_authentication_required' => $this->is_authentication_required_for_payment( $response ),
 		];
+	}
+
+	/**
+	 * Converts an associative-array Stripe response to the object shape used by renewal readers.
+	 *
+	 * Nested response values must also remain addressable as objects, so a shallow object cast is
+	 * not sufficient. A JSON list has no response fields and must be rejected before it can reach
+	 * process_response(), which reads required properties such as the charge ID.
+	 *
+	 * @param array $response Stripe API response.
+	 * @return stdClass
+	 * @throws WC_Stripe_Exception When the response cannot be converted to an object.
+	 */
+	private function convert_subscription_renewal_response_to_object( array $response ): stdClass {
+		$encoded_response = wp_json_encode( $response );
+
+		if ( ! is_string( $encoded_response ) ) {
+			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem processing the Stripe response.', 'woocommerce-gateway-stripe' ) );
+		}
+
+		$decoded_response = json_decode( $encoded_response, false );
+
+		if ( ! $decoded_response instanceof stdClass ) {
+			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem processing the Stripe response.', 'woocommerce-gateway-stripe' ) );
+		}
+
+		return $decoded_response;
 	}
 
 	/**
