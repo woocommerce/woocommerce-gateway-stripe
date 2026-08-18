@@ -165,7 +165,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Hide country-restricted payment methods (e.g. iDEAL) from Optimized Checkout when the billing country can't use them
 * Fix - Register Multibanco, OXXO, Boleto, Link, and Cash App Pay hooks only once per request so email instructions and thank-you page content are not duplicated
 * Fix - Resync the Agentic Commerce catalog when switching between test and live mode, and scope the sync status shown in settings to the active mode
-* Fix - Ensure that settings with checked, disabled checkboxes look disabled
 * Dev - Register Stripe.js through a single shared helper
 * Fix - Don't show currency admin notices for payment methods when Adaptive Pricing is active
 * Tweak - Use database cache for webhook status tracking
