@@ -35,6 +35,13 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		// WC_Stripe_API::retrieve() returns null once the consecutive-401 counter reaches its
+		// threshold, and earlier test class trip it with their mocked API keys.
+		// TODO: The proper fix is to remove any non stubbed call to Stripe; which is also the
+		// correct implementation for a phpunit test.
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, 'test' );
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, 'live' );
+
 		$this->wc_gateway_stripe = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
 			->onlyMethods( [ 'prepare_order_source', 'has_subscription' ] )

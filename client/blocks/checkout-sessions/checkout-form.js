@@ -28,7 +28,6 @@ import {
  * Checkout Form component.
  *
  * @param {Object}                 props                             Component props.
- * @param {Object}                 props.api                         WCStripeAPI instance (checkout session AJAX).
  * @param {EmitResponseProps}      props.emitResponse                Function to emit response back to the parent component.
  * @param {string}                 props.errorMessage                Error message to display if loading the checkout session fails.
  * @param {EventRegistrationProps} props.eventRegistration           Object containing event registration functions for payment setup, checkout success, and checkout failure.
@@ -36,6 +35,7 @@ import {
  * @param {boolean}                props.isLoggedIn                  Whether the customer is logged-in.
  * @param {boolean}                props.isPayerPhoneRequired        Whether the payer phone information is required.
  * @param {Object}                 props.shippingData                Shipping information for the checkout session.
+ * @param {Object}                 props.cartData                    Cart data containing Store API extensions.
  * @param {JSX.Element}            props.LoadingMask                 LoadingMask component to display while loading.
  * @param {Function}               props.onLoadError                 Callback function to handle load errors.
  * @param {Function}               props.setShouldLoadStripeElements Callback function to set whether Stripe Elements should be loaded instead.
@@ -43,7 +43,6 @@ import {
  * @return {JSX.Element} The Checkout Form component.
  */
 const CheckoutForm = ( {
-	api,
 	emitResponse,
 	errorMessage,
 	eventRegistration: { onPaymentSetup, onCheckoutSuccess, onCheckoutFail },
@@ -51,6 +50,7 @@ const CheckoutForm = ( {
 	isLoggedIn,
 	isPayerPhoneRequired,
 	shippingData,
+	cartData,
 	LoadingMask,
 	onLoadError,
 	setShouldLoadStripeElements,
@@ -68,6 +68,8 @@ const CheckoutForm = ( {
 	// Set when a totals resync leaves the session stale; blocks payment setup so
 	// the buyer isn't charged an out-of-date total.
 	const syncFailedRef = useRef( false );
+	const checkoutSessionData =
+		cartData?.extensions?.[ 'wc-stripe/checkout-session' ] ?? {};
 	const setHasLoadError = ( event ) => {
 		hasLoadErrorRef.current = true;
 		onLoadError( event );
@@ -93,10 +95,10 @@ const CheckoutForm = ( {
 	);
 	usePaymentFailHandler( onCheckoutFail, emitResponse );
 	useCheckoutSessionTotalsSync(
-		api,
 		checkoutSessionId,
 		checkoutState,
-		syncFailedRef
+		syncFailedRef,
+		checkoutSessionData
 	);
 
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
@@ -162,7 +164,11 @@ const CheckoutForm = ( {
 					} }
 				/>
 			) }
-			<CurrencySelectorElement />
+			{ /* Wrapped only to give e2e tests a DOM hook — classic exposes an
+			     equivalent element, but via a class rather than a test id. */ }
+			<div data-testid="wc-stripe-currency-selector">
+				<CurrencySelectorElement />
+			</div>
 			<PaymentElement
 				options={ elementOptions }
 				onChange={ onSelectedPaymentMethodChange }
