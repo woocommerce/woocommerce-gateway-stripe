@@ -156,7 +156,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		// reject the order anyway after it was built. Fail fast with an
 		// explicit reason instead of an opaque total mismatch.
 		if ( $session->get_amount_discount() > 0 ) {
-			throw new Exception(
+			throw new WC_Stripe_Agentic_Order_Rejected_Exception(
 				sprintf(
 					'Checkout session %s includes a discount (%d): discounts are not supported for agentic checkout orders.',
 					$session->get_id(),

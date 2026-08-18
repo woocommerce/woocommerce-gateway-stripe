@@ -137,6 +137,27 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A discounted session is a permanent rejection, signalled with the dedicated
+	 * exception type so the webhook handler refunds instead of retrying.
+	 */
+	public function test_discounted_session_throws_the_rejected_exception() {
+		$session = $this->build_checkout_session(
+			[
+				'total_details' => (object) [
+					'amount_shipping' => 0,
+					'amount_tax'      => 0,
+					'amount_discount' => 500,
+				],
+			]
+		);
+
+		$this->expectException( WC_Stripe_Agentic_Order_Rejected_Exception::class );
+		$this->expectExceptionMessage( 'discounts are not supported' );
+
+		$this->mapper->create_order_from_checkout_session( $session );
+	}
+
+	/**
 	 * Integration guard for the legacy product-ID fallback: a SKU-less product
 	 * synced under the old "external_reference = product_id" contract still
 	 * resolves end-to-end through `map_line_items() → resolve_product()` and
