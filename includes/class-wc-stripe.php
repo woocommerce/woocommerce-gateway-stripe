@@ -316,6 +316,7 @@ class WC_Stripe {
 			add_filter( 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), [ $this, 'plugin_action_links' ] );
 			add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
 			add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
+			add_action( 'update_option_' . self::SETTINGS_OPTION_NAME, [ $this, 'maybe_mark_adaptive_pricing_migration_complete' ], 10, 2 );
 		}
 
 		// Update the email field position.
@@ -760,6 +761,38 @@ class WC_Stripe {
 		return $this->toggle_upe( $settings, $old_settings );
 	}
 
+
+	/**
+	 * When the Adaptive Pricing amount mismatch migration is incomplete and
+	 * the merchant toggles the Adaptive Pricing setting, we need to mark the
+	 * amount mismatch migration as complete.
+	 *
+	 * @param array|false $old_settings Previous settings; false if no previous settings existed.
+	 * @param array       $settings     New settings that were saved.
+	 * @return void
+	 */
+	public function maybe_mark_adaptive_pricing_migration_complete( $old_settings, $settings ): void {
+		// Note that we tackle all in-memory checks first so we only check options when we are making relevant changes.
+		if ( ! is_array( $old_settings ) || ! is_array( $settings ) || ! isset( $settings['adaptive_pricing'] ) ) {
+			return;
+		}
+
+		$old_adaptive_pricing = $old_settings['adaptive_pricing'] ?? null;
+		$new_adaptive_pricing = $settings['adaptive_pricing'] ?? null;
+
+		if ( $old_adaptive_pricing === $new_adaptive_pricing ) {
+			return;
+		}
+
+		if ( ! WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::is_migration_needed() ) {
+			return;
+		}
+
+		if ( WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::delete_amount_mismatch_option() ) {
+			WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::mark_migration_complete();
+		}
+	}
+
 	/**
 	 * Runs after Stripe gateway settings option is updated. Reconfigures webhooks only when Adaptive Pricing becomes enabled.
 	 * Adaptive Pricing and Optimized Checkout both must be enabled in the new value for webhooks to be reconfigured.
@@ -1110,6 +1143,9 @@ class WC_Stripe {
 		}
 		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_Meta_Box' ) ) {
 			( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->init();
+		}
+		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_List_Table' ) ) {
+			( new WC_Stripe_Agentic_Commerce_Product_List_Table() )->init();
 		}
 
 		// Converges Stripe's catalog when a product crosses the sync-eligibility
