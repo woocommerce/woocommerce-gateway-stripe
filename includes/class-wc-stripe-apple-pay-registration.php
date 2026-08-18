@@ -20,7 +20,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	/**
 	 * Current domain name.
 	 *
-	 * @var bool
+	 * @var string
 	 */
 	private $domain_name;
 
@@ -36,7 +36,8 @@ class WC_Stripe_Apple_Pay_Registration {
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'register_domain_on_updated_settings' ], 10, 2 );
 		add_action( 'admin_notices', [ $this, 'admin_notices' ] );
 
-		$this->domain_name                   = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : str_replace( array( 'https://', 'http://' ), '', get_site_url() ); // @codingStandardsIgnoreLine
+		$this->domain_name = (string) wp_parse_url( get_site_url(), PHP_URL_HOST );
+
 		$this->apple_pay_registration_notice = '';
 	}
 
@@ -113,6 +114,11 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @since 4.9.0
 	 */
 	public function register_domain_on_domain_name_change() {
+		// Require WooCommerce admin permissions for registration.
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+
 		if ( $this->domain_name !== $this->get_option( 'apple_pay_verified_domain' ) ) {
 			$this->register_domain_if_configured();
 		}
@@ -156,7 +162,31 @@ class WC_Stripe_Apple_Pay_Registration {
 			throw new Exception( sprintf( __( 'Unable to register domain - %s', 'woocommerce-gateway-stripe' ), $response->get_error_message() ) );
 		}
 
-		$parsed_response               = json_decode( $response['body'] );
+		$response_code   = (int) wp_remote_retrieve_response_code( $response );
+		$parsed_response = json_decode( wp_remote_retrieve_body( $response ) );
+
+		// Stripe reports request-level failures (e.g. invalid key) as a top-level
+		// `error` object; without this check they would be recorded as successful.
+		$stripe_error_message = $parsed_response->error->message ?? '';
+		if ( ! empty( $stripe_error_message ) ) {
+			$this->apple_pay_registration_notice = $stripe_error_message;
+
+			/* translators: error message */
+			throw new Exception( sprintf( __( 'Unable to register domain - %s', 'woocommerce-gateway-stripe' ), $stripe_error_message ) );
+		}
+
+		if ( $response_code < 200 || $response_code >= 300 ) {
+			/* translators: HTTP status code */
+			throw new Exception( sprintf( __( 'Unable to register domain - Stripe returned an unexpected HTTP status code: %d.', 'woocommerce-gateway-stripe' ), $response_code ) );
+		}
+
+		// A 2xx body that is not a payment method domain object (e.g. a proxy error
+		// page) must not count as a registration. Must stay last: error responses
+		// would fail this too, but the checks above give a more useful message.
+		if ( ! is_object( $parsed_response ) || empty( $parsed_response->id ) ) {
+			throw new Exception( __( 'Unable to register domain - unexpected response from Stripe.', 'woocommerce-gateway-stripe' ) );
+		}
+
 		$apple_pay_registration_notice = $parsed_response->apple_pay->status_details->error_message ?? '';
 		if ( ! empty( $apple_pay_registration_notice ) ) {
 			$this->apple_pay_registration_notice = $apple_pay_registration_notice;
@@ -218,7 +248,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	public function register_domain_if_configured() {
 		$secret_key = $this->get_secret_key();
 
-		if ( ! $this->is_enabled() || empty( $secret_key ) ) {
+		if ( empty( $this->domain_name ) || ! $this->is_enabled() || empty( $secret_key ) ) {
 			return;
 		}
 
