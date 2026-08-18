@@ -34,11 +34,10 @@ export function* refreshAccount() {
 
 		yield updateAccount( data );
 
-		// The account refresh can change which payment methods the account has available, so pull
-		// the reconciled settings back in. Re-fetch and write them directly rather than invalidating
-		// the `getSettings` resolver: invalidation flips `hasFinishedResolution` back to false, which
-		// collapses every LoadableSettingsSection on the page into a skeleton until the fetch lands,
-		// and it only refetches at all while something is subscribed to `getSettings`.
+		// The account refresh can change which payment methods the account has available.
+		// Re-fetch and write them directly rather than invalidating the `getSettings` resolver:
+		// invalidation flips `hasFinishedResolution` back to false, which collapses every
+		// LoadableSettingsSection on the page into a skeleton until the fetch lands.
 		const settings = yield apiFetch( { path: `${ NAMESPACE }/settings` } );
 		yield updateSettings( settings );
 
