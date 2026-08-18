@@ -1409,8 +1409,15 @@ class WC_Stripe_Order_Helper {
 	 */
 	protected function is_order_payment_locked( WC_Order $order ): bool {
 		$existing_lock = $this->get_order_existing_payment_lock( $order );
+
+		// A structured value cannot be parsed as a lock timestamp. Treat it as locked so
+		// corrupted or concurrently replaced metadata never causes a payment to proceed.
+		if ( null !== $existing_lock && ! is_scalar( $existing_lock ) ) {
+			return true;
+		}
+
 		if ( $existing_lock ) {
-			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
+			$parts      = explode( '|', (string) $existing_lock ); // Format is: "{expiry_timestamp}"
 			$expiration = (int) $parts[0];
 
 			// If the lock is still active, return true.

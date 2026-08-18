@@ -16,6 +16,7 @@ class WC_Stripe_API {
 	public const ENDPOINT                     = 'https://api.stripe.com/v1/';
 	public const STRIPE_API_VERSION           = '2026-03-25.dahlia';
 	public const AGENTIC_COMMERCE_API_VERSION = '2025-12-15.preview';
+	public const REQUEST_TIMEOUT              = 70;
 
 	/**
 	 * The invalid API key error count cache key.
@@ -277,7 +278,7 @@ class WC_Stripe_API {
 				'method'  => $method,
 				'headers' => $headers,
 				'body'    => $request,
-				'timeout' => 70,
+				'timeout' => self::REQUEST_TIMEOUT,
 			]
 		);
 
@@ -373,7 +374,7 @@ class WC_Stripe_API {
 			[
 				'method'  => 'GET',
 				'headers' => self::get_headers(),
-				'timeout' => 70,
+				'timeout' => self::REQUEST_TIMEOUT,
 			]
 		);
 

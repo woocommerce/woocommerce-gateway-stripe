@@ -58,6 +58,13 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Retrieval requests do not carry order metadata, so retry filtering must preserve their key.
+	 */
+	public function test_change_idempotency_key_preserves_key_without_order_metadata() {
+		$this->assertSame( 'original-key', $this->gateway->change_idempotency_key( 'original-key', [] ) );
+	}
+
+	/**
 	 * Tests if payment intent is fetched from Stripe API.
 	 */
 	public function test_success_get_payment_intent_from_order() {

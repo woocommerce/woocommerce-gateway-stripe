@@ -1573,6 +1573,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param array  $request
 	 */
 	public function change_idempotency_key( $idempotency_key, $request ) {
+		// Retrieval requests also pass through the idempotency filter, but do not carry
+		// order metadata and must retain their original key.
+		if ( ! is_array( $request ) || empty( $request['metadata']['order_id'] ) ) {
+			return $idempotency_key;
+		}
+
 		$customer = ! empty( $request['customer'] ) ? $request['customer'] : '';
 		$source   = ! empty( $request['source'] ) ? $request['source'] : $customer;
 		$count    = $this->retry_interval;

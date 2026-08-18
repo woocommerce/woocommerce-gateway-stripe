@@ -177,6 +177,35 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A malformed structured payment lock must fail closed instead of throwing or being replaced.
+	 *
+	 * @dataProvider provide_malformed_payment_locks
+	 * @param mixed $malformed_lock Malformed payment lock metadata.
+	 * @return void
+	 */
+	public function test_lock_order_payment_treats_malformed_structured_metadata_as_locked( $malformed_lock ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->update_meta_data( '_stripe_lock_payment', $malformed_lock );
+		$order->save_meta_data();
+
+		$this->assertTrue( $this->helper->lock_order_payment( $order ) );
+		$this->assertEquals( $malformed_lock, $this->helper->get_order_existing_payment_lock( $order ) );
+	}
+
+	/**
+	 * Data provider for malformed structured payment lock metadata.
+	 *
+	 * @return array<string, array{mixed}>
+	 */
+	public function provide_malformed_payment_locks(): array {
+		return [
+			'empty array'     => [ [] ],
+			'non-empty array' => [ [ time() + 5 * MINUTE_IN_SECONDS ] ],
+			'object'          => [ (object) [ 'expires_at' => time() + 5 * MINUTE_IN_SECONDS ] ],
+		];
+	}
+
+	/**
 	 * Tests for `add_payment_intent_to_order`.
 	 *
 	 * @return void

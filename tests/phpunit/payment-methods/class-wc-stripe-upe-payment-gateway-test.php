@@ -244,6 +244,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		//
 		// TODO: Remove this once we've mocked all calls to the Stripe API (either using the pre_http_request filter, or by using a mocked WC_Stripe_API class).
 		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+		WC_Stripe_Order_Helper::set_instance( null );
 
 		parent::tear_down();
 	}
@@ -3525,7 +3526,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
-		$order->update_meta_data( '_stripe_lock_payment', ( time() + MINUTE_IN_SECONDS ) ); // To assist with comparing expected order objects, set an existing lock.
 		$order->save();
 
 		$order = wc_get_order( $order_id );
@@ -3580,7 +3580,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->method( 'get_latest_charge_from_intent' )
 			->willReturn( $this->array_to_object( $charge ) );
 
-		$this->mock_gateway->process_subscription_payment( $amount, $order, false, false );
+		// Renewal processing needs the real helper to persist the lock it reports acquiring.
+		$original_order_helper = WC_Stripe_Order_Helper::get_instance();
+		WC_Stripe_Order_Helper::set_instance( null );
+
+		try {
+			$this->mock_gateway->process_subscription_payment( $amount, $order, false, false );
+		} finally {
+			WC_Stripe_Order_Helper::set_instance( $original_order_helper );
+		}
 
 		$final_order = wc_get_order( $order_id );
 		$note        = wc_get_order_notes(
@@ -3619,7 +3627,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
-		$order->update_meta_data( '_stripe_lock_payment', ( time() + MINUTE_IN_SECONDS ) ); // To assist with comparing expected order objects, set an existing lock.
 		$order->save();
 
 		$order = wc_get_order( $order_id );
@@ -3682,7 +3689,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->method( 'get_latest_charge_from_intent' )
 			->willReturn( $this->array_to_object( $charge ) );
 
-		$this->mock_gateway->process_subscription_payment( $amount, $order, false, false );
+		// Renewal processing needs the real helper to persist the lock it reports acquiring.
+		$original_order_helper = WC_Stripe_Order_Helper::get_instance();
+		WC_Stripe_Order_Helper::set_instance( null );
+
+		try {
+			$this->mock_gateway->process_subscription_payment( $amount, $order, false, false );
+		} finally {
+			WC_Stripe_Order_Helper::set_instance( $original_order_helper );
+		}
 
 		$final_order   = wc_get_order( $order_id );
 		$note_contents = array_map(
