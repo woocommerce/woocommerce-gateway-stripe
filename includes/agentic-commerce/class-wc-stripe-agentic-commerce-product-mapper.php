@@ -1127,6 +1127,26 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	}
 
 	/**
+	 * Whether the variation's parent is missing or no longer a variable product.
+	 *
+	 * Switching a variable product to another type keeps its variation posts,
+	 * and the feed query still selects them; without this check those stale
+	 * rows would keep syncing (or, for a deleted parent, hard-fail the walk).
+	 *
+	 * @since 11.0.0
+	 * @param \WC_Product $product Product to check.
+	 * @return bool
+	 */
+	public static function is_orphaned_variation( \WC_Product $product ): bool {
+		if ( ProductType::VARIATION !== $product->get_type() ) {
+			return false;
+		}
+
+		$parent = wc_get_product( $product->get_parent_id() );
+		return ! $parent instanceof \WC_Product || ! $parent->is_type( ProductType::VARIABLE );
+	}
+
+	/**
 	 * Whether the given product should be included in any Agentic Commerce sync
 	 * (full feed, inventory updates, archive events).
 	 *
@@ -1152,7 +1172,8 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		$default_should_sync = ! self::is_subscription_product( $product )
 			&& ! self::is_password_protected( $product )
 			&& ! self::is_hidden_from_catalog( $product )
-			&& ! self::is_unpublished( $product );
+			&& ! self::is_unpublished( $product )
+			&& ! self::is_orphaned_variation( $product );
 
 		// The Stripe-prefixed filter is retained for backward compatibility. Its
 		// result seeds the default for the canonical filter below, so existing

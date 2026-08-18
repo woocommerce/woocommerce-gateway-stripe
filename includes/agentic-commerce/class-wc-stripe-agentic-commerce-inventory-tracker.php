@@ -16,6 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use Automattic\WooCommerce\Enums\ProductStatus;
+use Automattic\WooCommerce\Enums\ProductType;
 
 /**
  * Tracks product stock changes and syncs incremental inventory updates to Stripe.
@@ -95,6 +96,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		// restores to draft by default, so an unconditional `untrash_post`
 		// cancel would leave a draft product live on Stripe.
 		add_action( 'transition_post_status', [ $this, 'handle_status_transition' ], 10, 3 );
+		// A type change out of the feed query (e.g. simple→grouped) fires no
+		// status transition, so it needs its own removal hook.
+		add_action( 'woocommerce_product_type_changed', [ $this, 'handle_product_type_change' ], 10, 3 );
 		add_action( self::ARCHIVE_SCHEDULED_ACTION, [ $this, 'sync_archives' ] );
 	}
 
@@ -315,16 +319,89 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		// Variations are the actual feed entries and a parent's status change
 		// doesn't cascade to them — expand the parent into its children.
 		$products = [ $product ];
-		if ( $product->is_type( 'variable' ) ) {
-			$products = [];
-			foreach ( $product->get_children() as $child_id ) {
-				$child = wc_get_product( $child_id );
-				if ( $child instanceof \WC_Product ) {
-					$products[] = $child;
-				}
-			}
+		if ( $product->is_type( ProductType::VARIABLE ) ) {
+			$products = $this->load_variations( $product->get_id() );
 		}
 
+		$this->queue_removals( $products );
+	}
+
+	/**
+	 * Queue a removal when a product's type change takes it out of the feed query.
+	 *
+	 * Only leaving-the-feed transitions matter: entering ones are picked up by
+	 * the next full sync, and a product that was never in the feed has nothing
+	 * to remove.
+	 *
+	 * @since 11.0.0
+	 * @param \WC_Product|mixed $product  The saved product, carrying the new type.
+	 * @param string            $old_type Product type before the change.
+	 * @param string            $new_type Product type after the change.
+	 * @return void
+	 */
+	public function handle_product_type_change( $product, $old_type, $new_type ): void {
+		if ( ! $product instanceof \WC_Product ) {
+			return;
+		}
+
+		if ( ProductType::SIMPLE === $old_type ) {
+			// For simple→variable on a SKU'd product, SKU-less variations inherit
+			// the parent SKU as their feed id, so a delete could remove the live
+			// variation row — and on that id collision the variation's upsert
+			// overwrites the stale simple row anyway.
+			$sku_collision = ProductType::VARIABLE === $new_type && '' !== $product->get_sku();
+			if ( ! $sku_collision ) {
+				$this->queue_removals( [ $product ] );
+			}
+			return;
+		}
+
+		if ( ProductType::VARIABLE === $old_type ) {
+			// The variation posts survive the type switch; the orphaned-variation
+			// eligibility check also converges them on the next full sync.
+			$this->queue_removals( $this->load_variations( $product->get_id() ) );
+		}
+	}
+
+	/**
+	 * Load the variation products attached to a parent, regardless of the
+	 * parent's current type — `WC_Product::get_children()` is only populated
+	 * for variable products, and removal paths run after the parent stopped
+	 * being one.
+	 *
+	 * @since 11.0.0
+	 * @param int $parent_id Parent product ID.
+	 * @return \WC_Product[]
+	 */
+	private function load_variations( int $parent_id ): array {
+		$variation_ids = get_posts(
+			[
+				'post_type'   => 'product_variation',
+				'post_parent' => $parent_id,
+				'post_status' => 'any',
+				'numberposts' => -1,
+				'fields'      => 'ids',
+			]
+		);
+
+		$variations = [];
+		foreach ( $variation_ids as $variation_id ) {
+			$variation = wc_get_product( $variation_id );
+			if ( $variation instanceof \WC_Product ) {
+				$variations[] = $variation;
+			}
+		}
+		return $variations;
+	}
+
+	/**
+	 * Queue `delete=true` rows for the given products and schedule the flush.
+	 *
+	 * @since 11.0.0
+	 * @param \WC_Product[] $products Products to remove from Stripe's catalog.
+	 * @return void
+	 */
+	private function queue_removals( array $products ): void {
 		$pending = get_option( self::PENDING_ARCHIVES_OPTION, [] );
 		$queued  = false;
 

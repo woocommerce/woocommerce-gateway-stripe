@@ -61,6 +61,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			remove_action( 'before_delete_post', [ $this->sut, 'maybe_track_product_archive' ] );
 			remove_action( 'wp_trash_post', [ $this->sut, 'maybe_track_product_archive' ] );
 			remove_action( 'transition_post_status', [ $this->sut, 'handle_status_transition' ] );
+			remove_action( 'woocommerce_product_type_changed', [ $this->sut, 'handle_product_type_change' ] );
 			remove_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION, [ $this->sut, 'sync_archives' ] );
 		}
 
@@ -146,6 +147,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		$this->assertNotFalse( has_action( 'before_delete_post', [ $this->sut, 'maybe_track_product_archive' ] ) );
 		$this->assertNotFalse( has_action( 'wp_trash_post', [ $this->sut, 'maybe_track_product_archive' ] ) );
 		$this->assertNotFalse( has_action( 'transition_post_status', [ $this->sut, 'handle_status_transition' ] ) );
+		$this->assertNotFalse( has_action( 'woocommerce_product_type_changed', [ $this->sut, 'handle_product_type_change' ] ) );
 		$this->assertNotFalse(
 			has_action(
 				WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION,
@@ -1518,6 +1520,86 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			$this->assertArrayHasKey( $variation_id, $pending );
 			$this->assertEquals( 'true', $pending[ $variation_id ]['delete'] );
 		}
+	}
+
+	// -------------------------------------------------------------------------
+	// handle_product_type_change
+	// -------------------------------------------------------------------------
+
+	/**
+	 * A simple product converted to a type outside the feed query gets a queued
+	 * removal: no status transition fires for a type change, so this hook is
+	 * the only removal signal.
+	 *
+	 * @return void
+	 */
+	public function test_handle_product_type_change_queues_delete_when_simple_leaves_feed() {
+		$product = $this->create_simple_product_with_stock( 5 );
+
+		$this->sut->handle_product_type_change( $product, 'simple', 'external' );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertArrayHasKey( $product->get_id(), $pending );
+		$this->assertEquals( 'true', $pending[ $product->get_id() ]['delete'] );
+	}
+
+	/**
+	 * simple→variable on a SKU'd product must NOT queue a removal: SKU-less
+	 * variations inherit the parent SKU as their feed id, so the delete could
+	 * remove the live variation row (whose upsert overwrites the stale simple
+	 * row on that id anyway).
+	 *
+	 * @return void
+	 */
+	public function test_handle_product_type_change_skips_sku_collision_on_simple_to_variable() {
+		$with_sku = $this->create_simple_product_with_stock( 5 );
+		$with_sku->set_sku( 'TYPE-CHANGE-SKU' );
+		$with_sku->save();
+
+		$this->sut->handle_product_type_change( $with_sku, 'simple', 'variable' );
+		$this->assertEmpty( get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
+
+		// Without a SKU there is no collision, so the old simple row is removed.
+		$no_sku = $this->create_simple_product_with_stock( 5 );
+		$this->sut->handle_product_type_change( $no_sku, 'simple', 'variable' );
+		$this->assertArrayHasKey( $no_sku->get_id(), get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
+	}
+
+	/**
+	 * variable→simple queues removals for the variation posts, which survive
+	 * the type switch and were the actual feed entries.
+	 *
+	 * @return void
+	 */
+	public function test_handle_product_type_change_queues_variation_deletes_when_variable_converts() {
+		$parent        = WC_Helper_Product::create_variation_product();
+		$variation_ids = $parent->get_children();
+
+		// Simulate the type switch WC performs before firing the hook.
+		wp_set_object_terms( $parent->get_id(), 'simple', 'product_type' );
+		$converted = wc_get_product( $parent->get_id() );
+
+		$this->sut->handle_product_type_change( $converted, 'variable', 'simple' );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		foreach ( $variation_ids as $variation_id ) {
+			$this->assertArrayHasKey( $variation_id, $pending );
+			$this->assertEquals( 'true', $pending[ $variation_id ]['delete'] );
+		}
+	}
+
+	/**
+	 * Types that were never in the feed (e.g. grouped) have nothing to remove
+	 * when converted.
+	 *
+	 * @return void
+	 */
+	public function test_handle_product_type_change_ignores_types_never_in_feed() {
+		$product = $this->create_simple_product_with_stock( 5 );
+
+		$this->sut->handle_product_type_change( $product, 'grouped', 'simple' );
+
+		$this->assertEmpty( get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
 	}
 
 	/**

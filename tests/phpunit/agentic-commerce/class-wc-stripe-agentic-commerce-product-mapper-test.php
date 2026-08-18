@@ -1570,6 +1570,36 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A variation whose parent is no longer a variable product is ineligible:
+	 * variation posts survive a parent type switch and still match the feed
+	 * query, so without this they would keep syncing as stale rows.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_excludes_variation_of_non_variable_parent() {
+		$parent    = WC_Helper_Product::create_variation_product();
+		$variation = wc_get_product( $parent->get_children()[0] );
+
+		try {
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $variation ) );
+
+			// Simulate the merchant switching the product type away from variable.
+			// A real save invalidates WC's product-type cache; the direct term
+			// write here doesn't, so invalidate it explicitly.
+			wp_set_object_terms( $parent->get_id(), 'simple', 'product_type' );
+			WC_Cache_Helper::invalidate_cache_group( 'product_' . $parent->get_id() );
+			$variation = wc_get_product( $variation->get_id() );
+
+			$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $variation ) );
+
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::is_delete_row( $mapper->map_product( $variation ) ) );
+		} finally {
+			wp_delete_post( $parent->get_id(), true );
+		}
+	}
+
+	/**
 	 * The feed id survives to the delete row: a SKU'd product must be removed
 	 * under the SKU it was exported as, not its numeric ID.
 	 *
