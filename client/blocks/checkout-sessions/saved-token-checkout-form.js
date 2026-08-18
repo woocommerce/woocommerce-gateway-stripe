@@ -2,7 +2,8 @@ import {
 	CurrencySelectorElement,
 	useCheckout,
 } from '@stripe/react-stripe-js/checkout';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { __ } from '@wordpress/i18n';
 import {
 	useCheckoutSuccessHandler,
@@ -54,8 +55,34 @@ const SavedTokenCheckoutForm = ( {
 	// Set when a totals resync leaves the session stale; blocks payment setup so
 	// the buyer isn't charged an out-of-date total.
 	const syncFailedRef = useRef( false );
+	// Container inserted after the selected token's radio row, so the currency
+	// selector nests inside the row per the design. `undefined` = not resolved
+	// yet (render nothing, so the Stripe iframe mounts once, in its final
+	// place); `null` = row not found, render inline below the list instead.
+	const [ portalTarget, setPortalTarget ] = useState( undefined );
 	const checkoutSessionData =
 		cartData?.extensions?.[ 'wc-stripe/checkout-session' ] ?? {};
+
+	useEffect( () => {
+		const tokenInput = document.getElementById(
+			`radio-control-wc-payment-method-saved-tokens-${ token }`
+		);
+		const tokenRow = tokenInput?.closest( 'label' );
+		if ( ! tokenRow || ! tokenRow.parentNode ) {
+			setPortalTarget( null );
+			return;
+		}
+
+		const container = document.createElement( 'div' );
+		container.className = 'wc-stripe-saved-token-currency-selector';
+		tokenRow.after( container );
+		setPortalTarget( container );
+
+		return () => {
+			container.remove();
+			setPortalTarget( undefined );
+		};
+	}, [ token ] );
 
 	useSavedTokenPaymentSetupHandler(
 		onPaymentSetup,
@@ -103,11 +130,21 @@ const SavedTokenCheckoutForm = ( {
 		setCheckoutSessionId( checkoutState.checkout.id );
 	}
 
-	return (
+	// Wait until the placement decision resolves so the Stripe iframe mounts
+	// exactly once, in its final position.
+	if ( portalTarget === undefined ) {
+		return null;
+	}
+
+	const currencySelector = (
 		<div data-testid="wc-stripe-currency-selector">
 			<CurrencySelectorElement />
 		</div>
 	);
+
+	return portalTarget
+		? createPortal( currencySelector, portalTarget )
+		: currencySelector;
 };
 
 export default SavedTokenCheckoutForm;

@@ -2324,3 +2324,73 @@ describe( 'maybeUpdateOptimizedCheckoutExclusions', () => {
 		).not.toHaveBeenCalled();
 	} );
 } );
+
+describe( 'relocateCurrencySelector', () => {
+	const buildDom = ( checkedValue ) => {
+		document.body.innerHTML = `
+			<div id="selector-home-area">
+				<div id="wc-stripe-currency-selector"></div>
+			</div>
+			<ul>
+				<li id="token-item-12">
+					<input id="wc-stripe-payment-token-1" name="wc-stripe-payment-token" value="12" type="radio" ${
+						checkedValue === '12' ? 'checked' : ''
+					} />
+				</li>
+				<li id="token-item-new">
+					<input id="wc-stripe-payment-token-new" name="wc-stripe-payment-token" value="new" type="radio" ${
+						checkedValue === 'new' ? 'checked' : ''
+					} />
+				</li>
+			</ul>
+		`;
+	};
+
+	afterEach( () => {
+		document.body.innerHTML = '';
+	} );
+
+	it( 'nests the selector inside the selected token row', () => {
+		buildDom( '12' );
+
+		paymentProcessing.relocateCurrencySelector( true );
+
+		const container = document.getElementById(
+			'wc-stripe-currency-selector'
+		);
+		expect( container.parentNode.id ).toBe( 'token-item-12' );
+		expect( container.classList ).toContain(
+			'wc-stripe-currency-selector--nested'
+		);
+	} );
+
+	it( 'returns the selector to its server-rendered position for a new payment method', () => {
+		buildDom( '12' );
+		paymentProcessing.relocateCurrencySelector( true );
+
+		// Shopper switches to "Use a new payment method".
+		document.getElementById( 'wc-stripe-payment-token-1' ).checked = false;
+		document.getElementById( 'wc-stripe-payment-token-new' ).checked = true;
+
+		paymentProcessing.relocateCurrencySelector( false );
+
+		const container = document.getElementById(
+			'wc-stripe-currency-selector'
+		);
+		expect( container.parentNode.id ).toBe( 'selector-home-area' );
+		expect( container.previousElementSibling.id ).toBe(
+			'wc-stripe-currency-selector-home'
+		);
+		expect( container.classList ).not.toContain(
+			'wc-stripe-currency-selector--nested'
+		);
+	} );
+
+	it( 'is a no-op when the selector container is absent', () => {
+		document.body.innerHTML = '<ul></ul>';
+
+		expect( () =>
+			paymentProcessing.relocateCurrencySelector( true )
+		).not.toThrow();
+	} );
+} );

@@ -23,6 +23,7 @@ import {
 	maybeUpdateOptimizedCheckoutExclusions,
 	mountStripePaymentElement,
 	processPayment,
+	relocateCurrencySelector,
 	trackMountInProgress,
 } from './payment-processing';
 
@@ -256,7 +257,8 @@ jQuery( function ( $ ) {
 
 		// Hide the Adaptive Pricing currency selector when the selected saved
 		// method can't pay the Checkout Session (non-card tokens stay on the
-		// store-currency flow, where no conversion applies).
+		// store-currency flow, where no conversion applies). For an eligible
+		// saved card, nest the selector inside the selected token's row.
 		const maybeShowCurrencySelector = () => {
 			const currencySelector = document.getElementById(
 				'wc-stripe-currency-selector'
@@ -265,12 +267,19 @@ jQuery( function ( $ ) {
 				return;
 			}
 			const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
-			if (
-				isUsingSavedPaymentMethod( paymentMethodType ) &&
-				! getAdaptivePricingSavedTokenPaymentMethod( paymentMethodType )
-			) {
+			const usingSavedMethod =
+				isUsingSavedPaymentMethod( paymentMethodType );
+			const isEligibleToken =
+				usingSavedMethod &&
+				Boolean(
+					getAdaptivePricingSavedTokenPaymentMethod(
+						paymentMethodType
+					)
+				);
+			if ( usingSavedMethod && ! isEligibleToken ) {
 				$( currencySelector ).hide();
 			} else {
+				relocateCurrencySelector( isEligibleToken );
 				$( currencySelector ).show();
 			}
 		};
