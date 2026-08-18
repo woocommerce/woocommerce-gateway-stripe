@@ -4,7 +4,10 @@ set -e
 . ./tests/e2e/bin/common.sh
 
 if [[ -f "$E2E_ROOT/config/local.env" ]]; then
-	. "$E2E_ROOT/config/local.env"
+	# Unreplaced <placeholder> values from local.env.example are not valid shell:
+	# sourcing one aborts the rest of the file, silently dropping every variable
+	# below it. Blank them out so only the values actually filled in take effect.
+	eval "$(sed -E 's/=<[^>]*>[[:space:]]*$/=/' "$E2E_ROOT/config/local.env")"
 fi
 
 # If --base_url argument is present use the remote server setup.
@@ -30,23 +33,18 @@ check_dep 'curl'
 check_dep 'jq'
 check_dep 'php'
 
-gh_authenticated() {
-	command -v gh > /dev/null 2>&1 && gh auth status > /dev/null 2>&1
-}
-
 missing_plugin_zip_error() {
 	error "Cannot obtain $1."
 	echo "  Set GITHUB_TOKEN in tests/e2e/config/local.env, run 'gh auth login',"
 	echo "  or place the zip at tests/e2e/deps/$1"
 }
 
-# Downloads <repo>'s latest release asset to tests/e2e/deps/<zip-name>, unless a
-# local copy is the only source available.
+# Downloads <repo>'s latest release asset to tests/e2e/deps/<zip-name>.
 #
 # Sources are tried in order: GITHUB_TOKEN, the gh CLI, then an existing zip in
-# tests/e2e/deps. A token that fails to authenticate aborts instead of falling
-# through, so a stale token surfaces as an auth error rather than silently
-# installing whatever stale zip happens to be cached.
+# tests/e2e/deps. A source that cannot deliver the zip says so and falls through
+# to the next one, so a token inherited from the shell or a gh login without
+# access to the private repos does not block a source that works.
 fetch_plugin_zip() {
 	local repo=$1
 	local zip=$2
@@ -58,32 +56,26 @@ fetch_plugin_zip() {
 	mkdir -p "$DEPS_DIR"
 
 	if [[ -n "$GITHUB_TOKEN" ]]; then
-		echo " - Fetching latest version"
+		echo " - Fetching latest version with GITHUB_TOKEN"
 
 		local asset_id
-		asset_id=$(curl -sfH "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/releases/latest" | jq -r '.assets[0].id')
+		asset_id=$(curl -sfH "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/releases/latest" | jq -r '.assets[0].id // empty')
 
-		if [[ -z "$asset_id" || "$asset_id" == "null" ]]; then
-			error "Could not resolve the latest $repo release. Check that GITHUB_TOKEN is valid and has access to the repository."
-			exit 1
-		fi
-
-		if ! redirect_output curl -sfLJ \
+		if [[ -n "$asset_id" ]] && redirect_output curl -sfL \
 			-H "Authorization: token $GITHUB_TOKEN" \
 			-H "Accept: application/octet-stream" \
 			--output "$tmp" \
 			"https://api.github.com/repos/$repo/releases/assets/$asset_id"; then
-			rm -f "$tmp"
-			error "Failed to download $zip from $repo."
-			exit 1
+			mv "$tmp" "$dest"
+			return
 		fi
 
-		mv "$tmp" "$dest"
-		return
+		rm -f "$tmp"
+		echo " - GITHUB_TOKEN cannot download $zip from $repo, trying the next source"
 	fi
 
-	if gh_authenticated; then
-		echo " - Fetching latest version with the gh CLI"
+	if command -v gh > /dev/null 2>&1; then
+		echo " - Fetching latest version with the GitHub CLI"
 
 		if redirect_output gh release download --repo "$repo" --pattern '*.zip' --output "$tmp" --clobber; then
 			mv "$tmp" "$dest"
@@ -91,10 +83,10 @@ fetch_plugin_zip() {
 		fi
 
 		rm -f "$tmp"
-		echo " - gh could not download $zip, falling back to tests/e2e/deps/"
+		echo " - gh cannot download $zip, trying the next source (see tests/e2e/e2e-setup.log)"
 	fi
 
-	if [[ -f "$dest" ]]; then
+	if [[ -s "$dest" ]]; then
 		echo " - Using tests/e2e/deps/$zip"
 		return
 	fi
@@ -109,16 +101,16 @@ if ! docker info > /dev/null 2>&1; then
 	exit 1
 fi
 
-# Fail before the environment is built, rather than minutes later at the install step.
-if [[ -z "$GITHUB_TOKEN" ]] && ! gh_authenticated; then
-	for zip in woocommerce-subscriptions.zip woocommerce-pre-orders.zip; do
-		if [[ ! -f "$DEPS_DIR/$zip" ]]; then
-			echo
-			missing_plugin_zip_error "$zip"
-			exit 1
-		fi
-	done
+if [[ -z "$STRIPE_PUB_KEY" || -z "$STRIPE_SECRET_KEY" ]]; then
+	echo
+	error "STRIPE_PUB_KEY and STRIPE_SECRET_KEY must be set in tests/e2e/config/local.env."
+	exit 1
 fi
+
+# Resolve both plugins before building the environment.
+step "Fetching plugin dependencies"
+fetch_plugin_zip "woocommerce/woocommerce-subscriptions" "woocommerce-subscriptions.zip"
+fetch_plugin_zip "woocommerce/woocommerce-pre-orders" "woocommerce-pre-orders.zip"
 
 step "Starting E2E docker containers"
 if [ "$CI" = "true" ]; then
@@ -245,8 +237,6 @@ echo " - Enabling the Optimized Checkout feature flag"
 redirect_output cli wp option update _wcstripe_feature_oc 'yes'
 
 step "Installing Woo Subscriptions"
-fetch_plugin_zip "woocommerce/woocommerce-subscriptions" "woocommerce-subscriptions.zip"
-
 echo " - Installing"
 redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/deps/woocommerce-subscriptions.zip --force
 
@@ -254,8 +244,6 @@ echo " - Activating"
 redirect_output cli wp plugin activate woocommerce-subscriptions
 
 step "Installing Woo Pre-Orders"
-fetch_plugin_zip "woocommerce/woocommerce-pre-orders" "woocommerce-pre-orders.zip"
-
 echo " - Installing"
 redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/deps/woocommerce-pre-orders.zip --force
 

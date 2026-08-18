@@ -34,20 +34,19 @@ We use [Playwright](https://playwright.dev/) as our test runner.
 ### Environment Setup
 
 - Copy the file `/tests/e2e/config/local.env.example` to `/tests/e2e/config/local.env`.
-- Edit the variables on the `local.env` file.
+- Edit the variables on the `local.env` file. Values left as `<placeholder>` are treated as unset.
 
 **Woo Subscriptions and Woo Pre-Orders**
 
-The local Docker setup (`npm run test:e2e-setup` with no `--base_url`) installs both plugins, which live in private repositories. It gets them from the first available of:
+The local Docker setup (`npm run test:e2e-setup` with no `--base_url`) installs both plugins, which live in private repositories. It gets them from the first available source:
 
-1. `GITHUB_TOKEN` in `local.env` — a token with access to both repositories.
-2. The [GitHub CLI](https://cli.github.com/), if you are logged in (`gh auth login`).
-3. `woocommerce-subscriptions.zip` and `woocommerce-pre-orders.zip` placed in `/tests/e2e/deps/`.
+1. Manual `curl` using the `GITHUB_TOKEN` in `local.env` — a token with access to both repositories.
+2. The [GitHub CLI](https://cli.github.com/), if you are logged in with a user with access to the repositories.
+3. `woocommerce-subscriptions.zip` and `woocommerce-pre-orders.zip` files placed in `/tests/e2e/deps/`.
 
-Downloads are kept in /tests/e2e/deps/ (gitignored).
-The latest release is fetched on every run whenever a token or the gh CLI is available, so these copies act as a fallback rather than a cache. This is also how you pin specific plugin versions for a run.
+A source that cannot deliver a zip package moves on to the next one; the setup fails only if none of them can. Both plugins are resolved before the containers are built.
 
-NOTE: a GITHUB_TOKEN that fails to authenticate aborts the setup instead of falling back, so an expired token surfaces as an auth error rather than a silent downgrade to an older zip.
+Downloads are kept in `/tests/e2e/deps/` (gitignored). Whenever a token or the GitHub CLI can deliver, the latest release is downloaded and replaces the copy there, so it is a fallback rather than a cache — a zip you put there is used only when neither of the other sources can.
 
 ### Running tests
 
