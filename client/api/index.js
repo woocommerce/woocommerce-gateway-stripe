@@ -31,6 +31,7 @@ export default class WCStripeAPI {
 		this.stripe = null;
 		this.options = options;
 		this.request = request;
+		this.expressCheckoutNoncesPromise = null;
 	}
 
 	/**
@@ -453,7 +454,12 @@ export default class WCStripeAPI {
 	/**
 	 * Fetches the express checkout wc-ajax nonce bundle, once per page.
 	 *
-	 * @return {Promise<Object>} Promise resolving to the nonce map (empty on failure).
+	 * Only success is memoized: a failed fetch clears the cached promise and
+	 * rejects, so the next lookup (e.g. the actual wallet interaction after a
+	 * transient failure during warm-up) retries instead of being stuck with
+	 * an empty bundle for the page's lifetime.
+	 *
+	 * @return {Promise<Object>} Promise resolving to the nonce map.
 	 */
 	expressCheckoutFetchNonces() {
 		if ( ! this.expressCheckoutNoncesPromise ) {
@@ -463,24 +469,25 @@ export default class WCStripeAPI {
 			)
 				.then( ( response ) => response?.data ?? {} )
 				.catch( ( error ) => {
-				    this.expressCheckoutNoncesPromise = null;
-   				    throw error;
-  			    } );
+					this.expressCheckoutNoncesPromise = null;
+					throw error;
+				} );
 		}
 		return this.expressCheckoutNoncesPromise;
 	}
 
 	/**
-	 * Resolves a single express checkout wc-ajax nonce, falling back to the
-	 * localized params (pages cached before the bundle became lazy still
-	 * embed them) when the fetch fails.
+	 * Resolves a single express checkout wc-ajax nonce.
+	 *
+	 * Rejects when the bundle fetch fails, like any other wc-ajax request in
+	 * this client; the fetch memo is cleared so a later call retries.
 	 *
 	 * @param {string} key Nonce key.
 	 * @return {Promise<string|undefined>} Promise resolving to the nonce value.
 	 */
 	async expressCheckoutGetNonce( key ) {
 		const nonces = await this.expressCheckoutFetchNonces();
-		return nonces[ key ] ?? getExpressCheckoutData( 'nonce' )?.[ key ];
+		return nonces[ key ];
 	}
 
 	/**

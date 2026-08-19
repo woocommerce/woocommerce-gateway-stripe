@@ -68,7 +68,6 @@ describe( 'WCStripeAPI', () => {
 		beforeEach( () => {
 			global.wc_stripe_express_checkout_params = {
 				ajax_url: '/?wc-ajax=%%endpoint%%',
-				nonce: { add_to_cart: 'localized_add_to_cart' },
 			};
 		} );
 
@@ -97,17 +96,26 @@ describe( 'WCStripeAPI', () => {
 			);
 		} );
 
-		// Pages cached before the bundle became lazy still embed the nonces in
-		// their localized params; they must remain usable if the fetch fails.
-		it( 'falls back to the localized nonce when the on-demand fetch fails', async () => {
+		// Warm-up fires on mere hover/touch, so a transient failure there must
+		// not poison the memo: the next lookup (the real interaction) retries.
+		it( 'retries the fetch on the next lookup after a failure', async () => {
 			const request = jest
 				.fn()
-				.mockRejectedValue( new Error( 'network' ) );
+				.mockRejectedValueOnce( new Error( 'network' ) )
+				.mockResolvedValueOnce( {
+					success: true,
+					data: { add_to_cart: 'fresh_add' },
+				} );
 			const api = new WCStripeAPI( {}, request );
 
 			await expect(
 				api.expressCheckoutGetNonce( 'add_to_cart' )
-			).resolves.toBe( 'localized_add_to_cart' );
+			).rejects.toThrow( 'network' );
+			await expect(
+				api.expressCheckoutGetNonce( 'add_to_cart' )
+			).resolves.toBe( 'fresh_add' );
+
+			expect( request ).toHaveBeenCalledTimes( 2 );
 		} );
 
 		it( 'sends the freshly fetched nonce with the wc-ajax request', async () => {

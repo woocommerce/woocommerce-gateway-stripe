@@ -1072,7 +1072,9 @@ jQuery( function ( $ ) {
 		[ 'pointerenter', 'touchstart', 'focusin' ].forEach( ( eventName ) =>
 			eceContainer.addEventListener(
 				eventName,
-				() => api.expressCheckoutFetchNonces(),
+				// Warm-up is best-effort: a failed prefetch rejects (and clears
+				// the memo so the real interaction retries), so swallow it here.
+				() => api.expressCheckoutFetchNonces().catch( () => {} ),
 				{ once: true, passive: true }
 			)
 		);
