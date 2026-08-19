@@ -12,6 +12,8 @@
 
 declare(strict_types=1);
 
+use Automattic\WooCommerce\Enums\ProductType;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -30,6 +32,13 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion {
 	protected const META_KEY = '_wc_stripe_agentic_commerce_exclude';
 
 	/**
+	 * Product types the exclude flag applies to. The feed syncs `simple` and
+	 * `variation`; a variation's parent is `variable`, which is where the flag
+	 * lives (see {@see self::is_excluded()}).
+	 */
+	protected const SUPPORTED_TYPES = [ ProductType::SIMPLE, ProductType::VARIABLE ];
+
+	/**
 	 * The exclude-flag meta key.
 	 *
 	 * @since 10.9.0
@@ -37,6 +46,36 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion {
 	 */
 	public static function get_meta_key(): string {
 		return self::META_KEY;
+	}
+
+	/**
+	 * Product types the exclude flag applies to. Editor surfaces (meta box,
+	 * list table) must share this list so a save through one surface can't
+	 * clobber a flag another surface would have refused to touch.
+	 *
+	 * @since 10.9.0
+	 * @return string[]
+	 */
+	public static function get_supported_types(): array {
+		return self::SUPPORTED_TYPES;
+	}
+
+	/**
+	 * Whether the exclude flag applies to this product.
+	 *
+	 * Single gate for every editor surface (meta box, bulk edit, quick edit,
+	 * column) so a save through one surface can't clobber a flag another
+	 * surface would have refused to touch.
+	 *
+	 * @since 10.9.0
+	 * @param mixed $product Candidate product; anything but a supported WC_Product fails.
+	 * @return bool
+	 *
+	 * @phpstan-assert-if-true WC_Product $product
+	 */
+	public static function supports( $product ): bool {
+		return $product instanceof WC_Product
+			&& in_array( $product->get_type(), self::SUPPORTED_TYPES, true );
 	}
 
 	/**
