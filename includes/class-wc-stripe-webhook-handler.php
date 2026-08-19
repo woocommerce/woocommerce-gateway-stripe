@@ -169,7 +169,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$is_agentic_hook = 0 === strpos( $event_type, 'v1.delegated_checkout.' );
+		$is_agentic_hook = $this->is_agentic_hook_type( $event_type );
 
 		$secret = $is_agentic_hook
 			? (string) get_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, '' )
@@ -239,6 +239,21 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		WC_Stripe_Webhook_State::set_last_webhook_success_at( $event->created );
 		status_header( 200 );
 		exit;
+	}
+
+	/**
+	 * Whether the event type is a synchronous agentic hook rather than a regular webhook.
+	 *
+	 * Matters before dispatch: agentic hooks are signed with the agentic endpoint
+	 * secret, not the regular webhook secret.
+	 *
+	 * @since 10.9.0
+	 * @param string $event_type The event's `type` field.
+	 * @return bool
+	 */
+	protected function is_agentic_hook_type( string $event_type ): bool {
+		return 0 === strpos( $event_type, 'v1.delegated_checkout.' )
+			|| 0 === strpos( $event_type, 'delegated_commerce.' );
 	}
 
 	/**
@@ -2886,6 +2901,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$this->claim_agentic_session( $checkout_session_id );
 					$response = $this->process_agentic_finalize_checkout_hook( $event );
 					break;
+				case 'delegated_commerce.product_price_availability':
+					// This hook carries no checkout session, so there is nothing to claim.
+					$response = $this->process_agentic_price_availability_hook( $event );
+					break;
 				default:
 					WC_Stripe_Logger::error( 'Unsupported agentic hook type: ' . $event_type );
 					status_header( 400 );
@@ -2949,6 +2968,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$manual_approval = new WC_Stripe_Agentic_Commerce_Manual_Approval();
 
 		return $manual_approval->validate( $event );
+	}
+
+	/**
+	 * Handle the product price and availability hook.
+	 *
+	 * Returns real-time pricing and stock for a single SKU so agents don't
+	 * act on stale catalog feed data.
+	 *
+	 * @since 10.9.0
+	 * @param stdClass $event The webhook event from Stripe.
+	 * @return array
+	 */
+	private function process_agentic_price_availability_hook( stdClass $event ): array {
+		$responder = new WC_Stripe_Agentic_Commerce_Price_Availability_Responder();
+
+		return $responder->respond( new WC_Stripe_Agentic_Price_Availability_Event( $event ) );
 	}
 
 	/**
