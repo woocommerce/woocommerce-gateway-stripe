@@ -41,10 +41,7 @@ class WC_Stripe_Remote_Config_Client {
 		}
 
 		$url = add_query_arg(
-			[
-				'mode'           => 'all',
-				'plugin_version' => WC_STRIPE_VERSION,
-			],
+			$this->build_query_args(),
 			self::BASE_URL . self::PATH
 		);
 
@@ -93,5 +90,54 @@ class WC_Stripe_Remote_Config_Client {
 		}
 
 		return $decoded;
+	}
+
+	/**
+	 * Builds the query arguments for the combined `mode=all` request.
+	 *
+	 * Mode-independent signals travel unprefixed; the account country can
+	 * differ between a dual-keyed store's live and test accounts, so it is
+	 * sent per mode under the prefixed names the endpoint contract reserves
+	 * for diverging params (`live_account_country` / `test_account_country`).
+	 * Empty values are dropped from the request entirely.
+	 *
+	 * @return array<string, string>
+	 */
+	private function build_query_args(): array {
+		$args = [
+			'mode'                  => 'all',
+			'plugin_version'        => WC_STRIPE_VERSION,
+			'wc_version'            => WC_VERSION,
+			'live_account_country'  => $this->get_account_country( 'live' ),
+			'test_account_country'  => $this->get_account_country( 'test' ),
+			'store_currency'        => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : '',
+			'subscriptions_enabled' => $this->bool_param( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ),
+			'pre_orders_enabled'    => $this->bool_param( class_exists( 'WC_Pre_Orders' ) ),
+		];
+
+		return array_filter(
+			$args,
+			static function ( $value ) {
+				return '' !== $value;
+			}
+		);
+	}
+
+	/**
+	 * Reads the account country from the mode-prefixed cache.
+	 *
+	 * @param string $mode 'live' or 'test'.
+	 */
+	private function get_account_country( string $mode ): string {
+		$cached = WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $mode );
+		if ( ! is_array( $cached ) || empty( $cached['country'] ) ) {
+			return '';
+		}
+
+		return (string) $cached['country'];
+	}
+
+	private function bool_param( bool $value ): string {
+		return $value ? '1' : '0';
 	}
 }

@@ -87,6 +87,45 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		$this->assertSame( 10, $args['timeout'] );
 	}
 
+	public function test_fetch_all_sends_store_identity_query_params(): void {
+		$this->stub_successful_response();
+		// The account country can differ between a dual-keyed store's live and
+		// test accounts, so both travel under mode-prefixed params.
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, [ 'country' => 'US' ], DAY_IN_SECONDS, 'live' );
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, [ 'country' => 'BR' ], DAY_IN_SECONDS, 'test' );
+
+		$this->client->fetch_all();
+
+		$query = [];
+		wp_parse_str( (string) wp_parse_url( $this->captured_requests[0]['url'], PHP_URL_QUERY ), $query );
+
+		$this->assertSame( 'all', $query['mode'] );
+		$this->assertSame( WC_STRIPE_VERSION, $query['plugin_version'] );
+		$this->assertSame( WC_VERSION, $query['wc_version'] );
+		$this->assertSame( 'US', $query['live_account_country'] );
+		$this->assertSame( 'BR', $query['test_account_country'] );
+		$this->assertSame( get_woocommerce_currency(), $query['store_currency'] );
+		// `WC_Subscriptions` stub is loaded by the test bootstrap; `WC_Pre_Orders` has no stub.
+		$this->assertSame( '1', $query['subscriptions_enabled'] );
+		$this->assertSame( '0', $query['pre_orders_enabled'] );
+
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'live' );
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'test' );
+	}
+
+	public function test_fetch_all_omits_account_countries_when_cache_missing(): void {
+		$this->stub_successful_response();
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'live' );
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'test' );
+
+		$this->client->fetch_all();
+
+		$query = [];
+		wp_parse_str( (string) wp_parse_url( $this->captured_requests[0]['url'], PHP_URL_QUERY ), $query );
+		$this->assertArrayNotHasKey( 'live_account_country', $query );
+		$this->assertArrayNotHasKey( 'test_account_country', $query );
+	}
+
 	public function test_fetch_short_circuits_when_disabled_by_override(): void {
 		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'no' );
 
