@@ -141,29 +141,39 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test ajax_add_to_cart sends wp_send_json_error payload on failure.
+	 * Test ajax_add_to_cart returns the same error for missing and unavailable products.
+	 *
+	 * @dataProvider provide_unavailable_product_scenarios
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_ajax_add_to_cart_returns_error_for_invalid_product() {
+	public function test_ajax_add_to_cart_rejects_unavailable_products( $scenario ) {
 		Ajax_Test_Helper::init_hooks();
+		$product = $this->create_product_for_availability_scenario( $scenario );
+
+		$cart_product = WC_Helper_Product::create_simple_product(
+			true,
+			[ 'sku' => 'CART-' . $scenario ]
+		);
 
 		try {
 			$security_nonce       = wp_create_nonce( 'wc-stripe-add-to-cart' );
 			$_REQUEST['security'] = $security_nonce;
 			$_POST['security']    = $security_nonce;
-			$_POST['product_id']  = 0;
+			$_POST['product_id']  = $product ? $product->get_id() : 0;
 			$_POST['qty']         = 1;
 
 			WC()->session->init();
 			WC()->cart->empty_cart();
+			WC()->cart->add_to_cart( $cart_product->get_id() );
 
 			ob_start();
 			$this->ajax_handler->ajax_add_to_cart();
 			$output = ob_get_clean();
 
 			$response = json_decode( $output, true );
+			$cart_ids = array_values( wp_list_pluck( WC()->cart->get_cart(), 'product_id' ) );
 		} finally {
 			WC()->cart->empty_cart();
 			Ajax_Test_Helper::remove_hooks();
@@ -174,19 +184,74 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'success', $response );
 		$this->assertFalse( $response['success'] );
 		$this->assertArrayHasKey( 'data', $response );
-		$this->assertArrayHasKey( 'message', $response['data'] );
+		$this->assertSame( 'This product is not available for purchase.', $response['data']['message'] );
+		$this->assertSame( [ $cart_product->get_id() ], $cart_ids, 'Validation must not empty the existing cart.' );
 	}
 
 	/**
-	 * Test ajax_add_to_cart returns success payload for a supported simple product.
+	 * Test ajax_get_selected_product_data returns the same error for missing and unavailable products.
+	 *
+	 * @dataProvider provide_unavailable_product_scenarios
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_ajax_add_to_cart_returns_success_for_simple_product() {
+	public function test_ajax_get_selected_product_data_rejects_unavailable_products( $scenario ) {
+		Ajax_Test_Helper::init_hooks();
+		$product = $this->create_product_for_availability_scenario( $scenario );
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-get-selected-product-data' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product ? $product->get_id() : 0;
+			$_POST['qty']         = 1;
+
+			WC()->session->init();
+
+			ob_start();
+			$this->ajax_handler->ajax_get_selected_product_data();
+			$output = ob_get_clean();
+
+			$response = json_decode( $output, true );
+		} finally {
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		$this->assertSame(
+			[ 'error' => 'This product is not available for purchase.' ],
+			$response
+		);
+	}
+
+	/**
+	 * Data provider for unavailable product requests.
+	 *
+	 * @return array
+	 */
+	public function provide_unavailable_product_scenarios() {
+		return [
+			'missing product'    => [ 'missing' ],
+			'draft product'      => [ 'draft' ],
+			'pending product'    => [ 'pending' ],
+			'private product'    => [ 'private' ],
+			'password protected' => [ 'password-protected' ],
+		];
+	}
+
+	/**
+	 * Test ajax_add_to_cart returns success for a published catalog-hidden product.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_add_to_cart_returns_success_for_catalog_hidden_product() {
 		Ajax_Test_Helper::init_hooks();
 
 		$product = WC_Helper_Product::create_simple_product();
+		$product->set_catalog_visibility( 'hidden' );
+		$product->save();
 
 		$this->express_checkout_helper->expects( $this->once() )
 			->method( 'supported_product_types' )
@@ -234,6 +299,209 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 		$this->assertSame( 'success', $response['result'] );
 		$this->assertSame( $display_items['displayItems'], $response['displayItems'] );
 		$this->assertSame( $display_items['total'], $response['total'] );
+	}
+
+	/**
+	 * Test ajax_add_to_cart applies woocommerce_add_to_cart_validation exactly once.
+	 *
+	 * WooCommerce fires this filter in the callers of WC_Cart::add_to_cart() — WC_AJAX,
+	 * WC_Form_Handler, the Store API — never inside add_to_cart() itself, so the explicit
+	 * call here is the only one on this path. A second one would run third-party validators
+	 * twice, against two different cart states.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_add_to_cart_applies_validation_filter_once() {
+		Ajax_Test_Helper::init_hooks();
+
+		$product = WC_Helper_Product::create_simple_product();
+
+		$this->express_checkout_helper->method( 'supported_product_types' )
+			->willReturn( [ ProductType::SIMPLE ] );
+		$this->express_checkout_helper->method( 'build_display_items' )
+			->willReturn(
+				[
+					'displayItems' => [],
+					'total'        => [
+						'label'  => 'Total',
+						'amount' => 1000,
+					],
+				]
+			);
+
+		// Record the arguments too: a bare call count could also be satisfied by an unrelated
+		// firing, e.g. WC_Cart_Session::get_cart_from_session() restoring a stored cart.
+		$calls   = [];
+		$counter = static function ( $passed, $filtered_product_id = null, $filtered_qty = null ) use ( &$calls ) {
+			$calls[] = [ $filtered_product_id, $filtered_qty ];
+			return $passed;
+		};
+
+		add_filter( 'woocommerce_add_to_cart_validation', $counter, 10, 3 );
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-add-to-cart' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = 1;
+
+			WC()->session->init();
+			WC()->cart->empty_cart();
+
+			ob_start();
+			$this->ajax_handler->ajax_add_to_cart();
+			$output = ob_get_clean();
+
+			$cart_count = WC()->cart->get_cart_contents_count();
+		} finally {
+			remove_filter( 'woocommerce_add_to_cart_validation', $counter );
+			WC()->cart->empty_cart();
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		$response = json_decode( $output, true );
+
+		$this->assertSame( 'success', $response['result'], 'The add must succeed so the whole path is exercised.' );
+		$this->assertSame( 1, $cart_count );
+		$this->assertCount( 1, $calls, 'woocommerce_add_to_cart_validation must run exactly once per add.' );
+		$this->assertSame( [ $product->get_id(), 1 ], $calls[0], 'The single call must be the handler\'s own, carrying the requested product and quantity.' );
+	}
+
+	/**
+	 * Test ajax_get_selected_product_data returns data for a published catalog-hidden product.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_get_selected_product_data_returns_catalog_hidden_product() {
+		Ajax_Test_Helper::init_hooks();
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_catalog_visibility( 'hidden' );
+		$product->save();
+
+		$this->express_checkout_helper->method( 'is_invalid_subscription_product' )->willReturn( false );
+		$this->express_checkout_helper->method( 'get_product_price' )->willReturn( 10.0 );
+		$this->express_checkout_helper->method( 'get_taxes_like_cart' )->willReturn( [] );
+		$this->express_checkout_helper->method( 'get_total_label' )->willReturn( 'Total' );
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-get-selected-product-data' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = 1;
+
+			WC()->session->init();
+
+			ob_start();
+			$this->ajax_handler->ajax_get_selected_product_data();
+			$output = ob_get_clean();
+
+			$response = json_decode( $output, true );
+		} finally {
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		$this->assertArrayHasKey( 'displayItems', $response, 'response: ' . wp_json_encode( $response ) );
+		$this->assertSame( $product->get_name(), $response['displayItems'][0]['label'] );
+		$this->assertSame( 1000, $response['displayItems'][0]['amount'] );
+	}
+
+	/**
+	 * Test public products retain WooCommerce's exact remaining-stock feedback.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_get_selected_product_data_preserves_remaining_stock_message() {
+		Ajax_Test_Helper::init_hooks();
+
+		$product = WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'manage_stock'   => true,
+				'stock_quantity' => 7,
+			]
+		);
+
+		$this->express_checkout_helper->method( 'is_invalid_subscription_product' )->willReturn( false );
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-get-selected-product-data' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = 8;
+
+			WC()->session->init();
+
+			ob_start();
+			$this->ajax_handler->ajax_get_selected_product_data();
+			$output = ob_get_clean();
+
+			$response = json_decode( $output, true );
+		} finally {
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		$this->assertStringContainsString( $product->get_name(), $response['error'] );
+		$this->assertStringContainsString( '(7 remaining)', $response['error'] );
+	}
+
+	/**
+	 * Test ajax_add_to_cart honors WooCommerce validation before mutating the cart.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_add_to_cart_honors_woocommerce_validation() {
+		Ajax_Test_Helper::init_hooks();
+
+		$product      = WC_Helper_Product::create_simple_product();
+		$cart_product = WC_Helper_Product::create_simple_product(
+			true,
+			[ 'sku' => 'CART-VALIDATION' ]
+		);
+		$validation   = static function () {
+			wc_add_notice( 'Rejected by WooCommerce validation.', 'error' );
+			return false;
+		};
+
+		add_filter( 'woocommerce_add_to_cart_validation', $validation );
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-add-to-cart' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = 1;
+
+			WC()->session->init();
+			WC()->cart->empty_cart();
+			WC()->cart->add_to_cart( $cart_product->get_id() );
+
+			ob_start();
+			$this->ajax_handler->ajax_add_to_cart();
+			$output = ob_get_clean();
+
+			$response = json_decode( $output, true );
+			$cart_ids = array_values( wp_list_pluck( WC()->cart->get_cart(), 'product_id' ) );
+		} finally {
+			remove_filter( 'woocommerce_add_to_cart_validation', $validation );
+			WC()->cart->empty_cart();
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		$this->assertFalse( $response['success'] );
+		$this->assertSame( 'Rejected by WooCommerce validation.', $response['data']['message'] );
+		$this->assertSame( [ $cart_product->get_id() ], $cart_ids );
 	}
 
 	/**
@@ -547,6 +815,30 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'displayItems', $response, 'response: ' . wp_json_encode( $response ) );
 		$this->assertSame( 0, $response['displayItems'][0]['amount'] );
 		$this->assertSame( 0, $response['total']['amount'] );
+	}
+
+	/**
+	 * Create a product matching an unavailable storefront scenario.
+	 *
+	 * @param string $scenario Product availability scenario.
+	 * @return WC_Product|false
+	 */
+	private function create_product_for_availability_scenario( $scenario ) {
+		if ( 'missing' === $scenario ) {
+			return false;
+		}
+
+		$product = WC_Helper_Product::create_simple_product();
+
+		if ( 'password-protected' === $scenario ) {
+			$product->set_post_password( 'secret' );
+		} else {
+			$product->set_status( $scenario );
+		}
+
+		$product->save();
+
+		return $product;
 	}
 
 	/**

@@ -176,4 +176,40 @@ describe( 'WCStripeAPI', () => {
 			).rejects.toThrow( 'Checkout session ID is required.' );
 		} );
 	} );
+
+	describe( 'createIntent', () => {
+		it( 'includes the order key in the PaymentIntent AJAX request', async () => {
+			const request = jest.fn().mockResolvedValue( {
+				success: true,
+				data: {
+					id: 'pi_test',
+					client_secret: 'pi_test_secret',
+				},
+			} );
+			const api = new WCStripeAPI(
+				{
+					ajax_url: '/?wc-ajax=%%endpoint%%',
+					createPaymentIntentNonce: 'nonce_123',
+				},
+				request
+			);
+
+			await expect(
+				api.createIntent( 123, 'blik', 'wc_order_test_key' )
+			).resolves.toEqual( {
+				id: 'pi_test',
+				client_secret: 'pi_test_secret',
+			} );
+
+			expect( request ).toHaveBeenCalledWith(
+				'/?wc-ajax=wc_stripe_create_payment_intent',
+				{
+					stripe_order_id: 123,
+					payment_method_type: 'blik',
+					order_key: 'wc_order_test_key',
+					_ajax_nonce: 'nonce_123',
+				}
+			);
+		} );
+	} );
 } );

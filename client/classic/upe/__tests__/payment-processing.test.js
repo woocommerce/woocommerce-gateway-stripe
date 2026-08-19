@@ -12,6 +12,10 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 	getBillingDetailsForDeferredFlow: jest.fn().mockReturnValue( null ),
 	getDefaultValues: jest.fn().mockReturnValue( {} ),
 	getExcludedPaymentMethodTypes: jest.fn().mockReturnValue( [] ),
+	getExcludedPaymentMethodTypesForBillingCountry: jest
+		.fn()
+		.mockReturnValue( [] ),
+	getCurrentBillingCountry: jest.fn().mockReturnValue( '' ),
 	getPaymentMethodTypes: jest.fn().mockReturnValue( [ 'card' ] ),
 	getUserDataForCheckoutSession: jest.fn().mockReturnValue( {} ),
 	normalizeReturnUrl: jest.requireActual(
@@ -153,6 +157,26 @@ const createMockPaymentElement = () => ( {
 const MOCK_AP_CHECKOUT_CLIENT_SECRET = 'cs_test_ap_client_secret';
 const MOCK_AP_CHECKOUT_SESSION_ID = 'cs_test_abc';
 
+const setNativeCheckoutSessionData = ( overrides = {} ) => {
+	let dataElement = document.getElementById(
+		'wc-stripe-checkout-session-data'
+	);
+	if ( ! dataElement ) {
+		dataElement = document.createElement( 'div' );
+		dataElement.id = 'wc-stripe-checkout-session-data';
+		document.body.appendChild( dataElement );
+	}
+
+	dataElement.dataset.checkoutSession = JSON.stringify( {
+		session_id: MOCK_AP_CHECKOUT_SESSION_ID,
+		client_secret: MOCK_AP_CHECKOUT_CLIENT_SECRET,
+		revision: 'rev_1',
+		status: 'success',
+		message: '',
+		...overrides,
+	} );
+};
+
 const createMockElements = () => {
 	const checkoutActions = {
 		runServerUpdate: jest.fn( async ( userFunction ) => {
@@ -167,6 +191,7 @@ const createMockElements = () => {
 	};
 	return {
 		create: jest.fn( () => createMockPaymentElement() ),
+		update: jest.fn(),
 		submit: jest.fn( () => Promise.resolve( {} ) ),
 		loadActions: jest.fn( () =>
 			Promise.resolve( { type: 'success', actions: checkoutActions } )
@@ -513,6 +538,7 @@ describe( 'payment-processing', () => {
 
 	describe( 'adaptive pricing enabled (isAdaptivePricingEnabled = true)', () => {
 		beforeEach( () => {
+			setNativeCheckoutSessionData();
 			stripeUtils.getStripeServerData.mockReturnValue( {
 				...BASE_SERVER_DATA,
 				isAdaptivePricingEnabled: true,
@@ -521,6 +547,9 @@ describe( 'payment-processing', () => {
 		} );
 
 		afterEach( () => {
+			document
+				.getElementById( 'wc-stripe-checkout-session-data' )
+				?.remove();
 			jest.clearAllMocks();
 		} );
 
@@ -539,7 +568,9 @@ describe( 'payment-processing', () => {
 
 				await paymentProcessing.mountStripePaymentElement( api, dom );
 
-				expect( api.checkoutSessionsCreateSession ).toHaveBeenCalled();
+				expect(
+					api.checkoutSessionsCreateSession
+				).not.toHaveBeenCalled();
 				expect(
 					api._stripe.initCheckoutElementsSdk
 				).toHaveBeenCalledWith(
@@ -631,9 +662,10 @@ describe( 'payment-processing', () => {
 			it( 'falls back to standard elements when session creation fails', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
-				api.checkoutSessionsCreateSession.mockRejectedValue(
-					new Error( 'Network error' )
-				);
+				setNativeCheckoutSessionData( {
+					client_secret: '',
+					status: 'error',
+				} );
 				const dom = document.createElement( 'div' );
 				dom.dataset.paymentMethodType = 'card';
 
@@ -648,8 +680,9 @@ describe( 'payment-processing', () => {
 			it( 'falls back to standard elements when client_secret or session_id is absent', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
-				api.checkoutSessionsCreateSession.mockResolvedValue( {
-					data: {},
+				setNativeCheckoutSessionData( {
+					client_secret: '',
+					session_id: '',
 				} );
 				const dom = document.createElement( 'div' );
 				dom.dataset.paymentMethodType = 'card';
@@ -665,8 +698,8 @@ describe( 'payment-processing', () => {
 			it( 'falls back to standard elements when session_id is absent', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
-				api.checkoutSessionsCreateSession.mockResolvedValue( {
-					data: { client_secret: MOCK_AP_CHECKOUT_CLIENT_SECRET },
+				setNativeCheckoutSessionData( {
+					session_id: '',
 				} );
 				const dom = document.createElement( 'div' );
 				dom.dataset.paymentMethodType = 'card';
@@ -679,7 +712,7 @@ describe( 'payment-processing', () => {
 				).not.toHaveBeenCalled();
 			} );
 
-			it( 'uses runServerUpdate to call checkoutSessionsUpdateSession after maybeUpdateAdaptivePricingCheckoutSession', async () => {
+			it( 'uses runServerUpdate without calling the custom update endpoint', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
 				const dom = document.createElement( 'div' );
@@ -695,7 +728,7 @@ describe( 'payment-processing', () => {
 				).toHaveBeenCalled();
 				expect(
 					api.checkoutSessionsUpdateSession
-				).toHaveBeenCalledWith( MOCK_AP_CHECKOUT_SESSION_ID );
+				).not.toHaveBeenCalled();
 			} );
 
 			it( 'does not call checkoutSessionsUpdateSession when adaptive pricing is disabled', async () => {
@@ -1069,10 +1102,7 @@ describe( 'payment-processing', () => {
 			it( 'falls back to standard payment flow when session ID is missing from mount', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
-				// Override to not return a session_id — triggers fallback to stripe.elements().
-				api.checkoutSessionsCreateSession.mockResolvedValue( {
-					data: { client_secret: 'cs_test_abc' },
-				} );
+				setNativeCheckoutSessionData( { session_id: '' } );
 				// Fallback elements should NOT have loadActions (like real stripe.elements()).
 				const bareElements = createMockElements();
 				delete bareElements.loadActions;
@@ -1100,10 +1130,7 @@ describe( 'payment-processing', () => {
 			it( 'shows error if checkoutSessionId is null but loadActions exists (defensive)', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
-				// Override to not return a session_id.
-				api.checkoutSessionsCreateSession.mockResolvedValue( {
-					data: { client_secret: 'cs_test_abc' },
-				} );
+				setNativeCheckoutSessionData( { session_id: '' } );
 
 				await mountAndConfigureForProcess( api, checkoutElements, {
 					type: 'success',
@@ -1241,12 +1268,9 @@ describe( 'payment-processing', () => {
 					},
 				],
 				[
-					'the direct session update rejects',
-					( checkoutElements, api ) => {
+					'the element cannot expose runServerUpdate',
+					( checkoutElements ) => {
 						delete checkoutElements.loadActions;
-						api.checkoutSessionsUpdateSession.mockRejectedValueOnce(
-							new Error( 'boom' )
-						);
 					},
 				],
 			] )(
@@ -1268,6 +1292,60 @@ describe( 'payment-processing', () => {
 					).toHaveBeenCalledWith( STALE_TOTAL_MESSAGE );
 				}
 			);
+
+			it( 'stays silent when no element holds a checkout session', async () => {
+				// Nothing mounted through initCheckoutElementsSdk, so the store is on standard
+				// elements and has no session that could go stale.
+				setNativeCheckoutSessionData( {
+					session_id: '',
+					client_secret: '',
+					revision: '',
+					status: 'uninitialized',
+				} );
+				stripeUtils.showErrorCheckout.mockClear();
+
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession();
+
+				expect( stripeUtils.showErrorCheckout ).not.toHaveBeenCalled();
+			} );
+
+			it( 'shows a notice when the server reports a failed synchronization', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				await mountElement( api, checkoutElements );
+
+				setNativeCheckoutSessionData( { status: 'error' } );
+				stripeUtils.showErrorCheckout.mockClear();
+
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession();
+
+				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
+					STALE_TOTAL_MESSAGE
+				);
+				expect(
+					checkoutElements.checkoutActions.runServerUpdate
+				).not.toHaveBeenCalled();
+			} );
+
+			it( 'shows a notice when the server replaced the session the element is bound to', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				await mountElement( api, checkoutElements );
+
+				setNativeCheckoutSessionData( {
+					session_id: 'cs_test_replacement',
+				} );
+				stripeUtils.showErrorCheckout.mockClear();
+
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession();
+
+				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
+					STALE_TOTAL_MESSAGE
+				);
+				expect(
+					checkoutElements.checkoutActions.runServerUpdate
+				).not.toHaveBeenCalled();
+			} );
 
 			it( 'ignores a stale failing resync that settles after a newer successful one', async () => {
 				const checkoutElements = createMockElements();
@@ -1462,6 +1540,10 @@ describe( 'payment-processing', () => {
 				expect( mockJQueryAjax ).not.toHaveBeenCalled();
 
 				// A clean resync lifts the block and the order is created.
+				checkoutElements.loadActions.mockResolvedValue( {
+					type: 'success',
+					actions: checkoutElements.checkoutActions,
+				} );
 				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
 					api
 				);
@@ -2079,5 +2161,113 @@ describe( 'ensureUPEElementMounted', () => {
 				'https://shop.com/checkout/order-received/123/'
 			);
 		} );
+	} );
+} );
+
+describe( 'maybeUpdateOptimizedCheckoutExclusions', () => {
+	beforeEach( () => {
+		jest.clearAllMocks();
+		stripeUtils.getStripeServerData.mockReturnValue( {
+			...BASE_SERVER_DATA,
+			shouldShowOptimizedCheckout: true,
+		} );
+		stripeUtils.getCurrentBillingCountry.mockReturnValue( 'US' );
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[]
+		);
+		paymentProcessing.initializeUPEComponents();
+	} );
+
+	const mountOCElement = async () => {
+		const api = createMockApi( createMockElements() );
+		const dom = document.createElement( 'div' );
+		dom.dataset.paymentMethodType = 'card';
+		await paymentProcessing.mountStripePaymentElement( api, dom );
+		return api._standardElements;
+	};
+
+	it( 'updates the element with the exclusions recomputed for the current country', async () => {
+		const elements = await mountOCElement();
+		stripeUtils.getCurrentBillingCountry.mockReturnValue( 'NL' );
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[ 'affirm' ]
+		);
+
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		expect(
+			stripeUtils.getExcludedPaymentMethodTypesForBillingCountry
+		).toHaveBeenCalledWith( 'NL' );
+		expect( elements.update ).toHaveBeenCalledWith( {
+			excludedPaymentMethodTypes: [ 'affirm' ],
+		} );
+	} );
+
+	it( 'skips the Stripe update when the exclusions are unchanged', async () => {
+		const elements = await mountOCElement();
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[ 'affirm' ]
+		);
+
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		expect( elements.update ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'does not re-send the exclusions already applied at element creation', async () => {
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[ 'affirm' ]
+		);
+		const elements = await mountOCElement();
+
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		expect( elements.update ).not.toHaveBeenCalled();
+	} );
+
+	it( 'pushes new exclusions when the billing country changes', async () => {
+		const elements = await mountOCElement();
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[ 'ideal' ]
+		);
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		// A hidden method must re-surface when the new country allows it.
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[]
+		);
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		expect( elements.update ).toHaveBeenCalledTimes( 2 );
+		expect( elements.update ).toHaveBeenLastCalledWith( {
+			excludedPaymentMethodTypes: [],
+		} );
+	} );
+
+	it( 'is a no-op when Optimized Checkout is disabled', () => {
+		stripeUtils.getStripeServerData.mockReturnValue( {
+			...BASE_SERVER_DATA,
+			shouldShowOptimizedCheckout: false,
+		} );
+
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		expect(
+			stripeUtils.getExcludedPaymentMethodTypesForBillingCountry
+		).not.toHaveBeenCalled();
+	} );
+
+	it( 'is a no-op when the elements instance has no update()', async () => {
+		const elements = await mountOCElement();
+		delete elements.update;
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockClear();
+
+		expect( () =>
+			paymentProcessing.maybeUpdateOptimizedCheckoutExclusions()
+		).not.toThrow();
+		expect(
+			stripeUtils.getExcludedPaymentMethodTypesForBillingCountry
+		).not.toHaveBeenCalled();
 	} );
 } );

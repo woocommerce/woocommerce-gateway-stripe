@@ -53,25 +53,27 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Creates a mock main gateway with oc_enabled set appropriately.
+	 * Creates a mock main gateway of the right class for the requested OCS state.
 	 *
-	 * Uses `onlyMethods` so that `is_oc_enabled()` uses the real property-backed
-	 * implementation (reads `$this->oc_enabled`) rather than the default PHPUnit
-	 * stub (which returns null). `get_upe_enabled_payment_method_ids()` is mocked
-	 * to return a safe array so that the OCS-disabled sync path works without
-	 * needing a fully-initialised gateway or live settings.
+	 * When OCS is enabled, the main gateway under production is {@see WC_Stripe_OCS_Payment_Gateway}
+	 * (selected by {@see WC_Stripe::get_main_stripe_gateway()}). To keep the tests close to
+	 * production, this helper mirrors that: non-OCS tests get a {@see WC_Stripe_UPE_Payment_Gateway}
+	 * mock and OCS tests get an OCS mock. `is_optimized_checkout_active()` is mocked directly so
+	 * tests do not need to set up page/session state.
 	 *
 	 * @param bool $ocs_enabled Whether OCS should be enabled on the mock.
-	 * @return object PHPUnit partial mock of WC_Stripe_UPE_Payment_Gateway.
+	 * @return object PHPUnit partial mock of the appropriate gateway class.
 	 */
 	private function get_mock_gateway( bool $ocs_enabled ): object {
-		$mock_gateway             = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+		$class                    = $ocs_enabled ? WC_Stripe_OCS_Payment_Gateway::class : WC_Stripe_UPE_Payment_Gateway::class;
+		$mock_gateway             = $this->getMockBuilder( $class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_upe_enabled_payment_method_ids' ] )
+			->onlyMethods( [ 'get_upe_enabled_payment_method_ids', 'is_optimized_checkout_active' ] )
 			->getMock();
 		$mock_gateway->oc_enabled = $ocs_enabled;
 		$mock_gateway->method( 'get_upe_enabled_payment_method_ids' )
 			->willReturn( [ WC_Stripe_Payment_Methods::CARD ] );
+		$mock_gateway->method( 'is_optimized_checkout_active' )->willReturn( $ocs_enabled );
 		return $mock_gateway;
 	}
 
