@@ -254,8 +254,8 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The last in-cycle retry failing must not schedule another attempt; the
-	 * next contact is the daily run. The failure is still counted.
+	 * The last in-cycle retry failing must not schedule another attempt but
+	 * must still count the failure.
 	 */
 	public function test_last_retry_failure_schedules_no_further_attempt(): void {
 		if ( ! function_exists( 'as_next_scheduled_action' ) ) {
@@ -286,8 +286,7 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A successful fetch must reset the consecutive-failure counter so the
-	 * count always reflects the current outage, not history.
+	 * A successful fetch must reset the consecutive-failure counter.
 	 */
 	public function test_successful_fetch_resets_failure_counter(): void {
 		$this->configure_modes( true, false );

@@ -20,22 +20,18 @@ class WC_Stripe_Remote_Config_Scheduler {
 	public const SCHEDULER_GROUP = 'woocommerce-gateway-stripe';
 
 	/**
-	 * Option tracking consecutive failed fetches. Reset on the first
-	 * successful fetch; never autoloaded.
+	 * Consecutive failed fetches; reset on the first success. Never autoloaded.
 	 */
 	public const FAILURE_COUNT_OPTION = '_wcstripe_remote_config_sync_failures';
 
 	/**
-	 * Delays (seconds) before each in-cycle retry after a failed fetch: a run
-	 * at attempt N that fails schedules attempt N+1 after RETRY_DELAYS[N].
-	 * Past the end of the list, the sync waits for the next daily run, so a
-	 * fully failed cycle contacts the endpoint three times per day.
+	 * Backoff delays: a failed run at attempt N schedules attempt N+1 after
+	 * RETRY_DELAYS[N]; past the end, the next contact is the daily run.
 	 */
 	protected const RETRY_DELAYS = [ HOUR_IN_SECONDS, 4 * HOUR_IN_SECONDS ];
 
 	/**
-	 * Cache age (seconds) past which a failed fetch logs at warning level:
-	 * remote flag changes have not reached this site for this long.
+	 * Cache age (seconds) past which a failed fetch logs at warning level.
 	 */
 	protected const STALENESS_WARNING_SECONDS = 7 * DAY_IN_SECONDS;
 
@@ -131,12 +127,8 @@ class WC_Stripe_Remote_Config_Scheduler {
 	}
 
 	/**
-	 * Records a failed fetch and schedules the next in-cycle retry.
-	 *
-	 * The cache is deliberately left untouched: last-known-good wins until a
-	 * fetch succeeds, however stale it gets. Expiring values back to local
-	 * defaults would re-enable a remotely disabled feature on exactly the
-	 * sites the disable can no longer reach.
+	 * Records a failed fetch and schedules the next in-cycle retry. The cache
+	 * is left untouched: last-known-good wins (see WC_Stripe_Remote_Config).
 	 *
 	 * @param WP_Error $error   The fetch failure.
 	 * @param int      $attempt In-cycle attempt number of the failed run.
@@ -162,8 +154,6 @@ class WC_Stripe_Remote_Config_Scheduler {
 			],
 		];
 
-		// A long-unreachable endpoint means remote flag changes are no longer
-		// arriving; escalate so the staleness is visible in the logs.
 		if ( $this->is_cache_stale( $ages ) ) {
 			WC_Stripe_Logger::warning( 'Stripe remote-config: fetch failed and cache is stale; keeping last-known-good values.', $context );
 		} else {
@@ -174,10 +164,8 @@ class WC_Stripe_Remote_Config_Scheduler {
 	}
 
 	/**
-	 * Whether a connected mode's cached config is older than the warning threshold.
-	 *
-	 * A mode with no cache at all is not stale: it holds no remote overrides,
-	 * so the site already runs on local defaults.
+	 * Whether a connected mode's cached config is older than the warning
+	 * threshold. An uncached mode is not stale: it holds no remote overrides.
 	 *
 	 * @param array<string, int|null> $ages Cache age per mode, null when uncached.
 	 * @return bool
@@ -193,10 +181,8 @@ class WC_Stripe_Remote_Config_Scheduler {
 	}
 
 	/**
-	 * Schedules the next retry attempt after a failed fetch, with backoff.
-	 *
-	 * Only transport-level failures are retried: a disabled channel is a
-	 * deliberate state, and retrying it sooner cannot change the outcome.
+	 * Schedules the next retry attempt with backoff. The deliberate
+	 * disabled-channel error is not retried.
 	 *
 	 * @param WP_Error $error   The fetch failure.
 	 * @param int      $attempt In-cycle attempt number of the failed run.
