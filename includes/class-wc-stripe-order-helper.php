@@ -1186,9 +1186,7 @@ class WC_Stripe_Order_Helper {
 		$details['address']['postal_code'] = $order->get_billing_postcode();
 		$details['address']['country']     = $order->get_billing_country();
 
-		/**
-		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-		 */
+		/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 		return (object) apply_filters( 'wc_stripe_owner_details', $details, $order );
 	}
 
