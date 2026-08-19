@@ -462,7 +462,10 @@ export default class WCStripeAPI {
 				{}
 			)
 				.then( ( response ) => response?.data ?? {} )
-				.catch( () => ( {} ) );
+				.catch( ( error ) => {
+				    this.expressCheckoutNoncesPromise = null;
+   				    throw error;
+  			    } );
 		}
 		return this.expressCheckoutNoncesPromise;
 	}
