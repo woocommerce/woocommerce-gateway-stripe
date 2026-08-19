@@ -56,7 +56,7 @@ fetch_plugin_zip() {
 	mkdir -p "$DEPS_DIR"
 
 	if [[ -n "$GITHUB_TOKEN" ]]; then
-		echo " - Fetching latest version with GITHUB_TOKEN"
+		echo " - Fetching $repo latest version with GITHUB_TOKEN"
 
 		local asset_id
 		asset_id=$(curl -sfH "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/releases/latest" | jq -r '.assets[0].id // empty')
@@ -75,7 +75,7 @@ fetch_plugin_zip() {
 	fi
 
 	if command -v gh > /dev/null 2>&1; then
-		echo " - Fetching latest version with the GitHub CLI"
+		echo " - Fetching $repo latest version with the GitHub CLI"
 
 		if redirect_output gh release download --repo "$repo" --pattern '*.zip' --output "$tmp" --clobber; then
 			mv "$tmp" "$dest"
