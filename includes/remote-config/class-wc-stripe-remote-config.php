@@ -17,7 +17,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Last-known-good wins indefinitely: there is no TTL-based expiry of the cache
  * itself. A schema or HTTP failure discards the new payload and keeps the
- * existing cache (circuit breaker).
+ * existing cache (circuit breaker). This is deliberate: expiring stale values
+ * back to local defaults would re-enable a remotely disabled feature on
+ * exactly the sites the disable can no longer reach. Recovery from a
+ * permanently unreachable endpoint is therefore manual: delete the per-mode
+ * option (e.g. via wp-cli) or disable the channel via the internal override.
  */
 class WC_Stripe_Remote_Config {
 
@@ -204,6 +208,21 @@ class WC_Stripe_Remote_Config {
 			'fetched_at' => (int) $cache['fetched_at'],
 			'flags'      => $cache['flags'],
 		];
+	}
+
+	/**
+	 * Age of the cached config for the given mode, in seconds.
+	 *
+	 * @param string $mode 'live' or 'test'.
+	 * @return int|null Seconds since the last successful fetch, or null when
+	 *                  no cache is stored or it carries no usable timestamp.
+	 */
+	public function get_cache_age( string $mode ): ?int {
+		$cache = $this->get_cache( $mode );
+		if ( null === $cache || empty( $cache['fetched_at'] ) ) {
+			return null;
+		}
+		return max( 0, time() - (int) $cache['fetched_at'] );
 	}
 
 	/**

@@ -19,6 +19,7 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 		delete_option( '_wcstripe_remote_config_test' );
+		delete_option( WC_Stripe_Remote_Config_Scheduler::FAILURE_COUNT_OPTION );
 		if ( function_exists( 'as_unschedule_all_actions' ) ) {
 			as_unschedule_all_actions( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], 'woocommerce-gateway-stripe' );
 		}
@@ -26,6 +27,7 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 
 	public function tear_down(): void {
 		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
+		delete_option( WC_Stripe_Remote_Config_Scheduler::FAILURE_COUNT_OPTION );
 		if ( function_exists( 'as_unschedule_all_actions' ) ) {
 			as_unschedule_all_actions( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], 'woocommerce-gateway-stripe' );
 		}
@@ -198,6 +200,105 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 		$rc = new WC_Stripe_Remote_Config();
 		( new WC_Stripe_Remote_Config_Scheduler( $err_client, $rc ) )->run();
 		$this->assertNull( $rc->get_flag( 'optimized_checkout', 'live' ) );
+	}
+
+	/**
+	 * Builds a scheduler whose client always fails with the given error code.
+	 *
+	 * @param string $error_code WP_Error code the client returns.
+	 * @return WC_Stripe_Remote_Config_Scheduler
+	 */
+	private function get_failing_scheduler( string $error_code = 'wc_stripe_remote_config_http_error' ): WC_Stripe_Remote_Config_Scheduler {
+		$client = $this->createMock( WC_Stripe_Remote_Config_Client::class );
+		$client->method( 'fetch_all' )->willReturn( new WP_Error( $error_code, 'boom' ) );
+
+		return new WC_Stripe_Remote_Config_Scheduler( $client, new WC_Stripe_Remote_Config() );
+	}
+
+	/**
+	 * A failed fetch must schedule the next backoff retry at the delay for its
+	 * attempt number and increment the consecutive-failure counter.
+	 *
+	 * @param int $attempt        In-cycle attempt number of the failing run.
+	 * @param int $expected_delay Expected seconds until the scheduled retry.
+	 *
+	 * @dataProvider provide_retry_attempts
+	 */
+	public function test_failed_fetch_schedules_backoff_retry( int $attempt, int $expected_delay ): void {
+		if ( ! function_exists( 'as_next_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		$this->configure_modes( true, false );
+
+		$before = time();
+		$this->get_failing_scheduler()->run( $attempt );
+
+		$timestamp = as_next_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [ $attempt + 1 ], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP );
+		$this->assertIsInt( $timestamp, 'A retry must be scheduled for the next attempt.' );
+		$this->assertGreaterThanOrEqual( $before + $expected_delay, $timestamp );
+		$this->assertLessThanOrEqual( time() + $expected_delay, $timestamp );
+		$this->assertSame( 1, (int) get_option( WC_Stripe_Remote_Config_Scheduler::FAILURE_COUNT_OPTION ) );
+	}
+
+	/**
+	 * Data provider for {@see test_failed_fetch_schedules_backoff_retry()}.
+	 *
+	 * @return array
+	 */
+	public function provide_retry_attempts(): array {
+		return [
+			'first failure retries in 1h'  => [ 0, HOUR_IN_SECONDS ],
+			'second failure retries in 4h' => [ 1, 4 * HOUR_IN_SECONDS ],
+		];
+	}
+
+	/**
+	 * The last in-cycle retry failing must not schedule another attempt; the
+	 * next contact is the daily run. The failure is still counted.
+	 */
+	public function test_last_retry_failure_schedules_no_further_attempt(): void {
+		if ( ! function_exists( 'as_next_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		$this->configure_modes( true, false );
+
+		$this->get_failing_scheduler()->run( 2 );
+
+		$this->assertFalse( as_next_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [ 3 ], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP ) );
+		$this->assertSame( 1, (int) get_option( WC_Stripe_Remote_Config_Scheduler::FAILURE_COUNT_OPTION ) );
+	}
+
+	/**
+	 * The deliberate disabled-channel error must not spawn a retry chain.
+	 */
+	public function test_disabled_error_is_not_retried(): void {
+		if ( ! function_exists( 'as_next_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		$this->configure_modes( true, false );
+
+		$this->get_failing_scheduler( 'wc_stripe_remote_config_disabled' )->run();
+
+		$this->assertFalse( as_next_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [ 1 ], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP ) );
+	}
+
+	/**
+	 * A successful fetch must reset the consecutive-failure counter so the
+	 * count always reflects the current outage, not history.
+	 */
+	public function test_successful_fetch_resets_failure_counter(): void {
+		$this->configure_modes( true, false );
+		update_option( WC_Stripe_Remote_Config_Scheduler::FAILURE_COUNT_OPTION, 5, false );
+
+		$client = $this->createMock( WC_Stripe_Remote_Config_Client::class );
+		$client->method( 'fetch_all' )->willReturn( $this->get_mock_combined_payload( false, true ) );
+
+		( new WC_Stripe_Remote_Config_Scheduler( $client, new WC_Stripe_Remote_Config() ) )->run();
+
+		$this->assertSame( 0, (int) get_option( WC_Stripe_Remote_Config_Scheduler::FAILURE_COUNT_OPTION, 0 ) );
 	}
 
 	/**
