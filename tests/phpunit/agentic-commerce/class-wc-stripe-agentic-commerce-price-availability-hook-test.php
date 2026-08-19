@@ -184,6 +184,71 @@ class WC_Stripe_Agentic_Commerce_Price_Availability_Hook_Test extends WP_UnitTes
 	}
 
 	/**
+	 * Price getters are filterable, so a filter returning a non-numeric or
+	 * negative value must omit the price rather than quote 0.00.
+	 *
+	 * @dataProvider provide_invalid_filtered_values
+	 * @param mixed $invalid_value The value a third-party filter returns.
+	 */
+	public function test_respond_omits_price_when_filtered_value_is_invalid( $invalid_value ) {
+		$product = $this->create_product( [ 'sku' => 'PA-BAD-PRICE-' . uniqid() ] );
+
+		add_filter( 'woocommerce_product_get_regular_price', fn() => $invalid_value );
+
+		$response = $this->responder->respond( $this->build_event( $product->get_sku() ) );
+
+		$this->assertArrayNotHasKey( 'price', $response );
+	}
+
+	/**
+	 * Same guard for the sale price: an invalid filtered value must read as
+	 * "no sale", not as a free product.
+	 *
+	 * @dataProvider provide_invalid_filtered_values
+	 * @param mixed $invalid_value The value a third-party filter returns.
+	 */
+	public function test_respond_omits_sale_price_when_filtered_value_is_invalid( $invalid_value ) {
+		$product = $this->create_product( [ 'sku' => 'PA-BAD-SALE-' . uniqid() ] );
+
+		add_filter( 'woocommerce_product_get_sale_price', fn() => $invalid_value );
+
+		$response = $this->responder->respond( $this->build_event( $product->get_sku() ) );
+
+		$this->assertArrayNotHasKey( 'sale_price', $response );
+	}
+
+	/**
+	 * A filtered non-numeric stock quantity must be omitted instead of being
+	 * cast to 0, which would read as sold out.
+	 */
+	public function test_respond_omits_quantity_when_filtered_value_is_not_numeric() {
+		$product = $this->create_product( [ 'sku' => 'PA-BAD-QTY-' . uniqid() ] );
+		$product->set_manage_stock( true );
+		$product->set_stock_quantity( 5 );
+		$product->save();
+
+		add_filter( 'woocommerce_product_get_stock_quantity', fn() => 'soon' );
+
+		$response = $this->responder->respond( $this->build_event( $product->get_sku() ) );
+
+		$this->assertArrayNotHasKey( 'quantity', $response['availability'] );
+	}
+
+	/**
+	 * Invalid values a price filter can return.
+	 *
+	 * @return array[]
+	 */
+	public function provide_invalid_filtered_values(): array {
+		return [
+			'false'              => [ false ],
+			'null'               => [ null ],
+			'non-numeric string' => [ 'contact us' ],
+			'negative price'     => [ '-5.00' ],
+		];
+	}
+
+	/**
 	 * A product on sale must report the sale price separately from the regular
 	 * price, with the configured sale date range.
 	 */

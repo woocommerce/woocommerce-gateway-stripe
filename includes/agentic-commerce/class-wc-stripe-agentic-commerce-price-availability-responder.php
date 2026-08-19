@@ -55,8 +55,11 @@ class WC_Stripe_Agentic_Commerce_Price_Availability_Responder {
 		// separately; mirror that split so the real-time answer matches the
 		// catalog. Delegated checkout applies no WooCommerce cart discounts,
 		// so catalog prices are the authoritative selling prices here.
+		// Price getters run through product filters, so the value is untrusted:
+		// a filter returning false/non-numeric would otherwise be cast to 0.00
+		// and quote the product as free. Omit the price instead.
 		$regular_price = $product->get_regular_price();
-		if ( '' !== $regular_price ) {
+		if ( is_numeric( $regular_price ) && 0 <= (float) $regular_price ) {
 			$response['price'] = [
 				'unit_amount' => WC_Stripe_Helper::get_stripe_amount( (float) $regular_price, $currency ),
 				'currency'    => strtolower( $currency ),
@@ -134,8 +137,11 @@ class WC_Stripe_Agentic_Commerce_Price_Availability_Responder {
 
 		$availability = [ 'status' => $status ];
 
-		if ( $product->managing_stock() && null !== $product->get_stock_quantity() ) {
-			$availability['quantity'] = (int) $product->get_stock_quantity();
+		// The quantity getter is filterable, so guard against non-numeric
+		// values rather than casting them to 0 (which would read as sold out).
+		$quantity = $product->get_stock_quantity();
+		if ( $product->managing_stock() && is_numeric( $quantity ) ) {
+			$availability['quantity'] = (int) $quantity;
 		}
 
 		return $availability;
@@ -150,9 +156,11 @@ class WC_Stripe_Agentic_Commerce_Price_Availability_Responder {
 	 * @return array|null Sale price payload, or null when the product has no sale price.
 	 */
 	private function get_sale_price( WC_Product $product, string $currency ): ?array {
+		// Same untrusted-filter guard as the regular price: treat a
+		// false/non-numeric filtered value as "no sale" instead of 0.00.
 		$sale_price = $product->get_sale_price();
 
-		if ( '' === $sale_price || null === $sale_price ) {
+		if ( ! is_numeric( $sale_price ) || 0 > (float) $sale_price ) {
 			return null;
 		}
 
