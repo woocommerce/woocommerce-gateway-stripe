@@ -391,8 +391,16 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * @return void
 	 */
 	public function sync_inventory(): void {
-		if ( 'yes' !== get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' ) ) {
+		if ( ! WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
 			WC_Stripe_Logger::info( 'Agentic Commerce: Inventory sync skipped - feature not enabled' );
+			return;
+		}
+
+		// Same gate as the full catalog sync: no delta may push before the
+		// catalog itself is allowed to. Pending entries are retained so the
+		// full sync covers them once onboarding completes.
+		if ( ! WC_Stripe_Agentic_Commerce_Integration::is_onboarding_complete() ) {
+			WC_Stripe_Logger::info( 'Agentic Commerce: Inventory sync skipped - onboarding incomplete' );
 			return;
 		}
 
@@ -551,6 +559,14 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	public function sync_archives(): void {
 		if ( ! WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
 			WC_Stripe_Logger::info( 'Agentic Commerce: Archive sync skipped - feature not enabled' );
+			return;
+		}
+
+		// Same gate as the full catalog sync: no delta may push before the
+		// catalog itself is allowed to. Post-onboarding disables are handled
+		// by the final checkout-disabled feed, not by archive deltas.
+		if ( ! WC_Stripe_Agentic_Commerce_Integration::is_onboarding_complete() ) {
+			WC_Stripe_Logger::info( 'Agentic Commerce: Archive sync skipped - onboarding incomplete' );
 			return;
 		}
 
