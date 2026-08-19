@@ -2445,7 +2445,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * This includes:
 	 * - checkout.session.expired event; Fires when a Stripe Checkout session expires before the customer completes payment.
 	 * - checkout.session.async_payment_failed event; Fires when an asynchronous payment method on a Stripe Checkout session fails.
-	 * Marks the associated WooCommerce order as failed.
+	 * When the checkout session has expired, we mark the order as cancelled.
+	 * When the checkout session has a failed payment method, we mark the order as failed.
 	 *
 	 * @param object $notification The Stripe notification containing the checkout session data.
 	 */
@@ -2505,30 +2506,115 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		$is_expired = 'checkout.session.expired' === $notification->type;
+
 		try {
 			if ( $order_helper->is_stripe_status_final( $order ) ) {
 				return;
 			}
 
-			if ( $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::FAILED ] ) ) {
+			if ( $order->is_paid() || $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::FAILED ] ) ) {
 				return;
 			}
 
-			$message = 'checkout.session.expired' === $notification->type ? __( 'The checkout session has expired.', 'woocommerce-gateway-stripe' ) : __( 'The async payment for this checkout session has failed.', 'woocommerce-gateway-stripe' );
+			// Core's wc_cancel_unpaid_orders() usually cancels the pending order at the hold-stock
+			// timeout, well inside Stripe's 24h session TTL, so the expiry event routinely arrives on an
+			// already-cancelled order. Async failures must still be able to mark such an order failed.
+			if ( $is_expired && $order->has_status( OrderStatus::CANCELLED ) ) {
+				return;
+			}
 
-			$status_update         = [];
-			$status_update['from'] = $order->get_status();
-			$status_update['to']   = OrderStatus::FAILED;
-			$order->update_status( OrderStatus::FAILED, $message );
+			if ( $is_expired ) {
+				$this->cancel_expired_checkout_session_order( $order );
+			} else {
+				$status_update         = [];
+				$status_update['from'] = $order->get_status();
+				$status_update['to']   = OrderStatus::FAILED;
+
+				$order->update_status( OrderStatus::FAILED, __( 'The async payment for this checkout session has failed.', 'woocommerce-gateway-stripe' ) );
+			}
 
 			/**
 			 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
 			 */
 			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, null );
 
-			$this->send_failed_order_email( $order->get_id(), $status_update );
+			if ( ! $is_expired ) {
+				$this->send_failed_order_email( $order->get_id(), $status_update );
+			}
 		} finally {
 			$order_helper->unlock_order_payment( $order );
+		}
+	}
+
+	/**
+	 * Cancels an order whose Stripe Checkout Session expired.
+	 *
+	 * No payment was ever attempted, so neither party is notified by default. WooCommerce only fires
+	 * its cancelled-order emails on some transitions — never on pending to cancelled for the customer
+	 * email — so its automatic send is suppressed here and the emails are dispatched explicitly, which
+	 * keeps both filters meaningful whichever status the order was in.
+	 *
+	 * @param WC_Order $order The order to cancel.
+	 * @return void
+	 */
+	private function cancel_expired_checkout_session_order( WC_Order $order ): void {
+		/**
+		 * Whether to email the customer when an order is cancelled because its Stripe Checkout
+		 * Session expired. This only applies to immediate, non-deferred WooCommerce email sends when the
+		 * customer cancelled order email is enabled.
+		 *
+		 * @param bool     $should_send Whether to send the email. Default false.
+		 * @param WC_Order $order       The cancelled order.
+		 *
+		 * @since 10.9.0
+		 */
+		$send_to_customer = (bool) apply_filters( 'wc_stripe_checkout_session_expired_should_send_cancelled_order_email_to_customer', false, $order );
+
+		/**
+		 * Whether to email the merchant when an order is cancelled because its Stripe Checkout
+		 * Session expired. This only applies to immediate, non-deferred WooCommerce email sends when the
+		 * merchant cancelled order email is enabled.
+		 *
+		 * @param bool     $should_send Whether to send the email. Default false.
+		 * @param WC_Order $order       The cancelled order.
+		 *
+		 * @since 10.9.0
+		 */
+		$send_to_merchant = (bool) apply_filters( 'wc_stripe_checkout_session_expired_should_send_cancelled_order_email_to_merchant', false, $order );
+
+		$order_id = $order->get_id();
+
+		$return_false_for_order = static function ( $enabled, $email_order ) use ( $order_id ) {
+			if ( $email_order instanceof WC_Order && $email_order->get_id() === $order_id ) {
+				return false;
+			}
+			return $enabled;
+		};
+		add_filter( 'woocommerce_email_enabled_customer_cancelled_order', $return_false_for_order, 10, 2 );
+		add_filter( 'woocommerce_email_enabled_cancelled_order', $return_false_for_order, 10, 2 );
+
+		try {
+			$order->update_status( OrderStatus::CANCELLED, __( 'The checkout session has expired.', 'woocommerce-gateway-stripe' ) );
+		} finally {
+			remove_filter( 'woocommerce_email_enabled_customer_cancelled_order', $return_false_for_order, 10 );
+			remove_filter( 'woocommerce_email_enabled_cancelled_order', $return_false_for_order, 10 );
+		}
+
+		if ( ! $send_to_customer && ! $send_to_merchant ) {
+			return;
+		}
+
+		$emails         = WC()->mailer()->get_emails();
+		$customer_email = $emails['WC_Email_Customer_Cancelled_Order'] ?? null;
+		$merchant_email = $emails['WC_Email_Cancelled_Order'] ?? null;
+
+		if ( $send_to_customer && $customer_email instanceof WC_Email_Customer_Cancelled_Order ) {
+			$customer_email->trigger( $order->get_id(), $order );
+		}
+
+		if ( $send_to_merchant && $merchant_email instanceof WC_Email_Cancelled_Order ) {
+			$merchant_email->trigger( $order->get_id(), $order );
 		}
 	}
 

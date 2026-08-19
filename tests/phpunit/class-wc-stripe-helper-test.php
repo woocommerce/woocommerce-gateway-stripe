@@ -47,6 +47,75 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `is_valid_stripe_id`.
+	 *
+	 * @param mixed             $id       The value to validate.
+	 * @param string|array|null $prefixes Allowed prefix(es).
+	 * @param bool              $expected Whether the value should be considered a valid Stripe ID.
+	 * @return void
+	 * @dataProvider provide_is_valid_stripe_id
+	 */
+	public function test_is_valid_stripe_id( $id, $prefixes, bool $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::is_valid_stripe_id( $id, $prefixes ) );
+	}
+
+	/**
+	 * Data provider for `test_is_valid_stripe_id`.
+	 *
+	 * Covers the payment-method grammar used at the checkout boundary as well as the structural
+	 * delimiters that must never be accepted, since the value is concatenated into Stripe API paths.
+	 *
+	 * @return array
+	 */
+	public function provide_is_valid_stripe_id(): array {
+		$pm_prefixes = [ 'pm', 'src', 'card' ];
+
+		return [
+			// Valid identifiers.
+			'valid pm'                     => [ 'pm_1MqLiJLkdIwHu7ixUEgbFdYF', $pm_prefixes, true ],
+			'valid src'                    => [ 'src_1AbCdEfGhIjKlMnO', $pm_prefixes, true ],
+			'valid legacy card'            => [ 'card_1AbCdEfGhIjKlMnO', $pm_prefixes, true ],
+			'valid with any prefix'        => [ 'cus_1AbCdEfG', null, true ],
+			'valid explicit single prefix' => [ 'seti_1AbCdEfG', 'seti', true ],
+			'minimum valid token'          => [ 'pm_a', $pm_prefixes, true ],
+			'underscores within token'     => [ 'pm_a_b_c', $pm_prefixes, true ],
+
+			// Wrong prefix for the allowed set.
+			'disallowed prefix'            => [ 'cus_1AbCdEfG', $pm_prefixes, false ],
+			'prefix mismatch'              => [ 'seti_1AbCdEfG', 'pm', false ],
+
+			// An empty allow-list (or empty prefix string) must validate nothing, not accept "_token".
+			'empty prefix array'           => [ '_x', [], false ],
+			'empty explicit prefix'        => [ '_x', '', false ],
+
+			// Structural delimiters that survive sanitize_text_field() but must be rejected.
+			'path traversal / attach'      => [ 'pm_1AbC/../setup_intents', $pm_prefixes, false ],
+			'slash'                        => [ 'pm_1AbC/extra', $pm_prefixes, false ],
+			'dot segment'                  => [ 'pm_1AbC.setup', $pm_prefixes, false ],
+			'query delimiter'              => [ 'pm_1AbC?foo=bar', $pm_prefixes, false ],
+			'ampersand'                    => [ 'pm_1AbC&foo=bar', $pm_prefixes, false ],
+			'equals'                       => [ 'pm_1AbC=bar', $pm_prefixes, false ],
+			'fragment'                     => [ 'pm_1AbC#frag', $pm_prefixes, false ],
+			'bracket'                      => [ 'pm_1AbC[0]', $pm_prefixes, false ],
+			'full retargeting payload'     => [ '../setup_intents?payment_method_types[]=card&usage=on_session#', $pm_prefixes, false ],
+			'newline control char'         => [ "pm_1AbC\nfoo", $pm_prefixes, false ],
+			'trailing newline'             => [ "pm_1AbC\n", $pm_prefixes, false ],
+
+			// Malformed shapes.
+			'empty string'                 => [ '', $pm_prefixes, false ],
+			'no prefix separator'          => [ 'pm1AbC', $pm_prefixes, false ],
+			'prefix only'                  => [ 'pm_', $pm_prefixes, false ],
+			'non-string'                   => [ 12345, $pm_prefixes, false ],
+			'null value'                   => [ null, $pm_prefixes, false ],
+			'pm max length (255 total)'    => [ 'pm_' . str_repeat( 'a', 252 ), $pm_prefixes, true ],
+			'src max length (255 total)'   => [ 'src_' . str_repeat( 'a', 251 ), $pm_prefixes, true ],
+			'card max length (255 total)'  => [ 'card_' . str_repeat( 'a', 250 ), $pm_prefixes, true ],
+			'over length (256 total)'      => [ 'pm_' . str_repeat( 'a', 253 ), $pm_prefixes, false ],
+			'long prefix over 255'         => [ str_repeat( 'a', 260 ) . '_x', null, false ],
+		];
+	}
+
+	/**
 	 * Test for `convert_wc_locale_to_stripe_locale`.
 	 *
 	 * @param string $wc_locale     The WooCommerce locale.
@@ -1945,10 +2014,11 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param bool   $expected           Expected result.
 	 * @param string $account_country    Two-letter ISO country code for the Stripe account. Defaults to 'US'.
 	 * @param bool   $webhook_enabled    Whether the Stripe webhook endpoint is enabled. Defaults to true.
+	 * @param bool   $customer_mismatch  Whether the current customer session is flagged for a Checkout Session amount mismatch. Defaults to false.
 	 * @return void
 	 * @dataProvider provide_is_adaptive_pricing_supported
 	 */
-	public function test_is_adaptive_pricing_supported( bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected, string $account_country = 'US', bool $webhook_enabled = true ): void {
+	public function test_is_adaptive_pricing_supported( bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected, string $account_country = 'US', bool $webhook_enabled = true, bool $customer_mismatch = false ): void {
 		$original_stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
 		$new_stripe_settings                               = $original_stripe_settings;
 		$new_stripe_settings['adaptive_pricing']           = $adaptive_pricing;
@@ -1976,6 +2046,18 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		} else {
 			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
 			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
+		}
+
+		if ( $customer_mismatch ) {
+			WC()->session->init();
+			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
+			WC()->session->set( $amount_mismatch_session_key, 'yes' );
+		}
+
+		if ( $customer_mismatch ) {
+			WC()->session->init();
+			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
+			WC()->session->set( $amount_mismatch_session_key, 'yes' );
 		}
 
 		$is_checkout_filter = function () use ( $is_checkout ) {
@@ -2038,6 +2120,10 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
 		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
 		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
+		if ( WC()->session ) {
+			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
+			WC()->session->set( $amount_mismatch_session_key, null );
+		}
 		\WC_Subscriptions_Product::set_is_subscription( false );
 		\WC_Subscriptions_Product::set_subscription_product_ids( [] );
 		\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
@@ -2081,7 +2167,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
 
 		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
-		set_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
+		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'live' );
 
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
 		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
@@ -2109,7 +2196,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
 			WC_Stripe_Remote_Config::reset_in_memory_cache();
 			delete_option( '_wcstripe_remote_config_live' );
-			delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
+			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
 			WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
 		}
 	}
@@ -2223,6 +2310,16 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'account_country'    => 'US',
 				'webhook_enabled'    => false,
 			],
+			'customer hit an amount mismatch'           => [
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => false,
+				'account_country'    => 'US',
+				'webhook_enabled'    => true,
+				'customer_mismatch'  => true,
+			],
 		];
 	}
 
@@ -2271,7 +2368,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param string  $store_currency           WooCommerce store currency code.
 	 * @param ?string $expected                 Expected return value.
 	 * @param bool    $webhook_enabled          Whether the Stripe webhook endpoint is enabled. Defaults to true.
-	 * @param bool    $amount_mismatch_detected Whether Adaptive Pricing was disabled due to amount mismatches. Defaults to false.
+	 * @param bool    $amount_mismatch_detected Whether the legacy amount-mismatch marker option is set. Defaults to false.
 	 * @param bool    $manual_capture           Whether manual capture is enabled. Defaults to false.
 	 * @return void
 	 * @dataProvider provide_test_get_adaptive_pricing_account_unavailable_reason
@@ -2497,7 +2594,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'        => 'webhooks-disabled',
 				'webhook_enabled' => false,
 			],
-			'Live mode, disabled due to amount mismatch → amount-mismatch-detected'         => [
+			'Live mode, stale amount-mismatch marker is ignored → null'                     => [
 				'account_data'             => [
 					'country'           => 'US',
 					'external_accounts' => [
@@ -2508,11 +2605,11 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'test_mode'                => false,
 				'store_currency'           => 'USD',
-				'expected'                 => 'amount-mismatch-detected',
+				'expected'                 => null,
 				'webhook_enabled'          => true,
 				'amount_mismatch_detected' => true,
 			],
-			'Test mode, disabled due to amount mismatches → amount-mismatches-encountered (gate applies before test mode)' => [
+			'Test mode, stale amount-mismatch marker is ignored → null'                     => [
 				'account_data'             => [
 					'country'           => 'US',
 					'external_accounts' => [
@@ -2521,37 +2618,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'test_mode'                => true,
 				'store_currency'           => 'USD',
-				'expected'                 => 'amount-mismatch-detected',
-				'webhook_enabled'          => true,
-				'amount_mismatch_detected' => true,
-			],
-			'Webhooks disabled takes precedence over amount mismatches → webhooks-disabled' => [
-				'account_data'             => [
-					'country'           => 'US',
-					'external_accounts' => [
-						'data' => [
-							[ 'currency' => 'usd' ],
-						],
-					],
-				],
-				'test_mode'                => false,
-				'store_currency'           => 'USD',
-				'expected'                 => 'webhooks-disabled',
-				'webhook_enabled'          => false,
-				'amount_mismatch_detected' => true,
-			],
-			'India account takes precedence over amount mismatches → account-country'       => [
-				'account_data'             => [
-					'country'           => 'IN',
-					'external_accounts' => [
-						'data' => [
-							[ 'currency' => 'inr' ],
-						],
-					],
-				],
-				'test_mode'                => false,
-				'store_currency'           => 'USD',
-				'expected'                 => 'account-country',
+				'expected'                 => null,
 				'webhook_enabled'          => true,
 				'amount_mismatch_detected' => true,
 			],
