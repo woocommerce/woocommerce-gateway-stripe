@@ -663,6 +663,134 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Level3 data is card-only: the controller must persist the selected payment type to the
+	 * order before the intent request so the level3 gate can exclude non-card methods.
+	 *
+	 * @param string $selected_payment_type The selected payment type posted with the confirmation token.
+	 * @param bool   $expect_level3         Whether the outgoing request should carry level3 data.
+	 * @dataProvider provide_test_confirmation_token_level3
+	 */
+	public function test_create_and_confirm_payment_intent_with_confirmation_token_gates_level3( $selected_payment_type, $expect_level3 ) {
+		// The level3 gate only applies to US-based stores.
+		update_option( 'woocommerce_default_country', 'US:CA' );
+
+		$payment_information = $this->get_confirmation_token_payment_information( $selected_payment_type );
+
+		$requests_seen = [];
+		$test_request  = function ( $preempt, $parsed_args, $url ) use ( &$requests_seen ) {
+			if ( false !== strpos( $url, 'payment_intents' ) ) {
+				$requests_seen[] = $parsed_args['body'];
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( [ 'id' => 'pi_mock' ] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
+
+		$this->assertCount( 1, $requests_seen );
+		if ( $expect_level3 ) {
+			$this->assertArrayHasKey( 'level3', $requests_seen[0] );
+		} else {
+			$this->assertArrayNotHasKey( 'level3', $requests_seen[0] );
+		}
+		$this->assertSame( $selected_payment_type, $this->order->get_meta( '_stripe_upe_payment_type' ) );
+	}
+
+	/**
+	 * Same as the create case: the confirm call on an existing intent must not carry level3
+	 * data for non-card methods.
+	 *
+	 * @param string $selected_payment_type The selected payment type posted with the confirmation token.
+	 * @param bool   $expect_level3         Whether the outgoing request should carry level3 data.
+	 * @dataProvider provide_test_confirmation_token_level3
+	 */
+	public function test_update_and_confirm_payment_intent_with_confirmation_token_gates_level3( $selected_payment_type, $expect_level3 ) {
+		// The level3 gate only applies to US-based stores.
+		update_option( 'woocommerce_default_country', 'US:CA' );
+
+		$payment_information = $this->get_confirmation_token_payment_information( $selected_payment_type );
+		$payment_intent      = (object) [ 'id' => 'pi_mock' ];
+
+		$requests_seen = [];
+		$test_request  = function ( $preempt, $parsed_args, $url ) use ( &$requests_seen ) {
+			if ( false !== strpos( $url, 'payment_intents/pi_mock/confirm' ) ) {
+				$requests_seen[] = $parsed_args['body'];
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( [ 'id' => 'pi_mock' ] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->update_and_confirm_payment_intent( $payment_intent, $payment_information );
+
+		$this->assertCount( 1, $requests_seen );
+		if ( $expect_level3 ) {
+			$this->assertArrayHasKey( 'level3', $requests_seen[0] );
+		} else {
+			$this->assertArrayNotHasKey( 'level3', $requests_seen[0] );
+		}
+		$this->assertSame( $selected_payment_type, $this->order->get_meta( '_stripe_upe_payment_type' ) );
+	}
+
+	/**
+	 * Provider for the confirmation-token level3 gating tests.
+	 *
+	 * @return array
+	 */
+	public function provide_test_confirmation_token_level3() {
+		return [
+			'amazon_pay does not get level3' => [ WC_Stripe_Payment_Methods::AMAZON_PAY, false ],
+			'card keeps level3'              => [ WC_Stripe_Payment_Methods::CARD, true ],
+		];
+	}
+
+	/**
+	 * Payment information mirroring what the ECE confirmation-token flow prepares: a confirmation
+	 * token instead of a payment method ID, and no UPE payment type persisted on the order yet.
+	 *
+	 * @param string $selected_payment_type The selected payment type.
+	 * @return array
+	 */
+	private function get_confirmation_token_payment_information( $selected_payment_type ) {
+		return [
+			'amount'                        => 100,
+			'confirmation_token'            => 'ctoken_mock',
+			'currency'                      => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+			'customer'                      => 'cus_mock',
+			'level3'                        => [
+				'line_items' => [
+					[
+						'product_code'        => 'ABC123',
+						'product_description' => 'Test Product',
+						'unit_cost'           => 100,
+						'quantity'            => 1,
+					],
+				],
+			],
+			'metadata'                      => [ '_stripe_metadata' => '123' ],
+			'order'                         => $this->order,
+			'shipping'                      => [],
+			'selected_payment_type'         => $selected_payment_type,
+			'payment_method_types'          => [ $selected_payment_type ],
+			'return_url'                    => 'https://example.com/return',
+			'is_using_saved_payment_method' => false,
+			'save_payment_method_to_store'  => false,
+			'has_subscription'              => false,
+		];
+	}
+
+	/**
 	 * Test for setting the `setup_future_usage` parameter in the
 	 *  create_and_confirm_payment_intent intent creation request.
 	 */
