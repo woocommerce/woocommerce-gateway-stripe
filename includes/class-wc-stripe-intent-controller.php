@@ -1047,19 +1047,19 @@ class WC_Stripe_Intent_Controller {
 			null // $prepared_source parameter is not necessary for adding mandate information.
 		);
 
-		$payment_intent = WC_Stripe_API::request_with_level3_data(
+		// Only update the payment_type if we have a reference to the payment type the customer selected.
+		// Must happen before the API request: request_with_level3_data() reads this meta to exclude
+		// non-card methods from level3 data.
+		if ( '' !== $selected_payment_type ) {
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $selected_payment_type );
+		}
+
+		return WC_Stripe_API::request_with_level3_data(
 			$request,
 			'payment_intents',
 			$payment_information['level3'],
 			$order
 		);
-
-		// Only update the payment_type if we have a reference to the payment type the customer selected.
-		if ( '' !== $selected_payment_type ) {
-			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $selected_payment_type );
-		}
-
-		return $payment_intent;
 	}
 
 	/**
@@ -1153,6 +1153,13 @@ class WC_Stripe_Intent_Controller {
 			$order,
 			null // $prepared_source parameter is not necessary for adding mandate information.
 		);
+
+		// Persist the selected payment type before the API request: request_with_level3_data()
+		// reads this meta to exclude non-card methods from level3 data.
+		$selected_payment_type = $payment_information['selected_payment_type'];
+		if ( '' !== $selected_payment_type ) {
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $selected_payment_type );
+		}
 
 		return WC_Stripe_API::request_with_level3_data(
 			$request,
