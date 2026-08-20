@@ -776,6 +776,12 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * @return array
 	 */
 	private function get_confirmation_token_payment_information( $selected_payment_type ) {
+		// Real requests always carry concrete method strings in payment_method_types; a null/empty
+		// *selected* type is passed through raw so the meta fallback is still what gets exercised.
+		$payment_method_types = is_string( $selected_payment_type ) && '' !== $selected_payment_type
+			? [ $selected_payment_type ]
+			: [ WC_Stripe_Payment_Methods::CARD ];
+
 		return [
 			'amount'                        => 100,
 			'confirmation_token'            => 'ctoken_mock',
@@ -795,7 +801,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			'order'                         => $this->order,
 			'shipping'                      => [],
 			'selected_payment_type'         => $selected_payment_type,
-			'payment_method_types'          => [ $selected_payment_type ],
+			'payment_method_types'          => $payment_method_types,
 			'return_url'                    => 'https://example.com/return',
 			'is_using_saved_payment_method' => false,
 			'save_payment_method_to_store'  => false,
