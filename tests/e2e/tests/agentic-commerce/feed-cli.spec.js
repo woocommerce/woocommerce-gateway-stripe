@@ -2,22 +2,12 @@
 
 /* jshint node: true */
 
-import { execSync } from 'child_process';
 import { test, expect } from '@playwright/test';
 import {
 	AGENTIC_CLI_EXCLUDED_PRODUCT_SKU,
 	AGENTIC_PRODUCT_SKU,
+	wpCliDocker,
 } from '../../utils/agentic';
-
-// Mirrors the cli() helper in tests/e2e/bin/common.sh: a throwaway
-// wordpress:cli container sharing the E2E WordPress volumes and network.
-const wpCli = ( command ) =>
-	execSync(
-		`docker run -i --rm --user 33:33 --env-file "${ process.env.E2E_ROOT }/env/default.env" ` +
-			'--volumes-from wcstripe-e2e-wordpress --network container:wcstripe-e2e-wordpress ' +
-			`wordpress:cli ${ command }`,
-		{ encoding: 'utf8' }
-	);
 
 test.describe( 'Agentic Commerce feed CLI', () => {
 	// The commands run through docker, so they only work against the local
@@ -28,7 +18,7 @@ test.describe( 'Agentic Commerce feed CLI', () => {
 	);
 
 	test( 'preview reports included and excluded catalog counts', async () => {
-		const output = wpCli( 'wp stripe agentic-commerce preview' );
+		const output = wpCliDocker( 'wp stripe agentic-commerce preview' );
 
 		expect( output ).toContain( 'Preview generation complete.' );
 
@@ -49,7 +39,7 @@ test.describe( 'Agentic Commerce feed CLI', () => {
 		// The feed writes to the CLI container's private temp dir until
 		// delivery, so the file must be read in the same container run that
 		// generated it.
-		const output = wpCli(
+		const output = wpCliDocker(
 			`sh -c 'OUT=$(wp stripe agentic-commerce sync); echo "$OUT"; ` +
 				`FILE=$(echo "$OUT" | sed -n "s/.*File: *//p"); ` +
 				`echo "---CSV-START---"; cat "$FILE"'`

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { execSync } from 'child_process';
 import wcApi from '@woocommerce/woocommerce-rest-api';
 import playwrightConfig from '../config/playwright.config';
 
@@ -76,6 +77,95 @@ export const getProductIdBySku = async ( sku ) => {
 	return response.data[ 0 ]?.id ?? null;
 };
 
+/**
+ * Builds a checkout.session.completed event referencing a stubbed agentic
+ * session. The handler retrieves the full session from Stripe by id, so the
+ * event body itself stays minimal.
+ *
+ * @param {Object} args
+ * @param {string} args.sessionId The `cs_test_e2e_agentic_…` session id.
+ * @param {string} args.accountId The connected Stripe account id.
+ * @return {Object} The event payload.
+ */
+export const checkoutSessionCompletedEvent = ( { sessionId, accountId } ) => ( {
+	id: 'evt_e2e_agentic_completed',
+	type: 'checkout.session.completed',
+	livemode: false,
+	context: accountId,
+	data: {
+		object: {
+			id: sessionId,
+			object: 'checkout.session',
+			payment_intent: 'pi_e2e_agentic_order',
+			metadata: {},
+		},
+	},
+} );
+
+/**
+ * Returns the recent orders created from the given agentic checkout session.
+ *
+ * @param {string} sessionId The checkout session id.
+ * @return {Promise<Object[]>} Matching orders, newest first.
+ */
+export const getOrdersBySessionId = async ( sessionId ) => {
+	const response = await agenticApi().get( 'orders', {
+		per_page: 50,
+		orderby: 'date',
+		order: 'desc',
+	} );
+
+	return response.data.filter( ( order ) =>
+		( order.meta_data ?? [] ).some(
+			( meta ) =>
+				'_stripe_checkout_session_id' === meta.key &&
+				meta.value === sessionId
+		)
+	);
+};
+
+/**
+ * Runs a command in a throwaway wordpress:cli container sharing the E2E
+ * WordPress volumes and network, mirroring the cli() helper in
+ * tests/e2e/bin/common.sh. Docker-environment only.
+ *
+ * @param {string} command The command for the container entrypoint.
+ * @return {string} Combined stdout.
+ */
+export const wpCliDocker = ( command ) =>
+	execSync(
+		`docker run -i --rm --user 33:33 --env-file "${ process.env.E2E_ROOT }/env/default.env" ` +
+			// docker-compose sets E2E_TESTING on the WordPress container but
+			// default.env does not, and the session-stub mu-plugin (and any
+			// other E2E-only guard) must behave the same under wp-cli.
+			'-e E2E_TESTING=true ' +
+			'--volumes-from wcstripe-e2e-wordpress --network container:wcstripe-e2e-wordpress ' +
+			`wordpress:cli ${ command }`,
+		{ encoding: 'utf8' }
+	);
+
+/**
+ * Immediately executes every pending wc_stripe_deferred_webhook job.
+ *
+ * checkout.session.completed with no matching order defers order creation to
+ * Action Scheduler two minutes out; running the jobs through the real queue
+ * runner keeps the spec deterministic without waiting out the delay.
+ *
+ * @return {number} How many jobs were processed.
+ */
+export const runDeferredWebhookJobs = () => {
+	const output = wpCliDocker(
+		"wp eval '" +
+			'$store = ActionScheduler::store(); ' +
+			'$ids = $store->query_actions( [ "hook" => "wc_stripe_deferred_webhook", "status" => "pending", "per_page" => 25 ] ); ' +
+			'$runner = ActionScheduler_QueueRunner::instance(); ' +
+			'foreach ( $ids as $id ) { $runner->process_action( $id, "e2e" ); } ' +
+			"echo count( $ids );'"
+	);
+
+	return Number( output.trim().split( '\n' ).pop() );
+};
+
 // The API tokens come from global setup, so the client cannot be built at
 // module load time.
 const agenticApi = () =>
@@ -97,13 +187,17 @@ const agenticApi = () =>
  * @param {string} args.accountId The connected Stripe account id.
  * @return {Object} The event payload.
  */
-export const customizeCheckoutEvent = ( { skuId, accountId } ) => ( {
+export const customizeCheckoutEvent = ( {
+	skuId,
+	accountId,
+	sessionId = 'cs_test_e2e_agentic',
+} ) => ( {
 	id: 'evt_e2e_agentic_customize',
 	type: 'v1.delegated_checkout.customize_checkout',
 	livemode: false,
 	context: accountId,
 	data: {
-		checkout_session: 'cs_test_e2e_agentic',
+		checkout_session: sessionId,
 		currency: 'usd',
 		automatic_tax: { enabled: false },
 		amount_subtotal: AGENTIC_PRODUCT_AMOUNT,

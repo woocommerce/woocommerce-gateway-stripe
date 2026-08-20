@@ -65,6 +65,10 @@ if [[ "agentic" == "$project" ]]; then
 	cli wp option update wc_stripe_agentic_commerce_enabled yes
 	cli wp option update wc_stripe_agentic_commerce_webhook_secret whsec_e2e_agentic
 	cli wp option update woocommerce_flat_rate_1_settings --format=json '{"title":"Flat rate","tax_status":"taxable","cost":"10.00"}'
+	# The order-creation spec forges checkout.session.completed webhooks; the
+	# handler retrieves the session back from Stripe before creating the order,
+	# so this mu-plugin answers that one retrieval with a local fixture.
+	cli sh -c "mkdir -p /var/www/html/wp-content/mu-plugins && cp /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/mu-plugins/wc-stripe-e2e-agentic-session-stub.php /var/www/html/wp-content/mu-plugins/"
 fi
 
 cross-env $TEST_ENV playwright test --config=tests/e2e/config/playwright.config.js $TEST_ARGS ${project:+--project=$project}
