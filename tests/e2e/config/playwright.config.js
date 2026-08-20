@@ -92,6 +92,7 @@ const config = {
 				'**/blik.spec.js',
 				'**/becs.spec.js',
 				'**/isk.spec.js',
+				'**/agentic-commerce/*.spec.js',
 			],
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
@@ -168,6 +169,19 @@ const config = {
 		{
 			name: 'reset account',
 			testMatch: '/lpm.teardown.js',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'agentic-setup',
+			testMatch: '/agentic-commerce.setup.js',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		// Mutates global store state (feature flag, webhook secret, shipping
+		// settings seeded in run-tests.sh), so it must not join `default`.
+		{
+			name: 'agentic',
+			testMatch: '**/agentic-commerce/*.spec.js',
+			dependencies: [ 'agentic-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 	],
