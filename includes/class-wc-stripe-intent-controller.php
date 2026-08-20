@@ -1047,14 +1047,7 @@ class WC_Stripe_Intent_Controller {
 			null // $prepared_source parameter is not necessary for adding mandate information.
 		);
 
-		// Only update the payment_type if we have a reference to the payment type the customer selected.
-		// Must happen before the API request: request_with_level3_data() reads this meta to exclude
-		// non-card methods from level3 data. Saved immediately so parallel requests (e.g. webhooks
-		// fired by the confirmation) read the type from the database rather than an empty value.
-		if ( '' !== $selected_payment_type ) {
-			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $selected_payment_type );
-			$order->save_meta_data();
-		}
+		$this->set_selected_payment_type_for_order( $order, $selected_payment_type );
 
 		return WC_Stripe_API::request_with_level3_data(
 			$request,
@@ -1156,15 +1149,7 @@ class WC_Stripe_Intent_Controller {
 			null // $prepared_source parameter is not necessary for adding mandate information.
 		);
 
-		// Persist the selected payment type before the API request: request_with_level3_data()
-		// reads this meta to exclude non-card methods from level3 data. Saved immediately so
-		// parallel requests (e.g. webhooks fired by the confirmation) read the type from the
-		// database rather than an empty value.
-		$selected_payment_type = $payment_information['selected_payment_type'];
-		if ( '' !== $selected_payment_type ) {
-			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $selected_payment_type );
-			$order->save_meta_data();
-		}
+		$this->set_selected_payment_type_for_order( $order, $payment_information['selected_payment_type'] );
 
 		return WC_Stripe_API::request_with_level3_data(
 			$request,
@@ -1172,6 +1157,26 @@ class WC_Stripe_Intent_Controller {
 			$payment_information['level3'],
 			$order
 		);
+	}
+
+	/**
+	 * Persists the payment type the customer selected to the order, if there is one.
+	 *
+	 * Must be called before the intent request: WC_Stripe_API::request_with_level3_data() reads
+	 * this meta to exclude non-card methods from level3 data. Saved immediately so parallel
+	 * requests (e.g. webhooks fired by the confirmation) read the type from the database rather
+	 * than an empty value.
+	 *
+	 * @param WC_Order $order                 The order being paid.
+	 * @param string   $selected_payment_type The payment type the customer selected, or '' if unknown.
+	 */
+	private function set_selected_payment_type_for_order( WC_Order $order, string $selected_payment_type ) {
+		if ( '' === $selected_payment_type ) {
+			return;
+		}
+
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $selected_payment_type );
+		$order->save_meta_data();
 	}
 
 	/**

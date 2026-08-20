@@ -699,8 +699,9 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		} else {
 			$this->assertArrayNotHasKey( 'level3', $requests_seen[0] );
 		}
-		// Read through a fresh order instance: the type must be persisted to the database,
-		// not just set on the in-memory object, so parallel requests (e.g. webhooks) see it.
+		// The in-memory order is what the level3 gate reads during this request; the freshly
+		// loaded instance proves the type was also persisted for parallel requests (e.g. webhooks).
+		$this->assertSame( $selected_payment_type, $this->order->get_meta( '_stripe_upe_payment_type' ) );
 		$this->assertSame( $selected_payment_type, wc_get_order( $this->order->get_id() )->get_meta( '_stripe_upe_payment_type' ) );
 	}
 
@@ -742,8 +743,9 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		} else {
 			$this->assertArrayNotHasKey( 'level3', $requests_seen[0] );
 		}
-		// Read through a fresh order instance: the type must be persisted to the database,
-		// not just set on the in-memory object, so parallel requests (e.g. webhooks) see it.
+		// The in-memory order is what the level3 gate reads during this request; the freshly
+		// loaded instance proves the type was also persisted for parallel requests (e.g. webhooks).
+		$this->assertSame( $selected_payment_type, $this->order->get_meta( '_stripe_upe_payment_type' ) );
 		$this->assertSame( $selected_payment_type, wc_get_order( $this->order->get_id() )->get_meta( '_stripe_upe_payment_type' ) );
 	}
 
