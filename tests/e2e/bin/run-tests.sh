@@ -60,6 +60,9 @@ fi
 if [[ "agentic" == "$project" ]]; then
 	echo "Seeding Agentic Commerce prerequisites"
 	cli wp option update _wcstripe_feature_agentic_commerce yes
+	# The admin surfaces (meta box, list table, feed preview) are additionally
+	# gated on the merchant-level enable toggle, not just the feature flag.
+	cli wp option update wc_stripe_agentic_commerce_enabled yes
 	cli wp option update wc_stripe_agentic_commerce_webhook_secret whsec_e2e_agentic
 	cli wp option update woocommerce_flat_rate_1_settings --format=json '{"title":"Flat rate","tax_status":"taxable","cost":"10.00"}'
 fi

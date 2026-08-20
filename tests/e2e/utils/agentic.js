@@ -6,6 +6,7 @@ export const WEBHOOK_PATH = '/?wc-api=wc_stripe';
 export const WEBHOOK_SECRET = 'whsec_e2e_agentic';
 export const AGENTIC_PRODUCT_SKU = 'E2E-AGENTIC-1';
 export const AGENTIC_OOS_PRODUCT_SKU = 'E2E-AGENTIC-OOS';
+export const AGENTIC_EXCLUDED_PRODUCT_SKU = 'E2E-AGENTIC-EXCL';
 
 // Cents, matching the product price seeded in agentic-commerce.setup.js.
 export const AGENTIC_PRODUCT_AMOUNT = 2499;
@@ -57,17 +58,32 @@ export const postAgenticHook = async ( request, event, secret ) => {
  * @return {Promise<string>} The `acct_…` id, or ''.
  */
 export const getConnectedAccountId = async () => {
-	const api = new wcApi( {
+	const response = await agenticApi().get( 'wc_stripe/account' );
+
+	return response.data?.account?.id ?? '';
+};
+
+/**
+ * Returns the id of the product with the given SKU, or null when absent.
+ *
+ * @param {string} sku The product SKU.
+ * @return {Promise<number|null>} The product id, or null.
+ */
+export const getProductIdBySku = async ( sku ) => {
+	const response = await agenticApi().get( 'products', { sku } );
+
+	return response.data[ 0 ]?.id ?? null;
+};
+
+// The API tokens come from global setup, so the client cannot be built at
+// module load time.
+const agenticApi = () =>
+	new wcApi( {
 		url: playwrightConfig.use.baseURL,
 		consumerKey: process.env.CONSUMER_KEY,
 		consumerSecret: process.env.CONSUMER_SECRET,
 		version: 'wc/v3',
 	} );
-
-	const response = await api.get( 'wc_stripe/account' );
-
-	return response.data?.account?.id ?? '';
-};
 
 /**
  * Builds a v1.delegated_checkout.customize_checkout event. The payload shape
