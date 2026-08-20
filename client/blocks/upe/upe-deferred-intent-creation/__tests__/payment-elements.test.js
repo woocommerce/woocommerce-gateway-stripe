@@ -1,5 +1,5 @@
 import { cloneElement } from 'react';
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { getDeferredIntentCreationUPEFields } from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-elements';
 import { CheckoutContainer } from 'wcstripe/blocks/checkout-sessions/checkout-container';
 import PaymentProcessor from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-processor';
@@ -47,16 +47,19 @@ jest.mock( 'wcstripe/styles/upe', () => ( {
 
 const LoadingMask = ( { children } ) => <div>{ children }</div>;
 
-const renderFields = ( api ) => {
+const renderFields = (
+	api,
+	{ paymentMethodId = 'card', supportsDeferredIntent = true } = {}
+) => {
 	// The Blocks framework injects `components` at render time; supply it here.
 	const fields = getDeferredIntentCreationUPEFields(
-		'card',
+		paymentMethodId,
 		[],
 		api,
 		'',
 		'',
 		false,
-		true // supportsDeferredIntent — avoids the intent-creation request
+		supportsDeferredIntent
 	);
 	return render( cloneElement( fields, { components: { LoadingMask } } ) );
 };
@@ -67,7 +70,7 @@ const buildApi = ( stripe ) => ( {
 	initSetupIntent: jest.fn(),
 } );
 
-const STRIPE = { elements: jest.fn(), initCheckout: jest.fn() };
+const STRIPE = { elements: jest.fn(), initCheckoutElementsSdk: jest.fn() };
 
 describe( 'PaymentElements adaptive pricing selection', () => {
 	afterEach( () => {
@@ -90,6 +93,24 @@ describe( 'PaymentElements adaptive pricing selection', () => {
 		expect( PaymentProcessor ).not.toHaveBeenCalled();
 	} );
 
+	it( 'falls back to the standard elements flow when a legacy Stripe.js lacks initCheckoutElementsSdk', () => {
+		getBlocksConfiguration.mockReturnValue( {
+			isAdaptivePricingEnabled: true,
+			paymentMethodsConfig: { card: { isReusable: false } },
+			cartTotal: 1000,
+			currency: 'USD',
+			shouldShowOptimizedCheckout: false,
+			isAdmin: false,
+		} );
+
+		// A legacy v3 Stripe.js (loaded by another plugin or a manual snippet)
+		// won window.Stripe; it exposes elements() but not initCheckoutElementsSdk.
+		renderFields( buildApi( { elements: jest.fn() } ) );
+
+		expect( CheckoutContainer ).not.toHaveBeenCalled();
+		expect( PaymentProcessor ).toHaveBeenCalled();
+	} );
+
 	it( 'uses the standard elements flow when Adaptive Pricing is disabled', () => {
 		getBlocksConfiguration.mockReturnValue( {
 			isAdaptivePricingEnabled: false,
@@ -105,4 +126,52 @@ describe( 'PaymentElements adaptive pricing selection', () => {
 		expect( CheckoutContainer ).not.toHaveBeenCalled();
 		expect( PaymentProcessor ).toHaveBeenCalled();
 	} );
+} );
+
+describe( 'PaymentElements non-deferred intent creation', () => {
+	afterEach( () => {
+		jest.clearAllMocks();
+	} );
+
+	it.each( [ 'blik', 'acss_debit' ] )(
+		'forwards the order ID and key when creating a %s PaymentIntent',
+		async ( paymentMethodId ) => {
+			getBlocksConfiguration.mockReturnValue( {
+				isAdaptivePricingEnabled: false,
+				isPaymentNeeded: true,
+				orderId: 123,
+				orderKey: 'wc_order_test_key',
+				paymentMethodsConfig: {
+					[ paymentMethodId ]: {
+						isReusable: false,
+						title: paymentMethodId,
+					},
+				},
+				cartTotal: 1000,
+				currency: 'USD',
+				shouldShowOptimizedCheckout: false,
+				isAdmin: false,
+			} );
+
+			const api = buildApi( STRIPE );
+			api.createIntent.mockResolvedValue( {
+				id: 'pi_test',
+				client_secret: 'pi_test_secret',
+			} );
+
+			renderFields( api, {
+				paymentMethodId,
+				supportsDeferredIntent: false,
+			} );
+
+			await waitFor( () => {
+				expect( api.createIntent ).toHaveBeenCalledWith(
+					123,
+					paymentMethodId,
+					'wc_order_test_key'
+				);
+			} );
+			expect( api.initSetupIntent ).not.toHaveBeenCalled();
+		}
+	);
 } );

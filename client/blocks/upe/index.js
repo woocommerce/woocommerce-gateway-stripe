@@ -55,10 +55,7 @@ Object.entries( paymentMethodsConfig )
 	} );
 
 // Register Express Checkout Elements.
-if (
-	getBlocksConfiguration()?.isAmazonPayAvailable && // Hide behind feature flag so the editor does not show the button.
-	getBlocksConfiguration()?.isAmazonPayEnabled
-) {
+if ( getBlocksConfiguration()?.isAmazonPayEnabled ) {
 	registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
 }
 if ( getBlocksConfiguration()?.isExpressCheckoutEnabled ) {

@@ -167,18 +167,21 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				}
 
 				if ( ! wp_verify_nonce( $nonce, 'wcs_stripe_connected' ) ) {
-					if ( $is_verbose_debug_mode_enabled ) {
-						WC_Stripe_Logger::error(
-							'OAuth: Invalid nonce received from the WCC server',
-							[
-								'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
-								'connect_mode'           => $mode,
-								'connect_type'           => $type,
-								'nonce'                  => self::redact_string( $nonce ),
-							]
-						);
-					}
-					return new WP_Error( 'Invalid nonce received from the WCC server' );
+					WC_Stripe_Logger::error(
+						'OAuth: Invalid nonce received from the WCC server',
+						[
+							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+							'connect_mode'           => $mode,
+							'connect_type'           => $type,
+							'nonce'                  => self::redact_string( $nonce ),
+						]
+					);
+
+					$redirect_url = remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_type', 'wcs_stripe_mode' ] );
+					$redirect_url = add_query_arg( [ 'wc_stripe_connect_error' => 'expired_nonce' ], $redirect_url );
+
+					wp_safe_redirect( esc_url_raw( $redirect_url ) );
+					exit;
 				}
 
 				$response = $this->connect_oauth( $state, $code, $type, $mode );
@@ -284,6 +287,14 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// test_account_id if present.
 			unset( $options['account_id'] );
 			unset( $options['test_account_id'] );
+
+			// Before saving the new keys, decommission any webhook configured on the
+			// previously connected account.
+			$previous_webhook_data = $options[ $prefix . 'webhook_data' ] ?? '';
+			if ( WC_Stripe::get_instance()->account->maybe_decommission_webhook( $previous_webhook_data, $secret_key ) ) {
+				$options[ $prefix . 'webhook_data' ]   = [];
+				$options[ $prefix . 'webhook_secret' ] = '';
+			}
 
 			WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 			WC_Stripe_Helper::update_main_stripe_settings( $options );
@@ -520,6 +531,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			}
 
 			if ( is_wp_error( $response ) ) {
+				if ( $this->is_terminal_oauth_error( $response ) ) {
+					$this->handle_terminal_refresh_failure( $prefix, $response );
+					return;
+				}
+
 				update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', $retries );
 				update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', time() );
 
@@ -536,6 +552,47 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			// save_stripe_keys() schedules a connection_refresh after saving the keys,
 			// we don't need to do it explicitly here.
+		}
+
+		/**
+		 * Determines whether a refresh failure is terminal — i.e. retrying can never succeed.
+		 *
+		 * @param WP_Error $error The error returned by the refresh request.
+		 * @return bool True only when the forwarded Stripe error code is known to be terminal.
+		 */
+		private function is_terminal_oauth_error( WP_Error $error ): bool {
+			$data = $error->get_error_data();
+
+			if ( ! is_object( $data ) && ! is_array( $data ) ) {
+				return false;
+			}
+
+			$data = (array) $data;
+			$code = isset( $data['stripe_error_code'] ) ? $data['stripe_error_code'] : '';
+
+			// invalid_grant means the refresh token is permanently dead and the merchant must
+			// reconnect.
+			return 'invalid_grant' === $code;
+		}
+
+		/**
+		 * Handles a terminal refresh failure: stops the refresh loop and forces a reconnect.
+		 *
+		 * @param string   $prefix   The settings key prefix for the active mode ('' or 'test_').
+		 * @param WP_Error $response The terminal error returned by the refresh request.
+		 */
+		private function handle_terminal_refresh_failure( string $prefix, WP_Error $response ): void {
+			// The refresh token will never come back, so do not re-arm the periodic refresh.
+			$this->unschedule_connection_refresh();
+
+			// Mark the attempt budget as exhausted to keep parity with the "gave up after 10
+			// tries" state the rest of the account-status messaging already expects.
+			update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', 10 );
+			update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', time() );
+
+			WC_Stripe_Logger::error( 'OAuth connection refresh failed terminally; reconnection required.', [ 'response' => $response ] );
+
+			WC_Stripe::get_instance()->account->clear_cache();
 		}
 
 		/**

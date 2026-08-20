@@ -17,7 +17,7 @@ jobs:
     outputs:
       code: ${{ steps.detect.outputs.code }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.0
       - id: detect
         uses: ./.github/actions/detect-code-changes
 
@@ -29,17 +29,17 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        project: ['default', 'isk', 'acss', 'optimized-checkout', 'blik', 'becs']
+        project: ['default', 'isk', 'acss', 'optimized-checkout', 'adaptive-pricing', 'blik', 'becs']
 
     name: E2E - ${{ matrix.project }} WP=latest, WC=latest, PHP=7.4
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.0
 
       # PHP
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@0f7f1d08e3e32076e51cae65eb0b0c871405b16e # v2.34.1
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: 7.4
           tools: composer
@@ -47,7 +47,7 @@ jobs:
 
       - name: Cache Composer deps
         id: composer-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ./vendor
           key: ${{ runner.os }}-vendor-${{ hashFiles('composer.lock') }}
@@ -60,13 +60,13 @@ jobs:
       # Node
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
 
       - name: Cache Node deps
         id: node-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ./node_modules
@@ -97,7 +97,7 @@ jobs:
 
       - name: Upload e2e setup logs
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: E2E-${{ matrix.project }}-WP_latest-WC_latest-setup-logs
           path: tests/e2e/e2e-setup.log
@@ -112,7 +112,7 @@ jobs:
 
       - name: Upload E2E-${{ matrix.project }}-WP_latest-WC_latest-results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: E2E-${{ matrix.project }}-WP_latest-WC_latest-results
           path: tests/e2e/test-results

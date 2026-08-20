@@ -152,12 +152,33 @@ class WC_Stripe_Account {
 	}
 
 	/**
+	 * Re-reads the account data from Stripe and drops the cached webhook status.
+	 *
+	 * A failed fetch (network error, Stripe outage) leaves the previously cached account data in
+	 * place so the UI keeps rendering the last known account; an invalid API key does not, so the
+	 * reconnect prompt can still surface.
+	 *
+	 * @return array Account data or empty if failed to retrieve account data.
+	 */
+	public function refresh_cache() {
+		$this->clear_webhook_status_cache();
+
+		return $this->get_cached_account_data( null, true );
+	}
+
+	/**
 	 * Wipes the account data option.
 	 */
 	public function clear_cache() {
 		WC_Stripe_Database_Cache::delete( self::ACCOUNT_CACHE_KEY );
 
-		// Clear the webhook status cache.
+		$this->clear_webhook_status_cache();
+	}
+
+	/**
+	 * Wipes the cached webhook status for both modes.
+	 */
+	private function clear_webhook_status_cache(): void {
 		delete_transient( self::LIVE_WEBHOOK_STATUS_OPTION );
 		delete_transient( self::TEST_WEBHOOK_STATUS_OPTION );
 	}
@@ -370,6 +391,48 @@ class WC_Stripe_Account {
 				WC_Stripe_Logger::info( "Deleted webhook {$webhook->id} because it was being sent to this site's webhook URL." );
 			}
 		}
+	}
+
+	/**
+	 * Decommissions a previously configured webhook endpoint when the secret key that
+	 * created it is being removed or replaced.
+	 *
+	 * @param mixed  $webhook_data   The previously stored webhook data. Expected to contain 'id' and 'secret'.
+	 * @param string $new_secret_key The secret key that is about to be saved. Empty when disconnecting.
+	 *
+	 * @return bool True if a webhook was decommissioned, false otherwise.
+	 */
+	public function maybe_decommission_webhook( $webhook_data, $new_secret_key ): bool {
+		// Nothing to delete unless we have a stored webhook ID and the secret key that created it.
+		if ( ! is_array( $webhook_data ) || empty( $webhook_data['id'] ) || empty( $webhook_data['secret'] ) ) {
+			return false;
+		}
+
+		// Only decommission when the secret key is being removed or has changed.
+		if ( ! empty( $new_secret_key ) && $new_secret_key === $webhook_data['secret'] ) {
+			return false;
+		}
+
+		try {
+			// Authenticate with the secret key that created the webhook so the deletion
+			// hits the originally connected account.
+			WC_Stripe_API::set_secret_key( $webhook_data['secret'] );
+			$this->stripe_api::request( [], 'webhook_endpoints/' . $webhook_data['id'], 'DELETE' );
+
+			WC_Stripe_Logger::info( "Decommissioned previously configured webhook {$webhook_data['id']} before saving new keys." );
+		} catch ( Exception $e ) {
+			// A failure here must not abort the connection flow, so we log and report that nothing was decommissioned.
+			WC_Stripe_Logger::error(
+				"Failed to decommission previously configured webhook {$webhook_data['id']}.",
+				[ 'error_message' => $e->getMessage() ]
+			);
+			return false;
+		} finally {
+			// Reset the key so later calls re-resolve it from the freshly saved settings.
+			WC_Stripe_API::set_secret_key( '' );
+		}
+
+		return true;
 	}
 
 	/**

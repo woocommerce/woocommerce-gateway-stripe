@@ -234,6 +234,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
 		delete_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION );
 
+		if ( WC()->session ) {
+			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
+			WC()->session->set( $amount_mismatch_session_key, null );
+		}
+
 		// The tests in this file do not mock ALL the calls to the Stripe API, and as we use mocked API keys they trigger the 401 rate-limiter,
 		// this is not a problem for these tests as they don't depend on the reponses.
 		//
@@ -704,6 +709,111 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * OC must represent Stripe in the Cart/Checkout block editor, even though is_checkout() (and thus
+	 * is_valid_optimized_checkout_page()) is false there.
+	 *
+	 * @dataProvider provide_should_render_optimized_checkout
+	 *
+	 * @param bool $oc_enabled      Whether Optimized Checkout is enabled.
+	 * @param bool $valid_oc_page   Whether is_valid_optimized_checkout_page() returns true.
+	 * @param bool $in_block_editor Whether we are editing a post that hosts the Checkout block in admin.
+	 * @param bool $expected        Expected return value.
+	 */
+	public function test_should_render_optimized_checkout(
+		bool $oc_enabled,
+		bool $valid_oc_page,
+		bool $in_block_editor,
+		bool $expected
+	): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'is_valid_optimized_checkout_page' ] )
+			->getMock();
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( $valid_oc_page );
+		$gateway->oc_enabled = $oc_enabled;
+
+		$initial_get            = $_GET;
+		$initial_current_screen = $GLOBALS['current_screen'] ?? null;
+
+		if ( $in_block_editor ) {
+			$post_id = self::factory()->post->create( [ 'post_content' => '<!-- wp:woocommerce/checkout /-->' ] );
+			// is_editing_cart_or_checkout_block() reads the edited post ID from the request.
+			$_GET['post'] = (string) $post_id;
+			// is_admin() reads the current screen; set an admin screen so the admin branch is exercised.
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$GLOBALS['current_screen'] = WP_Screen::get( 'post.php' );
+		}
+
+		try {
+			$this->assertSame( $expected, $gateway->should_render_optimized_checkout() );
+		} finally {
+			$_GET = $initial_get;
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$GLOBALS['current_screen'] = $initial_current_screen;
+		}
+	}
+
+	/**
+	 * Data provider for test_should_render_optimized_checkout.
+	 *
+	 * @return array[]
+	 */
+	public function provide_should_render_optimized_checkout(): array {
+		return [
+			'OC disabled is never rendered'                   => [
+				'oc_enabled'      => false,
+				'valid_oc_page'   => true,
+				'in_block_editor' => true,
+				'expected'        => false,
+			],
+			'OC enabled on a valid OC checkout page'          => [
+				'oc_enabled'      => true,
+				'valid_oc_page'   => true,
+				'in_block_editor' => false,
+				'expected'        => true,
+			],
+			'OC enabled while editing the Checkout block'     => [
+				'oc_enabled'      => true,
+				'valid_oc_page'   => false,
+				'in_block_editor' => true,
+				'expected'        => true,
+			],
+			'OC enabled but neither checkout page nor editor' => [
+				'oc_enabled'      => true,
+				'valid_oc_page'   => false,
+				'in_block_editor' => false,
+				'expected'        => false,
+			],
+		];
+	}
+
+	/**
+	 * In the block editor with OC enabled, the Blocks config must expose the OC element (keyed under
+	 * the 'card'/OC id, mapped to 'stripe' on the client) even when only Cash App Pay is enabled.
+	 */
+	public function test_get_enabled_payment_method_config_exposes_oc_method_in_block_editor(): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'should_render_optimized_checkout', 'get_upe_enabled_at_checkout_payment_method_ids', 'is_adaptive_pricing_supported' ] )
+			->getMock();
+		// Editor context: OC stands in for Stripe even though is_valid_optimized_checkout_page() is false.
+		$gateway->method( 'should_render_optimized_checkout' )->willReturn( true );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( false );
+		// Card disabled; only Cash App Pay enabled.
+		$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( [ WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
+		$gateway->oc_enabled = true;
+
+		$get_config = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'get_enabled_payment_method_config' );
+		$get_config->setAccessible( true );
+		$config = $get_config->invoke( $gateway );
+
+		// The OC element (id 'card', mapped to 'stripe' client-side) must be present; Cash App Pay
+		// renders inside it rather than as a standalone method.
+		$this->assertArrayHasKey( WC_Stripe_Payment_Methods::OC, $config );
+		$this->assertArrayNotHasKey( WC_Stripe_Payment_Methods::CASHAPP_PAY, $config );
+	}
+
+	/**
 	 * Test that payment_scripts registers the wc-stripe-upe-classic script with the correct version and dependencies.
 	 *
 	 * Because build/upe-classic.asset.php may not be present in test environments, we have conditional logic as follows:
@@ -767,6 +877,106 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertNotNull( $registered_script, 'wc-stripe-upe-classic script is not a valid object' );
 		$this->assertSame( $expected_version, $registered_script->ver, 'wc-stripe-upe-classic script version is not the same as the expected version' );
 		$this->assertSame( $expected_dependencies, $registered_script->deps, 'wc-stripe-upe-classic script dependencies are not the same as the expected dependencies' );
+	}
+
+	/**
+	 * The billing source for the deferred-payment flows is selected all-or-nothing:
+	 * the order on a validated pay-for-order page (so guests still get full address
+	 * details), otherwise the customer, with a wholesale fallback to the customer when
+	 * the order has no usable billing email.
+	 *
+	 * @dataProvider provide_deferred_flow_billing_data_scenarios
+	 *
+	 * @param bool   $is_pay_for_order Whether the page is the validated pay-for-order endpoint.
+	 * @param bool   $order_has_email  Whether the order carries a billing email.
+	 * @param bool   $with_customer    Whether a customer is available as a source.
+	 * @param string $expected_source  Expected source: 'order', 'customer', or 'none'.
+	 */
+	public function test_get_deferred_flow_billing_data( bool $is_pay_for_order, bool $order_has_email, bool $with_customer, string $expected_source ) {
+		$order_billing    = [
+			'name'    => 'Order Buyer',
+			'email'   => 'order-buyer@example.com',
+			'phone'   => '+15551234567',
+			'address' => [
+				'country'     => 'US',
+				'line1'       => '123 Order St',
+				'line2'       => 'Suite 5',
+				'city'        => 'Orderville',
+				'state'       => 'CA',
+				'postal_code' => '90001',
+			],
+		];
+		$customer_billing = [
+			'name'    => 'Cust Omer',
+			'email'   => 'customer@example.com',
+			'phone'   => '+447700900000',
+			'address' => [
+				'country'     => 'GB',
+				'line1'       => '999 Customer Ave',
+				'line2'       => 'Flat 2',
+				'city'        => 'London',
+				'state'       => 'LND',
+				'postal_code' => 'SW1A 2AA',
+			],
+		];
+
+		// A bare (unsaved) order keeps the test free of the DB and of helper-seeded defaults.
+		$order = new WC_Order();
+		$order->set_billing_first_name( 'Order' );
+		$order->set_billing_last_name( 'Buyer' );
+		$order->set_billing_phone( $order_billing['phone'] );
+		$order->set_billing_country( $order_billing['address']['country'] );
+		$order->set_billing_address_1( $order_billing['address']['line1'] );
+		$order->set_billing_address_2( $order_billing['address']['line2'] );
+		$order->set_billing_city( $order_billing['address']['city'] );
+		$order->set_billing_state( $order_billing['address']['state'] );
+		$order->set_billing_postcode( $order_billing['address']['postal_code'] );
+		if ( $order_has_email ) {
+			$order->set_billing_email( $order_billing['email'] );
+		}
+
+		$customer = null;
+		if ( $with_customer ) {
+			$customer = new WC_Customer();
+			$customer->set_billing_first_name( 'Cust' );
+			$customer->set_billing_last_name( 'Omer' );
+			$customer->set_billing_email( $customer_billing['email'] );
+			$customer->set_billing_phone( $customer_billing['phone'] );
+			$customer->set_billing_country( $customer_billing['address']['country'] );
+			$customer->set_billing_address_1( $customer_billing['address']['line1'] );
+			$customer->set_billing_address_2( $customer_billing['address']['line2'] );
+			$customer->set_billing_city( $customer_billing['address']['city'] );
+			$customer->set_billing_state( $customer_billing['address']['state'] );
+			$customer->set_billing_postcode( $customer_billing['address']['postal_code'] );
+		}
+
+		$result = $this->mock_gateway->get_deferred_flow_billing_data( $is_pay_for_order, $order, $customer );
+
+		switch ( $expected_source ) {
+			case 'order':
+				$this->assertSame( $order_billing, $result );
+				break;
+			case 'customer':
+				// Asserting the whole array proves the fallback is all-or-nothing: no order field leaks in.
+				$this->assertSame( $customer_billing, $result );
+				break;
+			default:
+				$this->assertNull( $result );
+		}
+	}
+
+	/**
+	 * Data provider for test_get_deferred_flow_billing_data.
+	 *
+	 * @return array<string, array{0: bool, 1: bool, 2: bool, 3: string}>
+	 */
+	public function provide_deferred_flow_billing_data_scenarios(): array {
+		return [
+			'pay-for-order uses the order when it has an email'                    => [ true, true, true, 'order' ],
+			'pay-for-order falls back to the customer when the order has no email' => [ true, false, true, 'customer' ],
+			'change/add payment method uses the customer even with an order'       => [ false, true, true, 'customer' ],
+			'returns null when neither order nor customer is usable'               => [ true, false, false, 'none' ],
+		];
 	}
 
 	/**
@@ -1637,6 +1847,90 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Reusing a saved card never refreshes its wallet_type (create-time state),
+	 * so a manually-saved card can't flip to a wallet brand.
+	 *
+	 * @dataProvider provider_handle_saving_payment_method_preserves_wallet_type
+	 *
+	 * @param string $initial_wallet_type wallet_type already stored on the saved token.
+	 * @param string $new_wallet_type      wallet_type on the incoming payment method ('' for a plain card).
+	 * @param string $expected_wallet_type wallet_type expected on the token after reuse (always the initial value).
+	 */
+	public function test_handle_saving_payment_method_preserves_wallet_type_on_reused_token( $initial_wallet_type, $new_wallet_type, $expected_wallet_type ) {
+		$this->mock_gateway->oc_enabled = true;
+
+		$user_id = $this->factory()->user->create();
+		$order   = WC_Helper_Order::create_order( $user_id );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		// An existing saved token for the same card, branded with the initial wallet type.
+		$existing = new WC_Stripe_Payment_Token_CC();
+		$existing->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$existing->set_token( 'pm_existing' );
+		$existing->set_card_type( 'visa' );
+		$existing->set_last4( '4242' );
+		$existing->set_expiry_month( '12' );
+		$existing->set_expiry_year( '2030' );
+		$existing->set_fingerprint( 'fp_match' );
+		$existing->set_wallet_type( $initial_wallet_type );
+		$existing->set_user_id( $user_id );
+		$existing->save();
+
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		$card = [
+			'exp_month'   => 12,
+			'exp_year'    => 2030,
+			'brand'       => 'visa',
+			'last4'       => '4242',
+			'fingerprint' => 'fp_match',
+		];
+		// A plain card carries no wallet object; a wallet payment nests its type under card.wallet.
+		if ( '' !== $new_wallet_type ) {
+			$card['wallet'] = (object) [ 'type' => $new_wallet_type ];
+		}
+
+		// The same card (matching fingerprint) tokenized again through the new method.
+		$payment_method_object = (object) [
+			'id'       => 'pm_reused',
+			'object'   => 'payment_method',
+			'type'     => WC_Stripe_Payment_Methods::CARD,
+			'customer' => 'cus_mock',
+			'card'     => (object) $card,
+		];
+
+		$this->mock_gateway->handle_saving_payment_method( $order, $payment_method_object, WC_Stripe_Payment_Methods::CARD );
+
+		$refreshed = WC_Payment_Tokens::get( $existing->get_id() );
+		$this->assertInstanceOf( WC_Stripe_Payment_Token_CC::class, $refreshed );
+		// The reused token keeps its create-time wallet branding; only the Stripe id refreshes.
+		$this->assertSame( $expected_wallet_type, $refreshed->get_wallet_type() );
+		$this->assertSame( 'pm_reused', $refreshed->get_token() );
+	}
+
+	/**
+	 * Provider: expected wallet_type always equals the initial — the incoming method's is ignored.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: string}>
+	 */
+	public function provider_handle_saving_payment_method_preserves_wallet_type(): array {
+		return [
+			'plain card reused via apple pay stays plain'        => [ '', 'apple_pay', '' ],
+			'plain card reused via google pay stays plain'       => [ '', 'google_pay', '' ],
+			'plain card reused directly stays plain'             => [ '', '', '' ],
+			'apple pay card reused directly stays apple'         => [ 'apple_pay', '', 'apple_pay' ],
+			'apple pay card reused via google pay stays apple'   => [ 'apple_pay', 'google_pay', 'apple_pay' ],
+			'apple pay card reused via apple pay stays apple'    => [ 'apple_pay', 'apple_pay', 'apple_pay' ],
+			'google pay card reused via apple pay stays google'  => [ 'google_pay', 'apple_pay', 'google_pay' ],
+			'google pay card reused directly stays google'       => [ 'google_pay', '', 'google_pay' ],
+			'google pay card reused via google pay stays google' => [ 'google_pay', 'google_pay', 'google_pay' ],
+		];
+	}
+
+	/**
 	 * Test checkout flow while saving payment method with SEPA generated payment method AND setup intents.
 	 */
 	public function test_setup_intent_checkout_saves_sepa_generated_payment_method_to_order() {
@@ -2082,7 +2376,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Checkout Session payment processing rejects sessions whose amount no longer matches the order total.
+	 * A Checkout Session amount mismatch fails only that checkout: the Session is invalidated and the customer session is flagged.
 	 */
 	public function test_process_payment_with_checkout_session_rejects_amount_mismatch() {
 		$session_id       = 'cs_test_amount_mismatch';
@@ -2106,20 +2400,26 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->store_checkout_session_context_for_order( $session_id, $order, [ 'amount' => 100 ] );
 
 		try {
-			$result                   = $this->mock_gateway->process_payment( $order->get_id() );
-			$adaptive_pricing_setting = WC_Stripe_Helper::get_settings( null, 'adaptive_pricing' );
-			$mismatch_detected        = WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected();
+			$result                     = $this->mock_gateway->process_payment( $order->get_id() );
+			$adaptive_pricing_setting   = WC_Stripe_Helper::get_settings( null, 'adaptive_pricing' );
+			$customer_mismatch_detected = WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected();
+			$legacy_marker_option       = get_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION, 'no' );
+			$remaining_context          = WC_Stripe_Checkout_Session_Context::get_context( $session_id );
 		} finally {
 			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
 			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'] );
 			WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
 			delete_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION );
+			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
+			WC()->session->set( $amount_mismatch_session_key, null );
 		}
 
 		$this->assertSame( 'failure', $result['result'] );
 		$this->assertSame( $expected_message, $result['message'] );
-		$this->assertSame( 'no', $adaptive_pricing_setting );
-		$this->assertTrue( $mismatch_detected );
+		$this->assertSame( 'yes', $adaptive_pricing_setting );
+		$this->assertSame( 'no', $legacy_marker_option );
+		$this->assertTrue( $customer_mismatch_detected );
+		$this->assertNull( $remaining_context );
 		$this->assert_checkout_session_failure_notice( $expected_message );
 		$this->assertEmpty(
 			WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) )
@@ -3616,17 +3916,20 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway->process_subscription_payment( $amount, $order, false, false );
 
-		$final_order = wc_get_order( $order_id );
-		$note        = wc_get_order_notes(
-			[
-				'order_id' => $order_id,
-				'limit'    => 1,
-			]
-		)[0];
+		$final_order   = wc_get_order( $order_id );
+		$note_contents = array_map(
+			static function ( $note ) {
+				return $note->content;
+			},
+			wc_get_order_notes( [ 'order_id' => $order_id ] )
+		);
 
 		$this->assertEquals( OrderStatus::FAILED, $final_order->get_status() );
 		$this->assertEquals( 'ch_mock', $final_order->get_transaction_id() );
-		$this->assertMatchesRegularExpression( '/pending/i', $note->content );
+		$this->assertNotEmpty(
+			preg_grep( '/pending/i', $note_contents ),
+			'Failed asserting that an order note mentions the pending payment. Notes: ' . implode( ' | ', $note_contents )
+		);
 		// Assert: Our hook was called once.
 		$this->assertEquals( 1, $mock_action_process_payment->get_call_count() );
 		// Assert: Only our hook was called.
@@ -4389,6 +4692,140 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$reloaded = wc_get_order( $order_id );
 		$this->assertSame( 'ch_mock1234567890', $reloaded->get_transaction_id() );
+	}
+
+	/**
+	 * Malformed payment method IDs must be rejected before any Stripe request is sent.
+	 *
+	 * @param string $payment_method_id The malformed payment method ID.
+	 * @dataProvider provide_malformed_payment_method_ids
+	 */
+	public function test_prepare_payment_information_rejects_malformed_payment_method_id_before_api_request( string $payment_method_id ) {
+		$order         = WC_Helper_Order::create_order();
+		$request_count = 0;
+		$exception     = null;
+
+		$_POST = [
+			'payment_method'           => 'stripe_us_bank_account',
+			'wc-stripe-payment-method' => $payment_method_id,
+		];
+
+		$count_requests = static function ( $preempt, $args, $url ) use ( &$request_count ) {
+			++$request_count;
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => '{}',
+			];
+		};
+		add_filter( 'pre_http_request', $count_requests, 10, 3 );
+
+		$reflection = new \ReflectionClass( WC_Stripe_UPE_Payment_Gateway::class );
+		$method     = $reflection->getMethod( 'prepare_payment_information_from_request' );
+		$method->setAccessible( true );
+
+		try {
+			$method->invoke( $this->mock_gateway, $order );
+		} catch ( WC_Stripe_Exception $caught_exception ) {
+			$exception = $caught_exception;
+		} finally {
+			remove_filter( 'pre_http_request', $count_requests );
+			$_POST = [];
+		}
+
+		// Assert the specific boundary rejection, not merely that some WC_Stripe_Exception was thrown.
+		$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+		$this->assertStringContainsString( 'Invalid payment method ID in request', $exception->getMessage() );
+		$this->assertSame( 0, $request_count );
+	}
+
+	/**
+	 * Provides prefix-compatible IDs containing URL structural characters.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public function provide_malformed_payment_method_ids(): array {
+		return [
+			'full repro payload' => [ '../setup_intents?payment_method_types[]=card&usage=on_session&metadata[p14]=1#' ],
+			'path traversal'     => [ 'pm_1AbC/../setup_intents' ],
+			'slash'              => [ 'pm_1AbC/extra' ],
+			'dot'                => [ 'pm_1AbC.extra' ],
+			'query delimiter'    => [ 'pm_1AbC?foo' ],
+			'ampersand'          => [ 'pm_1AbC&foo' ],
+			'equals'             => [ 'pm_1AbC=foo' ],
+			'fragment'           => [ 'pm_1AbC#foo' ],
+			'opening bracket'    => [ 'pm_1AbC[foo' ],
+			'closing bracket'    => [ 'pm_1AbC]foo' ],
+			'control byte'       => [ "pm_1AbC\nfoo" ],
+		];
+	}
+
+	/**
+	 * A valid PaymentMethod ID passes the boundary check and the ACH flow proceeds unchanged: the
+	 * preliminary PaymentMethod lookup fires first, then the attach. This proves the security check
+	 * does not break the checkout flow it protects.
+	 */
+	public function test_prepare_payment_information_allows_valid_ach_id_and_attaches_after_lookup() {
+		$order = WC_Helper_Order::create_order();
+		$pm_id = 'pm_1MqLiJLkdIwHu7ixUEgbFdYF';
+
+		// Seed the Stripe customer so customer resolution makes no additional API call.
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_test123' );
+
+		$_POST = [
+			'payment_method'           => 'stripe_us_bank_account',
+			'wc-stripe-payment-method' => $pm_id,
+		];
+
+		$requests = [];
+		$capture  = static function ( $preempt, $args, $url ) use ( &$requests, $pm_id ) {
+			$requests[] = $url;
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => wp_json_encode(
+					[
+						'id'   => $pm_id,
+						'type' => 'us_bank_account',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $capture, 10, 3 );
+
+		$reflection = new \ReflectionClass( WC_Stripe_UPE_Payment_Gateway::class );
+		$method     = $reflection->getMethod( 'prepare_payment_information_from_request' );
+		$method->setAccessible( true );
+
+		$exception = null;
+		try {
+			$method->invoke( $this->mock_gateway, $order );
+		} catch ( WC_Stripe_Exception $caught_exception ) {
+			$exception = $caught_exception;
+		} finally {
+			remove_filter( 'pre_http_request', $capture, 10 );
+			$_POST = [];
+		}
+
+		// The valid ID is accepted (no boundary rejection).
+		$this->assertNull( $exception );
+
+		// Exactly one lookup and one attach, in that order.
+		$pm_calls = array_values(
+			array_filter(
+				$requests,
+				static function ( $url ) {
+					return false !== strpos( $url, 'payment_methods/' );
+				}
+			)
+		);
+		$this->assertCount( 2, $pm_calls );
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'payment_methods/' . $pm_id, $pm_calls[0] );
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'payment_methods/' . $pm_id . '/attach', $pm_calls[1] );
 	}
 
 	/**
@@ -5544,6 +5981,43 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Tests that order authorization data is localized only for a validated pay-for-order endpoint.
+	 */
+	public function test_javascript_params_localizes_order_key_only_for_valid_pay_for_order_endpoint(): void {
+		global $wp, $wp_query;
+
+		$gateway                     = $this->create_gateway_mock_for_javascript_params();
+		$order                       = WC_Helper_Order::create_order( 0 );
+		$original_get                = $_GET;
+		$original_wp_query_vars      = $wp->query_vars;
+		$original_query_vars         = $wp_query->query_vars;
+		$original_current_user_id    = get_current_user_id();
+		$wp->query_vars['order-pay'] = $order->get_id();
+		$wp_query->set( 'order-pay', $order->get_id() );
+		$_GET['pay_for_order'] = 'true';
+		$_GET['key']           = $order->get_order_key();
+		wp_set_current_user( 0 );
+
+		try {
+			$params = $gateway->javascript_params();
+
+			$this->assertSame( $order->get_id(), $params['orderId'] );
+			$this->assertSame( $order->get_order_key(), $params['orderKey'] );
+
+			$_GET['key'] = 'wc_order_wrong_key';
+			$params      = $gateway->javascript_params();
+
+			$this->assertArrayNotHasKey( 'orderId', $params );
+			$this->assertArrayNotHasKey( 'orderKey', $params );
+		} finally {
+			$_GET                 = $original_get;
+			$wp->query_vars       = $original_wp_query_vars;
+			$wp_query->query_vars = $original_query_vars;
+			wp_set_current_user( $original_current_user_id );
+		}
+	}
+
+	/**
 	 * Tests that `javascript_params()` handles the `wc_stripe_upe_permitted_font_domains` filter correctly.
 	 *
 	 * @dataProvider provide_test_javascript_params_permitted_font_domains
@@ -5924,6 +6398,126 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertStringContainsString( $expected_amount . ' EUR', $output );
 		$this->assertStringContainsString( $expected_rate . ' EUR', $output );
 		$this->assertStringContainsString( '</p>', $output );
+	}
+
+	/**
+	 * Test that display_paid_by_customer_amount outputs nothing when no checkout session is associated with the order.
+	 *
+	 * @return void
+	 */
+	public function test_display_paid_by_customer_amount_outputs_nothing_when_no_checkout_session(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		ob_start();
+		$this->mock_gateway->display_paid_by_customer_amount( $order->get_id() );
+		$output = ob_get_clean();
+
+		$this->assertEmpty( $output );
+	}
+
+	/**
+	 * Test that display_paid_by_customer_amount outputs nothing when the checkout session has no presentment details.
+	 *
+	 * @return void
+	 */
+	public function test_display_paid_by_customer_amount_outputs_nothing_when_no_presentment_details(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$checkout_session_id = 'cs_test_paid_by_customer_no_presentment';
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		// The render method reloads the order by ID, so the session meta must be persisted.
+		$order->save();
+
+		$checkout_session = $this->array_to_object(
+			[
+				'id'           => $checkout_session_id,
+				'amount_total' => 2000,
+			]
+		);
+		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+
+		try {
+			ob_start();
+			$this->mock_gateway->display_paid_by_customer_amount( $order->get_id() );
+			$output = ob_get_clean();
+
+			$this->assertEmpty( $output );
+		} finally {
+			WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+		}
+	}
+
+	/**
+	 * Data provider for display_paid_by_customer_amount currency-code disambiguation.
+	 *
+	 * The store currency is USD ("$"). The code is only spelled out when the presentment
+	 * currency shares that symbol (AUD is also "$"); BDT ("৳") stands on its own.
+	 *
+	 * @return array<string, array{string, string, bool}>
+	 */
+	public function provide_display_paid_by_customer_currency_code(): array {
+		return [
+			'shared symbol shows code'   => [ 'aud', 'AUD', true ],
+			'distinct symbol hides code' => [ 'bdt', 'BDT', false ],
+		];
+	}
+
+	/**
+	 * Test that display_paid_by_customer_amount appends the currency code only when its symbol
+	 * collides with the store currency's symbol.
+	 *
+	 * @dataProvider provide_display_paid_by_customer_currency_code
+	 *
+	 * @param string $presentment_currency The presentment currency code (lowercase).
+	 * @param string $expected_code        The uppercase code that may be shown.
+	 * @param bool   $expects_code         Whether the "(CODE)" suffix should be rendered.
+	 * @return void
+	 */
+	public function test_display_paid_by_customer_amount_appends_code_only_on_symbol_collision( string $presentment_currency, string $expected_code, bool $expects_code ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_currency( 'USD' );
+		$order->set_total( 20.00 );
+		$order->save();
+
+		$checkout_session_id = 'cs_test_paid_by_customer_' . $presentment_currency;
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		// The render method reloads the order by ID, so the session meta must be persisted.
+		$order->save();
+
+		$checkout_session = $this->array_to_object(
+			[
+				'id'                  => $checkout_session_id,
+				'amount_total'        => 2000,
+				'presentment_details' => [
+					'presentment_amount'   => 1500,
+					'presentment_currency' => $presentment_currency,
+				],
+			]
+		);
+		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+
+		try {
+			ob_start();
+			$this->mock_gateway->display_paid_by_customer_amount( $order->get_id() );
+			$output = ob_get_clean();
+
+			$this->assertStringContainsString( 'stripe-paid-by-customer', $output );
+			$this->assertStringContainsString( 'Paid by customer:', $output );
+			$this->assertStringContainsString( '15.00', $output );
+
+			if ( $expects_code ) {
+				$this->assertStringContainsString( '(' . $expected_code . ')', $output );
+			} else {
+				$this->assertStringNotContainsString( $expected_code, $output );
+			}
+		} finally {
+			WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+		}
 	}
 
 	/**

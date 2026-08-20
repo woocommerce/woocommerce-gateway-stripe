@@ -2,8 +2,7 @@ import React from 'react';
 import { act, render, screen } from '@testing-library/react';
 import { Elements, ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import ExpressCheckoutPreviewComponent from '../express-checkout-preview-component';
-import { useExpressCheckoutEnabledSettings } from 'wcstripe/data';
+import ExpressCheckoutPreview from '..';
 import { getDefaultBorderRadius } from 'wcstripe/express-checkout/utils';
 
 // `<Notice />` from `@wordpress/components` calls into `@wordpress/a11y` via its
@@ -29,41 +28,53 @@ jest.mock( '@stripe/stripe-js', () => ( {
 	loadStripe: jest.fn(),
 } ) );
 
-jest.mock( 'wcstripe/data', () => ( {
-	useExpressCheckoutEnabledSettings: jest.fn(),
-} ) );
-
 jest.mock( 'wcstripe/express-checkout/utils', () => ( {
 	getDefaultBorderRadius: jest.fn(),
 } ) );
 
-describe( 'ExpressCheckoutPreviewComponent', () => {
-	const globalValues = global.wc_stripe_express_checkout_settings_params;
-
-	const defaultProps = {
+describe( 'ExpressCheckoutPreview', () => {
+	// The express-checkout-settings page passes the full prop set: button
+	// type/theme plus the express-checkout-enabled gate.
+	const eceProps = {
+		params: { key: 'pk_test_123', locale: 'en' },
+		paymentMethodTypes: [ 'card' ],
+		paymentMethods: {
+			link: 'never',
+			googlePay: 'always',
+			applePay: 'always',
+			amazonPay: 'never',
+			klarna: 'never',
+		},
 		buttonType: 'buy',
 		theme: 'dark',
 		size: 'default',
+		requireExpressCheckoutEnabled: true,
+		isExpressCheckoutEnabled: true,
+		errorMessage: 'Failed to preview the Apple Pay or Google Pay button.',
+	};
+
+	// The Amazon Pay / Link pages pass no button type/theme and no gate.
+	const amazonProps = {
+		params: { key: 'pk_test_123', locale: 'en' },
+		paymentMethodTypes: [ 'amazon_pay' ],
+		paymentMethods: {
+			amazonPay: 'auto',
+			link: 'never',
+			googlePay: 'never',
+			applePay: 'never',
+			klarna: 'never',
+		},
+		size: 'default',
+		errorMessage: 'Failed to preview the Amazon Pay button.',
 	};
 
 	beforeEach( () => {
-		useExpressCheckoutEnabledSettings.mockReturnValue( [
-			true,
-			jest.fn(),
-		] );
 		getDefaultBorderRadius.mockReturnValue( 4 );
 		loadStripe.mockReturnValue( {} );
-
-		global.wc_stripe_express_checkout_settings_params = {
-			...globalValues,
-			key: 'pk_test_123',
-			locale: 'en',
-		};
 	} );
 
 	afterEach( () => {
 		jest.clearAllMocks();
-		global.wc_stripe_express_checkout_settings_params = globalValues;
 	} );
 
 	const getExpressCheckoutElementProps = () => {
@@ -74,13 +85,13 @@ describe( 'ExpressCheckoutPreviewComponent', () => {
 		return lastCall[ 0 ];
 	};
 
-	it( 'renders the warning notice when express checkout is disabled', () => {
-		useExpressCheckoutEnabledSettings.mockReturnValue( [
-			false,
-			jest.fn(),
-		] );
-
-		render( <ExpressCheckoutPreviewComponent { ...defaultProps } /> );
+	it( 'renders the warning notice when express checkout is disabled and the gate is required', () => {
+		render(
+			<ExpressCheckoutPreview
+				{ ...eceProps }
+				isExpressCheckoutEnabled={ false }
+			/>
+		);
 
 		expect(
 			screen.getByText( /The preview is only available when/ )
@@ -90,8 +101,26 @@ describe( 'ExpressCheckoutPreviewComponent', () => {
 		).not.toBeInTheDocument();
 	} );
 
+	it( 'ignores the express-checkout-enabled state when the gate is not required', () => {
+		// amazonProps omits requireExpressCheckoutEnabled, so a disabled state
+		// must not suppress the preview on the Amazon Pay / Link pages.
+		render(
+			<ExpressCheckoutPreview
+				{ ...amazonProps }
+				isExpressCheckoutEnabled={ false }
+			/>
+		);
+
+		expect(
+			screen.queryByText( /The preview is only available when/ )
+		).not.toBeInTheDocument();
+		expect(
+			screen.getByTestId( 'express-checkout-element' )
+		).toBeInTheDocument();
+	} );
+
 	it( 'renders the Stripe ExpressCheckoutElement when enabled', () => {
-		render( <ExpressCheckoutPreviewComponent { ...defaultProps } /> );
+		render( <ExpressCheckoutPreview { ...eceProps } /> );
 
 		expect(
 			screen.getByTestId( 'express-checkout-element' )
@@ -99,25 +128,20 @@ describe( 'ExpressCheckoutPreviewComponent', () => {
 		expect(
 			screen.queryByText( /The preview is only available when/ )
 		).not.toBeInTheDocument();
-		expect(
-			screen.queryByText(
-				/Failed to preview the Apple Pay or Google Pay/
-			)
-		).not.toBeInTheDocument();
 	} );
 
-	it( 'initializes Stripe with the publishable key and locale from global params', () => {
-		render( <ExpressCheckoutPreviewComponent { ...defaultProps } /> );
+	it( 'initializes Stripe with the publishable key and locale from params', () => {
+		render( <ExpressCheckoutPreview { ...eceProps } /> );
 
 		expect( loadStripe ).toHaveBeenCalledWith( 'pk_test_123', {
 			locale: 'en',
 		} );
 	} );
 
-	it( 'passes a payment-mode Elements configuration using the default border radius', () => {
+	it( 'passes a payment-mode Elements configuration using the default border radius and provided method types', () => {
 		getDefaultBorderRadius.mockReturnValue( 8 );
 
-		render( <ExpressCheckoutPreviewComponent { ...defaultProps } /> );
+		render( <ExpressCheckoutPreview { ...amazonProps } /> );
 
 		const elementsProps = Elements.mock.calls.at( -1 )[ 0 ];
 		expect( elementsProps.options ).toEqual(
@@ -125,7 +149,7 @@ describe( 'ExpressCheckoutPreviewComponent', () => {
 				mode: 'payment',
 				amount: 1000,
 				currency: 'usd',
-				paymentMethodTypes: [ 'card' ],
+				paymentMethodTypes: [ 'amazon_pay' ],
 			} )
 		);
 		expect( elementsProps.options.appearance.variables.borderRadius ).toBe(
@@ -135,10 +159,7 @@ describe( 'ExpressCheckoutPreviewComponent', () => {
 
 	it( 'maps the "default" buttonType to "plain" for both Apple Pay and Google Pay', () => {
 		render(
-			<ExpressCheckoutPreviewComponent
-				{ ...defaultProps }
-				buttonType="default"
-			/>
+			<ExpressCheckoutPreview { ...eceProps } buttonType="default" />
 		);
 
 		const { options } = getExpressCheckoutElementProps();
@@ -157,8 +178,8 @@ describe( 'ExpressCheckoutPreviewComponent', () => {
 		'passes through the "%s" buttonType unchanged',
 		( buttonType, expected ) => {
 			render(
-				<ExpressCheckoutPreviewComponent
-					{ ...defaultProps }
+				<ExpressCheckoutPreview
+					{ ...eceProps }
 					buttonType={ buttonType }
 				/>
 			);
@@ -180,10 +201,7 @@ describe( 'ExpressCheckoutPreviewComponent', () => {
 		'maps the "%s" theme to the right Stripe theme',
 		( theme, expected ) => {
 			render(
-				<ExpressCheckoutPreviewComponent
-					{ ...defaultProps }
-					theme={ theme }
-				/>
+				<ExpressCheckoutPreview { ...eceProps } theme={ theme } />
 			);
 
 			const { options } = getExpressCheckoutElementProps();
@@ -191,18 +209,21 @@ describe( 'ExpressCheckoutPreviewComponent', () => {
 		}
 	);
 
+	it( 'omits buttonType and buttonTheme when no button type/theme props are supplied', () => {
+		render( <ExpressCheckoutPreview { ...amazonProps } /> );
+
+		const { options } = getExpressCheckoutElementProps();
+		expect( options.buttonType ).toBeUndefined();
+		expect( options.buttonTheme ).toBeUndefined();
+	} );
+
 	it.each( [
 		[ 'small', 40 ],
 		[ 'default', 48 ],
 	] )(
 		'maps the "%s" size to a %dpx button height',
 		( size, expectedHeight ) => {
-			render(
-				<ExpressCheckoutPreviewComponent
-					{ ...defaultProps }
-					size={ size }
-				/>
-			);
+			render( <ExpressCheckoutPreview { ...eceProps } size={ size } /> );
 
 			const { options } = getExpressCheckoutElementProps();
 			expect( options.buttonHeight ).toBe( expectedHeight );
@@ -210,9 +231,7 @@ describe( 'ExpressCheckoutPreviewComponent', () => {
 	);
 
 	it( 'clamps the "large" size button height to the 55px Stripe maximum', () => {
-		render(
-			<ExpressCheckoutPreviewComponent { ...defaultProps } size="large" />
-		);
+		render( <ExpressCheckoutPreview { ...eceProps } size="large" /> );
 
 		const { options } = getExpressCheckoutElementProps();
 		// large maps to 56, which gets clamped to the 55 upper bound.
@@ -221,18 +240,15 @@ describe( 'ExpressCheckoutPreviewComponent', () => {
 
 	it( 'falls back to the 48px default height when given an unknown size', () => {
 		render(
-			<ExpressCheckoutPreviewComponent
-				{ ...defaultProps }
-				size="unknown-size"
-			/>
+			<ExpressCheckoutPreview { ...eceProps } size="unknown-size" />
 		);
 
 		const { options } = getExpressCheckoutElementProps();
 		expect( options.buttonHeight ).toBe( 48 );
 	} );
 
-	it( 'only enables Google Pay and Apple Pay; Link, Amazon Pay and Klarna are disabled', () => {
-		render( <ExpressCheckoutPreviewComponent { ...defaultProps } /> );
+	it( 'forwards the provided paymentMethods flags to the ExpressCheckoutElement', () => {
+		render( <ExpressCheckoutPreview { ...eceProps } /> );
 
 		const { options } = getExpressCheckoutElementProps();
 		expect( options.paymentMethods ).toEqual( {
@@ -244,8 +260,8 @@ describe( 'ExpressCheckoutPreviewComponent', () => {
 		} );
 	} );
 
-	it( 'switches to the error notice when onReady reports no available payment methods', () => {
-		render( <ExpressCheckoutPreviewComponent { ...defaultProps } /> );
+	it( 'switches to the provided error notice when onReady reports no available payment methods', () => {
+		render( <ExpressCheckoutPreview { ...amazonProps } /> );
 
 		const { onReady } = getExpressCheckoutElementProps();
 
@@ -254,9 +270,7 @@ describe( 'ExpressCheckoutPreviewComponent', () => {
 		} );
 
 		expect(
-			screen.getByText(
-				/Failed to preview the Apple Pay or Google Pay button/
-			)
+			screen.getByText( /Failed to preview the Amazon Pay button/ )
 		).toBeInTheDocument();
 		expect(
 			screen.queryByTestId( 'express-checkout-element' )
@@ -264,7 +278,7 @@ describe( 'ExpressCheckoutPreviewComponent', () => {
 	} );
 
 	it( 'keeps rendering the button when onReady reports available payment methods', () => {
-		render( <ExpressCheckoutPreviewComponent { ...defaultProps } /> );
+		render( <ExpressCheckoutPreview { ...eceProps } /> );
 
 		const { onReady } = getExpressCheckoutElementProps();
 
@@ -276,18 +290,34 @@ describe( 'ExpressCheckoutPreviewComponent', () => {
 			screen.getByTestId( 'express-checkout-element' )
 		).toBeInTheDocument();
 		expect(
-			screen.queryByText(
-				/Failed to preview the Apple Pay or Google Pay button/
-			)
+			screen.queryByText( /Failed to preview/ )
 		).not.toBeInTheDocument();
 	} );
 
 	it( 'sets the wrapper minHeight to match the requested button size', () => {
-		render(
-			<ExpressCheckoutPreviewComponent { ...defaultProps } size="small" />
-		);
+		render( <ExpressCheckoutPreview { ...eceProps } size="small" /> );
 
 		const wrapper = screen.getByTestId( 'stripe-elements' ).parentElement;
 		expect( wrapper ).toHaveStyle( { minHeight: '40px', width: '100%' } );
+	} );
+
+	it.each( [ [ 'dark' ], [ 'light' ], [ 'light-outline' ] ] )(
+		'tags the wrapper with the "%s" theme so the SCSS can pick a contrasting background',
+		( theme ) => {
+			render(
+				<ExpressCheckoutPreview { ...eceProps } theme={ theme } />
+			);
+
+			const wrapper =
+				screen.getByTestId( 'stripe-elements' ).parentElement;
+			expect( wrapper ).toHaveAttribute( 'data-theme', theme );
+		}
+	);
+
+	it( 'leaves the wrapper untagged when no theme is supplied (Amazon Pay / Link previews)', () => {
+		render( <ExpressCheckoutPreview { ...amazonProps } /> );
+
+		const wrapper = screen.getByTestId( 'stripe-elements' ).parentElement;
+		expect( wrapper ).not.toHaveAttribute( 'data-theme' );
 	} );
 } );

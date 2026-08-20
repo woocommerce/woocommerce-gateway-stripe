@@ -117,10 +117,10 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		).toBeDisabled();
 	} );
 
-	it( 'disables Adaptive Pricing and explains why when disabled due to amount mismatches', () => {
+	it( 'disables Adaptive Pricing and explains why when manual capture is enabled', () => {
 		global.wc_stripe_settings_params = {
-			is_cs_available: true,
-			adaptive_pricing_unavailable_reason: 'amount-mismatch-detected',
+			is_cs_available: false,
+			adaptive_pricing_unavailable_reason: 'manual-capture',
 		};
 
 		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
@@ -128,9 +128,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		render( <OptimizedCheckoutFeature isOCAvailable={ true } /> );
 
 		expect(
-			screen.getByText(
-				'Adaptive Pricing was disabled due to a plugin compatibility issue. Please contact WooCommerce support to report the issue so we can investigate the cause.'
-			)
+			screen.getByText( /Adaptive Pricing requires automatic capture/i )
 		).toBeInTheDocument();
 
 		expect(

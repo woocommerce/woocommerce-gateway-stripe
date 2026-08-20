@@ -14,7 +14,7 @@ class WC_Stripe_API {
 	 * Stripe API Endpoint
 	 */
 	public const ENDPOINT                     = 'https://api.stripe.com/v1/';
-	public const STRIPE_API_VERSION           = '2025-09-30.clover';
+	public const STRIPE_API_VERSION           = '2026-03-25.dahlia';
 	public const AGENTIC_COMMERCE_API_VERSION = '2025-12-15.preview';
 
 	/**
@@ -151,6 +151,13 @@ class WC_Stripe_API {
 			'Stripe-Version' => self::STRIPE_API_VERSION,
 		];
 
+		/**
+		 * Filters the request headers sent to the Stripe API. Deprecated in favor of wc_stripe_request_headers.
+		 *
+		 * @deprecated 9.7.0
+		 *
+		 * @param array $headers The headers to send to the Stripe API.
+		 */
 		$headers = apply_filters_deprecated(
 			'woocommerce_stripe_request_headers',
 			[ $headers ],
@@ -213,11 +220,25 @@ class WC_Stripe_API {
 	public static function request( $request, $api = 'charges', $method = 'POST', $with_headers = false ) {
 		$headers = self::get_headers();
 
+		/**
+		 * Filters the idempotency key sent with a Stripe API request.
+		 *
+		 * @param string|null $idempotency_key Generated idempotency key.
+		 * @param array       $request         Stripe API request body.
+		 */
 		$idempotency_key = apply_filters( 'wc_stripe_idempotency_key', self::get_idempotency_key( $api, $method, $request ), $request );
 		if ( $idempotency_key ) {
 			$headers['Idempotency-Key'] = $idempotency_key;
 		}
 
+		/**
+		 * Filters the request body sent to the Stripe API. Deprecated in favor of wc_stripe_request_body.
+		 *
+		 * @deprecated 9.7.0
+		 *
+		 * @param array $request The request body to send to the Stripe API.
+		 * @param string $api The Stripe API endpoint.
+		 */
 		$request = apply_filters_deprecated(
 			'woocommerce_stripe_request_body',
 			[ $request, $api ],
@@ -454,10 +475,14 @@ class WC_Stripe_API {
 		// 3. Do not try to add level3 data if merchant is not based in the US.
 		// https://docs.stripe.com/level3#level-iii-usage-requirements
 		// (Needs to be authenticated with a level3 gated account to see above docs).
+		// 4. Do not add level3 data for non-card payment methods (e.g. Affirm,
+		// Klarna, Afterpay/Clearpay, Amazon Pay). Level 3 is card-network only, and
+		// Stripe rejects the request when it's attached to those methods.
 		if (
 			empty( $level3_data ) ||
 			get_transient( 'wc_stripe_level3_not_allowed' ) ||
-			'US' !== WC()->countries->get_base_country()
+			'US' !== WC()->countries->get_base_country() ||
+			! WC_Stripe_Helper::order_supports_level3_data( $order )
 		) {
 			return self::request(
 				$request,
@@ -534,6 +559,9 @@ class WC_Stripe_API {
 	 * @return stdClass  The payment method object.
 	 */
 	public static function get_payment_method( string $payment_method_id ) {
+		// Encode as a single path segment so a crafted ID can't smuggle path syntax (no-op for valid IDs).
+		$payment_method_id = rawurlencode( $payment_method_id );
+
 		// Sources have a separate API.
 		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
 			return self::retrieve( 'sources/' . $payment_method_id );
@@ -556,7 +584,7 @@ class WC_Stripe_API {
 	public static function update_payment_method( $payment_method_id, $payment_method_data = [] ) {
 		return self::request(
 			$payment_method_data,
-			'payment_methods/' . $payment_method_id
+			'payment_methods/' . rawurlencode( $payment_method_id )
 		);
 	}
 
@@ -578,9 +606,10 @@ class WC_Stripe_API {
 			);
 		}
 
+		// Encode as a single path segment so a crafted ID can't smuggle path syntax (no-op for valid IDs).
 		return self::request(
 			[ 'customer' => $customer_id ],
-			'payment_methods/' . $payment_method_id . '/attach'
+			'payment_methods/' . rawurlencode( $payment_method_id ) . '/attach'
 		);
 	}
 
@@ -600,18 +629,21 @@ class WC_Stripe_API {
 
 		$payment_method_id = sanitize_text_field( $payment_method_id );
 
+		// Encode as a single path segment so a crafted ID can't smuggle path syntax (no-op for valid IDs).
+		$encoded_payment_method_id = rawurlencode( $payment_method_id );
+
 		// Sources and Payment Methods need different API calls.
 		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
 			return self::request(
 				[],
-				'customers/' . $customer_id . '/sources/' . $payment_method_id,
+				'customers/' . $customer_id . '/sources/' . $encoded_payment_method_id,
 				'DELETE'
 			);
 		}
 
 		return self::request(
 			[],
-			'payment_methods/' . $payment_method_id . '/detach'
+			'payment_methods/' . $encoded_payment_method_id . '/detach'
 		);
 	}
 
