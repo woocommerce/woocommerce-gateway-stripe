@@ -675,10 +675,15 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		update_option( 'woocommerce_default_country', 'US:CA' );
 
 		$payment_information = $this->get_confirmation_token_payment_information( $selected_payment_type );
+		// A null/empty selected type must not be written (nor fatal), leaving the meta empty.
+		$expected_meta = is_string( $selected_payment_type ) ? $selected_payment_type : '';
 
 		$requests_seen = [];
-		$test_request  = function ( $preempt, $parsed_args, $url ) use ( &$requests_seen ) {
+		$test_request  = function ( $preempt, $parsed_args, $url ) use ( &$requests_seen, $expected_meta ) {
 			if ( false !== strpos( $url, 'payment_intents' ) ) {
+				// The save must precede the request: webhooks triggered by the confirmation can
+				// arrive while this call is still in flight and read the order from the database.
+				$this->assertSame( $expected_meta, wc_get_order( $this->order->get_id() )->get_meta( '_stripe_upe_payment_type' ) );
 				$requests_seen[] = $parsed_args['body'];
 			}
 
@@ -701,8 +706,6 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		}
 		// The in-memory order is what the level3 gate reads during this request; the freshly
 		// loaded instance proves the type was also persisted for parallel requests (e.g. webhooks).
-		// A null/empty selected type must not be written (nor fatal), leaving the meta empty.
-		$expected_meta = is_string( $selected_payment_type ) ? $selected_payment_type : '';
 		$this->assertSame( $expected_meta, $this->order->get_meta( '_stripe_upe_payment_type' ) );
 		$this->assertSame( $expected_meta, wc_get_order( $this->order->get_id() )->get_meta( '_stripe_upe_payment_type' ) );
 	}
@@ -721,10 +724,15 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$payment_information = $this->get_confirmation_token_payment_information( $selected_payment_type );
 		$payment_intent      = (object) [ 'id' => 'pi_mock' ];
+		// A null/empty selected type must not be written (nor fatal), leaving the meta empty.
+		$expected_meta = is_string( $selected_payment_type ) ? $selected_payment_type : '';
 
 		$requests_seen = [];
-		$test_request  = function ( $preempt, $parsed_args, $url ) use ( &$requests_seen ) {
+		$test_request  = function ( $preempt, $parsed_args, $url ) use ( &$requests_seen, $expected_meta ) {
 			if ( false !== strpos( $url, 'payment_intents/pi_mock/confirm' ) ) {
+				// The save must precede the request: webhooks triggered by the confirmation can
+				// arrive while this call is still in flight and read the order from the database.
+				$this->assertSame( $expected_meta, wc_get_order( $this->order->get_id() )->get_meta( '_stripe_upe_payment_type' ) );
 				$requests_seen[] = $parsed_args['body'];
 			}
 
@@ -747,8 +755,6 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		}
 		// The in-memory order is what the level3 gate reads during this request; the freshly
 		// loaded instance proves the type was also persisted for parallel requests (e.g. webhooks).
-		// A null/empty selected type must not be written (nor fatal), leaving the meta empty.
-		$expected_meta = is_string( $selected_payment_type ) ? $selected_payment_type : '';
 		$this->assertSame( $expected_meta, $this->order->get_meta( '_stripe_upe_payment_type' ) );
 		$this->assertSame( $expected_meta, wc_get_order( $this->order->get_id() )->get_meta( '_stripe_upe_payment_type' ) );
 	}
@@ -761,6 +767,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	public function provide_test_confirmation_token_level3() {
 		return [
 			'amazon_pay does not get level3' => [ WC_Stripe_Payment_Methods::AMAZON_PAY, false ],
+			'link does not get level3'       => [ WC_Stripe_Payment_Methods::LINK, false ],
 			'card keeps level3'              => [ WC_Stripe_Payment_Methods::CARD, true ],
 			// Unknown types must not fatal; the gate then falls back to its legacy card default.
 			'empty type keeps level3'        => [ '', true ],
