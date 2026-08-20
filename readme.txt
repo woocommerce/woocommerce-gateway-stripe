@@ -35,6 +35,8 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 11.0.0
+   - Sofort is no longer offered at checkout, since Stripe discontinued it on March 31, 2025; existing Sofort orders can still be refunded and Sofort-initiated subscriptions keep renewing
 * 10.9.0
    - Express checkout processes classic checkout custom fields by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
 * 10.8.0
@@ -176,5 +178,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Name password protection and hidden visibility as their own reasons in the Agentic Commerce feed preview
 * Dev - Make GITHUB_TOKEN optional for the local E2E Docker setup by falling back to the GitHub CLI and then to plugin zips placed in tests/e2e/deps
 * Fix - Reload the plugin's payment method settings when refreshing account details, so the settings screen no longer keeps showing stale values
+* Update - Stop offering Sofort at checkout (discontinued by Stripe on March 31, 2025); refunds and subscription renewals for existing Sofort orders keep working
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

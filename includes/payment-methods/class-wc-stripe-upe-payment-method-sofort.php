@@ -46,4 +46,19 @@ class WC_Stripe_UPE_Payment_Method_Sofort extends WC_Stripe_UPE_Payment_Method {
 	public function get_retrievable_type() {
 		return WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
 	}
+
+	/**
+	 * Sofort was discontinued by Stripe on 2025-03-31, so new payments always fail
+	 * and the method must never be offered at checkout. The class is kept (still
+	 * reusable, with subscriptions initialized) because existing Sofort-initiated
+	 * subscriptions renew through their SEPA mandate, which Stripe keeps active,
+	 * and old Sofort orders remain refundable.
+	 *
+	 * @param int|null    $order_id
+	 * @param string|null $account_domestic_currency The account's default currency.
+	 * @return bool
+	 */
+	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
+		return false;
+	}
 }
