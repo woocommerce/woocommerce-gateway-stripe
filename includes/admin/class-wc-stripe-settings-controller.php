@@ -252,6 +252,7 @@ class WC_Stripe_Settings_Controller {
 			'account_country'                        => $this->account->get_account_country(),
 			'are_apms_deprecated'                    => false,
 			'is_oc_available'                        => WC_Stripe_Feature_Flags::is_oc_available(),
+			'is_oc_offered'                          => WC_Stripe_Feature_Flags::is_oc_offered(),
 			'is_oc_enabled'                          => $is_oc_enabled,
 			'is_cs_available'                        => $is_checkout_sessions_available,
 			'adaptive_pricing_unavailable_reason'    => $adaptive_pricing_unavailable_reason,

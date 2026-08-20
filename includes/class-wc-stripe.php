@@ -172,6 +172,10 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php';
+		if ( self::$instance === $this ) {
+			( new WC_Stripe_Remote_Config_Scheduler() )->init_hooks();
+		}
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-state.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-handler.php';
 
@@ -1021,7 +1025,9 @@ class WC_Stripe {
 	 * @return bool
 	 */
 	protected function is_optimized_checkout_enabled(): bool {
-		if ( ! WC_Stripe_Feature_Flags::is_oc_available() ) {
+		// is_oc_offered() (not is_oc_available()) so a remote disable of Optimized
+		// Checkout reverts stores to the classic UPE gateway.
+		if ( ! WC_Stripe_Feature_Flags::is_oc_offered() ) {
 			return false;
 		}
 		$settings = WC_Stripe_Helper::get_stripe_settings();
