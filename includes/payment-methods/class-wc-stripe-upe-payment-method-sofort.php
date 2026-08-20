@@ -8,6 +8,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Sofort Payment Method class extending UPE base class
+ *
+ * @deprecated 11.0.0 Discontinued by Stripe on 2025-03-31; kept only for refunds and
+ * SEPA-mandate subscription renewals on existing orders.
  */
 class WC_Stripe_UPE_Payment_Method_Sofort extends WC_Stripe_UPE_Payment_Method {
 	use WC_Stripe_Subscriptions_Trait;
@@ -45,5 +48,16 @@ class WC_Stripe_UPE_Payment_Method_Sofort extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function get_retrievable_type() {
 		return WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
+	}
+
+	/**
+	 * Sofort is discontinued, so it can never be offered at checkout.
+	 *
+	 * @param int|null    $order_id
+	 * @param string|null $account_domestic_currency The account's default currency.
+	 * @return bool
+	 */
+	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
+		return false;
 	}
 }

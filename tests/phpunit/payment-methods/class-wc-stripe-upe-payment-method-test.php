@@ -573,6 +573,19 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
+	 * Sofort is discontinued: disabled even with an active capability and supported currency.
+	 */
+	public function test_sofort_is_never_enabled_at_checkout() {
+		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE, true );
+		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', WC_Stripe_Currency_Code::EURO );
+		$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
+
+		$sofort_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::SOFORT ];
+
+		$this->assertFalse( $sofort_method->is_enabled_at_checkout( null, WC_Stripe_Currency_Code::EURO ) );
+	}
+
+	/**
 	 * Payment method is only enabled when capability response contains active for payment method.
 	 */
 	public function test_payment_methods_are_only_enabled_when_capability_is_active() {
@@ -585,7 +598,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
 		foreach ( $payment_method_ids as $id ) {
-			if ( WC_Stripe_Payment_Methods::CARD === $id || WC_Stripe_Payment_Methods::BOLETO === $id || WC_Stripe_Payment_Methods::OXXO === $id || WC_Stripe_Payment_Methods::GIROPAY === $id ) {
+			if ( WC_Stripe_Payment_Methods::CARD === $id || WC_Stripe_Payment_Methods::BOLETO === $id || WC_Stripe_Payment_Methods::OXXO === $id || WC_Stripe_Payment_Methods::GIROPAY === $id || WC_Stripe_Payment_Methods::SOFORT === $id ) {
 				continue;
 			}
 
@@ -630,7 +643,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
 		foreach ( $payment_method_ids as $id ) {
-			if ( WC_Stripe_Payment_Methods::GIROPAY === $id ) {
+			if ( WC_Stripe_Payment_Methods::GIROPAY === $id || WC_Stripe_Payment_Methods::SOFORT === $id ) {
 				continue;
 			}
 
@@ -760,6 +773,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 
 		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
+			// Sofort is reusable but discontinued, so it's never enabled at checkout.
+			if ( WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID === $payment_method_id ) {
+				continue;
+			}
+
 			$store_currency = 'EUR';
 			if ( in_array(
 				$payment_method_id,
