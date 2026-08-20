@@ -114,7 +114,7 @@ if docker run --rm stripe/stripe-cli listen --api-key="$STRIPE_SECRET_KEY" --pri
 	E2E_SERVICES+=(stripe)
 else
 	echo
-	echo -e "\033[0;33mWARNING\033[0m $STRIPE_SECRET_KEY cannot be used by the Stripe CLI listener."
+	echo -e "\033[0;33mWARNING\033[0m STRIPE_SECRET_KEY cannot be used by the Stripe CLI listener."
 	echo "  The Stripe listener container will not be started. Use a restricted API key instead of an OAuth key to enable it."
 
 	# A previous setup may have left the listener running with different credentials.
