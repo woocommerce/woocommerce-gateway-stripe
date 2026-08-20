@@ -666,8 +666,8 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * Level3 data is card-only: the controller must persist the selected payment type to the
 	 * order before the intent request so the level3 gate can exclude non-card methods.
 	 *
-	 * @param string $selected_payment_type The selected payment type posted with the confirmation token.
-	 * @param bool   $expect_level3         Whether the outgoing request should carry level3 data.
+	 * @param string|null $selected_payment_type The selected payment type posted with the confirmation token.
+	 * @param bool        $expect_level3         Whether the outgoing request should carry level3 data.
 	 * @dataProvider provide_test_confirmation_token_level3
 	 */
 	public function test_create_and_confirm_payment_intent_with_confirmation_token_gates_level3( $selected_payment_type, $expect_level3 ) {
@@ -701,16 +701,18 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		}
 		// The in-memory order is what the level3 gate reads during this request; the freshly
 		// loaded instance proves the type was also persisted for parallel requests (e.g. webhooks).
-		$this->assertSame( $selected_payment_type, $this->order->get_meta( '_stripe_upe_payment_type' ) );
-		$this->assertSame( $selected_payment_type, wc_get_order( $this->order->get_id() )->get_meta( '_stripe_upe_payment_type' ) );
+		// A null/empty selected type must not be written (nor fatal), leaving the meta empty.
+		$expected_meta = is_string( $selected_payment_type ) ? $selected_payment_type : '';
+		$this->assertSame( $expected_meta, $this->order->get_meta( '_stripe_upe_payment_type' ) );
+		$this->assertSame( $expected_meta, wc_get_order( $this->order->get_id() )->get_meta( '_stripe_upe_payment_type' ) );
 	}
 
 	/**
 	 * Same as the create case: the confirm call on an existing intent must not carry level3
 	 * data for non-card methods.
 	 *
-	 * @param string $selected_payment_type The selected payment type posted with the confirmation token.
-	 * @param bool   $expect_level3         Whether the outgoing request should carry level3 data.
+	 * @param string|null $selected_payment_type The selected payment type posted with the confirmation token.
+	 * @param bool        $expect_level3         Whether the outgoing request should carry level3 data.
 	 * @dataProvider provide_test_confirmation_token_level3
 	 */
 	public function test_update_and_confirm_payment_intent_with_confirmation_token_gates_level3( $selected_payment_type, $expect_level3 ) {
@@ -745,8 +747,10 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		}
 		// The in-memory order is what the level3 gate reads during this request; the freshly
 		// loaded instance proves the type was also persisted for parallel requests (e.g. webhooks).
-		$this->assertSame( $selected_payment_type, $this->order->get_meta( '_stripe_upe_payment_type' ) );
-		$this->assertSame( $selected_payment_type, wc_get_order( $this->order->get_id() )->get_meta( '_stripe_upe_payment_type' ) );
+		// A null/empty selected type must not be written (nor fatal), leaving the meta empty.
+		$expected_meta = is_string( $selected_payment_type ) ? $selected_payment_type : '';
+		$this->assertSame( $expected_meta, $this->order->get_meta( '_stripe_upe_payment_type' ) );
+		$this->assertSame( $expected_meta, wc_get_order( $this->order->get_id() )->get_meta( '_stripe_upe_payment_type' ) );
 	}
 
 	/**
@@ -758,6 +762,9 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		return [
 			'amazon_pay does not get level3' => [ WC_Stripe_Payment_Methods::AMAZON_PAY, false ],
 			'card keeps level3'              => [ WC_Stripe_Payment_Methods::CARD, true ],
+			// Unknown types must not fatal; the gate then falls back to its legacy card default.
+			'empty type keeps level3'        => [ '', true ],
+			'null type keeps level3'         => [ null, true ],
 		];
 	}
 
@@ -765,7 +772,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * Payment information mirroring what the ECE confirmation-token flow prepares: a confirmation
 	 * token instead of a payment method ID, and no UPE payment type persisted on the order yet.
 	 *
-	 * @param string $selected_payment_type The selected payment type.
+	 * @param string|null $selected_payment_type The selected payment type.
 	 * @return array
 	 */
 	private function get_confirmation_token_payment_information( $selected_payment_type ) {
