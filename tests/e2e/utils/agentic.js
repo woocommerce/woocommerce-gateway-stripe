@@ -7,6 +7,7 @@ export const WEBHOOK_SECRET = 'whsec_e2e_agentic';
 export const AGENTIC_PRODUCT_SKU = 'E2E-AGENTIC-1';
 export const AGENTIC_OOS_PRODUCT_SKU = 'E2E-AGENTIC-OOS';
 export const AGENTIC_EXCLUDED_PRODUCT_SKU = 'E2E-AGENTIC-EXCL';
+export const AGENTIC_CLI_EXCLUDED_PRODUCT_SKU = 'E2E-AGENTIC-CLI-EXCL';
 
 // Cents, matching the product price seeded in agentic-commerce.setup.js.
 export const AGENTIC_PRODUCT_AMOUNT = 2499;

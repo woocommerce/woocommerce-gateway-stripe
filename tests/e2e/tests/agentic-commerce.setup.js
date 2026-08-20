@@ -6,6 +6,7 @@ import { test as setup } from '@playwright/test';
 import wcApi from '@woocommerce/woocommerce-rest-api';
 import playwrightConfig from '../config/playwright.config';
 import {
+	AGENTIC_CLI_EXCLUDED_PRODUCT_SKU,
 	AGENTIC_EXCLUDED_PRODUCT_SKU,
 	AGENTIC_OOS_PRODUCT_SKU,
 	AGENTIC_PRODUCT_SKU,
@@ -58,6 +59,21 @@ setup( 'Seed products for agentic delegated checkout tests', async () => {
 	await api.put( `products/${ excludedId }`, {
 		meta_data: [
 			{ key: '_wc_stripe_agentic_commerce_exclude', value: '' },
+		],
+	} );
+
+	// Excluded up front (unlike the one above, which the admin-ui spec
+	// excludes through the UI mid-run), so the feed-cli spec can assert on
+	// exclusion without racing the admin-ui worker.
+	const cliExcludedId = await ensureProduct( {
+		name: 'Agentic E2E CLI Excluded Product',
+		type: 'simple',
+		regular_price: '24.99',
+		sku: AGENTIC_CLI_EXCLUDED_PRODUCT_SKU,
+	} );
+	await api.put( `products/${ cliExcludedId }`, {
+		meta_data: [
+			{ key: '_wc_stripe_agentic_commerce_exclude', value: 'yes' },
 		],
 	} );
 } );
