@@ -179,5 +179,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Make GITHUB_TOKEN optional for the local E2E Docker setup by falling back to the GitHub CLI and then to plugin zips placed in tests/e2e/deps
 * Fix - Reload the plugin's payment method settings when refreshing account details, so the settings screen no longer keeps showing stale values
 * Update - Stop offering Sofort at checkout (discontinued by Stripe on March 31, 2025); refunds and subscription renewals for existing Sofort orders keep working
+* Dev - Mark the Sofort and giropay payment method classes and constants as deprecated ahead of their removal
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

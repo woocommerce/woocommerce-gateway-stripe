@@ -5,6 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * The giropay Payment Method class extending UPE base class
+ *
+ * @deprecated 11.0.0 Discontinued by Stripe on 2024-06-30; kept only for refunds on existing orders.
  */
 class WC_Stripe_UPE_Payment_Method_Giropay extends WC_Stripe_UPE_Payment_Method {
 

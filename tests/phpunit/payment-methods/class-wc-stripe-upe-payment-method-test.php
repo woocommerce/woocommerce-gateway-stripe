@@ -573,8 +573,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
-	 * Sofort was discontinued by Stripe, so it must stay disabled at checkout even
-	 * with an active capability and a supported store currency.
+	 * Sofort is discontinued: disabled even with an active capability and supported currency.
 	 */
 	public function test_sofort_is_never_enabled_at_checkout() {
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE, true );
