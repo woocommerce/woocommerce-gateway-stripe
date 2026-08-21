@@ -79,7 +79,8 @@ class WC_Stripe_Checkout_Session_Manager {
 			$request['phone_number_collection'] = [ 'enabled' => 'true' ];
 		}
 
-		if ( is_user_logged_in() && WC()->customer instanceof WC_Customer ) {
+		$save_payment_method_enabled = $this->can_enable_save_payment_method();
+		if ( $save_payment_method_enabled ) {
 			try {
 				// Creation happens before checkout fields are complete, so only the saved account identity can be used here.
 				$stripe_customer = new WC_Stripe_Customer( WC()->customer->get_id() );
@@ -119,11 +120,12 @@ class WC_Stripe_Checkout_Session_Manager {
 		// the source of truth for the amount and currency. That code controls the data sent
 		// to Stripe and is used to validate amounts later.
 		$record = [
-			'session_id'    => (string) $checkout_session->id,
-			'client_secret' => (string) $checkout_session->client_secret,
-			'revision'      => $this->generate_revision_token(),
-			'status'        => 'success',
-			'message'       => '',
+			'session_id'                  => (string) $checkout_session->id,
+			'client_secret'               => (string) $checkout_session->client_secret,
+			'revision'                    => $this->generate_revision_token(),
+			'status'                      => 'success',
+			'message'                     => '',
+			'save_payment_method_enabled' => $save_payment_method_enabled,
 		];
 		$this->set_record( $record );
 
@@ -203,6 +205,12 @@ class WC_Stripe_Checkout_Session_Manager {
 			return $this->create_session();
 		}
 
+		// Stripe cannot add or remove saved_payment_method_options after creation, so a
+		// login-state change (e.g. a migrated guest session) requires a new session.
+		if ( ! empty( $record['save_payment_method_enabled'] ) !== $this->can_enable_save_payment_method() ) {
+			return $this->create_session();
+		}
+
 		// The context is the source of truth for amount and currency, so we need to compare
 		// against the data that was pushed to Stripe.
 		if (
@@ -238,6 +246,16 @@ class WC_Stripe_Checkout_Session_Manager {
 		$this->set_record( $record );
 
 		return $this->get_public_data( $record );
+	}
+
+	/**
+	 * Whether create_session() would attach a customer and saved_payment_method_options
+	 * for the current request.
+	 *
+	 * @return bool
+	 */
+	private function can_enable_save_payment_method(): bool {
+		return is_user_logged_in() && WC()->customer instanceof WC_Customer;
 	}
 
 	/**
@@ -354,11 +372,12 @@ class WC_Stripe_Checkout_Session_Manager {
 	 */
 	private function get_public_data( ?array $record ): array {
 		return [
-			'session_id'    => (string) ( $record['session_id'] ?? '' ),
-			'client_secret' => (string) ( $record['client_secret'] ?? '' ),
-			'revision'      => (string) ( $record['revision'] ?? '' ),
-			'status'        => (string) ( $record['status'] ?? 'uninitialized' ),
-			'message'       => (string) ( $record['message'] ?? '' ),
+			'session_id'                  => (string) ( $record['session_id'] ?? '' ),
+			'client_secret'               => (string) ( $record['client_secret'] ?? '' ),
+			'revision'                    => (string) ( $record['revision'] ?? '' ),
+			'status'                      => (string) ( $record['status'] ?? 'uninitialized' ),
+			'message'                     => (string) ( $record['message'] ?? '' ),
+			'save_payment_method_enabled' => ! empty( $record['save_payment_method_enabled'] ),
 		];
 	}
 }

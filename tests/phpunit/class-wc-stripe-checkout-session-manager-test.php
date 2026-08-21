@@ -305,6 +305,158 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A guest-created session cannot accept savePaymentMethod, so a login must recreate it
+	 * rather than reuse the migrated guest one.
+	 */
+	public function test_synchronize_recreates_session_when_guest_logs_in(): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 42 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$create_count      = 0;
+		$captured_creates  = [];
+		$original_customer = WC()->customer;
+		$capture_body      = static function ( $request, $api ) use ( &$captured_creates ) {
+			if ( 'checkout/sessions' === $api ) {
+				$captured_creates[] = $request;
+			}
+			return $request;
+		};
+		$mock_request      = static function ( $return_value, $parsed_args, $url ) use ( &$create_count ) {
+			if ( false !== strpos( $url, '/v1/customers' ) ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( (object) [ 'id' => 'cus_login_transition' ] ),
+				];
+			}
+
+			if ( 'https://api.stripe.com/v1/checkout/sessions' !== $url ) {
+				return $return_value;
+			}
+
+			++$create_count;
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					(object) [
+						'id'            => "cs_test_login_transition_$create_count",
+						'client_secret' => "cs_test_login_transition_secret_$create_count",
+					]
+				),
+			];
+		};
+		add_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			$manager  = new WC_Stripe_Checkout_Session_Manager();
+			$as_guest = $manager->synchronize();
+
+			wp_set_current_user( 1 );
+			WC()->customer = new WC_Customer( 1 );
+
+			$after_login  = $manager->synchronize();
+			$still_reused = $manager->synchronize();
+		} finally {
+			remove_filter( 'wc_stripe_request_body', $capture_body, 10 );
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			wp_set_current_user( 0 );
+			WC()->customer = $original_customer;
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_login_transition_1' );
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_login_transition_2' );
+		}
+
+		$this->assertSame( 2, $create_count, 'The login must trigger exactly one session recreation.' );
+		$this->assertCount( 2, $captured_creates );
+
+		$this->assertArrayNotHasKey( 'saved_payment_method_options', $captured_creates[0] );
+		$this->assertArrayNotHasKey( 'customer', $captured_creates[0] );
+		$this->assertFalse( $as_guest['save_payment_method_enabled'] );
+
+		$this->assertSame( [ 'payment_method_save' => 'enabled' ], $captured_creates[1]['saved_payment_method_options'] );
+		$this->assertSame( 'cus_login_transition', $captured_creates[1]['customer'] );
+		$this->assertSame( 'cs_test_login_transition_2', $after_login['session_id'] );
+		$this->assertTrue( $after_login['save_payment_method_enabled'] );
+
+		$this->assertSame( $after_login, $still_reused, 'An unchanged login state must keep reusing the recreated session.' );
+	}
+
+	/**
+	 * The inverse transition: logging out must also recreate the session.
+	 */
+	public function test_synchronize_recreates_session_when_user_logs_out(): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 42 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$create_count      = 0;
+		$captured_creates  = [];
+		$original_customer = WC()->customer;
+		$capture_body      = static function ( $request, $api ) use ( &$captured_creates ) {
+			if ( 'checkout/sessions' === $api ) {
+				$captured_creates[] = $request;
+			}
+			return $request;
+		};
+		$mock_request      = static function ( $return_value, $parsed_args, $url ) use ( &$create_count ) {
+			if ( false !== strpos( $url, '/v1/customers' ) ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( (object) [ 'id' => 'cus_logout_transition' ] ),
+				];
+			}
+
+			if ( 'https://api.stripe.com/v1/checkout/sessions' !== $url ) {
+				return $return_value;
+			}
+
+			++$create_count;
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					(object) [
+						'id'            => "cs_test_logout_transition_$create_count",
+						'client_secret' => "cs_test_logout_transition_secret_$create_count",
+					]
+				),
+			];
+		};
+		add_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			wp_set_current_user( 1 );
+			WC()->customer = new WC_Customer( 1 );
+
+			$manager         = new WC_Stripe_Checkout_Session_Manager();
+			$while_logged_in = $manager->synchronize();
+
+			wp_set_current_user( 0 );
+			WC()->customer = $original_customer;
+
+			$after_logout = $manager->synchronize();
+		} finally {
+			remove_filter( 'wc_stripe_request_body', $capture_body, 10 );
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			wp_set_current_user( 0 );
+			WC()->customer = $original_customer;
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_logout_transition_1' );
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_logout_transition_2' );
+		}
+
+		$this->assertSame( 2, $create_count, 'The logout must trigger exactly one session recreation.' );
+		$this->assertTrue( $while_logged_in['save_payment_method_enabled'] );
+		$this->assertArrayNotHasKey( 'saved_payment_method_options', $captured_creates[1] );
+		$this->assertArrayNotHasKey( 'customer', $captured_creates[1] );
+		$this->assertSame( 'cs_test_logout_transition_2', $after_logout['session_id'] );
+		$this->assertFalse( $after_logout['save_payment_method_enabled'] );
+	}
+
+	/**
 	 * Classic checkout refreshes arrive as wc-ajax requests against the home URL, so is_checkout()
 	 * is false. Eligibility must still resolve or the fragment never carries a usable session.
 	 */
@@ -384,7 +536,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		$this->assertNotFalse( has_filter( 'woocommerce_update_order_review_fragments', [ $lifecycle, 'add_classic_fragment' ] ) );
 
 		$schema = WC_Stripe_Checkout_Session_Lifecycle::get_store_api_schema();
-		$this->assertSame( [ 'session_id', 'client_secret', 'revision', 'status', 'message' ], array_keys( $schema ) );
+		$this->assertSame( [ 'session_id', 'client_secret', 'revision', 'status', 'message', 'save_payment_method_enabled' ], array_keys( $schema ) );
 
 		remove_action( 'woocommerce_review_order_after_payment', [ $lifecycle, 'render_classic_placeholder' ] );
 		remove_filter( 'woocommerce_update_order_review_fragments', [ $lifecycle, 'add_classic_fragment' ], 20 );
