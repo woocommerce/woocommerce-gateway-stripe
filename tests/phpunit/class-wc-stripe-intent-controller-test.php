@@ -667,14 +667,15 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * order before the intent request so the level3 gate can exclude non-card methods.
 	 *
 	 * @param string|null $selected_payment_type The selected payment type posted with the confirmation token.
+	 * @param string[]    $payment_method_types  The payment method types the request carries.
 	 * @param bool        $expect_level3         Whether the outgoing request should carry level3 data.
 	 * @dataProvider provide_test_confirmation_token_level3
 	 */
-	public function test_create_and_confirm_payment_intent_with_confirmation_token_gates_level3( $selected_payment_type, $expect_level3 ) {
+	public function test_create_and_confirm_payment_intent_with_confirmation_token_gates_level3( $selected_payment_type, $payment_method_types, $expect_level3 ) {
 		// The level3 gate only applies to US-based stores.
 		update_option( 'woocommerce_default_country', 'US:CA' );
 
-		$payment_information = $this->get_confirmation_token_payment_information( $selected_payment_type );
+		$payment_information = $this->get_confirmation_token_payment_information( $selected_payment_type, $payment_method_types );
 		// A null/empty selected type must not be written (nor fatal), leaving the meta empty.
 		$expected_meta = is_string( $selected_payment_type ) ? $selected_payment_type : '';
 
@@ -715,14 +716,15 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * data for non-card methods.
 	 *
 	 * @param string|null $selected_payment_type The selected payment type posted with the confirmation token.
+	 * @param string[]    $payment_method_types  The payment method types the request carries.
 	 * @param bool        $expect_level3         Whether the outgoing request should carry level3 data.
 	 * @dataProvider provide_test_confirmation_token_level3
 	 */
-	public function test_update_and_confirm_payment_intent_with_confirmation_token_gates_level3( $selected_payment_type, $expect_level3 ) {
+	public function test_update_and_confirm_payment_intent_with_confirmation_token_gates_level3( $selected_payment_type, $payment_method_types, $expect_level3 ) {
 		// The level3 gate only applies to US-based stores.
 		update_option( 'woocommerce_default_country', 'US:CA' );
 
-		$payment_information = $this->get_confirmation_token_payment_information( $selected_payment_type );
+		$payment_information = $this->get_confirmation_token_payment_information( $selected_payment_type, $payment_method_types );
 		$payment_intent      = (object) [ 'id' => 'pi_mock' ];
 		// A null/empty selected type must not be written (nor fatal), leaving the meta empty.
 		$expected_meta = is_string( $selected_payment_type ) ? $selected_payment_type : '';
@@ -766,12 +768,17 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_confirmation_token_level3() {
 		return [
-			'amazon_pay does not get level3' => [ WC_Stripe_Payment_Methods::AMAZON_PAY, false ],
-			'link does not get level3'       => [ WC_Stripe_Payment_Methods::LINK, false ],
-			'card keeps level3'              => [ WC_Stripe_Payment_Methods::CARD, true ],
-			// Unknown types must not fatal; the gate then falls back to its legacy card default.
-			'empty type keeps level3'        => [ '', true ],
-			'null type keeps level3'         => [ null, true ],
+			'amazon_pay does not get level3'       => [ WC_Stripe_Payment_Methods::AMAZON_PAY, [ WC_Stripe_Payment_Methods::AMAZON_PAY ], false ],
+			// Link's selected type depends on the gateway: OCS resolves it from the payment method
+			// object as 'link', while base UPE maps ECE Link submissions to 'card' (the intent then
+			// carries [card, link], which Stripe accepts level3 for).
+			'link (OCS) does not get level3'       => [ WC_Stripe_Payment_Methods::LINK, [ WC_Stripe_Payment_Methods::LINK ], false ],
+			'link (base UPE) keeps level3 as card' => [ WC_Stripe_Payment_Methods::CARD, [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ], true ],
+			'card keeps level3'                    => [ WC_Stripe_Payment_Methods::CARD, [ WC_Stripe_Payment_Methods::CARD ], true ],
+			// Unknown selected types must not fatal; the gate then falls back to its legacy card
+			// default. The request still carries a concrete type, as real payloads always do.
+			'empty type keeps level3'              => [ '', [ WC_Stripe_Payment_Methods::CARD ], true ],
+			'null type keeps level3'               => [ null, [ WC_Stripe_Payment_Methods::CARD ], true ],
 		];
 	}
 
@@ -780,15 +787,10 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * token instead of a payment method ID, and no UPE payment type persisted on the order yet.
 	 *
 	 * @param string|null $selected_payment_type The selected payment type.
+	 * @param string[]    $payment_method_types  The payment method types for the request.
 	 * @return array
 	 */
-	private function get_confirmation_token_payment_information( $selected_payment_type ) {
-		// Real requests always carry concrete method strings in payment_method_types; a null/empty
-		// *selected* type is passed through raw so the meta fallback is still what gets exercised.
-		$payment_method_types = is_string( $selected_payment_type ) && '' !== $selected_payment_type
-			? [ $selected_payment_type ]
-			: [ WC_Stripe_Payment_Methods::CARD ];
-
+	private function get_confirmation_token_payment_information( $selected_payment_type, $payment_method_types ) {
 		return [
 			'amount'                        => 100,
 			'confirmation_token'            => 'ctoken_mock',
