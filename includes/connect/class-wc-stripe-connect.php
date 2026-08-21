@@ -31,7 +31,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * instantiating the class never stacks duplicate callbacks; the
 		 * bootstrap calls this exactly once.
 		 *
-		 * @since 10.9.0
+		 * @since 11.0.0
 		 * @return void
 		 */
 		public function register_hooks(): void {

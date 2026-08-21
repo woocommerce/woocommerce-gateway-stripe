@@ -1,6 +1,7 @@
 <?php
 
 use Automattic\WooCommerce\Enums\ProductType;
+use Automattic\WooCommerce\Enums\ProductStatus;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -40,6 +41,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		add_action( 'wc_ajax_wc_stripe_get_selected_product_data', [ $this, 'ajax_get_selected_product_data' ] );
 		add_action( 'wc_ajax_wc_stripe_clear_cart', [ $this, 'ajax_clear_cart' ] );
 		add_action( 'wc_ajax_wc_stripe_log_errors', [ $this, 'ajax_log_errors' ] );
+		add_action( 'wc_ajax_wc_stripe_get_express_checkout_nonces', [ $this, 'ajax_get_express_checkout_nonces' ] );
 		add_filter( 'woocommerce_get_country_locale', [ $this, 'modify_country_locale_for_express_checkout' ], 20 );
 		add_filter( 'rest_pre_dispatch', [ $this, 'tokenized_cart_store_api_address_normalization' ], 10, 3 );
 	}
@@ -125,6 +127,30 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	}
 
 	/**
+	 * Serves the express checkout wc-ajax nonces on demand, so page caches
+	 * can't embed expired copies. Intentionally has no nonce check of its own:
+	 * nonces are per-session CSRF tokens, not secrets, and cross-origin
+	 * callers can't read the response.
+	 *
+	 * @return void
+	 */
+	public function ajax_get_express_checkout_nonces() {
+		nocache_headers();
+
+		wp_send_json_success(
+			[
+				'shipping'                  => wp_create_nonce( 'wc-stripe-express-checkout-shipping' ),
+				'normalize_address'         => wp_create_nonce( 'wc-stripe-express-checkout-normalize-address' ),
+				'get_cart_details'          => wp_create_nonce( 'wc-stripe-get-cart-details' ),
+				'update_shipping'           => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
+				'add_to_cart'               => wp_create_nonce( 'wc-stripe-add-to-cart' ),
+				'get_selected_product_data' => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
+				'clear_cart'                => wp_create_nonce( 'wc-stripe-clear-cart' ),
+			]
+		);
+	}
+
+	/**
 	 * Get cart details.
 	 *
 	 * @deprecated 10.9.0 Cart details are now fetched via Store API.
@@ -170,8 +196,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
-		WC()->shipping->reset_shipping();
-
 		try {
 
 			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
@@ -185,17 +209,41 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 			$product = wc_get_product( $product_id );
 
-			if ( ! $product || ! is_a( $product, 'WC_Product' ) ) {
-				/* translators: 1) The product Id */
-				throw new Exception( sprintf( __( 'Product with the ID (%1$s) not found.', 'woocommerce-gateway-stripe' ), $product_id ) );
+			if ( ! $product instanceof WC_Product || ! $this->is_product_available_for_purchase( $product, $product_id ) ) {
+				throw new Exception( $this->get_product_unavailable_message() );
 			}
 
 			$product_type = $product->get_type();
+			$variation_id = 0;
+			$attributes   = [];
+
+			if ( ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
+				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
+
+				$data_store   = WC_Data_Store::load( 'product' );
+				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
+
+				if ( $variation_id ) {
+					$variation_product = wc_get_product( $variation_id );
+					if ( ! $variation_product instanceof WC_Product || ! $this->is_product_available_for_purchase( $variation_product, $product_id ) ) {
+						throw new Exception( $this->get_product_unavailable_message() );
+					}
+				}
+			}
+
+			$existing_error_count = count( wc_get_notices( 'error' ) );
+			$passed_validation    = apply_filters( 'woocommerce_add_to_cart_validation', true, $product_id, $qty, $variation_id, $attributes );
+
+			if ( ! $passed_validation ) {
+				throw new Exception( $this->get_cart_error_message( $existing_error_count ) );
+			}
 
 			$booking_ids = [];
 			if ( 'booking' === $product_type ) {
 				$booking_ids = $this->express_checkout_helper->get_booking_ids_from_cart();
 			}
+
+			WC()->shipping->reset_shipping();
 
 			// First empty the cart to prevent wrong calculation.
 			WC()->cart->empty_cart();
@@ -212,15 +260,15 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			// On the add_to_cart() calls below: $qty can be a float on decimal-quantity stores.
 			// WC_Cart::add_to_cart() accepts fractional quantities at runtime even though its stub types $quantity as int.
 			// The inline PHPStan suppressions below are limited to that stub mismatch.
-			if ( ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
-				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
-
-				$data_store   = WC_Data_Store::load( 'product' );
-				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
-
-				WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes ); // @phpstan-ignore argument.type
+			$cart_item_key = false;
+			if ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) {
+				$cart_item_key = WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes ); // @phpstan-ignore argument.type
 			} elseif ( in_array( $product_type, $this->express_checkout_helper->supported_product_types(), true ) ) {
-				WC()->cart->add_to_cart( $product->get_id(), $qty ); // @phpstan-ignore argument.type
+				$cart_item_key = WC()->cart->add_to_cart( $product->get_id(), $qty ); // @phpstan-ignore argument.type
+			}
+
+			if ( false === $cart_item_key ) {
+				throw new Exception( $this->get_cart_error_message( $existing_error_count ) );
 			}
 
 			WC()->cart->calculate_totals();
@@ -382,9 +430,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			$is_deposit      = isset( $_POST['wc_deposit_option'] ) ? 'yes' === sanitize_text_field( wp_unslash( $_POST['wc_deposit_option'] ) ) : null;
 			$deposit_plan_id = isset( $_POST['wc_deposit_payment_plan'] ) ? absint( $_POST['wc_deposit_payment_plan'] ) : 0;
 
-			if ( ! $product || ! is_a( $product, 'WC_Product' ) ) {
-				/* translators: 1) The product Id */
-				throw new Exception( sprintf( __( 'Product with the ID (%1$s) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
+			if ( ! $product instanceof WC_Product || ! $this->is_product_available_for_purchase( $product, $product_id ) ) {
+				throw new Exception( $this->get_product_unavailable_message() );
 			}
 
 			if ( in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) && isset( $_POST['attributes'] ) ) {
@@ -395,6 +442,10 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 				if ( ! empty( $variation_id ) ) {
 					$product = wc_get_product( $variation_id );
+
+					if ( ! $product instanceof WC_Product || ! $this->is_product_available_for_purchase( $product, $product_id ) ) {
+						throw new Exception( $this->get_product_unavailable_message() );
+					}
 				}
 			}
 
@@ -459,7 +510,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			// Tax the full line total ($line_total = qty x price + add-ons) like the cart does, and skip
 			// tax entirely for non-taxable products so the preview can't show tax the cart won't charge.
 			$total_tax  = 0;
-			$line_taxes = ( $product instanceof WC_Product && $product->is_taxable() )
+			$line_taxes = $product->is_taxable()
 				? $this->express_checkout_helper->get_taxes_like_cart( $product, $line_total )
 				: [];
 			foreach ( $line_taxes as $tax ) {
@@ -501,21 +552,69 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	}
 
 	/**
-	 * Log errors coming from express checkout elements
+	 * Determine whether a product may be exposed through a storefront request.
+	 *
+	 * WC_Product::is_purchasable() permits unpublished products to users who can edit
+	 * them. This endpoint is shared with storefront visitors, so it requires a published
+	 * product explicitly while retaining WooCommerce's normal catalog-hidden behavior.
+	 *
+	 * @param WC_Product|false|null $product    Product object, or false/null when it does not exist.
+	 * @param int                   $product_id Top-level product ID used for password protection.
+	 * @return bool
+	 */
+	private function is_product_available_for_purchase( $product, $product_id ) {
+		return $product instanceof WC_Product
+			&& ProductStatus::PUBLISH === $product->get_status()
+			&& ! post_password_required( $product_id )
+			&& $product->is_purchasable();
+	}
+
+	/**
+	 * Return one response for missing and unavailable products so IDs cannot be enumerated.
+	 *
+	 * @return string
+	 */
+	private function get_product_unavailable_message() {
+		return __( 'This product is not available for purchase.', 'woocommerce-gateway-stripe' );
+	}
+
+	/**
+	 * Return the latest WooCommerce validation error for a publicly purchasable product.
+	 *
+	 * Product eligibility is checked before cart validation, so WooCommerce's useful stock
+	 * and extension feedback can be preserved here without exposing non-public product data.
+	 *
+	 * @param int $existing_error_count Number of error notices before validation started.
+	 * @return string
+	 */
+	private function get_cart_error_message( $existing_error_count ) {
+		$error_notices = array_slice( wc_get_notices( 'error' ), $existing_error_count );
+		$last_error    = end( $error_notices );
+
+		if ( is_array( $last_error ) && isset( $last_error['notice'] ) ) {
+			return (string) $last_error['notice'];
+		}
+
+		if ( is_string( $last_error ) ) {
+			return $last_error;
+		}
+
+		return __( 'This product cannot be added to the cart.', 'woocommerce-gateway-stripe' );
+	}
+
+	/**
+	 * Deprecated no-op for the former express checkout error-logging endpoint.
+	 *
+	 * @deprecated 10.9.0 No longer called by the plugin; the endpoint no longer logs anything.
 	 *
 	 * @return void
 	 */
 	public function ajax_log_errors() {
 		check_ajax_referer( 'wc-stripe-log-errors', 'security' );
+		_deprecated_function( __METHOD__, '10.9.0' );
 
-		$errors = isset( $_POST['errors'] ) ? wc_clean( wp_unslash( $_POST['errors'] ) ) : '';
-
-		if ( is_array( $errors ) ) {
-			$errors = wp_json_encode( $errors );
-		}
-
-		WC_Stripe_Logger::error( (string) $errors );
-
+		// No-op: this endpoint is deprecated and nothing in the plugin calls it anymore. Keep the
+		// original empty 200 so any remaining third-party caller is not broken mid-deprecation.
 		exit;
 	}
 	/**

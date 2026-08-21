@@ -29,7 +29,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * instantiating the class never stacks duplicate callbacks; the bootstrap
 	 * calls this exactly once.
 	 *
-	 * @since 10.9.0
+	 * @since 11.0.0
 	 * @return void
 	 */
 	public function register_hooks(): void {
