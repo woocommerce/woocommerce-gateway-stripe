@@ -1292,4 +1292,43 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertTrue( $method->is_allowed_on_country( 'US' ) );
 		$this->assertFalse( $method->is_allowed_on_country( 'GB' ) );
 	}
+
+	/**
+	 * The save-payment-method checkbox wrapper must never render as an empty bordered
+	 * box: checkout scripts hide only the inner <p>, so the wrapper has to be an element
+	 * with no default browser chrome (not a fieldset).
+	 *
+	 * @param bool $force_checked Whether the checkbox is forced on (and the wrapper hidden).
+	 * @dataProvider provide_test_save_payment_method_checkbox
+	 */
+	public function test_save_payment_method_checkbox_does_not_render_fieldset_wrapper( bool $force_checked ): void {
+		$method = new WC_Stripe_UPE_Payment_Method_CC();
+
+		ob_start();
+		$method->save_payment_method_checkbox( $force_checked );
+		$output = ob_get_clean();
+
+		$this->assertStringNotContainsString( '<fieldset', $output );
+		$this->assertMatchesRegularExpression( '/^\s*<div\b/', $output );
+		$this->assertStringContainsString( 'woocommerce-SavedPaymentMethods-saveNew', $output );
+
+		if ( $force_checked ) {
+			$this->assertStringContainsString( '<div style="display:none;">', $output );
+			$this->assertStringContainsString( 'checked', $output );
+		} else {
+			$this->assertStringNotContainsString( '<div style="display:none;">', $output );
+		}
+	}
+
+	/**
+	 * Data provider for test_save_payment_method_checkbox_does_not_render_fieldset_wrapper.
+	 *
+	 * @return array
+	 */
+	public function provide_test_save_payment_method_checkbox(): array {
+		return [
+			'default'      => [ false ],
+			'force saving' => [ true ],
+		];
+	}
 }
