@@ -27,7 +27,6 @@ export default class WCStripeAPI {
 	 * @param {Function} request A function to use for AJAX requests.
 	 */
 	constructor( options, request ) {
-		this.stripe = null;
 		this.options = options;
 		this.request = request;
 		this.expressCheckoutNoncesPromise = null;
@@ -75,16 +74,14 @@ export default class WCStripeAPI {
 	}
 
 	/**
-	 * Returns the Stripe instance for this API object.
+	 * Returns the page's shared Stripe instance.
 	 *
 	 * @return {Object} The Stripe Object.
 	 */
 	getStripe() {
 		const { key, locale } = this.options;
-		if ( ! this.stripe ) {
-			this.stripe = this.createStripe( key, locale );
-		}
-		return this.stripe;
+
+		return this.createStripe( key, locale );
 	}
 
 	/**

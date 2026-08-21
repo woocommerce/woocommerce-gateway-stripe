@@ -42,16 +42,17 @@ describe( 'WCStripeAPI', () => {
 			expect( warnSpy ).not.toHaveBeenCalled();
 		} );
 
-		it( 'shares one Stripe instance across separately constructed API objects', () => {
+		it( 'shares one Stripe instance across repeated calls and separately constructed API objects', () => {
 			addStripeScriptTag( 'https://js.stripe.com/dahlia/stripe.js' );
 			const options = { key: 'pk_test_123', locale: 'en' };
 
 			const paymentElementApi = new WCStripeAPI( options );
 			const expressCheckoutApi = new WCStripeAPI( options );
 
-			expect( expressCheckoutApi.getStripe() ).toBe(
-				paymentElementApi.getStripe()
-			);
+			const first = paymentElementApi.getStripe();
+
+			expect( paymentElementApi.getStripe() ).toBe( first );
+			expect( expressCheckoutApi.getStripe() ).toBe( first );
 			expect( global.Stripe ).toHaveBeenCalledTimes( 1 );
 		} );
 
