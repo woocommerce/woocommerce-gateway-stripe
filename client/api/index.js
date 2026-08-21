@@ -1,4 +1,3 @@
-/* global Stripe */
 import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 import { applyFilters } from '@wordpress/hooks';
@@ -11,7 +10,7 @@ import {
 	getStripeServerData,
 	getStripeDevWidgetOptions,
 } from 'wcstripe/stripe-utils';
-import { assertStripeJsOrigin } from 'wcstripe/stripe-utils/verify-stripe-js-origin';
+import { getSharedStripeInstance } from 'wcstripe/stripe-utils/shared-stripe-instance';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_CASHAPP,
@@ -76,7 +75,7 @@ export default class WCStripeAPI {
 	}
 
 	/**
-	 * Generates a new instance of Stripe.
+	 * Returns the Stripe instance for this API object.
 	 *
 	 * @return {Object} The Stripe Object.
 	 */
@@ -89,7 +88,8 @@ export default class WCStripeAPI {
 	}
 
 	/**
-	 * Creates a new Stripe instance with the given key and locale.
+	 * Returns the page's Stripe instance for the given key and locale, shared
+	 * across every WooCommerce Stripe bundle rather than created per API object.
 	 *
 	 * @param {string}   key    The Stripe publishable API key.
 	 * @param {string}   locale The locale to use for Stripe UI elements.
@@ -97,8 +97,6 @@ export default class WCStripeAPI {
 	 * @return {Object} The Stripe instance.
 	 */
 	createStripe( key, locale, betas = [] ) {
-		assertStripeJsOrigin();
-
 		const options = {
 			locale,
 			...getStripeDevWidgetOptions(),
@@ -108,7 +106,7 @@ export default class WCStripeAPI {
 			options.betas = betas;
 		}
 
-		return new Stripe( key, options );
+		return getSharedStripeInstance( key, options );
 	}
 
 	/**
