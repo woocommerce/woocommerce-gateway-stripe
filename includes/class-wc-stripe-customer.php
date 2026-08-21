@@ -880,9 +880,11 @@ class WC_Stripe_Customer {
 	 *
 	 * @param string[] $payment_method_types The payment method types to look for using Stripe method IDs. If the array is empty, it implies all payment method types.
 	 * @param int      $limit                The maximum number of payment methods to return. If the value is -1, no limit is applied.
+	 * @param bool     $throw_on_error       Whether to throw on a generic API error instead of returning an empty array. A missing customer still returns an empty array.
 	 * @return array
+	 * @throws WC_Stripe_Exception When $throw_on_error is true and the API returns an error other than a missing customer.
 	 */
-	public function get_all_payment_methods( array $payment_method_types = [], int $limit = -1 ) {
+	public function get_all_payment_methods( array $payment_method_types = [], int $limit = -1, bool $throw_on_error = false ) {
 		if ( ! $this->get_id() ) {
 			return [];
 		}
@@ -914,7 +916,19 @@ class WC_Stripe_Customer {
 					) {
 						// If the customer doesn't exist, cache an empty array.
 						set_transient( $cache_key, [], DAY_IN_SECONDS );
+						return [];
 					}
+
+					// A generic API error is not proof the payment methods are gone. Callers that
+					// reconcile local tokens against this list need to distinguish that from a
+					// genuinely empty list, otherwise a transient failure would wipe valid tokens.
+					if ( $throw_on_error ) {
+						throw new WC_Stripe_Exception(
+							print_r( $response->error, true ),
+							__( 'There was a problem retrieving data from the Stripe API endpoint.', 'woocommerce-gateway-stripe' )
+						);
+					}
+
 					return [];
 				}
 

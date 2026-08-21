@@ -776,4 +776,126 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 			remove_filter( 'pre_http_request', $spy, 10 );
 		}
 	}
+
+	/**
+	 * Builds a pre_http_request callback that answers Stripe payment_methods requests with the given body.
+	 *
+	 * @param array $body        The decoded response body to return.
+	 * @param int   $status_code The HTTP status code to return.
+	 * @return callable
+	 */
+	private function mock_payment_methods_http_response( array $body, int $status_code ): callable {
+		return function ( $preempt, $parsed_args, $url ) use ( $body, $status_code ) {
+			if ( false === strpos( $url, 'payment_methods' ) ) {
+				return $preempt;
+			}
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( $body ),
+				'response' => [
+					'code'    => $status_code,
+					'message' => 'OK',
+				],
+			];
+		};
+	}
+
+	/**
+	 * A generic API error must throw when $throw_on_error is requested, and must not
+	 * poison the payment methods cache with an empty list.
+	 */
+	public function test_get_all_payment_methods_throws_on_generic_error_when_requested() {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_generic_error_' . $user_id, false );
+		$customer = new \WC_Stripe_Customer( $user_id );
+
+		$mock_http = $this->mock_payment_methods_http_response(
+			[
+				'error' => [
+					'code'    => 'rate_limit',
+					'message' => 'Too many requests.',
+					'type'    => 'api_error',
+				],
+			],
+			429
+		);
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		try {
+			$this->expectException( \WC_Stripe_Exception::class );
+			$customer->get_all_payment_methods( [], -1, true );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+			$this->assertFalse(
+				get_transient( \WC_Stripe_Customer::PAYMENT_METHODS_TRANSIENT_KEY . '__all_cus_generic_error_' . $user_id ),
+				'A generic API error must not cache an empty payment methods list.'
+			);
+		}
+	}
+
+	/**
+	 * A missing Stripe customer is an authoritative empty result: it must return an
+	 * empty array (not throw, even with $throw_on_error) and cache it.
+	 */
+	public function test_get_all_payment_methods_returns_empty_when_customer_missing_even_with_throw_on_error() {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_gone_' . $user_id, false );
+		$customer = new \WC_Stripe_Customer( $user_id );
+
+		$mock_http = $this->mock_payment_methods_http_response(
+			[
+				'error' => [
+					'code'    => 'resource_missing',
+					'message' => 'No such customer',
+					'param'   => 'customer',
+					'type'    => 'invalid_request_error',
+				],
+			],
+			404
+		);
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		try {
+			$result = $customer->get_all_payment_methods( [], -1, true );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+		}
+
+		$this->assertSame( [], $result );
+		$this->assertSame(
+			[],
+			get_transient( \WC_Stripe_Customer::PAYMENT_METHODS_TRANSIENT_KEY . '__all_cus_gone_' . $user_id ),
+			'A missing customer must cache the empty payment methods list.'
+		);
+	}
+
+	/**
+	 * Without $throw_on_error, a generic API error must keep the historical behavior
+	 * of returning an empty array.
+	 */
+	public function test_get_all_payment_methods_returns_empty_on_generic_error_by_default() {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_default_error_' . $user_id, false );
+		$customer = new \WC_Stripe_Customer( $user_id );
+
+		$mock_http = $this->mock_payment_methods_http_response(
+			[
+				'error' => [
+					'code'    => 'rate_limit',
+					'message' => 'Too many requests.',
+					'type'    => 'api_error',
+				],
+			],
+			429
+		);
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		try {
+			$result = $customer->get_all_payment_methods();
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+		}
+
+		$this->assertSame( [], $result );
+	}
 }

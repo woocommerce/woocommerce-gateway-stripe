@@ -207,11 +207,11 @@ class WC_Stripe_Payment_Tokens {
 			return $tokens;
 		}
 
-		if ( count( $tokens ) >= get_option( 'posts_per_page' ) ) {
-			// The tokens data store is not paginated and only the first "post_per_page" (defaults to 10) tokens are retrieved.
-			// Having 10 saved credit cards is considered an unsupported edge case, new ones that have been stored in Stripe won't be added.
-			return $tokens;
-		}
+		// The tokens data store is not paginated and only the first "posts_per_page" (defaults to 10) tokens are retrieved.
+		// At or beyond that cap, new payment methods stored in Stripe won't be added as tokens (an unsupported edge case),
+		// but the retrieved tokens are still verified against Stripe below, so stale tokens (e.g. ones left behind by a
+		// deleted Stripe customer) are cleaned up instead of being displayed as usable payment methods.
+		$can_add_new_tokens = count( $tokens ) < (int) get_option( 'posts_per_page' );
 
 		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
@@ -224,7 +224,11 @@ class WC_Stripe_Payment_Tokens {
 			// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
 			remove_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10 );
 
-			$payment_methods    = $customer->get_all_payment_methods( $active_reusable_types );
+			// Throw on generic API errors so a transient Stripe failure bails out below and keeps
+			// the local tokens, instead of being mistaken for "the customer has no payment methods"
+			// and wiping them in cleanup_invalid_tokens(). A missing customer still returns an empty
+			// list, which is the authoritative signal that every local token is stale.
+			$payment_methods    = $customer->get_all_payment_methods( $active_reusable_types, -1, true );
 			$payment_method_ids = array_map( fn ( $payment_method ) => $payment_method->id, $payment_methods );
 
 			foreach ( $payment_methods as $payment_method ) {
@@ -266,9 +270,11 @@ class WC_Stripe_Payment_Tokens {
 				}
 
 				// Create a new token when:
+				// - The token count is below the data store's retrieval cap.
 				// - The payment method is a valid PaymentMethodID (i.e. only support IDs starting with "src_" when using the card payment method type).
 				// - The payment method belongs to the gateway ID being retrieved or the gateway ID is empty (meaning we're looking for all payment methods).
 				if (
+					$can_add_new_tokens &&
 					$this->is_valid_payment_method_id( $payment_method->id, $payment_method_type ) &&
 					( empty( $gateway_id ) || $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) )
 				) {
@@ -304,7 +310,11 @@ class WC_Stripe_Payment_Tokens {
 				}
 			}
 		} catch ( WC_Stripe_Exception $e ) {
-			wc_add_notice( $e->getLocalizedMessage(), 'error' );
+			// This filter also runs where no WC session exists (admin, REST, CLI), and
+			// wc_add_notice() only guards against that itself since WC 10.5.
+			if ( WC()->session ) {
+				wc_add_notice( $e->getLocalizedMessage(), 'error' );
+			}
 			WC_Stripe_Logger::error( 'Error getting customer payment tokens (upe) for customer: ' . $customer_id, [ 'error_message' => $e->getMessage() ] );
 
 			return $tokens;
