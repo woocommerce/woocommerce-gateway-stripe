@@ -1,6 +1,7 @@
 import { loadStripe as loadStripeFromNpm } from '@stripe/stripe-js';
 import { loadStripe } from '../load-stripe';
 import { getStripeDevWidgetOptions } from 'wcstripe/stripe-utils';
+import { REGISTRY_KEY } from 'wcstripe/stripe-utils/shared-stripe-instance';
 
 jest.mock( '@stripe/stripe-js', () => ( {
 	loadStripe: jest.fn( () => Promise.resolve( {} ) ),
@@ -24,6 +25,7 @@ describe( 'loadStripe', () => {
 	};
 
 	beforeEach( () => {
+		delete window[ REGISTRY_KEY ];
 		loadStripeFromNpm.mockClear();
 		getStripeDevWidgetOptions.mockReset();
 		getStripeDevWidgetOptions.mockReturnValue( {} );
@@ -32,7 +34,30 @@ describe( 'loadStripe', () => {
 
 	afterEach( () => {
 		document.getElementById( 'stripe-js' )?.remove();
+		delete global.Stripe;
 		warnSpy.mockRestore();
+	} );
+
+	it( 'resolves every caller with the same Stripe instance', async () => {
+		addStripeScriptTag( 'https://js.stripe.com/dahlia/stripe.js' );
+
+		// Mirrors the two module-scope call sites in the blocks bundle.
+		const [ expressCheckout, checkoutSessions ] = await Promise.all( [
+			loadStripe(),
+			loadStripe(),
+		] );
+
+		expect( checkoutSessions ).toBe( expressCheckout );
+		expect( loadStripeFromNpm ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'reuses the page instance instead of loading a second one', async () => {
+		addStripeScriptTag( 'https://js.stripe.com/dahlia/stripe.js' );
+		const pageInstance = {};
+		global.Stripe = jest.fn( () => pageInstance );
+
+		await expect( loadStripe() ).resolves.toBe( pageInstance );
+		expect( loadStripeFromNpm ).not.toHaveBeenCalled();
 	} );
 
 	it( 'loads Stripe when Stripe.js was loaded from the official origin', async () => {
