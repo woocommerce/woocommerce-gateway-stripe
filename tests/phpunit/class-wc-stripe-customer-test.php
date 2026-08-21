@@ -801,8 +801,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * A generic API error must throw when $throw_on_error is requested, and must not
-	 * poison the payment methods cache with an empty list.
+	 * A generic API error throws when requested and does not cache an empty list.
 	 */
 	public function test_get_all_payment_methods_throws_on_generic_error_when_requested() {
 		$user_id = $this->factory->user->create();
@@ -834,8 +833,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * A missing Stripe customer is an authoritative empty result: it must return an
-	 * empty array (not throw, even with $throw_on_error) and cache it.
+	 * A missing customer returns and caches an empty list even with $throw_on_error.
 	 */
 	public function test_get_all_payment_methods_returns_empty_when_customer_missing_even_with_throw_on_error() {
 		$user_id = $this->factory->user->create();
@@ -870,8 +868,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Without $throw_on_error, a generic API error must keep the historical behavior
-	 * of returning an empty array.
+	 * By default a generic API error still returns an empty array.
 	 */
 	public function test_get_all_payment_methods_returns_empty_on_generic_error_by_default() {
 		$user_id = $this->factory->user->create();

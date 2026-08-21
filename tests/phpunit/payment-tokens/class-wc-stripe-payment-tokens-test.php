@@ -787,10 +787,8 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * When Stripe reports the stored customer no longer exists, every local token is
-	 * stale and must be deleted — including when the customer is at the posts_per_page
-	 * token cap, which previously skipped the sync entirely and left unusable saved
-	 * cards visible at checkout.
+	 * Tokens for a missing Stripe customer are deleted, below and at the
+	 * posts_per_page cap (which previously skipped the sync entirely).
 	 *
 	 * @param bool $at_limit Whether the customer has posts_per_page saved tokens.
 	 * @dataProvider provide_test_deletes_stale_tokens_when_stripe_customer_missing
@@ -854,8 +852,7 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A generic Stripe API error (e.g. rate limiting) is not proof the payment methods
-	 * are gone: the local tokens must be kept, not treated as orphaned and deleted.
+	 * A generic Stripe API error keeps local tokens instead of deleting them as orphaned.
 	 */
 	public function test_woocommerce_get_customer_payment_tokens_keeps_tokens_on_generic_api_error(): void {
 		$user_id = $this->factory->user->create();
@@ -899,9 +896,7 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * At the posts_per_page token cap, the sync must still verify tokens against Stripe
-	 * (deleting stale ones) but must not add new tokens beyond the data store's
-	 * unpaginated retrieval window.
+	 * At the token cap the sync still deletes stale tokens but adds no new ones.
 	 */
 	public function test_woocommerce_get_customer_payment_tokens_verifies_but_does_not_add_tokens_at_token_limit(): void {
 		$user_id = $this->factory->user->create();
