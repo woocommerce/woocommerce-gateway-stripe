@@ -812,6 +812,31 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * An empty client payment method must fail before intent creation.
+	 */
+	public function test_process_payment_deferred_intent_rejects_empty_payment_method_before_intent_creation() {
+		$order = WC_Helper_Order::create_order();
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => '',
+			'wc-stripe-confirmation-token' => '',
+		];
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+
+		$this->mock_gateway
+			->expects( $this->never() )
+			->method( 'stripe_request' );
+
+		$response = $this->mock_gateway->process_payment( $order->get_id() );
+
+		$this->assertSame( 'failure', $response['result'] );
+	}
+
+	/**
 	 * Test SCA/3DS checkout process_payment flow with deferred intent.
 	 */
 	public function test_process_payment_deferred_intent_with_required_action_returns_valid_response() {

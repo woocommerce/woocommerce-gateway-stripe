@@ -3517,6 +3517,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		} else {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
+			if ( '' === $payment_method_id && empty( $_POST['wc-stripe-confirmation-token'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+				throw new WC_Stripe_Exception(
+					'Payment method ID is missing from the request.',
+					__( "The selected payment method isn't valid.", 'woocommerce-gateway-stripe' )
+				);
+			}
+
 			// sanitize_text_field() leaves URL metacharacters intact, so validate the grammar before the
 			// value is concatenated into the Stripe API paths below, where it could retarget the request.
 			if ( '' !== $payment_method_id && ! WC_Stripe_Helper::is_valid_stripe_id( $payment_method_id, [ 'pm', 'src', 'card' ] ) ) {
