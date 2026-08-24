@@ -1770,6 +1770,42 @@ describe( 'payment-processing', () => {
 			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
 		} );
 
+		it( 'returns false when one checkbox in a required group is checked', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="checkbox" />' +
+				'<input type="checkbox" checked />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+		} );
+
+		it( 'returns true when a required radio group has no selection', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="radio" name="option" />' +
+				'<input type="radio" name="option" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+		} );
+
+		it( 'returns false when a required radio group has a selection', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="radio" name="option" />' +
+				'<input type="radio" name="option" checked />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+		} );
+
+		it( 'returns false when a grouped field has a value after an empty placeholder', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select><option value="" selected>Select...</option></select>' +
+				'<input type="radio" name="option" value="yes" checked />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+		} );
+
 		it( 'returns true if any one of multiple fields is empty', () => {
 			form.innerHTML =
 				'<p class="validate-required">' +
