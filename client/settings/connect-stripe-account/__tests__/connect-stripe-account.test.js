@@ -134,6 +134,7 @@ describe( 'ConnectStripeAccount', () => {
 
 		expect( global.jQuery.ajax ).toHaveBeenCalledWith(
 			expect.objectContaining( {
+				dataType: 'json',
 				data: expect.objectContaining( {
 					action: 'wc_stripe_get_oauth_url',
 					mode: 'live',

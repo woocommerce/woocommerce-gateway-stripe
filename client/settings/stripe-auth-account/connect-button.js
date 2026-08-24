@@ -51,6 +51,7 @@ const ConnectButton = ( {
 			const response = await jQuery.ajax( {
 				url: ajaxurl,
 				method: 'POST',
+				dataType: 'json',
 				data: {
 					action: 'wc_stripe_get_oauth_url',
 					mode: testMode ? 'test' : 'live',
