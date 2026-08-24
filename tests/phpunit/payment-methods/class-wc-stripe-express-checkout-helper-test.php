@@ -524,6 +524,8 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * Stripe rejects wallet updates when the normalized display item sum exceeds the total.
 	 *
 	 * @dataProvider provide_build_display_items_totals
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_build_display_items_omits_only_items_exceeding_total( int $calculated_total, int $discount, array $expected_items ): void {
 		$original_currency = get_option( 'woocommerce_currency' );
