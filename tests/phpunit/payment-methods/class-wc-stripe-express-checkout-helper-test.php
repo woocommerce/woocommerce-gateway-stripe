@@ -521,6 +521,98 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Stripe rejects wallet updates when the normalized display item sum exceeds the total.
+	 *
+	 * @dataProvider provide_build_display_items_totals
+	 */
+	public function test_build_display_items_omits_only_items_exceeding_total( int $calculated_total, int $discount, array $expected_items ): void {
+		$original_currency = get_option( 'woocommerce_currency' );
+		update_option( 'woocommerce_currency', 'USD' );
+		update_option( 'woocommerce_calc_taxes', 'no' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_virtual( true );
+		$product->set_regular_price( 10 );
+		$product->set_price( 10 );
+		$product->save();
+
+		$coupon = null;
+		if ( $discount ) {
+			$coupon = new WC_Coupon();
+			$coupon->set_code( 'DISPLAYITEMS' );
+			$coupon->set_amount( $discount );
+			$coupon->set_discount_type( 'fixed_cart' );
+			$coupon->save();
+		}
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		if ( $coupon ) {
+			WC()->cart->add_discount( $coupon->get_code() );
+		}
+		WC()->cart->calculate_totals();
+
+		$filter_calculated_total = static function () use ( $calculated_total ) {
+			return $calculated_total;
+		};
+		add_filter( 'wc_stripe_calculated_total', $filter_calculated_total );
+
+		try {
+			$result = ( new WC_Stripe_Express_Checkout_Helper() )->build_display_items();
+
+			$this->assertSame( $expected_items, $result['displayItems'] );
+			$this->assertSame( $calculated_total, $result['total']['amount'] );
+		} finally {
+			remove_filter( 'wc_stripe_calculated_total', $filter_calculated_total );
+			WC()->cart->empty_cart();
+			WC()->session->cleanup_sessions();
+			$product->delete( true );
+			if ( $coupon ) {
+				$coupon->delete();
+			}
+			update_option( 'woocommerce_currency', $original_currency );
+		}
+	}
+
+	public function provide_build_display_items_totals(): array {
+		$subtotal = [
+			'label'  => 'Subtotal',
+			'amount' => 1000,
+		];
+
+		return [
+			'display items exceed total'      => [
+				'calculated total' => 999,
+				'discount'         => 0,
+				'expected items'   => [],
+			],
+			'display items equal total'       => [
+				'calculated total' => 1000,
+				'discount'         => 0,
+				'expected items'   => [ $subtotal ],
+			],
+			'display items below total'       => [
+				'calculated total' => 1001,
+				'discount'         => 0,
+				'expected items'   => [ $subtotal ],
+			],
+			'discount normalizes below total' => [
+				'calculated total' => 900,
+				'discount'         => 1,
+				'expected items'   => [
+					$subtotal,
+					[
+						'key'    => 'total_discount',
+						'label'  => 'Discount',
+						'amount' => 100,
+					],
+				],
+			],
+		];
+	}
+
+	/**
 	 * Test for get_checkout_data(), no shipping zones.
 	 *
 	 * This is in a separate test, to avoid problems with cached data.
