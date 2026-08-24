@@ -178,5 +178,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Reload the plugin's payment method settings when refreshing account details, so the settings screen no longer keeps showing stale values
 * Update - Fetch express checkout AJAX nonces on demand instead of embedding them in every page
 * Fix - Keep the wallet billing and shipping addresses on express checkout orders when the address normalization request returns an unusable response
+* Fix - Render the Adaptive Pricing payment element in the store's Stripe locale
+* Fix - Stop sending Level 3 data when paying with a non-card payment method through express checkout (e.g. Amazon Pay), which Stripe rejects and can disable Level 3 data for card payments
+* Fix - Record the charge-captured state for asynchronously confirmed payments (e.g. ACH) so refunds from wp-admin and the Stripe Dashboard behave correctly
+* Fix - Reject negative refund amounts with an explicit error instead of silently refunding the absolute value
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

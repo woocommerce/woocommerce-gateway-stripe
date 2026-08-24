@@ -733,12 +733,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:process_refund\(\) should return bool but returns WP_Error\.$#'
-			identifier: return.type
-			count: 2
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:render_upe_settings\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -2595,13 +2589,13 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$data\.$#'
 			identifier: property.notFound
-			count: 44
+			count: 42
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 11
+			count: 10
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
