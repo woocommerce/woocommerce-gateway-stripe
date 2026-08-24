@@ -191,7 +191,8 @@ class WC_Stripe_Account {
 	 * Wipes the account data option.
 	 */
 	public function clear_cache() {
-		WC_Stripe_Database_Cache::delete( self::ACCOUNT_CACHE_KEY );
+		WC_Stripe_Database_Cache::delete_with_mode( self::ACCOUNT_CACHE_KEY, 'live' );
+		WC_Stripe_Database_Cache::delete_with_mode( self::ACCOUNT_CACHE_KEY, 'test' );
 
 		$this->clear_webhook_status_cache();
 	}

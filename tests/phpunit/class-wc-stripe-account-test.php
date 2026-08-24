@@ -88,14 +88,20 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	public function test_clear_cache() {
-		$account = [
+		$live_account = [
 			'id'    => '1234',
+			'email' => 'live@example.com',
+		];
+		$test_account = [
+			'id'    => '5678',
 			'email' => 'test@example.com',
 		];
-		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $live_account, HOUR_IN_SECONDS, 'live' );
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $test_account, HOUR_IN_SECONDS, 'test' );
 
 		$this->account->clear_cache();
-		$this->assertEquals( [], $this->account->get_cached_account_data() );
+		$this->assertNull( WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'live' ) );
+		$this->assertNull( WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'test' ) );
 	}
 
 	public function test_get_cached_account_data_preserves_cache_on_transient_failure() {
