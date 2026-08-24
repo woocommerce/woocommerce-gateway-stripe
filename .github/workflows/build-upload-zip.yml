@@ -14,6 +14,7 @@ jobs:
   build_project:
     name: Build and upload
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     
     steps:
       - name: Checkout repository
