@@ -201,6 +201,32 @@ describe( 'ConnectStripeAccount', () => {
 		} );
 	} );
 
+	it( 'should display the server error when the OAuth URL request fails', async () => {
+		global.jQuery = {
+			ajax: jest.fn().mockResolvedValue( {
+				success: false,
+				data: { message: 'The connection request was rejected.' },
+			} ),
+		};
+
+		render( <ConnectStripeAccount /> );
+
+		await act( async () => {
+			await userEvent.click(
+				screen.getByText( 'Create or connect a test account' )
+			);
+		} );
+
+		await waitFor( () => {
+			expect(
+				screen.getAllByText( 'The connection request was rejected.' )
+			).not.toHaveLength( 0 );
+		} );
+		expect(
+			screen.queryByText( /valid SSL certificate/ )
+		).not.toBeInTheDocument();
+	} );
+
 	it( 'should disable the live button and show tooltip when SSL is not enabled', async () => {
 		// Mock non-SSL protocol
 		const protocol = window.location.protocol;
