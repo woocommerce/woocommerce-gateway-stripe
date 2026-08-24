@@ -120,7 +120,7 @@ class WC_Stripe_Account {
 		}
 
 		if ( ! $force_refresh ) {
-			$account = $this->read_account_from_cache();
+			$account = $this->read_account_from_cache( $mode );
 
 			if ( ! empty( $account ) ) {
 				return $account;
@@ -133,10 +133,11 @@ class WC_Stripe_Account {
 	/**
 	 * Read the account from the WP option we cache it in.
 	 *
+	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
 	 * @return array empty when no data found, otherwise returns the cached data
 	 */
-	private function read_account_from_cache() {
-		$account_cache = WC_Stripe_Database_Cache::get( self::ACCOUNT_CACHE_KEY );
+	private function read_account_from_cache( $mode = null ) {
+		$account_cache = WC_Stripe_Database_Cache::get_with_mode( self::ACCOUNT_CACHE_KEY, $mode );
 
 		return false === $account_cache ? [] : $account_cache;
 	}
@@ -166,7 +167,7 @@ class WC_Stripe_Account {
 		$account_cache = json_decode( wp_json_encode( $account ), true );
 
 		// Create or update the account data cache.
-		WC_Stripe_Database_Cache::set( self::ACCOUNT_CACHE_KEY, $account_cache, self::ACCOUNT_CACHE_EXPIRATION );
+		WC_Stripe_Database_Cache::set_with_mode( self::ACCOUNT_CACHE_KEY, $account_cache, self::ACCOUNT_CACHE_EXPIRATION, $mode );
 
 		return $account_cache;
 	}

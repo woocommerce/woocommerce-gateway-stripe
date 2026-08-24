@@ -45,7 +45,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
-		WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'test' );
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'live' );
 		$this->clear_webhook_status_cache();
 		WC_Stripe_Helper::delete_main_stripe_settings();
 
@@ -278,7 +279,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		$email_prefix = 'test' === $mode ? 'test' : 'live';
 
-		WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $mode );
 
 		if ( true === $force_refresh ) {
 			$account_data = [
@@ -295,7 +296,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 				'country' => 'US',
 			];
 
-			WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account_data );
+			WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account_data, HOUR_IN_SECONDS, $mode );
 		}
 
 		if ( null === $force_refresh ) {
@@ -306,6 +307,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		// Assert that the account data is as expected.
 		$this->assertSame( $account_data, $result );
+		$this->assertSame( $account_data, WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $mode ) );
 	}
 
 	/**
