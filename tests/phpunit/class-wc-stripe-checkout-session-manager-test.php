@@ -70,24 +70,25 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		$original_settings = WC_Stripe_Helper::get_stripe_settings();
 		$original_account  = WC_Stripe::get_instance()->account;
 
+		// Write the full set rather than merging onto whatever is stored: otherwise settings written
+		// from a set_up_before_class() elsewhere in the suite are committed outside the per-test
+		// transaction and survive into this test.
 		WC_Stripe_Helper::update_main_stripe_settings(
-			array_merge(
-				$original_settings,
-				[
-					'adaptive_pricing'           => 'yes',
-					'optimized_checkout_element' => 'yes',
-					'pmc_enabled'                => 'yes',
-					'capture'                    => 'yes',
-					'webhook_data'               => [
-						'id'     => 'we_live',
-						'secret' => 'whsec_live',
-					],
-					'test_webhook_data'          => [
-						'id'     => 'we_test',
-						'secret' => 'whsec_test',
-					],
-				]
-			)
+			[
+				'adaptive_pricing'           => 'yes',
+				'optimized_checkout_element' => 'yes',
+				'pmc_enabled'                => 'yes',
+				'capture'                    => 'yes',
+				'testmode'                   => 'yes',
+				'webhook_data'               => [
+					'id'     => 'we_live',
+					'secret' => 'whsec_live',
+				],
+				'test_webhook_data'          => [
+					'id'     => 'we_test',
+					'secret' => 'whsec_test',
+				],
+			]
 		);
 
 		$reflection = new ReflectionProperty( WC_Stripe::class, 'stripe_gateway' );

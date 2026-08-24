@@ -1063,6 +1063,23 @@ jQuery( function ( $ ) {
 		wcStripeECE.init();
 	}
 
+	// Warm the on-demand nonce bundle at the first sign of intent so wallet
+	// event handlers (tight resolve deadlines) don't pay the round trip.
+	const eceContainer = document.getElementById(
+		'wc-stripe-express-checkout-element'
+	);
+	if ( eceContainer ) {
+		[ 'pointerenter', 'touchstart', 'focusin' ].forEach( ( eventName ) =>
+			eceContainer.addEventListener(
+				eventName,
+				// Warm-up is best-effort: a failed prefetch rejects (and clears
+				// the memo so the real interaction retries), so swallow it here.
+				() => api.expressCheckoutFetchNonces().catch( () => {} ),
+				{ once: true, passive: true }
+			)
+		);
+	}
+
 	// We need to refresh ECE data when total is updated.
 	$( document.body ).on( 'updated_cart_totals', () => {
 		wcStripeECE.init();
