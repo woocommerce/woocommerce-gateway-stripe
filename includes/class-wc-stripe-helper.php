@@ -2218,7 +2218,9 @@ class WC_Stripe_Helper {
 	public static function get_express_checkout_simulator_gate_params(): array {
 		return [
 			'is_account_connected' => self::is_connected(),
-			'is_https'             => is_ssl(),
+			// is_ssl() would report the admin request's scheme, not the storefront's; the configured
+			// site URLs are what the storefront gate will effectively see.
+			'is_https'             => wp_is_using_https(),
 			'is_test_mode'         => WC_Stripe_Mode::is_test(),
 		];
 	}

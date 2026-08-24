@@ -6,13 +6,9 @@ import {
 	buildCardMethodCheck,
 	buildLocations,
 } from '../build-checks';
-import { getPaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
 
 jest.mock( '@woocommerce/settings', () => ( {
 	getSetting: jest.fn(),
-} ) );
-jest.mock( 'utils/use-payment-method-currencies', () => ( {
-	getPaymentMethodCurrencies: jest.fn(),
 } ) );
 
 describe( 'buildBaseChecks', () => {
@@ -91,33 +87,33 @@ describe( 'buildBaseChecks', () => {
 } );
 
 describe( 'buildCurrencyCheck', () => {
-	const build = () =>
+	const build = ( currencies ) =>
 		buildCurrencyCheck( {
-			methodId: 'amazon_pay',
+			currencies,
 			methodLabel: 'Amazon Pay',
 		} );
 
 	it( 'returns null when the method supports all currencies', () => {
-		getPaymentMethodCurrencies.mockReturnValue( [] );
+		expect( build( [] ) ).toBeNull();
+	} );
 
-		expect( build() ).toBeNull();
+	it( 'returns null when no currency list is localized', () => {
+		expect( build( undefined ) ).toBeNull();
 	} );
 
 	it( 'passes when the store currency is supported', () => {
-		getPaymentMethodCurrencies.mockReturnValue( [ 'USD', 'EUR' ] );
 		getSetting.mockReturnValue( { code: 'EUR' } );
 
-		expect( build() ).toMatchObject( {
+		expect( build( [ 'USD', 'EUR' ] ) ).toMatchObject( {
 			status: STATUS.PASS,
 			detail: 'Supported: USD, EUR',
 		} );
 	} );
 
 	it( 'fails with a blocking reason when the store currency is unsupported', () => {
-		getPaymentMethodCurrencies.mockReturnValue( [ 'USD' ] );
 		getSetting.mockReturnValue( { code: 'BRL' } );
 
-		const check = build();
+		const check = build( [ 'USD' ] );
 
 		expect( check.status ).toBe( STATUS.FAIL );
 		expect( check.blockingText ).toEqual( expect.any( String ) );

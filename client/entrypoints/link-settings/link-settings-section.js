@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import ExpressCheckoutPreview from 'wcstripe/settings/express-checkout-preview';
 import ExpressCheckoutSimulator from 'wcstripe/settings/express-checkout-simulator';
 import {
+	BUTTON_LOCATIONS,
 	buildBaseChecks,
 	buildCardMethodCheck,
 	buildLocations,
@@ -119,12 +120,12 @@ const LinkSettingsSection = () => {
 	];
 	const simulatorLocations = buildLocations(
 		[
-			'product',
-			'cart',
-			'checkout',
+			BUTTON_LOCATIONS.PRODUCT,
+			BUTTON_LOCATIONS.CART,
+			BUTTON_LOCATIONS.CHECKOUT,
 			// eslint-disable-next-line camelcase
 			...( previewParams?.is_subscriptions_active
-				? [ 'change_payment_method' ]
+				? [ BUTTON_LOCATIONS.CHANGE_PAYMENT_METHOD ]
 				: [] ),
 		],
 		linkLocations
