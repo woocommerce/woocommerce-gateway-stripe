@@ -35,8 +35,6 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
-* 11.0.0
-   - The save-payment-method checkbox wrapper on classic checkout changed from a <fieldset> to a <div>; CSS or JS targeting that fieldset element must be updated
 * 10.9.0
    - Express checkout processes classic checkout custom fields by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
 * 10.8.0

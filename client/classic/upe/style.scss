@@ -131,3 +131,18 @@ body:has( > .wp-site-blocks ) form.woocommerce-checkout #wc-stripe_acss_debit-up
 body.wc-stripe-hide-save-checkbox .woocommerce-SavedPaymentMethods-saveNew {
 	display: none !important;
 }
+
+/*
+ * Hide the fieldset wrapping the save-payment-method checkbox whenever its inner
+ * row is hidden. The scripts that toggle the row (WC core's tokenization form via
+ * jQuery, handleDisplayOfSavingCheckbox(), and the PHP guest render) hide only the
+ * <p>, and the fieldset left behind renders its browser-default or theme border,
+ * padding, and background as an empty box. The attribute selectors match the two
+ * inline-style spellings those paths produce; the body-class selector covers the
+ * stylesheet-driven path above.
+ */
+body.wc-stripe-hide-save-checkbox #payment .payment_box > fieldset:has( > .woocommerce-SavedPaymentMethods-saveNew ),
+#payment .payment_box > fieldset:has( > .woocommerce-SavedPaymentMethods-saveNew[style*='display: none'] ),
+#payment .payment_box > fieldset:has( > .woocommerce-SavedPaymentMethods-saveNew[style*='display:none'] ) {
+	display: none;
+}
