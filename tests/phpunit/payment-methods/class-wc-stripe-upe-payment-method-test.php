@@ -1317,6 +1317,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 			$this->assertStringContainsString( 'checked', $output );
 		} else {
 			$this->assertStringNotContainsString( '<div style="display:none;">', $output );
+			$this->assertStringNotContainsString( 'checked', $output );
 		}
 	}
 

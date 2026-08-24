@@ -1738,6 +1738,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$this->assertStringContainsString( 'checked', $output );
 		} else {
 			$this->assertStringNotContainsString( '<div style="display:none;">', $output );
+			$this->assertStringNotContainsString( 'checked', $output );
 		}
 	}
 
