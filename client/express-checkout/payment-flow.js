@@ -84,10 +84,8 @@ const processOrder = async ( {
 		normalizedOrderData.shipping_address
 	);
 
-	// Merge rather than replace: the response can carry no usable address at all (a page cache
-	// or canonical redirect answering the wc-ajax POST, a third-party
-	// `wc_stripe_express_checkout_normalize_address` filter), and replacing with `undefined`
-	// drops the keys from the Store API request entirely.
+	// Merge rather than replace: the response can carry no usable address at all, 
+	// and replacing with `undefined` would drop the keys from the Store API request.
 	normalizedOrderData.billing_address = {
 		...normalizedOrderData.billing_address,
 		...getUsableAddress( normalizedAddress?.billing_address ),
