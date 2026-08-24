@@ -85,7 +85,7 @@ const processOrder = async ( {
 	);
 
 	// Merge rather than replace: the response can carry no usable address at all, 
-	// and replacing with `undefined` would drop the keys from the Store API request.
+	// and replacing with `undefined` would drop the keys from the Store API request
 	normalizedOrderData.billing_address = {
 		...normalizedOrderData.billing_address,
 		...getUsableAddress( normalizedAddress?.billing_address ),
