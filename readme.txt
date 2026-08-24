@@ -158,7 +158,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.0.0 - xxxx-xx-xx =
-* Fix - Prevent classic checkout from processing an empty payment method when custom required fields are present
 * Add - Show the fuller sync-eligibility verdict in the Products list Agentic Commerce column and link the excluded-products view from the settings page
 * Add - Bulk edit, quick edit, and a sync-status column and filter on the Products list for excluding products from the Agentic Commerce catalog sync
 * Add - Use Stripe Dynamic Payment Methods for on-session Optimized Checkout payments so eligible methods follow your Stripe Payment Method Configuration
@@ -182,5 +181,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop sending Level 3 data when paying with a non-card payment method through express checkout (e.g. Amazon Pay), which Stripe rejects and can disable Level 3 data for card payments
 * Fix - Record the charge-captured state for asynchronously confirmed payments (e.g. ACH) so refunds from wp-admin and the Stripe Dashboard behave correctly
 * Fix - Reject negative refund amounts with an explicit error instead of silently refunding the absolute value
+* Fix - Prevent classic checkout from processing an empty payment method when custom required fields are present
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
