@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
+import React, { Children, cloneElement, useState } from 'react';
 import { noop } from 'lodash';
 import TooltipBase from './tooltip-base';
 
-const Tooltip = ( { isVisible, onHide = noop, ...props } ) => {
+const Tooltip = ( {
+	isVisible,
+	onHide = noop,
+	asChild = false,
+	children,
+	...props
+} ) => {
 	const [ isHovered, setIsHovered ] = useState( false );
 	const [ isClicked, setIsClicked ] = useState( false );
 
@@ -28,6 +34,45 @@ const Tooltip = ( { isVisible, onHide = noop, ...props } ) => {
 		setIsClicked( false );
 		onHide();
 	};
+	const tooltipBase = ( trigger ) => (
+		<TooltipBase
+			{ ...props }
+			onHide={ handleHide }
+			isVisible={ isVisible || isHovered || isClicked }
+		>
+			{ trigger }
+		</TooltipBase>
+	);
+
+	if ( asChild ) {
+		const child = Children.only( children );
+		return tooltipBase(
+			cloneElement( child, {
+				onMouseEnter: ( event ) => {
+					child.props.onMouseEnter?.( event );
+					handleMouseEnter();
+				},
+				onMouseLeave: ( event ) => {
+					child.props.onMouseLeave?.( event );
+					handleMouseLeave();
+				},
+				onFocus: ( event ) => {
+					child.props.onFocus?.( event );
+					handleMouseEnter();
+				},
+				onBlur: ( event ) => {
+					child.props.onBlur?.( event );
+					handleMouseLeave();
+				},
+				onClick: ( event ) => {
+					child.props.onClick?.( event );
+					if ( ! event.defaultPrevented ) {
+						handleMouseClick( event );
+					}
+				},
+			} )
+		);
+	}
 
 	return (
 		<button
@@ -40,11 +85,7 @@ const Tooltip = ( { isVisible, onHide = noop, ...props } ) => {
 			onBlur={ handleMouseLeave }
 			onClick={ handleMouseClick }
 		>
-			<TooltipBase
-				{ ...props }
-				onHide={ handleHide }
-				isVisible={ isVisible || isHovered || isClicked }
-			/>
+			{ tooltipBase( children ) }
 		</button>
 	);
 };

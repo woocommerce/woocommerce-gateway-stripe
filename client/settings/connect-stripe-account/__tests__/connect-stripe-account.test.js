@@ -5,6 +5,8 @@ import ConnectStripeAccount from '..';
 import { recordEvent } from 'wcstripe/tracking';
 
 const mockGetQuery = jest.fn();
+const sslRequirement =
+	'Live mode requires a valid SSL certificate. Please enable SSL on your site to connect a live Stripe account.';
 
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
@@ -210,46 +212,65 @@ describe( 'ConnectStripeAccount', () => {
 
 		const { container } = render( <ConnectStripeAccount /> );
 
-		// The button should be rendered but disabled
-		const connectAccountButton = screen.getByText(
-			'Create or connect an account'
-		);
-		expect( connectAccountButton ).toBeDisabled();
-
-		// Tooltip content should not be visible initially
-		expect(
-			screen.queryByText(
-				'Live mode requires a valid SSL certificate. Please enable SSL on your site to connect a live Stripe account.'
-			)
-		).not.toBeInTheDocument();
-
-		// Find the tooltip wrapper button (Tooltip wraps content in a button with this class)
-		const tooltipWrapper = container.querySelector(
-			'.wcstripe-tooltip__content-wrapper'
-		);
-		expect( tooltipWrapper ).toBeInTheDocument();
-
-		// Click on the tooltip wrapper to trigger tooltip
-		await act( async () => {
-			await userEvent.click( tooltipWrapper );
+		const connectAccountButton = screen.getByRole( 'button', {
+			name: 'Create or connect an account',
 		} );
+		expect( connectAccountButton ).toHaveAttribute(
+			'aria-disabled',
+			'true'
+		);
+		expect( connectAccountButton ).not.toHaveAttribute( 'disabled' );
+		expect( connectAccountButton ).toHaveAccessibleDescription(
+			sslRequirement
+		);
+		expect( container.querySelector( 'button button' ) ).toBeNull();
+		expect(
+			document.querySelector( '.wcstripe-tooltip__tooltip' )
+		).toBeNull();
 
-		// Tooltip content should now be visible
+		await userEvent.click( connectAccountButton );
 		await waitFor( () => {
 			expect(
-				screen.getByText(
-					'Live mode requires a valid SSL certificate. Please enable SSL on your site to connect a live Stripe account.'
-				)
-			).toBeInTheDocument();
+				document.querySelector( '.wcstripe-tooltip__tooltip' )
+			).toHaveTextContent( sslRequirement );
 		} );
 
-		// Verify the click did not trigger OAuth flow
 		expect( recordEvent ).not.toHaveBeenCalledWith(
 			'wcstripe_create_or_connect_account_click',
 			{}
 		);
 
 		// Restore original protocol
+		Object.defineProperty( window, 'location', {
+			value: { ...window.location, protocol },
+			writable: true,
+		} );
+	} );
+
+	it( 'should show the SSL tooltip when the live button receives keyboard focus', async () => {
+		const protocol = window.location.protocol;
+		Object.defineProperty( window, 'location', {
+			value: { ...window.location, protocol: 'http:' },
+			writable: true,
+		} );
+
+		render( <ConnectStripeAccount /> );
+
+		const connectAccountButton = screen.getByRole( 'button', {
+			name: 'Create or connect an account',
+		} );
+		await act( async () => {
+			await userEvent.tab();
+			await userEvent.tab();
+		} );
+
+		expect( connectAccountButton ).toHaveFocus();
+		await waitFor( () => {
+			expect(
+				document.querySelector( '.wcstripe-tooltip__tooltip' )
+			).toHaveTextContent( sslRequirement );
+		} );
+
 		Object.defineProperty( window, 'location', {
 			value: { ...window.location, protocol },
 			writable: true,

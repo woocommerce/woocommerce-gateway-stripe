@@ -32,6 +32,12 @@ const ConnectButton = ( {
 	const buttonText = testMode
 		? __( 'Create or connect a test account', 'woocommerce-gateway-stripe' )
 		: __( 'Create or connect an account', 'woocommerce-gateway-stripe' );
+	const buttonDescription = isLiveModeWithoutSSL
+		? __(
+				'Live mode requires a valid SSL certificate. Please enable SSL on your site to connect a live Stripe account.',
+				'woocommerce-gateway-stripe'
+		  )
+		: undefined;
 
 	const handleClick = async () => {
 		setIsLoading( true );
@@ -82,26 +88,24 @@ const ConnectButton = ( {
 		return <ConnectionErrorNotice />;
 	}
 
+	const isDisabled = isLoading || disabled || isLiveModeWithoutSSL;
 	const button = (
 		<Button
 			variant={ buttonVariant }
-			onClick={ handleClick }
-			text={ buttonText }
-			disabled={ isLoading || disabled || isLiveModeWithoutSSL }
+			onClick={ isDisabled ? undefined : handleClick }
+			disabled={ isDisabled && ! isLiveModeWithoutSSL }
+			aria-disabled={ isDisabled || undefined }
 			isBusy={ isLoading }
-		/>
+			describedBy={ buttonDescription }
+		>
+			{ buttonText }
+		</Button>
 	);
 
-	// Wrap in tooltip if live mode without SSL
 	if ( isLiveModeWithoutSSL ) {
 		return (
-			<Tooltip
-				content={ __(
-					'Live mode requires a valid SSL certificate. Please enable SSL on your site to connect a live Stripe account.',
-					'woocommerce-gateway-stripe'
-				) }
-			>
-				<span style={ { display: 'inline-block' } }>{ button }</span>
+			<Tooltip content={ buttonDescription } asChild>
+				{ button }
 			</Tooltip>
 		);
 	}
