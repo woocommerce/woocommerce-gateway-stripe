@@ -1,3 +1,4 @@
+import { normalizeLineItems } from '../utils/normalize';
 import { __ } from '@wordpress/i18n';
 import { applyFilters } from '@wordpress/hooks';
 import { decodeEntities } from '@wordpress/html-entities';
@@ -143,16 +144,13 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 };
 
 /**
- * Transforms the `displayItems` from the Stripe ECE to the format expected by the Store API.
+ * Transforms labeled display items to the format expected by Stripe ECE.
  *
  * @param {Array} displayItems
  * @return {Array} The transformed display items.
  */
 export const transformLabeledDisplayItems = ( displayItems ) => {
-	return ( displayItems ?? [] ).map( ( { label, amount } ) => ( {
-		name: label,
-		amount,
-	} ) );
+	return normalizeLineItems( displayItems ?? [] );
 };
 
 /**
