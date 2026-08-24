@@ -13,6 +13,7 @@ run-name: Format release notes for ${{ inputs.branch }}
 jobs:
   format-release-notes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: write
       pull-requests: write
