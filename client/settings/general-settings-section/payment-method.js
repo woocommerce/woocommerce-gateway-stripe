@@ -7,6 +7,7 @@ import PaymentMethodCheckbox from './payment-method-checkbox';
 import { useEnabledPaymentMethodIds, useManualCapture } from 'wcstripe/data';
 import usePaymentMethodUnavailableReason from 'utils/use-payment-method-unavailable-reason';
 import { getFormattedPaymentMethodDescription } from 'wcstripe/settings/general-settings-section/get-formatted-payment-method-description';
+import { PAYMENT_METHOD_UNAVAILABLE_REASONS } from 'wcstripe/stripe-utils/constants';
 
 const ListElement = styled.li`
 	display: flex;
@@ -72,9 +73,11 @@ const PaymentMethod = ( { method, data } ) => {
 		return null;
 	}
 
-	// If the payment method is unavailable and enabled, we should not disable so it can be unchecked.
+	// Currency support depends on the checkout currency, so it must not block configuration.
 	const isDisabled =
 		paymentMethodUnavailableReason !== null &&
+		paymentMethodUnavailableReason !==
+			PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY &&
 		! enabledPaymentMethods.includes( method );
 
 	return (
