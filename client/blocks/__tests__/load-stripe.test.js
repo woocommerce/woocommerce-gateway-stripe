@@ -8,7 +8,7 @@ jest.mock( '@stripe/stripe-js', () => ( {
 } ) );
 jest.mock( '../utils', () => ( {
 	getApiKey: jest.fn( () => 'pk_test_123' ),
-	getBlocksConfiguration: jest.fn( () => ( { stripe_locale: 'en' } ) ),
+	getBlocksConfiguration: jest.fn( () => ( { locale: 'en' } ) ),
 } ) );
 jest.mock( 'wcstripe/stripe-utils', () => ( {
 	getStripeDevWidgetOptions: jest.fn( () => ( {} ) ),
