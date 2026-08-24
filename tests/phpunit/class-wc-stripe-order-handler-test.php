@@ -52,6 +52,85 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 		$this->assertTrue( $this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order ) );
 	}
 
+	/**
+	 * A SetupIntent that Stripe hasn't settled yet outlives the one-day awaiting-action window
+	 * (bank microdeposits take days), so the order must not be auto-cancelled while it can still
+	 * succeed — otherwise the later setup_intent.succeeded webhook finds a cancelled order.
+	 *
+	 * @param string $status   SetupIntent status returned for the order.
+	 * @param bool   $expected Whether the order should still be cancelled.
+	 * @dataProvider provide_setup_intent_statuses_for_cancellation
+	 */
+	public function test_does_not_cancel_orders_with_unsettled_setup_intent( string $status, bool $expected ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		// Well outside the one-day awaiting-action grace, so only the SetupIntent guard can save it.
+		$modified_date = new DateTime( current_time( 'mysql' ) );
+		$modified_date->modify( '-5 days' );
+		$order->set_date_modified( $modified_date->format( 'Y-m-d H:i:s' ) );
+
+		$this->order_handler
+			->expects( $this->any() )
+			->method( 'get_intent_from_order' )
+			->willReturn(
+				(object) [
+					'id'     => 'seti_mock',
+					'object' => 'setup_intent',
+					'status' => $status,
+				]
+			);
+
+		$this->assertSame(
+			$expected,
+			$this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order ),
+			"SetupIntent status {$status} produced the wrong cancellation decision."
+		);
+	}
+
+	/**
+	 * Data provider for {@see test_does_not_cancel_orders_with_unsettled_setup_intent()}.
+	 *
+	 * @return array
+	 */
+	public function provide_setup_intent_statuses_for_cancellation(): array {
+		return [
+			'requires_action awaits microdeposits' => [ 'requires_action', false ],
+			'requires_confirmation still settling' => [ 'requires_confirmation', false ],
+			'processing still settling'            => [ 'processing', false ],
+			'canceled is done'                     => [ 'canceled', true ],
+			'requires_payment_method is done'      => [ 'requires_payment_method', true ],
+		];
+	}
+
+	/**
+	 * The guard is specific to SetupIntents: a PaymentIntent in the same status keeps the
+	 * pre-existing one-day cancellation behaviour.
+	 */
+	public function test_payment_intent_awaiting_action_is_still_cancelled_after_a_day() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$modified_date = new DateTime( current_time( 'mysql' ) );
+		$modified_date->modify( '-5 days' );
+		$order->set_date_modified( $modified_date->format( 'Y-m-d H:i:s' ) );
+
+		$this->order_handler
+			->expects( $this->any() )
+			->method( 'get_intent_from_order' )
+			->willReturn(
+				(object) [
+					'id'     => 'pi_mock',
+					'object' => 'payment_intent',
+					'status' => 'requires_action',
+				]
+			);
+
+		$this->assertTrue( $this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order ) );
+	}
+
 	public function test_prevent_cancelling_orders_that_have_been_paid() {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
