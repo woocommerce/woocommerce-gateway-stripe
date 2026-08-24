@@ -43,6 +43,13 @@ const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 	);
 };
 
+const getUsableAddress = ( address ) =>
+	address !== null &&
+	typeof address === 'object' &&
+	! Array.isArray( address )
+		? address
+		: {};
+
 /**
  * Creates or pays for an order using the Express Checkout payment data,
  * normalizing addresses before submission.
@@ -83,11 +90,11 @@ const processOrder = async ( {
 	// drops the keys from the Store API request entirely.
 	normalizedOrderData.billing_address = {
 		...normalizedOrderData.billing_address,
-		...normalizedAddress?.billing_address,
+		...getUsableAddress( normalizedAddress?.billing_address ),
 	};
 	normalizedOrderData.shipping_address = {
 		...normalizedOrderData.shipping_address,
-		...normalizedAddress?.shipping_address,
+		...getUsableAddress( normalizedAddress?.shipping_address ),
 	};
 
 	if ( order ) {

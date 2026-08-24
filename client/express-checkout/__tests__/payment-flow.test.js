@@ -656,8 +656,22 @@ describe( 'address normalization', () => {
 				{ billing_address: '', shipping_address: null },
 			],
 			[
+				'addresses encoded as non-empty strings',
+				{
+					billing_address: 'invalid',
+					shipping_address: 'invalid',
+				},
+			],
+			[
 				'addresses encoded as empty PHP arrays',
 				{ billing_address: [], shipping_address: [] },
+			],
+			[
+				'addresses encoded as non-empty arrays',
+				{
+					billing_address: [ 'invalid' ],
+					shipping_address: [ 'invalid' ],
+				},
 			],
 			[
 				'empty addresses',
