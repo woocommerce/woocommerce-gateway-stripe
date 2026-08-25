@@ -32,6 +32,15 @@ const ConnectButton = ( {
 	const buttonText = testMode
 		? __( 'Create or connect a test account', 'woocommerce-gateway-stripe' )
 		: __( 'Create or connect an account', 'woocommerce-gateway-stripe' );
+	const handleError = ( message ) => {
+		const errorValue = message || true;
+
+		setError( errorValue );
+		setIsLoading( false );
+		if ( onErrorChange ) {
+			onErrorChange( errorValue );
+		}
+	};
 
 	const handleClick = async () => {
 		setIsLoading( true );
@@ -51,6 +60,7 @@ const ConnectButton = ( {
 			const response = await jQuery.ajax( {
 				url: ajaxurl,
 				method: 'POST',
+				dataType: 'json',
 				data: {
 					action: 'wc_stripe_get_oauth_url',
 					mode: testMode ? 'test' : 'live',
@@ -58,28 +68,24 @@ const ConnectButton = ( {
 				},
 			} );
 
-			if ( response.success && response.data.oauth_url ) {
+			if ( response?.success && response.data?.oauth_url ) {
 				window.location.assign( response.data.oauth_url );
 			} else {
-				setError( true );
-				setIsLoading( false );
-				if ( onErrorChange ) {
-					onErrorChange( true );
-				}
+				handleError( response?.data?.message );
 			}
 		} catch ( err ) {
-			setError( true );
-			setIsLoading( false );
-			if ( onErrorChange ) {
-				onErrorChange( true );
-			}
+			handleError( err?.responseJSON?.data?.message );
 		}
 	};
 
 	// If onErrorChange is provided, parent handles error display
 	// Otherwise, show error inline for backward compatibility
 	if ( ! onErrorChange && error ) {
-		return <ConnectionErrorNotice />;
+		return (
+			<ConnectionErrorNotice
+				message={ typeof error === 'string' ? error : undefined }
+			/>
+		);
 	}
 
 	const button = (

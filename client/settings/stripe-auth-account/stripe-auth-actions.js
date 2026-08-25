@@ -1,6 +1,7 @@
-import { React } from 'react';
+import { React, useState } from 'react';
 import ConnectButton from './connect-button';
 import ConfigureWebhookButton from './configure-webhook-button';
+import ConnectionErrorNotice from './connection-error-notice';
 
 /**
  * StripeAuthActions component.
@@ -12,13 +13,26 @@ import ConfigureWebhookButton from './configure-webhook-button';
  * @return {JSX.Element} The rendered StripeAuthActions component.
  */
 const StripeAuthActions = ( { testMode, displayWebhookConfigure } ) => {
+	const [ error, setError ] = useState( null );
+
 	return (
-		<div className="woocommerce-stripe-auth__actions">
-			<ConnectButton testMode={ testMode } buttonVariant="primary" />
-			{ displayWebhookConfigure && (
-				<ConfigureWebhookButton testMode={ testMode } />
+		<>
+			{ error && (
+				<ConnectionErrorNotice
+					message={ typeof error === 'string' ? error : undefined }
+				/>
 			) }
-		</div>
+			<div className="woocommerce-stripe-auth__actions">
+				<ConnectButton
+					testMode={ testMode }
+					buttonVariant="primary"
+					onErrorChange={ setError }
+				/>
+				{ displayWebhookConfigure && (
+					<ConfigureWebhookButton testMode={ testMode } />
+				) }
+			</div>
+		</>
 	);
 };
 
