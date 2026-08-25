@@ -2685,6 +2685,35 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * The three Customize express checkouts controllers share these gate params; assert the shape
+	 * and that the connection gate tracks the saved keys.
+	 *
+	 * @return void
+	 */
+	public function test_get_express_checkout_simulator_gate_params(): void {
+		$settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']             = 'yes';
+		$settings['test_publishable_key'] = 'pk_test_123';
+		$settings['test_secret_key']      = 'sk_test_123';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$params = WC_Stripe_Helper::get_express_checkout_simulator_gate_params();
+
+		$this->assertArrayHasKey( 'is_account_connected', $params );
+		$this->assertArrayHasKey( 'is_https', $params );
+		$this->assertArrayHasKey( 'is_test_mode', $params );
+		$this->assertTrue( $params['is_account_connected'] );
+		$this->assertTrue( $params['is_test_mode'] );
+
+		// Dropping a key flips the connection gate, so the simulator reflects a disconnected account.
+		$settings['test_secret_key'] = '';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$params = WC_Stripe_Helper::get_express_checkout_simulator_gate_params();
+		$this->assertFalse( $params['is_account_connected'] );
+	}
+
+	/**
 	 * Test for `is_checkout_sessions_available`.
 	 *
 	 * @param bool   $pmc_enabled           Whether the Payment Method Configuration API is enabled.
