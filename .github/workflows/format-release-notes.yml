@@ -13,6 +13,7 @@ run-name: Format release notes for ${{ inputs.branch }}
 jobs:
   format-release-notes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: write
       pull-requests: write
@@ -25,7 +26,7 @@ jobs:
           ref: ${{ inputs.branch }}
 
       - name: Format release notes with Claude
-        uses: anthropics/claude-code-action@239e3a730883eeb5c53db12b0fc9573b3024b126 # v1.0.191
+        uses: anthropics/claude-code-action@459ad358ae43fea66bfefd0a1f8d840b4b9791fb # v1.0.194
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |

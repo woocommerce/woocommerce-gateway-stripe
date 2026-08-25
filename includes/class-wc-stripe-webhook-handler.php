@@ -715,11 +715,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$this->resolved_order = $order;
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
-			$charge   = $order->get_transaction_id();
-			$captured = $order_helper->is_stripe_charge_captured( $order );
+			$charge_id = $order->get_transaction_id();
+			$captured  = $order_helper->is_stripe_charge_captured( $order );
 
-			if ( $charge && ! $captured ) {
-				$order_helper->set_stripe_charge_captured( $order, true );
+			if ( $charge_id && ! $captured ) {
+				$order_helper->sync_stripe_charge_captured( $order, $charge );
 
 				// Store other data such as fees
 				$order->set_transaction_id( $notification->data->object->id );
@@ -819,6 +819,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( ! $charge->captured ) {
 			return;
 		}
+
+		// Record the captured flag while the charge is in hand; for async-confirmed orders this
+		// webhook may be the first time one exists (see sync_stripe_charge_captured()'s docblock).
+		WC_Stripe_Order_Helper::get_instance()->sync_stripe_charge_captured( $order, $charge );
 
 		// Store other data such as fees
 		$order->set_transaction_id( $charge->id );
@@ -939,12 +943,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.9.0
-	 * @param object $notification
+	 * @param stdClass $notification The decoded charge.refunded event.
 	 */
 	public function process_webhook_refund( $notification ) {
-		$refund_object = $this->get_refund_object( $notification );
-		$order         = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
-		$order_helper  = WC_Stripe_Order_Helper::get_instance();
+		// The charge.refunded payload object is the charge itself.
+		$charge_payload = $notification->data->object;
+		$refund_object  = $this->get_refund_object( $notification );
+		$order          = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
+		$order_helper   = WC_Stripe_Order_Helper::get_instance();
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::debug( 'Could not find order via refund ID: ' . $refund_object->id );
@@ -956,12 +962,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order = WC_Stripe_Helper::get_order_by_intent_id( $notification->data->object->payment_intent );
 
 			if ( $order instanceof WC_Order && $order_helper->is_stripe_gateway_order( $order ) && ! $order->get_transaction_id() ) {
-				$order->set_transaction_id( $notification->data->object->id );
-
-				if ( isset( $notification->data->object->captured ) ) {
-					$order_helper->set_stripe_charge_captured( $order, (bool) $notification->data->object->captured );
-				}
-
+				$order->set_transaction_id( $charge_payload->id );
+				$order_helper->sync_stripe_charge_captured( $order, $charge_payload );
 				$order->save();
 			}
 		}
@@ -977,8 +979,20 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_id = $order->get_id();
 
 		if ( $order_helper->is_stripe_gateway_order( $order ) ) {
-			$charge     = $order->get_transaction_id();
-			$captured   = $order_helper->is_stripe_charge_captured( $order );
+			$charge = $order->get_transaction_id();
+
+			// Repair the stored captured flag from the payload (the charge itself) when absent
+			// or stale, so the uncaptured branch below can't cancel a paid order as a voided
+			// pre-authorization. The save decision compares the stored strings, not booleans:
+			// '' and 'no' both read as uncaptured, but a repaired ''->'no' must still persist —
+			// nothing below is guaranteed to save an already-cancelled order.
+			$was_recorded = (string) $order_helper->get_stripe_charge_captured( $order );
+			$captured     = $order_helper->sync_stripe_charge_captured( $order, $charge_payload ) ?? wc_string_to_bool( $was_recorded );
+
+			if ( (string) $order_helper->get_stripe_charge_captured( $order ) !== $was_recorded ) {
+				$order->save();
+			}
+
 			$refund_id  = $order_helper->get_stripe_refund_id( $order );
 			$currency   = $order->get_currency();
 			$raw_amount = $refund_object->amount;
@@ -1377,6 +1391,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$charge = $this->get_latest_charge_from_intent( $intent );
 				if ( $charge ) {
 					$order->set_transaction_id( $charge->id );
+
+					// Record the captured flag while the charge is in hand; for async-confirmed
+					// orders this webhook delivers the first charge that ever exists for them
+					// (see sync_stripe_charge_captured()'s docblock).
+					$order_helper->sync_stripe_charge_captured( $order, $charge );
+
 					/* translators: transaction id */
 					$order->update_status( OrderStatus::ON_HOLD, sprintf( __( 'Stripe charge awaiting payment: %s.', 'woocommerce-gateway-stripe' ), $charge->id ) );
 				}
