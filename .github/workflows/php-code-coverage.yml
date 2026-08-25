@@ -16,7 +16,7 @@ jobs:
       woocommerce-versions-json: ${{ steps.get-released-woocommerce-versions.outputs.versions-json }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Get WooCommerce plugin versions
         id: get-released-woocommerce-versions
@@ -30,7 +30,7 @@ jobs:
       wordpress-versions-json: ${{ steps.get-wordpress-versions.outputs.versions-json }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Get WordPress versions
         id: get-wordpress-versions
