@@ -1680,6 +1680,14 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 };
 
 /**
+ * Checks if any required checkout fields in the given list are empty.
+ * Uses the same field selectors as WC core's checkout validation (checkout.js).
+ * This is a read-only DOM check with no side effects — it does not trigger
+ * validation events or add/remove CSS classes.
+ *
+ * Visibility filtering is handled by the caller (using jQuery :visible in
+ * deferred-intent.js) since jsdom cannot compute element visibility.
+ *
  * @param {NodeList|Array} requiredWrappers Required checkout field groups.
  * @return {boolean} Whether any field group lacks a value.
  */
