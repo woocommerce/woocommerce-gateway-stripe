@@ -1047,19 +1047,14 @@ class WC_Stripe_Intent_Controller {
 			null // $prepared_source parameter is not necessary for adding mandate information.
 		);
 
-		$payment_intent = WC_Stripe_API::request_with_level3_data(
+		$this->set_selected_payment_type_for_order( $order, $selected_payment_type );
+
+		return WC_Stripe_API::request_with_level3_data(
 			$request,
 			'payment_intents',
 			$payment_information['level3'],
 			$order
 		);
-
-		// Only update the payment_type if we have a reference to the payment type the customer selected.
-		if ( '' !== $selected_payment_type ) {
-			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $selected_payment_type );
-		}
-
-		return $payment_intent;
 	}
 
 	/**
@@ -1154,12 +1149,35 @@ class WC_Stripe_Intent_Controller {
 			null // $prepared_source parameter is not necessary for adding mandate information.
 		);
 
+		$this->set_selected_payment_type_for_order( $order, $payment_information['selected_payment_type'] );
+
 		return WC_Stripe_API::request_with_level3_data(
 			$request,
 			"payment_intents/{$payment_intent->id}/confirm",
 			$payment_information['level3'],
 			$order
 		);
+	}
+
+	/**
+	 * Persists the payment type the customer selected to the order, if there is one.
+	 *
+	 * Must be called before the intent request: WC_Stripe_API::request_with_level3_data() reads
+	 * this meta to exclude non-card methods from level3 data. Saved immediately so parallel
+	 * requests (e.g. webhooks fired by the confirmation) read the type from the database rather
+	 * than an empty value.
+	 *
+	 * @param WC_Order $order                 The order being paid.
+	 * @param mixed    $selected_payment_type The payment type the customer selected, or '' if unknown.
+	 * @return void
+	 */
+	private function set_selected_payment_type_for_order( WC_Order $order, $selected_payment_type ) {
+		if ( ! is_string( $selected_payment_type ) || '' === $selected_payment_type ) {
+			return;
+		}
+
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $selected_payment_type );
+		$order->save_meta_data();
 	}
 
 	/**

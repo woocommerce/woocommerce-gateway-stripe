@@ -1,5 +1,4 @@
 import { refreshAccount } from '../actions';
-import { STORE_NAME } from '../../constants';
 import { select, dispatch } from '@wordpress/data';
 import { apiFetch } from '@wordpress/data-controls';
 
@@ -8,25 +7,16 @@ jest.mock( '@wordpress/data-controls' );
 
 describe( 'Account actions tests', () => {
 	describe( 'refreshAccount()', () => {
-		let storeDispatch;
-
 		beforeEach( () => {
 			const noticesDispatch = {
 				createErrorNotice: jest.fn(),
 				createSuccessNotice: jest.fn(),
-			};
-			storeDispatch = {
-				invalidateResolutionForStoreSelector: jest.fn(),
 			};
 
 			apiFetch.mockImplementation( () => {} );
 			dispatch.mockImplementation( ( storeName ) => {
 				if ( storeName === 'core/notices' ) {
 					return noticesDispatch;
-				}
-
-				if ( storeName === STORE_NAME ) {
-					return storeDispatch;
 				}
 
 				return {};
@@ -64,15 +54,26 @@ describe( 'Account actions tests', () => {
 			);
 		} );
 
-		it( 'invalidates settings after refreshing account data', () => {
-			apiFetch.mockReturnValue( 'api response' );
+		it( 'refetches the settings and writes them to the store', () => {
+			const generator = refreshAccount();
+			const yielded = [];
 
-			const yielded = [ ...refreshAccount() ];
+			// Feed the settings payload back in so the SET_SETTINGS action carries it.
+			let next = generator.next();
+			while ( ! next.done ) {
+				yielded.push( next.value );
+				next = generator.next( { is_pmc_enabled: true } );
+			}
 
-			expect( yielded ).toContainEqual( 'api response' );
-			expect(
-				storeDispatch.invalidateResolutionForStoreSelector
-			).toHaveBeenCalledWith( 'getSettings' );
+			expect( apiFetch ).toHaveBeenCalledWith( {
+				path: '/wc/v3/wc_stripe/settings',
+			} );
+			expect( yielded ).toContainEqual(
+				expect.objectContaining( {
+					type: 'SET_SETTINGS',
+					data: { is_pmc_enabled: true },
+				} )
+			);
 		} );
 	} );
 } );
