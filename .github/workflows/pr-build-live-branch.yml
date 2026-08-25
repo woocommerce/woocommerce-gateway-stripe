@@ -15,6 +15,7 @@ jobs:
   changes:
     name: Check for code changes
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
       pull-requests: read
@@ -30,6 +31,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v7.0.1

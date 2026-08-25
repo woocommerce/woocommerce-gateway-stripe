@@ -12,7 +12,7 @@ const stripePromise = () =>
 
 			// Default to the 'auto' locale so Stripe chooses the browser's locale
 			// if the store's locale is not available.
-			const locale = getBlocksConfiguration()?.stripe_locale ?? 'auto';
+			const locale = getBlocksConfiguration()?.locale ?? 'auto';
 			resolve(
 				loadStripe( getApiKey(), {
 					locale,
