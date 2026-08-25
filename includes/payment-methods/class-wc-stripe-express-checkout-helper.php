@@ -1127,9 +1127,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	public function should_show_ece_on_cart_page() {
 		$should_show_on_cart_page = $this->should_show_ece_on_location( 'cart' );
 
-		/**
-		 * This filter is documented in includes/class-wc-stripe.php.
-		 */
+		/** This filter is documented in includes/class-wc-stripe.php. */
 		return apply_filters(
 			'wc_stripe_show_payment_request_on_cart',
 			$should_show_on_cart_page
@@ -1147,9 +1145,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		$should_show_on_checkout_page = $this->should_show_ece_on_location( 'checkout' );
 
-		/**
-		 * This filter is documented in includes/class-wc-stripe.php.
-		 */
+		/** This filter is documented in includes/class-wc-stripe.php. */
 		return apply_filters(
 			'wc_stripe_show_payment_request_on_checkout',
 			$should_show_on_checkout_page,
@@ -1178,9 +1174,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$should_show_on_product_page = $this->should_show_ece_on_location( 'product' );
 
 		// Note the negation because if the filter returns `true` that means we should hide the PRB.
-		/**
-		 * This filter is documented in includes/class-wc-stripe.php.
-		 */
+		/** This filter is documented in includes/class-wc-stripe.php. */
 		return ! apply_filters(
 			'wc_stripe_hide_payment_request_on_product_page',
 			! $should_show_on_product_page,
@@ -1804,6 +1798,13 @@ class WC_Stripe_Express_Checkout_Helper {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
+		/**
+		 * Filters whether Express Checkout itemization should be hidden.
+		 * Deprecated in favor of wc_stripe_express_checkout_hide_itemization.
+		 *
+		 * @deprecated 10.6.0
+		 * @param bool $hide_itemization Whether itemization should be hidden.
+		 */
 		$hide_itemization = apply_filters_deprecated(
 			'wc_stripe_payment_request_hide_itemization',
 			[ true ],
@@ -1820,6 +1821,15 @@ class WC_Stripe_Express_Checkout_Helper {
 		$order_total      = WC()->cart->get_total( false );
 
 		$calculated_total = WC_Stripe_Helper::get_stripe_amount( $order_total );
+		/**
+		 * Filters the calculated total for the order.
+		 * Deprecated in favor of wc_stripe_calculated_total.
+		 *
+		 * @deprecated 9.6.0
+		 * @param float   $calculated_total The calculated total.
+		 * @param float   $order_total      The order total.
+		 * @param WC_Cart $cart             The cart object.
+		 */
 		$calculated_total = apply_filters_deprecated(
 			'woocommerce_stripe_calculated_total',
 			[ $calculated_total, $order_total, WC()->cart ],

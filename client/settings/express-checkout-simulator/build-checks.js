@@ -1,7 +1,6 @@
 import { getSetting } from '@woocommerce/settings';
 import getReasonText from './get-reason-text';
 import { __, sprintf } from '@wordpress/i18n';
-import { getPaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
 import { PAYMENT_METHOD_UNAVAILABLE_REASONS } from 'wcstripe/stripe-utils/constants';
 import { getExpressCheckoutLocationDefinitions } from 'wcstripe/settings/express-checkout-customize/locations';
 
@@ -34,11 +33,14 @@ export const buildLocations = ( keys, enabledLocations ) => {
 			location.label,
 		] )
 	);
-	return keys.map( ( key ) => ( {
-		key,
-		label: labels[ key ],
-		enabled: enabledLocations.includes( key ),
-	} ) );
+	// Drop keys without a shared definition rather than render an unlabeled row.
+	return keys
+		.filter( ( key ) => Boolean( labels[ key ] ) )
+		.map( ( key ) => ( {
+			key,
+			label: labels[ key ],
+			enabled: enabledLocations.includes( key ),
+		} ) );
 };
 
 /**
@@ -88,15 +90,15 @@ export const buildBaseChecks = ( { params, methodEnabled, methodLabel } ) => {
 		{
 			key: 'method-enabled',
 			label: sprintf(
-				/* translators: %s: payment method name. */
-				__( '%s enabled', 'woocommerce-gateway-stripe' ),
+				/* translators: %1$s: payment method name. */
+				__( '%1$s enabled', 'woocommerce-gateway-stripe' ),
 				methodLabel
 			),
 			status: methodEnabled ? STATUS.PASS : STATUS.FAIL,
 			detail: '',
 			blockingText: sprintf(
-				/* translators: %s: payment method name. */
-				__( "%s isn't enabled.", 'woocommerce-gateway-stripe' ),
+				/* translators: %1$s: payment method name. */
+				__( "%1$s isn't enabled.", 'woocommerce-gateway-stripe' ),
 				methodLabel
 			),
 		},
@@ -129,17 +131,15 @@ export const buildBaseChecks = ( { params, methodEnabled, methodLabel } ) => {
 /**
  * Builds a store-currency check for methods that restrict the currency (e.g. Amazon Pay).
  * Returns null for methods that support all currencies so the row isn't shown where it would
- * always pass. Reuses `getPaymentMethodCurrencies()` — the single source of truth for which
- * currencies each method supports for the connected account.
+ * always pass. The caller passes the currency list from its page's localized params, so the
+ * server-side per-account list stays the single source of truth.
  *
- * @param {Object} args
- * @param {string} args.methodId    The payment method ID.
- * @param {string} args.methodLabel Human label for the method.
+ * @param {Object}   args
+ * @param {string[]} args.currencies  Currencies the method supports for the connected account.
+ * @param {string}   args.methodLabel Human label for the method.
  * @return {Object|null} A check descriptor, or null when the method supports all currencies.
  */
-export const buildCurrencyCheck = ( { methodId, methodLabel } ) => {
-	const currencies = getPaymentMethodCurrencies( methodId );
-
+export const buildCurrencyCheck = ( { currencies = [], methodLabel } ) => {
 	// An empty list means the method supports all currencies, so there is nothing to gate on.
 	if ( currencies.length === 0 ) {
 		return null;
@@ -155,8 +155,8 @@ export const buildCurrencyCheck = ( { methodId, methodLabel } ) => {
 		label: __( 'Store currency supported', 'woocommerce-gateway-stripe' ),
 		status: supported ? STATUS.PASS : STATUS.FAIL,
 		detail: sprintf(
-			/* translators: %s: comma-separated currency codes. */
-			__( 'Supported: %s', 'woocommerce-gateway-stripe' ),
+			/* translators: %1$s: comma-separated currency codes. */
+			__( 'Supported: %1$s', 'woocommerce-gateway-stripe' ),
 			currencies.join( ', ' )
 		),
 		blockingText: getReasonText(

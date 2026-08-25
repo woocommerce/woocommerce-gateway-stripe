@@ -9,7 +9,6 @@ import {
 	buildLocations,
 } from 'wcstripe/settings/express-checkout-simulator/build-checks';
 import getReasonText from 'wcstripe/settings/express-checkout-simulator/get-reason-text';
-import { isAmazonPayAccountCountrySupported } from 'utils/use-payment-method-currencies';
 import {
 	ExpressCheckoutAppearanceOverrideNotice,
 	ExpressCheckoutButtonSizeControl,
@@ -44,8 +43,11 @@ const AmazonPaySettingsSection = () => {
 
 	const methodLabel = __( 'Amazon Pay', 'woocommerce-gateway-stripe' );
 
-	const isAccountCountrySupported = isAmazonPayAccountCountrySupported();
-	// eslint-disable-next-line camelcase
+	// Both eligibility inputs are computed server-side and localized for this page, so the
+	// client needs no copy of the account-country or currency rules.
+	const isAccountCountrySupported = Boolean(
+		previewParams?.is_account_country_supported
+	);
 	const isTaxBasedOnBilling = Boolean(
 		previewParams?.taxes_based_on_billing
 	);
@@ -70,7 +72,7 @@ const AmazonPaySettingsSection = () => {
 			),
 		},
 		buildCurrencyCheck( {
-			methodId: PAYMENT_METHOD_AMAZON_PAY,
+			currencies: previewParams?.supported_currencies,
 			methodLabel,
 		} ),
 		{

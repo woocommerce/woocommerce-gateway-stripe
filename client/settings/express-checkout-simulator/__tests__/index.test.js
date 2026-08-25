@@ -50,6 +50,29 @@ describe( 'ExpressCheckoutSimulator', () => {
 		);
 	} );
 
+	it( 'exposes each check status as screen-reader text', () => {
+		const checks = [
+			...passingChecks,
+			{
+				key: 'apple-pay',
+				label: 'Apple Pay enabled',
+				status: STATUS.FAIL,
+				detail: '',
+				blockingText: 'Apple Pay is disabled.',
+			},
+		];
+		render(
+			<ExpressCheckoutSimulator
+				checks={ checks }
+				locations={ locations }
+			/>
+		);
+
+		expect( screen.getByText( 'Passed:' ) ).toBeInTheDocument();
+		expect( screen.getByText( 'Failed:' ) ).toBeInTheDocument();
+		expect( screen.getByText( 'Information:' ) ).toBeInTheDocument();
+	} );
+
 	it( 'shows a location when its toggle is enabled and no check blocks', () => {
 		const { container } = render(
 			<ExpressCheckoutSimulator

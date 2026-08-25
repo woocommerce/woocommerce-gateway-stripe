@@ -232,13 +232,16 @@ export async function retryWithBackoff( fn, options = {} ) {
 }
 
 /**
- * Fills in the credit card details on the default (blocks) checkout page.
+ * Resolves the Stripe payment element frame on the default (blocks) checkout page.
+ *
+ * Stripe injects extra iframes alongside the payment element (bank details, the
+ * ACH bank search results), so we require a visible frame to avoid picking the
+ * wrong one.
+ *
  * @param {Page} page Playwright page fixture.
- * @param {Object} card The CC info in the format provided on the test-data.
+ * @return {FrameLocator} The payment element frame.
  */
-export async function fillCreditCardDetails( page, card ) {
-	// Stripe may inject a second iframe for bank details, so
-	// we require a visible frame to avoid picking the wrong one.
+export async function getPaymentElementFrame( page ) {
 	const paymentIframe = page
 		.locator(
 			'.wcstripe-payment-element iframe[name^="__privateStripeFrame"]'
@@ -247,7 +250,16 @@ export async function fillCreditCardDetails( page, card ) {
 		.first();
 	await paymentIframe.waitFor( { state: 'visible', timeout: 10000 } );
 
-	const form = paymentIframe.contentFrame();
+	return paymentIframe.contentFrame();
+}
+
+/**
+ * Fills in the credit card details on the default (blocks) checkout page.
+ * @param {Page} page Playwright page fixture.
+ * @param {Object} card The CC info in the format provided on the test-data.
+ */
+export async function fillCreditCardDetails( page, card ) {
+	const form = await getPaymentElementFrame( page );
 
 	await form.locator( '[name="number"]' ).fill( card.number );
 

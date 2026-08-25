@@ -151,6 +151,13 @@ class WC_Stripe_API {
 			'Stripe-Version' => self::STRIPE_API_VERSION,
 		];
 
+		/**
+		 * Filters the request headers sent to the Stripe API. Deprecated in favor of wc_stripe_request_headers.
+		 *
+		 * @deprecated 9.7.0
+		 *
+		 * @param array $headers The headers to send to the Stripe API.
+		 */
 		$headers = apply_filters_deprecated(
 			'woocommerce_stripe_request_headers',
 			[ $headers ],
@@ -224,6 +231,14 @@ class WC_Stripe_API {
 			$headers['Idempotency-Key'] = $idempotency_key;
 		}
 
+		/**
+		 * Filters the request body sent to the Stripe API. Deprecated in favor of wc_stripe_request_body.
+		 *
+		 * @deprecated 9.7.0
+		 *
+		 * @param array $request The request body to send to the Stripe API.
+		 * @param string $api The Stripe API endpoint.
+		 */
 		$request = apply_filters_deprecated(
 			'woocommerce_stripe_request_body',
 			[ $request, $api ],
@@ -544,6 +559,9 @@ class WC_Stripe_API {
 	 * @return stdClass  The payment method object.
 	 */
 	public static function get_payment_method( string $payment_method_id ) {
+		// Encode as a single path segment so a crafted ID can't smuggle path syntax (no-op for valid IDs).
+		$payment_method_id = rawurlencode( $payment_method_id );
+
 		// Sources have a separate API.
 		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
 			return self::retrieve( 'sources/' . $payment_method_id );
@@ -566,7 +584,7 @@ class WC_Stripe_API {
 	public static function update_payment_method( $payment_method_id, $payment_method_data = [] ) {
 		return self::request(
 			$payment_method_data,
-			'payment_methods/' . $payment_method_id
+			'payment_methods/' . rawurlencode( $payment_method_id )
 		);
 	}
 
@@ -588,9 +606,10 @@ class WC_Stripe_API {
 			);
 		}
 
+		// Encode as a single path segment so a crafted ID can't smuggle path syntax (no-op for valid IDs).
 		return self::request(
 			[ 'customer' => $customer_id ],
-			'payment_methods/' . $payment_method_id . '/attach'
+			'payment_methods/' . rawurlencode( $payment_method_id ) . '/attach'
 		);
 	}
 
@@ -610,18 +629,21 @@ class WC_Stripe_API {
 
 		$payment_method_id = sanitize_text_field( $payment_method_id );
 
+		// Encode as a single path segment so a crafted ID can't smuggle path syntax (no-op for valid IDs).
+		$encoded_payment_method_id = rawurlencode( $payment_method_id );
+
 		// Sources and Payment Methods need different API calls.
 		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
 			return self::request(
 				[],
-				'customers/' . $customer_id . '/sources/' . $payment_method_id,
+				'customers/' . $customer_id . '/sources/' . $encoded_payment_method_id,
 				'DELETE'
 			);
 		}
 
 		return self::request(
 			[],
-			'payment_methods/' . $payment_method_id . '/detach'
+			'payment_methods/' . $encoded_payment_method_id . '/detach'
 		);
 	}
 

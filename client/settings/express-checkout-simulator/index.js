@@ -1,13 +1,26 @@
 import React from 'react';
-import { Icon, check, close, info } from '@wordpress/icons';
+import {
+	Icon,
+	check as checkIcon,
+	close as closeIcon,
+	info as infoIcon,
+} from '@wordpress/icons';
 import { STATUS } from './build-checks';
+import { VisuallyHidden } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import './style.scss';
 
 const STATUS_ICON = {
-	[ STATUS.PASS ]: check,
-	[ STATUS.FAIL ]: close,
-	[ STATUS.INFO ]: info,
+	[ STATUS.PASS ]: checkIcon,
+	[ STATUS.FAIL ]: closeIcon,
+	[ STATUS.INFO ]: infoIcon,
+};
+
+// Screen-reader status per row; the icon and modifier class are not accessible.
+const STATUS_TEXT = {
+	[ STATUS.PASS ]: __( 'Passed:', 'woocommerce-gateway-stripe' ),
+	[ STATUS.FAIL ]: __( 'Failed:', 'woocommerce-gateway-stripe' ),
+	[ STATUS.INFO ]: __( 'Information:', 'woocommerce-gateway-stripe' ),
 };
 
 /**
@@ -29,7 +42,7 @@ const ExpressCheckoutSimulator = ( { checks, locations } ) => {
 	// The first failing check with blocking text gates every location; checks are ordered by
 	// precedence, so the earliest failure is the reason a merchant sees.
 	const blocker = checks.find(
-		( c ) => c.status === STATUS.FAIL && c.blockingText
+		( check ) => check.status === STATUS.FAIL && check.blockingText
 	);
 
 	const getLocationVerdict = ( location ) => {
@@ -55,18 +68,24 @@ const ExpressCheckoutSimulator = ( { checks, locations } ) => {
 		<div className="express-checkout-simulator">
 			<h4>{ __( 'Eligibility', 'woocommerce-gateway-stripe' ) }</h4>
 			<ul className="express-checkout-simulator__checks">
-				{ checks.map( ( c ) => (
+				{ checks.map( ( check ) => (
 					<li
-						key={ c.key }
-						className={ `express-checkout-simulator__check is-${ c.status }` }
+						key={ check.key }
+						className={ `express-checkout-simulator__check is-${ check.status }` }
 					>
-						<Icon icon={ STATUS_ICON[ c.status ] } size={ 20 } />
+						<Icon
+							icon={ STATUS_ICON[ check.status ] }
+							size={ 20 }
+						/>
+						<VisuallyHidden>
+							{ STATUS_TEXT[ check.status ] }
+						</VisuallyHidden>
 						<span className="express-checkout-simulator__check-label">
-							{ c.label }
+							{ check.label }
 						</span>
-						{ c.detail && (
+						{ check.detail && (
 							<span className="express-checkout-simulator__check-detail">
-								{ c.detail }
+								{ check.detail }
 							</span>
 						) }
 					</li>
@@ -90,7 +109,7 @@ const ExpressCheckoutSimulator = ( { checks, locations } ) => {
 							}` }
 						>
 							<Icon
-								icon={ verdict.shown ? check : close }
+								icon={ verdict.shown ? checkIcon : closeIcon }
 								size={ 20 }
 							/>
 							<span className="express-checkout-simulator__location-label">
@@ -106,7 +125,7 @@ const ExpressCheckoutSimulator = ( { checks, locations } ) => {
 
 			<p className="express-checkout-simulator__caveat">
 				{ __(
-					'This simulation reflects your saved configuration only. On the storefront the button can still be hidden by checks that can only run there — a supported device and browser, the contents and product types in the cart, and taxes that need a customer address.',
+					'This simulation reflects the settings currently shown on this page, including unsaved changes. On the storefront the button can still be hidden by checks that can only run there — a supported device and browser, the contents and product types in the cart, and taxes that need a customer address.',
 					'woocommerce-gateway-stripe'
 				) }
 			</p>
