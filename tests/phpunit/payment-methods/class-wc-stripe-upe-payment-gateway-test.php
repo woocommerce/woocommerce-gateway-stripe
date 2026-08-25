@@ -870,6 +870,105 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * A 3DS card payment must not be routed into the wallet/voucher client flow when the intent's
+	 * `payment_method_types` also lists wallet/voucher methods, as happens under Dynamic Payment
+	 * Methods where the intent carries every PMC-enabled method rather than the customer's selection.
+	 *
+	 * @param object|null $next_action               The intent's next_action.
+	 * @param string      $expected_redirect_pattern  Regex the response redirect must match.
+	 * @param bool        $expects_payment_method     Whether the response must expose `payment_method` for Blocks to save.
+	 *
+	 * @dataProvider provide_process_payment_deferred_intent_with_dpm_intent_types_uses_card_flow
+	 */
+	public function test_process_payment_deferred_intent_with_dpm_intent_types_uses_card_flow( $next_action, $expected_redirect_pattern, $expects_payment_method ) {
+		$customer_id = 'cus_mock';
+		$order       = WC_Helper_Order::create_order();
+		$order_id    = $order->get_id();
+
+		$mock_intent = (object) wp_parse_args(
+			[
+				'status'               => WC_Stripe_Intent_Status::REQUIRES_ACTION,
+				'data'                 => [
+					(object) [
+						'id'       => $order_id,
+						'captured' => 'yes',
+						'status'   => 'succeeded',
+					],
+				],
+				'payment_method'       => 'pm_mock',
+				// The DPM shape: every PMC-enabled method, not just the selected one.
+				'payment_method_types' => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::LINK,
+					WC_Stripe_Payment_Methods::MULTIBANCO,
+					WC_Stripe_Payment_Methods::WECHAT_PAY,
+					WC_Stripe_Payment_Methods::CASHAPP_PAY,
+				],
+				'charges'              => (object) [
+					'total_count' => 0, // Intents requiring SCA verification respond with no charges.
+					'data'        => [],
+				],
+				'next_action'          => $next_action,
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$_POST = [
+			'payment_method'           => 'stripe',
+			'wc-stripe-payment-method' => 'pm_mock',
+		];
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( $customer_id );
+
+		// We only use this when handling mandates.
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn( null );
+
+		$response = $this->mock_gateway->process_payment( $order_id );
+
+		$this->assertEquals( 'success', $response['result'] );
+		$this->assertMatchesRegularExpression( $expected_redirect_pattern, $response['redirect'] );
+		if ( $expects_payment_method ) {
+			$this->assertSame( 'pm_mock', $response['payment_method'] ?? null );
+		} else {
+			$this->assertArrayNotHasKey( 'payment_method', $response );
+		}
+	}
+
+	/**
+	 * Provider for `test_process_payment_deferred_intent_with_dpm_intent_types_uses_card_flow`.
+	 *
+	 * @return array
+	 */
+	public function provide_process_payment_deferred_intent_with_dpm_intent_types_uses_card_flow() {
+		return [
+			'sdk-handled 3DS challenge' => [
+				'next_action'               => (object) [ 'type' => 'use_stripe_sdk' ],
+				'expected_redirect_pattern' => '/^#wc-stripe-confirm-pi:/',
+				'expects_payment_method'    => true,
+			],
+			'hosted 3DS redirect'       => [
+				'next_action'               => (object) [
+					'type'            => 'redirect_to_url',
+					'redirect_to_url' => (object) [ 'url' => 'https://hooks.stripe.com/redirect/authenticate/src_mock' ],
+				],
+				'expected_redirect_pattern' => '#^https://hooks\.stripe\.com/redirect/authenticate/src_mock$#',
+				'expects_payment_method'    => false,
+			],
+		];
+	}
+
+	/**
 	 * Test Wallet checkout process_payment flow with deferred intent.
 	 *
 	 * @param string $payment_method Payment method to test.
