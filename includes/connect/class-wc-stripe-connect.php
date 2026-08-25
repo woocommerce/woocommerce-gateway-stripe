@@ -24,7 +24,17 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 */
 		public function __construct( WC_Stripe_Connect_API $api ) {
 			$this->api = $api;
+		}
 
+		/**
+		 * Registers the connection hooks. Kept out of the constructor so
+		 * instantiating the class never stacks duplicate callbacks; the
+		 * bootstrap calls this exactly once.
+		 *
+		 * @since 11.0.0
+		 * @return void
+		 */
+		public function register_hooks(): void {
 			// refresh the connection, triggered by Action Scheduler
 			add_action( 'wc_stripe_refresh_connection', [ $this, 'refresh_connection' ] );
 
