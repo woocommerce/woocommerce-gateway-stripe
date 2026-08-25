@@ -1528,6 +1528,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return array|null An array with result of payment and redirect URL, or nothing.
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
+		// Store API checkout, unlike classic, never sets `order_awaiting_payment`, so WC core's
+		// wc_clear_cart_after_payment() can't clear the cart when a redirect payment's return
+		// misses the session cookie (mobile app/browser handoffs), leaving a paid-for cart that
+		// invites a duplicate order. Mirror WC_Checkout::process_order_payment() here. Skipped for
+		// subscription payment-method changes, where $order_id is a non-pending subscription and
+		// core would clear an unrelated cart.
+		$order = wc_get_order( $order_id );
+		if ( $order instanceof WC_Order
+			&& $order->needs_payment()
+			&& WC()->session
+			&& is_callable( [ WC()->session, 'set' ] )
+			&& ! $this->is_changing_payment_method_for_subscription() ) {
+			WC()->session->set( 'order_awaiting_payment', $order_id );
+		}
+
 		$payment_intent_id     = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$checkout_session_id   = isset( $_POST['wc_stripe_checkout_session_id'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_checkout_session_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();

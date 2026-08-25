@@ -812,6 +812,67 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Test that `process_payment` sets `order_awaiting_payment` in the session so WC core can
+	 * clear the cart even when the payment's return redirect never reaches this session.
+	 *
+	 * @dataProvider provide_process_payment_sets_order_awaiting_payment_in_session
+	 */
+	public function test_process_payment_sets_order_awaiting_payment_in_session( $order_status, $expect_session_key_set ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( $order_status );
+		$order->save();
+		$order_id = $order->get_id();
+
+		WC()->session->init();
+		WC()->session->set( 'order_awaiting_payment', null );
+
+		$mock_intent = (object) wp_parse_args(
+			[
+				'payment_method' => 'pm_mock',
+				'charges'        => (object) [
+					'data' => [
+						(object) [
+							'id'       => $order_id,
+							'captured' => 'yes',
+							'status'   => 'succeeded',
+						],
+					],
+				],
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => 'pm_mock',
+			'wc-stripe-confirmation-token' => '',
+		];
+
+		$this->mock_gateway->intent_controller
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+
+		$this->mock_gateway
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		$this->mock_gateway->process_payment( $order_id );
+
+		$expected = $expect_session_key_set ? $order_id : null;
+		$this->assertSame( $expected, WC()->session->get( 'order_awaiting_payment' ) );
+	}
+
+	/**
+	 * Provider for `test_process_payment_sets_order_awaiting_payment_in_session`.
+	 */
+	public function provide_process_payment_sets_order_awaiting_payment_in_session() {
+		return [
+			'order needing payment is marked awaiting payment' => [ OrderStatus::PENDING, true ],
+			'already-paid order is not marked'                 => [ OrderStatus::PROCESSING, false ],
+		];
+	}
+
+	/**
 	 * Test SCA/3DS checkout process_payment flow with deferred intent.
 	 */
 	public function test_process_payment_deferred_intent_with_required_action_returns_valid_response() {
