@@ -157,9 +157,23 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 		// class, and the fieldset wrapping it must be hidden along with it.
 		await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
 
+		// A dedicated token-less customer keeps this test self-contained (no
+		// dependency on the preceding serial test) and isolates the body-class
+		// path: with no saved tokens there is no token radio list, so nothing
+		// applies an inline hide to the checkbox row.
+		const randomString = randomUUID();
+		const linkUsername =
+			randomString + '.' + config.get( 'users.customer.username' );
+		await api.create.customer( {
+			...config.get( 'users.customer' ),
+			...config.get( 'addresses.customer' ),
+			email: randomString + '+' + config.get( 'users.customer.email' ),
+			username: linkUsername,
+		} );
+
 		await user.login(
 			page,
-			username,
+			linkUsername,
 			config.get( 'users.customer.password' )
 		);
 		await emptyCart( page );
@@ -168,11 +182,6 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 			page,
 			config.get( 'addresses.customer.billing' )
 		);
-
-		// Select "Use a new payment method" (a token was saved by the previous
-		// serial test) so the row is not inline-hidden by the saved-token
-		// selection — the body-class path must hide the wrapper on its own.
-		await page.locator( '#wc-stripe-payment-token-new' ).click();
 
 		const saveCheckboxWrapper = page.locator(
 			'.payment_box.payment_method_stripe fieldset:has(.woocommerce-SavedPaymentMethods-saveNew)'
