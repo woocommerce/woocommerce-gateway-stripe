@@ -133,16 +133,12 @@ body.wc-stripe-hide-save-checkbox .woocommerce-SavedPaymentMethods-saveNew {
 }
 
 /*
- * Hide the fieldset wrapping the save-payment-method checkbox whenever its inner
- * row is hidden. The scripts that toggle the row (WC core's tokenization form via
- * jQuery, handleDisplayOfSavingCheckbox(), and the PHP guest render) hide only the
- * <p>, and the fieldset left behind renders its browser-default or theme border,
- * padding, and background as an empty box. The attribute selector matches the
- * single canonical spelling both writers emit: the CSSOM serializes JS-set styles
- * as "display: none", and save_payment_method_checkbox() prints the same spaced
- * form. The body-class selector covers the stylesheet-driven path above. The
- * :only-child guard scopes the rule to a visually empty fieldset: if third-party
- * code adds siblings to the row, the fieldset has content and stays visible.
+ * Scripts (WC core's tokenization form, our Link/OC handling, the PHP guest
+ * render) hide only the inner row, and the empty fieldset left behind draws its
+ * border/padding/background as an empty box. Matches the canonical
+ * "display: none" spelling both the CSSOM serializer and
+ * save_payment_method_checkbox() emit; :only-child keeps the fieldset visible
+ * when third-party content is added inside it.
  */
 body.wc-stripe-hide-save-checkbox #payment .payment_box > fieldset:has( > .woocommerce-SavedPaymentMethods-saveNew:only-child ),
 #payment .payment_box > fieldset:has( > .woocommerce-SavedPaymentMethods-saveNew:only-child[style*='display: none'] ) {

@@ -1717,11 +1717,12 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Locks the markup structure the empty-box hide rule in client/classic/upe/style.scss
-	 * relies on: the checkbox row is a <p class="woocommerce-SavedPaymentMethods-saveNew">
-	 * that is a direct child of the fieldset wrapper (matched via fieldset:has(> .…-saveNew)).
+	 * Locks the fieldset > p.woocommerce-SavedPaymentMethods-saveNew structure the
+	 * empty-box hide rule in client/classic/upe/style.scss depends on.
 	 *
-	 * @param bool $force_checked Whether the checkbox is forced on (and the wrapper hidden).
+	 * @param bool $force_checked Whether saving is mandatory (e.g. subscription in cart):
+	 *                            the checkbox renders pre-checked and its wrapper hidden
+	 *                            so the shopper cannot opt out.
 	 * @dataProvider provide_test_save_payment_method_checkbox
 	 */
 	public function test_save_payment_method_checkbox_renders_hideable_fieldset_wrapper( bool $force_checked ) {
