@@ -140,7 +140,7 @@ body.wc-stripe-hide-save-checkbox .woocommerce-SavedPaymentMethods-saveNew {
  * save_payment_method_checkbox() emit; :only-child keeps the fieldset visible
  * when third-party content is added inside it.
  */
-body.wc-stripe-hide-save-checkbox #payment .payment_box > fieldset:has( > .woocommerce-SavedPaymentMethods-saveNew:only-child ),
-#payment .payment_box > fieldset:has( > .woocommerce-SavedPaymentMethods-saveNew:only-child[style*='display: none'] ) {
+body.wc-stripe-hide-save-checkbox #payment .payment_box[class*='payment_method_stripe'] > fieldset:has( > .woocommerce-SavedPaymentMethods-saveNew:only-child ),
+#payment .payment_box[class*='payment_method_stripe'] > fieldset:has( > .woocommerce-SavedPaymentMethods-saveNew:only-child[style*='display: none'] ) {
 	display: none;
 }

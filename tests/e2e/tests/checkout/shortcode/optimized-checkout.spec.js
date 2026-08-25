@@ -125,11 +125,11 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 				// With the saved method selected the save-checkbox row is hidden, and
 				// the fieldset wrapping it must be hidden too — a bare fieldset renders
 				// as an empty box on themes that keep the default fieldset border.
-				await expect(
-					page.locator(
-						'.payment_box.payment_method_stripe fieldset:has(.woocommerce-SavedPaymentMethods-saveNew)'
-					)
-				).toBeHidden();
+				const hiddenWrapper = page.locator(
+					'.payment_box.payment_method_stripe fieldset:has(.woocommerce-SavedPaymentMethods-saveNew)'
+				);
+				await expect( hiddenWrapper ).toBeAttached();
+				await expect( hiddenWrapper ).toBeHidden();
 
 				const expectedTotal = await getCartTotal( page );
 

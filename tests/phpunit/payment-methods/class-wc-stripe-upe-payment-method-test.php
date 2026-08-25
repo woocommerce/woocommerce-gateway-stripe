@@ -1305,6 +1305,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	public function test_save_payment_method_checkbox_renders_hideable_fieldset_wrapper( bool $force_checked ): void {
 		$method = new WC_Stripe_UPE_Payment_Method_CC();
 
+		// The guest-row assertion below depends on being logged out.
+		wp_set_current_user( 0 );
+
 		ob_start();
 		$method->save_payment_method_checkbox( $force_checked );
 		$output = ob_get_clean();
