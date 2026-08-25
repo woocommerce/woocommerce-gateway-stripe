@@ -1310,6 +1310,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 
 		$this->assertMatchesRegularExpression( '/^\s*<fieldset[^>]*>\s*<p class="form-row woocommerce-SavedPaymentMethods-saveNew/', $output );
 
+		// Tests run logged out: the guest render must hide the row with the exact
+		// spaced serialization the stylesheet hide rule matches.
+		$this->assertStringContainsString( '<p class="form-row woocommerce-SavedPaymentMethods-saveNew" style="display: none;">', $output );
+
 		if ( $force_checked ) {
 			$this->assertStringContainsString( '<fieldset style="display: none;">', $output );
 			$this->assertStringContainsString( 'checked', $output );

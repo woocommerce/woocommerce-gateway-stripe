@@ -146,4 +146,38 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 			await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
 		}
 	} );
+
+	test( 'hides the save checkbox wrapper when Link handles save consent', async ( {
+		page,
+		browser,
+	} ) => {
+		// Enable Link explicitly so the test is deterministic regardless of the
+		// previous test's cleanup. With Link enabled the store-level save
+		// checkbox is suppressed via the wc-stripe-hide-save-checkbox body
+		// class, and the fieldset wrapping it must be hidden along with it.
+		await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
+
+		await user.login(
+			page,
+			username,
+			config.get( 'users.customer.password' )
+		);
+		await emptyCart( page );
+		await setupCart( page );
+		await setupShortcodeCheckout(
+			page,
+			config.get( 'addresses.customer.billing' )
+		);
+
+		// Select "Use a new payment method" (a token was saved by the previous
+		// serial test) so the row is not inline-hidden by the saved-token
+		// selection — the body-class path must hide the wrapper on its own.
+		await page.locator( '#wc-stripe-payment-token-new' ).click();
+
+		const saveCheckboxWrapper = page.locator(
+			'.payment_box.payment_method_stripe fieldset:has(.woocommerce-SavedPaymentMethods-saveNew)'
+		);
+		await expect( saveCheckboxWrapper ).toBeAttached();
+		await expect( saveCheckboxWrapper ).toBeHidden();
+	} );
 } );
