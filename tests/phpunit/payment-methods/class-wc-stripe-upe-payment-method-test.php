@@ -1311,10 +1311,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertMatchesRegularExpression( '/^\s*<fieldset[^>]*>\s*<p class="form-row woocommerce-SavedPaymentMethods-saveNew/', $output );
 
 		if ( $force_checked ) {
-			$this->assertStringContainsString( '<fieldset style="display:none;">', $output );
+			$this->assertStringContainsString( '<fieldset style="display: none;">', $output );
 			$this->assertStringContainsString( 'checked', $output );
 		} else {
-			$this->assertStringNotContainsString( '<fieldset style="display:none;">', $output );
+			$this->assertStringNotContainsString( '<fieldset style="display: none;">', $output );
 			$this->assertStringNotContainsString( 'checked', $output );
 		}
 	}
