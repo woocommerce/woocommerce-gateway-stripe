@@ -1741,7 +1741,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Data provider for test_save_payment_method_checkbox_does_not_render_fieldset_wrapper.
+	 * Data provider for test_save_payment_method_checkbox_renders_hideable_fieldset_wrapper.
 	 *
 	 * @return array
 	 */

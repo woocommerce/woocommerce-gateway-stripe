@@ -78,6 +78,13 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 					'#wc-stripe-new-payment-method'
 				);
 				await expect( savePaymentMethodCheckbox ).toBeAttached();
+				// The fieldset wrapping the save checkbox must be visible while the
+				// checkbox row is shown (Link is disabled in this test).
+				await expect(
+					page.locator(
+						'.payment_box.payment_method_stripe fieldset:has(.woocommerce-SavedPaymentMethods-saveNew)'
+					)
+				).toBeVisible();
 				await page
 					.locator( "label[for='wc-stripe-new-payment-method']" )
 					.click();
@@ -114,6 +121,15 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 				);
 				await expect( savedTokenRadio ).toBeVisible();
 				await savedTokenRadio.click();
+
+				// With the saved method selected the save-checkbox row is hidden, and
+				// the fieldset wrapping it must be hidden too — a bare fieldset renders
+				// as an empty box on themes that keep the default fieldset border.
+				await expect(
+					page.locator(
+						'.payment_box.payment_method_stripe fieldset:has(.woocommerce-SavedPaymentMethods-saveNew)'
+					)
+				).toBeHidden();
 
 				const expectedTotal = await getCartTotal( page );
 
