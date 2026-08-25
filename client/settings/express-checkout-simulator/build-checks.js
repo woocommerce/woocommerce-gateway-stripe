@@ -2,6 +2,7 @@ import { getSetting } from '@woocommerce/settings';
 import getReasonText from './get-reason-text';
 import { __, sprintf } from '@wordpress/i18n';
 import { PAYMENT_METHOD_UNAVAILABLE_REASONS } from 'wcstripe/stripe-utils/constants';
+import { getExpressCheckoutLocationDefinitions } from 'wcstripe/settings/express-checkout-customize/locations';
 
 /**
  * Status values for a simulator eligibility check.
@@ -17,48 +18,22 @@ export const STATUS = {
 };
 
 /**
- * The button location keys. These are the setting values the customize tabs store, and MUST match
- * what `WC_Stripe_Express_Checkout_Helper::get_button_locations()` reads on the server.
- */
-export const BUTTON_LOCATIONS = {
-	CHECKOUT: 'checkout',
-	PRODUCT: 'product',
-	CART: 'cart',
-	CHANGE_PAYMENT_METHOD: 'change_payment_method',
-};
-
-/**
- * Human labels for the button locations, keyed by `BUTTON_LOCATIONS` values.
- *
- * @return {Object<string,string>} Location key → translated label.
- */
-const getLocationLabels = () => ( {
-	[ BUTTON_LOCATIONS.CHECKOUT ]: __(
-		'Checkout',
-		'woocommerce-gateway-stripe'
-	),
-	[ BUTTON_LOCATIONS.PRODUCT ]: __(
-		'Product page',
-		'woocommerce-gateway-stripe'
-	),
-	[ BUTTON_LOCATIONS.CART ]: __( 'Cart', 'woocommerce-gateway-stripe' ),
-	[ BUTTON_LOCATIONS.CHANGE_PAYMENT_METHOD ]: __(
-		'Change payment method (subscriptions)',
-		'woocommerce-gateway-stripe'
-	),
-} );
-
-/**
- * Maps the location keys a tab supports to `{ key, label, enabled }` rows for the simulator,
- * where `enabled` reflects the tab's current (reactive) location toggles.
+ * Maps the location keys a tab supports to `{ key, label, enabled }` rows for the simulator, where
+ * `enabled` reflects the tab's current (reactive) location toggles. Labels come from the shared
+ * location definitions so the simulator and the location checkboxes stay in sync.
  *
  * @param {string[]} keys             Location keys this tab supports, in display order.
  * @param {string[]} enabledLocations The currently enabled location keys.
  * @return {Array<Object>} Location rows for `<ExpressCheckoutSimulator locations />`.
  */
 export const buildLocations = ( keys, enabledLocations ) => {
-	const labels = getLocationLabels();
-	// Drop keys that aren't known `BUTTON_LOCATIONS` values rather than render an unlabeled row.
+	const labels = Object.fromEntries(
+		getExpressCheckoutLocationDefinitions().map( ( location ) => [
+			location.key,
+			location.label,
+		] )
+	);
+	// Drop keys without a shared definition rather than render an unlabeled row.
 	return keys
 		.filter( ( key ) => Boolean( labels[ key ] ) )
 		.map( ( key ) => ( {
