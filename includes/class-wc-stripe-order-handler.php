@@ -22,7 +22,17 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function __construct() {
 		self::$_this = $this;
+	}
 
+	/**
+	 * Registers the handler's hooks. Kept out of the constructor so
+	 * instantiating the class never stacks duplicate callbacks; the bootstrap
+	 * calls this exactly once.
+	 *
+	 * @since 11.0.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		add_action( 'wp', [ $this, 'maybe_process_redirect_order' ] );
 		add_action( 'woocommerce_order_status_processing', [ $this, 'capture_payment' ] );
 		add_action( 'woocommerce_order_status_completed', [ $this, 'capture_payment' ] );
