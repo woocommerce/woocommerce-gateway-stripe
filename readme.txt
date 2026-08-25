@@ -159,6 +159,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 11.0.0 - xxxx-xx-xx =
 * Add - Show the fuller sync-eligibility verdict in the Products list Agentic Commerce column and link the excluded-products view from the settings page
+* Dev - Move hook registration out of the webhook, order, payment token, Apple Pay registration, and Connect handler constructors so repeated instantiation cannot duplicate callbacks
 * Add - Bulk edit, quick edit, and a sync-status column and filter on the Products list for excluding products from the Agentic Commerce catalog sync
 * Add - Use Stripe Dynamic Payment Methods for on-session Optimized Checkout payments so eligible methods follow your Stripe Payment Method Configuration
 * Dev - Extract Optimized Checkout into a dedicated payment gateway class so the classic UPE and Optimized Checkout flows are handled independently
