@@ -67,14 +67,23 @@ describe( 'buildBaseChecks', () => {
 		);
 	} );
 
-	it( 'treats missing HTTPS as informational in test mode', () => {
+	it( 'treats missing HTTPS as informational in test mode, with the wallet caveat', () => {
 		const checks = build( { is_https: false, is_test_mode: true } );
 
 		expect( byKey( checks, 'https' ) ).toMatchObject( {
 			status: STATUS.INFO,
-			detail: 'Not required in test mode.',
+			detail: 'Not required in test mode, though wallets such as Apple Pay and Google Pay may not display their buttons without it.',
 		} );
 		expect( byKey( checks, 'mode' ).detail ).toBe( 'Test' );
+	} );
+
+	it( 'omits the wallet caveat when the site is already on HTTPS in test mode', () => {
+		const checks = build( { is_test_mode: true } );
+
+		expect( byKey( checks, 'https' ) ).toMatchObject( {
+			status: STATUS.PASS,
+			detail: 'Not required in test mode.',
+		} );
 	} );
 
 	it( 'fails on missing HTTPS in live mode', () => {

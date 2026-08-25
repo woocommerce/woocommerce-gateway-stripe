@@ -68,6 +68,20 @@ export const buildBaseChecks = ( { params, methodEnabled, methodLabel } ) => {
 		httpsStatus = isTestMode ? STATUS.INFO : STATUS.FAIL;
 	}
 
+	// The gateway renders the element over plain HTTP in test mode, but the wallets enforce their
+	// own secure-context rules in the browser (Apple Pay also needs a verified HTTPS domain), so
+	// their buttons can still be missing. Only worth surfacing when HTTPS is actually absent.
+	let testModeHttpsDetail = __(
+		'Not required in test mode.',
+		'woocommerce-gateway-stripe'
+	);
+	if ( ! isHttps ) {
+		testModeHttpsDetail = __(
+			'Not required in test mode, though wallets such as Apple Pay and Google Pay may not display their buttons without it.',
+			'woocommerce-gateway-stripe'
+		);
+	}
+
 	return [
 		{
 			key: 'account-connected',
@@ -107,10 +121,7 @@ export const buildBaseChecks = ( { params, methodEnabled, methodLabel } ) => {
 			label: __( 'HTTPS', 'woocommerce-gateway-stripe' ),
 			status: httpsStatus,
 			detail: isTestMode
-				? __(
-						'Not required in test mode.',
-						'woocommerce-gateway-stripe'
-				  )
+				? testModeHttpsDetail
 				: __( 'Required in live mode.', 'woocommerce-gateway-stripe' ),
 			blockingText: __(
 				'The site is not served over HTTPS, which is required in live mode.',
