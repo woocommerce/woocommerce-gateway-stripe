@@ -4412,14 +4412,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Whether the payment being processed uses one of the given payment method types (e.g. the
-	 * voucher or wallet lists), to decide if it needs those types' client-side confirmation flow.
+	 * Whether the payment being processed uses one of the given payment method types.
 	 *
-	 * The resolved selected type is authoritative: under Dynamic Payment Methods the intent's
-	 * `payment_method_types` lists every method offered by the merchant's Payment Method
-	 * Configuration, so matching against the intent alone would route e.g. a card payment into
-	 * the wallet flow whenever the PMC has a wallet method active. The intent-types intersect
-	 * remains as a fallback for flows that carry no selection reference.
+	 * The selected type is authoritative: under Dynamic Payment Methods the intent's
+	 * `payment_method_types` lists every PMC-enabled method, not the customer's selection.
+	 * The intent-types intersect remains as a fallback when there is no selection reference.
 	 *
 	 * @param string[] $payment_method_types  Payment method types to match against.
 	 * @param string   $selected_payment_type The resolved selected payment type, '' when unknown.
