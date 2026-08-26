@@ -299,6 +299,8 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$by_method = $config[ WC_Stripe_Payment_Methods::CARD ]['showSaveOptionByMethod'] ?? [];
 
 		if ( $expects_entries ) {
+			$this->assertArrayHasKey( WC_Stripe_Payment_Methods::BANCONTACT, $by_method );
+			$this->assertArrayHasKey( WC_Stripe_Payment_Methods::IDEAL, $by_method );
 			$this->assertFalse( $by_method[ WC_Stripe_Payment_Methods::BANCONTACT ] );
 			$this->assertFalse( $by_method[ WC_Stripe_Payment_Methods::IDEAL ] );
 		} else {

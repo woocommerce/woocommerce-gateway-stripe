@@ -165,8 +165,7 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 			foreach ( $original_method_ids as $method_id ) {
 				if ( isset( $this->payment_methods[ $method_id ] ) ) {
 					$payment_method                 = $this->payment_methods[ $method_id ];
-					$is_saved_as_different_type     = $payment_method->get_id() !== $payment_method->get_retrievable_type();
-					$is_blocked_by_adaptive_pricing = $is_adaptive_pricing_active && $is_saved_as_different_type;
+					$is_blocked_by_adaptive_pricing = $is_adaptive_pricing_active && $this->is_saved_as_different_type( $payment_method );
 
 					$show_save_option_by_method[ $method_id ] = ! $is_blocked_by_adaptive_pricing
 						&& $this->should_upe_payment_method_show_save_option( $payment_method );
@@ -190,7 +189,7 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 					}
 
 					$payment_method = $this->payment_methods[ $method_id ];
-					if ( $payment_method->get_id() !== $payment_method->get_retrievable_type() ) {
+					if ( $this->is_saved_as_different_type( $payment_method ) ) {
 						$show_save_option_by_method[ $method_id ] = false;
 					}
 				}
@@ -223,6 +222,17 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		}
 
 		return $settings;
+	}
+
+	/**
+	 * Whether the method is saved under a different Stripe type than it is paid with
+	 * (e.g. Bancontact → SEPA Direct Debit), which makes it unsavable with Adaptive Pricing.
+	 *
+	 * @param WC_Stripe_UPE_Payment_Method $payment_method The payment method to check.
+	 * @return bool
+	 */
+	private function is_saved_as_different_type( WC_Stripe_UPE_Payment_Method $payment_method ): bool {
+		return $payment_method->get_id() !== $payment_method->get_retrievable_type();
 	}
 
 	/**
