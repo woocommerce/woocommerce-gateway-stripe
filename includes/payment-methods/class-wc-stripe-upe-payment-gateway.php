@@ -1863,6 +1863,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			$this->set_customer_id_for_order( $order, $payment_information['customer'] );
 
+			$selected_payment_type = $payment_information['selected_payment_type'];
+
+			// Persist the selected payment type (when known) before the intent request so
+			// parallel readers (e.g. webhooks fired by the confirmation) see it.
+			if ( $order instanceof WC_Order && is_string( $selected_payment_type ) && '' !== $selected_payment_type ) {
+				$this->set_selected_payment_type_for_order( $order, $selected_payment_type );
+			}
+
 			$payment_needed = $this->is_payment_needed( $order->get_id() );
 
 			if ( $payment_needed ) {
@@ -1874,8 +1882,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			$payment_method_id = $payment_intent->payment_method;
 			$this->set_payment_method_id_for_order( $order, $payment_method_id );
-
-			$selected_payment_type = $payment_information['selected_payment_type'];
 
 			// Retrieve the payment method object from Stripe.
 			$payment_method = $this->stripe_request( 'payment_methods/' . $payment_method_id );

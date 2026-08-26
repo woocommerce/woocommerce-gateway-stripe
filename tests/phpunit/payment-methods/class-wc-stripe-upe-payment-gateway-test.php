@@ -4510,6 +4510,72 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * The confirmation-token flow must persist the selected payment type to the database
+	 * before the intent request: the level3 gate and webhooks fired by the confirmation
+	 * read it while the request is still in flight.
+	 */
+	public function test_process_payment_with_confirmation_token_persists_payment_type_before_intent_request() {
+		$order    = WC_Helper_Order::create_order();
+		$order_id = $order->get_id();
+
+		$_POST['payment_method']               = 'stripe';
+		$_POST['wc-stripe-confirmation-token'] = 'ctoken_mock789';
+		$_POST['wc-stripe-payment-method']     = '';
+		$_POST['express_payment_type']         = WC_Stripe_Payment_Methods::AMAZON_PAY;
+
+		$this->mock_gateway->oc_enabled = false;
+
+		$stripe_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+
+		$mock_intent = (object) [
+			'id'                   => 'pi_mock1234567890',
+			'object'               => 'payment_intent',
+			'amount'               => $stripe_amount,
+			'currency'             => strtolower( $order->get_currency() ),
+			'customer'             => 'cus_mock1234567890',
+			'latest_charge'        => 'ch_mock1234567890',
+			'payment_method'       => 'pm_mock1234',
+			'payment_method_types' => [ WC_Stripe_Payment_Methods::AMAZON_PAY ],
+			'status'               => 'succeeded',
+			'created'              => time(),
+		];
+
+		$mock_charge = (object) [
+			'id'       => 'ch_mock1234567890',
+			'captured' => true,
+			'status'   => 'succeeded',
+		];
+
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock1234567890' );
+		$this->mock_gateway->method( 'stripe_request' )->willReturn(
+			(object) [
+				'id'   => 'pm_mock1234',
+				'type' => WC_Stripe_Payment_Methods::AMAZON_PAY,
+			]
+		);
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( $mock_charge );
+
+		$meta_at_request_time = null;
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturnCallback(
+				function () use ( &$meta_at_request_time, $order_id, $mock_intent ) {
+					// A freshly loaded instance proves the gateway persisted the type, rather
+					// than relying on the intent controller to write it during the request.
+					$meta_at_request_time = wc_get_order( $order_id )->get_meta( '_stripe_upe_payment_type' );
+
+					return $mock_intent;
+				}
+			);
+
+		$response = $this->mock_gateway->process_payment( $order_id );
+
+		$this->assertEquals( 'success', $response['result'] );
+		$this->assertSame( WC_Stripe_Payment_Methods::AMAZON_PAY, $meta_at_request_time );
+	}
+
+	/**
 	 * Malformed payment method IDs must be rejected before any Stripe request is sent.
 	 *
 	 * @param string $payment_method_id The malformed payment method ID.
