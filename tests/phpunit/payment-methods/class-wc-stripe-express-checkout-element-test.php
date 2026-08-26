@@ -79,6 +79,39 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Only the Store API nonces may be minted at render time; the wc-ajax
+	 * nonces are served on demand so cached pages can't embed expired copies.
+	 *
+	 * @return void
+	 */
+	public function test_javascript_params_only_mints_store_api_nonces() {
+		$stripe_settings['testmode']             = 'yes';
+		$stripe_settings['test_publishable_key'] = 'pk_test_123';
+
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->getMock();
+
+		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+
+		$nonces = $element->javascript_params()['nonce'];
+
+		$this->assertSame( [ 'wc_store_api', 'wc_store_api_express_checkout' ], array_keys( $nonces ) );
+		$this->assertNotFalse( wp_verify_nonce( $nonces['wc_store_api'], 'wc_store_api' ) );
+		$this->assertNotFalse( wp_verify_nonce( $nonces['wc_store_api_express_checkout'], 'wc_store_api_express_checkout' ) );
+	}
+
+	/**
 	 * Test for `scripts`.
 	 *
 	 * @return void

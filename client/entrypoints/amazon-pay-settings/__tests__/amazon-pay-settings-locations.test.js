@@ -72,21 +72,27 @@ describe( 'AmazonPaySettingsSection', () => {
 		render( <AmazonPaySettingsSection /> );
 
 		// Uncheck each checkbox, and verify them what kind of action should have been called
-		await userEvent.click( screen.getByText( 'Product page' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Product page' } )
+		);
 
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'checkout',
 			'cart',
 		] );
 
-		await userEvent.click( screen.getByText( 'Checkout' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Checkout' } )
+		);
 
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'product',
 			'cart',
 		] );
 
-		await userEvent.click( screen.getByText( 'Cart' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Cart' } )
+		);
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'checkout',
 			'product',
@@ -103,19 +109,25 @@ describe( 'AmazonPaySettingsSection', () => {
 
 		render( <AmazonPaySettingsSection /> );
 
-		await userEvent.click( screen.getByText( 'Cart' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Cart' } )
+		);
 
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'cart',
 		] );
 
-		await userEvent.click( screen.getByText( 'Product page' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Product page' } )
+		);
 
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'product',
 		] );
 
-		await userEvent.click( screen.getByText( 'Checkout' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Checkout' } )
+		);
 
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'checkout',

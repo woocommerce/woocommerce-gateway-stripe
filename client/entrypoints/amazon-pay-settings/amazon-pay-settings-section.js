@@ -1,17 +1,30 @@
 /* global wc_stripe_amazon_pay_settings_params */
-import { ADMIN_URL, getSetting } from '@woocommerce/settings';
 import React from 'react';
-import interpolateComponents from '@automattic/interpolate-components';
-import styled from '@emotion/styled';
 import ExpressCheckoutPreview from 'wcstripe/settings/express-checkout-preview';
-import { Card, CheckboxControl, Notice } from '@wordpress/components';
+import ExpressCheckoutSimulator from 'wcstripe/settings/express-checkout-simulator';
+import {
+	STATUS,
+	buildBaseChecks,
+	buildCurrencyCheck,
+	buildLocations,
+} from 'wcstripe/settings/express-checkout-simulator/build-checks';
+import getReasonText from 'wcstripe/settings/express-checkout-simulator/get-reason-text';
+import {
+	ExpressCheckoutAppearanceOverrideNotice,
+	ExpressCheckoutLocationsControl,
+	getExpressCheckoutLocationKeys,
+} from 'wcstripe/settings/express-checkout-customize';
+import { Card } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import {
 	useAmazonPayEnabledSettings,
 	useAmazonPayLocations,
 	useExpressCheckoutButtonSize,
 } from 'wcstripe/data';
-import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
+import {
+	PAYMENT_METHOD_AMAZON_PAY,
+	PAYMENT_METHOD_UNAVAILABLE_REASONS,
+} from 'wcstripe/stripe-utils/constants';
 import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 
@@ -28,99 +41,68 @@ const AmazonPaySettingsSection = () => {
 	const [ amazonPayLocations, updateAmazonPayLocations ] =
 		useAmazonPayLocations();
 
-	const makeLocationChangeHandler = ( location ) => ( isChecked ) => {
-		if ( isChecked ) {
-			updateAmazonPayLocations( [ ...amazonPayLocations, location ] );
-		} else {
-			updateAmazonPayLocations(
-				amazonPayLocations.filter( ( name ) => name !== location )
-			);
-		}
-	};
+	const methodLabel = __( 'Amazon Pay', 'woocommerce-gateway-stripe' );
 
-	const StyledLink = styled.a`
-		&:focus,
-		&:visited {
-			box-shadow: none;
-		}
-	`;
+	// Both eligibility inputs are computed server-side and localized for this page, so the
+	// client needs no copy of the account-country or currency rules.
+	const isAccountCountrySupported = Boolean(
+		previewParams?.is_account_country_supported
+	);
+	const isTaxBasedOnBilling = Boolean(
+		previewParams?.taxes_based_on_billing
+	);
+
+	const simulatorChecks = [
+		...buildBaseChecks( {
+			params: previewParams,
+			methodEnabled: isAmazonPayEnabled,
+			methodLabel,
+		} ),
+		{
+			key: 'account-country',
+			label: __(
+				'Account country supported',
+				'woocommerce-gateway-stripe'
+			),
+			status: isAccountCountrySupported ? STATUS.PASS : STATUS.FAIL,
+			detail: '',
+			blockingText: __(
+				"Amazon Pay isn't supported for your Stripe account's country.",
+				'woocommerce-gateway-stripe'
+			),
+		},
+		buildCurrencyCheck( {
+			currencies: previewParams?.supported_currencies,
+			methodLabel,
+		} ),
+		{
+			key: 'tax-setup',
+			label: __( 'Compatible tax setup', 'woocommerce-gateway-stripe' ),
+			status: isTaxBasedOnBilling ? STATUS.FAIL : STATUS.PASS,
+			detail: '',
+			blockingText: getReasonText(
+				PAYMENT_METHOD_UNAVAILABLE_REASONS.TAX_BASED_ON_BILLING_ADDRESS,
+				methodLabel
+			),
+		},
+	].filter( Boolean );
+
+	const simulatorLocations = buildLocations(
+		getExpressCheckoutLocationKeys(),
+		amazonPayLocations
+	);
+
 	return (
 		<Card className="express-checkout-settings">
 			<CardBody>
-				{ isButtonStyleOverridden && (
-					<Notice status="warning" isDismissible={ false }>
-						{ interpolateComponents( {
-							mixedString: __(
-								'Some appearance settings may be overridden by the express payment section of the ' +
-									'{{checkoutPageLink}}Cart & Checkout blocks{{/checkoutPageLink}}.',
-								'woocommerce-gateway-stripe'
-							),
-							components: {
-								checkoutPageLink: (
-									<StyledLink
-										href={ `${ ADMIN_URL }post.php?post=${
-											getSetting( 'storePages' )?.checkout
-												?.id
-										}&action=edit` }
-										target="_blank"
-										rel="noreferrer"
-										onClick={ ( ev ) => {
-											// Stop propagation is necessary so it doesn't trigger the tooltip click event.
-											ev.stopPropagation();
-										} }
-									/>
-								),
-							},
-						} ) }
-					</Notice>
-				) }
-				<h4>
-					{ __(
-						'Show express checkouts on',
-						'woocommerce-gateway-stripe'
-					) }
-				</h4>
-				<ul className="payment-request-settings__location">
-					<li>
-						<CheckboxControl
-							disabled={ ! isAmazonPayEnabled }
-							checked={
-								isAmazonPayEnabled &&
-								amazonPayLocations.includes( 'checkout' )
-							}
-							onChange={ makeLocationChangeHandler( 'checkout' ) }
-							label={ __(
-								'Checkout',
-								'woocommerce-gateway-stripe'
-							) }
-						/>
-					</li>
-					<li>
-						<CheckboxControl
-							disabled={ ! isAmazonPayEnabled }
-							checked={
-								isAmazonPayEnabled &&
-								amazonPayLocations.includes( 'product' )
-							}
-							onChange={ makeLocationChangeHandler( 'product' ) }
-							label={ __(
-								'Product page',
-								'woocommerce-gateway-stripe'
-							) }
-						/>
-					</li>
-					<li>
-						<CheckboxControl
-							disabled={ ! isAmazonPayEnabled }
-							checked={
-								isAmazonPayEnabled &&
-								amazonPayLocations.includes( 'cart' )
-							}
-							onChange={ makeLocationChangeHandler( 'cart' ) }
-							label={ __( 'Cart', 'woocommerce-gateway-stripe' ) }
-						/>
-					</li>
-				</ul>
+				<ExpressCheckoutAppearanceOverrideNotice
+					isOverridden={ isButtonStyleOverridden }
+				/>
+				<ExpressCheckoutLocationsControl
+					methodEnabled={ isAmazonPayEnabled }
+					locations={ amazonPayLocations }
+					onChange={ updateAmazonPayLocations }
+				/>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
 					<ExpressCheckoutPreview
@@ -143,6 +125,10 @@ const AmazonPaySettingsSection = () => {
 						) }
 					/>
 				</LoadableAccountSection>
+				<ExpressCheckoutSimulator
+					checks={ simulatorChecks }
+					locations={ simulatorLocations }
+				/>
 			</CardBody>
 		</Card>
 	);

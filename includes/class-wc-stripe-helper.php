@@ -62,6 +62,54 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Validates a value against the expected Stripe object ID shape: `{prefix}_{token}`,
+	 * word characters only, at most 255 characters (Stripe's documented ceiling).
+	 *
+	 * @see https://docs.stripe.com/upgrades#what-changes-does-stripe-consider-to-be-backwards-compatible
+	 *
+	 * @param mixed             $id       The value to validate.
+	 * @param string|array|null $prefixes Allowed prefix or prefixes (e.g. 'cus' or [ 'pm', 'src', 'card' ]).
+	 *                                    When null, any lowercase-letter prefix is accepted.
+	 * @return bool True when the value is a syntactically valid Stripe identifier.
+	 */
+	public static function is_valid_stripe_id( $id, $prefixes = null ): bool {
+		// The whole identifier (prefix included) is bounded to Stripe's documented 255-character maximum.
+		if ( ! is_string( $id ) || '' === $id || strlen( $id ) > 255 ) {
+			return false;
+		}
+
+		if ( null === $prefixes ) {
+			$prefix_pattern = '[a-z]+';
+		} else {
+			// Drop empty prefixes: an empty allow-list (or an empty prefix string) must validate
+			// nothing, not match a bare "_token".
+			$prefixes = array_filter(
+				is_array( $prefixes ) ? $prefixes : [ $prefixes ],
+				static function ( $prefix ) {
+					return is_string( $prefix ) && '' !== $prefix;
+				}
+			);
+			if ( empty( $prefixes ) ) {
+				return false;
+			}
+			$prefix_pattern = '(' . implode(
+				'|',
+				array_map(
+					static function ( $prefix ) {
+						// Pass the '/' delimiter so a prefix containing it can't break out of the pattern.
+						return preg_quote( $prefix, '/' );
+					},
+					$prefixes
+				)
+			) . ')';
+		}
+
+		// Anchor with \A ... \z rather than ^ ... $: a bare $ also matches before a trailing newline,
+		// which would let a control character slip through. The length ceiling is enforced above.
+		return 1 === preg_match( "/\A{$prefix_pattern}_\w+\z/", $id );
+	}
+
+	/**
 	 * Get the main Stripe settings option.
 	 *
 	 * Delegates to the canonical accessor on WC_Stripe so there is a single
@@ -2156,6 +2204,23 @@ class WC_Stripe_Helper {
 		} else {
 			return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
 		}
+	}
+
+	/**
+	 * Returns the account-level gate values the Customize express checkouts settings pages localize
+	 * for their placement simulator. These gates apply to every express method (Apple Pay/Google Pay,
+	 * Amazon Pay, Link), so they live here rather than being duplicated across the three controllers.
+	 *
+	 * @return array{is_account_connected: bool, is_https: bool, is_test_mode: bool}
+	 */
+	public static function get_express_checkout_simulator_gate_params(): array {
+		return [
+			'is_account_connected' => self::is_connected(),
+			// is_ssl() would report the admin request's scheme, not the storefront's; the configured
+			// site URLs are what the storefront gate will effectively see.
+			'is_https'             => wp_is_using_https(),
+			'is_test_mode'         => WC_Stripe_Mode::is_test(),
+		];
 	}
 
 	/**

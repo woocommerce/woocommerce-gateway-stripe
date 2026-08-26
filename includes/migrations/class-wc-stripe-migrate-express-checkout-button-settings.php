@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
  * location => methods map (`express_checkout_button_locations`) plus one shared
  * button size (`express_checkout_button_size`).
  *
- * @since 10.9.0
+ * @since 11.0.0
  */
 class WC_Stripe_Migrate_Express_Checkout_Button_Settings {
 	/**
