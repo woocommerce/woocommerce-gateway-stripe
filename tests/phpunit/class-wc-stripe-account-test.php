@@ -87,6 +87,14 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$this->assertSame( $cached_data, $expected_cached_data );
 	}
 
+	public function test_get_cached_account_data_ignores_non_array_cache_data() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'invalid' );
+		WC_Helper_Stripe_Api::$retrieve_response = new WP_Error( 'stripe_api_outage', 'temporarily unavailable' );
+
+		$this->assertSame( [], $this->account->get_cached_account_data() );
+	}
+
 	public function test_clear_cache() {
 		$live_account = [
 			'id'    => '1234',
@@ -268,6 +276,46 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'live mode with force_refresh disabled'      => [ 'live', false ],
 			'live mode with force_refresh not specified' => [ 'live', null ],
 		];
+	}
+
+	/**
+	 * Provide invalid modes and the active mode they should resolve to.
+	 *
+	 * @return array
+	 */
+	public function provide_invalid_account_mode_test_cases(): array {
+		return [
+			'invalid mode in test mode' => [ 'Live', 'yes', 'test' ],
+			'invalid mode in live mode' => [ 'invalid', 'no', 'live' ],
+		];
+	}
+
+	/**
+	 * Invalid modes must consistently use the active mode for connection and cache access.
+	 *
+	 * @param string $mode          The requested mode.
+	 * @param string $testmode      The active test mode setting.
+	 * @param string $expected_mode The expected resolved mode.
+	 *
+	 * @dataProvider provide_invalid_account_mode_test_cases
+	 */
+	public function test_get_cached_account_data_normalizes_invalid_mode( string $mode, string $testmode, string $expected_mode ) {
+		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['testmode'] = $testmode;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$account_data = [
+			'id'    => '1234',
+			'email' => "$expected_mode@example.com",
+		];
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account_data, HOUR_IN_SECONDS, $expected_mode );
+
+		$this->mock_connect->expects( $this->once() )
+			->method( 'is_connected' )
+			->with( $expected_mode )
+			->willReturn( true );
+
+		$this->assertSame( $account_data, $this->account->get_cached_account_data( $mode ) );
 	}
 
 	/**
