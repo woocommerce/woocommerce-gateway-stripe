@@ -2451,7 +2451,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		wp_register_style( 'stripe_styles', plugins_url( 'assets/css/stripe-styles.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
 		wp_enqueue_style( 'stripe_styles' );
 
-		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery-payment', 'stripe' ], WC_STRIPE_VERSION, true );
+		wp_register_script(
+			'woocommerce_stripe',
+			plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ),
+			[ 'jquery-payment', 'stripe' ],
+			WC_STRIPE_VERSION,
+			[
+				'in_footer' => true,
+				'strategy'  => 'defer',
+			]
+		);
 
 		wp_localize_script(
 			'woocommerce_stripe',

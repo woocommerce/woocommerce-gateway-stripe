@@ -2808,5 +2808,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$registered = wp_scripts()->registered['stripe'];
 		$this->assertSame( 'https://js.stripe.com/dahlia/stripe.js', $registered->src );
 		$this->assertSame( 1, wp_scripts()->get_data( 'stripe', 'group' ), 'Stripe.js must load in the footer.' );
+		$this->assertSame( 'defer', wp_scripts()->get_data( 'stripe', 'strategy' ), 'Stripe.js must not block rendering.' );
 	}
 }

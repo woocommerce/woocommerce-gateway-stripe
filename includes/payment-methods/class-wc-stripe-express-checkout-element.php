@@ -434,7 +434,10 @@ class WC_Stripe_Express_Checkout_Element {
 			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',
 			array_merge( [ 'jquery', 'stripe' ], $asset_data['dependencies'] ),
 			$asset_data['version'],
-			true
+			[
+				'in_footer' => true,
+				'strategy'  => 'defer',
+			]
 		);
 	}
 

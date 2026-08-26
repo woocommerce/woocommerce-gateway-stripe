@@ -58,7 +58,19 @@ class WC_Stripe_Helper {
 	 * @return void
 	 */
 	public static function register_stripe_js() {
-		wp_register_script( 'stripe', self::STRIPE_JS_URL, [], null, true );
+		// 'defer' is an intended strategy: WordPress downgrades it to blocking
+		// when a non-deferred dependent (e.g. the Blocks integration bundle)
+		// is enqueued, so pages we haven't converted keep their old behavior.
+		wp_register_script(
+			'stripe',
+			self::STRIPE_JS_URL,
+			[],
+			null,
+			[
+				'in_footer' => true,
+				'strategy'  => 'defer',
+			]
+		);
 	}
 
 	/**
