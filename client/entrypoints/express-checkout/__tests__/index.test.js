@@ -450,3 +450,155 @@ describe( 'Express Checkout per-method location gating', () => {
 		expect( mountedTypes() ).toEqual( [ 'googlePay' ] );
 	} );
 } );
+
+describe( 'Express Checkout group reuse on cart/checkout updates', () => {
+	// One stub per Elements group so tests can tell "reused in place" (no new
+	// elements() call, update() received the new amount) from "rebuilt".
+	let elementsGroups;
+	let buttons;
+
+	const stubStripe = () => {
+		elementsGroups = [];
+		buttons = [];
+		mockGetStripe.mockReturnValue( {
+			elements: jest.fn( () => {
+				const handlers = {};
+				const button = {
+					handlers,
+					on: jest.fn( ( eventName, callback ) => {
+						handlers[ eventName ] = callback;
+						return button;
+					} ),
+					mount: jest.fn(),
+					unmount: jest.fn(),
+					destroy: jest.fn(),
+				};
+				buttons.push( button );
+				const group = {
+					create: jest.fn( () => button ),
+					update: jest.fn(),
+				};
+				elementsGroups.push( group );
+				return group;
+			} ),
+		} );
+	};
+
+	const cartParams = () => ( {
+		...baseParams(),
+		stripe: {
+			publishable_key: 'pk_test_123',
+			locale: 'en',
+			is_google_pay_enabled: true,
+		},
+		cart: {
+			total: 1500,
+			currency: 'usd',
+			requestShipping: false,
+			requestPhone: false,
+			displayItems: [],
+		},
+	} );
+
+	// The debounced refresh handler fires its leading call synchronously, but a
+	// second trigger within the wait window is swallowed; step past it.
+	const waitOutDebounce = () =>
+		new Promise( ( resolve ) => setTimeout( resolve, 350 ) );
+
+	beforeEach( () => {
+		jest.resetModules();
+		mockGetStripe.mockReset();
+		mockGetCartDetails.mockReset();
+		mockGetCartDetails.mockResolvedValue( {
+			totals: { total_price: '1500', total_refund: '0' },
+			needs_shipping: false,
+		} );
+		stubStripe();
+		// blockUI is a jQuery plugin the click handler calls via the global;
+		// absent in jsdom.
+		global.jQuery = require( 'jquery' );
+		global.jQuery.blockUI = jest.fn();
+		global.jQuery.unblockUI = jest.fn();
+		document.body.innerHTML =
+			'<div id="wc-stripe-express-checkout-element"></div>';
+	} );
+
+	afterEach( () => {
+		delete global.wc_stripe_express_checkout_params;
+	} );
+
+	it( 'refreshes the mounted group in place when only the amount changed', async () => {
+		global.wc_stripe_express_checkout_params = cartParams();
+		loadEntrypoint();
+		expect( elementsGroups ).toHaveLength( 1 );
+
+		require( 'jquery' )( document.body ).trigger( 'updated_cart_totals' );
+		await flushPromises();
+
+		// Same structure: no second Elements group (and no second
+		// /v1/elements/sessions), no teardown; the amount was pushed in place.
+		expect( elementsGroups ).toHaveLength( 1 );
+		expect( buttons[ 0 ].destroy ).not.toHaveBeenCalled();
+		expect( elementsGroups[ 0 ].update ).toHaveBeenCalledWith( {
+			amount: 1500,
+		} );
+	} );
+
+	it( 'rebuilds the group when the shipping requirement changes', async () => {
+		global.wc_stripe_express_checkout_params = cartParams();
+		loadEntrypoint();
+		expect( elementsGroups ).toHaveLength( 1 );
+
+		mockGetCartDetails.mockResolvedValue( {
+			totals: { total_price: '1500', total_refund: '0' },
+			needs_shipping: true,
+		} );
+		require( 'jquery' )( document.body ).trigger( 'updated_cart_totals' );
+		await flushPromises();
+
+		// Structural change: the old button is torn down and a new group built.
+		expect( buttons[ 0 ].destroy ).toHaveBeenCalled();
+		expect( elementsGroups ).toHaveLength( 2 );
+	} );
+
+	it( 'remounts the existing button when WooCommerce discarded the markup', async () => {
+		global.wc_stripe_express_checkout_params = cartParams();
+		loadEntrypoint();
+
+		// updated_cart_totals re-renders the cart totals wholesale, discarding
+		// the button containers WooCommerce knows nothing about.
+		document.getElementById(
+			'wc-stripe-express-checkout-element'
+		).innerHTML = '';
+		require( 'jquery' )( document.body ).trigger( 'updated_cart_totals' );
+		await flushPromises();
+
+		expect( elementsGroups ).toHaveLength( 1 );
+		expect( buttons[ 0 ].unmount ).toHaveBeenCalled();
+		expect( buttons[ 0 ].mount ).toHaveBeenCalledTimes( 2 );
+		expect(
+			document.getElementById(
+				'wc-stripe-express-checkout-element-googlePay'
+			)
+		).not.toBeNull();
+	} );
+
+	it( 'defers the refresh while the wallet sheet is open and applies it on cancel', async () => {
+		global.wc_stripe_express_checkout_params = cartParams();
+		loadEntrypoint();
+
+		// Open the sheet: the click handler resolves the event, marking a
+		// payment in flight.
+		await buttons[ 0 ].handlers.click( { resolve: jest.fn() } );
+
+		require( 'jquery' )( document.body ).trigger( 'updated_cart_totals' );
+		await flushPromises();
+		expect( mockGetCartDetails ).not.toHaveBeenCalled();
+
+		// Closing the sheet applies the deferred refresh.
+		buttons[ 0 ].handlers.cancel();
+		await waitOutDebounce();
+		await flushPromises();
+		expect( mockGetCartDetails ).toHaveBeenCalled();
+	} );
+} );
