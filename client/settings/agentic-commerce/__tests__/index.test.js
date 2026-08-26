@@ -577,7 +577,7 @@ describe( 'AgenticCommerceSection', () => {
 
 		await waitFor( () => {
 			expect(
-				screen.getByText( /Setup webhooks in/i )
+				screen.getByText( /Set up webhooks in/i )
 			).toBeInTheDocument();
 		} );
 	} );
