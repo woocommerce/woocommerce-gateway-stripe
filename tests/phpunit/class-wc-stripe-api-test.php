@@ -46,6 +46,9 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		// Clear any outage state recorded during the test run.
 		delete_transient( WC_Stripe_API_Outage_Status::OUTAGE_TRANSIENT_KEY );
 
+		// Clear any level3 rejection state recorded during the test run.
+		delete_transient( 'wc_stripe_level3_not_allowed' );
+
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		WC_Stripe_API::set_secret_key( null );
 
@@ -855,5 +858,155 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			$caught->getLocalizedMessage()
 		);
 		$this->assertTrue( WC_Stripe_API_Outage_Status::is_in_outage() );
+	}
+
+	/**
+	 * Level3 gating must prefer the request's own payment_method_types over the order meta,
+	 * which stays as the fallback for requests with no payment method info (captures).
+	 *
+	 * @param string[]|null $request_types   The payment_method_types the request carries, or null for none.
+	 * @param string        $order_meta_type The Stripe UPE payment type stored on the order, or '' for none.
+	 * @param bool          $expect_level3   Whether the outgoing request should carry level3 data.
+	 * @dataProvider provide_test_request_with_level3_data_gating
+	 */
+	public function test_request_with_level3_data_gates_on_request_types_then_order_meta( $request_types, $order_meta_type, $expect_level3 ) {
+		// The level3 gate only applies to US-based stores.
+		update_option( 'woocommerce_default_country', 'US:CA' );
+		delete_transient( 'wc_stripe_level3_not_allowed' );
+
+		$order = WC_Helper_Order::create_order();
+		if ( '' !== $order_meta_type ) {
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $order_meta_type );
+			$order->save_meta_data();
+		}
+
+		$request = [ 'amount' => 100 ];
+		if ( null !== $request_types ) {
+			$request['payment_method_types'] = $request_types;
+		}
+
+		$bodies_seen = [];
+		$mock        = function ( $preempt, $parsed_args ) use ( &$bodies_seen ) {
+			$bodies_seen[] = $parsed_args['body'];
+
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => '{"id":"pi_mock"}',
+			];
+		};
+		add_filter( 'pre_http_request', $mock, 10, 2 );
+
+		WC_Stripe_API::request_with_level3_data( $request, 'payment_intents', [ 'merchant_reference' => (string) $order->get_id() ], $order );
+
+		remove_filter( 'pre_http_request', $mock, 10 );
+
+		$this->assertCount( 1, $bodies_seen );
+		if ( $expect_level3 ) {
+			$this->assertArrayHasKey( 'level3', $bodies_seen[0] );
+		} else {
+			$this->assertArrayNotHasKey( 'level3', $bodies_seen[0] );
+		}
+	}
+
+	/**
+	 * Provider for {@see test_request_with_level3_data_gates_on_request_types_then_order_meta()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_request_with_level3_data_gating() {
+		return [
+			'card request'                               => [ [ WC_Stripe_Payment_Methods::CARD ], '', true ],
+			'card request wins over non-card meta'       => [ [ WC_Stripe_Payment_Methods::CARD ], WC_Stripe_Payment_Methods::AMAZON_PAY, true ],
+			'non-card request wins over card meta'       => [ [ WC_Stripe_Payment_Methods::AMAZON_PAY ], WC_Stripe_Payment_Methods::CARD, false ],
+			// The case the meta-only gate could not catch: a flow that never wrote the meta.
+			'non-card request without meta'              => [ [ WC_Stripe_Payment_Methods::AMAZON_PAY ], '', false ],
+			'card with link keeps level3'                => [ [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ], '', true ],
+			// No type selected at checkout: the intent lists every enabled method. Card being a
+			// candidate is enough — Stripe only rejects level3 when no type on the intent supports it.
+			'mixed types including card keep level3'     => [ [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ], '', true ],
+			'no request types falls back to card meta'   => [ null, WC_Stripe_Payment_Methods::CARD, true ],
+			'no request types respects non-card meta'    => [ null, WC_Stripe_Payment_Methods::AMAZON_PAY, false ],
+			'no request types, no meta defaults to card' => [ null, '', true ],
+		];
+	}
+
+	/**
+	 * A level3 rejection is only cached account-wide (3-month transient) when the payment is
+	 * known to support level3 — for an unknown type the rejection is ambiguous. The payment
+	 * must go through either way, via the retry without level3.
+	 *
+	 * @param string[]|null $request_types    The payment_method_types the request carries, or null for none.
+	 * @param string        $order_meta_type  The Stripe UPE payment type stored on the order, or '' for none.
+	 * @param bool          $expect_transient Whether the rejection should set the account-wide transient.
+	 * @dataProvider provide_test_request_with_level3_data_rejection_transient
+	 */
+	public function test_request_with_level3_data_only_caches_rejections_for_known_level3_payments( $request_types, $order_meta_type, $expect_transient ) {
+		// The level3 gate only applies to US-based stores.
+		update_option( 'woocommerce_default_country', 'US:CA' );
+		delete_transient( 'wc_stripe_level3_not_allowed' );
+
+		$order = WC_Helper_Order::create_order();
+		if ( '' !== $order_meta_type ) {
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $order_meta_type );
+			$order->save_meta_data();
+		}
+
+		$request = [ 'amount' => 100 ];
+		if ( null !== $request_types ) {
+			$request['payment_method_types'] = $request_types;
+		}
+
+		$bodies_seen = [];
+		$mock        = function ( $preempt, $parsed_args ) use ( &$bodies_seen ) {
+			$bodies_seen[] = $parsed_args['body'];
+
+			$body = isset( $parsed_args['body']['level3'] )
+				? '{"error":{"code":"parameter_unknown","param":"level3","type":"invalid_request_error","message":"Received unknown parameter: level3"}}'
+				: '{"id":"pi_mock"}';
+
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => $body,
+			];
+		};
+		add_filter( 'pre_http_request', $mock, 10, 2 );
+
+		$result = WC_Stripe_API::request_with_level3_data( $request, 'payment_intents', [ 'merchant_reference' => (string) $order->get_id() ], $order );
+
+		remove_filter( 'pre_http_request', $mock, 10 );
+
+		// The rejection must always trigger a retry without level3 so the payment goes through.
+		$this->assertCount( 2, $bodies_seen );
+		$this->assertArrayHasKey( 'level3', $bodies_seen[0] );
+		$this->assertArrayNotHasKey( 'level3', $bodies_seen[1] );
+		$this->assertSame( 'pi_mock', $result->id );
+
+		$this->assertSame( $expect_transient, (bool) get_transient( 'wc_stripe_level3_not_allowed' ) );
+	}
+
+	/**
+	 * Provider for {@see test_request_with_level3_data_only_caches_rejections_for_known_level3_payments()}.
+	 *
+	 * Only combinations that attach level3 in the first place can reach the rejection.
+	 *
+	 * @return array
+	 */
+	public function provide_test_request_with_level3_data_rejection_transient() {
+		return [
+			'card request caches the rejection'         => [ [ WC_Stripe_Payment_Methods::CARD ], '', true ],
+			'mixed types with card cache the rejection' => [ [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ], '', true ],
+			'card meta caches the rejection'            => [ null, WC_Stripe_Payment_Methods::CARD, true ],
+			// Unknown type: level3 is sent via the legacy card default, but the rejection is
+			// ambiguous and must not disable level3 account-wide.
+			'unknown type does not cache the rejection' => [ null, '', false ],
+		];
 	}
 }
