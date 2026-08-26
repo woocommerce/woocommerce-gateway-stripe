@@ -495,7 +495,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			WC_STRIPE_PLUGIN_URL . '/build/upe-classic.js',
 			array_merge( [ 'stripe', 'wc-checkout' ], $dependencies ),
 			$version,
-			true
+			[
+				'in_footer' => true,
+				'strategy'  => 'defer',
+			]
 		);
 		wp_set_script_translations(
 			'wc-stripe-upe-classic',
