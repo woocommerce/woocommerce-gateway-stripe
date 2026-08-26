@@ -1794,9 +1794,10 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * }
 	 */
 	public function build_display_items( $itemized_display_items = false ) {
-		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
-			define( 'WOOCOMMERCE_CART', true );
-		}
+		// Must not define WOOCOMMERCE_CART here: this also runs during full page
+		// renders (get_cart_render_data()), where the constant would make core's
+		// is_cart() return true on the checkout page for the rest of the request.
+		// The ECE AJAX entry points define it themselves.
 
 		/**
 		 * Filters whether Express Checkout itemization should be hidden.
