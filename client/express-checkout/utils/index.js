@@ -14,6 +14,7 @@ import {
 
 export * from './normalize';
 export * from './bookings';
+export * from './product-page';
 
 /**
  * Get error messages from WooCommerce notice.

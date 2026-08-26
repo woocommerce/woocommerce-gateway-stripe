@@ -12,7 +12,14 @@ import {
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
 	getPaymentMethodTypesForExpressMethod,
+	getSelectedVariationAttributes,
+	getSelectedVariationId,
+	hasVariationSelectionUi,
+	isAddToCartUnavailable,
 	isManualPaymentMethodCreation,
+	isSelectedVariationUnavailable,
+	observeQuantitySteppers,
+	observeVariationSelection,
 	normalizeLineItems,
 	transformVariationAttributesForStoreApi,
 	buildBookingConfiguration,
@@ -84,13 +91,17 @@ jQuery( function ( $ ) {
 	// Snapshot is first-paint only; re-inits reconcile via AJAX (see init() below).
 	let cartBootstrapConsumed = false;
 
-	const hasVariationForm = $( '.variations_form' ).length > 0;
+	// Classic template only — its `wc-add-to-cart-variation.js` script is what
+	// fires the jQuery variation events.
+	const hasClassicVariationForm = $( '.variations_form' ).length > 0;
+	// Template-agnostic: true for a variable product on either template.
+	const hasVariationUi = hasVariationSelectionUi();
 	const hasBookingForm = $( '.wc-bookings-booking-form' ).length > 0;
 
 	// Variable and booking products keep the legacy display-item format: their
 	// product-page preview comes from `get_selected_product_data`, which has no
 	// Store API equivalent. Add-to-cart routing is handled separately in `addToCart()`.
-	const useLegacyDisplayItems = hasVariationForm || hasBookingForm;
+	const useLegacyDisplayItems = hasVariationUi || hasBookingForm;
 
 	const resolveClickEvent = ( event, options ) => {
 		const getDefaultShippingRates = () => {
@@ -142,14 +153,7 @@ jQuery( function ( $ ) {
 			return false;
 		}
 
-		const isVariationProduct = document.querySelector(
-			'.single_variation_wrap'
-		);
-		const variationId = document.querySelector(
-			'input[name="variation_id"]'
-		)?.value;
-		const variationSelected = variationId && variationId !== '0';
-		return isVariationProduct && ! variationSelected;
+		return hasVariationUi && ! getSelectedVariationId();
 	};
 
 	const wcStripeECE = {
@@ -278,22 +282,16 @@ jQuery( function ( $ ) {
 				event,
 				clickOptions
 			) => {
-				const addToCartButton = document.querySelector(
-					'.single_add_to_cart_button'
-				);
-
-				// First check if product can be added to cart.
-				if ( addToCartButton.classList.contains( 'disabled' ) ) {
+				// The buttons render before a variation is selected, so this
+				// guard is what prompts the shopper for their options instead
+				// of opening the wallet sheet.
+				if ( isAddToCartUnavailable() ) {
 					const defaultMessage = __(
 						'Please select your product options before proceeding.',
 						'woocommerce-gateway-stripe'
 					);
 					let message;
-					if (
-						addToCartButton.classList.contains(
-							'wc-variation-is-unavailable'
-						)
-					) {
+					if ( isSelectedVariationUnavailable() ) {
 						message =
 							getAddToCartVariationParams(
 								'i18n_unavailable_text'
@@ -533,7 +531,6 @@ jQuery( function ( $ ) {
 
 			eceButton.on( 'ready', ( onReadyParams ) => {
 				if (
-					! isVariationSelectionNeeded() &&
 					onReadyParams.availablePaymentMethods &&
 					Object.values(
 						onReadyParams.availablePaymentMethods
@@ -683,32 +680,7 @@ jQuery( function ( $ ) {
 			wcStripeECE.paymentAborted = false;
 		},
 
-		getAttributes: () => {
-			const select = $( '.variations_form' ).find( '.variations select' );
-			const data = {};
-			let count = 0;
-			let chosen = 0;
-
-			select.each( function () {
-				const attributeName =
-					$( this ).data( 'attribute_name' ) ||
-					$( this ).attr( 'name' );
-				const value = $( this ).val() || '';
-
-				if ( value.length > 0 ) {
-					chosen++;
-				}
-
-				count++;
-				data[ attributeName ] = value;
-			} );
-
-			return {
-				count,
-				chosenCount: chosen,
-				data,
-			};
-		},
+		getAttributes: () => getSelectedVariationAttributes(),
 
 		getSelectedProductData: () => {
 			let productId = $( '.single_add_to_cart_button' ).val();
@@ -748,7 +720,7 @@ jQuery( function ( $ ) {
 			const data = {
 				product_id: productId,
 				qty: $( quantityInputSelector ).val(),
-				attributes: $( '.variations_form' ).length
+				attributes: hasVariationUi
 					? wcStripeECE.getAttributes().data
 					: [],
 				addon_value: addonValue,
@@ -839,7 +811,7 @@ jQuery( function ( $ ) {
 
 			// Variable products: `productId` is the parent id, so pass the chosen
 			// attributes for the Store API to resolve the variation (incl. "any" attributes).
-			data.variation = hasVariationForm
+			data.variation = hasVariationUi
 				? transformVariationAttributesForStoreApi(
 						wcStripeECE.getAttributes().data
 				  )
@@ -880,6 +852,62 @@ jQuery( function ( $ ) {
 			displayExpressCheckoutNotice( message, 'error' );
 		},
 
+		// Refresh the express checkout amount/items for the selected variation.
+		// Wired to both templates' change signals: the classic
+		// `woocommerce_variation_has_changed` jQuery event and the blockified
+		// template's `variation_id` input observer.
+		onVariationChanged: () => {
+			if ( isVariationSelectionNeeded() ) {
+				// Keep the buttons visible: an incomplete selection is
+				// handled at click time, where the shopper is prompted to
+				// choose their options.
+				return;
+			}
+
+			wcStripeECE.blockExpressCheckoutButton();
+
+			$.when( wcStripeECE.getSelectedProductData() )
+				.then( ( response ) => {
+					if ( response.error ) {
+						wcStripeECE.hide();
+					} else {
+						const isDeposits =
+							wcStripeECE.productHasDepositOption();
+						/**
+						 * If the customer aborted the express checkout,
+						 * we need to re init the express checkout button to ensure the shipping
+						 * options are refetched. If the customer didn't abort the express checkout,
+						 * and the product's shipping status is consistent,
+						 * we can simply update the express checkout button with the new total and display items.
+						 */
+						const needsShipping =
+							! wcStripeECE.paymentAborted &&
+							getExpressCheckoutData( 'product' )
+								.requestShipping === response.requestShipping;
+
+						if ( ! isDeposits && needsShipping ) {
+							// Refresh stored items so the click breakdown matches this variation.
+							wcStripeECE.refreshTotals( response );
+							wcStripeECE.updateExpressCheckoutAmount(
+								response.total.amount
+							);
+						} else {
+							wcStripeECE.reInitExpressCheckoutElement(
+								response
+							);
+						}
+
+						wcStripeECE.show();
+					}
+				} )
+				.catch( () => {
+					wcStripeECE.hide();
+				} )
+				.always( () => {
+					wcStripeECE.unblockExpressCheckoutButton();
+				} );
+		},
+
 		attachProductPageEventListeners: () => {
 			// WooCommerce Deposits support.
 			// Trigger the "woocommerce_variation_has_changed" event when the deposit option is changed.
@@ -898,113 +926,84 @@ jQuery( function ( $ ) {
 
 			$( document.body )
 				.off( 'woocommerce_variation_has_changed' )
-				.on( 'woocommerce_variation_has_changed', () => {
-					if ( isVariationSelectionNeeded() ) {
-						wcStripeECE.hide();
-						return;
-					}
+				.on(
+					'woocommerce_variation_has_changed',
+					wcStripeECE.onVariationChanged
+				);
 
-					wcStripeECE.blockExpressCheckoutButton();
-
-					$.when( wcStripeECE.getSelectedProductData() )
-						.then( ( response ) => {
-							if ( response.error ) {
-								wcStripeECE.hide();
-							} else {
-								const isDeposits =
-									wcStripeECE.productHasDepositOption();
-								/**
-								 * If the customer aborted the express checkout,
-								 * we need to re init the express checkout button to ensure the shipping
-								 * options are refetched. If the customer didn't abort the express checkout,
-								 * and the product's shipping status is consistent,
-								 * we can simply update the express checkout button with the new total and display items.
-								 */
-								const needsShipping =
-									! wcStripeECE.paymentAborted &&
-									getExpressCheckoutData( 'product' )
-										.requestShipping ===
-										response.requestShipping;
-
-								if ( ! isDeposits && needsShipping ) {
-									// Refresh stored items so the click breakdown matches this variation.
-									wcStripeECE.refreshTotals( response );
-									wcStripeECE.updateExpressCheckoutAmount(
-										response.total.amount
-									);
-								} else {
-									wcStripeECE.reInitExpressCheckoutElement(
-										response
-									);
-								}
-
-								wcStripeECE.show();
-							}
-						} )
-						.catch( () => {
-							wcStripeECE.hide();
-						} )
-						.always( () => {
-							wcStripeECE.unblockExpressCheckoutButton();
-						} );
-				} );
-
-			$( document.body )
-				.off( 'woocommerce_update_variation_values' )
-				.on( 'woocommerce_update_variation_values', () => {
-					if ( isVariationSelectionNeeded() ) {
-						wcStripeECE.hide();
-					}
-				} );
+			// The jQuery event handled above only exists on the classic
+			// template (its script fires it). On the blockified template,
+			// observe the variation input directly instead.
+			if ( ! hasClassicVariationForm ) {
+				// `attachProductPageEventListeners` runs again on re-init;
+				// drop the previous observer so changes aren't handled twice.
+				wcStripeECE.variationIdObserver?.disconnect();
+				// Debounced because one selection change can mutate the
+				// observed attribute several times in quick succession.
+				wcStripeECE.variationIdObserver = observeVariationSelection(
+					debounce( wcStripeECE.onVariationChanged, 250 )
+				);
+			}
 
 			$( '.quantity' )
 				.off( 'input', '.qty' )
 				.on(
 					'input',
 					'.qty',
-					debounce( () => {
-						wcStripeECE.blockExpressCheckoutButton();
-						wcStripeECEError = '';
-
-						$.when( wcStripeECE.getSelectedProductData() )
-							.then(
-								( response ) => {
-									// In case the server returns an unexpected response
-									if ( typeof response !== 'object' ) {
-										wcStripeECEError = defaultErrorMessage;
-									}
-
-									if (
-										! wcStripeECE.paymentAborted &&
-										getExpressCheckoutData( 'product' )
-											.requestShipping ===
-											response.requestShipping
-									) {
-										// Refresh stored items so the click breakdown matches the new qty.
-										wcStripeECE.refreshTotals( response );
-										wcStripeECE.updateExpressCheckoutAmount(
-											response.total.amount
-										);
-									} else {
-										wcStripeECE.reInitExpressCheckoutElement(
-											response
-										);
-									}
-								},
-								( response ) => {
-									if ( response.responseJSON ) {
-										wcStripeECEError =
-											response.responseJSON.error;
-									} else {
-										wcStripeECEError = defaultErrorMessage;
-									}
-								}
-							)
-							.always( function () {
-								wcStripeECE.unblockExpressCheckoutButton();
-							} );
-					}, 250 )
+					debounce( wcStripeECE.onQuantityChanged, 250 )
 				);
+
+			// The blockified template's stepper buttons update the quantity
+			// without firing input events, so listen for the presses
+			// themselves. (No-op on the classic template.)
+			wcStripeECE.quantityStepperListener?.disconnect();
+			wcStripeECE.quantityStepperListener = observeQuantitySteppers(
+				debounce( wcStripeECE.onQuantityChanged, 250 )
+			);
+		},
+
+		// Refresh the express checkout amount/items for the current quantity.
+		// Wired to both the qty input event and, on the blockified template,
+		// the quantity value observer.
+		onQuantityChanged: () => {
+			wcStripeECE.blockExpressCheckoutButton();
+			wcStripeECEError = '';
+
+			$.when( wcStripeECE.getSelectedProductData() )
+				.then(
+					( response ) => {
+						// In case the server returns an unexpected response
+						if ( typeof response !== 'object' ) {
+							wcStripeECEError = defaultErrorMessage;
+						}
+
+						if (
+							! wcStripeECE.paymentAborted &&
+							getExpressCheckoutData( 'product' )
+								.requestShipping === response.requestShipping
+						) {
+							// Refresh stored items so the click breakdown matches the new qty.
+							wcStripeECE.refreshTotals( response );
+							wcStripeECE.updateExpressCheckoutAmount(
+								response.total.amount
+							);
+						} else {
+							wcStripeECE.reInitExpressCheckoutElement(
+								response
+							);
+						}
+					},
+					( response ) => {
+						if ( response.responseJSON ) {
+							wcStripeECEError = response.responseJSON.error;
+						} else {
+							wcStripeECEError = defaultErrorMessage;
+						}
+					}
+				)
+				.always( function () {
+					wcStripeECE.unblockExpressCheckoutButton();
+				} );
 		},
 
 		reInitExpressCheckoutElement: ( response ) => {
