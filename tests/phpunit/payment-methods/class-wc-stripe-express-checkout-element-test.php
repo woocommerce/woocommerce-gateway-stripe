@@ -161,6 +161,105 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The localized params must carry the SDK deferral flag and inject URL.
+	 *
+	 * @return void
+	 */
+	public function test_javascript_params_exposes_sdk_deferral_data() {
+		$stripe_settings['testmode']             = 'yes';
+		$stripe_settings['test_publishable_key'] = 'pk_test_123';
+
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->setMethods( [ 'should_defer_stripe_js' ] )
+			->getMock();
+		$helper->method( 'should_defer_stripe_js' )->willReturn( true );
+
+		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+
+		$actual = $element->javascript_params();
+
+		$this->assertTrue( $actual['stripe']['defer_sdk'] );
+		$this->assertSame( 'https://js.stripe.com/dahlia/stripe.js', $actual['stripe']['sdk_url'] );
+	}
+
+	/**
+	 * The bundle must drop the 'stripe' dependency when deferral is active
+	 * and keep it otherwise.
+	 *
+	 * @dataProvider provide_test_express_checkout_script_sdk_dependency
+	 *
+	 * @return void
+	 */
+	public function test_express_checkout_script_sdk_dependency( $defer, $expect_stripe_dep ) {
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		$stripe_settings['testmode']             = 'yes';
+		$stripe_settings['test_publishable_key'] = 'pk_test_123';
+
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->setMethods( [ 'is_page_supported', 'should_show_express_checkout_button', 'should_defer_stripe_js' ] )
+			->getMock();
+		$helper->method( 'is_page_supported' )->willReturn( true );
+		$helper->method( 'should_show_express_checkout_button' )->willReturn( true );
+		$helper->method( 'should_defer_stripe_js' )->willReturn( $defer );
+
+		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+
+		try {
+			$element->scripts();
+
+			$deps = wp_scripts()->registered['wc_stripe_express_checkout']->deps;
+			$this->assertSame( $expect_stripe_dep, in_array( 'stripe', $deps, true ) );
+		} finally {
+			// Enqueue state persists across tests in this process; leaking it
+			// breaks test_scripts' not-enqueued expectations.
+			wp_dequeue_script( 'wc_stripe_express_checkout' );
+			wp_deregister_script( 'wc_stripe_express_checkout' );
+			wp_dequeue_style( 'wc_stripe_express_checkout_style' );
+		}
+	}
+
+	/**
+	 * Data provider for test_express_checkout_script_sdk_dependency.
+	 *
+	 * @return array
+	 */
+	public function provide_test_express_checkout_script_sdk_dependency() {
+		return [
+			'deferred: no stripe dependency' => [
+				'defer'             => true,
+				'expect_stripe_dep' => false,
+			],
+			'eager: stripe dependency kept'  => [
+				'defer'             => false,
+				'expect_stripe_dep' => true,
+			],
+		];
+	}
+
+	/**
 	 * Test for `scripts`.
 	 *
 	 * @return void

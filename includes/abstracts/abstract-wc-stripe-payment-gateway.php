@@ -36,6 +36,32 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	protected $retry_interval = 1;
 
 	/**
+	 * Request-scoped Express Checkout helper.
+	 *
+	 * @var WC_Stripe_Express_Checkout_Helper|null
+	 */
+	private $express_checkout_helper;
+
+	/**
+	 * The Express Checkout helper for this request.
+	 *
+	 * Constructing the helper resolves the main gateway and fires
+	 * `wc_stripe_payment_request_total_label_suffix`, and its
+	 * `should_show_express_checkout_button()` cache is per-instance, so callers
+	 * on the script-enqueuing path share one instance rather than building
+	 * their own.
+	 *
+	 * @return WC_Stripe_Express_Checkout_Helper
+	 */
+	protected function get_express_checkout_helper() {
+		if ( ! $this->express_checkout_helper instanceof WC_Stripe_Express_Checkout_Helper ) {
+			$this->express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
+		}
+
+		return $this->express_checkout_helper;
+	}
+
+	/**
 	 * Fallback method to be inherited by all payment methods. Stripe UPE will override it.
 	 *
 	 * @return string[]
@@ -2440,7 +2466,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		WC_Stripe_Helper::register_stripe_js();
-		wp_enqueue_script( 'stripe' );
+
+		// On product/cart pages the express checkout bundle injects the SDK
+		// lazily; keep the handle registered but skip the eager tag.
+		if ( ! $this->get_express_checkout_helper()->should_defer_stripe_js() ) {
+			wp_enqueue_script( 'stripe' );
+		}
 
 		if ( $this->should_skip_full_payment_scripts() ) {
 			return;
@@ -2477,7 +2508,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool True if the caller should return after enqueuing Stripe JS only.
 	 */
 	protected function should_skip_full_payment_scripts() {
-		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
+		$express_checkout_helper = $this->get_express_checkout_helper();
 
 		if ( ! $express_checkout_helper->is_product() && ! $express_checkout_helper->is_cart() ) {
 			return false;

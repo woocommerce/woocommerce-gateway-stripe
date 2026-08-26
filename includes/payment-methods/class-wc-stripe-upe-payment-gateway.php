@@ -471,7 +471,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		WC_Stripe_Helper::register_stripe_js();
-		wp_enqueue_script( 'stripe' );
+
+		// On product/cart pages the express checkout bundle injects the SDK
+		// lazily; keep the handle registered but skip the eager tag.
+		if ( ! $this->get_express_checkout_helper()->should_defer_stripe_js() ) {
+			wp_enqueue_script( 'stripe' );
+		}
 
 		if ( $this->should_skip_full_payment_scripts() ) {
 			return;
@@ -490,10 +495,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				: $dependencies;
 		}
 
+		// A hard `stripe` dep would re-print the eager tag we just skipped. Safe to drop:
+		// this bundle only reaches Stripe.js via WCStripeAPI::getStripe(), on confirmation.
+		$stripe_dependency = $this->get_express_checkout_helper()->should_defer_stripe_js() ? [] : [ 'stripe' ];
+
 		wp_register_script(
 			'wc-stripe-upe-classic',
 			WC_STRIPE_PLUGIN_URL . '/build/upe-classic.js',
-			array_merge( [ 'stripe', 'wc-checkout' ], $dependencies ),
+			array_merge( $stripe_dependency, [ 'wc-checkout' ], $dependencies ),
 			$version,
 			true
 		);

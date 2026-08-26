@@ -226,6 +226,8 @@ class WC_Stripe_Express_Checkout_Element {
 				// own flags; per-wallet keys keep the contract stable if the shared setting ever splits.
 				'is_apple_pay_enabled'        => $this->express_checkout_helper->is_apple_google_pay_enabled(),
 				'is_google_pay_enabled'       => $this->express_checkout_helper->is_apple_google_pay_enabled(),
+				'defer_sdk'                   => $this->express_checkout_helper->should_defer_stripe_js(),
+				'sdk_url'                     => $this->get_stripe_sdk_url(),
 			],
 			// The wc-ajax nonces are fetched on demand (see
 			// ajax_get_express_checkout_nonces) so page caches can't serve expired copies.
@@ -395,6 +397,21 @@ class WC_Stripe_Express_Checkout_Element {
 	}
 
 	/**
+	 * The Stripe.js URL the client injects when the SDK load is deferred.
+	 * Read from the registered 'stripe' handle so the lazy path can't diverge
+	 * from the eager one.
+	 *
+	 * @return string
+	 */
+	private function get_stripe_sdk_url() {
+		$stripe_script = wp_scripts()->query( 'stripe' );
+
+		return $stripe_script && ! empty( $stripe_script->src )
+			? $stripe_script->src
+			: 'https://js.stripe.com/dahlia/stripe.js';
+	}
+
+	/**
 	 * Get asset file data (version and dependencies).
 	 *
 	 * @return array Array containing 'version' and 'dependencies' keys.
@@ -429,10 +446,17 @@ class WC_Stripe_Express_Checkout_Element {
 		$asset_data = $this->get_asset_data();
 
 		WC_Stripe_Helper::register_stripe_js();
+
+		// When deferred, the bundle injects Stripe.js itself (ensureStripeSdk),
+		// so it must not pull the eager tag in as a dependency.
+		$dependencies = $this->express_checkout_helper->should_defer_stripe_js()
+			? [ 'jquery' ]
+			: [ 'jquery', 'stripe' ];
+
 		wp_register_script(
 			'wc_stripe_express_checkout',
 			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',
-			array_merge( [ 'jquery', 'stripe' ], $asset_data['dependencies'] ),
+			array_merge( $dependencies, $asset_data['dependencies'] ),
 			$asset_data['version'],
 			true
 		);
