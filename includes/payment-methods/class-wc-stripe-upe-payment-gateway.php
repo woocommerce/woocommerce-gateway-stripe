@@ -612,6 +612,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isExpressCheckoutEnabled']          = $express_checkout_helper->is_express_checkout_enabled();
 		$stripe_params['isAmazonPayEnabled']                = $express_checkout_helper->is_amazon_pay_enabled();
 		$stripe_params['isLinkEnabled']                     = $express_checkout_helper->is_link_enabled();
+		// `isExpressCheckoutEnabled` aggregates all methods, so Apple/Google Pay need their own
+		// flags; per-wallet keys keep the contract stable if the shared setting ever splits.
+		$stripe_params['isApplePayEnabled']  = $express_checkout_helper->is_apple_google_pay_enabled();
+		$stripe_params['isGooglePayEnabled'] = $express_checkout_helper->is_apple_google_pay_enabled();
 
 		if ( $this->testmode ) {
 			/**
@@ -765,6 +769,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
+	}
+
+	/**
+	 * Returns the express checkout helper used to compute the per-method flags.
+	 *
+	 * Protected seam so tests can substitute the helper.
+	 *
+	 * @return WC_Stripe_Express_Checkout_Helper
+	 */
+	protected function get_express_checkout_helper() {
+		return new WC_Stripe_Express_Checkout_Helper();
 	}
 
 	/**
