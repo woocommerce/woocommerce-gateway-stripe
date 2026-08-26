@@ -21,6 +21,11 @@ const INTERACTION_EVENTS = [
  *
  * @return {Promise<void>} Promise resolving when the SDK can be used.
  */
+// Cart/checkout AJAX updates re-enter ensureStripeSdk() while the first
+// injection may still be loading (window.Stripe not yet set); sharing one
+// promise across calls prevents a second script tag from being injected.
+let sdkPromise = null;
+
 export const ensureStripeSdk = () => {
 	if ( window.Stripe ) {
 		return Promise.resolve();
@@ -33,13 +38,24 @@ export const ensureStripeSdk = () => {
 		return Promise.resolve();
 	}
 
-	return new Promise( ( resolve ) => {
+	if ( sdkPromise ) {
+		return sdkPromise;
+	}
+
+	sdkPromise = new Promise( ( resolve ) => {
 		let injected = false;
 		const inject = () => {
 			if ( injected ) {
 				return;
 			}
 			injected = true;
+
+			// The SDK may have arrived through another path (e.g. an eager
+			// tag elsewhere on the page) between scheduling and firing.
+			if ( window.Stripe ) {
+				resolve();
+				return;
+			}
 
 			const script = document.createElement( 'script' );
 			script.src = stripeParams.sdk_url;
@@ -72,4 +88,6 @@ export const ensureStripeSdk = () => {
 			window.addEventListener( 'load', injectWhenIdle, { once: true } );
 		}
 	} );
+
+	return sdkPromise;
 };
