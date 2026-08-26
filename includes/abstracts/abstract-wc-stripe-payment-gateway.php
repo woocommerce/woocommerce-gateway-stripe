@@ -624,10 +624,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$order_id     = $order->get_id();
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$captured     = isset( $response->captured ) && $response->captured;
 
-		// Store charge data.
-		$order_helper->set_stripe_charge_captured( $order, $captured );
+		// Record the captured flag for refund/capture flows; a chargeless intent records
+		// nothing, and the refund path later resolves the real state from Stripe.
+		$captured = $order_helper->sync_stripe_charge_captured( $order, $response ) ?? false;
 
 		if ( isset( $response->balance_transaction ) ) {
 			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
@@ -1003,12 +1003,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$customer->set_id( $existing_customer_id );
 		}
 
-		/**
-		 * Filters whether a payment source should be saved.
-		 *
-		 * @param bool               $force_save_source Whether to force saving the source.
-		 * @param WC_Stripe_Customer $customer          Stripe customer object.
-		 */
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
 		$source_object     = '';
 		$source_id         = '';
@@ -1132,9 +1126,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$stripe_source = $source_id;
 				$source_object = WC_Stripe_API::get_payment_method( $source_id );
 			} elseif (
-				/**
-				 * This filter is documented in includes/compat/trait-wc-stripe-subscriptions.php.
-				 */
+				/** This filter is documented in includes/compat/trait-wc-stripe-subscriptions.php. */
 				apply_filters( 'wc_stripe_use_default_customer_source', true )
 			) {
 				/*
@@ -1254,7 +1246,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param  int $order_id
 	 * @param  float $amount
 	 *
-	 * @return bool True or false based on success.
+	 * @return bool|WP_Error True on success, false when there is nothing to refund, or a WP_Error describing the failure.
 	 * @throws Exception Throws exception when charge wasn't captured.
 	 */
 	public function process_refund( $order_id, $amount = null, $reason = '' ) {
@@ -1262,6 +1254,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( ! $order instanceof WC_Order ) {
 			return false;
+		}
+
+		// Stripe amounts are unsigned — WC_Stripe_Helper::get_stripe_amount() would silently
+		// flip the sign and refund the absolute value — so reject negative amounts outright.
+		if ( ! is_null( $amount ) && $amount < 0 ) {
+			return new WP_Error(
+				'stripe_error',
+				__( 'The refund amount must be greater than or equal to zero.', 'woocommerce-gateway-stripe' )
+			);
 		}
 
 		$request = [];
@@ -1279,8 +1280,30 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return false;
 		}
 
-		// Read after recovery, which reconciles the captured flag.
-		$captured = $order_helper->is_stripe_charge_captured( $order );
+		// Refund vs void depends on the captured state; if it cannot be determined the refund
+		// must fail with the real error. Defaulting to "not captured" would route a possibly
+		// captured charge to the void path and its "Refund manually" guidance.
+		try {
+			$captured = $this->resolve_charge_captured_state( $order, $charge_id );
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::warning(
+				'Unable to resolve the captured state of the Stripe charge before refunding.',
+				[
+					'order_id'      => $order->get_id(),
+					'charge_id'     => $charge_id,
+					'error_message' => $e->getMessage(),
+				]
+			);
+
+			return new WP_Error(
+				'stripe_error',
+				sprintf(
+					/* translators: %1$s is a stripe error message */
+					__( 'There was a problem initiating a refund: %1$s', 'woocommerce-gateway-stripe' ),
+					$e->getLocalizedMessage() ? $e->getLocalizedMessage() : $e->getMessage()
+				)
+			);
+		}
 
 		if ( ! is_null( $amount ) ) {
 			$request['amount'] = WC_Stripe_Helper::get_stripe_amount( $amount, $order_currency );
@@ -1475,9 +1498,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$order->set_transaction_id( $charge_id );
 
 		// Reconcile the captured flag, which may have been lost with the charge ID.
-		if ( isset( $charge->captured ) ) {
-			$order_helper->set_stripe_charge_captured( $order, (bool) $charge->captured );
-		}
+		$order_helper->sync_stripe_charge_captured( $order, $charge );
 
 		$order->save();
 
@@ -1487,6 +1508,42 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		WC_Stripe_Logger::info( "Recovered missing charge ID {$charge_id} for order {$order->get_id()} from the stored payment intent." );
 
 		return $charge_id;
+	}
+
+	/**
+	 * Resolves whether the order's charge is captured, asking Stripe when the stored flag is missing.
+	 *
+	 * A stored 'yes'/'no' is trusted; only a missing flag ('') triggers the lookup, because
+	 * async-confirmed orders (e.g. ACH) may have had no charge at checkout, and treating
+	 * "never recorded" as "not captured" would wrongly void a refundable charge. An
+	 * undeterminable state throws instead of defaulting: callers treat false as safe to void.
+	 *
+	 * @param WC_Order $order     The order being refunded.
+	 * @param string   $charge_id The order's charge ID.
+	 * @return bool Whether the charge is captured.
+	 * @throws WC_Stripe_Exception When the captured state cannot be determined from Stripe.
+	 */
+	private function resolve_charge_captured_state( WC_Order $order, string $charge_id ): bool {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$captured     = $order_helper->is_stripe_charge_captured( $order );
+
+		// A stored 'yes' or 'no' is authoritative; only a missing value ('') needs Stripe.
+		if ( $captured || '' !== (string) $order_helper->get_stripe_charge_captured( $order ) ) {
+			return $captured;
+		}
+
+		$synced = $order_helper->sync_stripe_charge_captured( $order, $this->get_charge_object( $charge_id ) );
+
+		if ( null === $synced ) {
+			throw new WC_Stripe_Exception(
+				"Charge {$charge_id} carries no captured state.",
+				__( 'The captured state of the charge could not be determined from Stripe.', 'woocommerce-gateway-stripe' )
+			);
+		}
+
+		$order->save();
+
+		return $synced;
 	}
 
 	/**
@@ -1630,9 +1687,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$request = WC_Stripe_Helper::add_payment_method_to_request_array( $prepared_source->source, $request );
 
-		/**
-		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-		 */
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
 
 		if ( $this->save_payment_method_requested() || $this->has_subscription( $order->get_id() ) || $force_save_source ) {
@@ -2385,7 +2439,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		wp_register_script( 'stripe', 'https://js.stripe.com/dahlia/stripe.js', [], null, true );
+		WC_Stripe_Helper::register_stripe_js();
 		wp_enqueue_script( 'stripe' );
 
 		if ( $this->should_skip_full_payment_scripts() ) {
@@ -2530,9 +2584,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 * @param string $notification_channel Mandate notification channel.
 		 */
 		$stripe_params['sepa_mandate_notification'] = apply_filters( 'wc_stripe_sepa_mandate_notification', 'email' );
-		/**
-		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-		 */
+		/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 		$stripe_params['allow_prepaid_card']   = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
 		$stripe_params['inline_cc_form']       = ( isset( $this->inline_cc_form ) && $this->inline_cc_form ) ? 'yes' : 'no';
 		$stripe_params['is_checkout']          = ( is_checkout() && empty( $_GET['pay_for_order'] ) ) ? 'yes' : 'no'; // wpcs: csrf ok.

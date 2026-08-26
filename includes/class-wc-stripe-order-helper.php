@@ -902,6 +902,23 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Checks whether the order's charge was explicitly recorded as authorize-only ('no').
+	 *
+	 * Deliberately false when the flag was never recorded (''): capture and void flows act on
+	 * this state by moving or releasing money, so an unknown state must not qualify — only a
+	 * charge Stripe was seen to leave uncaptured. Contrast is_stripe_charge_captured(), which
+	 * folds missing into false.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order|null $order The order to check.
+	 * @return bool
+	 */
+	public function is_stripe_charge_authorized_only( ?WC_Order $order = null ): bool {
+		return 'no' === $this->get_stripe_charge_captured( $order );
+	}
+
+	/**
 	 * Sets whether charge was captured for order.
 	 *
 	 * @since 10.1.0
@@ -913,6 +930,38 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function set_stripe_charge_captured( WC_Order $order, bool $captured = true ): void {
 		$this->update_order_meta( $order, self::META_STRIPE_CHARGE_CAPTURED, wc_bool_to_string( $captured ) );
+	}
+
+	/**
+	 * Records the captured state carried by a Stripe charge on the order.
+	 *
+	 * This is the single writer of the captured flag for every code path that receives a
+	 * charge object — a checkout response (process_response()), a webhook payload
+	 * (payment_intent.processing, charge.succeeded, charge.captured, charge.refunded), or
+	 * an on-demand API fetch (refund-time resolution, charge ID recovery). Refund and
+	 * capture flows read the flag to tell a refundable charge from a voidable
+	 * pre-authorization.
+	 *
+	 * Some payment methods create their charge only after checkout, so a webhook payload or
+	 * an API fetch may be the first — and only — chance to record the flag.
+	 *
+	 * Does not persist the order; callers decide when to save.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order $order The order to record the captured state on.
+	 * @param object|string|null $charge The received Stripe charge (or charge-shaped webhook payload).
+	 * @return bool|null The recorded captured state, or null when the charge carries none.
+	 */
+	public function sync_stripe_charge_captured( WC_Order $order, $charge ): ?bool {
+		if ( ! is_object( $charge ) || ! isset( $charge->captured ) ) {
+			return null;
+		}
+
+		$captured = (bool) $charge->captured;
+		$this->set_stripe_charge_captured( $order, $captured );
+
+		return $captured;
 	}
 
 	/**
@@ -1186,9 +1235,7 @@ class WC_Stripe_Order_Helper {
 		$details['address']['postal_code'] = $order->get_billing_postcode();
 		$details['address']['country']     = $order->get_billing_country();
 
-		/**
-		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-		 */
+		/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 		return (object) apply_filters( 'wc_stripe_owner_details', $details, $order );
 	}
 

@@ -22,7 +22,17 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function __construct() {
 		self::$_this = $this;
+	}
 
+	/**
+	 * Registers the handler's hooks. Kept out of the constructor so
+	 * instantiating the class never stacks duplicate callbacks; the bootstrap
+	 * calls this exactly once.
+	 *
+	 * @since 11.0.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		add_action( 'wp', [ $this, 'maybe_process_redirect_order' ] );
 		add_action( 'woocommerce_order_status_processing', [ $this, 'capture_payment' ] );
 		add_action( 'woocommerce_order_status_completed', [ $this, 'capture_payment' ] );
@@ -216,6 +226,14 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
+			/**
+			 * Fires after a redirect payment is processed.
+			 * Deprecated in favor of wc_gateway_stripe_process_payment_charge.
+			 *
+			 * @deprecated 9.7.0
+			 * @param object   $response The response object.
+			 * @param WC_Order $order    The order object.
+			*/
 			do_action_deprecated(
 				'wc_gateway_stripe_process_redirect_payment',
 				[ $response, $order ],
@@ -308,7 +326,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$charge             = $order->get_transaction_id();
 			$is_stripe_captured = false;
 
-			if ( $charge && 'no' === $order_helper->get_stripe_charge_captured( $order ) ) { // Strictly checking for 'no' value.
+			if ( $charge && $order_helper->is_stripe_charge_authorized_only( $order ) ) {
 				$order_total = $order->get_total();
 
 				if ( 0 < $order->get_total_refunded() ) {
@@ -420,9 +438,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
-			$captured = WC_Stripe_Order_Helper::get_instance()->is_stripe_charge_captured( $order );
-
-			if ( ! $captured ) {
+			// Only a known authorize-only charge is voided: this hook also fires on transitions
+			// made without wanting a gateway refund (e.g. "Refund manually"). With the flag merely
+			// missing, process_refund() would resolve it from Stripe and, if the charge turns out
+			// to be captured, issue a full refund nobody asked for.
+			if ( WC_Stripe_Order_Helper::get_instance()->is_stripe_charge_authorized_only( $order ) ) {
 				// To cancel a pre-auth, we need to refund the charge.
 				$this->process_refund( $order_id );
 			}
@@ -510,8 +530,17 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Bail if the order doesn't have an intent yet.
-		if ( ! $this->get_intent_from_order( $order ) ) {
+		$intent = $this->get_intent_from_order( $order );
+		if ( ! $intent ) {
 			return $cancel_order;
+		}
+
+		// A SetupIntent still awaiting verification outlives the one-day window below: bank
+		// microdeposits take days to confirm. Cancelling here would strand the shopper with a
+		// verified payment method at Stripe and a cancelled order, because the later
+		// setup_intent.succeeded webhook skips orders that are no longer payable.
+		if ( self::is_setup_intent_awaiting_verification( $intent ) ) {
+			return false;
 		}
 
 		// If the order is awaiting action and was modified within the last day, don't cancel it.
@@ -520,6 +549,30 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $cancel_order;
+	}
+
+	/**
+	 * Whether the intent is a SetupIntent that Stripe has not settled yet.
+	 *
+	 * Only intents that can still succeed count; a failed or cancelled one stays cancellable.
+	 *
+	 * @param stdClass|object $intent The intent retrieved for the order.
+	 * @return bool
+	 */
+	private static function is_setup_intent_awaiting_verification( $intent ): bool {
+		if ( 'setup_intent' !== ( $intent->object ?? '' ) ) {
+			return false;
+		}
+
+		return in_array(
+			$intent->status ?? '',
+			[
+				WC_Stripe_Intent_Status::REQUIRES_ACTION,
+				WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION,
+				WC_Stripe_Intent_Status::PROCESSING,
+			],
+			true
+		);
 	}
 
 	/**

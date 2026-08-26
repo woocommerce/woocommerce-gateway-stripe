@@ -39,4 +39,19 @@ fi
 TEST_ENV="$TEST_ENV DOCKER=true E2E_ROOT=${E2E_ROOT} BASE_URL='http://localhost:8088'"
 TEST_ENV="$TEST_ENV ADMIN_USER='admin' ADMIN_PASSWORD='admin'"
 
+# The docker site can't receive real webhooks (no tunnel), so seed what the
+# Adaptive Pricing availability checks read: webhook data, the cached status
+# transient is_webhook_enabled() trusts without calling Stripe, and PMC.
+if [[ "adaptive-pricing" == "$project" ]]; then
+	echo "Seeding Adaptive Pricing prerequisites"
+	cli wp option patch insert woocommerce_stripe_settings pmc_enabled 'yes'
+	cli wp option patch insert woocommerce_stripe_settings test_webhook_data --format=json '{"id":"we_e2e_placeholder","secret":"whsec_e2e_placeholder"}'
+	# Mark test webhooks as enabled to allow Adaptive Pricing to be enabled.
+	# Note that we use wp shell so we run after plugins are loaded.
+	cli wp shell <<< "WC_Stripe_Database_Cache::set_with_mode( 'webhook_status', 'enabled', 7200, 'test' ); exit";
+	# Cookie-gated mu-plugin that simulates the shopper's country for
+	# conversion tests (Stripe's "+location_XX" customer_email test hook).
+	cli sh -c "mkdir -p /var/www/html/wp-content/mu-plugins && cp /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/mu-plugins/wc-stripe-e2e-location-simulation.php /var/www/html/wp-content/mu-plugins/"
+fi
+
 cross-env $TEST_ENV playwright test --config=tests/e2e/config/playwright.config.js $TEST_ARGS ${project:+--project=$project}
