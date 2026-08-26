@@ -610,11 +610,18 @@ class WC_Stripe_API {
 	 *                  carries none (e.g. capture or confirm calls).
 	 */
 	private static function get_request_payment_method_types( $request ) {
-		if ( isset( $request['payment_method_types'] ) && is_array( $request['payment_method_types'] ) ) {
-			return $request['payment_method_types'];
+		if ( ! isset( $request['payment_method_types'] ) || ! is_array( $request['payment_method_types'] ) ) {
+			return [];
 		}
 
-		return [];
+		// The request passes through public filters before this point, so drop non-string
+		// entries: a fully malformed list then falls back to the order meta.
+		return array_filter(
+			$request['payment_method_types'],
+			static function ( $type ) {
+				return is_string( $type ) && '' !== $type;
+			}
+		);
 	}
 
 	/**

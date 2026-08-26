@@ -931,6 +931,10 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			'no request types falls back to card meta'   => [ null, WC_Stripe_Payment_Methods::CARD, true ],
 			'no request types respects non-card meta'    => [ null, WC_Stripe_Payment_Methods::AMAZON_PAY, false ],
 			'no request types, no meta defaults to card' => [ null, '', true ],
+			// Filters run on the request before the gate, so entries are untrusted: non-string
+			// garbage must not count as declared types and the meta decides instead.
+			'malformed types fall back to card meta'     => [ [ null, [ 'nested' ] ], WC_Stripe_Payment_Methods::CARD, true ],
+			'malformed types fall back to non-card meta' => [ [ null, [ 'nested' ] ], WC_Stripe_Payment_Methods::AMAZON_PAY, false ],
 		];
 	}
 
