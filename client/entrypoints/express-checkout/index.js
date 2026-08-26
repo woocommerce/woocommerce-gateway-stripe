@@ -226,9 +226,14 @@ jQuery( function ( $ ) {
 
 			const shippingRates = getShippingRates();
 
-			const isExpressCheckoutEnabled =
+			// Deliberately not `is_express_checkout_enabled`: that aggregate is true when
+			// any wallet's locations cover this page, which would render Apple/Google Pay
+			// on pages where only another wallet (e.g. Amazon Pay) is enabled.
+			const isApplePayEnabled =
+				wc_stripe_express_checkout_params?.stripe?.is_apple_pay_enabled; // eslint-disable-line camelcase
+			const isGooglePayEnabled =
 				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
-					?.is_express_checkout_enabled;
+					?.is_google_pay_enabled;
 			const isAmazonPayEnabled =
 				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
 					?.is_amazon_pay_enabled;
@@ -247,16 +252,17 @@ jQuery( function ( $ ) {
 			// Types with identical Elements configuration share one group (each
 			// group is its own Stripe iframe + session). Apple/Google Pay always
 			// share; Link keeps its own (height setting, 'link' PM type) and so
-			// does Amazon Pay (no paymentMethodCreation: 'manual').
+			// does Amazon Pay (no paymentMethodCreation: 'manual'). Each wallet
+			// still follows its own locations flag inside the shared group.
 			const expressPaymentGroups = [
-				isExpressCheckoutEnabled && {
+				( isApplePayEnabled || isGooglePayEnabled ) && {
 					key: 'wallets',
 					representativeType:
 						EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
 					paymentMethods: {
 						amazonPay: 'never',
-						applePay: 'always',
-						googlePay: 'always',
+						applePay: isApplePayEnabled ? 'always' : 'never',
+						googlePay: isGooglePayEnabled ? 'always' : 'never',
 						link: 'never',
 					},
 				},
@@ -1068,6 +1074,23 @@ jQuery( function ( $ ) {
 		getExpressCheckoutData( 'is_change_payment_method' )
 	) {
 		wcStripeECE.init();
+	}
+
+	// Warm the on-demand nonce bundle at the first sign of intent so wallet
+	// event handlers (tight resolve deadlines) don't pay the round trip.
+	const eceContainer = document.getElementById(
+		'wc-stripe-express-checkout-element'
+	);
+	if ( eceContainer ) {
+		[ 'pointerenter', 'touchstart', 'focusin' ].forEach( ( eventName ) =>
+			eceContainer.addEventListener(
+				eventName,
+				// Warm-up is best-effort: a failed prefetch rejects (and clears
+				// the memo so the real interaction retries), so swallow it here.
+				() => api.expressCheckoutFetchNonces().catch( () => {} ),
+				{ once: true, passive: true }
+			)
+		);
 	}
 
 	// We need to refresh ECE data when total is updated.

@@ -26,6 +26,7 @@ jobs:
   setup-matrix:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
@@ -82,8 +83,9 @@ jobs:
     if: ${{ failure() }}
     needs: [build-project, activation-tests]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: slackapi/slack-github-action@0d95c9a7becc1e6e297d76df9bc735c44f4cbcbc # v3.0.5
+      - uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
         with:
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
           webhook-type: webhook-trigger
@@ -97,8 +99,9 @@ jobs:
     if: ${{ cancelled() }}
     needs: [build-project, activation-tests]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: slackapi/slack-github-action@0d95c9a7becc1e6e297d76df9bc735c44f4cbcbc # v3.0.5
+      - uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
         with:
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
           webhook-type: webhook-trigger

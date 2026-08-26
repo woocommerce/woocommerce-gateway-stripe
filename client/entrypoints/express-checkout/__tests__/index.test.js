@@ -166,6 +166,8 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			publishable_key: 'pk_test_123',
 			locale: 'en',
 			is_express_checkout_enabled: true,
+			is_apple_pay_enabled: true,
+			is_google_pay_enabled: true,
 		},
 		product: {
 			total: { amount: 1000 },
@@ -378,5 +380,120 @@ describe( 'Express Checkout product page variation breakdown', () => {
 				'#wc-stripe-express-checkout-element-wallets'
 			)
 		).not.toBeNull();
+	} );
+} );
+
+describe( 'Express Checkout per-method location gating', () => {
+	// Each created express button mounts into its own
+	// `#wc-stripe-express-checkout-element-<type>` container, so the container ids
+	// are the observable record of which wallets were actually created.
+	const mountedTypes = () =>
+		Array.from(
+			document.querySelectorAll(
+				'#wc-stripe-express-checkout-element > div'
+			)
+		).map( ( el ) =>
+			el.id.replace( 'wc-stripe-express-checkout-element-', '' )
+		);
+
+	// Apple/Google Pay share one Elements group, so their gating is only
+	// observable through the paymentMethods config passed to create().
+	let createOptions;
+	const stubStripe = () => {
+		createOptions = [];
+		const button = {
+			on: () => button,
+			mount: jest.fn(),
+		};
+		mockGetStripe.mockReturnValue( {
+			elements: jest.fn( () => ( {
+				create: jest.fn( ( type, options ) => {
+					createOptions.push( options );
+					return button;
+				} ),
+				update: jest.fn(),
+			} ) ),
+		} );
+	};
+
+	const cartParamsWithFlags = ( stripeFlags ) => ( {
+		...baseParams(),
+		stripe: {
+			publishable_key: 'pk_test_123',
+			locale: 'en',
+			...stripeFlags,
+		},
+		cart: {
+			total: 1500,
+			currency: 'usd',
+			requestShipping: false,
+			requestPhone: false,
+			displayItems: [],
+		},
+	} );
+
+	beforeEach( () => {
+		jest.resetModules();
+		mockGetStripe.mockReset();
+		stubStripe();
+		document.body.innerHTML =
+			'<div id="wc-stripe-express-checkout-element"></div>';
+	} );
+
+	afterEach( () => {
+		delete global.wc_stripe_express_checkout_params;
+	} );
+
+	it( 'does not create Apple/Google Pay buttons when only another wallet covers this page', () => {
+		global.wc_stripe_express_checkout_params = cartParamsWithFlags( {
+			// The aggregate is true because Amazon Pay covers this location —
+			// that alone must not surface Apple/Google Pay (STRIPE-1363).
+			is_express_checkout_enabled: true,
+			is_apple_pay_enabled: false,
+			is_google_pay_enabled: false,
+			is_amazon_pay_enabled: true,
+		} );
+
+		loadEntrypoint();
+
+		expect( mountedTypes() ).toEqual( [ 'amazonPay' ] );
+	} );
+
+	it( 'creates Apple/Google Pay buttons when their own locations cover this page', () => {
+		global.wc_stripe_express_checkout_params = cartParamsWithFlags( {
+			is_express_checkout_enabled: true,
+			is_apple_pay_enabled: true,
+			is_google_pay_enabled: true,
+			is_amazon_pay_enabled: false,
+		} );
+
+		loadEntrypoint();
+
+		expect( mountedTypes() ).toEqual( [ 'wallets' ] );
+		expect( createOptions[ 0 ].paymentMethods ).toEqual( {
+			amazonPay: 'never',
+			applePay: 'always',
+			googlePay: 'always',
+			link: 'never',
+		} );
+	} );
+
+	it( 'gates each wallet on its own flag, ready for a future settings split', () => {
+		global.wc_stripe_express_checkout_params = cartParamsWithFlags( {
+			is_express_checkout_enabled: true,
+			is_apple_pay_enabled: false,
+			is_google_pay_enabled: true,
+			is_amazon_pay_enabled: false,
+		} );
+
+		loadEntrypoint();
+
+		expect( mountedTypes() ).toEqual( [ 'wallets' ] );
+		expect( createOptions[ 0 ].paymentMethods ).toEqual( {
+			amazonPay: 'never',
+			applePay: 'never',
+			googlePay: 'always',
+			link: 'never',
+		} );
 	} );
 } );
