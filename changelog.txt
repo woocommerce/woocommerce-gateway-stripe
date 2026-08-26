@@ -127,6 +127,7 @@ xxxx-xx-xx - version 11.0.0
 * Update - Multiple security hardening improvements
 * Fix - Ensure that manual Adaptive Pricing changes after upgrades get precedence
 * Fix - Treat an expired Stripe Checkout Session as an abandoned order and cancel it, instead of marking it failed
+* Fix - Hide the save payment method checkbox for Bancontact, iDEAL and Sofort in the Adaptive Pricing checkout on non-EUR stores whose currency excludes them
 
 2026-08-05 - version 10.8.5
 * Update - Improve webhook handling
