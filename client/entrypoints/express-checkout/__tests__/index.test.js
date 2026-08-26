@@ -452,8 +452,7 @@ describe( 'Express Checkout per-method location gating', () => {
 } );
 
 describe( 'Express Checkout group reuse on cart/checkout updates', () => {
-	// One stub per Elements group so tests can tell "reused in place" (no new
-	// elements() call, update() received the new amount) from "rebuilt".
+	// One stub per Elements group so tests can tell reuse from rebuild.
 	let elementsGroups;
 	let buttons;
 
@@ -500,8 +499,7 @@ describe( 'Express Checkout group reuse on cart/checkout updates', () => {
 		},
 	} );
 
-	// The debounced refresh handler fires its leading call synchronously, but a
-	// second trigger within the wait window is swallowed; step past it.
+	// Step past the debounce window so a follow-up trigger isn't swallowed.
 	const waitOutDebounce = () =>
 		new Promise( ( resolve ) => setTimeout( resolve, 350 ) );
 
@@ -514,8 +512,7 @@ describe( 'Express Checkout group reuse on cart/checkout updates', () => {
 			needs_shipping: false,
 		} );
 		stubStripe();
-		// blockUI is a jQuery plugin the click handler calls via the global;
-		// absent in jsdom.
+		// The click handler calls the global jQuery.blockUI, absent in jsdom.
 		global.jQuery = require( 'jquery' );
 		global.jQuery.blockUI = jest.fn();
 		global.jQuery.unblockUI = jest.fn();
@@ -535,8 +532,8 @@ describe( 'Express Checkout group reuse on cart/checkout updates', () => {
 		require( 'jquery' )( document.body ).trigger( 'updated_cart_totals' );
 		await flushPromises();
 
-		// Same structure: no second Elements group (and no second
-		// /v1/elements/sessions), no teardown; the amount was pushed in place.
+		// Same structure: no new group/session, no teardown, amount pushed
+		// in place.
 		expect( elementsGroups ).toHaveLength( 1 );
 		expect( buttons[ 0 ].destroy ).not.toHaveBeenCalled();
 		expect( elementsGroups[ 0 ].update ).toHaveBeenCalledWith( {
@@ -565,8 +562,7 @@ describe( 'Express Checkout group reuse on cart/checkout updates', () => {
 		global.wc_stripe_express_checkout_params = cartParams();
 		loadEntrypoint();
 
-		// updated_cart_totals re-renders the cart totals wholesale, discarding
-		// the button containers WooCommerce knows nothing about.
+		// Simulate WC re-rendering the totals and discarding the markup.
 		document.getElementById(
 			'wc-stripe-express-checkout-element'
 		).innerHTML = '';
@@ -587,8 +583,7 @@ describe( 'Express Checkout group reuse on cart/checkout updates', () => {
 		global.wc_stripe_express_checkout_params = cartParams();
 		loadEntrypoint();
 
-		// Open the sheet: the click handler resolves the event, marking a
-		// payment in flight.
+		// Resolving the click marks a payment in flight (sheet open).
 		await buttons[ 0 ].handlers.click( { resolve: jest.fn() } );
 
 		require( 'jquery' )( document.body ).trigger( 'updated_cart_totals' );
