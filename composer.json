@@ -55,6 +55,7 @@
         "includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php",
         "includes/migrations/class-sepa-tokens-for-other-methods-settings-update.php",
         "includes/migrations/class-wc-stripe-express-checkout-add-change-payment-method-location-update.php",
+        "includes/migrations/class-wc-stripe-migrate-express-checkout-button-settings.php",
         "includes/migrations/class-wc-stripe-migrate-link-button-locations.php",
         "includes/migrations/class-wc-stripe-ocs-ap-default-on-update.php",
         "includes/migrations/class-wc-stripe-restore-adaptive-pricing-after-amount-mismatch-update.php",

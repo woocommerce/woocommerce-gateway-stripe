@@ -2809,4 +2809,46 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertSame( 'https://js.stripe.com/dahlia/stripe.js', $registered->src );
 		$this->assertSame( 1, wp_scripts()->get_data( 'stripe', 'group' ), 'Stripe.js must load in the footer.' );
 	}
+
+	/**
+	 * The script gate honors the stored locations in both the legacy flat list
+	 * and the unified location => methods map shapes.
+	 *
+	 * @param array|string|null $locations Stored locations value; null omits the key.
+	 * @param bool              $expected  Whether product-page scripts should load.
+	 * @return void
+	 * @dataProvider provide_should_load_scripts_location_shapes
+	 */
+	public function test_should_load_scripts_reads_both_location_shapes( $locations, bool $expected ) {
+		$settings = [ 'express_checkout' => 'yes' ];
+		if ( null !== $locations ) {
+			$settings['express_checkout_button_locations'] = $locations;
+		}
+		update_option( 'woocommerce_stripe_settings', $settings );
+
+		// The filter default would mask a gate miss; force it off.
+		add_filter( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', '__return_false' );
+
+		try {
+			$this->assertSame( $expected, WC_Stripe_Helper::should_load_scripts_on_product_page() );
+		} finally {
+			remove_filter( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', '__return_false' );
+		}
+	}
+
+	/**
+	 * Data provider for `test_should_load_scripts_reads_both_location_shapes`.
+	 *
+	 * @return array
+	 */
+	public function provide_should_load_scripts_location_shapes(): array {
+		return [
+			'legacy flat list with product'    => [ [ 'product', 'cart' ], true ],
+			'legacy flat list without product' => [ [ 'cart' ], false ],
+			'unified map with product'         => [ [ 'product' => [ 'payment_request' ] ], true ],
+			'unified map without the method'   => [ [ 'product' => [ 'link' ] ], false ],
+			'non-array stored value'           => [ 'invalid_value', false ],
+			'absent option uses the default'   => [ null, true ],
+		];
+	}
 }

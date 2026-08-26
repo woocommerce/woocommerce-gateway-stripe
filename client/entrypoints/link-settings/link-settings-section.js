@@ -9,7 +9,6 @@ import {
 } from 'wcstripe/settings/express-checkout-simulator/build-checks';
 import {
 	ExpressCheckoutAppearanceOverrideNotice,
-	ExpressCheckoutButtonSizeControl,
 	ExpressCheckoutLocationsControl,
 	getExpressCheckoutLocationKeys,
 } from 'wcstripe/settings/express-checkout-customize';
@@ -17,8 +16,8 @@ import { Card } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import {
 	useLinkLocations,
-	useLinkButtonSize,
 	useEnabledPaymentMethodIds,
+	useExpressCheckoutButtonSize,
 } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_LINK,
@@ -28,7 +27,8 @@ import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 
 const LinkSettingsSection = () => {
-	const [ size, setSize ] = useLinkButtonSize();
+	// Express checkout buttons share one size; the preview reflects the global value.
+	const [ size ] = useExpressCheckoutButtonSize();
 
 	const [ enabledMethodIds ] = useEnabledPaymentMethodIds();
 	const isLinkEnabled = enabledMethodIds.includes( PAYMENT_METHOD_LINK );
@@ -72,11 +72,6 @@ const LinkSettingsSection = () => {
 					locations={ linkLocations }
 					onChange={ updateLinkLocations }
 					showChangePaymentMethod={ isSubscriptionsActive }
-				/>
-				<h4>{ __( 'Appearance', 'woocommerce-gateway-stripe' ) }</h4>
-				<ExpressCheckoutButtonSizeControl
-					size={ size }
-					onChange={ setSize }
 				/>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>

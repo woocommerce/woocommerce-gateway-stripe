@@ -546,13 +546,22 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
-		$options   = WC_Stripe_Helper::get_stripe_settings();
-		$enabled   = isset( $options['express_checkout'] ) && 'yes' === $options['express_checkout'];
-		$locations = isset( $options['express_checkout_button_locations'] ) ? $options['express_checkout_button_locations'] : [];
+		$options = WC_Stripe_Helper::get_stripe_settings();
+		$enabled = isset( $options['express_checkout'] ) && 'yes' === $options['express_checkout'];
 
 		if ( ! $enabled ) {
 			return;
 		}
+
+		// Absent locations mean the default placement; the notice only targets
+		// stores that explicitly configured their locations.
+		if ( ! isset( $options['express_checkout_button_locations'] ) ) {
+			return;
+		}
+
+		// The stored value can be the legacy flat list or the unified
+		// location => methods map; the express checkout helper reads both shapes.
+		$locations = ( new WC_Stripe_Express_Checkout_Helper() )->get_button_locations( 'payment_request' );
 
 		$has_product  = in_array( 'product', $locations, true );
 		$has_cart     = in_array( 'cart', $locations, true );

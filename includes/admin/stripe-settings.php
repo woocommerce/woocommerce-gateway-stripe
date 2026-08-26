@@ -280,18 +280,6 @@ return apply_filters(
 				'data-placeholder' => __( 'Select pages', 'woocommerce-gateway-stripe' ),
 			],
 		],
-		'amazon_pay_button_size'               => [
-			'title'       => __( 'Amazon Pay Button Size', 'woocommerce-gateway-stripe' ),
-			'type'        => 'select',
-			'description' => __( 'Select the size of the button.', 'woocommerce-gateway-stripe' ),
-			'default'     => 'default',
-			'desc_tip'    => true,
-			'options'     => [
-				'small'   => __( 'Small (40px)', 'woocommerce-gateway-stripe' ),
-				'default' => __( 'Default (48px)', 'woocommerce-gateway-stripe' ),
-				'large'   => __( 'Large (56px)', 'woocommerce-gateway-stripe' ),
-			],
-		],
 		'link_button_locations'                => [
 			'title'             => __( 'Link Button Locations', 'woocommerce-gateway-stripe' ),
 			'type'              => 'multiselect',
@@ -302,18 +290,6 @@ return apply_filters(
 			'default'           => $wc_stripe_default_express_checkout_locations,
 			'custom_attributes' => [
 				'data-placeholder' => __( 'Select pages', 'woocommerce-gateway-stripe' ),
-			],
-		],
-		'link_button_size'                     => [
-			'title'       => __( 'Link Button Size', 'woocommerce-gateway-stripe' ),
-			'type'        => 'select',
-			'description' => __( 'Select the size of the button.', 'woocommerce-gateway-stripe' ),
-			'default'     => 'default',
-			'desc_tip'    => true,
-			'options'     => [
-				'small'   => __( 'Small (40px)', 'woocommerce-gateway-stripe' ),
-				'default' => __( 'Default (48px)', 'woocommerce-gateway-stripe' ),
-				'large'   => __( 'Large (56px)', 'woocommerce-gateway-stripe' ),
 			],
 		],
 		'optimized_checkout_layout'            => [

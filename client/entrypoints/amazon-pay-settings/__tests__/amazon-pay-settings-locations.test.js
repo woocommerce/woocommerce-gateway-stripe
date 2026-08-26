@@ -9,7 +9,9 @@ import {
 jest.mock( 'wcstripe/data', () => ( {
 	useAmazonPayEnabledSettings: jest.fn(),
 	useAmazonPayLocations: jest.fn(),
-	useAmazonPayButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
+	useExpressCheckoutButtonSize: jest
+		.fn()
+		.mockReturnValue( [ 'default', jest.fn() ] ),
 } ) );
 
 jest.mock( 'wcstripe/data/account/hooks', () => ( {

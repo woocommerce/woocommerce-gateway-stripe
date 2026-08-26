@@ -11,7 +11,6 @@ import {
 import getReasonText from 'wcstripe/settings/express-checkout-simulator/get-reason-text';
 import {
 	ExpressCheckoutAppearanceOverrideNotice,
-	ExpressCheckoutButtonSizeControl,
 	ExpressCheckoutLocationsControl,
 	getExpressCheckoutLocationKeys,
 } from 'wcstripe/settings/express-checkout-customize';
@@ -20,7 +19,7 @@ import { __ } from '@wordpress/i18n';
 import {
 	useAmazonPayEnabledSettings,
 	useAmazonPayLocations,
-	useAmazonPayButtonSize,
+	useExpressCheckoutButtonSize,
 } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_AMAZON_PAY,
@@ -30,7 +29,8 @@ import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 
 const AmazonPaySettingsSection = () => {
-	const [ size, setSize ] = useAmazonPayButtonSize();
+	// Express checkout buttons share one size; the preview reflects the global value.
+	const [ size ] = useExpressCheckoutButtonSize();
 	const isButtonStyleOverridden =
 		!! wc_stripe_amazon_pay_settings_params?.is_button_style_overridden; // eslint-disable-line camelcase
 	// eslint-disable-next-line camelcase
@@ -102,11 +102,6 @@ const AmazonPaySettingsSection = () => {
 					methodEnabled={ isAmazonPayEnabled }
 					locations={ amazonPayLocations }
 					onChange={ updateAmazonPayLocations }
-				/>
-				<h4>{ __( 'Appearance', 'woocommerce-gateway-stripe' ) }</h4>
-				<ExpressCheckoutButtonSizeControl
-					size={ size }
-					onChange={ setSize }
 				/>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
