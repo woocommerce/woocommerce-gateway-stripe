@@ -131,7 +131,30 @@ jQuery( function ( $ ) {
 				} ),
 		};
 
+		// The wallet sheet opens once this resolves; refreshes are deferred
+		// while it's open (see the update-event guard below).
+		wcStripeECE.paymentInFlight = true;
 		return event.resolve( clickOptions );
+	};
+
+	// Shared by the initial render and in-place refreshes so both derive
+	// shipping rates the same way.
+	const getShippingRatesForOptions = ( options ) => {
+		if ( ! options.requestShipping ) {
+			return [];
+		}
+
+		if ( getExpressCheckoutData( 'is_product_page' ) ) {
+			return getExpressCheckoutData( 'product' )?.shippingOptions;
+		}
+
+		return options.displayItems
+			.filter( ( i ) => i.key && i.key === 'total_shipping' )
+			.map( ( i ) => ( {
+				id: 'rate-shipping',
+				amount: i.amount,
+				displayName: useLegacyDisplayItems ? i.label ?? i.name : i.name,
+			} ) );
 	};
 
 	// Check if the product is waiting for a variation to be selected.
@@ -199,33 +222,106 @@ jQuery( function ( $ ) {
 			).length;
 		},
 
+		// Mounted Elements groups and the inputs that decide reuse.
+		mountedGroups: [],
+
+		// True while the wallet sheet is open; refreshes are deferred meanwhile.
+		paymentInFlight: false,
+		pendingRefresh: false,
+
+		// The only inputs elements.update() can't change.
+		getStructuralSignature: ( options ) =>
+			JSON.stringify( {
+				currency: options.currency,
+				requestShipping: !! options.requestShipping,
+			} ),
+
+		teardownExpressCheckout: () => {
+			wcStripeECE.mountedGroups.forEach( ( group ) => {
+				try {
+					group.button?.destroy();
+				} catch ( error ) {
+					// A stale reference must not block the rebuild.
+				}
+				$(
+					`#wc-stripe-express-checkout-element-${ group.type }`
+				).remove();
+			} );
+			wcStripeECE.mountedGroups = [];
+		},
+
+		/**
+		 * Refreshes the mounted buttons in place, rebuilding only when a
+		 * structural input changed or nothing is mounted. Reuse skips the
+		 * /v1/elements/sessions call and wallet re-probe of a rebuild.
+		 *
+		 * @param {Object} options ECE options (same shape as startExpressCheckout).
+		 */
+		refreshOrStartExpressCheckout: ( options ) => {
+			const signature = wcStripeECE.getStructuralSignature( options );
+			const groups = wcStripeECE.mountedGroups;
+			const canReuse =
+				groups.length > 0 &&
+				groups.every(
+					( group ) => group.button && group.signature === signature
+				);
+
+			if ( ! canReuse ) {
+				wcStripeECE.startExpressCheckout( options );
+				return;
+			}
+
+			const shippingRates = getShippingRatesForOptions( options );
+			groups.forEach( ( group ) => {
+				// The click/confirm closures read this same options object;
+				// mutate it in place so the wallet sheet stays in sync.
+				Object.assign( group.options, options, { shippingRates } );
+				group.elements.update( { amount: options.total } );
+
+				// updated_cart_totals re-renders the cart totals wholesale,
+				// discarding the button markup; remount instead of rebuilding.
+				const container = document.getElementById(
+					`wc-stripe-express-checkout-element-${ group.type }`
+				);
+				if (
+					( ! container || ! container.childElementCount ) &&
+					group.available !== false
+				) {
+					wcStripeECE.remountGroupButton( group );
+				}
+			} );
+
+			// Recover from a zero-total hide, but only if a group reported
+			// availability — otherwise the separator would linger empty.
+			if ( groups.some( ( group ) => group.available ) ) {
+				wcStripeECE.show();
+				wcStripeECE.getButtonSeparator().show();
+			}
+		},
+
+		remountGroupButton: ( group ) => {
+			if ( ! $( '#wc-stripe-express-checkout-element' ).length ) {
+				return;
+			}
+			const containerName = `wc-stripe-express-checkout-element-${ group.type }`;
+			if ( ! $( `#${ containerName }` ).length ) {
+				$( '#wc-stripe-express-checkout-element' ).append(
+					`<div id="${ containerName }"></div>`
+				);
+			}
+			// unmount() first: the element may still reference the discarded
+			// markup. Not renderButton(), which would rebind the listeners.
+			group.button.unmount();
+			group.button.mount( `#${ containerName }` );
+		},
+
 		/**
 		 * Starts the Express Checkout Element
 		 *
 		 * @param {Object} options ECE options.
 		 */
 		startExpressCheckout: ( options ) => {
-			const getShippingRates = () => {
-				if ( ! options.requestShipping ) {
-					return [];
-				}
-
-				if ( getExpressCheckoutData( 'is_product_page' ) ) {
-					return getExpressCheckoutData( 'product' )?.shippingOptions;
-				}
-
-				return options.displayItems
-					.filter( ( i ) => i.key && i.key === 'total_shipping' )
-					.map( ( i ) => ( {
-						id: 'rate-shipping',
-						amount: i.amount,
-						displayName: useLegacyDisplayItems
-							? i.label ?? i.name
-							: i.name,
-					} ) );
-			};
-
-			const shippingRates = getShippingRates();
+			const shippingRates = getShippingRatesForOptions( options );
 
 			// Deliberately not `is_express_checkout_enabled`: that aggregate is true when
 			// any wallet's locations cover this page, which would render Apple/Google Pay
@@ -263,6 +359,10 @@ jQuery( function ( $ ) {
 					EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			].filter( Boolean );
+
+			// Dropping the old buttons unreferenced would leak their iframes
+			// and stack duplicates in the containers.
+			wcStripeECE.teardownExpressCheckout();
 
 			// Reset the registry so variation/qty updates only touch the buttons
 			// mounted for this render.
@@ -412,6 +512,18 @@ jQuery( function ( $ ) {
 			// variation/qty change updates every group's amount.
 			wcStripeECE.expressCheckoutElements.push( elements );
 
+			// Registered before button creation so a failure below can't
+			// leave an untracked group behind.
+			const group = {
+				type: expressPaymentType,
+				elements,
+				options,
+				signature: wcStripeECE.getStructuralSignature( options ),
+				button: null,
+				available: null,
+			};
+			wcStripeECE.mountedGroups.push( group );
+
 			const buttonStyleSettings =
 				getExpressCheckoutButtonStyleSettings( expressPaymentType );
 
@@ -436,6 +548,8 @@ jQuery( function ( $ ) {
 					link: expressPaymentType === 'link' ? 'auto' : 'never',
 				},
 			} );
+
+			group.button = eceButton;
 
 			wcStripeECE.renderButton( eceButton, expressPaymentType );
 
@@ -531,17 +645,22 @@ jQuery( function ( $ ) {
 
 			eceButton.on( 'cancel', () => {
 				wcStripeECE.paymentAborted = true;
+				wcStripeECE.paymentInFlight = false;
 				onCancelHandler();
+				// Apply an update deferred while the sheet was open.
+				if ( wcStripeECE.pendingRefresh ) {
+					wcStripeECE.pendingRefresh = false;
+					wcStripeECE.init();
+				}
 			} );
 
 			eceButton.on( 'ready', ( onReadyParams ) => {
-				if (
-					! isVariationSelectionNeeded() &&
-					onReadyParams.availablePaymentMethods &&
+				group.available =
+					!! onReadyParams.availablePaymentMethods &&
 					Object.values(
 						onReadyParams.availablePaymentMethods
-					).filter( Boolean ).length
-				) {
+					).filter( Boolean ).length > 0;
+				if ( ! isVariationSelectionNeeded() && group.available ) {
 					wcStripeECE.show();
 					wcStripeECE.getButtonSeparator().show();
 				}
@@ -669,7 +788,7 @@ jQuery( function ( $ ) {
 						return;
 					}
 
-					wcStripeECE.startExpressCheckout( {
+					wcStripeECE.refreshOrStartExpressCheckout( {
 						total,
 						currency:
 							getExpressCheckoutData( 'checkout' )?.currency_code,
@@ -863,6 +982,7 @@ jQuery( function ( $ ) {
 		 * @param {string} url Order thank you page URL.
 		 */
 		completePayment: ( url ) => {
+			wcStripeECE.paymentInFlight = false;
 			onCompletePaymentHandler( url );
 			window.location = url;
 		},
@@ -875,6 +995,7 @@ jQuery( function ( $ ) {
 		 * @param {boolean}         isOrderError Whether the error is related to the order creation.
 		 */
 		abortPayment: ( payment, message, isOrderError = false ) => {
+			wcStripeECE.paymentInFlight = false;
 			if ( ! isOrderError ) {
 				payment.paymentFailed( { reason: 'fail' } );
 			}
@@ -1083,13 +1204,22 @@ jQuery( function ( $ ) {
 		);
 	}
 
-	// We need to refresh ECE data when total is updated.
-	$( document.body ).on( 'updated_cart_totals', () => {
-		wcStripeECE.init();
-	} );
+	// Refresh ECE data when totals update, coalescing event bursts into one
+	// cart fetch; the leading call keeps the single-event case immediate.
+	const refreshExpressCheckout = debounce(
+		() => {
+			// Rebuilding while the wallet sheet is open would kill the
+			// shopper's session; apply on cancel instead.
+			if ( wcStripeECE.paymentInFlight ) {
+				wcStripeECE.pendingRefresh = true;
+				return;
+			}
+			wcStripeECE.init();
+		},
+		300,
+		{ leading: true, trailing: true }
+	);
 
-	// We need to refresh ECE data when total is updated.
-	$( document.body ).on( 'updated_checkout', () => {
-		wcStripeECE.init();
-	} );
+	$( document.body ).on( 'updated_cart_totals', refreshExpressCheckout );
+	$( document.body ).on( 'updated_checkout', refreshExpressCheckout );
 } );
