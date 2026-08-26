@@ -180,9 +180,9 @@ describe( 'Express Checkout product page variation breakdown', () => {
 	} );
 
 	// Stripe button stub that captures the bound event handlers so the test can
-	// invoke the click handler directly. Each express type (Apple Pay, Google
-	// Pay, …) gets its own Elements group, so `elementsList` collects them all to
-	// assert the amount is pushed to every group.
+	// invoke the click handler directly. Each express payment group (shared
+	// Apple/Google Pay, Link, Amazon Pay) gets its own Elements group, so
+	// `elementsList` collects them all to assert the amount is pushed to every group.
 	const stubStripeButton = () => {
 		const handlers = {};
 		const elementsList = [];
@@ -323,7 +323,11 @@ describe( 'Express Checkout product page variation breakdown', () => {
 	} );
 
 	it( 'pushes the new amount to every mounted express button, not just the last one', async () => {
-		global.wc_stripe_express_checkout_params = productParams();
+		const params = productParams();
+		// Link mounts its own Elements group next to the shared Apple/Google
+		// Pay group, so the update must fan out to more than one group.
+		params.stripe.is_link_enabled = true;
+		global.wc_stripe_express_checkout_params = params;
 
 		mockGetSelectedProductData.mockResolvedValue( {
 			total: { amount: 2000 },
@@ -338,7 +342,6 @@ describe( 'Express Checkout product page variation breakdown', () => {
 
 		loadEntrypoint();
 
-		// Apple Pay and Google Pay each mount their own Elements group.
 		expect( elementsList.length ).toBeGreaterThan( 1 );
 
 		// eslint-disable-next-line global-require
@@ -352,6 +355,31 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		elementsList.forEach( ( elements ) => {
 			expect( elements.update ).toHaveBeenCalledWith( { amount: 2000 } );
 		} );
+	} );
+
+	// Each group is its own Stripe iframe; identically configured Apple Pay and
+	// Google Pay must share one instead of paying for two.
+	it( 'mounts Apple Pay and Google Pay through a single shared Elements group', () => {
+		global.wc_stripe_express_checkout_params = productParams();
+
+		const { elementsList } = stubStripeButton();
+
+		loadEntrypoint();
+
+		expect( elementsList ).toHaveLength( 1 );
+		expect(
+			elementsList[ 0 ].create.mock.calls[ 0 ][ 1 ].paymentMethods
+		).toEqual( {
+			amazonPay: 'never',
+			applePay: 'always',
+			googlePay: 'always',
+			link: 'never',
+		} );
+		expect(
+			document.querySelector(
+				'#wc-stripe-express-checkout-element-wallets'
+			)
+		).not.toBeNull();
 	} );
 } );
 
@@ -368,14 +396,21 @@ describe( 'Express Checkout per-method location gating', () => {
 			el.id.replace( 'wc-stripe-express-checkout-element-', '' )
 		);
 
+	// Apple/Google Pay share one Elements group, so their gating is only
+	// observable through the paymentMethods config passed to create().
+	let createOptions;
 	const stubStripe = () => {
+		createOptions = [];
 		const button = {
 			on: () => button,
 			mount: jest.fn(),
 		};
 		mockGetStripe.mockReturnValue( {
 			elements: jest.fn( () => ( {
-				create: jest.fn( () => button ),
+				create: jest.fn( ( type, options ) => {
+					createOptions.push( options );
+					return button;
+				} ),
 				update: jest.fn(),
 			} ) ),
 		} );
@@ -434,7 +469,13 @@ describe( 'Express Checkout per-method location gating', () => {
 
 		loadEntrypoint();
 
-		expect( mountedTypes() ).toEqual( [ 'applePay', 'googlePay' ] );
+		expect( mountedTypes() ).toEqual( [ 'wallets' ] );
+		expect( createOptions[ 0 ].paymentMethods ).toEqual( {
+			amazonPay: 'never',
+			applePay: 'always',
+			googlePay: 'always',
+			link: 'never',
+		} );
 	} );
 
 	it( 'gates each wallet on its own flag, ready for a future settings split', () => {
@@ -447,6 +488,12 @@ describe( 'Express Checkout per-method location gating', () => {
 
 		loadEntrypoint();
 
-		expect( mountedTypes() ).toEqual( [ 'googlePay' ] );
+		expect( mountedTypes() ).toEqual( [ 'wallets' ] );
+		expect( createOptions[ 0 ].paymentMethods ).toEqual( {
+			amazonPay: 'never',
+			applePay: 'never',
+			googlePay: 'always',
+			link: 'never',
+		} );
 	} );
 } );
