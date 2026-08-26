@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.9.0
+* Add - Add a Payments admin menu with a Stripe section listing recent payments
 * Add - Add an admin REST API endpoint for retrieving Stripe payment intents
 * Fix - Match the Google Pay express checkout button height to Apple Pay when using the Light or Outline button theme
 * Fix - Keep the currently loaded Stripe account details visible when an account refresh fails
