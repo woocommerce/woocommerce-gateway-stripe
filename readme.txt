@@ -191,5 +191,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Hide the save payment method checkbox for Bancontact, iDEAL and Sofort in the Adaptive Pricing checkout on non-EUR stores whose currency excludes them
 * Fix - Stop flagging the checkout page as the cart page (is_cart() returning true) when express checkout buttons are enabled, which made analytics and other plugins misread the page
 * Fix - Remove the empty box shown under "Use a new payment method" on classic checkout when the save-payment-method checkbox is hidden
+* Add - Support defining the Stripe secret keys as constants in wp-config.php (WC_STRIPE_SECRET_KEY, WC_STRIPE_TEST_SECRET_KEY), so a restricted API key can be used without storing it in the database
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

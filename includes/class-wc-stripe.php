@@ -157,6 +157,7 @@ class WC_Stripe {
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-logger.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-key-constants.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-helper.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-helper.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache.php';
@@ -177,6 +178,10 @@ class WC_Stripe {
 
 		if ( self::$instance === $this ) {
 			( new WC_Stripe_Webhook_Handler() )->register_hooks();
+
+			// Register the wp-config secret key override before any settings read,
+			// so every consumer (including WC core's settings API) sees the same key.
+			WC_Stripe_Key_Constants::init();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-apple-pay-registration.php';
