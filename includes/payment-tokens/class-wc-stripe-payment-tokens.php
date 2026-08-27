@@ -693,6 +693,14 @@ class WC_Stripe_Payment_Tokens {
 				break;
 		}
 
+		// Only card tokens have a real expiry date. WooCommerce defaults every token's
+		// "Expires" value with "N/A", but only overwrites it for cards, so all other payment
+		// methods have "N/A". We override the value to '' for all non-card tokens for consistency.
+		// Note that Apple Pay and Google Pay are stored as card tokens, so they show an expiry date.
+		if ( ! $payment_token instanceof WC_Payment_Token_CC ) {
+			$item['expires'] = '';
+		}
+
 		// Wrap Apple Pay / Google Pay branding around the card brand. Link wallet_type
 		// is persisted but not surfaced here (see #5437).
 		if ( $payment_token instanceof WC_Stripe_Payment_Token_CC ) {
