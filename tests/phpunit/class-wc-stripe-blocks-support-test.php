@@ -71,6 +71,10 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 		}
 		$this->registered_test_scripts = [];
 
+		// The constructor registers this at a priority unique to it, and it throws when it
+		// fires, so a leaked instance would abort an unrelated test's checkout.
+		remove_all_actions( 'woocommerce_rest_checkout_process_payment_with_context', 10000 );
+
 		foreach ( $this->initialized_blocks_support as $blocks_support ) {
 			remove_filter( 'render_block_woocommerce/checkout', [ $blocks_support, 'maybe_enqueue_blocks_style' ] );
 			remove_filter( 'render_block_woocommerce/cart', [ $blocks_support, 'maybe_enqueue_blocks_style' ] );
