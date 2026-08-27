@@ -1754,6 +1754,43 @@ describe( 'payment-processing', () => {
 			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
 		} );
 
+		// WooCommerce posts a multiselect as implode( ', ', $value ), so both of the
+		// cases below still arrive as '' and are rejected server-side. Blocking them
+		// costs nothing; the third case posts ', US' and is accepted, so blocking it
+		// would fail the checkout outright.
+		it( 'returns true when a required multiple select has nothing selected', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select multiple>' +
+				'<option value="">Select...</option>' +
+				'<option value="US">US</option>' +
+				'</select>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+		} );
+
+		it( 'returns true when a required multiple select has only an empty option selected', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select multiple>' +
+				'<option value="" selected>Select...</option>' +
+				'<option value="US">US</option>' +
+				'</select>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+		} );
+
+		it( 'returns false when a required multiple select has a value selected after an empty option', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select multiple>' +
+				'<option value="" selected>Select...</option>' +
+				'<option value="US" selected>US</option>' +
+				'</select>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+		} );
+
 		it( 'returns true when a required checkbox is unchecked', () => {
 			form.innerHTML =
 				'<p class="validate-required">' +
