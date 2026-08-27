@@ -955,10 +955,9 @@ jQuery( function ( $ ) {
 
 			// The blockified template's stepper buttons update the quantity
 			// without firing input events, so listen for the presses
-			// themselves. No template gate needed, unlike the variation
-			// observer above: the helper's selector is scoped to the
-			// blockified form (which simple products render too), so it's
-			// null everywhere else.
+			// themselves. observeQuantitySteppers only matches the blockified
+			// form (simple products render it too), so unlike the variation
+			// observer above it needs no template check here.
 			wcStripeECE.quantityStepperListener?.disconnect();
 			wcStripeECE.quantityStepperListener = observeQuantitySteppers(
 				debounce( wcStripeECE.onQuantityChanged, 250 )
