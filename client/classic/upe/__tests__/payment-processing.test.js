@@ -1845,6 +1845,24 @@ describe( 'payment-processing', () => {
 			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
 		} );
 
+		it( 'returns false when a checked radio accompanies an empty placeholder select', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select><option value="" selected>Select...</option></select>' +
+				'<input type="radio" name="option" value="yes" checked />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+		} );
+
+		it( 'returns true when unchecked radios accompany an empty placeholder select', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select><option value="" selected>Select...</option></select>' +
+				'<input type="radio" name="option" value="yes" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+		} );
+
 		// The checkbox group check only applies when the group leads the wrapper, so a
 		// filled text field ahead of an unchecked checkbox still passes, as before.
 		it( 'returns false when a filled text input precedes an unchecked checkbox', () => {

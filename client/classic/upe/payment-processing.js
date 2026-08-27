@@ -1719,7 +1719,14 @@ export const hasEmptyRequiredFields = ( requiredWrappers ) => {
 			isEmpty = first.value.trim() === '';
 		}
 
-		if ( isEmpty ) {
+		// Radios are outside the selector above, so a wrapper holding only radios is
+		// skipped entirely, as it is by WC core. They can still satisfy a wrapper
+		// though: a checked radio means the shopper filled the field in, and blocking
+		// on it would fail a checkout the server would have accepted.
+		if (
+			isEmpty &&
+			! wrapper.querySelector( 'input[type="radio"]:checked' )
+		) {
 			return true;
 		}
 	}
