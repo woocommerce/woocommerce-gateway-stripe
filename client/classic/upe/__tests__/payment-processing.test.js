@@ -1779,13 +1779,24 @@ describe( 'payment-processing', () => {
 			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
 		} );
 
-		it( 'returns true when a required radio group has no selection', () => {
+		it( 'returns true when no checkbox in a required group is checked', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="checkbox" />' +
+				'<input type="checkbox" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+		} );
+
+		// Radios stay outside the selector: blocking on an unselected group would stop
+		// checkout on stores whose radio fields have no server-side validation.
+		it( 'returns false for a required wrapper holding only unselected radios', () => {
 			form.innerHTML =
 				'<p class="validate-required">' +
 				'<input type="radio" name="option" />' +
 				'<input type="radio" name="option" />' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
 		} );
 
 		it( 'returns false when a required radio group has a selection', () => {
@@ -1797,11 +1808,13 @@ describe( 'payment-processing', () => {
 			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
 		} );
 
-		it( 'returns false when a grouped field has a value after an empty placeholder', () => {
+		// The checkbox group check only applies when the group leads the wrapper, so a
+		// filled text field ahead of an unchecked checkbox still passes, as before.
+		it( 'returns false when a filled text input precedes an unchecked checkbox', () => {
 			form.innerHTML =
 				'<p class="validate-required">' +
-				'<select><option value="" selected>Select...</option></select>' +
-				'<input type="radio" name="option" value="yes" checked />' +
+				'<input type="text" class="input-text" value="John" />' +
+				'<input type="checkbox" />' +
 				'</p>';
 			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
 		} );

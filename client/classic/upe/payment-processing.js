@@ -1688,27 +1688,28 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
  * Visibility filtering is handled by the caller (using jQuery :visible in
  * deferred-intent.js) since jsdom cannot compute element visibility.
  *
- * @param {NodeList|Array} requiredWrappers Required checkout field groups.
- * @return {boolean} Whether any field group lacks a value.
+ * @param {NodeList|Array} requiredWrappers List of .validate-required DOM elements to check.
+ * @return {boolean} True if any required field is empty.
  */
 export const hasEmptyRequiredFields = ( requiredWrappers ) => {
 	for ( const wrapper of requiredWrappers ) {
-		const inputs = wrapper.querySelectorAll(
-			'input.input-text, select, input[type="checkbox"], input[type="radio"]'
-		);
+		const inputs = [
+			...wrapper.querySelectorAll(
+				'input.input-text, select, input[type="checkbox"]'
+			),
+		];
 		if ( ! inputs.length ) {
 			continue;
 		}
 
-		const hasValue = [ ...inputs ].some( ( input ) => {
-			if ( input.type === 'checkbox' || input.type === 'radio' ) {
-				return input.checked;
-			}
+		// A required wrapper can hold a "tick at least one" checkbox group, so the first
+		// box being unchecked does not mean the group is incomplete.
+		const isEmpty =
+			inputs[ 0 ].type === 'checkbox'
+				? ! inputs.some( ( input ) => input.checked )
+				: inputs[ 0 ].value.trim() === '';
 
-			return input.value?.trim() !== '';
-		} );
-
-		if ( ! hasValue ) {
+		if ( isEmpty ) {
 			return true;
 		}
 	}
