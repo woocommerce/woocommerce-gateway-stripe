@@ -317,6 +317,75 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 		];
 	}
 
+	/**
+	 * WooCommerce answers 200 with an empty payment status when it never handed the payment
+	 * to the gateway, which would leave the order unpaid with nothing to show the shopper.
+	 *
+	 * @dataProvider provider_unprocessed_stripe_payment_methods
+	 *
+	 * @param string $payment_method The payment method id on the payment context.
+	 *
+	 * @return void
+	 */
+	public function test_fail_unprocessed_payment_throws_for_stripe_payment_methods( string $payment_method ): void {
+		$blocks_support = new WC_Stripe_Blocks_Support();
+		$order          = WC_Helper_Order::create_order();
+
+		$context = new \Automattic\WooCommerce\StoreApi\Payments\PaymentContext();
+		$context->set_payment_method( $payment_method );
+		$context->set_order( $order );
+
+		$result = new \Automattic\WooCommerce\StoreApi\Payments\PaymentResult();
+
+		$this->expectException( Exception::class );
+		$blocks_support->fail_unprocessed_payment( $context, $result );
+	}
+
+	/**
+	 * @return array[]
+	 */
+	public function provider_unprocessed_stripe_payment_methods(): array {
+		return [
+			'main gateway'      => [ 'stripe' ],
+			'split UPE gateway' => [ 'stripe_us_bank_account' ],
+		];
+	}
+
+	/**
+	 * @dataProvider provider_processed_or_foreign_payments
+	 *
+	 * @param string $payment_method The payment method id on the payment context.
+	 * @param string $status         The status already set on the payment result.
+	 *
+	 * @return void
+	 */
+	public function test_fail_unprocessed_payment_leaves_other_payments_alone( string $payment_method, string $status ): void {
+		$blocks_support = new WC_Stripe_Blocks_Support();
+		$order          = WC_Helper_Order::create_order();
+
+		$context = new \Automattic\WooCommerce\StoreApi\Payments\PaymentContext();
+		$context->set_payment_method( $payment_method );
+		$context->set_order( $order );
+
+		$result = new \Automattic\WooCommerce\StoreApi\Payments\PaymentResult( $status );
+
+		$blocks_support->fail_unprocessed_payment( $context, $result );
+
+		$this->assertSame( $status, $result->status );
+	}
+
+	/**
+	 * @return array[]
+	 */
+	public function provider_processed_or_foreign_payments(): array {
+		return [
+			'payment succeeded'   => [ 'stripe', 'success' ],
+			'payment failed'      => [ 'stripe', 'failure' ],
+			'another gateway'     => [ 'cheque', '' ],
+			'lookalike method id' => [ 'stripey', '' ],
+		];
+	}
+
 	private function get_block_script_handle(): string {
 		return WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Blocks_Support::class, 'BLOCKS_SCRIPT_HANDLE', 'string' );
 	}

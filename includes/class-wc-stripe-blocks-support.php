@@ -63,6 +63,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_express_checkout_order_meta' ], 8, 2 );
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_stripe_intents' ], 9999, 2 );
+		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'fail_unprocessed_payment' ], 10000, 2 );
 
 		if ( null === $express_checkout_configuration ) {
 			$helper                         = new WC_Stripe_Express_Checkout_Helper();
@@ -582,6 +583,43 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			$result->set_payment_details( $payment_details );
 			$result->set_status( 'success' );
 		}
+	}
+
+	/**
+	 * Fails the payment when WooCommerce never handed it to the gateway.
+	 *
+	 * `Legacy::process_legacy_payment()` returns without setting a status when it cannot
+	 * resolve the payment method to an available gateway. The Store API then answers 200
+	 * with an empty payment status, leaving the order unpaid with no charge attempted and
+	 * nothing logged; express checkout reads that as a failure it cannot explain and the
+	 * wallet sheet is left with no reason to show. Turn it into a real error instead.
+	 *
+	 * @param PaymentContext $context Holds context for the payment.
+	 * @param PaymentResult  $result  Result object for the payment.
+	 *
+	 * @throws Exception When the payment was never processed.
+	 *
+	 * @return void
+	 */
+	public function fail_unprocessed_payment( PaymentContext $context, PaymentResult &$result ) {
+		if ( '' !== (string) $result->status ) {
+			return;
+		}
+
+		$payment_method = (string) $context->payment_method;
+		if ( $this->name !== $payment_method && 0 !== strpos( $payment_method, $this->name . '_' ) ) {
+			return;
+		}
+
+		WC_Stripe_Logger::error(
+			'Payment was never processed for order: ' . $context->order->get_id(),
+			[
+				'payment_method' => $payment_method,
+				'reason'         => 'WooCommerce could not resolve the payment method to an available gateway.',
+			]
+		);
+
+		throw new Exception( __( 'This payment method is not available right now. Please try again or use a different one.', 'woocommerce-gateway-stripe' ) );
 	}
 
 	/**

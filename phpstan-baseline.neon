@@ -1557,7 +1557,7 @@ parameters:
 		-
 			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentContext\:\:\$order\.$#'
 			identifier: property.protected
-			count: 2
+			count: 3
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
@@ -1569,13 +1569,19 @@ parameters:
 		-
 			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentContext\:\:\$payment_method\.$#'
 			identifier: property.protected
-			count: 6
+			count: 7
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
 			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentResult\:\:\$payment_details\.$#'
 			identifier: property.protected
 			count: 2
+			path: includes/class-wc-stripe-blocks-support.php
+
+		-
+			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentResult\:\:\$status\.$#'
+			identifier: property.protected
+			count: 1
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
