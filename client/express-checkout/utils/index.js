@@ -391,29 +391,34 @@ export const displayExpressCheckoutNotice = (
 		: 'woocommerce-notices-wrapper';
 	const $container = jQuery( '.' + containerClass ).first();
 
+	const safeMessage = jQuery( '<div>' )
+		.text( message )
+		.html()
+		.replace( /\n/g, '<br>' );
+	const note = jQuery(
+		`<div class="${ classNames.join( ' ' ) }" role="note" />`
+	).html( safeMessage );
+
 	if ( $container.length ) {
-		const safeMessage = jQuery( '<div>' )
-			.text( message )
-			.html()
-			.replace( /\n/g, '<br>' );
-		const note = jQuery(
-			`<div class="${ classNames.join( ' ' ) }" role="note" />`
-		).html( safeMessage );
 		if ( isBlockCheckout ) {
 			$container.prepend( note );
 		} else {
 			$container.append( note );
 		}
+	} else {
+		// Product pages, and themes that render no notices wrapper, would drop the
+		// message entirely. Fall back to the button, which is on every page that
+		// can raise one of these errors.
+		const $button = jQuery( '#wc-stripe-express-checkout-element' );
+		if ( ! $button.length ) {
+			return;
+		}
 
-		// Scroll to notices.
-		jQuery( 'html, body' ).animate(
-			{
-				scrollTop: $container.find( `.${ mainNoticeClass }` ).offset()
-					.top,
-			},
-			600
-		);
+		$button.before( note );
 	}
+
+	// Scroll to the notice.
+	jQuery( 'html, body' ).animate( { scrollTop: note.offset().top }, 600 );
 };
 
 /**
