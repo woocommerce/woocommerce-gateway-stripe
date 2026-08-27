@@ -336,9 +336,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$this->assertSame( '', $settings['webhook_secret'] );
 	}
 	/**
-	 * Saving keys clears the consecutive-401 circuit breaker, so API reads
-	 * resume immediately with the new key instead of staying blocked for up
-	 * to two hours after the merchant has already fixed the key.
+	 * Saving keys clears the consecutive-401 circuit breaker.
 	 */
 	public function test_set_account_keys_clears_invalid_api_key_error_count() {
 		WC_Stripe_Database_Cache::set( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, 5 );

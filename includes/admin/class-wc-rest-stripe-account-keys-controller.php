@@ -312,10 +312,8 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// Before saving the settings, decommission any previously automatically configured webhook endpoint.
 		$settings = $this->decommission_configured_webhook_after_key_update( $settings, $current_account_keys );
 
-		// Lift the consecutive-401 read blackout: a merchant replacing an invalid
-		// key must not stay blocked for up to two hours after saving a valid one.
-		// Cleared before the save because the option-update hooks fired by it may
-		// already read from Stripe with the new key.
+		// Lift the consecutive-401 read blackout before the save, since its
+		// option-update hooks may already read from Stripe with the new key.
 		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
