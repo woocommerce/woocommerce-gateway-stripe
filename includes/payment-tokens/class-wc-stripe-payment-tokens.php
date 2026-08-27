@@ -51,7 +51,17 @@ class WC_Stripe_Payment_Tokens {
 	 */
 	public function __construct() {
 		self::$_this = $this;
+	}
 
+	/**
+	 * Registers the token hooks. Kept out of the constructor so instantiating
+	 * the class never stacks duplicate callbacks; the bootstrap calls this
+	 * exactly once.
+	 *
+	 * @since 11.0.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		add_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 		add_filter( 'woocommerce_payment_methods_list_item', [ $this, 'get_account_saved_payment_methods_list_item' ], 10, 2 );
 		add_filter( 'woocommerce_get_credit_card_type_label', [ $this, 'normalize_payment_method_label' ] );
@@ -686,6 +696,14 @@ class WC_Stripe_Payment_Tokens {
 			case WC_Stripe_Payment_Methods::KLARNA:
 				$item['method']['brand'] = esc_html__( 'Klarna', 'woocommerce-gateway-stripe' );
 				break;
+		}
+
+		// Only card tokens have a real expiry date. WooCommerce defaults every token's
+		// "Expires" value with "N/A", but only overwrites it for cards, so all other payment
+		// methods have "N/A". We override the value to '' for all non-card tokens for consistency.
+		// Note that Apple Pay and Google Pay are stored as card tokens, so they show an expiry date.
+		if ( ! $payment_token instanceof WC_Payment_Token_CC ) {
+			$item['expires'] = '';
 		}
 
 		// Wrap Apple Pay / Google Pay branding around the card brand. Link wallet_type
