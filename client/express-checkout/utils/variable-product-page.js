@@ -117,11 +117,10 @@ export const getSelectedVariationAttributes = () => {
 		data[ attributeName ] = field.value || '';
 	};
 
-	const classicSelects = document.querySelectorAll(
-		'.variations_form .variations select'
-	);
-	if ( classicSelects.length ) {
-		classicSelects.forEach( readField );
+	if ( isClassicTemplate() ) {
+		document
+			.querySelectorAll( '.variations_form .variations select' )
+			.forEach( readField );
 	} else {
 		// Blockified template. Newer WooCommerce versions render one hidden
 		// input per attribute, kept in sync with the selection; older ones
