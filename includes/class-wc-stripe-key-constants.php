@@ -4,28 +4,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Overrides the stored Stripe secret keys with values defined as constants.
+ * Overrides the stored Stripe secret keys with wp-config.php constants.
  *
- * Merchants define the constants in wp-config.php:
+ * Applied on the option filters (not the plugin's settings accessors) because
+ * WooCommerce core also reads and writes this option directly, and every
+ * reader must see the same key. Usage:
  *
  *     define( 'WC_STRIPE_SECRET_KEY', 'rk_live_...' );
  *     define( 'WC_STRIPE_TEST_SECRET_KEY', 'rk_test_...' );
- *
- * This lets merchants keep the secret key (for example a Restricted API Key)
- * out of the database. The override is applied on the option filters rather
- * than inside the plugin's own settings accessors because WooCommerce core
- * also reads and writes this option directly (WC_Settings_API::init_settings()
- * and process_admin_options()), and every reader must see the same key.
  *
  * @since 11.0.0
  */
 class WC_Stripe_Key_Constants {
 
 	/**
-	 * The settings fields that can be overridden, mapped to the constant that overrides each.
-	 *
-	 * Only secret keys are overridable: publishable keys are not sensitive, and
-	 * webhook signing secrets are required at runtime to verify inbound events.
+	 * Overridable settings fields mapped to their constant. Secret keys only:
+	 * publishable keys are not sensitive, and webhook signing secrets are
+	 * needed at runtime to verify inbound events.
 	 *
 	 * @var array<string, string>
 	 */
@@ -75,7 +70,7 @@ class WC_Stripe_Key_Constants {
 	}
 
 	/**
-	 * Removes the option filters. Mainly useful for tests and for reading the raw stored value.
+	 * Removes the option filters.
 	 *
 	 * @return void
 	 */
@@ -85,7 +80,7 @@ class WC_Stripe_Key_Constants {
 	}
 
 	/**
-	 * Whether any secret key is currently being overridden by a constant.
+	 * Whether any secret key is currently overridden by a constant.
 	 *
 	 * @return bool
 	 */
@@ -102,8 +97,7 @@ class WC_Stripe_Key_Constants {
 	public function apply_overrides( $settings ) {
 		$overrides = $this->get_configured_overrides();
 
-		// A non-array value is normalized by the readers themselves; forcing an
-		// array here would change behavior for a store that has never saved settings.
+		// Non-array values are normalized by the readers themselves.
 		if ( [] === $overrides || ! is_array( $settings ) ) {
 			return $settings;
 		}
@@ -112,13 +106,10 @@ class WC_Stripe_Key_Constants {
 	}
 
 	/**
-	 * Strips the substituted keys back out before the settings are written.
-	 *
-	 * Settings writes are read-modify-write: the caller read the settings through
-	 * apply_overrides(), so without this filter the first save would persist the
-	 * constant-defined key into the database, defeating the point of keeping it
-	 * in wp-config.php. Only a value identical to the constant is reverted, so a
-	 * caller that deliberately writes a different key is not interfered with.
+	 * Strips the substituted keys back out before the settings are written,
+	 * so a read-modify-write save never persists the constant into the
+	 * database. Only exact matches are reverted; a deliberately changed key
+	 * is written as-is.
 	 *
 	 * @param mixed $value The settings about to be written.
 	 * @return mixed
@@ -141,8 +132,7 @@ class WC_Stripe_Key_Constants {
 				$stored = $this->get_stored_settings_unfiltered();
 			}
 
-			// Restore the stored value rather than blanking it, so defining a
-			// constant never destroys the key already saved in the database.
+			// Restore rather than blank, so a constant never destroys the stored key.
 			$value[ $field ] = isset( $stored[ $field ] ) && is_string( $stored[ $field ] ) ? $stored[ $field ] : '';
 		}
 
@@ -151,10 +141,8 @@ class WC_Stripe_Key_Constants {
 
 	/**
 	 * Reads the settings option as stored, bypassing apply_overrides().
-	 *
-	 * The 'old value' WordPress passes to pre_update_option filters has already
-	 * been through the option filter, so it holds the constant, not the stored
-	 * key; this is the only way to recover what is actually in the database.
+	 * The old value pre_update_option filters receive is already filtered,
+	 * so it holds the constant, not the stored key.
 	 *
 	 * @return array
 	 */
@@ -167,7 +155,7 @@ class WC_Stripe_Key_Constants {
 	}
 
 	/**
-	 * Returns the overrides that are actually configured, as field => key.
+	 * Returns the configured overrides as field => key.
 	 *
 	 * @return array<string, string>
 	 */
@@ -177,9 +165,8 @@ class WC_Stripe_Key_Constants {
 		foreach ( static::FIELD_CONSTANTS as $field => $constant ) {
 			$value = $this->get_constant_value( $constant );
 
-			// A blank or non-string constant is ignored rather than applied:
-			// injecting an empty key would make the store report itself as
-			// disconnected with no error pointing at the constant.
+			// Ignore blank or non-string constants: injecting an empty key
+			// would silently disconnect the store.
 			if ( is_string( $value ) && '' !== trim( $value ) ) {
 				$overrides[ $field ] = trim( $value );
 			}
@@ -189,11 +176,8 @@ class WC_Stripe_Key_Constants {
 	}
 
 	/**
-	 * Reads a constant's value.
-	 *
-	 * Seam for tests: constants cannot be undefined once set, so tests override
-	 * this method instead of defining real constants that would leak into every
-	 * other test in the process.
+	 * Reads a constant's value. Seam for tests, since constants cannot be
+	 * undefined once set.
 	 *
 	 * @param string $constant The constant name.
 	 * @return mixed|null Null when the constant is not defined.

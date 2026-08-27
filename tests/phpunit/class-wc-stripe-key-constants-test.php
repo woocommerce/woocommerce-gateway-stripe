@@ -16,7 +16,7 @@ class WC_Stripe_Key_Constants_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	private $key_constants;
 
 	/**
-	 * Pre-test setup: register a fake with no constants configured.
+	 * Registers a fake with no constants configured.
 	 *
 	 * @return void
 	 */
@@ -37,7 +37,7 @@ class WC_Stripe_Key_Constants_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Post-test cleanup: drop the fake's filters so they cannot leak into other tests.
+	 * Drops the fake's filters so they cannot leak into other tests.
 	 *
 	 * @return void
 	 */
@@ -61,14 +61,13 @@ class WC_Stripe_Key_Constants_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * A defined constant overrides the stored key for its mode on every read,
-	 * through the plugin accessor and through a raw get_option() alike.
+	 * A defined constant overrides the stored key for its mode on every read.
 	 *
 	 * @dataProvider provide_constant_override_scenarios
 	 *
-	 * @param array  $constants       The constants the fake reports as defined.
-	 * @param string $expected_live   Expected effective live secret key.
-	 * @param string $expected_test   Expected effective test secret key.
+	 * @param array  $constants     Constants the fake reports as defined.
+	 * @param string $expected_live Expected live secret key.
+	 * @param string $expected_test Expected test secret key.
 	 * @return void
 	 */
 	public function test_constants_override_stored_keys_on_read( array $constants, string $expected_live, string $expected_test ): void {
@@ -117,8 +116,7 @@ class WC_Stripe_Key_Constants_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Blank or non-string constants are ignored instead of blanking the key,
-	 * which would silently disconnect the store.
+	 * Blank or non-string constants are ignored instead of blanking the key.
 	 *
 	 * @dataProvider provide_ignored_constant_values
 	 *
@@ -149,8 +147,7 @@ class WC_Stripe_Key_Constants_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * A settings save that round-trips the constant-injected key must not
-	 * persist the constant into the database; the stored key is kept as-is.
+	 * A round-tripped save keeps the stored key, not the constant.
 	 *
 	 * @return void
 	 */
@@ -171,8 +168,7 @@ class WC_Stripe_Key_Constants_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * A caller that deliberately writes a key different from the constant is
-	 * not interfered with — only exact round-trips of the constant are reverted.
+	 * A deliberately changed key is written as-is.
 	 *
 	 * @return void
 	 */
@@ -190,8 +186,7 @@ class WC_Stripe_Key_Constants_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * A round-tripped save with no stored key for the overridden field falls
-	 * back to blank instead of persisting the constant.
+	 * With no stored key, a round-tripped save persists blank, not the constant.
 	 *
 	 * @return void
 	 */

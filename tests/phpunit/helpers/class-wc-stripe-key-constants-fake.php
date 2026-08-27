@@ -7,7 +7,7 @@
 
 /**
  * Exposes the constant-reading seam so tests can vary the "defined" constants
- * per case; real constants cannot be undefined and would leak across the process.
+ * per case; real constants would leak across the process.
  */
 class WC_Stripe_Key_Constants_Fake extends WC_Stripe_Key_Constants {
 	/**
@@ -18,7 +18,7 @@ class WC_Stripe_Key_Constants_Fake extends WC_Stripe_Key_Constants {
 	public $constants = [];
 
 	/**
-	 * Reads a constant from the fake map instead of the real constant table.
+	 * Reads a constant from the fake map.
 	 *
 	 * @param string $constant The constant name.
 	 * @return mixed|null Null when the fake does not define it.
