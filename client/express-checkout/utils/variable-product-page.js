@@ -13,7 +13,7 @@
  *
  * @return {boolean} True on the classic template.
  */
-export const isClassicTemplate = () =>
+const isClassicTemplate = () =>
 	Boolean( document.querySelector( '.variations_form' ) );
 
 /**
