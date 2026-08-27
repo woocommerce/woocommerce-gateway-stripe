@@ -352,6 +352,10 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		check_ajax_referer( 'wc-stripe-express-checkout-shipping', 'security' );
 		_deprecated_function( __METHOD__, '10.9.0' );
 
+		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
+			define( 'WOOCOMMERCE_CART', true );
+		}
+
 		$shipping_address          = filter_input_array(
 			INPUT_POST,
 			[
