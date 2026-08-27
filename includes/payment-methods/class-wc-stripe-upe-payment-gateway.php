@@ -1549,13 +1549,23 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// invites a duplicate order. Mirror WC_Checkout::process_order_payment() here. Skipped for
 		// subscription payment-method changes, where $order_id is a non-pending subscription and
 		// core would clear an unrelated cart.
-		$order = wc_get_order( $order_id );
+		$order      = wc_get_order( $order_id );
+		$wc_session = WC()->session;
 		if ( $order instanceof WC_Order
 			&& $order->needs_payment()
-			&& WC()->session
-			&& is_callable( [ WC()->session, 'set' ] )
-			&& ! $this->is_changing_payment_method_for_subscription() ) {
-			WC()->session->set( 'order_awaiting_payment', $order_id );
+			&& $wc_session
+			&& is_callable( [ $wc_session, 'set' ] )
+			&& ! $this->is_changing_payment_method_for_subscription()
+			// Core only sets this key on the checkout path; pay-for-order must not claim the
+			// session's cart, or it gets cleared after a payment for an unrelated order.
+			&& ! did_action( 'woocommerce_before_pay_action' )
+		) {
+			$wc_session->set( 'order_awaiting_payment', $order_id );
+			// Persist now, like core does: if the gateway request below hangs, the session is
+			// never saved at shutdown and a resubmit can create a duplicate order.
+			if ( is_callable( [ $wc_session, 'save_data' ] ) ) {
+				$wc_session->save_data();
+			}
 		}
 
 		$payment_intent_id     = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing

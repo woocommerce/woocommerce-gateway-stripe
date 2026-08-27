@@ -876,7 +876,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 *
 	 * @dataProvider provide_process_payment_sets_order_awaiting_payment_in_session
 	 */
-	public function test_process_payment_sets_order_awaiting_payment_in_session( $order_status, $expect_session_key_set ) {
+	public function test_process_payment_sets_order_awaiting_payment_in_session( $order_status, $expect_session_key_set, $is_pay_for_order = false ) {
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( $order_status );
 		$order->save();
@@ -915,6 +915,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->method( 'get_stripe_customer_id' )
 			->willReturn( 'cus_mock' );
 
+		if ( $is_pay_for_order ) {
+			do_action( 'woocommerce_before_pay_action', $order );
+		}
+
 		$this->mock_gateway->process_payment( $order_id );
 
 		$expected = $expect_session_key_set ? $order_id : null;
@@ -926,9 +930,70 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_process_payment_sets_order_awaiting_payment_in_session() {
 		return [
-			'order needing payment is marked awaiting payment' => [ OrderStatus::PENDING, true ],
-			'already-paid order is not marked'                 => [ OrderStatus::PROCESSING, false ],
+			'order needing payment is marked awaiting payment'      => [ OrderStatus::PENDING, true ],
+			'already-paid order is not marked'                      => [ OrderStatus::PROCESSING, false ],
+			'pay-for-order request does not claim the session cart' => [ OrderStatus::PENDING, false, true ],
 		];
+	}
+
+	/**
+	 * Test that `process_payment` persists the session right after marking the order awaiting
+	 * payment, so a hanging gateway request can't lose the key at shutdown.
+	 */
+	public function test_process_payment_saves_session_after_marking_order_awaiting_payment() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$session_data = [];
+		$mock_session = $this->createMock( WC_Session_Handler::class );
+		$mock_session->method( 'set' )->willReturnCallback(
+			function ( $key, $value ) use ( &$session_data ) {
+				$session_data[ $key ] = $value;
+			}
+		);
+		$mock_session->expects( $this->once() )->method( 'save_data' );
+
+		$mock_intent = (object) wp_parse_args(
+			[
+				'payment_method' => 'pm_mock',
+				'charges'        => (object) [
+					'data' => [
+						(object) [
+							'id'       => $order_id,
+							'captured' => 'yes',
+							'status'   => 'succeeded',
+						],
+					],
+				],
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => 'pm_mock',
+			'wc-stripe-confirmation-token' => '',
+		];
+
+		$this->mock_gateway->intent_controller
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+
+		$this->mock_gateway
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		$original_session = WC()->session;
+		WC()->session     = $mock_session;
+		try {
+			$this->mock_gateway->process_payment( $order_id );
+		} finally {
+			WC()->session = $original_session;
+		}
+
+		$this->assertSame( $order_id, $session_data['order_awaiting_payment'] );
 	}
 
 	/**
