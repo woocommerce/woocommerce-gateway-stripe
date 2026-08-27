@@ -249,8 +249,9 @@ class WC_Stripe_Checkout_Session_Manager {
 	}
 
 	/**
-	 * Whether create_session() would attach a customer and saved_payment_method_options
-	 * for the current request.
+	 * Will a newly created session allow a saved payment method to be created.
+	 * This is only available for a logged-in user with an existing WC_Customer definition
+	 * at the start of a session.
 	 *
 	 * @return bool
 	 */
