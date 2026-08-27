@@ -6,7 +6,7 @@ import {
 	isSelectedVariationUnavailable,
 	observeQuantitySteppers,
 	observeVariationSelection,
-} from 'wcstripe/express-checkout/utils/product-page';
+} from 'wcstripe/express-checkout/utils/variable-product-page';
 
 // Classic template: `.variations_form` with attribute selects, plus the
 // `.single_variation_wrap` hidden inputs written by wc-add-to-cart-variation.js.
