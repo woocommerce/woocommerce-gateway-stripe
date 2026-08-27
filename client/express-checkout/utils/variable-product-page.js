@@ -60,7 +60,11 @@ export const isAddToCartUnavailable = () => {
 
 /**
  * Whether the selected attribute combination matches no purchasable
- * variation (classic template's `wc-variation-is-unavailable` marker).
+ * variation. Classic template only: its script marks the button with
+ * `wc-variation-is-unavailable`. The blockified block exposes a single
+ * undifferentiated invalid state (and disables unavailable options up
+ * front), so this is always false there — callers only lose message
+ * specificity, not blocking.
  *
  * @return {boolean} True when the selected combination is unavailable.
  */
