@@ -336,16 +336,13 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$this->assertSame( '', $settings['webhook_secret'] );
 	}
 	/**
-	 * Changing a mode's secret key clears that mode's OAuth connection metadata,
-	 * so the plugin stops reporting an OAuth connection it no longer has and the
-	 * App OAuth refresh job cannot overwrite the manually entered key. The other
-	 * mode's metadata is left untouched.
+	 * Changing a mode's secret key clears only that mode's OAuth connection metadata.
 	 *
 	 * @dataProvider provide_secret_key_change_scenarios
 	 *
 	 * @param string $changed_field    The secret key field being changed.
-	 * @param string $cleared_prefix   The settings prefix expected to be cleared.
-	 * @param string $untouched_prefix The settings prefix expected to be kept.
+	 * @param string $cleared_prefix   Settings prefix expected to be cleared.
+	 * @param string $untouched_prefix Settings prefix expected to be kept.
 	 */
 	public function test_changing_secret_key_clears_connection_metadata_for_mode( string $changed_field, string $cleared_prefix, string $untouched_prefix ) {
 		$settings                         = WC_Stripe_Helper::get_stripe_settings();
@@ -382,8 +379,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	}
 
 	/**
-	 * A save that does not change any secret key (e.g. only a webhook secret)
-	 * leaves the OAuth connection metadata alone.
+	 * A save that changes no secret key leaves the OAuth connection metadata alone.
 	 */
 	public function test_saving_without_secret_key_change_keeps_connection_metadata() {
 		$settings                    = WC_Stripe_Helper::get_stripe_settings();
@@ -403,9 +399,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	}
 
 	/**
-	 * Once no mode is connected via the Stripe App any more, a key change
-	 * disarms the scheduled connection refresh so the job cannot fire against
-	 * a connection that no longer exists.
+	 * A key change disarms the scheduled refresh once no app-connected mode remains.
 	 */
 	public function test_key_change_unschedules_refresh_when_no_app_connection_remains() {
 		$settings                    = WC_Stripe_Helper::get_stripe_settings();
@@ -425,8 +419,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	}
 
 	/**
-	 * While the other mode is still connected via the Stripe App, its scheduled
-	 * connection refresh must stay armed after a key change in one mode.
+	 * The scheduled refresh stays armed while the other mode is still app-connected.
 	 */
 	public function test_key_change_keeps_refresh_scheduled_while_other_mode_is_app_connected() {
 		$settings                         = WC_Stripe_Helper::get_stripe_settings();
