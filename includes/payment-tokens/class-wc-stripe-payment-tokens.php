@@ -693,12 +693,10 @@ class WC_Stripe_Payment_Tokens {
 				break;
 		}
 
-		// Only card tokens carry a real expiry date. WooCommerce core seeds every token's
-		// "Expires" cell with "N/A" and overwrites it for cards only, so wallets and bank
-		// debits read as missing data rather than "does not expire". Blank the cell for any
-		// non-card Stripe token instead — including ones added in future, which is why this
-		// is a type guard rather than another case in the switch above. Apple Pay and Google
-		// Pay are stored as card tokens, so they keep showing the underlying card's expiry.
+		// Only card tokens have a real expiry date. WooCommerce defaults every token's
+		// "Expires" value with "N/A", but only overwrites it for cards, so all other payment
+		// methods have "N/A". We override the value to '' for all non-card tokens for consistency.
+		// Note that Apple Pay and Google Pay are stored as card tokens, so they show an expiry date.
 		if ( ! $payment_token instanceof WC_Payment_Token_CC ) {
 			$item['expires'] = '';
 		}
