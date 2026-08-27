@@ -342,9 +342,9 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			try {
 				// eslint-disable-next-line global-require
 				const jq = require( 'jquery' );
-				const qtyInput = document.querySelector( '.qty' );
-				qtyInput.value = '2';
-				jq( qtyInput ).trigger( 'input' );
+				const quantityInput = document.querySelector( '.qty' );
+				quantityInput.value = '2';
+				jq( quantityInput ).trigger( 'input' );
 				await jest.advanceTimersByTimeAsync( 300 );
 
 				// The invalid response must not reach the update methods.
