@@ -647,10 +647,9 @@ describe( 'CheckoutSessions hook tests', () => {
 				shippingData
 			);
 			await onCheckoutSuccessResultPromise;
-			expect( confirm ).toHaveBeenCalledWith(
-				expect.not.objectContaining( {
-					savePaymentMethod: expect.anything(),
-				} )
+			expect( confirm ).toHaveBeenCalledTimes( 1 );
+			expect( confirm.mock.calls[ 0 ][ 0 ] ).not.toHaveProperty(
+				'savePaymentMethod'
 			);
 		} );
 	} );

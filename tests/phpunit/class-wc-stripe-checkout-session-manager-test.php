@@ -305,14 +305,22 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A guest-created session cannot accept savePaymentMethod, so a login must recreate it
-	 * rather than reuse the migrated guest one.
+	 * Run synchronize() across a login-state transition with the Stripe API mocked.
+	 *
+	 * Synchronizes once in the starting state, flips the login state (using a
+	 * freshly created user), then synchronizes twice more to cover both the
+	 * recreation and the subsequent reuse of the new session.
+	 *
+	 * @param bool   $start_logged_in Whether the first synchronization happens while logged in.
+	 * @param string $prefix          Fixture prefix for the mocked Stripe identifiers.
+	 * @return array The three synchronize() results, the captured create requests, and the create count.
 	 */
-	public function test_synchronize_recreates_session_when_guest_logs_in(): void {
+	private function run_synchronize_login_transition( bool $start_logged_in, string $prefix ): array {
 		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 42 ] );
 		WC()->cart->add_to_cart( $product->get_id(), 1 );
 		WC()->cart->calculate_totals();
 
+		$user_id           = self::factory()->user->create();
 		$create_count      = 0;
 		$captured_creates  = [];
 		$original_customer = WC()->customer;
@@ -322,12 +330,12 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 			}
 			return $request;
 		};
-		$mock_request      = static function ( $return_value, $parsed_args, $url ) use ( &$create_count ) {
+		$mock_request      = static function ( $return_value, $parsed_args, $url ) use ( &$create_count, $prefix ) {
 			if ( false !== strpos( $url, '/v1/customers' ) ) {
 				return [
 					'response' => 200,
 					'headers'  => [ 'Content-Type' => 'application/json' ],
-					'body'     => wp_json_encode( (object) [ 'id' => 'cus_login_transition' ] ),
+					'body'     => wp_json_encode( (object) [ 'id' => "cus_{$prefix}" ] ),
 				];
 			}
 
@@ -341,32 +349,54 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 				'headers'  => [ 'Content-Type' => 'application/json' ],
 				'body'     => wp_json_encode(
 					(object) [
-						'id'            => "cs_test_login_transition_$create_count",
-						'client_secret' => "cs_test_login_transition_secret_$create_count",
+						'id'            => "cs_test_{$prefix}_{$create_count}",
+						'client_secret' => "cs_test_{$prefix}_secret_{$create_count}",
 					]
 				),
 			];
 		};
+
+		$log_in  = static function () use ( $user_id ) {
+			wp_set_current_user( $user_id );
+			WC()->customer = new WC_Customer( $user_id );
+		};
+		$log_out = static function () use ( $original_customer ) {
+			wp_set_current_user( 0 );
+			WC()->customer = $original_customer;
+		};
+
 		add_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
 		add_filter( 'pre_http_request', $mock_request, 10, 3 );
 
 		try {
-			$manager  = new WC_Stripe_Checkout_Session_Manager();
-			$as_guest = $manager->synchronize();
+			$start_logged_in ? $log_in() : $log_out();
 
-			wp_set_current_user( 1 );
-			WC()->customer = new WC_Customer( 1 );
+			$manager = new WC_Stripe_Checkout_Session_Manager();
+			$before  = $manager->synchronize();
 
-			$after_login  = $manager->synchronize();
+			$start_logged_in ? $log_out() : $log_in();
+
+			$after        = $manager->synchronize();
 			$still_reused = $manager->synchronize();
 		} finally {
 			remove_filter( 'wc_stripe_request_body', $capture_body, 10 );
 			remove_filter( 'pre_http_request', $mock_request, 10 );
 			wp_set_current_user( 0 );
 			WC()->customer = $original_customer;
-			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_login_transition_1' );
-			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_login_transition_2' );
+			WC_Stripe_Checkout_Session_Context::delete_context( "cs_test_{$prefix}_1" );
+			WC_Stripe_Checkout_Session_Context::delete_context( "cs_test_{$prefix}_2" );
 		}
+
+		return [ $before, $after, $still_reused, $captured_creates, $create_count ];
+	}
+
+	/**
+	 * A guest-created session cannot accept savePaymentMethod, so a login must recreate it
+	 * rather than reuse the migrated guest one.
+	 */
+	public function test_synchronize_recreates_session_when_guest_logs_in(): void {
+		[ $as_guest, $after_login, $still_reused, $captured_creates, $create_count ] =
+			$this->run_synchronize_login_transition( false, 'login_transition' );
 
 		$this->assertSame( 2, $create_count, 'The login must trigger exactly one session recreation.' );
 		$this->assertCount( 2, $captured_creates );
@@ -387,66 +417,8 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	 * The inverse transition: logging out must also recreate the session.
 	 */
 	public function test_synchronize_recreates_session_when_user_logs_out(): void {
-		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 42 ] );
-		WC()->cart->add_to_cart( $product->get_id(), 1 );
-		WC()->cart->calculate_totals();
-
-		$create_count      = 0;
-		$captured_creates  = [];
-		$original_customer = WC()->customer;
-		$capture_body      = static function ( $request, $api ) use ( &$captured_creates ) {
-			if ( 'checkout/sessions' === $api ) {
-				$captured_creates[] = $request;
-			}
-			return $request;
-		};
-		$mock_request      = static function ( $return_value, $parsed_args, $url ) use ( &$create_count ) {
-			if ( false !== strpos( $url, '/v1/customers' ) ) {
-				return [
-					'response' => 200,
-					'headers'  => [ 'Content-Type' => 'application/json' ],
-					'body'     => wp_json_encode( (object) [ 'id' => 'cus_logout_transition' ] ),
-				];
-			}
-
-			if ( 'https://api.stripe.com/v1/checkout/sessions' !== $url ) {
-				return $return_value;
-			}
-
-			++$create_count;
-			return [
-				'response' => 200,
-				'headers'  => [ 'Content-Type' => 'application/json' ],
-				'body'     => wp_json_encode(
-					(object) [
-						'id'            => "cs_test_logout_transition_$create_count",
-						'client_secret' => "cs_test_logout_transition_secret_$create_count",
-					]
-				),
-			];
-		};
-		add_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
-		add_filter( 'pre_http_request', $mock_request, 10, 3 );
-
-		try {
-			wp_set_current_user( 1 );
-			WC()->customer = new WC_Customer( 1 );
-
-			$manager         = new WC_Stripe_Checkout_Session_Manager();
-			$while_logged_in = $manager->synchronize();
-
-			wp_set_current_user( 0 );
-			WC()->customer = $original_customer;
-
-			$after_logout = $manager->synchronize();
-		} finally {
-			remove_filter( 'wc_stripe_request_body', $capture_body, 10 );
-			remove_filter( 'pre_http_request', $mock_request, 10 );
-			wp_set_current_user( 0 );
-			WC()->customer = $original_customer;
-			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_logout_transition_1' );
-			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_logout_transition_2' );
-		}
+		[ $while_logged_in, $after_logout, $still_reused, $captured_creates, $create_count ] =
+			$this->run_synchronize_login_transition( true, 'logout_transition' );
 
 		$this->assertSame( 2, $create_count, 'The logout must trigger exactly one session recreation.' );
 		$this->assertTrue( $while_logged_in['save_payment_method_enabled'] );
@@ -454,6 +426,8 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 'customer', $captured_creates[1] );
 		$this->assertSame( 'cs_test_logout_transition_2', $after_logout['session_id'] );
 		$this->assertFalse( $after_logout['save_payment_method_enabled'] );
+
+		$this->assertSame( $after_logout, $still_reused, 'An unchanged logged-out state must keep reusing the recreated session.' );
 	}
 
 	/**
