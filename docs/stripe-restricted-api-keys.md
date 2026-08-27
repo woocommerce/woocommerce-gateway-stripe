@@ -24,7 +24,7 @@ A defined constant overrides the key stored in the database on every read, and s
 - The key never lives in the database, so a database leak does not expose it.
 - The override survives the connection refresh that runs on some OAuth connection types, which would otherwise overwrite a key stored in the database.
 
-Note: defining the constants does not remove any key that is already stored in the database from an earlier OAuth connection or manual save. Removing stored keys is a separate hardening step; leave `webhook_secret` / `test_webhook_secret` in place, since they are needed at runtime to verify incoming webhooks.
+Note: defining the constants does not remove any key that is already stored in the database from an earlier OAuth connection or manual save; see [Decommission the standard key](#decommission-the-standard-key). Leave `webhook_secret` / `test_webhook_secret` in place, since they are needed at runtime to verify incoming webhooks.
 
 ### Option 2: the account keys REST endpoint
 
@@ -36,6 +36,16 @@ POST /wp-json/wc/v3/wc_stripe/account_keys
 ```
 
 Keys saved this way are stored in the `woocommerce_stripe_settings` option, like OAuth-issued keys.
+
+## Decommission the standard key
+
+Installing a restricted key does not by itself protect a store whose standard secret key may already have been exposed, and neither install option removes every trace of the old key on its own. A Stripe key stays valid until it is rolled or revoked at Stripe, so finish the switch:
+
+1. Save the restricted key through the account keys endpoint (Option 2), so it replaces the standard key stored in the database. The plugin treats this as a key rotation: enabled payment methods reset to cards and Link, and the automatically configured webhook endpoint is removed, so re-enable your payment methods and reconfigure webhooks from the settings screen afterwards.
+2. Optionally also define the constants (Option 1) with the same restricted key. The database copy then only matters if the constant is removed, and a future database leak exposes at most the restricted key.
+3. Roll or revoke the standard secret key from the [Stripe dashboard](https://docs.stripe.com/keys#rolling-keys). This is the step that actually invalidates it; nothing removed on the WordPress side revokes a key.
+
+Stores connected through the Stripe App should do the swap in step 1 rather than only defining constants: a manual key save supersedes the OAuth connection and stops its scheduled refresh, which would otherwise write the OAuth-issued keys back into the database. A fuller cleanup guide is planned separately.
 
 ## Required permissions
 
