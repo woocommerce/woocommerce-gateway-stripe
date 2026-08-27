@@ -3,6 +3,23 @@ import { getErrorMessageFromNotice, normalizeOrderData } from './utils';
 import { __ } from '@wordpress/i18n';
 
 /**
+ * Resolves the message shown when the order could not be processed.
+ *
+ * The Store API can report a non-success payment status with no error attached
+ * (e.g. WooCommerce skipped payment because it could not resolve the gateway),
+ * so fall back to a generic message rather than aborting with an empty one.
+ *
+ * @param {string|undefined} errorMessage The error message returned by the server, if any.
+ * @return {string} The message to display.
+ */
+const getOrderErrorMessage = ( errorMessage ) =>
+	getErrorMessageFromNotice( errorMessage ) ||
+	__(
+		'There was a problem processing the order.',
+		'woocommerce-gateway-stripe'
+	);
+
+/**
  * Handles exceptions thrown during the payment flow by extracting a human-readable
  * error message and calling the abort payment callback.
  *
@@ -29,14 +46,8 @@ const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 			errorMessage = paymentDetailsErrorMessage;
 		}
 	}
-	if ( ! errorMessage ) {
-		errorMessage = __(
-			'There was a problem processing the order.',
-			'woocommerce-gateway-stripe'
-		);
-	}
 
-	return abortPayment( event, getErrorMessageFromNotice( errorMessage ) );
+	return abortPayment( event, getOrderErrorMessage( errorMessage ) );
 };
 
 /**
@@ -154,10 +165,7 @@ export const handleManualPaymentMethodFlow = async ( {
 		} );
 
 		if ( result !== 'success' ) {
-			return abortPayment(
-				event,
-				getErrorMessageFromNotice( errorMessage )
-			);
+			return abortPayment( event, getOrderErrorMessage( errorMessage ) );
 		}
 
 		const confirmationRequest = api.confirmIntent( redirect );
@@ -225,10 +233,7 @@ export const handleConfirmationTokenFlow = async ( {
 		} );
 
 		if ( result !== 'success' ) {
-			return abortPayment(
-				event,
-				getErrorMessageFromNotice( errorMessage )
-			);
+			return abortPayment( event, getOrderErrorMessage( errorMessage ) );
 		}
 
 		const confirmationRequest = api.confirmIntent( redirect );
