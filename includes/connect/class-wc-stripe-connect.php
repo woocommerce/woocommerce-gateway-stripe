@@ -512,9 +512,13 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		/**
 		 * Unschedules the App OAuth connection refresh.
 		 *
+		 * Public so key updates outside the OAuth flow (e.g. the account keys
+		 * REST endpoint) can disarm the refresh job once no mode is connected
+		 * via the Stripe App.
+		 *
 		 * @since 8.6.0
 		 */
-		protected function unschedule_connection_refresh() {
+		public function unschedule_connection_refresh() {
 			as_unschedule_all_actions( 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID );
 		}
 

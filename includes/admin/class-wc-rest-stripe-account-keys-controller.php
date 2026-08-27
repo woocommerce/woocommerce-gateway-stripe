@@ -306,6 +306,22 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			$settings['test_refresh_token']   = '';
 			$this->record_manual_account_disconnect_track_event( WC_Stripe_Mode::is_test() );
 		} else {
+			// A manually entered secret key supersedes the OAuth-issued one, so drop
+			// that mode's connection metadata: otherwise the plugin keeps reporting an
+			// OAuth connection it no longer has, and on 'app' connections the refresh
+			// job silently overwrites the new key within the hour.
+			foreach ( [ '', 'test_' ] as $prefix ) {
+				$field = $prefix . 'secret_key';
+				if ( ( $current_account_keys[ $field ] ?? '' ) !== ( $settings[ $field ] ?? '' ) ) {
+					$settings[ $prefix . 'connection_type' ] = '';
+					$settings[ $prefix . 'refresh_token' ]   = '';
+				}
+			}
+
+			if ( 'app' !== ( $settings['connection_type'] ?? '' ) && 'app' !== ( $settings['test_connection_type'] ?? '' ) ) {
+				WC_Stripe::get_instance()->connect->unschedule_connection_refresh();
+			}
+
 			$this->record_manual_account_key_update_track_event( WC_Stripe_Mode::is_test() );
 		}
 
