@@ -35,6 +35,8 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 11.0.0
+   - Some express checkout helpers now require the caller to specify whether they are in the WooCommerce Cart context
 * 10.9.0
    - Express checkout processes classic checkout custom fields by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
 * 10.8.0
