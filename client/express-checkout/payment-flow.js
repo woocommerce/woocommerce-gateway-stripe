@@ -36,6 +36,13 @@ const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 	);
 };
 
+const getUsableAddress = ( address ) =>
+	address !== null &&
+	typeof address === 'object' &&
+	! Array.isArray( address )
+		? address
+		: {};
+
 /**
  * Creates or pays for an order using the Express Checkout payment data,
  * normalizing addresses before submission.
@@ -70,11 +77,16 @@ const processOrder = async ( {
 		normalizedOrderData.shipping_address
 	);
 
-	if ( normalizedAddress ) {
-		normalizedOrderData.billing_address = normalizedAddress.billing_address;
-		normalizedOrderData.shipping_address =
-			normalizedAddress.shipping_address;
-	}
+	// Merge rather than replace: the response can carry no usable address at all,
+	// and replacing with `undefined` would drop the keys from the Store API request
+	normalizedOrderData.billing_address = {
+		...normalizedOrderData.billing_address,
+		...getUsableAddress( normalizedAddress?.billing_address ),
+	};
+	normalizedOrderData.shipping_address = {
+		...normalizedOrderData.shipping_address,
+		...getUsableAddress( normalizedAddress?.shipping_address ),
+	};
 
 	if ( order ) {
 		orderResponse = await api.expressCheckoutECEPayForOrder(

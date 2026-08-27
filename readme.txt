@@ -35,6 +35,9 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 11.0.0
+   - Some express checkout helpers now require the caller to specify whether they are in the WooCommerce Cart context
+   - Express checkout merges the wc_stripe_express_checkout_normalize_address filter result over the address it sent; removing a field no longer clears it, return an empty string instead
 * 10.9.0
    - Express checkout processes classic checkout custom fields by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
 * 10.8.0
@@ -173,6 +176,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Use database cache for webhook status tracking
 * Dev - Add WC_Stripe::get_settings()/update_settings() as the canonical accessors for the main Stripe settings, with the WC_Stripe_Helper shims delegating to them
 * Fix - Render classic-checkout card fields when a host optimizer defers render-blocking JavaScript (e.g. SiteGround Speed Optimizer)
+* Fix - Leave the Expires column blank instead of showing "N/A" on My Account → Payment methods for saved payment methods that have no expiry date, such as Link, SEPA and Cash App Pay
 * Fix - Allow express checkout payments when automatic account password generation is disabled
 * Dev - Remove the deprecated @woocommerce/settings npm package; settings are still read from the wc-settings script WooCommerce provides at runtime
 * Fix - Exclude password-protected products and products hidden from the catalog from the Agentic Commerce feed
@@ -180,6 +184,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Make GITHUB_TOKEN optional for the local E2E Docker setup by falling back to the GitHub CLI and then to plugin zips placed in tests/e2e/deps
 * Fix - Reload the plugin's payment method settings when refreshing account details, so the settings screen no longer keeps showing stale values
 * Update - Fetch express checkout AJAX nonces on demand instead of embedding them in every page
+* Fix - Keep the wallet billing and shipping addresses on express checkout orders when the address normalization request returns an unusable response
 * Fix - Render the Adaptive Pricing payment element in the store's Stripe locale
 * Fix - Stop sending Level 3 data when paying with a non-card payment method through express checkout (e.g. Amazon Pay), which Stripe rejects and can disable Level 3 data for card payments
 * Fix - Record the charge-captured state for asynchronously confirmed payments (e.g. ACH) so refunds from wp-admin and the Stripe Dashboard behave correctly
@@ -187,5 +192,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Hide the Apple Pay and Google Pay express buttons on pages unchecked in their own locations setting, instead of following other wallets' locations
 * Fix - Hide the save payment method checkbox for Bancontact, iDEAL and Sofort in the Adaptive Pricing checkout on non-EUR stores whose currency excludes them
 * Fix - Surface express checkout order failures instead of leaving the Apple Pay or Google Pay sheet open with no error
+* Fix - Stop flagging the checkout page as the cart page (is_cart() returning true) when express checkout buttons are enabled, which made analytics and other plugins misread the page
+* Fix - Remove the empty box shown under "Use a new payment method" on classic checkout when the save-payment-method checkbox is hidden
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
