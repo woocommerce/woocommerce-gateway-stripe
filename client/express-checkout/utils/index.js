@@ -1,5 +1,6 @@
 /* global wc_stripe_express_checkout_params */
 import jQuery from 'jquery';
+import { __ } from '@wordpress/i18n';
 import { isAmazonPayEnabled, isLinkEnabled } from 'wcstripe/stripe-utils';
 import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
 import {
@@ -30,6 +31,23 @@ export const getErrorMessageFromNotice = ( notice ) => {
 	div.innerHTML = notice.trim();
 	return div.firstChild?.textContent || '';
 };
+
+/**
+ * Resolves the message shown when an express checkout payment is aborted.
+ *
+ * Stripe errors and Store API responses can both arrive without a usable message — a
+ * non-success payment status with nothing attached, or a Stripe error whose `message`
+ * is unset — and aborting with an empty one leaves the shopper with no explanation.
+ *
+ * @param {string|undefined} message The message reported by Stripe or the server, if any.
+ * @return {string} The message to display.
+ */
+export const getExpressCheckoutErrorMessage = ( message ) =>
+	getErrorMessageFromNotice( message ) ||
+	__(
+		'There was a problem processing the order.',
+		'woocommerce-gateway-stripe'
+	);
 
 /**
  * Retrieves express checkout data from global variable.
@@ -399,22 +417,23 @@ export const displayExpressCheckoutNotice = (
 		`<div class="${ classNames.join( ' ' ) }" role="note" />`
 	).html( safeMessage );
 
-	if ( $container.length ) {
-		if ( isBlockCheckout ) {
-			$container.prepend( note );
-		} else {
-			$container.append( note );
-		}
-	} else {
+	if ( ! $container.length ) {
 		// Product pages, and themes that render no notices wrapper, would drop the
-		// message entirely. Fall back to the button, which is on every page that
-		// can raise one of these errors.
+		// message entirely. Fall back to the classic express checkout container; it
+		// sits where the shopper just tapped, so no scrolling is needed (and none is
+		// wanted, with a wallet sheet opening over the page).
 		const $button = jQuery( '#wc-stripe-express-checkout-element' );
-		if ( ! $button.length ) {
-			return;
+		if ( $button.length ) {
+			$button.before( note );
 		}
 
-		$button.before( note );
+		return;
+	}
+
+	if ( isBlockCheckout ) {
+		$container.prepend( note );
+	} else {
+		$container.append( note );
 	}
 
 	// Scroll to the notice.

@@ -586,6 +586,35 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	}
 
 	/**
+	 * Whether the given Store API payment method id belongs to this gateway.
+	 *
+	 * A bare `stripe_` prefix test is not enough: other vendors register gateways under
+	 * that prefix too, so split UPE ids are matched against the methods this gateway
+	 * actually registers.
+	 *
+	 * @param string $payment_method The payment method id from the payment context.
+	 *
+	 * @return bool
+	 */
+	private function is_stripe_payment_method( string $payment_method ): bool {
+		if ( $this->name === $payment_method ) {
+			return true;
+		}
+
+		$prefix = $this->name . '_';
+		if ( 0 !== strpos( $payment_method, $prefix ) ) {
+			return false;
+		}
+
+		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		if ( ! $main_gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
+			return false;
+		}
+
+		return isset( $main_gateway->payment_methods[ substr( $payment_method, strlen( $prefix ) ) ] );
+	}
+
+	/**
 	 * Fails the payment when WooCommerce never handed it to the gateway.
 	 *
 	 * `Legacy::process_legacy_payment()` returns without setting a status when it cannot
@@ -607,7 +636,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		}
 
 		$payment_method = (string) $context->payment_method;
-		if ( $this->name !== $payment_method && 0 !== strpos( $payment_method, $this->name . '_' ) ) {
+		if ( ! $this->is_stripe_payment_method( $payment_method ) ) {
 			return;
 		}
 

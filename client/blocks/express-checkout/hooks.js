@@ -56,15 +56,16 @@ export const useExpressCheckout = ( {
 
 	const abortPayment = useCallback(
 		( onConfirmEvent, message ) => {
-			// The wallet sheet only closes once the confirm event gets a
-			// terminal result, so this must run for order errors too.
-			onConfirmEvent.paymentFailed( { reason: 'fail' } );
-
 			// If we have a multiline message using newlines, replace them with <br>.
 			const formattedMessage = message.replace( /\n/g, '<br>' );
 			setExpressPaymentError( formattedMessage );
 
 			onAbortPaymentHandler( onConfirmEvent, message );
+
+			// The wallet sheet only closes once the confirm event gets a
+			// terminal result, so this must run for order errors too. Last,
+			// so a rejected late call can't cost the shopper the message.
+			onConfirmEvent.paymentFailed( { reason: 'fail' } );
 		},
 		[ setExpressPaymentError ]
 	);

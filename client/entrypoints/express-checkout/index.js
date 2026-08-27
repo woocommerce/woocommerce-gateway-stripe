@@ -874,12 +874,13 @@ jQuery( function ( $ ) {
 		 * @param {string}          message Error message to display.
 		 */
 		abortPayment: ( payment, message ) => {
-			// The wallet sheet only closes once the confirm event gets a
-			// terminal result, so this must run for order errors too.
-			payment.paymentFailed( { reason: 'fail' } );
 			onAbortPaymentHandler( payment, message );
-
 			displayExpressCheckoutNotice( message, 'error' );
+
+			// The wallet sheet only closes once the confirm event gets a
+			// terminal result, so this must run for order errors too. Last,
+			// so a rejected late call can't cost the shopper the message.
+			payment.paymentFailed( { reason: 'fail' } );
 		},
 
 		attachProductPageEventListeners: () => {

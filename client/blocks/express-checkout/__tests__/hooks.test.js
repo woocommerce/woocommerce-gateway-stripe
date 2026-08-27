@@ -227,7 +227,8 @@ describe( 'useExpressCheckout', () => {
 	} );
 
 	// An order-side failure still has to give the wallet sheet a terminal result,
-	// otherwise it stays open and the shopper is left with nothing.
+	// otherwise it stays open and the shopper is left with nothing. The third
+	// argument is the removed `isOrderError` opt-out: passing it must change nothing.
 	it( 'fails the payment on the wallet sheet when the order errors', async () => {
 		const setExpressPaymentError = jest.fn();
 
@@ -252,7 +253,7 @@ describe( 'useExpressCheckout', () => {
 		} );
 
 		const { abortPayment } = onConfirmHandler.mock.calls[ 0 ][ 0 ];
-		abortPayment( event, 'Order creation error' );
+		abortPayment( event, 'Order creation error', true );
 
 		expect( event.paymentFailed ).toHaveBeenCalledWith( {
 			reason: 'fail',
@@ -260,6 +261,11 @@ describe( 'useExpressCheckout', () => {
 		expect( setExpressPaymentError ).toHaveBeenCalledWith(
 			'Order creation error'
 		);
+
+		// The message has to be in front of the shopper before the sheet closes.
+		expect(
+			setExpressPaymentError.mock.invocationCallOrder[ 0 ]
+		).toBeLessThan( event.paymentFailed.mock.invocationCallOrder[ 0 ] );
 	} );
 
 	// Blocks passes fresh billing/shippingData refs each cart tick; memoised
