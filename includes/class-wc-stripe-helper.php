@@ -2209,6 +2209,23 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Returns the account-level gate values the Customize express checkouts settings pages localize
+	 * for their placement simulator. These gates apply to every express method (Apple Pay/Google Pay,
+	 * Amazon Pay, Link), so they live here rather than being duplicated across the three controllers.
+	 *
+	 * @return array{is_account_connected: bool, is_https: bool, is_test_mode: bool}
+	 */
+	public static function get_express_checkout_simulator_gate_params(): array {
+		return [
+			'is_account_connected' => self::is_connected(),
+			// is_ssl() would report the admin request's scheme, not the storefront's; the configured
+			// site URLs are what the storefront gate will effectively see.
+			'is_https'             => wp_is_using_https(),
+			'is_test_mode'         => WC_Stripe_Mode::is_test(),
+		];
+	}
+
+	/**
 	 * Checks if the order is using a Stripe payment method.
 	 *
 	 * @param $order WC_Order The order to check.
