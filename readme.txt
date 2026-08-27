@@ -37,6 +37,7 @@ The following items note specific versions that include important changes, featu
 
 * 11.0.0
    - Some express checkout helpers now require the caller to specify whether they are in the WooCommerce Cart context
+   - Express checkout merges the wc_stripe_express_checkout_normalize_address filter result over the address it sent; removing a field no longer clears it, return an empty string instead
 * 10.9.0
    - Express checkout processes classic checkout custom fields by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
 * 10.8.0
