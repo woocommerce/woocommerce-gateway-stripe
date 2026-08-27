@@ -974,9 +974,12 @@ jQuery( function ( $ ) {
 			$.when( wcStripeECE.getSelectedProductData() )
 				.then(
 					( response ) => {
-						// In case the server returns an unexpected response
-						if ( typeof response !== 'object' ) {
+						// A null or primitive response can't be applied:
+						// record the error (surfaced on the next click) and
+						// keep the current preview.
+						if ( ! response || typeof response !== 'object' ) {
 							wcStripeECEError = defaultErrorMessage;
+							return;
 						}
 
 						if (

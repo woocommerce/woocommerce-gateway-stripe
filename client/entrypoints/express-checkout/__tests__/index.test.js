@@ -320,6 +320,58 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		] );
 	} );
 
+	it.each( [
+		[ 'null', null ],
+		[ 'a primitive', 'oops' ],
+	] )(
+		'keeps the preview and surfaces an error when the quantity refresh resolves %s',
+		async ( _label, badResponse ) => {
+			jest.useFakeTimers();
+			global.wc_stripe_express_checkout_params = productParams();
+
+			mockGetSelectedProductData.mockResolvedValue( badResponse );
+			mockAddToCart.mockResolvedValue( { items_count: 1 } );
+			mockEmptyCartLegacy.mockResolvedValue( {} );
+			const alertSpy = jest
+				.spyOn( window, 'alert' )
+				.mockImplementation( () => {} );
+
+			const { handlers, elementsList } = stubStripeButton();
+			loadEntrypoint();
+
+			try {
+				// eslint-disable-next-line global-require
+				const jq = require( 'jquery' );
+				const qtyInput = document.querySelector( '.qty' );
+				qtyInput.value = '2';
+				jq( qtyInput ).trigger( 'input' );
+				await jest.advanceTimersByTimeAsync( 300 );
+
+				// The invalid response must not reach the update methods.
+				elementsList.forEach( ( elements ) => {
+					expect( elements.update ).not.toHaveBeenCalled();
+				} );
+
+				// The stored error blocks the next click with an alert.
+				const event = {
+					resolve: jest.fn(),
+					expressPaymentType: 'googlePay',
+				};
+				await handlers.click( event );
+				expect( alertSpy ).toHaveBeenCalledWith(
+					expect.stringContaining(
+						'error getting the product information'
+					)
+				);
+				expect( event.resolve ).not.toHaveBeenCalled();
+				expect( mockAddToCart ).not.toHaveBeenCalled();
+			} finally {
+				jest.useRealTimers();
+				alertSpy.mockRestore();
+			}
+		}
+	);
+
 	it( 'pushes the new amount to every mounted express button, not just the last one', async () => {
 		global.wc_stripe_express_checkout_params = productParams();
 
