@@ -8,6 +8,15 @@
  */
 
 /**
+ * Whether the page renders the classic `.variations_form` template (as
+ * opposed to the blockified Add to Cart + Options block).
+ *
+ * @return {boolean} True on the classic template.
+ */
+export const isClassicTemplate = () =>
+	Boolean( document.querySelector( '.variations_form' ) );
+
+/**
  * Whether the page renders a variable product's variation UI (either template).
  *
  * @return {boolean} True when variation markup is present.
@@ -71,18 +80,12 @@ export const isAddToCartUnavailable = () => {
  * @return {boolean} True when the selected combination is unavailable.
  */
 export const isSelectedVariationUnavailable = () => {
-	if (
-		document
-			.querySelector( '.single_add_to_cart_button' )
-			?.classList.contains( 'wc-variation-is-unavailable' )
-	) {
-		return true;
-	}
-
-	// Blockified template only; on classic the marker above is authoritative
-	// and the variation inputs may lag behind the selects mid-resolution.
-	if ( document.querySelector( '.variations_form' ) ) {
-		return false;
+	if ( isClassicTemplate() ) {
+		return Boolean(
+			document
+				.querySelector( '.single_add_to_cart_button' )
+				?.classList.contains( 'wc-variation-is-unavailable' )
+		);
 	}
 
 	const { count, chosenCount } = getSelectedVariationAttributes();
