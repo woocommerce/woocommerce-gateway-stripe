@@ -346,6 +346,24 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The payment context arrives from a hook, so a context without an order must still
+	 * produce the intended error rather than a fatal from the log line.
+	 *
+	 * @return void
+	 */
+	public function test_fail_unprocessed_payment_throws_when_the_context_has_no_order(): void {
+		$blocks_support = $this->get_initialized_blocks_support();
+
+		$context = new \Automattic\WooCommerce\StoreApi\Payments\PaymentContext();
+		$context->set_payment_method( 'stripe' );
+
+		$result = new \Automattic\WooCommerce\StoreApi\Payments\PaymentResult();
+
+		$this->expectException( Exception::class );
+		$blocks_support->fail_unprocessed_payment( $context, $result );
+	}
+
+	/**
 	 * @return array[]
 	 */
 	public function provider_unprocessed_stripe_payment_methods(): array {

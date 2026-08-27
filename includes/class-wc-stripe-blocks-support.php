@@ -629,8 +629,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			return;
 		}
 
+		// The context is hook-derived, so don't let the log line itself be what fatals.
+		$order_id = $context->order instanceof WC_Order ? $context->order->get_id() : 0;
+
 		WC_Stripe_Logger::error(
-			'Payment was never processed for order: ' . $context->order->get_id(),
+			'Payment was never processed for order: ' . $order_id,
 			[
 				'payment_method' => $payment_method,
 				'reason'         => 'WooCommerce set no payment result status, so the gateway was never invoked.',
