@@ -617,11 +617,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	/**
 	 * Fails the payment when WooCommerce never handed it to the gateway.
 	 *
-	 * `Legacy::process_legacy_payment()` returns without setting a status when it cannot
-	 * resolve the payment method to an available gateway. The Store API then answers 200
-	 * with an empty payment status, leaving the order unpaid with no charge attempted and
-	 * nothing logged; express checkout reads that as a failure it cannot explain and the
-	 * wallet sheet is left with no reason to show. Turn it into a real error instead.
+	 * Every path through `Legacy::process_legacy_payment()` sets a status once the gateway
+	 * runs, so an empty one here means the gateway was never invoked and no charge was
+	 * attempted. The Store API would otherwise answer 200 with an empty payment status,
+	 * leaving an unpaid order with its stock still reserved and nothing logged. Throwing
+	 * gives the shopper an error and lets WooCommerce release the stock it held.
 	 *
 	 * @param PaymentContext $context Holds context for the payment.
 	 * @param PaymentResult  $result  Result object for the payment.
@@ -644,7 +644,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			'Payment was never processed for order: ' . $context->order->get_id(),
 			[
 				'payment_method' => $payment_method,
-				'reason'         => 'WooCommerce could not resolve the payment method to an available gateway.',
+				'reason'         => 'WooCommerce set no payment result status, so the gateway was never invoked.',
 			]
 		);
 
