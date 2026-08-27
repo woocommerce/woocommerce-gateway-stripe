@@ -966,8 +966,8 @@ jQuery( function ( $ ) {
 		},
 
 		// Refresh the express checkout amount/items for the current quantity.
-		// Wired to both the qty input event and, on the blockified template,
-		// the quantity value observer.
+		// Wired to both the quantity input event and, on the blockified
+		// template, the stepper listener.
 		onQuantityChanged: () => {
 			wcStripeECE.blockExpressCheckoutButton();
 			wcStripeECEError = '';
