@@ -221,6 +221,38 @@ describe( 'ECE product page DOM readers', () => {
 			expect( isSelectedVariationUnavailable() ).toBe( true );
 		} );
 
+		it( 'infers an unavailable combination on the blockified template (complete selection, no resolved variation)', () => {
+			document.body.innerHTML = blockifiedMarkup( {
+				color: 'blue',
+				logo: 'No',
+			} );
+			expect( isSelectedVariationUnavailable() ).toBe( true );
+		} );
+
+		it( 'does not flag an incomplete blockified selection', () => {
+			document.body.innerHTML = blockifiedMarkup( { color: 'blue' } );
+			expect( isSelectedVariationUnavailable() ).toBe( false );
+		} );
+
+		it( 'does not flag a resolved blockified selection', () => {
+			document.body.innerHTML = blockifiedMarkup( {
+				color: 'blue',
+				logo: 'No',
+				variationId: '30',
+			} );
+			expect( isSelectedVariationUnavailable() ).toBe( false );
+		} );
+
+		it( 'defers to the classic marker on the classic template (no inference)', () => {
+			// Complete selection, empty variation_id, but no marker class:
+			// mid-resolution state on classic must not be flagged.
+			document.body.innerHTML = classicMarkup( {
+				color: 'blue',
+				logo: 'No',
+			} );
+			expect( isSelectedVariationUnavailable() ).toBe( false );
+		} );
+
 		it( 'is false without the marker or without the button', () => {
 			document.body.innerHTML =
 				'<button class="single_add_to_cart_button"></button>';

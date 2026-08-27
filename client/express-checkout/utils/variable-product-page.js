@@ -60,20 +60,34 @@ export const isAddToCartUnavailable = () => {
 
 /**
  * Whether the selected attribute combination matches no purchasable
- * variation. Classic template only: its script marks the button with
- * `wc-variation-is-unavailable`. The blockified block exposes a single
- * undifferentiated invalid state (and disables unavailable options up
- * front), so this is always false there — callers only lose message
- * specificity, not blocking.
+ * variation. Works on both templates, through different signals:
+ * - classic: the `wc-variation-is-unavailable` class its script puts on
+ *   the add-to-cart button;
+ * - blockified: no marker exists, so the verdict is inferred — a complete
+ *   attribute selection that resolved no variation matched nothing.
+ *   (Out-of-stock combinations resolve an ID, so they correctly stay out
+ *   of this bucket.)
  *
  * @return {boolean} True when the selected combination is unavailable.
  */
-export const isSelectedVariationUnavailable = () =>
-	Boolean(
+export const isSelectedVariationUnavailable = () => {
+	if (
 		document
 			.querySelector( '.single_add_to_cart_button' )
 			?.classList.contains( 'wc-variation-is-unavailable' )
-	);
+	) {
+		return true;
+	}
+
+	// Blockified template only; on classic the marker above is authoritative
+	// and the variation inputs may lag behind the selects mid-resolution.
+	if ( document.querySelector( '.variations_form' ) ) {
+		return false;
+	}
+
+	const { count, chosenCount } = getSelectedVariationAttributes();
+	return count > 0 && chosenCount === count && ! getSelectedVariationId();
+};
 
 /**
  * Reads the currently selected variation attributes.
