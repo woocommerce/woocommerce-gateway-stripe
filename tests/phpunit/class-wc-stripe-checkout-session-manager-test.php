@@ -311,14 +311,19 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	 * freshly created user), then synchronizes twice more to cover both the
 	 * recreation and the subsequent reuse of the new session.
 	 *
-	 * @param bool   $start_logged_in Whether the first synchronization happens while logged in.
-	 * @param string $prefix          Fixture prefix for the mocked Stripe identifiers.
+	 * @param bool          $start_logged_in Whether the first synchronization happens while logged in.
+	 * @param string        $prefix          Fixture prefix for the mocked Stripe identifiers.
+	 * @param callable|null $seed            Optional callback to seed a pre-existing record once the cart totals are known.
 	 * @return array The three synchronize() results, the captured create requests, and the create count.
 	 */
-	private function run_synchronize_login_transition( bool $start_logged_in, string $prefix ): array {
+	private function run_synchronize_login_transition( bool $start_logged_in, string $prefix, ?callable $seed = null ): array {
 		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 42 ] );
 		WC()->cart->add_to_cart( $product->get_id(), 1 );
 		WC()->cart->calculate_totals();
+
+		if ( null !== $seed ) {
+			$seed();
+		}
 
 		$user_id           = self::factory()->user->create();
 		$create_count      = 0;
@@ -428,6 +433,52 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		$this->assertFalse( $after_logout['save_payment_method_enabled'] );
 
 		$this->assertSame( $after_logout, $still_reused, 'An unchanged logged-out state must keep reusing the recreated session.' );
+	}
+
+	/**
+	 * A record written before the save flag existed omits the key entirely. A guest must
+	 * keep reusing it, and a login must recreate it rather than reuse it in a state that
+	 * cannot save a payment method.
+	 */
+	public function test_synchronize_self_heals_legacy_record_without_save_flag(): void {
+		$seed = static function (): void {
+			WC()->session->set(
+				'wc_stripe_checkout_session',
+				[
+					'session_id'    => 'cs_test_legacy_record',
+					'client_secret' => 'cs_test_legacy_secret',
+					'revision'      => 'legacy-revision',
+					'status'        => 'success',
+					'message'       => '',
+				]
+			);
+
+			$currency = get_woocommerce_currency();
+			WC_Stripe_Checkout_Session_Context::set_context(
+				'cs_test_legacy_record',
+				[
+					'amount'   => WC_Stripe_Helper::get_stripe_amount( (float) WC()->cart->get_total( 'edit' ), $currency ),
+					'currency' => strtolower( $currency ),
+				]
+			);
+		};
+
+		try {
+			[ $as_guest, $after_login, $still_reused, $captured_creates, $create_count ] =
+				$this->run_synchronize_login_transition( false, 'legacy_heal', $seed );
+		} finally {
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_legacy_record' );
+		}
+
+		$this->assertSame( 'cs_test_legacy_record', $as_guest['session_id'], 'A guest must keep reusing the legacy record.' );
+		$this->assertFalse( $as_guest['save_payment_method_enabled'] );
+
+		$this->assertSame( 1, $create_count, 'The login must recreate the legacy session exactly once.' );
+		$this->assertSame( [ 'payment_method_save' => 'enabled' ], $captured_creates[0]['saved_payment_method_options'] );
+		$this->assertSame( 'cs_test_legacy_heal_1', $after_login['session_id'] );
+		$this->assertTrue( $after_login['save_payment_method_enabled'] );
+
+		$this->assertSame( $after_login, $still_reused, 'An unchanged login state must keep reusing the recreated session.' );
 	}
 
 	/**

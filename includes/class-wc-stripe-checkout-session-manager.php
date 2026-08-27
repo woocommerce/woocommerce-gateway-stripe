@@ -207,7 +207,16 @@ class WC_Stripe_Checkout_Session_Manager {
 
 		// Stripe cannot add or remove saved_payment_method_options after creation, so a
 		// login-state change (e.g. a migrated guest session) requires a new session.
-		if ( ! empty( $record['save_payment_method_enabled'] ) !== $this->can_enable_save_payment_method() ) {
+		$can_save_payment_method = $this->can_enable_save_payment_method();
+		if ( ! empty( $record['save_payment_method_enabled'] ) !== $can_save_payment_method ) {
+			WC_Stripe_Logger::info(
+				'Recreating the Checkout Session after a login-state change.',
+				[
+					'checkout_session_id'         => (string) $record['session_id'],
+					'save_payment_method_enabled' => $can_save_payment_method,
+				]
+			);
+
 			return $this->create_session();
 		}
 
