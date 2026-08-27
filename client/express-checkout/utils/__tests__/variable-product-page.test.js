@@ -215,9 +215,12 @@ describe( 'ECE product page DOM readers', () => {
 	} );
 
 	describe( 'isSelectedVariationUnavailable', () => {
-		it( 'reflects the unavailable-combination marker', () => {
+		it( 'reflects the unavailable-combination marker on the classic template', () => {
+			// The marker is written by the classic script, which only runs
+			// alongside a `.variations_form` — the fixture must include it or
+			// the reader correctly takes the blockified branch.
 			document.body.innerHTML =
-				'<button class="single_add_to_cart_button disabled wc-variation-is-unavailable"></button>';
+				'<form class="variations_form cart"><button class="single_add_to_cart_button disabled wc-variation-is-unavailable"></button></form>';
 			expect( isSelectedVariationUnavailable() ).toBe( true );
 		} );
 
