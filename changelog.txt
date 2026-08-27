@@ -2,6 +2,7 @@
 
 xxxx-xx-xx - version 10.9.1
 * Fix - Allow express checkout payments when automatic account password generation is disabled
+* Fix - Stop flagging the checkout page as the cart page (is_cart() returning true) when express checkout buttons are enabled, which made analytics and other plugins misread the page
 
 2026-08-17 - version 10.9.0
 * Fix - Re-enable Adaptive Pricing if it was automatically disabled after a Checkout Session amount mismatch
