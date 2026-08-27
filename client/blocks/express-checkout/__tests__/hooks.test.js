@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { useExpressCheckout } from '../hooks';
+import { onConfirmHandler } from 'wcstripe/express-checkout/event-handler';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
 // Stable singletons, matching how react-stripe-js returns the same instances.
@@ -222,6 +223,42 @@ describe( 'useExpressCheckout', () => {
 				shippingAddressRequired: false,
 				phoneNumberRequired: true,
 			} )
+		);
+	} );
+
+	// An order-side failure still has to give the wallet sheet a terminal result,
+	// otherwise it stays open and the shopper is left with nothing.
+	it( 'fails the payment on the wallet sheet when the order errors', async () => {
+		const setExpressPaymentError = jest.fn();
+
+		const { result } = renderHook( () =>
+			useExpressCheckout( {
+				api: {},
+				billing: {
+					currency: { minorUnit: 2 },
+					cartTotal: { value: 7500 },
+					cartTotalItems: [],
+				},
+				shippingData: { needsShipping: false, shippingRates: [] },
+				onClick: jest.fn(),
+				onClose: jest.fn(),
+				setExpressPaymentError,
+			} )
+		);
+
+		const event = { paymentFailed: jest.fn() };
+		await act( async () => {
+			await result.current.onConfirm( event );
+		} );
+
+		const { abortPayment } = onConfirmHandler.mock.calls[ 0 ][ 0 ];
+		abortPayment( event, 'Order creation error' );
+
+		expect( event.paymentFailed ).toHaveBeenCalledWith( {
+			reason: 'fail',
+		} );
+		expect( setExpressPaymentError ).toHaveBeenCalledWith(
+			'Order creation error'
 		);
 	} );
 

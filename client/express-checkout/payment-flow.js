@@ -36,11 +36,7 @@ const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 		);
 	}
 
-	return abortPayment(
-		event,
-		getErrorMessageFromNotice( errorMessage ),
-		true
-	);
+	return abortPayment( event, getErrorMessageFromNotice( errorMessage ) );
 };
 
 /**
@@ -160,8 +156,7 @@ export const handleManualPaymentMethodFlow = async ( {
 		if ( result !== 'success' ) {
 			return abortPayment(
 				event,
-				getErrorMessageFromNotice( errorMessage ),
-				true
+				getErrorMessageFromNotice( errorMessage )
 			);
 		}
 
@@ -217,8 +212,7 @@ export const handleConfirmationTokenFlow = async ( {
 		if ( error ) {
 			return abortPayment(
 				event,
-				getErrorMessageFromNotice( error.message ),
-				true
+				getErrorMessageFromNotice( error.message )
 			);
 		}
 
@@ -233,8 +227,7 @@ export const handleConfirmationTokenFlow = async ( {
 		if ( result !== 'success' ) {
 			return abortPayment(
 				event,
-				getErrorMessageFromNotice( errorMessage ),
-				true
+				getErrorMessageFromNotice( errorMessage )
 			);
 		}
 
