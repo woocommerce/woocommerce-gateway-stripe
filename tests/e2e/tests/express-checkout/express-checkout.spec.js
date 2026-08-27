@@ -56,24 +56,24 @@ test.describe( 'express checkout and variable products', () => {
 		await expect( linkButton ).toBeVisible( { timeout: 60 * 1000 } );
 
 		// Clicking before completing the attribute selection must not open
-		// the wallet; it prompts for the missing options instead. The first
-		// click can be silently swallowed while Stripe re-syncs the iframe
-		// position after scroll-into-view (see assertLinkModalLoads), so
-		// retry until the prompt is captured.
+		// the wallet; it prompts for the missing options instead. The
+		// handler must be registered before the click and dismiss
+		// immediately: an unhandled alert freezes the page and stalls the
+		// click action itself. The first click can also be silently
+		// swallowed while Stripe re-syncs the iframe position after
+		// scroll-into-view (see assertLinkModalLoads), so retry until the
+		// prompt is captured.
 		let alertMessage = '';
-		await expect( async () => {
-			const dialogPromise = page.waitForEvent( 'dialog', {
-				timeout: 5 * 1000,
-			} );
-			await linkButton.click();
-			const dialog = await dialogPromise;
+		page.on( 'dialog', async ( dialog ) => {
 			alertMessage = dialog.message();
 			await dialog.dismiss();
+		} );
+		await expect( async () => {
+			await linkButton.click();
+			expect( alertMessage ).toContain(
+				'select your product options before proceeding'
+			);
 		} ).toPass( { timeout: 45 * 1000 } );
-
-		expect( alertMessage ).toContain(
-			'select your product options before proceeding'
-		);
 	} );
 
 	test( 'is visible when a product variation is selected', async ( {
