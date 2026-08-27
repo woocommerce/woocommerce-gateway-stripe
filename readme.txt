@@ -173,6 +173,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Use database cache for webhook status tracking
 * Dev - Add WC_Stripe::get_settings()/update_settings() as the canonical accessors for the main Stripe settings, with the WC_Stripe_Helper shims delegating to them
 * Fix - Render classic-checkout card fields when a host optimizer defers render-blocking JavaScript (e.g. SiteGround Speed Optimizer)
+* Fix - Leave the Expires column blank instead of showing "N/A" on My Account → Payment methods for saved payment methods that have no expiry date, such as Link, SEPA and Cash App Pay
 * Fix - Allow express checkout payments when automatic account password generation is disabled
 * Dev - Remove the deprecated @woocommerce/settings npm package; settings are still read from the wc-settings script WooCommerce provides at runtime
 * Fix - Exclude password-protected products and products hidden from the catalog from the Agentic Commerce feed
@@ -187,5 +188,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Hide the Apple Pay and Google Pay express buttons on pages unchecked in their own locations setting, instead of following other wallets' locations
 * Fix - Hide the save payment method checkbox for Bancontact, iDEAL and Sofort in the Adaptive Pricing checkout on non-EUR stores whose currency excludes them
 * Fix - Stop flagging the checkout page as the cart page (is_cart() returning true) when express checkout buttons are enabled, which made analytics and other plugins misread the page
+* Fix - Remove the empty box shown under "Use a new payment method" on classic checkout when the save-payment-method checkbox is hidden
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
