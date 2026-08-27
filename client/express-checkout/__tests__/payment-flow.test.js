@@ -524,3 +524,247 @@ describe( 'handleConfirmationTokenFlow', () => {
 		expect( abortPayment ).not.toHaveBeenCalled();
 	} );
 } );
+
+describe( 'address normalization', () => {
+	let api;
+	let stripe;
+	let elements;
+	let completePayment;
+	let abortPayment;
+	let event;
+
+	// What normalizeOrderData() builds from the wallet event below.
+	const walletBillingAddress = {
+		first_name: 'Jane',
+		last_name: 'Doe',
+		company: '',
+		email: 'jane@example.com',
+		phone: '',
+		country: 'US',
+		address_1: '456 Oak Ave',
+		address_2: '',
+		city: 'San Juan',
+		state: 'PR',
+		postcode: '00901',
+	};
+	const walletShippingAddress = {
+		first_name: 'Jane',
+		last_name: 'Doe',
+		company: '',
+		phone: '',
+		country: 'US',
+		address_1: '456 Oak Ave',
+		address_2: '',
+		city: 'San Juan',
+		state: 'PR',
+		postcode: '00901',
+		method: [ 'flat_rate:1' ],
+	};
+
+	const getCreateOrderPayload = () =>
+		api.expressCheckoutECECreateOrder.mock.calls[ 0 ][ 0 ];
+
+	beforeEach( () => {
+		const paymentResult = {
+			payment_result: {
+				payment_status: 'success',
+				redirect_url: 'https://example.com/order-received',
+			},
+		};
+		api = {
+			expressCheckoutECECreateOrder: jest
+				.fn()
+				.mockResolvedValue( paymentResult ),
+			expressCheckoutECEPayForOrder: jest
+				.fn()
+				.mockResolvedValue( paymentResult ),
+			expressCheckoutNormalizeAddress: jest.fn(),
+			confirmIntent: jest.fn().mockReturnValue( true ),
+		};
+		stripe = {
+			createPaymentMethod: jest
+				.fn()
+				.mockResolvedValue( { paymentMethod: { id: 'pm_test_123' } } ),
+			createConfirmationToken: jest.fn().mockResolvedValue( {
+				confirmationToken: { id: 'ct_test_456' },
+			} ),
+		};
+		elements = {};
+		completePayment = jest.fn();
+		abortPayment = jest.fn();
+		event = {
+			billingDetails: {
+				name: 'Jane Doe',
+				email: 'jane@example.com',
+				address: {
+					city: 'San Juan',
+					country: 'US',
+					line1: '456 Oak Ave',
+					postal_code: '00901',
+					state: 'PR',
+				},
+			},
+			shippingAddress: {
+				name: 'Jane Doe',
+				address: {
+					city: 'San Juan',
+					country: 'US',
+					line1: '456 Oak Ave',
+					postal_code: '00901',
+					state: 'PR',
+				},
+			},
+			shippingRate: { id: 'flat_rate:1' },
+		};
+	} );
+
+	// Apple Pay and Google Pay run through the manual flow; Amazon Pay runs through the
+	// confirmation token flow unless the cart has a free trial. Both share processOrder.
+	describe.each( [
+		[
+			'handleManualPaymentMethodFlow - Apple Pay',
+			handleManualPaymentMethodFlow,
+			'apple_pay',
+		],
+		[
+			'handleManualPaymentMethodFlow - Google Pay',
+			handleManualPaymentMethodFlow,
+			'google_pay',
+		],
+		[
+			'handleConfirmationTokenFlow - Amazon Pay',
+			handleConfirmationTokenFlow,
+			'amazon_pay',
+		],
+	] )( '%s', ( _name, runFlow, expressPaymentType ) => {
+		const flow = ( params = {} ) =>
+			runFlow( {
+				api,
+				stripe,
+				elements,
+				completePayment,
+				abortPayment,
+				event: { ...event, expressPaymentType },
+				...params,
+			} );
+
+		test.each( [
+			[ 'null', null ],
+			[
+				'an HTML page served by a cache or a redirect',
+				'<!DOCTYPE html>',
+			],
+			[ 'an empty array', [] ],
+			[
+				'a body without the address keys (undefined addresses)',
+				{ success: true },
+			],
+			[
+				'an empty string and a null address',
+				{ billing_address: '', shipping_address: null },
+			],
+			[
+				'addresses encoded as non-empty strings',
+				{
+					billing_address: 'invalid',
+					shipping_address: 'invalid',
+				},
+			],
+			[
+				'addresses encoded as scalars',
+				{ billing_address: 1, shipping_address: true },
+			],
+			[
+				'addresses encoded as empty PHP arrays',
+				{ billing_address: [], shipping_address: [] },
+			],
+			[
+				'addresses encoded as non-empty arrays',
+				{
+					billing_address: [ 'invalid' ],
+					shipping_address: [ 'invalid' ],
+				},
+			],
+			[
+				'empty addresses',
+				{ billing_address: {}, shipping_address: {} },
+			],
+		] )(
+			'keeps the wallet addresses when normalization responds with %s',
+			async ( _label, response ) => {
+				api.expressCheckoutNormalizeAddress.mockResolvedValue(
+					response
+				);
+
+				await flow();
+
+				const payload = getCreateOrderPayload();
+				expect( payload.billing_address ).toEqual(
+					walletBillingAddress
+				);
+				expect( payload.shipping_address ).toEqual(
+					walletShippingAddress
+				);
+				expect( completePayment ).toHaveBeenCalled();
+				expect( abortPayment ).not.toHaveBeenCalled();
+			}
+		);
+
+		test( 'applies the normalized addresses when the response provides them', async () => {
+			// Puerto Rico: the wallet reports it as a US state, and normalization
+			// promotes it to a country.
+			api.expressCheckoutNormalizeAddress.mockResolvedValue( {
+				billing_address: { country: 'PR', state: '' },
+				shipping_address: { country: 'PR', state: '' },
+			} );
+
+			await flow();
+
+			const payload = getCreateOrderPayload();
+			expect( payload.billing_address ).toEqual( {
+				...walletBillingAddress,
+				country: 'PR',
+				state: '',
+			} );
+			expect( payload.shipping_address ).toEqual( {
+				...walletShippingAddress,
+				country: 'PR',
+				state: '',
+			} );
+		} );
+
+		test( 'keeps the wallet fields the response omits', async () => {
+			api.expressCheckoutNormalizeAddress.mockResolvedValue( {
+				billing_address: { country: 'PR' },
+			} );
+
+			await flow();
+
+			const payload = getCreateOrderPayload();
+			expect( payload.billing_address ).toEqual( {
+				...walletBillingAddress,
+				country: 'PR',
+			} );
+			expect( payload.shipping_address ).toEqual( walletShippingAddress );
+		} );
+
+		test( 'keeps the wallet billing address when paying for an existing order', async () => {
+			api.expressCheckoutNormalizeAddress.mockResolvedValue(
+				'<!DOCTYPE html>'
+			);
+
+			await flow( {
+				order: 123,
+				orderDetails: {
+					orderKey: 'wc_order_abc',
+					billingEmail: 'jane@example.com',
+					shippingAddress: walletShippingAddress,
+				},
+			} );
+
+			const payload =
+				api.expressCheckoutECEPayForOrder.mock.calls[ 0 ][ 2 ];
+			expect( payload.billing_address ).toEqual( walletBillingAddress );
+		} );
+	} );
+} );
