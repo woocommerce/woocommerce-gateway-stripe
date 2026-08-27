@@ -95,9 +95,9 @@ export const isSelectedVariationUnavailable = () => {
 /**
  * Reads the currently selected variation attributes.
  *
- * @return {Object} count The number of attribute fields.
- *                  chosenCount The number of fields with a selected value.
- *                  data Map of attribute field name to selected value.
+ * @return {{count: number, chosenCount: number, data: Object<string, string>}}
+ *         The number of attribute fields, how many of them have a selected
+ *         value, and a map of attribute field name to selected value.
  */
 export const getSelectedVariationAttributes = () => {
 	const data = {};
@@ -181,8 +181,10 @@ export const observeVariationSelection = ( onChange ) => {
  * Typed changes fire input events and are handled by callers directly.
  *
  * @param {Function} onChange Called whenever a stepper button is pressed.
- * @return {{disconnect: Function}|null} Disconnectable handle, or null on
- *                                       the classic template.
+ * @return {{disconnect: Function}|null} Disconnectable handle, or null when
+ *                                       no blockified quantity container is
+ *                                       present (classic template, products
+ *                                       sold individually, non-product pages).
  */
 export const observeQuantitySteppers = ( onChange ) => {
 	const quantityContainer = document.querySelector(
