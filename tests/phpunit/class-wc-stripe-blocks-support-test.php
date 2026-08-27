@@ -387,6 +387,7 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 			'payment failed'      => [ 'stripe', 'failure' ],
 			'another gateway'     => [ 'cheque', '' ],
 			'lookalike method id' => [ 'stripey', '' ],
+			'unregistered split'  => [ 'stripe_not_a_payment_method', '' ],
 		];
 	}
 
