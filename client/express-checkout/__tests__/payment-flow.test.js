@@ -622,12 +622,17 @@ describe( 'address normalization', () => {
 	// confirmation token flow unless the cart has a free trial. Both share processOrder.
 	describe.each( [
 		[
-			'handleManualPaymentMethodFlow',
+			'handleManualPaymentMethodFlow - Apple Pay',
 			handleManualPaymentMethodFlow,
 			'apple_pay',
 		],
 		[
-			'handleConfirmationTokenFlow',
+			'handleManualPaymentMethodFlow - Google Pay',
+			handleManualPaymentMethodFlow,
+			'google_pay',
+		],
+		[
+			'handleConfirmationTokenFlow - Amazon Pay',
 			handleConfirmationTokenFlow,
 			'amazon_pay',
 		],
@@ -650,9 +655,12 @@ describe( 'address normalization', () => {
 				'<!DOCTYPE html>',
 			],
 			[ 'an empty array', [] ],
-			[ 'a body without the address keys', { success: true } ],
 			[
-				'addresses that are not objects',
+				'a body without the address keys (undefined addresses)',
+				{ success: true },
+			],
+			[
+				'an empty string and a null address',
 				{ billing_address: '', shipping_address: null },
 			],
 			[
@@ -661,6 +669,10 @@ describe( 'address normalization', () => {
 					billing_address: 'invalid',
 					shipping_address: 'invalid',
 				},
+			],
+			[
+				'addresses encoded as scalars',
+				{ billing_address: 1, shipping_address: true },
 			],
 			[
 				'addresses encoded as empty PHP arrays',
