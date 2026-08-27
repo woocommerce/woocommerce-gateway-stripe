@@ -13,7 +13,9 @@
  * @return {boolean} True when variation markup is present.
  */
 export const hasVariationSelectionUi = () =>
-	!! document.querySelector( '.single_variation_wrap, .variations_form' );
+	Boolean(
+		document.querySelector( '.single_variation_wrap, .variations_form' )
+	);
 
 /**
  * The variation resolved from the current attribute selection, if any.
@@ -47,12 +49,12 @@ export const isAddToCartUnavailable = () => {
 		'.single_add_to_cart_button'
 	);
 
-	return (
-		!! addToCartButton?.classList.contains( 'disabled' ) ||
-		!! document.querySelector(
-			'.wc-block-add-to-cart-with-options.is-invalid'
-		) ||
-		( hasVariationSelectionUi() && ! getSelectedVariationId() )
+	return Boolean(
+		addToCartButton?.classList.contains( 'disabled' ) ||
+			document.querySelector(
+				'.wc-block-add-to-cart-with-options.is-invalid'
+			) ||
+			( hasVariationSelectionUi() && ! getSelectedVariationId() )
 	);
 };
 
@@ -63,9 +65,11 @@ export const isAddToCartUnavailable = () => {
  * @return {boolean} True when the selected combination is unavailable.
  */
 export const isSelectedVariationUnavailable = () =>
-	!! document
-		.querySelector( '.single_add_to_cart_button' )
-		?.classList.contains( 'wc-variation-is-unavailable' );
+	Boolean(
+		document
+			.querySelector( '.single_add_to_cart_button' )
+			?.classList.contains( 'wc-variation-is-unavailable' )
+	);
 
 /**
  * Reads the currently selected variation attributes.
