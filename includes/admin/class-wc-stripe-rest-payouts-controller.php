@@ -90,13 +90,13 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => [ self::class, 'validate_starting_after' ],
+						'validate_callback' => [ self::class, 'validate_pagination_cursor' ],
 					],
 					'ending_before'    => [
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => [ self::class, 'validate_ending_before' ],
+						'validate_callback' => [ self::class, 'validate_pagination_cursor' ],
 					],
 					'status'           => [
 						'type'              => 'string',
@@ -169,12 +169,12 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 	 * Builds an array of parameters to forward to Stripe API.
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request An incoming REST request.
-	 * @param array $params_to_forward Names of params to forward.
-	 * @param array $expand_param Array of value to populate the 'expand' Stripe AAPI param.
+	 * @param array $params_to_forward[] Names of params to forward.
+	 * @param array $expand_param Array of values to populate the 'expand' Stripe API param.
 	 *
 	 * @return array
 	 */
-	private static function build_params_to_forward( $request, $params_to_forward, $expand_param ) {
+	private static function build_params_to_forward( WP_REST_Request $request, array $params_to_forward, array $expand_param ) {
 		$stripe_params = array_intersect_key(
 			$request->get_params(),
 			array_flip( $params_to_forward )
@@ -223,8 +223,8 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 	}
 
 	/**
-	 * Validate starting_after parameter value that should be a payout ID.
-	 * Also raise an error if the ending_before parameter is also specified.
+	 * Validate a pagination cursor (starting_after or ending_before) parameter value that should be a payout ID.
+	 * Also raise an error if both starting_after and ending_before parameter are specified.
 	 *
 	 * @param string $param_value The parameter value.
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
@@ -232,31 +232,10 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 	 *
 	 * @return WP_Error|bool
 	 */
-	public static function validate_starting_after( $param_value, $request, $param_name ) {
-		if ( $request->has_param( 'ending_before' ) ) {
+	public static function validate_pagination_cursor( $param_value, $request, $param_name ) {
+		if ( $request->has_param( 'starting_after' ) && $request->has_param( 'ending_before' ) ) {
 			return new WP_Error(
 				'invalid_starting_after',
-				__( 'Received both starting_after and ending_before parameters. Please pass in only one.', 'woocommerce-gateway-stripe' )
-			);
-		}
-
-		return self::validate_payout_id( $param_value, $request, $param_name );
-	}
-
-	/**
-	 * Validate ending_before parameter value that should be a payout ID.
-	 * Also raise an error if the starting_after parameter is also specified.
-	 *
-	 * @param string $param_value The parameter value.
-	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
-	 * @param string $param_name The parameter name.
-	 *
-	 * @return WP_Error|bool
-	 */
-	public static function validate_ending_before( $param_value, $request, $param_name ) {
-		if ( $request->has_param( 'starting_after' ) ) {
-			return new WP_Error(
-				'invalid_ending_before',
 				__( 'Received both starting_after and ending_before parameters. Please pass in only one.', 'woocommerce-gateway-stripe' )
 			);
 		}
