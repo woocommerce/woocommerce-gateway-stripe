@@ -877,9 +877,9 @@ jQuery( function ( $ ) {
 			onAbortPaymentHandler( payment, message );
 			displayExpressCheckoutNotice( message, 'error' );
 
-			// The wallet sheet only closes once the confirm event gets a
-			// terminal result, so this must run for order errors too. Last,
-			// so a rejected late call can't cost the shopper the message.
+			// The wallet sheet only closes once the confirm event gets a terminal
+			// result, so order errors must fail it too. A late call rejects an
+			// internal Stripe promise asynchronously, after the message is shown.
 			payment.paymentFailed( { reason: 'fail' } );
 		},
 
