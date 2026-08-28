@@ -349,6 +349,28 @@ describe( 'handleManualPaymentMethodFlow', () => {
 		expect( completePayment ).not.toHaveBeenCalled();
 	} );
 
+	// Stripe messages are plain text; parsing them as HTML truncated anything
+	// tag-like, e.g. an email address in angle brackets.
+	test( 'should not truncate a Stripe error containing angle brackets', async () => {
+		stripe.createPaymentMethod.mockResolvedValue( {
+			error: { message: 'Invalid email <user@example.com>' },
+		} );
+
+		await handleManualPaymentMethodFlow( {
+			api,
+			stripe,
+			elements,
+			completePayment,
+			abortPayment,
+			event,
+		} );
+
+		expect( abortPayment ).toHaveBeenCalledWith(
+			event,
+			'Invalid email <user@example.com>'
+		);
+	} );
+
 	test( 'should complete payment on successful order', async () => {
 		stripe.createPaymentMethod.mockResolvedValue( {
 			paymentMethod: { id: 'pm_test_123' },
@@ -374,6 +396,33 @@ describe( 'handleManualPaymentMethodFlow', () => {
 			'https://example.com/order-received'
 		);
 		expect( abortPayment ).not.toHaveBeenCalled();
+	} );
+
+	// WooCommerce answers 200 with an empty payment status when it skips payment
+	// entirely (e.g. it could not resolve the gateway), leaving the order unpaid
+	// with nothing attached to explain why. The shopper still needs a message.
+	test( 'should abort with a generic message when the order reports no payment status', async () => {
+		stripe.createPaymentMethod.mockResolvedValue( {
+			paymentMethod: { id: 'pm_test_123' },
+		} );
+		api.expressCheckoutECECreateOrder.mockResolvedValue( {
+			payment_result: { payment_status: '' },
+		} );
+
+		await handleManualPaymentMethodFlow( {
+			api,
+			stripe,
+			elements,
+			completePayment,
+			abortPayment,
+			event,
+		} );
+
+		expect( abortPayment ).toHaveBeenCalledWith(
+			event,
+			'There was a problem processing the order.'
+		);
+		expect( completePayment ).not.toHaveBeenCalled();
 	} );
 
 	test( 'should abort when order creation fails', async () => {

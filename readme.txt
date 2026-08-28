@@ -164,6 +164,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Allow express checkout payments when automatic account password generation is disabled
 * Fix - Stop flagging the checkout page as the cart page (is_cart() returning true) when express checkout buttons are enabled, which made analytics and other plugins misread the page
 * Fix - Recreate the Adaptive Pricing Checkout Session when a shopper logs in or out mid-checkout, so payment methods can be saved correctly
+* Fix - Surface express checkout order failures instead of leaving the Apple Pay or Google Pay sheet open with no error
 
 = 10.9.0 - 2026-08-17 =
 

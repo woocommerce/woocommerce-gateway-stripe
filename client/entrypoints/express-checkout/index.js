@@ -867,17 +867,17 @@ jQuery( function ( $ ) {
 		/**
 		 * Abort the payment and display error messages.
 		 *
-		 * @param {PaymentResponse} payment      Payment response instance.
-		 * @param {string}          message      Error message to display.
-		 * @param {boolean}         isOrderError Whether the error is related to the order creation.
+		 * @param {PaymentResponse} payment Payment response instance.
+		 * @param {string}          message Error message to display.
 		 */
-		abortPayment: ( payment, message, isOrderError = false ) => {
-			if ( ! isOrderError ) {
-				payment.paymentFailed( { reason: 'fail' } );
-			}
+		abortPayment: ( payment, message ) => {
 			onAbortPaymentHandler( payment, message );
-
 			displayExpressCheckoutNotice( message, 'error' );
+
+			// The wallet sheet only closes once the confirm event gets a terminal
+			// result, so order errors must fail it too. A late call rejects an
+			// internal Stripe promise asynchronously, after the message is shown.
+			payment.paymentFailed( { reason: 'fail' } );
 		},
 
 		attachProductPageEventListeners: () => {
