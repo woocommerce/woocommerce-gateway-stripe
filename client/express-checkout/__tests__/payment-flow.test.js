@@ -349,6 +349,28 @@ describe( 'handleManualPaymentMethodFlow', () => {
 		expect( completePayment ).not.toHaveBeenCalled();
 	} );
 
+	// Stripe messages are plain text; parsing them as HTML truncated anything
+	// tag-like, e.g. an email address in angle brackets.
+	test( 'should not truncate a Stripe error containing angle brackets', async () => {
+		stripe.createPaymentMethod.mockResolvedValue( {
+			error: { message: 'Invalid email <user@example.com>' },
+		} );
+
+		await handleManualPaymentMethodFlow( {
+			api,
+			stripe,
+			elements,
+			completePayment,
+			abortPayment,
+			event,
+		} );
+
+		expect( abortPayment ).toHaveBeenCalledWith(
+			event,
+			'Invalid email <user@example.com>'
+		);
+	} );
+
 	test( 'should complete payment on successful order', async () => {
 		stripe.createPaymentMethod.mockResolvedValue( {
 			paymentMethod: { id: 'pm_test_123' },

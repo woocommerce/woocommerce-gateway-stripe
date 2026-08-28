@@ -39,15 +39,20 @@ export const getErrorMessageFromNotice = ( notice ) => {
  * non-success payment status with nothing attached, or a Stripe error whose `message`
  * is unset — and aborting with an empty one leaves the shopper with no explanation.
  *
+ * Takes the message as-is: callers that receive a WooCommerce notice run it through
+ * `getErrorMessageFromNotice()` first, and parsing a plain Stripe message as HTML would
+ * truncate it at anything tag-like (e.g. an email address in angle brackets).
+ *
  * @param {string|undefined} message The message reported by Stripe or the server, if any.
  * @return {string} The message to display.
  */
 export const getExpressCheckoutErrorMessage = ( message ) =>
-	getErrorMessageFromNotice( message ) ||
-	__(
-		'There was a problem processing the order.',
-		'woocommerce-gateway-stripe'
-	);
+	message?.trim()
+		? message
+		: __(
+				'There was a problem processing the order.',
+				'woocommerce-gateway-stripe'
+		  );
 
 /**
  * Retrieves express checkout data from global variable.

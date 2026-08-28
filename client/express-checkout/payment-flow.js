@@ -1,5 +1,9 @@
 import jQuery from 'jquery';
-import { getExpressCheckoutErrorMessage, normalizeOrderData } from './utils';
+import {
+	getErrorMessageFromNotice,
+	getExpressCheckoutErrorMessage,
+	normalizeOrderData,
+} from './utils';
 import { __ } from '@wordpress/i18n';
 
 /**
@@ -32,7 +36,9 @@ const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 
 	return abortPayment(
 		event,
-		getExpressCheckoutErrorMessage( errorMessage )
+		getExpressCheckoutErrorMessage(
+			getErrorMessageFromNotice( errorMessage )
+		)
 	);
 };
 
@@ -168,7 +174,9 @@ export const handleManualPaymentMethodFlow = async ( {
 		if ( result !== 'success' ) {
 			return abortPayment(
 				event,
-				getExpressCheckoutErrorMessage( errorMessage )
+				getExpressCheckoutErrorMessage(
+					getErrorMessageFromNotice( errorMessage )
+				)
 			);
 		}
 
@@ -224,7 +232,9 @@ export const handleConfirmationTokenFlow = async ( {
 		if ( error ) {
 			return abortPayment(
 				event,
-				getExpressCheckoutErrorMessage( error.message )
+				getExpressCheckoutErrorMessage(
+					getErrorMessageFromNotice( error.message )
+				)
 			);
 		}
 
@@ -239,7 +249,9 @@ export const handleConfirmationTokenFlow = async ( {
 		if ( result !== 'success' ) {
 			return abortPayment(
 				event,
-				getExpressCheckoutErrorMessage( errorMessage )
+				getExpressCheckoutErrorMessage(
+					getErrorMessageFromNotice( errorMessage )
+				)
 			);
 		}
 
