@@ -937,7 +937,7 @@ describe( 'payment-processing', () => {
 				} );
 			} );
 
-			it( 'passes savePaymentMethod true when logged in and the save card checkbox is checked', async () => {
+			it( 'passes savePaymentMethod true when the session supports saving and the save card checkbox is checked', async () => {
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
 				const mockActions = {
@@ -959,10 +959,8 @@ describe( 'payment-processing', () => {
 					actions: mockActions,
 				} );
 
-				stripeUtils.getStripeServerData.mockReturnValue( {
-					...BASE_SERVER_DATA,
-					isAdaptivePricingEnabled: true,
-					isLoggedIn: true,
+				setNativeCheckoutSessionData( {
+					save_payment_method_enabled: true,
 				} );
 
 				const form = createMockForm( {
@@ -978,7 +976,7 @@ describe( 'payment-processing', () => {
 				} );
 			} );
 
-			it( 'does not pass savePaymentMethod for guests even when the save card checkbox is checked', async () => {
+			it( 'does not pass savePaymentMethod when the session does not support saving, even when logged in with the save card checkbox checked', async () => {
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
 				const mockActions = {
@@ -1000,10 +998,14 @@ describe( 'payment-processing', () => {
 					actions: mockActions,
 				} );
 
+				// A guest-created session reused after login.
 				stripeUtils.getStripeServerData.mockReturnValue( {
 					...BASE_SERVER_DATA,
 					isAdaptivePricingEnabled: true,
-					isLoggedIn: false,
+					isLoggedIn: true,
+				} );
+				setNativeCheckoutSessionData( {
+					save_payment_method_enabled: false,
 				} );
 
 				const form = createMockForm( {

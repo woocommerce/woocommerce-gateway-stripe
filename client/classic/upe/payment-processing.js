@@ -1251,7 +1251,12 @@ export const processPayment = (
 					redirect: 'if_required',
 				};
 
-				if ( getStripeServerData()?.isLoggedIn ) {
+				// Stripe rejects savePaymentMethod when the session was created
+				// without save support (e.g. as a guest), so gate on the session,
+				// not the login state.
+				if (
+					getNativeCheckoutSessionData()?.save_payment_method_enabled
+				) {
 					confirmArgs.savePaymentMethod = jQueryForm
 						.find( '#wc-stripe-new-payment-method' )
 						.is( ':checked' );
