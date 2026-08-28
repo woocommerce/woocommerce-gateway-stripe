@@ -434,6 +434,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 			$this->run_synchronize_login_transition( true, 'logout_transition' );
 
 		$this->assertSame( 2, $create_count, 'The logout must trigger exactly one session recreation.' );
+		$this->assertCount( 2, $captured_creates );
 		$this->assertTrue( $while_logged_in['save_payment_method_enabled'] );
 		$this->assertArrayNotHasKey( 'saved_payment_method_options', $captured_creates[1] );
 		$this->assertArrayNotHasKey( 'customer', $captured_creates[1] );
