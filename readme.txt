@@ -184,6 +184,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Make GITHUB_TOKEN optional for the local E2E Docker setup by falling back to the GitHub CLI and then to plugin zips placed in tests/e2e/deps
 * Fix - Reload the plugin's payment method settings when refreshing account details, so the settings screen no longer keeps showing stale values
 * Update - Fetch express checkout AJAX nonces on demand instead of embedding them in every page
+* Fix - Recreate the Adaptive Pricing Checkout Session when a shopper logs in or out mid-checkout, so payment methods can be saved correctly
 * Fix - Keep the wallet billing and shipping addresses on express checkout orders when the address normalization request returns an unusable response
 * Fix - Remove stale saved payment methods at checkout when the Stripe customer no longer exists, and keep valid ones when Stripe returns a transient API error
 * Fix - Render the Adaptive Pricing payment element in the store's Stripe locale
@@ -194,6 +195,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Explain that payment details were not submitted, instead of reporting the selected payment method as invalid, when checkout is submitted without them
 * Fix - Hide the Apple Pay and Google Pay express buttons on pages unchecked in their own locations setting, instead of following other wallets' locations
 * Fix - Hide the save payment method checkbox for Bancontact, iDEAL and Sofort in the Adaptive Pricing checkout on non-EUR stores whose currency excludes them
+* Fix - Surface express checkout order failures instead of leaving the Apple Pay or Google Pay sheet open with no error
 * Fix - Stop flagging the checkout page as the cart page (is_cart() returning true) when express checkout buttons are enabled, which made analytics and other plugins misread the page
 * Fix - Remove the empty box shown under "Use a new payment method" on classic checkout when the save-payment-method checkbox is hidden
 
