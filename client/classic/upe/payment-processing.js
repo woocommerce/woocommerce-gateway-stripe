@@ -1708,7 +1708,9 @@ export const hasEmptyRequiredFields = ( requiredWrappers ) => {
 		if ( first.type === 'checkbox' ) {
 			// A required wrapper can hold a "tick at least one" checkbox group, so the
 			// first box being unchecked does not mean the group is incomplete.
-			isEmpty = ! inputs.some( ( input ) => input.checked );
+			isEmpty = ! inputs.some(
+				( input ) => input.type === 'checkbox' && input.checked
+			);
 		} else if ( first.type === 'select-multiple' ) {
 			// `value` is only the first selected option, so a selected empty placeholder
 			// would hide the real selections behind it.
