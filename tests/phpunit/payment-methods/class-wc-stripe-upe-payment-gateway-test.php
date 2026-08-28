@@ -4645,6 +4645,41 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * The shopper-facing message must describe the missing payment details rather than blame the
+	 * selected gateway, and must not name a cause: this guard is shared by every deferred-intent
+	 * flow, so it also fires on Stripe.js failures, element remounts and tampered requests.
+	 */
+	public function test_prepare_payment_information_reports_missing_payment_details_without_naming_a_cause() {
+		$order     = WC_Helper_Order::create_order();
+		$exception = null;
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => '',
+			'wc-stripe-confirmation-token' => '',
+		];
+
+		$reflection = new \ReflectionClass( WC_Stripe_UPE_Payment_Gateway::class );
+		$method     = $reflection->getMethod( 'prepare_payment_information_from_request' );
+		$method->setAccessible( true );
+
+		try {
+			$method->invoke( $this->mock_gateway, $order );
+		} catch ( WC_Stripe_Exception $caught_exception ) {
+			$exception = $caught_exception;
+		} finally {
+			$_POST = [];
+		}
+
+		$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+		$this->assertStringContainsString( 'Payment method ID is missing from the request', $exception->getMessage() );
+		$this->assertSame(
+			'Your payment details were not submitted. Please review the checkout form and try again.',
+			$exception->getLocalizedMessage()
+		);
+	}
+
+	/**
 	 * Provides prefix-compatible IDs containing URL structural characters.
 	 *
 	 * @return array<string, array{string}>

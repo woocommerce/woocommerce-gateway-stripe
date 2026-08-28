@@ -3533,9 +3533,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 			if ( '' === $payment_method_id && empty( $_POST['wc-stripe-confirmation-token'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+				// The gateway the shopper picked is fine; what is missing are the payment details the
+				// browser should have attached. This path is shared by every deferred-intent flow, so
+				// the message must not name a cause: it is also reached when Stripe.js fails to load,
+				// when the payment element is remounting, and on tampered requests.
 				throw new WC_Stripe_Exception(
 					'Payment method ID is missing from the request.',
-					__( "The selected payment method isn't valid.", 'woocommerce-gateway-stripe' )
+					__( 'Your payment details were not submitted. Please review the checkout form and try again.', 'woocommerce-gateway-stripe' )
 				);
 			}
 

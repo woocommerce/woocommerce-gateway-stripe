@@ -191,6 +191,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Record the charge-captured state for asynchronously confirmed payments (e.g. ACH) so refunds from wp-admin and the Stripe Dashboard behave correctly
 * Fix - Reject negative refund amounts with an explicit error instead of silently refunding the absolute value
 * Fix - Prevent classic checkout from processing an empty payment method when custom required fields are present
+* Fix - Explain that payment details were not submitted, instead of reporting the selected payment method as invalid, when checkout is submitted without them
 * Fix - Hide the Apple Pay and Google Pay express buttons on pages unchecked in their own locations setting, instead of following other wallets' locations
 * Fix - Hide the save payment method checkbox for Bancontact, iDEAL and Sofort in the Adaptive Pricing checkout on non-EUR stores whose currency excludes them
 * Fix - Stop flagging the checkout page as the cart page (is_cart() returning true) when express checkout buttons are enabled, which made analytics and other plugins misread the page
