@@ -374,12 +374,20 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', $mock_request, 10, 3 );
 
 		try {
-			$start_logged_in ? $log_in() : $log_out();
+			if ( $start_logged_in ) {
+				$log_in();
+			} else {
+				$log_out();
+			}
 
 			$manager = new WC_Stripe_Checkout_Session_Manager();
 			$before  = $manager->synchronize();
 
-			$start_logged_in ? $log_out() : $log_in();
+			if ( $start_logged_in ) {
+				$log_out();
+			} else {
+				$log_in();
+			}
 
 			$after        = $manager->synchronize();
 			$still_reused = $manager->synchronize();
