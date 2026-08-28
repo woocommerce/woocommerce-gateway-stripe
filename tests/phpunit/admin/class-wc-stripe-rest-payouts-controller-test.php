@@ -1,0 +1,458 @@
+<?php
+/**
+ * Class WC_Stripe_REST_Payouts_Controller_Test
+ *
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
+ */
+class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
+	private const SINGLE_PAYOUT_ENDPOINT_URL = '/wc/v3/wc_stripe/payouts/po_test_9876543210';
+	private const ALL_PAYOUTS_ENDPOINT_URL   = '/wc/v3/wc_stripe/payouts';
+
+	/** Initialise REST API, make WC_Stripe_REST_Payouts_Controller instance available for testing*/
+	public static function set_up_before_class() {
+		parent::set_up_before_class();
+
+		do_action( 'rest_api_init' );
+	}
+
+	public function teardown(): void {
+		remove_filter(
+			'pre_http_request',
+			[ static::class, 'pre_http_request_mock_handler' ],
+			10,
+			3
+		);
+	}
+
+	public static function pre_http_request_mock_handler( bool $preempt, array $request_args, $url ) {
+		if ( false === strpos( $url, 'payouts' ) ) {
+			return $preempt;
+		}
+
+		return [
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'data'     => [],
+					'has_more' => false,
+				]
+			),
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+		];
+	}
+	/** Mock stripe API calls to avoid making real HTTP requests. */
+	protected function mock_http_call() {
+		add_filter(
+			'pre_http_request',
+			[ static::class, 'pre_http_request_mock_handler' ],
+			10,
+			3
+		);
+	}
+	/**
+	 * Send a request to the REST server.
+	 *
+	 * If non-empty, adds the entries from $params to the request object.
+	 */
+	private function send_request( string $url, array $params = [] ) {
+		$request = new WP_REST_Request(
+			WP_REST_Server::READABLE,
+			$url
+		);
+
+		if ( $params ) {
+			foreach ( $params as $param_name => $param_value ) {
+				$request->set_param( $param_name, $param_value );
+			}
+		}
+
+		$response = rest_get_server()->dispatch( $request );
+
+		return $response;
+	}
+
+	/** Create a non-admin user, set it as current user and send an API request. */
+	public function test_permission_check_denies_unauthorized_call() {
+		$subscriber_id = $this->factory()->user->create( [ 'role' => 'subscriber' ] );
+
+		wp_set_current_user( $subscriber_id );
+
+		$response = $this->send_request( self::SINGLE_PAYOUT_ENDPOINT_URL );
+
+		$this->assertSame( 403, $response->get_status() );
+	}
+
+	public function test_wrong_stripe_api_key() {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+		$http_code_401_mock = function ( $pre, $parsed_args, $url ) {
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'error' => [
+							'code'    => 'invalid_request_error',
+							'message' => 'Invalid API Key provided',
+						],
+					]
+				),
+				'response' => [
+					'code'    => 401,
+					'message' => 'OK',
+				],
+			];
+		};
+
+		add_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
+		$response = $this->send_request( self::SINGLE_PAYOUT_ENDPOINT_URL );
+
+		remove_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
+		$this->assertSame( 401, $response->get_status() );
+	}
+
+	/** Create an admin user, set it as current user and send a API request. */
+	public function test_permission_check_allows_authorized_call() {
+		$this->mock_http_call();
+
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$response = $this->send_request( self::SINGLE_PAYOUT_ENDPOINT_URL );
+
+		$this->assertSame( 200, $response->get_status() );
+	}
+
+	public static function provide_payout_list_malformed_param(): array {
+		return [
+			[ 'limit', '' ],
+			[ 'limit', 'abc' ],
+			[ 'created', '' ],
+			[ 'status', ''],
+			[ 'status', 'abc'],
+			[ 'created', -1779802569 ],
+			[ 'created', 'a1779802569' ],
+			[
+				'created',
+				[
+					0 => '1779802569',
+				],
+			],
+			[
+				'created',
+				[
+					'lt3' => '1779802569',
+				],
+			],
+			[
+				'created',
+				[
+					'lt'  => '1779802569',
+					'gt3' => '1779802569',
+				],
+			],
+			[ 'arrival_date', '' ],
+			[ 'arrival_date', -1779802569 ],
+			[ 'arrival_date', 'a1779802569' ],
+			[
+				'arrival_date',
+				[
+					0 => '1779802569',
+				],
+			],
+			[
+				'arrival_date',
+				[
+					'lt3' => '1779802569',
+				],
+			],
+			[
+				'arrival_date',
+				[
+					'lt'  => '1779802569',
+					'gt3' => '1779802569',
+				],
+			],
+			[ 'starting_after', 'xyz' ],
+			[ 'ending_before', 'xyz' ],
+			[ 'destination', '' ],
+		];
+	}
+
+	/**
+	 * Create an admin user and send requests containing incorrect format args.
+	 *
+	 * @dataProvider provide_payout_list_malformed_param
+	 *
+	 * @param string $param_name
+	 * @param mixed $param_value
+	*/
+	public function test_payout_list_malformed_param( string $param_name, $param_value ) {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$response = $this->send_request( self::ALL_PAYOUTS_ENDPOINT_URL, [ $param_name => $param_value ] );
+
+		$this->assertSame( 400, $response->get_status() );
+	}
+
+	/**
+	 * Create an admin user and send requests containing both starting_after and ending_before args.
+	 *
+	 * @param string $param_name
+	 * @param mixed $param_value
+	*/
+	public function test_payout_list_with_both_starting_after_and_ending_before() {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$response = $this->send_request(
+			self::ALL_PAYOUTS_ENDPOINT_URL,
+			[
+				'starting_after' => 'po_test',
+				'ending_before'  => 'po_test2',
+			]
+		);
+
+		$this->assertSame( 400, $response->get_status() );
+	}
+
+	public static function provide_payout_list_params(): array {
+		return [
+			[
+				[ 'created' => 0 ],
+			],
+			[
+				[
+					'created'        => '1779802569',
+					'starting_after' => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
+			],
+			[
+				[
+					'created'       =>
+						[
+							'lt' => '1779802569',
+						],
+					'ending_before' => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
+			],
+			[
+				[
+					'limit'            => 100,
+					'created'          =>
+						[
+							'lt' => '1779802569',
+						],
+					'ending_before'    => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
+			],
+			[
+				[
+					'created' =>
+						[
+							'lt' => '1779802821',
+							'gt' => '1779802569',
+						],
+				],
+			],
+			[
+				[
+					'created' =>
+						[
+							'lte' => '1779802821',
+							'gte' => '1779802569',
+						],
+				],
+			],
+			[
+				[
+					'created' =>
+						[
+							'lte' => '1779802821',
+							'gte' => '0',
+						],
+				],
+			],
+			[
+				[
+					'created' =>
+						[
+							'lte' => '0',
+							'gte' => '0',
+						],
+				],
+			],
+			//////////////////////////////////
+			[
+					[ 'arrival_date' => 0 ],
+			],
+			[
+				[
+					'arrival_date'        => '1779802569',
+					'starting_after' => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
+			],
+			[
+				[
+					'arrival_date'       =>
+						[
+							'lt' => '1779802569',
+						],
+					'ending_before' => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
+			],
+			[
+				[
+					'limit'            => 100,
+					'arrival_date'          =>
+						[
+							'lt' => '1779802569',
+						],
+					'ending_before'    => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
+			],
+			[
+				[
+					'arrival_date' =>
+						[
+							'lt' => '1779802821',
+							'gt' => '1779802569',
+						],
+				],
+			],
+			[
+				[
+					'arrival_date' =>
+						[
+							'lte' => '1779802821',
+							'gte' => '1779802569',
+						],
+				],
+			],
+			[
+				[
+					'arrival_date' =>
+						[
+							'lte' => '1779802821',
+							'gte' => '0',
+						],
+				],
+			],
+			[
+				[
+					'arrival_date' =>
+						[
+							'lte' => '0',
+							'gte' => '0',
+						],
+				],
+			],
+			[
+				[
+					'status' =>'pending',
+				],
+			],
+			[
+				[
+					'status' =>'paid',
+				],
+			],
+			[
+				[
+					'status' =>'failed',
+				],
+			],
+			[
+				[
+					'status' =>'canceled',
+				],
+			],
+		];
+	}
+
+	/**
+	 * Send requests containing valid parameters and check they are forwarded correctly to the Stripe API
+	 * using a 'pre_http_request' hook.
+	 *
+	 * @dataProvider provide_payout_list_params
+	*/
+	public function test_pass_payout_list_params( array $rest_params ) {
+		$controller = new WC_Stripe_REST_Payouts_Controller();
+
+		$reflection_class = new ReflectionClass( WC_Stripe_REST_Payouts_Controller::class );
+		$r_const          = $reflection_class->getReflectionConstant( 'STRIPE_LIST_EXPAND_PARAM' );
+
+		$expand                = $r_const->getValue();
+		$rest_params['expand'] = $expand;
+
+		$request = new WP_REST_Request(
+			WP_REST_Server::READABLE,
+			self::ALL_PAYOUTS_ENDPOINT_URL,
+		);
+
+		foreach ( $rest_params as $rest_param_name => $rest_param_value ) {
+			$request->set_param( $rest_param_name, $rest_param_value );
+		}
+
+		$passed_rest_params = $request->get_params();
+
+		$pre_http_request_params = [];
+
+		$this->mock_http_call();
+		$http_stub = function ( $pre, $parsed_args, $url ) use ( &$pre_http_request_params ) {
+				$url_components = parse_url( $url );
+
+				parse_str( $url_components['query'], $pre_http_request_params['search_params'] );
+
+				return $pre;
+		};
+		add_filter(
+			'pre_http_request',
+			$http_stub,
+			10,
+			3
+		);
+
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		try {
+			rest_get_server()->dispatch( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10, 3 );
+		}
+
+		$this->assertEquals( $rest_params, $passed_rest_params );
+		$this->assertEquals(
+			$rest_params,
+			array_intersect_key( $pre_http_request_params['search_params'], $rest_params )
+		);
+		$test = array_diff_key( $pre_http_request_params['search_params'], $rest_params );
+
+		if ( array_key_exists( 'limit', $rest_params ) ) {
+			$this->assertEmpty( array_diff_key( $pre_http_request_params['search_params'], $rest_params ) );
+		} else {
+			// We default the `limit` argument when not supplied by the caller.
+			$this->assertEquals(
+				[ 'limit' => 10 ],
+				array_diff_key( $pre_http_request_params['search_params'], $rest_params )
+			);
+		}
+	}
+}
