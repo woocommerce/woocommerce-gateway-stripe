@@ -46,6 +46,26 @@ describe( 'shared Stripe instance', () => {
 			} );
 		} );
 
+		it( 'reuses a validated instance after the Stripe.js tag is replaced', () => {
+			addStripeScriptTag();
+
+			const first = getSharedStripeInstance( 'pk_test_123', {
+				locale: 'en',
+			} );
+			document
+				.getElementById( 'stripe-js' )
+				.setAttribute(
+					'src',
+					'https://js.stripe.com.evil.example/stripe.js'
+				);
+
+			expect(
+				getSharedStripeInstance( 'pk_test_123', { locale: 'en' } )
+			).toBe( first );
+			expect( global.Stripe ).toHaveBeenCalledTimes( 1 );
+			expect( warnSpy ).not.toHaveBeenCalled();
+		} );
+
 		it( 'reuses the instance regardless of the order the options were built in', () => {
 			addStripeScriptTag();
 
