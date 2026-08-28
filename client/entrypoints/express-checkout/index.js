@@ -303,6 +303,14 @@ jQuery( function ( $ ) {
 								'Sorry, this product is unavailable. Please choose a different combination.',
 								'woocommerce-gateway-stripe'
 							);
+					} else if ( ! isVariationSelectionNeeded() ) {
+						// Everything is selected (or the product has no
+						// options): the block is stock or quantity, so asking
+						// for options would mislead.
+						message = __(
+							'This product cannot be purchased with the selected options or quantity. Please adjust your selection and try again.',
+							'woocommerce-gateway-stripe'
+						);
 					}
 
 					// eslint-disable-next-line no-alert
@@ -863,14 +871,25 @@ jQuery( function ( $ ) {
 			if ( isVariationSelectionNeeded() ) {
 				// Keep the buttons visible: an incomplete selection is
 				// handled at click time, where the shopper is prompted to
-				// choose their options.
+				// choose their options. A prior errored refresh may have
+				// hidden the buttons, so restore them.
+				wcStripeECE.show();
 				return;
 			}
 
 			wcStripeECE.blockExpressCheckoutButton();
+			wcStripeECEError = '';
 
 			$.when( wcStripeECE.getSelectedProductData() )
 				.then( ( response ) => {
+					// A null or primitive response can't be applied: record
+					// the error (surfaced on the next click) and keep the
+					// current preview.
+					if ( ! response || typeof response !== 'object' ) {
+						wcStripeECEError = defaultErrorMessage;
+						return;
+					}
+
 					if ( response.error ) {
 						wcStripeECE.hide();
 					} else {
