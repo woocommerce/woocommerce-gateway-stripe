@@ -316,7 +316,7 @@ class WC_Stripe_Payment_Tokens {
 				}
 			}
 		} catch ( WC_Stripe_Exception $e ) {
-			// wc_add_notice() only guards against a missing session (admin, REST, CLI) since WC 10.5.
+			// No shopper sees notices in sessionless contexts (admin, REST, CLI), so only queue one when a session exists.
 			if ( WC()->session ) {
 				wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			}
