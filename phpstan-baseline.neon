@@ -1651,18 +1651,6 @@ parameters:
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^Cannot access property \$message on array\.$#'
-			identifier: property.nonObject
-			count: 2
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Cannot access property \$type on array\.$#'
-			identifier: property.nonObject
-			count: 2
-			path: includes/class-wc-stripe-customer.php
-
-		-
 			message: '#^Cannot call method save\(\) on WC_Payment_Token_SEPA\|WC_Stripe_Payment_Token_CC\|false\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -1713,12 +1701,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Customer\:\:get_user\(\) should return WP_User but returns WP_User\|false\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:is_no_such_customer_error\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/class-wc-stripe-customer.php
 
