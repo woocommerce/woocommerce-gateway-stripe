@@ -1703,32 +1703,34 @@ export const hasEmptyRequiredFields = ( requiredWrappers ) => {
 		}
 
 		const first = inputs[ 0 ];
-		let isEmpty;
+		let hasValue;
 
 		if ( first.type === 'checkbox' ) {
 			// A required wrapper can hold a "tick at least one" checkbox group, so the
 			// first box being unchecked does not mean the group is incomplete.
-			isEmpty = ! inputs.some(
+			hasValue = inputs.some(
 				( input ) => input.type === 'checkbox' && input.checked
 			);
 		} else if ( first.type === 'select-multiple' ) {
-			// `value` is only the first selected option, so a selected empty placeholder
-			// would hide the real selections behind it.
-			isEmpty = ! [ ...first.selectedOptions ].some(
+			// `first.value` is only the first selected option, so a selected empty
+			// placeholder would hide the real selections behind it.
+			hasValue = [ ...first.selectedOptions ].some(
 				( option ) => option.value.trim() !== ''
 			);
 		} else {
-			isEmpty = first.value.trim() === '';
+			hasValue = first.value.trim() !== '';
 		}
 
-		// Radios are outside the selector above, so a wrapper holding only radios is
-		// skipped entirely, as it is by WC core. They can still satisfy a wrapper
-		// though: a checked radio means the shopper filled the field in, and blocking
-		// on it would fail a checkout the server would have accepted.
-		if (
-			isEmpty &&
-			! wrapper.querySelector( 'input[type="radio"]:checked' )
-		) {
+		// Radios are not matched by the selector above, so a wrapper holding only
+		// radios is skipped entirely, as it is by WooCommerce core. A checked radio can
+		// still satisfy a wrapper: it is not proof the other controls are filled, but
+		// it is reason enough to let the server validate the submission rather than
+		// block it here.
+		const hasCheckedRadio = !! wrapper.querySelector(
+			'input[type="radio"]:checked'
+		);
+
+		if ( ! hasValue && ! hasCheckedRadio ) {
 			return true;
 		}
 	}
