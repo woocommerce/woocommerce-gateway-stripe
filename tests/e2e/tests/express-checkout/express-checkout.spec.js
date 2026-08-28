@@ -55,14 +55,10 @@ test.describe( 'express checkout and variable products', () => {
 		const linkButton = await getLinkButton( page );
 		await expect( linkButton ).toBeVisible( { timeout: 60 * 1000 } );
 
-		// Clicking before completing the attribute selection must not open
-		// the wallet; it prompts for the missing options instead. The
-		// handler must be registered before the click and dismiss
-		// immediately: an unhandled alert freezes the page and stalls the
-		// click action itself. The first click can also be silently
-		// swallowed while Stripe re-syncs the iframe position after
-		// scroll-into-view (see assertLinkModalLoads), so retry until the
-		// prompt is captured.
+		// An early click must prompt, not open the wallet. Dismiss dialogs
+		// immediately (an unhandled alert stalls the click action) and retry
+		// the click: Stripe's iframe can swallow the first one after scroll
+		// (see assertLinkModalLoads).
 		let alertMessage = '';
 		page.on( 'dialog', async ( dialog ) => {
 			alertMessage = dialog.message();

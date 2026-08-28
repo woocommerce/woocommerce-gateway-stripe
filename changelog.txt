@@ -30,7 +30,7 @@ xxxx-xx-xx - version 11.0.0
 * Fix - Hide the Apple Pay and Google Pay express buttons on pages unchecked in their own locations setting, instead of following other wallets' locations
 * Fix - Leave the Expires column blank instead of showing "N/A" on My Account → Payment methods for saved payment methods that have no expiry date, such as Link, SEPA and Cash App Pay
 * Fix - Remove the empty box shown under "Use a new payment method" on classic checkout when the save-payment-method checkbox is hidden
-* Fix - Render express checkout buttons on variable product pages before a variation is selected and prompt for product options on early clicks. Previously the buttons never appeared on the Add to Cart + Options block and appeared only after selecting a variation on the classic template
+* Fix - Show express checkout buttons on variable product pages before a variation is selected, including on the Add to Cart + Options block where they never appeared
 
 2026-08-17 - version 10.9.0
 * Fix - Re-enable Adaptive Pricing if it was automatically disabled after a Checkout Session amount mismatch
