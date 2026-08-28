@@ -186,6 +186,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Fetch express checkout AJAX nonces on demand instead of embedding them in every page
 * Fix - Recreate the Adaptive Pricing Checkout Session when a shopper logs in or out mid-checkout, so payment methods can be saved correctly
 * Fix - Keep the wallet billing and shipping addresses on express checkout orders when the address normalization request returns an unusable response
+* Fix - Remove stale saved payment methods at checkout when the Stripe customer no longer exists, and keep valid ones when Stripe returns a transient API error
 * Fix - Render the Adaptive Pricing payment element in the store's Stripe locale
 * Fix - Stop sending Level 3 data when paying with a non-card payment method through express checkout (e.g. Amazon Pay), which Stripe rejects and can disable Level 3 data for card payments
 * Fix - Record the charge-captured state for asynchronously confirmed payments (e.g. ACH) so refunds from wp-admin and the Stripe Dashboard behave correctly
