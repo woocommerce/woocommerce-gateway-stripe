@@ -455,4 +455,83 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 			);
 		}
 	}
+
+	public static function provide_single_payout_filtering_test_data(): array {
+		$response_allowed_part = '
+			"object": "payout",
+			"id": "po_test",
+			"created": 1783384650,
+			"amount": 4422,
+			"currency": "ron",
+			"status": "paid",
+			"method": "standard",
+			"arrival_date": 1783468800,
+			"destination": "ba_test"
+		';
+		$response_as_string    = '{
+			' . $response_allowed_part . ',
+			"failure_balance_transaction": null,
+			"failure_code": null,
+			"failure_message": null,
+			"livemode": false,
+			"metadata": {},
+			"method": "standard",
+			"original_payout": null,
+			"payout_method": null,
+			"reconciliation_status": "not_applicable",
+			"reversed_by": null,
+			"source_type": "card",
+			"statement_descriptor": null,
+
+			"trace_id": {
+				"status": "supported",
+				"value": "test"
+			},
+			"type": "bank_account"
+		}';
+		return [
+			[
+				$response_as_string,
+				'{' . $response_allowed_part . '}',
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_single_payout_filtering_test_data
+	*/
+	public function test_single_payout_response_filtering( string $response_as_string, string $response_allowed_part ) {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$http_code_401_mock = function ( $pre, $parsed_args, $url ) use ( $response_as_string ) {
+			return [
+				'headers'  => [],
+				'body'     => $response_as_string,
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+			];
+		};
+
+		add_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
+		$response               = $this->send_request( self::SINGLE_PAYOUT_ENDPOINT_URL );
+		$expected_response_data = json_decode( $response_allowed_part );
+
+		remove_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
+		$this->assertEquals( $expected_response_data, $response->data );
+	}
 }
