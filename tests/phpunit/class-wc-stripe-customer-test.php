@@ -895,4 +895,53 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 
 		$this->assertSame( [], $result );
 	}
+
+	/**
+	 * is_no_such_customer_error() must recognize both error shapes Stripe returns for a
+	 * missing customer and reject unrelated errors.
+	 *
+	 * @param object|null $error    The error object under test.
+	 * @param bool        $expected Whether the error identifies a missing customer.
+	 *
+	 * @dataProvider provide_is_no_such_customer_error_cases
+	 */
+	public function test_is_no_such_customer_error( ?object $error, bool $expected ) {
+		$customer = new \WC_Stripe_Customer();
+
+		$this->assertSame( $expected, (bool) $customer->is_no_such_customer_error( $error ) );
+	}
+
+	/**
+	 * Cases for test_is_no_such_customer_error.
+	 *
+	 * @return array[]
+	 */
+	public function provide_is_no_such_customer_error_cases(): array {
+		return [
+			'code and param pair' => [
+				(object) [
+					'code'  => 'resource_missing',
+					'param' => 'customer',
+				],
+				true,
+			],
+			'message only'        => [
+				(object) [
+					'type'    => 'invalid_request_error',
+					'message' => "No such customer: 'cus_123'",
+				],
+				true,
+			],
+			'unrelated error'     => [
+				(object) [
+					'code'    => 'card_declined',
+					'param'   => 'card',
+					'type'    => 'card_error',
+					'message' => 'Your card was declined.',
+				],
+				false,
+			],
+			'no error'            => [ null, false ],
+		];
+	}
 }

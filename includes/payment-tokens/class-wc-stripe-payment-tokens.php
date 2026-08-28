@@ -545,7 +545,9 @@ class WC_Stripe_Payment_Tokens {
 					$active_reusable_payment_method_types[] = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
 				}
 			}
-			$payment_methods = $customer->get_all_payment_methods( $active_reusable_payment_method_types );
+			// Throw on generic API errors (caught below) so a transient failure keeps the
+			// local tokens instead of deleting them against an empty list.
+			$payment_methods = $customer->get_all_payment_methods( $active_reusable_payment_method_types, -1, true );
 
 			$payment_method_ids = array_map(
 				function ( $payment_method ) {
