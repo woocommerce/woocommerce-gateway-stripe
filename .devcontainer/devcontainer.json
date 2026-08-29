@@ -1,0 +1,32 @@
+{
+  "name": "Stripe",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "wordpress",
+  "workspaceFolder": "/var/www/html/wp-content/plugins/woocommerce-gateway-stripe",
+  "forwardPorts": [80],
+  "portsAttributes": {
+    "80": {
+      "label": "WordPress",
+      "onAutoForward": "notify"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+				"anthropic.claude-code",
+				"openai.chatgpt",
+				"editorconfig.editorconfig",
+				"xdebug.php-debug"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+    "remoteEnv": {
+  },
+  "initializeCommand": "bash .devcontainer/initialize.sh",
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "remoteUser": "root",
+  "waitFor": "postStartCommand"
+}
