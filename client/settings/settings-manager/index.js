@@ -2,7 +2,6 @@
 import React, { useContext, useRef, useState } from 'react';
 import { getQuery, updateQueryString } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
-import { isEmpty } from 'lodash';
 import SettingsLayout from '../settings-layout';
 import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';
@@ -69,7 +68,7 @@ const SettingsManager = () => {
 		useState( initialBannerState );
 
 	useEffect( () => {
-		if ( isLoading && ! isEmpty( settings ) ) {
+		if ( isLoading && Object.keys( settings ).length > 0 ) {
 			setInitialSettings( settings );
 		}
 	}, [ isLoading, settings ] );
