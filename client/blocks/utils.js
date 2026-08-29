@@ -1,4 +1,5 @@
 import { getSetting } from '@woocommerce/settings';
+import { debounce } from 'lodash';
 import { isLinkEnabled } from 'wcstripe/stripe-utils';
 import { OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT } from 'wcstripe/stripe-utils/constants';
 
@@ -123,16 +124,56 @@ export const extractOrderAttributionData = () => {
 /**
  * Populate order attribution inputs with order tracking data.
  *
+ * The order attribution script may not have initialised by the time this runs, in
+ * which case a single debounced retry is scheduled.
+ *
  * @return {void}
  */
 export const populateOrderAttributionInputs = () => {
+	if ( internalSetOrderAttributionTracking() ) {
+		return;
+	}
+
+	debouncedSetOrderAttributionTracking();
+};
+
+/**
+ * Forward the shopper's tracking preference to the order attribution script.
+ *
+ * @return {boolean} True if the preference was forwarded, false if the order
+ *                   attribution script isn't available yet.
+ */
+const internalSetOrderAttributionTracking = () => {
 	const orderAttribution = window?.wc_order_attribution;
-	if ( orderAttribution ) {
+	if (
+		orderAttribution &&
+		typeof orderAttribution.setOrderTracking === 'function'
+	) {
 		orderAttribution.setOrderTracking(
 			orderAttribution.params.allowTracking
 		);
+		return true;
 	}
+
+	return false;
 };
+
+/**
+ * The delay used to wait for the WooCommerce order attribution functions to be available.
+ *
+ * @type {number}
+ */
+const ORDER_ATTRIBUTION_TRACKING_DEBOUNCE_DELAY = 1000;
+
+/**
+ * Debounced wrapper around internalSetOrderAttributionTracking().
+ *
+ * @return {void}
+ */
+const debouncedSetOrderAttributionTracking = debounce(
+	() => internalSetOrderAttributionTracking(),
+	ORDER_ATTRIBUTION_TRACKING_DEBOUNCE_DELAY
+);
 
 /**
  * Add order attribution inputs to the page.
