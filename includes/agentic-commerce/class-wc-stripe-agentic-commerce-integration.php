@@ -435,13 +435,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return array WP_Query arguments for product selection.
 	 */
 	public function get_product_feed_query_args(): array {
-		$args = [
-			'type'   => [
-				\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
-				\Automattic\WooCommerce\Enums\ProductType::VARIATION,
-			],
-			'status' => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
-		];
+		$args = null;
 
 		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
 		if ( $filter->has_filters() ) {
@@ -450,6 +444,17 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			if ( is_array( $filter_args ) && [] !== $filter_args ) {
 				$args = $filter_args;
 			}
+		}
+
+		if ( null === $args ) {
+			$args = [
+				'type'       => [
+					\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
+					\Automattic\WooCommerce\Enums\ProductType::VARIATION,
+				],
+				'status'     => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+				'meta_query' => $filter->get_default_meta_query(),
+			];
 		}
 
 		/**
