@@ -116,6 +116,7 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 			WC_Stripe_Payment_Methods::LINK,
 			WC_Stripe_Payment_Methods::WECHAT_PAY,
 			WC_Stripe_Payment_Methods::BACS_DEBIT,
+			WC_Stripe_Payment_Methods::PAY_BY_BANK,
 		];
 		$this->mock_payment_method_configurations( $expected_method_ids, [] );
 
@@ -145,6 +146,7 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 			WC_Stripe_Payment_Methods::MULTIBANCO,
 			WC_Stripe_Payment_Methods::WECHAT_PAY,
 			WC_Stripe_Payment_Methods::BACS_DEBIT,
+			WC_Stripe_Payment_Methods::PAY_BY_BANK,
 		];
 		$this->mock_payment_method_configurations( $expected_ordered_method_ids, [] );
 

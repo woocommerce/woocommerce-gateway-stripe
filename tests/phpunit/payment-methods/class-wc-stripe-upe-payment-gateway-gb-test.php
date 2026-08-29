@@ -89,6 +89,7 @@ class WC_Stripe_UPE_Payment_Gateway_GB_Test extends WC_Mock_Stripe_API_Unit_Test
 					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID, // TODO: Verify if Link is actually returned/needed in the frontend.
 					WC_Stripe_UPE_Payment_Method_Wechat_Pay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Pay_By_Bank::STRIPE_ID,
 				],
 			],
 		];

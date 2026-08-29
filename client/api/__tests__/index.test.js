@@ -1,20 +1,21 @@
 import WCStripeAPI from '..';
+import { getStripeServerData } from 'wcstripe/stripe-utils';
 
 jest.mock( 'wcstripe/stripe-utils', () => ( {
 	getStripeServerData: jest.fn(),
 	getStripeDevWidgetOptions: jest.fn( () => ( {} ) ),
 } ) );
 
+const addStripeScriptTag = ( src ) => {
+	const script = document.createElement( 'script' );
+	script.id = 'stripe-js';
+	script.setAttribute( 'src', src );
+	document.body.appendChild( script );
+};
+
 describe( 'WCStripeAPI', () => {
 	describe( 'getStripe', () => {
 		let warnSpy;
-
-		const addStripeScriptTag = ( src ) => {
-			const script = document.createElement( 'script' );
-			script.id = 'stripe-js';
-			script.setAttribute( 'src', src );
-			document.body.appendChild( script );
-		};
 
 		beforeEach( () => {
 			global.Stripe = jest.fn( () => ( {} ) );

@@ -19,6 +19,7 @@ import {
 	PAYMENT_METHOD_MULTIBANCO,
 	PAYMENT_METHOD_OXXO,
 	PAYMENT_METHOD_P24,
+	PAYMENT_METHOD_PAY_BY_BANK,
 	PAYMENT_METHOD_SEPA,
 	PAYMENT_METHOD_SOFORT,
 	PAYMENT_METHOD_WECHAT_PAY,
@@ -320,6 +321,16 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.blik,
 		currencies: [ 'PLN' ],
+	},
+	pay_by_bank: {
+		id: PAYMENT_METHOD_PAY_BY_BANK,
+		label: __( 'Pay by Bank', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Allow customers to pay directly from their bank account.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.pay_by_bank,
+		currencies: [ 'EUR', 'GBP' ],
 	},
 };
 
