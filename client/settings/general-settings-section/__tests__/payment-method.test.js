@@ -6,6 +6,7 @@ import PaymentMethodDescription from '../payment-method-description';
 import { useEnabledPaymentMethodIds, useManualCapture } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_KLARNA,
 	PAYMENT_METHOD_SEPA,
 	PAYMENT_METHOD_UNAVAILABLE_REASONS,
 } from 'wcstripe/stripe-utils/constants';
@@ -86,7 +87,7 @@ describe( 'PaymentMethod', () => {
 		);
 	} );
 
-	it( 'SEPA payment method should be disabled when payment method is not enabled and not available', () => {
+	it( 'SEPA payment method should be enabled when the base currency is unsupported', () => {
 		const data = {
 			account: {
 				default_currency: 'USD',
@@ -105,7 +106,7 @@ describe( 'PaymentMethod', () => {
 			name: 'Direct debit payment',
 		} );
 		expect( checkbox ).toBeInTheDocument();
-		expect( checkbox ).toBeDisabled();
+		expect( checkbox ).toBeEnabled();
 		expect( checkbox ).not.toBeChecked();
 
 		expect(
@@ -121,6 +122,26 @@ describe( 'PaymentMethod', () => {
 			} ),
 			expect.any( Object )
 		);
+	} );
+
+	it( 'Klarna payment method should be disabled when an official plugin conflicts', () => {
+		const data = {
+			account: {
+				default_currency: 'USD',
+			},
+		};
+
+		usePaymentMethodUnavailableReason.mockReturnValue(
+			PAYMENT_METHOD_UNAVAILABLE_REASONS.OFFICIAL_PLUGIN_CONFLICT
+		);
+
+		renderPaymentMethod( PAYMENT_METHOD_KLARNA, data );
+
+		const checkbox = screen.getByRole( 'checkbox', {
+			name: 'Klarna',
+		} );
+		expect( checkbox ).toBeDisabled();
+		expect( checkbox ).not.toBeChecked();
 	} );
 
 	it( 'SEPA payment method should be enabled when payment method is enabled and not available', () => {
