@@ -71,6 +71,10 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 		}
 		$this->registered_test_scripts = [];
 
+		// The constructor registers this at a priority unique to it, and it throws when it
+		// fires, so a leaked instance would abort an unrelated test's checkout.
+		remove_all_actions( 'woocommerce_rest_checkout_process_payment_with_context', 10000 );
+
 		foreach ( $this->initialized_blocks_support as $blocks_support ) {
 			remove_filter( 'render_block_woocommerce/checkout', [ $blocks_support, 'maybe_enqueue_blocks_style' ] );
 			remove_filter( 'render_block_woocommerce/cart', [ $blocks_support, 'maybe_enqueue_blocks_style' ] );
@@ -314,6 +318,94 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 			'checkout block render' => [ 'render_block_woocommerce/checkout', 'maybe_enqueue_blocks_style', 10 ],
 			'cart block render'     => [ 'render_block_woocommerce/cart', 'maybe_enqueue_blocks_style', 10 ],
 			'block editor assets'   => [ 'enqueue_block_editor_assets', 'maybe_enqueue_blocks_style_for_editor', 20 ],
+		];
+	}
+
+	/**
+	 * WooCommerce answers 200 with an empty payment status when it never handed the payment
+	 * to the gateway, which would leave the order unpaid with nothing to show the shopper.
+	 *
+	 * @dataProvider provider_unprocessed_stripe_payment_methods
+	 *
+	 * @param string $payment_method The payment method id on the payment context.
+	 *
+	 * @return void
+	 */
+	public function test_fail_unprocessed_payment_throws_for_stripe_payment_methods( string $payment_method ): void {
+		$blocks_support = new WC_Stripe_Blocks_Support();
+		$order          = WC_Helper_Order::create_order();
+
+		$context = new \Automattic\WooCommerce\StoreApi\Payments\PaymentContext();
+		$context->set_payment_method( $payment_method );
+		$context->set_order( $order );
+
+		$result = new \Automattic\WooCommerce\StoreApi\Payments\PaymentResult();
+
+		$this->expectException( Exception::class );
+		$blocks_support->fail_unprocessed_payment( $context, $result );
+	}
+
+	/**
+	 * The payment context arrives from a hook, so a context without an order must still
+	 * produce the intended error rather than a fatal from the log line.
+	 *
+	 * @return void
+	 */
+	public function test_fail_unprocessed_payment_throws_when_the_context_has_no_order(): void {
+		$blocks_support = $this->get_initialized_blocks_support();
+
+		$context = new \Automattic\WooCommerce\StoreApi\Payments\PaymentContext();
+		$context->set_payment_method( 'stripe' );
+
+		$result = new \Automattic\WooCommerce\StoreApi\Payments\PaymentResult();
+
+		$this->expectException( Exception::class );
+		$blocks_support->fail_unprocessed_payment( $context, $result );
+	}
+
+	/**
+	 * @return array[]
+	 */
+	public function provider_unprocessed_stripe_payment_methods(): array {
+		return [
+			'main gateway'      => [ 'stripe' ],
+			'split UPE gateway' => [ 'stripe_us_bank_account' ],
+		];
+	}
+
+	/**
+	 * @dataProvider provider_processed_or_foreign_payments
+	 *
+	 * @param string $payment_method The payment method id on the payment context.
+	 * @param string $status         The status already set on the payment result.
+	 *
+	 * @return void
+	 */
+	public function test_fail_unprocessed_payment_leaves_other_payments_alone( string $payment_method, string $status ): void {
+		$blocks_support = new WC_Stripe_Blocks_Support();
+		$order          = WC_Helper_Order::create_order();
+
+		$context = new \Automattic\WooCommerce\StoreApi\Payments\PaymentContext();
+		$context->set_payment_method( $payment_method );
+		$context->set_order( $order );
+
+		$result = new \Automattic\WooCommerce\StoreApi\Payments\PaymentResult( $status );
+
+		$blocks_support->fail_unprocessed_payment( $context, $result );
+
+		$this->assertSame( $status, $result->status );
+	}
+
+	/**
+	 * @return array[]
+	 */
+	public function provider_processed_or_foreign_payments(): array {
+		return [
+			'payment succeeded'   => [ 'stripe', 'success' ],
+			'payment failed'      => [ 'stripe', 'failure' ],
+			'another gateway'     => [ 'cheque', '' ],
+			'lookalike method id' => [ 'stripey', '' ],
+			'unregistered split'  => [ 'stripe_not_a_payment_method', '' ],
 		];
 	}
 

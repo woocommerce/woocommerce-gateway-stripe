@@ -29,46 +29,86 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update {
 	 * @return void
 	 */
 	public function maybe_migrate( $previous_version = false ): void {
-		if ( 'yes' === get_option( self::MIGRATION_FLAG_OPTION ) ) {
+		if ( self::is_migration_complete() ) {
 			return;
 		}
 
 		if ( false === $previous_version ) {
-			update_option( self::MIGRATION_FLAG_OPTION, 'yes' );
+			self::mark_migration_complete();
 			return;
 		}
 
-		if ( 'yes' !== get_option( self::AMOUNT_MISMATCH_OPTION, 'no' ) ) {
-			update_option( self::MIGRATION_FLAG_OPTION, 'yes' );
+		if ( ! self::is_migration_needed() ) {
+			self::mark_migration_complete();
 			return;
 		}
 
-		$stripe          = WC_Stripe::get_instance();
-		$stripe_settings = $stripe->get_settings();
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$stripe_settings['adaptive_pricing'] = 'yes';
-		$stripe->update_settings( $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		// Re-read persisted settings. Leave the migration flag unset if the update did not take effect so a later update can retry.
-		if ( 'yes' !== ( $stripe->get_settings()['adaptive_pricing'] ?? 'no' ) ) {
+		if ( 'yes' !== ( WC_Stripe_Helper::get_stripe_settings()['adaptive_pricing'] ?? 'no' ) ) {
 			return;
 		}
 
-		// A failed marker deletion must remain retryable on a later plugin update.
-		if ( ! delete_option( self::AMOUNT_MISMATCH_OPTION ) ) {
-			// If the option still exists, then return early.
-			if ( false !== get_option( self::AMOUNT_MISMATCH_OPTION, false ) ) {
-				return;
-			}
-			// Otherwise the option no longer exists, mark the migration as complete.
+		// If we can't delete the amount mismatch option, then we can't mark the migration as complete.
+		if ( ! self::delete_amount_mismatch_option() ) {
 			return;
 		}
 
-		update_option( self::MIGRATION_FLAG_OPTION, 'yes' );
+		self::mark_migration_complete();
 
 		WC_Stripe_Logger::error(
 			'Adaptive Pricing re-enabled during plugin update after a previous automatic disable caused by a Checkout Session amount mismatch.',
 			[ 'previous_version' => (string) $previous_version ]
 		);
+	}
+
+	/**
+	 * Marks the Adaptive Pricing amount mismatch migration as complete.
+	 *
+	 * @return void
+	 */
+	public static function mark_migration_complete(): void {
+		update_option( self::MIGRATION_FLAG_OPTION, 'yes' );
+	}
+
+	/**
+	 * Checks if the Adaptive Pricing amount mismatch migration has been completed.
+	 *
+	 * @return bool True if the amount mismatch migration has been completed, false otherwise.
+	 */
+	public static function is_migration_complete(): bool {
+		return 'yes' === get_option( self::MIGRATION_FLAG_OPTION );
+	}
+
+	/**
+	 * Checks if the Adaptive Pricing amount mismatch migration is needed.
+	 *
+	 * @return bool True if the amount mismatch migration is needed, false otherwise.
+	 */
+	public static function is_migration_needed(): bool {
+		if ( self::is_migration_complete() ) {
+			return false;
+		}
+
+		return 'yes' === get_option( self::AMOUNT_MISMATCH_OPTION, 'no' );
+	}
+
+	/**
+	 * Deletes the amount mismatch option if it exists.
+	 *
+	 * @return bool True if the option was deleted, false otherwise.
+	 */
+	public static function delete_amount_mismatch_option(): bool {
+		$delete_result = delete_option( self::AMOUNT_MISMATCH_OPTION );
+		if ( $delete_result ) {
+			return true;
+		}
+
+		// Check whether the option does not exist by confirming we always get the fallback value.
+		return ( false === get_option( self::AMOUNT_MISMATCH_OPTION, false ) && 'no' === get_option( self::AMOUNT_MISMATCH_OPTION, 'no' ) );
 	}
 }

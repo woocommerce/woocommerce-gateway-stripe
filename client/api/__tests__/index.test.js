@@ -64,6 +64,83 @@ describe( 'WCStripeAPI', () => {
 		} );
 	} );
 
+	describe( 'express checkout on-demand nonces', () => {
+		beforeEach( () => {
+			global.wc_stripe_express_checkout_params = {
+				ajax_url: '/?wc-ajax=%%endpoint%%',
+			};
+		} );
+
+		afterEach( () => {
+			delete global.wc_stripe_express_checkout_params;
+		} );
+
+		it( 'fetches the nonce bundle once and reuses it for later lookups', async () => {
+			const request = jest.fn().mockResolvedValue( {
+				success: true,
+				data: { shipping: 'fresh_shipping', clear_cart: 'fresh_clear' },
+			} );
+			const api = new WCStripeAPI( {}, request );
+
+			await expect(
+				api.expressCheckoutGetNonce( 'shipping' )
+			).resolves.toBe( 'fresh_shipping' );
+			await expect(
+				api.expressCheckoutGetNonce( 'clear_cart' )
+			).resolves.toBe( 'fresh_clear' );
+
+			expect( request ).toHaveBeenCalledTimes( 1 );
+			expect( request ).toHaveBeenCalledWith(
+				'/?wc-ajax=wc_stripe_get_express_checkout_nonces',
+				{}
+			);
+		} );
+
+		// Warm-up fires on mere hover/touch, so a transient failure there must
+		// not poison the memo: the next lookup (the real interaction) retries.
+		it( 'retries the fetch on the next lookup after a failure', async () => {
+			const request = jest
+				.fn()
+				.mockRejectedValueOnce( new Error( 'network' ) )
+				.mockResolvedValueOnce( {
+					success: true,
+					data: { add_to_cart: 'fresh_add' },
+				} );
+			const api = new WCStripeAPI( {}, request );
+
+			await expect(
+				api.expressCheckoutGetNonce( 'add_to_cart' )
+			).rejects.toThrow( 'network' );
+			await expect(
+				api.expressCheckoutGetNonce( 'add_to_cart' )
+			).resolves.toBe( 'fresh_add' );
+
+			expect( request ).toHaveBeenCalledTimes( 2 );
+		} );
+
+		it( 'sends the freshly fetched nonce with the wc-ajax request', async () => {
+			const request = jest.fn( ( url ) =>
+				url.includes( 'get_express_checkout_nonces' )
+					? Promise.resolve( {
+							success: true,
+							data: { add_to_cart: 'fresh_add' },
+					  } )
+					: Promise.resolve( { success: true } )
+			);
+			const api = new WCStripeAPI( {}, request );
+
+			await api.expressCheckoutAddToCartLegacy( { product_id: 1 } );
+
+			expect( request ).toHaveBeenCalledWith(
+				'/?wc-ajax=wc_stripe_add_to_cart',
+				{
+					security: 'fresh_add',
+					product_id: 1,
+				}
+			);
+		} );
+	} );
+
 	describe( 'checkoutSessionsUpdateSession', () => {
 		const options = {
 			ajax_url: '/?wc-ajax=%%endpoint%%',
@@ -105,6 +182,42 @@ describe( 'WCStripeAPI', () => {
 			await expect(
 				api.checkoutSessionsUpdateSession( 'cs_test' )
 			).rejects.toThrow( 'Checkout session ID is required.' );
+		} );
+	} );
+
+	describe( 'createIntent', () => {
+		it( 'includes the order key in the PaymentIntent AJAX request', async () => {
+			const request = jest.fn().mockResolvedValue( {
+				success: true,
+				data: {
+					id: 'pi_test',
+					client_secret: 'pi_test_secret',
+				},
+			} );
+			const api = new WCStripeAPI(
+				{
+					ajax_url: '/?wc-ajax=%%endpoint%%',
+					createPaymentIntentNonce: 'nonce_123',
+				},
+				request
+			);
+
+			await expect(
+				api.createIntent( 123, 'blik', 'wc_order_test_key' )
+			).resolves.toEqual( {
+				id: 'pi_test',
+				client_secret: 'pi_test_secret',
+			} );
+
+			expect( request ).toHaveBeenCalledWith(
+				'/?wc-ajax=wc_stripe_create_payment_intent',
+				{
+					stripe_order_id: 123,
+					payment_method_type: 'blik',
+					order_key: 'wc_order_test_key',
+					_ajax_nonce: 'nonce_123',
+				}
+			);
 		} );
 	} );
 } );
