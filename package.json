@@ -1,7 +1,7 @@
 {
   "name": "woocommerce-gateway-stripe",
   "title": "WooCommerce Gateway Stripe",
-  "version": "10.8.5",
+  "version": "10.9.1",
   "license": "GPL-3.0",
   "homepage": "http://wordpress.org/plugins/woocommerce-gateway-stripe/",
   "repository": {
@@ -104,7 +104,6 @@
     "@automattic/interpolate-components": "^1.2.1",
     "@stripe/react-stripe-js": "^6.7.0",
     "@stripe/stripe-js": "^9.9.0",
-    "@woocommerce/settings": "^1.0.0",
     "@wordpress/html-entities": "^3.6.1",
     "framer-motion": "^7.6.1",
     "gridicons": "^3.4.0"

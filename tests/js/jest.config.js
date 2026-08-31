@@ -19,10 +19,13 @@ module.exports = {
 		// Global mock for wordpress/data but individual tests can override if necessary
 		'^@wordpress/data$': '<rootDir>/tests/js/__mocks__/wordpress-data.js',
 
-		// @woocommerce/currency is a webpack external (loaded from WooCommerce globals
-		// at runtime) and is not installed as a devDependency.
+		// @woocommerce/currency and @woocommerce/settings are webpack externals
+		// (loaded from WooCommerce globals at runtime) and are not installed as
+		// devDependencies.
 		'^@woocommerce/currency$':
 			'<rootDir>/tests/js/__mocks__/woocommerce-currency.js',
+		'^@woocommerce/settings$':
+			'<rootDir>/tests/js/__mocks__/woocommerce-settings.js',
 
 		// Asset/file mocks
 		'\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
