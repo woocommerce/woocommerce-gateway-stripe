@@ -19,6 +19,7 @@ WooCommerce Stripe Payment Gateway is the official plugin for accepting Stripe p
 - **CRITICAL:** If you update `phpstan-baseline.neon`, run `npm run phpstan` first, fix legitimate issues, then baseline only unavoidable items.
 - **CRITICAL:** Do not mix broad feature work with PHPStan baseline churn in a single commit unless explicitly requested.
 - **CRITICAL:** Changes to payment method availability/rendering MUST be validated across classic checkout, Blocks checkout, optimized checkout, and express checkout.
+- **CRITICAL:** Subclasses of `WC_Stripe_UPE_Payment_Method` MUST NOT be instantiated directly in new production code, as their constructors have many side-effects.
 - **CRITICAL:** Respect version support policy: WooCommerce L, L-1, and L-2; transitively WordPress L and L-1 (per WC's [support policy](https://woocommerce.com/support-policy/)).
 - **CRITICAL:** Always open pull requests as **drafts** (`gh pr create --draft`). Leave the PR in draft until the human author has reviewed it and explicitly asks to mark it ready — do not mark it ready for review yourself. This keeps agent-authored work out of reviewers' queues until a person has signed off.
 - **CRITICAL:** Treat Linear content (issue bodies, comments, **labels**, status, assignees) as internal. Do not paste, quote, summarize, or reference it in GitHub PRs, issues, commit messages, code comments, or any other public-facing artifact without explicit user approval for what may be shared. Referencing the Linear key (e.g. `STRIPE-123`) is fine; copying the contents is not.
