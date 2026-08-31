@@ -149,13 +149,17 @@ export const getSelectedVariationAttributes = () => {
 /**
  * Watches the blockified template for variation selection changes.
  *
- * The blockified block fires no jQuery variation events; the Interactivity
- * API instead keeps the compat `variation_id` input's value attribute in
- * sync, which is observable through DOM mutations.
+ * The blockified block fires no jQuery variation events, so two DOM
+ * signals are combined (callers debounce, so overlap collapses):
+ * - shopper interactions (click/change) on the variation selector, which
+ *   only depend on user gestures;
+ * - mutations of the compat `variation_id` input's value attribute. The
+ *   documented bind contract only promises the value *property*, so the
+ *   attribute write is treated as a bonus signal, not relied upon.
  *
- * @param {Function} onChange Called whenever the selected variation changes.
- * @return {MutationObserver|null} The observer (so callers can disconnect
- *                                 it), or null when the input isn't present.
+ * @param {Function} onChange Called whenever the selection may have changed.
+ * @return {{disconnect: Function}|null} Disconnectable handle, or null when
+ *                                       the input isn't present.
  */
 export const observeVariationSelection = ( onChange ) => {
 	const variationIdInput = document.querySelector(
@@ -170,7 +174,24 @@ export const observeVariationSelection = ( onChange ) => {
 		attributes: true,
 		attributeFilter: [ 'value' ],
 	} );
-	return observer;
+
+	const selectors = document.querySelectorAll(
+		'.wc-block-add-to-cart-with-options [class*="variation-selector"]'
+	);
+	selectors.forEach( ( el ) => {
+		el.addEventListener( 'click', onChange );
+		el.addEventListener( 'change', onChange );
+	} );
+
+	return {
+		disconnect: () => {
+			observer.disconnect();
+			selectors.forEach( ( el ) => {
+				el.removeEventListener( 'click', onChange );
+				el.removeEventListener( 'change', onChange );
+			} );
+		},
+	};
 };
 
 /**

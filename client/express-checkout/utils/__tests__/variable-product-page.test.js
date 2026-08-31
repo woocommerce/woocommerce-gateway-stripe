@@ -271,6 +271,28 @@ describe( 'ECE product page DOM readers', () => {
 			expect( observeVariationSelection( jest.fn() ) ).toBeNull();
 		} );
 
+		it( 'notifies on shopper interaction with the variation selector', () => {
+			document.body.innerHTML = `
+				<form class="wp-block-add-to-cart-with-options wc-block-add-to-cart-with-options">
+					<div class="wp-block-woocommerce-add-to-cart-with-options-variation-selector">
+						<button type="button">Blue</button>
+					</div>
+					<div class="single_variation_wrap">
+						<input type="hidden" name="variation_id" value="" />
+					</div>
+				</form>
+			`;
+			const onChange = jest.fn();
+			const handle = observeVariationSelection( onChange );
+
+			document.querySelector( 'button' ).click();
+			expect( onChange ).toHaveBeenCalledTimes( 1 );
+
+			handle.disconnect();
+			document.querySelector( 'button' ).click();
+			expect( onChange ).toHaveBeenCalledTimes( 1 );
+		} );
+
 		it( 'notifies when the variation value attribute changes', async () => {
 			document.body.innerHTML = blockifiedMarkup( {} );
 			const onChange = jest.fn();
