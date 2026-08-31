@@ -1,4 +1,8 @@
-import { isManualPaymentMethodCreation, getExpressCheckoutData } from './utils';
+import {
+	getExpressCheckoutData,
+	getExpressCheckoutErrorMessage,
+	isManualPaymentMethodCreation,
+} from './utils';
 import {
 	handleConfirmationTokenFlow,
 	handleManualPaymentMethodFlow,
@@ -115,7 +119,10 @@ export const onConfirmHandler = async ( params ) => {
 
 	const submitResponse = await elements.submit();
 	if ( submitResponse?.error ) {
-		return abortPayment( event, submitResponse?.error?.message );
+		return abortPayment(
+			event,
+			getExpressCheckoutErrorMessage( submitResponse?.error?.message )
+		);
 	}
 
 	// For subscription change payment method, create a payment method and submit the form.
