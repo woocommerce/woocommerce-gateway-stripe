@@ -1647,8 +1647,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param array  $request
 	 */
 	public function change_idempotency_key( $idempotency_key, $request ) {
-		// Retrieval requests also pass through the idempotency filter, but do not carry
-		// order metadata and must retain their original key.
+		// Keep the original key for requests without order metadata.
 		if ( ! is_array( $request ) || empty( $request['metadata']['order_id'] ) ) {
 			return $idempotency_key;
 		}
@@ -1973,9 +1972,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			// Mandate ID is necessary for renewal payments for certain payment methods and Indian cards.
 			$charge = $this->get_latest_charge_from_intent( $intent );
 
-			// Renewal response handling needs this same full Charge object. Keep it in a
-			// request-local context so direct gateways and UPE payment-method proxies can
-			// reuse the lookup without mutating the Stripe PaymentIntent response shape.
+			// Cache the Charge for renewal response handling.
 			WC_Stripe_Subscriptions_Helper::cache_renewal_charge( $order, $intent, $charge );
 
 			if ( isset( $charge->payment_method_details->card->mandate ) ) {

@@ -871,9 +871,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		];
 	}
 
-	/**
-	 * An empty client payment method must fail before intent creation.
-	 */
 	public function test_process_payment_deferred_intent_rejects_empty_payment_method_before_intent_creation() {
 		$order = WC_Helper_Order::create_order();
 
@@ -3668,7 +3665,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->method( 'get_latest_charge_from_intent' )
 			->willReturn( $this->array_to_object( $charge ) );
 
-		// Renewal processing needs the real helper to persist the lock it reports acquiring.
+		// Use the real helper to persist the lock.
 		$original_order_helper = WC_Stripe_Order_Helper::get_instance();
 		WC_Stripe_Order_Helper::set_instance( null );
 
@@ -3777,7 +3774,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->method( 'get_latest_charge_from_intent' )
 			->willReturn( $this->array_to_object( $charge ) );
 
-		// Renewal processing needs the real helper to persist the lock it reports acquiring.
+		// Use the real helper to persist the lock.
 		$original_order_helper = WC_Stripe_Order_Helper::get_instance();
 		WC_Stripe_Order_Helper::set_instance( null );
 
@@ -4659,11 +4656,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertSame( 0, $request_count );
 	}
 
-	/**
-	 * The shopper-facing message must describe the missing payment details rather than blame the
-	 * selected gateway, and must not name a cause: this guard is shared by every deferred-intent
-	 * flow, so it also fires on Stripe.js failures, element remounts and tampered requests.
-	 */
 	public function test_prepare_payment_information_reports_missing_payment_details_without_naming_a_cause() {
 		$order     = WC_Helper_Order::create_order();
 		$exception = null;

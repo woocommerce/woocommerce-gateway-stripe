@@ -1769,10 +1769,6 @@ describe( 'payment-processing', () => {
 			);
 		} );
 
-		// WooCommerce posts a multiselect as implode( ', ', $value ), so both of the
-		// cases below still arrive as '' and are rejected server-side. Blocking them
-		// costs nothing; the third case posts ', US' and is accepted, so blocking it
-		// would fail the checkout outright.
 		it( 'returns true when a required multiple select has nothing selected', () => {
 			form.innerHTML =
 				'<p class="validate-required">' +
@@ -1854,8 +1850,6 @@ describe( 'payment-processing', () => {
 			);
 		} );
 
-		// Radios stay outside the selector: blocking on an unselected group would stop
-		// checkout on stores whose radio fields have no server-side validation.
 		it( 'returns false for a required wrapper holding only unselected radios', () => {
 			form.innerHTML =
 				'<p class="validate-required">' +
@@ -1900,8 +1894,6 @@ describe( 'payment-processing', () => {
 			);
 		} );
 
-		// The checkbox group check only applies when the group leads the wrapper, so a
-		// filled text field ahead of an unchecked checkbox still passes, as before.
 		it( 'returns false when a filled text input precedes an unchecked checkbox', () => {
 			form.innerHTML =
 				'<p class="validate-required">' +

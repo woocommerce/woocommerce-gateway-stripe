@@ -36,19 +36,14 @@ class WC_Stripe_Subscriptions_Helper {
 	private const MAX_EXECUTION_TIME_FALLBACK = 30;
 
 	/**
-	 * Renewal charge-enrichment contexts active in this request.
-	 *
-	 * This request-local registry is shared by UPE payment-method proxies and the
-	 * separate main gateway instance to which they delegate intent creation. Resolved
-	 * charges are keyed by PaymentIntent so response processing can reuse the exact
-	 * object already retrieved while saving the intent.
+	 * Request-local Charge cache shared by UPE proxies and the main gateway.
 	 *
 	 * @var array<string, array{order: WC_Order, depth: int, charges: array<string, object>}>
 	 */
 	private static $renewal_charge_enrichment_contexts = [];
 
 	/**
-	 * Starts capturing charge enrichment performed while a renewal intent is saved.
+	 * Starts caching Charges while a renewal intent is saved.
 	 *
 	 * @since 11.0.0
 	 *
@@ -72,7 +67,7 @@ class WC_Stripe_Subscriptions_Helper {
 	}
 
 	/**
-	 * Caches a resolved charge only while this exact renewal order is being enriched.
+	 * Caches a Charge for the active renewal order and intent.
 	 *
 	 * @since 11.0.0
 	 *
@@ -98,7 +93,7 @@ class WC_Stripe_Subscriptions_Helper {
 	}
 
 	/**
-	 * Gets a charge resolved while saving this renewal's PaymentIntent.
+	 * Returns the cached Charge for a renewal order and intent.
 	 *
 	 * @since 11.0.0
 	 *
@@ -122,7 +117,7 @@ class WC_Stripe_Subscriptions_Helper {
 	}
 
 	/**
-	 * Stops capturing charge enrichment after a renewal intent has been saved.
+	 * Stops caching Charges for the renewal order.
 	 *
 	 * @since 11.0.0
 	 *

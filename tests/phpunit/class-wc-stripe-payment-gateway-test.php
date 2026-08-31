@@ -57,9 +57,6 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertFalse( $intent );
 	}
 
-	/**
-	 * Deprecated gateway lock methods must still participate in the atomic helper lock.
-	 */
 	public function test_deprecated_payment_lock_methods_delegate_to_order_helper() {
 		$order        = WC_Helper_Order::create_order();
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
@@ -77,8 +74,6 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * The deprecated lock reader must fail closed on structured metadata instead of throwing.
-	 *
 	 * @dataProvider provide_structured_payment_lock_metadata
 	 */
 	public function test_deprecated_payment_lock_reader_treats_structured_metadata_as_locked( $lock_metadata ) {
@@ -102,16 +97,10 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		];
 	}
 
-	/**
-	 * Retrieval requests do not carry order metadata, so retry filtering must preserve their key.
-	 */
 	public function test_change_idempotency_key_preserves_key_without_order_metadata() {
 		$this->assertSame( 'original-key', $this->gateway->change_idempotency_key( 'original-key', [] ) );
 	}
 
-	/**
-	 * An already-expanded latest charge must be returned without another Stripe request.
-	 */
 	public function test_get_latest_charge_from_intent_accepts_expanded_charge() {
 		$charge = (object) [
 			'id'       => 'ch_123abc',
@@ -125,9 +114,6 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertSame( $charge, $this->gateway->get_latest_charge_from_intent( $intent ) );
 	}
 
-	/**
-	 * A bare charge ID in the legacy charges list must be resolved before object-only callers use it.
-	 */
 	public function test_get_latest_charge_from_intent_resolves_string_from_charges_list() {
 		$charge = [
 			'id'       => 'ch_123abc',
@@ -159,10 +145,6 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertSame( 'ch_123abc', $resolved_charge->id );
 	}
 
-	/**
-	 * Deferring a redundant lookup is renewal-specific; ordinary intent saving must retain
-	 * its established charge-enrichment failure behavior.
-	 */
 	public function test_save_intent_to_order_still_throws_when_non_renewal_charge_lookup_fails() {
 		$order  = WC_Helper_Order::create_order();
 		$intent = (object) [

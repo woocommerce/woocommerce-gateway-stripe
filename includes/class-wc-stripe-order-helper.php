@@ -198,7 +198,7 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_LOCK_PAYMENT = '_stripe_lock_payment';
 
 	/**
-	 * Option prefix for the database-atomic payment-lock owner.
+	 * Option prefix for payment-lock owners.
 	 *
 	 * @var string
 	 */
@@ -229,7 +229,7 @@ class WC_Stripe_Order_Helper {
 	private static ?WC_Stripe_Order_Helper $instance = null;
 
 	/**
-	 * Exact payment-lock values acquired through the legacy boolean API in this request.
+	 * Payment-lock tokens owned by this request.
 	 *
 	 * @var array<string,string>
 	 */
@@ -1372,7 +1372,7 @@ class WC_Stripe_Order_Helper {
 	 * Locks an order for payment intent processing for 5 minutes.
 	 *
 	 * @since 10.0.0
-	 * @since 11.0.0 Stores a unique owner token in addition to the expiry timestamp.
+	 * @since 11.0.0 Stores an owner token with the expiry.
 	 *
 	 * @param WC_Order $order  The order that is being paid.
 	 * @return bool            A flag that indicates whether the order is already locked.
@@ -1389,7 +1389,7 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Atomically acquires a payment lock and returns its exact owner value.
+	 * Acquires a payment lock and returns its owner token.
 	 *
 	 * @since 11.0.0
 	 *
@@ -1397,14 +1397,13 @@ class WC_Stripe_Order_Helper {
 	 * @return string|false The exact owned lock value, or false when acquisition failed.
 	 */
 	public function acquire_order_payment_lock( WC_Order $order ) {
-		// Forced metadata reads operate on a clone so callers retain any unsaved changes.
+		// Read metadata on a clone to preserve unsaved order changes.
 		$payment_lock_order = clone $order;
 		if ( $this->lock_order_payment( $payment_lock_order ) ) {
 			return false;
 		}
 
-		// Dispatch through the legacy public method so compatible helper subclasses still
-		// participate. An override that reports success without recording an owner fails closed.
+		// Keep subclass overrides, but require them to record an owner.
 		$owner_key = $this->get_order_payment_lock_owner_key( $payment_lock_order );
 		if ( ! isset( $this->owned_payment_locks[ $owner_key ] ) ) {
 			WC_Stripe_Logger::error(
@@ -1424,9 +1423,7 @@ class WC_Stripe_Order_Helper {
 	 * Unlocks an order for processing by payment intents.
 	 *
 	 * @since 10.0.0
-	 * @since 11.0.0 Clears only this request's owner or an absent/expired lock; active
-	 *               foreign and malformed lock values are preserved. The isolated lock write
-	 *               does not persist unrelated unsaved metadata on the caller's order object.
+	 * @since 11.0.0 Added owner-aware cleanup.
 	 *
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
@@ -1440,9 +1437,7 @@ class WC_Stripe_Order_Helper {
 			return;
 		}
 
-		// Some existing callers clear a stale lock they did not acquire in this request.
-		// Claim an absent or expired owner row so a late/double unlock can never replace
-		// a different worker's active owner.
+		// Guard cleanup against a lock acquired by another worker.
 		$unlock_guard = ( time() + 5 * MINUTE_IN_SECONDS ) . '|' . wp_generate_uuid4();
 		if ( ! $this->claim_order_payment_lock_owner( $order, $unlock_guard ) ) {
 			return;
@@ -1453,8 +1448,7 @@ class WC_Stripe_Order_Helper {
 		$lock_parts         = is_scalar( $current_lock ) ? explode( '|', (string) $current_lock, 2 ) : [];
 		$lock_expiry        = isset( $lock_parts[0] ) && ctype_digit( $lock_parts[0] ) ? (int) $lock_parts[0] : 0;
 
-		// Preserve active or malformed legacy metadata. The cleanup guard is still
-		// released below, allowing the verified owner (or an administrator) to recover it.
+		// Preserve active or invalid legacy locks.
 		if ( null !== $current_lock && ( ! is_scalar( $current_lock ) || 0 === $lock_expiry || time() <= $lock_expiry ) ) {
 			$this->release_order_payment_lock_owner( $payment_lock_order, $unlock_guard );
 			return;
@@ -1471,8 +1465,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Unlocks an order only when the current payment lock is owned by the caller.
 	 *
-	 * The database read operates on a clone so refreshing lock metadata cannot discard
-	 * unsaved metadata that an extension added to the caller's live order object.
+	 * Refreshes metadata on a clone to preserve unsaved order changes.
 	 *
 	 * @since 11.0.0
 	 *
@@ -1509,7 +1502,7 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Checks that both authoritative and compatibility lock values belong to the caller.
+	 * Checks whether both lock stores match the owner token.
 	 *
 	 * @since 11.0.0
 	 *
@@ -1530,11 +1523,9 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Renews a payment lock only while both lock stores still belong to the caller.
+	 * Renews a lock when both stores match.
 	 *
-	 * The authoritative owner is replaced first with exact-value CAS, so another worker
-	 * cannot acquire the order during the compatibility metadata update. The caller must
-	 * use the returned token for all subsequent ownership checks and cleanup.
+	 * Updates the owner row before order metadata.
 	 *
 	 * @since 11.0.0
 	 *
@@ -1584,11 +1575,9 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Acquires and persists an exact payment-lock owner value.
+	 * Acquires and stores a payment-lock owner token.
 	 *
-	 * The site options table has a unique option-name index under both CPT and HPOS order
-	 * storage. Keeping the owner row for the full payment-lock lifetime means exactly one
-	 * worker can return an acquired value; an expired owner is replaced by exact-value CAS.
+	 * Only one worker can claim the unique option row.
 	 *
 	 * @param WC_Order $order The order whose payment lock is being acquired.
 	 * @return string|false Exact owned lock value, or false when acquisition failed.
@@ -1604,8 +1593,7 @@ class WC_Stripe_Order_Helper {
 		$acquired = false;
 
 		try {
-			// An active meta-only lock may belong to a request that started before this
-			// owner-row implementation was deployed, so it must still block acquisition.
+			// A legacy meta-only lock still blocks acquisition.
 			if ( $this->is_order_payment_locked( $order ) ) {
 				return false;
 			}
@@ -1628,7 +1616,7 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Atomically claims an absent or expired payment-lock owner row.
+	 * Claims a missing or expired payment-lock owner row.
 	 *
 	 * @param WC_Order $order    The order whose payment lock is being acquired.
 	 * @param string   $new_lock Exact owner value to claim.
@@ -1642,8 +1630,7 @@ class WC_Stripe_Order_Helper {
 		}
 
 		$option_name = $this->get_order_payment_lock_owner_option_name( $order );
-		// WordPress 7's add_option() uses an upsert, so it cannot prove which contender
-		// inserted the unique row. INSERT IGNORE reports success to exactly one worker.
+		// INSERT IGNORE identifies the winner; add_option() may upsert.
 		$inserted = $wpdb->query(
 			$wpdb->prepare(
 				'INSERT IGNORE INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)',
@@ -1663,8 +1650,7 @@ class WC_Stripe_Order_Helper {
 		$owner_parts    = is_string( $existing_owner ) ? explode( '|', $existing_owner, 2 ) : [];
 		$is_valid_owner = 2 === count( $owner_parts ) && ctype_digit( $owner_parts[0] ) && 0 < (int) $owner_parts[0] && '' !== $owner_parts[1];
 
-		// A malformed authority value cannot be proven stale, so fail closed and
-		// require explicit administrative recovery instead of risking a second payment.
+		// Invalid owner data fails closed to prevent duplicate payments.
 		if ( ! $is_valid_owner ) {
 			WC_Stripe_Logger::error(
 				'Stripe: cannot acquire an order payment lock because its authoritative owner value is invalid.',
@@ -1702,7 +1688,7 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Atomically fences an exact owner with a fresh release guard.
+	 * Replaces an owned lock with a temporary release token.
 	 *
 	 * @param WC_Order $order         The order whose payment lock is being released.
 	 * @param string   $expected_lock Exact owner value being released.
@@ -1721,7 +1707,7 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Atomically replaces one exact authoritative owner value with another.
+	 * Replaces the owner only when it matches the expected value.
 	 *
 	 * @param WC_Order $order            The order whose payment-lock owner is being replaced.
 	 * @param string   $expected_lock    Exact current owner value.
@@ -1756,7 +1742,7 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Checks the authoritative owner row for an exact value.
+	 * Checks whether the owner row matches a value.
 	 *
 	 * @param WC_Order $order         The order whose owner is being checked.
 	 * @param string   $expected_lock Exact owner value.
@@ -1770,7 +1756,7 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Returns the authoritative payment-lock owner row.
+	 * Returns the payment-lock owner row.
 	 *
 	 * @param WC_Order $order The order whose owner is being read.
 	 * @return string|null
@@ -1794,7 +1780,7 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Releases the authoritative owner only when it still matches this worker.
+	 * Deletes the owner row only if it still matches this worker.
 	 *
 	 * @param WC_Order $order The order whose payment-lock metadata was mutated.
 	 * @param string   $expected_lock Exact owner value returned at acquisition.
@@ -1820,7 +1806,7 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Invalidates option caches after a direct authoritative-row mutation.
+	 * Clears option caches after an owner-row update.
 	 *
 	 * @param string $option_name Mutated site option name.
 	 * @return void
@@ -1831,7 +1817,7 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Returns the site-scoped option name used for one order's authoritative lock owner.
+	 * Returns the option name for an order's lock owner.
 	 *
 	 * @param WC_Order $order The order whose payment-lock metadata will be mutated.
 	 * @return string
@@ -1841,7 +1827,7 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Returns the request-local owner key, including the current site's options table.
+	 * Returns the site-specific key for a request-owned lock.
 	 *
 	 * @param WC_Order $order The order whose request-local owner is being addressed.
 	 * @return string
@@ -1923,8 +1909,7 @@ class WC_Stripe_Order_Helper {
 	protected function is_order_payment_locked( WC_Order $order ): bool {
 		$existing_lock = $this->get_order_existing_payment_lock( $order );
 
-		// A structured value cannot be parsed as a lock timestamp. Treat it as locked so
-		// corrupted or concurrently replaced metadata never causes a payment to proceed.
+		// Treat non-scalar lock values as locked.
 		if ( null !== $existing_lock && ! is_scalar( $existing_lock ) ) {
 			return true;
 		}

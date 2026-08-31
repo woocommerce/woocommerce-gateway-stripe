@@ -1711,14 +1711,12 @@ export const hasEmptyRequiredFields = ( requiredWrappers ) => {
 		let hasValue;
 
 		if ( first.type === 'checkbox' ) {
-			// A required wrapper can hold a "tick at least one" checkbox group, so the
-			// first box being unchecked does not mean the group is incomplete.
+			// Any checked box satisfies a required checkbox group.
 			hasValue = inputs.some(
 				( input ) => input.type === 'checkbox' && input.checked
 			);
 		} else if ( first.type === 'select-multiple' ) {
-			// `first.value` is only the first selected option, so a selected empty
-			// placeholder would hide the real selections behind it.
+			// Any selected non-empty option satisfies a multiselect.
 			hasValue = [ ...first.selectedOptions ].some(
 				( option ) => option.value.trim() !== ''
 			);
@@ -1730,11 +1728,7 @@ export const hasEmptyRequiredFields = ( requiredWrappers ) => {
 			continue;
 		}
 
-		// Radios are not matched by the selector above, so a wrapper holding only
-		// radios is skipped entirely, as it is by WooCommerce core. A checked radio can
-		// still satisfy a wrapper: it is not proof the other controls are filled, but
-		// it is reason enough to let the server validate the submission rather than
-		// block it here.
+		// Let the server validate radio groups, as WooCommerce core does.
 		const hasCheckedRadio = !! wrapper.querySelector(
 			'input[type="radio"]:checked'
 		);
