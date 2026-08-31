@@ -7,6 +7,7 @@ import {
 	isPaymentMethodRestrictedToLocation,
 	isUsingSavedPaymentMethod,
 	paymentMethodSupportsDeferredIntent,
+	showErrorCheckout,
 	togglePaymentMethodForCountry,
 } from '../../stripe-utils';
 import './style.scss';
@@ -23,6 +24,7 @@ import {
 	processPayment,
 	trackMountInProgress,
 } from './payment-processing';
+import { __ } from '@wordpress/i18n';
 
 jQuery( function ( $ ) {
 	const stripeServerData = getStripeServerData();
@@ -102,27 +104,37 @@ jQuery( function ( $ ) {
 
 	function processPaymentIfNotUsingSavedMethod( $form ) {
 		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
-		if ( ! isUsingSavedPaymentMethod( paymentMethodType ) ) {
-			return processPayment( api, $form, paymentMethodType );
+
+		// A saved token travels in the POST and needs no payment method, so the
+		// required-field state is none of our business on that path.
+		if ( isUsingSavedPaymentMethod( paymentMethodType ) ) {
+			return;
 		}
-	}
 
-	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
-		const $form = $( this );
-
-		// Don't create a Stripe payment method if required checkout fields are empty.
-		// This prevents unnecessary Stripe API calls before WC's server-side validation.
-		// jQuery :visible filters out fields hidden by conditional checkout logic
-		// (e.g. shipping fields when "Ship to different address" is unchecked).
+		// Returning false is what stops WooCommerce submitting: returning early without
+		// it would let the form POST with no payment method, and the order would be
+		// created and then failed. jQuery :visible filters out fields hidden by
+		// conditional checkout logic (e.g. shipping fields when "Ship to different
+		// address" is unchecked).
 		if (
 			hasEmptyRequiredFields(
 				$form.find( '.validate-required:visible' ).toArray()
 			)
 		) {
-			return;
+			showErrorCheckout(
+				__(
+					'Please fill in all required fields.',
+					'woocommerce-gateway-stripe'
+				)
+			);
+			return false;
 		}
 
-		return processPaymentIfNotUsingSavedMethod( $form );
+		return processPayment( api, $form, paymentMethodType );
+	}
+
+	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
+		return processPaymentIfNotUsingSavedMethod( $( this ) );
 	} );
 
 	// Mount the Stripe Payment Elements onto the Add Payment Method page and Pay for Order page.
