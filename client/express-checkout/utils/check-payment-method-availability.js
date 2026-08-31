@@ -15,8 +15,8 @@ import {
 import { transformPriceWithMinorUnits } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
 /**
- * Checks whether a given express payment method is available in the current context
- * by rendering an invisible Stripe Express Checkout Element and waiting for its ready event.
+ * Renders an invisible Stripe Express Checkout Element and waits for its ready
+ * event to learn whether the given express payment method is available.
  *
  * Results are memoized so the availability check is only performed once per payment method.
  *
@@ -25,7 +25,7 @@ import { transformPriceWithMinorUnits } from 'wcstripe/express-checkout/transfor
  * @param {Object} cart          The WooCommerce cart object containing totals and currency info.
  * @return {Promise<boolean>} Promise that resolves to true if the payment method is available, false otherwise.
  */
-export const checkPaymentMethodIsAvailable = memoize(
+const probePaymentMethodAvailability = memoize(
 	( paymentMethod, api, cart ) => {
 		return new Promise( ( resolve ) => {
 			const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
@@ -109,3 +109,25 @@ export const checkPaymentMethodIsAvailable = memoize(
 		} );
 	}
 );
+
+/**
+ * Checks whether a given express payment method is available in the current context.
+ *
+ * @param {string} paymentMethod The express payment method identifier (e.g. 'googlePay', 'applePay').
+ * @param {Object} api           The WCStripeAPI instance used to load Stripe.
+ * @param {Object} cart          The WooCommerce cart object containing totals and currency info.
+ * @return {Promise<boolean>} Promise that resolves to true if the payment method is available, false otherwise.
+ */
+export const checkPaymentMethodIsAvailable = ( paymentMethod, api, cart ) => {
+	// On first render, WooCommerce Blocks passes its seeded default cart totals
+	// (empty currency_code) before the Store API data is applied. Probing then
+	// would make Stripe's elements() throw with an invalid currency, and the
+	// memoized promise would never settle, hiding every payment method for the
+	// life of the page. Resolve false without caching; canMakePayment runs
+	// again once the cart hydrates, and only that probe is memoized.
+	if ( ! cart?.cartTotals?.currency_code ) {
+		return Promise.resolve( false );
+	}
+
+	return probePaymentMethodAvailability( paymentMethod, api, cart );
+};
