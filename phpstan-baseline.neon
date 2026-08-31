@@ -399,7 +399,7 @@ parameters:
 		-
 			message: '#^Cannot access property \$id on object\|string\.$#'
 			identifier: property.nonObject
-			count: 4
+			count: 2
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-

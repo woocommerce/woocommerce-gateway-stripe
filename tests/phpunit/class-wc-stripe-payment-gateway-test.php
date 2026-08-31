@@ -126,6 +126,40 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * A bare charge ID in the legacy charges list must be resolved before object-only callers use it.
+	 */
+	public function test_get_latest_charge_from_intent_resolves_string_from_charges_list() {
+		$charge = [
+			'id'       => 'ch_123abc',
+			'captured' => false,
+			'status'   => 'failed',
+		];
+		$intent = (object) [
+			'charges' => (object) [
+				'data' => [ 'ch_123abc' ],
+			],
+		];
+
+		$callback = function ( $preempt, $request_args, $url ) use ( $charge ) {
+			if ( 'https://api.stripe.com/v1/charges/ch_123abc' === $url ) {
+				return $this->build_response( $charge );
+			}
+
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		try {
+			$resolved_charge = $this->gateway->get_latest_charge_from_intent( $intent );
+		} finally {
+			remove_filter( 'pre_http_request', $callback, 10 );
+		}
+
+		$this->assertIsObject( $resolved_charge );
+		$this->assertSame( 'ch_123abc', $resolved_charge->id );
+	}
+
+	/**
 	 * Deferring a redundant lookup is renewal-specific; ordinary intent saving must retain
 	 * its established charge-enrichment failure behavior.
 	 */

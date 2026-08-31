@@ -905,6 +905,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( ! empty( $intent->charges->data ) ) {
 			$latest_charge = end( $intent->charges->data );
+
+			// Legacy charges.data responses may contain an unexpanded charge ID.
+			if ( is_string( $latest_charge ) ) {
+				$latest_charge = $this->get_charge_object( $latest_charge );
+			}
 		} elseif ( ! empty( $intent->latest_charge ) ) {
 			if ( is_object( $intent->latest_charge ) ) {
 				$latest_charge = $intent->latest_charge;

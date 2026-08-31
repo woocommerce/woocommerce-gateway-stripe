@@ -218,6 +218,96 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * An exact owner can renew its lease without creating an unlock gap.
+	 *
+	 * @return void
+	 */
+	public function test_renew_order_payment_lock_if_owned_replaces_both_stores_without_an_unlock_gap(): void {
+		global $wpdb;
+
+		$order       = WC_Helper_Order::create_order();
+		$option_name = 'wc_stripe_payment_lock_owner_' . $order->get_id();
+		$owned_lock  = $this->helper->acquire_order_payment_lock( $order );
+
+		$this->assertIsString( $owned_lock );
+		$this->assertTrue( is_callable( [ $this->helper, 'renew_order_payment_lock_if_owned' ] ) );
+
+		$order->update_meta_data( '_unsaved_extension_meta', 'preserved' );
+		$renewed_lock = $this->helper->renew_order_payment_lock_if_owned( $order, $owned_lock );
+
+		$this->assertIsString( $renewed_lock );
+		$this->assertNotSame( $owned_lock, $renewed_lock );
+		$this->assertMatchesRegularExpression( '/^[1-9][0-9]*\|[0-9a-f-]{36}$/', $renewed_lock );
+		$this->assertSame( $renewed_lock, $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) ) );
+		$this->assertSame(
+			$renewed_lock,
+			$wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT option_value FROM %i WHERE option_name = %s',
+					$wpdb->options,
+					$option_name
+				)
+			)
+		);
+		$this->assertFalse( $this->helper->is_order_payment_lock_owned( $order, $owned_lock ) );
+		$this->assertTrue( $this->helper->is_order_payment_lock_owned( $order, $renewed_lock ) );
+		$this->assertSame( 'preserved', $order->get_meta( '_unsaved_extension_meta', true ) );
+		$this->assertEmpty( wc_get_order( $order->get_id() )->get_meta( '_unsaved_extension_meta', true ) );
+
+		// A stale finally block holding the old token cannot clear the renewed lease.
+		$this->helper->unlock_order_payment_if_owned( $order, $owned_lock );
+		$this->assertTrue( $this->helper->is_order_payment_lock_owned( $order, $renewed_lock ) );
+
+		$this->helper->unlock_order_payment_if_owned( $order, $renewed_lock );
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
+	}
+
+	/**
+	 * Renewal must fail closed after either lock store has moved to another owner.
+	 *
+	 * @return void
+	 */
+	public function test_renew_order_payment_lock_if_owned_preserves_a_replacement_owner(): void {
+		global $wpdb;
+
+		$order            = WC_Helper_Order::create_order();
+		$owned_lock       = $this->helper->acquire_order_payment_lock( $order );
+		$replacement_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . '|' . wp_generate_uuid4();
+		$option_name      = 'wc_stripe_payment_lock_owner_' . $order->get_id();
+
+		$this->assertIsString( $owned_lock );
+
+		$wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET option_value = %s WHERE option_name = %s',
+				$wpdb->options,
+				$replacement_lock,
+				$option_name
+			)
+		);
+		$replacement_order = wc_get_order( $order->get_id() );
+		$replacement_order->update_meta_data( '_stripe_lock_payment', $replacement_lock );
+		$replacement_order->save_meta_data();
+
+		$this->assertFalse( $this->helper->renew_order_payment_lock_if_owned( $order, $owned_lock ) );
+		$this->assertSame( $replacement_lock, $this->helper->get_order_existing_payment_lock( $order ) );
+		$this->assertSame(
+			$replacement_lock,
+			$wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT option_value FROM %i WHERE option_name = %s',
+					$wpdb->options,
+					$option_name
+				)
+			)
+		);
+
+		$replacement_order->delete_meta_data( '_stripe_lock_payment' );
+		$replacement_order->save_meta_data();
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE option_name = %s', $wpdb->options, $option_name ) );
+	}
+
+	/**
 	 * Owner-returning acquisition must preserve legacy helper-subclass dispatch.
 	 *
 	 * @return void

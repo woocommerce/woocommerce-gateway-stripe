@@ -1530,6 +1530,60 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Renews a payment lock only while both lock stores still belong to the caller.
+	 *
+	 * The authoritative owner is replaced first with exact-value CAS, so another worker
+	 * cannot acquire the order during the compatibility metadata update. The caller must
+	 * use the returned token for all subsequent ownership checks and cleanup.
+	 *
+	 * @since 11.0.0
+	 *
+	 * @param WC_Order $order         The order whose payment lock is being renewed.
+	 * @param string   $expected_lock Exact lock value currently owned by the caller.
+	 * @return string|false The renewed lock value, or false after ownership changed.
+	 */
+	public function renew_order_payment_lock_if_owned( WC_Order $order, string $expected_lock ) {
+		if ( '' === $expected_lock || 0 >= $order->get_id() ) {
+			return false;
+		}
+
+		$renewed_lock_expiry = time() + 5 * MINUTE_IN_SECONDS;
+		$renewed_lock        = $renewed_lock_expiry . '|' . wp_generate_uuid4();
+
+		if ( ! $this->replace_order_payment_lock_owner_value_if_owned( $order, $expected_lock, $renewed_lock ) ) {
+			return false;
+		}
+
+		$payment_lock_order = clone $order;
+		$renewed            = false;
+
+		try {
+			$current_lock = $this->get_order_existing_payment_lock( $payment_lock_order );
+
+			if ( ! is_scalar( $current_lock ) || (string) $current_lock !== $expected_lock ) {
+				return false;
+			}
+
+			$payment_lock_order->update_meta_data( self::META_STRIPE_LOCK_PAYMENT, $renewed_lock );
+			$payment_lock_order->save_meta_data();
+
+			$persisted_lock = $this->get_order_existing_payment_lock( $payment_lock_order );
+			if ( time() > $renewed_lock_expiry || ! is_scalar( $persisted_lock ) || (string) $persisted_lock !== $renewed_lock || ! $this->has_order_payment_lock_owner( $payment_lock_order, $renewed_lock ) ) {
+				return false;
+			}
+
+			$this->owned_payment_locks[ $this->get_order_payment_lock_owner_key( $payment_lock_order ) ] = $renewed_lock;
+			$renewed = true;
+
+			return $renewed_lock;
+		} finally {
+			if ( ! $renewed ) {
+				$this->release_order_payment_lock_owner( $payment_lock_order, $renewed_lock );
+			}
+		}
+	}
+
+	/**
 	 * Acquires and persists an exact payment-lock owner value.
 	 *
 	 * The site options table has a unique option-name index under both CPT and HPOS order
@@ -1655,19 +1709,38 @@ class WC_Stripe_Order_Helper {
 	 * @return string|false Exact release guard, or false after ownership changed.
 	 */
 	private function replace_order_payment_lock_owner_if_owned( WC_Order $order, string $expected_lock ) {
-		global $wpdb;
-
 		if ( 0 >= $order->get_id() || '' === $expected_lock ) {
 			return false;
 		}
 
-		$option_name   = $this->get_order_payment_lock_owner_option_name( $order );
 		$release_guard = ( time() + 5 * MINUTE_IN_SECONDS ) . '|' . wp_generate_uuid4();
-		$updated       = $wpdb->query(
+
+		return $this->replace_order_payment_lock_owner_value_if_owned( $order, $expected_lock, $release_guard )
+			? $release_guard
+			: false;
+	}
+
+	/**
+	 * Atomically replaces one exact authoritative owner value with another.
+	 *
+	 * @param WC_Order $order            The order whose payment-lock owner is being replaced.
+	 * @param string   $expected_lock    Exact current owner value.
+	 * @param string   $replacement_lock Exact replacement owner value.
+	 * @return bool
+	 */
+	private function replace_order_payment_lock_owner_value_if_owned( WC_Order $order, string $expected_lock, string $replacement_lock ): bool {
+		global $wpdb;
+
+		if ( 0 >= $order->get_id() || '' === $expected_lock || '' === $replacement_lock ) {
+			return false;
+		}
+
+		$option_name = $this->get_order_payment_lock_owner_option_name( $order );
+		$updated     = $wpdb->query(
 			$wpdb->prepare(
 				'UPDATE %i SET option_value = %s, autoload = %s WHERE option_name = %s AND BINARY option_value = BINARY %s',
 				$wpdb->options,
-				$release_guard,
+				$replacement_lock,
 				'no',
 				$option_name,
 				$expected_lock
@@ -1679,7 +1752,7 @@ class WC_Stripe_Order_Helper {
 		}
 
 		$this->clear_order_payment_lock_owner_cache( $option_name );
-		return $release_guard;
+		return true;
 	}
 
 	/**
