@@ -1721,6 +1721,10 @@ export const hasEmptyRequiredFields = ( requiredWrappers ) => {
 			hasValue = first.value.trim() !== '';
 		}
 
+		if ( hasValue ) {
+			continue;
+		}
+
 		// Radios are not matched by the selector above, so a wrapper holding only
 		// radios is skipped entirely, as it is by WooCommerce core. A checked radio can
 		// still satisfy a wrapper: it is not proof the other controls are filled, but
@@ -1730,7 +1734,7 @@ export const hasEmptyRequiredFields = ( requiredWrappers ) => {
 			'input[type="radio"]:checked'
 		);
 
-		if ( ! hasValue && ! hasCheckedRadio ) {
+		if ( ! hasCheckedRadio ) {
 			return true;
 		}
 	}
