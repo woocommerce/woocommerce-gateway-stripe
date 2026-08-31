@@ -119,12 +119,9 @@ const probePaymentMethodAvailability = memoize(
  * @return {Promise<boolean>} Promise that resolves to true if the payment method is available, false otherwise.
  */
 export const checkPaymentMethodIsAvailable = ( paymentMethod, api, cart ) => {
-	// On first render, WooCommerce Blocks passes its seeded default cart totals
-	// (empty currency_code) before the Store API data is applied. Probing then
-	// would make Stripe's elements() throw with an invalid currency, and the
-	// memoized promise would never settle, hiding every payment method for the
-	// life of the page. Resolve false without caching; canMakePayment runs
-	// again once the cart hydrates, and only that probe is memoized.
+	// Before the cart hydrates, Blocks passes seeded totals with an empty
+	// currency_code, which makes Stripe's elements() throw. Resolve false
+	// without caching so the probe runs once the cart hydrates.
 	if ( ! cart?.cartTotals?.currency_code ) {
 		return Promise.resolve( false );
 	}
