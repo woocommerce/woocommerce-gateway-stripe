@@ -192,6 +192,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop sending Level 3 data when paying with a non-card payment method through express checkout (e.g. Amazon Pay), which Stripe rejects and can disable Level 3 data for card payments
 * Fix - Record the charge-captured state for asynchronously confirmed payments (e.g. ACH) so refunds from wp-admin and the Stripe Dashboard behave correctly
 * Fix - Reject negative refund amounts with an explicit error instead of silently refunding the absolute value
+* Fix - Prevent classic checkout from processing an empty payment method when custom required fields are present
+* Fix - Explain that payment details were not submitted, instead of reporting the selected payment method as invalid, when checkout is submitted without them
 * Fix - Hide the Apple Pay and Google Pay express buttons on pages unchecked in their own locations setting, instead of following other wallets' locations
 * Fix - Hide the save payment method checkbox for Bancontact, iDEAL and Sofort in the Adaptive Pricing checkout on non-EUR stores whose currency excludes them
 * Fix - Surface express checkout order failures instead of leaving the Apple Pay or Google Pay sheet open with no error
