@@ -4,8 +4,6 @@ import {
 	hasVariationSelectionUi,
 	isAddToCartUnavailable,
 	isSelectedVariationUnavailable,
-	observeQuantitySteppers,
-	observeVariationSelection,
 } from 'wcstripe/express-checkout/utils/variable-product-page';
 
 // Classic template: `.variations_form` with attribute selects, plus the
@@ -262,115 +260,6 @@ describe( 'ECE product page DOM readers', () => {
 			expect( isSelectedVariationUnavailable() ).toBe( false );
 			document.body.innerHTML = '';
 			expect( isSelectedVariationUnavailable() ).toBe( false );
-		} );
-	} );
-
-	describe( 'observeVariationSelection', () => {
-		it( 'returns null when no variation input exists', () => {
-			document.body.innerHTML = '<form class="cart"></form>';
-			expect( observeVariationSelection( jest.fn() ) ).toBeNull();
-		} );
-
-		it( 'notifies on shopper interaction with the variation selector', () => {
-			document.body.innerHTML = `
-				<form class="wp-block-add-to-cart-with-options wc-block-add-to-cart-with-options">
-					<div class="wp-block-woocommerce-add-to-cart-with-options-variation-selector">
-						<button type="button">Blue</button>
-					</div>
-					<div class="single_variation_wrap">
-						<input type="hidden" name="variation_id" value="" />
-					</div>
-				</form>
-			`;
-			const onChange = jest.fn();
-			const handle = observeVariationSelection( onChange );
-
-			document.querySelector( 'button' ).click();
-			expect( onChange ).toHaveBeenCalledTimes( 1 );
-
-			handle.disconnect();
-			document.querySelector( 'button' ).click();
-			expect( onChange ).toHaveBeenCalledTimes( 1 );
-		} );
-
-		it( 'notifies when the variation value attribute changes', async () => {
-			document.body.innerHTML = blockifiedMarkup( {} );
-			const onChange = jest.fn();
-			const observer = observeVariationSelection( onChange );
-
-			document
-				.querySelector( 'input[name="variation_id"]' )
-				.setAttribute( 'value', '30' );
-			// MutationObserver callbacks run as microtasks.
-			await Promise.resolve();
-
-			expect( onChange ).toHaveBeenCalled();
-			observer.disconnect();
-		} );
-
-		it( 'stops notifying after disconnect', async () => {
-			document.body.innerHTML = blockifiedMarkup( {} );
-			const onChange = jest.fn();
-			const observer = observeVariationSelection( onChange );
-			observer.disconnect();
-
-			document
-				.querySelector( 'input[name="variation_id"]' )
-				.setAttribute( 'value', '30' );
-			await Promise.resolve();
-
-			expect( onChange ).not.toHaveBeenCalled();
-		} );
-	} );
-
-	describe( 'observeQuantitySteppers', () => {
-		const blockifiedQtyMarkup = `
-			<form class="wp-block-add-to-cart-with-options wc-block-add-to-cart-with-options">
-				<div class="quantity wc-block-components-quantity-selector">
-					<button type="button" aria-label="Reduce quantity">-</button>
-					<input type="number" class="input-text qty text" name="quantity" value="1" />
-					<button type="button" aria-label="Increase quantity">+</button>
-				</div>
-			</form>
-		`;
-
-		it( 'returns null on the classic template', () => {
-			document.body.innerHTML = `
-				<form class="cart">
-					<div class="quantity">
-						<input type="number" class="qty" name="quantity" value="1" />
-					</div>
-				</form>
-			`;
-			expect( observeQuantitySteppers( jest.fn() ) ).toBeNull();
-		} );
-
-		it( 'notifies when a stepper button is pressed', () => {
-			document.body.innerHTML = blockifiedQtyMarkup;
-			const onChange = jest.fn();
-			const listener = observeQuantitySteppers( onChange );
-
-			document
-				.querySelector( 'button[aria-label="Increase quantity"]' )
-				.click();
-
-			expect( onChange ).toHaveBeenCalledTimes( 1 );
-			listener.disconnect();
-		} );
-
-		it( 'ignores clicks on the input itself and stops after disconnect', () => {
-			document.body.innerHTML = blockifiedQtyMarkup;
-			const onChange = jest.fn();
-			const listener = observeQuantitySteppers( onChange );
-
-			document.querySelector( '.qty' ).click();
-			expect( onChange ).not.toHaveBeenCalled();
-
-			listener.disconnect();
-			document
-				.querySelector( 'button[aria-label="Increase quantity"]' )
-				.click();
-			expect( onChange ).not.toHaveBeenCalled();
 		} );
 	} );
 } );

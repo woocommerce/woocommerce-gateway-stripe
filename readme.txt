@@ -192,5 +192,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop flagging the checkout page as the cart page (is_cart() returning true) when express checkout buttons are enabled, which made analytics and other plugins misread the page
 * Fix - Remove the empty box shown under "Use a new payment method" on classic checkout when the save-payment-method checkbox is hidden
 * Fix - Show express checkout buttons on variable product pages before a variation is selected, including on the Add to Cart + Options block where they never appeared
+* Fix - Price express checkout wallet sheets on product pages from the actual cart contents so a changed variation or quantity can no longer show a stale amount
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
