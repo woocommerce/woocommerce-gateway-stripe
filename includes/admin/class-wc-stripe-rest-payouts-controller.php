@@ -235,7 +235,7 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 	public static function validate_pagination_cursor( $param_value, $request, $param_name ) {
 		if ( $request->has_param( 'starting_after' ) && $request->has_param( 'ending_before' ) ) {
 			return new WP_Error(
-				'invalid_starting_after',
+				'invalid_pagination_cursor',
 				__( 'Received both starting_after and ending_before parameters. Please pass in only one.', 'woocommerce-gateway-stripe' )
 			);
 		}
