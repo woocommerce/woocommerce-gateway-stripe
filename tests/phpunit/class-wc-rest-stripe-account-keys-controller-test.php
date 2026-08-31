@@ -335,4 +335,18 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$this->assertSame( [], $settings['webhook_data'] );
 		$this->assertSame( '', $settings['webhook_secret'] );
 	}
+	/**
+	 * Saving keys clears the consecutive-401 circuit breaker.
+	 */
+	public function test_set_account_keys_clears_invalid_api_key_error_count() {
+		WC_Stripe_Database_Cache::set( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, 5 );
+
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( 'secret_key', 'sk_live_replacement-key-12345' );
+
+		$response = $this->controller->set_account_keys( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertNull( WC_Stripe_Database_Cache::get( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY ) );
+	}
 }
