@@ -900,6 +900,13 @@ trait WC_Stripe_Subscriptions_Trait {
 				add_filter( 'wc_stripe_idempotency_key', $idempotency_key_filter, 10, 2 );
 			}
 
+			// From here until the outcome is recorded, Stripe may have captured a charge: the
+			// request can succeed and a later step (order save, extension hook) still throw
+			// something other than WC_Stripe_Exception. Releasing the lease on that path would
+			// let a scheduled retry charge the customer again, so hold it until the outcome
+			// is known.
+			$should_release_payment_lock = false;
+
 			try {
 				$payment_attempt = $this->attempt_subscription_renewal_payment( $amount, $renewal_order, $prepared_source );
 			} finally {
@@ -915,6 +922,10 @@ trait WC_Stripe_Subscriptions_Trait {
 			// It's only a failed payment if it's an error and it's not of the type 'authentication_required'.
 			// If it's 'authentication_required', then we should email the user and ask them to authenticate.
 			if ( ! empty( $response->error ) && ! $is_authentication_required ) {
+				// Stripe returned an error instead of a charge, so there is no payment to protect
+				// and the lease can be released once this attempt finishes.
+				$should_release_payment_lock = true;
+
 				if ( ! $this->can_apply_subscription_payment_failure( $renewal_order, $acquired_lock ) ) {
 					throw $this->get_subscription_payment_exception_from_response( $response );
 				}
@@ -1083,9 +1094,6 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		try {
-			// Keep the lock after response-processing failures to prevent a duplicate charge.
-			$should_release_payment_lock = false;
-
 			// Renew the owner token before hooks or order updates.
 			$renewed_lock = WC_Stripe_Order_Helper::get_instance()->renew_order_payment_lock_if_owned( $renewal_order, $acquired_lock );
 			if ( ! is_string( $renewed_lock ) || ! $this->is_valid_subscription_payment_lock( $renewed_lock ) ) {
@@ -1105,7 +1113,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					: $this->get_latest_charge_from_intent( $response->error->payment_intent );
 				$charge = $this->resolve_subscription_renewal_charge_object( $charge );
 
-				if ( ! is_object( $charge ) || empty( $charge->id ) ) {
+				if ( ! $this->is_subscription_renewal_charge_object( $charge ) ) {
 					throw new WC_Stripe_Exception(
 						'The authentication-required renewal response did not contain an identifiable Stripe charge.',
 						__( 'The Stripe charge awaiting authentication could not be identified.', 'woocommerce-gateway-stripe' )
@@ -1186,6 +1194,17 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				if ( is_array( $charge_response ) ) {
 					$charge_response = $this->convert_subscription_renewal_response_to_object( $charge_response );
+				}
+
+				// process_response() dereferences charge properties, so anything that is not a
+				// Charge must stop here. A non-empty response body that is not a JSON object
+				// (an intermediary error page, for example) decodes to a scalar or null and
+				// would otherwise be treated as a successful charge.
+				if ( ! $this->is_subscription_renewal_charge_object( $charge_response ) ) {
+					throw new WC_Stripe_Exception(
+						print_r( $charge_response, true ),
+						__( 'The Stripe renewal response did not contain a valid charge.', 'woocommerce-gateway-stripe' )
+					);
 				}
 
 				$this->process_response( $charge_response, $renewal_order );
@@ -1270,7 +1289,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Returns a Charge object, resolving a bare ID when needed.
 	 *
 	 * @param mixed $charge Expanded Charge, bare Charge ID, or an empty value.
-	 * @return object|null
+	 * @return \stdClass|null
 	 * @throws WC_Stripe_Exception When a bare charge ID cannot be resolved safely.
 	 */
 	private function resolve_subscription_renewal_charge_object( $charge ) {
@@ -1285,7 +1304,20 @@ trait WC_Stripe_Subscriptions_Trait {
 			$charge = $main_gateway->get_charge_object( $charge );
 		}
 
-		return is_object( $charge ) ? $charge : null;
+		return $this->is_subscription_renewal_charge_object( $charge ) ? $charge : null;
+	}
+
+	/**
+	 * Checks whether a value is a usable Stripe Charge.
+	 *
+	 * @param mixed $charge Value resolved from a Stripe response.
+	 * @return bool
+	 * @phpstan-assert-if-true \stdClass $charge
+	 */
+	private function is_subscription_renewal_charge_object( $charge ): bool {
+		// get_charge_object() returns whatever the API layer decoded, and WP_Error carries no
+		// charge data, so neither can be trusted to be a Charge without checking.
+		return is_object( $charge ) && ! $charge instanceof WP_Error && ! empty( $charge->id );
 	}
 
 	/**

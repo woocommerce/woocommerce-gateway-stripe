@@ -1001,7 +1001,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		}
 	}
 
-	public function test_renewal_releases_lock_on_unexpected_error() {
+	public function test_renewal_keeps_lock_on_unexpected_error_during_charge() {
 		$renewal_order = WC_Helper_Order::create_order();
 
 		$renewal_order->set_payment_method( 'stripe' );
@@ -1042,7 +1042,156 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		}
 
 		$this->assertInstanceOf( RuntimeException::class, $caught );
-		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( wc_get_order( $renewal_order->get_id() ) ) );
+
+		// The failure happened at the Stripe request, so the charge may exist. Releasing the
+		// lease here would let a scheduled retry charge the customer a second time.
+		$this->assertNotEmpty( $order_helper->get_order_existing_payment_lock( wc_get_order( $renewal_order->get_id() ) ) );
+	}
+
+	public function test_renewal_keeps_lock_and_blocks_retry_when_post_charge_step_throws() {
+		$renewal_order = WC_Helper_Order::create_order();
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		// Leave the charge unexpanded so the intent is followed by a charge lookup.
+		$intent_response                    = json_decode( file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ), true );
+		$intent_response['charges']['data'] = [ 'ch_123abc' ];
+
+		$payment_requests = 0;
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $intent_response, &$payment_requests ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' === $url ) {
+				++$payment_requests;
+
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode( $intent_response ),
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			// Stripe has captured the charge by now. Fail the step that follows it with
+			// something other than WC_Stripe_Exception, which nothing in the renewal path
+			// catches — an extension hooked into the order lifecycle can do exactly this.
+			if ( 'https://api.stripe.com/v1/charges/ch_123abc' === $url ) {
+				throw new RuntimeException( 'Unexpected failure after Stripe captured the charge.' );
+			}
+
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		$caught = null;
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} catch ( \Throwable $e ) {
+			$caught = $e;
+		}
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$this->assertInstanceOf( RuntimeException::class, $caught );
+		$this->assertSame( 1, $payment_requests );
+		$this->assertNotEmpty( $order_helper->get_order_existing_payment_lock( wc_get_order( $renewal_order->get_id() ) ) );
+
+		// The retry WooCommerce Subscriptions schedules after the failure must not reach Stripe
+		// while the lease is still held, or the customer is charged twice for one renewal.
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, wc_get_order( $renewal_order->get_id() ), false, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+		}
+
+		$this->assertSame( 1, $payment_requests, 'The retained lease must stop a second charge for the same renewal.' );
+	}
+
+	public function test_renewal_rejects_non_object_sepa_response() {
+		$renewal_order          = WC_Helper_Order::create_order();
+		$processed_charge_count = 0;
+		$caught                 = null;
+
+		$renewal_order->set_payment_method( 'stripe_sepa' );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe->id = 'stripe_sepa';
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::SEPA,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/charges' ) ) {
+				return $preempt;
+			}
+
+			// A non-empty body that is not a JSON object, as an intermediary error page is.
+			// It decodes to null, which used to be forwarded to process_response() as a charge.
+			return [
+				'headers'  => [],
+				'body'     => '<html><body>Service Unavailable</body></html>',
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+		$capture_processed_charge           = function () use ( &$processed_charge_count ) {
+			++$processed_charge_count;
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+		add_action( 'wc_gateway_stripe_process_payment_charge', $capture_processed_charge );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} catch ( \Throwable $e ) {
+			$caught = $e;
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			remove_action( 'wc_gateway_stripe_process_payment_charge', $capture_processed_charge );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		$this->assertNull( $caught, 'A non-object Stripe response should be rejected without leaking an error from process_response().' );
+		$this->assertSame( 0, $processed_charge_count );
+		$this->assertSame( '', $renewal_order->get_transaction_id() );
+
+		// The charges API answered 200, so the lease must survive an unreadable body.
+		$this->assertNotEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $renewal_order ) );
 	}
 
 	public function test_renewal_does_not_start_payment_when_acquired_lock_is_expired() {
@@ -1650,7 +1799,10 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertSame( 0, $processed_charge_count );
 		$this->assertSame( OrderStatus::FAILED, $renewal_order->get_status() );
 		$this->assertSame( '', $renewal_order->get_transaction_id() );
-		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $renewal_order ) );
+
+		// The charges API answered 200, so a charge was probably created even though the body
+		// could not be read. The lease has to survive so a retry cannot charge again.
+		$this->assertNotEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $renewal_order ) );
 	}
 
 	public function test_renewal_resolves_string_latest_charge_before_processing_response() {
@@ -1858,7 +2010,10 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertSame( OrderStatus::FAILED, $renewal_order->get_status() );
 		$this->assertSame( '', $renewal_order->get_transaction_id() );
 		$this->assertStringNotContainsString( 'recorded using Charge ID', implode( '\n', $note_contents ) );
-		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $renewal_order ) );
+
+		// The PaymentIntent POST succeeded before the charge lookup failed, so the charge
+		// exists at Stripe and the lease must not be handed to a competing retry.
+		$this->assertNotEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $renewal_order ) );
 	}
 
 	public function test_upe_payment_method_proxy_shares_retry_and_charge_enrichment_state() {
