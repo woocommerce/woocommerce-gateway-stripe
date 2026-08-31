@@ -195,7 +195,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'api_error',
 		];
 
-		return in_array( $error->type, $retryable_types, true );
+		// A malformed error response can omit the type, as the isset() checks above allow for.
+		return isset( $error->type ) && in_array( $error->type, $retryable_types, true );
 	}
 
 	/**

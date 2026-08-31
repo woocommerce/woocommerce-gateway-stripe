@@ -1390,11 +1390,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 					return $expected_lock === $current_lock;
 				}
 			);
-		if ( $replace_lock_during_sleep ) {
-			$order_helper_mock->expects( $this->never() )->method( 'unlock_order_payment_if_owned' );
-		} else {
-			$order_helper_mock->expects( $this->once() )->method( 'unlock_order_payment_if_owned' );
-		}
+		// Neither case may release the lease: the replaced-lock case no longer owns it, and the
+		// mocked failure is an api_error, which leaves the charge state unknown.
+		$order_helper_mock->expects( $this->never() )->method( 'unlock_order_payment_if_owned' );
 
 		$original_instance = WC_Stripe_Order_Helper::get_instance();
 		WC_Stripe_Order_Helper::set_instance( $order_helper_mock );
@@ -1461,6 +1459,85 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			'unchanged lock with insufficient request coverage' => [ false, OrderStatus::FAILED ],
 			'replaced lock'                                     => [ true, OrderStatus::PENDING ],
 		];
+	}
+
+	public function provide_declined_renewal_error_types() {
+		return [
+			// Stripe decided these, so no charge can exist and the lease is free.
+			'card error'            => [ 'card_error', 'card_declined', false ],
+			'invalid request error' => [ 'invalid_request_error', 'parameter_unknown', false ],
+			// These leave the charge state unknown, so the lease must survive.
+			'api error'             => [ 'api_error', null, true ],
+			'api connection error'  => [ 'api_connection_error', null, true ],
+			'missing type'          => [ '', null, true ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_declined_renewal_error_types
+	 */
+	public function test_renewal_keeps_lock_only_when_stripe_error_leaves_charge_state_unknown( $error_type, $error_code, $expects_retained_lock ) {
+		$renewal_order = WC_Helper_Order::create_order();
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$error = [ 'message' => 'Renewal attempt failed.' ];
+		if ( '' !== $error_type ) {
+			$error['type'] = $error_type;
+		}
+		if ( null !== $error_code ) {
+			$error['code'] = $error_code;
+		}
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $error ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/' ) ) {
+				return $preempt;
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( [ 'error' => $error ] ),
+				'response' => [
+					'code'    => 400,
+					'message' => 'Bad Request',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			// Retries are disabled so the outcome depends only on the error type.
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+		}
+
+		$lock = WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( wc_get_order( $renewal_order->get_id() ) );
+
+		if ( $expects_retained_lock ) {
+			$this->assertNotEmpty( $lock, 'An inconclusive Stripe failure must keep the renewal lease.' );
+		} else {
+			$this->assertEmpty( $lock, 'A conclusive Stripe rejection must release the renewal lease.' );
+		}
 	}
 
 	/**

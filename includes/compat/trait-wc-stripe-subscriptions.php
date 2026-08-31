@@ -630,6 +630,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Checks payment-lock ownership and expiry.
 	 *
+	 * Treats the lock as active through its expiry second, matching the order helper.
+	 *
 	 * @param WC_Order $renewal_order Renewal order being processed.
 	 * @param int      $lock_expiry   Unix timestamp at which the lock expires.
 	 * @param string   $expected_lock Exact lock value acquired by this process.
@@ -688,6 +690,24 @@ trait WC_Stripe_Subscriptions_Trait {
 		WC_Stripe_Logger::error( "Stripe: not recording a failed renewal attempt for order {$order_id} because its payment lock no longer matches the acquired value." );
 
 		return false;
+	}
+
+	/**
+	 * Checks whether a Stripe error rules out a captured charge.
+	 *
+	 * @param mixed $error Error object returned by Stripe.
+	 * @return bool
+	 */
+	private function rules_out_subscription_renewal_charge( $error ): bool {
+		// Stripe answered but never completed the request for these, so the charge state is
+		// unknown and the caller must keep its lease. An absent or unrecognised type is
+		// treated the same way rather than assumed safe.
+		$inconclusive_types = [ 'api_error', 'api_connection_error' ];
+
+		return is_object( $error )
+			&& ! empty( $error->type )
+			&& is_scalar( $error->type )
+			&& ! in_array( (string) $error->type, $inconclusive_types, true );
 	}
 
 	/**
@@ -922,9 +942,10 @@ trait WC_Stripe_Subscriptions_Trait {
 			// It's only a failed payment if it's an error and it's not of the type 'authentication_required'.
 			// If it's 'authentication_required', then we should email the user and ask them to authenticate.
 			if ( ! empty( $response->error ) && ! $is_authentication_required ) {
-				// Stripe returned an error instead of a charge, so there is no payment to protect
-				// and the lease can be released once this attempt finishes.
-				$should_release_payment_lock = true;
+				// A rejection Stripe decided on rules out a charge, so the lease can be released
+				// once this attempt finishes. A transport or server-side failure does not: the
+				// request may still have been processed, so that keeps the lease.
+				$should_release_payment_lock = $this->rules_out_subscription_renewal_charge( $response->error );
 
 				if ( ! $this->can_apply_subscription_payment_failure( $renewal_order, $acquired_lock ) ) {
 					throw $this->get_subscription_payment_exception_from_response( $response );

@@ -1670,7 +1670,7 @@ class WC_Stripe_Order_Helper {
 
 		$updated = $wpdb->query(
 			$wpdb->prepare(
-				'UPDATE %i SET option_value = %s, autoload = %s WHERE option_name = %s AND BINARY option_value = BINARY %s',
+				'UPDATE %i SET option_value = %s, autoload = %s WHERE option_name = %s AND CAST( option_value AS BINARY ) = CAST( %s AS BINARY )',
 				$wpdb->options,
 				$new_lock,
 				'no',
@@ -1724,7 +1724,7 @@ class WC_Stripe_Order_Helper {
 		$option_name = $this->get_order_payment_lock_owner_option_name( $order );
 		$updated     = $wpdb->query(
 			$wpdb->prepare(
-				'UPDATE %i SET option_value = %s, autoload = %s WHERE option_name = %s AND BINARY option_value = BINARY %s',
+				'UPDATE %i SET option_value = %s, autoload = %s WHERE option_name = %s AND CAST( option_value AS BINARY ) = CAST( %s AS BINARY )',
 				$wpdb->options,
 				$replacement_lock,
 				'no',
@@ -1793,7 +1793,7 @@ class WC_Stripe_Order_Helper {
 
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
-				'DELETE FROM %i WHERE option_name = %s AND BINARY option_value = BINARY %s',
+				'DELETE FROM %i WHERE option_name = %s AND CAST( option_value AS BINARY ) = CAST( %s AS BINARY )',
 				$wpdb->options,
 				$option_name,
 				$expected_lock
