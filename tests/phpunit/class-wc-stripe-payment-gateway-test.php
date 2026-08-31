@@ -58,10 +58,108 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Deprecated gateway lock methods must still participate in the atomic helper lock.
+	 */
+	public function test_deprecated_payment_lock_methods_delegate_to_order_helper() {
+		$order        = WC_Helper_Order::create_order();
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::lock_order_payment' );
+		$this->assertFalse( $this->gateway->lock_order_payment( $order ) );
+
+		$owned_lock = (string) $order_helper->get_order_existing_payment_lock( $order );
+		$this->assertTrue( $order_helper->is_order_payment_lock_owned( $order, $owned_lock ) );
+
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::unlock_order_payment' );
+		$this->gateway->unlock_order_payment( $order );
+
+		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $order ) );
+	}
+
+	/**
+	 * The deprecated lock reader must fail closed on structured metadata instead of throwing.
+	 *
+	 * @dataProvider provide_structured_payment_lock_metadata
+	 */
+	public function test_deprecated_payment_lock_reader_treats_structured_metadata_as_locked( $lock_metadata ) {
+		$order = WC_Helper_Order::create_order();
+		$order->update_meta_data( '_stripe_lock_payment', $lock_metadata );
+		$order->save_meta_data();
+
+		$method = new ReflectionMethod( WC_Stripe_Payment_Gateway::class, 'is_order_payment_locked' );
+		$method->setAccessible( true );
+
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::is_order_payment_locked' );
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::get_order_existing_lock' );
+		$this->assertTrue( $method->invoke( $this->gateway, $order ) );
+	}
+
+	public function provide_structured_payment_lock_metadata() {
+		return [
+			'empty array'     => [ [] ],
+			'non-empty array' => [ [ 'malformed' ] ],
+			'object'          => [ new stdClass() ],
+		];
+	}
+
+	/**
 	 * Retrieval requests do not carry order metadata, so retry filtering must preserve their key.
 	 */
 	public function test_change_idempotency_key_preserves_key_without_order_metadata() {
 		$this->assertSame( 'original-key', $this->gateway->change_idempotency_key( 'original-key', [] ) );
+	}
+
+	/**
+	 * An already-expanded latest charge must be returned without another Stripe request.
+	 */
+	public function test_get_latest_charge_from_intent_accepts_expanded_charge() {
+		$charge = (object) [
+			'id'       => 'ch_123abc',
+			'captured' => true,
+			'status'   => 'succeeded',
+		];
+		$intent = (object) [
+			'latest_charge' => $charge,
+		];
+
+		$this->assertSame( $charge, $this->gateway->get_latest_charge_from_intent( $intent ) );
+	}
+
+	/**
+	 * Deferring a redundant lookup is renewal-specific; ordinary intent saving must retain
+	 * its established charge-enrichment failure behavior.
+	 */
+	public function test_save_intent_to_order_still_throws_when_non_renewal_charge_lookup_fails() {
+		$order  = WC_Helper_Order::create_order();
+		$intent = (object) [
+			'id'            => 'pi_non_renewal',
+			'object'        => 'payment_intent',
+			'charges'       => (object) [ 'data' => [] ],
+			'latest_charge' => 'ch_unavailable',
+		];
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( 'https://api.stripe.com/v1/charges/ch_unavailable' === $url ) {
+				return $this->build_response(
+					[
+						'error' => (object) [
+							'type'    => 'api_error',
+							'message' => 'Charge details are temporarily unavailable.',
+						],
+					]
+				);
+			}
+
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		try {
+			$this->expectException( WC_Stripe_Exception::class );
+			$this->gateway->save_intent_to_order( $order, $intent );
+		} finally {
+			remove_filter( 'pre_http_request', $callback, 10 );
+		}
 	}
 
 	/**

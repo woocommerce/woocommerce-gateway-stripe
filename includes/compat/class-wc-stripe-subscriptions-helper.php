@@ -36,6 +36,114 @@ class WC_Stripe_Subscriptions_Helper {
 	private const MAX_EXECUTION_TIME_FALLBACK = 30;
 
 	/**
+	 * Renewal charge-enrichment contexts active in this request.
+	 *
+	 * This request-local registry is shared by UPE payment-method proxies and the
+	 * separate main gateway instance to which they delegate intent creation. Resolved
+	 * charges are keyed by PaymentIntent so response processing can reuse the exact
+	 * object already retrieved while saving the intent.
+	 *
+	 * @var array<string, array{order: WC_Order, depth: int, charges: array<string, object>}>
+	 */
+	private static $renewal_charge_enrichment_contexts = [];
+
+	/**
+	 * Starts capturing charge enrichment performed while a renewal intent is saved.
+	 *
+	 * @since 11.0.0
+	 *
+	 * @param WC_Order $renewal_order Renewal order whose charge is processed after intent saving.
+	 * @return void
+	 */
+	public static function begin_renewal_charge_enrichment( WC_Order $renewal_order ): void {
+		$key = spl_object_hash( $renewal_order );
+
+		if ( isset( self::$renewal_charge_enrichment_contexts[ $key ] )
+			&& self::$renewal_charge_enrichment_contexts[ $key ]['order'] === $renewal_order ) {
+			++self::$renewal_charge_enrichment_contexts[ $key ]['depth'];
+			return;
+		}
+
+		self::$renewal_charge_enrichment_contexts[ $key ] = [
+			'order'   => $renewal_order,
+			'depth'   => 1,
+			'charges' => [],
+		];
+	}
+
+	/**
+	 * Caches a resolved charge only while this exact renewal order is being enriched.
+	 *
+	 * @since 11.0.0
+	 *
+	 * @param WC_Order $renewal_order Renewal order whose intent is being saved.
+	 * @param object   $intent        PaymentIntent associated with the charge.
+	 * @param mixed    $charge        Resolved charge returned by the gateway.
+	 * @return void
+	 */
+	public static function cache_renewal_charge( WC_Order $renewal_order, $intent, $charge ): void {
+		$key = spl_object_hash( $renewal_order );
+
+		if ( ! isset( self::$renewal_charge_enrichment_contexts[ $key ] )
+			|| self::$renewal_charge_enrichment_contexts[ $key ]['order'] !== $renewal_order
+			|| ! is_object( $intent )
+			|| empty( $intent->id )
+			|| ! is_scalar( $intent->id )
+			|| ! is_object( $charge ) ) {
+			return;
+		}
+
+		$intent_key = 'intent:' . (string) $intent->id;
+		self::$renewal_charge_enrichment_contexts[ $key ]['charges'][ $intent_key ] = $charge;
+	}
+
+	/**
+	 * Gets a charge resolved while saving this renewal's PaymentIntent.
+	 *
+	 * @since 11.0.0
+	 *
+	 * @param WC_Order $renewal_order Renewal order whose response is being processed.
+	 * @param object   $intent        PaymentIntent associated with the charge.
+	 * @return object|null
+	 */
+	public static function get_cached_renewal_charge( WC_Order $renewal_order, $intent ) {
+		$key = spl_object_hash( $renewal_order );
+
+		if ( ! isset( self::$renewal_charge_enrichment_contexts[ $key ] )
+			|| self::$renewal_charge_enrichment_contexts[ $key ]['order'] !== $renewal_order
+			|| ! is_object( $intent )
+			|| empty( $intent->id )
+			|| ! is_scalar( $intent->id ) ) {
+			return null;
+		}
+
+		$intent_key = 'intent:' . (string) $intent->id;
+		return self::$renewal_charge_enrichment_contexts[ $key ]['charges'][ $intent_key ] ?? null;
+	}
+
+	/**
+	 * Stops capturing charge enrichment after a renewal intent has been saved.
+	 *
+	 * @since 11.0.0
+	 *
+	 * @param WC_Order $renewal_order Renewal order whose charge-enrichment capture is ending.
+	 * @return void
+	 */
+	public static function end_renewal_charge_enrichment( WC_Order $renewal_order ): void {
+		$key = spl_object_hash( $renewal_order );
+
+		if ( ! isset( self::$renewal_charge_enrichment_contexts[ $key ] )
+			|| self::$renewal_charge_enrichment_contexts[ $key ]['order'] !== $renewal_order ) {
+			return;
+		}
+
+		--self::$renewal_charge_enrichment_contexts[ $key ]['depth'];
+		if ( 0 >= self::$renewal_charge_enrichment_contexts[ $key ]['depth'] ) {
+			unset( self::$renewal_charge_enrichment_contexts[ $key ] );
+		}
+	}
+
+	/**
 	 * Checks if subscriptions are enabled on the site.
 	 *
 	 * @return bool Whether subscriptions is enabled or not.

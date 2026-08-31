@@ -171,9 +171,421 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 
 		// payment
 		$this->helper->lock_order_payment( $order );
-		$this->assertTrue( $this->helper->get_order_existing_payment_lock( $order ) > 0 );
+		$this->assertMatchesRegularExpression( '/^[1-9][0-9]*\|[0-9a-f-]{36}$/', (string) $this->helper->get_order_existing_payment_lock( $order ) );
 		$this->helper->unlock_order_payment( $order );
 		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
+	}
+
+	/**
+	 * The owner-returning API must return the exact value persisted in both stores.
+	 *
+	 * @return void
+	 */
+	public function test_acquire_order_payment_lock_returns_the_exact_persisted_owner(): void {
+		global $wpdb;
+
+		$order       = WC_Helper_Order::create_order();
+		$option_name = 'wc_stripe_payment_lock_owner_' . $order->get_id();
+		$owned_lock  = $this->helper->acquire_order_payment_lock( $order );
+
+		$this->assertIsString( $owned_lock );
+		$this->assertMatchesRegularExpression( '/^[1-9][0-9]*\|[0-9a-f-]{36}$/', $owned_lock );
+		$this->assertSame( $owned_lock, $this->helper->get_order_existing_payment_lock( $order ) );
+		$this->assertSame(
+			$owned_lock,
+			$wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT option_value FROM %i WHERE option_name = %s',
+					$wpdb->options,
+					$option_name
+				)
+			)
+		);
+		$this->assertTrue( $this->helper->is_order_payment_lock_owned( $order, $owned_lock ) );
+
+		$this->helper->unlock_order_payment_if_owned( $order, $owned_lock );
+
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
+		$this->assertNull(
+			$wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT option_value FROM %i WHERE option_name = %s',
+					$wpdb->options,
+					$option_name
+				)
+			)
+		);
+	}
+
+	/**
+	 * Owner-returning acquisition must preserve legacy helper-subclass dispatch.
+	 *
+	 * @return void
+	 */
+	public function test_acquire_order_payment_lock_dispatches_through_legacy_lock_override(): void {
+		$order  = WC_Helper_Order::create_order();
+		$helper = new class() extends WC_Stripe_Order_Helper {
+			/**
+			 * Whether the legacy override was called.
+			 *
+			 * @var bool
+			 */
+			public bool $lock_called = false;
+
+			/**
+			 * @inheritDoc
+			 */
+			public function lock_order_payment( WC_Order $order ): bool {
+				$this->lock_called = true;
+				return true;
+			}
+		};
+
+		$this->assertFalse( $helper->acquire_order_payment_lock( $order ) );
+		$this->assertTrue( $helper->lock_called );
+	}
+
+	/**
+	 * A compatible override that reports acquisition without recording an owner must fail closed
+	 * with a diagnostic that distinguishes it from a genuinely contended lock.
+	 *
+	 * @return void
+	 */
+	public function test_acquire_order_payment_lock_logs_when_legacy_override_does_not_record_an_owner(): void {
+		$order  = WC_Helper_Order::create_order();
+		$helper = new class() extends WC_Stripe_Order_Helper {
+			/**
+			 * @inheritDoc
+			 */
+			public function lock_order_payment( WC_Order $order ): bool {
+				return false;
+			}
+		};
+
+		$previous_logger = WC_Stripe_Logger::$logger;
+		$logger          = $this->getMockBuilder( WC_Logger::class )->disableOriginalConstructor()->getMock();
+		$logger->expects( $this->once() )
+			->method( 'error' )
+			->with(
+				$this->stringContains( 'reported a successful payment-lock acquisition without recording an owner' ),
+				$this->callback(
+					function ( $context ) use ( $order ) {
+						return $order->get_id() === $context['order_id'];
+					}
+				)
+			);
+		WC_Stripe_Logger::$logger = $logger;
+
+		try {
+			$this->assertFalse( $helper->acquire_order_payment_lock( $order ) );
+		} finally {
+			WC_Stripe_Logger::$logger = $previous_logger;
+		}
+	}
+
+	/**
+	 * A late unlock without an owner token must not clear another worker's active lock.
+	 *
+	 * @return void
+	 */
+	public function test_unlock_order_payment_without_a_token_preserves_an_active_owner(): void {
+		$order        = WC_Helper_Order::create_order();
+		$owner_helper = new WC_Stripe_Order_Helper();
+		$late_helper  = new WC_Stripe_Order_Helper();
+
+		$this->assertFalse( $owner_helper->lock_order_payment( $order ) );
+		$owned_lock = (string) $owner_helper->get_order_existing_payment_lock( $order );
+
+		$late_helper->unlock_order_payment( wc_get_order( $order->get_id() ) );
+
+		$this->assertTrue( $owner_helper->is_order_payment_lock_owned( $order, $owned_lock ) );
+		$this->assertSame( $owned_lock, $owner_helper->get_order_existing_payment_lock( $order ) );
+
+		$owner_helper->unlock_order_payment( $order );
+	}
+
+	/**
+	 * A no-token unlock must preserve an active legacy meta-only lock while cleaning its guard.
+	 *
+	 * @return void
+	 */
+	public function test_unlock_order_payment_without_a_token_preserves_active_legacy_metadata(): void {
+		global $wpdb;
+
+		$order       = WC_Helper_Order::create_order();
+		$legacy_lock = time() + 5 * MINUTE_IN_SECONDS;
+		$option_name = 'wc_stripe_payment_lock_owner_' . $order->get_id();
+		$order->update_meta_data( '_stripe_lock_payment', $legacy_lock );
+		$order->save_meta_data();
+
+		$this->helper->unlock_order_payment( $order );
+
+		$this->assertSame( (string) $legacy_lock, (string) $this->helper->get_order_existing_payment_lock( $order ) );
+		$this->assertNull(
+			$wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT option_value FROM %i WHERE option_name = %s',
+					$wpdb->options,
+					$option_name
+				)
+			)
+		);
+	}
+
+	/**
+	 * A no-token unlock may clear expired legacy metadata and must remove its temporary guard.
+	 *
+	 * @return void
+	 */
+	public function test_unlock_order_payment_without_a_token_clears_expired_legacy_metadata(): void {
+		global $wpdb;
+
+		$order       = WC_Helper_Order::create_order();
+		$option_name = 'wc_stripe_payment_lock_owner_' . $order->get_id();
+		$order->update_meta_data( '_stripe_lock_payment', time() - 1 );
+		$order->save_meta_data();
+
+		$this->helper->unlock_order_payment( $order );
+
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
+		$this->assertNull(
+			$wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT option_value FROM %i WHERE option_name = %s',
+					$wpdb->options,
+					$option_name
+				)
+			)
+		);
+	}
+
+	/**
+	 * A malformed authoritative owner must fail closed instead of being reclaimed unsafely.
+	 *
+	 * @return void
+	 */
+	public function test_lock_order_payment_preserves_a_malformed_authoritative_owner(): void {
+		global $wpdb;
+
+		$order           = WC_Helper_Order::create_order();
+		$option_name     = 'wc_stripe_payment_lock_owner_' . $order->get_id();
+		$malformed_owner = 'corrupt-owner-value';
+
+		$wpdb->query(
+			$wpdb->prepare(
+				'INSERT INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)',
+				$wpdb->options,
+				$option_name,
+				$malformed_owner,
+				'no'
+			)
+		);
+
+		$this->assertTrue( $this->helper->lock_order_payment( $order ) );
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
+		$this->assertSame(
+			$malformed_owner,
+			$wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT option_value FROM %i WHERE option_name = %s',
+					$wpdb->options,
+					$option_name
+				)
+			)
+		);
+
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE option_name = %s', $wpdb->options, $option_name ) );
+	}
+
+	/**
+	 * Two workers that overlap between the unlocked read and lock write must not both acquire.
+	 *
+	 * @return void
+	 */
+	public function test_lock_order_payment_rejects_an_interleaved_acquisition(): void {
+		$order        = WC_Helper_Order::create_order();
+		$first_order  = wc_get_order( $order->get_id() );
+		$second_order = wc_get_order( $order->get_id() );
+
+		$second_result = null;
+		$second_helper = new WC_Stripe_Order_Helper();
+		$first_helper  = new class(
+			function () use ( &$second_result, $second_helper, $second_order ) {
+				$second_result = $second_helper->lock_order_payment( $second_order );
+			}
+		) extends WC_Stripe_Order_Helper {
+			/**
+			 * Callback that starts the competing acquisition after the first unlocked read.
+			 *
+			 * @var callable|null
+			 */
+			private $after_unlocked_check;
+
+			/**
+			 * @param callable $after_unlocked_check Competing acquisition callback.
+			 */
+			public function __construct( callable $after_unlocked_check ) {
+				$this->after_unlocked_check = $after_unlocked_check;
+			}
+
+			/**
+			 * @inheritDoc
+			 */
+			protected function is_order_payment_locked( WC_Order $order ): bool {
+				$is_locked = parent::is_order_payment_locked( $order );
+
+				if ( ! $is_locked && is_callable( $this->after_unlocked_check ) ) {
+					$callback                   = $this->after_unlocked_check;
+					$this->after_unlocked_check = null;
+					$callback();
+				}
+
+				return $is_locked;
+			}
+		};
+
+		try {
+			$first_result = $first_helper->lock_order_payment( $first_order );
+			$current_lock = $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) );
+
+			$this->assertFalse( $first_result, 'The first worker should acquire the payment lock.' );
+			$this->assertTrue( $second_result, 'The interleaved worker should observe the atomic acquisition guard.' );
+			$this->assertMatchesRegularExpression( '/^[1-9][0-9]*\|[0-9a-f-]{36}$/', (string) $current_lock );
+		} finally {
+			$first_helper->unlock_order_payment( $first_order );
+		}
+
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
+	}
+
+	/**
+	 * A worker must not release a lock that has been replaced by a different owner.
+	 *
+	 * @return void
+	 */
+	public function test_unlock_order_payment_preserves_a_replacement_lock(): void {
+		global $wpdb;
+
+		$order = WC_Helper_Order::create_order();
+
+		$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+		$owned_lock        = (string) $this->helper->get_order_existing_payment_lock( $order );
+		$replacement_lock  = ( time() + 5 * MINUTE_IN_SECONDS ) . '|' . wp_generate_uuid4();
+		$replacement_order = wc_get_order( $order->get_id() );
+		$option_name       = 'wc_stripe_payment_lock_owner_' . $order->get_id();
+
+		$wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET option_value = %s WHERE option_name = %s',
+				$wpdb->options,
+				$replacement_lock,
+				$option_name
+			)
+		);
+
+		$replacement_order->update_meta_data( '_stripe_lock_payment', $replacement_lock );
+		$replacement_order->save_meta_data();
+
+		$this->helper->unlock_order_payment_if_owned( $order, $owned_lock );
+
+		$this->assertSame( $replacement_lock, $this->helper->get_order_existing_payment_lock( $order ) );
+		$this->assertSame(
+			$replacement_lock,
+			$wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT option_value FROM %i WHERE option_name = %s',
+					$wpdb->options,
+					$option_name
+				)
+			)
+		);
+
+		$replacement_order->delete_meta_data( '_stripe_lock_payment' );
+		$replacement_order->save_meta_data();
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE option_name = %s', $wpdb->options, $option_name ) );
+	}
+
+	/**
+	 * The legacy unlock signature must remain compatible with third-party overrides.
+	 *
+	 * @return void
+	 */
+	public function test_unlock_order_payment_keeps_its_original_signature(): void {
+		$method = new ReflectionMethod( WC_Stripe_Order_Helper::class, 'unlock_order_payment' );
+
+		$this->assertSame( 1, $method->getNumberOfParameters() );
+		$this->assertSame( 1, $method->getNumberOfRequiredParameters() );
+	}
+
+	/**
+	 * An owner-aware unlock must not refresh away unsaved metadata on the caller's order object.
+	 *
+	 * @return void
+	 */
+	public function test_unlock_order_payment_if_owned_preserves_unsaved_caller_metadata(): void {
+		$order = WC_Helper_Order::create_order();
+
+		$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+		$owned_lock = (string) $this->helper->get_order_existing_payment_lock( $order );
+
+		$order->update_meta_data( '_unsaved_extension_meta', 'preserved' );
+		$this->helper->unlock_order_payment_if_owned( $order, $owned_lock );
+
+		$this->assertSame( 'preserved', $order->get_meta( '_unsaved_extension_meta', true ) );
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) ) );
+		$this->assertEmpty( wc_get_order( $order->get_id() )->get_meta( '_unsaved_extension_meta', true ) );
+	}
+
+	/**
+	 * An owner row abandoned by an expired request must be reclaimed atomically.
+	 *
+	 * @return void
+	 */
+	public function test_lock_order_payment_reclaims_a_stale_owner(): void {
+		global $wpdb;
+
+		$order       = WC_Helper_Order::create_order();
+		$option_name = 'wc_stripe_payment_lock_owner_' . $order->get_id();
+		$stale_owner = ( time() - 1 ) . '|' . wp_generate_uuid4();
+
+		$wpdb->query(
+			$wpdb->prepare(
+				'INSERT INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)',
+				$wpdb->options,
+				$option_name,
+				$stale_owner,
+				'no'
+			)
+		);
+
+		try {
+			$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+			$acquired_lock = (string) $this->helper->get_order_existing_payment_lock( $order );
+			$this->assertMatchesRegularExpression( '/^[1-9][0-9]*\|[0-9a-f-]{36}$/', $acquired_lock );
+			$this->assertSame(
+				$acquired_lock,
+				$wpdb->get_var(
+					$wpdb->prepare(
+						'SELECT option_value FROM %i WHERE option_name = %s',
+						$wpdb->options,
+						$option_name
+					)
+				),
+				'The reclaimed owner row remains authoritative for the payment-lock lifetime.'
+			);
+		} finally {
+			$this->helper->unlock_order_payment( $order );
+		}
+
+		$this->assertNull(
+			$wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT option_value FROM %i WHERE option_name = %s',
+					$wpdb->options,
+					$option_name
+				)
+			)
+		);
 	}
 
 	/**

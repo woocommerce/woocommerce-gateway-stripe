@@ -906,7 +906,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( ! empty( $intent->charges->data ) ) {
 			$latest_charge = end( $intent->charges->data );
 		} elseif ( ! empty( $intent->latest_charge ) ) {
-			$latest_charge = $this->get_charge_object( $intent->latest_charge );
+			if ( is_object( $intent->latest_charge ) ) {
+				$latest_charge = $intent->latest_charge;
+			} elseif ( is_string( $intent->latest_charge ) ) {
+				$latest_charge = $this->get_charge_object( $intent->latest_charge );
+			}
 		}
 
 		return $latest_charge;
@@ -1964,6 +1968,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			// Mandate ID is necessary for renewal payments for certain payment methods and Indian cards.
 			$charge = $this->get_latest_charge_from_intent( $intent );
 
+			// Renewal response handling needs this same full Charge object. Keep it in a
+			// request-local context so direct gateways and UPE payment-method proxies can
+			// reuse the lookup without mutating the Stripe PaymentIntent response shape.
+			WC_Stripe_Subscriptions_Helper::cache_renewal_charge( $order, $intent, $charge );
+
 			if ( isset( $charge->payment_method_details->card->mandate ) ) {
 				$order_helper->update_stripe_mandate_id( $order, $charge->payment_method_details->card->mandate );
 			} elseif ( isset( $charge->payment_method_details->acss_debit->mandate ) ) {
@@ -2041,17 +2050,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function lock_order_payment( $order ) {
 		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::lock_order_payment()' );
 
-		if ( $this->is_order_payment_locked( $order ) ) {
-			// If the order is already locked, return true.
-			return true;
-		}
-
-		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS );
-
-		$order->update_meta_data( '_stripe_lock_payment', $new_lock );
-		$order->save_meta_data();
-
-		return false;
+		return WC_Stripe_Order_Helper::get_instance()->lock_order_payment( $order );
 	}
 
 	/**
@@ -2067,8 +2066,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function unlock_order_payment( $order ) {
 		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::unlock_order_payment()' );
 
-		$order->delete_meta_data( '_stripe_lock_payment' );
-		$order->save_meta_data();
+		WC_Stripe_Order_Helper::get_instance()->unlock_order_payment( $order );
 	}
 
 	/**
@@ -2098,8 +2096,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::is_order_payment_locked()' );
 
 		$existing_lock = $this->get_order_existing_lock( $order );
+		if ( null !== $existing_lock && ! is_scalar( $existing_lock ) ) {
+			return true;
+		}
+
 		if ( $existing_lock ) {
-			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
+			$parts      = explode( '|', (string) $existing_lock ); // Format is: "{expiry_timestamp}" or "{expiry_timestamp}|{owner_token}".
 			$expiration = (int) $parts[0];
 
 			// If the lock is still active, return true.
