@@ -642,6 +642,65 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * The per-wallet Apple Pay and Google Pay flags must come from the method-specific check,
+	 * not the any-method aggregate: when only another wallet's locations cover the page, the
+	 * aggregate is true but Apple/Google Pay must still be reported as disabled.
+	 *
+	 * @param bool $apple_google_enabled What the helper reports for Apple/Google Pay in this context.
+	 *
+	 * @dataProvider provide_apple_google_pay_enabled
+	 */
+	public function test_javascript_params_exposes_method_specific_apple_google_pay_flags( $apple_google_enabled ) {
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->onlyMethods( [ 'is_apple_google_pay_enabled', 'is_amazon_pay_enabled', 'is_link_enabled', 'is_express_checkout_enabled' ] )
+			->getMock();
+		$helper->method( 'is_apple_google_pay_enabled' )->willReturn( $apple_google_enabled );
+		// Amazon Pay alone keeps the aggregate true regardless of Apple/Google Pay.
+		$helper->method( 'is_amazon_pay_enabled' )->willReturn( true );
+		$helper->method( 'is_link_enabled' )->willReturn( false );
+		$helper->method( 'is_express_checkout_enabled' )->willReturn( true );
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods(
+				[
+					'get_return_url',
+					'get_stripe_return_url',
+					'is_changing_payment_method_for_subscription',
+					'is_subscription_item_in_cart',
+					'get_express_checkout_helper',
+				]
+			)
+			->getMock();
+		$gateway->method( 'get_return_url' )->willReturn( '' );
+		$gateway->method( 'get_stripe_return_url' )->willReturn( '' );
+		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( false );
+		$gateway->method( 'is_subscription_item_in_cart' )->willReturn( false );
+		$gateway->method( 'get_express_checkout_helper' )->willReturn( $helper );
+
+		$this->set_stripe_account_data( [ 'country' => 'US' ] );
+
+		$params = $gateway->javascript_params();
+
+		// Both wallets are backed by the shared setting today, so the flags move together.
+		$this->assertSame( $apple_google_enabled, $params['isApplePayEnabled'] );
+		$this->assertSame( $apple_google_enabled, $params['isGooglePayEnabled'] );
+		$this->assertTrue( $params['isExpressCheckoutEnabled'] );
+	}
+
+	/**
+	 * Data provider for {@see test_javascript_params_exposes_method_specific_apple_google_pay_flags()}.
+	 *
+	 * @return array<string, array{0: bool}>
+	 */
+	public function provide_apple_google_pay_enabled() {
+		return [
+			'disabled for this location' => [ false ],
+			'enabled for this location'  => [ true ],
+		];
+	}
+
+	/**
 	 * The billing source for the deferred-payment flows is selected all-or-nothing:
 	 * the order on a validated pay-for-order page (so guests still get full address
 	 * details), otherwise the customer, with a wholesale fallback to the customer when
