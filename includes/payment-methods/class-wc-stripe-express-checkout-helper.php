@@ -1856,12 +1856,27 @@ class WC_Stripe_Express_Checkout_Helper {
 		 * @param WC_Cart $cart The cart object.
 		 */
 		$calculated_total = apply_filters( 'wc_stripe_calculated_total', $calculated_total, $order_total, WC()->cart );
+		$total_amount     = max( 0, $calculated_total );
+		$display_items    = WC_Stripe_Helper::build_line_items( $display_items );
+
+		$display_items_total = array_reduce(
+			$display_items,
+			static function ( $total, $item ) {
+				$amount = 'total_discount' === ( $item['key'] ?? '' ) ? -$item['amount'] : $item['amount'];
+				return $total + $amount;
+			},
+			0
+		);
+
+		if ( $total_amount < $display_items_total ) {
+			$display_items = [];
+		}
 
 		return [
-			'displayItems' => WC_Stripe_Helper::build_line_items( $display_items ),
+			'displayItems' => $display_items,
 			'total'        => [
 				'label'   => $this->total_label,
-				'amount'  => max( 0, $calculated_total ),
+				'amount'  => $total_amount,
 				'pending' => false,
 			],
 		];
