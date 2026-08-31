@@ -335,4 +335,109 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$this->assertSame( [], $settings['webhook_data'] );
 		$this->assertSame( '', $settings['webhook_secret'] );
 	}
+	/**
+	 * Changing a mode's secret key clears only that mode's OAuth connection metadata.
+	 *
+	 * @dataProvider provide_secret_key_change_scenarios
+	 *
+	 * @param string $changed_field    The secret key field being changed.
+	 * @param string $cleared_prefix   Settings prefix expected to be cleared.
+	 * @param string $untouched_prefix Settings prefix expected to be kept.
+	 */
+	public function test_changing_secret_key_clears_connection_metadata_for_mode( string $changed_field, string $cleared_prefix, string $untouched_prefix ) {
+		$settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$settings['connection_type']      = 'app';
+		$settings['refresh_token']        = 'live-refresh-token';
+		$settings['test_connection_type'] = 'app';
+		$settings['test_refresh_token']   = 'test-refresh-token';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( $changed_field, '' === $cleared_prefix ? 'sk_live_new-key-12345' : 'sk_test_new-key-12345' );
+
+		$response = $this->controller->set_account_keys( $request );
+		$this->assertEquals( 200, $response->get_status() );
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$this->assertSame( '', $settings[ $cleared_prefix . 'connection_type' ] );
+		$this->assertSame( '', $settings[ $cleared_prefix . 'refresh_token' ] );
+		$this->assertSame( 'app', $settings[ $untouched_prefix . 'connection_type' ] );
+		$this->assertNotSame( '', $settings[ $untouched_prefix . 'refresh_token' ] );
+	}
+
+	/**
+	 * Scenarios for test_changing_secret_key_clears_connection_metadata_for_mode().
+	 *
+	 * @return array
+	 */
+	public function provide_secret_key_change_scenarios(): array {
+		return [
+			'live secret key changed' => [ 'secret_key', '', 'test_' ],
+			'test secret key changed' => [ 'test_secret_key', 'test_', '' ],
+		];
+	}
+
+	/**
+	 * A save that changes no secret key leaves the OAuth connection metadata alone.
+	 */
+	public function test_saving_without_secret_key_change_keeps_connection_metadata() {
+		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings['connection_type'] = 'app';
+		$settings['refresh_token']   = 'live-refresh-token';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( 'webhook_secret', 'whsec_new-12345' );
+
+		$this->controller->set_account_keys( $request );
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$this->assertSame( 'app', $settings['connection_type'] );
+		$this->assertSame( 'live-refresh-token', $settings['refresh_token'] );
+	}
+
+	/**
+	 * A key change disarms the scheduled refresh once no app-connected mode remains.
+	 */
+	public function test_key_change_unschedules_refresh_when_no_app_connection_remains() {
+		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings['connection_type'] = 'app';
+		$settings['refresh_token']   = 'live-refresh-token';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		as_schedule_single_action( time() + 100, 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID );
+		$this->assertNotFalse( as_next_scheduled_action( 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID ) );
+
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( 'secret_key', 'sk_live_new-key-12345' );
+
+		$this->controller->set_account_keys( $request );
+
+		$this->assertFalse( as_next_scheduled_action( 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID ) );
+	}
+
+	/**
+	 * The scheduled refresh stays armed while the other mode is still app-connected.
+	 */
+	public function test_key_change_keeps_refresh_scheduled_while_other_mode_is_app_connected() {
+		$settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$settings['connection_type']      = 'app';
+		$settings['refresh_token']        = 'live-refresh-token';
+		$settings['test_connection_type'] = 'app';
+		$settings['test_refresh_token']   = 'test-refresh-token';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		as_schedule_single_action( time() + 100, 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID );
+
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( 'secret_key', 'sk_live_new-key-12345' );
+
+		$this->controller->set_account_keys( $request );
+
+		$this->assertNotFalse( as_next_scheduled_action( 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID ) );
+
+		as_unschedule_all_actions( 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID );
+	}
 }
