@@ -937,7 +937,7 @@ describe( 'payment-processing', () => {
 				} );
 			} );
 
-			it( 'passes savePaymentMethod true when logged in and the save card checkbox is checked', async () => {
+			it( 'passes savePaymentMethod true when the session supports saving and the save card checkbox is checked', async () => {
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
 				const mockActions = {
@@ -959,10 +959,8 @@ describe( 'payment-processing', () => {
 					actions: mockActions,
 				} );
 
-				stripeUtils.getStripeServerData.mockReturnValue( {
-					...BASE_SERVER_DATA,
-					isAdaptivePricingEnabled: true,
-					isLoggedIn: true,
+				setNativeCheckoutSessionData( {
+					save_payment_method_enabled: true,
 				} );
 
 				const form = createMockForm( {
@@ -978,7 +976,7 @@ describe( 'payment-processing', () => {
 				} );
 			} );
 
-			it( 'does not pass savePaymentMethod for guests even when the save card checkbox is checked', async () => {
+			it( 'does not pass savePaymentMethod when the session does not support saving, even when logged in with the save card checkbox checked', async () => {
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
 				const mockActions = {
@@ -1000,10 +998,14 @@ describe( 'payment-processing', () => {
 					actions: mockActions,
 				} );
 
+				// A guest-created session reused after login.
 				stripeUtils.getStripeServerData.mockReturnValue( {
 					...BASE_SERVER_DATA,
 					isAdaptivePricingEnabled: true,
-					isLoggedIn: false,
+					isLoggedIn: true,
+				} );
+				setNativeCheckoutSessionData( {
+					save_payment_method_enabled: false,
 				} );
 
 				const form = createMockForm( {
@@ -1700,10 +1702,13 @@ describe( 'payment-processing', () => {
 			document.body.appendChild( form );
 		} );
 
-		const getWrappers = () => form.querySelectorAll( '.validate-required' );
+		const getRequiredFieldWrappers = () =>
+			form.querySelectorAll( '.validate-required' );
 
 		it( 'returns false when there are no required fields', () => {
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
 		} );
 
 		it( 'returns true when a required text input is empty', () => {
@@ -1711,7 +1716,9 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<input type="text" class="input-text" value="" />' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
 		} );
 
 		it( 'returns true when a required text input has only whitespace', () => {
@@ -1719,7 +1726,9 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<input type="text" class="input-text" value="   " />' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
 		} );
 
 		it( 'returns false when all required text inputs have values', () => {
@@ -1730,7 +1739,9 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<input type="text" class="input-text" value="john@example.com" />' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
 		} );
 
 		it( 'returns true when a required select has no value', () => {
@@ -1738,7 +1749,9 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<select><option value="">Select...</option><option value="US">US</option></select>' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
 		} );
 
 		it( 'returns false when a required select has a value', () => {
@@ -1746,7 +1759,52 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<select><option value="">Select...</option><option value="US" selected>US</option></select>' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
+		} );
+
+		// WooCommerce posts a multiselect as implode( ', ', $value ), so both of the
+		// cases below still arrive as '' and are rejected server-side. Blocking them
+		// costs nothing; the third case posts ', US' and is accepted, so blocking it
+		// would fail the checkout outright.
+		it( 'returns true when a required multiple select has nothing selected', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select multiple>' +
+				'<option value="">Select...</option>' +
+				'<option value="US">US</option>' +
+				'</select>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
+		} );
+
+		it( 'returns true when a required multiple select has only an empty option selected', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select multiple>' +
+				'<option value="" selected>Select...</option>' +
+				'<option value="US">US</option>' +
+				'</select>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
+		} );
+
+		it( 'returns false when a required multiple select has a value selected after an empty option', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select multiple>' +
+				'<option value="" selected>Select...</option>' +
+				'<option value="US" selected>US</option>' +
+				'</select>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
 		} );
 
 		it( 'returns true when a required checkbox is unchecked', () => {
@@ -1754,7 +1812,9 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<input type="checkbox" />' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
 		} );
 
 		it( 'returns false when a required checkbox is checked', () => {
@@ -1762,7 +1822,90 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<input type="checkbox" checked />' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
+		} );
+
+		it( 'returns false when one checkbox in a required group is checked', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="checkbox" />' +
+				'<input type="checkbox" checked />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
+		} );
+
+		it( 'returns true when no checkbox in a required group is checked', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="checkbox" />' +
+				'<input type="checkbox" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
+		} );
+
+		// Radios stay outside the selector: blocking on an unselected group would stop
+		// checkout on stores whose radio fields have no server-side validation.
+		it( 'returns false for a required wrapper holding only unselected radios', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="radio" name="option" />' +
+				'<input type="radio" name="option" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
+		} );
+
+		it( 'returns false when a required radio group has a selection', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="radio" name="option" />' +
+				'<input type="radio" name="option" checked />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
+		} );
+
+		it( 'returns false when a checked radio accompanies an empty placeholder select', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select><option value="" selected>Select...</option></select>' +
+				'<input type="radio" name="option" value="yes" checked />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
+		} );
+
+		it( 'returns true when unchecked radios accompany an empty placeholder select', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select><option value="" selected>Select...</option></select>' +
+				'<input type="radio" name="option" value="yes" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
+		} );
+
+		// The checkbox group check only applies when the group leads the wrapper, so a
+		// filled text field ahead of an unchecked checkbox still passes, as before.
+		it( 'returns false when a filled text input precedes an unchecked checkbox', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="text" class="input-text" value="John" />' +
+				'<input type="checkbox" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
 		} );
 
 		it( 'returns true if any one of multiple fields is empty', () => {
@@ -1773,7 +1916,9 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<input type="text" class="input-text" value="" />' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
 		} );
 
 		it( 'skips validate-required wrappers with no matching input', () => {
@@ -1781,7 +1926,9 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<span>No input here</span>' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
 		} );
 	} );
 } );

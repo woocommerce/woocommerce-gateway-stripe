@@ -2,9 +2,9 @@
 Contributors: woocommerce, automattic
 Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.8
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 10.9.0
+Stable tag: 10.9.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -35,6 +35,8 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 10.9.1
+   - Some express checkout helpers now require the caller to specify whether they are in the WooCommerce Cart context
 * 10.9.0
    - Express checkout processes classic checkout custom fields by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
 * 10.8.0
@@ -156,6 +158,15 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 6. Get started with no additional hardware using Tap to Pay on iPhone, or Tap to Pay on Android.
 
 == Changelog ==
+
+= 10.9.1 - 2026-08-31 =
+
+* Fix - Allow express checkout payments when automatic account password generation is disabled
+* Fix - Stop flagging the checkout page as the cart page (is_cart() returning true) when express checkout buttons are enabled, which made analytics and other plugins misread the page
+* Fix - Recreate the Adaptive Pricing Checkout Session when a shopper logs in or out mid-checkout, so payment methods can be saved correctly
+* Fix - Surface express checkout order failures instead of leaving the Apple Pay or Google Pay sheet open with no error
+* Fix - Prevent classic checkout from processing an empty payment method when custom required fields are present
+* Fix - Explain that payment details were not submitted, instead of reporting the selected payment method as invalid, when checkout is submitted without them
 
 = 10.9.0 - 2026-08-17 =
 
