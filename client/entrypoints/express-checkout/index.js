@@ -114,19 +114,22 @@ jQuery( function ( $ ) {
 			'allowed_shipping_countries'
 		);
 
-		// The fast-path on variation/qty change updates only the element amount,
-		// not this click closure, so read the latest items from the store to keep
-		// the wallet breakdown in sync. Legacy (variable/booking) format only.
-		const displayItems =
-			useLegacyDisplayItems && getExpressCheckoutData( 'is_product_page' )
-				? getExpressCheckoutData( 'product' )?.displayItems ??
-				  options.displayItems
-				: options.displayItems;
+		// Product pages: the click handler writes cart-derived items into the
+		// store before resolving, so read them from there for every product
+		// type — creation-time options would show quantity-1 items under a
+		// quantity-aware total. normalizeLineItems handles both the legacy
+		// and the cart-derived item shapes.
+		const isProductPage = getExpressCheckoutData( 'is_product_page' );
+		const displayItems = isProductPage
+			? getExpressCheckoutData( 'product' )?.displayItems ??
+			  options.displayItems
+			: options.displayItems;
 
 		const clickOptions = {
-			lineItems: useLegacyDisplayItems
-				? normalizeLineItems( displayItems )
-				: displayItems,
+			lineItems:
+				isProductPage || useLegacyDisplayItems
+					? normalizeLineItems( displayItems )
+					: displayItems,
 			emailRequired: true,
 			shippingAddressRequired: options.requestShipping,
 			phoneNumberRequired: options.requestPhone,
@@ -289,6 +292,11 @@ jQuery( function ( $ ) {
 				// guard is what prompts the shopper for their options instead
 				// of opening the wallet sheet.
 				if ( isAddToCartUnavailable() ) {
+					// The click contract requires resolve() or reject()
+					// within 1s; rejecting also closes the wallet UI some
+					// methods (Link, Amazon Pay) open on the raw gesture.
+					event.reject?.();
+
 					const defaultMessage = __(
 						'Please select your product options before proceeding.',
 						'woocommerce-gateway-stripe'
@@ -319,6 +327,7 @@ jQuery( function ( $ ) {
 				}
 
 				if ( wcStripeECEError ) {
+					event.reject?.();
 					// eslint-disable-next-line no-alert
 					window.alert( wcStripeECEError );
 					return;
@@ -339,27 +348,37 @@ jQuery( function ( $ ) {
 					timeout,
 				] );
 				if ( result === 'timeout' ) {
-					// Immediately resolve the click event to avoid the 1s timeout.
-					resolveClickEvent( event, clickOptions );
-
-					// Wait for the addToCart operation to finish, checking
-					// that the product was successfully added to the cart.
-					wcStripeECE.isAddToCartSuccessful = false;
-					const response = await addToCartPromise;
-					const isAddToCartSuccessful = response?.items_count > 0;
-					const isLegacyAddToCartSuccessful =
-						response?.result === 'success';
-					if (
-						isAddToCartSuccessful ||
-						isLegacyAddToCartSuccessful
-					) {
-						wcStripeECE.isAddToCartSuccessful = true;
+					// The Elements amount is what wallet UIs display, so the
+					// sheet must only open once the authoritative cart total
+					// exists — opening from a stale preview could authorize a
+					// different amount than the cart charges. Reject, and
+					// keep interaction blocked until the pending
+					// empty-cart -> add mutation settles so a retry can't
+					// overlap it; its response then primes the next attempt.
+					event.reject?.();
+					wcStripeECE.blockExpressCheckoutButton();
+					try {
+						const response = await addToCartPromise;
+						wcStripeECE.isAddToCartSuccessful =
+							response?.items_count > 0 ||
+							response?.result === 'success';
+						wcStripeECE.refreshTotalsFromCart( response );
+					} catch ( error ) {
+						wcStripeECE.isAddToCartSuccessful = false;
+					} finally {
+						wcStripeECE.unblockExpressCheckoutButton();
 					}
 
 					return;
 				}
 
 				wcStripeECE.isAddToCartSuccessful = true;
+
+				// The cart response embodies every price influence
+				// (variation, quantity, add-ons, server-side fees), so the
+				// sheet resolves from it rather than from any preview.
+				wcStripeECE.refreshTotalsFromCart( result );
+
 				return resolveClickEvent( event, clickOptions );
 			};
 
@@ -448,6 +467,7 @@ jQuery( function ( $ ) {
 			eceButton.on( 'click', async function ( event ) {
 				// If login is required for checkout, display redirect confirmation dialog.
 				if ( getExpressCheckoutData( 'login_confirmation' ) ) {
+					event.reject?.();
 					displayLoginConfirmation( event.expressPaymentType );
 					return;
 				}
@@ -1038,6 +1058,30 @@ jQuery( function ( $ ) {
 				response.requestShipping;
 			wcStripeECE.refreshTotals( response );
 			wcStripeECE.init();
+		},
+
+		// Refresh the cached breakdown and element amount from a Store API
+		// cart response. No-op for responses without totals (legacy/bookings).
+		refreshTotalsFromCart: ( cart ) => {
+			if ( ! cart?.totals || ! getExpressCheckoutData( 'product' ) ) {
+				return;
+			}
+
+			const amount = transformPrice(
+				parseInt( cart.totals.total_price, 10 ) -
+					parseInt( cart.totals.total_refund || 0, 10 ),
+				cart.totals
+			);
+
+			wcStripeECE.refreshTotals( {
+				total: {
+					...getExpressCheckoutData( 'product' ).total,
+					amount,
+					pending: false,
+				},
+				displayItems: transformCartDataForDisplayItems( cart ),
+			} );
+			wcStripeECE.updateExpressCheckoutAmount( amount );
 		},
 
 		// Keep the cached product breakdown in sync with the latest server response so the
