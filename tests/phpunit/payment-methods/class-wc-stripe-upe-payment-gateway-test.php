@@ -641,6 +641,65 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * The per-wallet Apple Pay and Google Pay flags must come from the method-specific check,
+	 * not the any-method aggregate: when only another wallet's locations cover the page, the
+	 * aggregate is true but Apple/Google Pay must still be reported as disabled.
+	 *
+	 * @param bool $apple_google_enabled What the helper reports for Apple/Google Pay in this context.
+	 *
+	 * @dataProvider provide_apple_google_pay_enabled
+	 */
+	public function test_javascript_params_exposes_method_specific_apple_google_pay_flags( $apple_google_enabled ) {
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->onlyMethods( [ 'is_apple_google_pay_enabled', 'is_amazon_pay_enabled', 'is_link_enabled', 'is_express_checkout_enabled' ] )
+			->getMock();
+		$helper->method( 'is_apple_google_pay_enabled' )->willReturn( $apple_google_enabled );
+		// Amazon Pay alone keeps the aggregate true regardless of Apple/Google Pay.
+		$helper->method( 'is_amazon_pay_enabled' )->willReturn( true );
+		$helper->method( 'is_link_enabled' )->willReturn( false );
+		$helper->method( 'is_express_checkout_enabled' )->willReturn( true );
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods(
+				[
+					'get_return_url',
+					'get_stripe_return_url',
+					'is_changing_payment_method_for_subscription',
+					'is_subscription_item_in_cart',
+					'get_express_checkout_helper',
+				]
+			)
+			->getMock();
+		$gateway->method( 'get_return_url' )->willReturn( '' );
+		$gateway->method( 'get_stripe_return_url' )->willReturn( '' );
+		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( false );
+		$gateway->method( 'is_subscription_item_in_cart' )->willReturn( false );
+		$gateway->method( 'get_express_checkout_helper' )->willReturn( $helper );
+
+		$this->set_stripe_account_data( [ 'country' => 'US' ] );
+
+		$params = $gateway->javascript_params();
+
+		// Both wallets are backed by the shared setting today, so the flags move together.
+		$this->assertSame( $apple_google_enabled, $params['isApplePayEnabled'] );
+		$this->assertSame( $apple_google_enabled, $params['isGooglePayEnabled'] );
+		$this->assertTrue( $params['isExpressCheckoutEnabled'] );
+	}
+
+	/**
+	 * Data provider for {@see test_javascript_params_exposes_method_specific_apple_google_pay_flags()}.
+	 *
+	 * @return array<string, array{0: bool}>
+	 */
+	public function provide_apple_google_pay_enabled() {
+		return [
+			'disabled for this location' => [ false ],
+			'enabled for this location'  => [ true ],
+		];
+	}
+
+	/**
 	 * The billing source for the deferred-payment flows is selected all-or-nothing:
 	 * the order on a validated pay-for-order page (so guests still get full address
 	 * details), otherwise the customer, with a wholesale fallback to the customer when
@@ -809,6 +868,35 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				],
 			],
 		];
+	}
+
+	/**
+	 * An empty client payment method must fail before intent creation.
+	 */
+	public function test_process_payment_deferred_intent_rejects_empty_payment_method_before_intent_creation() {
+		$order = WC_Helper_Order::create_order();
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => '',
+			'wc-stripe-confirmation-token' => '',
+		];
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+
+		$this->mock_gateway
+			->expects( $this->never() )
+			->method( 'stripe_request' );
+
+		try {
+			$response = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			$_POST = [];
+		}
+
+		$this->assertSame( 'failure', $response['result'] );
 	}
 
 	/**
@@ -4653,6 +4741,41 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
 		$this->assertStringContainsString( 'Invalid payment method ID in request', $exception->getMessage() );
 		$this->assertSame( 0, $request_count );
+	}
+
+	/**
+	 * The shopper-facing message must describe the missing payment details rather than blame the
+	 * selected gateway, and must not name a cause: this guard is shared by every deferred-intent
+	 * flow, so it also fires on Stripe.js failures, element remounts and tampered requests.
+	 */
+	public function test_prepare_payment_information_reports_missing_payment_details_without_naming_a_cause() {
+		$order     = WC_Helper_Order::create_order();
+		$exception = null;
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => '',
+			'wc-stripe-confirmation-token' => '',
+		];
+
+		$reflection = new \ReflectionClass( WC_Stripe_UPE_Payment_Gateway::class );
+		$method     = $reflection->getMethod( 'prepare_payment_information_from_request' );
+		$method->setAccessible( true );
+
+		try {
+			$method->invoke( $this->mock_gateway, $order );
+		} catch ( WC_Stripe_Exception $caught_exception ) {
+			$exception = $caught_exception;
+		} finally {
+			$_POST = [];
+		}
+
+		$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+		$this->assertStringContainsString( 'Payment method ID is missing from the request', $exception->getMessage() );
+		$this->assertSame(
+			'Your payment details were not submitted. Please review the checkout form and try again.',
+			$exception->getLocalizedMessage()
+		);
 	}
 
 	/**
