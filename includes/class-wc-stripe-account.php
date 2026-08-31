@@ -115,12 +115,16 @@ class WC_Stripe_Account {
 	 * @return array Account data or empty if failed to retrieve account data.
 	 */
 	public function get_cached_account_data( $mode = null, bool $force_refresh = false ) {
+		if ( ! in_array( $mode, [ 'test', 'live' ], true ) ) {
+			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+		}
+
 		if ( ! $this->connect->is_connected( $mode ) ) {
 			return [];
 		}
 
 		if ( ! $force_refresh ) {
-			$account = $this->read_account_from_cache();
+			$account = $this->read_account_from_cache( $mode );
 
 			if ( ! empty( $account ) ) {
 				return $account;
@@ -133,12 +137,13 @@ class WC_Stripe_Account {
 	/**
 	 * Read the account from the WP option we cache it in.
 	 *
+	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
 	 * @return array empty when no data found, otherwise returns the cached data
 	 */
-	private function read_account_from_cache() {
-		$account_cache = WC_Stripe_Database_Cache::get( self::ACCOUNT_CACHE_KEY );
+	private function read_account_from_cache( $mode = null ) {
+		$account_cache = WC_Stripe_Database_Cache::get_with_mode( self::ACCOUNT_CACHE_KEY, $mode );
 
-		return false === $account_cache ? [] : $account_cache;
+		return is_array( $account_cache ) ? $account_cache : [];
 	}
 
 	/**
@@ -147,10 +152,7 @@ class WC_Stripe_Account {
 	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
 	 */
 	private function cache_account( $mode = null ) {
-		// If a mode is provided, we'll set the API secret key to the appropriate key to retrieve the account data.
-		if ( ! is_null( $mode ) ) {
-			WC_Stripe_API::set_secret_key_for_mode( $mode );
-		}
+		WC_Stripe_API::set_secret_key_for_mode( $mode );
 
 		// need call_user_func() as ( $this->stripe_api )::retrieve this syntax is not supported in php < 5.2
 		$account = call_user_func( [ $this->stripe_api, 'retrieve' ], 'account' );
@@ -166,7 +168,7 @@ class WC_Stripe_Account {
 		$account_cache = json_decode( wp_json_encode( $account ), true );
 
 		// Create or update the account data cache.
-		WC_Stripe_Database_Cache::set( self::ACCOUNT_CACHE_KEY, $account_cache, self::ACCOUNT_CACHE_EXPIRATION );
+		WC_Stripe_Database_Cache::set_with_mode( self::ACCOUNT_CACHE_KEY, $account_cache, self::ACCOUNT_CACHE_EXPIRATION, $mode );
 
 		return $account_cache;
 	}
@@ -190,7 +192,8 @@ class WC_Stripe_Account {
 	 * Wipes the account data option.
 	 */
 	public function clear_cache() {
-		WC_Stripe_Database_Cache::delete( self::ACCOUNT_CACHE_KEY );
+		WC_Stripe_Database_Cache::delete_with_mode( self::ACCOUNT_CACHE_KEY, 'live' );
+		WC_Stripe_Database_Cache::delete_with_mode( self::ACCOUNT_CACHE_KEY, 'test' );
 
 		$this->clear_webhook_status_cache();
 	}

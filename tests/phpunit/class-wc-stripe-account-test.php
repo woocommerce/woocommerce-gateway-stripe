@@ -45,7 +45,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
-		WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'test' );
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'live' );
 		$this->clear_webhook_status_cache();
 		WC_Stripe_Helper::delete_main_stripe_settings();
 
@@ -86,15 +87,29 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$this->assertSame( $cached_data, $expected_cached_data );
 	}
 
+	public function test_get_cached_account_data_ignores_non_array_cache_data() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'invalid' );
+		WC_Helper_Stripe_Api::$retrieve_response = new WP_Error( 'stripe_api_outage', 'temporarily unavailable' );
+
+		$this->assertSame( [], $this->account->get_cached_account_data() );
+	}
+
 	public function test_clear_cache() {
-		$account = [
+		$live_account = [
 			'id'    => '1234',
+			'email' => 'live@example.com',
+		];
+		$test_account = [
+			'id'    => '5678',
 			'email' => 'test@example.com',
 		];
-		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $live_account, HOUR_IN_SECONDS, 'live' );
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $test_account, HOUR_IN_SECONDS, 'test' );
 
 		$this->account->clear_cache();
-		$this->assertEquals( [], $this->account->get_cached_account_data() );
+		$this->assertNull( WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'live' ) );
+		$this->assertNull( WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'test' ) );
 	}
 
 	public function test_get_cached_account_data_preserves_cache_on_transient_failure() {
@@ -264,6 +279,46 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Provide invalid modes and the active mode they should resolve to.
+	 *
+	 * @return array
+	 */
+	public function provide_invalid_account_mode_test_cases(): array {
+		return [
+			'invalid mode in test mode' => [ 'Live', 'yes', 'test' ],
+			'invalid mode in live mode' => [ 'invalid', 'no', 'live' ],
+		];
+	}
+
+	/**
+	 * Invalid modes must consistently use the active mode for connection and cache access.
+	 *
+	 * @param string $mode          The requested mode.
+	 * @param string $testmode      The active test mode setting.
+	 * @param string $expected_mode The expected resolved mode.
+	 *
+	 * @dataProvider provide_invalid_account_mode_test_cases
+	 */
+	public function test_get_cached_account_data_normalizes_invalid_mode( string $mode, string $testmode, string $expected_mode ) {
+		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['testmode'] = $testmode;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$account_data = [
+			'id'    => '1234',
+			'email' => "$expected_mode@example.com",
+		];
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account_data, HOUR_IN_SECONDS, $expected_mode );
+
+		$this->mock_connect->expects( $this->once() )
+			->method( 'is_connected' )
+			->with( $expected_mode )
+			->willReturn( true );
+
+		$this->assertSame( $account_data, $this->account->get_cached_account_data( $mode ) );
+	}
+
+	/**
 	 * Test for get_cached_account_data() with force refresh parameter.
 	 *
 	 * @param string $mode             The mode to get the account data for.
@@ -278,7 +333,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		$email_prefix = 'test' === $mode ? 'test' : 'live';
 
-		WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $mode );
 
 		if ( true === $force_refresh ) {
 			$account_data = [
@@ -295,7 +350,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 				'country' => 'US',
 			];
 
-			WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account_data );
+			WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account_data, HOUR_IN_SECONDS, $mode );
 		}
 
 		if ( null === $force_refresh ) {
@@ -306,6 +361,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		// Assert that the account data is as expected.
 		$this->assertSame( $account_data, $result );
+		$this->assertSame( $account_data, WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $mode ) );
 	}
 
 	/**
