@@ -175,21 +175,26 @@ export const observeVariationSelection = ( onChange ) => {
 		attributeFilter: [ 'value' ],
 	} );
 
+	// keyup included: the chips variant selects via a keydown handler on
+	// buttons, which fires neither click nor change.
+	const gestureEvents = [ 'click', 'change', 'keyup' ];
 	const selectors = document.querySelectorAll(
 		'.wc-block-add-to-cart-with-options [class*="variation-selector"]'
 	);
-	selectors.forEach( ( el ) => {
-		el.addEventListener( 'click', onChange );
-		el.addEventListener( 'change', onChange );
-	} );
+	selectors.forEach( ( el ) =>
+		gestureEvents.forEach( ( eventName ) =>
+			el.addEventListener( eventName, onChange )
+		)
+	);
 
 	return {
 		disconnect: () => {
 			observer.disconnect();
-			selectors.forEach( ( el ) => {
-				el.removeEventListener( 'click', onChange );
-				el.removeEventListener( 'change', onChange );
-			} );
+			selectors.forEach( ( el ) =>
+				gestureEvents.forEach( ( eventName ) =>
+					el.removeEventListener( eventName, onChange )
+				)
+			);
 		},
 	};
 };
