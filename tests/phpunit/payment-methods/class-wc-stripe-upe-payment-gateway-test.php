@@ -1087,7 +1087,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					],
 				],
 				'payment_method'       => 'pm_mock',
-				'payment_method_types' => [ $payment_method ],
+				// The OCS shape: other PMC-enabled methods listed alongside the selected wallet
+				// must not route the payment away from the wallet flow.
+				'payment_method_types' => [
+					$payment_method,
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::LINK,
+				],
 				'charges'              => (object) [
 					'total_count' => 0, // Intents requiring SCA verification respond with no charges.
 					'data'        => [],
