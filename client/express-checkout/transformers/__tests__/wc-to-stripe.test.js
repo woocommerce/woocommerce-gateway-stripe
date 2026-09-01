@@ -3,6 +3,7 @@ import {
 	transformPriceWithMinorUnits,
 	transformCartDataForDisplayItems,
 	transformCartDataForShippingRates,
+	transformCartTotalAmount,
 } from '../wc-to-stripe';
 
 global.wc_stripe_express_checkout_params = {};
@@ -312,6 +313,53 @@ describe( 'wc-to-stripe transformers', () => {
 					},
 				} )
 			).toStrictEqual( [] );
+		} );
+	} );
+
+	describe( 'transformCartTotalAmount', () => {
+		afterEach( () => {
+			delete global.wc_stripe_express_checkout_params.checkout
+				.currency_decimals;
+		} );
+
+		it( 'parses the Store API string totals into a number', () => {
+			expect(
+				transformCartTotalAmount( {
+					total_price: '1800',
+					total_refund: '0',
+					currency_minor_unit: 2,
+				} )
+			).toBe( 1800 );
+		} );
+
+		it( 'subtracts refunds from the total', () => {
+			expect(
+				transformCartTotalAmount( {
+					total_price: '2000',
+					total_refund: '500',
+					currency_minor_unit: 2,
+				} )
+			).toBe( 1500 );
+		} );
+
+		it( 'treats a missing refund as zero', () => {
+			expect(
+				transformCartTotalAmount( {
+					total_price: '2000',
+					currency_minor_unit: 2,
+				} )
+			).toBe( 2000 );
+		} );
+
+		it( 'scales to Stripe minor units for zero-decimal currencies', () => {
+			global.wc_stripe_express_checkout_params.checkout.currency_decimals = 0;
+			expect(
+				transformCartTotalAmount( {
+					total_price: '180',
+					total_refund: '0',
+					currency_minor_unit: 1,
+				} )
+			).toBe( 18 );
 		} );
 	} );
 
