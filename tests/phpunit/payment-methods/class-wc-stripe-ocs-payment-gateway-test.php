@@ -410,6 +410,112 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * A degraded Stripe payment method fetch leaves `payment_method_details` without a type; the
+	 * form-derived selection is the OC pseudo-method's 'card', so the client-mirrored element type
+	 * must win — otherwise a wallet/voucher selection silently takes the card flow.
+	 *
+	 * @dataProvider provide_test_resolve_intent_payment_method_types_falls_back_to_client_type
+	 *
+	 * @param object      $payment_method_details Details object as normalized by the caller.
+	 * @param string|null $posted_type            Value of the client-mirrored type field, null when absent.
+	 * @param string      $expected_type          Expected resolved selected payment type.
+	 */
+	public function test_resolve_intent_payment_method_types_falls_back_to_client_type( object $payment_method_details, ?string $posted_type, string $expected_type ): void {
+		$order   = WC_Helper_Order::create_order();
+		$gateway = new WC_Stripe_OCS_Payment_Gateway();
+
+		if ( null !== $posted_type ) {
+			$_POST['wc_stripe_selected_upe_payment_type'] = $posted_type;
+		}
+
+		$method = new \ReflectionMethod( WC_Stripe_OCS_Payment_Gateway::class, 'resolve_intent_payment_method_types' );
+		$method->setAccessible( true );
+
+		try {
+			$result = $method->invoke( $gateway, WC_Stripe_Payment_Methods::CARD, 'pm_mock', $payment_method_details, $order, null );
+		} finally {
+			$_POST = [];
+		}
+
+		$this->assertSame( $expected_type, $result['selected_payment_type'] );
+		$this->assertSame( [ $expected_type ], $result['payment_method_types'] );
+	}
+
+	/**
+	 * Provider for `test_resolve_intent_payment_method_types_falls_back_to_client_type`.
+	 *
+	 * @return array<string, array{object, string|null, string}>
+	 */
+	public function provide_test_resolve_intent_payment_method_types_falls_back_to_client_type(): array {
+		return [
+			'degraded fetch, client-mirrored wallet type' => [
+				'payment_method_details' => (object) [],
+				'posted_type'            => WC_Stripe_Payment_Methods::WECHAT_PAY,
+				'expected_type'          => WC_Stripe_Payment_Methods::WECHAT_PAY,
+			],
+			'degraded fetch, no client type'              => [
+				'payment_method_details' => (object) [],
+				'posted_type'            => null,
+				'expected_type'          => WC_Stripe_Payment_Methods::CARD,
+			],
+			'degraded fetch, unregistered client type'    => [
+				'payment_method_details' => (object) [],
+				'posted_type'            => 'not_a_method',
+				'expected_type'          => WC_Stripe_Payment_Methods::CARD,
+			],
+			'healthy fetch outranks the client type'      => [
+				'payment_method_details' => (object) [ 'type' => WC_Stripe_Payment_Methods::IDEAL ],
+				'posted_type'            => WC_Stripe_Payment_Methods::WECHAT_PAY,
+				'expected_type'          => WC_Stripe_Payment_Methods::IDEAL,
+			],
+		];
+	}
+
+	/**
+	 * When the Stripe payment method fetch fails outright (network error/outage), the selection
+	 * resolved by `prepare_payment_information_from_request` must come from the client-mirrored
+	 * type field instead of degrading to 'card'.
+	 */
+	public function test_prepare_payment_information_uses_client_type_when_payment_method_fetch_fails(): void {
+		$order = WC_Helper_Order::create_order();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_OCS_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'get_stripe_customer_id' ] )
+			->getMock();
+		$gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+
+		$_POST = [
+			'payment_method'                      => 'stripe',
+			'wc-stripe-payment-method'            => 'pm_mock',
+			'wc_stripe_selected_upe_payment_type' => WC_Stripe_Payment_Methods::WECHAT_PAY,
+		];
+
+		$failing_pre_http_filter = function ( $result, $args, $url ) {
+			if ( false !== strpos( $url, 'payment_methods/pm_mock' ) ) {
+				return new WP_Error( 'http_request_failed', 'Connection timed out' );
+			}
+			return $result;
+		};
+		add_filter( 'pre_http_request', $failing_pre_http_filter, 10, 3 );
+
+		$method = new \ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'prepare_payment_information_from_request' );
+		$method->setAccessible( true );
+
+		try {
+			$payment_information = $method->invoke( $gateway, $order );
+		} finally {
+			remove_filter( 'pre_http_request', $failing_pre_http_filter, 10 );
+			// The failed request records an API outage; clear it so later tests see a healthy API.
+			delete_transient( WC_Stripe_API_Outage_Status::OUTAGE_TRANSIENT_KEY );
+			$_POST = [];
+		}
+
+		$this->assertSame( WC_Stripe_Payment_Methods::WECHAT_PAY, $payment_information['selected_payment_type'] );
+		$this->assertSame( [ WC_Stripe_Payment_Methods::WECHAT_PAY ], $payment_information['payment_method_types'] );
+	}
+
+	/**
 	 * Tests for `is_valid_optimized_checkout_page`.
 	 *
 	 * @dataProvider provide_test_is_valid_optimized_checkout_page

@@ -1644,12 +1644,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// Resolve the method the customer actually picked: for Optimized Checkout the gateway type is
 		// always 'card', so prefer the hidden `wc_stripe_selected_upe_payment_type` input when present.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$selected_upe_payment_type = isset( $_POST['wc_stripe_selected_upe_payment_type'] )
-			? sanitize_text_field( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) )
-			: '';
+		$selected_upe_payment_type = $this->get_selected_upe_payment_type_from_request();
 
-		$resolved_payment_type   = ( ! empty( $selected_upe_payment_type ) && isset( $this->payment_methods[ $selected_upe_payment_type ] ) )
+		$resolved_payment_type   = '' !== $selected_upe_payment_type
 			? $selected_upe_payment_type
 			: $selected_payment_type;
 		$resolved_payment_method = $this->payment_methods[ $resolved_payment_type ] ?? null;
@@ -3844,6 +3841,24 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return substr( $payment_method_type, 0, 7 ) === 'stripe_' ? substr( $payment_method_type, 7 ) : 'card';
+	}
+
+	/**
+	 * Gets the payment method type the client mirrored from the payment element into the
+	 * `wc_stripe_selected_upe_payment_type` request field, when it maps to a registered method.
+	 *
+	 * Under Optimized Checkout the form's `payment_method` is the consolidated pseudo-method,
+	 * so this field is the only request-derived record of the type the customer picked.
+	 *
+	 * @return string The registered payment method type, or '' when absent or unregistered.
+	 */
+	protected function get_selected_upe_payment_type_from_request(): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$posted_type = isset( $_POST['wc_stripe_selected_upe_payment_type'] )
+			? sanitize_text_field( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) )
+			: '';
+
+		return isset( $this->payment_methods[ $posted_type ] ) ? $posted_type : '';
 	}
 
 	/**

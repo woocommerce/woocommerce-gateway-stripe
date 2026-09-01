@@ -249,6 +249,12 @@ const PaymentProcessor = ( {
 								wc_payment_intent_id: paymentIntentId ?? '',
 								'wc-stripe-payment-method':
 									paymentMethodObject.paymentMethod.id,
+								// Under Optimized Checkout `payment_method` is the consolidated
+								// pseudo-method, so mirror the concrete type: the server falls
+								// back to it when its Stripe payment method fetch degrades.
+								wc_stripe_selected_upe_payment_type:
+									paymentMethodObject.paymentMethod.type ??
+									'',
 								save_payment_method: shouldSavePayment
 									? 'yes'
 									: 'no',
