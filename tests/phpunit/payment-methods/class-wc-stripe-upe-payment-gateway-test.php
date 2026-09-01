@@ -959,8 +959,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * A 3DS card payment must not be routed into the wallet/voucher client flow when the intent's
-	 * `payment_method_types` also lists wallet/voucher methods, as happens under Dynamic Payment
-	 * Methods where the intent carries every PMC-enabled method rather than the customer's selection.
+	 * `payment_method_types` also lists wallet/voucher methods, as happens under Optimized Checkout
+	 * Suite where the intent lists every PMC-enabled method rather than the customer's selection.
 	 *
 	 * @param object|null $next_action               The intent's next_action.
 	 * @param string      $expected_redirect_pattern  Regex the response redirect must match.
