@@ -313,8 +313,15 @@ jQuery( function ( $ ) {
 						);
 					}
 
-					// eslint-disable-next-line no-alert
-					window.alert( message || defaultMessage );
+					// alert() pauses this page's event loop, which would also
+					// freeze the wallet-UI dismissal that reject() queues for
+					// methods opening on the raw gesture (e.g. Amazon Pay) —
+					// leaving the sheet on screen behind the alert. Yield so
+					// the dismissal lands first.
+					setTimeout( () => {
+						// eslint-disable-next-line no-alert
+						window.alert( message || defaultMessage );
+					}, 100 );
 					return;
 				}
 

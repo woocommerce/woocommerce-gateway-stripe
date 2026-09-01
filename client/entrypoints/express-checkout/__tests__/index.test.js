@@ -395,6 +395,10 @@ describe( 'Express Checkout product page variation breakdown', () => {
 
 			expect( event.reject ).toHaveBeenCalledTimes( 1 );
 			expect( event.resolve ).not.toHaveBeenCalled();
+			// The prompt is deferred so the rejected wallet UI can dismiss
+			// before the blocking dialog pauses the event loop.
+			expect( alertSpy ).not.toHaveBeenCalled();
+			await new Promise( ( resolve ) => setTimeout( resolve, 150 ) );
 			expect( alertSpy ).toHaveBeenCalledWith(
 				expect.stringContaining( 'select your product options' )
 			);
@@ -491,6 +495,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 				expressPaymentType: 'googlePay',
 			};
 			await handlers.click( event );
+			await new Promise( ( resolve ) => setTimeout( resolve, 150 ) );
 			expect( alertSpy ).toHaveBeenCalledWith(
 				expect.stringContaining(
 					'cannot be purchased with the selected options or quantity'
