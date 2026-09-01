@@ -324,13 +324,9 @@ jQuery( function ( $ ) {
 					timeout,
 				] );
 				if ( result === 'timeout' ) {
-					// The Elements amount is what wallet UIs display, so the
-					// sheet must only open once the authoritative cart total
-					// exists — opening from a stale preview could authorize a
-					// different amount than the cart charges. Reject, and
-					// keep interaction blocked until the pending
-					// empty-cart -> add mutation settles so a retry can't
-					// overlap it; its response then primes the next attempt.
+					// Opening the sheet now would show a preview amount the cart
+					// may not match, so reject and block retries until the
+					// pending add settles; its response primes the next attempt.
 					event.reject?.();
 					wcStripeECE.blockExpressCheckoutButton();
 					try {
