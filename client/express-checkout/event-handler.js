@@ -45,7 +45,24 @@ export const shippingAddressChangeHandler = async ( event, elements ) => {
 			),
 		} );
 
-		const shippingRates = transformCartDataForShippingRates( cartData );
+		let shippingRates = transformCartDataForShippingRates( cartData );
+
+		// For a subscription with a free trial, Woo Subscriptions charges
+		// shipping with the recurring payments, so the sign-up cart has no
+		// shipping package at all. Keep the placeholder option the sheet was
+		// opened with instead of rejecting, which would block the purchase
+		// for every address. A package with empty rates still rejects below:
+		// that address genuinely cannot be served.
+		if (
+			shippingRates.length === 0 &&
+			( cartData?.shipping_rates?.length ?? 0 ) === 0
+		) {
+			const defaultShippingOption =
+				getExpressCheckoutData( 'checkout' )?.default_shipping_option;
+			if ( defaultShippingOption ) {
+				shippingRates = [ defaultShippingOption ];
+			}
+		}
 
 		if ( shippingRates.length === 0 ) {
 			event.reject();
@@ -78,6 +95,14 @@ export const shippingAddressChangeHandler = async ( event, elements ) => {
  * @return {Promise<void>} Resolves when the shipping rate has been updated.
  */
 export const shippingRateChangeHandler = async ( event, elements ) => {
+	// The 'pending' placeholder (see get_default_shipping_option() in PHP) is
+	// not a real WooCommerce rate; selecting it through the Store API would
+	// fail, and there is nothing to persist anyway.
+	if ( event.shippingRate?.id === 'pending' ) {
+		event.resolve();
+		return;
+	}
+
 	try {
 		const cartData = await cartApi.selectShippingRate( {
 			package_id: 0,
