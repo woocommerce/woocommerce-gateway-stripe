@@ -36,8 +36,13 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 		},
 	} );
 
+	// The rendered tree is ProbeErrorBoundary > Elements > ExpressCheckoutElement.
+	const getRenderedErrorBoundary = ( call = 0 ) =>
+		render.mock.calls[ call ][ 0 ];
+	const getRenderedElements = ( call = 0 ) =>
+		getRenderedErrorBoundary( call ).props.children;
 	const getRenderedExpressCheckoutElement = ( call = 0 ) =>
-		render.mock.calls[ call ][ 0 ].props.children;
+		getRenderedElements( call ).props.children;
 
 	beforeEach( () => {
 		jest.clearAllMocks();
@@ -71,9 +76,7 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 			hydratedCart()
 		);
 		expect( createRoot ).toHaveBeenCalledTimes( 1 );
-		expect( render.mock.calls[ 0 ][ 0 ].props.options.currency ).toBe(
-			'usd'
-		);
+		expect( getRenderedElements().props.options.currency ).toBe( 'usd' );
 
 		getRenderedExpressCheckoutElement().props.onReady( {
 			availablePaymentMethods: { applePay: true },
@@ -116,5 +119,34 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 		} );
 
 		expect( await result ).toBe( false );
+	} );
+
+	it( 'resolves false on probe failures without caching them, so later calls probe again', async () => {
+		// Mount error caught by the error boundary.
+		const first = checkPaymentMethodIsAvailable(
+			'amazonPay',
+			api,
+			hydratedCart()
+		);
+		getRenderedErrorBoundary().props.onError();
+		expect( await first ).toBe( false );
+
+		// The failure was evicted, so this call probes again; this time the
+		// element reports a load error.
+		const second = checkPaymentMethodIsAvailable(
+			'amazonPay',
+			api,
+			hydratedCart()
+		);
+		expect( createRoot ).toHaveBeenCalledTimes( 2 );
+		getRenderedExpressCheckoutElement( 1 ).props.onLoadError();
+		expect( await second ).toBe( false );
+
+		checkPaymentMethodIsAvailable( 'amazonPay', api, hydratedCart() );
+		expect( createRoot ).toHaveBeenCalledTimes( 3 );
+
+		// Failed probes tear down their container on a deferred tick.
+		await new Promise( ( resolve ) => setTimeout( resolve ) );
+		expect( unmount ).toHaveBeenCalled();
 	} );
 } );
