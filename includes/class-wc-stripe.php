@@ -176,7 +176,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-handler.php';
 
 		if ( self::$instance === $this ) {
-			new WC_Stripe_Webhook_Handler();
+			( new WC_Stripe_Webhook_Handler() )->register_hooks();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-apple-pay-registration.php';
@@ -217,12 +217,12 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-handler.php';
 
 		if ( self::$instance === $this ) {
-			new WC_Stripe_Order_Handler();
+			( new WC_Stripe_Order_Handler() )->register_hooks();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
 		if ( self::$instance === $this ) {
-			new WC_Stripe_Payment_Tokens();
+			( new WC_Stripe_Payment_Tokens() )->register_hooks();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
@@ -237,6 +237,12 @@ class WC_Stripe {
 		$this->api     = new WC_Stripe_Connect_API();
 		$this->connect = new WC_Stripe_Connect( $this->api );
 		$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+
+		// Guarded unlike the assignment above: the property must exist on every
+		// instance, but only the first may register the connection hooks.
+		if ( self::$instance === $this ) {
+			$this->connect->register_hooks();
+		}
 
 		// No-op shim so third parties that register the removed WC_Stripe_Payment_Request methods as
 		// hook callbacks via this property don't fatal on a null callback. See the compat class.
@@ -316,6 +322,7 @@ class WC_Stripe {
 			add_filter( 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), [ $this, 'plugin_action_links' ] );
 			add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
 			add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
+			add_action( 'update_option_' . self::SETTINGS_OPTION_NAME, [ $this, 'maybe_mark_adaptive_pricing_migration_complete' ], 10, 2 );
 		}
 
 		// Update the email field position.
@@ -372,7 +379,7 @@ class WC_Stripe {
 	 * Initialize the class for handling the Apple Pay registration.
 	 */
 	public function initialize_apple_pay_registration() {
-		new WC_Stripe_Apple_Pay_Registration();
+		( new WC_Stripe_Apple_Pay_Registration() )->register_hooks();
 	}
 
 	/**
@@ -760,6 +767,38 @@ class WC_Stripe {
 		return $this->toggle_upe( $settings, $old_settings );
 	}
 
+
+	/**
+	 * When the Adaptive Pricing amount mismatch migration is incomplete and
+	 * the merchant toggles the Adaptive Pricing setting, we need to mark the
+	 * amount mismatch migration as complete.
+	 *
+	 * @param array|false $old_settings Previous settings; false if no previous settings existed.
+	 * @param array       $settings     New settings that were saved.
+	 * @return void
+	 */
+	public function maybe_mark_adaptive_pricing_migration_complete( $old_settings, $settings ): void {
+		// Note that we tackle all in-memory checks first so we only check options when we are making relevant changes.
+		if ( ! is_array( $old_settings ) || ! is_array( $settings ) || ! isset( $settings['adaptive_pricing'] ) ) {
+			return;
+		}
+
+		$old_adaptive_pricing = $old_settings['adaptive_pricing'] ?? null;
+		$new_adaptive_pricing = $settings['adaptive_pricing'] ?? null;
+
+		if ( $old_adaptive_pricing === $new_adaptive_pricing ) {
+			return;
+		}
+
+		if ( ! WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::is_migration_needed() ) {
+			return;
+		}
+
+		if ( WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::delete_amount_mismatch_option() ) {
+			WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::mark_migration_complete();
+		}
+	}
+
 	/**
 	 * Runs after Stripe gateway settings option is updated. Reconfigures webhooks only when Adaptive Pricing becomes enabled.
 	 * Adaptive Pricing and Optimized Checkout both must be enabled in the new value for webhooks to be reconfigured.
@@ -1114,6 +1153,16 @@ class WC_Stripe {
 		}
 		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_Meta_Box' ) ) {
 			( new WC_Stripe_Agentic_Commerce_Product_Meta_Box() )->init();
+		}
+		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_List_Table' ) ) {
+			( new WC_Stripe_Agentic_Commerce_Product_List_Table() )->init();
+		}
+
+		// Converges Stripe's catalog when a product crosses the sync-eligibility
+		// boundary. Not admin-gated like the meta box: the properties it watches
+		// are editable from Quick Edit, REST, and CLI too.
+		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Product_Visibility' ) ) {
+			( new WC_Stripe_Agentic_Commerce_Product_Visibility() )->init();
 		}
 
 		/**
