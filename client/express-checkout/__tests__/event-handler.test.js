@@ -144,6 +144,61 @@ describe( 'Express checkout event handlers', () => {
 			expect( event.reject ).toHaveBeenCalled();
 			expect( event.resolve ).not.toHaveBeenCalled();
 		} );
+
+		test( 'should resolve with the default shipping option when the cart has no shipping package', async () => {
+			// Free-trial cart: Woo Subscriptions defers shipping to the
+			// recurring payments, so the cart has no shipping package.
+			const {
+				transformCartDataForShippingRates,
+			} = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
+			transformCartDataForShippingRates.mockReturnValueOnce( [] );
+			mockCartApi.updateCustomer.mockResolvedValue( {
+				...cartResponse,
+				totals: {
+					total_price: '0',
+					total_refund: '0',
+					currency_minor_unit: 2,
+				},
+				shipping_rates: [],
+			} );
+			const pendingOption = {
+				id: 'pending',
+				displayName: 'Pending',
+				amount: 0,
+			};
+			global.wc_stripe_express_checkout_params = {
+				checkout: { default_shipping_option: pendingOption },
+			};
+
+			await shippingAddressChangeHandler( event, elements );
+
+			expect( event.resolve ).toHaveBeenCalledWith( {
+				shippingRates: [ pendingOption ],
+				lineItems: expect.any( Array ),
+			} );
+			expect( event.reject ).not.toHaveBeenCalled();
+
+			global.wc_stripe_express_checkout_params = {};
+		} );
+
+		test( 'should reject when the cart has no shipping package and no default shipping option exists', async () => {
+			const {
+				transformCartDataForShippingRates,
+			} = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
+			transformCartDataForShippingRates.mockReturnValueOnce( [] );
+			mockCartApi.updateCustomer.mockResolvedValue( {
+				...cartResponse,
+				shipping_rates: [],
+			} );
+			global.wc_stripe_express_checkout_params = { checkout: {} };
+
+			await shippingAddressChangeHandler( event, elements );
+
+			expect( event.reject ).toHaveBeenCalled();
+			expect( event.resolve ).not.toHaveBeenCalled();
+
+			global.wc_stripe_express_checkout_params = {};
+		} );
 	} );
 
 	describe( 'shippingRateChangeHandler', () => {
@@ -225,6 +280,16 @@ describe( 'Express checkout event handlers', () => {
 
 			expect( event.reject ).toHaveBeenCalled();
 			expect( event.resolve ).not.toHaveBeenCalled();
+		} );
+
+		test( 'should resolve without calling the Store API for the pending placeholder rate', async () => {
+			event.shippingRate.id = 'pending';
+
+			await shippingRateChangeHandler( event, elements );
+
+			expect( mockCartApi.selectShippingRate ).not.toHaveBeenCalled();
+			expect( event.resolve ).toHaveBeenCalled();
+			expect( event.reject ).not.toHaveBeenCalled();
 		} );
 	} );
 
