@@ -1270,6 +1270,14 @@ class WC_Stripe_Intent_Controller {
 
 		$request = $this->maybe_add_mandate_options( $request, $payment_information['selected_payment_type'] );
 
+		// Without this, an intent confirmed with a return_url (the Dynamic
+		// Payment Methods shape) gets a hosted-page redirect_to_url next
+		// action for 3DS instead of the SDK one the client renders as the
+		// on-page modal.
+		if ( isset( $payment_information['use_stripe_sdk'] ) ) {
+			$request['use_stripe_sdk'] = $payment_information['use_stripe_sdk'];
+		}
+
 		// Does not set the return URL if the request needs redirection.
 		if ( $this->request_needs_redirection( $payment_method_types ) ) {
 			$request['return_url'] = $payment_information['return_url'];
