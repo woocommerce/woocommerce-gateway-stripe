@@ -2731,8 +2731,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The Stripe customer created at session confirmation must be linked back to the order and,
-	 * when the order belongs to a WP user (including accounts created at checkout), to that user —
+	 * The session's Stripe customer must be linked to the order and to the order's WP user,
 	 * without overwriting an ID the user already has.
 	 *
 	 * @param bool    $order_has_user            Whether the order belongs to a WP user.

@@ -888,10 +888,8 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Sessions without an attached customer must ask Stripe to create one at confirmation
-	 * (customer_creation=always), so guest payments don't end up with an unattached PaymentIntent.
-	 * A failing customer API call for a logged-in buyer degrades to that same guest-style session
-	 * instead of failing checkout.
+	 * Sessions without a customer must set customer_creation=always. A failing customer API call
+	 * for a logged-in buyer degrades to that guest-style session instead of failing checkout.
 	 *
 	 * @param bool $user_is_logged_in     Whether a user is logged in when the session is created.
 	 * @param bool $customer_api_fails    Whether the Stripe customers API call fails.

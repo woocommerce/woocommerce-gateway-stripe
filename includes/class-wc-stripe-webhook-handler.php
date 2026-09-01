@@ -2319,11 +2319,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Persists the checkout session's Stripe customer on the order and, when the order belongs to
-	 * a WP user without one, on that user. The session is created before the buyer is known, so for
-	 * guests (and accounts created at checkout) this is the first point where the Customer that
-	 * Stripe created at confirmation can be linked back to store records. Existing IDs are never
-	 * overwritten.
+	 * Links the Stripe customer created at session confirmation to the order and, when the order
+	 * belongs to a WP user without one, to that user. Existing IDs are never overwritten.
 	 *
 	 * @param object   $checkout_session The checkout session from the webhook event.
 	 * @param WC_Order $order            The order the session settled.

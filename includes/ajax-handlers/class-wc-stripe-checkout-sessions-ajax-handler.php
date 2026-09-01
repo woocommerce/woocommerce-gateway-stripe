@@ -83,16 +83,13 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 						];
 					}
 				} catch ( Exception $e ) {
-					// Degrade to a guest-style session rather than failing checkout: the buyer just
-					// loses the saved-payment-method offer for this purchase.
+					// Degrade to a guest-style session instead of failing checkout.
 					WC_Stripe_Logger::error( 'Unable to create or retrieve Stripe customer for checkout session.', [ 'error_message' => $e->getMessage() ] );
 				}
 			}
 
-			// Without a customer the PaymentIntent stays unattached, so no payment history accrues
-			// and nothing can be linked to an account created at checkout. Billing details don't
-			// exist yet at page load, so let Stripe create the Customer at session confirmation;
-			// the checkout.session.completed handler persists it to the order/user.
+			// Billing details don't exist yet at page load, so let Stripe create the Customer at
+			// confirmation; the checkout.session.completed handler links it to the order/user.
 			if ( ! isset( $request['customer'] ) ) {
 				$request['customer_creation'] = 'always';
 			}
