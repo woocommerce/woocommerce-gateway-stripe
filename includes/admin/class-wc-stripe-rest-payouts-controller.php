@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * REST controller exposing Stripe payout details to the admin UI.
  *
- * @since 10.9.0
+ * @since 11.1.0
  */
 class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 
@@ -33,7 +33,9 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 		'destination',
 	];
 
-	protected const STRIPE_SINGLE_EXPAND_PARAM = [];
+	protected const STRIPE_SINGLE_EXPAND_PARAM = [
+		'data.destination',
+	];
 
 	protected const STRIPE_LIST_RESPONSE_ALLOWED_FIELDS = [
 		'object',

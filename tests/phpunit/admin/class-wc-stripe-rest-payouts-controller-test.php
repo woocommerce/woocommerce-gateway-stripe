@@ -1,9 +1,6 @@
 <?php
 /**
  * Class WC_Stripe_REST_Payouts_Controller_Test
- *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 	private const SINGLE_PAYOUT_ENDPOINT_URL = '/wc/v3/wc_stripe/payouts/po_test_9876543210';
@@ -26,7 +23,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 	}
 
 	public static function pre_http_request_mock_handler( bool $preempt, array $request_args, $url ) {
-		if ( false === strpos( $url, 'payouts' ) ) {
+		if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/payouts' ) ) {
 			return $preempt;
 		}
 
@@ -45,7 +42,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 		];
 	}
 	/** Mock stripe API calls to avoid making real HTTP requests. */
-	protected function mock_http_call() {
+	protected function stub_http_call() {
 		add_filter(
 			'pre_http_request',
 			[ static::class, 'pre_http_request_mock_handler' ],
@@ -128,7 +125,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 
 	/** Create an admin user, set it as current user and send a API request. */
 	public function test_permission_check_allows_authorized_call() {
-		$this->mock_http_call();
+		$this->stub_http_call();
 
 		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_id );
@@ -234,16 +231,16 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 
 	public static function provide_payout_list_params(): array {
 		return [
-			[
+			'created_zero_timestamp' => [
 				[ 'created' => 0 ],
 			],
-			[
+			'created_and_starting_after' => [
 				[
 					'created'        => '1779802569',
 					'starting_after' => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
-			[
+			'created_with_lt_and_ending_before' => [
 				[
 					'created'       =>
 						[
@@ -252,7 +249,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 					'ending_before' => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
-			[
+			'limit_and_created_with_lt_and_ending_before' => [
 				[
 					'limit'            => 100,
 					'created'          =>
@@ -262,7 +259,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 					'ending_before'    => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
-			[
+			'created_with_lt_gt' => [
 				[
 					'created' =>
 						[
@@ -271,7 +268,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			[
+			'created_with_lte_gte' => [
 				[
 					'created' =>
 						[
@@ -280,7 +277,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			[
+			'created_with_lte_gte_zero' => [
 				[
 					'created' =>
 						[
@@ -289,7 +286,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			[
+			'created_with_lte_zero_gte_zero' => [
 				[
 					'created' =>
 						[
@@ -298,17 +295,16 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			//////////////////////////////////
-			[
+			 'arrival_date_zero_timestamp' => [
 					[ 'arrival_date' => 0 ],
 			],
-			[
+			'arrival_date_and_starting_after' => [
 				[
 					'arrival_date'        => '1779802569',
 					'starting_after' => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
-			[
+			'arrival_date_with_lt_and_ending_before' => [
 				[
 					'arrival_date'       =>
 						[
@@ -317,7 +313,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 					'ending_before' => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
-			[
+			'limit_and_arrival_date_with_lt_and_ending_before' => [
 				[
 					'limit'            => 100,
 					'arrival_date'          =>
@@ -327,7 +323,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 					'ending_before'    => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
-			[
+			'arrival_date_with_lt_gt' => [
 				[
 					'arrival_date' =>
 						[
@@ -336,7 +332,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			[
+			'arrival_date_with_lte_gte' => [
 				[
 					'arrival_date' =>
 						[
@@ -345,7 +341,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			[
+			'arrival_date_with_lte_gte_zero' => [
 				[
 					'arrival_date' =>
 						[
@@ -354,7 +350,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			[
+			'arrival_date_with_lte_zero_gte_zero' => [
 				[
 					'arrival_date' =>
 						[
@@ -363,22 +359,22 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			[
+			'status_pending' => [
 				[
 					'status' =>'pending',
 				],
 			],
-			[
+			'status_paid' => [
 				[
 					'status' =>'paid',
 				],
 			],
-			[
+			'status_failed' => [
 				[
 					'status' =>'failed',
 				],
 			],
-			[
+			'status_canceled' => [
 				[
 					'status' =>'canceled',
 				],
@@ -414,7 +410,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 
 		$pre_http_request_params = [];
 
-		$this->mock_http_call();
+		$this->stub_http_call();
 		$http_stub = function ( $pre, $parsed_args, $url ) use ( &$pre_http_request_params ) {
 				$url_components = parse_url( $url );
 
