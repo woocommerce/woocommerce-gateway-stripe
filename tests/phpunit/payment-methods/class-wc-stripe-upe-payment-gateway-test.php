@@ -966,9 +966,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @param string      $expected_redirect_pattern  Regex the response redirect must match.
 	 * @param bool        $expects_payment_method     Whether the response must expose `payment_method` for Blocks to save.
 	 *
-	 * @dataProvider provide_process_payment_deferred_intent_with_dpm_intent_types_uses_card_flow
+	 * @dataProvider provide_process_payment_deferred_intent_with_ocs_intent_types_uses_card_flow
 	 */
-	public function test_process_payment_deferred_intent_with_dpm_intent_types_uses_card_flow( $next_action, $expected_redirect_pattern, $expects_payment_method ) {
+	public function test_process_payment_deferred_intent_with_ocs_intent_types_uses_card_flow( $next_action, $expected_redirect_pattern, $expects_payment_method ) {
 		$customer_id = 'cus_mock';
 		$order       = WC_Helper_Order::create_order();
 		$order_id    = $order->get_id();
