@@ -25,7 +25,7 @@ import { transformPriceWithMinorUnits } from 'wcstripe/express-checkout/transfor
  * @param {Object} cart          The WooCommerce cart object containing totals and currency info.
  * @return {Promise<boolean>} Promise that resolves to true if the payment method is available, false otherwise.
  */
-const probePaymentMethodAvailability = memoize(
+const checkPaymentMethodAvailability = memoize(
 	( paymentMethod, api, cart ) => {
 		return new Promise( ( resolve ) => {
 			const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
