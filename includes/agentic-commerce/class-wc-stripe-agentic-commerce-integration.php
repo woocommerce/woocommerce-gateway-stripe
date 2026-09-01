@@ -665,9 +665,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return false;
 		}
 
-		// Gate the recurring push on the merchant toggle so a scheduled sync can't
-		// re-upload a checkout-enabled catalog after disable and undo the teardown.
-		// push_final_checkout_disabled_feed() bypasses this via run_feed_sync().
+		// Skip the sync if Agentic Commerce is disabled.
 		if ( ! self::is_merchant_enabled() ) {
 			WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - merchant toggle disabled' );
 			return false;
