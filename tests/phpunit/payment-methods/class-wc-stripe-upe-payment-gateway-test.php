@@ -976,11 +976,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$_POST = [
 			'payment_method'               => 'stripe',
 			'wc-stripe-payment-method'     => 'pm_mock',
-      'wc-stripe-confirmation-token' => '',
+			'wc-stripe-confirmation-token' => '',
 		];
-    
-    $this->mock_gateway->intent_controller
-      ->method( 'create_and_confirm_payment_intent' )
+
+		$this->mock_gateway->intent_controller
+		->method( 'create_and_confirm_payment_intent' )
 			->willReturn( $mock_intent );
 
 		$this->mock_gateway
@@ -996,7 +996,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		}
 
 		$this->assertSame( $order_id, $session_data['order_awaiting_payment'] );
-  }
+	}
 
 	/**
 	 * An empty client payment method must fail before intent creation.
