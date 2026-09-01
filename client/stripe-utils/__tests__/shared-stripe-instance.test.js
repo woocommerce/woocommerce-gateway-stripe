@@ -10,6 +10,7 @@ describe( 'shared Stripe instance', () => {
 	const addStripeScriptTag = (
 		src = 'https://js.stripe.com/dahlia/stripe.js'
 	) => {
+		document.getElementById( 'stripe-js' )?.remove();
 		const script = document.createElement( 'script' );
 		script.id = 'stripe-js';
 		script.setAttribute( 'src', src );
@@ -100,6 +101,27 @@ describe( 'shared Stripe instance', () => {
 				getSharedStripeInstance( 'pk_test_123', { locale: 'en' } )
 			).toThrow( /provenance check failed/ );
 			expect( global.Stripe ).not.toHaveBeenCalled();
+		} );
+
+		it( 'keeps using known good stripe.js after a bad script is injected', () => {
+			addStripeScriptTag();
+
+			const first = getSharedStripeInstance( 'pk_test_123', {
+				locale: 'en',
+			} );
+
+			expect( first ).toBeDefined();
+
+			addStripeScriptTag(
+				'https://js.stripe.com.evil.example/stripe.js'
+			);
+
+			const second = getSharedStripeInstance( 'pk_test_123', {
+				locale: 'en',
+			} );
+
+			expect( second ).toBe( first );
+			expect( global.Stripe ).toHaveBeenCalledTimes( 1 );
 		} );
 
 		it.each( [
