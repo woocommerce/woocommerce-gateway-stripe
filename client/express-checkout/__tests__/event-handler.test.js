@@ -37,7 +37,11 @@ jest.mock( 'wcstripe/express-checkout/transformers/stripe-to-wc', () => ( {
 } ) );
 
 jest.mock( 'wcstripe/express-checkout/transformers/wc-to-stripe', () => ( {
-	transformPrice: jest.fn( ( price ) => price ),
+	transformCartTotalAmount: jest.fn(
+		( totals ) =>
+			parseInt( totals.total_price, 10 ) -
+			parseInt( totals.total_refund || 0, 10 )
+	),
 	transformCartDataForDisplayItems: jest.fn( () => [
 		{ name: 'Item', amount: 500 },
 	] ),

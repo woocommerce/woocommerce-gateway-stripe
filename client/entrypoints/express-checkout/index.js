@@ -43,8 +43,8 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 import {
 	transformCartDataForDisplayItems,
+	transformCartTotalAmount,
 	transformLabeledDisplayItems,
-	transformPrice,
 } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
 jQuery( function ( $ ) {
@@ -662,11 +662,7 @@ jQuery( function ( $ ) {
 				}
 
 				api.expressCheckoutGetCartDetails().then( ( cart ) => {
-					const total = transformPrice(
-						parseInt( cart.totals.total_price, 10 ) -
-							parseInt( cart.totals.total_refund || 0, 10 ),
-						cart.totals
-					);
+					const total = transformCartTotalAmount( cart.totals );
 
 					if (
 						total === 0 &&
@@ -822,11 +818,7 @@ jQuery( function ( $ ) {
 				return;
 			}
 
-			const amount = transformPrice(
-				parseInt( cart.totals.total_price, 10 ) -
-					parseInt( cart.totals.total_refund || 0, 10 ),
-				cart.totals
-			);
+			const amount = transformCartTotalAmount( cart.totals );
 
 			// The selection decides whether an address is needed (a virtual
 			// variation must not prompt), so the cart's verdict replaces the

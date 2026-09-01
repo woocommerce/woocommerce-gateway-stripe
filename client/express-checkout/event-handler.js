@@ -7,7 +7,7 @@ import {
 import ExpressCheckoutCartApi from './cart-api';
 import { transformStripeShippingAddressForStoreApi } from './transformers/stripe-to-wc';
 import {
-	transformPrice,
+	transformCartTotalAmount,
 	transformCartDataForDisplayItems,
 	transformCartDataForShippingRates,
 } from './transformers/wc-to-stripe';
@@ -49,11 +49,7 @@ export const shippingAddressChangeHandler = async ( event, elements ) => {
 		}
 
 		elements.update( {
-			amount: transformPrice(
-				parseInt( cartData.totals.total_price, 10 ) -
-					parseInt( cartData.totals.total_refund || 0, 10 ),
-				cartData.totals
-			),
+			amount: transformCartTotalAmount( cartData.totals ),
 		} );
 
 		event.resolve( {
@@ -81,11 +77,7 @@ export const shippingRateChangeHandler = async ( event, elements ) => {
 		} );
 
 		elements.update( {
-			amount: transformPrice(
-				parseInt( cartData.totals.total_price, 10 ) -
-					parseInt( cartData.totals.total_refund || 0, 10 ),
-				cartData.totals
-			),
+			amount: transformCartTotalAmount( cartData.totals ),
 		} );
 
 		event.resolve( {

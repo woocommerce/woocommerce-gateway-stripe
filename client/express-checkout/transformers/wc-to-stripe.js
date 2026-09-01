@@ -43,6 +43,20 @@ export const transformPriceWithMinorUnits = ( price, wooMinorUnits ) => {
 };
 
 /**
+ * The wallet-facing amount for a cart: the grand total net of refunds, in
+ * Stripe's minor units.
+ *
+ * @param {Object} cartTotals The `totals` object of a Store API Cart response.
+ * @return {number} The amount to charge through the Express Checkout Element.
+ */
+export const transformCartTotalAmount = ( cartTotals ) =>
+	transformPrice(
+		parseInt( cartTotals.total_price, 10 ) -
+			parseInt( cartTotals.total_refund || 0, 10 ),
+		cartTotals
+	);
+
+/**
  * Transforms the data from the Store API Cart response to `displayItems` for the Stripe ECE.
  * See for the data structure:
  * - https://docs.stripe.com/js/elements_object/express_checkout_element_shippingaddresschange_event

@@ -39,7 +39,7 @@ jest.mock( '../../../api', () =>
 jest.mock( 'wcstripe/express-checkout/transformers/wc-to-stripe', () => ( {
 	transformCartDataForDisplayItems: jest.fn( () => [] ),
 	transformLabeledDisplayItems: jest.fn( () => [] ),
-	transformPrice: jest.fn( () => 1500 ),
+	transformCartTotalAmount: jest.fn( () => 1500 ),
 } ) );
 
 // Side-effect-only compatibility shims attach jQuery handlers we don't drive here.
@@ -248,7 +248,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		mockEmptyCartLegacy.mockResolvedValue( {} );
 		// eslint-disable-next-line global-require
 		const transformers = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
-		transformers.transformPrice.mockReturnValueOnce( 2000 );
+		transformers.transformCartTotalAmount.mockReturnValueOnce( 2000 );
 		transformers.transformCartDataForDisplayItems.mockReturnValueOnce( [
 			{ name: 'Blue variation', amount: 2000 },
 		] );
@@ -289,7 +289,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		mockEmptyCartLegacy.mockResolvedValue( {} );
 		// eslint-disable-next-line global-require
 		const transformers = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
-		transformers.transformPrice.mockReturnValueOnce( 4000 );
+		transformers.transformCartTotalAmount.mockReturnValueOnce( 4000 );
 		transformers.transformCartDataForDisplayItems.mockReturnValueOnce( [
 			{ name: 'Simple thing (x2)', amount: 4000 },
 		] );
@@ -331,7 +331,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		mockEmptyCartLegacy.mockResolvedValue( {} );
 		// eslint-disable-next-line global-require
 		const transformers = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
-		transformers.transformPrice.mockReturnValueOnce( 2000 );
+		transformers.transformCartTotalAmount.mockReturnValueOnce( 2000 );
 		transformers.transformCartDataForDisplayItems.mockReturnValueOnce( [] );
 
 		const { handlers } = stubStripeButton();
@@ -360,7 +360,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		mockEmptyCartLegacy.mockResolvedValue( {} );
 		// eslint-disable-next-line global-require
 		const transformers = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
-		transformers.transformPrice.mockReturnValueOnce( 2000 );
+		transformers.transformCartTotalAmount.mockReturnValueOnce( 2000 );
 		transformers.transformCartDataForDisplayItems.mockReturnValueOnce( [] );
 
 		const { handlers } = stubStripeButton();
@@ -422,7 +422,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		mockEmptyCartLegacy.mockResolvedValue( {} );
 		// eslint-disable-next-line global-require
 		const transformers = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
-		transformers.transformPrice.mockReturnValueOnce( 4000 );
+		transformers.transformCartTotalAmount.mockReturnValueOnce( 4000 );
 		transformers.transformCartDataForDisplayItems.mockReturnValueOnce( [
 			{ name: 'Red variation (x2)', amount: 4000 },
 		] );
@@ -523,7 +523,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		mockEmptyCartLegacy.mockResolvedValue( {} );
 		// eslint-disable-next-line global-require
 		const transformers = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
-		transformers.transformPrice.mockReturnValueOnce( 2000 );
+		transformers.transformCartTotalAmount.mockReturnValueOnce( 2000 );
 		transformers.transformCartDataForDisplayItems.mockReturnValueOnce( [
 			{ name: 'Blue variation', amount: 2000 },
 		] );
