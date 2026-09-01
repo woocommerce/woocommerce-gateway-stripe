@@ -1,5 +1,10 @@
-import { render } from '@testing-library/react';
-import { useElements, useStripe } from '@stripe/react-stripe-js';
+import { getPaymentMethods } from '@woocommerce/blocks-registry';
+import { act, render } from '@testing-library/react';
+import {
+	PaymentElement,
+	useElements,
+	useStripe,
+} from '@stripe/react-stripe-js';
 import PaymentProcessor from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-processor';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { getExcludedPaymentMethodTypesForBillingCountry } from 'wcstripe/stripe-utils';
@@ -192,5 +197,71 @@ describe( 'PaymentProcessor billing-country exclusions', () => {
 		expect(
 			getExcludedPaymentMethodTypesForBillingCountry
 		).not.toHaveBeenCalled();
+	} );
+} );
+
+describe( 'PaymentProcessor payment setup data', () => {
+	afterEach( () => {
+		jest.clearAllMocks();
+	} );
+
+	it( 'submits the concrete payment method type alongside the payment method id', async () => {
+		useStripe.mockReturnValue( {} );
+		useElements.mockReturnValue( {
+			submit: jest.fn().mockResolvedValue( {} ),
+		} );
+		getPaymentMethods.mockReturnValue( {
+			stripe: { supports: { showSaveOption: false } },
+		} );
+		const onPaymentSetup = jest.fn();
+		const api = {
+			getStripe: () => ( {
+				createPaymentMethod: jest.fn().mockResolvedValue( {
+					paymentMethod: { id: 'pm_mock', type: 'wechat_pay' },
+				} ),
+			} ),
+		};
+
+		render(
+			<PaymentProcessor
+				api={ api }
+				activePaymentMethod="stripe"
+				eventRegistration={ {
+					onPaymentSetup,
+					onCheckoutSuccess: jest.fn(),
+					onCheckoutFail: jest.fn(),
+				} }
+				emitResponse={ {} }
+				paymentMethodId="card"
+				upeMethods={ { card: 'stripe' } }
+				errorMessage=""
+				shouldSavePayment={ false }
+				fingerprint=""
+				billing={ {
+					billingAddress: {
+						first_name: 'Test',
+						last_name: 'Shopper',
+						email: 'shopper@example.com',
+						country: 'US',
+					},
+				} }
+			/>
+		);
+
+		const { onChange } = PaymentElement.mock.calls.at( -1 )[ 0 ];
+		act( () => {
+			onChange( { complete: true, value: { type: 'wechat_pay' } } );
+		} );
+
+		const setupHandler = onPaymentSetup.mock.calls.at( -1 )[ 0 ];
+		const result = await setupHandler();
+
+		expect( result.type ).toBe( 'success' );
+		expect(
+			result.meta.paymentMethodData[ 'wc-stripe-payment-method' ]
+		).toBe( 'pm_mock' );
+		expect(
+			result.meta.paymentMethodData.wc_stripe_selected_upe_payment_type
+		).toBe( 'wechat_pay' );
 	} );
 } );

@@ -459,6 +459,16 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 			// Express paths won't have a payment method created yet; fall back to the express type.
 			if ( '' === $selected_payment_type && null !== $express_payment_type ) {
 				$selected_payment_type = $express_payment_type;
+			} elseif ( ! empty( $payment_method_id ) ) {
+				// A degraded details fetch (API outage, invalid-key error threshold) leaves the
+				// type unknown while the payment method itself may be fine. The form-derived
+				// type is the OC pseudo-method's 'card', which would silently send a
+				// wallet/voucher selection down the card flow, so prefer the type the client
+				// mirrored from the payment element — the only remaining selection signal.
+				$client_selected_type = $this->get_selected_upe_payment_type_from_request();
+				if ( '' !== $client_selected_type ) {
+					$selected_payment_type = $client_selected_type;
+				}
 			}
 		} else {
 			$selected_payment_type = $payment_method_details->type;
