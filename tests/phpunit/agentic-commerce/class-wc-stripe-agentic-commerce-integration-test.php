@@ -252,6 +252,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		}
 
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 		// Secret key lives in settings (test mode); check_setup() gates on it.
 		$settings                    = WC_Stripe_Helper::get_stripe_settings();
 		$settings['testmode']        = 'yes';
@@ -326,9 +327,113 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			remove_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10 );
 			remove_filter( 'pre_http_request', $http_stub, 10 );
 			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+			delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
 			delete_option( 'woocommerce_stripe_settings' );
 			$kept->delete( true );
 			$excluded->delete( true );
+			if ( $cat_id ) {
+				wp_delete_term( $cat_id, 'product_cat' );
+			}
+		}
+	}
+
+	/**
+	 * A settings save that flips testmode while the sync is generating the
+	 * feed must not leak into the run: the upload authenticates with the key
+	 * captured at sync start and the history entry records the matching mode.
+	 *
+	 * @return void
+	 */
+	public function test_sync_feed_binds_mode_and_key_to_sync_start() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) || ! class_exists( 'WC_Product_Simple' ) ) {
+			$this->markTestSkipped( 'WooCommerce product/Action Scheduler not available.' );
+		}
+
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'testmode'        => 'yes',
+				'test_secret_key' => 'sk_test_snapshot',
+				'secret_key'      => 'sk_live_snapshot',
+			]
+		);
+
+		$term   = wp_insert_term( 'Stripe Snapshot Cat ' . uniqid(), 'product_cat' );
+		$cat_id = is_wp_error( $term ) ? 0 : (int) $term['term_id'];
+
+		$product = new WC_Product_Simple();
+		$product->set_name( 'Snapshot Product' );
+		$product->set_regular_price( '10.00' );
+		$product->set_status( 'publish' );
+		if ( $cat_id ) {
+			$product->set_category_ids( [ $cat_id ] );
+		}
+		$product->save();
+
+		$product_id = $product->get_id();
+		$scope      = static function ( $args ) use ( $product_id ) {
+			$args['include'] = [ $product_id ];
+			return $args;
+		};
+		add_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
+
+		// The should-sync filter fires per product during the walk — after the
+		// sync captured its context — so it stands in for a concurrent
+		// settings save landing mid-run.
+		$flip = static function ( $sync ) {
+			$settings             = get_option( 'woocommerce_stripe_settings', [] );
+			$settings['testmode'] = 'no';
+			update_option( 'woocommerce_stripe_settings', $settings );
+			return $sync;
+		};
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $flip );
+
+		$files_stub = fn() => [ 'id' => 'file_stub' ];
+		add_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10, 2 );
+
+		$captured_auth = [];
+		$http_stub     = function ( $preempt, $args ) use ( &$captured_auth ) {
+			$captured_auth[] = $args['headers']['Authorization'] ?? '';
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'id'     => 'impset_stub',
+						'status' => 'pending',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+			$result      = $integration->sync_feed( true );
+
+			$this->assertTrue( $result, 'Sync should succeed with the stubbed Files API.' );
+
+			$last_sync = \WC_Stripe_Agentic_Commerce_Integration::get_last_sync();
+			$this->assertSame( 'test', $last_sync['mode'], 'The record must keep the mode captured at sync start, not the flipped mode.' );
+
+			$this->assertNotEmpty( $captured_auth );
+			foreach ( $captured_auth as $auth ) {
+				$this->assertSame( 'Bearer sk_test_snapshot', $auth, 'Delivery must authenticate with the key captured alongside the recorded mode.' );
+			}
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $flip );
+			remove_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10 );
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+			delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+			delete_option( 'woocommerce_stripe_settings' );
+			$product->delete( true );
 			if ( $cat_id ) {
 				wp_delete_term( $cat_id, 'product_cat' );
 			}
@@ -380,6 +485,9 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			has_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $integration, 'schedule_full_resync_now' ] )
 		);
 		$this->assertNotFalse(
+			has_action( \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [ $integration, 'push_final_checkout_disabled_feed' ] )
+		);
+		$this->assertNotFalse(
 			has_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $integration, 'allow_agentic_payment_complete' ] )
 		);
 
@@ -387,6 +495,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$this->assertContains( \WC_Stripe_Agentic_Commerce_Order_Mapper::CREATED_VIA, $allowed );
 
 		remove_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $integration, 'schedule_full_resync_now' ] );
+		remove_action( \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [ $integration, 'push_final_checkout_disabled_feed' ] );
 		remove_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $integration, 'allow_agentic_payment_complete' ] );
 	}
 
@@ -587,6 +696,286 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * sync_feed() must bail before delivery when the feature flag is on but the
+	 * merchant toggle is off.
+	 *
+	 * @return void
+	 */
+	public function test_sync_feed_skips_when_merchant_disabled_but_feature_enabled() {
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+
+		// The merchant gate must short-circuit before any delivery.
+		$http_guard = function () {
+			$this->fail( 'sync_feed() must not make an API call to Stripe when the merchant toggle is off.' );
+		};
+		add_filter( 'pre_http_request', $http_guard );
+
+		try {
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+
+			$this->assertTrue( $integration->is_enabled(), 'Feature flag is on for this case.' );
+			$this->assertFalse( $integration->sync_feed( true ), 'Merchant toggle off must short-circuit the sync.' );
+		} finally {
+			remove_filter( 'pre_http_request', $http_guard );
+			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+		}
+	}
+
+	/**
+	 * Cancelling only removes a job that is still pending, so a job already claimed by
+	 * Action Scheduler reaches the push even after the merchant re-enables. The push
+	 * must bail rather than publish a checkout-disabled catalog for a live store.
+	 *
+	 * @return void
+	 */
+	public function test_push_final_checkout_disabled_feed_bails_when_merchant_re_enabled() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) || ! class_exists( 'WC_Product_Simple' ) ) {
+			$this->markTestSkipped( 'WooCommerce product/Action Scheduler not available.' );
+		}
+
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+		// The merchant turned it back on after the job was queued.
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+
+		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']        = 'yes';
+		$settings['test_secret_key'] = 'sk_test_fake';
+		update_option( 'woocommerce_stripe_settings', $settings );
+
+		// Same catalog setup as the toggle-off test, so reaching delivery is possible
+		// and only the re-enable guard can prevent it.
+		$term   = wp_insert_term( 'Stripe Final Feed Cat ' . uniqid(), 'product_cat' );
+		$cat_id = is_wp_error( $term ) ? 0 : (int) $term['term_id'];
+
+		$product = new WC_Product_Simple();
+		$product->set_name( 'Re-enabled Feed Product' );
+		$product->set_regular_price( '10.00' );
+		$product->set_status( 'publish' );
+		if ( $cat_id ) {
+			$product->set_category_ids( [ $cat_id ] );
+		}
+		$product->save();
+		$product_id = $product->get_id();
+
+		$scope = static function ( $args ) use ( $product_id ) {
+			$args['include'] = [ $product_id ];
+			return $args;
+		};
+		add_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
+
+		$delivered   = false;
+		$files_guard = static function () use ( &$delivered ) {
+			$delivered = true;
+			return [ 'id' => 'file_stub' ];
+		};
+		add_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_guard, 10, 2 );
+
+		try {
+			( new \WC_Stripe_Agentic_Commerce_Integration() )->push_final_checkout_disabled_feed();
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
+			remove_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_guard, 10 );
+		}
+
+		$this->assertFalse(
+			$delivered,
+			'The teardown push must not upload a checkout-disabled catalog once the merchant has re-enabled.'
+		);
+		$this->assertFalse(
+			apply_filters( 'woocommerce_agentic_commerce_disable_checkout', false ),
+			'Bailing early must not leave the disable-checkout filter attached.'
+		);
+	}
+
+	/**
+	 * The teardown push must run while the merchant toggle is off, force checkout
+	 * off for every product, and clean up its filter afterward.
+	 *
+	 * @return void
+	 */
+	public function test_push_final_checkout_disabled_feed_bypasses_merchant_gate_and_forces_disable() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) || ! class_exists( 'WC_Product_Simple' ) ) {
+			$this->markTestSkipped( 'WooCommerce product/Action Scheduler not available.' );
+		}
+
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+		// Toggle off (push must still run) and checkout mode default, so a true on
+		// the filter can only come from the push forcing it.
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+
+		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']        = 'yes';
+		$settings['test_secret_key'] = 'sk_test_fake';
+		update_option( 'woocommerce_stripe_settings', $settings );
+
+		$term   = wp_insert_term( 'Stripe Final Feed Cat ' . uniqid(), 'product_cat' );
+		$cat_id = is_wp_error( $term ) ? 0 : (int) $term['term_id'];
+
+		$product = new WC_Product_Simple();
+		$product->set_name( 'Final Feed Product' );
+		$product->set_regular_price( '10.00' );
+		$product->set_status( 'publish' );
+		if ( $cat_id ) {
+			$product->set_category_ids( [ $cat_id ] );
+		}
+		$product->save();
+		$product_id = $product->get_id();
+
+		$scope = static function ( $args ) use ( $product_id ) {
+			$args['include'] = [ $product_id ];
+			return $args;
+		};
+		add_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
+
+		// Must outrank the push's forcing filter (99999) so the spy sees the final value.
+		$captured = null;
+		$spy      = static function ( $disabled ) use ( &$captured ) {
+			$captured = $disabled;
+			return $disabled;
+		};
+		add_filter( 'woocommerce_agentic_commerce_disable_checkout', $spy, 100000 );
+
+		$files_stub = static fn() => [ 'id' => 'file_stub' ];
+		add_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10, 2 );
+
+		$http_stub = static fn() => [
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'id'     => 'impset_stub',
+					'status' => 'pending',
+				]
+			),
+		];
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+			$integration->push_final_checkout_disabled_feed();
+
+			$last_sync = \WC_Stripe_Agentic_Commerce_Integration::get_last_sync();
+			$this->assertSame( 1, (int) $last_sync['products'], 'Push must run and upload the catalog despite the merchant toggle being off.' );
+			$this->assertTrue( $captured, 'Push must force in-agent checkout off for every product.' );
+
+			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $spy, 100000 );
+			$this->assertFalse(
+				apply_filters( 'woocommerce_agentic_commerce_disable_checkout', false, $product ),
+				'Push must remove its forcing filter so it does not leak into later feed generation.'
+			);
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $spy, 100000 );
+			remove_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
+			remove_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10 );
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+			delete_option( 'woocommerce_stripe_settings' );
+			$product->delete( true );
+			if ( $cat_id ) {
+				wp_delete_term( $cat_id, 'product_cat' );
+			}
+		}
+	}
+
+	/**
+	 * The teardown push must no-op when the feature flag is off — nothing was synced.
+	 *
+	 * @return void
+	 */
+	public function test_push_final_checkout_disabled_feed_noops_when_feature_flag_off() {
+		delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+
+		$http_guard = function () {
+			$this->fail( 'Push must not reach Stripe delivery while the feature flag is off.' );
+		};
+		add_filter( 'pre_http_request', $http_guard );
+
+		try {
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+			$integration->push_final_checkout_disabled_feed();
+
+			$this->assertFalse( $integration->is_enabled() );
+		} finally {
+			remove_filter( 'pre_http_request', $http_guard );
+		}
+	}
+
+	/**
+	 * Scheduling the final-feed push enqueues one async job and is idempotent while pending.
+	 *
+	 * @return void
+	 */
+	public function test_schedule_final_checkout_disabled_feed_enqueues_once() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' );
+
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+
+		$integration->schedule_final_checkout_disabled_feed();
+		$this->assertNotFalse(
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'First call must enqueue the final-feed push.'
+		);
+
+		$pending_before = as_get_scheduled_actions(
+			[
+				'hook'   => \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION,
+				'group'  => 'wc-stripe-agentic-final-feed',
+				'status' => \ActionScheduler_Store::STATUS_PENDING,
+			],
+			'ids'
+		);
+		$integration->schedule_final_checkout_disabled_feed();
+		$pending_after = as_get_scheduled_actions(
+			[
+				'hook'   => \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION,
+				'group'  => 'wc-stripe-agentic-final-feed',
+				'status' => \ActionScheduler_Store::STATUS_PENDING,
+			],
+			'ids'
+		);
+		$this->assertSame(
+			count( $pending_before ),
+			count( $pending_after ),
+			'A second call while a push is pending must not stack queue entries.'
+		);
+
+		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' );
+	}
+
+	/**
+	 * Canceling clears a pending final-feed push.
+	 *
+	 * @return void
+	 */
+	public function test_cancel_pending_final_checkout_disabled_feed_clears_the_push() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+		$integration->schedule_final_checkout_disabled_feed();
+		$this->assertNotFalse(
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' )
+		);
+
+		$integration->cancel_pending_final_checkout_disabled_feed();
+		$this->assertFalse(
+			as_has_scheduled_action( \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'Cancel must clear the pending final-feed push.'
+		);
+	}
+
+	/**
 	 * Test is_merchant_enabled returns false when option is not set.
 	 *
 	 * @return void
@@ -673,6 +1062,8 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @param bool              $expected       Expected return from `is_feed_unchanged`.
 	 */
 	public function test_is_feed_unchanged_scenarios( $cached_record, string $candidate_hash, bool $filter_enabled, bool $expected ) {
+		update_option( 'woocommerce_stripe_settings', [ 'testmode' => 'yes' ] );
+
 		if ( null !== $cached_record ) {
 			update_option( $this->last_upload_option, $cached_record, false );
 		}
@@ -692,17 +1083,27 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			'hash'        => 'abc123',
 			'uploaded_at' => time(),
 			'file_id'     => 'file_test',
+			'mode'        => 'test',
 		];
+
+		$other_mode_record         = $fresh_record;
+		$other_mode_record['mode'] = 'live';
+
+		$legacy_record = $fresh_record;
+		unset( $legacy_record['mode'] );
 
 		return [
 			'no cached record falls through'              => [ null, 'abc123', true, false ],
 			'fresh hash match short-circuits'             => [ $fresh_record, 'abc123', true, true ],
+			'other-mode record forces fresh upload'       => [ $other_mode_record, 'abc123', true, false ],
+			'legacy record without mode forces upload'    => [ $legacy_record, 'abc123', true, false ],
 			'hash mismatch falls through'                 => [ $fresh_record, 'different_hash', true, false ],
 			'expired record forces fresh upload'          => [
 				[
 					'hash'        => 'abc123',
 					'uploaded_at' => time() - ( 2 * WEEK_IN_SECONDS ),
 					'file_id'     => 'file_test',
+					'mode'        => 'test',
 				],
 				'abc123',
 				true,
@@ -714,6 +1115,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 				[
 					'hash'    => 'abc123',
 					'file_id' => 'file_test',
+					'mode'    => 'test',
 				],
 				'abc123',
 				true,
@@ -724,6 +1126,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 					'hash'        => 'abc123',
 					'uploaded_at' => 'not-a-timestamp',
 					'file_id'     => 'file_test',
+					'mode'        => 'test',
 				],
 				'abc123',
 				true,
@@ -734,6 +1137,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 					'hash'        => 'abc123',
 					'uploaded_at' => 0,
 					'file_id'     => 'file_test',
+					'mode'        => 'test',
 				],
 				'abc123',
 				true,
@@ -769,6 +1173,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$this->assertSame( 'abc123', $record['hash'] );
 		$this->assertSame( 'file_123', $record['file_id'] );
 		$this->assertSame( 'imp_456', $record['import_set_id'] );
+		$this->assertSame( \WC_Stripe_Agentic_Commerce_Integration::get_current_mode(), $record['mode'] );
 		$this->assertIsInt( $record['uploaded_at'] );
 		$this->assertLessThanOrEqual( time(), $record['uploaded_at'] );
 
@@ -807,8 +1212,206 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'impset_xyz', $history[0]['import_set_id'] );
 		$this->assertSame( 3, $history[0]['skipped_products'] );
 		$this->assertArrayHasKey( 'timestamp', $history[0] );
+		$this->assertSame( \WC_Stripe_Agentic_Commerce_Integration::get_current_mode(), $history[0]['mode'] );
 
 		$this->assertEquals( $history[0], $last_sync );
+	}
+
+	/**
+	 * An explicitly passed mode wins over the mode at write time, so records
+	 * from a sync that outlived a testmode flip stay attributed to the
+	 * environment the sync actually delivered to.
+	 *
+	 * @return void
+	 */
+	public function test_store_sync_result_uses_captured_mode_over_current(): void {
+		$integration  = new \WC_Stripe_Agentic_Commerce_Integration();
+		$current_mode = \WC_Stripe_Agentic_Commerce_Integration::get_current_mode();
+		$other_mode   = 'test' === $current_mode ? 'live' : 'test';
+
+		$integration->store_sync_result(
+			[
+				'products' => 1,
+				'status'   => 'succeeded',
+			],
+			$other_mode
+		);
+
+		$history = get_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
+
+		$this->assertSame( $other_mode, $history[0]['mode'] );
+	}
+
+	/**
+	 * get_delivery_context derives the mode label and the secret key from one
+	 * settings read, so even when every read observes a different testmode
+	 * (simulating a concurrent settings save), the pair is never split.
+	 *
+	 * @return void
+	 */
+	public function test_get_delivery_context_pairs_mode_and_key_from_one_read(): void {
+		// The option_{name} filter only runs when the option exists, so seed it.
+		update_option( 'woocommerce_stripe_settings', [ 'testmode' => 'yes' ] );
+
+		$read_count = 0;
+		$alternate  = function ( $value ) use ( &$read_count ) {
+			++$read_count;
+			$test_mode = 1 === $read_count % 2;
+
+			return [
+				'testmode'        => $test_mode ? 'yes' : 'no',
+				'test_secret_key' => 'sk_test_snapshot',
+				'secret_key'      => 'sk_live_snapshot',
+			];
+		};
+		add_filter( 'option_woocommerce_stripe_settings', $alternate );
+
+		try {
+			for ( $i = 0; $i < 4; $i++ ) {
+				$context = \WC_Stripe_Agentic_Commerce_Integration::get_delivery_context();
+
+				$expected_key = 'test' === $context['mode'] ? 'sk_test_snapshot' : 'sk_live_snapshot';
+				$this->assertSame( $expected_key, $context['secret_key'], 'The key must always belong to the mode captured in the same snapshot.' );
+			}
+		} finally {
+			remove_filter( 'option_woocommerce_stripe_settings', $alternate );
+			delete_option( 'woocommerce_stripe_settings' );
+		}
+	}
+
+	/**
+	 * Mode updates stamp only entries with no recorded mode; a recorded mode
+	 * is never overwritten by an after-the-fact reclassification.
+	 *
+	 * @return void
+	 */
+	public function test_update_pending_statuses_stamps_mode_on_modeless_entries_only(): void {
+		update_option(
+			\WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION,
+			[
+				[
+					'status'        => 'pending',
+					'import_set_id' => 'impset_modeless',
+				],
+				[
+					'status'        => 'pending',
+					'import_set_id' => 'impset_recorded',
+					'mode'          => 'test',
+				],
+			],
+			false
+		);
+
+		\WC_Stripe_Agentic_Commerce_Integration::update_pending_statuses(
+			[],
+			[
+				'impset_modeless' => 'live',
+				'impset_recorded' => 'live',
+			]
+		);
+
+		$history = get_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+
+		$this->assertSame( 'live', $history[0]['mode'] );
+		$this->assertSame( 'test', $history[1]['mode'] );
+	}
+
+	/**
+	 * A test↔live switch invalidates the dedup record and queues an immediate
+	 * resync, so the newly active mode's environment receives the feed even
+	 * when its content hash is unchanged.
+	 *
+	 * @return void
+	 */
+	public function test_mode_switch_clears_dedup_and_schedules_resync() {
+		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		as_unschedule_all_actions( $this->immediate_sync_action, [], 'wc-stripe' );
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+		update_option( $this->last_upload_option, [ 'hash' => 'abc' ], false );
+
+		try {
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+			$integration->maybe_resync_after_mode_switch(
+				[ 'testmode' => 'yes' ],
+				[ 'testmode' => 'no' ]
+			);
+
+			$this->assertFalse( get_option( $this->last_upload_option ) );
+			$this->assertNotFalse(
+				as_has_scheduled_action( $this->immediate_sync_action )
+			);
+		} finally {
+			as_unschedule_all_actions( $this->immediate_sync_action, [], 'wc-stripe' );
+			delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+		}
+	}
+
+	/**
+	 * No dedup invalidation or resync when the mode did not change, or when
+	 * the merchant has not enabled the integration.
+	 *
+	 * @dataProvider provide_mode_switch_noop_scenarios
+	 *
+	 * @param array  $old_value Previous settings option value.
+	 * @param array  $new_value New settings option value.
+	 * @param string $enabled   ENABLED_OPTION value to seed.
+	 * @return void
+	 */
+	public function test_mode_switch_noops( array $old_value, array $new_value, string $enabled ) {
+		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		as_unschedule_all_actions( $this->immediate_sync_action, [], 'wc-stripe' );
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, $enabled );
+		update_option( $this->last_upload_option, [ 'hash' => 'abc' ], false );
+
+		try {
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+			$integration->maybe_resync_after_mode_switch( $old_value, $new_value );
+
+			$this->assertSame( [ 'hash' => 'abc' ], get_option( $this->last_upload_option ) );
+			$this->assertFalse(
+				as_has_scheduled_action( $this->immediate_sync_action )
+			);
+		} finally {
+			as_unschedule_all_actions( $this->immediate_sync_action, [], 'wc-stripe' );
+			delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+		}
+	}
+
+	/**
+	 * Provider for `test_mode_switch_noops`.
+	 *
+	 * @return array
+	 */
+	public function provide_mode_switch_noop_scenarios(): array {
+		return [
+			'mode unchanged'               => [
+				[ 'testmode' => 'yes' ],
+				[ 'testmode' => 'yes' ],
+				'yes',
+			],
+			'mode changed but not enabled' => [
+				[ 'testmode' => 'yes' ],
+				[ 'testmode' => 'no' ],
+				'no',
+			],
+			'non-mode setting change only' => [
+				[
+					'testmode' => 'no',
+					'capture'  => 'yes',
+				],
+				[
+					'testmode' => 'no',
+					'capture'  => 'no',
+				],
+				'yes',
+			],
+		];
 	}
 
 	/**

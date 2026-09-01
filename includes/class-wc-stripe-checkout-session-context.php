@@ -23,11 +23,12 @@ class WC_Stripe_Checkout_Session_Context {
 	private const MUTATION_LOCK_OPTION_PREFIX = 'wc_stripe_checkout_session_lock_';
 
 	/**
-	 * Stable marker for support/admin code to distinguish an automatic safety disable from a manual setting change.
+	 * WC session key flagging that this customer hit a Checkout Session amount mismatch, so their
+	 * later checkouts use the standard intent flow instead of Adaptive Pricing.
 	 *
 	 * @var string
 	 */
-	private const ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION = 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected';
+	private const AMOUNT_MISMATCH_SESSION_KEY = 'wc_stripe_checkout_session_amount_mismatch';
 
 	/**
 	 * WooCommerce rewrites the session customer ID when checkout creates an account.
@@ -86,12 +87,16 @@ class WC_Stripe_Checkout_Session_Context {
 	}
 
 	/**
-	 * Check if an amount mismatch was detected.
+	 * Check if the current customer session previously hit a Checkout Session amount mismatch.
 	 *
 	 * @return bool
 	 */
 	public static function was_amount_mismatch_detected(): bool {
-		return 'yes' === get_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION, 'no' );
+		if ( ! WC()->session || ! is_callable( [ WC()->session, 'get' ] ) ) {
+			return false;
+		}
+
+		return 'yes' === WC()->session->get( self::AMOUNT_MISMATCH_SESSION_KEY );
 	}
 
 	/**
@@ -272,7 +277,7 @@ class WC_Stripe_Checkout_Session_Context {
 			(int) ( $context['amount'] ?? 0 ) !== $order_amount
 			|| strtolower( (string) ( $context['currency'] ?? '' ) ) !== $order_currency
 		) {
-			self::disable_adaptive_pricing_after_amount_mismatch( $session_id, $order, $context, $order_amount, $order_currency );
+			self::invalidate_session_after_amount_mismatch( $session_id, $order, $context, $order_amount, $order_currency );
 
 			throw new Exception( __( 'The payment amount no longer matches the order total. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) );
 		}
@@ -366,7 +371,7 @@ class WC_Stripe_Checkout_Session_Context {
 
 	/**
 	 * A stored Checkout Session total that disagrees with the order means the store may have an
-	 * incompatible totals integration, so future shoppers should use the standard intent flow.
+	 * incompatible totals integration; invalidate the session to use the standard intent flow.
 	 *
 	 * @param string   $session_id Stripe Checkout Session ID.
 	 * @param WC_Order $order WooCommerce order.
@@ -375,22 +380,19 @@ class WC_Stripe_Checkout_Session_Context {
 	 * @param string   $order_currency Order currency.
 	 * @return void
 	 */
-	private static function disable_adaptive_pricing_after_amount_mismatch( string $session_id, WC_Order $order, array $context, $order_amount, string $order_currency ): void {
-		update_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION, 'yes', false );
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		if ( 'no' !== ( $stripe_settings['adaptive_pricing'] ?? 'no' ) ) {
-			$stripe_settings['adaptive_pricing'] = 'no';
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+	private static function invalidate_session_after_amount_mismatch( string $session_id, WC_Order $order, array $context, $order_amount, string $order_currency ): void {
+		if ( WC()->session && is_callable( [ WC()->session, 'set' ] ) ) {
+			WC()->session->set( self::AMOUNT_MISMATCH_SESSION_KEY, 'yes' );
 		}
 
 		self::delete_context( $session_id );
 
-		WC_Stripe_Logger::warning(
-			'Adaptive Pricing disabled after Checkout Session amount mismatch.',
+		WC_Stripe_Logger::error(
+			'Checkout Session amount mismatch; Session invalidated.',
 			[
 				'checkout_session_id' => $session_id,
 				'order_id'            => $order->get_id(),
+				'customer_id'         => $order->get_customer_id(),
 				'session_amount'      => $context['amount'],
 				'order_amount'        => $order_amount,
 				'session_currency'    => $context['currency'],

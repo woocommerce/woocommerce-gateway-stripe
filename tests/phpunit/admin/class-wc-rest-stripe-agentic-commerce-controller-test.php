@@ -93,6 +93,35 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
+	/**
+	 * Create a published product the feed validator accepts.
+	 *
+	 * The validator requires a category, and a product saved without one only gets
+	 * whatever `default_product_cat` points at. That option stops resolving as soon as
+	 * another test class has run in the process: WP's tear_down_after_class() empties
+	 * the term tables and commits, while the option survives in wp_options. Assigning
+	 * a category here keeps these tests independent of that ordering.
+	 *
+	 * @return WC_Product_Simple
+	 */
+	private function create_feed_product(): WC_Product_Simple {
+		$category    = wp_insert_term( 'Feed Category', 'product_cat' );
+		$category_id = is_wp_error( $category ) ? (int) $category->get_error_data() : (int) $category['term_id'];
+
+		$product = new WC_Product_Simple();
+		$product->set_name( 'Test Product' );
+		$product->set_regular_price( '10.00' );
+		$product->set_status( 'publish' );
+
+		if ( $category_id > 0 ) {
+			$product->set_category_ids( [ $category_id ] );
+		}
+
+		$product->save();
+
+		return $product;
+	}
+
 	// -------------------------------------------------------------------------
 	// Authentication
 	// -------------------------------------------------------------------------
@@ -144,19 +173,21 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * GET returns formatted last_sync when option is set.
+	 * GET returns formatted last_sync derived from the newest history entry.
 	 */
 	public function test_get_status_returns_last_sync(): void {
 		$now = time();
 		update_option(
-			WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION,
+			WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION,
 			[
-				'status'        => 'succeeded',
-				'timestamp'     => $now,
-				'products'      => 42,
-				'import_set_id' => 'impset_abc',
-				'file_id'       => 'file_xyz',
-				'error'         => '',
+				[
+					'status'        => 'succeeded',
+					'timestamp'     => $now,
+					'products'      => 42,
+					'import_set_id' => 'impset_abc',
+					'file_id'       => 'file_xyz',
+					'error'         => '',
+				],
 			]
 		);
 
@@ -173,6 +204,190 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'impset_abc', $last_sync['import_set_id'] );
 		$this->assertEquals( 'file_xyz', $last_sync['file_id'] );
 		$this->assertEquals( '', $last_sync['error'] );
+	}
+
+	/**
+	 * Entries recorded under the other mode describe a different Stripe
+	 * environment's catalog and must be hidden from status and history;
+	 * legacy entries with no recorded mode stay visible. The last-sync
+	 * snapshot is derived from the mode-filtered history, so a stale
+	 * other-mode snapshot option (test → live → test before the queued
+	 * resync ran) never blanks out this mode's real last sync.
+	 */
+	public function test_get_status_filters_out_other_mode_entries(): void {
+		$current_mode = WC_Stripe_Agentic_Commerce_Integration::get_current_mode();
+		$other_mode   = 'test' === $current_mode ? 'live' : 'test';
+
+		$current_entry = [
+			'status'        => 'succeeded',
+			'timestamp'     => 2000,
+			'products'      => 1,
+			'import_set_id' => 'impset_current',
+			'file_id'       => 'file_current',
+			'error'         => '',
+			'mode'          => $current_mode,
+		];
+		$other_entry   = array_merge(
+			$current_entry,
+			[
+				'import_set_id' => 'impset_other',
+				'timestamp'     => 3000,
+				'mode'          => $other_mode,
+			]
+		);
+		$legacy_entry  = array_diff_key(
+			array_merge(
+				$current_entry,
+				[
+					'import_set_id' => 'impset_legacy',
+					'timestamp'     => 1000,
+				]
+			),
+			[ 'mode' => '' ]
+		);
+
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [ $legacy_entry, $current_entry, $other_entry ] );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, $other_entry );
+
+		$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$data = $response->get_data();
+
+		// The other-mode snapshot must not masquerade as the current mode's
+		// state; the newest current-mode entry takes its place.
+		$this->assertNotNull( $data['last_sync'] );
+		$this->assertSame( 'impset_current', $data['last_sync']['import_set_id'] );
+
+		$returned_ids = array_column( $data['history'], 'import_set_id' );
+		$this->assertSame( [ 'impset_current', 'impset_legacy' ], $returned_ids );
+	}
+
+	/**
+	 * A legacy mode-less entry whose ImportSet 404s under the active mode's key
+	 * is attributed to the other mode: it disappears from this mode's status
+	 * view and is not polled again on subsequent reads.
+	 */
+	public function test_get_status_reclassifies_legacy_entry_on_404(): void {
+		update_option(
+			WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION,
+			[
+				[
+					'status'        => 'pending',
+					'timestamp'     => 1000,
+					'products'      => 5,
+					'import_set_id' => 'impset_legacy404',
+					'file_id'       => 'file_legacy',
+					'error'         => '',
+				],
+			]
+		);
+
+		$http_calls = 0;
+		$http_stub  = function () use ( &$http_calls ) {
+			++$http_calls;
+			return [
+				'response' => [
+					'code'    => 404,
+					'message' => 'Not Found',
+				],
+				'body'     => wp_json_encode( [ 'error' => [ 'message' => 'No such import set' ] ] ),
+				'headers'  => [],
+			];
+		};
+		add_filter( 'pre_http_request', $http_stub );
+
+		try {
+			$response = rest_do_request( new WP_REST_Request( 'GET', self::STATUS_ROUTE ) );
+			$this->assertEquals( 200, $response->get_status() );
+
+			// The 404 attributed the entry to the other mode and hid it here.
+			$this->assertSame( 1, $http_calls );
+			$this->assertNull( $response->get_data()['last_sync'] );
+			$this->assertSame( [], $response->get_data()['history'] );
+
+			$current_mode = WC_Stripe_Agentic_Commerce_Integration::get_current_mode();
+			$other_mode   = 'test' === $current_mode ? 'live' : 'test';
+			$history      = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+			$this->assertSame( $other_mode, $history[0]['mode'] );
+
+			// A second read must not poll the reclassified entry again.
+			rest_do_request( new WP_REST_Request( 'GET', self::STATUS_ROUTE ) );
+			$this->assertSame( 1, $http_calls );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub );
+		}
+	}
+
+	/**
+	 * A settings save landing while the refresh runs must not split the mode
+	 * used to filter entries from the key used to poll them: the current-mode
+	 * entry is polled with the matching key, refreshed, and never reclassified.
+	 */
+	public function test_refresh_polls_with_the_key_matching_the_filtering_mode(): void {
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'testmode'        => 'yes',
+				'test_secret_key' => 'sk_test_snapshot',
+				'secret_key'      => 'sk_live_snapshot',
+			]
+		);
+		update_option(
+			WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION,
+			[
+				[
+					'status'        => 'pending',
+					'timestamp'     => 1000,
+					'products'      => 5,
+					'import_set_id' => 'impset_snapshot',
+					'file_id'       => 'file_snapshot',
+					'error'         => '',
+					'mode'          => 'test',
+				],
+			]
+		);
+
+		$captured_auth = [];
+		$http_stub     = function ( $preempt, $args ) use ( &$captured_auth ) {
+			$captured_auth[] = $args['headers']['Authorization'] ?? '';
+
+			// Simulate a concurrent settings save flipping the mode mid-refresh.
+			$settings             = get_option( 'woocommerce_stripe_settings', [] );
+			$settings['testmode'] = 'no';
+			update_option( 'woocommerce_stripe_settings', $settings );
+
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'id'     => 'impset_snapshot',
+						'status' => 'succeeded',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$response = rest_do_request( new WP_REST_Request( 'GET', self::STATUS_ROUTE ) );
+			$this->assertEquals( 200, $response->get_status() );
+
+			$this->assertSame( [ 'Bearer sk_test_snapshot' ], $captured_auth, 'The poll must use the key from the same snapshot as the filtering mode.' );
+
+			$history = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+			$this->assertSame( 'succeeded', $history[0]['status'], 'The current-mode entry must be refreshed, not skipped.' );
+			$this->assertSame( 'test', $history[0]['mode'], 'The entry must never be reclassified to the other mode.' );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+			delete_option( 'woocommerce_stripe_settings' );
+		}
 	}
 
 	/**
@@ -262,14 +477,16 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_status_casts_numeric_fields(): void {
 		update_option(
-			WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION,
+			WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION,
 			[
-				'status'        => 'succeeded',
-				'timestamp'     => '1700000000', // string from old storage
-				'products'      => '99',
-				'import_set_id' => 'impset_cast',
-				'file_id'       => '',
-				'error'         => '',
+				[
+					'status'        => 'succeeded',
+					'timestamp'     => '1700000000', // string from old storage
+					'products'      => '99',
+					'import_set_id' => 'impset_cast',
+					'file_id'       => '',
+					'error'         => '',
+				],
 			]
 		);
 
@@ -288,8 +505,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_status_returns_null_for_missing_optional_fields(): void {
 		update_option(
-			WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION,
-			[ 'status' => 'pending' ] // minimal entry, no other keys
+			WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION,
+			[ [ 'status' => 'pending' ] ] // minimal entry, no other keys
 		);
 
 		$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
@@ -834,11 +1051,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		update_option( 'woocommerce_stripe_settings', $settings );
 
 		// Create a simple product so the walker finds at least one.
-		$product = new WC_Product_Simple();
-		$product->set_name( 'Test Product' );
-		$product->set_regular_price( '10.00' );
-		$product->set_status( 'publish' );
-		$product->save();
+		$product = $this->create_feed_product();
 
 		// Stub the Files API cURL upload (which bypasses pre_http_request).
 		$files_stub = function () {
@@ -1166,6 +1379,90 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Disabling (yes -> no) must queue the final-feed teardown push.
+	 */
+	public function test_update_settings_disable_schedules_final_feed_push(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		// setUp() leaves the merchant toggle on, so this is a yes -> no transition.
+		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' );
+		// Without this, an action left over from another test would satisfy the
+		// assertion below even if the request scheduled nothing.
+		$this->assertFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'No final-feed action should be queued before the request.'
+		);
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'is_enabled' => false ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertNotFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'Disabling must queue the final checkout-disabled feed push.'
+		);
+
+		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' );
+	}
+
+	/**
+	 * Re-enabling (no -> yes) must cancel a final-feed push queued by a prior disable.
+	 */
+	public function test_update_settings_enable_cancels_pending_final_feed_push(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' );
+		( new WC_Stripe_Agentic_Commerce_Integration() )->schedule_final_checkout_disabled_feed();
+		$this->assertNotFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' )
+		);
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'is_enabled' => true ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'Re-enabling must cancel the pending final-feed push.'
+		);
+	}
+
+	/**
+	 * A no-op save (yes -> yes) must not queue a teardown push.
+	 */
+	public function test_update_settings_noop_enable_does_not_schedule_final_feed_push(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		// setUp() already enabled the merchant toggle.
+		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' );
+		$this->assertFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'No final-feed action should be queued before the request.'
+		);
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'is_enabled' => true ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'A no-op save must not queue a teardown push.'
+		);
+	}
+
+	/**
 	 * POST /settings stores the webhook secret and returns the masked placeholder.
 	 */
 	public function test_update_settings_stores_webhook_secret(): void {
@@ -1394,11 +1691,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		update_option( 'woocommerce_stripe_settings', $settings );
 
 		// Create a simple product so the walker finds at least one.
-		$product = new WC_Product_Simple();
-		$product->set_name( 'Test Product' );
-		$product->set_regular_price( '10.00' );
-		$product->set_status( 'publish' );
-		$product->save();
+		$product = $this->create_feed_product();
 
 		// Stub the Files API cURL upload.
 		$files_stub = function () {
@@ -1476,11 +1769,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$settings['test_secret_key'] = 'sk_test_fake';
 		update_option( 'woocommerce_stripe_settings', $settings );
 
-		$product = new WC_Product_Simple();
-		$product->set_name( 'Test Product' );
-		$product->set_regular_price( '10.00' );
-		$product->set_status( 'publish' );
-		$product->save();
+		$product = $this->create_feed_product();
 
 		$files_stub = function () {
 			return [ 'id' => 'file_stub' ];
