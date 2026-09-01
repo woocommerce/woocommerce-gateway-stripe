@@ -318,6 +318,222 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Manual capture must use the payment method stored on the order while disregarding filters
+	 * that can be applied to the displayed method.
+	 *
+	 * @param string $stored_method   Payment method persisted on the order.
+	 * @param string $filtered_method Payment method the view-context filter reports.
+	 * @param bool   $expects_capture Whether the pre-auth should be captured at Stripe.
+	 *
+	 * @dataProvider provide_capture_payment_filtered_payment_methods
+	 */
+	public function test_capture_payment_uses_stored_payment_method( string $stored_method, string $filtered_method, bool $expects_capture ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( $stored_method );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'no' );
+		$order->save();
+
+		$this->order_handler
+			->expects( $this->any() )
+			->method( 'get_intent_from_order' )
+			->willReturn(
+				(object) [
+					'id'     => 'pi_123',
+					'object' => 'payment_intent',
+					'status' => WC_Stripe_Intent_Status::REQUIRES_CAPTURE,
+				]
+			);
+
+		$payment_method_filter = function () use ( $filtered_method ) {
+			return $filtered_method;
+		};
+		add_filter( 'woocommerce_order_get_payment_method', $payment_method_filter );
+
+		$capture_requested = false;
+		$http_callback     = function ( $preempt, $request_args, $url ) use ( &$capture_requested ) {
+			if ( 'https://api.stripe.com/v1/payment_intents/pi_123/capture' !== $url ) {
+				return $preempt;
+			}
+
+			$capture_requested = true;
+
+			return $this->build_stripe_response(
+				[
+					'id'      => 'pi_123',
+					'object'  => 'payment_intent',
+					'status'  => WC_Stripe_Intent_Status::SUCCEEDED,
+					'charges' => [
+						'data' => [
+							[
+								'id'       => 'ch_123',
+								'object'   => 'charge',
+								'captured' => true,
+							],
+						],
+					],
+				]
+			);
+		};
+		add_filter( 'pre_http_request', $http_callback, 10, 3 );
+
+		$this->order_handler->capture_payment( $order->get_id() );
+
+		remove_filter( 'pre_http_request', $http_callback );
+		remove_filter( 'woocommerce_order_get_payment_method', $payment_method_filter );
+
+		$this->assertSame( $expects_capture, $capture_requested );
+		$this->assertSame(
+			$expects_capture ? 'yes' : 'no',
+			wc_get_order( $order->get_id() )->get_meta( '_stripe_charge_captured' )
+		);
+	}
+
+	/**
+	 * Provider for `test_capture_payment_uses_stored_payment_method`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_capture_payment_filtered_payment_methods(): array {
+		return [
+			'stripe order masked as another gateway' => [ 'stripe', 'cheque', true ],
+			'other gateway masked as stripe'         => [ 'cheque', 'stripe', false ],
+			'unfiltered stripe order'                => [ 'stripe', 'stripe', true ],
+		];
+	}
+
+	/**
+	 * An intent Stripe has already captured (`succeeded`) must fetch the charge from the intent.
+	 *
+	 * @param array $intent Intent returned for the order, including both `charges` and `latest_charge` fields.
+	 *
+	 * @dataProvider provide_succeeded_intent_shapes
+	 */
+	public function test_capture_payment_records_charge_from_succeeded_intent( array $intent ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'no' );
+		$order->save();
+
+		$this->order_handler
+			->expects( $this->any() )
+			->method( 'get_intent_from_order' )
+			->willReturn( json_decode( wp_json_encode( $intent ) ) );
+
+		$http_callback = function ( $preempt, $request_args, $url ) {
+			// Only reached for the `latest_charge` intent shape, which carries the charge by ID.
+			if ( 'https://api.stripe.com/v1/charges/ch_123' === $url ) {
+				return $this->build_stripe_response(
+					[
+						'id'                  => 'ch_123',
+						'object'              => 'charge',
+						'captured'            => true,
+						'balance_transaction' => 'txn_123',
+					]
+				);
+			}
+
+			if ( 'https://api.stripe.com/v1/balance/history/txn_123' === $url ) {
+				return $this->build_stripe_response(
+					[
+						'id'       => 'txn_123',
+						'object'   => 'balance_transaction',
+						'amount'   => 5000,
+						'fee'      => 250,
+						'net'      => 4750,
+						'currency' => 'usd',
+					]
+				);
+			}
+
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_callback, 10, 3 );
+
+		$captured_result = null;
+		$capture_action  = function ( $hooked_order, $result ) use ( &$captured_result ) {
+			$captured_result = $result;
+		};
+		add_action( 'woocommerce_stripe_process_manual_capture', $capture_action, 10, 2 );
+
+		$result = $this->order_handler->capture_payment( $order->get_id() );
+
+		remove_action( 'woocommerce_stripe_process_manual_capture', $capture_action, 10 );
+		remove_filter( 'pre_http_request', $http_callback );
+
+		$this->assertSame( 'ch_123', $result->id ?? null, 'The charge from the intent should be returned.' );
+		$this->assertSame( 'ch_123', $captured_result->id ?? null, 'The manual capture hook should receive the charge.' );
+
+		$order = wc_get_order( $order->get_id() );
+
+		$this->assertSame( 'ch_123', $order->get_transaction_id(), 'The transaction ID must survive the capture.' );
+		$this->assertSame( 'yes', $order->get_meta( '_stripe_charge_captured' ) );
+		$this->assertStringContainsString(
+			'Stripe charge complete (Charge ID: ch_123)',
+			implode( "\n", wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' ) )
+		);
+
+		// Fees are only reachable through the returned charge's balance transaction.
+		$this->assertSame( 2.5, (float) $order->get_meta( '_stripe_fee' ) );
+		$this->assertSame( 47.5, (float) $order->get_meta( '_stripe_net' ) );
+	}
+
+	/**
+	 * Provider for `test_capture_payment_records_charge_from_succeeded_intent`.
+	 *
+	 * Stripe replaced the intent's `charges` collection with `latest_charge` in API version
+	 * 2022-11-15, but we include both to ensure we support both versions.
+	 *
+	 * @return array[]
+	 */
+	public function provide_succeeded_intent_shapes(): array {
+		$intent = [
+			'id'     => 'pi_123',
+			'object' => 'payment_intent',
+			'status' => WC_Stripe_Intent_Status::SUCCEEDED,
+		];
+
+		return [
+			'expanded charges collection' => [
+				array_merge(
+					$intent,
+					[
+						'charges' => [
+							'data' => [
+								[
+									'id'                  => 'ch_123',
+									'object'              => 'charge',
+									'captured'            => true,
+									'balance_transaction' => 'txn_123',
+								],
+							],
+						],
+					]
+				),
+			],
+			'latest_charge reference'     => [ array_merge( $intent, [ 'latest_charge' => 'ch_123' ] ) ],
+		];
+	}
+
+	/**
+	 * Builds a `pre_http_request` return value carrying a Stripe API payload.
+	 *
+	 * @param array $body The response body to encode.
+	 * @return array
+	 */
+	private function build_stripe_response( array $body ): array {
+		return [
+			'headers'  => [],
+			'body'     => wp_json_encode( $body ),
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+		];
+	}
+
+	/**
 	 * Returns the order notes that announce a prevented paid-order cancellation.
 	 *
 	 * @param int $order_id The order to read notes from.
