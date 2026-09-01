@@ -93,6 +93,35 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
+	/**
+	 * Create a published product the feed validator accepts.
+	 *
+	 * The validator requires a category, and a product saved without one only gets
+	 * whatever `default_product_cat` points at. That option stops resolving as soon as
+	 * another test class has run in the process: WP's tear_down_after_class() empties
+	 * the term tables and commits, while the option survives in wp_options. Assigning
+	 * a category here keeps these tests independent of that ordering.
+	 *
+	 * @return WC_Product_Simple
+	 */
+	private function create_feed_product(): WC_Product_Simple {
+		$category    = wp_insert_term( 'Feed Category', 'product_cat' );
+		$category_id = is_wp_error( $category ) ? (int) $category->get_error_data() : (int) $category['term_id'];
+
+		$product = new WC_Product_Simple();
+		$product->set_name( 'Test Product' );
+		$product->set_regular_price( '10.00' );
+		$product->set_status( 'publish' );
+
+		if ( $category_id > 0 ) {
+			$product->set_category_ids( [ $category_id ] );
+		}
+
+		$product->save();
+
+		return $product;
+	}
+
 	// -------------------------------------------------------------------------
 	// Authentication
 	// -------------------------------------------------------------------------
@@ -1022,11 +1051,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		update_option( 'woocommerce_stripe_settings', $settings );
 
 		// Create a simple product so the walker finds at least one.
-		$product = new WC_Product_Simple();
-		$product->set_name( 'Test Product' );
-		$product->set_regular_price( '10.00' );
-		$product->set_status( 'publish' );
-		$product->save();
+		$product = $this->create_feed_product();
 
 		// Stub the Files API cURL upload (which bypasses pre_http_request).
 		$files_stub = function () {
@@ -1666,11 +1691,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		update_option( 'woocommerce_stripe_settings', $settings );
 
 		// Create a simple product so the walker finds at least one.
-		$product = new WC_Product_Simple();
-		$product->set_name( 'Test Product' );
-		$product->set_regular_price( '10.00' );
-		$product->set_status( 'publish' );
-		$product->save();
+		$product = $this->create_feed_product();
 
 		// Stub the Files API cURL upload.
 		$files_stub = function () {
@@ -1748,11 +1769,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$settings['test_secret_key'] = 'sk_test_fake';
 		update_option( 'woocommerce_stripe_settings', $settings );
 
-		$product = new WC_Product_Simple();
-		$product->set_name( 'Test Product' );
-		$product->set_regular_price( '10.00' );
-		$product->set_status( 'publish' );
-		$product->save();
+		$product = $this->create_feed_product();
 
 		$files_stub = function () {
 			return [ 'id' => 'file_stub' ];

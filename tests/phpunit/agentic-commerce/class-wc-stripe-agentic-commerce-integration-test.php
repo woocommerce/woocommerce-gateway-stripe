@@ -1062,6 +1062,8 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @param bool              $expected       Expected return from `is_feed_unchanged`.
 	 */
 	public function test_is_feed_unchanged_scenarios( $cached_record, string $candidate_hash, bool $filter_enabled, bool $expected ) {
+		update_option( 'woocommerce_stripe_settings', [ 'testmode' => 'yes' ] );
+
 		if ( null !== $cached_record ) {
 			update_option( $this->last_upload_option, $cached_record, false );
 		}
@@ -1081,11 +1083,11 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			'hash'        => 'abc123',
 			'uploaded_at' => time(),
 			'file_id'     => 'file_test',
-			'mode'        => \WC_Stripe_Agentic_Commerce_Integration::get_current_mode(),
+			'mode'        => 'test',
 		];
 
 		$other_mode_record         = $fresh_record;
-		$other_mode_record['mode'] = 'test' === $fresh_record['mode'] ? 'live' : 'test';
+		$other_mode_record['mode'] = 'live';
 
 		$legacy_record = $fresh_record;
 		unset( $legacy_record['mode'] );
@@ -1101,7 +1103,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 					'hash'        => 'abc123',
 					'uploaded_at' => time() - ( 2 * WEEK_IN_SECONDS ),
 					'file_id'     => 'file_test',
-					'mode'        => \WC_Stripe_Agentic_Commerce_Integration::get_current_mode(),
+					'mode'        => 'test',
 				],
 				'abc123',
 				true,
@@ -1113,7 +1115,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 				[
 					'hash'    => 'abc123',
 					'file_id' => 'file_test',
-					'mode'    => \WC_Stripe_Agentic_Commerce_Integration::get_current_mode(),
+					'mode'    => 'test',
 				],
 				'abc123',
 				true,
@@ -1124,7 +1126,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 					'hash'        => 'abc123',
 					'uploaded_at' => 'not-a-timestamp',
 					'file_id'     => 'file_test',
-					'mode'        => \WC_Stripe_Agentic_Commerce_Integration::get_current_mode(),
+					'mode'        => 'test',
 				],
 				'abc123',
 				true,
@@ -1135,7 +1137,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 					'hash'        => 'abc123',
 					'uploaded_at' => 0,
 					'file_id'     => 'file_test',
-					'mode'        => \WC_Stripe_Agentic_Commerce_Integration::get_current_mode(),
+					'mode'        => 'test',
 				],
 				'abc123',
 				true,
