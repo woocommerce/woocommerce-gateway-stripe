@@ -696,7 +696,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		// key, held for the whole run: separate reads could straddle a
 		// concurrent settings save and pair one mode's label with the other
 		// mode's key, and every record this run persists must describe the
-		// environment it actually delivered to, not the mode at write time.
+// Get settings in one fetch to prevent timing issues.
 		$context  = self::get_delivery_context();
 		$mode     = $context['mode'];
 		$delivery = new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $context['secret_key'] );
