@@ -276,6 +276,16 @@ jQuery( function ( $ ) {
 		},
 
 		createExpressCheckoutElement: ( expressPaymentType, options ) => {
+			// alert() pauses this page's event loop, which would also freeze
+			// the wallet-UI dismissal that reject() queues for methods opening
+			// on the raw gesture (e.g. Amazon Pay) — leaving the sheet on
+			// screen behind the alert. Yield so the dismissal lands first.
+			const promptAfterWalletDismissal = ( message ) =>
+				setTimeout( () => {
+					// eslint-disable-next-line no-alert
+					window.alert( message );
+				}, 100 );
+
 			const handleProductPageECEButtonClick = async (
 				event,
 				clickOptions
@@ -313,15 +323,7 @@ jQuery( function ( $ ) {
 						);
 					}
 
-					// alert() pauses this page's event loop, which would also
-					// freeze the wallet-UI dismissal that reject() queues for
-					// methods opening on the raw gesture (e.g. Amazon Pay) —
-					// leaving the sheet on screen behind the alert. Yield so
-					// the dismissal lands first.
-					setTimeout( () => {
-						// eslint-disable-next-line no-alert
-						window.alert( message || defaultMessage );
-					}, 100 );
+					promptAfterWalletDismissal( message || defaultMessage );
 					return;
 				}
 
@@ -336,10 +338,28 @@ jQuery( function ( $ ) {
 						resolve( 'timeout' );
 					}, 700 )
 				);
-				const result = await Promise.race( [
-					addToCartPromise,
-					timeout,
-				] );
+				let result;
+				try {
+					result = await Promise.race( [
+						addToCartPromise,
+						timeout,
+					] );
+				} catch ( error ) {
+					// The server refused the add (insufficient stock, an
+					// unsupported product type, …) — the cases the deleted
+					// per-selection refresh used to hide the buttons for.
+					// Its message is already localized and shopper-facing.
+					event.reject?.();
+					wcStripeECE.isAddToCartSuccessful = false;
+					promptAfterWalletDismissal(
+						error?.message ||
+							__(
+								'This product cannot be purchased with the selected options or quantity. Please adjust your selection and try again.',
+								'woocommerce-gateway-stripe'
+							)
+					);
+					return;
+				}
 				if ( result === 'timeout' ) {
 					// Opening the sheet now would show a preview amount the cart
 					// may not match, so reject and block retries until the

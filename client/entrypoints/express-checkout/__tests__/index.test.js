@@ -386,6 +386,41 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		expect( clickOptions ).toHaveProperty( 'shippingRates' );
 	} );
 
+	it( 'rejects the click and relays the server message when the add is refused', async () => {
+		global.wc_stripe_express_checkout_params = productParams();
+
+		// Store API 4xx (insufficient stock, unsupported product type, …)
+		// rejects the fetch with a localized shopper-facing message.
+		mockAddToCart.mockRejectedValue(
+			new Error( 'There is not enough stock.' )
+		);
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		const alertSpy = jest
+			.spyOn( window, 'alert' )
+			.mockImplementation( () => {} );
+
+		const { handlers } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const event = {
+				resolve: jest.fn(),
+				reject: jest.fn(),
+				expressPaymentType: 'googlePay',
+			};
+			await handlers.click( event );
+
+			expect( event.reject ).toHaveBeenCalledTimes( 1 );
+			expect( event.resolve ).not.toHaveBeenCalled();
+			await new Promise( ( resolve ) => setTimeout( resolve, 150 ) );
+			expect( alertSpy ).toHaveBeenCalledWith(
+				'There is not enough stock.'
+			);
+		} finally {
+			alertSpy.mockRestore();
+		}
+	} );
+
 	it( 'rejects the click and prompts when the selection is incomplete', async () => {
 		global.wc_stripe_express_checkout_params = productParams();
 
