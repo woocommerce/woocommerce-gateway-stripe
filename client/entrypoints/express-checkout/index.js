@@ -308,10 +308,11 @@ jQuery( function ( $ ) {
 					return;
 				}
 
-				// Stripe requires event.resolve() to be called within 1s of the click event.
-				// Here, we enforce a timeout for the addToCart operation. If the operation
-				// takes longer, we will call event.resolve() immediately,
-				// and wait for the addToCart operation to finish after.
+				// Stripe requires resolve()/reject() within 1s of the click, so
+				// the cart response gets a 700ms budget (leaving margin for the
+				// resolve work). The timer winning the race doesn't mean the
+				// request failed — it's still in flight, just too slow for
+				// this click's deadline.
 				const addToCartPromise = wcStripeECE.addToCart();
 				const timeout = new Promise( ( resolve ) =>
 					setTimeout( () => {
