@@ -984,7 +984,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					],
 				],
 				'payment_method'       => 'pm_mock',
-				// The DPM shape: every PMC-enabled method, not just the selected one.
+				// The OCS shape: every PMC-enabled method, not just the selected one.
 				'payment_method_types' => [
 					WC_Stripe_Payment_Methods::CARD,
 					WC_Stripe_Payment_Methods::LINK,
@@ -1034,11 +1034,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Provider for `test_process_payment_deferred_intent_with_dpm_intent_types_uses_card_flow`.
+	 * Provider for `test_process_payment_deferred_intent_with_ocs_intent_types_uses_card_flow`.
 	 *
 	 * @return array
 	 */
-	public function provide_process_payment_deferred_intent_with_dpm_intent_types_uses_card_flow() {
+	public function provide_process_payment_deferred_intent_with_ocs_intent_types_uses_card_flow() {
 		return [
 			'sdk-handled 3DS challenge' => [
 				'next_action'               => (object) [ 'type' => 'use_stripe_sdk' ],
