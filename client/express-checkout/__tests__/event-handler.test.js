@@ -399,8 +399,7 @@ describe( 'Express checkout event handlers', () => {
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
-				'Order creation error',
-				true
+				'Order creation error'
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
 		} );
@@ -502,8 +501,7 @@ describe( 'Express checkout event handlers', () => {
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
-				'Intent confirmation error',
-				true
+				'Intent confirmation error'
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
 		} );
@@ -546,8 +544,7 @@ describe( 'Express checkout event handlers', () => {
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
-				'Order creation error',
-				true
+				'Order creation error'
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
 		} );
@@ -652,8 +649,7 @@ describe( 'Express checkout event handlers', () => {
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
-				'Intent confirmation error',
-				true
+				'Intent confirmation error'
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
 		} );

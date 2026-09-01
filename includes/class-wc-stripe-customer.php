@@ -659,11 +659,22 @@ class WC_Stripe_Customer {
 	 * error and it is no such customer.
 	 *
 	 * @since 4.1.2
-	 * @param array $error
+	 * @param \stdClass|null $error The error object from a Stripe API response.
+	 * @return bool
 	 */
 	public function is_no_such_customer_error( $error ) {
+		if ( ! $error ) {
+			return false;
+		}
+
+		// Some endpoints reference the customer as a request param and return the
+		// code/param pair; others only carry the message, so both shapes identify
+		// a missing customer.
+		if ( isset( $error->code, $error->param ) && 'resource_missing' === $error->code && 'customer' === $error->param ) {
+			return true;
+		}
+
 		return (
-			$error &&
 			'invalid_request_error' === $error->type &&
 			preg_match( '/No such customer/i', $error->message )
 		);
@@ -674,7 +685,7 @@ class WC_Stripe_Customer {
 	 * error and it is no such customer.
 	 *
 	 * @since 4.5.6
-	 * @param array $error
+	 * @param \stdClass|null $error The error object from a Stripe API response.
 	 * @return bool
 	 */
 	public function is_source_already_attached_error( $error ) {
@@ -880,9 +891,11 @@ class WC_Stripe_Customer {
 	 *
 	 * @param string[] $payment_method_types The payment method types to look for using Stripe method IDs. If the array is empty, it implies all payment method types.
 	 * @param int      $limit                The maximum number of payment methods to return. If the value is -1, no limit is applied.
+	 * @param bool     $throw_on_error       Throw on generic API errors instead of returning []. A missing customer still returns [].
 	 * @return array
+	 * @throws WC_Stripe_Exception When $throw_on_error is true and the error is not a missing customer.
 	 */
-	public function get_all_payment_methods( array $payment_method_types = [], int $limit = -1 ) {
+	public function get_all_payment_methods( array $payment_method_types = [], int $limit = -1, bool $throw_on_error = false ) {
 		if ( ! $this->get_id() ) {
 			return [];
 		}
@@ -907,14 +920,21 @@ class WC_Stripe_Customer {
 				$response = WC_Stripe_API::request( $request_params, 'payment_methods?expand[]=data.sepa_debit.generated_from.charge&expand[]=data.sepa_debit.generated_from.setup_attempt', 'GET' );
 
 				if ( ! empty( $response->error ) ) {
-					if (
-						isset( $response->error->param, $response->error->code )
-						&& 'customer' === $response->error->param
-						&& 'resource_missing' === $response->error->code
-					) {
+					if ( $this->is_no_such_customer_error( $response->error ) ) {
 						// If the customer doesn't exist, cache an empty array.
 						set_transient( $cache_key, [], DAY_IN_SECONDS );
+						return [];
 					}
+
+					// A generic error is not proof the payment methods are gone; callers reconciling
+					// local tokens must be able to tell it apart from a genuinely empty list.
+					if ( $throw_on_error ) {
+						throw new WC_Stripe_Exception(
+							print_r( $response->error, true ),
+							__( 'There was a problem retrieving data from the Stripe API endpoint.', 'woocommerce-gateway-stripe' )
+						);
+					}
+
 					return [];
 				}
 
