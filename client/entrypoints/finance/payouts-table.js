@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { DEFAULT_PAYMENT_INTENTS_VIEW, PER_PAGE_SIZES } from './constants';
-import fields from './payment-intent-fields';
-import usePaymentIntents from './use-payment-intents';
+import { DEFAULT_PAYOUTS_VIEW, PER_PAGE_SIZES } from './constants';
+import fields from './payouts-fields';
+import usePayouts from './use-payouts';
 import { Button, Flex, FlexItem } from '@wordpress/components';
 // The `/wp` build inlines @wordpress/components, ui, element and private-apis,
 // externalizing only wp-data, wp-date, wp-hooks and wp-i18n. The default entry
@@ -13,20 +13,17 @@ import { __ } from '@wordpress/i18n';
 import InlineNotice from 'wcstripe/components/inline-notice';
 
 const EmptyState = () => (
-	<p>{ __( 'No payments found.', 'woocommerce-gateway-stripe' ) }</p>
+	<p>{ __( 'No payouts found.', 'woocommerce-gateway-stripe' ) }</p>
 );
 
-const PaymentIntentsTable = () => {
-	const [ view, setView ] = useState( DEFAULT_PAYMENT_INTENTS_VIEW );
+const PayoutsTable = () => {
+	const [ view, setView ] = useState( DEFAULT_PAYOUTS_VIEW );
 
-	// Stripe only pages forward, so every page we have already visited keeps its
-	// `starting_after` cursor here; going back is a lookup, not another request
-	// shape. Index 0 is the first page, which has no cursor.
 	const [ cursors, setCursors ] = useState( [ null ] );
 
 	const cursor = cursors[ view.page - 1 ] ?? null;
 
-	const { data, hasMore, isLoading, error } = usePaymentIntents( {
+	const { data, hasMore, isLoading, error } = usePayouts( {
 		perPage: view.perPage,
 		cursor,
 	} );
@@ -104,7 +101,7 @@ const PaymentIntentsTable = () => {
 					</DataViews>
 
 					<Flex
-						className="wc-stripe-payment-details__pagination"
+						className="wc-stripe-payouts__pagination"
 						justify="flex-end"
 						gap={ 2 }
 					>
@@ -138,4 +135,4 @@ const PaymentIntentsTable = () => {
 	);
 };
 
-export default PaymentIntentsTable;
+export default PayoutsTable;

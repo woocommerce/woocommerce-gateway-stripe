@@ -18,7 +18,16 @@ class WC_Stripe_Finance_UI_Controller {
 	 *
 	 * @var string
 	 */
-	private const MENU_SLUG = 'wc-stripe-finance';
+	private const FINANCE_MENU_SLUG = 'wc-stripe-finance';
+
+	/**
+	 * Menu slug for the Payouts submenu item.
+	 *
+	 * Same as the top-level menu slug for the time being.
+	 *
+	 * @var string
+	 */
+	private const PAYOUTS_MENU_SLUG = self::FINANCE_MENU_SLUG;
 
 	/**
 	 * Capability required to view the page.
@@ -59,7 +68,7 @@ class WC_Stripe_Finance_UI_Controller {
 			__( 'Finance', 'woocommerce-gateway-stripe' ),
 			__( 'Finance', 'woocommerce-gateway-stripe' ),
 			self::CAPABILITY,
-			self::MENU_SLUG,
+			self::FINANCE_MENU_SLUG,
 			[ $this, 'render_page' ],
 			'dashicons-money-alt',
 			// WooCommerce occupies 55.5 and 55.6; this keeps Finance alongside
@@ -71,11 +80,11 @@ class WC_Stripe_Finance_UI_Controller {
 		// Reusing the parent slug replaces the submenu entry WordPress would
 		// otherwise auto-create as a duplicate of the parent's "Finance" label.
 		add_submenu_page(
-			self::MENU_SLUG,
-			__( 'Transactions', 'woocommerce-gateway-stripe' ),
-			__( 'Transactions', 'woocommerce-gateway-stripe' ),
+			self::FINANCE_MENU_SLUG,
+			__( 'Payouts', 'woocommerce-gateway-stripe' ),
+			__( 'Payouts', 'woocommerce-gateway-stripe' ),
 			self::CAPABILITY,
-			self::MENU_SLUG,
+			self::PAYOUTS_MENU_SLUG,
 			[ $this, 'render_page' ]
 		);
 	}
@@ -86,7 +95,11 @@ class WC_Stripe_Finance_UI_Controller {
 	 * @return void
 	 */
 	public function render_page() {
-		echo '<div class="wrap"><div id="wc-stripe-finance-container"></div></div>';
+		$context = 'payouts';
+		if ( isset( $_REQUEST['page'] ) && self::PAYOUTS_MENU_SLUG === $_REQUEST['page'] ) {
+			$context = 'payouts';
+		}
+		echo '<div class="wrap"><div id="wc-stripe-finance-container" data-context="' . esc_attr( $context ) . '"></div></div>';
 	}
 
 	/**

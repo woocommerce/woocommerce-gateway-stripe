@@ -101,6 +101,18 @@ export const formatStripeAmount = ( amount, currency ) => {
  */
 const humanize = ( type ) => String( type ).replace( /_/g, ' ' );
 
+export const formatStripeTimestamp = ( timestamp ) => {
+	if (
+		timestamp &&
+		typeof timestamp === 'number' &&
+		Number.isFinite( timestamp )
+	) {
+		return new Date( timestamp * 1000 ).toISOString();
+	}
+
+	return '';
+};
+
 /**
  * Builds the display label for a charge's payment method.
  *

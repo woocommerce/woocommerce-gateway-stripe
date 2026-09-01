@@ -1,19 +1,15 @@
 import React from 'react';
 import { STATUS_COLORS, STATUS_LABELS } from './constants';
+import EmptyCell from './empty-cell';
 import {
 	formatStripeAmount,
+	formatStripeTimestamp,
 	getPaymentMethodIconKey,
 	getPaymentMethodLabel,
 } from './utils';
 import { __ } from '@wordpress/i18n';
 import Chip from 'wcstripe/components/chip';
 import paymentMethodIcons from 'wcstripe/payment-method-icons';
-
-const EmptyCell = () => (
-	<span aria-hidden="true" className="wc-stripe-payment-details__empty">
-		&mdash;
-	</span>
-);
 
 const PaymentMethodCell = ( { item } ) => {
 	const label = getPaymentMethodLabel( item.latest_charge );
@@ -45,10 +41,7 @@ const fields = [
 		type: 'datetime',
 		enableSorting: false,
 		enableHiding: false,
-		// Stripe reports seconds; the datetime field type needs something
-		// getDate() can parse, and formats it in the site's timezone and format.
-		getValue: ( { item } ) =>
-			item.created ? new Date( item.created * 1000 ).toISOString() : '',
+		getValue: ( { item } ) => formatStripeTimestamp( item.created ),
 	},
 	{
 		id: 'amount',

@@ -55,7 +55,7 @@ class WC_Stripe_Finance_UI_Controller_Test extends WP_UnitTestCase {
 
 		$slugs = wp_list_pluck( $menu, 2 );
 
-		$expected_menu_slug = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Finance_UI_Controller::class, 'MENU_SLUG', 'string' );
+		$expected_menu_slug = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Finance_UI_Controller::class, 'FINANCE_MENU_SLUG', 'string' );
 		$this->assertContains( $expected_menu_slug, $slugs );
 
 		$finance_menu = null;
@@ -74,18 +74,18 @@ class WC_Stripe_Finance_UI_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Reusing the parent slug for the first submenu is what makes "Stripe" the
-	 * default sub-item instead of a duplicated "Payments" entry.
+	 * Reusing the parent slug for the first submenu is what makes "Payouts" the
+	 * default sub-item instead of a duplicated "Finance" entry.
 	 */
 	public function test_register_menu_makes_stripe_the_default_submenu_item(): void {
 		$this->register_menu_as_admin();
 
 		global $submenu;
 
-		$expected_menu_slug = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Finance_UI_Controller::class, 'MENU_SLUG', 'string' );
+		$expected_menu_slug = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Finance_UI_Controller::class, 'PAYOUTS_MENU_SLUG', 'string' );
 
 		$this->assertArrayHasKey( $expected_menu_slug, $submenu );
-		$this->assertSame( 'Stripe', $submenu[ $expected_menu_slug ][0][0] );
+		$this->assertSame( 'Payouts', $submenu[ $expected_menu_slug ][0][0] );
 		$this->assertSame( $expected_menu_slug, $submenu[ $expected_menu_slug ][0][2] );
 	}
 
@@ -99,7 +99,7 @@ class WC_Stripe_Finance_UI_Controller_Test extends WP_UnitTestCase {
 
 		global $menu, $submenu;
 
-		$expected_menu_slug = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Finance_UI_Controller::class, 'MENU_SLUG', 'string' );
+		$expected_menu_slug = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Finance_UI_Controller::class, 'FINANCE_MENU_SLUG', 'string' );
 
 		$capabilities = [];
 		foreach ( $menu as $item ) {
@@ -145,7 +145,7 @@ class WC_Stripe_Finance_UI_Controller_Test extends WP_UnitTestCase {
 		// The registered hook suffix is only known after register_menu() runs.
 		if ( '__own_screen__' === $hook_suffix ) {
 			$hook_suffix = get_plugin_page_hookname(
-				WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Finance_UI_Controller::class, 'MENU_SLUG', 'string' ),
+				WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Finance_UI_Controller::class, 'FINANCE_MENU_SLUG', 'string' ),
 				''
 			);
 		}
@@ -180,7 +180,7 @@ class WC_Stripe_Finance_UI_Controller_Test extends WP_UnitTestCase {
 		$controller = $this->register_menu_as_admin();
 
 		$controller->enqueue_scripts(
-			get_plugin_page_hookname( WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Finance_UI_Controller::class, 'MENU_SLUG', 'string' ), '' )
+			get_plugin_page_hookname( WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Finance_UI_Controller::class, 'FINANCE_MENU_SLUG', 'string' ), '' )
 		);
 
 		$data = wp_scripts()->get_data( 'wc-stripe-finance', 'data' );
