@@ -60,7 +60,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * products are taken out of in-agent purchase.
 	 *
 	 * @var string
-	 * @since 10.9.0
+	 * @since 11.0.0
 	 */
 	public const FINAL_FEED_ACTION = 'wc_stripe_agentic_commerce_final_feed';
 
