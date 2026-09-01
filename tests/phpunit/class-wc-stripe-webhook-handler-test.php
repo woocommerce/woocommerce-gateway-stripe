@@ -3368,9 +3368,10 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * @param bool    $order_has_user            Whether the order belongs to a WP user.
 	 * @param ?string $existing_user_customer_id A Stripe customer ID already stored on that user, if any.
 	 * @param ?string $expected_user_customer_id The user's Stripe customer ID after processing.
+	 * @param bool    $user_lock_held            Whether another request holds the user attachment lock.
 	 * @dataProvider provide_test_checkout_session_customer_attachment
 	 */
-	public function test_process_checkout_session_attaches_session_customer( bool $order_has_user, ?string $existing_user_customer_id, ?string $expected_user_customer_id ): void {
+	public function test_process_checkout_session_attaches_session_customer( bool $order_has_user, ?string $existing_user_customer_id, ?string $expected_user_customer_id, bool $user_lock_held = false ): void {
 		$checkout_session_id = 'cs_test_customer123';
 		$session_customer_id = 'cus_session_123';
 
@@ -3379,6 +3380,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			$user_id = self::factory()->user->create();
 			if ( null !== $existing_user_customer_id ) {
 				update_user_option( $user_id, '_stripe_customer_id', $existing_user_customer_id, false );
+			}
+			if ( $user_lock_held ) {
+				add_option( 'wc_stripe_user_customer_lock_' . $user_id, time(), '', false );
 			}
 		}
 
@@ -3424,6 +3428,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		);
 
 		if ( $order_has_user ) {
+			delete_option( 'wc_stripe_user_customer_lock_' . $user_id );
 			$this->assertSame( $expected_user_customer_id, ( new WC_Stripe_Customer( $user_id ) )->get_id() );
 		}
 	}
@@ -3450,6 +3455,76 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'existing_user_customer_id' => 'cus_existing_456',
 				'expected_user_customer_id' => 'cus_existing_456',
 			],
+			'user attachment lock held elsewhere'   => [
+				'order_has_user'            => true,
+				'existing_user_customer_id' => null,
+				'expected_user_customer_id' => '',
+				'user_lock_held'            => true,
+			],
+		];
+	}
+
+	/**
+	 * A malformed session customer must be ignored, not abort settlement.
+	 *
+	 * @param mixed $session_customer The `customer` value on the checkout session.
+	 * @dataProvider provide_test_malformed_session_customer
+	 */
+	public function test_process_checkout_session_ignores_malformed_session_customer( $session_customer ): void {
+		$checkout_session_id = 'cs_test_malformed_customer_' . md5( wp_json_encode( $session_customer ) );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_abc',
+					'customer'       => $session_customer,
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
+				],
+			],
+		];
+
+		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		$this->mock_webhook_handler->expects( $this->once() )->method( 'process_response' );
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->mock_webhook_handler, $this->createMock( WC_Stripe_Action_Scheduler_Service::class ) );
+
+		$this->mock_webhook_handler->process_checkout_session_success( $notification );
+
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( wc_get_order( $order->get_id() ) ) );
+	}
+
+	/**
+	 * Data provider for `test_process_checkout_session_ignores_malformed_session_customer`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_malformed_session_customer(): array {
+		return [
+			'object with array id' => [ (object) [ 'id' => [ 'cus_123' ] ] ],
+			'object without id'    => [ (object) [ 'object' => 'customer' ] ],
+			'array'                => [ [ 'cus_123' ] ],
+			'integer'              => [ 123 ],
+			'empty string'         => [ '' ],
 		];
 	}
 

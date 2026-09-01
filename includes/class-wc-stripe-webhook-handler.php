@@ -2480,9 +2480,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	private function maybe_attach_checkout_session_customer( object $checkout_session, WC_Order $order ): void {
 		$session_customer = $checkout_session->customer ?? null;
-		$customer_id      = is_object( $session_customer ) ? ( $session_customer->id ?? '' ) : (string) $session_customer;
+		$customer_id      = is_object( $session_customer ) ? ( $session_customer->id ?? null ) : $session_customer;
 
-		if ( '' === $customer_id ) {
+		// Anything but a non-empty string would fatal in the typed helpers below and abort settlement.
+		if ( ! is_string( $customer_id ) || '' === $customer_id ) {
 			return;
 		}
 
@@ -2494,11 +2495,64 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$user_id = $order->get_user_id();
 		if ( $user_id > 0 ) {
+			$this->attach_customer_to_user( $user_id, $customer_id );
+		}
+	}
+
+	/**
+	 * Stores the Stripe customer on the user unless one is already set.
+	 *
+	 * Two sessions for the same user settle under different order locks, so the check-then-write
+	 * on user meta needs its own lock or the later webhook could replace the earlier customer.
+	 * When the lock is held by another request the attachment is skipped; that request is
+	 * already writing a customer for this user.
+	 *
+	 * @param int    $user_id     The WP user.
+	 * @param string $customer_id The Stripe customer ID.
+	 */
+	private function attach_customer_to_user( int $user_id, string $customer_id ): void {
+		$lock_option = 'wc_stripe_user_customer_lock_' . $user_id;
+
+		if ( ! $this->acquire_user_customer_lock( $lock_option ) ) {
+			WC_Stripe_Logger::info( 'Skipping user customer attachment: another request holds the lock.', [ 'user_id' => $user_id ] );
+			return;
+		}
+
+		try {
+			// Re-read under the lock: a customer written by a concurrent request may sit behind a cached value.
+			wp_cache_delete( $user_id, 'user_meta' );
 			$user_customer = new WC_Stripe_Customer( $user_id );
 			if ( ! $user_customer->get_id() ) {
 				$user_customer->update_id_in_meta( $customer_id );
 			}
+		} finally {
+			delete_option( $lock_option );
 		}
+	}
+
+	/**
+	 * Acquires the per-user customer attachment lock.
+	 *
+	 * `add_option()` is atomic on the option name. A lock abandoned by a crashed request is
+	 * reclaimed after a minute; the loser of a concurrent reclaim is rejected by `add_option()`.
+	 *
+	 * @param string $lock_option The lock option name.
+	 * @return bool True when the caller holds the lock.
+	 */
+	private function acquire_user_customer_lock( string $lock_option ): bool {
+		$now = time();
+
+		if ( add_option( $lock_option, $now, '', false ) ) {
+			return true;
+		}
+
+		$locked_at = (int) get_option( $lock_option, 0 );
+		if ( $locked_at > 0 && ( $now - $locked_at ) < MINUTE_IN_SECONDS ) {
+			return false;
+		}
+
+		delete_option( $lock_option );
+		return add_option( $lock_option, $now, '', false );
 	}
 
 	/**
