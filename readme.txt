@@ -185,6 +185,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Make GITHUB_TOKEN optional for the local E2E Docker setup by falling back to the GitHub CLI and then to plugin zips placed in tests/e2e/deps
 * Fix - Reload the plugin's payment method settings when refreshing account details, so the settings screen no longer keeps showing stale values
 * Update - Fetch express checkout AJAX nonces on demand instead of embedding them in every page
+* Fix - Load a single instance of Stripe.js per page
 * Fix - Keep the wallet billing and shipping addresses on express checkout orders when the address normalization request returns an unusable response
 * Fix - Remove stale saved payment methods at checkout when the Stripe customer no longer exists, and keep valid ones when Stripe returns a transient API error
 * Fix - Render the Adaptive Pricing payment element in the store's Stripe locale
