@@ -55,6 +55,25 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	protected const IMMEDIATE_SYNC_ACTION = 'wc_stripe_agentic_commerce_sync_feed_now';
 
 	/**
+	 * Action Scheduler hook for the one-off checkout-disabled feed pushed on
+	 * disable. Stripe has no catalog-delete API, so this is how already-synced
+	 * products are taken out of in-agent purchase.
+	 *
+	 * @var string
+	 * @since 11.0.0
+	 */
+	public const FINAL_FEED_ACTION = 'wc_stripe_agentic_commerce_final_feed';
+
+	/**
+	 * Action Scheduler group for the final-feed push. Kept distinct so its
+	 * idempotency guard and cancellation match only the final-feed action.
+	 *
+	 * @var string
+	 * @since 10.9.0
+	 */
+	private const ASYNC_FINAL_FEED_GROUP = 'wc-stripe-agentic-final-feed';
+
+	/**
 	 * Option name to track whether the sync is scheduled.
 	 *
 	 * @var string
@@ -197,6 +216,9 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		add_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $this, 'schedule_full_resync_now' ] );
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_resync_after_mode_switch' ], 10, 2 );
 
+		// One-off teardown push queued when the merchant disables the toggle.
+		add_action( self::FINAL_FEED_ACTION, [ $this, 'push_final_checkout_disabled_feed' ] );
+
 		// WC 10.8+ requires `created_via` to be in an allowlist for `payment_complete()` to run.
 		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $this, 'allow_agentic_payment_complete' ] );
 
@@ -267,6 +289,77 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		}
 
 		as_unschedule_all_actions( self::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
+	}
+
+	/**
+	 * Queue the final-feed push run on disable. Deferred to Action Scheduler
+	 * because it re-uploads the full catalog. Idempotent while one is pending.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function schedule_final_checkout_disabled_feed(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_enqueue_async_action' ) ) {
+			return;
+		}
+
+		if ( as_has_scheduled_action( self::FINAL_FEED_ACTION, [], self::ASYNC_FINAL_FEED_GROUP ) ) {
+			return;
+		}
+
+		as_enqueue_async_action( self::FINAL_FEED_ACTION, [], self::ASYNC_FINAL_FEED_GROUP );
+	}
+
+	/**
+	 * Cancel any pending final-feed push. Called on re-enable so a teardown
+	 * queued by a just-prior disable can't land on a catalog meant to be live.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function cancel_pending_final_checkout_disabled_feed(): void {
+		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+
+		as_unschedule_all_actions( self::FINAL_FEED_ACTION, [], self::ASYNC_FINAL_FEED_GROUP );
+	}
+
+	/**
+	 * Re-upload the catalog with in-agent checkout disabled for every product.
+	 *
+	 * Runs from the toggle-off job. Deliberately bypasses the sync_feed() merchant
+	 * gate via run_feed_sync() so it can run while the merchant toggle is off, but
+	 * bails if the merchant has turned it back on. Forces the disable-checkout
+	 * filter and the upload so dedup can't skip a change that's only the checkout
+	 * flag.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function push_final_checkout_disabled_feed(): void {
+		if ( ! $this->is_enabled() ) {
+			return;
+		}
+
+		// The merchant can re-enable between this job being queued and Action Scheduler
+		// running it. Cancellation only removes a job that is still pending, so a job
+		// already claimed by a runner reaches this point regardless — publishing a
+		// checkout-disabled catalog for a store that is live again.
+		if ( self::is_merchant_enabled() ) {
+			return;
+		}
+
+		$force_disable_checkout = static function () {
+			return true;
+		};
+		add_filter( 'woocommerce_agentic_commerce_disable_checkout', $force_disable_checkout, 99999 );
+
+		try {
+			$this->run_feed_sync( true );
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $force_disable_checkout, 99999 );
+		}
 	}
 
 	/**
@@ -563,8 +656,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return bool True on successful delivery, false on early returns or failure.
 	 */
 	public function sync_feed( bool $force_upload = false ): bool {
-		// Drop any validator cached from a previous sync so this run starts
-		// with a clean per-product error accumulator.
+		// Reset before the enablement gates so a call always clears validator
+		// state from a previous run, even on a disabled early-return.
 		$this->feed_validator = null;
 
 		if ( ! $this->is_enabled() ) {
@@ -572,11 +665,36 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return false;
 		}
 
+		// Skip the sync if Agentic Commerce is disabled.
+		if ( ! self::is_merchant_enabled() ) {
+			WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - merchant toggle disabled' );
+			return false;
+		}
+
+		return $this->run_feed_sync( $force_upload );
+	}
+
+	/**
+	 * Generate and upload the catalog feed. Callers are responsible for deciding whether
+	 * an upload should occur.
+	 *
+	 * May be called when the agentic commerce feature has been
+	 * disabled to ensure that the uploaded products are marked as unavailable.
+	 *
+	 * @since 10.9.0
+	 * @param bool $force_upload When true, bypass the content-hash deduplication and always upload.
+	 * @return bool True on successful delivery, false on early returns or failure.
+	 */
+	private function run_feed_sync( bool $force_upload = false ): bool {
+		// Drop any validator cached from a previous sync so this run starts
+		// with a clean per-product error accumulator.
+		$this->feed_validator = null;
+
 		// One settings snapshot supplies both the mode label and the delivery
 		// key, held for the whole run: separate reads could straddle a
 		// concurrent settings save and pair one mode's label with the other
 		// mode's key, and every record this run persists must describe the
-		// environment it actually delivered to, not the mode at write time.
+// Get settings in one fetch to prevent timing issues.
 		$context  = self::get_delivery_context();
 		$mode     = $context['mode'];
 		$delivery = new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $context['secret_key'] );
