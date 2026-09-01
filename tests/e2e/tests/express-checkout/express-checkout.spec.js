@@ -65,10 +65,14 @@ test.describe( 'express checkout and variable products', () => {
 			await dialog.dismiss();
 		} );
 		await expect( async () => {
+			// Reset per attempt so a stale dialog from a previous retry can't
+			// satisfy this one, then poll: the prompt is deferred (~100ms)
+			// so the rejected wallet UI can dismiss first.
+			alertMessage = '';
 			await linkButton.click();
-			expect( alertMessage ).toContain(
-				'select your product options before proceeding'
-			);
+			await expect
+				.poll( () => alertMessage, { timeout: 5000 } )
+				.toContain( 'select your product options before proceeding' );
 		} ).toPass( { timeout: 45 * 1000 } );
 	} );
 

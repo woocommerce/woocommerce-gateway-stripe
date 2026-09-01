@@ -135,11 +135,7 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 		} );
 	}
 
-	const totalAmount = transformPrice(
-		parseInt( cartData.totals.total_price, 10 ) -
-			parseInt( cartData.totals.total_refund || 0, 10 ),
-		cartData.totals
-	);
+	const totalAmount = transformCartTotalAmount( cartData.totals );
 	const totalAmountOfDisplayItems = displayItems.reduce(
 		( acc, { amount } ) => acc + amount,
 		0

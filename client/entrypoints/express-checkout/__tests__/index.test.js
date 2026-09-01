@@ -391,6 +391,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 
 		// Store API 4xx (insufficient stock, unsupported product type, …)
 		// rejects the fetch with a localized shopper-facing message.
+		jest.useFakeTimers();
 		mockAddToCart.mockRejectedValue(
 			new Error( 'There is not enough stock.' )
 		);
@@ -412,11 +413,12 @@ describe( 'Express Checkout product page variation breakdown', () => {
 
 			expect( event.reject ).toHaveBeenCalledTimes( 1 );
 			expect( event.resolve ).not.toHaveBeenCalled();
-			await new Promise( ( resolve ) => setTimeout( resolve, 150 ) );
+			await jest.advanceTimersByTimeAsync( 100 );
 			expect( alertSpy ).toHaveBeenCalledWith(
 				'There is not enough stock.'
 			);
 		} finally {
+			jest.useRealTimers();
 			alertSpy.mockRestore();
 		}
 	} );
@@ -424,6 +426,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 	it( 'rejects the click and prompts when the selection is incomplete', async () => {
 		global.wc_stripe_express_checkout_params = productParams();
 
+		jest.useFakeTimers();
 		document.querySelector( 'input[name="variation_id"]' ).value = '';
 		const alertSpy = jest
 			.spyOn( window, 'alert' )
@@ -445,12 +448,13 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			// The prompt is deferred so the rejected wallet UI can dismiss
 			// before the blocking dialog pauses the event loop.
 			expect( alertSpy ).not.toHaveBeenCalled();
-			await new Promise( ( resolve ) => setTimeout( resolve, 150 ) );
+			await jest.advanceTimersByTimeAsync( 100 );
 			expect( alertSpy ).toHaveBeenCalledWith(
 				expect.stringContaining( 'select your product options' )
 			);
 			expect( mockAddToCart ).not.toHaveBeenCalled();
 		} finally {
+			jest.useRealTimers();
 			alertSpy.mockRestore();
 		}
 	} );
@@ -532,6 +536,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			.spyOn( window, 'alert' )
 			.mockImplementation( () => {} );
 
+		jest.useFakeTimers();
 		const { handlers } = stubStripeButton();
 		loadEntrypoint();
 
@@ -542,7 +547,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 				expressPaymentType: 'googlePay',
 			};
 			await handlers.click( event );
-			await new Promise( ( resolve ) => setTimeout( resolve, 150 ) );
+			await jest.advanceTimersByTimeAsync( 100 );
 			expect( alertSpy ).toHaveBeenCalledWith(
 				expect.stringContaining(
 					'cannot be purchased with the selected options or quantity'
@@ -552,6 +557,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			expect( event.resolve ).not.toHaveBeenCalled();
 			expect( mockAddToCart ).not.toHaveBeenCalled();
 		} finally {
+			jest.useRealTimers();
 			alertSpy.mockRestore();
 		}
 	} );
