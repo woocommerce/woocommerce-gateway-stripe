@@ -367,11 +367,29 @@ jQuery( function ( $ ) {
 					event.reject?.();
 					wcStripeECE.blockExpressCheckoutButton();
 					try {
-						const response = await addToCartPromise;
-						wcStripeECE.isAddToCartSuccessful =
-							response?.items_count > 0 ||
-							response?.result === 'success';
-						wcStripeECE.refreshTotalsFromCart( response );
+						// Waiting for the pending mutation keeps a retry from
+						// overlapping it, but a request the browser hangs onto
+						// would keep the button blocked indefinitely - after a
+						// generous bound, treat the attempt as failed. A stray
+						// late add can't double-charge: every click empties
+						// the cart first and prices from its own response.
+						const response = await Promise.race( [
+							addToCartPromise,
+							new Promise( ( resolve ) =>
+								setTimeout(
+									() => resolve( 'abandoned' ),
+									30000
+								)
+							),
+						] );
+						if ( response === 'abandoned' ) {
+							wcStripeECE.isAddToCartSuccessful = false;
+						} else {
+							wcStripeECE.isAddToCartSuccessful =
+								response?.items_count > 0 ||
+								response?.result === 'success';
+							wcStripeECE.refreshTotalsFromCart( response );
+						}
 					} catch ( error ) {
 						wcStripeECE.isAddToCartSuccessful = false;
 					} finally {

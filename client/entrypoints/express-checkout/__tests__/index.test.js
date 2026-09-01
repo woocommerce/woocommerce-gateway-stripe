@@ -524,6 +524,46 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		}
 	} );
 
+	it( 'unblocks the button when the pending add never settles', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+
+		// A request the browser hangs onto: never resolves, never rejects.
+		mockAddToCart.mockImplementation( () => new Promise( () => {} ) );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		// eslint-disable-next-line global-require
+		const jq = require( 'jquery' );
+		const unblockSpy = jest.fn().mockReturnThis();
+		jq.fn.unblock = unblockSpy;
+
+		const { handlers, elementsList } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const event = {
+				resolve: jest.fn(),
+				reject: jest.fn(),
+				expressPaymentType: 'googlePay',
+			};
+			const clickPromise = handlers.click( event );
+
+			await jest.advanceTimersByTimeAsync( 750 );
+			expect( event.reject ).toHaveBeenCalledTimes( 1 );
+			expect( unblockSpy ).not.toHaveBeenCalled();
+
+			// The bounded wait gives up and releases the button; nothing is
+			// primed from the abandoned attempt.
+			await jest.advanceTimersByTimeAsync( 30000 );
+			await clickPromise;
+			expect( unblockSpy ).toHaveBeenCalled();
+			elementsList.forEach( ( elements ) =>
+				expect( elements.update ).not.toHaveBeenCalled()
+			);
+		} finally {
+			jest.useRealTimers();
+		}
+	} );
+
 	it( 'explains a stock or quantity block instead of asking for options when the selection is complete', async () => {
 		global.wc_stripe_express_checkout_params = productParams();
 
