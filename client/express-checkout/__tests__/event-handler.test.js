@@ -146,9 +146,8 @@ describe( 'Express checkout event handlers', () => {
 		} );
 
 		test( 'should resolve with the default shipping option when the cart has no shipping package', async () => {
-			// A free-trial subscription cart: Woo Subscriptions defers
-			// shipping to the recurring payments, so the Store API returns no
-			// shipping package for the sign-up cart.
+			// Free-trial cart: Woo Subscriptions defers shipping to the
+			// recurring payments, so the cart has no shipping package.
 			const {
 				transformCartDataForShippingRates,
 			} = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
