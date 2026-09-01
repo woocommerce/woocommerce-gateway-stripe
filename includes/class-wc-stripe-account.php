@@ -494,6 +494,9 @@ class WC_Stripe_Account {
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Unable to determine webhook status', [ 'error_message' => $e->getMessage() ] );
 			return false;
+		} finally {
+			// Ensure the secret key is reset to ensure non-webhook API calls use the correct key.
+			WC_Stripe_API::set_secret_key( '' );
 		}
 	}
 
