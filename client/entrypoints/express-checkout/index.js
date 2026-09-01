@@ -82,7 +82,7 @@ jQuery( function ( $ ) {
 	// Snapshot is first-paint only; re-inits reconcile via AJAX (see init() below).
 	let cartBootstrapConsumed = false;
 
-	// Template-agnostic: true for a variable product on either template.
+	// True for a variable product on both the classic and blockified templates.
 	const hasVariationUi = hasVariationSelectionUi();
 	const hasBookingForm = $( '.wc-bookings-booking-form' ).length > 0;
 
@@ -103,8 +103,9 @@ jQuery( function ( $ ) {
 		);
 
 		// Product pages: the click handler writes cart-derived items into the
-		// store before resolving, so read them from there for every product
-		// type — creation-time options would show quantity-1 items under a
+		// cached product params (`getExpressCheckoutData( 'product' )`) before
+		// resolving, so read them from there for every product type —
+		// creation-time options would show quantity-1 items under a
 		// quantity-aware total. normalizeLineItems handles both the legacy
 		// and the cart-derived item shapes.
 		const isProductPage = getExpressCheckoutData( 'is_product_page' );
@@ -797,8 +798,9 @@ jQuery( function ( $ ) {
 			displayExpressCheckoutNotice( message, 'error' );
 		},
 
-		// Refresh the cached breakdown and element amount from a Store API
-		// cart response. No-op for responses without totals (legacy/bookings).
+		// Refresh the cached product params (the page-load bootstrap data) and
+		// the element amount from a Store API cart response. No-op for
+		// responses without totals (legacy/bookings) and off product pages.
 		refreshTotalsFromCart: ( cart ) => {
 			if ( ! cart?.totals || ! getExpressCheckoutData( 'product' ) ) {
 				return;
