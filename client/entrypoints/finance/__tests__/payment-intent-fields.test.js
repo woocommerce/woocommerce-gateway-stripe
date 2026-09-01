@@ -1,5 +1,5 @@
-import { DEFAULT_VIEW } from '../constants';
-import fields from '../fields';
+import { DEFAULT_PAYMENT_INTENTS_VIEW } from '../constants';
+import fields from '../payment-intent-fields';
 
 const byId = ( id ) => fields.find( ( field ) => field.id === id );
 
@@ -32,7 +32,7 @@ describe( 'payment intent fields', () => {
 
 	it( 'exposes exactly the columns the default view lists', () => {
 		expect( fields.map( ( field ) => field.id ).sort() ).toEqual(
-			[ ...DEFAULT_VIEW.fields ].sort()
+			[ ...DEFAULT_PAYMENT_INTENTS_VIEW.fields ].sort()
 		);
 	} );
 
