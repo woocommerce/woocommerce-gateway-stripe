@@ -305,6 +305,75 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		] );
 	} );
 
+	it( 'does not ask for a shipping address when the cart says the selection is virtual', async () => {
+		// A variable parent reports needing shipping even when every variation
+		// is virtual, so the creation-time flag says true; prompting would then
+		// hard-fail on a cart with no shippable items.
+		const params = productParams();
+		params.product.requestShipping = true;
+		// Init refuses to render a shipping-required button without a rate.
+		params.product.shippingOptions = {
+			id: 'flat',
+			label: 'Flat',
+			amount: 0,
+		};
+		global.wc_stripe_express_checkout_params = params;
+
+		mockAddToCart.mockResolvedValue( {
+			items_count: 1,
+			needs_shipping: false,
+			totals: {
+				total_price: '2000',
+				total_refund: '0',
+				currency_minor_unit: 2,
+			},
+		} );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		// eslint-disable-next-line global-require
+		const transformers = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
+		transformers.transformPrice.mockReturnValueOnce( 2000 );
+		transformers.transformCartDataForDisplayItems.mockReturnValueOnce( [] );
+
+		const { handlers } = stubStripeButton();
+		loadEntrypoint();
+
+		const event = { resolve: jest.fn(), expressPaymentType: 'googlePay' };
+		await handlers.click( event );
+
+		const clickOptions = event.resolve.mock.calls[ 0 ][ 0 ];
+		expect( clickOptions.shippingAddressRequired ).toBe( false );
+		expect( clickOptions ).not.toHaveProperty( 'shippingRates' );
+	} );
+
+	it( 'asks for a shipping address when the cart says the selection is shippable', async () => {
+		global.wc_stripe_express_checkout_params = productParams();
+
+		mockAddToCart.mockResolvedValue( {
+			items_count: 1,
+			needs_shipping: true,
+			totals: {
+				total_price: '2000',
+				total_refund: '0',
+				currency_minor_unit: 2,
+			},
+		} );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		// eslint-disable-next-line global-require
+		const transformers = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
+		transformers.transformPrice.mockReturnValueOnce( 2000 );
+		transformers.transformCartDataForDisplayItems.mockReturnValueOnce( [] );
+
+		const { handlers } = stubStripeButton();
+		loadEntrypoint();
+
+		const event = { resolve: jest.fn(), expressPaymentType: 'googlePay' };
+		await handlers.click( event );
+
+		const clickOptions = event.resolve.mock.calls[ 0 ][ 0 ];
+		expect( clickOptions.shippingAddressRequired ).toBe( true );
+		expect( clickOptions ).toHaveProperty( 'shippingRates' );
+	} );
+
 	it( 'rejects the click and prompts when the selection is incomplete', async () => {
 		global.wc_stripe_express_checkout_params = productParams();
 

@@ -114,21 +114,30 @@ jQuery( function ( $ ) {
 			  options.displayItems
 			: options.displayItems;
 
+		// The creation-time flag reflects the parent product, which reports
+		// needing shipping even when every variation is virtual - prompting
+		// for an address then hard-fails on a cart with no shippable items.
+		// The cart response knows the actual selection, so it wins.
+		const requestShipping = isProductPage
+			? getExpressCheckoutData( 'product' )?.requestShipping ??
+			  options.requestShipping
+			: options.requestShipping;
+
 		const clickOptions = {
 			lineItems:
 				isProductPage || useLegacyDisplayItems
 					? normalizeLineItems( displayItems )
 					: displayItems,
 			emailRequired: true,
-			shippingAddressRequired: options.requestShipping,
+			shippingAddressRequired: requestShipping,
 			phoneNumberRequired: options.requestPhone,
-			...( options.requestShipping && {
+			...( requestShipping && {
 				shippingRates:
 					options.shippingRates?.length > 0
 						? options.shippingRates
 						: getDefaultShippingRates(),
 			} ),
-			...( options.requestShipping &&
+			...( requestShipping &&
 				Array.isArray( allowedShippingCountries ) && {
 					allowedShippingCountries,
 				} ),
@@ -811,6 +820,14 @@ jQuery( function ( $ ) {
 					parseInt( cart.totals.total_refund || 0, 10 ),
 				cart.totals
 			);
+
+			// The selection decides whether an address is needed (a virtual
+			// variation must not prompt), so the cart's verdict replaces the
+			// parent-product flag the page loaded with.
+			if ( typeof cart.needs_shipping === 'boolean' ) {
+				getExpressCheckoutData( 'product' ).requestShipping =
+					cart.needs_shipping;
+			}
 
 			wcStripeECE.refreshTotals( {
 				total: {
