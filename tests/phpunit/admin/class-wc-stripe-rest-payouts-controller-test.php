@@ -140,8 +140,8 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 			[ 'limit', '' ],
 			[ 'limit', 'abc' ],
 			[ 'created', '' ],
-			[ 'status', ''],
-			[ 'status', 'abc'],
+			[ 'status', '' ],
+			[ 'status', 'abc' ],
 			[ 'created', -1779802569 ],
 			[ 'created', 'a1779802569' ],
 			[
@@ -231,16 +231,16 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 
 	public static function provide_payout_list_params(): array {
 		return [
-			'created_zero_timestamp' => [
+			'created_zero_timestamp'                           => [
 				[ 'created' => 0 ],
 			],
-			'created_and_starting_after' => [
+			'created_and_starting_after'                       => [
 				[
 					'created'        => '1779802569',
 					'starting_after' => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
-			'created_with_lt_and_ending_before' => [
+			'created_with_lt_and_ending_before'                => [
 				[
 					'created'       =>
 						[
@@ -249,17 +249,17 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 					'ending_before' => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
-			'limit_and_created_with_lt_and_ending_before' => [
+			'limit_and_created_with_lt_and_ending_before'      => [
 				[
-					'limit'            => 100,
-					'created'          =>
+					'limit'         => 100,
+					'created'       =>
 						[
 							'lt' => '1779802569',
 						],
-					'ending_before'    => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
+					'ending_before' => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
-			'created_with_lt_gt' => [
+			'created_with_lt_gt'                               => [
 				[
 					'created' =>
 						[
@@ -268,7 +268,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			'created_with_lte_gte' => [
+			'created_with_lte_gte'                             => [
 				[
 					'created' =>
 						[
@@ -277,7 +277,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			'created_with_lte_gte_zero' => [
+			'created_with_lte_gte_zero'                        => [
 				[
 					'created' =>
 						[
@@ -286,7 +286,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			'created_with_lte_zero_gte_zero' => [
+			'created_with_lte_zero_gte_zero'                   => [
 				[
 					'created' =>
 						[
@@ -295,18 +295,18 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			 'arrival_date_zero_timestamp' => [
-					[ 'arrival_date' => 0 ],
+			'arrival_date_zero_timestamp'                      => [
+				[ 'arrival_date' => 0 ],
 			],
-			'arrival_date_and_starting_after' => [
+			'arrival_date_and_starting_after'                  => [
 				[
-					'arrival_date'        => '1779802569',
+					'arrival_date'   => '1779802569',
 					'starting_after' => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
-			'arrival_date_with_lt_and_ending_before' => [
+			'arrival_date_with_lt_and_ending_before'           => [
 				[
-					'arrival_date'       =>
+					'arrival_date'  =>
 						[
 							'lt' => '1779802569',
 						],
@@ -315,15 +315,15 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 			],
 			'limit_and_arrival_date_with_lt_and_ending_before' => [
 				[
-					'limit'            => 100,
-					'arrival_date'          =>
+					'limit'         => 100,
+					'arrival_date'  =>
 						[
 							'lt' => '1779802569',
 						],
-					'ending_before'    => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
+					'ending_before' => 'po_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
-			'arrival_date_with_lt_gt' => [
+			'arrival_date_with_lt_gt'                          => [
 				[
 					'arrival_date' =>
 						[
@@ -332,7 +332,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			'arrival_date_with_lte_gte' => [
+			'arrival_date_with_lte_gte'                        => [
 				[
 					'arrival_date' =>
 						[
@@ -341,7 +341,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			'arrival_date_with_lte_gte_zero' => [
+			'arrival_date_with_lte_gte_zero'                   => [
 				[
 					'arrival_date' =>
 						[
@@ -350,7 +350,7 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			'arrival_date_with_lte_zero_gte_zero' => [
+			'arrival_date_with_lte_zero_gte_zero'              => [
 				[
 					'arrival_date' =>
 						[
@@ -359,24 +359,24 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			'status_pending' => [
+			'status_pending'                                   => [
 				[
-					'status' =>'pending',
+					'status' => 'pending',
 				],
 			],
-			'status_paid' => [
+			'status_paid'                                      => [
 				[
-					'status' =>'paid',
+					'status' => 'paid',
 				],
 			],
-			'status_failed' => [
+			'status_failed'                                    => [
 				[
-					'status' =>'failed',
+					'status' => 'failed',
 				],
 			],
-			'status_canceled' => [
+			'status_canceled'                                  => [
 				[
-					'status' =>'canceled',
+					'status' => 'canceled',
 				],
 			],
 		];

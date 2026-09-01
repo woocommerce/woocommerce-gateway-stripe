@@ -79,7 +79,7 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 				'callback'            => [ $this, 'get_payouts' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 				'args'                => [
-					'limit'            => [
+					'limit'          => [
 						'type'              => 'integer',
 						'required'          => false,
 						'default'           => 10,
@@ -88,29 +88,29 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 						'sanitize_callback' => 'absint',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'starting_after'   => [
+					'starting_after' => [
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
 						'validate_callback' => [ self::class, 'validate_pagination_cursor' ],
 					],
-					'ending_before'    => [
+					'ending_before'  => [
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
 						'validate_callback' => [ self::class, 'validate_pagination_cursor' ],
 					],
-					'status'           => [
-						'type'              => 'string',
-						'required'          => false,
-						'enum'              => [ 'pending', 'paid', 'failed', 'canceled' ],
+					'status'         => [
+						'type'     => 'string',
+						'required' => false,
+						'enum'     => [ 'pending', 'paid', 'failed', 'canceled' ],
 					],
-					'arrival_date'          => [
+					'arrival_date'   => [
 						'required'          => false,
 						'sanitize_callback' => [ self::class, 'sanitize_unix_timestamp' ],
 						'validate_callback' => [ self::class, 'validate_unix_timestamp' ],
 					],
-					'created'          => [
+					'created'        => [
 						'required'          => false,
 						'sanitize_callback' => [ self::class, 'sanitize_unix_timestamp' ],
 						'validate_callback' => [ self::class, 'validate_unix_timestamp' ],
@@ -120,7 +120,7 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
 						'validate_callback' => [ self::class, 'validate_non_empty_string' ],
-					]
+					],
 				],
 			],
 		);
@@ -352,6 +352,6 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 	 * @return bool
 	 */
 	public static function validate_non_empty_string( $param_value, $request, $param_name ) {
-		return  '' !== trim( $param_value );
+		return '' !== trim( $param_value );
 	}
 }
