@@ -126,5 +126,5 @@ export const checkPaymentMethodIsAvailable = ( paymentMethod, api, cart ) => {
 		return Promise.resolve( false );
 	}
 
-	return probePaymentMethodAvailability( paymentMethod, api, cart );
+	return checkPaymentMethodAvailability( paymentMethod, api, cart );
 };
