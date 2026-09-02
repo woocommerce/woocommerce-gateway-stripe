@@ -511,15 +511,31 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'woocommerce-gateway-stripe'
 		);
 
+		$default_upe_params = $this->javascript_params();
+
+		/**
+		 * Filters the UPE classic checkout JavaScript parameters.
+		 *
+		 * @param array $params UPE JavaScript parameters.
+		 */
+		$upe_params = apply_filters( 'wc_stripe_upe_params', $default_upe_params );
+
+		// A filter callback returning a non-array must not fatal the checkout.
+		// Reuse the pre-filter params rather than regenerating them:
+		// javascript_params() has side effects (on the setup-intent success
+		// redirect it creates a payment token from the setup intent).
+		if ( ! is_array( $upe_params ) ) {
+			$upe_params = $default_upe_params;
+		}
+
+		// The bootstrap waits for these dependencies' globals before loading the
+		// async init chunk; sourcing the list from the build keeps it in sync.
+		$upe_params['scriptDependencies'] = $dependencies;
+
 		wp_localize_script(
 			'wc-stripe-upe-classic',
 			'wc_stripe_upe_params',
-			/**
-			 * Filters the UPE classic checkout JavaScript parameters.
-			 *
-			 * @param array $params UPE JavaScript parameters.
-			 */
-			apply_filters( 'wc_stripe_upe_params', $this->javascript_params() )
+			$upe_params
 		);
 
 		wp_register_style(
@@ -561,7 +577,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
+		$express_checkout_helper = $this->get_express_checkout_helper();
 
 		$is_signup_on_checkout_allowed = 'yes' === get_option( 'woocommerce_enable_signup_and_login_from_checkout', 'no' )
 			|| ( $this->is_subscription_item_in_cart() && 'yes' === get_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'no' ) );
@@ -596,6 +612,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isExpressCheckoutEnabled']          = $express_checkout_helper->is_express_checkout_enabled();
 		$stripe_params['isAmazonPayEnabled']                = $express_checkout_helper->is_amazon_pay_enabled();
 		$stripe_params['isLinkEnabled']                     = $express_checkout_helper->is_link_enabled();
+		// `isExpressCheckoutEnabled` aggregates all methods, so Apple/Google Pay need their own
+		// flags; per-wallet keys keep the contract stable if the shared setting ever splits.
+		$stripe_params['isApplePayEnabled']  = $express_checkout_helper->is_apple_google_pay_enabled();
+		$stripe_params['isGooglePayEnabled'] = $express_checkout_helper->is_apple_google_pay_enabled();
 
 		if ( $this->testmode ) {
 			/**
@@ -722,6 +742,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$order_currency                  = $order->get_currency();
 				$stripe_params['currency']       = $order_currency;
 				$stripe_params['cartTotal']      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order_currency );
+				$stripe_params['orderKey']       = $order->get_order_key();
 				$stripe_params['orderReturnURL'] = esc_url_raw(
 					add_query_arg(
 						[
@@ -748,6 +769,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
+	}
+
+	/**
+	 * Returns the express checkout helper used to compute the per-method flags.
+	 *
+	 * Protected seam so tests can substitute the helper.
+	 *
+	 * @return WC_Stripe_Express_Checkout_Helper
+	 */
+	protected function get_express_checkout_helper() {
+		return new WC_Stripe_Express_Checkout_Helper();
 	}
 
 	/**
@@ -1214,9 +1246,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			<?php
 			$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
 			if ( $this->is_saved_cards_enabled() && ! empty( $methods_enabled_for_saved_payments ) && ! $this->should_hide_save_payment_method_checkbox() ) {
-				/**
-				 * This filter is documented in includes/class-wc-stripe-blocks-support.php.
-				 */
+				/** This filter is documented in includes/class-wc-stripe-blocks-support.php. */
 				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page() || WC_Stripe_Helper::should_force_save_payment_method();
 				$this->save_payment_method_checkbox( $force_save_payment );
 			}
@@ -1537,7 +1567,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		if ( is_string( $checkout_session_id ) && ! empty( $checkout_session_id ) && ! WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected() ) {
+		if ( is_string( $checkout_session_id ) && ! empty( $checkout_session_id ) ) {
 			return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
 		}
 
@@ -1789,7 +1819,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true )
 				&& WC_Stripe_Payment_Methods::BLIK !== $selected_payment_type ) {
 				$wallet_and_voucher_methods        = array_merge( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS );
-				$contains_wallet_or_voucher_method = isset( $payment_intent->payment_method_types ) && count( array_intersect( $wallet_and_voucher_methods, $payment_intent->payment_method_types ) ) !== 0;
+				$contains_wallet_or_voucher_method = $this->is_payment_using_method_types( $wallet_and_voucher_methods, $selected_payment_type, $payment_intent );
 				$contains_redirect_next_action     = isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true )
 					&& ! empty( $payment_intent->next_action->{$payment_intent->next_action->type}->url );
 				if ( ! $contains_wallet_or_voucher_method && ! $contains_redirect_next_action ) {
@@ -2026,9 +2056,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 
 				// Run the necessary filter to make sure mandate information is added when it's required.
-				/**
-				 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-				 */
+				/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 				$request = apply_filters(
 					'wc_stripe_generate_create_intent_request',
 					$request,
@@ -3512,6 +3540,26 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		} else {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+			if ( '' === $payment_method_id && empty( $_POST['wc-stripe-confirmation-token'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+				// The gateway the shopper picked is fine; what is missing are the payment details the
+				// browser should have attached. This path is shared by every deferred-intent flow, so
+				// the message must not name a cause: it is also reached when Stripe.js fails to load,
+				// when the payment element is remounting, and on tampered requests.
+				throw new WC_Stripe_Exception(
+					'Payment method ID is missing from the request.',
+					__( 'Your payment details were not submitted. Please review the checkout form and try again.', 'woocommerce-gateway-stripe' )
+				);
+			}
+
+			// sanitize_text_field() leaves URL metacharacters intact, so validate the grammar before the
+			// value is concatenated into the Stripe API paths below, where it could retarget the request.
+			if ( '' !== $payment_method_id && ! WC_Stripe_Helper::is_valid_stripe_id( $payment_method_id, [ 'pm', 'src', 'card' ] ) ) {
+				throw new WC_Stripe_Exception(
+					'Invalid payment method ID in request.',
+					__( "The selected payment method isn't valid.", 'woocommerce-gateway-stripe' )
+				);
+			}
 		}
 
 		$payment_method_details = ! empty( $payment_method_id ) ? WC_Stripe_API::get_payment_method( $payment_method_id ) : null;
@@ -4365,7 +4413,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	protected function get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed ) {
 		$selected_payment_type = $this->get_selected_payment_type_from_info( $payment_information );
-		if ( isset( $payment_intent->payment_method_types ) && count( array_intersect( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, $payment_intent->payment_method_types ) ) !== 0 ) {
+		if ( $this->is_payment_using_method_types( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, $selected_payment_type, $payment_intent ) ) {
 			// For Voucher payment method types (Boleto/Oxxo/Multibanco), redirect the customer to a URL hash formatted #wc-stripe-voucher-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the voucher.
 			return sprintf(
 				'#wc-stripe-voucher-%s:%s:%s:%s',
@@ -4374,7 +4422,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$payment_intent->client_secret,
 				rawurlencode( $return_url )
 			);
-		} elseif ( isset( $payment_intent->payment_method_types ) && count( array_intersect( WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, $payment_intent->payment_method_types ) ) !== 0 ) {
+		} elseif ( $this->is_payment_using_method_types( WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, $selected_payment_type, $payment_intent ) ) {
 			// For Wallet payment method types (CashApp/WeChat Pay), redirect the customer to a URL hash formatted #wc-stripe-wallet-{order_id}:{payment_method_type}:{payment_intent_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the modal.
 			return sprintf(
 				'#wc-stripe-wallet-%s:%s:%s:%s:%s:%s',
@@ -4396,6 +4444,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$payment_intent->client_secret,
 			wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
 		);
+	}
+
+	/**
+	 * Whether the payment being processed uses one of the given payment method types.
+	 *
+	 * The selected type is authoritative: under Dynamic Payment Methods the intent's
+	 * `payment_method_types` lists every PMC-enabled method, not the customer's selection.
+	 * The intent-types intersect remains as a fallback when there is no selection reference.
+	 *
+	 * @param string[] $payment_method_types  Payment method types to match against.
+	 * @param string   $selected_payment_type The resolved selected payment type, '' when unknown.
+	 * @param object   $payment_intent        The Stripe payment intent.
+	 *
+	 * @return bool
+	 */
+	private function is_payment_using_method_types( array $payment_method_types, string $selected_payment_type, $payment_intent ): bool {
+		if ( '' !== $selected_payment_type ) {
+			return in_array( $selected_payment_type, $payment_method_types, true );
+		}
+
+		return isset( $payment_intent->payment_method_types ) && count( array_intersect( $payment_method_types, $payment_intent->payment_method_types ) ) !== 0;
 	}
 
 	/**
@@ -4743,9 +4812,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'redirect_to' => rawurlencode( $result['redirect'] ),
 		];
 
-		/**
-		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-		 */
 		$force_save_source_value = apply_filters( 'wc_stripe_force_save_source', false );
 
 		// We want to save the payment method if requested or forced, AND if we are not
@@ -4804,9 +4870,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$order = wc_get_order( $order->get_id() );
 
 		if ( ! $order->has_status(
-			/**
-			 * This filter is documented in includes/class-wc-stripe-webhook-handler.php.
-			 */
+			/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
 			apply_filters(
 				'wc_stripe_allowed_payment_processing_statuses',
 				[ OrderStatus::PENDING, OrderStatus::FAILED ],

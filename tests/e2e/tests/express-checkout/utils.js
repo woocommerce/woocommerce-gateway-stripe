@@ -17,11 +17,19 @@ export const assertLinkModalLoads = async ( page, isBlockPage = false ) => {
 	await expect( linkButton ).toBeVisible( { timeout: 60 * 1000 } );
 	await expect( linkButton ).toBeEnabled();
 
+	// The Express Checkout Element ignores clicks that land before Stripe has
+	// re-synced the iframe's position after a scroll, and Playwright scrolls the
+	// button into view as part of the click itself. So the first click is
+	// silently swallowed whenever the button starts below the fold, as it does
+	// on the Cart block; by the second the page no longer needs to scroll.
 	const context = page.context();
-	const [ popup ] = await Promise.all( [
-		context.waitForEvent( 'page', { timeout: 60 * 1000 } ),
-		linkButton.click(),
-	] );
+	let popup;
+	await expect( async () => {
+		[ popup ] = await Promise.all( [
+			context.waitForEvent( 'page', { timeout: 10 * 1000 } ),
+			linkButton.click(),
+		] );
+	} ).toPass( { timeout: 45 * 1000 } );
 
 	await popup.waitForLoadState();
 
