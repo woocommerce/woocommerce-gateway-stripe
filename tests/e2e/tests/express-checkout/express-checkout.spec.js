@@ -88,50 +88,30 @@ test.describe( 'express checkout and variable products', () => {
 		await expect( linkButton ).toBeVisible();
 	} );
 
-	test( 'opens the wallet sheet priced from the cart response', async ( {
+	test( 'prices the wallet sheet from the cart response, including after a quantity change', async ( {
 		page,
 	} ) => {
 		// The sheet must show the add-item response's total. (Link's pre-auth
 		// screen renders no line items; the breakdown is unit-covered.)
 		let cart = null;
+		let addItemCount = 0;
 		page.on( 'response', async ( response ) => {
 			if ( response.url().includes( '/wc/store/v1/cart/add-item' ) ) {
 				try {
 					cart = await response.json();
+					addItemCount++;
 				} catch ( error ) {}
 			}
 		} );
-
-		await page.goto( '/product/hoodie' );
-		await page
-			.getByLabel( 'color', { exact: true } )
-			.selectOption( 'Blue' );
-		await page.getByLabel( 'Logo', { exact: true } ).selectOption( 'Yes' );
-
-		const popup = await assertLinkModalLoads( page );
-
-		expect( cart?.totals?.total_price ).toBeTruthy();
-		expect( cart.items[ 0 ].quantity ).toBe( 1 );
 
 		// The pay button renders the formatted amount ("Pay $20.00"); its
 		// digits are the total in minor units, format-independent.
-		const payText = await popup.getByTestId( 'pay-button' ).innerText();
-		expect( payText.replace( /\D/g, '' ) ).toContain(
-			String( parseInt( cart.totals.total_price, 10 ) )
-		);
-	} );
-
-	test( 'reprices the sheet after dismissing it and changing the quantity', async ( {
-		page,
-	} ) => {
-		let cart = null;
-		page.on( 'response', async ( response ) => {
-			if ( response.url().includes( '/wc/store/v1/cart/add-item' ) ) {
-				try {
-					cart = await response.json();
-				} catch ( error ) {}
-			}
-		} );
+		const expectSheetTotal = async ( popup, minorUnits ) => {
+			const payText = await popup.getByTestId( 'pay-button' ).innerText();
+			expect( payText.replace( /\D/g, '' ) ).toContain(
+				String( minorUnits )
+			);
+		};
 
 		await page.goto( '/product/hoodie' );
 		await page
@@ -140,25 +120,47 @@ test.describe( 'express checkout and variable products', () => {
 		await page.getByLabel( 'Logo', { exact: true } ).selectOption( 'Yes' );
 
 		const firstPopup = await assertLinkModalLoads( page );
+		expect( cart.items[ 0 ].quantity ).toBe( 1 );
 		const firstTotal = parseInt( cart.totals.total_price, 10 );
+		await expectSheetTotal( firstPopup, firstTotal );
 		await firstPopup.close();
 
-		// Change the quantity and re-tap immediately: nothing observes the
-		// page, so the click itself must pick up the new quantity.
-		await page.locator( '.quantity .qty' ).fill( '3' );
-		const secondPopup = await assertLinkModalLoads( page );
+		// Change the quantity, then re-tap. Until Stripe's poller notices the
+		// closed popup (~1-2s) the old session stays active: clicks either
+		// get swallowed or REOPEN the old session's window without running
+		// our handler (and the restore can revert the quantity input). So
+		// per attempt: re-assert the quantity, and only accept a popup that
+		// has a fresh add-item response behind it.
+		const linkButton = await getLinkButton( page );
+		let secondPopup = null;
+		await expect( async () => {
+			await page.locator( '.quantity .qty' ).fill( '3' );
+			const seenResponses = addItemCount;
+			const [ popup ] = await Promise.all( [
+				page.context().waitForEvent( 'page', { timeout: 2000 } ),
+				linkButton.click(),
+			] );
+			try {
+				await expect
+					.poll( () => addItemCount, { timeout: 4000 } )
+					.toBeGreaterThan( seenResponses );
+			} catch ( pollError ) {
+				// A restored session window has no fresh cart: discard it so
+				// the next attempt's click isn't ignored for an open popup.
+				await popup.close();
+				throw pollError;
+			}
+			secondPopup = popup;
+		} ).toPass( { timeout: 30 * 1000 } );
+		await expect( secondPopup.getByTestId( 'pay-button' ) ).toBeVisible( {
+			timeout: 60 * 1000,
+		} );
 
 		expect( cart.items[ 0 ].quantity ).toBe( 3 );
 		// Not firstTotal * 3: the total carries order-level components
 		// (flat-rate shipping) that don't scale with quantity.
 		const secondTotal = parseInt( cart.totals.total_price, 10 );
 		expect( secondTotal ).toBeGreaterThan( firstTotal );
-
-		const payText = await secondPopup
-			.getByTestId( 'pay-button' )
-			.innerText();
-		expect( payText.replace( /\D/g, '' ) ).toContain(
-			String( secondTotal )
-		);
+		await expectSheetTotal( secondPopup, secondTotal );
 	} );
 } );
