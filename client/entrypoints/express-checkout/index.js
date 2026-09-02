@@ -103,12 +103,9 @@ jQuery( function ( $ ) {
 			'allowed_shipping_countries'
 		);
 
-		// Product pages: the click handler writes cart-derived items into the
-		// cached product params (`getExpressCheckoutData( 'product' )`) before
-		// resolving, so read them from there for every product type —
-		// creation-time options would show quantity-1 items under a
-		// quantity-aware total. normalizeLineItems handles both the legacy
-		// and the cart-derived item shapes.
+		// Product pages: the click handler writes cart-derived items into
+		// the cached params before resolving, so read them from there for
+		// every product type.
 		const isProductPage = getExpressCheckoutData( 'is_product_page' );
 		const displayItems = isProductPage
 			? getExpressCheckoutData( 'product' )?.displayItems ??
@@ -362,10 +359,8 @@ jQuery( function ( $ ) {
 						timeout,
 					] );
 				} catch ( error ) {
-					// The server refused the add (insufficient stock, an
-					// unsupported product type, …) — the cases the deleted
-					// per-selection refresh used to hide the buttons for.
-					// Its message is already localized and shopper-facing.
+					// The server refused the add (stock, unsupported type);
+					// its message is already shopper-facing.
 					event.reject?.();
 					wcStripeECE.isAddToCartSuccessful = false;
 					promptAfterWalletDismissal(
@@ -405,9 +400,8 @@ jQuery( function ( $ ) {
 							wcStripeECE.isAddToCartSuccessful =
 								response?.items_count > 0 ||
 								response?.result === 'success';
-							// Record the selection only when the cached
-							// params now hold its cart data - otherwise a
-							// retry would resolve from stale bootstrap data.
+							// Record only when the cached params hold
+							// this response's cart data.
 							if (
 								wcStripeECE.refreshTotalsFromCart( response ) &&
 								wcStripeECE.isAddToCartSuccessful
@@ -425,10 +419,6 @@ jQuery( function ( $ ) {
 				}
 
 				wcStripeECE.isAddToCartSuccessful = true;
-
-				// The cart response embodies every price influence
-				// (variation, quantity, add-ons, server-side fees), so the
-				// sheet resolves from it rather than from any preview.
 				wcStripeECE.refreshTotalsFromCart( result );
 
 				return resolveClickEvent( event, clickOptions );
