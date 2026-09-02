@@ -364,13 +364,16 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			WC_Stripe_Logger::$logger = $previous_logger;
 		}
 
+		// The gateway stamps the lock while processing, so the ceiling is the clock after the call, not before it.
+		$processing_finished_at = time();
+
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
 
 		$lock_expiry = (int) $order_helper->get_order_existing_payment_lock( $renewal_order );
 
 		$this->assertSame( [], $api_requests );
 		$this->assertGreaterThan( $processing_started_at, $lock_expiry );
-		$this->assertLessThanOrEqual( $processing_started_at + 5 * MINUTE_IN_SECONDS, $lock_expiry );
+		$this->assertLessThanOrEqual( $processing_finished_at + 5 * MINUTE_IN_SECONDS, $lock_expiry );
 
 		$order_id        = (string) $renewal_order->get_id();
 		$matching_errors = array_filter(
@@ -1021,11 +1024,14 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
 		}
 
+		// The gateway stamps the lock while processing, so the ceiling is the clock after the call, not before it.
+		$processing_finished_at = time();
+
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
 
 		$this->assertNotEmpty( $requested );
 		$this->assertGreaterThan( $processing_started_at, (int) $lock_during_request );
-		$this->assertLessThanOrEqual( $processing_started_at + 5 * MINUTE_IN_SECONDS, (int) $lock_during_request );
+		$this->assertLessThanOrEqual( $processing_finished_at + 5 * MINUTE_IN_SECONDS, (int) $lock_during_request );
 		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
 		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $renewal_order ) );
 	}
