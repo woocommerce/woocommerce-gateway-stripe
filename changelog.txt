@@ -37,6 +37,7 @@ xxxx-xx-xx - version 11.0.0
 * Fix - Remove the empty box shown under "Use a new payment method" on classic checkout when the save-payment-method checkbox is hidden
 * Fix - Ensure webhook status checks reset API key
 * Fix - Keep express checkout and the payment options rendering on the first block checkout load of a free-trial subscription cart
+* Add - Handle Stripe `mandate.updated` webhooks to update order/subscription status and add order notes when a mandate is revoked, paused, or reactivated for Indian recurring payments and other mandate-based payment methods
 
 2026-08-31 - version 10.9.1
 * Fix - Allow express checkout payments when automatic account password generation is disabled

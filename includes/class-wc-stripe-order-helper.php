@@ -1,5 +1,7 @@
 <?php
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -787,6 +789,62 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function update_stripe_mandate_id( ?WC_Order $order = null, string $mandate_id = '' ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_MANDATE_ID, $mandate_id );
+	}
+
+	/**
+	 * Gets the most recent non-terminal order by Stripe mandate ID.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param string $mandate_id The Stripe mandate ID.
+	 * @return WC_Order|null The order, or null if not found.
+	 */
+	public function get_order_by_mandate_id( string $mandate_id ): ?WC_Order {
+		if ( empty( $mandate_id ) ) {
+			return null;
+		}
+
+		global $wpdb;
+
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
+			$orders = wc_get_orders(
+				[
+					'limit'      => 1,
+					'status'     => [ OrderStatus::PENDING, OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ],
+					'orderby'    => 'date',
+					'order'      => 'DESC',
+					'meta_query' => [
+						[
+							'key'   => self::META_STRIPE_MANDATE_ID,
+							'value' => $mandate_id,
+						],
+					],
+				]
+			);
+
+			if ( is_array( $orders ) && ! empty( $orders ) && $orders[0] instanceof WC_Order ) {
+				return $orders[0];
+			}
+
+			return null;
+		}
+
+		$order_id = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s AND posts.post_status IN ('wc-pending', 'wc-processing', 'wc-completed', 'wc-on-hold') ORDER BY posts.post_date DESC LIMIT 1",
+				$mandate_id,
+				self::META_STRIPE_MANDATE_ID
+			)
+		);
+
+		if ( ! empty( $order_id ) ) {
+			$order = wc_get_order( $order_id );
+			if ( $order instanceof WC_Order && $order->get_status() !== OrderStatus::TRASH ) {
+				return $order;
+			}
+		}
+
+		return null;
 	}
 
 	/**
