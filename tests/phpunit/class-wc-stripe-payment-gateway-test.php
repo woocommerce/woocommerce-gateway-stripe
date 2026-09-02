@@ -57,6 +57,48 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertFalse( $intent );
 	}
 
+	public function test_deprecated_payment_lock_methods_delegate_to_order_helper() {
+		$order        = WC_Helper_Order::create_order();
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::lock_order_payment' );
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::is_order_payment_locked' );
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::get_order_existing_lock' );
+		$this->assertFalse( $this->gateway->lock_order_payment( $order ) );
+
+		$owned_lock = (string) $order_helper->get_order_existing_payment_lock( $order );
+		$this->assertTrue( $order_helper->is_order_payment_lock_owned( $order, $owned_lock ) );
+
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::unlock_order_payment' );
+		$this->gateway->unlock_order_payment( $order );
+
+		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $order ) );
+	}
+
+	/**
+	 * @dataProvider provide_malformed_payment_lock_metadata
+	 */
+	public function test_deprecated_payment_lock_reader_treats_malformed_metadata_as_locked( $lock_metadata ) {
+		$order = WC_Helper_Order::create_order();
+		$order->update_meta_data( '_stripe_lock_payment', $lock_metadata );
+		$order->save_meta_data();
+
+		$method = new ReflectionMethod( WC_Stripe_Payment_Gateway::class, 'is_order_payment_locked' );
+		$method->setAccessible( true );
+
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::is_order_payment_locked' );
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::get_order_existing_lock' );
+		$this->assertTrue( $method->invoke( $this->gateway, $order ) );
+	}
+
+	public function provide_malformed_payment_lock_metadata() {
+		return [
+			'empty array'     => [ [] ],
+			'non-empty array' => [ [ 'malformed' ] ],
+			'object'          => [ new stdClass() ],
+		];
+	}
+
 	/**
 	 * Tests if payment intent is fetched from Stripe API.
 	 */

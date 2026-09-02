@@ -201,5 +201,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Ensure webhook status checks reset API key
 * Fix - Keep express checkout and the payment options rendering on the first block checkout load of a free-trial subscription cart
 * Fix - Honor subscription renewal payment locks while preserving retry attempts
+* Fix - Claim an atomic owner row before writing an order payment lock, and only release locks this request acquired
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

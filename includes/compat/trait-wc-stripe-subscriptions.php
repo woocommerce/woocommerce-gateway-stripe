@@ -511,8 +511,9 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// The 5-minute lock can lapse mid-retry; only release it while it is still ours.
-		$our_lock    = (string) $order_helper->get_order_existing_payment_lock( $renewal_order );
-		$lock_expiry = (int) $our_lock;
+		$our_lock = (string) $order_helper->get_order_existing_payment_lock( $renewal_order );
+		// The lock is a bare timestamp or "{expiry}|{owner_token}".
+		$lock_expiry = (int) explode( '|', $our_lock, 2 )[0];
 
 		try {
 			$this->process_subscription_payment_attempt( $amount, $renewal_order, $retry, $previous_error, $lock_expiry );

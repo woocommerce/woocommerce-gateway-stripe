@@ -46,6 +46,7 @@ xxxx-xx-xx - version 11.0.0
 * Fix - Prevent classic checkout from processing an empty payment method when custom required fields are present
 * Fix - Explain that payment details were not submitted, instead of reporting the selected payment method as invalid, when checkout is submitted without them
 * Fix - Honor subscription renewal payment locks while preserving retry attempts
+* Fix - Claim an atomic owner row before writing an order payment lock, and only release locks this request acquired
 
 2026-08-17 - version 10.9.0
 * Fix - Re-enable Adaptive Pricing if it was automatically disabled after a Checkout Session amount mismatch

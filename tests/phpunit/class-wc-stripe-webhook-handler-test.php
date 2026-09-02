@@ -1240,6 +1240,59 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
+	public function test_process_webhook_defers_while_another_request_owns_the_payment_lock(): void {
+		$checkout_session_id = 'cs_test_locked_by_other_request';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		// Another request holds the lock; the webhook runs with its own helper instance.
+		$other_request_helper = new WC_Stripe_Order_Helper();
+		$this->assertFalse( $other_request_helper->lock_order_payment( wc_get_order( $order->get_id() ) ) );
+		$owned_lock = (string) $other_request_helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) );
+		WC_Stripe_Order_Helper::set_instance( new WC_Stripe_Order_Helper() );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_locked_by_other_request',
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
+				],
+			],
+		];
+
+		$handler = new WC_Stripe_Webhook_Handler();
+		$prop    = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $this->createMock( WC_Stripe_Action_Scheduler_Service::class ) );
+
+		$fired    = 0;
+		$listener = function () use ( &$fired ) {
+			++$fired;
+		};
+		add_action( 'wc_stripe_webhook_received', $listener );
+
+		try {
+			$handler->process_webhook( wp_json_encode( $notification ) );
+			$still_owned = $other_request_helper->is_order_payment_lock_owned( wc_get_order( $order->get_id() ), $owned_lock );
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $listener );
+			$other_request_helper->unlock_order_payment_if_owned( wc_get_order( $order->get_id() ), $owned_lock );
+		}
+
+		$this->assertSame( 0, $fired );
+		$this->assertTrue( $still_owned );
+	}
+
 	public function test_process_webhook_skips_received_action_when_order_payment_locked(): void {
 		$checkout_session_id = 'cs_test_locked_no_action';
 
