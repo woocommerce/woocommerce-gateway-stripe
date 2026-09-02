@@ -721,12 +721,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:process_refund\(\) should return bool but returns WP_Error\.$#'
-			identifier: return.type
-			count: 2
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:render_upe_settings\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -1527,7 +1521,7 @@ parameters:
 		-
 			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentContext\:\:\$order\.$#'
 			identifier: property.protected
-			count: 2
+			count: 4
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
@@ -1539,13 +1533,19 @@ parameters:
 		-
 			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentContext\:\:\$payment_method\.$#'
 			identifier: property.protected
-			count: 6
+			count: 5
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
 			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentResult\:\:\$payment_details\.$#'
 			identifier: property.protected
 			count: 2
+			path: includes/class-wc-stripe-blocks-support.php
+
+		-
+			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentResult\:\:\$status\.$#'
+			identifier: property.protected
+			count: 1
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
@@ -1615,18 +1615,6 @@ parameters:
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^Cannot access property \$message on array\.$#'
-			identifier: property.nonObject
-			count: 2
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Cannot access property \$type on array\.$#'
-			identifier: property.nonObject
-			count: 2
-			path: includes/class-wc-stripe-customer.php
-
-		-
 			message: '#^Cannot call method save\(\) on WC_Payment_Token_SEPA\|WC_Stripe_Payment_Token_CC\|false\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -1677,12 +1665,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Customer\:\:get_user\(\) should return WP_User but returns WP_User\|false\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:is_no_such_customer_error\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/class-wc-stripe-customer.php
 
@@ -2559,13 +2541,13 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$data\.$#'
 			identifier: property.notFound
-			count: 44
+			count: 42
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 11
+			count: 10
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3693,7 +3675,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$client_secret\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -3717,7 +3699,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$object\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
