@@ -6883,53 +6883,55 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Test that set_cookie_on_current_request does not set the cookie outside of checkout context.
+	 * Test that set_cookie_on_current_request does not set the cookie outside of checkout.
 	 *
-	 * Reproduces: cart emptied after My Account registration when Stripe + WooPayments + Jetpack are active.
+	 * Runs in its own process because `WOOCOMMERCE_CHECKOUT` is being defined in the test,
+	 * and then pollutes the global state for other tests.
+	 *
 	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4875
 	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
-	public function test_set_cookie_on_current_request_does_not_set_cookie_outside_checkout() {
-		// WOOCOMMERCE_CHECKOUT is not defined — simulates My Account registration context.
-		$gateway = new WC_Stripe_UPE_Payment_Gateway();
-		$gateway->set_cookie_on_current_request( 'test_cookie_value' );
-
-		$this->assertArrayNotHasKey( LOGGED_IN_COOKIE, $_COOKIE );
-	}
-
-	/**
-	 * Test that set_cookie_on_current_request does not set the cookie during checkout
-	 * if no customer has been created yet.
+	 * @param bool|null $checkout_constant Value for `WOOCOMMERCE_CHECKOUT`, or null to leave it undefined.
+	 * @param bool      $customer_created  Whether `woocommerce_created_customer` has fired on this request.
+	 * @param bool      $expects_cookie    Whether the logged-in cookie is expected to be swapped.
+	 *
+	 * @dataProvider provide_set_cookie_on_current_request_contexts
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_set_cookie_on_current_request_does_not_set_cookie_during_checkout_before_customer_creation() {
-		define( 'WOOCOMMERCE_CHECKOUT', true );
-		// woocommerce_created_customer has NOT fired yet.
+	public function test_set_cookie_on_current_request( ?bool $checkout_constant, bool $customer_created, bool $expects_cookie ): void {
+		if ( null !== $checkout_constant ) {
+			define( 'WOOCOMMERCE_CHECKOUT', $checkout_constant );
+		}
+
+		if ( $customer_created ) {
+			do_action( 'woocommerce_created_customer', 1, [], false );
+		}
+
 		$gateway = new WC_Stripe_UPE_Payment_Gateway();
 		$gateway->set_cookie_on_current_request( 'test_cookie_value' );
 
-		$this->assertArrayNotHasKey( LOGGED_IN_COOKIE, $_COOKIE );
+		if ( $expects_cookie ) {
+			$this->assertSame( 'test_cookie_value', $_COOKIE[ LOGGED_IN_COOKIE ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		} else {
+			$this->assertArrayNotHasKey( LOGGED_IN_COOKIE, $_COOKIE );
+		}
 	}
 
 	/**
-	 * Test that set_cookie_on_current_request sets the cookie during checkout
-	 * after a customer has been created (the nonce-consistency use case for 3DS).
+	 * Data provider for {@see test_set_cookie_on_current_request()}.
 	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * @return array<string, array{0: bool|null, 1: bool, 2: bool}>
 	 */
-	public function test_set_cookie_on_current_request_sets_cookie_during_checkout_after_customer_creation() {
-		define( 'WOOCOMMERCE_CHECKOUT', true );
-		do_action( 'woocommerce_created_customer', 1, [], false );
-
-		$gateway = new WC_Stripe_UPE_Payment_Gateway();
-		$gateway->set_cookie_on_current_request( 'test_cookie_value' );
-
-		$this->assertSame( 'test_cookie_value', $_COOKIE[ LOGGED_IN_COOKIE ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+	public function provide_set_cookie_on_current_request_contexts() {
+		return [
+			'constant undefined, no customer created'      => [ null, false, false ],
+			'constant undefined, customer just registered' => [ null, true, false ],
+			'constant defined false, no customer created'  => [ false, false, false ],
+			'constant defined false, customer registered'  => [ false, true, false ],
+			'checkout request, no customer created'        => [ true, false, false ],
+			'checkout request, customer just created'      => [ true, true, true ],
+		];
 	}
 
 	/**
