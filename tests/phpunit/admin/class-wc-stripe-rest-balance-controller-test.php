@@ -43,7 +43,7 @@ class WC_Stripe_REST_Balance_Controller_Test extends WP_UnitTestCase {
 		];
 	}
 	/**
-	 * Mock stripe API calls to avoid making real HTTP requests. 
+	 * Mock stripe API calls to avoid making real HTTP requests.
 	 */
 	protected function stub_http_call() {
 		add_filter(
