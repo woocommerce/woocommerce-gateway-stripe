@@ -2491,4 +2491,33 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$this->assertNull( $data );
 	}
+
+	/**
+	 * Building the render-time cart snapshot must not define WOOCOMMERCE_CART: the
+	 * snapshot is built during full checkout page renders, and the constant makes
+	 * core's is_cart() return true for the rest of the request, breaking every
+	 * is_cart() consumer on the checkout page.
+	 *
+	 * @return void
+	 */
+	public function test_get_cart_render_data_does_not_define_woocommerce_cart(): void {
+		if ( defined( 'WOOCOMMERCE_CART' ) ) {
+			$this->markTestSkipped( 'WOOCOMMERCE_CART already defined by an earlier test in this process; cannot assert.' );
+		}
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+
+		WC()->cart->empty_cart();
+		WC()->cart->add_to_cart( WC_Helper_Product::create_simple_product()->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$data   = $helper->get_cart_render_data();
+
+		remove_filter( 'woocommerce_is_checkout', '__return_true' );
+		WC()->cart->empty_cart();
+
+		$this->assertIsArray( $data );
+		$this->assertFalse( defined( 'WOOCOMMERCE_CART' ) );
+	}
 }

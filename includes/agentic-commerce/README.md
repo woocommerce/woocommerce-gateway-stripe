@@ -365,6 +365,25 @@ add_filter(
 
 > The Stripe-prefixed `wc_stripe_agentic_commerce_disable_checkout` filter is **deprecated since 10.9.0** in favour of the shareable `woocommerce_agentic_commerce_disable_checkout` above (mirroring the `woocommerce_agentic_commerce_should_sync_product` migration). Existing hooks on the old name still run — they seed the new filter's default — but emit a deprecation notice.
 
+## Product sync eligibility
+
+The feed query selects published simple products and variations, so grouped, external/affiliate, private, draft and trashed products never reach it. On top of that, `WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product()` excludes by default:
+
+| Excluded | Why |
+| --- | --- |
+| Subscription product types | They fail feed validation and downgrade the whole sync to a partial success. |
+| Password-protected products | The password gate states who may view the product, and the exported `link` would only render a password prompt. |
+| Products hidden from catalog **and** search | `hidden` is the strongest "do not surface this" signal WooCommerce offers. |
+| Products with the per-product exclude flag | The merchant opted the product out explicitly. |
+
+Catalog visibility values that hide a product from only one surface (`catalog`, `search`) are **not** treated as exclusions — the product is still meant to be reachable by the other route.
+
+A variation inherits its parent's catalog visibility but **not** its `post_password` (it is a separate post with its own empty value), so the password check resolves to the parent. Variations are what the feed actually exports, so skipping that lookup would leak every variation of a password-protected variable product.
+
+All of these are defaults rather than hard blocks: `woocommerce_agentic_commerce_should_sync_product` can return `true` to opt a product back in.
+
+Because the filter only governs what is *sent*, a product that was already exported and later becomes ineligible stays in Stripe's catalog until a full feed replacement. `WC_Stripe_Agentic_Commerce_Product_Visibility` watches product saves and per-product exclude-flag writes, and fires `wc_stripe_agentic_commerce_schedule_full_resync` when a product crosses that boundary — adapters whose own filter verdict changes must fire the same action.
+
 ## Coupons and discounts
 
 WooCommerce coupons do not participate in delegated (in-agent) checkout. Prices come from the synced product feed and are computed by Stripe, the shopper pays inside the AI agent, and the WooCommerce order is only created afterwards from the completed session. Consequences merchants should be aware of:
