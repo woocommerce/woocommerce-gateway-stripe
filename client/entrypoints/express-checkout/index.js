@@ -87,8 +87,9 @@ jQuery( function ( $ ) {
 	const hasBookingForm = $( '.wc-bookings-booking-form' ).length > 0;
 
 	// Variable and booking products keep the legacy display-item format: their
-	// product-page preview comes from `get_selected_product_data`, which has no
-	// Store API equivalent. Add-to-cart routing is handled separately in `addToCart()`.
+	// bootstrap params and legacy add-to-cart responses carry labeled items
+	// from `build_display_items()`. Add-to-cart routing is handled separately
+	// in `addToCart()`.
 	const useLegacyDisplayItems = hasVariationUi || hasBookingForm;
 
 	const resolveClickEvent = ( event, options ) => {
@@ -145,6 +146,11 @@ jQuery( function ( $ ) {
 
 		return event.resolve( clickOptions );
 	};
+
+	// The selection a late-settled add left in the cart; a matching retry
+	// resolves without re-adding. Never set on the fast path, which
+	// re-prices every click to stay fresh.
+	let cartSelectionKey = null;
 
 	// Check if the product is waiting for a variation to be selected.
 	const isVariationSelectionNeeded = () => {
@@ -327,12 +333,23 @@ jQuery( function ( $ ) {
 					return;
 				}
 
+				const request = wcStripeECE.buildAddToCartRequest();
+				const selectionKey = JSON.stringify( request );
+
+				// The cart already holds this selection (a late-settled
+				// add): resolve from the cart-derived params, no re-add.
+				if ( cartSelectionKey === selectionKey ) {
+					wcStripeECE.isAddToCartSuccessful = true;
+					return resolveClickEvent( event, clickOptions );
+				}
+				cartSelectionKey = null;
+
 				// Stripe requires resolve()/reject() within 1s of the click, so
 				// the cart response gets a 700ms budget (leaving margin for the
 				// resolve work). The timer winning the race doesn't mean the
 				// request failed — it's still in flight, just too slow for
 				// this click's deadline.
-				const addToCartPromise = wcStripeECE.addToCart();
+				const addToCartPromise = wcStripeECE.addToCart( request );
 				const timeout = new Promise( ( resolve ) =>
 					setTimeout( () => {
 						resolve( 'timeout' );
@@ -388,7 +405,15 @@ jQuery( function ( $ ) {
 							wcStripeECE.isAddToCartSuccessful =
 								response?.items_count > 0 ||
 								response?.result === 'success';
-							wcStripeECE.refreshTotalsFromCart( response );
+							// Record the selection only when the cached
+							// params now hold its cart data - otherwise a
+							// retry would resolve from stale bootstrap data.
+							if (
+								wcStripeECE.refreshTotalsFromCart( response ) &&
+								wcStripeECE.isAddToCartSuccessful
+							) {
+								cartSelectionKey = selectionKey;
+							}
 						}
 					} catch ( error ) {
 						wcStripeECE.isAddToCartSuccessful = false;
@@ -727,11 +752,15 @@ jQuery( function ( $ ) {
 		getAttributes: () => getSelectedVariationAttributes(),
 
 		/**
-		 * Adds the item to the cart and return cart details.
+		 * Builds the add-to-cart request from the current page state. Also
+		 * serves as the retry-priming key material, so the key cannot drift
+		 * from what reaches the cart.
 		 *
-		 * @return {Promise} Promise for the request to the server.
+		 * @return {{usesLegacyEndpoint: boolean, emptyCartParams: Object, data: Object}}
+		 *         The endpoint routing flag, the empty-cart parameters, and
+		 *         the request body.
 		 */
-		addToCart: async () => {
+		buildAddToCartRequest: () => {
 			let productId = $( '.single_add_to_cart_button' ).val();
 			let emptyCartParams = {};
 
@@ -786,21 +815,15 @@ jQuery( function ( $ ) {
 					  )
 					: null;
 
-				// Clear the cart first (with the booking id) so prior items don't
-				// skew the total, matching the variable/simple path below.
-				await api.expressCheckoutEmptyCartLegacy( emptyCartParams );
-
 				if ( ! bookingConfiguration ) {
 					data.product_id = productId;
 					data.attributes = wcStripeECE.getAttributes().data;
-
-					return api.expressCheckoutAddToCartLegacy( data );
+					return { usesLegacyEndpoint: true, emptyCartParams, data };
 				}
 
 				data.id = productId;
 				data.booking_configuration = bookingConfiguration;
-
-				return api.expressCheckoutAddToCart( data );
+				return { usesLegacyEndpoint: false, emptyCartParams, data };
 			}
 
 			data.id = productId;
@@ -813,13 +836,37 @@ jQuery( function ( $ ) {
 				  )
 				: [];
 
-			// Clear the cart, so items that are currently in it
-			//  do not interfere with computed totals.
-			// Use the non-StoreAPI method as it is faster; Stripe requires
-			// the click event to be resolved within 1 second.
+			return { usesLegacyEndpoint: false, emptyCartParams, data };
+		},
+
+		/**
+		 * Adds the item to the cart and returns cart details.
+		 *
+		 * @param {Object}  request                    The built request; defaults
+		 *                                             to building one from the
+		 *                                             current page state.
+		 * @param {boolean} request.usesLegacyEndpoint Route to the legacy
+		 *                                             endpoint.
+		 * @param {Object}  request.emptyCartParams    Parameters for the cart clear.
+		 * @param {Object}  request.data               The request body.
+		 * @return {Promise} Promise for the request to the server.
+		 */
+		addToCart: async (
+			{
+				usesLegacyEndpoint,
+				emptyCartParams,
+				data,
+			} = wcStripeECE.buildAddToCartRequest()
+		) => {
+			// Clear the cart (with the booking id where applicable), so items
+			// currently in it do not interfere with computed totals. Use the
+			// non-StoreAPI method as it is faster; Stripe requires the click
+			// event to be resolved within 1 second.
 			await api.expressCheckoutEmptyCartLegacy( emptyCartParams );
 
-			return api.expressCheckoutAddToCart( data );
+			return usesLegacyEndpoint
+				? api.expressCheckoutAddToCartLegacy( data )
+				: api.expressCheckoutAddToCart( data );
 		},
 
 		/**
@@ -848,33 +895,56 @@ jQuery( function ( $ ) {
 			payment.paymentFailed( { reason: 'fail' } );
 		},
 
-		// Refresh the cached product params (the page-load bootstrap data) and
-		// the element amount from a Store API cart response. No-op for
-		// responses without totals (legacy/bookings) and off product pages.
+		/**
+		 * Refreshes the cached product params and the element amount from an
+		 * add-to-cart response. Both shapes are cart-computed: Store API, and
+		 * legacy (`build_display_items()`, amounts already in minor units).
+		 *
+		 * @param {Object} cart The add-to-cart response.
+		 * @return {boolean} Whether cart data was applied; false off product
+		 *                   pages or for unrecognized shapes.
+		 */
 		refreshTotalsFromCart: ( cart ) => {
-			if ( ! cart?.totals || ! getExpressCheckoutData( 'product' ) ) {
-				return;
+			if ( ! getExpressCheckoutData( 'product' ) ) {
+				return false;
 			}
 
-			const amount = transformCartTotalAmount( cart.totals );
+			if ( cart?.totals ) {
+				const amount = transformCartTotalAmount( cart.totals );
 
-			// The selection decides whether an address is needed (a virtual
-			// variation must not prompt), so the cart's verdict replaces the
-			// parent-product flag the page loaded with.
-			if ( typeof cart.needs_shipping === 'boolean' ) {
-				getExpressCheckoutData( 'product' ).requestShipping =
-					cart.needs_shipping;
+				// The selection decides whether an address is needed (a
+				// virtual variation must not prompt), so the cart's verdict
+				// replaces the parent-product flag the page loaded with.
+				if ( typeof cart.needs_shipping === 'boolean' ) {
+					getExpressCheckoutData( 'product' ).requestShipping =
+						cart.needs_shipping;
+				}
+
+				wcStripeECE.refreshTotals( {
+					total: {
+						...getExpressCheckoutData( 'product' ).total,
+						amount,
+						pending: false,
+					},
+					displayItems: transformCartDataForDisplayItems( cart ),
+				} );
+				wcStripeECE.updateExpressCheckoutAmount( amount );
+				return true;
 			}
 
-			wcStripeECE.refreshTotals( {
-				total: {
-					...getExpressCheckoutData( 'product' ).total,
-					amount,
-					pending: false,
-				},
-				displayItems: transformCartDataForDisplayItems( cart ),
-			} );
-			wcStripeECE.updateExpressCheckoutAmount( amount );
+			if ( typeof cart?.total?.amount === 'number' ) {
+				// Legacy shape (bookings and their fallbacks). The labeled
+				// display items normalize at resolve time; no shipping flag
+				// is carried, so the creation-time one stands.
+				wcStripeECE.refreshTotals( {
+					total: { ...cart.total, pending: false },
+					displayItems: cart.displayItems ?? [],
+				} );
+				wcStripeECE.updateExpressCheckoutAmount( cart.total.amount );
+				return true;
+			}
+
+			return false;
 		},
 
 		// Keep the cached product breakdown in sync with the latest server response so the

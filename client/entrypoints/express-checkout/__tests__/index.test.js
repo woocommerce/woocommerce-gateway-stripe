@@ -317,6 +317,34 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		] );
 	} );
 
+	it( 'prices the sheet from a legacy add-to-cart response (bookings shape)', async () => {
+		global.wc_stripe_express_checkout_params = productParams();
+
+		// The legacy endpoint also returns cart-computed data
+		// (build_display_items after calculate_totals), just in the labeled
+		// shape with amounts already in Stripe minor units.
+		mockAddToCart.mockResolvedValue( {
+			result: 'success',
+			total: { label: 'Total', amount: 3200 },
+			displayItems: [ { label: 'Booking', amount: 3200 } ],
+		} );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+
+		const { handlers, elementsList } = stubStripeButton();
+		loadEntrypoint();
+
+		const event = { resolve: jest.fn(), expressPaymentType: 'googlePay' };
+		await handlers.click( event );
+
+		expect( event.resolve ).toHaveBeenCalledTimes( 1 );
+		expect( event.resolve.mock.calls[ 0 ][ 0 ].lineItems ).toEqual( [
+			{ name: 'Booking', amount: 3200 },
+		] );
+		elementsList.forEach( ( elements ) =>
+			expect( elements.update ).toHaveBeenCalledWith( { amount: 3200 } )
+		);
+	} );
+
 	it( 'does not ask for a shipping address when the cart says the selection is virtual', async () => {
 		// A variable parent reports needing shipping even when every variation
 		// is virtual, so the creation-time flag says true; prompting would then
@@ -459,7 +487,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		}
 	} );
 
-	it( 'rejects the click when the cart response misses the deadline and primes the next attempt', async () => {
+	it( 'rejects the click when the cart response misses the deadline and an unchanged retry resolves without re-adding', async () => {
 		jest.useFakeTimers();
 		global.wc_stripe_express_checkout_params = productParams();
 
@@ -512,13 +540,99 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			await jest.advanceTimersByTimeAsync( 0 );
 			await clickPromise;
 
-			// The late response primes the elements for the next attempt.
+			// The late response refreshes the elements for the next attempt.
 			elementsList.forEach( ( elements ) =>
 				expect( elements.update ).toHaveBeenCalledWith( {
 					amount: 4000,
 				} )
 			);
 			expect( unblockSpy ).toHaveBeenCalled();
+
+			// An unchanged retry resolves from the settled cart data without
+			// a second add-to-cart - otherwise a consistently slow store
+			// would reject every attempt.
+			const retryEvent = {
+				resolve: jest.fn(),
+				reject: jest.fn(),
+				expressPaymentType: 'googlePay',
+			};
+			await handlers.click( retryEvent );
+			expect( mockAddToCart ).toHaveBeenCalledTimes( 1 );
+			expect( retryEvent.reject ).not.toHaveBeenCalled();
+			expect( retryEvent.resolve ).toHaveBeenCalledTimes( 1 );
+			expect( retryEvent.resolve.mock.calls[ 0 ][ 0 ].lineItems ).toEqual(
+				[ { name: 'Red variation (x2)', amount: 4000 } ]
+			);
+		} finally {
+			jest.useRealTimers();
+		}
+	} );
+
+	it( 're-adds when the selection changes between a late settle and the retry', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+
+		let resolveAddToCart;
+		mockAddToCart.mockImplementation(
+			() =>
+				new Promise( ( resolve ) => {
+					resolveAddToCart = resolve;
+				} )
+		);
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		// The module-level transformer mock defaults suffice: this test
+		// asserts call counts, not amounts.
+
+		const { handlers } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const event = {
+				resolve: jest.fn(),
+				reject: jest.fn(),
+				expressPaymentType: 'googlePay',
+			};
+			const clickPromise = handlers.click( event );
+			await jest.advanceTimersByTimeAsync( 750 );
+			resolveAddToCart( {
+				items_count: 1,
+				totals: {
+					total_price: '4000',
+					total_refund: '0',
+					currency_minor_unit: 2,
+				},
+			} );
+			await jest.advanceTimersByTimeAsync( 0 );
+			await clickPromise;
+
+			// The shopper picks a different variation before retrying: the
+			// settled cart no longer matches, so the retry must re-add. The
+			// key follows the attribute selection (what add-to-cart sends),
+			// not the resolved variation_id.
+			const select = document.querySelector(
+				'select[name="attribute_color"]'
+			);
+			const redOption = document.createElement( 'option' );
+			redOption.value = 'red';
+			select.appendChild( redOption );
+			select.value = 'red';
+			mockAddToCart.mockResolvedValue( {
+				items_count: 1,
+				totals: {
+					total_price: '5000',
+					total_refund: '0',
+					currency_minor_unit: 2,
+				},
+			} );
+
+			const retryEvent = {
+				resolve: jest.fn(),
+				reject: jest.fn(),
+				expressPaymentType: 'googlePay',
+			};
+			await handlers.click( retryEvent );
+			expect( mockAddToCart ).toHaveBeenCalledTimes( 2 );
+			expect( retryEvent.resolve ).toHaveBeenCalledTimes( 1 );
 		} finally {
 			jest.useRealTimers();
 		}
