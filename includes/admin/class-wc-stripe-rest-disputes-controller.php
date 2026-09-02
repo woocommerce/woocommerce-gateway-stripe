@@ -39,7 +39,7 @@ class WC_Stripe_REST_Disputes_Controller extends WC_Stripe_REST_Base_Controller 
 	protected const STRIPE_SINGLE_EXPAND_PARAM = [
 		'payment_intent.latest_charge.balance_transaction',
 		'payment_intent.latest_charge.billing_details',
-		'payment_intent.latest_charge.payment_method_details'
+		'payment_intent.latest_charge.payment_method_details',
 	];
 
 	protected const STRIPE_LIST_RESPONSE_ALLOWED_FIELDS = [
@@ -110,13 +110,13 @@ class WC_Stripe_REST_Disputes_Controller extends WC_Stripe_REST_Base_Controller 
 						'sanitize_callback' => [ self::class, 'sanitize_unix_timestamp' ],
 						'validate_callback' => [ self::class, 'validate_unix_timestamp' ],
 					],
-					'payment_intent'    => [
+					'payment_intent' => [
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
 						'validate_callback' => [ self::class, 'validate_payment_intent_id' ],
 					],
-					'charge'    => [
+					'charge'         => [
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',

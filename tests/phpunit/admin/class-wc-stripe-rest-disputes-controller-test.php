@@ -208,16 +208,16 @@ class WC_Stripe_REST_Disputes_Controller_Test extends WP_UnitTestCase {
 
 	public static function provide_dispute_list_params(): array {
 		return [
-			'created_zero_timestamp'                           => [
+			'created_zero_timestamp'                      => [
 				[ 'created' => 0 ],
 			],
-			'created_and_starting_after'                       => [
+			'created_and_starting_after'                  => [
 				[
 					'created'        => '1779802569',
 					'starting_after' => 'du_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
-			'created_with_lt_and_ending_before'                => [
+			'created_with_lt_and_ending_before'           => [
 				[
 					'created'       =>
 						[
@@ -226,7 +226,7 @@ class WC_Stripe_REST_Disputes_Controller_Test extends WP_UnitTestCase {
 					'ending_before' => 'du_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
-			'limit_and_created_with_lt_and_ending_before'      => [
+			'limit_and_created_with_lt_and_ending_before' => [
 				[
 					'limit'         => 100,
 					'created'       =>
@@ -236,7 +236,7 @@ class WC_Stripe_REST_Disputes_Controller_Test extends WP_UnitTestCase {
 					'ending_before' => 'du_3TbL9RJlUF0dQbSB00q0FJS2',
 				],
 			],
-			'created_with_lt_gt'                               => [
+			'created_with_lt_gt'                          => [
 				[
 					'created' =>
 						[
@@ -245,7 +245,7 @@ class WC_Stripe_REST_Disputes_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			'created_with_lte_gte'                             => [
+			'created_with_lte_gte'                        => [
 				[
 					'created' =>
 						[
@@ -254,7 +254,7 @@ class WC_Stripe_REST_Disputes_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			'created_with_lte_gte_zero'                        => [
+			'created_with_lte_gte_zero'                   => [
 				[
 					'created' =>
 						[
@@ -263,7 +263,7 @@ class WC_Stripe_REST_Disputes_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			'created_with_lte_zero_gte_zero'                   => [
+			'created_with_lte_zero_gte_zero'              => [
 				[
 					'created' =>
 						[
@@ -272,12 +272,12 @@ class WC_Stripe_REST_Disputes_Controller_Test extends WP_UnitTestCase {
 						],
 				],
 			],
-			'payment_intent'                                   => [
+			'payment_intent'                              => [
 				[
 					'payment_intent' => 'pi_test',
 				]
 			],
-			'charge'                                   => [
+			'charge'                                      => [
 				[
 					'charge' => 'ch_test',
 				]
