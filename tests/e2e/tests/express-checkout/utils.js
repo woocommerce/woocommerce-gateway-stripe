@@ -36,4 +36,6 @@ export const assertLinkModalLoads = async ( page, isBlockPage = false ) => {
 	await expect( popup.getByTestId( 'pay-button' ) ).toBeVisible( {
 		timeout: 60 * 1000,
 	} );
+
+	return popup;
 };

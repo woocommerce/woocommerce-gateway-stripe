@@ -87,4 +87,78 @@ test.describe( 'express checkout and variable products', () => {
 		const linkButton = await getLinkButton( page );
 		await expect( linkButton ).toBeVisible();
 	} );
+
+	test( 'opens the wallet sheet priced from the cart response', async ( {
+		page,
+	} ) => {
+		// The sheet must show the add-item response's total. (Link's pre-auth
+		// screen renders no line items; the breakdown is unit-covered.)
+		let cart = null;
+		page.on( 'response', async ( response ) => {
+			if ( response.url().includes( '/wc/store/v1/cart/add-item' ) ) {
+				try {
+					cart = await response.json();
+				} catch ( error ) {}
+			}
+		} );
+
+		await page.goto( '/product/hoodie' );
+		await page
+			.getByLabel( 'color', { exact: true } )
+			.selectOption( 'Blue' );
+		await page.getByLabel( 'Logo', { exact: true } ).selectOption( 'Yes' );
+
+		const popup = await assertLinkModalLoads( page );
+
+		expect( cart?.totals?.total_price ).toBeTruthy();
+		expect( cart.items[ 0 ].quantity ).toBe( 1 );
+
+		// The pay button renders the formatted amount ("Pay $20.00"); its
+		// digits are the total in minor units, format-independent.
+		const payText = await popup.getByTestId( 'pay-button' ).innerText();
+		expect( payText.replace( /\D/g, '' ) ).toContain(
+			String( parseInt( cart.totals.total_price, 10 ) )
+		);
+	} );
+
+	test( 'reprices the sheet after dismissing it and changing the quantity', async ( {
+		page,
+	} ) => {
+		let cart = null;
+		page.on( 'response', async ( response ) => {
+			if ( response.url().includes( '/wc/store/v1/cart/add-item' ) ) {
+				try {
+					cart = await response.json();
+				} catch ( error ) {}
+			}
+		} );
+
+		await page.goto( '/product/hoodie' );
+		await page
+			.getByLabel( 'color', { exact: true } )
+			.selectOption( 'Blue' );
+		await page.getByLabel( 'Logo', { exact: true } ).selectOption( 'Yes' );
+
+		const firstPopup = await assertLinkModalLoads( page );
+		const firstTotal = parseInt( cart.totals.total_price, 10 );
+		await firstPopup.close();
+
+		// Change the quantity and re-tap immediately: nothing observes the
+		// page, so the click itself must pick up the new quantity.
+		await page.locator( '.quantity .qty' ).fill( '3' );
+		const secondPopup = await assertLinkModalLoads( page );
+
+		expect( cart.items[ 0 ].quantity ).toBe( 3 );
+		// Not firstTotal * 3: the total carries order-level components
+		// (flat-rate shipping) that don't scale with quantity.
+		const secondTotal = parseInt( cart.totals.total_price, 10 );
+		expect( secondTotal ).toBeGreaterThan( firstTotal );
+
+		const payText = await secondPopup
+			.getByTestId( 'pay-button' )
+			.innerText();
+		expect( payText.replace( /\D/g, '' ) ).toContain(
+			String( secondTotal )
+		);
+	} );
 } );
