@@ -35,8 +35,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		// A previous test class installs a partial order-helper mock without restoring the
-		// singleton. Renewal lock tests need the real helper so their lock metadata is persisted.
+		// Use the real helper so locks are persisted.
 		WC_Stripe_Order_Helper::set_instance( null );
 
 		// WC_Stripe_API::retrieve() returns null once the consecutive-401 counter reaches its
@@ -73,10 +72,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		// The tests in this file do not mock ALL the calls to the Stripe API, and as we use mocked API keys they trigger the 401 rate-limiter,
 		// this is not a problem for these tests as they don't depend on the reponses.
 		//
-		// The delete must happen while the Stripe settings still exist: the cache key is
-		// prefixed with the current mode (test/live), which is derived from the settings, so
-		// deleting the settings first makes this target a different key and the counter then
-		// leaks across tests until the rate limiter blocks all API reads.
+		// Delete before the settings go: the cache key depends on the current mode.
 		//
 		// TODO: Remove this once we've mocked all calls to the Stripe API (either using the pre_http_request filter, or by using a mocked WC_Stripe_API class).
 		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
@@ -306,9 +302,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->lock_order_payment( $renewal_order );
 
-		// Spy on the logger to assert the duplicate-attempt error is emitted. Logging settings
-		// are deliberately left at their defaults: the skip is logged at error level exactly so
-		// that it leaves a trace even when debug logging is disabled.
+		// Default logging settings: the skip must log at error level.
 		$previous_logger = WC_Stripe_Logger::$logger;
 		$logged_errors   = [];
 		$logger          = $this->getMockBuilder( WC_Logger::class )->disableOriginalConstructor()->getMock();
@@ -387,7 +381,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		);
 		$this->assertNotEmpty( $matching_errors, 'Expected a duplicate-attempt error mentioning the order id.' );
 
-		// The skip must also leave a merchant-visible trail on the order itself.
+		// The skip must leave an order note.
 		$notes          = wc_get_order_notes( [ 'order_id' => $renewal_order->get_id() ] );
 		$matching_notes = array_filter(
 			wp_list_pluck( $notes, 'content' ),
@@ -545,10 +539,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				]
 			);
 
-		// Spy on the order lock: it must be acquired exactly once for the whole retry chain.
-		// The previous behaviour released and re-acquired the lock between attempts, which let a
-		// concurrent scheduled renewal charge in the gap. Only lock/unlock are mocked; the rest of
-		// the helper runs real so process_response() still completes.
+		// Spy on lock/unlock only; the rest of the helper runs real.
 		$real_order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper_spy  = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
 			->disableOriginalConstructor()
@@ -615,8 +606,6 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
 
-		// The first attempt failed and the retry — under the same lock — succeeded.
-		// lock_order_payment() being called exactly once is asserted by the spy expectation.
 		$this->assertSame( 2, $request_count );
 		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
 	}
@@ -662,9 +651,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		};
 		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
 
-		// process_response() fires wc_gateway_stripe_process_payment_charge while the renewal
-		// response is being recorded. Capture the lock state at that moment to prove it is
-		// still held until processing completes (guards the duplicate-charge window).
+		// Capture the lock while process_response() fires its hook.
 		$order_helper           = WC_Stripe_Order_Helper::get_instance();
 		$lock_during_processing = null;
 		$capture_lock           = function () use ( $order_helper, $renewal_order, &$lock_during_processing ) {
@@ -681,11 +668,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
 
-		// The lock must still be held while the successful charge is processed...
 		$this->assertGreaterThan( time(), $lock_during_processing );
-		// ...and released once processing has completed.
 		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $renewal_order ) );
-		// Sanity: the renewal actually succeeded.
 		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
 	}
 
@@ -710,7 +694,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				]
 			);
 
-		// Throw a non-WC_Stripe_Exception from within the charge, after the lock is acquired.
+		// Throw a non-Stripe exception after the lock is acquired.
 		$thrower = function ( $preempt, $request_args, $url ) {
 			if ( 'https://api.stripe.com/v1/payment_intents' === $url ) {
 				throw new RuntimeException( 'Unexpected failure during the renewal charge.' );
@@ -729,9 +713,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			remove_filter( 'pre_http_request', $thrower, 10 );
 		}
 
-		// The unexpected error is re-thrown so existing failure handling is preserved...
 		$this->assertInstanceOf( RuntimeException::class, $caught );
-		// ...and the payment lock is released, so a later retry is not blocked.
 		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( wc_get_order( $renewal_order->get_id() ) ) );
 	}
 
@@ -760,9 +742,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				]
 			);
 
-		// The 5-minute lock can be outlived by the retry chain (up to 6 attempts, each bounded
-		// by the API timeout). Hand out an already-lapsed lock so the retry logic must stop
-		// after the first failed attempt instead of charging alongside a newer lock holder.
+		// An expired lock must stop the retry chain after the first attempt.
 		$expired_lock = (string) ( time() - 10 );
 
 		$order_helper_mock = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
@@ -815,8 +795,6 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
 
-		// A retryable error would normally trigger the retry chain, but the lapsed lock stops
-		// it after the single attempt and the order is failed for WC Subscriptions to handle.
 		$this->assertSame( 1, $request_count );
 		$this->assertSame( OrderStatus::FAILED, $renewal_order->get_status() );
 	}
@@ -829,9 +807,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$renewal_order->set_payment_method( 'stripe' );
 		$renewal_order->save();
 
-		// A 3-second backoff sleep against a lock expiring in 1 second: the pre-sleep expiry
-		// check passes, so only the re-check after the sleep stands between this process and
-		// starting a Stripe call on a lapsed lock.
+		// The lock expires during the 3-second backoff sleep.
 		$this->set_gateway_retry_interval( 3 );
 		$lock_expiring_during_sleep = (string) ( time() + 1 );
 
@@ -900,8 +876,6 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
 
-		// The lock lapsed during the backoff sleep, so no second attempt was started and the
-		// order was failed for WC Subscriptions to handle.
 		$this->assertSame( 1, $request_count );
 		$this->assertSame( OrderStatus::FAILED, $renewal_order->get_status() );
 	}
@@ -927,10 +901,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				]
 			);
 
-		// The helper reports our own lock while the renewal runs, but by the time the finally
-		// block re-checks, a concurrent process has written a newer lock (ours lapsed
-		// mid-flight). Deleting the meta at that point would release the other process's lock,
-		// so unlock must not be called.
+		// Another process replaced the lock before the finally block; unlock must not run.
 		$our_lock     = (string) ( time() + 5 * MINUTE_IN_SECONDS );
 		$foreign_lock = (string) ( time() + 10 * MINUTE_IN_SECONDS );
 
@@ -976,8 +947,6 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
 
-		// The renewal itself still completed; unlock_order_payment() never being called is
-		// asserted by the mock expectation above.
 		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
 	}
 
@@ -1054,8 +1023,6 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
 
-		// The legacy SEPA charges endpoint was used under the order lock, the charge response was
-		// carried through process_response() to completion, and the lock was released afterward.
 		$this->assertNotEmpty( $requested );
 		$this->assertGreaterThan( $processing_started_at, (int) $lock_during_request );
 		$this->assertLessThanOrEqual( $processing_started_at + 5 * MINUTE_IN_SECONDS, (int) $lock_during_request );
@@ -1149,10 +1116,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				]
 			);
 
-		// Build an intent response whose charges list holds a bare charge id instead of a
-		// charge object — the string case get_latest_charge_from_intent() passes through.
-		// process_response() reads the charge via object property access, so the renewal flow
-		// must resolve the id into the full charge object before handing it over.
+		// The charges list holds a bare charge ID.
 		$intent_response = json_decode( file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ), true );
 		$charge_object   = $intent_response['charges']['data'][0];
 
@@ -1200,8 +1164,6 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
 
-		// The bare id was resolved via the charges endpoint and the renewal completed with the
-		// resolved charge recorded on the order.
 		$this->assertContains( 'https://api.stripe.com/v1/charges/ch_123abc', $urls_used );
 		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
 		$this->assertSame( 'ch_123abc', $renewal_order->get_transaction_id() );

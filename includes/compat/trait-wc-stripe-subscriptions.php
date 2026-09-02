@@ -502,23 +502,15 @@ trait WC_Stripe_Subscriptions_Trait {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_id     = $renewal_order->get_id();
 
-		// Acquire the order payment lock once and hold it for the entire renewal attempt —
-		// including any retries — so a concurrent scheduled renewal cannot create a second charge
-		// for this order while this attempt is in flight. Returning early when the lock is already
-		// held mirrors the regular checkout handler. The finally guarantees release on every exit
-		// path (success, failure, retry exhaustion, or an unexpected error).
+		// One lock covers the whole attempt, retries included, so a concurrent renewal cannot charge in between.
 		if ( $order_helper->lock_order_payment( $renewal_order ) ) {
-			// Logged as an error, not a warning: warnings are dropped unless debug logging is
-			// enabled, and a skipped renewal attempt must always leave a trace.
+			// Error, not warning: warnings are dropped unless debug logging is on.
 			WC_Stripe_Logger::error( "Stripe: skipping duplicate renewal attempt for order {$order_id} because the payment lock is already held." );
 			$renewal_order->add_order_note( __( 'Stripe: skipped this renewal payment attempt because another payment attempt for this order was already in progress.', 'woocommerce-gateway-stripe' ) );
 			return;
 		}
 
-		// Remember the exact lock value this process wrote. The lock expires after 5 minutes while
-		// the retries below can run longer, so the expiry bounds the retry loop, and the finally
-		// must only release the lock while it is still ours — deleting the meta unconditionally
-		// could release a newer lock acquired by a concurrent process after ours lapsed.
+		// The 5-minute lock can lapse mid-retry; only release it while it is still ours.
 		$our_lock      = $order_helper->get_order_existing_payment_lock( $renewal_order );
 		$is_valid_lock = ( is_int( $our_lock ) && 0 < $our_lock )
 			|| ( is_string( $our_lock ) && ctype_digit( $our_lock ) && 0 < (int) $our_lock );
@@ -548,11 +540,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Performs a single renewal payment attempt, plus its retries, for {@see process_subscription_payment()}.
-	 *
-	 * The order payment lock is acquired and released by the caller and stays held for the whole
-	 * duration of this method, so retries below run under the same lock instead of releasing and
-	 * re-acquiring it (which would let a concurrent renewal charge in the gap).
+	 * Runs one renewal attempt and its retries under the caller's lock.
 	 *
 	 * @param float        $amount         The amount to charge.
 	 * @param WC_Order     $renewal_order  The renewal order.
@@ -623,17 +611,11 @@ trait WC_Stripe_Subscriptions_Trait {
 				// We want to retry — unless Stripe Radar blocked the charge, in which case retrying
 				// would just create another blocked charge and inflate the block rate.
 				if ( $this->is_retryable_error( $response->error ) && false === $radar_reason ) {
-					// The retries below can outlive the 5-minute payment lock (up to 6 attempts,
-					// each bounded by the Stripe API timeout). Once the lock has lapsed a
-					// concurrent scheduled renewal can acquire its own lock and start charging,
-					// so stop retrying instead of risking a duplicate charge alongside it. The
-					// expiry is checked again after the backoff sleep so an attempt is never
-					// started on a lock that lapsed while this process slept.
+					// Stop retrying once the lock lapses; a concurrent renewal may hold its own lock by then.
 					$lock_expired = $lock_expiry > 0 && time() > $lock_expiry;
 
 					if ( $retry && ! $lock_expired ) {
-						// Retry under the still-held lock so a concurrent scheduled renewal cannot
-						// charge in the gap. Don't do anymore retries after this.
+						// Last retry.
 						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
 							$this->process_subscription_payment_attempt( $amount, $renewal_order, false, $response->error, $lock_expiry );
 							return;
@@ -858,15 +840,12 @@ trait WC_Stripe_Subscriptions_Trait {
 				// Use the last charge within the intent or the full response body in case of SEPA.
 				$latest_charge = $this->get_latest_charge_from_intent( $response );
 
-				// get_latest_charge_from_intent() can return a bare charge id, and
-				// process_response() reads the charge via object property access, so a string
-				// must be resolved to the full charge object before it is handed over.
+				// process_response() needs the charge object, not a bare ID.
 				if ( is_string( $latest_charge ) && '' !== $latest_charge ) {
 					$latest_charge = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_charge_object( $latest_charge );
 				}
 
-				// Anything that still is not an object (e.g. an empty string) cannot be given to
-				// process_response(); fall back to the full response body instead.
+				// Fall back to the full response body.
 				if ( ! is_object( $latest_charge ) ) {
 					$latest_charge = null;
 				}
@@ -898,10 +877,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Makes a single Stripe payment attempt for a subscription renewal.
-	 *
-	 * The caller is responsible for the order payment lock; this method only performs a single
-	 * charge so the lock can be held across the response processing that follows.
+	 * Makes one Stripe payment attempt. The caller holds the lock.
 	 *
 	 * @param float    $amount         The amount to charge.
 	 * @param WC_Order $renewal_order  The renewal order.
@@ -929,9 +905,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		/**
-		 * The API layer json-decodes responses, so the intent (or error) arrives as
-		 * stdClass even though create_and_confirm_intent_for_off_session() is only
-		 * annotated as object.
+		 * The API layer decodes responses to stdClass.
 		 *
 		 * @var stdClass $response
 		 */
@@ -944,11 +918,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Converts an associative-array Stripe response to the object shape used by renewal readers.
-	 *
-	 * Nested response values must also remain addressable as objects, so a shallow object cast is
-	 * not sufficient. A JSON list has no response fields and must be rejected before it can reach
-	 * process_response(), which reads required properties such as the charge ID.
+	 * Converts an array response to nested objects and rejects JSON lists.
 	 *
 	 * @param array $response Stripe API response.
 	 * @return stdClass
