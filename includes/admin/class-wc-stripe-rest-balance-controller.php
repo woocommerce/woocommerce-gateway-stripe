@@ -67,7 +67,6 @@ class WC_Stripe_REST_Balance_Controller extends WC_Stripe_REST_Base_Controller {
 	 * Fetch data from an Stripe API endpoint and returns its raw data or a WP_Error if an error occurs.
 	 *
 	 * @param string $endpoint The Stripe endpoint.
-	 * @param array $params Parameters to pass to the endpoint.
 	 *
 	 * @return StdClass|WP_Error
 	 */
