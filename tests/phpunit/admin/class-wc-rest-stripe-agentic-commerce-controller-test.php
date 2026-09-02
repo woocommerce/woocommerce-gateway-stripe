@@ -1379,6 +1379,90 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Disabling (yes -> no) must queue the final-feed teardown push.
+	 */
+	public function test_update_settings_disable_schedules_final_feed_push(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		// setUp() leaves the merchant toggle on, so this is a yes -> no transition.
+		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' );
+		// Without this, an action left over from another test would satisfy the
+		// assertion below even if the request scheduled nothing.
+		$this->assertFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'No final-feed action should be queued before the request.'
+		);
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'is_enabled' => false ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertNotFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'Disabling must queue the final checkout-disabled feed push.'
+		);
+
+		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' );
+	}
+
+	/**
+	 * Re-enabling (no -> yes) must cancel a final-feed push queued by a prior disable.
+	 */
+	public function test_update_settings_enable_cancels_pending_final_feed_push(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' );
+		( new WC_Stripe_Agentic_Commerce_Integration() )->schedule_final_checkout_disabled_feed();
+		$this->assertNotFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' )
+		);
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'is_enabled' => true ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'Re-enabling must cancel the pending final-feed push.'
+		);
+	}
+
+	/**
+	 * A no-op save (yes -> yes) must not queue a teardown push.
+	 */
+	public function test_update_settings_noop_enable_does_not_schedule_final_feed_push(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		// setUp() already enabled the merchant toggle.
+		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' );
+		$this->assertFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'No final-feed action should be queued before the request.'
+		);
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'is_enabled' => true ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'A no-op save must not queue a teardown push.'
+		);
+	}
+
+	/**
 	 * POST /settings stores the webhook secret and returns the masked placeholder.
 	 */
 	public function test_update_settings_stores_webhook_secret(): void {
