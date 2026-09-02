@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * REST controller exposing Stripe balance to the admin UI.
  *
- * @since 10.9.0
+ * @since 11.1.0
  */
 class WC_Stripe_REST_Balance_Controller extends WC_Stripe_REST_Base_Controller {
 	/**
@@ -22,9 +22,9 @@ class WC_Stripe_REST_Balance_Controller extends WC_Stripe_REST_Base_Controller {
 		'object',
 		'available',
 		'pending',
+		'instant_available',
+		'livemode',
 	];
-
-	protected const STRIPE_SINGLE_EXPAND_PARAM = [];
 
 	/**
 	 * Configure REST API routes.

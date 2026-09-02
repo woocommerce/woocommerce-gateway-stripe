@@ -1,14 +1,13 @@
 <?php
 /**
  * Class WC_Stripe_REST_Balance_Controller_Test
- *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class WC_Stripe_REST_Balance_Controller_Test extends WP_UnitTestCase {
 	private const STRIPE_BALANCE_ENDPOINT_URL = '/wc/v3/wc_stripe/balance';
 
-	/** Initialise REST API, make WC_Stripe_REST_Payment_Intents_Controller instance available for testing*/
+	/**
+	 * Initialise REST API, make WC_Stripe_REST_Payment_Intents_Controller instance available for testing.
+	 */
 	public static function set_up_before_class() {
 		parent::set_up_before_class();
 
@@ -43,8 +42,10 @@ class WC_Stripe_REST_Balance_Controller_Test extends WP_UnitTestCase {
 			],
 		];
 	}
-	/** Mock stripe API calls to avoid making real HTTP requests. */
-	protected function mock_http_call() {
+	/**
+	 * Mock stripe API calls to avoid making real HTTP requests. 
+	 */
+	protected function stub_http_call() {
 		add_filter(
 			'pre_http_request',
 			[ static::class, 'pre_http_request_mock_handler' ],
@@ -74,7 +75,9 @@ class WC_Stripe_REST_Balance_Controller_Test extends WP_UnitTestCase {
 		return $response;
 	}
 
-	/** Create a non-admin user, set it as current user and send an API request. */
+	/**
+	 * Create a non-admin user, set it as current user and send an API request.
+	 */
 	public function test_permission_check_denies_unauthorized_call() {
 		$subscriber_id = $this->factory()->user->create( [ 'role' => 'subscriber' ] );
 
@@ -125,9 +128,11 @@ class WC_Stripe_REST_Balance_Controller_Test extends WP_UnitTestCase {
 		$this->assertSame( 401, $response->get_status() );
 	}
 
-	/** Create an admin user, set it as current user and send a API request. */
+	/**
+	 * Create an admin user, set it as current user and send a API request.
+	 */
 	public function test_permission_check_allows_authorized_call() {
-		$this->mock_http_call();
+		$this->stub_http_call();
 
 		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_id );
@@ -139,52 +144,53 @@ class WC_Stripe_REST_Balance_Controller_Test extends WP_UnitTestCase {
 
 	public static function provide_single_intent_filtering_test_data(): array {
 		$response_allowed_part = '"object": "balance",
-    "available": [
-        {
-            "amount": -4366,
-            "currency": "usd",
-            "source_types": {
-                "card": -4366
-            }
-        },
-        {
-            "amount": 0,
-            "currency": "eur",
-            "source_types": {
-                "card": 0
-            }
-        },
-        {
-            "amount": 0,
-            "currency": "ron",
-            "source_types": {
-                "card": 0
-            }
-        }
-    ],
-    "pending": [
-        {
-            "amount": 0,
-            "currency": "usd",
-            "source_types": {
-                "card": 0
-            }
-        },
-        {
-            "amount": 0,
-            "currency": "eur",
-            "source_types": {
-                "card": 0
-            }
-        },
-        {
-            "amount": 0,
-            "currency": "ron",
-            "source_types": {
-                "card": 0
-            }
-        }
-    ]';
+			"available": [
+				{
+					"amount": -4366,
+					"currency": "usd",
+					"source_types": {
+						"card": -4366
+					}
+				},
+				{
+					"amount": 0,
+					"currency": "eur",
+					"source_types": {
+						"card": 0
+					}
+				},
+				{
+					"amount": 0,
+					"currency": "ron",
+					"source_types": {
+						"card": 0
+					}
+				}
+			],
+			"pending": [
+				{
+					"amount": 0,
+					"currency": "usd",
+					"source_types": {
+						"card": 0
+					}
+				},
+				{
+					"amount": 0,
+					"currency": "eur",
+					"source_types": {
+						"card": 0
+					}
+				},
+				{
+					"amount": 0,
+					"currency": "ron",
+					"source_types": {
+						"card": 0
+					}
+				}
+			],
+			"livemode": false';
 		$response_as_string    = '{
 			' . $response_allowed_part . ',
 			"livemode": false,
