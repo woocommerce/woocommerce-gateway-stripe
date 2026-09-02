@@ -200,5 +200,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Remove the empty box shown under "Use a new payment method" on classic checkout when the save-payment-method checkbox is hidden
 * Fix - Ensure webhook status checks reset API key
 * Fix - Keep express checkout and the payment options rendering on the first block checkout load of a free-trial subscription cart
+* Dev - Add e2e coverage for express checkout with free trial subscriptions, with and without shipping
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
