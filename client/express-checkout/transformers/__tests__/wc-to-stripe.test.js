@@ -322,44 +322,37 @@ describe( 'wc-to-stripe transformers', () => {
 				.currency_decimals;
 		} );
 
-		it( 'parses the Store API string totals into a number', () => {
-			expect(
-				transformCartTotalAmount( {
-					total_price: '1800',
-					total_refund: '0',
-					currency_minor_unit: 2,
-				} )
-			).toBe( 1800 );
-		} );
-
-		it( 'subtracts refunds from the total', () => {
-			expect(
-				transformCartTotalAmount( {
+		it.each( [
+			{
+				name: 'subtracts refunds from the string totals',
+				totals: {
 					total_price: '2000',
 					total_refund: '500',
 					currency_minor_unit: 2,
-				} )
-			).toBe( 1500 );
-		} );
-
-		it( 'treats a missing refund as zero', () => {
-			expect(
-				transformCartTotalAmount( {
-					total_price: '2000',
-					currency_minor_unit: 2,
-				} )
-			).toBe( 2000 );
-		} );
-
-		it( 'scales to Stripe minor units for zero-decimal currencies', () => {
-			global.wc_stripe_express_checkout_params.checkout.currency_decimals = 0;
-			expect(
-				transformCartTotalAmount( {
+				},
+				expected: 1500,
+			},
+			{
+				name: 'treats a missing refund as zero',
+				totals: { total_price: '2000', currency_minor_unit: 2 },
+				expected: 2000,
+			},
+			{
+				name: 'scales to Stripe minor units for zero-decimal currencies',
+				totals: {
 					total_price: '180',
 					total_refund: '0',
 					currency_minor_unit: 1,
-				} )
-			).toBe( 18 );
+				},
+				currencyDecimals: 0,
+				expected: 18,
+			},
+		] )( '$name', ( { totals, currencyDecimals, expected } ) => {
+			if ( currencyDecimals !== undefined ) {
+				global.wc_stripe_express_checkout_params.checkout.currency_decimals =
+					currencyDecimals;
+			}
+			expect( transformCartTotalAmount( totals ) ).toBe( expected );
 		} );
 	} );
 
