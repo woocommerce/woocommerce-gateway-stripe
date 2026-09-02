@@ -53,25 +53,27 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Creates a mock main gateway with oc_enabled set appropriately.
+	 * Creates a mock main gateway of the right class for the requested OCS state.
 	 *
-	 * Uses `onlyMethods` so that `is_oc_enabled()` uses the real property-backed
-	 * implementation (reads `$this->oc_enabled`) rather than the default PHPUnit
-	 * stub (which returns null). `get_upe_enabled_payment_method_ids()` is mocked
-	 * to return a safe array so that the OCS-disabled sync path works without
-	 * needing a fully-initialised gateway or live settings.
+	 * When OCS is enabled, the main gateway under production is {@see WC_Stripe_OCS_Payment_Gateway}
+	 * (selected by {@see WC_Stripe::get_main_stripe_gateway()}). To keep the tests close to
+	 * production, this helper mirrors that: non-OCS tests get a {@see WC_Stripe_UPE_Payment_Gateway}
+	 * mock and OCS tests get an OCS mock. `is_optimized_checkout_active()` is mocked directly so
+	 * tests do not need to set up page/session state.
 	 *
 	 * @param bool $ocs_enabled Whether OCS should be enabled on the mock.
-	 * @return object PHPUnit partial mock of WC_Stripe_UPE_Payment_Gateway.
+	 * @return object PHPUnit partial mock of the appropriate gateway class.
 	 */
 	private function get_mock_gateway( bool $ocs_enabled ): object {
-		$mock_gateway             = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+		$class                    = $ocs_enabled ? WC_Stripe_OCS_Payment_Gateway::class : WC_Stripe_UPE_Payment_Gateway::class;
+		$mock_gateway             = $this->getMockBuilder( $class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_upe_enabled_payment_method_ids' ] )
+			->onlyMethods( [ 'get_upe_enabled_payment_method_ids', 'is_optimized_checkout_active' ] )
 			->getMock();
 		$mock_gateway->oc_enabled = $ocs_enabled;
 		$mock_gateway->method( 'get_upe_enabled_payment_method_ids' )
 			->willReturn( [ WC_Stripe_Payment_Methods::CARD ] );
+		$mock_gateway->method( 'is_optimized_checkout_active' )->willReturn( $ocs_enabled );
 		return $mock_gateway;
 	}
 
@@ -487,6 +489,33 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 				'expected' => WC_Payment_Token_Becs_Debit::class,
 				'type'     => WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID,
 			],
+			// The cases below pass the lowercase class name WooCommerce derives from the token type
+			// ('WC_Payment_Token_' . $type), which is what triggers the dropped-token duplication bug.
+			'Link from lowercase type'         => [
+				'class'    => 'WC_Payment_Token_link',
+				'expected' => WC_Payment_Token_Link::class,
+				'type'     => WC_Stripe_Payment_Methods::LINK,
+			],
+			'Cash App from lowercase type'     => [
+				'class'    => 'WC_Payment_Token_cashapp',
+				'expected' => WC_Payment_Token_CashApp::class,
+				'type'     => WC_Stripe_Payment_Methods::CASHAPP_PAY,
+			],
+			'SEPA from lowercase type'         => [
+				'class'    => 'WC_Payment_Token_sepa',
+				'expected' => WC_Payment_Token_SEPA::class,
+				'type'     => WC_Stripe_Payment_Methods::SEPA,
+			],
+			'Amazon Pay from lowercase type'   => [
+				'class'    => 'WC_Payment_Token_amazon_pay',
+				'expected' => WC_Payment_Token_Amazon_Pay::class,
+				'type'     => WC_Stripe_Payment_Methods::AMAZON_PAY,
+			],
+			'Bacs Debit from lowercase type'   => [
+				'class'    => 'WC_Payment_Token_bacs_debit',
+				'expected' => WC_Payment_Token_Bacs_Debit::class,
+				'type'     => WC_Stripe_Payment_Methods::BACS_DEBIT,
+			],
 			'Klarna with overridden class'     => [
 				'class'    => 'test_klarna',
 				'expected' => 'test_klarna',
@@ -758,19 +787,244 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * When the number of existing tokens has reached the posts_per_page limit the
-	 * tokens array must be returned unchanged (no sync happens).
+	 * Tokens for a missing Stripe customer are deleted, below and at the
+	 * posts_per_page cap (which previously skipped the sync entirely).
+	 *
+	 * @param bool $at_limit Whether the customer has posts_per_page saved tokens.
+	 * @dataProvider provide_test_deletes_stale_tokens_when_stripe_customer_missing
 	 */
-	public function test_woocommerce_get_customer_payment_tokens_returns_unchanged_when_at_token_limit(): void {
+	public function test_woocommerce_get_customer_payment_tokens_deletes_stale_tokens_when_stripe_customer_missing( bool $at_limit ): void {
 		$user_id = $this->factory->user->create();
 		wp_set_current_user( $user_id );
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_missing_' . ( $at_limit ? 'at_limit_' : 'below_limit_' ) . $user_id, false );
 
-		$limit          = (int) get_option( 'posts_per_page', 10 );
-		$initial_tokens = array_fill( 0, $limit, new WC_Payment_Token_CC() );
+		$token_count = $at_limit ? (int) get_option( 'posts_per_page', 10 ) : 1;
+		$tokens      = [];
+		for ( $i = 0; $i < $token_count; $i++ ) {
+			$token                      = $this->create_saved_cc_token( $user_id, "pm_stale_{$i}" );
+			$tokens[ $token->get_id() ] = $token;
+		}
 
-		$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( $initial_tokens, $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+		$mock_http = $this->mock_stripe_payment_methods_http_response(
+			[
+				'error' => [
+					'code'    => 'resource_missing',
+					'message' => 'No such customer',
+					'param'   => 'customer',
+					'type'    => 'invalid_request_error',
+				],
+			],
+			404
+		);
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
 
-		$this->assertSame( $initial_tokens, $result );
+		$this->set_main_gateway( $this->get_mock_gateway( false ) );
+
+		try {
+			$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( $tokens, $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+		}
+
+		$this->assertSame( [], $result );
+		$this->assertSame(
+			[],
+			WC_Payment_Tokens::get_tokens(
+				[
+					'user_id'    => $user_id,
+					'gateway_id' => WC_Stripe_UPE_Payment_Gateway::ID,
+				]
+			),
+			'Stale tokens for a missing Stripe customer must be deleted from the data store.'
+		);
+	}
+
+	/**
+	 * Data provider for `test_woocommerce_get_customer_payment_tokens_deletes_stale_tokens_when_stripe_customer_missing`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_deletes_stale_tokens_when_stripe_customer_missing(): array {
+		return [
+			'below the token cap' => [ false ],
+			'at the token cap'    => [ true ],
+		];
+	}
+
+	/**
+	 * A generic Stripe API error keeps local tokens instead of deleting them as orphaned.
+	 */
+	public function test_woocommerce_get_customer_payment_tokens_keeps_tokens_on_generic_api_error(): void {
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_api_error_' . $user_id, false );
+
+		$token  = $this->create_saved_cc_token( $user_id, 'pm_kept_on_error' );
+		$tokens = [ $token->get_id() => $token ];
+
+		$mock_http = $this->mock_stripe_payment_methods_http_response(
+			[
+				'error' => [
+					'code'    => 'rate_limit',
+					'message' => 'Too many requests.',
+					'type'    => 'api_error',
+				],
+			],
+			429
+		);
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		$this->set_main_gateway( $this->get_mock_gateway( false ) );
+
+		try {
+			$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( $tokens, $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+		}
+
+		$this->assertSame( $tokens, $result );
+		$this->assertCount(
+			1,
+			WC_Payment_Tokens::get_tokens(
+				[
+					'user_id'    => $user_id,
+					'gateway_id' => WC_Stripe_UPE_Payment_Gateway::ID,
+				]
+			),
+			'Tokens must survive a transient Stripe API failure.'
+		);
+	}
+
+	/**
+	 * At the token cap the sync still deletes stale tokens but adds no new ones.
+	 */
+	public function test_woocommerce_get_customer_payment_tokens_verifies_but_does_not_add_tokens_at_token_limit(): void {
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_at_limit_' . $user_id, false );
+
+		$limit  = (int) get_option( 'posts_per_page', 10 );
+		$tokens = [];
+		for ( $i = 0; $i < $limit - 1; $i++ ) {
+			$token                      = $this->create_saved_cc_token( $user_id, "pm_kept_{$i}" );
+			$tokens[ $token->get_id() ] = $token;
+		}
+		$stale_token                      = $this->create_saved_cc_token( $user_id, 'pm_stale_at_limit' );
+		$tokens[ $stale_token->get_id() ] = $stale_token;
+
+		// Stripe still has every kept payment method plus one the store has never seen,
+		// but not the stale one.
+		$stripe_payment_methods = [];
+		for ( $i = 0; $i < $limit - 1; $i++ ) {
+			$stripe_payment_methods[] = $this->get_stripe_card_payment_method_data( "pm_kept_{$i}" );
+		}
+		$stripe_payment_methods[] = $this->get_stripe_card_payment_method_data( 'pm_new_beyond_cap' );
+
+		$mock_http = $this->mock_stripe_payment_methods_http_response(
+			[
+				'data'     => $stripe_payment_methods,
+				'has_more' => false,
+			]
+		);
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		$mock_cc_pm = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_CC::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'is_enabled', 'is_enabled_at_checkout' ] )
+			->getMock();
+		$mock_cc_pm->method( 'is_enabled' )->willReturn( true );
+		$mock_cc_pm->method( 'is_enabled_at_checkout' )->willReturn( true );
+
+		$mock_gateway = $this->get_mock_gateway( false );
+		$mock_gateway->payment_methods[ WC_Stripe_Payment_Methods::CARD ] = $mock_cc_pm;
+		$this->set_main_gateway( $mock_gateway );
+
+		try {
+			$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( $tokens, $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+		}
+
+		$result_token_ids = array_map( fn( $token ) => $token->get_token(), $result );
+		$this->assertNotContains( 'pm_stale_at_limit', $result_token_ids, 'A stale token must be removed even at the token cap.' );
+		$this->assertNotContains( 'pm_new_beyond_cap', $result_token_ids, 'New Stripe payment methods must not be added at the token cap.' );
+		$this->assertCount( $limit - 1, $result );
+
+		$db_token_ids = array_map(
+			fn( $token ) => $token->get_token(),
+			WC_Payment_Tokens::get_tokens(
+				[
+					'user_id'    => $user_id,
+					'gateway_id' => WC_Stripe_UPE_Payment_Gateway::ID,
+				]
+			)
+		);
+		$this->assertNotContains( 'pm_stale_at_limit', $db_token_ids );
+		$this->assertNotContains( 'pm_new_beyond_cap', $db_token_ids );
+	}
+
+	/**
+	 * Creates and saves a card token for a user under the main Stripe gateway.
+	 *
+	 * @param int    $user_id The user ID.
+	 * @param string $pm_id   The Stripe payment method ID.
+	 * @return WC_Stripe_Payment_Token_CC
+	 */
+	private function create_saved_cc_token( int $user_id, string $pm_id ): WC_Stripe_Payment_Token_CC {
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_token( $pm_id );
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( 4 );
+		$token->set_expiry_year( 2050 );
+		$token->set_fingerprint( 'fingerprint_' . $pm_id );
+		$token->set_user_id( $user_id );
+		$token->save();
+		return $token;
+	}
+
+	/**
+	 * Returns Stripe API response data for a card payment method.
+	 *
+	 * @param string $pm_id The Stripe payment method ID.
+	 * @return array
+	 */
+	private function get_stripe_card_payment_method_data( string $pm_id ): array {
+		return [
+			'id'   => $pm_id,
+			'type' => WC_Stripe_Payment_Methods::CARD,
+			'card' => [
+				'brand'       => 'visa',
+				'exp_month'   => 4,
+				'exp_year'    => 2050,
+				'last4'       => '4242',
+				'fingerprint' => 'fingerprint_' . $pm_id,
+			],
+		];
+	}
+
+	/**
+	 * Builds a pre_http_request callback that intercepts Stripe payment_methods requests.
+	 *
+	 * @param array $body        The decoded response body to return.
+	 * @param int   $status_code The HTTP status code to return.
+	 * @return callable
+	 */
+	private function mock_stripe_payment_methods_http_response( array $body, int $status_code = 200 ): callable {
+		return function ( $preempt, $request_args, $url ) use ( $body, $status_code ) {
+			if ( false === strpos( $url, 'payment_methods' ) ) {
+				return $preempt;
+			}
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( $body ),
+				'response' => [
+					'code'    => $status_code,
+					'message' => 'OK',
+				],
+			];
+		};
 	}
 
 	/**
@@ -1030,5 +1284,143 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		$result = $this->stripe_payment_tokens->get_account_saved_payment_methods_list_item( [ 'method' => [] ], $sepa_token );
 
 		$this->assertArrayNotHasKey( 'gateway', $result['method'], 'Gateway should NOT be remapped when OCS is disabled.' );
+	}
+
+	/**
+	 * Only card tokens carry a real expiry date, so the "Expires" cell must be blanked for
+	 * every other Stripe token rather than left with WooCommerce core's "N/A" default.
+	 * Card tokens — including Apple Pay and Google Pay, which are stored as cards — keep
+	 * the expiry core already resolved, and tokens from other gateways are left untouched.
+	 *
+	 * @param WC_Payment_Token $payment_token    Payment token.
+	 * @param string           $initial_expires  Value of `expires` as WooCommerce core seeds it.
+	 * @param string           $expected_expires Expected value of `expires` after filtering.
+	 * @return void
+	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4007
+	 * @dataProvider provide_test_get_account_saved_payment_methods_list_item_expires
+	 */
+	public function test_get_account_saved_payment_methods_list_item_expires( WC_Payment_Token $payment_token, string $initial_expires, string $expected_expires ): void {
+		$initial_item = [
+			'method'  => [],
+			'expires' => $initial_expires,
+		];
+
+		$result = $this->stripe_payment_tokens->get_account_saved_payment_methods_list_item( $initial_item, $payment_token );
+
+		$this->assertArrayHasKey( 'expires', $result );
+		$this->assertSame( $expected_expires, $result['expires'] );
+	}
+
+	/**
+	 * Data provider for {@see test_get_account_saved_payment_methods_list_item_expires()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_account_saved_payment_methods_list_item_expires(): array {
+		// WooCommerce core seeds every token with "N/A" and only overwrites it for cards,
+		// where it resolves a real MM/YY value.
+		$core_default = 'N/A';
+		$card_expiry  = '12/28';
+
+		$sepa_token = new \WC_Payment_Token_SEPA();
+		$sepa_token->set_last4( '1234' );
+
+		$bacs_debit_token = new \WC_Payment_Token_Bacs_Debit();
+		$bacs_debit_token->set_last4( '2345' );
+
+		$ach_token = new \WC_Payment_Token_ACH();
+		$ach_token->set_last4( '3456' );
+		$ach_token->set_bank_name( 'Test ACH Bank' );
+
+		$acss_token = new \WC_Payment_Token_ACSS();
+		$acss_token->set_last4( '4567' );
+		$acss_token->set_bank_name( 'Test ACSS Bank' );
+
+		$becs_debit_token = new \WC_Payment_Token_Becs_Debit();
+		$becs_debit_token->set_last4( '5678' );
+
+		$link_token = new \WC_Payment_Token_Link();
+		$link_token->set_email( 'link.test@example.com' );
+
+		$amazon_pay_token = new \WC_Payment_Token_Amazon_Pay();
+		$amazon_pay_token->set_email( 'amazon.test@example.com' );
+
+		$apple_pay_cc_token = new \WC_Stripe_Payment_Token_CC();
+		$apple_pay_cc_token->set_wallet_type( 'apple_pay' );
+
+		$google_pay_cc_token = new \WC_Stripe_Payment_Token_CC();
+		$google_pay_cc_token->set_wallet_type( 'google_pay' );
+
+		// A non-card token belonging to some other gateway: it does not implement the Stripe
+		// comparison interface, so this plugin must leave its "N/A" alone.
+		$non_stripe_token = $this->getMockBuilder( \WC_Payment_Token::class )->getMock();
+
+		return [
+			'SEPA token'                    => [
+				'payment_token'    => $sepa_token,
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'Bacs Direct Debit token'       => [
+				'payment_token'    => $bacs_debit_token,
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'Cash App Pay token'            => [
+				'payment_token'    => new \WC_Payment_Token_CashApp(),
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'ACH token'                     => [
+				'payment_token'    => $ach_token,
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'ACSS Debit token'              => [
+				'payment_token'    => $acss_token,
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'BECS Direct Debit token'       => [
+				'payment_token'    => $becs_debit_token,
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'Link token'                    => [
+				'payment_token'    => $link_token,
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'Amazon Pay token'              => [
+				'payment_token'    => $amazon_pay_token,
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'Klarna token'                  => [
+				'payment_token'    => new \WC_Stripe_Klarna_Payment_Token(),
+				'initial_expires'  => $core_default,
+				'expected_expires' => '',
+			],
+			'Card token keeps its expiry'   => [
+				'payment_token'    => new \WC_Stripe_Payment_Token_CC(),
+				'initial_expires'  => $card_expiry,
+				'expected_expires' => $card_expiry,
+			],
+			'Apple Pay card keeps expiry'   => [
+				'payment_token'    => $apple_pay_cc_token,
+				'initial_expires'  => $card_expiry,
+				'expected_expires' => $card_expiry,
+			],
+			'Google Pay card keeps expiry'  => [
+				'payment_token'    => $google_pay_cc_token,
+				'initial_expires'  => $card_expiry,
+				'expected_expires' => $card_expiry,
+			],
+			'Non-Stripe token is untouched' => [
+				'payment_token'    => $non_stripe_token,
+				'initial_expires'  => $core_default,
+				'expected_expires' => $core_default,
+			],
+		];
 	}
 }

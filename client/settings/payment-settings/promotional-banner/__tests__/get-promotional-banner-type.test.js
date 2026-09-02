@@ -1,7 +1,10 @@
 import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
 import {
+	AP_ONLY_BANNER,
 	BNPL_PROMOTION_BANNER,
 	OC_PROMOTION_BANNER,
+	OCS_AP_BANNER,
+	OCS_ONLY_BANNER,
 	RECONNECT_BANNER,
 	STRIPE_TAX_BANNER,
 } from 'wcstripe/settings/payment-settings/constants';
@@ -40,6 +43,156 @@ describe( 'getPromotionalBannerType', () => {
 				enabledPaymentMethodIds
 			)
 		).toBe( RECONNECT_BANNER );
+	} );
+
+	describe( 'OCS+AP banner', () => {
+		const accountData = {
+			testmode: false,
+			oauth_connections: {
+				live: { connected: true },
+			},
+		};
+		const isOCEnabled = true;
+		const enabledPaymentMethodIds = [ PAYMENT_METHOD_CARD ];
+
+		it( 'should not be selected when the server flag is missing', () => {
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBeNull();
+		} );
+
+		it( 'should not be selected when the server flag is empty', () => {
+			global.wc_stripe_settings_params = {
+				show_ocs_ap_banner: '',
+			};
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBeNull();
+		} );
+
+		it( 'should be selected when the server flag is set to 1', () => {
+			global.wc_stripe_settings_params = {
+				show_ocs_ap_banner: '1',
+			};
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBe( OCS_AP_BANNER );
+		} );
+
+		it( 'should take precedence over AP-only banner when both flags are set', () => {
+			global.wc_stripe_settings_params = {
+				show_ocs_ap_banner: '1',
+				show_ap_only_banner: '1',
+			};
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBe( OCS_AP_BANNER );
+		} );
+	} );
+
+	describe( 'AP-only banner', () => {
+		const accountData = {
+			testmode: false,
+			oauth_connections: {
+				live: { connected: true },
+			},
+		};
+		const isOCEnabled = true;
+		const enabledPaymentMethodIds = [ PAYMENT_METHOD_CARD ];
+
+		it( 'should not be selected when the server flag is missing', () => {
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBeNull();
+		} );
+
+		it( 'should be selected when the server flag is set to 1', () => {
+			global.wc_stripe_settings_params = {
+				show_ap_only_banner: '1',
+			};
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBe( AP_ONLY_BANNER );
+		} );
+	} );
+
+	describe( 'OCS-only banner', () => {
+		const accountData = {
+			testmode: false,
+			oauth_connections: {
+				live: { connected: true },
+			},
+		};
+		const isOCEnabled = true;
+		const enabledPaymentMethodIds = [ PAYMENT_METHOD_CARD ];
+
+		it( 'should not be selected when the server flag is missing', () => {
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBeNull();
+		} );
+
+		it( 'should be selected when the server flag is set to 1', () => {
+			global.wc_stripe_settings_params = {
+				show_ocs_only_banner: '1',
+			};
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBe( OCS_ONLY_BANNER );
+		} );
+
+		it( 'should yield to OCS+AP and AP-only when multiple flags are set', () => {
+			global.wc_stripe_settings_params = {
+				show_ocs_ap_banner: '1',
+				show_ap_only_banner: '1',
+				show_ocs_only_banner: '1',
+			};
+
+			expect(
+				getPromotionalBannerType(
+					accountData,
+					isOCEnabled,
+					enabledPaymentMethodIds
+				)
+			).toBe( OCS_AP_BANNER );
+		} );
 	} );
 
 	describe( 'Stripe Tax banner', () => {

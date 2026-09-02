@@ -22,7 +22,17 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function __construct() {
 		self::$_this = $this;
+	}
 
+	/**
+	 * Registers the handler's hooks. Kept out of the constructor so
+	 * instantiating the class never stacks duplicate callbacks; the bootstrap
+	 * calls this exactly once.
+	 *
+	 * @since 11.0.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		add_action( 'wp', [ $this, 'maybe_process_redirect_order' ] );
 		add_action( 'woocommerce_order_status_processing', [ $this, 'capture_payment' ] );
 		add_action( 'woocommerce_order_status_completed', [ $this, 'capture_payment' ] );
@@ -89,6 +99,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param mix  $previous_error Any error message from previous request.
 	 */
 	public function process_redirect_payment( $order_id, $retry = true, $previous_error = false ) {
+		$order = null;
 		try {
 			$source = isset( $_GET['source'] ) ? wc_clean( wp_unslash( $_GET['source'] ) ) : '';
 
@@ -102,7 +113,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			$order = wc_get_order( $order_id );
 
-			if ( ! is_object( $order ) ) {
+			if ( ! $order instanceof WC_Order ) {
 				return;
 			}
 
@@ -215,6 +226,14 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
+			/**
+			 * Fires after a redirect payment is processed.
+			 * Deprecated in favor of wc_gateway_stripe_process_payment_charge.
+			 *
+			 * @deprecated 9.7.0
+			 * @param object   $response The response object.
+			 * @param WC_Order $order    The order object.
+			*/
 			do_action_deprecated(
 				'wc_gateway_stripe_process_redirect_payment',
 				[ $response, $order ],
@@ -228,6 +247,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::error( 'Error processing redirect payment for order: ' . $order_id, [ 'error_message' => $e->getMessage() ] );
 
+			/**
+			 * Fires after redirect payment processing fails.
+			 *
+			 * @param WC_Stripe_Exception $exception The exception raised during redirect payment processing.
+			 * @param WC_Order            $order     The order that failed payment processing.
+			 */
 			do_action( 'wc_gateway_stripe_process_redirect_payment_error', $e, $order );
 
 			/* translators: error message */
@@ -301,7 +326,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$charge             = $order->get_transaction_id();
 			$is_stripe_captured = false;
 
-			if ( $charge && 'no' === $order_helper->get_stripe_charge_captured( $order ) ) { // Strictly checking for 'no' value.
+			if ( $charge && $order_helper->is_stripe_charge_authorized_only( $order ) ) {
 				$order_total = $order->get_total();
 
 				if ( 0 < $order->get_total_refunded() ) {
@@ -386,6 +411,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				}
 
 				// This hook fires when admin manually changes order status to processing or completed.
+				/**
+				 * Fires after a manually captured Stripe charge is processed.
+				 *
+				 * @param WC_Order $order  Order associated with the manual capture.
+				 * @param object   $result Stripe capture response.
+				 */
 				do_action( 'woocommerce_stripe_process_manual_capture', $order, $result );
 				return $result;
 			}
@@ -402,15 +433,26 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	public function cancel_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
 
-		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
-			$captured = WC_Stripe_Order_Helper::get_instance()->is_stripe_charge_captured( $order );
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
 
-			if ( ! $captured ) {
+		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
+			// Only a known authorize-only charge is voided: this hook also fires on transitions
+			// made without wanting a gateway refund (e.g. "Refund manually"). With the flag merely
+			// missing, process_refund() would resolve it from Stripe and, if the charge turns out
+			// to be captured, issue a full refund nobody asked for.
+			if ( WC_Stripe_Order_Helper::get_instance()->is_stripe_charge_authorized_only( $order ) ) {
 				// To cancel a pre-auth, we need to refund the charge.
 				$this->process_refund( $order_id );
 			}
 
 			// This hook fires when admin manually changes order status to cancel.
+			/**
+			 * Fires after a manually canceled Stripe pre-authorization is processed.
+			 *
+			 * @param WC_Order $order Order associated with the manual cancellation.
+			 */
 			do_action( 'woocommerce_stripe_process_manual_cancel', $order );
 		}
 	}
@@ -483,12 +525,22 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		// and the Stripe webhook can leave a paid order stuck at `pending` (payment meta written,
 		// status transition lost), which wc_cancel_unpaid_orders() would otherwise cancel.
 		if ( $order->get_date_paid( 'edit' ) ) {
+			$this->surface_prevented_paid_order_cancellation( $order );
 			return false;
 		}
 
 		// Bail if the order doesn't have an intent yet.
-		if ( ! $this->get_intent_from_order( $order ) ) {
+		$intent = $this->get_intent_from_order( $order );
+		if ( ! $intent ) {
 			return $cancel_order;
+		}
+
+		// A SetupIntent still awaiting verification outlives the one-day window below: bank
+		// microdeposits take days to confirm. Cancelling here would strand the shopper with a
+		// verified payment method at Stripe and a cancelled order, because the later
+		// setup_intent.succeeded webhook skips orders that are no longer payable.
+		if ( self::is_setup_intent_awaiting_verification( $intent ) ) {
+			return false;
 		}
 
 		// If the order is awaiting action and was modified within the last day, don't cancel it.
@@ -497,5 +549,56 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $cancel_order;
+	}
+
+	/**
+	 * Whether the intent is a SetupIntent that Stripe has not settled yet.
+	 *
+	 * Only intents that can still succeed count; a failed or cancelled one stays cancellable.
+	 *
+	 * @param stdClass|object $intent The intent retrieved for the order.
+	 * @return bool
+	 */
+	private static function is_setup_intent_awaiting_verification( $intent ): bool {
+		if ( 'setup_intent' !== ( $intent->object ?? '' ) ) {
+			return false;
+		}
+
+		return in_array(
+			$intent->status ?? '',
+			[
+				WC_Stripe_Intent_Status::REQUIRES_ACTION,
+				WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION,
+				WC_Stripe_Intent_Status::PROCESSING,
+			],
+			true
+		);
+	}
+
+	/**
+	 * Surfaces a paid-but-pending Stripe order whose auto-cancellation we just blocked via an order
+	 * note and an action hook. A meta flag keeps it idempotent across wc_cancel_unpaid_orders() retries.
+	 *
+	 * @since 10.8.0
+	 *
+	 * @param WC_Order $order The paid order whose cancellation was prevented.
+	 */
+	private function surface_prevented_paid_order_cancellation( $order ): void {
+		if ( 'yes' === $order->get_meta( '_stripe_paid_order_cancellation_prevented' ) ) {
+			return;
+		}
+
+		$order->add_order_note( __( 'This order has already been paid, but its status is still pending. The Stripe gateway prevented it from being auto-cancelled as unpaid; please review and update the order status.', 'woocommerce-gateway-stripe' ) );
+		$order->update_meta_data( '_stripe_paid_order_cancellation_prevented', 'yes' );
+		$order->save();
+
+		/**
+		 * Fires when a paid Stripe order stuck at `pending` is prevented from being auto-cancelled as unpaid.
+		 *
+		 * @since 10.8.0
+		 *
+		 * @param WC_Order $order The paid order whose cancellation was prevented.
+		 */
+		do_action( 'wc_stripe_paid_order_cancellation_prevented', $order );
 	}
 }

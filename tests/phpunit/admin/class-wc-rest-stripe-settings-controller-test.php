@@ -138,6 +138,94 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * Test mode cannot be turned off unless a live account is connected.
+	 *
+	 * @param bool   $live_connected  Whether live API keys are present.
+	 * @param string $expected_option The expected `testmode` option value after the request.
+	 *
+	 * @dataProvider disable_test_mode_requires_live_connection_provider
+	 */
+	public function test_disable_test_mode_requires_live_connection( bool $live_connected, string $expected_option ) {
+		// Start in test mode.
+		$this->get_gateway()->update_option( 'testmode', 'yes' );
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		if ( $live_connected ) {
+			$settings['publishable_key'] = 'pk_live_1234567890';
+			$settings['secret_key']      = 'sk_live_1234567890';
+		} else {
+			$settings['publishable_key'] = '';
+			$settings['secret_key']      = '';
+		}
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		// Attempt to turn test mode off (switch to live).
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_test_mode_enabled', false );
+		$response = rest_do_request( $request );
+
+		// The request always succeeds; only the saved value differs (soft clamp).
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( $expected_option, $this->get_gateway()->get_option( 'testmode' ) );
+	}
+
+	/**
+	 * Data provider for `test_disable_test_mode_requires_live_connection`.
+	 *
+	 * @return array
+	 */
+	public function disable_test_mode_requires_live_connection_provider(): array {
+		return [
+			'live connected: switches to live mode' => [ true, 'no' ],
+			'live disconnected: stays in test mode' => [ false, 'yes' ],
+		];
+	}
+
+	/**
+	 * Test mode cannot be turned on unless a test account is connected.
+	 *
+	 * @param bool   $test_connected  Whether test API keys are present.
+	 * @param string $expected_option The expected `testmode` option value after the request.
+	 *
+	 * @dataProvider enable_test_mode_requires_test_connection_provider
+	 */
+	public function test_enable_test_mode_requires_test_connection( bool $test_connected, string $expected_option ) {
+		// Start in live mode.
+		$this->get_gateway()->update_option( 'testmode', 'no' );
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		if ( $test_connected ) {
+			$settings['test_publishable_key'] = 'pk_test_1234567890';
+			$settings['test_secret_key']      = 'sk_test_1234567890';
+		} else {
+			$settings['test_publishable_key'] = '';
+			$settings['test_secret_key']      = '';
+		}
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		// Attempt to turn test mode on (switch to test).
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_test_mode_enabled', true );
+		$response = rest_do_request( $request );
+
+		// The request always succeeds; only the saved value differs (soft clamp).
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( $expected_option, $this->get_gateway()->get_option( 'testmode' ) );
+	}
+
+	/**
+	 * Data provider for `test_enable_test_mode_requires_test_connection`.
+	 *
+	 * @return array
+	 */
+	public function enable_test_mode_requires_test_connection_provider(): array {
+		return [
+			'test connected: switches to test mode' => [ true, 'yes' ],
+			'test disconnected: stays in live mode' => [ false, 'no' ],
+		];
+	}
+
+	/**
 	 * Tests for boolean fields.
 	 *
 	 * @param string $rest_key    REST API key.
@@ -436,6 +524,24 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * Tests that omitting `enabled_payment_method_ids` from the payload does not
+	 * trigger a runtime error when `is_express_checkout_enabled` is also set.
+	 */
+	public function test_update_settings_accepts_partial_payload_without_enabled_payment_method_ids() {
+		$this->mock_payment_method_configurations(
+			[ WC_Stripe_Payment_Methods::CARD ],
+			[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
+		);
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'is_express_checkout_enabled', true );
+
+		$response = $this->controller->update_settings( $request );
+		$this->assertEquals( 200, $response->get_status() );
+	}
+
+	/**
 	 * Tests for the dismiss notice endpoint.
 	 *
 	 * @param array $request_params    The request parameters.
@@ -492,6 +598,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			'wc_stripe_show_optimized_checkout_notice'  => 'wc_stripe_show_optimized_checkout_notice',
 			'wc_stripe_show_bnpl_promotion_banner'      => 'wc_stripe_show_bnpl_promotion_banner',
 			'wc_stripe_show_oc_promotion_banner'        => 'wc_stripe_show_oc_promotion_banner',
+			'wc_stripe_show_ocs_ap_banner'              => 'wc_stripe_show_ocs_ap_banner',
+			'wc_stripe_show_ap_only_banner'             => 'wc_stripe_show_ap_only_banner',
+			'wc_stripe_show_ocs_only_banner'            => 'wc_stripe_show_ocs_only_banner',
 			'wc_stripe_show_stripe_first_method_notice' => 'wc_stripe_show_stripe_first_method_notice',
 			'wc_stripe_show_stripe_tax_banner'          => 'wc_stripe_show_stripe_tax_banner',
 		];
@@ -630,7 +739,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	public function boolean_field_provider(): array {
 		return [
 			'is_stripe_enabled'                     => [ 'is_stripe_enabled', 'enabled' ],
-			'is_test_mode_enabled'                  => [ 'is_test_mode_enabled', 'testmode' ],
 			'is_oc_enabled'                         => [ 'is_oc_enabled', 'optimized_checkout_element' ],
 			'is_ap_enabled'                         => [ 'is_ap_enabled', 'adaptive_pricing' ],
 			'is_manual_capture_enabled'             => [ 'is_manual_capture_enabled', 'capture', true ],
@@ -682,6 +790,20 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			'express_checkout_button_locations' => [
 				'express_checkout_button_locations',
 				'express_checkout_button_locations',
+				[ 'cart' ],
+				[ 'cart', 'checkout', 'product' ],
+				[ 'foo' ],
+			],
+			'link_button_size'                  => [
+				'link_button_size',
+				'link_button_size',
+				'default',
+				'large',
+				'foo',
+			],
+			'link_button_locations'             => [
+				'link_button_locations',
+				'link_button_locations',
 				[ 'cart' ],
 				[ 'cart', 'checkout', 'product' ],
 				[ 'foo' ],

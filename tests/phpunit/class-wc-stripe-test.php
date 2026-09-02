@@ -9,6 +9,68 @@
  */
 class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
+	 * get_settings() returns the stored option as an array.
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_returns_stored_option(): void {
+		update_option( WC_Stripe::SETTINGS_OPTION_NAME, [ 'enabled' => 'yes' ] );
+
+		// Compare against the stored option rather than the literal written
+		// above: the pre_update_option filter merges defaults into the write.
+		$updated_settings = WC_Stripe::get_instance()->get_settings();
+		$this->assertSame(
+			get_option( WC_Stripe::SETTINGS_OPTION_NAME ),
+			$updated_settings
+		);
+		$this->assertSame( 'yes', $updated_settings['enabled'] );
+	}
+
+	/**
+	 * get_settings() always returns an array, even when the option holds a non-array value.
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_normalizes_non_array_option(): void {
+		$force_scalar = static function () {
+			return 'not-an-array';
+		};
+		add_filter( 'option_' . WC_Stripe::SETTINGS_OPTION_NAME, $force_scalar );
+
+		try {
+			$this->assertSame( [], WC_Stripe::get_instance()->get_settings() );
+		} finally {
+			remove_filter( 'option_' . WC_Stripe::SETTINGS_OPTION_NAME, $force_scalar );
+		}
+	}
+
+	/**
+	 * update_settings() writes through to the underlying option, asserted via
+	 * get_option() so the test holds even if get_settings() grows a cache.
+	 *
+	 * @return void
+	 */
+	public function test_update_settings_persists_option(): void {
+		WC_Stripe::get_instance()->update_settings( [ 'enabled' => 'yes' ] );
+		$this->assertSame( 'yes', get_option( WC_Stripe::SETTINGS_OPTION_NAME )['enabled'] );
+
+		WC_Stripe::get_instance()->update_settings( [ 'enabled' => 'no' ] );
+		$this->assertSame( 'no', get_option( WC_Stripe::SETTINGS_OPTION_NAME )['enabled'] );
+	}
+
+	/**
+	 * get_settings() reflects a raw update_option() write that bypasses
+	 * update_settings() — the accessor introduces no divergent state.
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_reflects_raw_option_write(): void {
+		update_option( WC_Stripe::SETTINGS_OPTION_NAME, [ 'enabled' => 'no' ] );
+
+		$this->assertSame( 'no', WC_Stripe::get_instance()->get_settings()['enabled'] );
+	}
+
+	/**
 	 * Tests that the plugin constants are defined.
 	 *
 	 * @return void
@@ -20,6 +82,49 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertTrue( defined( 'WC_STRIPE_MAIN_FILE' ) );
 		$this->assertTrue( defined( 'WC_STRIPE_PLUGIN_URL' ) );
 		$this->assertTrue( defined( 'WC_STRIPE_PLUGIN_PATH' ) );
+	}
+
+	/**
+	 * Legacy callbacks registered against the removed WC_Stripe_Payment_Request class via the
+	 * `payment_request_configuration` property must resolve to a valid object, not fatal,
+	 * and each call must log a deprecation so remaining third-party usage stays visible.
+	 *
+	 * @return void
+	 */
+	public function test_payment_request_configuration_legacy_callbacks_do_not_fatal() {
+		$config = WC_Stripe::get_instance()->payment_request_configuration;
+
+		$this->assertIsObject( $config, 'payment_request_configuration should be an object, not null.' );
+
+		$legacy_methods = [
+			'display_payment_request_button_html',
+			'display_payment_request_button_separator_html',
+		];
+
+		foreach ( $legacy_methods as $method ) {
+			$this->setExpectedDeprecated( "WC_Stripe_Payment_Request::{$method}" );
+		}
+
+		// Register the removed class's methods as hook callbacks the way a third party would.
+		foreach ( $legacy_methods as $method ) {
+			$this->assertTrue(
+				is_callable( [ $config, $method ] ),
+				"[ \$payment_request_configuration, '{$method}' ] should be a valid callback."
+			);
+			add_action( 'woocommerce_review_order_before_submit', [ $config, $method ] );
+		}
+
+		// No TypeError when the hook fires means the shim held.
+		do_action( 'woocommerce_review_order_before_submit' );
+		$this->assertTrue( true );
+
+		// Any other removed method falls through to __call: no fatal, and still logged.
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Request::some_removed_method' );
+		$this->assertNull( $config->some_removed_method() );
+
+		foreach ( $legacy_methods as $method ) {
+			remove_action( 'woocommerce_review_order_before_submit', [ $config, $method ] );
+		}
 	}
 
 	/**
@@ -167,7 +272,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
 
 		// Set initial settings.
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
 			->disableOriginalConstructor()
@@ -182,7 +287,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$wc_stripe->install();
 
-		$actual_settings = WC_Stripe_Helper::get_stripe_settings();
+		$actual_settings = WC_Stripe::get_instance()->get_settings();
 		foreach ( $expected_settings as $key => $value ) {
 			if ( null == $value ) {
 				$this->assertArrayNotHasKey( $key, $actual_settings );
@@ -352,47 +457,59 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Tests the {@see WC_Stripe::add_gateways()} method.
 	 *
-	 * @param array $payment_methods The payment methods to add.
-	 * @param array $expected_gateways The expected gateways.
-	 * @param bool $is_admin Whether the test is running in the admin.
-	 * @param bool $oc_enabled Whether the optimized checkout is enabled.
+	 * @param array  $payment_methods    The payment methods to add.
+	 * @param array  $expected_gateways  The expected gateways.
+	 * @param bool   $is_admin           Whether the test is running in the admin.
+	 * @param bool   $oc_enabled         Whether the optimized checkout is enabled.
+	 * @param string $edited_post_block  Block the edited post hosts: 'checkout', 'cart', 'none' (a non-Stripe post),
+	 *                                   or '' for no edited post at all (e.g. the refund AJAX action).
 	 * @return void
 	 * @dataProvider provide_test_add_gateways
 	 */
-	public function test_add_gateways( array $payment_methods, array $expected_gateways, bool $is_admin = false, bool $oc_enabled = false ): void {
+	public function test_add_gateways( array $payment_methods, array $expected_gateways, bool $is_admin = false, bool $oc_enabled = false, string $edited_post_block = '' ): void {
 		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
 			->disableOriginalConstructor()
 			->onlyMethods( [ 'get_main_stripe_gateway' ] )
 			->getMock();
 
-		$mock_main_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+		// add_gateways() keys OCS filtering off the instantiated gateway class, mirroring the
+		// selection done in get_main_stripe_gateway(): the OCS gateway when OC is enabled.
+		$main_gateway_class = $oc_enabled ? WC_Stripe_OCS_Payment_Gateway::class : WC_Stripe_UPE_Payment_Gateway::class;
+		$mock_main_gateway  = $this->getMockBuilder( $main_gateway_class )
 			->disableOriginalConstructor()
 			->getMock();
 
 		$mock_main_gateway->payment_methods = $payment_methods;
-		$mock_main_gateway->method( 'get_option' )
-			->with( 'optimized_checkout_element', 'no' )
-			->willReturn( $oc_enabled ? 'yes' : 'no' );
 
 		$wc_stripe->method( 'get_main_stripe_gateway' )
 			->willReturn( $mock_main_gateway );
 
-		$initial_current_screen = null;
-		$reset_current_screen   = false;
+		// The filter keys on the edited post ID in $_GET['post']. '' means no post is being edited.
+		$post_content = [
+			'checkout' => '<!-- wp:woocommerce/checkout /-->',
+			'cart'     => '<!-- wp:woocommerce/cart /-->',
+			'none'     => '<!-- wp:paragraph --><p>No Stripe blocks here.</p><!-- /wp:paragraph -->',
+		];
+		$initial_get  = $_GET;
+		if ( '' !== $edited_post_block ) {
+			$_GET['post'] = (string) self::factory()->post->create( [ 'post_content' => $post_content[ $edited_post_block ] ] );
+		}
 
+		// is_admin() reads the current screen; set an admin screen so the admin branch is exercised.
+		$initial_current_screen = $GLOBALS['current_screen'] ?? null;
 		if ( $is_admin ) {
-			$initial_current_screen = $GLOBALS['current_screen'] ?? null;
-			$reset_current_screen   = true;
-
 			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 			$GLOBALS['current_screen'] = \WP_Screen::get( 'post.php' );
 		}
 
-		$gateways = $wc_stripe->add_gateways( [] );
-
-		if ( $reset_current_screen ) {
-			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-			$GLOBALS['current_screen'] = $initial_current_screen;
+		try {
+			$gateways = $wc_stripe->add_gateways( [] );
+		} finally {
+			$_GET = $initial_get;
+			if ( $is_admin ) {
+				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+				$GLOBALS['current_screen'] = $initial_current_screen;
+			}
 		}
 
 		// First gateway should always be the main stripe gateway.
@@ -434,45 +551,58 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			->getMock();
 		$sepa_gateway->method( 'is_enabled_at_checkout' )->willReturn( false );
 
+		// All non-card methods, used by the regression guards that assert nothing is filtered.
+		$all_methods  = [
+			'card'              => $card_gateway,
+			'afterpay_clearpay' => $afterpay_clearpay_gateway,
+			'klarna'            => $klarna_gateway,
+			'amazon_pay'        => $amazon_pay_gateway,
+			'link'              => $link_gateway,
+			'sepa_debit'        => $sepa_gateway,
+		];
+		$all_non_card = [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway, $link_gateway, $sepa_gateway ];
+
 		return [
-			'none active'                                                         => [
+			'none active'                                                              => [
 				'payment_methods'   => [],
 				'expected_gateways' => [],
 			],
-			'none active admin'                                                   => [
+			'none active admin'                                                        => [
 				'payment_methods'   => [],
 				'expected_gateways' => [],
 				'is_admin'          => true,
 			],
-			'card only non-admin is filtered out'                                 => [
+			'card only non-admin is filtered out'                                      => [
 				'payment_methods'   => [
 					'card' => $card_gateway,
 				],
 				'expected_gateways' => [],
 			],
-			'card only admin is filtered out'                                     => [
+			'card only admin is filtered out'                                          => [
 				'payment_methods'   => [
 					'card' => $card_gateway,
 				],
 				'expected_gateways' => [],
 				'is_admin'          => true,
 			],
-			'link correctly included non-admin'                                   => [
+			'link correctly included non-admin'                                        => [
 				'payment_methods'   => [
 					'klarna' => $klarna_gateway,
 					'link'   => $link_gateway,
 				],
 				'expected_gateways' => [ $klarna_gateway, $link_gateway ],
 			],
-			'link correctly filtered out admin'                                   => [
+			'link filtered out when editing the checkout page'                         => [
 				'payment_methods'   => [
 					'klarna' => $klarna_gateway,
 					'link'   => $link_gateway,
 				],
 				'expected_gateways' => [ $klarna_gateway ],
 				'is_admin'          => true,
+				'oc_enabled'        => false,
+				'edited_post_block' => 'checkout',
 			],
-			'amazon pay correctly included non-admin'                             => [
+			'amazon pay correctly included non-admin'                                  => [
 				'payment_methods'   => [
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
 					'klarna'            => $klarna_gateway,
@@ -480,7 +610,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway ],
 			],
-			'amazon pay correctly filtered out admin'                             => [
+			'amazon pay filtered out when editing the cart page'                       => [
 				'payment_methods'   => [
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
 					'klarna'            => $klarna_gateway,
@@ -488,8 +618,10 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
 				'is_admin'          => true,
+				'oc_enabled'        => false,
+				'edited_post_block' => 'cart',
 			],
-			'card filtered out; amazon pay and link correctly included non-admin' => [
+			'card filtered out; amazon pay and link correctly included non-admin'      => [
 				'payment_methods'   => [
 					'card'              => $card_gateway,
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
@@ -499,7 +631,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway, $link_gateway ],
 			],
-			'card, amazon pay, and link filtered out admin'                       => [
+			'card, amazon pay, and link filtered out when editing the checkout page'   => [
 				'payment_methods'   => [
 					'card'              => $card_gateway,
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
@@ -509,8 +641,10 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
 				'is_admin'          => true,
+				'oc_enabled'        => false,
+				'edited_post_block' => 'checkout',
 			],
-			'disabled at checkout payment methods are filtered out in admin'      => [
+			'disabled-at-checkout methods filtered out when editing the checkout page' => [
 				'payment_methods'   => [
 					'card'              => $card_gateway,
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
@@ -522,8 +656,10 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				// sepa is disabled at checkout, so it should be filtered out.
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
 				'is_admin'          => true,
+				'oc_enabled'        => false,
+				'edited_post_block' => 'checkout',
 			],
-			'optimized checkout enabled admin'                                    => [
+			'optimized checkout enabled when editing the checkout page'                => [
 				'payment_methods'   => [
 					'card'              => $card_gateway,
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
@@ -534,6 +670,46 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected_gateways' => [],
 				'is_admin'          => true,
 				'oc_enabled'        => true,
+				'edited_post_block' => 'checkout',
+			],
+			// Editing a non-Stripe post must not filter the gateway list; extensions reading it need every method.
+			'link and amazon pay kept when editing a non-Stripe post'                  => [
+				'payment_methods'   => [
+					'afterpay_clearpay' => $afterpay_clearpay_gateway,
+					'klarna'            => $klarna_gateway,
+					'amazon_pay'        => $amazon_pay_gateway,
+					'link'              => $link_gateway,
+				],
+				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway, $link_gateway ],
+				'is_admin'          => true,
+				'oc_enabled'        => false,
+				'edited_post_block' => 'none',
+			],
+			// With OCS on, editing a non-Stripe post must still expose every non-card method to extensions.
+			'optimized checkout keeps UPE methods when editing a non-Stripe post'      => [
+				'payment_methods'   => $all_methods,
+				'expected_gateways' => $all_non_card,
+				'is_admin'          => true,
+				'oc_enabled'        => true,
+				'edited_post_block' => 'none',
+			],
+			// Regression guard: order-edit screens must never drop a gateway, or WooCommerce can't find the
+			// gateway for refund processing. An order is a post without the Cart/Checkout block.
+			'order edit screen keeps all gateways'                                     => [
+				'payment_methods'   => $all_methods,
+				'expected_gateways' => $all_non_card,
+				'is_admin'          => true,
+				'oc_enabled'        => true,
+				'edited_post_block' => 'none',
+			],
+			// Regression guard: the refund AJAX action runs without an edited post; the full gateway list
+			// must survive there too.
+			'refund AJAX without an edited post keeps all gateways'                    => [
+				'payment_methods'   => $all_methods,
+				'expected_gateways' => $all_non_card,
+				'is_admin'          => true,
+				'oc_enabled'        => true,
+				'edited_post_block' => '',
 			],
 		];
 	}
@@ -565,6 +741,67 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		} finally {
 			$stripe->account = $original_account;
 		}
+	}
+
+	/**
+	 * Tests that get_main_stripe_gateway() returns the OCS gateway when OCS is enabled
+	 * and the base UPE gateway otherwise.
+	 *
+	 * @dataProvider provide_test_get_main_stripe_gateway
+	 */
+	public function test_get_main_stripe_gateway_returns_expected_class( array $settings, string $expected_class ): void {
+		$original_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe            = WC_Stripe::get_instance();
+
+		$reflection = new ReflectionClass( WC_Stripe::class );
+		$property   = $reflection->getProperty( 'stripe_gateway' );
+		$property->setAccessible( true );
+		$previous_gateway = $property->getValue( $stripe );
+
+		try {
+			WC_Stripe_Helper::update_main_stripe_settings( $settings );
+			$property->setValue( $stripe, null );
+
+			$gateway = $stripe->get_main_stripe_gateway();
+
+			$this->assertInstanceOf( $expected_class, $gateway );
+		} finally {
+			$property->setValue( $stripe, $previous_gateway );
+			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+		}
+	}
+
+	/**
+	 * Data provider for {@see self::test_get_main_stripe_gateway_returns_expected_class()}.
+	 */
+	public function provide_test_get_main_stripe_gateway(): array {
+		return [
+			'OCS disabled by setting' => [
+				'settings'       => [
+					'pmc_enabled'                => 'yes',
+					'optimized_checkout_element' => 'no',
+				],
+				'expected_class' => WC_Stripe_UPE_Payment_Gateway::class,
+			],
+			'OCS setting missing'     => [
+				'settings'       => [ 'pmc_enabled' => 'yes' ],
+				'expected_class' => WC_Stripe_UPE_Payment_Gateway::class,
+			],
+			'OCS gated by pmc flag'   => [
+				'settings'       => [
+					'pmc_enabled'                => 'no',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expected_class' => WC_Stripe_UPE_Payment_Gateway::class,
+			],
+			'OCS enabled'             => [
+				'settings'       => [
+					'pmc_enabled'                => 'yes',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expected_class' => WC_Stripe_OCS_Payment_Gateway::class,
+			],
+		];
 	}
 
 	/**
@@ -692,6 +929,165 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		];
 	}
 
+	/**
+	 * Toggling the Adaptive Pricing setting marks the amount mismatch migration as
+	 * complete, so a later plugin update cannot override the merchant's explicit choice.
+	 *
+	 * @param array|false $old_value              Previous option value passed by the hook.
+	 * @param array|false $new_value              New option value passed by the hook.
+	 * @param string|null $flag_before            Migration flag stored before the update; null when absent.
+	 * @param string|null $amount_mismatch_before Amount mismatch option stored before the update; null when absent.
+	 * @param bool        $expect_marked Whether the migration should be marked complete.
+	 *
+	 * @dataProvider provide_test_maybe_mark_adaptive_pricing_migration_complete
+	 */
+	public function test_maybe_mark_adaptive_pricing_migration_complete( $old_value, $new_value, ?string $flag_before, ?string $amount_mismatch_before, bool $expect_marked ): void {
+		$flag_option = $this->get_adaptive_pricing_migration_flag_option_name();
+
+		if ( null === $flag_before ) {
+			delete_option( $flag_option );
+		} else {
+			update_option( $flag_option, $flag_before );
+		}
+
+		$amount_mismatch_option = WC_Stripe_Test_Helper::get_class_const_value(
+			WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::class,
+			'AMOUNT_MISMATCH_OPTION',
+			'string'
+		);
+		if ( null === $amount_mismatch_before ) {
+			delete_option( $amount_mismatch_option );
+		} else {
+			update_option( $amount_mismatch_option, $amount_mismatch_before );
+		}
+
+		// mark_migration_complete() is a static call, so observe it through the
+		// pre_update_option filter its update_option() always applies — the stored
+		// value alone cannot distinguish "left at yes" from "redundantly re-written".
+		$mark_migration_complete_calls = 0;
+		$mark_migration_complete_spy   = function ( $value ) use ( &$mark_migration_complete_calls ) {
+			++$mark_migration_complete_calls;
+			return $value;
+		};
+		add_filter( 'pre_update_option_' . $flag_option, $mark_migration_complete_spy );
+
+		try {
+			do_action( 'update_option_' . WC_Stripe::SETTINGS_OPTION_NAME, $old_value, $new_value, WC_Stripe::SETTINGS_OPTION_NAME );
+		} finally {
+			remove_filter( 'pre_update_option_' . $flag_option, $mark_migration_complete_spy );
+		}
+
+		$this->assertSame( $expect_marked ? 1 : 0, $mark_migration_complete_calls );
+		$this->assertSame(
+			$expect_marked ? 'yes' : ( $flag_before ?? false ),
+			get_option( $flag_option )
+		);
+		$this->assertSame(
+			$expect_marked ? false : ( $amount_mismatch_before ?? false ),
+			get_option( $amount_mismatch_option, false )
+		);
+	}
+
+	/**
+	 * Data provider for {@see test_maybe_mark_adaptive_pricing_migration_complete()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_maybe_mark_adaptive_pricing_migration_complete(): array {
+		return [
+			'AP enabled, migration incomplete'       => [
+				'old_value'              => [ 'adaptive_pricing' => 'no' ],
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => true,
+			],
+			'AP disabled, migration incomplete'      => [
+				'old_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'new_value'              => [ 'adaptive_pricing' => 'no' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => true,
+			],
+			'AP set for the first time'              => [
+				'old_value'              => [ 'enabled' => 'yes' ],
+				'new_value'              => [ 'adaptive_pricing' => 'no' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => true,
+			],
+			'AP unchanged'                           => [
+				'old_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => false,
+			],
+			'new value missing the AP key'           => [
+				'old_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'new_value'              => [ 'enabled' => 'yes' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => false,
+			],
+			'old value not an array'                 => [
+				'old_value'              => false,
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => false,
+			],
+			'new value not an array'                 => [
+				'old_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'new_value'              => false,
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => false,
+			],
+			'migration already complete, AP toggled' => [
+				'old_value'              => [ 'adaptive_pricing' => 'no' ],
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => 'yes',
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => false,
+			],
+			'non-yes flag is treated as incomplete'  => [
+				'old_value'              => [ 'adaptive_pricing' => 'no' ],
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => 'no',
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => true,
+			],
+			'AP enabled, migration not needed'       => [
+				'old_value'              => [ 'adaptive_pricing' => 'no' ],
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => null,
+				'expect_marked'          => false,
+			],
+			'AP disabled, migration not needed'      => [
+				'old_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'new_value'              => [ 'adaptive_pricing' => 'no' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'no',
+				'expect_marked'          => false,
+			],
+		];
+	}
+
+	/**
+	 * Helper: resolve the migration flag option name from the migration class's private const.
+	 *
+	 * @return string
+	 */
+	private function get_adaptive_pricing_migration_flag_option_name(): string {
+		return WC_Stripe_Test_Helper::get_class_const_value(
+			WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::class,
+			'MIGRATION_FLAG_OPTION',
+			'string'
+		);
+	}
+
 	/* -----------------------------------------------------------------
 	 * Plugin initialization guards
 	 *
@@ -776,6 +1172,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			[ 'woocommerce_init', 'initialize_agentic_commerce', 10 ],
 			[ 'wc_payment_gateways_initialized', 'maybe_toggle_payment_methods', 10 ],
 			[ 'update_option_woocommerce_stripe_settings', 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled', 10 ],
+			[ 'update_option_woocommerce_stripe_settings', 'maybe_mark_adaptive_pricing_migration_complete', 10 ],
 		];
 
 		$first = WC_Stripe::get_instance();
@@ -882,6 +1279,38 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				$after_first[ $class ] ?? -1,
 				$after,
 				"{$class} appears to have been re-instantiated: callback count on {$hook} (priority {$priority}) changed from {$before[ $class ]} to {$after}"
+			);
+		}
+	}
+
+	/**
+	 * Core collaborator constructors must not register hooks — only their
+	 * register_hooks() method may, and the bootstrap calls it exactly once.
+	 * A hook-registering constructor turns every stray instantiation into
+	 * duplicated callbacks.
+	 *
+	 * @return void
+	 */
+	public function test_core_collaborator_constructors_do_not_register_hooks(): void {
+		$cases = [
+			'webhook handler'        => [ new WC_Stripe_Webhook_Handler(), 'woocommerce_api_wc_stripe', 'check_for_webhook' ],
+			'order handler'          => [ new WC_Stripe_Order_Handler(), 'wp', 'maybe_process_redirect_order' ],
+			'payment tokens'         => [ new WC_Stripe_Payment_Tokens(), 'woocommerce_payment_methods_list_item', 'get_account_saved_payment_methods_list_item' ],
+			'apple pay registration' => [ new WC_Stripe_Apple_Pay_Registration(), 'admin_init', 'register_domain_on_domain_name_change' ],
+			'connect'                => [ new WC_Stripe_Connect( new WC_Stripe_Connect_API() ), 'wc_stripe_refresh_connection', 'refresh_connection' ],
+		];
+
+		foreach ( $cases as $label => [ $instance, $hook, $callback ] ) {
+			$this->assertFalse(
+				has_action( $hook, [ $instance, $callback ] ),
+				"{$label}: constructor must not register {$hook}"
+			);
+
+			$instance->register_hooks();
+
+			$this->assertNotFalse(
+				has_action( $hook, [ $instance, $callback ] ),
+				"{$label}: register_hooks() must register {$hook}"
 			);
 		}
 	}

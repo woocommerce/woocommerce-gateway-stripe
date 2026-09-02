@@ -1,7 +1,7 @@
 import { getSetting } from '@woocommerce/settings';
 import React, { useMemo } from 'react';
 import styled from '@emotion/styled';
-import classnames from 'classnames';
+import clsx from 'clsx';
 import { Icon as IconComponent, dragHandle } from '@wordpress/icons';
 import { Reorder } from 'framer-motion';
 import PaymentMethodsMap from '../../payment-methods-map';
@@ -9,18 +9,13 @@ import PaymentMethodDescription from './payment-method-description';
 import PaymentMethod from './payment-method';
 import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavailable-reason';
 import {
-	useEnabledPaymentMethodIds,
 	useGetOrderedPaymentMethodIds,
 	useIsAdaptivePricingEnabled,
 	useIsOCEnabled,
 	useManualCapture,
 } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
-import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
-import {
-	PAYMENT_METHOD_SOFORT,
-	PAYMENT_METHOD_UNAVAILABLE_REASONS,
-} from 'wcstripe/stripe-utils/constants';
+import { PAYMENT_METHOD_UNAVAILABLE_REASONS } from 'wcstripe/stripe-utils/constants';
 import { getFormattedPaymentMethodDescription } from 'wcstripe/settings/general-settings-section/get-formatted-payment-method-description';
 
 const List = styled.ul`
@@ -121,10 +116,6 @@ const PaymentMethodWrapper = styled.div`
 	}
 `;
 
-const StyledFees = styled( PaymentMethodFeesPill )`
-	flex: 1 0 auto;
-`;
-
 /**
  * Hook to sort the payment methods based on whether the payment method is supported by the store currency.
  * Unsupported payment methods are placed at the end of the list so irrelevant payment methods don't clutter the screen.
@@ -177,24 +168,11 @@ const usePaymentMethodsSortedByAvailability = ( orderedPaymentMethodIds ) => {
 
 const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
-	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 	const { orderedPaymentMethodIds, setOrderedPaymentMethodIds } =
 		useGetOrderedPaymentMethodIds();
 	const { data } = useAccount();
 
 	const availablePaymentMethods = orderedPaymentMethodIds;
-
-	// Remove Sofort if it's not enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
-	// Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
-	if (
-		! enabledPaymentMethodIds.includes( PAYMENT_METHOD_SOFORT ) &&
-		availablePaymentMethods.includes( PAYMENT_METHOD_SOFORT )
-	) {
-		availablePaymentMethods.splice(
-			availablePaymentMethods.indexOf( PAYMENT_METHOD_SOFORT ),
-			1
-		);
-	}
 
 	const onReorder = ( newOrderedPaymentMethodIds ) => {
 		setOrderedPaymentMethodIds( newOrderedPaymentMethodIds );
@@ -227,7 +205,7 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 					<DraggableListElement
 						key={ method }
 						value={ method }
-						className={ classnames( {
+						className={ clsx( {
 							'has-overlay':
 								! isAllowingManualCapture &&
 								isManualCaptureEnabled,
@@ -249,9 +227,7 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 								label={ label }
 								supportsRecurring={ supportsRecurring }
 							/>
-							<StyledFees id={ method } />
 						</PaymentMethodWrapper>
-						<StyledFees id={ method } />
 					</DraggableListElement>
 				);
 			} ) }

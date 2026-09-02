@@ -29,6 +29,7 @@ languages/woocommerce-gateway-stripe.pot
 deploy-to-wp-org.sh
 
 # Test configs
+tests/e2e/deps
 tests/e2e/env/docker
 tests/e2e/report
 tests/e2e/test-results
@@ -50,3 +51,10 @@ phpunit-html/
 
 # PHPStan temporary files
 phpstan-tmp/
+
+# Temp files for doc generator
+tasks/hooks/tmp/*.json
+
+# Local agent tooling (personal, never committed)
+/.agents/
+/apm_modules/

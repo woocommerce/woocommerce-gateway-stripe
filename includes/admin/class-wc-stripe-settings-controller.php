@@ -215,49 +215,66 @@ class WC_Stripe_Settings_Controller {
 			// Show the Stripe Tax banner only if OC is enabled
 			&& $is_oc_enabled;
 
-		$is_checkout_sessions_available      = false;
-		$adaptive_pricing_unavailable_reason = 'disabled';
-		if ( WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
-			$adaptive_pricing_unavailable_reason = WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason();
-			if ( null === $adaptive_pricing_unavailable_reason ) {
-				$is_checkout_sessions_available = true;
-			}
+		$is_ap_enabled    = 'yes' === $this->get_gateway()->get_option( 'adaptive_pricing' );
+		$is_india_account = 'IN' === $this->account->get_account_country();
+
+		$show_ocs_ap_banner = $is_oc_enabled
+			&& $is_ap_enabled
+			&& ! $is_india_account
+			&& 'yes' === get_option( 'wc_stripe_show_ocs_ap_banner', 'no' );
+
+		$show_ap_only_banner = $is_oc_enabled
+			&& $is_ap_enabled
+			&& ! $is_india_account
+			&& 'yes' === get_option( 'wc_stripe_show_ap_only_banner', 'no' );
+
+		$show_ocs_only_banner = $is_oc_enabled
+			&& ! $is_ap_enabled
+			&& 'yes' === get_option( 'wc_stripe_show_ocs_only_banner', 'no' );
+
+		$adaptive_pricing_unavailable_reason = WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason();
+		if ( null === $adaptive_pricing_unavailable_reason && ! WC_Stripe_Helper::is_checkout_sessions_available() ) {
+			$adaptive_pricing_unavailable_reason = 'disabled';
 		}
+		$is_checkout_sessions_available = null === $adaptive_pricing_unavailable_reason;
 
 		$params = [
-			'time'                                  => time(),
-			'i18n_out_of_sync'                      => $message,
-			'is_upe_checkout_enabled'               => true,
-			'show_customization_notice'             => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
-			'show_optimized_checkout_notice'        => get_option( 'wc_stripe_show_optimized_checkout_notice', 'yes' ) === 'yes' ? true : false,
-			'show_bnpl_promotional_banner'          => $show_bnpl_promotion_banner,
-			'show_oc_promotional_banner'            => $show_oc_promotion_banner,
-			'show_stripe_tax_banner'                => $show_stripe_tax_banner,
-			'is_test_mode'                          => $this->get_gateway()->is_in_test_mode(),
-			'plugin_version'                        => WC_STRIPE_VERSION,
-			'account_country'                       => $this->account->get_account_country(),
-			'are_apms_deprecated'                   => false,
-			'is_amazon_pay_available'               => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
-			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
-			'is_oc_enabled'                         => $is_oc_enabled,
-			'is_cs_available'                       => $is_checkout_sessions_available,
-			'adaptive_pricing_unavailable_reason'   => $adaptive_pricing_unavailable_reason,
-			'oc_layout'                             => $this->get_gateway()->get_validated_option( 'optimized_checkout_layout' ),
-			'oauth_nonce'                           => wp_create_nonce( 'wc_stripe_get_oauth_url' ),
-			'is_sepa_tokens_for_ideal_enabled'      => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_ideal', 'no' ),
-			'is_sepa_tokens_for_bancontact_enabled' => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_bancontact', 'no' ),
-			'has_affirm_gateway_plugin'             => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM ),
-			'has_klarna_gateway_plugin'             => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA ),
-			'has_other_bnpl_plugins'                => WC_Stripe_Helper::has_other_bnpl_plugins_active(),
-			'is_payments_onboarding_task_completed' => $this->is_payments_onboarding_task_completed(),
-			'taxes_based_on_billing'                => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
-			'is_card_method_enabled'                => in_array( WC_Stripe_Payment_Methods::CARD, $enabled_payment_methods, true ),
-			'is_agentic_commerce_enabled'           => WC_Stripe_Feature_Flags::is_agentic_commerce_enabled(),
-			'agentic_commerce_import_sets_url'      => $this->get_gateway()->is_in_test_mode()
+			'time'                                   => time(),
+			'i18n_out_of_sync'                       => $message,
+			'is_upe_checkout_enabled'                => true,
+			'show_customization_notice'              => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
+			'show_optimized_checkout_notice'         => get_option( 'wc_stripe_show_optimized_checkout_notice', 'yes' ) === 'yes' ? true : false,
+			'show_bnpl_promotional_banner'           => $show_bnpl_promotion_banner,
+			'show_oc_promotional_banner'             => $show_oc_promotion_banner,
+			'show_stripe_tax_banner'                 => $show_stripe_tax_banner,
+			'is_test_mode'                           => $this->get_gateway()->is_in_test_mode(),
+			'plugin_version'                         => WC_STRIPE_VERSION,
+			'account_country'                        => $this->account->get_account_country(),
+			'are_apms_deprecated'                    => false,
+			'is_oc_available'                        => WC_Stripe_Feature_Flags::is_oc_available(),
+			'is_oc_enabled'                          => $is_oc_enabled,
+			'is_cs_available'                        => $is_checkout_sessions_available,
+			'adaptive_pricing_unavailable_reason'    => $adaptive_pricing_unavailable_reason,
+			'oc_layout'                              => $this->get_gateway()->get_validated_option( 'optimized_checkout_layout' ),
+			'oauth_nonce'                            => wp_create_nonce( 'wc_stripe_get_oauth_url' ),
+			'is_sepa_tokens_for_ideal_enabled'       => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_ideal', 'no' ),
+			'is_sepa_tokens_for_bancontact_enabled'  => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_bancontact', 'no' ),
+			'has_affirm_gateway_plugin'              => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM ),
+			'has_klarna_gateway_plugin'              => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA ),
+			'has_other_bnpl_plugins'                 => WC_Stripe_Helper::has_other_bnpl_plugins_active(),
+			'is_payments_onboarding_task_completed'  => $this->is_payments_onboarding_task_completed(),
+			'taxes_based_on_billing'                 => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
+			'is_card_method_enabled'                 => in_array( WC_Stripe_Payment_Methods::CARD, $enabled_payment_methods, true ),
+			'is_agentic_commerce_enabled'            => WC_Stripe_Feature_Flags::is_agentic_commerce_enabled(),
+			'is_agentic_commerce_merchant_enabled'   => WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled(),
+			'agentic_commerce_import_sets_url'       => $this->get_gateway()->is_in_test_mode()
 				? 'https://dashboard.stripe.com/test/data-management/import-sets'
 				: 'https://dashboard.stripe.com/data-management/import-sets',
-			'agentic_commerce_logs_url'             => $this->get_agentic_commerce_logs_url(),
-			'show_stripe_first_method_notice'       => WC_Stripe_Helper::should_show_stripe_first_method_notice(),
+			'agentic_commerce_logs_url'              => $this->get_agentic_commerce_logs_url(),
+			'agentic_commerce_excluded_products_url' => class_exists( 'WC_Stripe_Agentic_Commerce_Product_List_Table' )
+				? WC_Stripe_Agentic_Commerce_Product_List_Table::get_excluded_products_url()
+				: '',
+			'show_stripe_first_method_notice'        => WC_Stripe_Helper::should_show_stripe_first_method_notice(),
 		];
 		$params = array_merge( $params, WC_Stripe_Helper::get_exit_survey_params( $this->account ) );
 		wp_localize_script(

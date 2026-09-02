@@ -79,6 +79,88 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The per-wallet Apple Pay and Google Pay flags must come from the method-specific check,
+	 * not the any-method aggregate: when only another wallet's locations cover the page, the
+	 * aggregate is true but Apple/Google Pay must still be reported as disabled.
+	 *
+	 * @param bool $apple_google_enabled What the helper reports for Apple/Google Pay in this context.
+	 * @dataProvider provide_apple_google_pay_enabled
+	 */
+	public function test_javascript_params_exposes_method_specific_apple_google_pay_flags( $apple_google_enabled ) {
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->setMethods( [ 'is_apple_google_pay_enabled', 'is_amazon_pay_enabled', 'is_link_enabled', 'is_express_checkout_enabled' ] )
+			->getMock();
+		$helper->method( 'is_apple_google_pay_enabled' )->willReturn( $apple_google_enabled );
+		// Amazon Pay alone keeps the aggregate true regardless of Apple/Google Pay.
+		$helper->method( 'is_amazon_pay_enabled' )->willReturn( true );
+		$helper->method( 'is_link_enabled' )->willReturn( false );
+		$helper->method( 'is_express_checkout_enabled' )->willReturn( true );
+
+		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+
+		$actual = $element->javascript_params();
+
+		// Both wallets are backed by the shared setting today, so the flags move together.
+		$this->assertSame( $apple_google_enabled, $actual['stripe']['is_apple_pay_enabled'] );
+		$this->assertSame( $apple_google_enabled, $actual['stripe']['is_google_pay_enabled'] );
+		$this->assertTrue( $actual['stripe']['is_express_checkout_enabled'] );
+	}
+
+	/**
+	 * Data provider for {@see test_javascript_params_exposes_method_specific_apple_google_pay_flags()}.
+	 *
+	 * @return array<string, array{0: bool}>
+	 */
+	public function provide_apple_google_pay_enabled() {
+		return [
+			'disabled for this location' => [ false ],
+			'enabled for this location'  => [ true ],
+		];
+	}
+
+	/**
+	 * Only the Store API nonces may be minted at render time; the wc-ajax
+	 * nonces are served on demand so cached pages can't embed expired copies.
+	 *
+	 * @return void
+	 */
+	public function test_javascript_params_only_mints_store_api_nonces() {
+		$stripe_settings['testmode']             = 'yes';
+		$stripe_settings['test_publishable_key'] = 'pk_test_123';
+
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->getMock();
+
+		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+
+		$nonces = $element->javascript_params()['nonce'];
+
+		$this->assertSame( [ 'wc_store_api', 'wc_store_api_express_checkout' ], array_keys( $nonces ) );
+		$this->assertNotFalse( wp_verify_nonce( $nonces['wc_store_api'], 'wc_store_api' ) );
+		$this->assertNotFalse( wp_verify_nonce( $nonces['wc_store_api_express_checkout'], 'wc_store_api_express_checkout' ) );
+	}
+
+	/**
 	 * Test for `scripts`.
 	 *
 	 * @return void
@@ -409,6 +491,8 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 
 		$this->assertSame( $expected, $subscription->get_payment_method_title() );
 
+		$this->assertContains( "Payment method updated to {$expected}.", $subscription->get_captured_notes() );
+
 		unset( $_GET['change_payment_method'], $_POST['express_checkout_type'] );
 		WC_Subscriptions::$wcs_get_subscription = null;
 	}
@@ -448,17 +532,28 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_update_subscription_payment_method_title
 	 */
 	public function test_maybe_apply_express_title_after_confirmed_intent( $checkout_type, $expected ) {
+		$user_id = $this->factory->user->create( [ 'role' => 'customer' ] );
+		$token   = WC_Helper_Token::create_token( 'pm_post3ds_card', $user_id );
+
 		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $user_id );
 		$subscription->set_payment_method( 'stripe' );
 		$subscription->set_payment_method_title( 'Credit Card (Stripe)' );
 		$subscription->update_meta_data( '_wc_stripe_express_checkout_type', $checkout_type );
+		$subscription->update_meta_data( '_wc_stripe_express_checkout_payment_method_id', 'pm_post3ds_card' );
 		$subscription->save();
 
 		$this->element->maybe_apply_express_title_after_confirmed_intent( $subscription );
 
 		$this->assertSame( $expected, $subscription->get_payment_method_title() );
-		// Meta should be cleaned up after applying.
+		// Both temporary meta fields should be cleaned up after applying.
 		$this->assertSame( '', $subscription->get_meta( '_wc_stripe_express_checkout_type' ) );
+		$this->assertSame( '', $subscription->get_meta( '_wc_stripe_express_checkout_payment_method_id' ) );
+		// The token persisted alongside the title meta must be linked to the subscription.
+		$attached_ids = array_values( $subscription->get_payment_tokens() );
+		$this->assertSame( [ $token->get_id() ], $attached_ids );
+		// And the corrective note should also be appended on this path.
+		$this->assertContains( "Payment method updated to {$expected}.", $subscription->get_captured_notes() );
 	}
 
 	/**
@@ -917,5 +1012,79 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 				'expected_result'      => false,
 			],
 		];
+	}
+
+	/**
+	 * The Pay for Order page must localize the express checkout payload using the order's
+	 * currency, not the store base currency. Otherwise the Apple Pay / Google Pay wallet
+	 * sheet shows the wrong currency (and, for zero-decimal currencies, the wrong amount)
+	 * whenever the order currency differs from the store base. See STRIPE-1195.
+	 *
+	 * @param string $store_currency  Store base currency option value.
+	 * @param string $order_currency  The order's currency.
+	 * @param int    $expected_amount Expected `total.amount` in Stripe's smallest unit.
+	 *
+	 * @return void
+	 * @dataProvider provide_test_localize_pay_for_order_uses_order_currency
+	 */
+	public function test_localize_pay_for_order_uses_order_currency( $store_currency, $order_currency, $expected_amount ) {
+		// Start from a clean script registration so we read only this call's localized data.
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		update_option( 'woocommerce_currency', $store_currency );
+
+		// Order total is 50 from the helper; give it a currency that may differ from the store base.
+		$order = WC_Helper_Order::create_order( 1, null, [ 'currency' => $order_currency ] );
+
+		$this->element->localize_pay_for_order_page_scripts( $order );
+
+		$params = $this->get_localized_pay_for_order_params();
+
+		$this->assertSame( strtolower( $order_currency ), $params['currency'] );
+		$this->assertSame( $expected_amount, $params['total']['amount'] );
+	}
+
+	/**
+	 * Data provider for `test_localize_pay_for_order_uses_order_currency`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_localize_pay_for_order_uses_order_currency() {
+		return [
+			// Order total 50, two-decimal currency differing from store base -> 5000 (cents).
+			'order currency differs from store base' => [
+				'store_currency'  => 'GBP',
+				'order_currency'  => 'AUD',
+				'expected_amount' => 5000,
+			],
+			// Zero-decimal order currency on a two-decimal store: amount must stay 50, not 5000.
+			'zero-decimal order currency'            => [
+				'store_currency'  => 'GBP',
+				'order_currency'  => 'JPY',
+				'expected_amount' => 50,
+			],
+			// Control: order currency equal to store base still works.
+			'order currency equals store base'       => [
+				'store_currency'  => 'USD',
+				'order_currency'  => 'USD',
+				'expected_amount' => 5000,
+			],
+		];
+	}
+
+	/**
+	 * Decode the localized `wcStripeExpressCheckoutPayForOrderParams` payload back into an array.
+	 *
+	 * `wp_localize_script` stores it as `var wcStripeExpressCheckoutPayForOrderParams = {json};`.
+	 *
+	 * @return array
+	 */
+	private function get_localized_pay_for_order_params() {
+		$data  = wp_scripts()->get_data( 'wc_stripe_express_checkout', 'data' );
+		$start = strpos( $data, '{' );
+		$end   = strrpos( $data, '}' );
+		$json  = substr( $data, $start, $end - $start + 1 );
+
+		return json_decode( $json, true );
 	}
 }

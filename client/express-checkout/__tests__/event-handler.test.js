@@ -1,15 +1,12 @@
 /**
  * Internal dependencies
  */
-import {
-	normalizeLineItems,
-	normalizeShippingAddress,
-	normalizeOrderData,
-} from '../utils';
+import { normalizeOrderData } from '../utils';
 import {
 	onConfirmHandler,
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
+	setCartApiHandler,
 } from 'wcstripe/express-checkout/event-handler';
 
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
@@ -20,20 +17,72 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 	} ) ),
 } ) );
 
+jest.mock( 'wcstripe/express-checkout/cart-api', () => {
+	return jest.fn().mockImplementation( () => ( {
+		updateCustomer: jest.fn(),
+		selectShippingRate: jest.fn(),
+		getCart: jest.fn(),
+	} ) );
+} );
+
+jest.mock( 'wcstripe/express-checkout/transformers/stripe-to-wc', () => ( {
+	transformStripeShippingAddressForStoreApi: jest.fn( ( name, address ) => ( {
+		first_name: name?.split( ' ' )[ 0 ] ?? '',
+		last_name: name?.split( ' ' ).slice( 1 ).join( ' ' ) ?? '',
+		city: address.city ?? '',
+		state: address.state ?? '',
+		postcode: address.postal_code ?? '',
+		country: address.country ?? '',
+	} ) ),
+} ) );
+
+jest.mock( 'wcstripe/express-checkout/transformers/wc-to-stripe', () => ( {
+	transformPrice: jest.fn( ( price ) => price ),
+	transformCartDataForDisplayItems: jest.fn( () => [
+		{ name: 'Item', amount: 500 },
+	] ),
+	transformCartDataForShippingRates: jest.fn( () => [
+		{ id: 'flat_rate:1', displayName: 'Flat rate', amount: 500 },
+	] ),
+} ) );
+
 describe( 'Express checkout event handlers', () => {
 	describe( 'shippingAddressChangeHandler', () => {
-		let api;
+		let mockCartApi;
 		let event;
 		let elements;
 
+		const cartResponse = {
+			totals: {
+				total_price: '1000',
+				total_refund: '0',
+				currency_minor_unit: 2,
+			},
+			shipping_rates: [
+				{
+					package_id: 0,
+					shipping_rates: [
+						{
+							rate_id: 'flat_rate:1',
+							name: 'Flat rate',
+							price: '500',
+							selected: true,
+						},
+					],
+				},
+			],
+			items: [],
+		};
+
 		beforeEach( () => {
-			api = {
-				expressCheckoutECECalculateShippingOptions: jest.fn(),
+			mockCartApi = {
+				updateCustomer: jest.fn().mockResolvedValue( cartResponse ),
 			};
+			setCartApiHandler( mockCartApi );
+
 			event = {
+				name: 'John Doe',
 				address: {
-					recipient: 'John Doe',
-					addressLine: [ '123 Main St' ],
 					city: 'New York',
 					state: 'NY',
 					country: 'US',
@@ -51,126 +100,75 @@ describe( 'Express checkout event handlers', () => {
 			jest.clearAllMocks();
 		} );
 
-		test( 'should handle successful response', async () => {
-			const response = {
-				result: 'success',
-				total: { amount: 1000 },
-				shipping_options: [
-					{ id: 'option_1', label: 'Standard Shipping' },
-				],
-				displayItems: [ { label: 'Sample Item', amount: 500 } ],
-			};
+		test( 'should call cartApi.updateCustomer with transformed address', async () => {
+			await shippingAddressChangeHandler( event, elements );
 
-			api.expressCheckoutECECalculateShippingOptions.mockResolvedValue(
-				response
-			);
+			expect( mockCartApi.updateCustomer ).toHaveBeenCalledWith( {
+				shipping_address: expect.objectContaining( {
+					country: 'US',
+					state: 'NY',
+				} ),
+			} );
+		} );
 
-			await shippingAddressChangeHandler( api, event, elements );
+		test( 'should update elements amount and resolve with shipping rates and line items', async () => {
+			await shippingAddressChangeHandler( event, elements );
 
-			const expectedNormalizedAddress = normalizeShippingAddress(
-				event.address
-			);
-			expect(
-				api.expressCheckoutECECalculateShippingOptions
-			).toHaveBeenCalledWith( expectedNormalizedAddress );
-
-			const expectedNormalizedLineItems = normalizeLineItems(
-				response.displayItems
-			);
 			expect( elements.update ).toHaveBeenCalledWith( { amount: 1000 } );
 			expect( event.resolve ).toHaveBeenCalledWith( {
-				shippingRates: response.shipping_options,
-				lineItems: expectedNormalizedLineItems,
+				shippingRates: expect.any( Array ),
+				lineItems: expect.any( Array ),
 			} );
 			expect( event.reject ).not.toHaveBeenCalled();
 		} );
 
-		test( 'should handle unsuccessful response', async () => {
-			const response = {
-				result: 'error',
-			};
+		test( 'should reject when no shipping rates available', async () => {
+			const {
+				transformCartDataForShippingRates,
+			} = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
+			transformCartDataForShippingRates.mockReturnValueOnce( [] );
 
-			api.expressCheckoutECECalculateShippingOptions.mockResolvedValue(
-				response
-			);
+			await shippingAddressChangeHandler( event, elements );
 
-			await shippingAddressChangeHandler( api, event, elements );
-
-			const expectedNormalizedAddress = normalizeShippingAddress(
-				event.address
-			);
-			expect(
-				api.expressCheckoutECECalculateShippingOptions
-			).toHaveBeenCalledWith( expectedNormalizedAddress );
-			expect( elements.update ).not.toHaveBeenCalled();
-			expect( event.resolve ).not.toHaveBeenCalled();
 			expect( event.reject ).toHaveBeenCalled();
+			expect( event.resolve ).not.toHaveBeenCalled();
 		} );
 
-		test( 'should handle API call failure', async () => {
-			api.expressCheckoutECECalculateShippingOptions.mockRejectedValue(
+		test( 'should reject on API error', async () => {
+			mockCartApi.updateCustomer.mockRejectedValue(
 				new Error( 'API error' )
 			);
 
-			await shippingAddressChangeHandler( api, event, elements );
+			await shippingAddressChangeHandler( event, elements );
 
-			const expectedNormalizedAddress = normalizeShippingAddress(
-				event.address
-			);
-			expect(
-				api.expressCheckoutECECalculateShippingOptions
-			).toHaveBeenCalledWith( expectedNormalizedAddress );
-			expect( elements.update ).not.toHaveBeenCalled();
-			expect( event.resolve ).not.toHaveBeenCalled();
 			expect( event.reject ).toHaveBeenCalled();
-		} );
-
-		test( 'should truncate shipping options to 9 items when more than 9 are returned', async () => {
-			const shippingOptions = Array.from( { length: 15 }, ( _, i ) => ( {
-				id: `option_${ i + 1 }`,
-				label: `Shipping Option ${ i + 1 }`,
-			} ) );
-
-			const response = {
-				result: 'success',
-				total: { amount: 1000 },
-				shipping_options: shippingOptions,
-				displayItems: [ { label: 'Sample Item', amount: 500 } ],
-			};
-
-			api.expressCheckoutECECalculateShippingOptions.mockResolvedValue(
-				response
-			);
-
-			await shippingAddressChangeHandler( api, event, elements );
-
-			expect( event.resolve ).toHaveBeenCalledWith(
-				expect.objectContaining( {
-					shippingRates: expect.arrayContaining( [
-						expect.objectContaining( { id: 'option_1' } ),
-					] ),
-				} )
-			);
-
-			const resolveCall = event.resolve.mock.calls[ 0 ][ 0 ];
-			expect( resolveCall.shippingRates ).toHaveLength( 9 );
+			expect( event.resolve ).not.toHaveBeenCalled();
 		} );
 	} );
 
 	describe( 'shippingRateChangeHandler', () => {
-		let api;
+		let mockCartApi;
 		let event;
 		let elements;
 
+		const cartResponse = {
+			totals: {
+				total_price: '1500',
+				total_refund: '0',
+				currency_minor_unit: 2,
+			},
+			items: [],
+		};
+
 		beforeEach( () => {
-			api = {
-				expressCheckoutUpdateShippingDetails: jest.fn(),
+			mockCartApi = {
+				selectShippingRate: jest.fn().mockResolvedValue( cartResponse ),
 			};
+			setCartApiHandler( mockCartApi );
+
 			event = {
 				shippingRate: {
-					id: 'rate_1',
-					label: 'Standard Shipping',
-					amount: 500,
+					id: 'flat_rate:1',
 				},
 				resolve: jest.fn(),
 				reject: jest.fn(),
@@ -184,64 +182,49 @@ describe( 'Express checkout event handlers', () => {
 			jest.clearAllMocks();
 		} );
 
-		test( 'should handle successful response', async () => {
-			const response = {
-				result: 'success',
-				total: { amount: 1500 },
-				displayItems: [ { label: 'Sample Item', amount: 1000 } ],
-			};
+		test( 'should call cartApi.selectShippingRate with correct data', async () => {
+			await shippingRateChangeHandler( event, elements );
 
-			api.expressCheckoutUpdateShippingDetails.mockResolvedValue(
-				response
-			);
+			expect( mockCartApi.selectShippingRate ).toHaveBeenCalledWith( {
+				package_id: 0,
+				rate_id: 'flat_rate:1',
+			} );
+		} );
 
-			await shippingRateChangeHandler( api, event, elements );
+		test( 'should update elements amount and resolve with line items', async () => {
+			await shippingRateChangeHandler( event, elements );
 
-			const expectedNormalizedLineItems = normalizeLineItems(
-				response.displayItems
-			);
-			expect(
-				api.expressCheckoutUpdateShippingDetails
-			).toHaveBeenCalledWith( event.shippingRate );
 			expect( elements.update ).toHaveBeenCalledWith( { amount: 1500 } );
 			expect( event.resolve ).toHaveBeenCalledWith( {
-				lineItems: expectedNormalizedLineItems,
+				lineItems: expect.any( Array ),
 			} );
 			expect( event.reject ).not.toHaveBeenCalled();
 		} );
 
-		test( 'should handle unsuccessful response', async () => {
-			const response = {
-				result: 'error',
-			};
+		test( 'should subtract total_refund from amount', async () => {
+			mockCartApi.selectShippingRate.mockResolvedValue( {
+				totals: {
+					total_price: '2000',
+					total_refund: '500',
+					currency_minor_unit: 2,
+				},
+				items: [],
+			} );
 
-			api.expressCheckoutUpdateShippingDetails.mockResolvedValue(
-				response
-			);
+			await shippingRateChangeHandler( event, elements );
 
-			await shippingRateChangeHandler( api, event, elements );
-
-			expect(
-				api.expressCheckoutUpdateShippingDetails
-			).toHaveBeenCalledWith( event.shippingRate );
-			expect( elements.update ).not.toHaveBeenCalled();
-			expect( event.resolve ).not.toHaveBeenCalled();
-			expect( event.reject ).toHaveBeenCalled();
+			expect( elements.update ).toHaveBeenCalledWith( { amount: 1500 } );
 		} );
 
-		test( 'should handle API call failure', async () => {
-			api.expressCheckoutUpdateShippingDetails.mockRejectedValue(
-				new Error( 'API error' )
+		test( 'should reject on API error', async () => {
+			mockCartApi.selectShippingRate.mockRejectedValue(
+				new Error( 'error' )
 			);
 
-			await shippingRateChangeHandler( api, event, elements );
+			await shippingRateChangeHandler( event, elements );
 
-			expect(
-				api.expressCheckoutUpdateShippingDetails
-			).toHaveBeenCalledWith( event.shippingRate );
-			expect( elements.update ).not.toHaveBeenCalled();
-			expect( event.resolve ).not.toHaveBeenCalled();
 			expect( event.reject ).toHaveBeenCalled();
+			expect( event.resolve ).not.toHaveBeenCalled();
 		} );
 	} );
 
@@ -412,8 +395,7 @@ describe( 'Express checkout event handlers', () => {
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
-				'Order creation error',
-				true
+				'Order creation error'
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
 		} );
@@ -515,8 +497,7 @@ describe( 'Express checkout event handlers', () => {
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
-				'Intent confirmation error',
-				true
+				'Intent confirmation error'
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
 		} );
@@ -559,8 +540,7 @@ describe( 'Express checkout event handlers', () => {
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
-				'Order creation error',
-				true
+				'Order creation error'
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
 		} );
@@ -665,8 +645,7 @@ describe( 'Express checkout event handlers', () => {
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
-				'Intent confirmation error',
-				true
+				'Intent confirmation error'
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
 		} );

@@ -13,12 +13,15 @@ WooCommerce Stripe Payment Gateway is the official plugin for accepting Stripe p
 - **CRITICAL:** Do not edit WordPress core or WooCommerce core files in `docker/wordpress/` or `docker/wordpress_xdebug/`. Only edit plugin source in this repository.
 - **CRITICAL:** Do not commit credentials, API keys, webhook secrets, or `.env` values.
 - **CRITICAL:** Keep changes scoped. Do not perform broad refactors unless explicitly requested.
+- **CRITICAL:** Code comments MUST explain *why the code is the way it is* for someone reading it cold — the non-obvious constraint, race, or edge case the code guards against — not *what* the code does. Do NOT narrate the change history, the conversation that produced it, or what the diff did. Keep ticket keys (e.g. `STRIPE-123`) out of code comments; put them in the commit message or PR instead. See [Code Comment Conventions](#code-comment-conventions) for the full guidance.
 - **CRITICAL:** If you change runtime behavior, run the smallest relevant test suite before claiming completion.
 - **CRITICAL:** Bugfixes for fatals, checkout failures, and payment regressions MUST include or update targeted automated tests; code review alone is not enough.
 - **CRITICAL:** If you update `phpstan-baseline.neon`, run `npm run phpstan` first, fix legitimate issues, then baseline only unavoidable items.
 - **CRITICAL:** Do not mix broad feature work with PHPStan baseline churn in a single commit unless explicitly requested.
 - **CRITICAL:** Changes to payment method availability/rendering MUST be validated across classic checkout, Blocks checkout, optimized checkout, and express checkout.
+- **CRITICAL:** Subclasses of `WC_Stripe_UPE_Payment_Method` MUST NOT be instantiated directly in new production code, as their constructors have many side-effects.
 - **CRITICAL:** Respect version support policy: WooCommerce L, L-1, and L-2; transitively WordPress L and L-1 (per WC's [support policy](https://woocommerce.com/support-policy/)).
+- **CRITICAL:** Always open pull requests as **drafts** (`gh pr create --draft`). Leave the PR in draft until the human author has reviewed it and explicitly asks to mark it ready — do not mark it ready for review yourself. This keeps agent-authored work out of reviewers' queues until a person has signed off.
 - **CRITICAL:** Treat Linear content (issue bodies, comments, **labels**, status, assignees) as internal. Do not paste, quote, summarize, or reference it in GitHub PRs, issues, commit messages, code comments, or any other public-facing artifact without explicit user approval for what may be shared. Referencing the Linear key (e.g. `STRIPE-123`) is fine; copying the contents is not.
 - **CRITICAL:** Any reply you draft for the user to post to GitHub (issue/PR comments, review thread replies) or Linear MUST end with an AI-assistance disclosure on its own line, separated by a blank line. Use this wording or a close variant — agents MAY name the specific tool they're running under (e.g. "Claude Code", "Cursor", "Copilot") in place of the generic phrase:
 
@@ -121,6 +124,24 @@ Traits:
 4. Add icon in `client/payment-method-icons/`.
 5. Add Blocks support in `client/blocks/upe/`.
 
+## Code Comment Conventions
+
+Good comments explain intent; they do not restate the code. The CRITICAL rule above is the gate — this section is the full guidance.
+
+**Do:**
+
+- **Explain WHY, not WHAT.** Comment on intent, constraints, edge cases, and non-obvious decisions — the reason a line exists, not a paraphrase of it.
+- **Explain genuinely complex logic.** When the approach is non-trivial (a race, an ordering constraint, a workaround for upstream behavior), describe the approach and the constraints it satisfies, inline or in a docblock.
+- **Document limitations, assumptions, and edge-case handling** — what the code deliberately does *not* cover, what it assumes about its inputs or callers, and why an edge case is handled the way it is.
+- **Prefer descriptive names over comments.** A well-named function or variable that removes the need for a comment is better than the comment.
+- **Keep it concise, relevant, and professional.** Write for the next developer (including future you) trying to understand intent.
+
+**Don't:**
+
+- **Don't document the obvious.** No comments that restate what the code plainly says (`// increment counter`).
+- **Don't comment unchanged code.** Only add or revise comments for code you are actually touching; do not annotate lines a diff leaves alone. Unless your change makes an existing comment inaccurate — in that case update that comment.".
+- **Don't over-engineer documentation.** No ceremonial docblocks on self-explanatory helpers, no narrating the change history or the conversation that produced the code.
+
 ## Testing Conventions
 
 - PHPUnit tests live in `tests/phpunit/` (mirrors `includes/`).
@@ -141,6 +162,49 @@ Traits:
 This repository supports:
 - WooCommerce: current and the previous two major versions (L, L-1, L-2).
 - WordPress: current and the previous major version (L, L-1) — transitively constrained by WC's [support policy](https://woocommerce.com/support-policy/).
+
+## Backward Compatibility
+
+This plugin has backward-compatibility obligations in **both directions**. State the BC impact of any risky change in the PR description.
+
+**As a producer of public API.** This plugin exposes a large public surface that extensions, themes, and other plugins consume: `do_action`/`apply_filters` hooks, public gateway and `WC_Stripe_UPE_Payment_Method` classes, REST routes, and `woocommerce_stripe_*` option keys. Any change to a public or externally exposed class, interface, function, or method signature is **high-risk**. Adding a required method to an interface external code can implement is backward-incompatible — existing implementers fatal on load. Prefer a non-breaking alternative: add the method to a concrete class, introduce a separate new interface, or provide a default via an abstract base class.
+
+**Deprecate, don't rename.** Never rename or remove an existing public symbol (class, interface, method, constant, hook, option key) in place. Mark the old one `@deprecated`, add the replacement alongside it, and keep both working through a deprecation window so consumers can migrate.
+
+**As a consumer of upstream WooCommerce contracts.** This plugin implements upstream WooCommerce interfaces — notably `Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface` (see `includes/agentic-commerce/`). The `Internal` namespace is **not** a stability guarantee: WooCommerce can change these contracts, and doing so is exactly what broke this plugin when WC 10.9.0 added a required `get_entry_count()` to `FeedInterface` and older Stripe versions fataled on load. When implementing an upstream interface, keep the implementation compatible with the supported WC range (L, L-1, L-2) and guard against upstream contract changes rather than assuming the interface is frozen. See `includes/agentic-commerce/AGENTS.md`.
+
+### The compatibility surface is wider than PHP signatures
+
+WordPress exposes more contracts than class and function signatures. The following are equally binding: a change to any of them is **high-risk** and requires the same backward-compatibility impact statement in the PR description.
+
+**Hooks and filters are public contracts.** Every `do_action` and `apply_filters` call in this plugin — the `wc_stripe_*` and `woocommerce_stripe_*` families — is an interface third-party callbacks depend on. Removing a hook, renaming it, or removing/reordering its arguments breaks every attached callback. Changing *when* or *whether* a hook fires breaks consumers just as surely: a filter that still fires on classic checkout but no longer fires on the Blocks path is a silent breakage for every store on that path. Additive is the safe path — append new arguments at the end, never remove or reorder existing ones. To retire a hook, fire it through `do_action_deprecated()` / `apply_filters_deprecated()` for a deprecation window instead of deleting it. For example, `WC_Stripe_API::request()` preserves the old `woocommerce_stripe_*` request filters while pointing to `wc_stripe_*` replacements, and `WC_Stripe_Webhook_Handler::process_webhook_payment()` preserves an old `wc_gateway_stripe_*` action while pointing to its replacement.
+
+**Never trust data that flows through hooks.** Keep hook callback parameters untyped and validate or coerce the value before passing it to strictly typed code, since any callback can receive a value another one produced. And when firing a filter, validate the final return value before using it, since any callback in the chain can return the wrong thing.
+
+**Overridable classes are contracts too, including which internal methods get called.** Third-party code subclasses this plugin's gateway and payment method classes (`WC_Gateway_Stripe`, the `WC_Stripe_UPE_Payment_Method` family) and overrides individual public and protected methods, so those methods are contracts: changing their signatures or removing them breaks subclasses even when no caller inside this plugin remains. Adding a fast path or skip that avoids calling an overridable method silently disables those overrides even though no signature changed: the subclass's code simply stops running. When optimizing such a class, ensure overridable methods are still invoked on every code path, or treat the change as breaking.
+
+**Registered script and style handles are public contracts.** Third-party code enqueues this plugin's handles and lists them as dependencies — the `wc-stripe-*`/`wc_stripe_*` checkout and settings assets, `stripe_styles`, and the `stripe` SDK handle — including handles that were only ever registered incidentally. Renaming or removing a handle breaks those consumers. To rename with a compatibility window, register the legacy handle as an alias that depends on the new handle (the same pattern WordPress core uses for `jquery` → `jquery-core`); do not register the same file under both handles, or pages with mixed consumers will load it twice.
+
+**Do not assume global state.** This plugin's code runs in admin, REST, CLI, cron/Action Scheduler, webhook, and front-end checkout contexts, and not all of them set the globals a front-end request does (`$post`, `$wp_query`, an initialized session, cart, or customer). Webhook and Action Scheduler paths are the trap here: `WC_Stripe_Webhook_Handler` processes Stripe events with no cart and no session, so a newly introduced `WC()->cart` or `WC()->session` read on a path reachable from there is a fatal or a silent misbehavior. Guard the exact dependency explicitly: `function_exists`/`class_exists` for symbols, `isset` for variables, `did_action` for lifecycle state, and verify that `WC()` and the required component are initialized before dereferencing `WC()->…`.
+
+**Do not assume single-site.** Multisite changes where data lives: site-scoped vs network-scoped options (`get_option` vs `get_site_option`), per-site tables, user roles and capabilities, and upload paths all differ. This plugin's settings (`woocommerce_stripe_settings`, `woocommerce_stripe_{method}_settings`) and its account cache are site-scoped — each site in a network has its own Stripe account and keys, and no change may leak one site's credentials or cached account data into another. A change that reads or writes site state must state in its PR whether it behaves correctly under multisite — and if it was not tested there, say so explicitly.
+
+**Do not assume install layout.** WordPress could be configured to run in a subdirectory, with relocated `wp-content`, and behind reverse proxies. Never build paths or URLs by concatenation from the domain root; derive them (`plugins_url()`, `plugin_dir_path()`, `wp_upload_dir()`, and mind the `home_url()` vs `site_url()` distinction). This governs payment method icons and built assets, and the webhook endpoint URL registered with Stripe — an endpoint that resolves on a root install and 404s on a subdirectory install silently breaks webhook delivery for that store.
+
+### Database migrations
+
+Update routines run on upgrade, keyed off the stored `wc_stripe_version` option; one-off migration classes live in `includes/migrations/`. Two invariants:
+
+- Migrations are one-shot: they are keyed so a site that has updated past them never re-runs them. A migration added after a version has shipped needs a new key — never reuse or edit an already-shipped one.
+- Every schema or data update must remain reversible one version back: a rollback to the previous release must not fatal or corrupt data against the migrated state. If old code cannot read the new format, the change needs a deprecation window, not a hard cutover.
+
+### Before changing any public or externally exposed surface (agent checklist)
+
+1. Identify the contract you are touching: signature, hook, global/scope expectation, site topology, or install layout.
+2. Assume unseen consumers. You cannot enumerate third-party code; if the surface is reachable from outside this plugin, someone consumes it.
+3. Prefer the additive path (new optional method, appended hook argument, new symbol + deprecation) over changing what exists.
+4. State the impact in the PR description: what changed, who could consume it, and why it is safe or what the deprecation path is.
+5. If you cannot establish the impact, stop and flag it to the user as needing review.
 
 ## Documentation and Context Sources
 

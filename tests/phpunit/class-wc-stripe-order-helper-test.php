@@ -58,6 +58,102 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests for `get_stripe_refund_id_for_refund`, `update_stripe_refund_id_for_refund`,
+	 * and `delete_stripe_refund_id_for_refund`.
+	 *
+	 * @param bool $pass_null Whether to exercise the null-argument contract instead of a real refund.
+	 * @return void
+	 * @dataProvider provide_test_stripe_refund_id_for_refund
+	 */
+	public function test_stripe_refund_id_for_refund( bool $pass_null ): void {
+		if ( $pass_null ) {
+			$this->assertFalse( $this->helper->get_stripe_refund_id_for_refund( null ) );
+			$this->assertFalse( $this->helper->update_stripe_refund_id_for_refund( null, 're_null' ) );
+			$this->assertFalse( $this->helper->delete_stripe_refund_id_for_refund( null ) );
+			return;
+		}
+
+		$order  = WC_Helper_Order::create_order();
+		$refund = wc_create_refund(
+			[
+				'order_id' => $order->get_id(),
+				'amount'   => 5.00,
+			]
+		);
+
+		$this->assertEmpty( $this->helper->get_stripe_refund_id_for_refund( $refund ) );
+
+		// The update does not save, mirroring the order-level methods' contract.
+		$this->helper->update_stripe_refund_id_for_refund( $refund, 're_123' );
+		$this->assertSame( 're_123', $this->helper->get_stripe_refund_id_for_refund( $refund ) );
+
+		$refund->save_meta_data();
+		$reloaded = wc_get_order( $refund->get_id() );
+		$this->assertSame( 're_123', $this->helper->get_stripe_refund_id_for_refund( $reloaded ) );
+
+		// The parent order's meta is not touched by the per-refund methods.
+		$this->assertEmpty( $this->helper->get_stripe_refund_id( wc_get_order( $order->get_id() ) ) );
+
+		$this->helper->delete_stripe_refund_id_for_refund( $reloaded );
+		$reloaded->save_meta_data();
+		$this->assertEmpty( $this->helper->get_stripe_refund_id_for_refund( wc_get_order( $refund->get_id() ) ) );
+	}
+
+	/**
+	 * Data provider for `test_stripe_refund_id_for_refund`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_stripe_refund_id_for_refund(): array {
+		return [
+			'real refund record' => [ 'pass_null' => false ],
+			'null refund'        => [ 'pass_null' => true ],
+		];
+	}
+
+	/**
+	 * Tests for `get_refunds_with_stripe_refund_ids` and `delete_stripe_refund_ids_from_refunds`.
+	 *
+	 * @return void
+	 */
+	public function test_refunds_with_stripe_refund_ids(): void {
+		$order = WC_Helper_Order::create_order();
+
+		// No refunds at all.
+		$this->assertSame( [], $this->helper->get_refunds_with_stripe_refund_ids( $order ) );
+
+		$tagged_refund = wc_create_refund(
+			[
+				'order_id' => $order->get_id(),
+				'amount'   => 5.00,
+			]
+		);
+		$this->helper->update_stripe_refund_id_for_refund( $tagged_refund, 're_1' );
+		$tagged_refund->save_meta_data();
+
+		$untagged_refund = wc_create_refund(
+			[
+				'order_id' => $order->get_id(),
+				'amount'   => 7.00,
+			]
+		);
+
+		$order = wc_get_order( $order->get_id() );
+
+		// Only the tagged record is returned.
+		$found = $this->helper->get_refunds_with_stripe_refund_ids( $order );
+		$this->assertCount( 1, $found );
+		$this->assertSame( $tagged_refund->get_id(), current( $found )->get_id() );
+
+		// Bulk deletion erases and persists the tagged record's ID, leaving the other record alone.
+		$this->helper->delete_stripe_refund_ids_from_refunds( $order );
+
+		$this->assertEmpty( $this->helper->get_stripe_refund_id_for_refund( wc_get_order( $tagged_refund->get_id() ) ) );
+		$this->assertSame( [], $this->helper->get_refunds_with_stripe_refund_ids( wc_get_order( $order->get_id() ) ) );
+		$this->assertInstanceOf( WC_Order_Refund::class, wc_get_order( $untagged_refund->get_id() ) );
+	}
+
+	/**
 	 * Tests for `lock_order_refund`, `get_order_existing_refund_lock`, `unlock_order_refund`,
 	 * `lock_order_payment`, `get_order_existing_payment_lock`, and `unlock_order_payment`.
 	 *
@@ -164,5 +260,72 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		// Test with an empty order.
 		$order = new WC_Order();
 		$this->assertFalse( $this->helper->is_stripe_gateway_order( $order ) );
+	}
+
+	/**
+	 * Tests for `sync_stripe_charge_captured`.
+	 *
+	 * @param object|string|null $charge          The observed charge value.
+	 * @param bool|null          $expected_return The expected return value.
+	 * @param string             $expected_meta   The expected stored meta value.
+	 *
+	 * @dataProvider provide_test_sync_stripe_charge_captured
+	 */
+	public function test_sync_stripe_charge_captured( $charge, $expected_return, $expected_meta ): void {
+		$order = WC_Helper_Order::create_order();
+
+		$this->assertSame( $expected_return, $this->helper->sync_stripe_charge_captured( $order, $charge ) );
+		$this->assertSame( $expected_meta, $this->helper->get_stripe_charge_captured( $order ) );
+
+		// The helper must not persist: the recorded state lives only on the in-memory
+		// order until the caller saves, so a fresh read still sees the stored value.
+		$this->assertSame( '', wc_get_order( $order->get_id() )->get_meta( '_stripe_charge_captured' ) );
+	}
+
+	/**
+	 * Provider for `test_sync_stripe_charge_captured`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_sync_stripe_charge_captured(): array {
+		return [
+			'captured charge'          => [ (object) [ 'captured' => true ], true, 'yes' ],
+			'uncaptured charge'        => [ (object) [ 'captured' => false ], false, 'no' ],
+			'charge without captured'  => [ (object) [ 'id' => 'ch_123' ], null, '' ],
+			'string instead of charge' => [ 'ch_123', null, '' ],
+			'null charge'              => [ null, null, '' ],
+		];
+	}
+
+	/**
+	 * Tests for `is_stripe_charge_authorized_only`.
+	 *
+	 * @param bool|null $captured Recorded captured state, or null to leave the flag unwritten.
+	 * @param bool      $expected The expected result.
+	 *
+	 * @dataProvider provide_test_is_stripe_charge_authorized_only
+	 */
+	public function test_is_stripe_charge_authorized_only( $captured, $expected ): void {
+		$order = WC_Helper_Order::create_order();
+
+		if ( null !== $captured ) {
+			$this->helper->set_stripe_charge_captured( $order, $captured );
+		}
+
+		$this->assertSame( $expected, $this->helper->is_stripe_charge_authorized_only( $order ) );
+	}
+
+	/**
+	 * Provider for `test_is_stripe_charge_authorized_only`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_stripe_charge_authorized_only(): array {
+		return [
+			'recorded uncaptured' => [ false, true ],
+			'recorded captured'   => [ true, false ],
+			// Never recorded is unknown, not authorize-only: capture/void flows must not act on it.
+			'flag never recorded' => [ null, false ],
+		];
 	}
 }

@@ -1,5 +1,5 @@
 import { useStripe, useElements } from '@stripe/react-stripe-js';
-import { useCallback } from '@wordpress/element';
+import { useCallback, useMemo } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import {
 	onAbortPaymentHandler,
@@ -25,11 +25,15 @@ export const useExpressCheckout = ( {
 	onClick,
 	onClose,
 	setExpressPaymentError,
+	expressPaymentMethod,
 } ) => {
 	const stripe = useStripe();
 	const elements = useElements();
 
-	const buttonOptions = getExpressCheckoutButtonStyleSettings();
+	const buttonOptions = useMemo(
+		() => getExpressCheckoutButtonStyleSettings( expressPaymentMethod ),
+		[ expressPaymentMethod ]
+	);
 	const transformAmountForStripe = useCallback(
 		( amount ) =>
 			transformPriceWithMinorUnits( amount, billing.currency.minorUnit ),
@@ -40,27 +44,31 @@ export const useExpressCheckout = ( {
 		[ transformAmountForStripe ]
 	);
 
-	const onCancel = () => {
+	const onCancel = useCallback( () => {
 		onCancelHandler();
 		onClose();
-	};
+	}, [ onClose ] );
 
-	const completePayment = ( redirectUrl ) => {
+	const completePayment = useCallback( ( redirectUrl ) => {
 		onCompletePaymentHandler( redirectUrl );
 		window.location = redirectUrl;
-	};
+	}, [] );
 
-	const abortPayment = ( onConfirmEvent, message, isOrderError = false ) => {
-		if ( ! isOrderError ) {
+	const abortPayment = useCallback(
+		( onConfirmEvent, message ) => {
+			// If we have a multiline message using newlines, replace them with <br>.
+			const formattedMessage = message.replace( /\n/g, '<br>' );
+			setExpressPaymentError( formattedMessage );
+
+			onAbortPaymentHandler( onConfirmEvent, message );
+
+			// The wallet sheet only closes once the confirm event gets a terminal
+			// result, so order errors must fail it too. A late call rejects an
+			// internal Stripe promise asynchronously, after the message is shown.
 			onConfirmEvent.paymentFailed( { reason: 'fail' } );
-		}
-
-		// If we have a multiline message using newlines, replace them with <br>.
-		const formattedMessage = message.replace( /\n/g, '<br>' );
-		setExpressPaymentError( formattedMessage );
-
-		onAbortPaymentHandler( onConfirmEvent, message );
-	};
+		},
+		[ setExpressPaymentError ]
+	);
 
 	const onButtonClick = useCallback(
 		async ( event ) => {
@@ -156,16 +164,19 @@ export const useExpressCheckout = ( {
 		]
 	);
 
-	const onConfirm = async ( event ) => {
-		return await onConfirmHandler( {
-			api,
-			stripe,
-			elements,
-			completePayment,
-			abortPayment,
-			event,
-		} );
-	};
+	const onConfirm = useCallback(
+		async ( event ) => {
+			return await onConfirmHandler( {
+				api,
+				stripe,
+				elements,
+				completePayment,
+				abortPayment,
+				event,
+			} );
+		},
+		[ api, stripe, elements, completePayment, abortPayment ]
+	);
 
 	return {
 		buttonOptions,

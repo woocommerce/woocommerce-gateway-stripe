@@ -5,11 +5,14 @@ import { screen, render } from '@testing-library/react';
 import {
 	displayExpressCheckoutNotice,
 	getErrorMessageFromNotice,
+	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
 	getPaymentMethodTypesForExpressMethod,
 } from '..';
 import {
 	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 	PAYMENT_METHOD_AMAZON_PAY,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
@@ -95,6 +98,25 @@ describe( 'Express checkout utils', () => {
 			render( <App /> );
 			expect( screen.queryByRole( 'note' ) ).toBeInTheDocument();
 		} );
+
+		// Without a fallback the message is dropped and the shopper sees nothing.
+		test( 'falls back to the express checkout button when no wrapper exists', () => {
+			const button = document.createElement( 'div' );
+			button.id = 'wc-stripe-express-checkout-element';
+			document.body.appendChild( button );
+
+			displayExpressCheckoutNotice( 'Test message', 'error' );
+
+			const note = screen.queryByRole( 'note' );
+			expect( note ).toBeInTheDocument();
+			expect( note.nextElementSibling ).toBe( button );
+		} );
+
+		test( 'does nothing when there is nowhere to render the notice', () => {
+			displayExpressCheckoutNotice( 'Test message', 'error' );
+
+			expect( screen.queryByRole( 'note' ) ).not.toBeInTheDocument();
+		} );
 	} );
 
 	describe( 'getPaymentMethodTypesForExpressMethod', () => {
@@ -136,6 +158,93 @@ describe( 'Express checkout utils', () => {
 			expect( paymentMethodTypes ).toEqual( [
 				PAYMENT_METHOD_AMAZON_PAY,
 			] );
+		} );
+	} );
+
+	describe( 'getExpressCheckoutButtonStyleSettings', () => {
+		afterEach( () => {
+			delete window.wc_stripe_express_checkout_params;
+		} );
+
+		test( 'uses the shared button height for Apple/Google Pay', () => {
+			window.wc_stripe_express_checkout_params = {
+				button: { height: '40' },
+				link_button_height: '56',
+				amazon_pay_button_height: '48',
+			};
+
+			// Apple/Google Pay must use the shared height, not Link's or Amazon Pay's.
+			expect(
+				getExpressCheckoutButtonStyleSettings(
+					EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY
+				).buttonHeight
+			).toBe( 40 );
+		} );
+
+		test.each( [
+			[ '40', 40 ],
+			[ '48', 48 ],
+			[ '56', 55 ],
+		] )(
+			'uses the Link button height (%s px) for Link, clamped to 40-55',
+			( linkHeight, expected ) => {
+				window.wc_stripe_express_checkout_params = {
+					button: { height: '48' },
+					link_button_height: linkHeight,
+				};
+
+				expect(
+					getExpressCheckoutButtonStyleSettings(
+						EXPRESS_PAYMENT_METHOD_SETTING_LINK
+					).buttonHeight
+				).toBe( expected );
+			}
+		);
+
+		test( 'falls back to 48px for Link when no link height is set', () => {
+			window.wc_stripe_express_checkout_params = {
+				button: { height: '40' },
+			};
+
+			expect(
+				getExpressCheckoutButtonStyleSettings(
+					EXPRESS_PAYMENT_METHOD_SETTING_LINK
+				).buttonHeight
+			).toBe( 48 );
+		} );
+
+		test.each( [
+			[ '40', 40 ],
+			[ '48', 48 ],
+			[ '56', 55 ],
+		] )(
+			'uses the Amazon Pay button height (%s px) for Amazon Pay, clamped to 40-55',
+			( amazonHeight, expected ) => {
+				window.wc_stripe_express_checkout_params = {
+					button: { height: '48' },
+					amazon_pay_button_height: amazonHeight,
+				};
+
+				expect(
+					getExpressCheckoutButtonStyleSettings(
+						EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY
+					).buttonHeight
+				).toBe( expected );
+			}
+		);
+
+		test( 'falls back to 48px for Amazon Pay when no Amazon Pay height is set', () => {
+			// The shared button height differs from the Amazon Pay default to prove
+			// Amazon Pay does not inherit the Apple/Google Pay size.
+			window.wc_stripe_express_checkout_params = {
+				button: { height: '40' },
+			};
+
+			expect(
+				getExpressCheckoutButtonStyleSettings(
+					EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY
+				).buttonHeight
+			).toBe( 48 );
 		} );
 	} );
 } );

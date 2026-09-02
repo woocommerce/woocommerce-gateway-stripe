@@ -4,7 +4,10 @@ set -e
 . ./tests/e2e/bin/common.sh
 
 if [[ -f "$E2E_ROOT/config/local.env" ]]; then
-	. "$E2E_ROOT/config/local.env"
+	# Unreplaced <placeholder> values from local.env.example are not valid shell:
+	# sourcing one aborts the rest of the file, silently dropping every variable
+	# below it. Blank them out so only the values actually filled in take effect.
+	eval "$(sed -E 's/=<[^>]*>[[:space:]]*$/=/' "$E2E_ROOT/config/local.env")"
 fi
 
 # If --base_url argument is present use the remote server setup.
@@ -21,17 +24,93 @@ DEBUG=false
 ADMIN_USER=admin
 ADMIN_PASSWORD=admin
 
+DEPS_DIR="$E2E_ROOT/deps"
+
 cd "$CWD"
 
 check_dep 'docker'
 check_dep 'curl'
 check_dep 'jq'
+check_dep 'php'
+
+missing_plugin_zip_error() {
+	error "Cannot obtain $1."
+	echo "  Set GITHUB_TOKEN in tests/e2e/config/local.env, run 'gh auth login',"
+	echo "  or place the zip at tests/e2e/deps/$1"
+}
+
+# Downloads <repo>'s latest release asset to tests/e2e/deps/<zip-name>.
+#
+# Sources are tried in order: GITHUB_TOKEN, the gh CLI, then an existing zip in
+# tests/e2e/deps. A source that cannot deliver the zip says so and falls through
+# to the next one, so a token inherited from the shell or a gh login without
+# access to the private repos does not block a source that works.
+fetch_plugin_zip() {
+	local repo=$1
+	local zip=$2
+	local dest="$DEPS_DIR/$zip"
+	# Downloads land on a temp path so a failed fetch cannot truncate the cached
+	# zip we may still need to fall back to.
+	local tmp="$dest.part"
+
+	mkdir -p "$DEPS_DIR"
+
+	if [[ -n "$GITHUB_TOKEN" ]]; then
+		echo " - Fetching $repo latest version with GITHUB_TOKEN"
+
+		local asset_id
+		asset_id=$(curl -sfH "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/releases/latest" | jq -r '.assets[0].id // empty')
+
+		if [[ -n "$asset_id" ]] && redirect_output curl -sfL \
+			-H "Authorization: token $GITHUB_TOKEN" \
+			-H "Accept: application/octet-stream" \
+			--output "$tmp" \
+			"https://api.github.com/repos/$repo/releases/assets/$asset_id"; then
+			mv "$tmp" "$dest"
+			return
+		fi
+
+		rm -f "$tmp"
+		echo " - GITHUB_TOKEN cannot download $zip from $repo, trying the next source"
+	fi
+
+	if command -v gh > /dev/null 2>&1; then
+		echo " - Fetching $repo latest version with the GitHub CLI"
+
+		if redirect_output gh release download --repo "$repo" --pattern '*.zip' --output "$tmp" --clobber; then
+			mv "$tmp" "$dest"
+			return
+		fi
+
+		rm -f "$tmp"
+		echo " - gh cannot download $zip, trying the next source (see tests/e2e/e2e-setup.log)"
+	fi
+
+	if [[ -s "$dest" ]]; then
+		echo " - Using tests/e2e/deps/$zip"
+		return
+	fi
+
+	missing_plugin_zip_error "$zip"
+	exit 1
+}
 
 if ! docker info > /dev/null 2>&1; then
 	echo
 	error "Docker is not running, please start it and try again."
 	exit 1
 fi
+
+if [[ -z "$STRIPE_PUB_KEY" || -z "$STRIPE_SECRET_KEY" ]]; then
+	echo
+	error "STRIPE_PUB_KEY and STRIPE_SECRET_KEY must be set in tests/e2e/config/local.env."
+	exit 1
+fi
+
+# Resolve both plugins before building the environment.
+step "Fetching plugin dependencies"
+fetch_plugin_zip "woocommerce/woocommerce-subscriptions" "woocommerce-subscriptions.zip"
+fetch_plugin_zip "woocommerce/woocommerce-pre-orders" "woocommerce-pre-orders.zip"
 
 step "Starting E2E docker containers"
 if [ "$CI" = "true" ]; then
@@ -86,13 +165,19 @@ redirect_output cli wp plugin install disable-emails --activate
 
 # Install WooCommerce
 if [[ -n "$WC_VERSION" && $WC_VERSION != 'latest' ]]; then
-	# If specified version is 'beta', fetch the latest beta version from WordPress.org API
-	if [[ $WC_VERSION == 'beta' ]]; then
-		WC_VERSION=$(curl https://api.wordpress.org/plugins/info/1.0/woocommerce.json | jq -r '.versions | with_entries(select(.key|match("beta";"i"))) | keys[-1]' --sort-keys)
-	fi
+	# If specified version is 'beta' or 'rc', fetch the latest matching version from WordPress.org API.
+	# jq sorts keys lexically ("9.9.0-beta.1" > "11.0.0-beta.1"), so sort with PHP's
+	# version_compare instead to get the actual latest version.
+	if [[ $WC_VERSION == 'beta' || $WC_VERSION == 'rc' ]]; then
+		REQUESTED_WC_VERSION=$WC_VERSION
+		WC_VERSION=$(curl -s https://api.wordpress.org/plugins/info/1.0/woocommerce.json | \
+			jq -r --arg type "$WC_VERSION" '.versions | keys[] | select(match($type;"i"))' | \
+			php -r '$v = array_filter( array_map( "trim", file( "php://stdin" ) ) ); usort( $v, "version_compare" ); echo end( $v ) ?: "";')
 
-	if [[ $WC_VERSION == 'rc' ]]; then
-		WC_VERSION=$(curl https://api.wordpress.org/plugins/info/1.0/woocommerce.json | jq -r '.versions | with_entries(select(.key|match("rc";"i"))) | keys[0]' --sort-keys)
+		if [[ -z "$WC_VERSION" ]]; then
+			error "Could not resolve the latest WooCommerce '${REQUESTED_WC_VERSION}' version from the WordPress.org API."
+			exit 1
+		fi
 	fi
 
 	step "Installing WooCommerce ${WC_VERSION}"
@@ -152,35 +237,15 @@ echo " - Enabling the Optimized Checkout feature flag"
 redirect_output cli wp option update _wcstripe_feature_oc 'yes'
 
 step "Installing Woo Subscriptions"
-echo " - Fetching latest version"
-LATEST_RELEASE_ASSET_ID=$(curl -sH "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/woocommerce/woocommerce-subscriptions/releases/latest | jq -r '.assets[0].id')
+echo " - Installing"
+redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/deps/woocommerce-subscriptions.zip --force
 
-redirect_output curl -sLJ \
-	-H "Authorization: token $GITHUB_TOKEN" \
-	-H "Accept: application/octet-stream" \
-	--output $E2E_ROOT/woocommerce-subscriptions.zip \
-	https://api.github.com/repos/woocommerce/woocommerce-subscriptions/releases/assets/"$LATEST_RELEASE_ASSET_ID"
-
-redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/woocommerce-subscriptions.zip --force
-rm -rf $E2E_ROOT/woocommerce-subscriptions.zip
-
+echo " - Activating"
 redirect_output cli wp plugin activate woocommerce-subscriptions
 
 step "Installing Woo Pre-Orders"
-echo " - Fetching latest version"
-LATEST_RELEASE_ASSET_ID=$(curl -sH "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/woocommerce/woocommerce-pre-orders/releases/latest | jq -r '.assets[0].id')
-
-redirect_output curl -sLJ \
-	-H "Authorization: token $GITHUB_TOKEN" \
-	-H "Accept: application/octet-stream" \
-	--output $E2E_ROOT/woocommerce-pre-orders.zip \
-	https://api.github.com/repos/woocommerce/woocommerce-pre-orders/releases/assets/"$LATEST_RELEASE_ASSET_ID"
-
 echo " - Installing"
-redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/woocommerce-pre-orders.zip --force
-
-echo " - Removing lingering zip"
-rm -rf $E2E_ROOT/woocommerce-pre-orders.zip
+redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/deps/woocommerce-pre-orders.zip --force
 
 echo " - Activating"
 redirect_output cli wp plugin activate woocommerce-pre-orders

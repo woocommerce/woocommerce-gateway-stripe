@@ -45,12 +45,16 @@ class WC_Stripe_Express_Checkout_Controller {
 		wp_enqueue_script( 'wc-stripe-express-checkout-settings' );
 
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$params          = [
-			'key'                     => WC_Stripe_Mode::is_test() ? $stripe_settings['test_publishable_key'] : $stripe_settings['publishable_key'],
-			'locale'                  => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-			'is_ece_enabled'          => WC_Stripe_Feature_Flags::is_stripe_ece_enabled(),
-			'is_subscriptions_active' => WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled(),
-		];
+		$params          = array_merge(
+			[
+				'key'                        => WC_Stripe_Mode::is_test() ? $stripe_settings['test_publishable_key'] : $stripe_settings['publishable_key'],
+				'locale'                     => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+				'is_ece_enabled'             => WC_Stripe_Feature_Flags::is_stripe_ece_enabled(),
+				'is_subscriptions_active'    => WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled(),
+				'is_button_style_overridden' => WC_Stripe_Helper::is_express_checkout_button_style_overridden(),
+			],
+			WC_Stripe_Helper::get_express_checkout_simulator_gate_params()
+		);
 		wp_localize_script(
 			'wc-stripe-express-checkout-settings',
 			'wc_stripe_express_checkout_settings_params',
