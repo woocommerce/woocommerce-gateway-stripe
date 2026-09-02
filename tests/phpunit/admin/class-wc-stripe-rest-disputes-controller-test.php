@@ -275,12 +275,12 @@ class WC_Stripe_REST_Disputes_Controller_Test extends WP_UnitTestCase {
 			'payment_intent'                              => [
 				[
 					'payment_intent' => 'pi_test',
-				]
+				],
 			],
 			'charge'                                      => [
 				[
 					'charge' => 'ch_test',
-				]
+				],
 			],
 		];
 	}
