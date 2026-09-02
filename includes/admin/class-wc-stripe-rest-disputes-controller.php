@@ -1,0 +1,384 @@
+<?php
+/**
+ * Class WC_Stripe_REST_Disputes_Controller
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * REST controller exposing Stripe dispute details to the admin UI.
+ *
+ * @since 11.1.0
+ */
+class WC_Stripe_REST_Disputes_Controller extends WC_Stripe_REST_Base_Controller {
+
+	protected const DISPUTE_ID_PATTERN        = 'du_[A-Za-z0-9_]+';
+	protected const PAYMENT_INTENT_ID_PATTERN = 'pi_[A-Za-z0-9_]+';
+	protected const CHARGE_ID_PATTERN         = 'ch_[A-Za-z0-9_]+';
+
+	/**
+	 * Endpoint path.
+	 *
+	 * @var string
+	 */
+	protected $rest_base = 'wc_stripe/disputes';
+
+	protected const STRIPE_SINGLE_RESPONSE_ALLOWED_FIELDS = [
+		'object',
+		'id',
+		'created',
+		'amount',
+		'currency',
+		'status',
+		'description',
+		'payment_intent.latest_charge.balance_transaction',
+		'payment_intent.latest_charge.billing_details',
+		'payment_intent.latest_charge.payment_method_details',
+	];
+
+	protected const STRIPE_SINGLE_EXPAND_PARAM = [
+		'payment_intent.latest_charge.balance_transaction',
+		'payment_intent.latest_charge.billing_details',
+		'payment_intent.latest_charge.payment_method_details'
+	];
+
+	protected const STRIPE_LIST_RESPONSE_ALLOWED_FIELDS = [
+		'object',
+		'has_more',
+		'data.id',
+		'data.created',
+		'data.amount',
+		'data.currency',
+		'data.status',
+		'data.payment_intent',
+		'data.reason',
+		'data.evidence_details.due_by',
+	];
+
+	protected const STRIPE_LIST_EXPAND_PARAM = [];
+
+	protected const STRIPE_LIST_PARAMS_TO_FORWARD = [ 'limit', 'starting_after', 'ending_before', 'created', 'payment_intent', 'charge' ];
+
+	/**
+	 * Configure REST API routes.
+	 *
+	 * @return void
+	 */
+	public function register_routes() {
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/(?P<id>' . self::DISPUTE_ID_PATTERN . ')$',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_dispute' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+				'args'                => [],
+			]
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base,
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_disputes' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+				'args'                => [
+					'limit'          => [
+						'type'              => 'integer',
+						'required'          => false,
+						'default'           => 10,
+						'minimum'           => 1,
+						'maximum'           => 100,
+						'sanitize_callback' => 'absint',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'starting_after' => [
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => [ self::class, 'validate_pagination_cursor' ],
+					],
+					'ending_before'  => [
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => [ self::class, 'validate_pagination_cursor' ],
+					],
+					'created'        => [
+						'required'          => false,
+						'sanitize_callback' => [ self::class, 'sanitize_unix_timestamp' ],
+						'validate_callback' => [ self::class, 'validate_unix_timestamp' ],
+					],
+					'payment_intent'    => [
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => [ self::class, 'validate_payment_intent_id' ],
+					],
+					'charge'    => [
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => [ self::class, 'validate_charge_id' ],
+					],
+				],
+			],
+		);
+	}
+
+	/**
+	 * Retrieve, filters and return one Stripe dispute.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_dispute( $request ) {
+		$response = $this->fetch_from_stripe( 'disputes/' . rawurlencode( $request['id'] ), [ 'expand' => self::STRIPE_SINGLE_EXPAND_PARAM ] );
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$filtered_response = WC_Stripe_REST_Response_Filter::filter_response( $response, self::STRIPE_SINGLE_RESPONSE_ALLOWED_FIELDS );
+
+		return rest_ensure_response( $filtered_response );
+	}
+
+	/**
+	 * Retrieve, filters and return Stripe disputes.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_disputes( $request ) {
+		$response = $this->fetch_from_stripe(
+			'disputes',
+			self::build_params_to_forward( $request, self::STRIPE_LIST_PARAMS_TO_FORWARD, self::STRIPE_LIST_EXPAND_PARAM ),
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$filtered_response = WC_Stripe_REST_Response_Filter::filter_response( $response, self::STRIPE_LIST_RESPONSE_ALLOWED_FIELDS );
+
+		return rest_ensure_response( $filtered_response );
+	}
+
+	/**
+	 * Builds an array of parameters to forward to Stripe API.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request An incoming REST request.
+	 * @param array $params_to_forward[] Names of params to forward.
+	 * @param array $expand_param Array of values to populate the 'expand' Stripe API param.
+	 *
+	 * @return array
+	 */
+	private static function build_params_to_forward( WP_REST_Request $request, array $params_to_forward, array $expand_param ) {
+		$stripe_params = array_intersect_key(
+			$request->get_params(),
+			array_flip( $params_to_forward )
+		);
+
+		$stripe_params['expand'] = $expand_param;
+
+		return $stripe_params;
+	}
+
+	/**
+	 * Fetch data from an Stripe API endpoint and returns its raw data or a WP_Error if an error occurs.
+	 *
+	 * @param string $endpoint The Stripe endpoint.
+	 * @param array $params Parameters to pass to the endpoint.
+	 *
+	 * @return StdClass|WP_Error
+	 */
+	protected function fetch_from_stripe( $endpoint, $params ) {
+		$query_string = http_build_query( $params, '', '&', PHP_QUERY_RFC3986 );
+
+		$stripe_resource_url = $endpoint . ( '' === $query_string ? '' : '?' . $query_string );
+
+		$response = WC_Stripe_API::retrieve( $stripe_resource_url );
+
+		if ( null === $response ) {
+			return new WP_Error(
+				'wc_stripe_error',
+				__( 'Unable to fetch data from Stripe.', 'woocommerce-gateway-stripe' ),
+				[ 'status' => 401 ]
+			);
+		}
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		if ( is_object( $response ) && isset( $response->error ) ) {
+			$error_code    = isset( $response->error->code ) ? (string) $response->error->code : 'wc_stripe_api_error';
+			$error_message = isset( $response->error->message ) ? (string) $response->error->message : __( 'Stripe API returned an error.', 'woocommerce-gateway-stripe' );
+
+			return new WP_Error( $error_code, $error_message, [ 'status' => 400 ] );
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Validate a pagination cursor (starting_after or ending_before) parameter value that should be a dispute ID.
+	 * Also raise an error if both starting_after and ending_before parameter are specified.
+	 *
+	 * @param string $param_value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param_name The parameter name.
+	 *
+	 * @return WP_Error|bool
+	 */
+	public static function validate_pagination_cursor( $param_value, $request, $param_name ) {
+		if ( $request->has_param( 'starting_after' ) && $request->has_param( 'ending_before' ) ) {
+			return new WP_Error(
+				'invalid_pagination_cursor',
+				__( 'Received both starting_after and ending_before parameters. Please pass in only one.', 'woocommerce-gateway-stripe' )
+			);
+		}
+
+		return self::validate_dispute_id( $param_value, $request, $param_name );
+	}
+
+	/**
+	 * Validate a parameter value that should be a dispute ID.
+	 *
+	 * @param string $param_value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param_name The parameter name.
+	 *
+	 * @return bool
+	 */
+	private static function validate_dispute_id( $param_value, $request, $param_name ) {
+		return 1 === preg_match( '/^' . self::DISPUTE_ID_PATTERN . '$/', $param_value );
+	}
+
+	/**
+	 * Validate a parameter value that should be a payment intent ID.
+	 *
+	 * @param string $param_value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param_name The parameter name.
+	 *
+	 * @return bool
+	 */
+	public static function validate_payment_intent_id( $param_value, $request, $param_name ) {
+		return 1 === preg_match( '/^' . self::PAYMENT_INTENT_ID_PATTERN . '$/', $param_value );
+	}
+
+	/**
+	 * Validate a parameter value that should be a charge ID.
+	 *
+	 * @param string $param_value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param_name The parameter name.
+	 *
+	 * @return bool
+	 */
+	public static function validate_charge_id( $param_value, $request, $param_name ) {
+		return 1 === preg_match( '/^' . self::CHARGE_ID_PATTERN . '$/', $param_value );
+	}
+
+	/**
+	 * Sanitize a Unix timestamp parameter value.
+	 *
+	 * @param string $param_value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param_name The parameter name.
+	 *
+	 * @return mixed
+	 */
+	public static function sanitize_unix_timestamp( $param_value, $request, $param_name ) {
+		if ( ! is_array( $param_value ) ) {
+			$sanitized_value = self::is_valid_timestamp( $param_value ) ? (int) $param_value : '';
+		} else {
+			$sanitized_value = [];
+
+			foreach ( $param_value as $operator => $operand ) {
+				if ( self::is_valid_timestamp( $operand ) ) {
+					$sanitized_value[ sanitize_key( $operator ) ] = (int) $operand;
+				} else {
+					$sanitized_value[ sanitize_key( $operator ) ] = '';
+				}
+			}
+		}
+
+		return $sanitized_value;
+	}
+
+	/**
+	 * Validate a Unix timestamp parameter value
+	 *
+	 * Validates that the parameter is either a Unix timestamp containing digits only,
+	 * or an array of Unix timestamps keyed by comparison operators (gt, gte, lt, lte).
+	 *
+	 * @param string $param_value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param_name The parameter name.
+	 *
+	 * @return bool
+	 */
+	public static function validate_unix_timestamp( $param_value, $request, $param_name ) {
+		if ( self::is_valid_timestamp( $param_value ) ) {
+			return true;
+		}
+
+		if ( ! is_array( $param_value ) ) {
+			return false;
+		}
+
+		$allowed_operators = [ 'gt', 'gte', 'lt', 'lte' ];
+
+		foreach ( $param_value as $operator => $operand ) {
+			if ( ! in_array( $operator, $allowed_operators, true ) ) {
+				return false;
+			}
+
+			if ( ! self::is_valid_timestamp( $operand ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Validate a timestamp value.
+	 *
+	 * Validates that the value represents a non-negative integer, either as an int or as a non-empty string containing digits only.
+	 *
+	 * @param mixed $value The value.
+	 *
+	 * @return bool
+	 */
+	private static function is_valid_timestamp( $value ) {
+		if ( is_int( $value ) ) {
+			return $value >= 0;
+		}
+
+		if ( ! is_string( $value ) || '' === $value ) {
+			return false;
+		}
+
+		return ctype_digit( $value ) && ( (int) $value >= 0 );
+	}
+
+	/**
+	 * Validate that a parameter is a non-empty string.
+	 *
+	 * @param string $param_value The parameter value.
+	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
+	 * @param string $param_name The parameter name.
+	 *
+	 * @return bool
+	 */
+	public static function validate_non_empty_string( $param_value, $request, $param_name ) {
+		return '' !== trim( $param_value );
+	}
+}
