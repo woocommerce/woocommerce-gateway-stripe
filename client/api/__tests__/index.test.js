@@ -1,4 +1,5 @@
 import WCStripeAPI from '..';
+import { REGISTRY_KEY } from 'wcstripe/stripe-utils/shared-stripe-instance';
 
 jest.mock( 'wcstripe/stripe-utils', () => ( {
 	getStripeServerData: jest.fn(),
@@ -17,6 +18,7 @@ describe( 'WCStripeAPI', () => {
 		};
 
 		beforeEach( () => {
+			delete window[ REGISTRY_KEY ];
 			global.Stripe = jest.fn( () => ( {} ) );
 			warnSpy = jest
 				.spyOn( console, 'warn' )
@@ -38,6 +40,20 @@ describe( 'WCStripeAPI', () => {
 				locale: 'en',
 			} );
 			expect( warnSpy ).not.toHaveBeenCalled();
+		} );
+
+		it( 'shares one Stripe instance across repeated calls and separately constructed API objects', () => {
+			addStripeScriptTag( 'https://js.stripe.com/dahlia/stripe.js' );
+			const options = { key: 'pk_test_123', locale: 'en' };
+
+			const paymentElementApi = new WCStripeAPI( options );
+			const expressCheckoutApi = new WCStripeAPI( options );
+
+			const first = paymentElementApi.getStripe();
+
+			expect( paymentElementApi.getStripe() ).toBe( first );
+			expect( expressCheckoutApi.getStripe() ).toBe( first );
+			expect( global.Stripe ).toHaveBeenCalledTimes( 1 );
 		} );
 
 		it( 'warns and blocks when Stripe.js was loaded from an unexpected origin', () => {

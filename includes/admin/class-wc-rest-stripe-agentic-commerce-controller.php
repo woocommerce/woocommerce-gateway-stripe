@@ -360,8 +360,20 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 */
 	public function update_agentic_settings( WP_REST_Request $request ): WP_REST_Response {
 		if ( $request->has_param( 'is_enabled' ) ) {
-			$value = $request->get_param( 'is_enabled' ) ? 'yes' : 'no';
+			$was_enabled = $this->is_merchant_enabled();
+			$value       = $request->get_param( 'is_enabled' ) ? 'yes' : 'no';
 			update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, $value );
+
+			$integration = new WC_Stripe_Agentic_Commerce_Integration();
+			if ( $was_enabled && 'no' === $value ) {
+				// Stripe has no catalog-delete API; push a checkout-disabled feed so
+				// already-synced products stop accepting in-agent purchases.
+				$integration->schedule_final_checkout_disabled_feed();
+			} elseif ( ! $was_enabled && 'yes' === $value ) {
+				// Drop a teardown queued by a just-prior disable so it can't land on
+				// a catalog meant to be live again.
+				$integration->cancel_pending_final_checkout_disabled_feed();
+			}
 		}
 
 		if ( $request->has_param( 'disable_checkout' ) ) {
