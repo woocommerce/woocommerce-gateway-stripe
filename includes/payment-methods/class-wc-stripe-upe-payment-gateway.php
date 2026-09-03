@@ -402,9 +402,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function set_cookie_on_current_request( $cookie ) {
 		if (
-			defined( 'WOOCOMMERCE_CHECKOUT' ) &&
-			WOOCOMMERCE_CHECKOUT &&
 			did_action( 'woocommerce_created_customer' ) > 0
+			&& is_checkout()
 		) {
 			$_COOKIE[ LOGGED_IN_COOKIE ] = $cookie;
 		}

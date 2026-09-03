@@ -6883,10 +6883,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Test that set_cookie_on_current_request does not set the cookie outside of checkout.
-	 *
-	 * Runs in its own process because `WOOCOMMERCE_CHECKOUT` is being defined in the test,
-	 * and then pollutes the global state for other tests.
+	 * Test that set_cookie_on_current_request() does not set the cookie outside of checkout.
 	 *
 	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4875
 	 *
@@ -6895,14 +6892,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @param bool      $expects_cookie    Whether the logged-in cookie is expected to be swapped.
 	 *
 	 * @dataProvider provide_set_cookie_on_current_request_contexts
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
-	public function test_set_cookie_on_current_request( ?bool $checkout_constant, bool $customer_created, bool $expects_cookie ): void {
-		if ( null !== $checkout_constant ) {
-			define( 'WOOCOMMERCE_CHECKOUT', $checkout_constant );
-		}
+	public function test_set_cookie_on_current_request( bool $is_checkout, bool $customer_created, bool $expects_cookie ): void {
+		$is_checkout_return = $is_checkout ? '__return_true' : '__return_false';
+		add_filter( 'woocommerce_is_checkout', $is_checkout_return );
 
 		if ( $customer_created ) {
 			do_action( 'woocommerce_created_customer', 1, [], false );
@@ -6910,6 +6903,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$gateway = new WC_Stripe_UPE_Payment_Gateway();
 		$gateway->set_cookie_on_current_request( 'test_cookie_value' );
+
+		remove_filter( 'woocommerce_is_checkout', $is_checkout_return );
 
 		if ( $expects_cookie ) {
 			$this->assertSame( 'test_cookie_value', $_COOKIE[ LOGGED_IN_COOKIE ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
@@ -6925,12 +6920,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_set_cookie_on_current_request_contexts() {
 		return [
-			'constant undefined, no customer created'      => [ null, false, false ],
-			'constant undefined, customer just registered' => [ null, true, false ],
-			'constant defined false, no customer created'  => [ false, false, false ],
-			'constant defined false, customer registered'  => [ false, true, false ],
-			'checkout request, no customer created'        => [ true, false, false ],
-			'checkout request, customer just created'      => [ true, true, true ],
+			'not in checkout, no customer created' => [ false, false, false ],
+			'not in checkout, customer registered' => [ false, true, false ],
+			'in checkout, no customer created'     => [ true, false, false ],
+			'in checkout, customer just created'   => [ true, true, true ],
 		];
 	}
 
