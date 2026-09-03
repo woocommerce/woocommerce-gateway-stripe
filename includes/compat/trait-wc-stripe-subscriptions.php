@@ -504,7 +504,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// One lock covers the whole attempt, retries included, so a concurrent renewal cannot charge in between.
 		if ( $order_helper->lock_order_payment( $renewal_order ) ) {
-			// Error, not warning: warnings are dropped unless debug logging is on.
+			// Log an error to ensure we log the error even when debug logging is disabled.
 			WC_Stripe_Logger::error( "Stripe: skipping duplicate renewal attempt for order {$order_id} because the payment lock is already held." );
 			$renewal_order->add_order_note( __( 'Stripe: skipped this renewal payment attempt because another payment attempt for this order was already in progress.', 'woocommerce-gateway-stripe' ) );
 			return;
