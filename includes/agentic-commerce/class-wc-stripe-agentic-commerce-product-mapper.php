@@ -1127,6 +1127,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * `do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' )` to
 		 * enqueue an immediate full-catalog sync.
 		 *
+		 * Also runs per row on the admin Products list (sync-status column),
+		 * so callbacks must be fast.
+		 *
 		 * @since 10.9.0
 		 * @param bool        $should_sync Whether to include the product. Default true, except for
 		 *                                 subscriptions, password-protected products, and products
