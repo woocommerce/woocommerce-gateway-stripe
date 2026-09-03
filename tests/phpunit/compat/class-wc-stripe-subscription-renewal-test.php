@@ -72,7 +72,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		// The tests in this file do not mock ALL the calls to the Stripe API, and as we use mocked API keys they trigger the 401 rate-limiter,
 		// this is not a problem for these tests as they don't depend on the reponses.
 		//
-		// Delete before the settings go: the cache key depends on the current mode.
+		// Delete the cached data before we delete the settings: the cache key depends on the current mode.
 		//
 		// TODO: Remove this once we've mocked all calls to the Stripe API (either using the pre_http_request filter, or by using a mocked WC_Stripe_API class).
 		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
