@@ -1,4 +1,10 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import {
+	render,
+	screen,
+	waitFor,
+	fireEvent,
+	act,
+} from '@testing-library/react';
 import AgenticCommerceSection from '..';
 import apiFetch from '@wordpress/api-fetch';
 import { dispatch } from '@wordpress/data';
@@ -66,7 +72,7 @@ const makeResponse = ( overrides = {} ) => ( {
 
 const EMPTY_RESPONSE = { last_sync: null, history: [], next_sync: null };
 
-const SETTINGS_RESPONSE = { is_enabled: true, webhook_secret: '' };
+const SETTINGS_RESPONSE = { is_enabled: true, webhook_secret: 'whsec_test' };
 
 /**
  * Set up apiFetch to route by path. Status calls return `statusResponse`
@@ -101,6 +107,8 @@ describe( 'AgenticCommerceSection', () => {
 				'https://dashboard.stripe.com/test/data-management/import-sets',
 			agentic_commerce_logs_url:
 				'/wp-admin/admin.php?page=wc-status&tab=logs',
+			agentic_commerce_excluded_products_url:
+				'http://example.test/wp-admin/edit.php?post_type=product&wc_stripe_agentic_sync_status=excluded',
 		};
 	} );
 
@@ -319,6 +327,107 @@ describe( 'AgenticCommerceSection', () => {
 		} );
 	} );
 
+	it( 'disables Sync Now and explains why when the webhook secret is missing', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		const syncBtn = await screen.findByRole( 'button', {
+			name: /Sync Now/i,
+		} );
+		expect( syncBtn ).toBeDisabled();
+		expect(
+			screen.getByText(
+				/Save your webhook secret above to finish setup/i
+			)
+		).toBeInTheDocument();
+	} );
+
+	it( 'enables Sync Now once onboarding is complete', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: 'whsec_test',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		const syncBtn = await screen.findByRole( 'button', {
+			name: /Sync Now/i,
+		} );
+		expect( syncBtn ).toBeEnabled();
+		expect(
+			screen.queryByText(
+				/Save your webhook secret above to finish setup/i
+			)
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'keeps Sync Now disabled while a typed webhook secret is unsaved', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		const syncBtn = await screen.findByRole( 'button', {
+			name: /Sync Now/i,
+		} );
+		fireEvent.change(
+			screen.getByLabelText( /Agentic Commerce webhook secret/i ),
+			{ target: { value: 'whsec_typed' } }
+		);
+
+		expect( syncBtn ).toBeDisabled();
+		expect(
+			screen.getByText(
+				/Click Save changes to store your webhook secret/i
+			)
+		).toBeInTheDocument();
+	} );
+
+	it( 'enables Sync Now once the typed webhook secret is saved', async () => {
+		const ref = { current: null };
+
+		apiFetch.mockImplementation( ( { path, method } ) => {
+			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
+				return Promise.resolve( {
+					is_enabled: true,
+					webhook_secret:
+						method === 'POST'
+							? 'whsec_********************************'
+							: '',
+				} );
+			}
+			return Promise.resolve( EMPTY_RESPONSE );
+		} );
+
+		render( <AgenticCommerceSection ref={ ref } /> );
+
+		const syncBtn = await screen.findByRole( 'button', {
+			name: /Sync Now/i,
+		} );
+		fireEvent.change(
+			screen.getByLabelText( /Agentic Commerce webhook secret/i ),
+			{ target: { value: 'whsec_typed' } }
+		);
+		expect( syncBtn ).toBeDisabled();
+
+		await act( async () => {
+			await ref.current.save();
+		} );
+
+		expect( syncBtn ).toBeEnabled();
+		expect(
+			screen.queryByText( /webhook secret/i, {
+				selector: '.wc-stripe-agentic-sync-onboarding-notice',
+			} )
+		).not.toBeInTheDocument();
+	} );
+
 	it( 'shows success notice and re-fetches after a successful sync', async () => {
 		apiFetch.mockImplementation( ( { path, method } ) => {
 			if (
@@ -477,6 +586,69 @@ describe( 'AgenticCommerceSection', () => {
 		} );
 		expect(
 			screen.queryByText( /Setup instructions/i )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'links to the excluded products view when the feature is enabled', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		await waitFor( () => {
+			expect(
+				screen.getByRole( 'link', {
+					name: /View excluded products/i,
+				} )
+			).toBeInTheDocument();
+		} );
+		expect(
+			screen.getByRole( 'link', { name: /View excluded products/i } )
+		).toHaveAttribute(
+			'href',
+			'http://example.test/wp-admin/edit.php?post_type=product&wc_stripe_agentic_sync_status=excluded'
+		);
+	} );
+
+	it( 'falls back to a relative excluded products URL without the backend param', async () => {
+		delete global.wc_stripe_settings_params
+			.agentic_commerce_excluded_products_url;
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		await waitFor( () => {
+			expect(
+				screen.getByRole( 'link', {
+					name: /View excluded products/i,
+				} )
+			).toHaveAttribute(
+				'href',
+				'edit.php?post_type=product&wc_stripe_agentic_sync_status=excluded'
+			);
+		} );
+	} );
+
+	it( 'hides the excluded products link when the feature is disabled', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: false,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		await waitFor( () => {
+			expect(
+				screen.queryByLabelText( /Webhook secret/i )
+			).not.toBeInTheDocument();
+		} );
+		expect(
+			screen.queryByRole( 'link', { name: /View excluded products/i } )
 		).not.toBeInTheDocument();
 	} );
 

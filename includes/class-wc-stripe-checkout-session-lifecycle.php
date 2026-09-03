@@ -128,29 +128,34 @@ class WC_Stripe_Checkout_Session_Lifecycle {
 	 */
 	public static function get_store_api_schema(): array {
 		return [
-			'session_id'    => [
+			'session_id'                  => [
 				'description' => __( 'Stripe Checkout Session ID.', 'woocommerce-gateway-stripe' ),
 				'type'        => 'string',
 				'readonly'    => true,
 			],
-			'client_secret' => [
+			'client_secret'               => [
 				'description' => __( 'Stripe Checkout Session client secret.', 'woocommerce-gateway-stripe' ),
 				'type'        => 'string',
 				'readonly'    => true,
 			],
-			'revision'      => [
+			'revision'                    => [
 				'description' => __( 'Checkout Session revision token.', 'woocommerce-gateway-stripe' ),
 				'type'        => 'string',
 				'readonly'    => true,
 			],
-			'status'        => [
+			'status'                      => [
 				'description' => __( 'Checkout Session synchronization status.', 'woocommerce-gateway-stripe' ),
 				'type'        => 'string',
 				'readonly'    => true,
 			],
-			'message'       => [
+			'message'                     => [
 				'description' => __( 'Checkout Session synchronization message.', 'woocommerce-gateway-stripe' ),
 				'type'        => 'string',
+				'readonly'    => true,
+			],
+			'save_payment_method_enabled' => [
+				'description' => __( 'Whether the Checkout Session was created with payment method saving enabled.', 'woocommerce-gateway-stripe' ),
+				'type'        => 'boolean',
 				'readonly'    => true,
 			],
 		];
