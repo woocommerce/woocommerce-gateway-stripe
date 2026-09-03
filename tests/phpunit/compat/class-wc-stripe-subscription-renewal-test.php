@@ -300,7 +300,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			);
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$order_helper->lock_order_payment( $renewal_order );
+		$lock_result  = $order_helper->lock_order_payment( $renewal_order );
 
 		// Default logging settings: the skip must log at error level.
 		$previous_logger = WC_Stripe_Logger::$logger;
@@ -358,6 +358,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
 
 		try {
+			$this->assertFalse( $lock_result, 'Expect a new lock to be acquired before we run the main test.' );
+
 			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
 		} finally {
 			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
