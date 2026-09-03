@@ -177,6 +177,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Don't show currency admin notices for payment methods when Adaptive Pricing is active
 * Tweak - Use database cache for webhook status tracking
 * Dev - Add WC_Stripe::get_settings()/update_settings() as the canonical accessors for the main Stripe settings, with the WC_Stripe_Helper shims delegating to them
+* Fix - Prevent cart from being emptied after My Account registration when Stripe, WooPayments, and Jetpack are all active by scoping the logged-in cookie update to checkout context only
 * Fix - Render classic-checkout card fields when a host optimizer defers render-blocking JavaScript (e.g. SiteGround Speed Optimizer)
 * Fix - Leave the Expires column blank instead of showing "N/A" on My Account → Payment methods for saved payment methods that have no expiry date, such as Link, SEPA and Cash App Pay
 * Dev - Remove the deprecated @woocommerce/settings npm package; settings are still read from the wc-settings script WooCommerce provides at runtime
