@@ -198,6 +198,15 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_LOCK_PAYMENT = '_stripe_lock_payment';
 
 	/**
+	 * Option name prefix for the row that decides who owns an order's payment lock.
+	 *
+	 * Order meta writes are not atomic; the unique-keyed option row is.
+	 *
+	 * @var string
+	 */
+	private const OPTION_STRIPE_LOCK_PAYMENT_OWNER_PREFIX = 'wc_stripe_payment_lock_owner_';
+
+	/**
 	 * Meta key for lock refund to prevent multiple simultaneous refund attempts.
 	 *
 	 * @var string
@@ -220,6 +229,13 @@ class WC_Stripe_Order_Helper {
 	 * @var null|WC_Stripe_Order_Helper
 	 */
 	private static ?WC_Stripe_Order_Helper $instance = null;
+
+	/**
+	 * Payment locks this instance acquired, keyed by site and order.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $owned_payment_locks = [];
 
 	/**
 	 * Gets the singleton instance of the class.
@@ -1363,29 +1379,443 @@ class WC_Stripe_Order_Helper {
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
 	public function lock_order_payment( WC_Order $order ): bool {
-		if ( $this->is_order_payment_locked( $order ) ) {
-			// If the order is already locked, return true.
+		$acquired_lock = $this->acquire_order_payment_lock_value( $order );
+
+		if ( false === $acquired_lock ) {
 			return true;
 		}
 
-		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS );
-
-		$order->update_meta_data( self::META_STRIPE_LOCK_PAYMENT, $new_lock );
-		$order->save_meta_data();
-
+		$this->owned_payment_locks[ $this->get_order_payment_lock_owner_key( $order ) ] = $acquired_lock;
 		return false;
 	}
 
 	/**
+	 * Acquires the payment lock and returns the value written.
+	 *
+	 * @since 11.0.0
+	 *
+	 * @param WC_Order $order The order that is being paid.
+	 * @return string|false The owned lock value, or false when the lock could not be acquired.
+	 */
+	public function acquire_order_payment_lock( WC_Order $order ) {
+		// A clone keeps the caller's unsaved changes intact.
+		$payment_lock_order = clone $order;
+		if ( $this->lock_order_payment( $payment_lock_order ) ) {
+			return false;
+		}
+
+		// A subclass override may not record an owner; fail closed.
+		$owner_key = $this->get_order_payment_lock_owner_key( $payment_lock_order );
+		if ( ! isset( $this->owned_payment_locks[ $owner_key ] ) ) {
+			WC_Stripe_Logger::error(
+				'Stripe: an order helper reported a successful payment-lock acquisition without recording an owner.',
+				[
+					'order_id'     => $payment_lock_order->get_id(),
+					'helper_class' => get_class( $this ),
+				]
+			);
+			return false;
+		}
+
+		return $this->owned_payment_locks[ $owner_key ];
+	}
+
+	/**
 	 * Unlocks an order for processing by payment intents.
+	 *
+	 * Releases a lock this instance acquired; otherwise it only clears an expired lock.
 	 *
 	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_payment( WC_Order $order ): void {
-		$order->delete_meta_data( self::META_STRIPE_LOCK_PAYMENT );
-		$order->save_meta_data();
+		$owner_key = $this->get_order_payment_lock_owner_key( $order );
+
+		if ( isset( $this->owned_payment_locks[ $owner_key ] ) ) {
+			$expected_lock = $this->owned_payment_locks[ $owner_key ];
+			unset( $this->owned_payment_locks[ $owner_key ] );
+			$this->unlock_order_payment_if_owned( $order, $expected_lock );
+			return;
+		}
+
+		// Without a token, only an expired lock may be cleared. Claim the row first.
+		$unlock_guard = ( time() + 5 * MINUTE_IN_SECONDS ) . '|' . wp_generate_uuid4();
+		if ( ! $this->claim_order_payment_lock_owner( $order, $unlock_guard ) ) {
+			return;
+		}
+
+		$payment_lock_order = clone $order;
+		$current_lock       = $this->get_order_existing_payment_lock( $payment_lock_order );
+		$lock_parts         = is_scalar( $current_lock ) ? explode( '|', (string) $current_lock, 2 ) : [];
+		$lock_expiry        = isset( $lock_parts[0] ) && ctype_digit( $lock_parts[0] ) ? (int) $lock_parts[0] : 0;
+
+		if ( null !== $current_lock && ( ! is_scalar( $current_lock ) || 0 === $lock_expiry || time() <= $lock_expiry ) ) {
+			$this->release_order_payment_lock_owner( $payment_lock_order, $unlock_guard );
+			return;
+		}
+
+		try {
+			$payment_lock_order->delete_meta_data( self::META_STRIPE_LOCK_PAYMENT );
+			$payment_lock_order->save_meta_data();
+		} finally {
+			$this->release_order_payment_lock_owner( $payment_lock_order, $unlock_guard );
+		}
+	}
+
+	/**
+	 * Unlocks an order only while the lock still holds the caller's value.
+	 *
+	 * @since 11.0.0
+	 *
+	 * @param WC_Order $order         The order that is being unlocked.
+	 * @param string   $expected_lock Exact lock value returned by acquire_order_payment_lock().
+	 */
+	public function unlock_order_payment_if_owned( WC_Order $order, string $expected_lock ): void {
+		if ( '' === $expected_lock ) {
+			return;
+		}
+
+		$owner_key = $this->get_order_payment_lock_owner_key( $order );
+		if ( isset( $this->owned_payment_locks[ $owner_key ] ) && $this->owned_payment_locks[ $owner_key ] === $expected_lock ) {
+			unset( $this->owned_payment_locks[ $owner_key ] );
+		}
+
+		// A release guard blocks other workers until the meta is deleted.
+		$release_guard = $this->replace_order_payment_lock_owner_if_owned( $order, $expected_lock );
+		if ( false === $release_guard ) {
+			return;
+		}
+
+		$payment_lock_order = clone $order;
+
+		try {
+			$current_lock = $this->get_order_existing_payment_lock( $payment_lock_order );
+
+			if ( is_scalar( $current_lock ) && (string) $current_lock === $expected_lock ) {
+				$payment_lock_order->delete_meta_data( self::META_STRIPE_LOCK_PAYMENT );
+				$payment_lock_order->save_meta_data();
+			}
+		} finally {
+			$this->release_order_payment_lock_owner( $payment_lock_order, $release_guard );
+		}
+	}
+
+	/**
+	 * Checks whether the owner row and the order meta both hold the caller's lock value.
+	 *
+	 * @since 11.0.0
+	 *
+	 * @param WC_Order $order         The order whose payment lock is being checked.
+	 * @param string   $expected_lock Exact lock value returned by acquire_order_payment_lock().
+	 * @return bool
+	 */
+	public function is_order_payment_lock_owned( WC_Order $order, string $expected_lock ): bool {
+		if ( '' === $expected_lock || ! $this->has_order_payment_lock_owner( $order, $expected_lock ) ) {
+			return false;
+		}
+
+		$current_lock = $this->get_order_existing_payment_lock( clone $order );
+
+		// Re-check the row after the meta read.
+		return is_scalar( $current_lock )
+			&& (string) $current_lock === $expected_lock
+			&& $this->has_order_payment_lock_owner( $order, $expected_lock );
+	}
+
+	/**
+	 * Extends the caller's payment lock by 5 minutes with no unlocked gap.
+	 *
+	 * @since 11.0.0
+	 *
+	 * @param WC_Order $order         The order whose payment lock is being renewed.
+	 * @param string   $expected_lock Exact lock value currently owned by the caller.
+	 * @return string|false The new lock value, or false when the caller no longer owns the lock.
+	 */
+	public function renew_order_payment_lock_if_owned( WC_Order $order, string $expected_lock ) {
+		if ( '' === $expected_lock || 0 >= $order->get_id() ) {
+			return false;
+		}
+
+		$renewed_lock_expiry = time() + 5 * MINUTE_IN_SECONDS;
+		$renewed_lock        = $renewed_lock_expiry . '|' . wp_generate_uuid4();
+
+		// The owner row moves first; the meta follows.
+		if ( ! $this->replace_order_payment_lock_owner_value_if_owned( $order, $expected_lock, $renewed_lock ) ) {
+			return false;
+		}
+
+		$payment_lock_order = clone $order;
+		$renewed            = false;
+
+		try {
+			$current_lock = $this->get_order_existing_payment_lock( $payment_lock_order );
+
+			if ( ! is_scalar( $current_lock ) || (string) $current_lock !== $expected_lock ) {
+				return false;
+			}
+
+			$payment_lock_order->update_meta_data( self::META_STRIPE_LOCK_PAYMENT, $renewed_lock );
+			$payment_lock_order->save_meta_data();
+
+			$persisted_lock = $this->get_order_existing_payment_lock( $payment_lock_order );
+			if ( time() > $renewed_lock_expiry || ! is_scalar( $persisted_lock ) || (string) $persisted_lock !== $renewed_lock || ! $this->has_order_payment_lock_owner( $payment_lock_order, $renewed_lock ) ) {
+				return false;
+			}
+
+			$this->owned_payment_locks[ $this->get_order_payment_lock_owner_key( $payment_lock_order ) ] = $renewed_lock;
+			$renewed = true;
+
+			return $renewed_lock;
+		} finally {
+			if ( ! $renewed ) {
+				$this->release_order_payment_lock_owner( $payment_lock_order, $renewed_lock );
+			}
+		}
+	}
+
+	/**
+	 * Claims the owner row, then writes the matching lock meta.
+	 *
+	 * @param WC_Order $order The order whose payment lock is being acquired.
+	 * @return string|false The lock value written, or false when another worker holds it.
+	 */
+	private function acquire_order_payment_lock_value( WC_Order $order ) {
+		$new_lock_expiry = time() + 5 * MINUTE_IN_SECONDS;
+		$new_lock        = $new_lock_expiry . '|' . wp_generate_uuid4();
+
+		if ( ! $this->claim_order_payment_lock_owner( $order, $new_lock ) ) {
+			return false;
+		}
+
+		$acquired = false;
+
+		try {
+			// Legacy locks have no owner row.
+			if ( $this->is_order_payment_locked( $order ) ) {
+				return false;
+			}
+
+			$order->update_meta_data( self::META_STRIPE_LOCK_PAYMENT, $new_lock );
+			$order->save_meta_data();
+
+			$persisted_lock = $this->get_order_existing_payment_lock( $order );
+			if ( time() > $new_lock_expiry || ! is_scalar( $persisted_lock ) || (string) $persisted_lock !== $new_lock || ! $this->has_order_payment_lock_owner( $order, $new_lock ) ) {
+				return false;
+			}
+
+			$acquired = true;
+			return $new_lock;
+		} finally {
+			if ( ! $acquired ) {
+				$this->release_order_payment_lock_owner( $order, $new_lock );
+			}
+		}
+	}
+
+	/**
+	 * Claims the owner row when it is missing or expired.
+	 *
+	 * @param WC_Order $order    The order whose payment lock is being acquired.
+	 * @param string   $new_lock Owner value to claim.
+	 * @return bool
+	 */
+	private function claim_order_payment_lock_owner( WC_Order $order, string $new_lock ): bool {
+		global $wpdb;
+
+		if ( 0 >= $order->get_id() ) {
+			return false;
+		}
+
+		$option_name = $this->get_order_payment_lock_owner_option_name( $order );
+
+		// INSERT IGNORE on the unique key picks one worker; add_option() may update instead.
+		$inserted = $wpdb->query(
+			$wpdb->prepare(
+				'INSERT IGNORE INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)',
+				$wpdb->options,
+				$option_name,
+				$new_lock,
+				'no'
+			)
+		);
+
+		if ( 1 === $inserted ) {
+			return true;
+		}
+
+		$existing_owner = $this->get_order_payment_lock_owner( $order );
+		$owner_parts    = is_string( $existing_owner ) ? explode( '|', $existing_owner, 2 ) : [];
+		$is_valid_owner = 2 === count( $owner_parts ) && ctype_digit( $owner_parts[0] ) && 0 < (int) $owner_parts[0] && '' !== $owner_parts[1];
+
+		// An unreadable row cannot be proven expired.
+		if ( ! $is_valid_owner ) {
+			WC_Stripe_Logger::error(
+				'Stripe: cannot acquire an order payment lock because its owner value is invalid.',
+				[
+					'order_id'           => $order->get_id(),
+					'payment_lock_owner' => $existing_owner,
+				]
+			);
+			return false;
+		}
+
+		if ( time() <= (int) $owner_parts[0] ) {
+			return false;
+		}
+
+		// Take over the expired row unless another worker already did.
+		$updated = $wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET option_value = %s, autoload = %s WHERE option_name = %s AND CAST( option_value AS BINARY ) = CAST( %s AS BINARY )',
+				$wpdb->options,
+				$new_lock,
+				'no',
+				$option_name,
+				(string) $existing_owner
+			)
+		);
+
+		if ( 1 === $updated ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Swaps an owned owner row for a temporary release guard.
+	 *
+	 * @param WC_Order $order         The order whose payment lock is being released.
+	 * @param string   $expected_lock Owner value being released.
+	 * @return string|false The guard value, or false when the row is no longer owned.
+	 */
+	private function replace_order_payment_lock_owner_if_owned( WC_Order $order, string $expected_lock ) {
+		if ( 0 >= $order->get_id() || '' === $expected_lock ) {
+			return false;
+		}
+
+		$release_guard = ( time() + 5 * MINUTE_IN_SECONDS ) . '|' . wp_generate_uuid4();
+
+		return $this->replace_order_payment_lock_owner_value_if_owned( $order, $expected_lock, $release_guard )
+			? $release_guard
+			: false;
+	}
+
+	/**
+	 * Replaces the owner row value only while it still holds the expected value.
+	 *
+	 * @param WC_Order $order            The order whose owner row is being replaced.
+	 * @param string   $expected_lock    Current owner value.
+	 * @param string   $replacement_lock New owner value.
+	 * @return bool
+	 */
+	private function replace_order_payment_lock_owner_value_if_owned( WC_Order $order, string $expected_lock, string $replacement_lock ): bool {
+		global $wpdb;
+
+		if ( 0 >= $order->get_id() || '' === $expected_lock || '' === $replacement_lock ) {
+			return false;
+		}
+
+		$option_name = $this->get_order_payment_lock_owner_option_name( $order );
+		$updated     = $wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET option_value = %s, autoload = %s WHERE option_name = %s AND CAST( option_value AS BINARY ) = CAST( %s AS BINARY )',
+				$wpdb->options,
+				$replacement_lock,
+				'no',
+				$option_name,
+				$expected_lock
+			)
+		);
+
+		if ( 1 !== $updated ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Checks whether the owner row holds the expected value.
+	 *
+	 * @param WC_Order $order         The order whose owner row is being checked.
+	 * @param string   $expected_lock Owner value.
+	 * @return bool
+	 * @phpstan-impure Reads mutable database state.
+	 */
+	private function has_order_payment_lock_owner( WC_Order $order, string $expected_lock ): bool {
+		$current_owner = $this->get_order_payment_lock_owner( $order );
+
+		return is_string( $current_owner ) && $current_owner === $expected_lock;
+	}
+
+	/**
+	 * Reads the owner row, bypassing the options cache.
+	 *
+	 * @param WC_Order $order The order whose owner row is being read.
+	 * @return string|null
+	 */
+	private function get_order_payment_lock_owner( WC_Order $order ): ?string {
+		global $wpdb;
+
+		if ( 0 >= $order->get_id() ) {
+			return null;
+		}
+
+		$owner = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT option_value FROM %i WHERE option_name = %s',
+				$wpdb->options,
+				$this->get_order_payment_lock_owner_option_name( $order )
+			)
+		);
+
+		return is_string( $owner ) ? $owner : null;
+	}
+
+	/**
+	 * Deletes the owner row only while it still holds the expected value.
+	 *
+	 * @param WC_Order $order         The order whose owner row is being released.
+	 * @param string   $expected_lock Owner value.
+	 * @return void
+	 */
+	private function release_order_payment_lock_owner( WC_Order $order, string $expected_lock ): void {
+		global $wpdb;
+
+		$option_name = $this->get_order_payment_lock_owner_option_name( $order );
+
+		$wpdb->query(
+			$wpdb->prepare(
+				'DELETE FROM %i WHERE option_name = %s AND CAST( option_value AS BINARY ) = CAST( %s AS BINARY )',
+				$wpdb->options,
+				$option_name,
+				$expected_lock
+			)
+		);
+	}
+
+	/**
+	 * Returns the owner row option name for an order.
+	 *
+	 * @param WC_Order $order The order whose owner row is addressed.
+	 * @return string
+	 */
+	private function get_order_payment_lock_owner_option_name( WC_Order $order ): string {
+		return self::OPTION_STRIPE_LOCK_PAYMENT_OWNER_PREFIX . $order->get_id();
+	}
+
+	/**
+	 * Returns the in-memory key for an order's owned lock, unique per site.
+	 *
+	 * @param WC_Order $order The order whose owned lock is addressed.
+	 * @return string
+	 */
+	private function get_order_payment_lock_owner_key( WC_Order $order ): string {
+		global $wpdb;
+
+		return $wpdb->options . ':' . $order->get_id();
 	}
 
 	/**
@@ -1458,8 +1888,14 @@ class WC_Stripe_Order_Helper {
 	 */
 	protected function is_order_payment_locked( WC_Order $order ): bool {
 		$existing_lock = $this->get_order_existing_payment_lock( $order );
+
+		// An unparseable lock cannot be proven expired.
+		if ( null !== $existing_lock && ! is_scalar( $existing_lock ) ) {
+			return true;
+		}
+
 		if ( $existing_lock ) {
-			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
+			$parts      = explode( '|', (string) $existing_lock ); // Format is: "{expiry_timestamp}" or "{expiry_timestamp}|{owner_token}".
 			$expiration = (int) $parts[0];
 
 			// If the lock is still active, return true.

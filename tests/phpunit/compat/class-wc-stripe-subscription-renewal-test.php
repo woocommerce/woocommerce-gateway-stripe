@@ -564,7 +564,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
 
-		$this->assertGreaterThan( time(), $lock_during_processing );
+		$this->assertGreaterThan( time(), (int) $lock_during_processing );
 		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $renewal_order ) );
 		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
 	}
