@@ -113,6 +113,61 @@ export const fillLinkPaymentDetails = async ( popup, card, address ) => {
 };
 
 /**
+ * Fill the shipping address form shown after signing up for Link with a
+ * shipping-required cart, and continue to the payment step.
+ *
+ * @param {Page}   popup   The Link popup page.
+ * @param {Object} address Shipping address fixture (config `addresses.*.shipping`).
+ */
+export const fillLinkShippingAddress = async ( popup, address ) => {
+	const nameInput = popup.locator( 'input[name="name"]' );
+	await nameInput.waitFor( { timeout: 30 * 1000 } );
+
+	// Country first (it decides the field layout), street address last: typing
+	// into it opens an autocomplete suggestion list that overlays the fields
+	// below it, which must be dismissed before anything else is clicked.
+	await popup
+		.locator( 'select[name="country"]' )
+		.selectOption( address.country_iso );
+	await nameInput.fill( `${ address.first_name } ${ address.last_name }` );
+	await popup.locator( 'input[name="postalCode"]' ).fill( address.postcode );
+	await popup
+		.locator( 'select[name="administrativeArea"]' )
+		.selectOption( address.state_iso );
+	await popup.locator( 'input[name="locality"]' ).fill( address.city );
+	await popup
+		.locator( 'input[name="addressLine1"]' )
+		.fill( address.address_1 );
+
+	const closeSuggestions = popup.getByTestId(
+		'autocomplete-suggestion-list-close'
+	);
+	if ( await closeSuggestions.isVisible().catch( () => false ) ) {
+		await closeSuggestions.click();
+	}
+	await popup.keyboard.press( 'Escape' );
+
+	await popup.getByRole( 'button', { name: 'Continue to payment' } ).click();
+};
+
+/**
+ * Fill the card-only payment form Link shows when the billing address is
+ * taken from the shipping address entered in the previous step.
+ *
+ * @param {Page}   popup The Link popup page.
+ * @param {Object} card  Card fixture (config `cards.*`).
+ */
+export const fillLinkCardDetails = async ( popup, card ) => {
+	const cardInput = popup.locator( 'input[name="cardNumber"]' );
+	await cardInput.waitFor( { timeout: 30 * 1000 } );
+	await cardInput.fill( card.number );
+	await popup
+		.locator( 'input[name="cardExpiry"]' )
+		.fill( `${ card.expires.month } / ${ card.expires.year }` );
+	await popup.locator( 'input[name="cardCvc"]' ).fill( card.cvc );
+};
+
+/**
  * Log in to an existing Link account from inside the Link popup.
  *
  * Only usable against Stripe sandbox/test mode, where 000000 is accepted as

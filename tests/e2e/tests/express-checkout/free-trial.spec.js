@@ -5,7 +5,9 @@ import { api, payments, products } from '../../utils';
 import { setProductType } from '../../utils/wp-cli';
 import {
 	assertLinkModalLoads,
+	fillLinkCardDetails,
 	fillLinkPaymentDetails,
+	fillLinkShippingAddress,
 	loginToLink,
 	openLinkPopup,
 	signUpForLink,
@@ -175,6 +177,73 @@ test.describe( 'express checkout with free trial subscriptions', () => {
 			await expect( popup.getByText( /4242/ ).first() ).toBeVisible( {
 				timeout: 60 * 1000,
 			} );
+			await expect( popup.getByTestId( 'pay-button' ) ).toBeEnabled();
+		} );
+	} );
+
+	test.describe( 'shipping-required trial cart with a saved Link shipping address', () => {
+		// The trial-cart test depends on the shipping address the purchase
+		// test saves to the Link account, so a failure must retry the whole
+		// group.
+		test.describe.configure( { mode: 'serial' } );
+
+		const linkEmail = `wc-stripe-link-e2e-${ randomUUID() }@example.com`;
+
+		test( 'saves a shipping address by completing a regular purchase @blocks @express-checkout', async ( {
+			page,
+		} ) => {
+			test.setTimeout( 240 * 1000 );
+			await page.goto( '/product/beanie' );
+			await clickAddToCartButton( page );
+			await expect(
+				page.getByText( 'has been added to your cart' )
+			).toBeVisible();
+			await page.goto( '/checkout' );
+
+			const popup = await openLinkPopup( page, true );
+			await signUpForLink(
+				popup,
+				linkEmail,
+				config.get( 'addresses.customer.billing.phone' )
+			);
+			await fillLinkShippingAddress(
+				popup,
+				config.get( 'addresses.customer.shipping' )
+			);
+			await fillLinkCardDetails( popup, config.get( 'cards.basic' ) );
+
+			await Promise.all( [
+				popup.waitForEvent( 'close', { timeout: 90 * 1000 } ),
+				popup.getByTestId( 'pay-button' ).click(),
+			] );
+
+			await waitForOrderReceivedPage( page );
+		} );
+
+		// A free-trial subscription cart returns no shipping rates for the
+		// initial cart (WC Subscriptions carries shipping on the recurring
+		// cart), so the express checkout address-change handler rejects every
+		// address: Link renders each saved address as "Unavailable for this
+		// purchase" and the sheet cannot continue. This test asserts the
+		// intended behavior and is expected to FAIL until that is fixed —
+		// when it starts passing, remove the test.fail() marker.
+		test( 'accepts the saved shipping address on a free-trial cart @blocks @express-checkout @subscriptions', async ( {
+			page,
+		} ) => {
+			test.fail();
+			test.setTimeout( 240 * 1000 );
+			await addProductToCartById( page, physicalProductId );
+			await page.goto( '/checkout' );
+
+			const popup = await openLinkPopup( page, true );
+			await loginToLink( popup, linkEmail );
+
+			await expect( popup.getByText( 'Shipping addresses' ) ).toBeVisible(
+				{ timeout: 60 * 1000 }
+			);
+			await expect(
+				popup.getByText( 'Unavailable for this purchase' )
+			).toBeHidden();
 			await expect( popup.getByTestId( 'pay-button' ) ).toBeEnabled();
 		} );
 	} );
