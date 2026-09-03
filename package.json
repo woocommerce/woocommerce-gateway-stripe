@@ -48,7 +48,7 @@
     "@wordpress/notices": "2.13.3",
     "@wordpress/prettier-config": "^3.15.0",
     "@wordpress/primitives": "^3.0.0",
-    "@wordpress/scripts": "^30.24.0",
+    "@wordpress/scripts": "^34.2.0",
     "@wordpress/url": "^3.2.1",
     "allure-playwright": "3.7.1",
     "archiver": "^5.0.0",
