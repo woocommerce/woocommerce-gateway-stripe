@@ -733,12 +733,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:process_refund\(\) should return bool but returns WP_Error\.$#'
-			identifier: return.type
-			count: 2
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:render_upe_settings\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -1563,7 +1557,7 @@ parameters:
 		-
 			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentContext\:\:\$order\.$#'
 			identifier: property.protected
-			count: 2
+			count: 4
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
@@ -1575,13 +1569,19 @@ parameters:
 		-
 			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentContext\:\:\$payment_method\.$#'
 			identifier: property.protected
-			count: 6
+			count: 5
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
 			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentResult\:\:\$payment_details\.$#'
 			identifier: property.protected
 			count: 2
+			path: includes/class-wc-stripe-blocks-support.php
+
+		-
+			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentResult\:\:\$status\.$#'
+			identifier: property.protected
+			count: 1
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
@@ -1651,18 +1651,6 @@ parameters:
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^Cannot access property \$message on array\.$#'
-			identifier: property.nonObject
-			count: 2
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Cannot access property \$type on array\.$#'
-			identifier: property.nonObject
-			count: 2
-			path: includes/class-wc-stripe-customer.php
-
-		-
 			message: '#^Cannot call method save\(\) on WC_Payment_Token_SEPA\|WC_Stripe_Payment_Token_CC\|false\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -1713,12 +1701,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Customer\:\:get_user\(\) should return WP_User but returns WP_User\|false\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:is_no_such_customer_error\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/class-wc-stripe-customer.php
 
@@ -2030,12 +2012,6 @@ parameters:
 
 		-
 			message: '#^Cannot call method is_reusable\(\) on WC_Stripe_UPE_Payment_Method\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Cannot call method needs_payment\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
@@ -2601,13 +2577,13 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$data\.$#'
 			identifier: property.notFound
-			count: 44
+			count: 42
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 11
+			count: 10
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3409,49 +3385,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
 
 		-
-			message: '#^Cannot call method get_name\(\) on WC_Product\|false\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
-			message: '#^Cannot call method get_stock_quantity\(\) on WC_Product\|false\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
-			message: '#^Cannot call method has_enough_stock\(\) on WC_Product\|false\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
-			message: '#^Cannot call method is_sold_individually\(\) on WC_Product\|false\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
-			message: '#^Cannot call method needs_shipping\(\) on WC_Product\|false\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
 			message: '#^Parameter \#1 \$data of method WC_Stripe_Express_Checkout_Helper\:\:normalize_state\(\) expects array, array\<string\|false\>\|false\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
-			message: '#^Parameter \#1 \$product of method WC_Stripe_Express_Checkout_Helper\:\:get_product_price\(\) expects object, WC_Product\|false\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
-			message: '#^Parameter \#1 \$product of method WC_Stripe_Express_Checkout_Helper\:\:is_invalid_subscription_product\(\) expects WC_Product\|null, WC_Product\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
@@ -3464,12 +3398,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$stock_quantity of function wc_format_stock_quantity_for_display expects int, int\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
-			message: '#^Parameter \#2 \$product of function wc_format_stock_quantity_for_display expects WC_Product, WC_Product\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
@@ -3783,7 +3711,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$client_secret\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -3807,7 +3735,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$object\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
