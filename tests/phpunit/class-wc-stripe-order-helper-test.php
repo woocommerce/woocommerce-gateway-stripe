@@ -313,8 +313,10 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	/**
 	 * @dataProvider provide_legacy_payment_locks
 	 */
-	public function test_unlock_order_payment_without_a_token_only_clears_expired_legacy_metadata( int $legacy_lock, bool $expect_cleared ): void {
-		$order = WC_Helper_Order::create_order();
+	public function test_unlock_order_payment_without_a_token_only_clears_expired_legacy_metadata( int $expiry_offset, bool $expect_cleared ): void {
+		// Providers run at discovery, so the timestamp is built here.
+		$legacy_lock = time() + $expiry_offset;
+		$order       = WC_Helper_Order::create_order();
 		$order->update_meta_data( '_stripe_lock_payment', $legacy_lock );
 		$order->save_meta_data();
 
@@ -330,8 +332,8 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 
 	public function provide_legacy_payment_locks(): array {
 		return [
-			'active legacy lock'  => [ time() + 5 * MINUTE_IN_SECONDS, false ],
-			'expired legacy lock' => [ time() - 1, true ],
+			'active legacy lock'  => [ 5 * MINUTE_IN_SECONDS, false ],
+			'expired legacy lock' => [ -1, true ],
 		];
 	}
 
