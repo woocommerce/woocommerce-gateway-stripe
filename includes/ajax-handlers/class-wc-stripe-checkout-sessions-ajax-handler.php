@@ -67,31 +67,24 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 					// is built from saved account meta only. Validate minimally (email) — Stripe collects the rest in the form.
 					$stripe_customer = new WC_Stripe_Customer( WC()->customer->get_id() );
 					$stripe_customer->maybe_create_customer( WC_Stripe_Customer::CUSTOMER_CONTEXT_CHECKOUT_SESSION );
-
-					$request['customer']                     = $stripe_customer->get_id();
-					$request['saved_payment_method_options'] = [
-						'payment_method_save' => 'enabled',
-					];
-
-					// When the buyer has no saved billing address the customer is created without one, so let Stripe
-					// backfill the Customer's name/address from what's entered at checkout.
-					$has_billing_address = '' !== trim( (string) get_user_meta( WC()->customer->get_id(), 'billing_address_1', true ) );
-					if ( ! $has_billing_address ) {
-						$request['customer_update'] = [
-							'address' => 'auto',
-							'name'    => 'auto',
-						];
-					}
 				} catch ( Exception $e ) {
-					// Degrade to a guest-style session instead of failing checkout.
-					WC_Stripe_Logger::error( 'Unable to create or retrieve Stripe customer for checkout session.', [ 'error_message' => $e->getMessage() ] );
+					throw new Exception( __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) );
 				}
-			}
 
-			// Billing details don't exist yet at page load, so let Stripe create the Customer at
-			// confirmation; the checkout.session.completed handler links it to the order/user.
-			if ( ! isset( $request['customer'] ) ) {
-				$request['customer_creation'] = 'always';
+				$request['customer']                     = $stripe_customer->get_id();
+				$request['saved_payment_method_options'] = [
+					'payment_method_save' => 'enabled',
+				];
+
+				// When the buyer has no saved billing address the customer is created without one, so let Stripe
+				// backfill the Customer's name/address from what's entered at checkout.
+				$has_billing_address = '' !== trim( (string) get_user_meta( WC()->customer->get_id(), 'billing_address_1', true ) );
+				if ( ! $has_billing_address ) {
+					$request['customer_update'] = [
+						'address' => 'auto',
+						'name'    => 'auto',
+					];
+				}
 			}
 
 			$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );
