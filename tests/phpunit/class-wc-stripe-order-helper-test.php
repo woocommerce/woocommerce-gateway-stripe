@@ -450,6 +450,71 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->assertEmpty( wc_get_order( $order->get_id() )->get_meta( '_unsaved_extension_meta', true ) );
 	}
 
+	public function test_sweep_expired_payment_lock_owners_deletes_only_expired_rows(): void {
+		$expired_order   = WC_Helper_Order::create_order();
+		$active_order    = WC_Helper_Order::create_order();
+		$malformed_order = WC_Helper_Order::create_order();
+		$active_lock     = ( time() + 5 * MINUTE_IN_SECONDS ) . '|' . wp_generate_uuid4();
+
+		$this->set_payment_lock_owner_row( $expired_order, ( time() - 1 ) . '|' . wp_generate_uuid4() );
+		$this->set_payment_lock_owner_row( $active_order, $active_lock );
+		$this->set_payment_lock_owner_row( $malformed_order, 'corrupt-owner-value' );
+
+		try {
+			WC_Stripe_Order_Helper::sweep_expired_payment_lock_owners();
+
+			$this->assertNull( $this->get_payment_lock_owner_row( $expired_order ) );
+			$this->assertSame( $active_lock, $this->get_payment_lock_owner_row( $active_order ) );
+			$this->assertSame( 'corrupt-owner-value', $this->get_payment_lock_owner_row( $malformed_order ) );
+		} finally {
+			$this->set_payment_lock_owner_row( $active_order, null );
+			$this->set_payment_lock_owner_row( $malformed_order, null );
+		}
+	}
+
+	/**
+	 * @dataProvider provide_sweep_row_outcomes
+	 */
+	public function test_sweep_expired_payment_lock_owners_deletes_rows_with_a_past_timestamp( $value, $expect_deleted ): void {
+		$order = WC_Helper_Order::create_order();
+
+		$this->set_payment_lock_owner_row( $order, $value );
+
+		try {
+			WC_Stripe_Order_Helper::sweep_expired_payment_lock_owners();
+
+			$this->assertSame( $expect_deleted ? null : $value, $this->get_payment_lock_owner_row( $order ) );
+		} finally {
+			$this->set_payment_lock_owner_row( $order, null );
+		}
+	}
+
+	public function provide_sweep_row_outcomes(): array {
+		return [
+			'expired without token'  => [ (string) ( time() - 1 ), true ],
+			'expired with token'     => [ ( time() - 1 ) . '|' . wp_generate_uuid4(), true ],
+			'active with token'      => [ ( time() + 60 ) . '|' . wp_generate_uuid4(), false ],
+			'no leading timestamp'   => [ '|' . wp_generate_uuid4(), false ],
+			'not a timestamp at all' => [ 'corrupt-owner-value', false ],
+		];
+	}
+
+	public function test_sweep_expired_payment_lock_owners_has_its_own_daily_action(): void {
+		$this->assertSame( 10, has_action( WC_Stripe_Order_Helper::PAYMENT_LOCK_OWNER_SWEEP_ACTION, [ WC_Stripe_Order_Helper::class, 'sweep_expired_payment_lock_owners' ] ) );
+		$this->assertSame( 10, has_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Order_Helper::class, 'maybe_schedule_payment_lock_owner_sweep' ] ) );
+	}
+
+	public function test_payment_lock_owner_sweep_can_be_scheduled_and_unscheduled(): void {
+		WC_Stripe_Order_Helper::unschedule_payment_lock_owner_sweep();
+		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Order_Helper::PAYMENT_LOCK_OWNER_SWEEP_ACTION, null ) );
+
+		WC_Stripe_Order_Helper::maybe_schedule_payment_lock_owner_sweep();
+		$this->assertTrue( as_has_scheduled_action( WC_Stripe_Order_Helper::PAYMENT_LOCK_OWNER_SWEEP_ACTION, null ) );
+
+		WC_Stripe_Order_Helper::unschedule_payment_lock_owner_sweep();
+		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Order_Helper::PAYMENT_LOCK_OWNER_SWEEP_ACTION, null ) );
+	}
+
 	/**
 	 * @dataProvider provide_malformed_payment_locks
 	 * @param mixed $malformed_lock Malformed payment lock metadata.

@@ -203,5 +203,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Honor subscription renewal payment locks while preserving retry attempts
 * Fix - Claim an atomic owner row before writing an order payment lock, and only release locks this request acquired
 * Fix - Renew the subscription renewal payment lock before the charge and before the response is recorded, and only record a failed attempt while the lock is still owned
+* Dev - Delete expired payment lock owner rows in a daily scheduled sweep
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

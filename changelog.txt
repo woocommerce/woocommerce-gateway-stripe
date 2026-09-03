@@ -48,6 +48,7 @@ xxxx-xx-xx - version 11.0.0
 * Fix - Honor subscription renewal payment locks while preserving retry attempts
 * Fix - Claim an atomic owner row before writing an order payment lock, and only release locks this request acquired
 * Fix - Renew the subscription renewal payment lock before the charge and before the response is recorded, and only record a failed attempt while the lock is still owned
+* Dev - Delete expired payment lock owner rows in a daily scheduled sweep
 
 2026-08-17 - version 10.9.0
 * Fix - Re-enable Adaptive Pricing if it was automatically disabled after a Checkout Session amount mismatch
