@@ -142,9 +142,12 @@ install_theme() {
 	( cd "$work" && zip -qr "$DEPS_DIR/$WP_THEME.zip" "$WP_THEME" )
 	rm -rf "$work"
 
+	# --force so a re-run reinstalls over an existing theme dir: the themes
+	# volume is shared/external and survives DB resets, and wp theme install
+	# otherwise aborts with "Destination folder already exists".
 	redirect_output cli wp theme install \
 		"/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/deps/$WP_THEME.zip" \
-		--activate
+		--force --activate
 }
 
 if ! docker info > /dev/null 2>&1; then
@@ -262,11 +265,15 @@ redirect_output cli wp --user=${ADMIN_USER} wc shipping_zone_method create 1 --m
 redirect_output cli wp option update --format=json woocommerce_flat_rate_1_settings '{"title":"Flat rate","tax_status":"taxable","cost":"10"}'
 
 echo " - Creating Cart and Checkout shortcode pages"
+# No --page_template: 'template-fullwidth.php' is a Storefront-specific template
+# and wp-cli rejects an unregistered template ("Invalid page template"), which
+# aborts setup under block themes. The default template renders the shortcode on
+# any theme, and the tests target the shortcode markup, not the page chrome.
 if ! cli wp post list --post_type=page --field=post_name | grep -q 'cart-shortcode'; then
-	redirect_output cli wp post create --post_type=page --post_title='Cart Shortcode' --post_name='cart-shortcode' --post_status=publish --page_template='template-fullwidth.php' --post_content='<!-- wp:shortcode -->[woocommerce_cart]<!-- /wp:shortcode -->'
+	redirect_output cli wp post create --post_type=page --post_title='Cart Shortcode' --post_name='cart-shortcode' --post_status=publish --post_content='<!-- wp:shortcode -->[woocommerce_cart]<!-- /wp:shortcode -->'
 fi
 if ! cli wp post list --post_type=page --field=post_name | grep -q 'checkout-shortcode'; then
-	redirect_output cli wp post create --post_type=page --post_title='Checkout Shortcode' --post_name='checkout-shortcode' --post_status=publish --page_template='template-fullwidth.php' --post_content='<!-- wp:shortcode -->[woocommerce_checkout]<!-- /wp:shortcode -->'
+	redirect_output cli wp post create --post_type=page --post_title='Checkout Shortcode' --post_name='checkout-shortcode' --post_status=publish --post_content='<!-- wp:shortcode -->[woocommerce_checkout]<!-- /wp:shortcode -->'
 fi
 
 echo " - Importing sample products"
