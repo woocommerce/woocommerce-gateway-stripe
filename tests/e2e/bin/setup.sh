@@ -24,6 +24,15 @@ DEBUG=false
 ADMIN_USER=admin
 ADMIN_PASSWORD=admin
 
+# Theme to activate for the run. Defaults to Storefront (classic markup). Set
+# WP_THEME to a WordPress.org slug to test another, or point WP_THEME_TARBALL_URL
+# at a Git tarball whose top level contains a "$WP_THEME/" directory (used for
+# block themes not on WordPress.org, e.g. the WooCommerce "purple" starter
+# theme from the woo-themes repo). CI parameterizes these to test both a classic
+# and a block theme.
+WP_THEME=${WP_THEME:-storefront}
+WP_THEME_TARBALL_URL=${WP_THEME_TARBALL_URL:-}
+
 DEPS_DIR="$E2E_ROOT/deps"
 
 cd "$CWD"
@@ -93,6 +102,49 @@ fetch_plugin_zip() {
 
 	missing_plugin_zip_error "$zip"
 	exit 1
+}
+
+# Installs and activates $WP_THEME. Themes on WordPress.org install by slug;
+# a WP_THEME_TARBALL_URL instead fetches a Git tarball, packages its
+# "$WP_THEME/" subdirectory into a zip under deps/, and installs that (block
+# themes like "purple" live in a monorepo subdir with no per-theme zip URL).
+install_theme() {
+	if [[ -z "$WP_THEME_TARBALL_URL" ]]; then
+		echo " - Installing theme '$WP_THEME' from WordPress.org"
+		redirect_output cli wp theme install "$WP_THEME" --activate
+		return
+	fi
+
+	check_dep 'tar'
+	check_dep 'zip'
+
+	echo " - Fetching theme '$WP_THEME' from $WP_THEME_TARBALL_URL"
+	mkdir -p "$DEPS_DIR"
+	local work
+	work=$(mktemp -d)
+	# --strip-components=1 drops the tarball's top-level "<repo>-<ref>/" wrapper,
+	# leaving "$WP_THEME/" at the root of $work.
+	if ! curl -sfL "$WP_THEME_TARBALL_URL" | tar -xz -C "$work" --strip-components=1; then
+		rm -rf "$work"
+		error "Could not download or extract theme tarball from $WP_THEME_TARBALL_URL"
+		exit 1
+	fi
+
+	if [[ ! -d "$work/$WP_THEME" ]]; then
+		rm -rf "$work"
+		error "Tarball has no '$WP_THEME/' directory at its top level."
+		exit 1
+	fi
+
+	# wp theme install expects a zip whose single top-level entry is the theme
+	# directory, so zip "$WP_THEME" from inside $work.
+	rm -f "$DEPS_DIR/$WP_THEME.zip"
+	( cd "$work" && zip -qr "$DEPS_DIR/$WP_THEME.zip" "$WP_THEME" )
+	rm -rf "$work"
+
+	redirect_output cli wp theme install \
+		"/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/deps/$WP_THEME.zip" \
+		--activate
 }
 
 if ! docker info > /dev/null 2>&1; then
@@ -198,8 +250,8 @@ redirect_output cli wp option set woocommerce_product_type "both"
 redirect_output cli wp option set woocommerce_allow_tracking "no"
 redirect_output cli wp option set woocommerce_coming_soon "no"
 
-echo " - Installing Storefront theme"
-redirect_output cli wp theme install storefront --activate
+step "Installing theme: $WP_THEME"
+install_theme
 
 redirect_output cli wp --user=${ADMIN_USER} wc tool run install_pages
 

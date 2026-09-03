@@ -31,9 +31,19 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
+        theme: ['storefront']
         project: ['default', 'isk', 'acss', 'optimized-checkout', 'adaptive-pricing', 'blik', 'becs']
+        # Additionally run the theme-sensitive checkout projects under a block
+        # theme (purple, fetched from the woo-themes repo) to catch block-theme
+        # regressions. The payment-method-specific projects are theme-independent,
+        # so they only run on the classic theme above.
+        include:
+          - theme: 'purple'
+            project: 'default'
+          - theme: 'purple'
+            project: 'optimized-checkout'
 
-    name: E2E - ${{ matrix.project }} WP=latest, WC=latest, PHP=7.4
+    name: E2E - ${{ matrix.project }} (${{ matrix.theme }}) WP=latest, WC=latest, PHP=7.4
     steps:
       - name: Checkout repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -95,13 +105,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
           STRIPE_PUB_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
           STRIPE_SECRET_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
+          WP_THEME: ${{ matrix.theme }}
+          # Pinned to a woo-themes commit so theme drift on trunk cannot silently
+          # change CI. Bump this SHA to pick up newer purple revisions.
+          WP_THEME_TARBALL_URL: ${{ matrix.theme == 'purple' && 'https://codeload.github.com/woocommerce/woo-themes/tar.gz/b08c586054a411c3a93c76bba4f0174335e8060d' || '' }}
         run: npm run test:e2e-setup
 
       - name: Upload e2e setup logs
         if: ${{ failure() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: E2E-${{ matrix.project }}-WP_latest-WC_latest-setup-logs
+          name: E2E-${{ matrix.project }}-${{ matrix.theme }}-WP_latest-WC_latest-setup-logs
           path: tests/e2e/e2e-setup.log
           if-no-files-found: ignore
           retention-days: 7
@@ -112,11 +126,11 @@ jobs:
           STRIPE_SECRET_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e-run -- --project=${{ matrix.project }}
 
-      - name: Upload E2E-${{ matrix.project }}-WP_latest-WC_latest-results
+      - name: Upload E2E-${{ matrix.project }}-${{ matrix.theme }}-WP_latest-WC_latest-results
         if: ${{ failure() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: E2E-${{ matrix.project }}-WP_latest-WC_latest-results
+          name: E2E-${{ matrix.project }}-${{ matrix.theme }}-WP_latest-WC_latest-results
           path: tests/e2e/test-results
           if-no-files-found: ignore
           retention-days: 14
