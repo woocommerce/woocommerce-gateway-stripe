@@ -531,9 +531,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param bool         $retry          Should we retry the process?
 	 * @param object|false $previous_error Previous error object.
 	 * @param int          $lock_expiry    Unix timestamp at which the caller's payment lock expires. 0 when unknown.
+	 * @param array        $keyed_requests Idempotency keys sent so far in this renewal, by JSON request; updated per attempt.
 	 * @return void
 	 */
-	private function process_subscription_payment_attempt( $amount, $renewal_order, $retry = true, $previous_error = false, int $lock_expiry = 0 ) {
+	private function process_subscription_payment_attempt( $amount, $renewal_order, $retry = true, $previous_error = false, int $lock_expiry = 0, array &$keyed_requests = [] ) {
 		$radar_reason = false;
 		$response     = null;
 
@@ -568,21 +569,65 @@ trait WC_Stripe_Subscriptions_Trait {
 			 * If we're doing a retry and source is chargeable, we need to pass
 			 * a different idempotency key and retry for success.
 			 */
-			if ( is_object( $source_object ) && empty( $source_object->error ) && $this->need_update_idempotency_key( $source_object, $previous_error ) ) {
-				add_filter( 'wc_stripe_idempotency_key', [ $this, 'change_idempotency_key' ], 10, 2 );
+			// Renewals match the idempotency error by type: Stripe's message text can change.
+			// Checkout keeps the gateway's message match.
+			$rotate_idempotency_key = is_object( $source_object )
+				&& empty( $source_object->error )
+				&& 'chargeable' === ( $source_object->status ?? '' )
+				&& is_object( $previous_error )
+				&& 'idempotency_error' === ( $previous_error->type ?? '' )
+				&& 1 < (int) ( $this->retry_interval ?? 1 ); // @phpstan-ignore-line (retry_interval is defined on the main gateway)
+			// After an api_error or api_connection_error in a Stripe response the charge may exist;
+			// the same key makes Stripe return the stored result instead of charging again.
+			$reuse_idempotency_key = is_object( $previous_error ) && in_array( $previous_error->type ?? '', [ 'api_error', 'api_connection_error' ], true );
+
+			// A key is only valid for the same parameters. Keys are kept per request, so a Level 3
+			// request in the next attempt does not discard the key of its fallback request.
+			$idempotency_key_filter = function ( $idempotency_key, $request ) use ( &$keyed_requests, $reuse_idempotency_key, $rotate_idempotency_key ) {
+				if ( empty( $idempotency_key ) || ! is_array( $request ) || empty( $request['metadata']['order_id'] ) ) {
+					return $idempotency_key;
+				}
+
+				$request_json = wp_json_encode( $request );
+				if ( $rotate_idempotency_key ) {
+					// UPE payment methods forward change_idempotency_key() to the main gateway, whose retry count is not this one.
+					$source          = ! empty( $request['source'] ) ? $request['source'] : ( $request['customer'] ?? '' );
+					$idempotency_key = $this instanceof WC_Stripe_Payment_Gateway
+						? $this->change_idempotency_key( $idempotency_key, $request )
+						: $request['metadata']['order_id'] . '-' . (int) $this->retry_interval . '-' . $source; // @phpstan-ignore-line (retry_interval is defined on the main gateway)
+				} elseif ( $reuse_idempotency_key && isset( $keyed_requests[ $request_json ] ) ) {
+					$idempotency_key = $keyed_requests[ $request_json ];
+				}
+
+				$keyed_requests[ $request_json ] = (string) $idempotency_key;
+				return $idempotency_key;
+			};
+
+			// The first attempt only records keys, and only a retry can reuse them.
+			$attach_idempotency_key_filter = $retry || $reuse_idempotency_key || $rotate_idempotency_key;
+			if ( $attach_idempotency_key_filter ) {
+				add_filter( 'wc_stripe_idempotency_key', $idempotency_key_filter, 10, 2 );
 			}
 
-			/**
-			 * Filters whether retrying a renewal should fall back to the customer's default source.
-			 *
-			 * @param bool $use_default_source Whether to use the customer's default source.
-			 */
-			if ( ( $this->is_no_such_source_error( $previous_error ) || $this->is_no_linked_source_error( $previous_error ) ) && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
-				// Passing empty source will charge customer default.
-				$prepared_source->source = '';
+			try {
+				/**
+				 * Filters whether retrying a renewal should fall back to the customer's default source.
+				 *
+				 * @param bool $use_default_source Whether to use the customer's default source.
+				 */
+				if ( ( $this->is_no_such_source_error( $previous_error ) || $this->is_no_linked_source_error( $previous_error ) ) && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
+					// Passing empty source will charge customer default.
+					$prepared_source->source = '';
+				}
+
+				$payment_attempt = $this->attempt_subscription_renewal_payment( $amount, $renewal_order, $prepared_source );
+			} finally {
+				// The filter must not outlive this attempt.
+				if ( $attach_idempotency_key_filter ) {
+					remove_filter( 'wc_stripe_idempotency_key', $idempotency_key_filter, 10 );
+				}
 			}
 
-			$payment_attempt            = $this->attempt_subscription_renewal_payment( $amount, $renewal_order, $prepared_source );
 			$response                   = $payment_attempt['response'];
 			$is_authentication_required = $payment_attempt['is_authentication_required'];
 
@@ -600,7 +645,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 					if ( $retry && ! $lock_expired ) {
 						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
-							$this->process_subscription_payment_attempt( $amount, $renewal_order, false, $response->error, $lock_expiry );
+							$this->process_subscription_payment_attempt( $amount, $renewal_order, false, $response->error, $lock_expiry, $keyed_requests );
 							return;
 						}
 
@@ -610,7 +655,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 						$lock_expired = $lock_expiry > 0 && time() > $lock_expiry;
 						if ( ! $lock_expired ) {
-							$this->process_subscription_payment_attempt( $amount, $renewal_order, true, $response->error, $lock_expiry );
+							$this->process_subscription_payment_attempt( $amount, $renewal_order, true, $response->error, $lock_expiry, $keyed_requests );
 							return;
 						}
 					}
