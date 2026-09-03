@@ -511,24 +511,8 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// The 5-minute lock can lapse mid-retry; only release it while it is still ours.
-		$our_lock      = $order_helper->get_order_existing_payment_lock( $renewal_order );
-		$is_valid_lock = ( is_int( $our_lock ) && 0 < $our_lock )
-			|| ( is_string( $our_lock ) && ctype_digit( $our_lock ) && 0 < (int) $our_lock );
-
-		if ( ! $is_valid_lock ) {
-			WC_Stripe_Logger::error(
-				"Stripe: cannot process subscription renewal for order {$order_id} because the acquired payment lock is invalid.",
-				[
-					'order_id'     => $order_id,
-					'payment_lock' => $our_lock,
-				]
-			);
-			$renewal_order->add_order_note( __( 'Stripe: this renewal payment could not be processed because its payment lock could not be verified.', 'woocommerce-gateway-stripe' ) );
-			return;
-		}
-
+		$our_lock    = (string) $order_helper->get_order_existing_payment_lock( $renewal_order );
 		$lock_expiry = (int) $our_lock;
-		$our_lock    = (string) $our_lock;
 
 		try {
 			$this->process_subscription_payment_attempt( $amount, $renewal_order, $retry, $previous_error, $lock_expiry );
@@ -615,7 +599,6 @@ trait WC_Stripe_Subscriptions_Trait {
 					$lock_expired = $lock_expiry > 0 && time() > $lock_expiry;
 
 					if ( $retry && ! $lock_expired ) {
-						// Last retry.
 						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
 							$this->process_subscription_payment_attempt( $amount, $renewal_order, false, $response->error, $lock_expiry );
 							return;
@@ -839,24 +822,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				// Use the last charge within the intent or the full response body in case of SEPA.
 				$latest_charge = $this->get_latest_charge_from_intent( $response );
-
-				// process_response() needs the charge object, not a bare ID.
-				if ( is_string( $latest_charge ) && '' !== $latest_charge ) {
-					$latest_charge = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_charge_object( $latest_charge );
-				}
-
-				// Fall back to the full response body.
-				if ( ! is_object( $latest_charge ) ) {
-					$latest_charge = null;
-				}
-
-				$charge_response = ( ! empty( $latest_charge ) ) ? $latest_charge : $response;
-
-				if ( is_array( $charge_response ) ) {
-					$charge_response = $this->convert_subscription_renewal_response_to_object( $charge_response );
-				}
-
-				$this->process_response( $charge_response, $renewal_order );
+				$this->process_response( ( ! empty( $latest_charge ) ) ? $latest_charge : $response, $renewal_order );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::error(
@@ -892,11 +858,13 @@ trait WC_Stripe_Subscriptions_Trait {
 			$request            = $this->generate_payment_request( $renewal_order, $prepared_source );
 			$request['capture'] = 'true';
 			$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
-			$response           = WC_Stripe_API::request( $request );
 
-			if ( is_array( $response ) ) {
-				$response = $this->convert_subscription_renewal_response_to_object( $response );
-			}
+			/**
+			 * The API layer decodes responses to stdClass.
+			 *
+			 * @var stdClass $response
+			 */
+			$response = WC_Stripe_API::request( $request );
 
 			return [
 				'response'                   => $response,
@@ -915,29 +883,6 @@ trait WC_Stripe_Subscriptions_Trait {
 			'response'                   => $response,
 			'is_authentication_required' => $this->is_authentication_required_for_payment( $response ),
 		];
-	}
-
-	/**
-	 * Converts an array response to nested objects and rejects JSON lists.
-	 *
-	 * @param array $response Stripe API response.
-	 * @return stdClass
-	 * @throws WC_Stripe_Exception When the response cannot be converted to an object.
-	 */
-	private function convert_subscription_renewal_response_to_object( array $response ): stdClass {
-		$encoded_response = wp_json_encode( $response );
-
-		if ( ! is_string( $encoded_response ) ) {
-			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem processing the Stripe response.', 'woocommerce-gateway-stripe' ) );
-		}
-
-		$decoded_response = json_decode( $encoded_response, false );
-
-		if ( ! $decoded_response instanceof stdClass ) {
-			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem processing the Stripe response.', 'woocommerce-gateway-stripe' ) );
-		}
-
-		return $decoded_response;
 	}
 
 	/**
