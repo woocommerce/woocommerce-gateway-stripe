@@ -511,7 +511,13 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// The 5-minute lock can lapse mid-retry; only release it while it is still ours.
-		$our_lock    = (string) $order_helper->get_order_existing_payment_lock( $renewal_order );
+		$our_lock = (string) $order_helper->get_order_existing_payment_lock( $renewal_order );
+		if ( '' === $our_lock ) {
+			WC_Stripe_Logger::error( "Stripe: skipping renewal attempt for order {$order_id} because we could not confirm the payment lock." );
+			$renewal_order->add_order_note( __( 'Stripe: skipped this renewal payment attempt because we could not confirm the payment lock.', 'woocommerce-gateway-stripe' ) );
+			return;
+		}
+
 		$lock_expiry = (int) $our_lock;
 
 		try {
