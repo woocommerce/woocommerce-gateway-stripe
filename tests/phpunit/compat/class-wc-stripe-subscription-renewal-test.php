@@ -281,6 +281,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$renewal_order->set_payment_method( $gateway_id );
 		$renewal_order->save();
+		$initial_order_status = $renewal_order->get_status();
 
 		$this->wc_gateway_stripe->id = $gateway_id;
 
@@ -376,6 +377,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertSame( [], $api_requests );
 		$this->assertGreaterThan( $processing_started_at, $lock_expiry );
 		$this->assertLessThanOrEqual( $processing_finished_at + 5 * MINUTE_IN_SECONDS, $lock_expiry );
+		$this->assertSame( $initial_order_status, $renewal_order->get_status() );
 
 		$order_id        = (string) $renewal_order->get_id();
 		$matching_errors = array_filter(
