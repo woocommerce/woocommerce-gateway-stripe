@@ -401,9 +401,10 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		// Store API 4xx (insufficient stock, unsupported product type, …)
 		// rejects the fetch with a localized shopper-facing message.
 		jest.useFakeTimers();
-		mockAddToCart.mockRejectedValue(
-			new Error( 'There is not enough stock.' )
-		);
+		mockAddToCart.mockRejectedValue( {
+			code: 'woocommerce_rest_product_out_of_stock',
+			message: 'There is not enough stock.',
+		} );
 		mockEmptyCartLegacy.mockResolvedValue( {} );
 		const alertSpy = jest
 			.spyOn( window, 'alert' )
@@ -558,6 +559,75 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			expect( changedEvent.resolve ).toHaveBeenCalledTimes( 1 );
 		} finally {
 			jest.useRealTimers();
+		}
+	} );
+
+	it( 'shows a generic message when the add fails without a server refusal', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+
+		// A transport failure (no apiFetch code) must not surface internals
+		// or selection advice.
+		mockAddToCart.mockRejectedValue( new TypeError( 'Failed to fetch' ) );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		const alertSpy = jest
+			.spyOn( window, 'alert' )
+			.mockImplementation( () => {} );
+
+		const { handlers } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const event = clickEvent();
+			await handlers.click( event );
+			expect( event.reject ).toHaveBeenCalledTimes( 1 );
+			await jest.advanceTimersByTimeAsync( 100 );
+			expect( alertSpy ).toHaveBeenCalledWith(
+				'There was an error adding the product to the cart.'
+			);
+		} finally {
+			jest.useRealTimers();
+			alertSpy.mockRestore();
+		}
+	} );
+
+	it( 'relays the server message when a slow add is refused after the deadline', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+
+		let rejectAddToCart;
+		mockAddToCart.mockImplementation(
+			() =>
+				new Promise( ( resolve, reject ) => {
+					rejectAddToCart = reject;
+				} )
+		);
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		const alertSpy = jest
+			.spyOn( window, 'alert' )
+			.mockImplementation( () => {} );
+
+		const { handlers } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const event = clickEvent();
+			const clickPromise = handlers.click( event );
+			await jest.advanceTimersByTimeAsync( 750 );
+			expect( event.reject ).toHaveBeenCalledTimes( 1 );
+
+			rejectAddToCart( {
+				code: 'woocommerce_rest_product_out_of_stock',
+				message: 'There is not enough stock.',
+			} );
+			await jest.advanceTimersByTimeAsync( 100 );
+			await clickPromise;
+			expect( alertSpy ).toHaveBeenCalledWith(
+				'There is not enough stock.'
+			);
+		} finally {
+			jest.useRealTimers();
+			alertSpy.mockRestore();
 		}
 	} );
 

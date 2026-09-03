@@ -279,6 +279,16 @@ jQuery( function ( $ ) {
 		},
 
 		createExpressCheckoutElement: ( expressPaymentType, options ) => {
+			// Only Store API refusals (code + message) carry a shopper-facing
+			// message; anything else gets the generic one.
+			const addToCartFailureMessage = ( error ) =>
+				error?.code && error?.message
+					? error.message
+					: __(
+							'There was an error adding the product to the cart.',
+							'woocommerce-gateway-stripe'
+					  );
+
 			// alert() pauses this page's event loop, which would also freeze
 			// the wallet-UI dismissal that reject() queues for methods opening
 			// on the raw gesture (e.g. Amazon Pay) — leaving the sheet on
@@ -359,16 +369,10 @@ jQuery( function ( $ ) {
 						timeout,
 					] );
 				} catch ( error ) {
-					// The server refused the add (stock, unsupported type);
-					// its message is already shopper-facing.
 					event.reject?.();
 					wcStripeECE.isAddToCartSuccessful = false;
 					promptAfterWalletDismissal(
-						error?.message ||
-							__(
-								'This product cannot be purchased with the selected options or quantity. Please adjust your selection and try again.',
-								'woocommerce-gateway-stripe'
-							)
+						addToCartFailureMessage( error )
 					);
 					return;
 				}
@@ -411,6 +415,11 @@ jQuery( function ( $ ) {
 						}
 					} catch ( error ) {
 						wcStripeECE.isAddToCartSuccessful = false;
+						// The click was already rejected at the deadline;
+						// still explain why a retry won't work.
+						promptAfterWalletDismissal(
+							addToCartFailureMessage( error )
+						);
 					} finally {
 						wcStripeECE.unblockExpressCheckoutButton();
 					}
