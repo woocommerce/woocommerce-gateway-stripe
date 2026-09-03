@@ -391,6 +391,11 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			}
 		}
 
+		// Archive rows queued while onboarding was incomplete have no other trigger.
+		if ( WC_Stripe_Agentic_Commerce_Integration::is_onboarding_complete() ) {
+			WC_Stripe_Agentic_Commerce_Inventory_Tracker::schedule_pending_archive_flush();
+		}
+
 		return $this->get_agentic_settings();
 	}
 

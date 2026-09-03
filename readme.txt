@@ -177,6 +177,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Don't show currency admin notices for payment methods when Adaptive Pricing is active
 * Tweak - Use database cache for webhook status tracking
 * Dev - Add WC_Stripe::get_settings()/update_settings() as the canonical accessors for the main Stripe settings, with the WC_Stripe_Helper shims delegating to them
+* Fix - Prevent cart from being emptied after My Account registration when Stripe, WooPayments, and Jetpack are all active by scoping the logged-in cookie update to checkout context only
 * Fix - Render classic-checkout card fields when a host optimizer defers render-blocking JavaScript (e.g. SiteGround Speed Optimizer)
 * Fix - Leave the Expires column blank instead of showing "N/A" on My Account → Payment methods for saved payment methods that have no expiry date, such as Link, SEPA and Cash App Pay
 * Dev - Remove the deprecated @woocommerce/settings npm package; settings are still read from the wc-settings script WooCommerce provides at runtime
@@ -192,12 +193,16 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop sending Level 3 data when paying with a non-card payment method through express checkout (e.g. Amazon Pay), which Stripe rejects and can disable Level 3 data for card payments
 * Fix - Record the charge-captured state for asynchronously confirmed payments (e.g. ACH) so refunds from wp-admin and the Stripe Dashboard behave correctly
 * Fix - Reject negative refund amounts with an explicit error instead of silently refunding the absolute value
+* Fix - Refresh account details re-evaluates Payment Method Configuration availability so a disabled pmc_enabled flag recovers automatically
+* Fix - Complete 3DS card payments on Optimized Checkout when the Stripe Payment Method Configuration also has wallet or voucher methods active
 * Fix - Prevent test and live Stripe connections from reusing each other's cached account data
 * Fix - Hide the Apple Pay and Google Pay express buttons on pages unchecked in their own locations setting, instead of following other wallets' locations
 * Fix - Hide the save payment method checkbox for Bancontact, iDEAL and Sofort in the Adaptive Pricing checkout on non-EUR stores whose currency excludes them
 * Fix - Remove the empty box shown under "Use a new payment method" on classic checkout when the save-payment-method checkbox is hidden
 * Fix - Ensure webhook status checks reset API key
 * Fix - Keep express checkout and the payment options rendering on the first block checkout load of a free-trial subscription cart
+* Fix - Only sync the Agentic Commerce catalog, inventory, and archive feeds to Stripe after onboarding is complete (the feature is enabled and the webhook secret is saved)
+* Tweak - Disable the Agentic Commerce "Sync now" button until onboarding is complete, with a note explaining the remaining step
 * Fix - Attach a Stripe customer to guest Adaptive Pricing checkouts, linking it to the order and any account created at checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
