@@ -366,6 +366,8 @@ class WC_Stripe {
 
 			add_action( WC_Stripe_Database_Cache::ASYNC_CLEANUP_ACTION, [ WC_Stripe_Database_Cache::class, 'delete_all_stale_entries_async' ], 10, 2 );
 			add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ], 10, 0 );
+			add_action( WC_Stripe_Order_Helper::PAYMENT_LOCK_OWNER_SWEEP_ACTION, [ WC_Stripe_Order_Helper::class, 'sweep_expired_payment_lock_owners' ], 10, 0 );
+			add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Order_Helper::class, 'maybe_schedule_payment_lock_owner_sweep' ], 10, 0 );
 
 			// Handle the async cache prefetch action.
 			add_action( WC_Stripe_Database_Cache_Prefetch::ASYNC_PREFETCH_ACTION, [ WC_Stripe_Database_Cache_Prefetch::get_instance(), 'handle_prefetch_action' ], 10, 1 );
@@ -467,6 +469,7 @@ class WC_Stripe {
 
 		// Try to schedule the daily async cleanup of the Stripe database cache.
 		WC_Stripe_Database_Cache::maybe_schedule_daily_async_cleanup();
+		WC_Stripe_Order_Helper::maybe_schedule_payment_lock_owner_sweep();
 
 		// If we have previously disabled settings synchronization, remove the flag after the upgrade,
 		// just to make sure we are still ineligible for settings synchronization.
