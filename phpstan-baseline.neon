@@ -2293,6 +2293,12 @@ parameters:
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
+			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects object, object\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
 			message: '#^Parameter \#1 \$intent of method WC_Stripe_Payment_Gateway\:\:get_latest_charge_from_intent\(\) expects object, array\|stdClass given\.$#'
 			identifier: argument.type
 			count: 1
