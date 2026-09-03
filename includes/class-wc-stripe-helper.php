@@ -1838,11 +1838,12 @@ class WC_Stripe_Helper {
 	 * @param string $css_class Optional CSS class for the anchor.
 	 * @return string
 	 */
-	public static function get_external_link_open_tag( string $url, string $css_class = '' ): string {
+	public static function get_external_link_open_tag( string $url, string $css_class = '', string $title = '' ): string {
 		return sprintf(
-			'<a href="%1$s"%2$s target="_blank" rel="noopener noreferrer">',
+			'<a href="%1$s"%2$s%3$s target="_blank" rel="noopener noreferrer">',
 			esc_url( $url ),
-			'' === $css_class ? '' : ' class="' . esc_attr( $css_class ) . '"'
+			'' === $css_class ? '' : ' class="' . esc_attr( $css_class ) . '"',
+			'' === $title ? '' : ' title="' . esc_attr( $title ) . '"'
 		);
 	}
 
@@ -1858,8 +1859,8 @@ class WC_Stripe_Helper {
 	 * @param string $css_class Optional CSS class for the anchor.
 	 * @return string
 	 */
-	public static function get_external_link( string $url, string $text = '', string $css_class = '' ): string {
-		return self::get_external_link_open_tag( $url, $css_class ) . esc_html( '' === $text ? $url : $text ) . '</a>';
+	public static function get_external_link( string $url, string $text = '', string $css_class = '', string $title = '' ): string {
+		return self::get_external_link_open_tag( $url, $css_class, $title ) . esc_html( '' === $text ? $url : $text ) . '</a>';
 	}
 
 	/**
