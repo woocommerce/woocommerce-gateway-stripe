@@ -1423,7 +1423,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Unlocks an order for processing by payment intents.
 	 *
-	 * Releases a lock this instance acquired; otherwise it only clears an expired legacy lock.
+	 * Releases a lock this instance acquired; otherwise it only clears an expired lock.
 	 *
 	 * @since 10.0.0
 	 *
@@ -1439,7 +1439,7 @@ class WC_Stripe_Order_Helper {
 			return;
 		}
 
-		// Without a token, only an expired legacy lock may be cleared. Claim the row first.
+		// Without a token, only an expired lock may be cleared. Claim the row first.
 		$unlock_guard = ( time() + 5 * MINUTE_IN_SECONDS ) . '|' . wp_generate_uuid4();
 		if ( ! $this->claim_order_payment_lock_owner( $order, $unlock_guard ) ) {
 			return;
