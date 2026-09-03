@@ -1492,6 +1492,282 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $renewal_order ) );
 	}
 
+	public function test_renewal_rejects_list_shaped_sepa_response() {
+		$renewal_order          = WC_Helper_Order::create_order();
+		$processed_charge_count = 0;
+		$caught                 = null;
+
+		$renewal_order->set_payment_method( 'stripe_sepa' );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe->id = 'stripe_sepa';
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::SEPA,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/charges' ) ) {
+				return $preempt;
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( [] ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+		$capture_processed_charge           = function () use ( &$processed_charge_count ) {
+			++$processed_charge_count;
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+		add_action( 'wc_gateway_stripe_process_payment_charge', $capture_processed_charge );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} catch ( \Throwable $e ) {
+			$caught = $e;
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			remove_action( 'wc_gateway_stripe_process_payment_charge', $capture_processed_charge );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		$this->assertNull( $caught, 'A malformed Stripe response should be rejected without leaking an error from process_response().' );
+		$this->assertSame( 0, $processed_charge_count );
+		$this->assertSame( OrderStatus::FAILED, $renewal_order->get_status() );
+		$this->assertSame( '', $renewal_order->get_transaction_id() );
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $renewal_order ) );
+	}
+
+	public function test_renewal_uses_the_expanded_charge_without_a_second_request() {
+		$renewal_order       = WC_Helper_Order::create_order();
+		$charge_get_requests = 0;
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		// Stripe returns the expanded charge in latest_charge.
+		$intent_response                    = json_decode( file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ), true );
+		$charge_object                      = $intent_response['charges']['data'][0];
+		$intent_response['charges']['data'] = [];
+		$intent_response['latest_charge']   = $charge_object;
+		$expand_params                      = null;
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $intent_response, $charge_object, &$charge_get_requests, &$expand_params ) {
+			$body = null;
+
+			if ( 'https://api.stripe.com/v1/payment_intents' === $url ) {
+				$expand_params = $request_args['body']['expand'] ?? null;
+				$body          = $intent_response;
+			} elseif ( 'https://api.stripe.com/v1/charges/ch_123abc' === $url ) {
+				++$charge_get_requests;
+				$body = $charge_object;
+			}
+
+			if ( null === $body ) {
+				return $preempt;
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( $body ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		$this->assertSame( [ 'latest_charge' ], $expand_params );
+		$this->assertSame( 0, $charge_get_requests );
+		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
+		$this->assertSame( 'ch_123abc', $renewal_order->get_transaction_id() );
+	}
+
+	public function test_renewal_stops_when_succeeded_intent_has_no_charge() {
+		$renewal_order          = WC_Helper_Order::create_order();
+		$processed_charge_count = 0;
+		$error_hook_count       = 0;
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		// A succeeded intent with no charge at all.
+		$intent_response                    = json_decode( file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ), true );
+		$intent_response['charges']['data'] = [];
+		unset( $intent_response['latest_charge'] );
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $intent_response ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
+				return $preempt;
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( $intent_response ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+		$capture_processed_charge           = function () use ( &$processed_charge_count ) {
+			++$processed_charge_count;
+		};
+		$error_hook                         = function () use ( &$error_hook_count ) {
+			++$error_hook_count;
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+		add_action( 'wc_gateway_stripe_process_payment_charge', $capture_processed_charge );
+		add_action( 'wc_gateway_stripe_process_payment_error', $error_hook );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			remove_action( 'wc_gateway_stripe_process_payment_charge', $capture_processed_charge );
+			remove_action( 'wc_gateway_stripe_process_payment_error', $error_hook );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		$note_contents = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $renewal_order->get_id() ] ), 'content' );
+
+		// A PaymentIntent must not be recorded as a charge; the merchant gets a note instead.
+		$this->assertSame( 0, $processed_charge_count );
+		$this->assertSame( 1, $error_hook_count );
+		$this->assertSame( '', $renewal_order->get_transaction_id() );
+		$this->assertSame( OrderStatus::PENDING, $renewal_order->get_status() );
+		$this->assertStringContainsString( 'without a charge', implode( "\n", $note_contents ) );
+	}
+
+	public function test_renewal_rejects_non_charge_object_response() {
+		$renewal_order          = WC_Helper_Order::create_order();
+		$processed_charge_count = 0;
+
+		$renewal_order->set_payment_method( 'stripe_sepa' );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe->id = 'stripe_sepa';
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::SEPA,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		// Has an id, but is not a charge.
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/charges' ) ) {
+				return $preempt;
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'id'     => 'pi_123abc',
+						'object' => 'payment_intent',
+						'status' => 'succeeded',
+					]
+				),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+		$capture_processed_charge           = function () use ( &$processed_charge_count ) {
+			++$processed_charge_count;
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+		add_action( 'wc_gateway_stripe_process_payment_charge', $capture_processed_charge );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			remove_action( 'wc_gateway_stripe_process_payment_charge', $capture_processed_charge );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		$this->assertSame( 0, $processed_charge_count );
+		$this->assertSame( OrderStatus::FAILED, $renewal_order->get_status() );
+		$this->assertSame( '', $renewal_order->get_transaction_id() );
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $renewal_order ) );
+	}
+
 	private function set_gateway_retry_interval( $retry_interval ) {
 		$reflection = new ReflectionProperty( WC_Stripe_Payment_Gateway::class, 'retry_interval' );
 		$reflection->setAccessible( true );
@@ -1617,6 +1893,243 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		// Clean up.
 		remove_filter( 'pre_http_request', [ $this, 'pre_http_request_response_success' ] );
+	}
+
+	/**
+	 * @dataProvider provide_authentication_required_responses_without_a_readable_charge
+	 */
+	public function test_renewal_authorization_required_without_a_readable_charge( $latest_charge, $charge_lookup_responses ) {
+		$renewal_order                 = WC_Helper_Order::create_order();
+		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
+		$charges_api_base              = 'https://api.stripe.com/v1/charges/';
+
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$body = json_decode( file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_authentication_required.json' ), true );
+		unset( $body['error']['charge'], $body['error']['payment_intent']['charges'] );
+		$body['error']['payment_intent']['latest_charge'] = $latest_charge;
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $payments_intents_api_endpoint, $charges_api_base, $body, &$charge_lookup_responses ) {
+			if ( $payments_intents_api_endpoint === $url ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode( $body ),
+					'response' => [
+						'code'    => 402,
+						'message' => 'Payment Required',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			if ( 0 === strpos( $url, $charges_api_base ) ) {
+				return array_shift( $charge_lookup_responses ) ?? $preempt;
+			}
+
+			return $preempt;
+		};
+
+		$mock_action_process_payment = new MockAction();
+		add_action( 'wc_gateway_stripe_process_payment_authentication_required', [ &$mock_action_process_payment, 'action' ] );
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			remove_action( 'wc_gateway_stripe_process_payment_authentication_required', [ &$mock_action_process_payment, 'action' ] );
+		}
+
+		$order         = wc_get_order( $renewal_order->get_id() );
+		$note_contents = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $renewal_order->get_id() ] ), 'content' );
+
+		$this->assertSame( 1, $mock_action_process_payment->get_call_count() );
+		$this->assertSame( OrderStatus::FAILED, $order->get_status() );
+		$this->assertSame( '', $order->get_transaction_id() );
+		$this->assertStringContainsString( 'Stripe payment awaiting authentication by user.', implode( "\n", $note_contents ) );
+	}
+
+	public function provide_authentication_required_responses_without_a_readable_charge(): array {
+		$charge_response = [
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'id'     => 'ch_123abc',
+					'object' => 'charge',
+				]
+			),
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+			'cookies'  => [],
+			'filename' => null,
+		];
+		$error_response  = [
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'error' => [
+						'type'    => 'invalid_request_error',
+						'message' => 'No such charge.',
+					],
+				]
+			),
+			'response' => [
+				'code'    => 404,
+				'message' => 'Not Found',
+			],
+			'cookies'  => [],
+			'filename' => null,
+		];
+
+		// Saving the intent reads the charge first; the renewal code reads it again.
+		return [
+			'response has no charge'     => [ null, [] ],
+			'first charge lookup fails'  => [ 'ch_123abc', [ $error_response, $error_response ] ],
+			'second charge lookup fails' => [ 'ch_123abc', [ $charge_response, $error_response ] ],
+		];
+	}
+
+	public function test_renewal_repeated_attempt_after_authentication_required_without_charge() {
+		$renewal_order    = WC_Helper_Order::create_order();
+		$intent_url       = 'https://api.stripe.com/v1/payment_intents/pi_123abc';
+		$confirm_requests = 0;
+
+		WC_Stripe_Order_Helper::get_instance()->add_payment_intent_to_order( 'pi_123abc', $renewal_order );
+		$renewal_order->save();
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $intent_url, &$confirm_requests ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' === $url ) {
+				++$confirm_requests;
+				return $preempt;
+			}
+
+			if ( 0 !== strpos( $url, $intent_url ) ) {
+				return $preempt;
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'id'                 => 'pi_123abc',
+						'object'             => 'payment_intent',
+						'status'             => 'requires_payment_method',
+						'last_payment_error' => [ 'code' => 'authentication_required' ],
+						'latest_charge'      => null,
+					]
+				),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		$mock_action_process_payment = new MockAction();
+		add_action( 'wc_gateway_stripe_process_payment_authentication_required', [ &$mock_action_process_payment, 'action' ] );
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			remove_action( 'wc_gateway_stripe_process_payment_authentication_required', [ &$mock_action_process_payment, 'action' ] );
+		}
+
+		$note_contents = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $renewal_order->get_id() ] ), 'content' );
+
+		$this->assertSame( 0, $confirm_requests );
+		$this->assertSame( 1, $mock_action_process_payment->get_call_count() );
+		$this->assertSame( OrderStatus::FAILED, wc_get_order( $renewal_order->get_id() )->get_status() );
+		$this->assertStringContainsString( 'Stripe payment awaiting authentication by user.', implode( "\n", $note_contents ) );
+	}
+
+	public function test_renewal_radar_blocked_reads_the_expanded_charge_without_a_request() {
+		$renewal_order                 = WC_Helper_Order::create_order();
+		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
+		$charges_api_base              = 'https://api.stripe.com/v1/charges/';
+		$charge_request_count          = 0;
+
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$mock_subscription = new WC_Subscription();
+		$mock_subscription->update_status( OrderStatus::ON_HOLD );
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = [ $mock_subscription ];
+
+		$body = json_decode( file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_radar_blocked.json' ), true );
+
+		$body['error']['payment_intent']['latest_charge'] = json_decode( file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_charge_radar_blocked.json' ), true );
+
+		$pre_http_request_callback = function ( $preempt, $request_args, $url ) use ( $payments_intents_api_endpoint, $charges_api_base, $body, &$charge_request_count ) {
+			if ( $payments_intents_api_endpoint === $url ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode( $body ),
+					'response' => [
+						'code'    => 402,
+						'message' => 'Payment Required',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			if ( 0 === strpos( $url, $charges_api_base ) ) {
+				++$charge_request_count;
+			}
+
+			return $preempt;
+		};
+
+		$hook_args = [];
+		$listener  = function ( $order, $response, $radar_reason ) use ( &$hook_args ) {
+			$hook_args[] = [ $order, $response, $radar_reason ];
+		};
+		add_action( 'wc_stripe_subscription_renewal_blocked_by_radar', $listener, 10, 3 );
+		add_filter( 'pre_http_request', $pre_http_request_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+
+			$this->assertSame( 0, $charge_request_count );
+			$this->assertCount( 1, $hook_args );
+			$this->assertSame( 'highest_risk_level', $hook_args[0][2] );
+			$this->assertSame( OrderStatus::FAILED, wc_get_order( $renewal_order->get_id() )->get_status() );
+		} finally {
+			remove_action( 'wc_stripe_subscription_renewal_blocked_by_radar', $listener, 10 );
+			remove_filter( 'pre_http_request', $pre_http_request_callback, 10 );
+			WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = null;
+			WCS_Retry_Manager::mock_reset();
+		}
 	}
 
 	/**

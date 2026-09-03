@@ -102,6 +102,48 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		];
 	}
 
+	public function test_get_latest_charge_from_intent_accepts_expanded_charge() {
+		$charge = (object) [
+			'id'     => 'ch_123abc',
+			'object' => 'charge',
+		];
+		$intent = (object) [ 'latest_charge' => $charge ];
+
+		$this->assertSame( $charge, $this->gateway->get_latest_charge_from_intent( $intent ) );
+	}
+
+	public function test_save_intent_to_order_keeps_the_intent_when_the_mandate_lookup_fails() {
+		$order    = WC_Helper_Order::create_order();
+		$intent   = (object) [
+			'id'            => 'pi_123abc',
+			'object'        => 'payment_intent',
+			'latest_charge' => 'ch_123abc',
+		];
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( 'https://api.stripe.com/v1/charges/ch_123abc' === $url ) {
+				return $this->build_response(
+					[
+						'error' => [
+							'type'    => 'api_error',
+							'message' => 'Temporary Stripe API error.',
+						],
+					]
+				);
+			}
+
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		try {
+			$this->gateway->save_intent_to_order( $order, $intent );
+		} finally {
+			remove_filter( 'pre_http_request', $callback, 10 );
+		}
+
+		$this->assertSame( 'pi_123abc', WC_Stripe_Order_Helper::get_instance()->get_stripe_intent_id( wc_get_order( $order->get_id() ) ) );
+	}
+
 	/**
 	 * Tests if payment intent is fetched from Stripe API.
 	 */

@@ -467,11 +467,15 @@ trait WC_Stripe_Subscriptions_Trait {
 			$charge_id = $response->error->payment_intent->latest_charge;
 		}
 
-		if ( empty( $charge_id ) ) {
-			return false;
-		}
+		// An expanded latest_charge needs no request.
+		$charge = $response->error->payment_intent->latest_charge ?? null;
+		if ( ! $this->is_subscription_renewal_charge_object( $charge ) ) {
+			if ( empty( $charge_id ) ) {
+				return false;
+			}
 
-		$charge = WC_Stripe_API::retrieve( "charges/{$charge_id}" );
+			$charge = WC_Stripe_API::retrieve( "charges/{$charge_id}" );
+		}
 
 		if ( is_wp_error( $charge ) || empty( $charge ) || ! empty( $charge->error ) ) {
 			return false;
@@ -809,6 +813,8 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// Either the charge was successfully captured, or it requires further authentication.
 			if ( $is_authentication_required ) {
+				$id = $this->get_subscription_renewal_authentication_charge_id( $response->error->payment_intent, $order_id );
+
 				/**
 				 * Fires when a Stripe payment requires customer authentication.
 				 *
@@ -820,12 +826,14 @@ trait WC_Stripe_Subscriptions_Trait {
 				$error_message = __( 'This transaction requires authentication.', 'woocommerce-gateway-stripe' );
 				$renewal_order->add_order_note( $error_message );
 
-				$charge = $this->get_latest_charge_from_intent( $response->error->payment_intent );
-				$id     = $charge->id;
-
 				$renewal_order->set_transaction_id( $id );
-				/* translators: %s is the charge Id */
-				$renewal_order->update_status( OrderStatus::FAILED, sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
+				$renewal_order->update_status(
+					OrderStatus::FAILED,
+					'' === $id
+						? __( 'Stripe payment awaiting authentication by user.', 'woocommerce-gateway-stripe' )
+						/* translators: %s is the charge Id */
+						: sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id )
+				);
 				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
 					$renewal_order->save();
 				}
@@ -875,9 +883,22 @@ trait WC_Stripe_Subscriptions_Trait {
 					'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
 				);
 
-				// Use the last charge within the intent or the full response body in case of SEPA.
-				$latest_charge = $this->get_latest_charge_from_intent( $response );
-				$this->process_response( ( ! empty( $latest_charge ) ) ? $latest_charge : $response, $renewal_order );
+				// The intent carries the expanded charge; for SEPA the response body is the charge.
+				$latest_charge = $this->resolve_subscription_renewal_charge_object( $this->get_latest_charge_from_intent( $response ) );
+
+				$charge_response = $latest_charge ?? $response;
+
+				// process_response() would read a PaymentIntent as an uncaptured charge and put
+				// the order on hold. Stop instead and leave the merchant a note.
+				if ( ! $this->is_subscription_renewal_charge_object( $charge_response ) ) {
+					$renewal_order->add_order_note( __( 'Stripe reported a successful renewal payment without a charge. Check the payment in the Stripe dashboard.', 'woocommerce-gateway-stripe' ) );
+					throw new WC_Stripe_Exception(
+						print_r( $charge_response, true ),
+						__( 'The Stripe renewal response did not contain a charge.', 'woocommerce-gateway-stripe' )
+					);
+				}
+
+				$this->process_response( $charge_response, $renewal_order );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::error(
@@ -913,13 +934,15 @@ trait WC_Stripe_Subscriptions_Trait {
 			$request            = $this->generate_payment_request( $renewal_order, $prepared_source );
 			$request['capture'] = 'true';
 			$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
+			$response           = WC_Stripe_API::request( $request );
 
-			/**
-			 * The API layer decodes responses to stdClass.
-			 *
-			 * @var stdClass $response
-			 */
-			$response = WC_Stripe_API::request( $request );
+			// process_response() expects a charge; a JSON list decodes to an array.
+			if ( ! is_object( $response ) || ( empty( $response->error ) && ! $this->is_subscription_renewal_charge_object( $response ) ) ) {
+				throw new WC_Stripe_Exception(
+					print_r( $response, true ),
+					__( 'The Stripe renewal response did not contain a charge.', 'woocommerce-gateway-stripe' )
+				);
+			}
 
 			return [
 				'response'                   => $response,
@@ -938,6 +961,35 @@ trait WC_Stripe_Subscriptions_Trait {
 			'response'                   => $response,
 			'is_authentication_required' => $this->is_authentication_required_for_payment( $response ),
 		];
+	}
+
+	/**
+	 * Returns a charge object, fetching it when only the ID is known.
+	 *
+	 * @param mixed $charge Charge object, charge ID, or an empty value.
+	 * @return stdClass|null
+	 */
+	private function resolve_subscription_renewal_charge_object( $charge ) {
+		if ( is_string( $charge ) && '' !== $charge ) {
+			$charge = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_charge_object( $charge );
+		}
+
+		return $this->is_subscription_renewal_charge_object( $charge ) ? $charge : null;
+	}
+
+	/**
+	 * Checks whether a value is a Stripe Charge object.
+	 *
+	 * @param mixed $charge Value resolved from a Stripe response.
+	 * @return bool
+	 * @phpstan-assert-if-true stdClass $charge
+	 */
+	private function is_subscription_renewal_charge_object( $charge ): bool {
+		// A PaymentIntent also has an id; check the object type.
+		return is_object( $charge )
+			&& ! $charge instanceof WP_Error
+			&& ! empty( $charge->id )
+			&& 'charge' === ( $charge->object ?? '' );
 	}
 
 	/**
@@ -1587,12 +1639,41 @@ trait WC_Stripe_Subscriptions_Trait {
 		do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order );
 
 		// Fail the payment attempt (order would be currently pending because of retry rules).
-		$charge    = $this->get_latest_charge_from_intent( $existing_intent );
-		$charge_id = $charge->id;
-		/* translators: %s is the stripe charge Id */
-		$renewal_order->update_status( OrderStatus::FAILED, sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $charge_id ) );
+		$charge_id = $this->get_subscription_renewal_authentication_charge_id( $existing_intent, $renewal_order->get_id() );
+		$renewal_order->update_status(
+			OrderStatus::FAILED,
+			'' === $charge_id
+				? __( 'Stripe payment awaiting authentication by user.', 'woocommerce-gateway-stripe' )
+				/* translators: %s is the stripe charge Id */
+				: sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $charge_id )
+		);
 
 		return true;
+	}
+
+	/**
+	 * Returns the charge id of an intent that requires authentication, or an empty string.
+	 *
+	 * The customer must still be asked to authenticate when the charge cannot be read.
+	 *
+	 * @param object $intent   The intent that requires authentication.
+	 * @param int    $order_id The renewal order id.
+	 * @return string
+	 */
+	private function get_subscription_renewal_authentication_charge_id( $intent, $order_id ): string {
+		$charge = null;
+		try {
+			$charge = $this->resolve_subscription_renewal_charge_object( $this->get_latest_charge_from_intent( $intent ) );
+		} catch ( WC_Stripe_Exception $charge_exception ) {
+			WC_Stripe_Logger::error( "Stripe: the charge lookup for the authentication-required renewal of order {$order_id} failed: " . $charge_exception->getMessage() );
+		}
+
+		if ( null === $charge ) {
+			WC_Stripe_Logger::error( "Stripe: no charge was read for the authentication-required renewal of order {$order_id}." );
+			return '';
+		}
+
+		return (string) $charge->id;
 	}
 
 	/**
