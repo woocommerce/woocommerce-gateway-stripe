@@ -207,6 +207,17 @@ class WC_Stripe_Order_Helper {
 	private const OPTION_STRIPE_LOCK_PAYMENT_OWNER_PREFIX = 'wc_stripe_payment_lock_owner_';
 
 	/**
+	 * Action Scheduler hook for the daily sweep of expired payment-lock owner rows.
+	 *
+	 * @since 11.0.0
+	 */
+	public const PAYMENT_LOCK_OWNER_SWEEP_ACTION = 'wc_stripe_payment_lock_owner_sweep';
+
+	private const PAYMENT_LOCK_OWNER_SWEEP_BATCH_SIZE = 500;
+
+	private const PAYMENT_LOCK_OWNER_SWEEP_MAX_BATCHES = 20;
+
+	/**
 	 * Meta key for lock refund to prevent multiple simultaneous refund attempts.
 	 *
 	 * @var string
@@ -1794,6 +1805,104 @@ class WC_Stripe_Order_Helper {
 				$expected_lock
 			)
 		);
+	}
+
+	/**
+	 * Deletes expired payment-lock owner rows that no later lock reclaimed.
+	 *
+	 * Rows are read in batches by option_id. A run stops after a fixed number
+	 * of batches so a large backlog cannot hold the queue.
+	 *
+	 * @since 11.0.0
+	 *
+	 * @return void
+	 */
+	public static function sweep_expired_payment_lock_owners(): void {
+		global $wpdb;
+
+		$deleted        = 0;
+		$now            = time();
+		$last_option_id = 0;
+
+		for ( $batch = 0; $batch < self::PAYMENT_LOCK_OWNER_SWEEP_MAX_BATCHES; $batch++ ) {
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT option_id, option_name, option_value FROM %i WHERE option_name LIKE %s AND option_id > %d ORDER BY option_id ASC LIMIT %d',
+					$wpdb->options,
+					$wpdb->esc_like( self::OPTION_STRIPE_LOCK_PAYMENT_OWNER_PREFIX ) . '%',
+					$last_option_id,
+					self::PAYMENT_LOCK_OWNER_SWEEP_BATCH_SIZE
+				),
+				ARRAY_A
+			);
+
+			if ( empty( $rows ) ) {
+				break;
+			}
+
+			foreach ( $rows as $row ) {
+				$last_option_id = (int) $row['option_id'];
+				$parts          = explode( '|', (string) $row['option_value'], 2 );
+
+				// A row without a leading timestamp cannot be proven expired.
+				if ( ! ctype_digit( $parts[0] ) || $now <= (int) $parts[0] ) {
+					continue;
+				}
+
+				// Owner-checked, so a row a worker just reclaimed is left alone.
+				$deleted += (int) $wpdb->query(
+					$wpdb->prepare(
+						'DELETE FROM %i WHERE option_name = %s AND CAST( option_value AS BINARY ) = CAST( %s AS BINARY )',
+						$wpdb->options,
+						$row['option_name'],
+						$row['option_value']
+					)
+				);
+			}
+
+			if ( count( $rows ) < self::PAYMENT_LOCK_OWNER_SWEEP_BATCH_SIZE ) {
+				break;
+			}
+		}
+
+		if ( 0 < $deleted ) {
+			WC_Stripe_Logger::debug( 'Deleted expired payment lock owner rows.', [ 'deleted' => $deleted ] );
+		}
+	}
+
+	/**
+	 * Schedules the daily sweep of expired payment-lock owner rows.
+	 *
+	 * @since 11.0.0
+	 *
+	 * @return void
+	 */
+	public static function maybe_schedule_payment_lock_owner_sweep(): void {
+		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {
+			return;
+		}
+
+		if ( as_has_scheduled_action( self::PAYMENT_LOCK_OWNER_SWEEP_ACTION, null ) ) {
+			return;
+		}
+
+		// An hour after the database cache cleanup.
+		as_schedule_recurring_action( strtotime( 'tomorrow 02:00' ), DAY_IN_SECONDS, self::PAYMENT_LOCK_OWNER_SWEEP_ACTION, [], 'woocommerce-gateway-stripe' );
+	}
+
+	/**
+	 * Unschedules the daily sweep of expired payment-lock owner rows.
+	 *
+	 * @since 11.0.0
+	 *
+	 * @return void
+	 */
+	public static function unschedule_payment_lock_owner_sweep(): void {
+		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+
+		as_unschedule_all_actions( self::PAYMENT_LOCK_OWNER_SWEEP_ACTION, [], 'woocommerce-gateway-stripe' );
 	}
 
 	/**
