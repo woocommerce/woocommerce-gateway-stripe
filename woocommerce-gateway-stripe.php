@@ -5,12 +5,12 @@
  * Description: Accept debit and credit card payments in 135+ currencies, as well as Apple Pay, Google Pay, Klarna, Affirm, P24, ACH, and more.
  * Author: Stripe
  * Author URI: https://stripe.com/
- * Version: 10.8.4
+ * Version: 10.9.1
  * Requires Plugins: woocommerce
  * Requires at least: 6.8
- * Tested up to: 7.0
- * WC requires at least: 10.6
- * WC tested up to: 10.8
+ * Tested up to: 7.1
+ * WC requires at least: 10.8
+ * WC tested up to: 11.0
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -22,10 +22,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '10.8.4' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '10.9.1' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.4' );
-define( 'WC_STRIPE_MIN_WC_VER', '10.6' );
-define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '10.7' );
+define( 'WC_STRIPE_MIN_WC_VER', '10.8' );
+define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '10.9' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
 define( 'WC_STRIPE_ABSPATH', __DIR__ . '/' );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugin_dir_url( WC_STRIPE_MAIN_FILE ) ) );
@@ -187,6 +187,9 @@ register_deactivation_hook( __FILE__, 'wcstripe_deactivated' );
 add_action( 'woocommerce_blocks_loaded', 'woocommerce_gateway_stripe_woocommerce_block_support' );
 
 function woocommerce_gateway_stripe_woocommerce_block_support() {
+	woocommerce_stripe_init_autoloader();
+	WC_Stripe_Checkout_Session_Lifecycle::init_store_api();
+
 	if ( class_exists( 'Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-blocks-support.php';
 		// priority is important here because this ensures this integration is

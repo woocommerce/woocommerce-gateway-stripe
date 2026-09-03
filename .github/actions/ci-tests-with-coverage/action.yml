@@ -11,16 +11,16 @@ runs:
   using: "composite"
   steps:
     - name: Checking out
-      uses: actions/checkout@v2
+      uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e # v2
 
     - name: Set up dependencies caching
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: ~/.cache/composer/
         key:  ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
 
     - name: Cache WordPress core and test suite
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: |
           /tmp/wordpress
