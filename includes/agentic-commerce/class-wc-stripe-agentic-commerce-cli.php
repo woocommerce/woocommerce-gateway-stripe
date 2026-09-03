@@ -31,7 +31,13 @@ class WC_Stripe_Agentic_Commerce_CLI extends WP_CLI_Command {
 	 * ## OPTIONS
 	 *
 	 * [--push]
-	 * : Deliver the feed to Stripe after generation.
+	 * : Deliver the feed to Stripe after generation. Requires completed
+	 * onboarding (settings toggle on and webhook secret saved), matching the
+	 * scheduled sync's gate.
+	 *
+	 * [--force]
+	 * : Push even if onboarding is incomplete. Development escape hatch;
+	 * uploads the catalog to the connected Stripe account.
 	 *
 	 * ## EXAMPLES
 	 *
@@ -49,6 +55,12 @@ class WC_Stripe_Agentic_Commerce_CLI extends WP_CLI_Command {
 		// Check delivery setup before generating if pushing.
 		$delivery = null;
 		if ( $push ) {
+			// Same gate as WC_Stripe_Agentic_Commerce_Integration::sync_feed():
+			// nothing should reach Stripe before the merchant finishes onboarding.
+			if ( empty( $assoc_args['force'] ) && ! WC_Stripe_Agentic_Commerce_Integration::is_onboarding_complete() ) {
+				WP_CLI::error( 'Onboarding incomplete (enable Agentic Commerce in settings and save a webhook secret). Cannot push feed. Use --force to override.' );
+			}
+
 			$delivery = $integration->get_push_delivery_method();
 			if ( ! $delivery->check_setup() ) {
 				WP_CLI::error( 'Stripe API key is not configured. Cannot push feed.' );
