@@ -4,10 +4,16 @@ import { NodeSSH } from 'node-ssh';
 /**
  * Run WP-CLI commands against the site under test.
  *
- * Dispatches on the DOCKER env flag set by run-tests.sh: Docker runs use a
- * throwaway wordpress:cli container attached to the E2E WordPress container
- * (mirroring cli() in tests/e2e/bin/common.sh); remote runs go over SSH with
- * the credentials from local.env, like the setup helpers in playwright-setup.js.
+ * Dispatches on the DOCKER env flag set by run-tests.sh. Docker runs reuse the
+ * canonical cli() helper from tests/e2e/bin/common.sh — the exact same
+ * throwaway wordpress:cli invocation the setup scripts rely on — rather than
+ * duplicating the container name and flags here, so this can't drift from the
+ * container the setup created. Remote runs go over SSH with the credentials
+ * from local.env, like the setup helpers in playwright-setup.js.
+ *
+ * The Docker branch assumes the process runs from the repository root (common.sh
+ * derives E2E_ROOT from `pwd`); this holds for every npm-invoked test run in CI
+ * and locally.
  *
  * @param {Array.<string>} commands WP-CLI commands, each starting with `wp `.
  * @return {Promise<void>} Resolves when all commands have run.
@@ -15,10 +21,10 @@ import { NodeSSH } from 'node-ssh';
 export async function runWpCommands( commands ) {
 	if ( process.env.DOCKER ) {
 		for ( const command of commands ) {
-			execSync(
-				`docker run -i --rm --user 33:33 --env-file ${ process.env.E2E_ROOT }/env/default.env --volumes-from wcstripe-e2e-wordpress --network container:wcstripe-e2e-wordpress wordpress:cli ${ command }`,
-				{ stdio: 'pipe' }
-			);
+			execSync( `. ./tests/e2e/bin/common.sh && cli ${ command }`, {
+				shell: '/bin/bash',
+				stdio: 'pipe',
+			} );
 		}
 		return;
 	}
